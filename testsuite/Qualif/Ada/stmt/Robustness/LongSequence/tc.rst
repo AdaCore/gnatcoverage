@@ -1,4 +1,4 @@
-**straightline statements in a big subprogram**
+**Exercise a long straightline sequence of statements**
 
 Check that all of the straight-line statements in a long subprogram are
 reported as covered when the subprogram is called.

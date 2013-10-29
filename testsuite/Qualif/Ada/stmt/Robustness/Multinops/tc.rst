@@ -1,12 +1,8 @@
-**sequences of multiple nop statements (e.g. null or pragma)**
+**Exercise sequences of multiple no-op statements (e.g. null or pragma)**
 
-Check that sequences of multiple "no-op" statements (constructs with
-no generated code, such as null statements or pragma) are
-handled properly.
+Exercise a subprogram with two consecutive statements not generating code
+(e.g. null statement or pragma) followed by a statement with code.
 
-Exercise a package containing a subprogram with two consecutive "no-op"
-statements followed by a statement with code.
-
-Verify that the two statements with no code are reported with the same coverage
-status as the subsequent statement with code.
+Verify that the same coverage is reported for all the statements, when the
+subprogram is called as well as when not.
 

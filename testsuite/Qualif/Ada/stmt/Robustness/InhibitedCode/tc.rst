@@ -1,5 +1,4 @@
-**No stmt coverage violations reported for explicitly deactivated sequences, in a subprogram or package elaboration body**
+**Exercise deactivated sequences**
 
-Check that no statement coverage violations are reported for explicitly
-deactivated sequences, in a subprogram or package body.
+Check that no stmt or decision coverage violations are reported for sequences conditioned by a constant False guard, in a subprogram or package elaboration body.
 
