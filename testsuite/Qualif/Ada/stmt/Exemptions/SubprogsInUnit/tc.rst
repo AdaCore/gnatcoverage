@@ -1,9 +1,6 @@
-**exemptions applying to groups of entire subprograms**
+**Exercise exemptions over groups of entire subprograms**
 
-Check processing of exemptions applying to groups of subprograms.
-
-Exercise a package that declares some non-exempted subprogram bodies and
-that also contains an exemption region encompassing several other
-subprograms.
+Exercise a package that declares some non-exempted subprogram bodies as
+well as a exemption region encompassing several other subprograms.
 
 
