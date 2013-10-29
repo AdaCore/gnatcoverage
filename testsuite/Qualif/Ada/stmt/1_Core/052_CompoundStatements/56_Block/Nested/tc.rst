@@ -1,3 +1,2 @@
-**nested block statements**
+**Exercise SC on nested BLOCK statements**
 
-Check SC with nested block statements
