@@ -1,4 +1,2 @@
-**IF statements taking IF branches only**
-
-Check SC with IF statements taking IF branches only.
+**Exercise SC on IF statements taking IF branches only**
 

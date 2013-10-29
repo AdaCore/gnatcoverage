@@ -1,6 +1,4 @@
-**IF statements taking ELSIF branches only**
+**Exercise SC on IF statements taking ELSIF branches only, one or more**
 
-Check SC with IF statements taking ELSIF branches only.
-
-Exercise IF constructs with one or more ELSIF branches. Check results on
-taking either the first one, the last one, or one in the middle.
+Check results on taking either the first ELSIF, the last one, or one
+in the middle.

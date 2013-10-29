@@ -1,4 +1,2 @@
-**IF statements taking [implicit] ELSE branches only**
-
-Check SC with IF statements taking [implicit] ELSE branches only.
+**Exercise SC on IF statements taking implicit or explicit ELSE branches only**
 
