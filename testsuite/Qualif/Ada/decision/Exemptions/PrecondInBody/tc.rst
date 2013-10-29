@@ -1,16 +1,13 @@
-**Exercise the use of an exemption region to exempt a functional precondition at beginning of subprogram body**
-
-Exercise the use of an exemption region to exempt a functional precondition
-expressed manually (explicit check) at the beginning of a subprogram body.
+**Exercise exemptions over an explicit assertion early in a subprogram body**
 
 Check:
 
-* Situations where the precondition always evaluates to True
+* Situations where the test always evaluates to True
   (nominal case, exempted DC violation)
 
-* Situations where the precondition only evaluates to False
+* Situations where the test only evaluates to False
   (force error case, exempted DC violation)
 
-* Consolidation of the previous cases: precondition exercised both
+* Consolidation of the previous cases: test exercised both
   ways (no exempted violation)
  

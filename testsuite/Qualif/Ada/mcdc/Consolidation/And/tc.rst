@@ -1,2 +1,2 @@
-**Exercise consolidation over "A and then B"**
+**Exercise MCDC consolidation over "A and then B"**
 

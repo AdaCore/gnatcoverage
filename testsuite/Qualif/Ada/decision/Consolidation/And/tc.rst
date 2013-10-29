@@ -1,4 +1,2 @@
-**Exercise consolidation over "A and then B"**
-
-Exercise consolidation over "A and then B".
+**Exercise DC consolidation over "A and then B"**
 

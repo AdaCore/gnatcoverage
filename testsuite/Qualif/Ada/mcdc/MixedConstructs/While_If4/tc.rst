@@ -1,6 +1,4 @@
-**Exercise a three way If statement within a While loop.**
-
-Exercise a three way If statement within a While loop.
+**Exercise a three way IF statement within a WHILE loop.**
 
 Check cases where
 

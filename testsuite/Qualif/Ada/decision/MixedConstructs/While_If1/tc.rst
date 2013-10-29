@@ -1,6 +1,4 @@
-**Exercise a simple If statement within a While loop**
-
-Exercise a simple If statement within a While loop.
+**Exercise a simple IF statement within a WHILE loop**
 
 Check cases where
 

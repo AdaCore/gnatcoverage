@@ -1,4 +1,2 @@
-**Exercise "Call (A and then B, C or else D)".**
-
-Exercise "Call (A and then B, C or else D)".
+**Exercise MCDC on "Call (A and then B, C or else D)"**
 

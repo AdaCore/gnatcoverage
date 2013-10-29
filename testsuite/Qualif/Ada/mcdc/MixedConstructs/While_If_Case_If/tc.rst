@@ -1,16 +1,12 @@
-**Exercise a simple If statement nested in one of the possible selections of a**
-
-Exercise a simple If statement nested in one of the possible selections of a
-Case statement, itself conditioned by an outer If statement executed as part of
-a While loop.
+**Exercise a simple IF statement nested in a CASE alternative, conditioned by an outer IF executed as part of a WHILE loop**
 
 We implement a double testing strategy, with:
 
-* Statement coverage oriented scenarii, exercising combinations of SC
-  possibilities on each kind of statement (loop entered or not, If part of an
-  If statement reached or not, Case statement selections reached or not, ...),
+* Statement coverage-oriented scenarios, exercising SC possibilities (loop
+  entered or not, If part of an If statement reached or not, Case statement
+  alternatives reached or not, ...) and combinations of these.
 
-* Decision coverage oriented scenarii, exercising combinations of
-  DC possibilities on each decision.
-
+* Decision coverage-oriented scenarios, exercising DC possibilities
+  (a given decision True only, False only, or both True and False) and
+  combinations of these.
 

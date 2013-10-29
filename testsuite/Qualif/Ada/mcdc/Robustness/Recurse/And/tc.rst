@@ -1,4 +1,2 @@
-**Exercise a recursive evaluation of "A and then B", diamondless.**
-
-Exercise a recursive evaluation of "A and then B", diamondless.
+**Exercise MCDC on a recursive evaluation of "A and then B"**
 

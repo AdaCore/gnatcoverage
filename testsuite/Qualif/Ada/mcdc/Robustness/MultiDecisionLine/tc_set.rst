@@ -1,8 +1,7 @@
-Check that when multiple decisions occur on the same source line, individual
-============================================================================
+Check that distinct decisions on a single source line are processed correctly
+=============================================================================
 
-Check that when multiple decisions occur on the same source line, individual
-decisions are properly recognized.
+By way of the following set of testcases:
 
 .. qmlink:: TCIndexImporter
 

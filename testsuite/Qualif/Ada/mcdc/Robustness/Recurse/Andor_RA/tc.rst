@@ -1,4 +1,2 @@
-****Exercise a recursive evaluation of "(A and then B) or else C", diamondish,****
-Exercise a recursive evaluation of "(A and then B) or else C", diamondish,
-with recursion triggering during evaluation of A.
+**Exercise MCDC on "(A and then B) or else C" with recursion triggered during the evaluation of A**
 
