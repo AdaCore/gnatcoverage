@@ -1,6 +1,4 @@
-**object renamings**
+**Exercise SC on object renamings in various source contexts**
 
-Check that object renamings are handled correctly
-
-Exercise various source constructs containing object renamings. Verify that
-they are recognized and processed as regular object declarations.
+Verify, in various source contexts, that object renamings are recognized
+and processed as regular object declarations.
