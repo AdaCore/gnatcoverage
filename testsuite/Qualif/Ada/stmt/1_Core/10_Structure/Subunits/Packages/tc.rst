@@ -1,3 +1,3 @@
-**Exercise package subunits declared in various source contexts**
+**Exercise SC on package subunits declared in various source contexts**
 
 

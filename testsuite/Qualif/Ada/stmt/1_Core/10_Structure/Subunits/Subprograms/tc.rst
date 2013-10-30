@@ -1,3 +1,3 @@
-**Exercise subprogram subunits declared in various source contexts**
+**Exercise SC on subprogram subunits declared in various source contexts**
 
 
