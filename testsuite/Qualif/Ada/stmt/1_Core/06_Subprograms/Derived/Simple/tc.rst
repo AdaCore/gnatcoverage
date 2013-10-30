@@ -1,3 +1,2 @@
-**simple subprogram overridings**
+**Exercise SC on multiple subprograms with overridings**
 
-Check SC with simple subprogram overridings

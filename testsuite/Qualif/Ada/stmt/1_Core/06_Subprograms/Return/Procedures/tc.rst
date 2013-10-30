@@ -1,3 +1,2 @@
-**return statements in Procedures**
+**Execise SC with RETURN statements in procedures**
 
-Check SC for return statements in procedures

@@ -1,4 +1,2 @@
-**subprogram inlined in two other ones, each exercising a distinct part of the inlined body**
+**Exercise SC on subprogram inlined in two other ones, each testing distinct parts of the inlined body**
 
-Check SC with a subprogram inlined in two others, where each exercises
-a distinct part of the inlined body.

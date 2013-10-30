@@ -1,4 +1,2 @@
-**simple subprogram called from a local object initialization**
-
-Check SC on a simple subprogram called from a local object initialization
+**Exercise SC on a subprogram called as part of a local object initialization**
 

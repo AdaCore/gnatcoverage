@@ -1,5 +1,2 @@
-**return statements in Function**
-
-Check SC for return statements in functions
-
+**Exercise SC with RETURN statements in functions**
 

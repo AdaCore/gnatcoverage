@@ -1,4 +1,2 @@
-**simple subprogram called from a subprogram actual parameter**
+**Exercise SC on a subprogram called as part of an actual parameter evaluation**
 
-Check SC on a simple subprogram called from a subprogram actual parameter
-evaluation

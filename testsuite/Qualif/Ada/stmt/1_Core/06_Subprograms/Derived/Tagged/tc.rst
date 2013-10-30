@@ -1,6 +1,4 @@
-**complex overridings for tagged types**
-
-Check SC for complex overridings for tagged types
+**Exercise SC on complex overridings for tagged types**
 
 Check multiple levels of inheritance and different kinds of subprogram
 invocation:
