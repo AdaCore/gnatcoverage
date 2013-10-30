@@ -248,8 +248,8 @@ package body Elf_Files is
       end if;
 
       if File.Need_Swap then
-         for Shdr of File.Shdr.all loop
-            Elf_Shdr_Swap (Shdr);
+         for Idx in 1 .. File.Ehdr.E_Shnum loop
+            Elf_Shdr_Swap (File.Shdr (Idx - 1));
          end loop;
       end if;
 
