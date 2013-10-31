@@ -45,6 +45,7 @@
 --  little endian host).
 
 with Ada.Unchecked_Deallocation;
+with Ada.Unchecked_Conversion;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 with Ada.Command_Line; use Ada.Command_Line;
@@ -55,6 +56,8 @@ with GNAT.OS_Lib;      use GNAT.OS_Lib;
 with System;           use System;
 
 with System.Storage_Elements; use System.Storage_Elements;
+
+with GNATCOLL.Mmap; use GNATCOLL.Mmap;
 
 with Nexus_Rep; use Nexus_Rep;
 with Isys2nex;  use Isys2nex;
@@ -194,6 +197,34 @@ procedure Nexus_Trace_Gen is
          raise Exe_Exception with Msg;
       end if;
    end Chk_Exe;
+
+   procedure Load_Section
+     (File : Elf_File;
+      Shdr : Elf_Half;
+      Addr : System.Address);
+   --  Load the SHDR section from an ELF FILE at ADDR. This procedure is a
+   --  compatibility layer between legacy code and the new ELF-loading API.
+
+   ------------------
+   -- Load_Section --
+   ------------------
+
+   procedure Load_Section
+     (File : Elf_File;
+      Shdr : Elf_Half;
+      Addr : System.Address)
+   is
+      Region : Mapped_Region := Load_Section (File, Shdr);
+
+      function Convert is new Ada.Unchecked_Conversion
+        (System.Address, Str_Access);
+
+      Source : constant Str_Access := Data (Region);
+      Dest   : constant Str_Access := Convert (Addr);
+   begin
+      Dest (1 .. Last (Region)) := Source (1 .. Last (Region));
+      Free (Region);
+   end Load_Section;
 
    function Exe_Address_From_Arg (Arg : String) return Unsigned_32;
    --  Some command line options can specify an address from the
