@@ -147,9 +147,44 @@ def get_short_description(artifact):
 
     return first_line
 
+def get_first_req_relative(artifact):
+    """
+    Returns the first parent which is a req
+    """
+
+    parent = artifact.relative_to
+    return (
+        parent if (parent is None or is_req(parent))
+        else get_first_req_relative(parent))
+
+
+def kind_of(artifact):
+    return ("Requirement Group" if is_reqset(artifact)
+            else "Requirement" if is_req(artifact)
+            else "Testcase Group" if is_test_set(artifact)
+            else "Testcase" if is_test_case(artifact)
+            else "Artifact")
+
+def relative_links_for(artifact):
+
+    output = ""
+
+    req = get_first_req_relative(artifact)
+    if req:
+        output += writer.paragraph(
+            "**Requirement**: %s\n" % writer.qmref(req.full_name))
+
+    ancestor = artifact.relative_to
+    if ancestor and ancestor != req:
+        output += writer.paragraph(
+            "**%s**: %s\n" %
+            (kind_of(ancestor), writer.qmref(ancestor.full_name)))
+
+    return output
 
 ####################################################################
 # Importers
+
 
 class TCIndexImporter(ArtifactImporter):
 
@@ -169,11 +204,7 @@ class TCIndexImporter(ArtifactImporter):
         html_items = []
         pdf_items = []
 
-        ancestor = parent.relative_to
-        output = writer.only(writer.paragraph("**Parent**: %s\n\n" %
-                                              writer.qmref(ancestor.full_name)
-                                              ),
-                             "html")
+        output = ""
 
         for a in artifacts:
             # Don't put sources in the tables
@@ -232,6 +263,9 @@ class TCIndexImporter(ArtifactImporter):
                 pass
             else:
                 links.append((a, qm.rest.DefaultImporter()))
+
+        if is_test_set(parent):
+            output += relative_links_for(parent)
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                   for l in links if
@@ -361,19 +395,6 @@ class SubsetIndexImporter(SubsetIndexTable):
 
 class TestCaseImporter(ArtifactImporter):
 
-    def get_first_req_relative(self, artifact):
-        """
-        Returns the first parent which is a req
-        (and therefore the req that leads the TC)
-        """
-
-        parent = artifact.relative_to
-
-        if parent is None or is_req_or_reqset(parent):
-            return parent
-        else:
-            return self.get_first_req_relative(parent)
-
     def log_missing_TR(self, artifact):
 
         has_TR = False
@@ -422,13 +443,10 @@ class TestCaseImporter(ArtifactImporter):
 
         self.log_missing_TR(artifact)
 
-        req_parent = self.get_first_req_relative(artifact)
+        # Create a navigation links from this TC up to its requirement
+        # and group if any:
 
-        if req_parent:
-        # Creates a retro-link to navigate backward in the pdf
-        # (from a TC to its requirement)
-            result += writer.paragraph("**Requirement**: %s\n\n" %
-                                       writer.qmref(req_parent.full_name))
+        result += relative_links_for(artifact)
 
         # Managing the list of the sources
 
