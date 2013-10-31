@@ -7,7 +7,6 @@ Document Purpose
 This document is part of the GNATcoverage qualification material, allowing the
 use of a well identified version of the tool to perform structural coverage
 assessments in accordance with a qualified interface.
-
 The document describes the environment within which the tool is expected to
 operate, then the qualified interface as a set of *Tool Operational
 Requirements* validated by *Testcases*.
@@ -46,10 +45,10 @@ appears. For example a table listing all the testcases and groups attached to
 a given requirement is always included within the testing strategy description
 for this requirement. Each line in such a table designates a particular
 testcase, requirement or group artifact, with an abbreviation denoting the
-kind of artifact in the first column - see the :ref:`abbrevs` section below
-for the list of abbrevations used. The second column on each line contains the
-artifact local name and the third column contains a short description of the
-artifact contents.
+kind of artifact in the first column, the artifact local name in the second
+column and a short description of the artifact contents in the third.  See the
+:ref:`abbrevs` section later in this chapter for the list of abbrevations used
+in the first column.
 
 At the top of the hierarchy, collections of high level requirement groups are
 collected in **Chapters** and **Subchapters**, typically per language and
@@ -61,25 +60,29 @@ For language related chapters, we distinguish two main categories of
 requirement groups, addressing:
 
 * *Core coverage metrics*, for example to validate statement coverage
-  assessments on conditional constructs, loops, etc.  Testcases for such
-  TORs typically exercise a piece of functional code in various ways, for
-  example by causing a Boolean expression to be evaluated only True or False,
-  and verify that results are as expected in all the variations.  Programming
-  language reference manuals are a major source for identifying
-  the relevant constructs.
+  assessments on conditional constructs, loops, etc.  Testcases for such TORs
+  typically exercise a piece of functional code in various ways, for example
+  by causing a Boolean expression to be evaluated only True or False, and
+  verify that results are as expected in all the variations.  Programming
+  language Reference Manuals, such as the Ada 2005 LRM for Ada, are the major
+  source for identifying the relevant constructs.
 
-* *General coverage analysis facilities*, for example the support for
-  coverage exemptions or consolidation capabilities.
-  In addition to validating the tool behavior with respect to the stated
-  requirements, testcases in this category extend the set of exercised code
-  samples where mutliple language features are used in combination.
+* *General coverage analysis facilities*, for example the support for coverage
+  exemptions or consolidation capabilities.  In addition to validating the
+  tool behavior with respect to the stated requirements, testcases in this
+  category are also typically designed to exercise multiple kinds of language
+  constructs mixed together. They represent a good opportunity to do so as
+  they are not directed to focus on specific contructs by the nature of the
+  requirements to exercise, unlike a core requirment on, say, *If* statements
+  for example.
 
-We also have `Common` chapter to hold language independant requirements and
-testcases, essentially regarding the *output report format* which is
-considered part of the tool qualified interface. Some of these requirements
-are also implicitly validated by the execution of all the coverage checking
-testcases in other chapters, where specific sections of the report are scanned
-by the testsuite harness to search for criteria violation messages.
+We also have :ref:`language-independent-tors` chapter to hold language
+independent requirements and testcases, essentially regarding the *output
+report format* which is considered part of the tool qualified interface. Some
+of these requirements are also implicitly validated by the execution of all
+the coverage checking testcases in other chapters, where specific sections of
+the report are scanned by the testsuite harness to search for criteria
+violation messages.
 
 Downtree, each Testcase is assigned a unique **Testcase Identifier**, computed
 from its local name (chosen to be representative of its purpose) and position
@@ -92,6 +95,8 @@ Results (STR) report produced out of testuite runs for qualification.
 For a more detailed description of how testscase sources are organized and how
 expected results are stated, please refer to the :ref:`testsuite-overview`
 section of this material.
+
+.. _abbrevs:
 
 Abbreviations
 =============

@@ -84,7 +84,6 @@
 #     --root-dir=$HOME/my-qmat
 #     --git-source=$HOME/gnatcoverage --branch=dev-str
 #     --parts=plans
-#     --docformat=html
 #
 # Testing plans regeneration after local commit:
 #
@@ -93,21 +92,8 @@
 #      --git-pull --branch=dev-str
 #      --parts=plans
 #
-# Testing STR production, running a subset of the tests, using
-# the local testsuite and compiler on path:
-#
-#   python genbundle.py --docformat=html
-#     --work-dir=$HOME/my-qmat
-#     --git-pull --branch=dev-str
-#     --parts=str
-#     --runtests --runtests-flags="--target... --RTS... stmt/Robustness -j4"
-#     --dolevel=doB
-#
-# This example uses --runtests without specifying a testsuite-dir, so
-# the testsuite run takes place within the cloned tree in $HOME/my-qmat.
-#
-# Testing another STR production after local commits, using previous testsuite
-# results at a designated place:
+# Testing STR production, designating a local testsuite-dir where a
+# qualified testsuite run has taken place:
 #
 #   python genbundle.py --docformat=html
 #     --work-dir=$HOME/my-qmat
@@ -115,9 +101,6 @@
 #     --parts=str
 #     --testsuite-dir=$HOME/gnatcoverage/testsuite
 #     --dolevel=doB
-#
-# Note that the designated testsuite dir in this example is NOT the one
-# populated by the --runtests example before.
 #
 # Fetching remote testsuite results:
 # ==================================
@@ -131,36 +114,9 @@
 # Example kit production commands:
 # ================================
 #
-# Producing a packaged kit, with a toplevel index and a final .zip
-# archive is achieved by not restricting to specific parts, hence by
-# not passing --parts at all.
-#
-# A DO level has to be provided in this case, and variations are allowed
-# testsuite execution and results localization:
-#
-# Running the tests from the local clone this script creates:
-# -----------------------------------------------------------
-#
-#   python genbundle.py --docformat=html
-#     --root-dir=$HOME/my-qmat
-#     --branch=<project-branch>
-#     --dolevel=doA
-#     --runtests --runtests-flags=<...>
-#
-# Running the tests hosted within the designated local subdir:
-# ------------------------------------------------------------
-#
-#   python genbundle.py --docformat=html
-#     --root-dir=$HOME/my-qmat
-#     --branch=<project-branch>
-#     --dolevel=doB
-#     --runtests --runtests-flags=<...>
-#     --testsuite-dir=<...>
-#
-# Remote prefixes aren't supported in this case.
-#
-# Fetching tests results from a place where they have been run already:
-# ---------------------------------------------------------------------
+# Producing a packaged kit, with a toplevel index and a final .zip archive is
+# achieved by not restricting to specific parts, hence by not passing --parts
+# at all. A DO level has to be provided in this case:
 #
 #   python genbundle.py --docformat=html
 #     --root-dir=$HOME/my-qmat
@@ -171,11 +127,11 @@
 # *****************************************************************************
 
 from gnatpython.ex import Run
-from gnatpython.fileutils import cp, mv, rm, mkdir, ls
+from gnatpython.fileutils import cp, mv, rm, mkdir, ls, find
 
 from datetime import date
 
-import optparse, sys, os.path, shutil, re
+import optparse, sys, os.path, shutil, re, hashlib
 
 # This lets us access modules that the testuite
 # code features:
@@ -235,6 +191,9 @@ def announce (s):
 def remove (path):
     """Delete the file or directory subtree designated by PATH"""
 
+    print "from : %s" % os.getcwd()
+    print "remove : %s" % path
+
     # To prevent big damage if the input PATH argument happens to have been
     # miscomputed, we first attempt to move it locally, then remove the local
     # instance. The absence of computation on this local name makes it a tad
@@ -270,12 +229,19 @@ def rdir_in (path):
 
 # current git branch name, used as kit identifier:
 
-def current_branchname ():
+def current_gitbranch_at (dirname):
+    
+    cwd = os.getcwd()    
+    os.chdir(dirname)
 
-    return re.match (
+    this_branch = re.search (
         pattern="\* (?P<branchname>\S*)",
         string=output_of("git branch")
         ).group('branchname')
+    
+    os.chdir(cwd)
+
+    return this_branch
 
 # =======================================================================
 # ==              QUALIF MATERIAL GENERATION HELPER CLASS              ==
@@ -306,16 +272,6 @@ class QMAT:
 
         self.repodir = os.path.join (self.rootdir, GIT_CLONE_SUBDIR)
 
-        # Where the testsuite tree is to be found, to run the
-        # tests if needed, then to fetch results from (whether we
-        # run the tests ourselves or rely on a prior run). This
-        # might include a remote access specification:
-
-        self.testsuite_dir = (
-            self.o.testsuite_dir if self.o.testsuite_dir
-            else os.path.join (self.repodir, "testsuite") if self.o.runtests
-            else None)
-
         # A local place where the testsuite tree may be found,
         # possibly after remote syncing from testsuite_dir if that
         # is non-local:
@@ -325,6 +281,10 @@ class QMAT:
         # To be set prior to build_as_needed():
 
         self.this_docformat = None
+
+        # Sequence number of doc build pass we are processing:
+
+        self.passno = 0
 
     # --------------------
     # -- setup_workdir --
@@ -337,6 +297,14 @@ class QMAT:
         mkdir (self.rootdir)
 
 
+    # ---------
+    # -- log --
+    # ---------
+
+    def log (self, line):
+        with open (os.path.join(self.rootdir, "genbundle.log"), 'a') as f:
+            f.write (line + '\n')
+                
     # ----------------
     # -- git_update --
     # ----------------
@@ -382,13 +350,33 @@ class QMAT:
         os.chdir(self.repodir)
         run ("git checkout %s" % self.o.branchname)
 
+    # -----------------
+    # -- kititem_for --
+    # -----------------
+
+    def kititem_for (self, part):
+        """The name of the filesystem entity which materializes PART in a kit
+        distribution.  This will be a subdirectory name for treeish formats
+        a-la html (e.g. TOR, which will contain content.html etc), or a
+        specific filename (e.g. PLANS.pdf) for other formats. This is what
+        latch_into sets up eventually."""
+        
+        this_item_is_tree = (self.this_docformat == 'html')
+
+        this_item_suffix = (
+            '' if this_item_is_tree else '.%s' % self.this_docformat)
+
+        return "%(part)s%(suffix)s" % {
+            "part": part.upper(),
+            "suffix": this_item_suffix }
+
     # ----------------
     # -- latch_into --
     # ----------------
 
     # Helper for the various build_ methods below, to store the just built
-    # sphinx output for a provided PARTNAME (STR, PLANS, TOR) at a TOPLEVEL
-    # dir.
+    # sphinx output for a provided PART (str, plans, tor) at a toplevel
+    # DIR.
 
     # html builds are voluminous and tree-ish. Other builds might produce
     # secondary pieces we don't need (e.g. latex sources & stuff) and we
@@ -397,13 +385,12 @@ class QMAT:
     # For tree builds, we just rename the whole sphinx build tree as our
     # result. For example:
     #
-    # build/html for PLANS gets renamed as <TOPLEVEL>/PLANS, a subdirectory
-    # where we expect index.html to be found.
+    # build/html for "plans" gets renamed as <TOPLEVEL>/PLANS, a subdirectory
+    # where we expect content.html to be found.
 
-    # For other builds, we use a wildcard copy so the actual file
-    # name doesn't matter. For example:
+    # For other builds, we just copy the actual file, for example:
     #
-    # build/pdf/TOR.pdf gets copied as <TOPLEVEL>/TOR.pdf
+    # build/pdf/TOR.pdf gets copied as <DIR>/TOR.pdf
 
     # Eventually, when all the parts are latched, we have something like :
     #
@@ -419,29 +406,24 @@ class QMAT:
     #
     # for the html versions.
 
-    def __latch_into (self, dir, partname, toplevel, copy_from=None):
+    def __latch_into (self, dir, part, toplevel, copy_from=None):
 
         this_target_is_tree = (self.this_docformat == 'html')
 
-        # Compute the target dir or file name of our copy:
-
-        this_target_suffix = (
-            '' if this_target_is_tree else '.%s' % self.this_docformat)
+        # Compute the target dir or file name for our copy:
 
         this_target = (
             dir if toplevel and this_target_is_tree
             else os.path.join (
-                dir, "%(part)s%(suffix)s" % {
-                    "part": partname,
-                    "suffix": this_target_suffix }
-                )
+                dir, self.kititem_for(part=part))
             )
 
         # Compute the source dir or file name for our copy:
 
         # The local or provided source build subdir name, assuming a
         # sphinx setup, with an html or pdf sub-subdir depending on the
-        # doc format:
+        # doc format. For file outputs, assume the builders are setup to
+        # produce PART.<docformat>, e.g. TOR.pdf:
 
         this_build_subdir = os.path.join (
             copy_from if copy_from is not None else "build",
@@ -451,7 +433,7 @@ class QMAT:
         this_source = (
             this_build_subdir if this_target_is_tree
             else os.path.join(this_build_subdir,
-            partname + ".%s" % self.this_docformat)
+            part.upper() + ".%s" % self.this_docformat)
             )
 
 
@@ -472,7 +454,7 @@ class QMAT:
             mv (this_build_subdir, this_target)
 
         print "%s %s available in %s %s" % (
-            self.this_docformat, partname,
+            self.this_docformat, part.upper(),
             this_target, "(toplevel)" if toplevel else ""
             )
 
@@ -499,8 +481,7 @@ class QMAT:
     def __qm_build (self, part):
         """Build one PART of using the Qualifying Machine."""
 
-        partname = part.upper()
-        announce ("building %s %s" % (self.this_docformat, partname))
+        announce ("building %s %s" % (self.this_docformat, part.upper()))
 
         os.chdir (
             os.path.join (self.repodir, "qualification", "qm")
@@ -509,7 +490,7 @@ class QMAT:
                  % (part, self.this_docformat))
 
         self.__latch_into (
-                dir=self.itemsdir(), partname=partname, toplevel=False)
+                dir=self.itemsdir(), part=part, toplevel=False)
 
     # ---------------
     # -- build_tor --
@@ -517,135 +498,224 @@ class QMAT:
 
     def build_tor (self):
 
-        # If we have a testsuite-dir, make sure we have a local access to it:
+        # If we have a local testsuite dir at hand and we haven't done so
+        # already, fetch the testsresults that the QM needs to check TOR/TC
+        # consistency:
 
-        self.localize_testsuite_dir()
+        if self.local_testsuite_dir and self.passno == 1:
+            os.chdir (self.local_testsuite_dir)
+            [cp (tr, os.path.join (
+                        self.repodir, "testsuite",
+                        os.path.dirname (tr))
+                 )
+             for tr in find (root=".", pattern="tc.dump")]
+
         self.__qm_build (part="tor")
 
-    # ---------------
-    # -- run_tests --
-    # ---------------
+    # ------------------------------
+    # -- dump_kit_consistency_log --
+    # ------------------------------
 
-    def run_tests (self):
-        announce ("running tests")
+    def __dump_tree_consistency_info (self, log, suite_ctxdata):
 
-        # Run early consistency checks before running the tests.
-        self.do_consistency_checks()
-
-        os.chdir (self.local_testsuite_dir)
-
-        # Setup the testsuite "support" directory, then launch the toplevel
-        # suite driver with the requested set of flags and in qualif mode for
-        # the level we ought to satisfy:
-
-        if not os.path.exists ("support"):
-            orisupport = os.path.join (
-                "..", "tools", "gnatcov", "examples", "support")
-            if os.path.exists (orisupport):
-                cp (source=orisupport, target="support", recursive=True)
-
-        run_list (
-            ("python testsuite.py --qualif-level=%s " % self.o.dolevel
-             + self.o.runtests_flags).strip().split()
-            )
-
-    # ---------------------------
-    # -- do_consistency_checks --
-    # ---------------------------
-
-    def do_consistency_checks (self):
-        announce ("tree and version consistency check")
-
-        if options.devmode:
-            print "devmode - checks skipped"
-            return
-
-        # Check consistency of the testsuite tree ref against the clone
-        # from which we are producing documents. Check that the latter dir
-        # ref matches that of ...
-        #
-        # * The testsuite dir where we are going to run the tests when
-        #   requested so,
-        #
-        # * The testsuite dir where the tests were run otherwise
-
-        # Also check consistency of the tool versions used to execute the
-        # testsuite against expectations
-
-        self.localize_testsuite_dir()
-
-        if not self.local_testsuite_dir:
-            print "info: no testsuite-dir, unable to check tree consistency"
-
-        local_treeref = treeref_at(self.repodir)
-
-        suite_treeref = None
-        suite_ctxdata = None
-
-        if self.o.runtests:
-            suite_treeref = treeref_at(self.local_testsuite_dir)
-
-        elif self.o.testsuite_dir:
-            suite_ctxdata = load_from (
-                os.path.join (self.o.testsuite_dir, CTXDATA_FILE))
-            suite_treeref = suite_ctxdata.treeref
-
-        if not suite_treeref:
-            print "info: unable to check tree consistency in this setup"
-        else:
-            exit_if (
-                local_treeref != suite_treeref,
-                "local tree ref (%s) mismatches testsuite tree ref (%s)" % (
-                    local_treeref, suite_treeref)
-                )
+        log.write ("\n-- TREE CONSISTENCY LOG:\n")
 
         if not suite_ctxdata:
-            print "info: unable to check versions consistency in this setup"
-        else:
-            exit_if (
-                self.o.xgnatpro and not re.search (
-                    pattern=self.o.xgnatpro,
-                    string=suite_ctxdata.gnatpro.version),
-                "gnatpro version \"%s\" doesn't match expectation \"%s\"" % (
-                    suite_ctxdata.gnatpro.version, self.o.xgnatpro)
-                )
-            exit_if (
-                self.o.xgnatcov and not re.search (
-                    pattern=self.o.xgnatcov,
-                    string=suite_ctxdata.gnatcov.version),
-                "gnatcov version \"%s\" doesn't match expectation \"%s\"" % (
-                    suite_ctxdata.gnatpro.version, self.o.xgnatpro)
-                )
+            log.write (
+                "suite context info unavailable, "
+                "tree consistency unchecked\n")
+            return
+
+        os.chdir (self.repodir)
+
+        local_treeref = treeref_at(self.repodir)
+        suite_treeref = suite_ctxdata.treeref
+
+        if local_treeref == suite_treeref:
+            log.write (
+                "artifact tree ref matches testsuite (%s)\n"  % local_treeref)
+            return
+
+        log.write (
+            "local_treeref = %s , suite_treeref = %s\n"  % \
+                (local_treeref, suite_treeref)
+            )
+
+        merge_base = output_of (
+            "git merge-base %s %s" % (local_treeref, suite_treeref)
+            ).strip(' \n')
+
+        (first, next) = (
+            (suite_treeref, local_treeref) if merge_base == suite_treeref
+            else (local_treeref, suite_treeref) if merge_base == local_treeref
+            else (None, None))
+
+        if first == None:
+            log.write (
+                "!!! local and suite tree refs aren't sequential !!!\n")
+            return
+        
+        log.write (
+            "%s tree is ahead\n" % \
+                ('suite' if first == local_treeref else 'local')
+            )
+        
+        gitlog_cmd = (
+            "git rev-list --oneline %s ^%s" % (next, first))
+        log.write (
+            '\n'.join (['', gitlog_cmd, '--', output_of(gitlog_cmd), ''])
+            )
+
+    def __dump_version_consistency_info (self, log, suite_ctxdata):
+
+        log.write ("\n-- VERSION CONSISTENCY LOG:\n")
+
+        if not suite_ctxdata:
+            log.write (
+                "suite context info unavailable, "
+                "versions consistency unchecked\n")
+            return
+
+        def check_one (tool, actual, expected):
+
+            if not expected:
+                log.write (
+                    "expected %s version NOT specified\n" % tool)
+                return
+
+            note = (
+                "matches" if re.search (pattern=expected, string=actual)
+                else "doesn't match")
+            
+            log.write (
+                '%(tool)s version "%(actual)s" %(note)s ' \
+                    'expectation \"%(expected)s"\n' % {
+                        'tool'    : tool,
+                        'note'    : note,
+                        'expected': expected,
+                        'actual'  : actual
+                        }
+                )            
+        #
+
+        check_one (
+            tool = "gnatpro",
+            actual = suite_ctxdata.gnatpro.version,
+            expected = self.o.xgnatpro)
+
+        check_one (
+            tool = "gnatcov",
+            actual = suite_ctxdata.gnatcov.version,
+            expected = self.o.xgnatcov)
+
+    def __dump_tr_consistency_info (self, log):
+
+        log.write ("\n-- TOR/TR CONSISTENCY LOG:\n")
+
+        tor_tr_logfile = os.path.join (
+            self.repodir, "qualification", "qm", "missing_tr_log.txt")
+
+        if not os.path.exists (tor_tr_logfile):
+            log.write ("QM log NOT available\n")
+            return
+
+        log.write (
+            "%s TOR/TR consistency log from QM @ %s :\n" % \
+                ("FRESH" if self.do_tor() else "OLD", tor_tr_logfile)
+            )
+        log.write (contents_of (tor_tr_logfile))
+        log.write ("--\n")
+
+    def dump_kit_consistency_log (self):
+        announce ("dumping consistency log - format agnostic")
+        
+        logfile = os.path.join(self.rootdir, "consistency.log")
+        log = open (logfile, 'w')
+
+        log.write (
+            "artifact tree at %s (%s)\n" % (
+                self.repodir, treeref_at(self.repodir))
+            )
+        log.write (
+            "designated testsuite tree at %s (%s)\n" % \
+                (self.o.testsuite_dir,
+                 "REMOTE" if raccess_in(self.o.testsuite_dir)
+                 else "local")
+            )
+        log.write (
+            "local testsuite tree at %s\n" % self.local_testsuite_dir)        
+
+        suite_ctxdata = load_from (
+            os.path.join (self.local_testsuite_dir, CTXDATA_FILE))
+        
+        self.__dump_tree_consistency_info (log, suite_ctxdata)
+        self.__dump_version_consistency_info (log, suite_ctxdata)
+        self.__dump_tr_consistency_info (log)
+
+        log.close()
+
+        print "consistency log available at %s" % logfile
 
     # ----------------------------
     # -- localize_testsuite_dir --
     # ----------------------------
 
-    def localize_testsuite_dir (self):
-        """If self.testsuite_dir is remote and we haven't fetched
-        a local copy yet, do so. Then memorize the local location for
-        future attempts."""
+    def __localize_testsuite_dir (self):
+        """If testsuite_dir is remote, fetch a local copy.  Memorize the local
+        location always."""
 
-        if not self.testsuite_dir:
-            return
+        os.chdir (self.rootdir)
 
-        if self.local_testsuite_dir:
-            return
-
-        raccess = raccess_in (self.testsuite_dir)
-
+        raccess = raccess_in (self.o.testsuite_dir)
+        
         if raccess:
-            rdir = rdir_in (self.testsuite_dir)
-            (login, rhost) = (
-                raccess.split('@') if '@' in raccess else (None, raccess)
-                )
+            rdir = rdir_in (self.o.testsuite_dir)
 
-            self.local_testsuite_dir = "%s_testsuite" % rhost
-            run ("rsync -rz --delete %s:%s/ %s" \
-                     % (raccess, rdir, self.local_testsuite_dir)
+            self.local_testsuite_dir = hashlib.sha1(raccess).hexdigest()
+            run ("rsync -arz --delete %s:%s/ %s" % (
+                    raccess, rdir, self.local_testsuite_dir)
                  )
+            self.log (
+                "remote testsuite-dir %s fetched as %s" % (
+                    self.o.testsuite_dir, self.local_testsuite_dir)
+                )
         else:
-            self.local_testsuite_dir = self.testsuite_dir
+            self.local_testsuite_dir = self.o.testsuite_dir
+
+        self.local_testsuite_dir = \
+            os.path.abspath (self.local_testsuite_dir)
+
+        # We never need the non qualif tests and must make sure we
+        # don't ever distribute them.
+
+        remove (os.path.join (self.local_testsuite_dir, "tests"))
+
+    # ---------------------
+    # -- prepare_str_dir --
+    # ---------------------
+
+    def __prepare_str_dir (self):
+        """Helper for build_str. If we haven't done it already, arrange to
+        generate the STR REST for the designated testsuite-dir, possibly
+        remote.  Fetch this dir back as needed then and remember where the
+        corresponding STR subdir (with REST generated) is located."""
+        
+        announce ("preparing STR dir @ %s" % self.o.testsuite_dir)
+
+        # Produce REST from the tests results dropped by testsuite run.  If we
+        # did not launch one just above, expect results to be available from a
+        # previous run, possibly remote:
+
+        raccess = raccess_in (self.o.testsuite_dir)
+        rdir = rdir_in (self.o.testsuite_dir)
+
+        mkstr_cmd = (
+            "(cd %(dir)s/STR && ./mkrest.sh %(level)s)"
+            %  {"dir"   : self.o.testsuite_dir if not rdir else rdir,
+                "level" : self.o.dolevel}
+            )
+        prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
+        run_list (prefix + [mkstr_cmd])
 
     # ---------------
     # -- build_str --
@@ -654,35 +724,12 @@ class QMAT:
     def build_str (self):
         announce ("building %s STR" % self.this_docformat)
 
-        os.chdir (self.rootdir)
-
-        # Produce REST from the tests results dropped by testsuite run.  If we
-        # did not launch one just above, expect results to be available from a
-        # previous run.
-
-        raccess = raccess_in (self.testsuite_dir)
-        rdir = rdir_in (self.testsuite_dir)
-
-        mkstr_cmd = (
-            "(cd %(dir)s/STR && ./mkrest.sh %(level)s %(format)s)"
-            %  {"dir"   : self.testsuite_dir if not rdir else rdir,
-                "level" : self.o.dolevel,
-                "format": sphinx_target_for[self.this_docformat]}
-            )
-        prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
-        run_list (prefix + [mkstr_cmd])
-
-        # Make sure we have a local copy of the testsuite, then
-        # finalize and latch the report from there:
-
-        self.localize_testsuite_dir ()
-
         os.chdir (os.path.join (self.local_testsuite_dir, "STR"))
 
         run ("make %s" % sphinx_target_for[self.this_docformat])
 
         self.__latch_into (
-            dir=self.itemsdir(), partname="STR", toplevel=False)
+            dir=self.itemsdir(), part='str', toplevel=False)
 
     # -----------------
     # -- build_plans --
@@ -695,16 +742,56 @@ class QMAT:
     # -- build_kit --
     # ---------------
 
+    def __relocate_into(self, dir, part):
+
+        the_item = self.kititem_for(part=part)
+
+        item_source_path = os.path.join (self.itemsdir(), the_item)
+        item_target_path = os.path.join (dir, the_item)
+
+        remove (item_target_path)
+
+        print "move : %s" % item_source_path
+        print "into : %s" % dir
+        
+        mv (item_source_path, dir)
+
     def build_kit (self):
         announce ("building %s kit" % self.this_docformat)
 
         os.chdir (self.rootdir)
 
-        kitdir = "%s-%s" % (self.o.kitname, self.this_docformat)
-        remove (kitdir)
+        # The kit name is computed as:
+        #
+        #    gnatcov-qualkit-<kitid>-<YYYYMMDD>
+        #
+        # where <YYYYMMDD> is the kit production stamp (now), and <kitid>
+        # is the git branch from which the artifacts are taken. The git branch
+        # name might contain the "qualkit" indication already.
+
+        today = date.today()
+        gitbranch = current_gitbranch_at(self.repodir)
+
+        kitprefix = (
+            "gnatcov-qualkit" if "qualkit" not in gitbranch
+            else "gnatcov"
+            )
+        kitid = gitbranch
+
+        # If we are re-constructing a kit with some parts just rebuilt, target
+        # the specified version (stamp) and arrange to keep the old elements
+        # in place:
+
+        kitstamp = (
+            self.o.rekit if self.o.rekit
+            else "%4d%02d%02d" % (today.year, today.month, today.day)
+            )
+        kitname = "%s-%s-%s" % (kitprefix, kitid, kitstamp)             
+        kitdir = "%s-%s" % (kitname, self.this_docformat)
+
         mkdir (kitdir)
-        
-        [shutil.move (item, kitdir) for item in ls(self.itemsdir()+"/*")]
+
+        [self.__relocate_into (dir=kitdir, part=part) for part in self.o.parts]
 
         run ("zip -q -r %(kitdir)s.zip %(kitdir)s" % {"kitdir": kitdir})
 
@@ -722,16 +809,23 @@ class QMAT:
         return 'plans' in self.o.parts
 
     def do_kit (self):
-        return self.o.kitname
+        return self.o.kitp
 
     def build_as_needed (self, docformat):
 
+        self.passno += 1
         self.this_docformat = docformat
 
         mkdir (self.itemsdir())
 
-        # Build the STR from testsuite results (either one we just ran, or one
-        # executed externally and designated by --testsuite-dir):
+        if self.do_str() and self.passno == 1:
+            self.__prepare_str_dir()
+        
+        if self.o.testsuite_dir and not self.local_testsuite_dir:
+            self.__localize_testsuite_dir ()
+
+        # Build the STR as needed, using the REST generated
+        # by prepare_str_dir above:
 
         if self.do_str():
             self.build_str()
@@ -747,7 +841,7 @@ class QMAT:
         if self.do_plans():
             self.build_plans()
 
-        # Build a kit package as needed:
+        # Build a kit package as queried:
 
         if self.do_kit():
             qmat.build_kit()
@@ -757,8 +851,7 @@ class QMAT:
 # =======================================================================
 
 valid_docformats = ('html', 'pdf')
-regular_parts    = ('tor', 'plans', 'str')
-valid_parts      = regular_parts
+valid_parts      = ('tor', 'plans', 'str')
 valid_dolevels   = ('doA', 'doB', 'doC')
 valid_xada       = ('95', '2005', '2012')
 
@@ -807,13 +900,6 @@ def commandline():
         )
 
     op.add_option (
-        "--kit-name", dest="kitname",
-        help=(
-            "Base name of the .zip archive that will contain the full set of "
-            "items bundled together. Ignored if the set of constructed items "
-            "is specified explicitly.")
-        )
-    op.add_option (
         "--docformat", dest="docformat",
         type='string', # choices=valid_docformats,
         help = (
@@ -839,26 +925,14 @@ def commandline():
     op.add_option (
         "--testsuite-dir", dest="testsuite_dir", default=None,
         help = (
-            "Name of a directory where the testsuite was run or is to be "
-            "run if --runtests. Defaults to the git clone testsuite subdir.")
-        )
-    op.add_option (
-        "--runtests", dest="runtests", action="store_true", default=None,
-        help="Run the tests prior to fetching results from testsuite-dir."
-        )
-    op.add_option (
-        "--runtests-flags", dest="runtests_flags", default="",
-        help=(
-            "With --runtests, pass the option value as arguments to the "
-            "testsuite toplevel driver, useful e.g. for --target, or -j."
-            )
+            "Name of a directory where the testsuite was run")
         )
 
     op.add_option (
-        "--devmode", dest="devmode", action="store_true", default=False,
+        "--rekit", dest="rekit", default=None,
         help = (
-            "State that we're in ongoing development mode, relaxing internal "
-            "consistency checks.")
+            "rebuild the specified --parts and re-package them in the "
+            "kit stamped according to this option's value (YYYYMMDD)")
         )
 
     op.add_option (
@@ -925,52 +999,14 @@ def check_valid(options, args):
             % options.rootdir
         )
 
-    # We don't know how to run the tests remotely
+    # Convey whether we are requested to produce a kit:
 
-    exit_if (
-        options.runtests and options.testsuite_dir
-        and raccess_in (options.testsuite_dir),
-        "Running the tests on a remote testsuite dir is not supported."
-        )
-
-    # Are we producing a kit ? A few extra things to check if so ...
-
-    kitp = not options.parts
-
-    # Producing an incomplete kit is forbidden:
-
-    exit_if (
-        options.kitname and not kitp,
-        ("No archive (--kitname) may be generated with "
-         "only parts of the kit (--parts).")
-        )
-
-    # If we are generating a full kit, we need to produce an archive.
-    # Pick a default name if none was specified:
-
-    if kitp and not options.kitname:
-        today = date.today()
-        options.kitname = "gnatcov-qualkit-%s-%4d-%02d-%02d" % (
-            current_branchname(), today.year, today.month, today.day)
-
-    # In principle, we should refuse to generate a kit in devmode, as
-    # kits are presumably things to be delivered and devmode disconnects
-    # consistency checks. In practice, there are often last minute doc
-    # adjustments that need to get in and forcing to re-run the tests from
-    # the adjusted tree really is unfriendly. --devmode must still be provided
-    # explicitly so that assembling pieces from not-quite-consistent trees
-    # is acknowledged, with manual verification of the differences for kits
-    # to be delivered.
-
-    # exit_if (
-    #    options.kitname and options.devmode,
-    #    "Producing a packaged kit is disallowed in devmode."
-    #   )
+    options.kitp = options.rekit or not options.parts
 
     # Settle on the set of documents we are to produce:
 
     options.parts = (
-        regular_parts if not options.parts
+        valid_parts if not options.parts
         else options.parts.split(',')
         )
 
@@ -980,6 +1016,13 @@ def check_valid(options, args):
                 % (part, valid_parts.__str__())
             )
      for part in options.parts]
+
+    # Producing a STR requires a testsuite dir
+
+    exit_if (
+        'str' in options.parts and not options.testsuite_dir,
+        "--testsuite-dir required when producing a STR"
+        )
 
     # GIT aspects:
 
@@ -1022,16 +1065,9 @@ if __name__ == "__main__":
 
     qmat.gen_qm_model()
 
-    # Start by running tests if we're requested to do so.
-
-    if options.runtests:
-        qmat.run_tests ()
-
-    # Now build the various documents for each requested format:
+    # Build the various parts and maybe the kit for each requested format:
 
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
 
-# localize_testsuite & consistency_checks across the board
-#
-# consistency_checks require a local testsuite. localize_testsuite()
-# can only run past build_str().
+    if options.kitp:
+        qmat.dump_kit_consistency_log()

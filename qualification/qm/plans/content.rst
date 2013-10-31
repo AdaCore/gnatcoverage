@@ -9,13 +9,11 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Plans
    Matteo Bordin|AdaCore|bordin@adacore.com
    Olivier Hainque|AdaCore|hainque@adacore.com
 
-.. csv-table:: **Revised by**
+.. csv-table:: **Revision History**
    :delim: |
-   :header: "Name", "Company", "Email"
+   :header: "Version #", "Comment"
 
-   Cyrille Comar|AdaCore|comar@adacore.com
-   Sheri Bernstein|AdaCore|bernstein@adacore.com
-   Ben Brosgol|AdaCore|brosgol@adacore.com
+   1.0|First version submitted to a formal internal QA cycle
 
 .. qmlink::
 

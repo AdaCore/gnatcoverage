@@ -4,7 +4,7 @@ Core SC requirements
 All the other SC-related sections rely on this group.
 
 To ensure coverage of all the relevant language constructs, we decompose the
-material further based on the organization of the Ada Reference Manual (ARM):
+material further based on the organization of the Ada 2005 Reference Manual:
 
 
 .. qmlink:: SubsetIndexTable
@@ -28,10 +28,6 @@ Several chapters are not included for the following reasons:
    ARM chap. 9 : Tasks and Synchronization | "The execution profile being
    qualified is based on Zero Foot Print run-time, which does not support any
    construct described in this chapter"
-   ARM chap. 13 : Representation Issues | "Constructs described in this
-   chapter do not result in executable code and thus are not relevant to
-   coverage analysis."
-
 
 
 .. qmlink:: SubsetIndexTocTree

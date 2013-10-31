@@ -11,31 +11,23 @@ GNATcoverage is qualified as a verification tool.
    :delim: |
    :header: "Item", "Description", "Ref.", "Notes", "Activity"
 
-   1|Assurance is obtained that software development and integral processes comply with approved software plans and standards.|8.1a|For verification tools, this is limited to the compliance of tool processes with approved plans|`Reading of GNATcoverage Qualification Material: Plans`_, `Inspection of qualification data (by sampling)`_
+   1|Assurance is obtained that software development and integral processes comply with approved software plans and standards.|8.1a|For verification tools, this is limited to the compliance of tool processes with approved plans|:ref:`reading-plans`, :ref:`inspecting-other-data`
    2|Assurance is obtained that transition criteria for the software life cycle processes are satisfied.|8.1b|Not required for verification tools|not applicable
-   3|Software conformity review is conducted.|8.1c, 8.3e, 8.3f| Items 8.3a, 8.3b. 8.3c, 8.3d, 8.3g, 8.3h and 8.3i are not required for verification tools or CC2; 8.3f is also not required because verification tool qualification is supposed to be black-box|`Tool Conformity Review`_
+   3|Software conformity review is conducted.|8.1c, 8.3e| Items 8.3a, 8.3b. 8.3c, 8.3d, 8.3g, 8.3h and 8.3i are not required for verification tools or CC2; 8.3f is also not required because verification tool qualification is supposed to be black-box|:ref:`tool-conformity-review`
 
 Quality Assurance Activities
 ============================
 
-The qualification data we produce consists in three documents, composing
-what we refer to as a *qualification kit*:
-
-* The **PLANS** document, this one.
-* The **TOR** (*Tool Operational Requirements*) document, which
-  contains the description of the tool operational requirements and
-  the associated testcases.
-* The **STR** (*Software Test Results*) report, which contains a synthetic
-  summary of the testsuite run performed to assess the tool behavioral
-  correctness with respect to its intended use.
-
-This section presents the Quality Assurance (QA) activities operated over
-these documents in terms of objectives and outputs.
+This section presents the Quality Assurance (QA) activities operated over the
+documents composing a qualification kit in terms of objectives and
+outputs.
 
 The QA outputs for a kit are stored in a "qa" directory dedicated to the
 project for which the kit is produced. Each QA cycle is assigned a
 subdirectory there, named after the date at which the QA cycle started, in
 *YYYYMMDD* format.
+
+.. _reading-plans:
 
 Reading the PLANS document
 **************************
@@ -46,8 +38,10 @@ Reading the PLANS document
 
 * **output:** QA Reading report (qa/YYYYMMDD/qa_plans.doc)
 
-Inspection of qualification data (by sampling)
-**********************************************
+.. _inspecting-other-data:
+
+Inspection of other qualification data
+**************************************
 
 Inspection of Tool Operational Requirements (by sampling)
 ---------------------------------------------------------
@@ -55,7 +49,7 @@ Inspection of Tool Operational Requirements (by sampling)
 
 * **objectives:** 
 
-  * Check the accuracy, completeness and consistency with plans.
+  * Check the accuracy, completeness and consistency with respect to the qualification objectives.
 
 * **output:** QA inspection report (qa/YYYYMMDD/qa_tor.doc).
 
@@ -84,15 +78,15 @@ Inspection of test execution results
     * A bug in the GNATcoverage implementation: in this case, the GNATcoverage Development Team is in charge of reporting and fixing the problem.
     * A reasonable limitation of the tool: in this case, the GNATcoverage Qualification Team is in charge of reporting and justifying the problem as part of the known limitations of the tool.
 
-* **output:** QA inspection report (qa/YYYYMMDD/qa_test_execution.doc)
+* **output:** QA inspection report (qa/YYYYMMDD/qa_str.doc)
+
+.. _tool-conformity-review:
 
 Tool conformity review
 **********************
 
-The conformity review takes as input a packaged and qualifiable release of GNATcoverage.
-
 * **objectives:** 
 
-  * Record and approve software requirements deviations (8.3e).
+  * Record and approve software requirements deviations (8.3e) exposed by test failures reported in the GNATcoverage Software Test Results report provided as part of the tool qualification data.
 
-* **output:** QA inspection report qa/YYYYMMDD/qa_conformity.doc)
+* **output:** QA inspection report (qa/YYYYMMDD/qa_conformity.doc)

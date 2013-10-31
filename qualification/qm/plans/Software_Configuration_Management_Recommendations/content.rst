@@ -2,7 +2,13 @@
 Software Configuration Management Recommendations
 =================================================
 
-The configuration management of qualification data is a responsibility of the applicant (see :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`). In this section we propose a possible approach for the configuration management of the GNATcoverage qualification data.
+As the compliance matrix below points out and as the
+:qmref:`/PLANS/Tool_Qualification_Plan/User_Activities` section of this
+document synthesizes, the configuration management of qualification data is a
+responsibility of the applicant. In this chapter we propose a possible
+approach for the configuration management of the GNATcoverage qualification
+data by the applicant and provide a high level overview of the internal
+configuration management process established at AdaCore.
 
 .. csv-table:: Compliance matrix for Table A-8
    :delim: |
@@ -16,75 +22,56 @@ The configuration management of qualification data is a responsibility of the ap
    6|Software life cycle environment control is established|7.2.9|Only item 7.2.9b applies. Up to the applicant.
 
 
-Configuration management recommendations
+Configuration Management Recommendations
 ========================================
 
 In this section we provide a set of recommendations for configuration management for the items that are the applicant's responsibility as per the compliance matrix above.
 
  * **Item 7.2.1:** The suggested configuration items are:
 
-   #. The .zip package containing the .pdf files of the Plans (this document, plans.pdf), the Tool Operational Requirements and Test Cases and the test results.
-   #. The GNAT Pro installer containing the tool executable object code, the GNAT Pro UG.
-   #. The GNATemulator installer containing the tool executable object code.
-   #. The GNATcoverage installer containing the tool executable object code and the GNATcoverage User's Guide.
+   #. The .zip package containing the .pdf files which consitute the GNATcoverage qualification kit, as defined in the :ref:`qualification-data` section of this document.
+   #. The GNAT Pro binary package, which contains the GNAT Pro executable toolset and the associated documentation, in particular the GNAT Pro User's Guide.
+   #. The GNATemulator binary package, which contains the GNATemulator executable tool and the associated documentation.
+   #. The GNATcoverage binary package, which contains the GNATcoverage executable tool and the associated documentation, in particular the GNATcoverage User's Guide.
 
  * **Item 7.2.2f:** we suggest establishing traceability between configuration items above by considering the tool executable names and versions.
  * **Item 7.2.2g:** we suggest tracing all configuration items to the GNATcoverage qualification process.
  * **Items 7.2.4a, 7.2.4b and 7.2.7:** with respect to these items, we suggest that the user deploy the most appropriate process depending on their own configuration management process and tools.
  * **Item 7.2.9b:** since GNATcoverage is a verification tool, the configuration management process should comply with Control Category 2.
 
-Overview of AdaCore internal configuration management process
-=============================================================
+.. _adacore-cm:
+
+Overview of the AdaCore Configuration Management Process
+========================================================
 
 This section describes the internal configuration management process at
 AdaCore and is provided for informational purposes only;
 it is not related to the configuration management process deployed by the
 applicant.
 
-Configuration Management Methods
-********************************
+Version Controlled Items
+************************
 
-Configuration Management is technically implemented via a Subversion
-repository or a Git repository.
-The life cycle of each artifact is automatically tracked in the repository,
-and e-mail-based discussions about each artifact are also tracked.
-The mechanism used to implement this tracking uses the Customer Management
-System deployed at AdaCore: such technology has been widely used for more
-than ten years.
+Development and Verification artifacts
+--------------------------------------
 
-Official baseline production
-----------------------------
-Official baselines are generated on a customer-specific delivery for a precise operational environment. A specific folder and .zip file is created for each official release. 
+All the GNATcoverage development and verification artifacts are version
+controlled in our configuration management system, in particular:
 
-Archiving
----------
-All repositories and mail servers are mirrored with machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
-
-Activities
-**********
-
-Artifact identification
------------------------
-Each atomic artifact (single requirement, test case, expected output, compilation unit) is located in a single physical file, so as to permit its atomic tracking.
+* All the TOR related artifacts (requirements, testcases, test sources, ...),
+  each materialized as a distinct file to permit atomic tracking,
+* The GNATcoverage tool source code,
+* The build/test infrastructure (framework to build the tool, run
+  testsuites, monitor results ...),
+* Framework to generate documentation (Qualifying Machine, kit construction
+  scripts...).
 
 Plans and documentation
 -----------------------
 
-All documentation material is under Configuration Management Control. Each single part (each section) of each document is tracked automatically.
-
-Development and Verification Artifacts
---------------------------------------
-
-The tracked development and verification artifacts are:
-
-* Source code
-* Build/test infrastructure
-* Tool Operational Requirements (TOR)
-* Test Cases
-* Tests
-* Source code for tests
-* Files containing the expected output
-* Scripts to execute tests and generate documentation
+All the documentation material is also under Configuration Management Control,
+with distinct files for different sections or chapters of each document to
+permit fine grain automatic tracking.
 
 Quality Assurance Reports
 -------------------------
@@ -93,7 +80,50 @@ Quality Assurance Reports are atomically tracked exactly like any other textual 
 
 Open problems identification
 ----------------------------
+
 Open problems are tracked via emails. Each email is associated with a unique problem identified by a unique ID. Each problem is assigned with a single entity of the Development or Qualification team. The unique ID identifies the open problem within a database which permits its evolution and status (open/closed) to be tracked. All emails are saved in a database and it is possible to query it to retrieve all mails related to any open problem.
 
+Configuration Management Methods and Activities
+***********************************************
 
+Base technical support
+----------------------
+
+Configuration Management of artifacts is technically implemented via a Git or
+Subversion repository which tracks the life cycle of each artifact
+automatically.  E-mail-based discussions about each artifact are also tracked,
+using the AdaCore ticket system deployed within the whole company for more
+than fifteen years now.
+
+Archiving
+---------
+
+All repositories and mail servers are mirrored with machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
+
+Customer/Project specific tracking
+----------------------------------
+
+For each specific customer/project qualification we assign an internal *kit
+identifier*, referenced for example in QA reports. All the corresponding
+verification related artifacts are managed on a dedicated *branch* within our
+version control systems. Releases of qualification kits for the specific
+customer/project are produced off that branch, which also tracks the QA cycles
+operated on the kit items (QA reports, corresponding corrections, ...). A
+typical kind of early change incorporated on the branch is the adjustment of
+the targeted operational environment parameters, to be accounted for when
+setting up the qualification environment for kit production cycles.
+
+
+Official baseline production
+----------------------------
+
+Official baselines are generated for customer-specific deliveries aimed at a
+precise operational environment and software level. Once the configuration
+management branch dedicated to such deliveries is setup, a complete testsuite
+run is performed in the corresponding qualification environment. A kit version
+number is then assigned and the qualification data documents are produced.
+The resulting set of documents is packaged as a zip file which materializes
+the kit as a whole. This kit then goes through QA as needed and all or part of
+this cycle repeats until a positive agreement on the kit "acceptability" for
+release is reached.
 

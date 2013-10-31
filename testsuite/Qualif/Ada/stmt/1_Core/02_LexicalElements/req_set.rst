@@ -1,8 +1,8 @@
 SC requirements for ARM chap. 2 : Lexical Elements
 ==================================================
 
-There are very few chapter 2 items relevant to SC assessment; for
-these items we provide subsidiary requirements:
+There is only a single chapter 2 item relevant to SC assessments, for
+which we provide a subsidiary requirement:
 
 
 .. qmlink:: SubsetIndexImporter

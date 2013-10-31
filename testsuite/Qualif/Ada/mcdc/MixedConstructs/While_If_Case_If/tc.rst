@@ -6,11 +6,11 @@ a While loop.
 
 We implement a double testing strategy, with:
 
-* Statement coverage oriented scenarii, exercising SC possibilities (loop
-  entered or not, If part of an If statement reached or not, Case statement
-  selections reached or not, ...)  and combinations of such.
+* Statement coverage oriented scenarii, exercising combinations of SC
+  possibilities on each kind of statement (loop entered or not, If part of an
+  If statement reached or not, Case statement selections reached or not, ...),
 
-* Decision coverage oriented scenarii, exercising DC possibilities (such or
-  such decision True only, False only, or both True and False) and
-  combinations of such.
+* Decision coverage oriented scenarii, exercising combinations of
+  DC possibilities on each decision.
+
 

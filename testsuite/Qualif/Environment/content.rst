@@ -17,7 +17,7 @@ Environment equivalence described in the tool qualification *PLANS* document.
 
    1 | GNAT Pro compiler executable name, version & host OS | powerpc-elf-gcc 7.0.3 (20130909-45) on Windows XP
    2 | GNAT Pro compilation switches | -g -gnat05 -fpreserve-control-flow -fdump-scos
-   3 | GNAT Pro runtime profile | Zero Footprint (RTS=zfp or equivalent)
+   3 | GNAT Pro runtime profile | Zero Footprint (RTS=zfp or an equivalent system profile wise, such as the zfp-prep or zfp-p2020 variants tailored for specific boards)
    4 | Application coding standard | For a level A software level, the binary boolean operators used to compose decisions shall be restricted those with short-circuit semantics, as enforced by the ``No_Direct_Boolean_Operator`` Restrictions pragma for Ada.
    5 | GNATemulator executable name, version and host OS | powerpc-elf-gnatemu 1.3.1 on Windows XP
    6 | GNATcoverage executable name, version and host OS | gnatcov 1.2.1 on Windows XP

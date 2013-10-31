@@ -12,10 +12,10 @@ Check outcome expectations for
   (force error case, decision violations exempted)
 
 * consolidation of the previous cases with precondition exercized both
-  ways and demonstration of independant effect missing for at least one
+  ways and demonstration of independent effect missing for at least one
   conditions (mcdc violations exempted)
 
 * consolidation of the previous cases with precondition exercized both ways
-  and demonstration of independant effect for all the conditions (no exempted
+  and demonstration of independent effect for all the conditions (no exempted
   violation)
  
