@@ -1,4 +1,4 @@
-** Exercise a toplevel IF with an ELSE sequence embedding a FOR loop, whose body features an inner IF statement that controls access to a CASE**
+**Exercise a toplevel IF with an ELSE sequence embedding a FOR loop, whose body features an inner IF statement that controls access to a CASE**
 
 We implement a double testing strategy, with:
 
