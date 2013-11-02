@@ -1216,8 +1216,13 @@ package body Traces_Elf is
          Len := Sec_Len;
          Region := Load_Section (Exec.Exe_File, Sec);
          Content.Content := Convert (Data (Region));
-         Content.First := 0;
-         Content.Last := Sec_Len;
+         if Sec_Len > 0 then
+            Content.First := 0;
+            Content.Last := Sec_Len - 1;
+         else
+            Content.First := 1;
+            Content.Last := 0;
+         end if;
       end if;
    end Alloc_And_Load_Section;
 
