@@ -72,7 +72,7 @@ package Traces_Elf is
       First, Last : Elf_Arch.Elf_Addr) return Binary_Content;
    function Address_Of
      (Bin_Cont : Binary_Content;
-      Offset : Elf_Arch.Elf_Addr) return System.Address;
+      Offset   : Elf_Arch.Elf_Addr) return System.Address;
    --  Return the address of the Offset'th item in the binary content
 
    pragma Inline (Relocate);

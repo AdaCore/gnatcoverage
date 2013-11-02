@@ -3843,7 +3843,7 @@ package body Traces_Elf is
 
    function Address_Of
      (Bin_Cont : Binary_Content;
-      Offset : Elf_Arch.Elf_Addr) return System.Address is
+      Offset   : Elf_Arch.Elf_Addr) return System.Address is
    begin
       return Bin_Cont.Content (Offset - Bin_Cont.First)'Address;
    end Address_Of;
