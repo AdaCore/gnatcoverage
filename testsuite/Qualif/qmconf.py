@@ -1,5 +1,5 @@
 author='AdaCore'
-version='dev-opendo'
+version='dev'
 copyright='AdaCore, 2013'
 project_name='GNATCoverage'
 latex_show_pagerefs=True
