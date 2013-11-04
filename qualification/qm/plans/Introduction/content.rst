@@ -59,7 +59,7 @@ for Safety-Critical Applications* - ERTS2 2010
 
 .. rubric:: GNAT Pro UG
 
-AdaCore: *GNAT Pro User Guide*, available as part of the GNAT Pro documentation
+AdaCore: *GNAT Pro User's Guide*, available as part of the GNAT Pro documentation
 (file *share/doc/gnat/pdf/gnat_ugn.pdf*).
 
 .. rubric:: GNATcoverage UG
