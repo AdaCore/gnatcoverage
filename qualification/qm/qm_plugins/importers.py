@@ -163,7 +163,7 @@ def kind_of(artifact):
             else "Requirement" if is_req(artifact)
             else "Testcase Group" if is_test_set(artifact)
             else "Testcase" if is_test_case(artifact)
-            else "Artifact")
+            else "Chapter")
 
 def relative_links_for(artifact):
 
@@ -172,12 +172,12 @@ def relative_links_for(artifact):
     req = get_first_req_relative(artifact)
     if req:
         output += writer.paragraph(
-            "**Requirement**: %s\n" % writer.qmref(req.full_name))
+            "**Parent Requirement**: %s\n\n" % writer.qmref(req.full_name))
 
     ancestor = artifact.relative_to
     if ancestor and ancestor != req:
         output += writer.paragraph(
-            "**%s**: %s\n" %
+            "**Parent %s**: %s\n\n" %
             (kind_of(ancestor), writer.qmref(ancestor.full_name)))
 
     return output
