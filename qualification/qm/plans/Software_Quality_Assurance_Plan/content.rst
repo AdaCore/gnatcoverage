@@ -2,8 +2,8 @@
 Software Quality Assurance Plan
 ===============================
 
-Compliance to guidance
-======================
+Compliance With Guidance
+========================
 
 GNATcoverage is qualified as a verification tool.
 
