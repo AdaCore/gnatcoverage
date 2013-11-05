@@ -765,9 +765,9 @@ class QMAT:
         #
         #    gnatcov-qualkit-<kitid>-<YYYYMMDD>
         #
-        # where <YYYYMMDD> is the kit production stamp (now), and <kitid>
-        # is the git branch from which the artifacts are taken. The git branch
-        # name might contain the "qualkit" indication already.
+        # where <YYYYMMDD> is the kit production stamp (now), and <kitid> is
+        # computed from the git branch off which the artifacts are taken. The
+        # git branch name might contain the "qualkit" indication already.
 
         today = date.today()
         gitbranch = current_gitbranch_at(self.repodir)
@@ -776,7 +776,10 @@ class QMAT:
             "gnatcov-qualkit" if "qualkit" not in gitbranch
             else "gnatcov"
             )
+
         kitid = gitbranch
+        kitid = kitid.replace('/', '-')
+        kitid = kitid.replace('.', '_')
 
         # If we are re-constructing a kit with some parts just rebuilt, target
         # the specified version (stamp) and arrange to keep the old elements
