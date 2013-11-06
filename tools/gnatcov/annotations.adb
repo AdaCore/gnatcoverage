@@ -636,6 +636,9 @@ package body Annotations is
       elsif Option = "html+" then
          return Annotate_Html_Plus;
 
+      elsif Option = "dhtml" then
+         return Annotate_Dynamic_Html;
+
       elsif Option = "report" then
          return Annotate_Report;
 
