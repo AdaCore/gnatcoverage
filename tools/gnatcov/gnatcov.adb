@@ -27,6 +27,7 @@ with GNAT.Strings;      use GNAT.Strings;
 
 with ALI_Files;         use ALI_Files;
 with Annotations;       use Annotations;
+with Annotations.Dynamic_Html;
 with Annotations.Html;
 with Annotations.Xcov;
 with Annotations.Xml;
@@ -140,7 +141,7 @@ procedure GNATcov is
       P ("   -c LEVEL --level=LEVEL     Specify coverage levels");
       P ("      LEVEL is one of " & Valid_Coverage_Options);
       P ("   -a FORM  --annotate=FORM    Generate a FORM report");
-      P ("      FORM is one of asm,xcov,html,xcov+,html+,report");
+      P ("      FORM is one of asm,xcov,html,xcov+,html+,dhtml,report");
       P ("   --routines=<ROUTINE|@FILE>  Add ROUTINE, or all routine listed");
       P ("                               in FILE to the list of routines");
       P ("   --alis=<FILE|@LISTFILE>");
@@ -1355,6 +1356,15 @@ begin
               ("Report output is supported for source coverage only");
          end if;
 
+         --  Validate availability of the output format
+
+         if Annotation = Annotate_Dynamic_Html and then
+            not Annotations.Dynamic_Html.Installed
+         then
+            Fatal_Error
+              ("Dynamic HTML report format support is not installed");
+         end if;
+
          --  Load ALI files
 
          if Source_Coverage_Enabled then
@@ -1641,6 +1651,9 @@ begin
                  Annotate_Html_Plus =>
                Annotations.Html.Generate_Report
                  (Show_Details => Annotation = Annotate_Html_Plus);
+
+            when Annotate_Dynamic_Html =>
+               Annotations.Dynamic_Html.Generate_Report;
 
             when Annotate_Report =>
                Annotations.Report.Generate_Report (Output);
