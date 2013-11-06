@@ -159,7 +159,7 @@ package body Annotations.Xml is
                                         Offset : Pc_Type;
                                         State  : Line_State);
 
-   procedure Pretty_Print_End_Symbol (Pp    : in out Xml_Pretty_Printer);
+   procedure Pretty_Print_End_Symbol (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Insn
      (Pp    : in out Xml_Pretty_Printer;

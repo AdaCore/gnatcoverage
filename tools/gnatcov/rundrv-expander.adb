@@ -79,8 +79,7 @@ package body Rundrv.Expander is
    function Trace return String is
    begin
       if Histmap_Filename /= null then
-         return "histmap=" & Histmap_Filename.all
-           & ',' & Trace_Output.all;
+         return "histmap=" & Histmap_Filename.all & ',' & Trace_Output.all;
 
       elsif MCDC_Coverage_Enabled then
          return "history," & Trace_Output.all;
