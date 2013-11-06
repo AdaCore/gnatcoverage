@@ -8,3 +8,5 @@ test.py.*
 *.pkl
 *.dump
 *.qm
+/tools/gnatcov/obj32/
+/tools/gnatcov/obj64/
