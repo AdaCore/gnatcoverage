@@ -40,8 +40,9 @@
 #    by default, producing the html or pdf document of interest + stuff
 #    we don't care about (e.g. intermediate latex sources for rest->pdf),
 #
-# 3) move or copy the final documents in an ITEMS subdir, then maybe build
-#    an index linking to the set of available items.
+# 3) move or copy the final documents in a subdir named after their
+#    format (PDF|HTML subdir for pdf|html format), then maybe build
+#    an archive of the set of available items for each format.
 #
 # Everything takes place in a "root" or "work" directory, specified with
 # --root-dir or --work-dir.
@@ -110,6 +111,15 @@
 #
 # --testsuite-dir supports "remote access" prefixes like "[login@]hostname:"
 # for this purpose.
+#
+# When producing STR, the testsuite-dir first is populated with REST sources
+# describing the run results, then a local copy is fetched as needed (when the
+# designated testsuite-dir is remote) and pdf/html is produced from there with
+# sphinx.
+#
+# When a remote testsuite dir is fetched, the directory name for the
+# local copy is computed as the sha1 hashed value of the designated remote
+# dir name, optional login included.
 #
 # Example kit production commands:
 # ================================
