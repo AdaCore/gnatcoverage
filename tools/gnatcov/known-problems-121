@@ -1,0 +1,10 @@
+============================================
+Known problems in GNATcoverage version 1.2.1
+============================================
+
+Copyright (C) 2013, AdaCore
+
+The following is a listing of known problems in release 1.2.1. All these
+problems have been corrected in 1.3 wavefronts starting from date designated
+in the "Status" indication.
+
