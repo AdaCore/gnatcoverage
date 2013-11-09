@@ -731,6 +731,8 @@ class QDreport:
         if sepfile:
             self.rstf = RSTfile (sepfile)
 
+        self.rstf.write (".. _tctable:\n")
+
         self.rstf.write (rest.chapter ("Testcase Execution summary"))
 
         # Arrange to get a single description and legend followed by a set of
@@ -756,7 +758,10 @@ class QDreport:
                 "Identifier column, just not repeated on every line. These "
                 "identifiers match those used in the TOR document so can "
                 "be used to lookup results from testcase descriptions or "
-                "vice-versa.\n"
+                "vice-versa."
+                "\n\n"
+                "A general summary of all the results is provided in the "
+                ":ref:`tssummary` section of this report.\n"
                 ),
             columns = self.tccolumns(),
             contents = None,
@@ -873,13 +878,17 @@ class QDreport:
         if sepfile:
             self.rstf = RSTfile (sepfile)
 
+        self.rstf.write (".. _tssummary:\n")
+
         self.rstf.write (rest.chapter ("Testsuite Status summary"))
 
         RSTtable (
             title = None,
             text = \
                 "This table summarizes status and expectation counters "
-                "for each test category across the entire testsuite.",
+                "for each test category across the entire testsuite.  Please "
+                "refer to the :ref:`tctable` section of ths report for an "
+                "explanation of the legend. ",
             columns = self.sumcolumns(),
             contents = self.sumcontents()
             ).dump_to (self.rstf)
