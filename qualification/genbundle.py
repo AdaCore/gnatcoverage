@@ -218,12 +218,15 @@ def remove (path):
     # Start by removing the current local instance, in case the previous
     # removal failed or was interrupted somehow.
 
+    def isdir(path):
+        return os.path.isdir(path) and not os.path.islink(path)
+
     if os.path.exists (local_name):
-        rm (local_name, recursive=os.path.isdir(local_name))
+        rm (local_name, recursive=isdir(local_name))
 
     if os.path.exists (path):
         mv (path, local_name)
-        rm (local_name, recursive=os.path.isdir(local_name))
+        rm (local_name, recursive=isdir(local_name))
 
 # testsuite dirs may include a [user@]remote-host: prefix
 
