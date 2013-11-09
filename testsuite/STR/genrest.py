@@ -742,21 +742,28 @@ class QDreport:
                 "The following tables list all the testcases that were "
                 "executed, with their execution status and a set of "
                 "expectation counters. '#' in the legend abbreviates "
-                "\"number of satisfied expectations for ...\".\n\nThe set "
-                "of tables is partitioned according to language/coverage"
-                "-criterion associations described by section titles. The "
-                "text in square brackets at the end of each section title "
-                "is a common prefix to the Testcase Identifier column, just "
-                "not repeated on every line. These identifiers match those "
-                "used in the TOR document so can be used to lookup results "
-                "from testcase descriptions or vice-versa.\n"
+                "\"number of satisfied expectations for ...\". "
+                "The use of \"violations\" in this context refers to "
+                "deviations with respect to a given coverage criterion, "
+                "e.g. \"statement not executed\" instances "
+                "that tests trigger on purpose and which we expect to "
+                "be detected by the tool. "
+                "\n\n"
+                "The set of tables is partitioned according to "
+                "language/coverage-criterion associations described by "
+                "section titles. The text in square brackets at the end "
+                "of each section title is a common prefix to the Testcase "
+                "Identifier column, just not repeated on every line. These "
+                "identifiers match those used in the TOR document so can "
+                "be used to lookup results from testcase descriptions or "
+                "vice-versa.\n"
                 ),
             columns = self.tccolumns(),
             contents = None,
             ).dump_to (self.rstf)
 
         [RSTtable (
-                title = ("%s tests [ %s ]" % (cat.name, cat.qmprefix)),
+                title = ("%s tests [ %s/... ]" % (cat.name, cat.qmprefix)),
                 text = None,
                 columns = self.tccolumns(),
                 contents = [self.tcdict_for(qd) for qd in cat.qdl]
