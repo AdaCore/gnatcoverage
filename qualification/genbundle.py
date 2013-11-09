@@ -113,13 +113,11 @@
 # for this purpose.
 #
 # When producing STR, the testsuite-dir first is populated with REST sources
-# describing the run results, then a local copy is fetched as needed (when the
-# designated testsuite-dir is remote) and pdf/html is produced from there with
-# sphinx.
+# describing the run results, then a local copy is fetched and pdf/html is
+# produced from there with sphinx.
 #
-# When a remote testsuite dir is fetched, the directory name for the
-# local copy is computed as the sha1 hashed value of the designated remote
-# dir name, optional login included.
+# The directory name for the local copy is computed as the sha1 hashed value
+# of the designated directory name, optional login included.
 #
 # Example kit production commands:
 # ================================
@@ -676,21 +674,17 @@ class QMAT:
 
         os.chdir (self.rootdir)
 
-        raccess = raccess_in (self.o.testsuite_dir)
-        
-        if raccess:
-            rdir = rdir_in (self.o.testsuite_dir)
+        self.local_testsuite_dir = \
+            hashlib.sha1(self.o.testsuite_dir).hexdigest()
 
-            self.local_testsuite_dir = hashlib.sha1(raccess).hexdigest()
-            run ("rsync -arz --delete %s:%s/ %s" % (
-                    raccess, rdir, self.local_testsuite_dir)
-                 )
-            self.log (
-                "remote testsuite-dir %s fetched as %s" % (
-                    self.o.testsuite_dir, self.local_testsuite_dir)
-                )
-        else:
-            self.local_testsuite_dir = self.o.testsuite_dir
+        run ("rsync -arz --delete %s/ %s" % (
+                self.o.testsuite_dir, self.local_testsuite_dir)
+             )
+
+        self.log (
+            "testsuite-dir %s fetched as %s" % (
+                self.o.testsuite_dir, self.local_testsuite_dir)
+            )
 
         self.local_testsuite_dir = \
             os.path.abspath (self.local_testsuite_dir)
