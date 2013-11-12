@@ -26,13 +26,9 @@ procedure crun is
 
    Executable_Path : String_Access;
 
-   Execs_Dir : String := Normalize_Pathname ("..", Command_Name);
-
    Success : Boolean;
 
    CWD : String := Get_Current_Dir;
-
-   --  The following declarations are used only in Run mode.
 
    Python_P    : String_Access;
    Python_Args : Argument_List (1 .. 2);
@@ -45,7 +41,26 @@ procedure crun is
    Isys_Pfile : String (1 .. 15);
    Lasti : Natural;
    Crun_Dir_Name : String := Normalize_Pathname ("..", Command_Name);
+
    Wspace_Dir_Name : String := Normalize_Pathname ("isyswspace");
+
+   Itmp_Dir_Name : String := Normalize_Pathname ("isystemps", Crun_Dir_Name);
+   Temp_Dir : Dir_Type;
+   Temp_Name : String (1 .. 80);
+
+   procedure Empty_Temps_Dir;
+
+   procedure Empty_Temps_Dir is
+   begin
+      Open (Temp_Dir, Itmp_Dir_Name);
+      loop
+         Read (Temp_Dir, Temp_Name, Lasti);
+         exit when Lasti = 0;
+         Delete_File
+          (Normalize_Pathname (Temp_Name (1 .. Lasti), Itmp_Dir_Name), Success);
+      end loop;
+      Close (Temp_Dir);
+   end Empty_Temps_Dir;
 
    type Poss_Arg is record
      Arg_Name : String_Access;
@@ -78,9 +93,17 @@ begin
       Make_Dir (Wspace_Dir_Name);
    exception
       when Directory_Error =>
-         Put_Line (Standard_Error, "Error creating workspace directory.");
+         Put_Line (Standard_Error, "Error creating workspace.");
          OS_Exit (1);
    end;
+   declare
+   begin
+      Make_Dir (Itmp_Dir_Name);
+   exception
+      when Directory_Error =>
+         null; -- Okay if temp dir already exists
+   end;
+
    Open (Crun_Dir, Crun_Dir_Name);
    loop
       Read (Crun_Dir, Isys_Pfile, Lasti);
@@ -113,9 +136,11 @@ begin
    Close (Argslog_File);
 
 
+   Setenv ("ISYSTEM_TEMP", Itmp_Dir_Name);
    Spawn (Python_P.all, Python_Args, Success);
    if not Success then
       Put_Line (Standard_Error, "winIDEA python script failed.");
+      Empty_Temps_Dir;
       OS_Exit (1);
    end if;
 
@@ -192,4 +217,7 @@ begin
       Put_Line (Standard_Error, "gnatcov convert failed.");
       OS_Exit (1);
    end if;
+
+   Empty_Temps_Dir;
+
 end crun;

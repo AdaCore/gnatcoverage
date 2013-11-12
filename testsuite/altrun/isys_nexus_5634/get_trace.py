@@ -1,14 +1,16 @@
 import time
 import sys
+import os
 executable = sys.argv [1]
 
 import isystem.connect as ic
 
 cmgr = ic.ConnectionMgr()
-cmgr.connectMRU('.\isyswspace\justrun.xjrf')
+cmgr.connectMRU()
+wspaceControl = ic.CWorkspaceController (cmgr)
+wspaceControl.open(os.path.abspath('.\isyswspace\justrun.xjrf'))
 
 traceDoc = ic.CTraceController (cmgr, 'justrun.trd', 'w')
-
 traceDoc.select ('justrun')
 
 loader   = ic.CLoaderController (cmgr)
@@ -32,7 +34,6 @@ downloadConfig.setCodeOffset (0).setSymbolsOffset (0). \
   setDownloadFileFormat (ic.CDownloadConfiguration.ftELF);
 
 dbg = ic.CDebugFacade(cmgr)
-# dbg.download()
 loader.targetDownload (downloadConfig, executable,
 ' LoadSymbols(Global) LoadZeros(0) LoadDwarfSection(1) ReverseBitFields(0) DumpELFHeaders(0) LoadCode(Virtual) CallStack(Automatic) MergeTypes(0) GCC_ARM_double_Format(Swapped) RemoveOptimizedLines(1) InsertInlinedFunctions(0) IgnoreNonStatementLines(1) ')
 isyminfo = dbg.getSymbolInfo (ic.IConnectDebug.fMonitor |
@@ -51,7 +52,6 @@ varType = ic.SType()
 varType.m_byBitSize = 32
 varType.m_byType = ic.SType.tSigned
 last_chance = dbg.readValue (ic.IConnectDebug.fMonitor, isyminfo.getMemArea (), isyminfo.getAddress (), varType)
-#print 'LAST CHANCE VALUE'
 if last_chance.getInt() != 0:
    print '!!! EXCEPTION RAISED !!!'
 
@@ -63,6 +63,6 @@ formatter.setHeader (False) \
 exportCfg = ic.CTraceExportConfig ()
 exportCfg.setFileName ('nexus_trace.bin').setFormatter (formatter)
 traceDoc.exportData (exportCfg)
-time.sleep (10.0)
+traceDoc.closeAll ()
 
-cmgr.disconnect (ic.IConnect.dfCloseServerUnconditional | ic.IConnect.dfCloseAutoSaveNone)
+cmgr.disconnect (0)
