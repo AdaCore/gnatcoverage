@@ -405,6 +405,16 @@ class TestSuite:
             self.__init_strbox()
 
             tprefix = self.__target_prefix()
+            
+            if self.options.other_tool_info:
+                info_string = Run(
+                    [sys.executable, self.options.other_tool_info], timeout=20
+                    ).out.split('##')
+
+                other_tool_info = TOOL_info (
+                    exename=info_string[0], ver=info_string[1])
+            else:
+                other_tool_info = None
 
             dump_to (
                 CTXDATA_FILE,
@@ -417,7 +427,8 @@ class TestSuite:
                     target   = self.env.target,
                     gnatpro  = TOOL_info (tprefix+"gcc"),
                     gnatemu  = TOOL_info (tprefix+"gnatemu"),
-                    gnatcov  = TOOL_info ("gnatcov")
+                    gnatcov  = TOOL_info ("gnatcov"),
+                    other    = other_tool_info
                     )
                 )
 
@@ -1105,6 +1116,14 @@ class TestSuite:
                           'Assume full profile otherwise.')
         # defaulting to "" instead of None lets us perform RE searches
         # unconditionally
+
+        m.add_option(
+            '--other-tool-info', dest='other_tool_info',
+            metavar='OTHER_TOOL_INFO', default="",
+            help=(
+                'Name of a python script outputing other '
+                'tool##version info')
+            )
 
         m.add_option('--kernel', dest='kernel', metavar='KERNEL',
                      help='KERNEL to pass to gnatcov run in addition to exe')

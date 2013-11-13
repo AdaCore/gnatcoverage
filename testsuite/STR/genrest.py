@@ -994,6 +994,7 @@ class QDreport:
         suite_gnatpro = self.suitedata.gnatpro
         suite_gnatcov = self.suitedata.gnatcov
         suite_gnatemu = self.suitedata.gnatemu
+        suite_other   = self.suitedata.other
         
         # Base table entries, always there:
 
@@ -1025,6 +1026,15 @@ class QDreport:
                 {item : "GNATemu executable & version",
                  v1: suite_gnatemu.exename,
                  v2: suite_gnatemu.version}
+                )
+
+        # Add the "other tool" version if we have it
+
+        if suite_other:
+            table_entries.append (
+                {item : "Other toolset executable & version",
+                 v1: suite_other.exename,
+                 v2: suite_other.version}
                 )
 
         CSVtable (
