@@ -13,7 +13,7 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Plans
    :delim: |
    :header: "Version #", "Comment"
 
-   1.0|First version submitted to a formal internal QA cycle
+   0.0 | To be filled-in
 
 .. qmlink::
 
