@@ -515,11 +515,17 @@ class QMAT:
 
         if self.local_testsuite_dir and self.passno == 1:
             os.chdir (self.local_testsuite_dir)
-            [cp (tr, os.path.join (
-                        self.repodir, "testsuite",
-                        os.path.dirname (tr))
-                 )
-             for tr in find (root=".", pattern="tc.dump")]
+
+            def sync(relative):
+                target_dir = os.path.join (
+                    self.repodir, "testsuite", os.path.dirname (tr)
+                    )
+                if os.path.exists(target_dir):
+                    cp (relative, target_dir)
+                else:
+                    print ("ERRRR !! inexistant target dir for %s" % relative)
+
+            [sync(tr) for tr in find (root=".", pattern="tc.dump")]
 
         self.__qm_build (part="tor")
 
