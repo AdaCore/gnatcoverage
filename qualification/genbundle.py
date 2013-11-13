@@ -811,6 +811,18 @@ class QMAT:
 
         run ("zip -q -r %(kitdir)s.zip %(kitdir)s" % {"kitdir": kitdir})
 
+    # -----------------------
+    # -- zip_testsuite_dir --
+    # -----------------------
+
+    def zip_testsuite_dir(self):
+
+        os.chdir (self.rootdir)
+
+        relative_testsuite_dir = os.path.basename (self.local_testsuite_dir)
+
+        run ("zip -q -r %(dir)s.zip %(dir)s" % {"dir": relative_testsuite_dir})
+
     # ---------------------
     # -- build_as_needed --
     # ---------------------
@@ -1086,4 +1098,5 @@ if __name__ == "__main__":
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
 
     if options.kitp:
+        qmat.zip_testsuite_dir()
         qmat.dump_kit_consistency_log()
