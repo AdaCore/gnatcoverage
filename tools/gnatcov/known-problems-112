@@ -8,6 +8,20 @@ The following is a listing of known problems in release 1.1.2. All these
 problems have been corrected in 1.2 wavefronts starting from date designated
 in the "Status" indication.
 
+KP-112-MA08-031 Warnings on short-circuit/non-short-circuit decision nest
+
+  Problem:    gnatcov coverage emits spurious "condition lacks edge" warnings
+              on "if (A and then B) or (C or D)" with --level=stmt+decision.
+              The trigger is the mix of short-circuit and non-short-circuit
+              operators exposing a decision nested within another and starting
+              at the same sloc (here, A and then B nested within the outer
+              expression).
+
+  Status:     This was fixed in 1.2 on 2013-10-08
+
+  Workaround: Rewrite the expression so the short-circuit subexpression
+              isn't first.
+
 KP-112-M724-035 Spurious branch related warnings on controlled condition
 
   Problem:    On x86-linux, for complex Ada constructs involving transient
