@@ -922,7 +922,7 @@ def commandline():
             )
         )
     op.add_option (
-        "--branch", dest="branchname", default="opendo",
+        "--branch", dest="branchname", default=None,
         help = (
             "The git branch we shall produce the material from.")
         )
@@ -1009,6 +1009,13 @@ def check_valid(options, args):
         ("Please specify the desired output format (--docformat).")
         )
 
+    # Likewise for the git branch name:
+
+    exit_if (
+        not options.branchname,
+        ("Please specify the git branch name (--branch).")
+        )
+    
     # work dir vs root dir.
 
     exit_if (
