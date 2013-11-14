@@ -165,6 +165,10 @@ def kind_of(artifact):
             else "Testcase" if is_test_case(artifact)
             else "Chapter")
 
+def short_kind_of(artifact):
+    kind = kind_of(artifact)
+    return "Group" if "Group" in kind else kind
+
 def relative_links_for(artifact):
 
     output = ""
@@ -178,7 +182,7 @@ def relative_links_for(artifact):
     if ancestor and ancestor != req:
         output += writer.paragraph(
             "**Parent %s**: %s\n\n" %
-            (kind_of(ancestor), writer.qmref(ancestor.full_name)))
+            (short_kind_of(ancestor), writer.qmref(ancestor.full_name)))
 
     return output
 
@@ -251,6 +255,9 @@ class TCIndexImporter(ArtifactImporter):
             headers=["", "TestCases", "Description"],
             widths=[3, 25, 65])
 
+        if is_test_set(parent):
+            output += relative_links_for(parent)
+
         output += writer.only(html_table, "html")
         output += writer.only(pdf_table, "latex")
         output += "|\n\n"
@@ -263,9 +270,6 @@ class TCIndexImporter(ArtifactImporter):
                 pass
             else:
                 links.append((a, qm.rest.DefaultImporter()))
-
-        if is_test_set(parent):
-            output += relative_links_for(parent)
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                   for l in links if
