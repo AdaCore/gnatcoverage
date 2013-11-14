@@ -24,6 +24,6 @@ Testcase subdirectories hold all the necessary items allowing automated
 execution of the tests; execution scripts in addition to the test sources in
 particular. The artifacts filesystem used to construct the TOR document is
 thus also used to drive entire *testsuite* runs and produce the STR report for
-a given software level. The "Overview Of The Testsuite Structure" appendix of
-the TOR document explains how expectations on coverage results are stated for
-this purpose.
+a given software level. The *Overview of the test procedures organization*
+appendix of the TOR document explains how expectations on coverage results are
+stated for this purpose.
