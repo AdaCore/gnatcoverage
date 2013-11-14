@@ -70,6 +70,9 @@ procedure GNATcov is
    procedure Usage_Dump;
    --  Display usage information for internal debugging commands
 
+   procedure Show_Version;
+   --  Show gnatcov version
+
    procedure Check_Argument_Available
      (Args            : Inputs.Inputs_Type;
       What            : String;
@@ -1031,6 +1034,15 @@ procedure GNATcov is
       end if;
    end Set_Subjects_From_Project;
 
+   ------------------
+   -- Show_Version --
+   ------------------
+
+   procedure Show_Version is
+   begin
+      Put_Line ("GNATcoverage " & Standard.Version.Xcov_Version);
+   end Show_Version;
+
    Base : aliased Traces_Base;
    Exec : aliased Exe_File_Type;
 
@@ -1042,6 +1054,10 @@ begin
    --  Process command line
 
    Parse_Command_Line;
+
+   if Verbose then
+      Show_Version;
+   end if;
 
    if Root_Project /= null then
       --  If a root project has been specified but no project is being
@@ -1074,7 +1090,9 @@ begin
          Usage_Dump;
 
       when Cmd_Version =>
-         Put_Line ("GNATcoverage " & Standard.Version.Xcov_Version);
+         if not Verbose then
+            Show_Version;
+         end if;
 
       when Cmd_Disp_Routines =>
          declare
@@ -1509,6 +1527,12 @@ begin
                end if;
 
                Build_Debug_Compile_Units (Exe_File.all);
+
+               if Verbose then
+                  Put_Line
+                    ("processing traces from " & Trace_File.Filename.all);
+               end if;
+
                Load_Code_And_Traces (Exe_File, Base'Access);
             end Process_Trace_For_Obj_Coverage;
 
@@ -1549,6 +1573,11 @@ begin
                Read_Loadaddr_Trace_Entry (Desc, Trace_File.Trace, Offset);
 
                --  Iterate on trace entries
+
+               if Verbose then
+                  Put_Line
+                    ("processing traces from " & Trace_File.Filename.all);
+               end if;
 
                loop
                   Read_Trace_Entry (Desc, Eof, E);
