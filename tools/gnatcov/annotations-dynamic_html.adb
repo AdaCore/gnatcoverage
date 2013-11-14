@@ -23,6 +23,10 @@ with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
+pragma Warnings (Off, "* is an internal GNAT unit");
+   with Ada.Strings.Unbounded.Aux;
+pragma Warnings (On, "* is an internal GNAT unit");
+
 with GNAT.OS_Lib;
 with GNATCOLL.JSON;                    use GNATCOLL.JSON;
 
@@ -34,6 +38,7 @@ with Interfaces;
 with Outputs;
 with Qemu_Traces;
 with Strings;
+with Traces_Disa;
 with Traces_Files;
 with Traces_Files_List;
 
@@ -57,40 +62,59 @@ package body Annotations.Dynamic_Html is
       --  this node with children. It will then be written into a <script>
       --  section in the final HTML document.
 
-      Current_Mapping    : JSON_Value;
+      Current_Mapping     : JSON_Value;
       --  A line mapping structure, containing the coverage results for the
       --  given line. This correspond to the mapping currently being generated
       --  by the Dynamic_Html builder. It is stored in Current_Mappings by the
       --  Pretty_Print_End_Line procedure.
 
-      Current_Mappings   : JSON_Array;
+      Current_Mappings    : JSON_Array;
       --  The list of all mappings for the file being currently processed by
       --  the builder. It is stored in the "sources" attributes of the JSON
       --  root by Pretty_Print_End_File.
 
-      Current_Statements : JSON_Array;
+      Current_Statements  : JSON_Array;
       --  The statement list attached to the line currently being processed. It
       --  is stored in the Current_Mapping by Pretty_Print_End_Line if not
       --  empty.
 
-      Current_Decision   : JSON_Value;
+      Current_Decision    : JSON_Value;
       --  The current decision being processed by the builder. It is stored in
       --  Current_Decisions by the Pretty_Print_End_Decision procedure.
 
-      Current_Decisions  : JSON_Array;
+      Current_Decisions   : JSON_Array;
       --  The decision list attached to the line currently being processed. It
       --  is stored in the Current_Mapping by Pretty_Print_End_Line if not
       --  empty.
 
-      Current_Conditions : JSON_Array;
+      Current_Conditions  : JSON_Array;
       --  The condition list attached to the line currently being processed. It
       --  is stored in the Current_Decision by Pretty_Print_End_Decision if not
       --  empty.
 
-      Current_Source     : JSON_Value;
+      Current_Insn_Set    : JSON_Value;
+      --  The current instruction set being processed by the builder. It is
+      --  stored as "instruction_set" in the Current_Mapping by
+      --  Pretty_Print_End_Instruction_Set.
+
+      Current_Insn_Block  : JSON_Value;
+      --  The current instruction block being processed by the builder. It is
+      --  stored in Current_Insn_Blocks by Pretty_Print_End_Symbol.
+
+      Current_Insn_Blocks : JSON_Array;
+      --  The instruction block list attached to the line currently being
+      --  processed. It is stored in Current_Insn_Set by
+      --  Pretty_Print_End_Instruction_Set if not empty.
+
+      Current_Insns       : JSON_Array;
+      --  The instruction list attached to the line currently being processed.
+      --  It is stored in Current_Insn_Block by Pretty_Print_End_Symbol if not
+      --  empty.
+
+      Current_Source      : JSON_Value;
       --  The current source being processed by the builder
 
-      Source_List        : JSON_Array;
+      Source_List         : JSON_Array;
       --  The sources array, containing all source mappings
    end record;
 
@@ -138,6 +162,27 @@ package body Annotations.Dynamic_Html is
    procedure Pretty_Print_Message
      (Pp : in out Dynamic_Html;
       M  : Message);
+
+   procedure Pretty_Print_Start_Instruction_Set
+     (Pp    : in out Dynamic_Html;
+      State : Any_Line_State);
+
+   procedure Pretty_Print_End_Instruction_Set
+     (Pp : in out Dynamic_Html);
+
+   procedure Pretty_Print_Start_Symbol (Pp     : in out Dynamic_Html;
+                                        Name   : String;
+                                        Offset : Pc_Type;
+                                        State  : Line_State);
+
+   procedure Pretty_Print_End_Symbol (Pp : in out Dynamic_Html);
+
+   procedure Pretty_Print_Insn
+     (Pp    : in out Dynamic_Html;
+      Pc    : Pc_Type;
+      State : Insn_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class);
 
    --------------------
    -- Set_SCO_Fields --
@@ -429,6 +474,99 @@ package body Annotations.Dynamic_Html is
       Append (Pp.Current_Conditions, Condition);
    end Pretty_Print_Condition;
 
+   ----------------------------------------
+   -- Pretty_Print_Start_Instruction_Set --
+   ----------------------------------------
+
+   procedure Pretty_Print_Start_Instruction_Set
+     (Pp    : in out Dynamic_Html;
+      State : Any_Line_State)
+   is
+      Insn_Set : constant JSON_Value := Create_Object;
+   begin
+      Clear (Pp.Current_Insn_Blocks);
+
+      Insn_Set.Set_Field ("coverage", State_Char (State) & "");
+
+      Pp.Current_Insn_Set := Insn_Set;
+   end Pretty_Print_Start_Instruction_Set;
+
+   -------------------------------
+   -- Pretty_Print_Start_Symbol --
+   -------------------------------
+
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Dynamic_Html;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State)
+   is
+      use Hex_Images;
+      Coverage_State : constant String := State_Char (State) & "";
+      Insn_Block     : constant JSON_Value := Create_Object;
+
+   begin
+      Clear (Pp.Current_Insns);
+
+      Insn_Block.Set_Field ("name", Name);
+      Insn_Block.Set_Field ("offset", Hex_Image (Offset));
+      Insn_Block.Set_Field ("coverage", Coverage_State);
+
+      Pp.Current_Insn_Block := Insn_Block;
+   end Pretty_Print_Start_Symbol;
+
+   -----------------------
+   -- Pretty_Print_Insn --
+   -----------------------
+
+   procedure Pretty_Print_Insn
+     (Pp    : in out Dynamic_Html;
+      Pc    : Pc_Type;
+      State : Insn_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class)
+   is
+      use Hex_Images;
+      use Traces_Disa;
+
+      Instruction : constant JSON_Value := Create_Object;
+
+   begin
+      Instruction.Set_Field ("address", Hex_Image (Pc));
+      Instruction.Set_Field ("coverage", Insn_State_Char (State) & "");
+      Instruction.Set_Field ("assembly", Disassemble (Insn, Pc, Sym));
+
+      Append (Pp.Current_Insns, Instruction);
+   end Pretty_Print_Insn;
+
+   -----------------------------
+   -- Pretty_Print_End_Symbol --
+   -----------------------------
+
+   procedure Pretty_Print_End_Symbol (Pp : in out Dynamic_Html) is
+   begin
+      if not Is_Empty (Pp.Current_Insns) then
+         Pp.Current_Insn_Block.Set_Field ("instructions", Pp.Current_Insns);
+      end if;
+
+      Append (Pp.Current_Insn_Blocks, Pp.Current_Insn_Block);
+   end Pretty_Print_End_Symbol;
+
+   --------------------------------------
+   -- Pretty_Print_End_Instruction_Set --
+   --------------------------------------
+
+   procedure Pretty_Print_End_Instruction_Set
+     (Pp : in out Dynamic_Html) is
+   begin
+      if not Is_Empty (Pp.Current_Insn_Blocks) then
+         Pp.Current_Insn_Set.Set_Field
+           ("instruction_blocks", Pp.Current_Insn_Blocks);
+      end if;
+
+      Pp.Current_Mapping.Set_Field ("instruction_set", Pp.Current_Insn_Set);
+   end Pretty_Print_End_Instruction_Set;
+
    --------------------------
    -- Pretty_Print_Message --
    --------------------------
@@ -512,6 +650,7 @@ package body Annotations.Dynamic_Html is
 
    procedure Write_HTML_Report (Filename : String; Report : JSON_Value) is
       use Ada.Exceptions;
+      use Ada.Strings.Unbounded;
       use Ada.Text_IO;
 
       use Outputs;
@@ -521,6 +660,10 @@ package body Annotations.Dynamic_Html is
       procedure W (Item : String)
       with Pre => Is_Open (HTML);
       --  Write Item into HTML
+
+      procedure WU (Item : Unbounded_String)
+      with Pre => Is_Open (HTML);
+      --  Write Item (Unbounded String) into HTML
 
       procedure NL
       with Pre => Is_Open (HTML);
@@ -538,6 +681,21 @@ package body Annotations.Dynamic_Html is
       begin
          Put_Line (File => HTML, Item => Item);
       end W;
+
+      --------
+      -- WU --
+      --------
+
+      procedure WU (Item : Unbounded_String)
+      is
+         Output : Aux.Big_String_Access;
+         Last   : Natural;
+         First  : constant Natural := Aux.Big_String'First;
+
+      begin
+         Aux.Get_String (Item, Output, Last);
+         Put_Line (File => HTML, Item => Output (First .. Last));
+      end WU;
 
       --------
       -- NL --
@@ -602,7 +760,7 @@ package body Annotations.Dynamic_Html is
       NL;
       W ("  <script type=""text/javascript"">");
       W ("   var JSON_REPORT = ");
-      W (Write (Report, Compact => True));
+      WU (Write (Report, Compact => True));
       W ("  </script>");
       W (" </head>");
       NL;
