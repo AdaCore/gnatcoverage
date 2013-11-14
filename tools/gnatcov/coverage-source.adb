@@ -951,12 +951,13 @@ package body Coverage.Source is
                SCO := Sloc_To_SCO (SL (J).Sloc);
                Tag := SL (J).Tag;
 
-               --  All but the last sloc in SL correspond to an empty PC range
+               --  All but the first sloc in SL correspond to an empty PC range
+               --  (Address_Infos with shorter PC ranges sort higher).
 
                if SCO /= No_SCO_Id then
                   Discharge_SCO
                     (SCO,
-                     Empty_Range => J < SL'Last,
+                     Empty_Range => J > SL'First,
                      Tsloc       => SL (J));
                end if;
             end loop;
