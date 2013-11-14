@@ -3,11 +3,15 @@
 Software Level
 ==============
 
-For level C, GNATcoverage produces statement coverage data when using the option --level=stmt. 
+For level C, GNATcoverage produces statement coverage data when using the
+option :literal:`--level=stmt`.
 
-For level B, GNATcoverage produces statement coverage data *and* decision coverage data when using option --level=stmt+decision.
+For level B, GNATcoverage produces statement coverage data *and* decision
+coverage data when using option :literal:`--level=stmt+decision`.
 
-For level A, GNATcoverage produces statement coverage data *and* decision coverage data *and* mcdc coverage data when using option --level=stmt+mcdc.
+For level A, GNATcoverage produces statement coverage data *and* decision
+coverage data *and* mcdc coverage data when using option
+:literal:`--level=stmt+mcdc`.
 
 .. _qualified-interface:
 
