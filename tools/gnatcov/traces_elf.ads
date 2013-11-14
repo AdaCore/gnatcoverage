@@ -234,9 +234,9 @@ package Traces_Elf is
             Sloc : Source_Location := No_Location;
             Disc : Unsigned_32     := 0;
 
-            Is_Last : Boolean := False;
-            --  Set True for the last of a set of slocs associated with a given
-            --  range of addresses.
+            Is_Non_Empty : Boolean := False;
+            --  Set True for the (only one) of a set of slocs associated with a
+            --  given start address that has a non-empty address range.
 
       end case;
    end record;
@@ -280,9 +280,9 @@ package Traces_Elf is
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
    function Get_Slocs
-     (Set       : Address_Info_Sets.Set;
-      PC        : Pc_Type;
-      Last_Only : Boolean := False) return Source_Locations;
+     (Set            : Address_Info_Sets.Set;
+      PC             : Pc_Type;
+      Non_Empty_Only : Boolean := False) return Source_Locations;
    --  Use Exec's debug_lines information to determine the slocs for the
    --  instruction at PC.
 

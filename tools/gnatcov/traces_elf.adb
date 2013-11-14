@@ -1703,17 +1703,17 @@ package body Traces_Elf is
          end if;
 
          --  If this entry has a non-empty range, mark it as such using the
-         --  Is_Last flag, and propagate the range to all entries with the same
-         --  start address and an empty range.
+         --  Is_Non_Empty flag, and propagate the range to all entries with
+         --  the same start address and an empty range.
 
          if Last_Line.Last >= Last_Line.First then
-            Last_Line.Is_Last := True;
+            Last_Line.Is_Non_Empty := True;
 
             for Info of Get_Address_Infos
               (Subprg.Lines, Line_Addresses, Last_Line.First)
             loop
                if Info.Last < Info.First then
-                  pragma Assert (not Info.Is_Last);
+                  pragma Assert (not Info.Is_Non_Empty);
                   Info.Last := Last_Line.Last;
                end if;
             end loop;
@@ -1759,16 +1759,16 @@ package body Traces_Elf is
          if Subprg /= null then
             Last_Line :=
               new Address_Info'
-                (Kind    => Line_Addresses,
-                 First   => Exec.Exe_Text_Start + Pc,
-                 Last    => Exec.Exe_Text_Start + Pc,
-                 Parent  => (if Subprg /= null then Subprg else Sec),
-                 Sloc    =>
-                   (Source_File  => File_Index,
-                    L            => (Line   => Natural (Line),
-                                     Column => Natural (Column))),
-                 Disc    => Disc,
-                 Is_Last => False);
+                (Kind         => Line_Addresses,
+                 First        => Exec.Exe_Text_Start + Pc,
+                 Last         => Exec.Exe_Text_Start + Pc,
+                 Parent       => (if Subprg /= null then Subprg else Sec),
+                 Sloc         =>
+                   (Source_File => File_Index,
+                    L           => (Line   => Natural (Line),
+                                    Column => Natural (Column))),
+                 Disc         => Disc,
+                 Is_Non_Empty => False);
 
             Subprg.Lines.Insert (Last_Line, Pos, Inserted);
             if not Inserted then
@@ -2198,11 +2198,10 @@ package body Traces_Elf is
       PC   : Pc_Type) return Source_Location
    is
       SL : constant Source_Locations :=
-             Get_Slocs (Set, PC, Last_Only => True);
+        Get_Slocs (Set, PC, Non_Empty_Only => True);
    begin
       if SL'Length = 0 then
          return Slocs.No_Location;
-
       else
          pragma Assert (SL'Length = 1);
          return SL (1);
@@ -2214,9 +2213,9 @@ package body Traces_Elf is
    ---------------
 
    function Get_Slocs
-     (Set       : Address_Info_Sets.Set;
-      PC        : Pc_Type;
-      Last_Only : Boolean := False) return Source_Locations
+     (Set            : Address_Info_Sets.Set;
+      PC             : Pc_Type;
+      Non_Empty_Only : Boolean := False) return Source_Locations
    is
       use Address_Info_Sets;
 
@@ -2229,7 +2228,7 @@ package body Traces_Elf is
       for Addr_Info of Line_Infos loop
          if Addr_Info.Last >= Addr_Info.First
               and then
-            (Addr_Info.Is_Last or else not Last_Only)
+            (Addr_Info.Is_Non_Empty or else not Non_Empty_Only)
          then
             Last := Last + 1;
             Result (Last) := Addr_Info.Sloc;
