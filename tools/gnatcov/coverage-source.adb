@@ -887,7 +887,12 @@ package body Coverage.Source is
          begin
             Report
               (Exe, PC,
-               "processing cond branch trace op" & T.Op'Img,
+               "processing cond branch trace op" & T.Op'Img & " (" &
+               (case T.Op and 3 is
+                     when 1      => "branch",
+                     when 2      => "fallthrough",
+                     when 3      => "both",
+                     when others => "???") & " taken)",
                Kind => Notice);
 
             case T.Op and 3 is

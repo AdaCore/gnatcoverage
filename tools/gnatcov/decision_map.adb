@@ -2170,8 +2170,9 @@ package body Decision_Map is
       if Branch_Stats then
          Put_Line
            ("Branch statistics for " & Subp_Name, '=');
+
       elsif Verbose then
-         Put_Line ("Building decision map for " & Subp_Name);
+         Put_Line ("building decision map for " & Subp_Name);
       end if;
 
       Context.Subprg :=
