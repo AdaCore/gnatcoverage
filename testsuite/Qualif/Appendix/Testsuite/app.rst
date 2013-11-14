@@ -64,6 +64,9 @@ purposes as needed.
 Coverage Expectations
 =====================
 
+Definition and operation
+------------------------
+
 The expectations on coverage results are documented in two ways:
 
 * **In functional sources**, comments starting with ``-- #`` on lines for
@@ -177,8 +180,8 @@ from the qualified output out of ``gnatcov --annotate=report`` :
 * ``statement not covered`` diagnostics for lines 4 and 8, stated by the
   ``s-`` expectations, and
 
-* No violation diagnostic for lines 3, 5, and 6, stated by the ``0``
-  expectations for the other lines containing statements.
+* No violation diagnostic for lines 3, 5, and 6, per the ``0``
+  expectations for the other lines with statements.
 
 This will yield an expected section of the report output such as::
 
@@ -187,6 +190,31 @@ This will yield an expected section of the report output such as::
       in_range.adb:4:7: statement not executed
       in_range.adb:8:7: statement not executed
       2 violations
+
+Extra details on semantics
+--------------------------
+
+The essential purpose of the qualification process is to make sure that
+improperly covered items are reported as such. For this reason, the testsuite
+enforces stricter checks for '``!``' and '``-``' items than for '``+``':
+
+* For '``-``' or '``!``' items, there must be an exact match between the
+  stated expectations and results reported by gnatcov (in both output formats
+  examined):
+  every expectation must be found in the tool outputs, and every occurrence
+  in the tool output must have a corresponding expectation.
+  This ensures that expectations are specified carefully and that the
+  tool reports exactly what is expected.
+
+* For '``+``' items (non-qualified .xcov outputs only), only the first of the
+  previously described checks applies. Absence of an expectation statement for
+  '``+``' on a line does not cause a test failure.
+
+``/regexp/`` filters that select no lines are allowed and act as a
+no-ops. This is useful in situations where a single driver is shared across
+different tests. Non-empty intersections between different filters are
+"allowed" as well, however most often correspond to mistakes as the sets of
+expected indications simply accumulate.
 
 .. _harness-rationale:
 
@@ -332,34 +360,4 @@ criteria. In our example test of statement category, the ``0`` expectations
 are meant to convey that we expect no *statement coverage* violation on the
 lines, and violations of stricter criteria there ought to be ignored.
 
-
-More on expectations semantics
-==============================
-
-The essential purpose of the qualification process is to make sure that
-improperly covered items are reported as such.
-
-For this reason, the testsuite enforces stricter checks for '``!``' and
-'``-``' items than for '``+``':
-
-* For '``-``' or '``!``' items, there must be an exact match between the
-  stated expectations and results reported by gnatcov (in both output formats
-  examined):
-  every expectation must be found in the tool outputs, and every occurrence
-  in the tool output must have a corresponding expectation.
-
-  This ensures that expectations are specified carefully and that the
-  tool reports exactly what is expected.
-
-* For '``+``' items (.xcov outputs only), only the first of the previously
-  described checks applies. Absence of an expectation statement for '``+``' on
-  a line does not cause a test failure.
-
-``/regexp/`` filters that select no lines are allowed and act as a
-no-ops. This is useful in situations where a single driver is shared across
-different tests.
-
-Non-empty intersections between different filters are "allowed" as well but
-even though sometimes convenient, they most often correspond to mistakes. The
-sets of expected indications simply accumulate.
 
