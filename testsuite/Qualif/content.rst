@@ -5,7 +5,7 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
 
 .. csv-table::
    :delim: |
-   :widths: 43, 30, 40
+   :widths: 40, 20, 40
    :header: "Name", "Company", "Email"
 
    Matteo Bordin|AdaCore|bordin@adacore.com
