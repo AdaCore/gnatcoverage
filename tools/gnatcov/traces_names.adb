@@ -98,8 +98,7 @@ package body Traces_Names is
    -- Add_Routine_Of_Interest --
    -----------------------------
 
-   procedure Add_Routine_Of_Interest (Name : String)
-   is
+   procedure Add_Routine_Of_Interest (Name : String) is
    begin
       Routines_Of_Interest.Insert (To_Symbol (Name));
    end Add_Routine_Of_Interest;
@@ -108,8 +107,7 @@ package body Traces_Names is
    -- Is_Routine_Of_Interest --
    ----------------------------
 
-   function Is_Routine_Of_Interest (Name : String) return Boolean
-   is
+   function Is_Routine_Of_Interest (Name : String) return Boolean is
       use Routine_Name_Sets;
       Name_Symbol : constant Symbol := To_Symbol (Name);
    begin
@@ -120,8 +118,7 @@ package body Traces_Names is
    -- Remove_Routine_Of_Interest --
    --------------------------------
 
-   procedure Remove_Routine_Of_Interest (Name : String)
-   is
+   procedure Remove_Routine_Of_Interest (Name : String) is
       Name_Symbol : constant Symbol := To_Symbol (Name);
    begin
       Routines_Of_Interest.Exclude (Name_Symbol);
@@ -509,8 +506,7 @@ package body Traces_Names is
    -- Disp_All_Routines_Of_Interest --
    -----------------------------------
 
-   procedure Disp_All_Routines_Of_Interest
-   is
+   procedure Disp_All_Routines_Of_Interest is
       use Routine_Name_Sets;
       Cur : Cursor;
    begin
