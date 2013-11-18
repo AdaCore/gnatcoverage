@@ -18,7 +18,7 @@ GNATcoverage is qualified as a verification tool.
 Quality Assurance Activities
 ============================
 
-This section presents the Quality Assurance (QA) activities operated over the
+This section presents the Quality Assurance (QA) activities performed on the
 documents composing a qualification kit in terms of objectives and
 outputs.
 
