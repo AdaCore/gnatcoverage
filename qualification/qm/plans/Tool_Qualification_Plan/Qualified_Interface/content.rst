@@ -19,7 +19,7 @@ GNATcoverage Qualified Interface
 ================================
 To obtain reports suitable for use as certification evidence, applicants shall use GNATcoverage as follows:
 
-* Build the application with the GNAT Pro toolchain identified in the Operational Environment section of the TOR document, obeying the compilation options and coding standard rules documented there as well.
+* Build the application with the GNAT Pro toolchain identified in the *Operational Environment* section of the TOR document, obeying the compilation options and coding standard rules documented there as well.
 
 * Build the test code and test harness and link it with the relevant application objects if necessary to form one or several test executables. The test code does not need to be compiled with the switches described in the Operational Environment section, nor does it need to comply to the coding standard.
 
