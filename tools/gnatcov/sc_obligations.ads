@@ -211,6 +211,9 @@ package SC_Obligations is
    function Last_Cond_Index (SCO : SCO_Id) return Condition_Index;
    function Degraded_Origins (SCO : SCO_Id) return Boolean;
 
+   function Decision_Coverable (SCO : SCO_Id) return Boolean;
+   --  True if both outcomes of the decision are reachable
+
    function Has_Diamond (SCO : SCO_Id) return Boolean;
    --  True if decison's BDD has a diamond, i.e. a node reachable through more
    --  than one path.

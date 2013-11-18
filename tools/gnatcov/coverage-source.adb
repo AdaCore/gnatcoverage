@@ -138,9 +138,10 @@ package body Coverage.Source is
    --  Compute the MC/DC state of SCO, which is already covered for DC
 
    function Decision_Requires_Coverage (SCO : SCO_Id) return Boolean;
-   --  Always True for all decisions that are part of a control structure;
-   --  for other decisions, True if All_Decisions is set, or if the decision
-   --  is complex and MC/DC is enabled.
+   --  Always True for all decisions that are part of a control structure; for
+   --  other decisions, True if All_Decisions is set, or if the decision is
+   --  complex and MC/DC is enabled. Note: this can be True even for decisions
+   --  that are not Decision_Coverable.
 
    procedure Update_State
      (Prev_State : in out Line_State;
@@ -293,7 +294,6 @@ package body Coverage.Source is
                elsif Kind (SCO) = Decision
                  and then First_Sloc (SCO).L.Line /= Line_Num
                then
-
                   --  For a decision that spans multiple lines, SCO state is
                   --  computed for the first line, and then cached in the SCI
                   --  and reused for subsequent lines.
@@ -318,9 +318,15 @@ package body Coverage.Source is
                   --  that the decision coverage information is also included
                   --  in MC/DC coverage.
 
-                  if SCI.Outcome_Taken (False)
+                  if not Decision_Coverable (SCO) then
+                     SCO_State := No_Code;
+
+                  elsif SCI.Outcome_Taken (False)
                     and then SCI.Outcome_Taken (True)
                   then
+                     --  Here for a decision that is not coverable (outcome is
+                     --  compile time known): nothing to do at Decision level.
+
                      SCO_State := Covered;
 
                   elsif SCI.Outcome_Taken (False)
@@ -338,7 +344,7 @@ package body Coverage.Source is
                         if Degraded_Origins (SCO) then
                            --  Degraded origins: try to recover accurate
                            --  information about the missing outcome through
-                           --  the dominance-based information.
+                           --  dominance information.
 
                            if SCI.Known_Outcome_Taken (False)
                              /= SCI.Known_Outcome_Taken (True)
@@ -419,9 +425,10 @@ package body Coverage.Source is
 
                      elsif SCO_State /= No_Code then
 
-                        --  Case of MC/DC enabled but at least one outcome
-                        --  never taken: do not report details regarding MC/DC
-                        --  coverage, just record that MC/DC is not achieved.
+                        --  Case of MC/DC enabled, and decision is coverable
+                        --  but at least one outcome was never taken: do not
+                        --  report details regarding MC/DC coverage, just
+                        --  record that MC/DC is not achieved.
 
                         Update_Line_State
                           (Line_Info, SCO, SCI.Tag, MCDC_Level, Not_Covered);

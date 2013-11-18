@@ -106,6 +106,8 @@ package body SC_Obligations is
            Element_Type => BDD_Node);
       BDD_Vector : BDD_Vectors.Vector;
 
+      type Reachability is array (Boolean) of Boolean;
+
       type BDD_Type is record
          Decision       : SCO_Id;
 
@@ -119,6 +121,10 @@ package body SC_Obligations is
          Diamond_Base   : BDD_Node_Id := No_BDD_Node_Id;
          --  If set, designates a node that is reachable through multiple paths
          --  (see Check_Diamonds).
+
+         Reachable_Outcomes : Reachability := (others => False);
+         --  Indicates whether each outcome is reachable (an outcome may be
+         --  unreachable due to constant conditions).
       end record;
 
       procedure Allocate
@@ -444,10 +450,11 @@ package body SC_Obligations is
 
       Arcs_Stack : Arcs_Stacks.Vector;
 
-      procedure Check_Diamonds (BDD : in out BDD_Type);
+      procedure Check_Reachability (BDD : in out BDD_Type);
       --  Look for diamonds in BDD (conditions that can be reached through more
       --  than one path from the root condition). MC/DC coverage is equivalent
       --  to object branch coverage if, and only if, there is no diamond.
+      --  Also determine whether each outcome is reachable.
 
       procedure Set_Operand
         (Operator : SCO_Id;
@@ -479,11 +486,11 @@ package body SC_Obligations is
          end if;
       end Allocate;
 
-      --------------------
-      -- Check_Diamonds --
-      --------------------
+      ------------------------
+      -- Check_Reachability --
+      ------------------------
 
-      procedure Check_Diamonds (BDD : in out BDD_Type) is
+      procedure Check_Reachability (BDD : in out BDD_Type) is
          Visited : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
                      of Boolean := (others => False);
 
@@ -503,57 +510,85 @@ package body SC_Obligations is
             Origin_Value : Boolean)
          is
             Parent_Id : BDD_Node_Id := Origin_Id;
+            C_Value   : Tristate;
 
-            procedure Set_Parent (Node : in out BDD_Node);
-            --  Set Node's parent to Parent_Id
+            procedure Visit_One (Node : in out BDD_Node);
+            --  Set Node's parent to Parent_Id. Set C_Value to Node's condition
+            --  value. Also markes outcome as reachable if Node is an outcome.
 
-            ----------------
-            -- Set_Parent --
-            ----------------
+            ---------------
+            -- Visit_One --
+            ---------------
 
-            procedure Set_Parent (Node : in out BDD_Node) is
+            procedure Visit_One (Node : in out BDD_Node) is
             begin
-               Node.Parent       := Parent_Id;
-               Node.Parent_Value := Origin_Value;
-            end Set_Parent;
+               case Node.Kind is
+                  when Condition =>
+                     C_Value           := Value (Node.C_SCO);
+                     Node.Parent       := Parent_Id;
+                     Node.Parent_Value := Origin_Value;
+
+                  when Outcome =>
+                     BDD.Reachable_Outcomes (Node.Decision_Outcome) := True;
+
+                  when others =>
+                     raise Program_Error;
+               end case;
+            end Visit_One;
 
             Node : BDD_Node renames BDD_Vector.Element (Node_Id);
 
          --  Start of processing for Visit
 
          begin
-            --  Nothing to do if a diamond has already been identified
+            --  Nothing to do if a diamond has already been identified and
+            --  both outcomes have been found to be reachable
 
-            if BDD.Diamond_Base /= No_BDD_Node_Id then
+            if BDD.Diamond_Base /= No_BDD_Node_Id
+                 and then
+               BDD.Reachable_Outcomes = (True, True)
+            then
                return;
             end if;
 
-            if Visited (Node_Id) then
+            --  Record first condition that is reachable through multiple paths
+            --  ("diamond base").
+
+            if Node.Kind = Condition
+                 and then
+               Visited (Node_Id)
+                 and then
+               BDD.Diamond_Base = No_BDD_Node_Id
+            then
                BDD.Diamond_Base := Node_Id;
                Parent_Id := No_BDD_Node_Id;
-               BDD_Vector.Update_Element (Node_Id, Set_Parent'Access);
-               return;
             end if;
 
             Visited (Node_Id) := True;
-            BDD_Vector.Update_Element (Node_Id, Set_Parent'Access);
+            BDD_Vector.Update_Element (Node_Id, Visit_One'Access);
 
-            for J in Boolean'Range loop
-               if BDD_Vector.Element (Node.Dests (J)).Kind = Condition then
-                  Visit
-                    (Node.Dests (J),
-                     Origin_Id    => Node_Id,
-                     Origin_Value => J);
-               end if;
-            end loop;
+            if Node.Kind = Condition then
+               for J in Boolean'Range loop
+                  --  Visit destination J if C_Value is Unknown or J
+
+                  if C_Value /= To_Tristate (not J) then
+                     Visit
+                       (Node.Dests (J),
+                        Origin_Id    => Node_Id,
+                        Origin_Value => J);
+                  end if;
+               end loop;
+            end if;
          end Visit;
+
+      --  Start of processing for Check_Reachability
 
       begin
          Visit
            (BDD.Root_Condition,
             Origin_Id    => No_BDD_Node_Id,
             Origin_Value => False);
-      end Check_Diamonds;
+      end Check_Reachability;
 
       ---------------
       -- Completed --
@@ -625,7 +660,7 @@ package body SC_Obligations is
 
          --  Look for diamonds in BDD
 
-         Check_Diamonds (BDD);
+         Check_Reachability (BDD);
 
          if Verbose then
             Dump_BDD (BDD);
@@ -1028,6 +1063,10 @@ package body SC_Obligations is
       procedure Q (SCOD : SCO_Descriptor);
       --  Set First and Last to the first and last BDD node ids of SCOD
 
+      -------
+      -- Q --
+      -------
+
       procedure Q (SCOD : SCO_Descriptor) is
       begin
          First := SCOD.Decision_BDD.First_Node;
@@ -1058,6 +1097,33 @@ package body SC_Obligations is
       end loop;
       raise Constraint_Error with "condition index out of range";
    end Condition;
+
+   ------------------------
+   -- Decision_Coverable --
+   ------------------------
+
+   function Decision_Coverable (SCO : SCO_Id) return Boolean is
+      Result : Boolean;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result to indicate whether SCOD is decision-coverable
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+         use BDD;
+      begin
+         Result := SCOD.Decision_BDD.Reachable_Outcomes = (True, True);
+      end Q;
+
+   --  Start of processing for Decision_Coverable
+
+   begin
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
+   end Decision_Coverable;
 
    ----------------------
    -- Degraded_Origins --
@@ -1383,10 +1449,27 @@ package body SC_Obligations is
    -----------------
 
    function Has_Diamond (SCO : SCO_Id) return Boolean is
-      use BDD;
+      Result : Boolean;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result to indicate whether SCO has conditions reachable through
+      --  multiple paths.
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+         use BDD;
+      begin
+         Result := SCOD.Decision_BDD.Diamond_Base /= No_BDD_Node_Id;
+      end Q;
+
+   --  Start of processing for Has_Diamond
+
    begin
-      return SCO_Vector (SCO).Decision_BDD.Diamond_Base
-               /= No_BDD_Node_Id;
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
    end Has_Diamond;
 
    -------------
@@ -2144,6 +2227,13 @@ package body SC_Obligations is
 
                      if Verbose then
                         Dump_Decision (Current_Decision);
+
+                        if not Decision_Coverable (Current_Decision) then
+                           Report
+                             (Msg  => "is not coverable",
+                              SCO  => Current_Decision,
+                              Kind => Warning);
+                        end if;
                      end if;
                      Current_Decision := No_SCO_Id;
                   end if;
@@ -2579,16 +2669,23 @@ package body SC_Obligations is
          use Ada.Containers;
 
          SCOD  : SCO_Descriptor renames Element (Cur);
+         D_SCO : SCO_Id;
+
       begin
-         if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
+         if SCOD.Kind /= Condition then
+            return;
+         end if;
+
+         D_SCO := Enclosing_Decision (To_Index (Cur));
+         if SCOD.PC_Set.Length = 0
+           and then Decision_Coverable (D_SCO)
+         then
             --  Static analysis failed???
 
             Report
               (First_Sloc (SCOD.Sloc_Range),
                Msg  => "no conditional branch (in "
-                         & Decision_Kind'Image
-                             (SCO_Vector
-                                (Enclosing_Decision (To_Index (Cur))).D_Kind)
+                         & Decision_Kind'Image (SCO_Vector (D_SCO).D_Kind)
                          & ")",
                Kind => Diagnostics.Error);
 
