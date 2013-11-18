@@ -2,7 +2,8 @@
 Introduction
 ============
 
-This section contains an introduction to qualification material for GNATcoverage.
+This section contains an introduction to the qualification material for
+GNATcoverage.
 
 
 Document Purpose
