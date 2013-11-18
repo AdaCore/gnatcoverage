@@ -22,7 +22,7 @@ A tool performing structural coverage analysis of Ada programs.
 
 The environment in which GNATcoverage is used.
 
-.. rubric:: Qualification environment
+.. rubric:: Qualification Environment
 
 The environment in which GNATcoverage is qualified.
 
