@@ -110,4 +110,4 @@ qualification process for GNATcoverage. The interested parties for GNATcoverage
   management of the artifacts it produces (mostly Quality Assurance reports).
 
 * **GNATcoverage users**: GNATcoverage users are expected to perform the activities
-  identified in section :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`
+  identified in section :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`.
