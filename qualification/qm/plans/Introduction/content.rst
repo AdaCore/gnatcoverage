@@ -93,7 +93,7 @@ qualification process for GNATcoverage. The interested parties for GNATcoverage
 
 * **GNATcoverage Development Team**: Developers contribute to the development
   of GNATcoverage, including requirements specification, implementation, test
-  cases development and test execution. This team is also in charge of the
+  case development and test execution. This team is also in charge of the
   configuration management of the artifacts it produces.
 
 * **GNATcoverage Qualification Team**: The Qualification Team is responsible
