@@ -26,11 +26,10 @@ describes the proper behavior of the GNATcoverage tool for a specific language
 construct with regards to a given coverage criterion. For example, how shall
 the tool behave on Ada `if` statements when performing Decision Coverage
 assessments.
-
-To help expose a structured organization, related requirements are bundled
-together as named **Requirement Groups**. For example, the Statement Coverage
-requirements for Ada `if`, `case`, `block` and `loop` statements are bundled
-together as the `CompoundStatements` group.
+To organize the material in a structured manner, related requirements are
+bundled together as named **Requirement Groups**. For example, the Statement
+Coverage requirements for Ada `if`, `case`, `block` and `loop` statements are
+bundled together as the `CompoundStatements` group.
 
 The tool conformance to each requirement is validated by a set of
 **Testcases**, organized according to a **Testing Strategy** dedicated to this
