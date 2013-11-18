@@ -116,7 +116,7 @@ identifier*, referenced for example in QA reports. All the corresponding
 verification related artifacts are managed on a dedicated *branch* within our
 version control systems. Releases of qualification kits for the specific
 customer/project are produced off that branch, which also tracks the QA cycles
-operated on the kit items (QA reports, corresponding corrections, ...). A
+performed on the kit items (QA reports, corresponding corrections, ...). A
 typical kind of early change incorporated on the branch is the adjustment of
 the targeted operational environment parameters, to be accounted for when
 setting up the qualification environment for kit production cycles.
