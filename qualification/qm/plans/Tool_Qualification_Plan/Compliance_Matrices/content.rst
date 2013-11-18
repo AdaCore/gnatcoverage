@@ -32,7 +32,7 @@ Section **12.2.1** does not apply to verification tools.
    12.2.3b|CC2|GNATcoverage is qualified as a verification tool
    12.2.3c|Not applicable|GNATcoverage is qualified as a verification tool
    12.2.3.1|:qmref:`/PLANS/Tool_Qualification_Plan` (this document)|Not required for verification tools, but still provided in this document
-   12.2.3.2a|Tool Operational Requirement document|
+   12.2.3.2a|Tool Operational Requirements document|
    12.2.3.2b|GNATcoverage User's Guide|
    12.2.3.2c|See :qmref:`/PLANS/Tool_Qualification_Plan/Environment_Equivalence`
    12.2.3.2d|Not applicable|GNATcoverage is qualified as a verification tool
