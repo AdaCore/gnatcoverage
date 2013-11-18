@@ -263,8 +263,8 @@ package Traces_Elf is
             Symbol_Origin : Natural := 0;
 
          when Line_Addresses =>
-            Sloc : Source_Location := No_Location;
-            Disc : Unsigned_32     := 0;
+            Sloc   : Source_Location  := No_Location;
+            Disc   : Unsigned_32      := 0;
 
             Is_Non_Empty : Boolean := False;
             --  Set True for the (only one) of a set of slocs associated with a

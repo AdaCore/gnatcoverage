@@ -3725,29 +3725,78 @@ package body Traces_Elf is
       use Address_Info_Sets;
       use Traces_Names;
 
-      Line_Cursor : Cursor;
-      Sym_End_Addr : aliased Address_Info (Line_Addresses);
+      Symbol_Cursor : Cursor := Exec.Desc_Sets (Symbol_Addresses).First;
+      --  The closest symbol that matches the current line address.
 
-      Subp_Key : Subprogram_Key;
+      function Get_Symbol (Line : Address_Info_Acc) return Address_Info_Acc;
+      --  Use Symbol to get efficiently the first symbol that matches Line.
+      --  Return this symbol, or null if there is none.
+
+      ----------------
+      -- Get_Symbol --
+      ----------------
+
+      function Get_Symbol (Line : Address_Info_Acc) return Address_Info_Acc is
+         Cur : Cursor := Symbol_Cursor;
+         Sym : Address_Info_Acc;
+      begin
+         while Has_Element (Cur) loop
+            Sym := Element (Cur);
+            if Line.First < Sym.First then
+               Diagnostics.Report
+                 (Exec, Line.First,
+                  "Source line belongs to no symbol",
+                  Kind => Diagnostics.Warning);
+               exit;
+
+            elsif Line.First > Sym.Last then
+               Next (Cur);
+
+            else
+               return Sym;
+            end if;
+         end loop;
+
+         --  No symbol was found
+
+         return null;
+      end Get_Symbol;
+
+      Line_Cursor   : Cursor;
+      Sym_End_Addr  : aliased Address_Info (Line_Addresses);
+
+      Cached_Symbol : Address_Info_Acc;
+      Cached_Line   : Address_Info_Acc;
+      --  Cached values for Element (Line_Cursor / Symbol_Cursor) to avoid
+      --  costly calls to Address_Info_Sets.Element (Set, Cursor);
+
+      Subp_Key      : Subprogram_Key;
 
    begin
       for Subprg of Exec.Desc_Sets (Subprogram_Addresses) loop
          Line_Cursor := First (Subprg.Lines);
          while Has_Element (Line_Cursor) loop
+            Cached_Line := Element (Line_Cursor);
+
+            --  Find the first symbol that matches this line address, if any.
+            --  Get the first one that is just after otherwise.
+
+            while Has_Element (Symbol_Cursor) loop
+               Cached_Symbol := Element (Symbol_Cursor);
+               exit when Cached_Line.First <= Cached_Symbol.Last;
+               Next (Symbol_Cursor);
+            end loop;
+
             declare
-               Line_Addr        : constant Address_Info_Acc :=
-                 Element (Line_Cursor);
+               Line_Addr        : constant Address_Info_Acc := Cached_Line;
                Sloc_Begin       : constant Source_Location := Line_Addr.Sloc;
                Sloc_End         : Source_Location;
                Next_Line_Cursor : Cursor;
                Next_Line_Addr   : Address_Info_Acc;
-               Symbol           : Address_Info_Acc;
+               Symbol           : constant Address_Info_Acc :=
+                 Get_Symbol (Line_Addr);
                Select_Symbol    : Boolean;
             begin
-               Symbol := Get_Address_Info (Exec.all,
-                                           Symbol_Addresses,
-                                           Line_Addr.First);
-
                --  Because of code elimination, we may have lines that
                --  correspond to no code; in which case Symbol can be null. In
                --  such a case, we just want to skip all lines that that are
@@ -3762,9 +3811,7 @@ package body Traces_Elf is
 
                      Next_Line_Addr := Element (Next_Line_Cursor);
 
-                     if Get_Symbol
-                       (Exec.all, Next_Line_Addr.First) = Symbol
-                     then
+                     if Get_Symbol (Next_Line_Addr) = Symbol then
                         Sloc_End := Next_Line_Addr.Sloc;
                      else
                         Sloc_End := Sloc_Begin;
