@@ -6,10 +6,9 @@ Document Purpose
 
 This document is part of the GNATcoverage qualification material, allowing the
 use of a well identified version of the tool to perform structural coverage
-assessments in accordance with a qualified interface.
-The document describes the environment within which the tool is expected to
-operate, then the qualified interface as a set of *Tool Operational
-Requirements* validated by *Testcases*.
+assessments in accordance with a qualified interface.  The document describes
+the environment within which the tool is expected to operate, then a set of
+*Tool Operational Requirements* validated by *Testcases*.
 
 The qualification focuses on the ``--annotate=report`` text output of
 GNATcoverage, which provides a list of statement, decision, or mcdc violations
