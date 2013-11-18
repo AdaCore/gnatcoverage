@@ -1052,7 +1052,7 @@ class QDreport:
         if sepfile:
             self.rstf = RSTfile (sepfile)
 
-        self.rstf.write (rest.chapter ("Execution Context summary"))
+        self.rstf.write (rest.chapter ("Qualification Environment"))
 
         self.gen_suite_options ()
         self.rstf.write ("~\n")
