@@ -163,12 +163,16 @@ package body Diagnostics is
    is
       Subprg : constant Address_Info_Acc :=
         Get_Address_Info (Exe.all, Subprogram_Addresses, PC);
+      Sloc   : constant Source_Location :=
+        (if Subprg = null
+         then No_Location
+         else Get_Sloc (Subprg.Lines, PC));
    begin
       Report
         (Msg,
          Exe  => Exe,
          PC   => PC,
-         Sloc => Get_Sloc (Subprg.Lines, PC),
+         Sloc => Sloc,
          Kind => Kind);
    end Report;
 
