@@ -10,9 +10,9 @@ equivalent to TQL5 for DO-178C.
    :delim: |
    :header: "Section", "Data", "Notes"
 
-   12.2a|verification tool|see :ref:`software-level`
-   12.2b|not applicable|verification tool
-    12.2c (Software Configuration Management Recommendations)|Compliance matrix for table A-8 in :qmref:`/PLANS/Software_Configuration_Management_Recommendations`|Up to the applicant, see :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`
+   12.2a|Verification tool|See :ref:`software-level`
+   12.2b|Not applicable|Verification tool
+    12.2c (Software Configuration Management Recommendations)|Compliance matrix for table A-8 in :qmref:`/PLANS/Software_Configuration_Management_Recommendations`|Up to the applicant. See :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`
    12.2c (Software Quality Assurance Plan) | Compliance matrix for table A-9 in :qmref:`/PLANS/Software_Quality_Assurance_Plan`
 
 Section **12.2.1** does not apply to verification tools.
