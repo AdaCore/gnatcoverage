@@ -3,8 +3,9 @@
 Qualification Data Overview
 ===========================
 
-The qualification data that comes with the tool, composing what we refer to as
-a *qualification kit*, consists in the following three documents:
+The qualification data that comes with the tool, which we will refer to
+collectively as the tool's "qualification kit", consists of the following
+three documents:
 
 * The **PLANS** document, *PLANS.pdf*, which is this document.
 * The **TOR** (*Tool Operational Requirements*) document, *TOR.pdf*, which
