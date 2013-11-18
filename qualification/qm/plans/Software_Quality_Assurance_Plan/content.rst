@@ -71,6 +71,8 @@ Inspection of test execution results
 
 * **objectives:** 
 
+  * Check that the Qualification Environment reported in the STR report
+    is equivalent to the Operational Environment described in the TOR document.
   * Check the results of test execution.
   * In the case tests failed, it is necessary to investigate whether the source of error is:
 
