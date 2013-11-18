@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -18,7 +18,13 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 
-with Outputs; use Outputs;
+with GNAT.CRC32;
+with GNATCOLL.Mmap;
+
+with Diagnostics; use Diagnostics;
+with Hex_Images;  use Hex_Images;
+with Outputs;     use Outputs;
+with Switches;
 
 package body Inputs is
 
@@ -154,5 +160,44 @@ package body Inputs is
       end loop;
       Close (F);
    end Read_List_From_File;
+
+   -------------------
+   -- Log_File_Open --
+   -------------------
+
+   procedure Log_File_Open (File_Name : String) is
+
+      function Get_CRC32 return String;
+      --  Return the CRC32 of the content of File_Name, or "<None>" if
+      --  File_Name cannot be read.
+
+      ---------------
+      -- Get_CRC32 --
+      ---------------
+
+      function Get_CRC32 return String is
+         use GNAT.CRC32;
+         use GNATCOLL.Mmap;
+
+         F       : Mapped_File := Open_Read (File_Name);
+         Content : Mapped_Region := Read (F);
+         C : CRC32;
+      begin
+         Initialize (C);
+         Update (C, String (Data (Content).all (1 .. Last (Content))));
+         Free (Content);
+         Close (F);
+         return "0x" & Hex_Image (Get_Value (C));
+      exception
+         when Name_Error => return "<None>";
+      end Get_CRC32;
+
+   begin
+      if Switches.Verbose then
+         Report
+           (Msg  => "open """ & File_Name & """ (CRC32 = " & Get_CRC32 & ")",
+            Kind => Notice);
+      end if;
+   end Log_File_Open;
 
 end Inputs;

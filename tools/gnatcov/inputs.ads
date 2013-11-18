@@ -59,6 +59,10 @@ package Inputs is
    function Length (Inputs : Inputs_Type) return Ada.Containers.Count_Type;
    --  Return the number of elements in Inputs
 
+   procedure Log_File_Open (File_Name : String);
+   --  When in verbose mode, add a debug message indicating that File_Name is
+   --  open. Try to include the CRC32 checksum.
+
 private
    package Input_Lists is new Ada.Containers.Doubly_Linked_Lists
      (Element_Type => String_Access,

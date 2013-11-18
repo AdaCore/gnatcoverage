@@ -25,6 +25,7 @@ with Ada.Unchecked_Deallocation;
 with System;
 
 with Hex_Images; use Hex_Images;
+with Inputs;     use Inputs;
 with Outputs;    use Outputs;
 with Qemu_Traces_Entries;
 with Swaps;
@@ -186,6 +187,7 @@ package body Traces_Files is
    begin
       --  Open file
 
+      Log_File_Open (Filename);
       Desc.Fd := Open_Read (Filename, Binary);
       if Desc.Fd = Invalid_FD then
          raise Bad_File_Format with "cannot open file " & Filename;

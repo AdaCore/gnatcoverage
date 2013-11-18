@@ -23,6 +23,7 @@ with Ada.Containers; use Ada.Containers;
 with Ada.Exceptions;
 with Ada.Text_IO;    use Ada.Text_IO;
 
+with GNAT.OS_Lib;
 with GNAT.Strings;      use GNAT.Strings;
 
 with ALI_Files;         use ALI_Files;
@@ -72,6 +73,9 @@ procedure GNATcov is
 
    procedure Show_Version;
    --  Show gnatcov version
+
+   procedure Show_CWD;
+   --  Show the current working directory
 
    procedure Check_Argument_Available
      (Args            : Inputs.Inputs_Type;
@@ -1043,6 +1047,15 @@ procedure GNATcov is
       Put_Line ("GNATcoverage " & Standard.Version.Xcov_Version);
    end Show_Version;
 
+   --------------
+   -- Show_CWD --
+   --------------
+
+   procedure Show_CWD is
+   begin
+      Put_Line ("CWD = " & GNAT.OS_Lib.Normalize_Pathname ("."));
+   end Show_CWD;
+
    Base : aliased Traces_Base;
    Exec : aliased Exe_File_Type;
 
@@ -1057,6 +1070,7 @@ begin
 
    if Verbose then
       Show_Version;
+      Show_CWD;
    end if;
 
    if Root_Project /= null then

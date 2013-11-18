@@ -22,6 +22,7 @@ with Interfaces; use Interfaces;
 
 with GNAT.CRC32; use GNAT.CRC32;
 
+with Inputs;  use Inputs;
 with Strings; use Strings;
 
 package body Elf_Files is
@@ -82,6 +83,7 @@ package body Elf_Files is
          if File.Fd /= Invalid_FD then
             --  Stop when opening succeeded
 
+            Log_File_Open (File.Filename.all);
             File.File := Open_Read (File.Filename.all);
             exit;
          end if;

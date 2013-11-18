@@ -27,6 +27,7 @@ with GNATCOLL.VFS;
 with Diagnostics; use Diagnostics;
 with Files_Table; use Files_Table;
 with Get_SCOs;
+with Inputs;      use Inputs;
 with Outputs;     use Outputs;
 with Switches;    use Switches;
 
@@ -303,6 +304,7 @@ package body ALI_Files is
       end if;
 
       ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => True);
+      Log_File_Open (ALI_Filename);
       Open (ALI_File, In_File, ALI_Filename);
 
       --  Check that the first line is a valid ALI V line.
