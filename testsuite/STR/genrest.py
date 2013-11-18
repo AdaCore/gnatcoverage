@@ -766,7 +766,7 @@ class QDreport:
                 "of each section title is a common prefix to the Testcase "
                 "Identifier column, just not repeated on every line. These "
                 "identifiers match those used in the TOR document so can "
-                "be used to lookup results from testcase descriptions or "
+                "be used to look up results from testcase descriptions or "
                 "vice-versa."
                 "\n\n"
                 "A general summary of all the results is provided in the "
