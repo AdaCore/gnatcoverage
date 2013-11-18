@@ -127,7 +127,7 @@ Official baseline production
 
 Official baselines are generated for customer-specific deliveries aimed at a
 precise operational environment and software level. Once the configuration
-management branch dedicated to such deliveries is setup, a complete testsuite
+management branch dedicated to such deliveries is set up, a complete testsuite
 run is performed in the corresponding qualification environment. A kit version
 number is then assigned and the qualification data documents are produced.
 The resulting set of documents is packaged as a zip file which materializes
