@@ -16,7 +16,7 @@ If all items above are the same in the two environments, then they are
 considered equivalent for the purpose of GNATcoverage usage.
 
 The values corresponding to the environment for which the qualification
-activities were intended are summarized in the "Operational Environment"
+activities were intended are summarized in the *Operational Environment*
 section of the TOR document, and the values corresponding to the environment
-where the qualification testsuite was run are summarized in the "Execution
-Context Summary" section of the STR document.
+where the qualification testsuite was run are summarized in the *Qualification
+Environment* section of the STR document.
