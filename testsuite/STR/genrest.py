@@ -911,6 +911,9 @@ class QDreport:
 
     def gen_suite_options(self):
 
+        def literal(text):
+            return ":literal:`" + text + "`"
+
         item = Column (
             htext = "Suite control items", legend = None)
 
@@ -935,13 +938,13 @@ class QDreport:
 
         csv_contents.append(
             {item : "testsuite execution command line",
-             value: self.suitedata.cmdline
+             value: literal(self.suitedata.cmdline)
              })
 
         csv_contents.append(
             {item : "compiler switches - language-independent",
-             value: ' '.join (
-                    BUILDER.COMMON_CARGS() + [suite_options["cargs"]])
+             value: literal (' '.join (
+                    BUILDER.COMMON_CARGS() + [suite_options["cargs"]]))
              })
 
         for lang in self.languages:
@@ -950,7 +953,7 @@ class QDreport:
             if lang_cargs:
                 csv_contents.append(
                     { item : "compiler switches - %s specific" % lang,
-                      value: lang_cargs
+                      value: literal(lang_cargs)
                       })
         
         CSVtable (
