@@ -2,12 +2,8 @@
 Environment Equivalence
 =======================
 
-Qualification data is produced both in the Qualification and in the
-Operational Environments (see
-:qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`). For the whole set of
-qualification material to be consistent, the qualification and operational
-environments must therefore be equivalent. The equivalence of the following
-items is deemed sufficient to establish equivalence of environments:
+Qualified use of the tool requires equivalence of the Operational Environment
+and the Qualification Environment, based on the following values:
 
 #. The GNAT Pro compiler executable name, version number and host operating system
 #. The list of GNAT Pro compilation switches
