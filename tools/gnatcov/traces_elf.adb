@@ -27,6 +27,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Tags;     use Coverage.Tags;
+with Diagnostics;
 with Disassemblers;     use Disassemblers;
 with Dwarf;
 with Dwarf_Handling;    use Dwarf_Handling;
