@@ -54,7 +54,7 @@ Rules #1 to 3 are validated by variations exercised in every individual
 testcase, where we consistently check each decision of interest in multiple
 ways, always including:
 
-* a situation where the statements exposing the decision are not
+* a situation where the statements influenced by the decision are not
   executed at all (*rule #1*).
 
 * a set of test vectors where the decision evaluates only True (*rule #2*),
