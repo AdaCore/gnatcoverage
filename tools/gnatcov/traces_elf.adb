@@ -2743,7 +2743,7 @@ package body Traces_Elf is
             Symtab_Base + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (ESym.St_Info);
 
-         if  (Sym_Type = STT_FUNC or else Sym_Type = STT_NOTYPE)
+         if (Sym_Type = STT_FUNC or else Sym_Type = STT_NOTYPE)
            and then ESym.St_Shndx in Sections_Info'Range
            and then Sections_Info (ESym.St_Shndx) /= null
            and then ESym.St_Size > 0
