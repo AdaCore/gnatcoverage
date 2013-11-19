@@ -770,7 +770,7 @@ class TestCasesImporter(ArtifactImporter):
                                                                      "Report")
                 break
 
-            section = "Language Independant Test Cases"
+            section = "Language Independent Test Cases"
 
             pdf_output += writer.section('%s' % section) + '\n'
             pdf_output += writer.subsection('%s' % main_desc) + '\n'
