@@ -214,8 +214,9 @@ enforces stricter checks for '``!``' and '``-``' items than for '``+``':
 ``/regexp/`` filters that select no lines are allowed and act as a
 no-ops. This is useful in situations where a single driver is shared across
 different tests. Non-empty intersections between different filters are
-"allowed" as well, however most often correspond to mistakes as the sets of
-expected indications simply accumulate.
+"allowed" as well, however most often correspond to mistakes. Indeed the sets
+of expected indications just accumulate and the test typically becomes
+impossible to pass.
 
 .. _harness-rationale:
 
