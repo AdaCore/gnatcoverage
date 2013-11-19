@@ -21,9 +21,9 @@ Rule #  Description
         executed, that statement shall be reported as not covered and nothing
         shall be reported about the decision.
 
-2       When a decision evaluates to only True or False, it shall be reported
-        as only partially covered. In this case as in the previous one, the
-        tool shall designate the decision with an unambiguous
+2       When a decision evaluates to only True or only False, not both, it
+        shall be reported as only partially covered. In this case as in the
+        previous one, the tool shall designate the decision with an unambiguous
         file-name:line#:col# reference.
 
 3       When a decision evaluates to both True and False, no decision coverage
