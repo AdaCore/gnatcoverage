@@ -48,7 +48,7 @@ The tool qualified output is the synthetic report produced by the
   It shall only be present when exemption regions were declared in the sources
   of interest.
 
-* The "Analysis summary" section shall expose
+* The "Analysis summary" section shall contain
 
   * A single synthetic line for each coverage criterion assessed, with a count
     of the non-exempted violations of that particular criterion.
