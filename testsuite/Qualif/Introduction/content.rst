@@ -74,13 +74,12 @@ requirement groups, addressing:
   requirements to exercise, unlike a core requirement on, say, *If* statements
   for example.
 
-We also have :ref:`language-independent-tors` chapter to hold language
-independent requirements and testcases, essentially regarding the *output
-report format* which is considered part of the tool qualified interface. Some
-of these requirements are also implicitly validated by the execution of all
-the coverage checking testcases in other chapters, where specific sections of
-the report are scanned by the testsuite harness to search for criteria
-violation messages.
+We also have a chapter for :ref:`language-independent-tors`, which contains
+language-independent requirements and testcases, essentially regarding the
+qualified *output report format*. Some of these requirements are also
+implicitly validated by the execution of all the coverage checking testcases
+in other chapters, where specific sections of the report are scanned by the
+testsuite harness to search for criteria violation messages.
 
 Downtree, each Testcase is assigned a unique **Testcase Identifier**, computed
 from its local name (chosen to be representative of its purpose) and position
