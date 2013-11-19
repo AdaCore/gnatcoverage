@@ -1726,7 +1726,8 @@ package body Traces_Elf is
       --  Current subprogram and section
 
       procedure Set_Parents (PC : Pc_Type);
-      --  Set the current subprogram and section for PC
+      --  Set the current subprogram and section for PC. Create a subprogram
+      --  and append it to the database if there is none.
 
       Last_Line     : Address_Info_Acc := null;
 
@@ -1884,7 +1885,20 @@ package body Traces_Elf is
             else
                while Cur /= No_Element loop
                   Cache := Element (Cur);
-                  exit when PC in Cache.First .. Cache.Last;
+
+                  --  Stop when we are sure we won't meet a matching
+                  --  subprogram.
+
+                  if PC < Cache.First then
+                     Cache := null;
+                     exit;
+
+                  --  Or stop when me met it
+
+                  elsif PC <= Cache.Last then
+                     exit;
+                  end if;
+
                   Next (Cur);
                end loop;
             end if;
@@ -1893,6 +1907,48 @@ package body Traces_Elf is
       begin
          Set_Parent (Section_Addresses,    Cur_Sec,    Sec);
          Set_Parent (Subprogram_Addresses, Cur_Subprg, Subprg);
+
+         if Subprg = null then
+            --  Create a subprogram if there is none for PC
+
+            declare
+               Symbol : constant Address_Info_Acc :=
+                 Get_Address_Info
+                   (Exec.Desc_Sets (Symbol_Addresses),
+                    Symbol_Addresses,
+                    PC);
+               Inserted : Boolean;
+            begin
+               if Symbol = null then
+                  --  The code at PC has debug line information, but no
+                  --  associated symbol: there must be something wrong.
+                  Diagnostics.Report
+                    (Exec'Unrestricted_Access, PC,
+                     "code has debug line information, but no symbol",
+                     Diagnostics.Warning);
+               else
+                  Subprg := new Address_Info'
+                    (Kind              => Subprogram_Addresses,
+                     First             => Symbol.First,
+                     Last              => Symbol.Last,
+                     Parent            => Sec,
+                     Subprogram_Name   =>
+                        new String'("<None@" & Symbol.Symbol_Name.all & ">"),
+                     Subprogram_CU     => No_CU_Id,
+                     Subprogram_DIE_CU => No_DIE_CU_Id,
+                     Lines             => Address_Info_Sets.Empty_Set);
+
+                  --  And insert it to the database. This subprogram is create
+                  --  because there was none for this PC, so inserting must
+                  --  work.
+
+                  Exec.Desc_Sets (Subprogram_Addresses).Insert
+                    (Subprg, Cur_Subprg, Inserted);
+                  pragma Assert (Inserted);
+
+               end if;
+            end;
+         end if;
       end Set_Parents;
 
    --  Start of processing for Read_Debug_Lines
