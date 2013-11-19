@@ -71,7 +71,7 @@ requirement groups, addressing:
   category are also typically designed to exercise multiple kinds of language
   constructs mixed together. They represent a good opportunity to do so as
   they are not directed to focus on specific contructs by the nature of the
-  requirements to exercise, unlike a core requirment on, say, *If* statements
+  requirements to exercise, unlike a core requirement on, say, *If* statements
   for example.
 
 We also have :ref:`language-independent-tors` chapter to hold language
