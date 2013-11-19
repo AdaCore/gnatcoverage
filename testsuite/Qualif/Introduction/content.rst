@@ -51,7 +51,7 @@ in the first column.
 At the top of the hierarchy, collections of high level requirement groups are
 collected in **Chapters** and **Subchapters**, typically per language and
 coverage criterion of relevance. We will for example have an `Ada` chapter
-containing a `stmt` subchapter to collect the Ada Statement Coverage toplevel
+containing a `stmt` subchapter to collect the Ada Statement Coverage topl evel
 requirement groups.
 
 For language related chapters, we distinguish two main categories of
