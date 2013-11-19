@@ -14,7 +14,8 @@ executes the resulting programs, invokes GNATcoverage to perform some coverage
 analysis assessment and checks that the tool's output matches expectations.
 Depending on the configuration, the tests' execution is performed either
 through GNATemulator via "gnatcov run", or on a hardware board with
-specialized runner and an extra trace conversion step via "gnatcov convert".
+specialized execution monitor and an extra trace conversion step via "gnatcov
+convert".
 
 Kinds of tests and sources
 ==========================
