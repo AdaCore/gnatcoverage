@@ -25,7 +25,7 @@ We verify all the aspects of this requirement over
   expression or range alternatives, with single/multi-value alternatives).
 
 * In a variety of source contexts (regular functions or procedures, generic
-  instances, package elaboration body),
+  instances, package body),
 
 All through a collection of alternative selection schemes:
 
