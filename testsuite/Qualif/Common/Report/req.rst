@@ -4,7 +4,7 @@ Output report format
 .. rubric:: Requirement
 
 The tool qualified output is the synthetic report produced by the
---annotate=report command line option. The output report shall:
+:literal:`--annotate=report` command line option. The output report shall:
 
 * Start with an explicit "COVERAGE REPORT" indication
 
