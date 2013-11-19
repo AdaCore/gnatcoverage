@@ -75,13 +75,13 @@ requirement groups, addressing:
   for example.
 
 We also have a chapter for :ref:`language-independent-tors`, which contains
-language-independent requirements and testcases, essentially regarding the
+language-independent requirements and testcases, in particular regarding the
 qualified *output report format*. Some of these requirements are also
 implicitly validated by the execution of all the coverage checking testcases
 in other chapters, where specific sections of the report are scanned by the
 testsuite harness to search for criteria violation messages.
 
-Downtree, each Testcase is assigned a unique **Testcase Identifier**, computed
+Each Testcase is assigned a unique **Testcase Identifier**, computed
 from its local name (chosen to be representative of its purpose) and position
 in the chapter/groups hierarchy. This identifier is denoted as a path with
 slashes between each intermediate level, for example
