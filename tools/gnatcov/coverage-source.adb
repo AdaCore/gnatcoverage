@@ -1204,6 +1204,7 @@ package body Coverage.Source is
    procedure Set_Basic_Block_Has_Code (SCO : SCO_Id; Tag : SC_Tag) is
 
       S_SCO : SCO_Id := SCO;
+      pragma Assert (Kind (S_SCO) = Statement);
 
       procedure Set_SCI_BB_Has_Code (SCI : in out Source_Coverage_Info);
       --  Set SCI.Basic_Block_Has_Code
