@@ -10,7 +10,7 @@ This report features the following sections:
    :widths: 40, 60
    :delim:  |
 
-   :doc:`env` | "Tables describing the Operational Environment in which this
+   :doc:`env` | "Tables describing the Qualification Environment in which this
    report was produced (host operating system, tools identification,
    compilation options, ...)"
    :doc:`tctables` | "Tables of execution status for all the Testcases,
