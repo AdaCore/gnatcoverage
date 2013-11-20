@@ -54,7 +54,7 @@ package Coverage.Source is
    --  given tag.
 
    procedure Set_Basic_Block_Has_Code (SCO : SCO_Id; Tag : SC_Tag);
-   --  Set Basic_Block_Has_Code for SCO as well as all previous SCOs in its
-   --  basic block, for the given tag.
+   --  Set Basic_Block_Has_Code for SCO (a Statement SCO) as well as all
+   --  previous SCOs in its basic block, for the given tag.
 
 end Coverage.Source;
