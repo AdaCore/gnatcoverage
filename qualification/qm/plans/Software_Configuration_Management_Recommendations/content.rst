@@ -87,7 +87,7 @@ problem identifier, assigned by our tracking system when the first message
 about an issue is received. At any given point in time, each issue is assigned
 to a single member of the Development or Qualification team who is then
 responsible for the problem management: launching investigations, developing
-corrections, updating the problem status (opend/closed) or assigning to
+corrections, updating the problem status (open/closed) or assigning to
 another team member for further action until a resolution is found. The
 complete problem evolution (related email exchanges) and status history are
 tracked in a database thanks to the unique issue identifier.
