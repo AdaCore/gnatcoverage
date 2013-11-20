@@ -29,6 +29,14 @@ with Traces_Elf;    use Traces_Elf;
 
 package Traces_Names is
 
+   type Routines_Of_Interest_Origin_Type is
+     (Invalid_Origin, From_Command_Line, From_Elf_Symbols);
+
+   Routines_Of_Interest_Origin : Routines_Of_Interest_Origin_Type :=
+     Invalid_Origin;
+   --  Specify where the list of routines of interest comes from. Set right
+   --  after arguments parsing in GNATcov.
+
    procedure Add_Routine_Of_Interest (Name : String);
    --  Add a routine name that will be suject to coverage
 

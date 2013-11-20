@@ -1374,14 +1374,17 @@ begin
             if Inputs.Length (Routines_Inputs) /= 0 then
                Inputs.Iterate (Routines_Inputs,
                                Traces_Names.Add_Routine_Of_Interest'Access);
+               Routines_Of_Interest_Origin := From_Command_Line;
             elsif Inputs.Length (Trace_Inputs) > 1 then
                Fatal_Error ("routine list required"
                             & " when reading multiple trace files");
-            end if;
+            else
+               --  If no routines were given on the command line, we'll add
+               --  them when processing the list of symbols from the only
+               --  executable file (using Read_Routines_Names, see below).
 
-            --  If no routines were given on the command line, we'll add them
-            --  when processing the list of symbols from the only executable
-            --  file (using Read_Routines_Names, see below).
+               Routines_Of_Interest_Origin := From_Elf_Symbols;
+            end if;
 
          else
             if Inputs.Length (Routines_Inputs) /= 0 then

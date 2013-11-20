@@ -25,6 +25,7 @@ with Ada.Text_IO;       use Ada.Text_IO;
 with System.Storage_Elements; use System.Storage_Elements;
 
 with Coverage.Object;   use Coverage.Object;
+with Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
 with Diagnostics;
 with Disassemblers;     use Disassemblers;
@@ -1667,9 +1668,10 @@ package body Traces_Elf is
       Sec        : Address_Info_Acc;
       --  Current subprogram and section
 
-      procedure Set_Parents (PC : Pc_Type);
-      --  Set the current subprogram and section for PC. Create a subprogram
-      --  and append it to the database if there is none.
+      procedure Set_Parents (PC : Pc_Type; Sloc : Source_Location);
+      --  Set the current subprogram and section for PC, which is mapped to
+      --  Sloc. Create a subprogram and append it to the database if there
+      --  is none.
 
       Last_Line     : Address_Info_Acc := null;
 
@@ -1732,6 +1734,7 @@ package body Traces_Elf is
          Pos        : Cursor;
          Inserted   : Boolean;
          File_Index : Source_File_Index;
+         Sloc       : Source_Location;
       begin
 
          --  Discard 0-relative entries in exec files, corresponding to
@@ -1755,7 +1758,11 @@ package body Traces_Elf is
             File_Indices.Replace_Element (File, File_Index);
          end if;
 
-         Set_Parents (Exec.Exe_Text_Start + Pc);
+         Sloc :=
+           (Source_File => File_Index,
+            L           => (Natural (Line), Natural (Column)));
+
+         Set_Parents (Exec.Exe_Text_Start + Pc, Sloc);
          if Subprg /= null then
             Last_Line :=
               new Address_Info'
@@ -1763,10 +1770,7 @@ package body Traces_Elf is
                  First        => Exec.Exe_Text_Start + Pc,
                  Last         => Exec.Exe_Text_Start + Pc,
                  Parent       => (if Subprg /= null then Subprg else Sec),
-                 Sloc         =>
-                   (Source_File => File_Index,
-                    L           => (Line   => Natural (Line),
-                                    Column => Natural (Column))),
+                 Sloc         => Sloc,
                  Disc         => Disc,
                  Is_Non_Empty => False);
 
@@ -1800,7 +1804,7 @@ package body Traces_Elf is
       -- Set_Parents --
       -----------------
 
-      procedure Set_Parents (PC : Pc_Type) is
+      procedure Set_Parents (PC : Pc_Type; Sloc : Source_Location) is
          use Address_Info_Sets;
 
          procedure Set_Parent
@@ -1857,20 +1861,56 @@ package body Traces_Elf is
             --  Create a subprogram if there is none for PC
 
             declare
-               Symbol : constant Address_Info_Acc :=
+               use Traces_Names;
+
+               Symbol   : constant Address_Info_Acc :=
                  Get_Address_Info
                    (Exec.Desc_Sets (Symbol_Addresses),
                     Symbol_Addresses,
                     PC);
                Inserted : Boolean;
+
+               SCO      : SCO_Id := No_SCO_Id;
+               Complain : Boolean := False;
             begin
                if Symbol = null then
                   --  The code at PC has debug line information, but no
                   --  associated symbol: there must be something wrong.
-                  Diagnostics.Report
-                    (Exec'Unrestricted_Access, PC,
-                     "code has debug line information, but no symbol",
-                     Diagnostics.Warning);
+
+                  --  Try to avoid complaining when the code is not considered
+                  --  for coverage.
+
+                  if Source_Coverage_Enabled then
+                     SCO := SC_Obligations.Enclosing_Statement
+                       (Sloc_To_SCO (Sloc));
+                     Complain := SCO /= No_SCO_Id;
+
+                  else
+                     --  If the user provided explicitely the routines of
+                     --  interest, then code that has no corresponding
+                     --  symbol is not considered for coverage.
+
+                     Complain :=
+                       Routines_Of_Interest_Origin /= From_Command_Line;
+                  end if;
+
+                  if Complain then
+                     Diagnostics.Report
+                       (Exec'Unrestricted_Access, PC,
+                        "code has debug line information, but no symbol",
+                        Diagnostics.Warning);
+
+                     --  If the code maps to source code targetted by SCOs,
+                     --  tag the SCOs as having code so that we will emit a
+                     --  coverage violation for it. We have no symbol and no
+                     --  subprogram, thus we cannot get a tag for this code.
+
+                     if SCO /= No_SCO_Id then
+                        Coverage.Source.Set_Basic_Block_Has_Code
+                          (SCO, No_SC_Tag);
+                     end if;
+                  end if;
+
                else
                   Subprg := new Address_Info'
                     (Kind              => Subprogram_Addresses,
