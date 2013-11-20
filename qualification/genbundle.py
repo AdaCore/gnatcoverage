@@ -823,7 +823,10 @@ class QMAT:
 
         relative_testsuite_dir = os.path.basename (self.local_testsuite_dir)
 
-        run ("zip -q -r %(dir)s.zip %(dir)s" % {"dir": relative_testsuite_dir})
+        zipname = "%s.zip" % relative_testsuite_dir
+
+        remove (zipname)
+        run ("zip -q -r %s %s" % (zipname, relative_testsuite_dir))
 
     # ---------------------
     # -- build_as_needed --
