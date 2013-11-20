@@ -5,7 +5,7 @@ The correctness of the source coverage assessments performed by GNATcoverage
 relies on a few rules that shall be obeyed regarding the environment in which
 the tool operates.
 
-The table below describes the expectations assessing the Operational
+The table below lists the expectations assessing the Operational
 Environment equivalence described in the tool qualification *PLANS* document.
 
 .. tabularcolumns:: |p{0.05\textwidth}|p{0.30\textwidth}|p{0.60\textwidth}|
