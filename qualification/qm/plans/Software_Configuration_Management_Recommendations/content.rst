@@ -29,7 +29,8 @@ In this section we provide a set of recommendations for configuration management
 
  * **Item 7.2.1:** The suggested configuration items are:
 
-   #. The .zip package containing the .pdf files which consitute the GNATcoverage qualification kit, as defined in the :ref:`qualification-data` section of this document.
+   #. The .zip packages corresponding to the data items described in the
+      :ref:`qualification-data` section of this document.
    #. The GNAT Pro binary package, which contains the GNAT Pro executable toolset and the associated documentation, in particular the GNAT Pro User's Guide.
    #. The GNATemulator binary package, which contains the GNATemulator executable tool and the associated documentation.
    #. The GNATcoverage binary package, which contains the GNATcoverage executable tool and the associated documentation, in particular the GNATcoverage User's Guide.
