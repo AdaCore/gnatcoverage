@@ -26,6 +26,11 @@ The QA outputs for a kit are stored in a "qa" directory dedicated to the
 project for which the kit is produced. Each QA cycle is assigned a
 subdirectory there, named after the date at which the QA cycle started, in
 *YYYYMMDD* format.
+The PDF format offers a sequential layout of the material which allows
+browsing from end to end in a reliable manner, so most of the QA operations
+described here are performed on the PDF version of the documents. Only those
+steps requiring access to test sources are performed with the help of the HTML
+contents.
 
 .. _reading-plans:
 

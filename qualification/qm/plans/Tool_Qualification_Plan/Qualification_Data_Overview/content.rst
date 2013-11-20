@@ -30,3 +30,10 @@ appendix of the TOR document explains how expectations on coverage results are
 stated for this purpose. An archive of the testsuite directory where the
 qualification run takes place is provided together with the corresponding
 kit delivery.
+
+The test sources aren't included in the PDF version of the TOR document, out
+of size considerations.  They are included in an HTML version of the document,
+also provided together with the PDF delivery and where they are easily
+accessible thanks to the HTML navigation capabilities.  Except for the test
+sources, the HTML version mirrors the PDF contents, just presented
+differently.
