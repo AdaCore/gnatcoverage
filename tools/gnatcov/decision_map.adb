@@ -316,13 +316,6 @@ package body Decision_Map is
                  (Sym.Symbol_Name,
                   Exe_File,
                   Slice (Sec.Section_Content, Sym.First, Sym.Last));
-
-               --  Load sloc information
-
-               Build_Source_Lines_For_Section
-                 (Exe_File,
-                  null,
-                  Slice (Sec.Section_Content, Sym.First, Sym.Last));
             end if;
          end if;
       end loop;

@@ -2438,15 +2438,7 @@ package body Traces_Elf is
 
       Init_Line_State : Line_State;
 
-      PC_Addr : aliased Address_Info (Subprogram_Addresses);
-
    begin
-      --  Find subprogram at PC
-      --  Note: the following assumes that Section'First is non-zero
-
-      PC_Addr.First := Section.First - 1;
-      PC_Addr.Last  := Section.First - 1;
-
       --  Find line info with lowest start address that is strictly greater
       --  than Section'First - 1.
 
@@ -2481,15 +2473,13 @@ package body Traces_Elf is
                     Get_Line_State (Base.all, Line.First, Line.Last);
                end if;
 
-               if Object_Coverage_Enabled then
-                  Add_Line_For_Object_Coverage
-                    (Source_File,
-                     Init_Line_State,
-                     Line.Sloc.L.Line,
-                     Line,
-                     Base,
-                     Exec);
-               end if;
+               Add_Line_For_Object_Coverage
+                 (Source_File,
+                  Init_Line_State,
+                  Line.Sloc.L.Line,
+                  Line,
+                  Base,
+                  Exec);
             end if;
          end loop;
          Next (Cur);
