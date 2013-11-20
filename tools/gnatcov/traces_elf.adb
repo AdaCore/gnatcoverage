@@ -1832,17 +1832,20 @@ package body Traces_Elf is
                   --  subprogram.
 
                   if PC < Cache.First then
-                     Cache := null;
                      exit;
 
                   --  Or stop when me met it
 
                   elsif PC <= Cache.Last then
-                     exit;
+                     return;
                   end if;
 
                   Next (Cur);
                end loop;
+
+               --  If we reach here, we haven't found any matching subprogram
+
+               Cache := null;
             end if;
          end Set_Parent;
 
