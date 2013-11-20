@@ -686,8 +686,15 @@ class QMAT:
         self.local_testsuite_dir = \
             hashlib.sha1(self.o.testsuite_dir).hexdigest()
 
-        run ("rsync -arz --delete %s/ %s" % (
-                self.o.testsuite_dir, self.local_testsuite_dir)
+        # Exclude non qualification tests and internal intermediate reports aimed at
+        # our intranet from the transfer. All pointless and potentially confusing.
+
+        run ("rsync -arz --delete --delete-excluded %s/ %s %s" % (
+                self.o.testsuite_dir, self.local_testsuite_dir,
+                ' '.join (
+                    ('--exclude=%s' % xpattern
+                     for xpattern in ('/tests', '/output', '/rep_gnatcov*'))
+                    ))
              )
 
         self.log (
@@ -697,11 +704,6 @@ class QMAT:
 
         self.local_testsuite_dir = \
             os.path.abspath (self.local_testsuite_dir)
-
-        # We never need the non qualif tests and must make sure we
-        # don't ever distribute them.
-
-        remove (os.path.join (self.local_testsuite_dir, "tests"))
 
     # ---------------------
     # -- prepare_str_dir --
