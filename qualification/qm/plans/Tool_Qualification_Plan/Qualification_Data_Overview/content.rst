@@ -5,7 +5,7 @@ Qualification Data Overview
 
 The qualification data that comes with the tool, which we will refer to
 collectively as the tool's "qualification kit", consists of the following
-three documents:
+three PDF documents:
 
 * The **PLANS** document, *PLANS.pdf*, which is this document.
 * The **TOR** (*Tool Operational Requirements*) document, *TOR.pdf*, which
@@ -27,4 +27,6 @@ particular. The artifacts filesystem used to construct the TOR document is
 thus also used to drive entire *testsuite* runs and produce the STR report for
 a given software level. The *Overview of the test procedures organization*
 appendix of the TOR document explains how expectations on coverage results are
-stated for this purpose.
+stated for this purpose. An archive of the testsuite directory where the
+qualification run takes place is provided together with the corresponding
+kit delivery.
