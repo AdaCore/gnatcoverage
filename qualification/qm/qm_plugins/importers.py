@@ -671,7 +671,7 @@ class TestCasesImporter(ArtifactImporter):
                                       for l in links], hidden=True)
 
         # We don't include the tests sources in the pdf version
-        pdf_output = writer.section('Ada Test Cases') + '\n'
+        pdf_output = writer.section('Ada Testcases') + '\n'
 
         # cleanup missingTRfile
         with open(MISSING_TR_LOG, 'w') as fd:
@@ -770,7 +770,7 @@ class TestCasesImporter(ArtifactImporter):
                                                                      "Report")
                 break
 
-            section = "Language Independent Test Cases"
+            section = "Language-independent Testcases"
 
             pdf_output += writer.section('%s' % section) + '\n'
             pdf_output += writer.subsection('%s' % main_desc) + '\n'
