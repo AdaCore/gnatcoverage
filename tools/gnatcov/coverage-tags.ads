@@ -54,6 +54,9 @@ package Coverage.Tags is
    --  Return a list of (sloc; tag) pairs for the given executable location.
    --  Note that for PC that is associatied with more than one sloc (i.e. more
    --  than one SCO), the relevant tag may be different for each sloc/SCO.
+   --  Enter_Routine must have been called previously to identify the
+   --  enclosing subprogram; code outside of a subprogram is defined to
+   --  always have No_SCO_Tag.
 
    function Tag_Name
      (TP  : access Tag_Provider_Type;
