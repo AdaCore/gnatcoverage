@@ -346,6 +346,24 @@ package body Files_Table is
       end loop;
    end Files_Table_Iterate;
 
+   ----------------
+   -- First_File --
+   ----------------
+
+   function First_File return Source_File_Index is
+   begin
+      return Files_Table.First_Index;
+   end First_File;
+
+   ---------------
+   -- Last_File --
+   ---------------
+
+   function Last_File return Source_File_Index is
+   begin
+      return Files_Table.Last_Index;
+   end Last_File;
+
    ---------------------
    -- Fill_Line_Cache --
    ---------------------

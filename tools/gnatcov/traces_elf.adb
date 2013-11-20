@@ -2475,58 +2475,116 @@ package body Traces_Elf is
    is
       use Address_Info_Sets;
 
-      Cur         : Cursor;
-      Subprg      : Address_Info_Acc;
-      Source_File : Source_File_Index := No_Source_File;
-
-      Init_Line_State : Line_State;
-
-   begin
-      --  Find line info with lowest start address that is strictly greater
-      --  than Section'First - 1.
-
-      Cur := Find_Address_Info
+      First_Subp : constant Cursor := Find_Address_Info
         (Exec.Desc_Sets (Subprogram_Addresses),
          Subprogram_Addresses,
          Section.First);
+      --  First subprogram to iterate on, used in Iterate_On_Lines. This is the
+      --  subprogram with lowest start address that is strictly greater than
+      --  Section.First - 1.
 
-      --  Iterate on lines
+      Line_Counts : array (Source_File_Index
+                           range Files_Table.First_File
+                           .. Files_Table.Last_File)
+        of Natural := (others => 0);
+      --  For each source file, used to store the index of the last referenced
+      --  line.
 
-      while Cur /= No_Element loop
-         Subprg := Element (Cur);
+      procedure Iterate_On_Lines
+        (Process : not null access procedure (Line_Info : Address_Info_Acc));
+      --  Call Process on all lines from all subprograms in Section
 
-         --  Only consider subprograms that are in Section (i.e. whose First
-         --  address is in Section'Range).
+      procedure Prealloc_Lines (Line_Info : Address_Info_Acc);
+      --  Helper used to fill Line_Counts. Set the line count for corresponding
+      --  file to the greatest one seen.
 
-         exit when Subprg.First > Section.Last;
+      procedure Build_Source_Line (Line_Info : Address_Info_Acc);
+      --  Helper used to actually build source lines in internal data
+      --  structures.
 
-         for Line of Element (Cur).Lines loop
-            if Line.First >= Section.First then
+      ----------------------
+      -- Iterate_On_Lines --
+      ----------------------
 
-               --  Get corresponding file (check previous file for speed-up)
+      procedure Iterate_On_Lines
+        (Process : not null access procedure (Line_Info : Address_Info_Acc))
+      is
+         Subprg_Cur : Cursor := First_Subp;
+         Subprg     : Address_Info_Acc;
+      begin
+         --  If Find_Address_Info returned a cursor to an element that is
+         --  before Section, then the first subprogram we are interested in
+         --  (if any) is just after.
 
-               if Line.Sloc.Source_File /= Source_File then
-                  Source_File := Line.Sloc.Source_File;
-               end if;
+         if Has_Element (Subprg_Cur)
+           and then Element (Subprg_Cur).First < Section.First then
+            Next (Subprg_Cur);
+         end if;
 
-               if Base = null then
-                  Init_Line_State := No_Code;
-               else
-                  Init_Line_State :=
-                    Get_Line_State (Base.all, Line.First, Line.Last);
-               end if;
+         while Has_Element (Subprg_Cur) loop
+            Subprg := Element (Subprg_Cur);
 
-               Add_Line_For_Object_Coverage
-                 (Source_File,
-                  Init_Line_State,
-                  Line.Sloc.L.Line,
-                  Line,
-                  Base,
-                  Exec);
+            pragma Assert (Subprg.First >= Section.First);
+
+            --  Stop on the first subprogram that is past Section (i.e. whose
+            --  First address is in Section'Range).
+
+            exit when Subprg.First > Section.Last;
+
+            for Line of Subprg.Lines loop
+               Process (Line);
+            end loop;
+            Next (Subprg_Cur);
+         end loop;
+      end Iterate_On_Lines;
+
+      --------------------
+      -- Prealloc_Lines --
+      --------------------
+
+      procedure Prealloc_Lines (Line_Info : Address_Info_Acc) is
+         Sloc : Source_Location renames Line_Info.Sloc;
+      begin
+         Line_Counts (Sloc.Source_File) :=
+           Natural'Max (Line_Counts (Sloc.Source_File), Sloc.L.Line);
+      end Prealloc_Lines;
+
+      -----------------------
+      -- Build_Source_Line --
+      -----------------------
+
+      procedure Build_Source_Line (Line_Info : Address_Info_Acc) is
+         Init_Line_State : constant Line_State :=
+           (if Base = null
+            then No_Code
+            else Get_Line_State (Base.all, Line_Info.First, Line_Info.Last));
+      begin
+         Add_Line_For_Object_Coverage
+           (Line_Info.Sloc.Source_File,
+            Init_Line_State,
+            Line_Info.Sloc.L.Line,
+            Line_Info,
+            Base,
+            Exec);
+      end Build_Source_Line;
+
+   --  Start of processing for Build_Soruce_Lines_For_Section
+
+   begin
+      if Object_Coverage_Enabled then
+         --  Optimisation: first preallocate line tables
+
+         Iterate_On_Lines (Prealloc_Lines'Access);
+         for File_Index in Line_Counts'Range loop
+            if Line_Counts (File_Index) > 0 then
+               Expand_Line_Table (File_Index, Line_Counts (File_Index));
             end if;
          end loop;
-         Next (Cur);
-      end loop;
+
+         --  Then actually build source lines
+
+         Iterate_On_Lines (Build_Source_Line'Access);
+      end if;
    end Build_Source_Lines_For_Section;
 
    --------------------

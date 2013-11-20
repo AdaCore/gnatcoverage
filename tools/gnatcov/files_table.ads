@@ -235,6 +235,12 @@ package Files_Table is
    procedure Files_Table_Iterate
      (Process : not null access procedure (Index : Source_File_Index));
 
+   function First_File return Source_File_Index;
+   --  Return the first valid source file index
+
+   function Last_File return Source_File_Index;
+   --  Return the last valid source file index
+
    function Get_File
      (Index : Source_File_Index) return File_Info_Access;
 
