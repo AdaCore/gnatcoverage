@@ -465,6 +465,14 @@ package body Files_Table is
 
          if Cur /= No_Element then
             Res := Element (Cur);
+
+            --  If we are not allowed to insert something, do not modify
+            --  existing entries.
+
+            if not Insert then
+               return Res;
+            end if;
+
             Info_Simple := Files_Table.Element (Res);
 
             if Info_Simple.Full_Name = null then
