@@ -18,7 +18,7 @@ GNATcoverage is qualified as a verification tool.
 Quality Assurance Activities
 ============================
 
-This section presents the Quality Assurance (QA) activities operated over the
+This section presents the Quality Assurance (QA) activities performed on the
 documents composing a qualification kit in terms of objectives and
 outputs.
 
@@ -26,6 +26,11 @@ The QA outputs for a kit are stored in a "qa" directory dedicated to the
 project for which the kit is produced. Each QA cycle is assigned a
 subdirectory there, named after the date at which the QA cycle started, in
 *YYYYMMDD* format.
+The PDF format offers a sequential layout of the material which allows
+browsing from end to end in a reliable manner, so most of the QA operations
+described here are performed on the PDF version of the documents. Only those
+steps requiring access to test sources are performed with the help of the HTML
+contents.
 
 .. _reading-plans:
 
@@ -71,6 +76,8 @@ Inspection of test execution results
 
 * **objectives:** 
 
+  * Check that the Qualification Environment reported in the STR report
+    is equivalent to the Operational Environment described in the TOR document.
   * Check the results of test execution.
   * In the case tests failed, it is necessary to investigate whether the source of error is:
 

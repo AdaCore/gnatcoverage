@@ -515,11 +515,17 @@ class QMAT:
 
         if self.local_testsuite_dir and self.passno == 1:
             os.chdir (self.local_testsuite_dir)
-            [cp (tr, os.path.join (
-                        self.repodir, "testsuite",
-                        os.path.dirname (tr))
-                 )
-             for tr in find (root=".", pattern="tc.dump")]
+
+            def sync(relative):
+                target_dir = os.path.join (
+                    self.repodir, "testsuite", os.path.dirname (tr)
+                    )
+                if os.path.exists(target_dir):
+                    cp (relative, target_dir)
+                else:
+                    print ("ERRRR !! inexistant target dir for %s" % relative)
+
+            [sync(tr) for tr in find (root=".", pattern="tc.dump")]
 
         self.__qm_build (part="tor")
 
@@ -680,8 +686,15 @@ class QMAT:
         self.local_testsuite_dir = \
             hashlib.sha1(self.o.testsuite_dir).hexdigest()
 
-        run ("rsync -arz --delete %s/ %s" % (
-                self.o.testsuite_dir, self.local_testsuite_dir)
+        # Exclude non qualification tests and internal intermediate reports aimed at
+        # our intranet from the transfer. All pointless and potentially confusing.
+
+        run ("rsync -arz --delete --delete-excluded %s/ %s %s" % (
+                self.o.testsuite_dir, self.local_testsuite_dir,
+                ' '.join (
+                    ('--exclude=%s' % xpattern
+                     for xpattern in ('/tests', '/output', '/rep_gnatcov*'))
+                    ))
              )
 
         self.log (
@@ -691,11 +704,6 @@ class QMAT:
 
         self.local_testsuite_dir = \
             os.path.abspath (self.local_testsuite_dir)
-
-        # We never need the non qualif tests and must make sure we
-        # don't ever distribute them.
-
-        remove (os.path.join (self.local_testsuite_dir, "tests"))
 
     # ---------------------
     # -- prepare_str_dir --
@@ -805,6 +813,21 @@ class QMAT:
 
         run ("zip -q -r %(kitdir)s.zip %(kitdir)s" % {"kitdir": kitdir})
 
+    # -----------------------
+    # -- zip_testsuite_dir --
+    # -----------------------
+
+    def zip_testsuite_dir(self):
+
+        os.chdir (self.rootdir)
+
+        relative_testsuite_dir = os.path.basename (self.local_testsuite_dir)
+
+        zipname = "%s.zip" % relative_testsuite_dir
+
+        remove (zipname)
+        run ("zip -q -r %s %s" % (zipname, relative_testsuite_dir))
+
     # ---------------------
     # -- build_as_needed --
     # ---------------------
@@ -904,7 +927,7 @@ def commandline():
             )
         )
     op.add_option (
-        "--branch", dest="branchname", default="opendo",
+        "--branch", dest="branchname", default=None,
         help = (
             "The git branch we shall produce the material from.")
         )
@@ -991,6 +1014,13 @@ def check_valid(options, args):
         ("Please specify the desired output format (--docformat).")
         )
 
+    # Likewise for the git branch name:
+
+    exit_if (
+        not options.branchname,
+        ("Please specify the git branch name (--branch).")
+        )
+    
     # work dir vs root dir.
 
     exit_if (
@@ -1080,4 +1110,5 @@ if __name__ == "__main__":
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
 
     if options.kitp:
+        qmat.zip_testsuite_dir()
         qmat.dump_kit_consistency_log()

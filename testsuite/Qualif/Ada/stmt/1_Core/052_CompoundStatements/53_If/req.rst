@@ -23,7 +23,7 @@ IF and ELSIF branches that are never reached shall be reported uncovered.
 We verify compliance with this requirement through tests exercising
 various forms of IF statements (with/without ELSIF branches, with/without
 ELSE branches), in a variety of source contexts (subprograms, generic
-instances, package elaboration bodies).
+instances, package bodies).
 
 The following table summarizes the testcases:
 

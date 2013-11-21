@@ -766,7 +766,7 @@ class QDreport:
                 "of each section title is a common prefix to the Testcase "
                 "Identifier column, just not repeated on every line. These "
                 "identifiers match those used in the TOR document so can "
-                "be used to lookup results from testcase descriptions or "
+                "be used to look up results from testcase descriptions or "
                 "vice-versa."
                 "\n\n"
                 "A general summary of all the results is provided in the "
@@ -911,6 +911,9 @@ class QDreport:
 
     def gen_suite_options(self):
 
+        def literal(text):
+            return ":literal:`" + text + "`"
+
         item = Column (
             htext = "Suite control items", legend = None)
 
@@ -935,13 +938,13 @@ class QDreport:
 
         csv_contents.append(
             {item : "testsuite execution command line",
-             value: self.suitedata.cmdline
+             value: literal(self.suitedata.cmdline)
              })
 
         csv_contents.append(
             {item : "compiler switches - language-independent",
-             value: ' '.join (
-                    BUILDER.COMMON_CARGS() + [suite_options["cargs"]])
+             value: literal (' '.join (
+                    BUILDER.COMMON_CARGS() + [suite_options["cargs"]]))
              })
 
         for lang in self.languages:
@@ -950,7 +953,7 @@ class QDreport:
             if lang_cargs:
                 csv_contents.append(
                     { item : "compiler switches - %s specific" % lang,
-                      value: lang_cargs
+                      value: literal(lang_cargs)
                       })
         
         CSVtable (
@@ -994,6 +997,7 @@ class QDreport:
         suite_gnatpro = self.suitedata.gnatpro
         suite_gnatcov = self.suitedata.gnatcov
         suite_gnatemu = self.suitedata.gnatemu
+        suite_other   = self.suitedata.other
         
         # Base table entries, always there:
 
@@ -1027,6 +1031,15 @@ class QDreport:
                  v2: suite_gnatemu.version}
                 )
 
+        # Add the "other tool" version if we have it
+
+        if suite_other:
+            table_entries.append (
+                {item : "Other toolset executable & version",
+                 v1: suite_other.exename,
+                 v2: suite_other.version}
+                )
+
         CSVtable (
             title = None, text = None,
             columns = (item, v1, v2),
@@ -1042,7 +1055,7 @@ class QDreport:
         if sepfile:
             self.rstf = RSTfile (sepfile)
 
-        self.rstf.write (rest.chapter ("Execution Context summary"))
+        self.rstf.write (rest.chapter ("Qualification Environment"))
 
         self.gen_suite_options ()
         self.rstf.write ("~\n")

@@ -6,10 +6,9 @@ Document Purpose
 
 This document is part of the GNATcoverage qualification material, allowing the
 use of a well identified version of the tool to perform structural coverage
-assessments in accordance with a qualified interface.
-The document describes the environment within which the tool is expected to
-operate, then the qualified interface as a set of *Tool Operational
-Requirements* validated by *Testcases*.
+assessments in accordance with a qualified interface.  The document describes
+the environment within which the tool is expected to operate, then a set of
+*Tool Operational Requirements* validated by *Testcases*.
 
 The qualification focuses on the ``--annotate=report`` text output of
 GNATcoverage, which provides a list of statement, decision, or mcdc violations
@@ -27,11 +26,10 @@ describes the proper behavior of the GNATcoverage tool for a specific language
 construct with regards to a given coverage criterion. For example, how shall
 the tool behave on Ada `if` statements when performing Decision Coverage
 assessments.
-
-To help expose a structured organization, related requirements are bundled
-together as named **Requirement Groups**. For example, the Statement Coverage
-requirements for Ada `if`, `case`, `block` and `loop` statements are bundled
-together as the `CompoundStatements` group.
+To organize the material in a structured manner, related requirements are
+bundled together as named **Requirement Groups**. For example, the Statement
+Coverage requirements for Ada `if`, `case`, `block` and `loop` statements are
+bundled together as the `CompoundStatements` group.
 
 The tool conformance to each requirement is validated by a set of
 **Testcases**, organized according to a **Testing Strategy** dedicated to this
@@ -53,7 +51,7 @@ in the first column.
 At the top of the hierarchy, collections of high level requirement groups are
 collected in **Chapters** and **Subchapters**, typically per language and
 coverage criterion of relevance. We will for example have an `Ada` chapter
-containing a `stmt` subchapter to collect the Ada Statement Coverage toplevel
+containing a `stmt` subchapter to collect the Ada Statement Coverage top level
 requirement groups.
 
 For language related chapters, we distinguish two main categories of
@@ -73,18 +71,17 @@ requirement groups, addressing:
   category are also typically designed to exercise multiple kinds of language
   constructs mixed together. They represent a good opportunity to do so as
   they are not directed to focus on specific contructs by the nature of the
-  requirements to exercise, unlike a core requirment on, say, *If* statements
+  requirements to exercise, unlike a core requirement on, say, *If* statements
   for example.
 
-We also have :ref:`language-independent-tors` chapter to hold language
-independent requirements and testcases, essentially regarding the *output
-report format* which is considered part of the tool qualified interface. Some
-of these requirements are also implicitly validated by the execution of all
-the coverage checking testcases in other chapters, where specific sections of
-the report are scanned by the testsuite harness to search for criteria
-violation messages.
+We also have a chapter for :ref:`language-independent-tors`, which contains
+language-independent requirements and testcases, in particular regarding the
+qualified *output report format*. Some of these requirements are also
+implicitly validated by the execution of all the coverage checking testcases
+in other chapters, where specific sections of the report are scanned by the
+testsuite harness to search for criteria violation messages.
 
-Downtree, each Testcase is assigned a unique **Testcase Identifier**, computed
+Each Testcase is assigned a unique **Testcase Identifier**, computed
 from its local name (chosen to be representative of its purpose) and position
 in the chapter/groups hierarchy. This identifier is denoted as a path with
 slashes between each intermediate level, for example

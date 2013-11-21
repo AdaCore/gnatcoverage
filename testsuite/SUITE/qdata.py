@@ -52,9 +52,10 @@ class TOOL_info:
     """Representative data for a tool to be described as part of the testsuite
     execution context in a STR report."""
 
-    def __init__(self, exename):
+    def __init__(self, exename, ver=None):
         self.exename = exename
-        self.version = version (exename)
+        self.version = (
+            version (exename) if ver is None else ver)
 
 class SUITE_context:
     """Testsuite context data to be dumped by the topevel testsuite driver
@@ -63,7 +64,7 @@ class SUITE_context:
     def __init__ (
         self, treeref,
         runstamp, host, target, cmdline, options,
-        gnatpro, gnatemu, gnatcov
+        gnatpro, gnatemu, gnatcov, other
         ):
         
         # time.locatime() at which the testuite run was launched
@@ -83,10 +84,11 @@ class SUITE_context:
         self.target   = target
         self.host     = host
 
-        # Representative rtool description instances
+        # Representative tool description instances
         self.gnatpro = gnatpro
         self.gnatemu = gnatemu
         self.gnatcov = gnatcov
+        self.other   = other
 
 # ===============================
 # == Testcase execution status ==

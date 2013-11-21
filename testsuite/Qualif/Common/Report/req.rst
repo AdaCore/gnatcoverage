@@ -4,7 +4,7 @@ Output report format
 .. rubric:: Requirement
 
 The tool qualified output is the synthetic report produced by the
---annotate=report command line option. The output report shall:
+:literal:`--annotate=report` command line option. The output report shall:
 
 * Start with an explicit "COVERAGE REPORT" indication
 
@@ -13,8 +13,8 @@ The tool qualified output is the synthetic report produced by the
 * Feature up to four sections in between: "Assessment Context", "Coverage
   violations", "Exempted Regions" (optionally), and "Analysis summary"
 
-* The "Assessment Context" section shall summarize all the elements
-  of relevance to characterize the reported assessment unambiguously:
+The "Assessment Context" section shall summarize all the elements
+of relevance to characterize the reported assessment unambiguously:
 
   * Tool version identifier
 
@@ -30,15 +30,15 @@ The tool qualified output is the synthetic report produced by the
     * trace production date & time
     * program executable file name
 
-* The "Coverage violations" section shall feature a set of subsections,
-  one for each criterion assessed with
+The "Coverage violations" section shall feature a set of subsections,
+one for each criterion assessed with
 
   * A list of all the criterion obligations unsatisfied (violated) by
     the set of executions conveyed by the provided execution traces, and
 
   * A count of those violations
 
-* The "Exempted Regions", when present, shall
+The "Exempted Regions", when present, shall
 
   * Summarize information about all the exemption regions in the scope of the
     examined coverage obligations, and
@@ -48,7 +48,7 @@ The tool qualified output is the synthetic report produced by the
   It shall only be present when exemption regions were declared in the sources
   of interest.
 
-* The "Analysis summary" section shall expose
+The "Analysis summary" section shall contain
 
   * A single synthetic line for each coverage criterion assessed, with a count
     of the non-exempted violations of that particular criterion.

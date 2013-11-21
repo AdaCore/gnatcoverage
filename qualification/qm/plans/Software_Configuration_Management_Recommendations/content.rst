@@ -29,7 +29,8 @@ In this section we provide a set of recommendations for configuration management
 
  * **Item 7.2.1:** The suggested configuration items are:
 
-   #. The .zip package containing the .pdf files which consitute the GNATcoverage qualification kit, as defined in the :ref:`qualification-data` section of this document.
+   #. The .zip packages corresponding to the data items described in the
+      :ref:`qualification-data` section of this document.
    #. The GNAT Pro binary package, which contains the GNAT Pro executable toolset and the associated documentation, in particular the GNAT Pro User's Guide.
    #. The GNATemulator binary package, which contains the GNATemulator executable tool and the associated documentation.
    #. The GNATcoverage binary package, which contains the GNATcoverage executable tool and the associated documentation, in particular the GNATcoverage User's Guide.
@@ -78,10 +79,18 @@ Quality Assurance Reports
 
 Quality Assurance Reports are atomically tracked exactly like any other textual artifact of GNATcoverage qualification material. Quality assurance reports are specific for each tool released and their lifecycle is tracked on a release-specific basis.
 
-Open problems identification
-----------------------------
+Open problems
+-------------
 
-Open problems are tracked via emails. Each email is associated with a unique problem identified by a unique ID. Each problem is assigned with a single entity of the Development or Qualification team. The unique ID identifies the open problem within a database which permits its evolution and status (open/closed) to be tracked. All emails are saved in a database and it is possible to query it to retrieve all mails related to any open problem.
+Open problems are tracked via emails. Each email is associated with a unique
+problem identifier, assigned by our tracking system when the first message
+about an issue is received. At any given point in time, each issue is assigned
+to a single member of the Development or Qualification team who is then
+responsible for the problem management: launching investigations, developing
+corrections, updating the problem status (open/closed) or assigning to
+another team member for further action until a resolution is found. The
+complete problem evolution (related email exchanges) and status history are
+tracked in a database thanks to the unique issue identifier.
 
 Configuration Management Methods and Activities
 ***********************************************
@@ -108,7 +117,7 @@ identifier*, referenced for example in QA reports. All the corresponding
 verification related artifacts are managed on a dedicated *branch* within our
 version control systems. Releases of qualification kits for the specific
 customer/project are produced off that branch, which also tracks the QA cycles
-operated on the kit items (QA reports, corresponding corrections, ...). A
+performed on the kit items (QA reports, corresponding corrections, ...). A
 typical kind of early change incorporated on the branch is the adjustment of
 the targeted operational environment parameters, to be accounted for when
 setting up the qualification environment for kit production cycles.
@@ -119,7 +128,7 @@ Official baseline production
 
 Official baselines are generated for customer-specific deliveries aimed at a
 precise operational environment and software level. Once the configuration
-management branch dedicated to such deliveries is setup, a complete testsuite
+management branch dedicated to such deliveries is set up, a complete testsuite
 run is performed in the corresponding qualification environment. A kit version
 number is then assigned and the qualification data documents are produced.
 The resulting set of documents is packaged as a zip file which materializes

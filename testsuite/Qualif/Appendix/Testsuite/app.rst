@@ -1,24 +1,26 @@
 .. _testsuite-overview:
 
-Overview of the testsuite structure
-***********************************
+Overview of the test procedures organization
+********************************************
 
-The GNATcoverage *testsuite* consists of the set of executable tests that
-implement Testcases, driven by an execution and control harness. Each test
-involves sources and a description of expected results.  Very broadly, the
-testsuite harness builds executables from the sources, executes the resulting
-programs, invokes GNATcoverage to perform some coverage analysis assessment
-and checks that the tool's output matches expectations.
+The GNATcoverage *testsuite* consists of the set of executable *tests* that
+implement *Testcases*, driven by an execution and control harness to validate
+part or all of a *Tool Operational Requirement*. Each test involves sources
+and a description of expected results, which, in association with the harness
+operation, consitutes a *test procedure*.
 
+Very broadly, the testsuite harness builds executables from the sources,
+executes the resulting programs, invokes GNATcoverage to perform some coverage
+analysis assessment and checks that the tool's output matches expectations.
 Depending on the configuration, the tests' execution is performed either
 through GNATemulator via "gnatcov run", or on a hardware board with
-specialized runner and an extra trace conversion step via "gnatcov convert".
+specialized execution monitor and an extra trace conversion step via "gnatcov
+convert".
 
-Testcases
-=========
+Kinds of tests and sources
+==========================
 
-A Testcase is set of tests aimed at validating part or all of an operational
-requirement. We support two categories of tests:
+The testsuite harness supports two kinds of Tests:
 
 * Program tests, which run a specific program, perform coverage analysis
   over it and match the analysis outcome against stated expectations,
@@ -27,27 +29,29 @@ requirement. We support two categories of tests:
   set of traces obtained for a given set of program tests, and match the
   analysis outcome against stated expectations as well.
 
-The source files for a program test fall into two categories:
+The source files for a program test fall into three categories:
 
-* Functional sources, for assessing some coverage properties,
+* Functional sources, which embed language constructs on which coverage
+  properties are the test purpose.
 
 * Driver sources, which invoke the functional code in various ways and embed a
   description of the expected coverage outcome.
 
-File names starting with ``test_`` identify driver sources. Multiple drivers
-may be used to exercise a single functional source.
+* Helper sources, there only to make the test compilable, irrelevant to the
+  exercised operational aspect.
 
-Consolidation scenarios are identified as ``cons_<scenario_id>.txt`` text
-files.  Each specifies the set of drivers to consolidate followed by the
-corresponding coverage expectations.
+File names starting with ``test_`` identify driver sources. Multiple drivers
+may be used to exercise a single functional source. Consolidation scenarios
+are identified as ``cons_<scenario_id>.txt`` text files.  Each specifies the
+set of drivers to consolidate followed by the corresponding coverage
+expectations.
 
 The following example illustrates a possible set of files involved for a
-hypothetical Test Case exercising an Ada function F which implements an ``and
+hypothetical Testcase exercising an Ada function F which implements an ``and
 then`` evaluation. The test case features four tests, with three program tests
 and one consolidation scenario::
 
-  andthen.adb          -- functional code, exposes
-                       --   function F (A, B: Boolean) return Boolean
+  andthen.adb          -- functional code, F (A, B: Boolean) return Boolean
 
   test_andthen_tt.adb  -- driver calling F (True, True), and stating what
                        -- coverage results are expected over andthen.adb
@@ -58,19 +62,19 @@ and one consolidation scenario::
   cons_andthen_all.adb -- consolidation spec for all the program tests,
                        -- with the corresponding expected coverage results
 
-As with the requirements, *Testcase Groups* are introduced for organizational
-purposes as needed.
-
 Coverage Expectations
 =====================
 
-The expectations on coverage results are documented in two ways:
+Definition and operation
+------------------------
+
+The expectations on coverage results are documented with two devices:
 
 * **In functional sources**, comments starting with ``-- #`` on lines for
   which coverage expectations need to be specified. These provide
   a mechanism for referring to functional lines,
 
-* **In driver sources, at the end**, a sequence of:
+* **In driver sources, at the end**, a sequence of comments like:
 
   | ``--# <functional_file_name>`` followed by an optional sequence of:
   | ``--  /regexp/ <expected .xcov note> ## <expected report notes>`` lines
@@ -177,8 +181,8 @@ from the qualified output out of ``gnatcov --annotate=report`` :
 * ``statement not covered`` diagnostics for lines 4 and 8, stated by the
   ``s-`` expectations, and
 
-* No violation diagnostic for lines 3, 5, and 6, stated by the ``0``
-  expectations for the other lines containing statements.
+* No violation diagnostic for lines 3, 5, and 6, per the ``0``
+  expectations for the other lines with statements.
 
 This will yield an expected section of the report output such as::
 
@@ -187,6 +191,32 @@ This will yield an expected section of the report output such as::
       in_range.adb:4:7: statement not executed
       in_range.adb:8:7: statement not executed
       2 violations
+
+Extra details on semantics
+--------------------------
+
+The essential purpose of the qualification process is to make sure that
+improperly covered items are reported as such. For this reason, the testsuite
+enforces stricter checks for '``!``' and '``-``' items than for '``+``':
+
+* For '``-``' or '``!``' items, there must be an exact match between the
+  stated expectations and results reported by gnatcov (in both output formats
+  examined):
+  every expectation must be found in the tool outputs, and every occurrence
+  in the tool output must have a corresponding expectation.
+  This ensures that expectations are specified carefully and that the
+  tool reports exactly what is expected.
+
+* For '``+``' items (non-qualified .xcov outputs only), only the first of the
+  previously described checks applies. Absence of an expectation statement for
+  '``+``' on a line does not cause a test failure.
+
+``/regexp/`` filters that select no lines are allowed and act as a
+no-ops. This is useful in situations where a single driver is shared across
+different tests. Non-empty intersections between different filters are
+"allowed" as well, however most often correspond to mistakes. Indeed the sets
+of expected indications just accumulate and the test typically becomes
+impossible to pass.
 
 .. _harness-rationale:
 
@@ -332,34 +362,4 @@ criteria. In our example test of statement category, the ``0`` expectations
 are meant to convey that we expect no *statement coverage* violation on the
 lines, and violations of stricter criteria there ought to be ignored.
 
-
-More on expectations semantics
-==============================
-
-The essential purpose of the qualification process is to make sure that
-improperly covered items are reported as such.
-
-For this reason, the testsuite enforces stricter checks for '``!``' and
-'``-``' items than for '``+``':
-
-* For '``-``' or '``!``' items, there must be an exact match between the
-  stated expectations and results reported by gnatcov (in both output formats
-  examined):
-  every expectation must be found in the tool outputs, and every occurrence
-  in the tool output must have a corresponding expectation.
-
-  This ensures that expectations are specified carefully and that the
-  tool reports exactly what is expected.
-
-* For '``+``' items (.xcov outputs only), only the first of the previously
-  described checks applies. Absence of an expectation statement for '``+``' on
-  a line does not cause a test failure.
-
-``/regexp/`` filters that select no lines are allowed and act as a
-no-ops. This is useful in situations where a single driver is shared across
-different tests.
-
-Non-empty intersections between different filters are "allowed" as well but
-even though sometimes convenient, they most often correspond to mistakes. The
-sets of expected indications simply accumulate.
 

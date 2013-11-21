@@ -5,7 +5,7 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
 
 .. csv-table::
    :delim: |
-   :widths: 43, 30, 40
+   :widths: 40, 20, 40
    :header: "Name", "Company", "Email"
 
    Matteo Bordin|AdaCore|bordin@adacore.com
@@ -21,6 +21,19 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
    :header: "Identifier", "Referenced document"
 
    Ada 2005 LRM|Ada 2005 Reference Manual. Language and Standard Libraries.  International Standard ISO/IEC 8652/1995(E) with Technical Corrigendum 1 and Amendment 1. Taft, S.T.; Duff, R.A.; Brukardt, R.L.; Ploedereder, E.; Leroy, P. (Eds.)
+
+.. rubric:: Revision history
+
+.. tabularcolumns:: |p{0.1\textwidth}|p{0.90\textwidth}|
+
+.. csv-table::
+   :delim: |
+   :header: "Version #", "Comment"
+   :widths: 10, 90
+
+   1.0|First version submitted to customer review, pre internal QA cycle
+   1.1|First version submitted to internal QA cycle
+
 
 .. only:: html
 

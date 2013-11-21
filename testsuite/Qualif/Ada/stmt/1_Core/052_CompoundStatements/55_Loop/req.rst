@@ -6,9 +6,9 @@ SC requirements for Loop statements (ARM 5.5)
 
 
 
-A LOOP statement contains a loop *header* that introduces the
-control-flow iteration scheme, and a loop body that may
-optionally include one or more EXIT statements.
+A LOOP statement contains a loop *header* (optional iteration scheme followed
+by the `loop` keyword) and a loop body that may optionally include one or more
+EXIT statements.
 
 In addition to the common requirements that apply to the nested statements,
 FOR or WHILE loop headers that are never reached shall be reported uncovered.
