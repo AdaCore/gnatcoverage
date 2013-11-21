@@ -1718,8 +1718,10 @@ package body Traces_Elf is
       Dirnames      : Filenames_Vectors.Vector;
       Filenames     : Filenames_Vectors.Vector;
 
-      File_Indices  : File_Indices_Vectors.Vector;
-      --  Cached file indices for Filenames.
+      File_Indices    : File_Indices_Vectors.Vector;
+      --  Cached file indices for Filenames. Contains No_Source_File for source
+      --  files that are not considered for coverage and thus that do not
+      --  require debug line information.
 
       Cur_Subprg,
       Cur_Sec    : Address_Info_Sets.Cursor;
@@ -1808,38 +1810,32 @@ package body Traces_Elf is
          --  Note: Last will be updated by Close_Source_Line
 
          File_Index := File_Indices.Element (File);
-         if File_Index = No_Source_File then
-            --  Compute the file index for this source file if it's not cached
-            --  yet.
+         if File_Index /= No_Source_File then
+            Sloc :=
+              (Source_File => File_Index,
+               L           => (Natural (Line), Natural (Column)));
 
-            File_Index := Get_Index_From_Full_Name
-               (Filenames.Element (File).all);
-            File_Indices.Replace_Element (File, File_Index);
-         end if;
+            Set_Parents (Exec.Exe_Text_Start + Pc, Sloc);
 
-         Sloc :=
-           (Source_File => File_Index,
-            L           => (Natural (Line), Natural (Column)));
+            if Subprg /= null then
+               Last_Line :=
+                 new Address_Info'
+                   (Kind         => Line_Addresses,
+                    First        => Exec.Exe_Text_Start + Pc,
+                    Last         => Exec.Exe_Text_Start + Pc,
+                    Parent       => (if Subprg /= null then Subprg else Sec),
+                    Sloc         => Sloc,
+                    Disc         => Disc,
+                    Is_Non_Empty => False);
 
-         Set_Parents (Exec.Exe_Text_Start + Pc, Sloc);
-         if Subprg /= null then
-            Last_Line :=
-              new Address_Info'
-                (Kind         => Line_Addresses,
-                 First        => Exec.Exe_Text_Start + Pc,
-                 Last         => Exec.Exe_Text_Start + Pc,
-                 Parent       => (if Subprg /= null then Subprg else Sec),
-                 Sloc         => Sloc,
-                 Disc         => Disc,
-                 Is_Non_Empty => False);
+               Subprg.Lines.Insert (Last_Line, Pos, Inserted);
+               if not Inserted then
 
-            Subprg.Lines.Insert (Last_Line, Pos, Inserted);
-            if not Inserted then
+                  --  An empty line has already been inserted at PC. Merge it
+                  --  with current line.
 
-               --  An empty line has already been inserted at PC. Merge it with
-               --  current line.
-
-               Last_Line := Element (Pos);
+                  Last_Line := Element (Pos);
+               end if;
             end if;
          end if;
          Disc := 0;
@@ -1995,6 +1991,8 @@ package body Traces_Elf is
          end if;
       end Set_Parents;
 
+      No_File_Of_Interest : Boolean := True;
+
    --  Start of processing for Read_Debug_Lines
 
    begin
@@ -2069,8 +2067,9 @@ package body Traces_Elf is
          Read_ULEB128 (Base, Off, File_Dir);
 
          declare
-            Filename : constant String := Read_String (Base + Old_Off);
-            Dir      : String_Access;
+            Filename   : constant String := Read_String (Base + Old_Off);
+            Dir        : String_Access;
+            File_Index : Source_File_Index;
          begin
             if File_Dir /= 0
               and then File_Dir <= Nbr_Dirnames
@@ -2089,11 +2088,36 @@ package body Traces_Elf is
             Filenames_Vectors.Append
               (Filenames, Build_Filename (Dir.all, Filename));
 
-            --  Do not get file index for this filename until necessary (see
-            --  the New_Source_Line procedure). This prevents file table
-            --  cluttering with unused filenames.
+            --  Optimization: in source coverage, we do not want to add new
+            --  files to the files table: the ones added when loading SCOs are
+            --  enought. Do not even load debug line information for files that
+            --  don't have statement SCOs.
 
-            File_Indices.Append (No_Source_File);
+            File_Index := Get_Index_From_Full_Name
+              (Filenames.Last_Element.all,
+               Insert => Object_Coverage_Enabled);
+
+            if Source_Coverage_Enabled
+              and then File_Index /= No_Source_File
+              and then not Get_File (File_Index).Has_Source_Coverage_Info
+            then
+               File_Index := No_Source_File;
+            end if;
+
+            if File_Index /= No_Source_File then
+               --  This file is of interest. In source coverage, give a chance
+               --  to the file table entry to get a full path. In object
+               --  coverage, this is already done by the first call to
+               --  Get_Index_From_Full_Name.
+
+               No_File_Of_Interest := False;
+               if Source_Coverage_Enabled then
+                  File_Index := Get_Index_From_Full_Name
+                    (Filenames.Last_Element.all,
+                     Insert => True);
+               end if;
+            end if;
+            File_Indices.Append (File_Index);
          end;
 
          Read_ULEB128 (Base, Off, File_Time);
@@ -2101,6 +2125,14 @@ package body Traces_Elf is
          Nbr_Filenames := Nbr_Filenames + 1;
       end loop;
       Off := Off + 1;
+
+      --  If there is no source file of interest in this debug information,
+      --  do nothing.
+
+      if No_File_Of_Interest then
+         Free (Opc_Length);
+         return;
+      end if;
 
       while Off < Last loop
 
