@@ -42,6 +42,14 @@ package body Coverage is
    --  Global variable that records the coverage operation that has been asked
    --  to xcov. Set using Set_Coverage_Levels.
 
+   Object_Coverage_Enabled_Cached : Boolean;
+   Source_Coverage_Enabled_Cached : Boolean;
+   MCDC_Coverage_Enabled_Cached   : Boolean;
+   --  Global variables to hold cached return values for enabled coverage
+   --  levels query functions. These functions can be called very ofter, so
+   --  just returning a boolean revomes any overhead. These globals are updated
+   --  at each call of Set_Coverage_Levels, which is not called very often.
+
    procedure Add_Coverage_Option (L : Levels_Type);
    --  Register L as a valid combination of coverage levels
 
@@ -90,7 +98,7 @@ package body Coverage is
 
    function MCDC_Coverage_Enabled return Boolean is
    begin
-      return Levels (MCDC) or else Levels (UC_MCDC);
+      return MCDC_Coverage_Enabled_Cached;
    end MCDC_Coverage_Enabled;
 
    ----------------
@@ -131,8 +139,7 @@ package body Coverage is
 
    function Object_Coverage_Enabled return Boolean is
    begin
-      return Any_Coverage_Enabled
-        ((Object_Coverage_Level => True, others => False));
+      return Object_Coverage_Enabled_Cached;
    end Object_Coverage_Enabled;
 
    -----------------------------
@@ -141,8 +148,7 @@ package body Coverage is
 
    function Source_Coverage_Enabled return Boolean is
    begin
-      return Any_Coverage_Enabled
-        ((Source_Coverage_Level => True, others => False));
+      return Source_Coverage_Enabled_Cached;
    end Source_Coverage_Enabled;
 
    -------------------------
@@ -152,6 +158,13 @@ package body Coverage is
    procedure Set_Coverage_Levels (Opt : String) is
    begin
       Levels := Coverage_Option_Map.Element (Opt'Unrestricted_Access);
+
+      Object_Coverage_Enabled_Cached := Any_Coverage_Enabled
+        ((Object_Coverage_Level => True, others => False));
+      Source_Coverage_Enabled_Cached := Any_Coverage_Enabled
+        ((Source_Coverage_Level => True, others => False));
+      MCDC_Coverage_Enabled_Cached := Any_Coverage_Enabled
+        ((MCDC_Coverage_Level => True, others => False));
    end Set_Coverage_Levels;
 
    ---------------
