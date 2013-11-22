@@ -2067,9 +2067,10 @@ package body Traces_Elf is
          Read_ULEB128 (Base, Off, File_Dir);
 
          declare
-            Filename   : constant String := Read_String (Base + Old_Off);
-            Dir        : String_Access;
-            File_Index : Source_File_Index;
+            Filename     : constant String := Read_String (Base + Old_Off);
+            Dir          : String_Access;
+            File_Index   : Source_File_Index;
+            Filter_Lines : constant Boolean := Source_Coverage_Enabled;
          begin
             if File_Dir /= 0
               and then File_Dir <= Nbr_Dirnames
@@ -2095,9 +2096,9 @@ package body Traces_Elf is
 
             File_Index := Get_Index_From_Full_Name
               (Filenames.Last_Element.all,
-               Insert => Object_Coverage_Enabled);
+               Insert => not Filter_Lines);
 
-            if Source_Coverage_Enabled
+            if Filter_Lines
               and then File_Index /= No_Source_File
               and then not Get_File (File_Index).Has_Source_Coverage_Info
             then
@@ -2105,13 +2106,12 @@ package body Traces_Elf is
             end if;
 
             if File_Index /= No_Source_File then
-               --  This file is of interest. In source coverage, give a chance
-               --  to the file table entry to get a full path. In object
-               --  coverage, this is already done by the first call to
-               --  Get_Index_From_Full_Name.
+               --  This file is of interest. If not already done thanks to the
+               --  first call to Get_Index_From_Full_Name, give a chance to the
+               --  file table entry to get a full path.
 
                No_File_Of_Interest := False;
-               if Source_Coverage_Enabled then
+               if Filter_Lines then
                   File_Index := Get_Index_From_Full_Name
                     (Filenames.Last_Element.all,
                      Insert => True);
