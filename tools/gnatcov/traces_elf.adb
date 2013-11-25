@@ -1796,6 +1796,8 @@ package body Traces_Elf is
          Inserted   : Boolean;
          File_Index : Source_File_Index;
          Sloc       : Source_Location;
+
+         Saved_Line : constant Address_Info_Acc := Last_Line;
       begin
 
          --  Discard 0-relative entries in exec files, corresponding to
@@ -1837,6 +1839,11 @@ package body Traces_Elf is
                   Last_Line := Element (Pos);
                end if;
             end if;
+
+         else
+            --  If this line is filtered out, restore the previous Last_Line
+
+            Last_Line := Saved_Line;
          end if;
          Disc := 0;
       end New_Source_Line;
