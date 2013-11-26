@@ -2556,7 +2556,8 @@ package body Traces_Elf is
          --  (if any) is just after.
 
          if Has_Element (Subprg_Cur)
-           and then Element (Subprg_Cur).First < Section.First then
+           and then Element (Subprg_Cur).First < Section.First
+         then
             Next (Subprg_Cur);
          end if;
 
