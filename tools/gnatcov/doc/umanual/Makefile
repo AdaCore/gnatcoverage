@@ -60,7 +60,7 @@ prepare-version: ../../version.ads
 	VERSION=$$(sed -n -e 's/.*Version.*"\(.*\)".*/\1/p' ../../version.ads); \
 	perl -pi -e "s#^version =.*#version = \"$$VERSION\"#" conf.py
 
-stamp-prepare: prepare-images prepare-version
+stamp-prepare: prepare-version
 	touch stamp-prepare
 
 html: stamp-prepare

@@ -1,0 +1,45 @@
+digraph G {
+	compound = true;
+        size = "3.5,3.0";
+        margin = "0.1";
+	node [ shape = box, style=filled,
+          color = lightblue, fontcolor = black, fontsize=12 ];
+
+	{
+		root [ label = "Root project", width = 2.0 ,color=darkslateblue, fontcolor=white ];
+	}
+	{ rank = same ; root };
+
+	{
+		ss_a [ label = "Subsystem A", width = 2.0 ,color=darkslateblue, fontcolor=white ];
+		ss_b [ label = "Subsystem B", width = 2.0 ];
+	}
+	{ rank = same ; ss_a; ss_b }
+	root -> ss_a;
+	root -> ss_b;
+
+	{
+		sa1 [ label = "A1" ];
+		sa2 [ label = "A2" ];
+		sa3 [ label = "A3" ];
+
+		sb1 [ label = "B1" ];
+		sb2 [ label = "B2" ];
+		sb3 [ label = "B3" ];
+	}
+	{ rank = same ; sa1; sa2; sa3; sb1; sb2; sb3 };
+	ss_a -> sa1;
+	ss_a -> sa2;
+	ss_a -> sa3;
+
+	ss_b -> sb1;
+	ss_b -> sb2;
+	ss_b -> sb3;
+
+	{
+		common [ label = "Common", width = 2.0 ];
+	}
+
+	sa1 -> common;
+	sb3 -> common;
+}
