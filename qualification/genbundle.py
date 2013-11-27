@@ -147,7 +147,8 @@ MY_TESTSUITE_DIR=os.path.abspath("../testsuite")
 sys.path.append(MY_TESTSUITE_DIR)
 
 from SUITE.qdata import CTXDATA_FILE, treeref_at
-from SUITE.cutils import load_from, contents_of, output_of
+from SUITE.cutils import contents_of, output_of
+from SUITE.dutils import jload_from
 
 # =======================================================================
 # ==                         MISC UTILITY FUNCTIONS                    ==
@@ -546,7 +547,7 @@ class QMAT:
         os.chdir (self.repodir)
 
         local_treeref = treeref_at(self.repodir)
-        suite_treeref = suite_ctxdata.treeref
+        suite_treeref = suite_ctxdata['treeref']
 
         if local_treeref == suite_treeref:
             log.write (
@@ -617,12 +618,12 @@ class QMAT:
 
         check_one (
             tool = "gnatpro",
-            actual = suite_ctxdata.gnatpro.version,
+            actual = suite_ctxdata['gnatpro']['version'],
             expected = self.o.xgnatpro)
 
         check_one (
             tool = "gnatcov",
-            actual = suite_ctxdata.gnatcov.version,
+            actual = suite_ctxdata['gnatcov']['version'],
             expected = self.o.xgnatcov)
 
     def __dump_tr_consistency_info (self, log):
@@ -662,7 +663,7 @@ class QMAT:
         log.write (
             "local testsuite tree at %s\n" % self.local_testsuite_dir)        
 
-        suite_ctxdata = load_from (
+        suite_ctxdata = jload_from (
             os.path.join (self.local_testsuite_dir, CTXDATA_FILE))
         
         self.__dump_tree_consistency_info (log, suite_ctxdata)

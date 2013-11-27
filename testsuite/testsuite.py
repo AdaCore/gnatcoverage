@@ -31,12 +31,16 @@ import optparse
 
 from SUITE import cutils
 from SUITE.cutils import contents_of, FatalError
-from SUITE.cutils import version, list_to_tmp, dump_to, load_from
+from SUITE.cutils import version, list_to_tmp
+
+from SUITE.dutils import pdump_to, pload_from
+from SUITE.dutils import jdump_to, jload_from
+from SUITE.dutils import time_string_from, host_string_from
 
 from SUITE.qdata import stdf_in, qdaf_in, treeref_at
 from SUITE.qdata import QLANGUAGES, QROOTDIR
 from SUITE.qdata import QSTRBOX_DIR, CTXDATA_FILE
-from SUITE.qdata import SUITE_context, TC_status, TOOL_info
+from SUITE.qdata import SUITE_context, TC_status, TOOL_info, OPT_info_from
 
 from SUITE import control
 from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES
@@ -241,6 +245,40 @@ class TestSuite:
         self.strbox_dir = os.path.join (os.getcwd(), QSTRBOX_DIR)
         mkdir(self.strbox_dir)
 
+    def __dump_ctxdata(self):
+        """Dump the testsuite context data file for use by the STR report
+        producers."""
+
+        tprefix = self.__target_prefix()
+            
+        if self.options.other_tool_info:
+            (toolname, version_info) = Run(
+                [sys.executable, self.options.other_tool_info], timeout=20
+                ).out.split('##')
+            
+            other_tool_info = TOOL_info (
+                exename=toolname, ver=version_info)
+        else:
+            other_tool_info = None
+
+        jdump_to (
+            CTXDATA_FILE,
+            SUITE_context(
+                runstamp = time_string_from(time.localtime()),
+                host     = host_string_from(self.env.host),
+                treeref  = treeref_at("."),
+                cmdline  = " ".join(sys.argv),
+
+                options  = OPT_info_from(options=self.options),
+
+                gnatpro  = TOOL_info (tprefix+"gcc"),
+                gnatemu  = TOOL_info (tprefix+"gnatemu"),
+                gnatcov  = TOOL_info ("gnatcov"),
+                other    = other_tool_info
+                )
+            )
+
+
     # -----------------------
     # -- Common facilities --
     # -----------------------
@@ -262,7 +300,7 @@ class TestSuite:
         if not os.path.isfile(ctxdata_file):
             return ('  * Missing testsuite data file (%s)' % ctxdata_file,)
 
-        ref_ctx = load_from(ctxdata_file)
+        ref_ctx = jload_from(ctxdata_file)
         tprefix = self.__target_prefix()
         gnatpro = TOOL_info(tprefix+"gcc")
         gnatemu = TOOL_info(tprefix+"gnatemu")
@@ -403,34 +441,7 @@ class TestSuite:
 
         if self.options.qualif_level:
             self.__init_strbox()
-
-            tprefix = self.__target_prefix()
-            
-            if self.options.other_tool_info:
-                info_string = Run(
-                    [sys.executable, self.options.other_tool_info], timeout=20
-                    ).out.split('##')
-
-                other_tool_info = TOOL_info (
-                    exename=info_string[0], ver=info_string[1])
-            else:
-                other_tool_info = None
-
-            dump_to (
-                CTXDATA_FILE,
-                SUITE_context(
-                    runstamp = time.localtime(),
-                    treeref  = treeref_at("."),
-                    cmdline  = " ".join(sys.argv),
-                    options  = self.options,
-                    host     = self.env.host,
-                    target   = self.env.target,
-                    gnatpro  = TOOL_info (tprefix+"gcc"),
-                    gnatemu  = TOOL_info (tprefix+"gnatemu"),
-                    gnatcov  = TOOL_info ("gnatcov"),
-                    other    = other_tool_info
-                    )
-                )
+            self.__dump_ctxdata()
 
             with open ('python_bin.dump', 'w') as f:
                 f.write ('%s' % sys.executable)
@@ -1348,7 +1359,7 @@ class TestCase(object):
         self.status = status_dict[self.passed][self.xfail]
 
     def latch_status(self):
-        dump_to (
+        pdump_to (
             self.stdf(),
             o = TC_status (
                 passed=self.passed,
@@ -1358,7 +1369,7 @@ class TestCase(object):
             )
 
     def latched_status(self):
-        return load_from (self.stdf())
+        return pload_from (self.stdf())
 
     def do_post_run_cleanups(self):
         """Cleanup temporary artifacts from the testcase directory."""

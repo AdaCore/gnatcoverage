@@ -23,8 +23,10 @@ sys.path.append(LOCAL_TESTSUITE_DIR)
 from SUITE.qdata import qdaf_in, stdf_in
 from SUITE.qdata import QUALDATA_FILE, QLANGUAGES, QROOTDIR
 from SUITE.qdata import CTXDATA_FILE
-from SUITE.cutils import to_list, load_from
+from SUITE.cutils import to_list
 from SUITE.control import LANGINFO, XCOV
+
+from SUITE import dutils
 
 from SCOV.internals.cnotes import *
 from REST import rest
@@ -90,8 +92,8 @@ class QDregistry_from:
 
         print "loading from %s" % dirname
 
-        qda = load_from (qdaf_in (dirname))
-        std = load_from (stdf_in (dirname))
+        qda = dutils.pload_from (qdaf_in (dirname))
+        std = dutils.pload_from (stdf_in (dirname))
 
         qda.status = std.status
         qda.comment = std.comment
@@ -552,13 +554,13 @@ class QDreport:
         
         # Fetch the testsuite execution context
 
-        self.suitedata = load_from (
+        self.suitedata = dutils.jload_from (
             os.path.join (self.o.testsuite_dir, CTXDATA_FILE))
 
         # Pick the testsuite dolevel if none was provided. Check
         # consistency otherwise:
 
-        suite_dolevel = self.suitedata.options.qualif_level
+        suite_dolevel = self.suitedata['options']['dolevel']
         
         fail_if (
             not suite_dolevel,            
@@ -932,19 +934,19 @@ class QDreport:
         # - LANGINFO.cargs (e.g. -gnateS for Ada, -fdump-scos for C)
         # - --cargs family
 
-        suite_options = self.suitedata.options.__dict__
+        suite_options = self.suitedata['options']
 
         csv_contents = []
 
         csv_contents.append(
             {item : "testsuite execution command line",
-             value: literal(self.suitedata.cmdline)
+             value: literal(self.suitedata['cmdline'])
              })
 
         csv_contents.append(
             {item : "compiler switches - language-independent",
              value: literal (' '.join (
-                    BUILDER.COMMON_CARGS() + [suite_options["cargs"]]))
+                    BUILDER.COMMON_CARGS() + [suite_options['cargs']]))
              })
 
         for lang in self.languages:
@@ -982,53 +984,37 @@ class QDreport:
         v2 = Column (
             htext = "", legend = None)
 
-        def host_string_from(host):
-            """Return a textual version of the relevant info in HOST,
-            a Env().host kind of object."""
-            return '-'.join (
-                (host.os.name, host.os.kernel_version+'/'+host.os.version))
-        
-        def time_string_from(stamp):
-            """Return a textual version of the timestamp in STAMP,
-            a time.localtime() kind of object."""
-
-            return time.strftime ("%a %b %d, %Y. %H:%M", stamp)
-
-        suite_gnatpro = self.suitedata.gnatpro
-        suite_gnatcov = self.suitedata.gnatcov
-        suite_gnatemu = self.suitedata.gnatemu
-        suite_other   = self.suitedata.other
+        suite_gnatpro = self.suitedata['gnatpro']
+        suite_gnatcov = self.suitedata['gnatcov']
+        suite_gnatemu = self.suitedata['gnatemu']
+        suite_other   = self.suitedata['other']
         
         # Base table entries, always there:
 
         table_entries =  [
-            {item : "report timestamp & host system",
-             v1: time_string_from (time.localtime()),
-             v2: host_string_from(Env().host)
-             },
             {item : "testsuite execution timestamp & host system",
-             v1: time_string_from (self.suitedata.runstamp),
-             v2: host_string_from (self.suitedata.host)
+             v1: self.suitedata['runstamp'],
+             v2: self.suitedata['host']
              },
             {item : "GNAT Pro executable & version",
-             v1: suite_gnatpro.exename,
-             v2: suite_gnatpro.version
+             v1: suite_gnatpro['exename'],
+             v2: suite_gnatpro['version']
              },
             {item : "GNATcov executable & version",
-             v1: suite_gnatcov.exename,
-             v2: suite_gnatcov.version
+             v1: suite_gnatcov['exename'],
+             v2: suite_gnatcov['version']
              }
             ]
 
         # Add a gnatemu version, unless known to be irrelevant (native,
         # or when a --board option is passed).
 
-        suite_options = self.suitedata.options
-        if suite_options.target and not suite_options.board:
+        suite_options = self.suitedata['options']
+        if suite_options['target'] and not suite_options['board']:
             table_entries.append (
                 {item : "GNATemu executable & version",
-                 v1: suite_gnatemu.exename,
-                 v2: suite_gnatemu.version}
+                 v1: suite_gnatemu['exename'],
+                 v2: suite_gnatemu['version']}
                 )
 
         # Add the "other tool" version if we have it
@@ -1036,8 +1022,8 @@ class QDreport:
         if suite_other:
             table_entries.append (
                 {item : "Other toolset executable & version",
-                 v1: suite_other.exename,
-                 v2: suite_other.version}
+                 v1: suite_other['exename'],
+                 v2: suite_other['version']}
                 )
 
         CSVtable (

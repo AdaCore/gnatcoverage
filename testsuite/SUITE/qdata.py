@@ -21,8 +21,11 @@
 #
 # ****************************************************************************
 
-import os, sys, pickle, re
-from SUITE.cutils import dump_to, output_of, version
+import os, sys, re
+
+from SUITE import dutils
+
+from SUITE.cutils import output_of, version
 from gnatpython.ex import Run
 
 QLANGUAGES = ["Ada"]
@@ -44,52 +47,59 @@ QSTRBOX_DIR="_strbox"
 # == SUITE_context facilities ==
 # ==============================
 
+# Helpers to construct the testsuite context data of relevance for STR
+# production and consistency checking purposes.
+
+# Context data is dumped by testsuite.py at the location where the testsuite
+# is run. Part of this is read back from the same host/testsuite-dir context
+# during the STR production.  Part of this is read back for consistency checks
+# when producing a qualification kit. The latter might take place on a
+# different host and using a different version of python so the context data
+# needs to be produced in a format suitable for data exchange using persistent
+# storage. To facilitate this, the relevant data items are all expressed using
+# core string and dictionary python types.
+
 CTXDATA_FILE=os.path.join (QSTRBOX_DIR, "suite"+STREXT)
 # Name of a file, relative to the testsuite toplevel directory, where the
 # testsuite data of use for the STR production will be made available.
 
-class TOOL_info:
-    """Representative data for a tool to be described as part of the testsuite
-    execution context in a STR report."""
+def TOOL_info(exename, ver=None):
+    """Context data for a tool involved in a testsuite run."""
 
-    def __init__(self, exename, ver=None):
-        self.exename = exename
-        self.version = (
-            version (exename) if ver is None else ver)
+    return {
+        'exename': exename,
+        'version': version (exename) if ver is None else ver
+        }
 
-class SUITE_context:
-    """Testsuite context data to be dumped by the topevel testsuite driver
-    for use by the STR production engine."""
+def OPT_info_from(options):
+    """Context data for the command line options info of relevance."""
+    return {
+        'target'   : options.target,
+        'board'    : options.board,
+        'dolevel'  : options.qualif_level,
+        'cargs'    : options.cargs,
+        'cargs_Ada': options.cargs_Ada,
+        'cargs_C'  : options.cargs_C
+        }
 
-    def __init__ (
-        self, treeref,
-        runstamp, host, target, cmdline, options,
-        gnatpro, gnatemu, gnatcov, other
-        ):
-        
-        # time.locatime() at which the testuite run was launched
-        self.runstamp = runstamp
-        
-        # scm identifier of the testsuite directory tree when the
-        # run was launched
-        self.treeref  = treeref
+def SUITE_context(
+    treeref, runstamp, host, cmdline, options,
+    gnatpro, gnatemu, gnatcov, other):
+    """Toplevel context data structure, wrapping up all the relevant items
+    together."""
 
-        # Command line passed to the toplevel testsuite driver
-        self.cmdline  = cmdline
-
-        # Corresponding optparse options record
-        self.options  = options
-
-        # Env().target & Env().host for the testuite driver
-        self.target   = target
-        self.host     = host
-
-        # Representative tool description instances
-        self.gnatpro = gnatpro
-        self.gnatemu = gnatemu
-        self.gnatcov = gnatcov
-        self.other   = other
-
+    return {        
+        'runstamp': runstamp,
+        'treeref' : treeref,
+        'cmdline' : cmdline,
+        'options' : options,
+        'host'    : host,
+        'gnatpro' : gnatpro,
+        'gnatemu' : gnatemu,
+        'gnatcov' : gnatcov,
+        'other'   : other
+        }
+    
 # ===============================
 # == Testcase execution status ==
 # ===============================
@@ -139,7 +149,7 @@ class Qdata:
         self.entries.append (ob)
 
     def flush(self):
-        dump_to (qdaf_in("."), o=self)
+        dutils.pdump_to (qdaf_in("."), o=self)
 
 # -------------
 # -- qdaf_in --
@@ -177,4 +187,3 @@ def treeref_at(dirname):
 
     return output_of (
         "git rev-parse HEAD", dir=dirname).rstrip('\n')
-
