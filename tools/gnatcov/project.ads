@@ -63,4 +63,7 @@ package Project is
    function Output_Dir return String;
    --  Return the output directory of the root project
 
+   function Project_Name (Source_Name : String) return String;
+   --  Return the name of the project containing the given source file.
+
 end Project;

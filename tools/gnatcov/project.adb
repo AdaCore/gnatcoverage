@@ -593,4 +593,16 @@ package body Project is
       end if;
    end Set_Subdirs;
 
+   ------------------
+   -- Project_Name --
+   ------------------
+
+   function Project_Name (Source_Name : String) return String
+   is
+      F_Info : constant File_Info := Prj_Tree.Info (Create (+Source_Name));
+      Prj    : constant Project_Type := F_Info.Project;
+   begin
+      return (if Prj /= No_Project then Prj.Name else "");
+   end Project_Name;
+
 end Project;
