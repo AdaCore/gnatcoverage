@@ -35,6 +35,7 @@ with Annotations.Xml;
 with Coverage;
 with Hex_Images;
 with Interfaces;
+with Project;
 with Outputs;
 with Qemu_Traces;
 with Strings;
@@ -184,9 +185,9 @@ package body Annotations.Dynamic_Html is
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class);
 
-   --------------------
-   -- Set_SCO_Fields --
-   --------------------
+   ----------------------
+   -- Internal Helpers --
+   ----------------------
 
    procedure Set_SCO_Fields
      (Obj   : JSON_Value;
@@ -197,10 +198,6 @@ package body Annotations.Dynamic_Html is
    --    * text
    --    * coverage
    --    * range
-
-   ---------------
-   -- Src_Range --
-   ---------------
 
    function Src_Range (SCO : SCO_Id) return JSON_Array;
    --  Return a JSON array for the range Sloc_Start .. Sloc_End from SCO
@@ -314,6 +311,7 @@ package body Annotations.Dynamic_Html is
       Skip   : out Boolean)
    is
       use Coverage;
+      use Project;
 
       Info   : constant File_Info_Access := Get_File (File);
       --  No stat is emitted in the JSON output; the user is supposed
@@ -336,6 +334,7 @@ package body Annotations.Dynamic_Html is
       Skip := False;
 
       Source.Set_Field ("filename", Info.Simple_Name.all);
+      Source.Set_Field ("project", Project_Name (Info.Full_Name.all));
       Source.Set_Field ("coverage_level", Coverage_Option_Value);
 
       Pp.Current_Source := Source;
