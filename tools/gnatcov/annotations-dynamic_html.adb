@@ -18,6 +18,7 @@
 
 with Ada.Characters.Handling;
 with Ada.Command_Line;                 use Ada.Command_Line;
+with Ada.Containers.Vectors;
 with Ada.Directories;                  use Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Unbounded;
@@ -43,6 +44,22 @@ with Traces_Disa;
 with Traces_Files;
 with Traces_Files_List;
 
+--  This package generates a dynamic HTML report, i.e. an HTML document heavily
+--  relying on JavaScript for presenting advanced graphical components.
+--
+--  It requires additional resources (CSS and JavaScript) to be installed as a
+--  plugin to the GNATcoverage installation. It produces one HTML file
+--  containing the JS application and multiple JS files containing the data
+--  associatied with each source from the project being analyzed.
+--
+--  Splitting the coverage data into multiple JS files addresses a load-time
+--  issue since the final set of data generated can be large enough (several
+--  Mbs) for browsers to take several seconds to load the whole report. The
+--  current implementation splits the coverage data of each source file in
+--  separate JS file that are lazily loaded by the report application upon
+--  request, i.e. when we need to display detailed coverage information for a
+--  specific file.
+
 package body Annotations.Dynamic_Html is
 
    Bin_Dir : constant String :=
@@ -54,6 +71,8 @@ package body Annotations.Dynamic_Html is
 
    DHTML_JS_Filename  : constant String := Lib_Dir & "gnatcov-dhtml.min.js";
    DHTML_CSS_Filename : constant String := Lib_Dir & "gnatcov-dhtml.min.css";
+
+   package Source_Vectors is new Ada.Containers.Vectors (Natural, JSON_Value);
 
    type Dynamic_Html is new Pretty_Printer with record
       --  Pretty printer type for the Dynamic HTML annotation format
@@ -115,7 +134,7 @@ package body Annotations.Dynamic_Html is
       Current_Source      : JSON_Value;
       --  The current source being processed by the builder
 
-      Source_List         : JSON_Array;
+      Source_List         : Source_Vectors.Vector;
       --  The sources array, containing all source mappings
    end record;
 
@@ -202,7 +221,13 @@ package body Annotations.Dynamic_Html is
    function Src_Range (SCO : SCO_Id) return JSON_Array;
    --  Return a JSON array for the range Sloc_Start .. Sloc_End from SCO
 
-   procedure Write_HTML_Report (Filename : String; Report : JSON_Value);
+   function Get_Hunk_Filename (Orig_Filename : String) return String;
+   --  Return the name of the file containing the coverage data for the
+   --  given source file.
+
+   procedure Write_Full_Report
+     (Report   : JSON_Value;
+      Hunks    : Source_Vectors.Vector);
    --  Dump the HTML file into Filename, inlining both JS and CSS resources
    --  (see JS_Source and CSS_Source) and embedding the JSON object as well.
 
@@ -238,7 +263,7 @@ package body Annotations.Dynamic_Html is
       --  Generate generic coverage attributes
 
       procedure Append_Traces_List;
-      --  Generate trace infomation record
+      --  Generate trace information record
 
       --------------------------
       -- Append_Coverage_Info --
@@ -295,10 +320,31 @@ package body Annotations.Dynamic_Html is
    -- Pretty_Print_End --
    ----------------------
 
-   procedure Pretty_Print_End (Pp : in out Dynamic_Html) is
+   procedure Pretty_Print_End (Pp : in out Dynamic_Html)
+   is
+      Sources : JSON_Array;
    begin
-      Pp.JSON.Set_Field ("sources", Pp.Source_List);
-      Write_HTML_Report ("report.html", Pp.JSON);
+      for Source of Pp.Source_List loop
+         declare
+            Simplified : constant JSON_Value := Create_Object;
+            Filename   : constant String := Source.Get ("filename");
+         begin
+            Simplified.Set_Field ("filename", Filename);
+            Simplified.Set_Field
+              ("project", String'(Source.Get ("project")));
+            Simplified.Set_Field
+              ("stats", JSON_Value'(Source.Get ("stats")));
+            Simplified.Set_Field
+              ("coverage_level", String'(Source.Get ("coverage_level")));
+            Simplified.Set_Field
+              ("hunk_filename", Get_Hunk_Filename (Filename));
+
+            Append (Sources, Simplified);
+         end;
+      end loop;
+
+      Pp.JSON.Set_Field ("sources", Sources);
+      Write_Full_Report (Pp.JSON, Pp.Source_List);
    end Pretty_Print_End;
 
    -----------------------------
@@ -314,10 +360,9 @@ package body Annotations.Dynamic_Html is
       use Project;
 
       Info   : constant File_Info_Access := Get_File (File);
-      --  No stat is emitted in the JSON output; the user is supposed
-      --  to compute them by himself by post-processing the output.
 
       Source : constant JSON_Value := Create_Object;
+      Stats  : constant JSON_Value := Create_Object;
 
    begin
       Clear (Pp.Current_Mappings);
@@ -333,9 +378,23 @@ package body Annotations.Dynamic_Html is
 
       Skip := False;
 
+      --  Compute the coverage stats and store them into a JSON dictionary
+
+      Stats.Set_Field ("no_code", Info.Stats (No_Code));
+      Stats.Set_Field ("covered", Info.Stats (Covered));
+      Stats.Set_Field ("partially_covered", Info.Stats (Partially_Covered));
+      Stats.Set_Field ("not_covered", Info.Stats (Not_Covered));
+      Stats.Set_Field
+        ("exempted_no_violation", Info.Stats (Exempted_No_Violation));
+      Stats.Set_Field
+        ("exempted_with_violation", Info.Stats (Exempted_With_Violation));
+
+      --  Generate the JSON object for this source file
+
       Source.Set_Field ("filename", Info.Simple_Name.all);
       Source.Set_Field ("project", Project_Name (Info.Full_Name.all));
       Source.Set_Field ("coverage_level", Coverage_Option_Value);
+      Source.Set_Field ("stats", Stats);
 
       Pp.Current_Source := Source;
    end Pretty_Print_Start_File;
@@ -350,7 +409,7 @@ package body Annotations.Dynamic_Html is
          Pp.Current_Source.Set_Field ("mappings", Pp.Current_Mappings);
       end if;
 
-      Append (Pp.Source_List, Pp.Current_Source);
+      Pp.Source_List.Append (Pp.Current_Source);
    end Pretty_Print_End_File;
 
    -----------------------------
@@ -644,10 +703,22 @@ package body Annotations.Dynamic_Html is
    end Src_Range;
 
    -----------------------
-   -- Write_HTML_Report --
+   -- Get_Hunk_Filename --
    -----------------------
 
-   procedure Write_HTML_Report (Filename : String; Report : JSON_Value) is
+   function Get_Hunk_Filename (Orig_Filename : String) return String is
+   begin
+      return Orig_Filename & ".hunk.js";
+   end Get_Hunk_Filename;
+
+   -----------------------
+   -- Write_Full_Report --
+   -----------------------
+
+   procedure Write_Full_Report
+     (Report          : JSON_Value;
+      Hunks           : Source_Vectors.Vector)
+   is
       use Ada.Exceptions;
       use Ada.Strings.Unbounded;
       use Ada.Text_IO;
@@ -655,61 +726,98 @@ package body Annotations.Dynamic_Html is
       use Outputs;
 
       HTML : File_Type;
+      --  The HTML report. The procedure Write_Report is in charge of opening
+      --  and closing this file. It is declared here for praticality of use of
+      --  helper functions in Write_Report (see definitions below).
 
-      procedure W (Item : String)
-      with Pre => Is_Open (HTML);
-      --  Write Item into HTML
+      procedure NL (Output : File_Type := HTML)
+      with Pre => Is_Open (Output);
+      --  Write a New_Line into Output
 
-      procedure WU (Item : Unbounded_String)
-      with Pre => Is_Open (HTML);
-      --  Write Item (Unbounded String) into HTML
+      procedure W
+        (Item     : String;
+         Output   : File_Type := HTML;
+         New_Line : Boolean   := True)
+      with Pre => Is_Open (Output);
+      --  Write Item (String) into Output
 
-      procedure NL
-      with Pre => Is_Open (HTML);
-      --  Write a New_Line into HTML
+      procedure W
+        (Item     : Unbounded_String;
+         Output   : File_Type := HTML;
+         New_Line : Boolean   := True)
+      with Pre => Is_Open (Output);
+      --  Write Item (Unbounded String) into Output
 
-      procedure I (Filename : String; Indent : Natural := 0)
-      with Pre => Is_Open (HTML);
-      --  Inline the content of Filename into HTML
+      procedure I
+        (Filename : String;
+         Indent   : Natural   := 0;
+         Output   : File_Type := HTML)
+      with Pre => Is_Open (Output);
+      --  Inline the content of Filename into Output
+
+      procedure Write_Hunk (Hunk : JSON_Value);
+      --  Dump the JSON object containing the full coverage data for a specific
+      --  source file, wrapping it into a function call.
+
+      procedure Write_Report (Filename : String);
+      --  Dump the HTML report.
 
       -------
       -- W --
       -------
 
-      procedure W (Item : String) is
+      procedure W
+        (Item     : String;
+         Output   : File_Type := HTML;
+         New_Line : Boolean   := True) is
       begin
-         Put_Line (File => HTML, Item => Item);
+         Put (File => Output, Item => Item);
+
+         if New_Line then
+            NL (Output => Output);
+         end if;
       end W;
 
-      --------
-      -- WU --
-      --------
+      -------
+      -- W --
+      -------
 
-      procedure WU (Item : Unbounded_String)
+      procedure W
+        (Item     : Unbounded_String;
+         Output   : File_Type := HTML;
+         New_Line : Boolean   := True)
       is
-         Output : Aux.Big_String_Access;
+         Buffer : Aux.Big_String_Access;
          Last   : Natural;
          First  : constant Natural := Aux.Big_String'First;
 
       begin
-         Aux.Get_String (Item, Output, Last);
-         Put_Line (File => HTML, Item => Output (First .. Last));
-      end WU;
+         Aux.Get_String (Item, Buffer, Last);
+         Put (File => Output, Item => Buffer (First .. Last));
+
+         if New_Line then
+            NL (Output => Output);
+         end if;
+      end W;
 
       --------
       -- NL --
       --------
 
-      procedure NL is
+      procedure NL (Output : File_Type := HTML) is
       begin
-         New_Line (File => HTML);
+         New_Line (File => Output);
       end NL;
 
       -------
       -- I --
       -------
 
-      procedure I (Filename : String; Indent : Natural := 0) is
+      procedure I
+        (Filename : String;
+         Indent   : Natural   := 0;
+         Output   : File_Type := HTML)
+      is
          Input : File_Type;
          Space : constant String (1 .. Indent) := (others => ' ');
 
@@ -720,7 +828,7 @@ package body Annotations.Dynamic_Html is
             declare
                Line : constant String := Get_Line (Input);
             begin
-               W (Space & Line);
+               W (Space & Line, Output => Output);
             end;
          end loop;
 
@@ -733,61 +841,104 @@ package body Annotations.Dynamic_Html is
             end if;
 
             Fatal_Error
-              ("inlining failed for " & Filename & ": " &
+              ("inlining failed: " & Filename & ": " &
                Exception_Information (Ex));
       end I;
 
+      ----------------
+      -- Write_Hunk --
+      ----------------
+
+      procedure Write_Hunk (Hunk : JSON_Value) is
+         Filename : constant String :=
+                      Get_Hunk_Filename (Hunk.Get ("filename"));
+         Output   : File_Type;
+
+      begin
+         Create_Output_File (Output, Filename);
+         Put (Output, "gnatcov.load_hunk(");
+         W
+           (Item     => Unbounded_String'(Write (Hunk, Compact => True)),
+            Output   => Output,
+            New_Line => False);
+         Put_Line (Output, ");");
+         Close (Output);
+
+      exception
+         when Ex : others =>
+            if Is_Open (Output) then
+               Close (Output);
+            end if;
+
+            Warn
+              ("hunk generation failed: " & Filename & ": " &
+               Exception_Information (Ex));
+
+      end Write_Hunk;
+
+      ------------------
+      -- Write_Report --
+      ------------------
+
+      procedure Write_Report (Filename : String) is
+      begin
+         Create_Output_File (HTML, Filename);
+
+         W ("<!doctype html>");
+         NL;
+         W ("<html>");
+         W (" <head>");
+         W ("  <meta http-equiv=""content-type"" content=""text/html;");
+         W ("        charset=UTF-8"">");
+         NL;
+         W ("  <title>GNATcoverage Report</title>");
+         NL;
+         W ("  <style>");
+         I (DHTML_CSS_Filename, Indent => 3);
+         W ("  </style>");
+         NL;
+         W ("  <script type=""text/javascript"">");
+         I (DHTML_JS_Filename, Indent => 3);
+         W ("  </script>");
+         W (" </head>");
+         NL;
+         W (" <body>");
+         NL;
+         W ("  <noscript>");
+         W ("   <div class=""gnatcov-noscript"">");
+         W ("    Your web browser must have JavaScript enabled");
+         W ("    in order for this report to display correctly.");
+         W ("   </div>");
+         W ("  </noscript>");
+         NL;
+         W ("  <script>gnatcov.load_report(", New_Line => False);
+         W
+           (Item     => Unbounded_String'(Write (Report, Compact => True)),
+            New_Line => False);
+         W (");</script>");
+         NL;
+         W (" </body>");
+         W ("</html>");
+
+         Close (HTML);
+
+      exception
+         when Ex : others =>
+            if Is_Open (HTML) then
+               Close (HTML);
+            end if;
+
+            Fatal_Error
+              ("report generation failed: " & Exception_Information (Ex));
+
+      end Write_Report;
+
    begin
-      Create_Output_File (HTML, Filename);
+      for Hunk of Hunks loop
+         Write_Hunk (Hunk);
+      end loop;
 
-      W ("<!doctype html>");
-      NL;
-      W ("<html>");
-      W (" <head>");
-      W ("  <meta http-equiv=""content-type"" content=""text/html;");
-      W ("        charset=UTF-8"">");
-      NL;
-      W ("  <title>GNATcoverage Report</title>");
-      NL;
-      W ("  <style>");
-      I (DHTML_CSS_Filename, Indent => 3);
-      W ("  </style>");
-      NL;
-      W ("  <script type=""text/javascript"">");
-      I (DHTML_JS_Filename, Indent => 3);
-      W ("  </script>");
-      NL;
-      W ("  <script type=""text/javascript"">");
-      W ("   var JSON_REPORT = ");
-      WU (Write (Report, Compact => True));
-      W ("  </script>");
-      W (" </head>");
-      NL;
-      W (" <body>");
-      NL;
-      W ("  <noscript>");
-      W ("   <div class=""gnatcov-noscript"">");
-      W ("    Your web browser must have JavaScript enabled");
-      W ("    in order for this report to display correctly.");
-      W ("   </div>");
-      W ("  </noscript>");
-      NL;
-      W ("  <script>gnatcov.analyse(JSON_REPORT);</script>");
-      NL;
-      W (" </body>");
-      W ("</html>");
-
-      Close (HTML);
-
-   exception
-      when Ex : others =>
-         if Is_Open (HTML) then
-            Close (HTML);
-         end if;
-
-         Fatal_Error
-           ("report generation failed: " & Exception_Information (Ex));
-
-   end Write_HTML_Report;
+      Write_Report ("index.html");
+   end Write_Full_Report;
 
 end Annotations.Dynamic_Html;
