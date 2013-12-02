@@ -61,9 +61,6 @@ PREFIX=$(PWD)/install
 ###################
 
 GNATMAKE=gnatmake
-RM=rm -f
-CP=cp -pf
-MKDIR=mkdir -p
 
 # Binary program name
 PGMNAME=gnatcov
@@ -75,22 +72,7 @@ DIRNAME=gnatcoverage
 # Documentation formats to produce on "make doc"
 DOCFORMATS=pdf html
 
-############################
-# Kind of HOST OS we're on #
-############################
-
-UNAME=$(shell uname -s)
-
-ifneq (,$(filter MINGW% CYGW%, $(UNAME)))
-HOST_OS=windows
-LN_S=$(CP)
-exeext=.exe
-endif
-ifneq (,$(filter Linux, $(UNAME)))
-HOST_OS=linux
-LN_S=ln -sf
-exeext=
-endif
+include host.mk
 
 #####################################################################
 # Targets to build the core tool and the trace adapters, optionally #

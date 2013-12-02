@@ -1,6 +1,5 @@
 include ../../architecture.mk
-
-MKDIR=mkdir -p
+include ../../host.mk
 
 VALGRIND_DIR=$(shell dirname `which valgrind`)
 VALGRIND_INCLUDE=$(VALGRIND_DIR)/../include/valgrind

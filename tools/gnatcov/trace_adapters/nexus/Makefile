@@ -1,12 +1,8 @@
 GNATMAKE=gnatmake
 PREFIX=install
-RM=rm -f
-CP=cp -pf
-LN=ln -sf
-MKDIR=mkdir -p
-RMDIR=-rmdir
-MAKEINFO=makeinfo
-exeext=
+
+include ../../host.mk
+
 .PHONY: force
 
 ARCH=32
