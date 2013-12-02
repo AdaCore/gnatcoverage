@@ -27,13 +27,6 @@ all: $(EXENAMES)
 $(EXENAMES): force
 	$(GNATMAKE) -Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
 
-GNAT_SOURCE_DIR=../gnat_src
-ADA_GEN_SUBDIR=gnat
-MOVE_IF_CHANGE=mv -f
-
-copy_gnat_src: force
-	@echo "GNAT sources are now mirrored in the GNATCOV repository iteslf"
-
 
 ###################
 # General cleanup #

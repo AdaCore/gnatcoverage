@@ -150,13 +150,6 @@ ppc_genopc:
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@
 
-GNAT_SOURCE_DIR=../gnat_src
-ADA_GEN_SUBDIR=gnat
-MOVE_IF_CHANGE=mv -f
-
-copy_gnat_src: force
-	@echo "GNAT sources are now mirrored in the GNATCOV repository iteslf"
-
 #################
 # Documentation #
 #################
