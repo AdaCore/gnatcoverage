@@ -914,7 +914,7 @@ class QDreport:
     def gen_suite_options(self):
 
         def literal(text):
-            return ":literal:`" + text + "`"
+            return ":literal:`" + text.strip() + "`"
 
         item = Column (
             htext = "Suite control items", legend = None)
