@@ -227,8 +227,7 @@ package Traces_Elf is
       --  Range of the info
 
       First, Last : Traces.Pc_Type;
-
-      Parent : Address_Info_Acc;
+      Parent      : Address_Info_Acc;
 
       --  Note: this is NOT the parent node in the sense of the DWARF tree.
 
@@ -254,17 +253,17 @@ package Traces_Elf is
             Subprogram_DIE_CU : DIE_CU_Id;
             --  Compilation Unit (in the DWARF sense) for consolidation
 
-            Lines : aliased Address_Info_Sets.Set;
+            Lines             : aliased Address_Info_Sets.Set;
             --  Line_Addresses info for this subprogram
 
          when Symbol_Addresses =>
             Symbol_Name   : String_Access;
-            Symbol_Tag    : SC_Tag := No_SC_Tag;
+            Symbol_Tag    : SC_Tag  := No_SC_Tag;
             Symbol_Origin : Natural := 0;
 
          when Line_Addresses =>
-            Sloc   : Source_Location  := No_Location;
-            Disc   : Unsigned_32      := 0;
+            Sloc : Source_Location := No_Location;
+            Disc : Unsigned_32     := 0;
 
             Is_Non_Empty : Boolean := False;
             --  Set True for the (only one) of a set of slocs associated with a

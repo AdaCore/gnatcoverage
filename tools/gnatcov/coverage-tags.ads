@@ -107,8 +107,7 @@ package Coverage.Tags is
 
 private
 
-   type Default_Tag_Provider_Type is
-     new Tag_Provider_Type with null record;
+   type Default_Tag_Provider_Type is new Tag_Provider_Type with null record;
 
    package R is new Tag_Providers.Register_Factory
      (Name => Default_Tag_Provider_Name,

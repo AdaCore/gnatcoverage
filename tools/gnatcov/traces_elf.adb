@@ -2608,7 +2608,7 @@ package body Traces_Elf is
             Exec);
       end Build_Source_Line;
 
-   --  Start of processing for Build_Soruce_Lines_For_Section
+   --  Start of processing for Build_Source_Lines_For_Section
 
    begin
       if Object_Coverage_Enabled then
