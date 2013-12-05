@@ -10,10 +10,11 @@
 # documents of interest:
 #
 # * PLANS: the GNATcoverage "Tool Qualification Plan" document, produced
-#          from
+#          by the QM from artifacts stored in a dedicated subdirectory
 #
-# * TOR  : the GNATcoverage "Tool Operational Requirements" document,
-#          tree of requirements and accompanying testcase descriptions
+# * TOR  : the GNATcoverage "Tool Operational Requirements" document, tree
+#          of requirements and accompanying testcase descriptions produced
+#          by the QM from artifacts stored within the testsuite tree
 #
 # * STR  : the GNATcoverage "Software Test Results" report, summary of
 #          a qualification testsuite execution for a specific configuration
@@ -28,47 +29,38 @@
 # the time, this is achieved by using Sphinx on generated REST.
 #
 # Packaging essentially consists in setting up a subdir where each document
-# has a dedicated place, building a toplevel index and creating a zip archive.
+# has a dedicated place and creating a zip archive.
 #
 # ---
 #
 # An execution of this script typically proceeds with the following steps:
 #
-# 1) set up a git clone of the repo where the artifacts are located
+# 1) Set up a git clone of the repo where the TOR and PLANS artifacts
+#    are located (helps making sure we don't accidentally incorporate local
+#    changes not checked-in)
 #
-# 2) build whatever is requested (plans, str, tor) from those artifacts
-#    by default, producing the html or pdf document of interest + stuff
-#    we don't care about (e.g. intermediate latex sources for rest->pdf),
+# 2) Build whatever is requested, using PLANS and TOR artifact from the
+#    locally setup git repo and STR artifacts from a directory where the
+#    testsuite execution took place, designated with --testsuite-dir.
 #
-# 3) move or copy the final documents in a subdir named after their
-#    format (PDF|HTML subdir for pdf|html format), then maybe build
-#    an archive of the set of available items for each format.
+#    This produces the html or pdf (according to --docformat) documents of
+#    interest + stuff we don't care about, e.g. intermediate latex sources for
+#    rest->pdf,
+#    
+# 3) Move or copy the final documents in a subdir named after their format
+#    (PDF|HTML subdir), then maybe build an archive of the set of available
+#    items for each format.
 #
 # Everything takes place in a "root" or "work" directory, specified with
-# --root-dir or --work-dir.
+# --work-dir. The designated dir is created if it doesn't exist, and is reused
+# as-is otherwise. Care must be taken when reusing a work-dir and producing
+# kits for delivery purposes, as this script is not designed to guarantee 100%
+# accurate results in all situations involving restarts after a number of
+# stops at arbitrary points.
 #
-# --root-dir means "use this location, making sure we're starting from
-#            scratch"  where starting from scratch is enforced by checking
-#            that the designated dir doesn't exist when we start.
-#
-# This should be used for the final production of material to be delivered,
-# and the artifacts repo should be the main AdaCore repo.
-#
-# --work-dir means "use this location, as is". The designated dir might exist
-#            already, have remnants of previous builds etc.
-#
-# This is useful in development mode when elaborating this or that document
-# parts. Needs to be used with care and a minimum understanding of what the
-# script does internally: this script is intended to be no more than a simple
-# wrapper around lower level operations for each document; it is not designed
-# to guarantee 100% accurate results in all situations where you restart,
-# after an arbitrary number of stops at arbitrary points. Remnants of previous
-# builds can cause surprising results with sphinx, for example, and restarting
-# from a clean root is the simplest option at times.
-#
-# With --work-dir, the target dir might already have a clone setup. By
-# default, a selected git source is re-cloned there. --git-reuse and
-# --git-pull provide alternate options.
+# The target dir might already have a clone setup. By default, a selected git
+# source is re-cloned there. --git-reuse and --git-pull provide alternate
+# options, sometimes handy during development phases.
 #
 # When cloning in a work dir that doesn't have a clone already, or when
 # re-cloning when neither --git-reuse nor --git-pull is requested,
@@ -82,7 +74,7 @@
 # the "dev-str" working branch, building plans in html format for starters:
 #
 #   python genbundle.py --docformat=html
-#     --root-dir=$HOME/my-qmat
+#     --work-dir=$HOME/my-qmat
 #     --git-source=$HOME/gnatcoverage --branch=dev-str
 #     --parts=plans
 #
@@ -103,21 +95,73 @@
 #     --testsuite-dir=$HOME/gnatcoverage/testsuite
 #     --dolevel=doB
 #
-# Fetching remote testsuite results:
-# ==================================
+# Testsuite directories
+# =====================
 #
-# This is useful e.g. when a kit has to be produced someplace while the
-# testsuite has to run elsewhere.
+# When producing STR, a few steps take place:
 #
-# --testsuite-dir supports "remote access" prefixes like "[login@]hostname:"
-# for this purpose.
+# * The designated testsuite-dir first is populated with REST sources
+#   describing the run results, collecting test results from the testuite
+#   tree at the location where the run took place.
 #
-# When producing STR, the testsuite-dir first is populated with REST sources
-# describing the run results, then a local copy is fetched and pdf/html is
-# produced from there with sphinx.
+# * A local copy of the full testsuite tree (subdir where the testsuite
+#   execution took place) is fetched within the work-dir.
 #
-# The directory name for the local copy is computed as the sha1 hashed value
-# of the designated directory name, optional login included.
+# * A pdf/html STR report is produced from there with sphinx.
+#
+# Note that:
+#
+# * --testsuite-dir supports "remote access" prefixes like "[login@]hostname:"
+#
+# * All the steps described above take place for both local and remote
+#   designated directories.
+#
+# * The directory name for the local copy of the testsuite-dir is computed as
+#   the sha1 hashed value of the designated directory name.
+#
+# Repositories involved
+# =====================
+#
+# The host where the tests have to run sometimes differs from the host where
+# the kit gets produced, e.g. when the target operationsal environment is an
+# OS where the QM isn't available.
+#
+# There are then multiple repositories involved in a typical kit production:
+#
+# On the host where the qualification testsuite run takes place:
+# --------------------------------------------------------------
+#
+# [source-repo-for-testsuite-run]
+#     |
+#     | (clone by user to run testsuite)
+#     v 
+#     gnatcoverage/testsuite/testsuite.py
+#                           /Qualif/        <- testbase & STR artifacts
+#
+# On the host where the kit production is launched:
+# -------------------------------------------------
+# 
+# [source-repo-for-other-artifacts]
+#             |
+#             | (clone by genbundle.py)
+#             v
+#  $work-dir/ gnatcoverage-git-clone/
+#                   qualification/qm/plans/ <- PLANS artifacts
+#                   testsuite/              <- TOR artifacts
+#
+# [source-repo-for-kit-production-setup]
+#     |
+#     | (clone by user to launch kit production)
+#     v
+#     gnatcoverage/qualification/genbundle.py
+#
+# For kits to be delivered, the three source-repos typically are the same and
+# operations are performed from the same branch therein. Ideally, from
+# identical commits, although in practice minor corrections are often included
+# in the doc artifacts after the testsuite run and we don't re-execute
+# everything just for this. This script reports about the relative positions
+# of the tree from which the tests were run compared to the tree from which
+# the PLANS and TOR documents are produced.
 #
 # Example kit production commands:
 # ================================
@@ -127,7 +171,7 @@
 # at all. A DO level has to be provided in this case:
 #
 #   python genbundle.py --docformat=html
-#     --root-dir=$HOME/my-qmat
+#     --workdir=$HOME/my-qmat
 #     --branch=<project-branch>
 #     --dolevel=doA
 #     --testsuite-dir=<...>
@@ -167,6 +211,10 @@ def exit_if (p, msg):
     if p:
         print msg
         sys.exit(1)
+
+def warn_if (p, msg):
+    if p:
+        print "\n!!! WARNING: %s !!!\n" % msg
 
 def run_list (cmd, dir=None):
     """Execute the provided CMD command-list (command name + arguments),
@@ -273,16 +321,17 @@ GIT_CLONE_SUBDIR = "gnatcoverage-git-clone"
 class QMAT:
 
     def itemsdir (self):
-        return os.path.join (self.rootdir, "%s" % self.this_docformat.upper())
+        return os.path.join (self.workdir, "%s" % self.this_docformat.upper())
 
     def __init__(self, options):
 
         self.o = options
 
-        self.rootdir =  os.path.abspath (
-            options.rootdir if options.rootdir else options.workdir)
+        # Make sure we can designate the work dir easily from anywhere.
+        # Latch repo dir location while we're at it:
 
-        self.repodir = os.path.join (self.rootdir, GIT_CLONE_SUBDIR)
+        self.workdir = os.path.abspath (options.workdir)
+        self.repodir = os.path.join (self.workdir, GIT_CLONE_SUBDIR)
 
         # A local place where the testsuite tree may be found,
         # possibly after remote syncing from testsuite_dir if that
@@ -304,9 +353,9 @@ class QMAT:
 
     def setup_workdir (self):
 
-        announce ("setting up working dir at %s" % self.rootdir)
+        announce ("setting up working dir at %s" % self.workdir)
 
-        mkdir (self.rootdir)
+        mkdir (self.workdir)
 
 
     # ---------
@@ -314,7 +363,7 @@ class QMAT:
     # ---------
 
     def log (self, line):
-        with open (os.path.join(self.rootdir, "genbundle.log"), 'a') as f:
+        with open (os.path.join(self.workdir, "genbundle.log"), 'a') as f:
             f.write (line + '\n')
                 
     # ----------------
@@ -340,7 +389,7 @@ class QMAT:
 
         # Otherwise, get a fresh clone.
 
-        os.chdir(self.rootdir)
+        os.chdir(self.workdir)
 
         gitref = (
             self.o.gitsource if self.o.gitsource
@@ -647,7 +696,7 @@ class QMAT:
     def dump_kit_consistency_log (self):
         announce ("dumping consistency log - format agnostic")
         
-        logfile = os.path.join(self.rootdir, "consistency.log")
+        logfile = os.path.join(self.workdir, "consistency.log")
         log = open (logfile, 'w')
 
         log.write (
@@ -682,13 +731,14 @@ class QMAT:
         """If testsuite_dir is remote, fetch a local copy.  Memorize the local
         location always."""
 
-        os.chdir (self.rootdir)
+        os.chdir (self.workdir)
 
         self.local_testsuite_dir = \
             hashlib.sha1(self.o.testsuite_dir).hexdigest()
 
-        # Exclude non qualification tests and internal intermediate reports aimed at
-        # our intranet from the transfer. All pointless and potentially confusing.
+        # Exclude non qualification tests and internal intermediate
+        # reports aimed at our intranet from the transfer. All pointless
+        # and potentially confusing.
 
         run ("rsync -arz --delete --delete-excluded %s/ %s %s" % (
                 self.o.testsuite_dir, self.local_testsuite_dir,
@@ -775,7 +825,7 @@ class QMAT:
     def build_kit (self):
         announce ("building %s kit" % self.this_docformat)
 
-        os.chdir (self.rootdir)
+        os.chdir (self.workdir)
 
         # The kit name is computed as:
         #
@@ -820,7 +870,7 @@ class QMAT:
 
     def zip_testsuite_dir(self):
 
-        os.chdir (self.rootdir)
+        os.chdir (self.workdir)
 
         relative_testsuite_dir = os.path.basename (self.local_testsuite_dir)
 
@@ -894,12 +944,6 @@ def commandline():
 
     op = optparse.OptionParser(usage="%prog <options>")
 
-    op.add_option (
-        "--root-dir", dest="rootdir",
-        help=(
-            "Name of a directory where a from-scratch kit construction "
-            "will take place. Must not exist already.")
-        )
     op.add_option (
         "--work-dir", dest="workdir",
         help=(
@@ -1022,24 +1066,6 @@ def check_valid(options, args):
         ("Please specify the git branch name (--branch).")
         )
     
-    # work dir vs root dir.
-
-    exit_if (
-        not options.workdir and not options.rootdir,
-        "A root work dir must be specified (--root-dir or --work-dir)"
-        )
-
-    exit_if (
-        options.workdir and options.rootdir,
-        "--root-dir and --work-dir may not be combined together."
-        )
-
-    exit_if (
-        options.rootdir and os.path.exists (options.rootdir),
-        "The --root-dir location (%s) must not exist already" \
-            % options.rootdir
-        )
-
     # Convey whether we are requested to produce a kit:
 
     options.kitp = options.rekit or not options.parts
@@ -1057,6 +1083,18 @@ def check_valid(options, args):
                 % (part, valid_parts.__str__())
             )
      for part in options.parts]
+
+    # work dir
+
+    exit_if (
+        not options.workdir,
+        "A work dir must be specified (--work-dir)"
+        )
+
+    warn_if (
+        options.kitp and os.path.exists (options.workdir)
+        and ls("%s/*" % options.workdir),
+        "producing kit within non empty workdir")
 
     # Producing a STR requires a testsuite dir
 
