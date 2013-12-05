@@ -141,7 +141,7 @@
 # On the host where the kit production is launched:
 # -------------------------------------------------
 # 
-# [source-repo-for-other-artifacts]
+# [source-repo-for-document-artifacts]
 #             |
 #             | (clone by genbundle.py)
 #             v
@@ -156,12 +156,12 @@
 #     gnatcoverage/qualification/genbundle.py
 #
 # For kits to be delivered, the three source-repos typically are the same and
-# operations are performed from the same branch therein. Ideally, from
-# identical commits, although in practice minor corrections are often included
-# in the doc artifacts after the testsuite run and we don't re-execute
-# everything just for this. This script reports about the relative positions
-# of the tree from which the tests were run compared to the tree from which
-# the PLANS and TOR documents are produced.
+# operations are performed from the same branch therein, ideally from
+# identical commits. In practice minor corrections are often included in the
+# doc artifacts after the testsuite run and we don't re-execute everything
+# just for this. This script produces a consistency log about the relative
+# positions of the tree from which the tests were run compared to the tree
+# from which the PLANS and TOR documents are produced.
 #
 # Example kit production commands:
 # ================================
