@@ -36,6 +36,9 @@ package Traces_Lines is
       No_Code,
       --  Initial state: no code for this line
 
+      Not_Coverable,
+      --  No code for this line, but report presence of SCO
+
       Exempted_With_Violation,
       --  Exempted line in an exemption block that has a violation
 
@@ -43,7 +46,7 @@ package Traces_Lines is
       --  Exempted line in an exemption block with no violation
      );
 
-   subtype Line_State is Any_Line_State range Not_Covered .. No_Code;
+   subtype Line_State is Any_Line_State range Not_Covered .. Not_Coverable;
    --  Non-exempted line state
 
    type State_Char_Array is array (Any_Line_State) of Character;
@@ -56,6 +59,7 @@ package Traces_Lines is
 private
    State_Char : constant State_Char_Array :=
      (No_Code                 => '.',
+      Not_Coverable           => '0',
       Not_Covered             => '-',
       Partially_Covered       => '!',
       Covered                 => '+',

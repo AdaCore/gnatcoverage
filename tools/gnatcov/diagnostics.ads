@@ -27,7 +27,8 @@ with Traces_Elf;     use Traces_Elf;
 
 package Diagnostics is
 
-   type Report_Kind is (Notice, Warning, Error);
+   type Report_Kind is (Notice, Warning, Error, Violation, Exclusion);
+   subtype Coverage_Kind is Report_Kind range Violation .. Exclusion;
 
    type Message is record
       Kind : Report_Kind;
@@ -54,12 +55,21 @@ package Diagnostics is
       Kind : Report_Kind := Error);
 
    procedure Report_Violation
-     (SCO  : SCO_Id;
-      Tag  : SC_Tag;
-      Msg  : String);
+     (SCO : SCO_Id;
+      Tag : SC_Tag;
+      Msg : String);
    --  Report a violation of a source coverage obligation. Note: the SCO kind
    --  will be prepended to Msg in reports, unless Msg starts with ^ (caret).
-   --  A violation message has message kind Error.
+   --  A violation message has message kind Violation.
+
+   procedure Report_Exclusion
+     (SCO : SCO_Id;
+      Tag : SC_Tag;
+      Msg : String);
+   --  Report exclusion of a SCO from coverage analysis. No coverage status
+   --  will be reported for SCO/Tag. Note: the SCO kind will be prepended to
+   --  Msg in reports, unless Msg starts with ^ (caret). A violation message
+   --  has message kind Exclusion.
 
    procedure Report
      (Msg  : String;
@@ -75,6 +85,8 @@ package Diagnostics is
    --     --- notice
    --     *** warning
    --     !!! error
+   --     !C! coverage violation
+   --     -C- coverage exclusion
    --  The message is also recorded in the source line information for its sloc
    --  or in the Detached_Messages vector, if there is no such source line
    --  information. If SCO is not No_SCO_Id, the message denotes a violation

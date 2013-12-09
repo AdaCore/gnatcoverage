@@ -18,6 +18,7 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
+with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -63,13 +64,20 @@ package body Annotations.Report is
 
    type Report_Section is
      range Coverage_Level'Pos (Coverage_Level'First)
-        .. Coverage_Level'Pos (Coverage_Level'Last) + 1;
-   No_Coverage_Level : constant Report_Section := Report_Section'Last;
+        .. Coverage_Level'Pos (Coverage_Level'Last) + 2;
+   --  There is one report section for each coverage level, plus the following
+   --  two special sections:
+   subtype Coverage_Violations is Report_Section
+     range Coverage_Level'Pos (Coverage_Level'First)
+        .. Coverage_Level'Pos (Coverage_Level'Last);
+
+   Coverage_Exclusions : constant Report_Section := Report_Section'Last - 1;
+   Other_Errors        : constant Report_Section := Report_Section'Last;
 
    function Section_Of_SCO (SCO : SCO_Id) return Report_Section;
    function Section_Of_Message (M : Message) return Report_Section;
    --  Indicate the coverage criterion a given SCO/message pertains to (by its
-   --  'Pos), or No_Coverage_Level if SCO has no related section/M is not a
+   --  'Pos), or Other_Errors if SCO has no related section/M is not a
    --  violation message.
 
    function Underline (S : String; C : Character := '-') return String;
@@ -100,6 +108,12 @@ package body Annotations.Report is
 
    type SCO_Tallies_Array is array (Coverage_Level) of SCO_Tally;
 
+   package String_Vectors is
+     new Ada.Containers.Vectors
+       (Natural,
+        Ada.Strings.Unbounded.Unbounded_String,
+        Ada.Strings.Unbounded."=");
+
    type Report_Pretty_Printer is new Pretty_Printer with record
       Current_File_Index : Source_File_Index;
       --  When going through the lines of a source file, this is set to the
@@ -126,6 +140,9 @@ package body Annotations.Report is
 
       SCO_Tallies : SCO_Tallies_Array;
       --  Tally of SCOs for each report section
+
+      Summary : String_Vectors.Vector;
+      --  Lines for SUMMARY chapter
    end record;
 
    procedure Chapter
@@ -280,8 +297,8 @@ package body Annotations.Report is
    ----------------------
 
    procedure Pretty_Print_End (Pp : in out Report_Pretty_Printer) is
-      use ALI_Files;
-      use ALI_Files.ALI_Annotation_Maps;
+      use ALI_Files, ALI_Files.ALI_Annotation_Maps;
+      use Ada.Strings.Unbounded;
 
       Output : constant File_Access := Get_Output;
 
@@ -298,9 +315,9 @@ package body Annotations.Report is
         (MC    : Report_Section;
          Title : String;
          Item  : String);
-      --  Output all buffered messages of the given class in a section with
-      --  the given title. Item is the noun for the summary line counting
-      --  messages in the section.
+      --  Output all buffered messages of the given class in a section with the
+      --  given title (section omitted if Title is empty). Item is the noun for
+      --  the summary line counting messages in the section.
 
       procedure Output_Message (C : Message_Vectors.Cursor);
       --  Print M in the final report and update item count. The difference
@@ -322,7 +339,7 @@ package body Annotations.Report is
          L       : Coverage_Level;
          State   : SCO_State;
       begin
-         if Section /= No_Coverage_Level then
+         if Section /= Other_Errors then
             L := Coverage_Level'Val (Section);
 
             State := Get_Line_State (SCO, L);
@@ -406,8 +423,6 @@ package body Annotations.Report is
       --------------------
 
       procedure Output_Message (C : Message_Vectors.Cursor) is
-         use Ada.Strings.Unbounded;
-
          M     : Message renames Message_Vectors.Element (C);
          Msg   : constant String := To_String (M.Msg);
          First : Natural         := Msg'First;
@@ -450,18 +465,38 @@ package body Annotations.Report is
          Item  : String)
       is
       begin
-         Pp.Section (Title);
+         if Title /= "" then
+            Pp.Section (Title);
+         end if;
 
          Pp.Nonexempted_Messages (MC).Iterate (Output_Message'Access);
          if Pp.Item_Count > 0 then
             New_Line (Output.all);
          end if;
+
+         --  Output summary line at end of section
+
          Put_Line (Output.all, Pluralize (Pp.Item_Count, Item) & ".");
+
+         --  Append summary line for general summary chapter
+
+         Pp.Summary.Append
+           (To_Unbounded_String
+              (Pluralize
+                 (Pp.Item_Count,
+                    (case MC is
+                       when Coverage_Violations =>
+                        "non-exempted "
+                          & Coverage_Level'Val (MC)'Img & " " & Item,
+                       when Other_Errors        =>
+                         "other message",
+                       when Coverage_Exclusions  =>
+                         "coverage exclusion")) & "."));
 
          --  Count of total (coverable) and covered SCOs is displayed only
          --  if --all-messages is specified.
 
-         if Switches.All_Messages and then MC /= No_Coverage_Level then
+         if Switches.All_Messages and then MC in Coverage_Violations then
             declare
                T : SCO_Tally renames Pp.SCO_Tallies (Coverage_Level'Val (MC));
             begin
@@ -509,9 +544,19 @@ package body Annotations.Report is
 
       if Source_Coverage_Enabled and then Switches.All_Messages then
          Messages_For_Section
-           (No_Coverage_Level,
+           (Other_Errors,
             Title => "OTHER ERRORS",
             Item  => "message");
+      end if;
+
+      if Switches.Excluded_SCOs then
+         Pp.Chapter ("NON COVERABLE ITEMS");
+         New_Line (Output.all);
+
+         Messages_For_Section
+           (Coverage_Exclusions,
+            Title => "",
+            Item  => "exclusion");
       end if;
 
       if Has_Exempted_Region then
@@ -528,25 +573,10 @@ package body Annotations.Report is
       Pp.Chapter ("ANALYSIS SUMMARY");
 
       New_Line (Output.all);
-      for J in Coverage_Level loop
-         if Enabled (J)
-           or else (J = Decision and then MCDC_Coverage_Enabled)
-         then
-            Put_Line
-              (Output.all,
-               Pluralize (Natural (Pp.Nonexempted_Messages
-                                     (Coverage_Level'Pos (J)).Length),
-                 Non_Exempted & J'Img & " violation") & '.');
-         end if;
-      end loop;
 
-      if Source_Coverage_Enabled and then Switches.All_Messages then
-         Put_Line
-           (Output.all,
-            Pluralize (Natural (Pp.Nonexempted_Messages
-                                  (No_Coverage_Level).Length),
-              "other message") & ".");
-      end if;
+      for L of Pp.Summary loop
+         Put_Line (Output.all, To_String (L));
+      end loop;
 
       if Has_Exempted_Region then
          Put_Line
@@ -595,7 +625,10 @@ package body Annotations.Report is
       --  Messages with Kind = Notice need not be included in the report
 
       if M.Kind > Notice then
-         if Pp.Exemption /= Slocs.No_Location then
+
+         --  If M is a violation, check if an exemption is currently active
+
+         if M.Kind = Violation and then Pp.Exemption /= Slocs.No_Location then
             Pp.Exempted_Messages.Append (M);
             Inc_Exemption_Count (Pp.Exemption);
          else
@@ -717,20 +750,30 @@ package body Annotations.Report is
    function Section_Of_Message (M : Message) return Report_Section is
    begin
       if M.SCO /= No_SCO_Id then
-         declare
-            S : constant Report_Section := Section_Of_SCO (M.SCO);
-         begin
-            if S = No_Coverage_Level then
-               --  A violation message is expected to always be relevant to
-               --  some report section.
+         pragma Assert (M.Kind in Coverage_Kind);
 
-               raise Program_Error with "unexpected SCO kind in violation";
-            end if;
-            return S;
-         end;
+         if M.Kind = Exclusion then
+            return Coverage_Exclusions;
+         else
+            pragma Assert (M.Kind = Violation);
+
+            declare
+               S : constant Report_Section := Section_Of_SCO (M.SCO);
+            begin
+               if S = Other_Errors then
+                  --  A violation message is expected to always be relevant to
+                  --  some report section.
+
+                  raise Program_Error with "unexpected SCO kind in violation";
+               end if;
+               return S;
+            end;
+         end if;
 
       else
-         return No_Coverage_Level;
+         pragma Assert (M.Kind not in Coverage_Kind);
+
+         return Other_Errors;
       end if;
    end Section_Of_Message;
 
@@ -747,7 +790,7 @@ package body Annotations.Report is
       if MCDC_Coverage_Enabled then
          MCDC_Section := Coverage_Level'Pos (MCDC_Level);
       else
-         MCDC_Section := No_Coverage_Level;
+         MCDC_Section := Other_Errors;
       end if;
 
       case Kind (SCO) is
@@ -766,7 +809,7 @@ package body Annotations.Report is
             return MCDC_Section;
 
          when others =>
-            return No_Coverage_Level;
+            return Other_Errors;
       end case;
    end Section_Of_SCO;
 

@@ -36,6 +36,10 @@ package body Coverage.Source is
 
    use Ada.Containers;
 
+   function Report_If_Excluded (SCO : SCO_Id) return Boolean;
+   --  If True, mention in output that SCO cannot be covered (due to absence of
+   --  any object code whose traces might discharge the SCO).
+
    --  For each source coverage obligation, we maintain a corresponding source
    --  coverage information record, which denotes the coverage state of the
    --  SCO. Default initialization denotes a completely uncovered state.
@@ -225,7 +229,21 @@ package body Coverage.Source is
                   --  Statement coverage: line is covered if any associated
                   --  statement is executed.
 
-                  if not Basic_Block_Has_Code (SCO, SCI.Tag) then
+                  if Is_Pragma_Annotate (SCO)
+                    or else Is_Disabled_Statement (SCO)
+                  then
+                     --  A disabled statement (i.e. a pragma Assert/Debug/PPC
+                     --  that is not enabled) or a pragma Annotate are known
+                     --  and intended to not generate any executable code. They
+                     --  are treated as documentation items in source, and are
+                     --  not subject to coverage discussion: they are neither
+                     --  covered nor not-covered, and need not be reported as
+                     --  bona fide statements excluded from coverage analysis
+                     --  either (see below case).
+
+                     null;
+
+                  elsif not Basic_Block_Has_Code (SCO, SCI.Tag) then
 
                      --  A SCO is marked as covered or not covered if there is
                      --  code for it, or for a subsequent SCO in the same basic
@@ -233,15 +251,10 @@ package body Coverage.Source is
                      --  ends up marked as No_Code only if no code execution
                      --  can ever cause it to be marked as covered.
 
-                     null;
-
-                  elsif Is_Disabled_Statement (SCO) then
-
-                     --  A disabled statement is never covered, nor not-covered
-                     --  (it has no code and is not subject to coverage
-                     --  analysis).
-
-                     null;
+                     if Report_If_Excluded (SCO) then
+                        SCO_State := Not_Coverable;
+                        Report_Exclusion (SCO, SCI.Tag, "has no object code");
+                     end if;
 
                   elsif SCI.Executed then
                      SCO_State := Covered;
@@ -276,7 +289,6 @@ package body Coverage.Source is
 
                         SCI.Executed := True;
                         SCO_State := Covered;
-
                      end if;
 
                   else
@@ -318,8 +330,16 @@ package body Coverage.Source is
                   --  that the decision coverage information is also included
                   --  in MC/DC coverage.
 
-                  if not Decision_Coverable (SCO) then
-                     SCO_State := No_Code;
+                  if Decision_Outcome (SCO) /= Unknown then
+                     --  Case of a compile time known decision: exclude from
+                     --  coverage analysis.
+
+                     if Report_If_Excluded (SCO) then
+                        SCO_State := Not_Coverable;
+                        Report_Exclusion
+                          (SCO, SCI.Tag,
+                           "is always " & Decision_Outcome (SCO)'Img);
+                     end if;
 
                   elsif SCI.Outcome_Taken (False)
                     and then SCI.Outcome_Taken (True)
@@ -1197,6 +1217,21 @@ package body Coverage.Source is
         or else (MCDC_Coverage_Enabled and then Last_Cond_Index (SCO) > 0);
    end Decision_Requires_Coverage;
 
+   ------------------------
+   -- Report_If_Excluded --
+   ------------------------
+
+   function Report_If_Excluded (SCO : SCO_Id) return Boolean is
+   begin
+      if Excluded_SCOs then
+         return Kind (SCO) = Decision
+           or else (Kind (SCO) = Statement
+                      and then S_Kind (SCO) in Ada_Statement_Kind);
+      else
+         return False;
+      end if;
+   end Report_If_Excluded;
+
    ------------------------------
    -- Set_Basic_Block_Has_Code --
    ------------------------------
@@ -1215,18 +1250,7 @@ package body Coverage.Source is
 
       procedure Set_SCI_BB_Has_Code (SCI : in out Source_Coverage_Info) is
       begin
-         if Kind (S_SCO) = Statement
-              and then Is_Pragma_Annotate_Xcov (S_SCO)
-         then
-            --  This is a statement SCO for a pragma Annotate (Xcov): do not
-            --  set Basic_Block_Has_Code, in order to avoid generating a bogus
-            --  violation for the pragma SCO.
-
-            null;
-
-         else
-            SCI.Basic_Block_Has_Code := True;
-         end if;
+         SCI.Basic_Block_Has_Code := True;
       end Set_SCI_BB_Has_Code;
 
       Propagating, No_Propagation : Boolean;

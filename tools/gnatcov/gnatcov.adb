@@ -253,6 +253,7 @@ procedure GNATcov is
    Verbose_Option_Short      : constant String := "-v";
    Eargs_Option              : constant String := "-eargs";
    Stats_Option              : constant String := "--stats";
+   Excluded_Option           : constant String := "--non-coverable";
 
    --  Undocumented (maintenance only) options
 
@@ -847,6 +848,10 @@ procedure GNATcov is
                      elsif Arg = Stats_Option then
                         Check_Option (Arg, Command, (1 => Cmd_Map_Routines));
                         Branch_Stats := True;
+
+                     elsif Arg = Excluded_Option then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Excluded_SCOs := True;
 
                      elsif Common_Switch then
                         null;

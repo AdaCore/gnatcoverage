@@ -107,6 +107,13 @@ package body Coverage.Object is
                L := Partially_Covered;
             end if;
 
+         when Not_Coverable =>
+
+            --  Line can't be marked as not coverable, since there *is* an
+            --  associated instruction.
+
+            raise Program_Error with "inconsistent line state";
+
       end case;
    end Update_Line_State;
 

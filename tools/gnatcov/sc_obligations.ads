@@ -119,11 +119,18 @@ package SC_Obligations is
 
    type Any_Statement_Kind is
      (No_Statement,
+
+      --  Declarations
+
       Type_Declaration,
       Subtype_Declaration,
       Object_Declaration,
       Renaming_Declaration,
       Generic_Instantiation,
+      Other_Declaration,
+
+      --  Proper Ada statements
+
       Accept_Statement,
       Case_Statement,
       Exit_Statement,
@@ -135,9 +142,14 @@ package SC_Obligations is
       Select_Statement,
       While_Loop_Statement,
       Other_Statement);
+
    subtype Statement_Kind is Any_Statement_Kind
      range Any_Statement_Kind'Succ (No_Statement)
         .. Any_Statement_Kind'Last;
+
+   subtype Ada_Statement_Kind is
+     Statement_Kind range Accept_Statement .. Other_Statement;
+   --  Statements in the Ada RM sense (and also pragmas)
 
    function S_Kind (SCO : SCO_Id) return Any_Statement_Kind;
    --  Return the statement kind for SCO, or No_Statement for No_SCO_Id.
@@ -162,8 +174,8 @@ package SC_Obligations is
    --    * If Dom_SCO is a decision, it is guaranteed to have been evaluated
    --      with value Dom_Val.
 
-   function Is_Pragma_Annotate_Xcov (SCO : SCO_Id) return Boolean;
-   --  True if SCO is for a pragma Annotate (Xcov)
+   function Is_Pragma_Annotate (SCO : SCO_Id) return Boolean;
+   --  True if SCO is for a pragma Annotate
 
    function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Pre/Postcondition
@@ -211,8 +223,9 @@ package SC_Obligations is
    function Last_Cond_Index (SCO : SCO_Id) return Condition_Index;
    function Degraded_Origins (SCO : SCO_Id) return Boolean;
 
-   function Decision_Coverable (SCO : SCO_Id) return Boolean;
-   --  True if both outcomes of the decision are reachable
+   function Decision_Outcome (SCO : SCO_Id) return Tristate;
+   --  For a decision whose outcome is compile time known, return that outcome;
+   --  otherwise return Unknown.
 
    function Has_Diamond (SCO : SCO_Id) return Boolean;
    --  True if decison's BDD has a diamond, i.e. a node reachable through more

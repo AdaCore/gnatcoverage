@@ -40,6 +40,10 @@ package Switches is
    --  If True, dump statistics about branch instructions after the static
    --  analysis pass.
 
+   Excluded_SCOs : Boolean := False;
+   --  If True, report SCOs whose coverage cannot be established due to
+   --  absence of executable code.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

@@ -24,23 +24,32 @@ package body Traces_Lines is
 
    function "*" (L, R : Line_State) return Line_State is
    begin
-      if R = No_Code then
-         return L;
-      else
-         case L is
-            when No_Code =>
-               return R;
+      case L is
+         when No_Code =>
+            return R;
 
-            when Not_Covered =>
-               return Line_State'Min (R, Partially_Covered);
-
-            when Partially_Covered =>
+         when Not_Coverable =>
+            if R = No_Code then
                return L;
+            else
+               return R;
+            end if;
 
-            when Covered =>
-               return Line_State'Max (R, Partially_Covered);
-         end case;
-      end if;
+         when others =>
+            case R is
+               when No_Code | Not_Coverable =>
+                  return L;
+
+               when Not_Covered =>
+                  return Line_State'Min (L, Partially_Covered);
+
+               when Partially_Covered =>
+                  return R;
+
+               when Covered =>
+                  return Line_State'Max (L, Partially_Covered);
+            end case;
+      end case;
    end "*";
 
 end Traces_Lines;

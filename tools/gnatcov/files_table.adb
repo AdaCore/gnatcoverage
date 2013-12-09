@@ -369,7 +369,6 @@ package body Files_Table is
    ---------------------
 
    procedure Fill_Line_Cache (FI : File_Info_Access) is
-
       F          : File_Type;
       Has_Source : Boolean;
       Line       : Natural := 1;

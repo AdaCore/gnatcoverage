@@ -36,6 +36,13 @@ package body Diagnostics is
    procedure Store_Message (M : Message);
    --  Attach M to the relevant Line_Info structure, if any
 
+   procedure Report_Coverage
+     (SCO  : SCO_Id;
+      Tag  : SC_Tag;
+      Msg  : String;
+      Kind : Coverage_Kind);
+   --  Common processing for Report_Violation and Report_Exclusion
+
    -----------
    -- Image --
    -----------
@@ -43,9 +50,11 @@ package body Diagnostics is
    function Image (M : Message) return String is
       subtype Prefix_Str is String (1 .. 3);
       Prefix : constant array (Report_Kind) of Prefix_Str :=
-                 (Notice  => "---",
-                  Warning => "***",
-                  Error   => "!!!");
+                 (Notice    => "---",
+                  Warning   => "***",
+                  Error     => "!!!",
+                  Violation => "!C!",
+                  Exclusion => "-C-");
 
       function Kind_Image return String;
       --  Text prefix for Kind, empty for the value Error
@@ -185,25 +194,6 @@ package body Diagnostics is
       Report (Msg, Sloc => Sloc, Kind => Kind);
    end Report;
 
-   procedure Report_Violation
-     (SCO  : SCO_Id;
-      Tag  : SC_Tag;
-      Msg  : String)
-   is
-      Sloc : Source_Location;
-   begin
-      --  For an MC/DC violation, the message is attached to the decision for
-      --  the benefit of HTML output.
-
-      if Kind (SCO) = Condition then
-         Sloc := First_Sloc (Enclosing_Decision (SCO));
-      else
-         Sloc := First_Sloc (SCO);
-      end if;
-
-      Report (Msg, Sloc => Sloc, SCO => SCO, Tag => Tag, Kind => Error);
-   end Report_Violation;
-
    procedure Report
      (Msg  : String;
       Exe  : Exe_File_Acc    := null;
@@ -227,6 +217,56 @@ package body Diagnostics is
       Output_Message (M);
       Store_Message (M);
    end Report;
+
+   ---------------------
+   -- Report_Coverage --
+   ---------------------
+
+   procedure Report_Coverage
+     (SCO  : SCO_Id;
+      Tag  : SC_Tag;
+      Msg  : String;
+      Kind : Coverage_Kind)
+   is
+      Sloc : Source_Location;
+   begin
+      --  For an MC/DC violation, the message is attached to the decision for
+      --  the benefit of HTML output.
+
+      if SC_Obligations.Kind (SCO) = Condition then
+         Sloc := First_Sloc (Enclosing_Decision (SCO));
+      else
+         Sloc := First_Sloc (SCO);
+      end if;
+
+      Report (Msg, Sloc => Sloc, SCO => SCO, Tag => Tag, Kind => Kind);
+   end Report_Coverage;
+
+   ----------------------
+   -- Report_Exclusion --
+   ----------------------
+
+   procedure Report_Exclusion
+     (SCO : SCO_Id;
+      Tag : SC_Tag;
+      Msg : String)
+   is
+   begin
+      Report_Coverage (SCO, Tag, Msg, Kind => Exclusion);
+   end Report_Exclusion;
+
+   ----------------------
+   -- Report_Violation --
+   ----------------------
+
+   procedure Report_Violation
+     (SCO : SCO_Id;
+      Tag : SC_Tag;
+      Msg : String)
+   is
+   begin
+      Report_Coverage (SCO, Tag, Msg, Kind => Violation);
+   end Report_Violation;
 
    --------------------
    -- Output_Message --

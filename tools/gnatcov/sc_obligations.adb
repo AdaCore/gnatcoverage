@@ -1098,12 +1098,12 @@ package body SC_Obligations is
       raise Constraint_Error with "condition index out of range";
    end Condition;
 
-   ------------------------
-   -- Decision_Coverable --
-   ------------------------
+   ----------------------
+   -- Decision_Outcome --
+   ----------------------
 
-   function Decision_Coverable (SCO : SCO_Id) return Boolean is
-      Result : Boolean;
+   function Decision_Outcome (SCO : SCO_Id) return Tristate is
+      Result : Tristate;
 
       procedure Q (SCOD : SCO_Descriptor);
       --  Set Result to indicate whether SCOD is decision-coverable
@@ -1114,16 +1114,27 @@ package body SC_Obligations is
 
       procedure Q (SCOD : SCO_Descriptor) is
          use BDD;
+
+         Reachable_Outcomes : Reachability
+           renames SCOD.Decision_BDD.Reachable_Outcomes;
+
       begin
-         Result := SCOD.Decision_BDD.Reachable_Outcomes = (True, True);
+         --  If excactly one outcome is reachable, then decision is always True
+         --  or always False, else Unknown.
+
+         if Reachable_Outcomes (False) /= Reachable_Outcomes (True) then
+            Result := To_Tristate (Reachable_Outcomes (True));
+         else
+            Result := Unknown;
+         end if;
       end Q;
 
-   --  Start of processing for Decision_Coverable
+   --  Start of processing for Decision_Outcome
 
    begin
       SCO_Vector.Query_Element (SCO, Q'Access);
       return Result;
-   end Decision_Coverable;
+   end Decision_Outcome;
 
    ----------------------
    -- Degraded_Origins --
@@ -1755,11 +1766,11 @@ package body SC_Obligations is
       end;
    end Is_Expression;
 
-   -----------------------------
-   -- Is_Pragma_Annotate_Xcov --
-   -----------------------------
+   ------------------------
+   -- Is_Pragma_Annotate --
+   ------------------------
 
-   function Is_Pragma_Annotate_Xcov (SCO : SCO_Id) return Boolean is
+   function Is_Pragma_Annotate (SCO : SCO_Id) return Boolean is
       Result : Boolean;
 
       procedure Q (SCOD : SCO_Descriptor);
@@ -1768,16 +1779,16 @@ package body SC_Obligations is
       procedure Q (SCOD : SCO_Descriptor) is
       begin
          Result := SCOD.S_Kind = Pragma_Statement
-           and then ALI_Annotations.Contains (First_Sloc (SCOD.Sloc_Range));
+           and then SCOD.Pragma_Name = Pragma_Annotate;
       end Q;
 
-   --  Start of processing for Is_Pragma_Annotate_Xcov
+   --  Start of processing for Is_Pragma_Annotate
 
    begin
       pragma Assert (Kind (SCO) = Statement);
       SCO_Vector.Query_Element (SCO, Q'Access);
       return Result;
-   end Is_Pragma_Annotate_Xcov;
+   end Is_Pragma_Annotate;
 
    ----------------------------------
    -- Is_Pragma_Pre_Post_Condition --
@@ -2227,13 +2238,6 @@ package body SC_Obligations is
 
                      if Verbose then
                         Dump_Decision (Current_Decision);
-
-                        if not Decision_Coverable (Current_Decision) then
-                           Report
-                             (Msg  => "is not coverable",
-                              SCO  => Current_Decision,
-                              Kind => Warning);
-                        end if;
                      end if;
                      Current_Decision := No_SCO_Id;
                   end if;
@@ -2676,12 +2680,14 @@ package body SC_Obligations is
             return;
          end if;
 
+         --  Report a static analysis error if one condition has no associated
+         --  conditional branch, and the enclosing decision is not compile time
+         --  known.
+
          D_SCO := Enclosing_Decision (To_Index (Cur));
          if SCOD.PC_Set.Length = 0
-           and then Decision_Coverable (D_SCO)
+           and then Decision_Outcome (D_SCO) = Unknown
          then
-            --  Static analysis failed???
-
             Report
               (First_Sloc (SCOD.Sloc_Range),
                Msg  => "no conditional branch (in "
@@ -2689,14 +2695,11 @@ package body SC_Obligations is
                          & ")",
                Kind => Diagnostics.Error);
 
-            --  Report a static analysis error if one condition has no
-            --  associated conditional branch.
-
             --  Interesting property: we can never do without a condition using
             --  inference of condition values from BDD position, because that
             --  would require that both outgoing edges from the condition also
             --  are conditions (not outcomes), and that can't happen in a short
-            --  circuit expression without a diamond (this would require a BDD
+            --  circuit expression without a diamond; this would require a BDD
             --  involving the Sel ternary operator:
             --    Sel (A, B, C) = (A and then B) or else (not A and then C)
 
@@ -2955,6 +2958,7 @@ package body SC_Obligations is
          when 'o'    => return Object_Declaration;
          when 'r'    => return Renaming_Declaration;
          when 'i'    => return Generic_Instantiation;
+         when 'd'    => return Other_Declaration;
          when 'A'    => return Accept_Statement;
          when 'C'    => return Case_Statement;
          when 'E'    => return Exit_Statement;

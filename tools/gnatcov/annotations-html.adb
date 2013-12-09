@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling;
 with Ada.Integer_Text_IO;
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -389,23 +390,12 @@ package body Annotations.Html is
    --------------------------
 
    procedure Pretty_Print_Message
-     (Pp    : in out Html_Pretty_Printer;
-      M     : Message) is
+     (Pp : in out Html_Pretty_Printer;
+      M  : Message)
+   is
+      use Ada.Characters.Handling;
    begin
-      Wrh (Pp, "      <tr class=""");
-
-      case M.Kind is
-         when Diagnostics.Error =>
-            Wrh (Pp, "error");
-
-         when Diagnostics.Warning =>
-            Wrh (Pp, "warning");
-
-         when Diagnostics.Notice =>
-            Wrh (Pp, "notice");
-      end case;
-
-      Plh (Pp, """>");
+      Plh (Pp, "      <tr class=""" & To_Lower (M.Kind'Img) & """>");
       Wrh (Pp, "        <td><pre>");
       Wrh (Pp, To_Xml_String (Message_Annotation (M)));
       Plh (Pp, "</pre></td>");
@@ -687,7 +677,9 @@ package body Annotations.Html is
          when Covered =>
             Wrh (Pp, "code covered");
          when No_Code =>
-            Wrh (Pp, "no code generated for this line");
+            Wrh (Pp, "no code present");
+         when Not_Coverable =>
+            Wrh (Pp, "no code generated");
          when Exempted_With_Violation =>
             Wrh (Pp, "exempted, violation present");
          when Exempted_No_Violation =>
