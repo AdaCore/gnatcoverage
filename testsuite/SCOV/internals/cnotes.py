@@ -90,14 +90,15 @@
 # Symbolic values & names for kinds of coverage notes:
 # ----------------------------------------------------
 
-# lNoCode  : no code for line (=xcov)
-# lFullCov : full coverage for line (=xcov)
-# r0       : expect empty set of violations (=report)
-# r0c      : like r0, on a statement continuation line (=report)
-# lx0      : line part of exempted block, 0 deviations (=xcov)
-# lx1      : line part of exempted block, >0 deviations (=xcov)
-# lNoCov   : line not covered (=xcov)
-# lPartCov : line partially covered (=xcov)
+# lNoCode       : no code for line (=xcov)
+# lNotCoverable : no code but statement on line, hence not coverable (=xcov)
+# lFullCov      : full coverage for line (=xcov)
+# r0            : expect empty set of violations (=report)
+# r0c           : like r0, on a statement continuation line (=report)
+# lx0           : line part of exempted block, 0 deviations (=xcov)
+# lx1           : line part of exempted block, >0 deviations (=xcov)
+# lNoCov        : line not covered (=xcov)
+# lPartCov      : line partially covered (=xcov)
 
 # sNoCov   : stmt not covered (=report)
 # sPartCov : unable to assess precise stmt coverage (=report)
@@ -129,22 +130,25 @@
 # oPartCov : one outcome not covered (=report)
 # oNoCov   : outcome never evaluated (=report)
 
+# Annotations lower than strictNote won't trigger an unexpected annotation
+# warning if they appear in a place where they are not explicitly expected.
+
 lNoCode, lFullCov, \
 strictNote, \
 r0, r0c, lx0, lx1, \
 deviationNote, \
-lNoCov, lPartCov, \
+lNoCov, lPartCov, lNotCoverable, \
 sNoCov, sPartCov, \
 dtNoCov, dfNoCov, dNoCov, dPartCov, \
 etNoCov, efNoCov, eNoCov, ePartCov, \
 otNoCov, ofNoCov, oNoCov, oPartCov, \
 cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(28)
+xBlock0, xBlock1 = range(29)
 
 NK_image  = {None: "None",
-             lNoCode: "lNoCode", lFullCov: "lFullCov",
-             lNoCov: "lNoCov", lPartCov: "lPartCov",
+             lNoCode: "lNoCode", lNotCoverable: "lNotCoverable",
+             lFullCov: "lFullCov", lNoCov: "lNoCov", lPartCov: "lPartCov",
              r0 : "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
              dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
@@ -163,7 +167,7 @@ NK_image  = {None: "None",
 # Line notes (=xcov); the set of possible expectations matches the
 # set of possible emitted indications
 
-elNoteKinds = (lNoCode, lNoCov, lPartCov, lFullCov, lx0, lx1)
+elNoteKinds = (lNoCode, lNotCoverable, lNoCov, lPartCov, lFullCov, lx0, lx1)
 xlNoteKinds = elNoteKinds
 
 # Report notes (=report), which feature anti-expectations that

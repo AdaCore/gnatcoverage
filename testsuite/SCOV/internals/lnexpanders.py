@@ -13,7 +13,8 @@ import re
 from gnatpython.fileutils import ls
 
 from . cnotes import KnoteDict, Enote, elNoteKinds
-from . cnotes import lNoCode, lFullCov, lPartCov, lNoCov, lx0, lx1
+from . cnotes import lNoCode, lFullCov, lPartCov, \
+                     lNoCov, lNotCoverable, lx0, lx1
 from . segments import Line
 from . tfiles import Tfile
 
@@ -23,7 +24,8 @@ from . tfiles import Tfile
 
 class LnotesExpander:
 
-    NK_for = {'.': lNoCode, '+': lFullCov, '-': lNoCov, '!': lPartCov,
+    NK_for = {'.': lNoCode, '0': lNotCoverable,
+              '+': lFullCov, '-': lNoCov, '!': lPartCov,
               '#': lx0, '*': lx1}
 
     def process_tline(self, tline):
