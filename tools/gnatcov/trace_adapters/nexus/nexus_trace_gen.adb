@@ -185,9 +185,7 @@ procedure Nexus_Trace_Gen is
    U_Addr                     : Unsigned_32;
    Last_Indirect_Or_Sync_Addr : Unsigned_32 := 0;
 
-   Nexus_Msg_List_Elem : Nexus_Message_List_Elem_Ptr_T;
    Nexus_Msg           : Nexus_Message_Rec_Ptr_T;
-   Message_List        : Nexus_Message_List_T;
 
    Exe_Exception : exception;
    procedure Chk_Exe (Msg : String);
@@ -662,24 +660,24 @@ begin
    end if;
 
    --  In Insn_Flags we have a list of flags set for each instruction.
-   --  We have the sequence of Nexus messages in Message_List.
-   --  We now go trhough the Message_List writing out History entries
+   --  We retrieve the sequence of Nexus messages using Get_Next_Nexus_Msg.
+   --  We now go trhough the message list writing out History entries
    --  if requested, and modifying flags in Insn_Flags to indicate which
    --  instructions have been executed, and which direction(s) were taken
    --  on executed branch instructions. Later the Insn_Flags array is
    --  processed to generate GNATcoverage trace data: all of it in the
    --  "Flat" case, or non-histoical blocks in the "History" case.
 
-   Message_List := Ocdfile_To_Nexus_List (OCD_Filename.all);
-   Nexus_Msg_List_Elem := Message_List.First;
-   if Nexus_Msg_List_Elem = null then
+   Open_OCD_File (OCD_Filename.all);
+   Nexus_Msg := Get_Next_Nexus_Msg;
+   if Nexus_Msg = null then
       raise Program_Error with "Empty Nexus message list";
    end if;
+
 
    PT_Running := False;
 
    loop
-      Nexus_Msg := Nexus_Msg_List_Elem.Message;
       case Nexus_Msg.Tcode is
          when Watchpoint_Message                           =>
             --  Processing needed for WPs that are used for the start
@@ -1185,8 +1183,8 @@ begin
             raise Program_Error with "Invalid TCODE";
 
       end case;
-      Nexus_Msg_List_Elem := Nexus_Msg_List_Elem.Next;
-      exit when Nexus_Msg_List_Elem = null;
+      Nexus_Msg := Get_Next_Nexus_Msg;
+      exit when Nexus_Msg = null;
    end loop;
 
    --  Loop over Insn_Flags, calculating basic blocks and writing

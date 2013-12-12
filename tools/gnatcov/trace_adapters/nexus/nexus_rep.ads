@@ -48,20 +48,7 @@ package Nexus_Rep is
    subtype Nexus_Tcode_T  is Nexus_Packet_T range 0 .. 33;
 
    type Nexus_Message_Rec_T;
-   type Nexus_Message_Rec_Ptr_T is access Nexus_Message_Rec_T;
-   type Nexus_Message_List_Elem_T;
-   type Nexus_Message_List_Elem_Ptr_T is access Nexus_Message_List_Elem_T;
-   type Nexus_Message_List_Elem_T is record
-      Message : Nexus_Message_Rec_Ptr_T;
-      Next    : Nexus_Message_List_Elem_Ptr_T;
-   end record;
-   type Nexus_Message_List_T is record
-      First : Nexus_Message_List_Elem_Ptr_T;
-      Last  : Nexus_Message_List_Elem_Ptr_T;
-   end record;
-
-   procedure Nexus_Append_To_List
-     (L : in out Nexus_Message_List_T; Msg : Nexus_Message_Rec_Ptr_T);
+   type Nexus_Message_Rec_Ptr_T is access all Nexus_Message_Rec_T;
 
    Debug_Status                                 : constant Nexus_Tcode_T :=  0;
    Ownership_Trace_Message                      : constant Nexus_Tcode_T :=  2;

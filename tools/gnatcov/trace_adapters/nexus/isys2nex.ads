@@ -29,8 +29,10 @@ with Nexus_Rep;  use Nexus_Rep;
 package Isys2nex is
    Isys2nex_Error : exception;
 
-   function Ocdfile_To_Nexus_List (OCD_Filename : String)
-                                   return Nexus_Message_List_T;
+   procedure Open_OCD_File (OCD_Filename : String);
+
+   function Get_Next_Nexus_Msg return Nexus_Message_Rec_Ptr_T;
+
    --  If there are any problems with the file or it's contents, the
    --  Isys2nex_Error is raised with a message that provides some detail.
 

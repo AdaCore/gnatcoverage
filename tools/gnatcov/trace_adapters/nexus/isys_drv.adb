@@ -127,7 +127,6 @@ procedure isys_drv is
    Workspace_Dir : String_Access;
 
 begin
-
    if Argument_Count = 3 then
       Mode := Run;
    elsif Argument_Count = 7 then
