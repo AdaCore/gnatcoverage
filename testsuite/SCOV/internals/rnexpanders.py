@@ -357,6 +357,9 @@ class NCIchapter (Nchapter):
             re_notes=re_notes
             )
 
+    def re_summary(self):
+        return "(No|\d+).* coverage exclusion[s]*\.$"
+
 # Analysis Summary chapter
 
 class SMRchapter(Rchapter):
