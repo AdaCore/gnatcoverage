@@ -67,7 +67,8 @@ class CovControl:
         units_out = None, ulist_out = None, xreports = None,
         scoptions = "", covoptions=""):
 
-        # To control "with" dependencies
+        # To control "with" dependencies (set of projects that will be withed
+        # by the one we will be generating for the testcase):
 
         self.deps = deps
 
