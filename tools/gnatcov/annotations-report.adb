@@ -199,6 +199,7 @@ package body Annotations.Report is
       Output : constant File_Access := Get_Output;
    begin
       Pp.Current_Chapter := Pp.Current_Chapter + 1;
+      Pp.Item_Count := 0;
 
       New_Line (Output.all);
       Put_Line (Output.all, Frame (Img (Pp.Current_Chapter) & ". " & Title));
