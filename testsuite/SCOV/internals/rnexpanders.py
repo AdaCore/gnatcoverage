@@ -13,7 +13,8 @@ from SUITE.context import thistest
 
 from gnatpython.fileutils import ls
 
-from . cnotes import xBlock0, xBlock1, sNoCov, sPartCov
+from . cnotes import xBlock0, xBlock1, sNoCov, sPartCov, sNotCoverable
+from . cnotes import dfAlways, dtAlways
 from . cnotes import dfNoCov, dtNoCov, dNoCov, dPartCov
 from . cnotes import efNoCov, etNoCov, eNoCov, ePartCov, cPartCov
 from . cnotes import Enote, KnoteDict, erNoteKinds
@@ -200,7 +201,9 @@ class Rsection(Rblock):
 
 class Nblock(Rblock):
 
-    def __init__(self):
+    def __init__(self, re_notes):
+
+        self.re_notes = re_notes
 
         # Remember the set of notes that we found in this block, so
         # we can compare the count with what the end of block summary
@@ -270,26 +273,34 @@ class Nblock(Rblock):
             self.__validate_ecount (count=self.value(p.group(1)))
         return p
     
-    # def re_summary(self):
-    #   """regexp matching the string that we expect to find in the
-    #      analysis summary line for this block, with a group holding
-    #      the note counter."""
+    def re_summary(self):
+        """regexp matching the string that we expect to find in the
+        analysis summary line for this block, with a group holding
+        the note counter."""
+
+        return self.re_end
+
+    def nkind_for(self, rline):
+        for key in self.re_notes:
+            if re.match(key, rline):
+                return self.re_notes [key]
+        return None
 
 class Nsection (Nblock, Rsection):
 
-    def __init__(self, re_start, re_end):
+    def __init__(self, re_start, re_end, re_notes):
         Rsection.__init__(self, re_start=re_start, re_end=re_end)
-        Nblock.__init__(self)
+        Nblock.__init__(self, re_notes=re_notes)
 
 class Nchapter (Nblock, Rchapter):
 
-    def __init__(self, re_start, re_end):
+    def __init__(self, re_start, re_end, re_notes):
         Rchapter.__init__(self, re_start=re_start, re_end=re_end)
-        Nblock.__init__(self)
+        Nblock.__init__(self, re_notes=re_notes)
 
-# ----------------------------------------------------
-# -- VIOsection, OERsection, XREchapter, SMRchapter --
-# ----------------------------------------------------
+# ----------------------------------------------------------------
+# -- VIOsection, OERsection, XREchapter, NCIchapter, SMRchapter --
+# ----------------------------------------------------------------
 
 # Leaf specializations, a set of which will be instantiated
 # for report processing.
@@ -300,15 +311,10 @@ class VIOsection (Nsection):
 
     def __init__(self, re_start, re_notes):
         Nsection.__init__(
-            self, re_start=re_start, re_end="(No|\d+) violation[s]*\.$"
+            self, re_start=re_start,
+            re_end="(No|\d+) violation[s]*\.$",
+            re_notes=re_notes
             )
-        self.re_notes = re_notes
-
-    def nkind_for(self, rline):
-        for key in self.re_notes:
-            if rline.find (key) != -1:
-                return self.re_notes [key]
-        return None
 
     def re_summary(self):
         return "(No|\d+).* %s violation[s]*\.$" % self.name.split()[0]
@@ -318,7 +324,9 @@ class VIOsection (Nsection):
 class OERsection (Nsection):
     def __init__(self, re_start):
         Nsection.__init__(
-            self, re_start=re_start, re_end="(No|\d+) message[s]*\.$"
+            self, re_start=re_start,
+            re_end="(No|\d+) message[s]*\.$",
+            re_notes=None
             )
 
     def nkind_for(self, rline):
@@ -329,24 +337,25 @@ class OERsection (Nsection):
 
         return None
 
-    def re_summary(self):
-        return "(No|\d+).* other message[s]*\.$"
-
 # Exemptions Regions chapter
 
 class XREchapter (Nchapter):
-    def __init__(self, re_start):
+    def __init__(self, re_start, re_notes):
         Nchapter.__init__(
-            self, re_start=re_start, re_end="(No|\d+) exempted region[s]*\.$"
+            self, re_start=re_start,
+            re_end="(No|\d+) exempted region[s]*\.$",
+            re_notes=re_notes
             )
 
-    def nkind_for(self, rline):
-        r = re.search ("(\d+) exempted violation", rline)
-        return (None if not r
-                else xBlock0 if int(r.group(1)) == 0 else xBlock1)
+# Non-coverable Items chapter
 
-    def re_summary(self):
-        return "(No|\d+) exempted region[s]*\.$"
+class NCIchapter (Nchapter):
+    def __init__(self, re_start, re_notes):
+        Nchapter.__init__(
+            self, re_start=re_start,
+            re_end="(No|\d+) exclusion[s]*\.$",
+            re_notes=re_notes
+            )
 
 # Analysis Summary chapter
 
@@ -493,10 +502,32 @@ class RblockSet:
                 re_notes=mcdc_notes)
             )
 
-        # Other note blocks
+        # Non coverable items
 
+        nc_notes =  {
+            "statement has no object code": sNotCoverable,
+            "decision is always TRUE": dtAlways,
+            "decision is always FALSE": dfAlways
+            }
         self.noteblocks.append (
-            XREchapter (re_start="EXEMPTED REGIONS"))
+            NCIchapter (
+                re_start="NON COVERABLE ITEMS",
+                re_notes=nc_notes)
+            )
+
+        # Exemptions regions
+
+        xr_notes = {
+            "0 exempted violation": xBlock0,
+            "[1-9]\d* exempted violation": xBlock1
+            }
+        self.noteblocks.append (
+            XREchapter (
+                re_start="EXEMPTED REGIONS",
+                re_notes=xr_notes)
+            )
+
+        # Other note blocks
 
         self.noteblocks.append (
             OERsection (re_start="OTHER ERRORS")

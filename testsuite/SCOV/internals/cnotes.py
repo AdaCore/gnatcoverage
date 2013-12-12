@@ -100,9 +100,12 @@
 # lNoCov        : line not covered (=xcov)
 # lPartCov      : line partially covered (=xcov)
 
-# sNoCov   : stmt not covered (=report)
-# sPartCov : unable to assess precise stmt coverage (=report)
+# sNotCoverable : no code but statement on line, hence not coverable (=report)
+# sNoCov        : stmt not covered (=report)
+# sPartCov      : unable to assess precise stmt coverage (=report)
 
+# dtAlways : decision is always True, hence not coverable (=report)
+# dfAlways : decision is always False, hence not coverable (=report)
 # dtNoCov  : decision outcome True not covered (=report)
 # dfNoCov  : decision outcome False not covered (=report)
 # dPartCov : one decision outcome not covered (=report)
@@ -131,26 +134,29 @@
 # oNoCov   : outcome never evaluated (=report)
 
 # Annotations lower than strictNote won't trigger an unexpected annotation
-# warning if they appear in a place where they are not explicitly expected.
+# failure if they appear in a place where they are not explicitly expected.
 
 lNoCode, lFullCov, \
 strictNote, \
 r0, r0c, lx0, lx1, \
 deviationNote, \
 lNoCov, lPartCov, lNotCoverable, \
-sNoCov, sPartCov, \
+sNoCov, sPartCov, sNotCoverable, \
+dtAlways, dfAlways, \
 dtNoCov, dfNoCov, dNoCov, dPartCov, \
 etNoCov, efNoCov, eNoCov, ePartCov, \
 otNoCov, ofNoCov, oNoCov, oPartCov, \
 cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(29)
+xBlock0, xBlock1 = range(32)
 
 NK_image  = {None: "None",
              lNoCode: "lNoCode", lNotCoverable: "lNotCoverable",
              lFullCov: "lFullCov", lNoCov: "lNoCov", lPartCov: "lPartCov",
              r0 : "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
+             sNotCoverable: "sNotCoverable",
+             dtAlways: "dtAlways", dfAlways: "dfAlways",
              dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
              dPartCov: "dPartCov",
              etNoCov: "etNoCov", efNoCov: "efNoCov", eNoCov: "eNoCov",
@@ -173,11 +179,11 @@ xlNoteKinds = elNoteKinds
 # Report notes (=report), which feature anti-expectations that
 # explicitely state expection of absence of emitted notes
 
-sNoteKinds = ( # SC violations
-    sNoCov, sPartCov)
+sNoteKinds = ( # SC indications
+    sNoCov, sPartCov, sNotCoverable)
 
-dNoteKinds = ( # DC violations
-    dtNoCov, dfNoCov, dPartCov, dNoCov)
+dNoteKinds = ( # DC indications
+    dtNoCov, dfNoCov, dPartCov, dNoCov, dtAlways, dfAlways)
 
 cNoteKinds = ( # MCDC violations
     etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov)

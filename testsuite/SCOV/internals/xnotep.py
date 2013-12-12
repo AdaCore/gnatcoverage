@@ -153,9 +153,11 @@ class _XnoteP_segment:
 
 class XnoteP:
 
-    NK_for = {'l.': lNoCode, 'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
+    NK_for = {'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
+              'l.': lNoCode, 'l0': lNotCoverable,
               'l#': lx0, 'l*': lx1,
-              's-': sNoCov, 's!': sPartCov,
+              's-': sNoCov, 's!': sPartCov, 's0': sNotCoverable,
+              'dT*': dtAlways, 'dF*': dfAlways,
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-': dNoCov,
               'eT-': etNoCov, 'eF-': efNoCov, 'e!': ePartCov, 'e-': eNoCov,
               'oT-': otNoCov, 'oF-': ofNoCov, 'o!': oPartCov, 'o-': oNoCov,
