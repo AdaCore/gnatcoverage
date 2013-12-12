@@ -369,6 +369,15 @@ package body Annotations.Report is
          return False;
       end Has_Exempted_Region;
 
+      Non_Exempted_Str : constant String := "non-exempted ";
+      Non_Exempted     : String renames Non_Exempted_Str
+                                          (Non_Exempted_Str'First ..
+                                           Boolean'Pos (Has_Exempted_Region)
+                                             * Non_Exempted_Str'Last);
+      --  If Has_Exempted_Region is True, Non_Exempted = Non_Exempted_Str,
+      --  else Non_Exempted = "". Used to omit the mention "non-exempted" when
+      --  there's no exemption in sight anyway.
+
       ----------------------
       -- Output_Exemption --
       ----------------------
@@ -486,7 +495,7 @@ package body Annotations.Report is
                  (Pp.Item_Count,
                     (case MC is
                        when Coverage_Violations =>
-                        "non-exempted "
+                        Non_Exempted
                           & Coverage_Level'Val (MC)'Img & " " & Item,
                        when Other_Errors        =>
                          "other message",
@@ -506,15 +515,6 @@ package body Annotations.Report is
             end;
          end if;
       end Messages_For_Section;
-
-      Non_Exempted_Str : constant String := "non-exempted ";
-      Non_Exempted     : String renames Non_Exempted_Str
-                                          (Non_Exempted_Str'First ..
-                                           Boolean'Pos (Has_Exempted_Region)
-                                             * Non_Exempted_Str'Last);
-      --  If Has_Exempted_Region is True, Non_Exempted = Non_Exempted_Str,
-      --  else Non_Exempted = "". Used to omit the mention "non-exempted" when
-      --  there's no exemption in sight anyway.
 
    --  Start of processing for Pretty_Print_End
 
