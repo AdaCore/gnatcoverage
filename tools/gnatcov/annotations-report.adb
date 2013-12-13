@@ -119,9 +119,6 @@ package body Annotations.Report is
       --  When going through the lines of a source file, this is set to the
       --  current source file index.
 
-      Item_Count : Natural := 0;
-      --  Total count of items (violations/exempted regions) in current section
-
       Current_Chapter : Natural := 0;
       --  Current chapter in final report
 
@@ -199,7 +196,6 @@ package body Annotations.Report is
       Output : constant File_Access := Get_Output;
    begin
       Pp.Current_Chapter := Pp.Current_Chapter + 1;
-      Pp.Item_Count := 0;
 
       New_Line (Output.all);
       Put_Line (Output.all, Frame (Img (Pp.Current_Chapter) & ". " & Title));
@@ -320,11 +316,6 @@ package body Annotations.Report is
       --  given title (section omitted if Title is empty). Item is the noun for
       --  the summary line counting messages in the section.
 
-      procedure Output_Message (C : Message_Vectors.Cursor);
-      --  Print M in the final report and update item count. The difference
-      --  with Pretty_Print_Message is that Put_Message does not tries to know
-      --  if the message should be exempted or not.
-
       procedure Output_Exemption (C : Cursor);
       --  Show summary information for exemption denoted by C
 
@@ -428,43 +419,6 @@ package body Annotations.Report is
          Total_Exempted_Regions := Total_Exempted_Regions + 1;
       end Output_Exemption;
 
-      --------------------
-      -- Output_Message --
-      --------------------
-
-      procedure Output_Message (C : Message_Vectors.Cursor) is
-         M     : Message renames Message_Vectors.Element (C);
-         Msg   : constant String := To_String (M.Msg);
-         First : Natural         := Msg'First;
-
-      begin
-         if M.SCO /= No_SCO_Id then
-            Put (Output.all, Image (First_Sloc (M.SCO)));
-            Put (Output.all, ": ");
-            if Msg (First) = '^' then
-               First := First + 1;
-            else
-               Put
-                 (Output.all,
-                  To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
-            end if;
-
-         else
-            Put (Output.all, Image (M.Sloc));
-            Put (Output.all, ": ");
-         end if;
-
-         Put (Output.all, Msg (First .. Msg'Last));
-         if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
-            Put (Output.all,
-                 " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
-         end if;
-
-         Total_Messages := Total_Messages + 1;
-         Pp.Item_Count := Pp.Item_Count + 1;
-         New_Line (Output.all);
-      end Output_Message;
-
       --------------------------
       -- Messages_For_Section --
       --------------------------
@@ -474,26 +428,73 @@ package body Annotations.Report is
          Title : String;
          Item  : String)
       is
+         procedure Output_Message (C : Message_Vectors.Cursor);
+         --  Print M in the final report and update item count. The difference
+         --  with Pretty_Print_Message is that Put_Message does not tries to
+         --  know if the message should be exempted or not.
+
+         Item_Count : Natural := 0;
+
+         --------------------
+         -- Output_Message --
+         --------------------
+
+         procedure Output_Message (C : Message_Vectors.Cursor) is
+            M     : Message renames Message_Vectors.Element (C);
+            Msg   : constant String := To_String (M.Msg);
+            First : Natural         := Msg'First;
+
+         begin
+            if M.SCO /= No_SCO_Id then
+               Put (Output.all, Image (First_Sloc (M.SCO)));
+               Put (Output.all, ": ");
+               if Msg (First) = '^' then
+                  First := First + 1;
+               else
+                  Put
+                    (Output.all,
+                     To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
+               end if;
+
+            else
+               Put (Output.all, Image (M.Sloc));
+               Put (Output.all, ": ");
+            end if;
+
+            Put (Output.all, Msg (First .. Msg'Last));
+            if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
+               Put (Output.all,
+                    " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
+            end if;
+
+            Total_Messages := Total_Messages + 1;
+            Item_Count := Item_Count + 1;
+            New_Line (Output.all);
+         end Output_Message;
+
+      --  Start of processing for Messages_For_Section
+
       begin
          if Title /= "" then
             Pp.Section (Title);
          end if;
 
          Pp.Nonexempted_Messages (MC).Iterate (Output_Message'Access);
-         if Pp.Item_Count > 0 then
+
+         if Item_Count > 0 then
             New_Line (Output.all);
          end if;
 
          --  Output summary line at end of section
 
-         Put_Line (Output.all, Pluralize (Pp.Item_Count, Item) & ".");
+         Put_Line (Output.all, Pluralize (Item_Count, Item) & ".");
 
          --  Append summary line for general summary chapter
 
          Pp.Summary.Append
            (To_Unbounded_String
               (Pluralize
-                 (Pp.Item_Count,
+                 (Item_Count,
                     (case MC is
                        when Coverage_Violations =>
                         Non_Exempted
@@ -734,7 +735,6 @@ package body Annotations.Report is
       Output : constant File_Access := Get_Output;
    begin
       Pp.Current_Section := Pp.Current_Section + 1;
-      Pp.Item_Count := 0;
 
       New_Line (Output.all);
       Put_Line (Output.all,
