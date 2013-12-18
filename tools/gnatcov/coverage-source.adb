@@ -336,9 +336,14 @@ package body Coverage.Source is
 
                      if Report_If_Excluded (SCO) then
                         SCO_State := Not_Coverable;
-                        Report_Exclusion
-                          (SCO, SCI.Tag,
-                           "is always " & Decision_Outcome (SCO)'Img);
+
+                        --  Note: we do not report the exclusion of this SCO,
+                        --  because if it is in an IF statement, then the IF
+                        --  statement could be covered by back propagation, and
+                        --  it would be confusing to see a line marked + in
+                        --  annotated sources in conjunction with a message
+                        --  mentioning an uncoverable construct in the
+                        --  report output.
                      end if;
 
                   elsif SCI.Outcome_Taken (False)
