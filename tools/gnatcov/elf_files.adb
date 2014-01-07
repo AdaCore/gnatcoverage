@@ -429,6 +429,7 @@ package body Elf_Files is
       Buffer : String (Integer range 1 .. 2 ** 12);
       Size   : Integer;
    begin
+      Lseek (File.Fd, 0, 0);
       Initialize (C);
       loop
          Size := Read (File.Fd, Buffer'Address, Buffer'Length);
