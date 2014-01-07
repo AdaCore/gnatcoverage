@@ -65,5 +65,8 @@ package Project is
 
    function Project_Name (Source_Name : String) return String;
    --  Return the name of the project containing the given source file.
+   --  Return the empty string if Source_Name cannot be associated with a
+   --  project name. This can happen for sources that belong eg. to the
+   --  runtime, or if Load_Root_Project has not been called.
 
 end Project;

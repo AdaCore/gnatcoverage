@@ -597,12 +597,21 @@ package body Project is
    -- Project_Name --
    ------------------
 
-   function Project_Name (Source_Name : String) return String
-   is
-      F_Info : constant File_Info := Prj_Tree.Info (Create (+Source_Name));
-      Prj    : constant Project_Type := F_Info.Project;
+   function Project_Name (Source_Name : String) return String is
    begin
-      return (if Prj /= No_Project then Prj.Name else "");
+      if Prj_Tree /= null then
+         declare
+            F_Info : constant File_Info :=
+                       Prj_Tree.Info (Create (+Source_Name));
+            Prj    : constant Project_Type := F_Info.Project;
+
+         begin
+            return (if Prj /= No_Project then Prj.Name else "");
+         end;
+
+      else
+         return "";
+      end if;
    end Project_Name;
 
 end Project;
