@@ -378,7 +378,7 @@ package body Project is
          --  tree from the root.
 
          Enumerate_LIs
-           (Root_Project (Prj_Tree.all),
+           (GNATCOLL.Projects.Root_Project (Prj_Tree.all),
             LI_Cb,
             Override_Units_Map,
             Recursive => True);
@@ -598,20 +598,10 @@ package body Project is
    ------------------
 
    function Project_Name (Source_Name : String) return String is
+      F_Info : constant File_Info    := Prj_Tree.Info (Create (+Source_Name));
+      Prj    : constant Project_Type := F_Info.Project;
    begin
-      if Prj_Tree /= null then
-         declare
-            F_Info : constant File_Info :=
-                       Prj_Tree.Info (Create (+Source_Name));
-            Prj    : constant Project_Type := F_Info.Project;
-
-         begin
-            return (if Prj /= No_Project then Prj.Name else "");
-         end;
-
-      else
-         return "";
-      end if;
+      return (if Prj /= No_Project then Prj.Name else "");
    end Project_Name;
 
 end Project;

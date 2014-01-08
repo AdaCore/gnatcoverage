@@ -40,6 +40,7 @@ with Project;
 with Outputs;
 with Qemu_Traces;
 with Strings;
+with Switches;
 with Traces_Disa;
 with Traces_Files;
 with Traces_Files_List;
@@ -392,9 +393,12 @@ package body Annotations.Dynamic_Html is
       --  Generate the JSON object for this source file
 
       Source.Set_Field ("filename", Info.Simple_Name.all);
-      Source.Set_Field ("project", Project_Name (Info.Full_Name.all));
       Source.Set_Field ("coverage_level", Coverage_Option_Value);
       Source.Set_Field ("stats", Stats);
+
+      if Switches.Root_Project /= null then
+         Source.Set_Field ("project", Project_Name (Info.Full_Name.all));
+      end if;
 
       Pp.Current_Source := Source;
    end Pretty_Print_Start_File;

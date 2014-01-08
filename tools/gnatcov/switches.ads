@@ -44,6 +44,9 @@ package Switches is
    --  If True, report SCOs whose coverage cannot be established due to
    --  absence of executable code.
 
+   Root_Project : String_Access := null;
+   --  Project name as specified to the -P option of the command line.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

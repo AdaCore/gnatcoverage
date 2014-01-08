@@ -284,7 +284,6 @@ procedure GNATcov is
    Tag                 : String_Access := null;
    Kernel              : String_Access := null;
    Eargs               : String_List_Access := null;
-   Root_Project        : String_Access := null;
 
    Opt_Exe_Name : String_Access := null;
    --  Path to executable from the command line; it overrides the default one

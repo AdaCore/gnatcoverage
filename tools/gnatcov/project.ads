@@ -29,6 +29,8 @@ package Project is
    --  Project_File_Extension). Target is the target prefix, or NULL in the
    --  native case.
 
+   --  All the following routines may only be called after Load_Root_Project.
+
    procedure Add_Project (Prj_Name : String);
    --  Add Prj_Name to the list of projects for which coverage analysis is
    --  desired. This must be a project in the closure of the previously loaded
@@ -64,9 +66,8 @@ package Project is
    --  Return the output directory of the root project
 
    function Project_Name (Source_Name : String) return String;
-   --  Return the name of the project containing the given source file.
-   --  Return the empty string if Source_Name cannot be associated with a
-   --  project name. This can happen for sources that belong eg. to the
-   --  runtime, or if Load_Root_Project has not been called.
+   --  Return the name of the project containing the given source file. Return
+   --  the empty string if Source_Name cannot be associated with a project
+   --  name. This can happen for sources that belong eg. to the runtime.
 
 end Project;
