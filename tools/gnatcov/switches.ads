@@ -40,6 +40,9 @@ package Switches is
    --  If True, dump statistics about branch instructions after the static
    --  analysis pass.
 
+   Root_Project : String_Access := null;
+   --  Project name as specified to the -P option of the command line.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 
