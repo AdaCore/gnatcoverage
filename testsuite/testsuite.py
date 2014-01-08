@@ -235,6 +235,9 @@ class TestSuite:
         self.__push_log (
             textlist = textlist, filename = 'results')
 
+    def __discriminants_log(self):
+        return os.path.join(self.log_dir, 'discs')
+
     # -------------------------------
     # -- STR production facilities --
     # -------------------------------
@@ -428,7 +431,7 @@ class TestSuite:
         self.discriminants = self.__discriminants()
         self.__push_log (
             textlist = [" ".join(self.discriminants)],
-            filename = "discs"
+            filename = self.__discriminants_log()
             )
 
         # Setup the STR box and dump the suite data file, for qualification
@@ -956,7 +959,7 @@ class TestSuite:
         if mopt.RTS:
             testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
-        testcase_cmd.append('--tags=@%s' % list_to_tmp(self.discriminants))
+        testcase_cmd.append('--tags=@%s' % self.__discriminants_log())
 
         # --gnatcov-<cmd> family, per the "gnatcov_<cmd>" variables
 
