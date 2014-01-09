@@ -82,11 +82,17 @@ def list_to_file(l, filename="tmp.list"):
 # -- list_to_tmp --
 # -----------------
 def list_to_tmp(l):
-    """Write list L to file FILENAME, one item per line. Typical use is
-       to generate response files. Return FILENAME."""
+    """Write list L to a temporary file in the current directory,
+       one item per line. Return the temporary file name, chosen not
+       to conflict with already exisiting files."""
+
+    # Creation in the current directory is of interest since this
+    # is expected to take place from a temporary work dir cleaned up
+    # afterwards, so most callers don't have to bother deleting the
+    # temp files themselves.
 
     return text_to_file (
-        '\n'.join (l) + '\n', tempfile.mktemp(suffix=".list"))
+        '\n'.join (l) + '\n', tempfile.mktemp(dir=os.getcwd(), suffix=".list"))
 
 # -----------
 # -- match --
