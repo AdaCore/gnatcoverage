@@ -970,16 +970,13 @@ class TestSuite:
             test.start_time = time.time()
             return SKIP_EXECUTION
 
-        timeout = test.getopt('limit')
-        if timeout is None:
-            timeout = DEFAULT_TIMEOUT
+        timeout = test.getopt('limit', default=DEFAULT_TIMEOUT)
 
         testcase_cmd = self.__prepare_testcase (test=test, timeout=timeout)
 
         test.start_time = time.time()
-
-        return Run(testcase_cmd, output=test.diff(), bg=True,
-                   timeout=int(timeout) + DEFAULT_TIMEOUT)
+        return Run(
+            testcase_cmd, output=test.diff(), bg=True, timeout=int(timeout))
 
     # --------------------
     # -- collect_result --
