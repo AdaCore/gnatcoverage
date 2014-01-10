@@ -862,31 +862,11 @@ class TestSuite:
                  '--output-dir=' + self.trace_dir],
                 output=os.path.join(self.log_dir, 'bootstrap.out'))
 
-    # ------------------
-    # -- run_testcase --
-    # ------------------
+    # ------------------------------
+    # -- run_testcase and helpers --
+    # ------------------------------
 
-    def run_testcase(self, test, _job_info):
-        """MainLoop hook to run a single non-dead TEST instance. If limit is
-        not set, run rlimit with DEFAULT_TIMEOUT"""
-
-        logging.debug("Running " + test.diro.fspath)
-
-        if self.__reuse_testcase_previous_run(test):
-            logging.debug("(reusing the previous run's result)")
-            test.start_time = time.time()
-            return SKIP_EXECUTION
-
-        # Save a copy of the context data in case the user wants to
-        # re-run the testsuite with --skip-if-* later on.  Since
-        # this context data is only generated when in Qualification
-        # mode, only make that copy when in that mode, too.
-        if self.options.qualif_level:
-            cp(CTXDATA_FILE, test.ctxf())
-
-        timeout = test.getopt('limit')
-        if timeout is None:
-            timeout = DEFAULT_TIMEOUT
+    def __prepare_testcase(self, test, timeout):
 
         # Setup test execution related files. Clear them upfront to prevent
         # accumulation across executions and bogus reuse of old contents if
@@ -899,6 +879,15 @@ class TestSuite:
         qdaf = test.qdaf()
 
         [cutils.clear (f) for f in (outf, logf, diff, qdaf)]
+
+        # Save a copy of the context data in case the user wants to
+        # re-run the testsuite with --skip-if-* later on.  Since
+        # this context data is only generated when in Qualification
+        # mode, only make that copy when in that mode, too.
+        if self.options.qualif_level:
+            cp(CTXDATA_FILE, test.ctxf())
+
+        # Construct the test command line
 
         testcase_cmd = [sys.executable,
                         test.filename,
@@ -968,9 +957,28 @@ class TestSuite:
          for cmd in control.GNATCOV_COMMANDS
          if mopt.__dict__["gnatcov_%s" % cmd] is not None]
 
+        return testcase_cmd
+
+    def run_testcase(self, test, _job_info):
+        """MainLoop hook to run a single non-dead TEST instance. If limit is
+        not set, run rlimit with DEFAULT_TIMEOUT"""
+
+        logging.debug("Running " + test.diro.fspath)
+
+        if self.__reuse_testcase_previous_run(test):
+            logging.debug("(reusing the previous run's result)")
+            test.start_time = time.time()
+            return SKIP_EXECUTION
+
+        timeout = test.getopt('limit')
+        if timeout is None:
+            timeout = DEFAULT_TIMEOUT
+
+        testcase_cmd = self.__prepare_testcase (test=test, timeout=timeout)
+
         test.start_time = time.time()
 
-        return Run(testcase_cmd, output=diff, bg=True,
+        return Run(testcase_cmd, output=test.diff(), bg=True,
                    timeout=int(timeout) + DEFAULT_TIMEOUT)
 
     # --------------------
