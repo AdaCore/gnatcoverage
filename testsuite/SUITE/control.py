@@ -200,17 +200,29 @@ def target_info (target=None):
         TARGETINFO [target] if target in TARGETINFO
         else TARGETINFO["default"])
 
+# Allowed pairs for the --gnatcov-<cmd> family of command line options:
+
+ALTRUN_GNATCOV_PAIRS = (
+    ('gnatcov', 'run'),
+    )
+
+# Allowed pairs for the --pre/post-testsuite/testcase family of command line
+# options:
+
+ALTRUN_HOOK_PAIRS = (
+    ('pre', 'testsuite'),
+    ('post', 'testsuite'),
+    ('pre', 'testcase')
+    )
+
+def optname_for(p0,p1):
+    """Name of the command line option controlling the ALTRUN (P0, P1) pair."""
+    return "%s_%s" % (p0, p1)
+
 # =================================
 # == Shared command line options ==
 # =================================
 
 # Shared options are those allowed at the testsuite.py level which need to be
 # passed down to individual test.py. This needs to be expanded.
-
-# Allowed <cmd> for the --gnatcov-<cmd> family, those that the
-# tests might use.
-
-GNATCOV_COMMANDS = (
-    'run', 'coverage', 'map-routines', 'disp-routines', 'dump-trace'
-    )
 

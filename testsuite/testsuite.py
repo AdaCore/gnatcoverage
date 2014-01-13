@@ -30,7 +30,7 @@ import logging, os, re, sys
 import optparse
 
 from SUITE import cutils
-from SUITE.cutils import contents_of, FatalError
+from SUITE.cutils import contents_of, FatalError, exit_if
 from SUITE.cutils import version, list_to_tmp
 
 from SUITE.dutils import pdump_to, pload_from
@@ -43,7 +43,7 @@ from SUITE.qdata import QSTRBOX_DIR, CTXDATA_FILE
 from SUITE.qdata import SUITE_context, TC_status, TOOL_info, OPT_info_from
 
 from SUITE import control
-from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES
+from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES, optname_for
 from SUITE.vtree import Dir, DirTree
 
 DEFAULT_TIMEOUT = 600
@@ -195,6 +195,62 @@ QLEVEL_INFO = {
 # In addition to the SUITE.control bits, the only default option we enforce is
 # -gnat05 for Ada.
 
+# =============================
+# == Setup specific controls ==
+# =============================
+
+# This toplevel driver supports various command line options allowing
+# customization of the test execution process:
+#
+# * --gnatcov_<cmd> allows providing alternate programs to execute instead of
+#   "gnatcov <cmd>" when a test normally needs it.  A typical use is
+#
+#        --gnatcov_run=</path/to/program_execution_driver>
+#
+#   to provide a replacement to "gnatcov run" for execution trace production,
+#   e.g. running the program on hardware through a probe.
+#
+#   The replacement programs may be python scripts or native executables for
+#   the host on which the testsuite runs. They need to support the command
+#   line interface of the facility they replace, at least the subset used by
+#   the tests. See the altrun/example subdir for examples of such alternate
+#   implementations.
+# 
+#   The control.ALTRUN_GNATCOV_PAIRS variable contains the list of
+#   ('gnatcov', <cmd>) pairs we support.
+#
+# * --pre/post-testsuite/testcase allows providing programs to execute as
+#   hooks within the testsuite process:
+#
+#   - Before the complete test sequence starts (--pre-testsuite)
+#   - After the complete test sequence has finished (--post-testsuite)
+#   - Before each testcase executes (--pre-testcase)
+#
+#   A typical use is with environments requiring on-board execution through a
+#   probe, which might need some service to startup before any program loading
+#   may take place, some shutdown operation afterwards (once done with all the
+#   tests), and possibly some preliminary local cleanup before each test can
+#   start.
+#
+#   The control.ALTRUN_HOOK_PAIRS variable contains the list of
+#   ('pre|post', 'testsuite|testcase') pairs we support.
+
+# For environments that need combinations of the aforedescribed facilities,
+# the --altrun=<profile-id> command line option provides a convenient way to
+# wrap everything together.
+#
+# It instructs this driver to look in the <profile-id> subdirectory,
+# and then:
+#
+# * If there is a "setup" binary (exe or .py) there, run it; then:
+#
+# * If there are binaries (exe or .py) matching the pre/post command option
+#   names, use each as if the corresponding option had been passed
+#   
+# * Likewise if there are binaries corresponding to the gnatcov_<cmd> option
+#   names, except a "c<cmd>" binary is searched to match each "gnatcov_<cmd>"
+#   option.
+
 # ===============
 # == TestSuite ==
 # ===============
@@ -211,7 +267,10 @@ class TestSuite:
         mkdir(self.log_dir)
 
         [open(os.path.join(self.log_dir, f), 'w').close()
-         for f in ('comment', 'results', 'discs')]
+         for f in ('comment', 'results', 'discs', 'altrun')]
+
+    def __logpath (self, filename):
+        return os.path.join(self.log_dir, filename)
 
     def __push_log (self, textlist, filename):
         """Append the list of lines in TEXTLIST to the GAIA log FILENAME."""
@@ -224,7 +283,7 @@ class TestSuite:
         if not textlist:
             return
 
-        with open(os.path.join(self.log_dir, filename), mode='a') as fd:
+        with open(self.__logpath(filename), mode='a') as fd:
             fd.write ('\n'.join (textlist) + '\n')
 
     def __push_comments (self, textlist):
@@ -235,8 +294,12 @@ class TestSuite:
         self.__push_log (
             textlist = textlist, filename = 'results')
 
+    def __push_altrun (self, textlist):
+        self.__push_log (
+            textlist = textlist, filename = 'altrun')
+
     def __discriminants_log(self):
-        return os.path.join(self.log_dir, 'discs')
+        return self.__logpath ('discs')
 
     # -------------------------------
     # -- STR production facilities --
@@ -383,15 +446,30 @@ class TestSuite:
         discriminants, compute lists of dead/non-dead tests, run gprconfig and
         build the support library for the whole series of tests to come"""
 
+        # Latch our environment values, then setup the log directory and
+        # initialize the GAIA log files. We need to do that before setting
+        # up the altrun hooks, as their execution may dump output logs.
+
+        self.env = Env()
+        self.__init_logdir ()
+
         # Parse command lines options, also setting self.enable_valgrind to
         # convey whether tests should be run under valgrind control:
 
         self.options = self.__parse_options()
+        self.enable_valgrind = (
+            None if self.options.bootstrap_scos else
+            self.options.enable_valgrind)
+
+        # Setup profile hooks, if any, then resolve path argument values as
+        # needed while we have visibility on where relative paths lead:
+
+        self.__setup_altrun_hooks()
+        self.__resolve_paths()
 
         # Add current directory in PYTHONPATH, allowing TestCases to find the
         # SUITE and SCOV packages:
 
-        self.env = Env()
         self.env.add_search_path('PYTHONPATH', os.getcwd())
 
         # If trying to update a previous run by only re-running
@@ -410,10 +488,6 @@ class TestSuite:
         # toolchain properly:
 
         self.setup_toolchain (self.options.toolchain)
-
-        # Setup the log directory and initialize the GAIA log files:
-
-        self.__init_logdir ()
 
         # Setup trace directories for bootstrap runs:
 
@@ -950,12 +1024,12 @@ class TestSuite:
 
         testcase_cmd.append('--tags=@%s' % self.__discriminants_log())
 
-        # --gnatcov-<cmd> family, per the "gnatcov_<cmd>" variables
+        # --gnatcov_<cmd> family, per the "gnatcov_<cmd>" variables
 
-        [testcase_cmd.append(
-                '--gnatcov-%s=%s' % (cmd, mopt.__dict__["gnatcov_%s" % cmd]))
-         for cmd in control.GNATCOV_COMMANDS
-         if mopt.__dict__["gnatcov_%s" % cmd] is not None]
+        [testcase_cmd.append('--%s=%s' % (
+                    optname_for(pgm, cmd), mopt.__dict__[optname_for(pgm, cmd)]))
+         for (pgm, cmd) in control.ALTRUN_GNATCOV_PAIRS
+         if mopt.__dict__[optname_for(pgm, cmd)] is not None]
 
         return testcase_cmd
 
@@ -972,9 +1046,12 @@ class TestSuite:
 
         timeout = test.getopt('limit', default=DEFAULT_TIMEOUT)
 
+        self.maybe_exec (self.options.pre_testcase, edir=test.atestdir)
+
         testcase_cmd = self.__prepare_testcase (test=test, timeout=timeout)
 
         test.start_time = time.time()
+
         return Run(
             testcase_cmd, output=test.diff(), bg=True, timeout=int(timeout))
 
@@ -1150,24 +1227,32 @@ class TestSuite:
             '--toolchain', dest='toolchain', metavar='TOOLCHAIN',
             default="", help='Use toolchain in the provided path value')
 
-        # --gnatcov-<cmd> family
+        # --gnatcov_<cmd> family
 
         [m.add_option(
-                '--gnatcov-%s' % cmd, dest='gnatcov_%s' % cmd,
-                default=None, help='use CMD instead of "gnatcov %s"' % cmd,
+                '--%s' % optname_for(pgm, cmd), dest=optname_for(pgm, cmd),
+                default=None, help='use CMD instead of "%s %s"' % (pgm, cmd),
                 metavar="CMD")
-         for cmd in control.GNATCOV_COMMANDS]
+         for (pgm, cmd) in control.ALTRUN_GNATCOV_PAIRS]
+
+        # --pre|post family
+
+        [m.add_option(
+                '--%s' % optname_for(when, what), dest=optname_for(when, what),
+                default=None,
+                help='run CMD %s to %s run' % (when, what), metavar="CMD")
+         for (when, what) in control.ALTRUN_HOOK_PAIRS]
+
+        m.add_option(
+            '--altrun', dest="altrun", metavar="ALTRUN_SUBDIR",
+            default=None,
+            help='name of custom hooks directory')
 
         # Parse what options we do have on our command line, then perform a
         # couple of validity checks and compute bits of internal state for
         # later use:
 
         m.parse_args()
-
-        self.enable_valgrind = (
-            None
-            if m.options.bootstrap_scos else
-            m.options.enable_valgrind)
 
         # Determine the test filtering regexp
 
@@ -1197,21 +1282,27 @@ class TestSuite:
             else:
                 m.options.cargs_Ada += " -gnat05"
 
-        # For paths that need to be passed to test.py downtree, resolve them
-        # to full path now while we have visibility on where relative paths
-        # lead.
-
-        if m.options.kernel:
-            m.options.kernel = os.path.abspath (m.options.kernel)
-
-        [m.options.__dict__.__setitem__ (
-                "gnatcov_%s" % cmd, os.path.abspath (
-                    m.options.__dict__["gnatcov_%s" % cmd])
-                )
-         for cmd in control.GNATCOV_COMMANDS
-         if m.options.__dict__ ["gnatcov_%s" % cmd] is not None]
-
         return m.options
+
+    # ---------------------
+    # -- __resolve_paths --
+    # ---------------------
+
+    def __resolve_paths(self):
+        """For options containing path values expressed possibly
+        as relative from where the testsuite was launched, resolve
+        to absolute paths."""
+
+        options_to_resolve = (
+            ["kernel", "altrun"]
+            + [optname_for(p0, p1) for (p0, p1) in
+               control.ALTRUN_HOOK_PAIRS + control.ALTRUN_GNATCOV_PAIRS]
+            )
+
+        [self.options.__dict__.__setitem__ (
+                opt, os.path.abspath (self.options.__dict__[opt]))
+         for opt in options_to_resolve
+         if self.options.__dict__[opt] is not None]
 
     # ---------------------
     # -- setup_toolchain --
@@ -1248,6 +1339,117 @@ class TestSuite:
         self.env.add_search_path(
             env_var = 'PATH', path = bindir, append = False)
 
+    # -----------------------------
+    # -- altrun hooks & friends --
+    # -----------------------------
+
+    def maybe_exec (self, bin, edir=None):
+        """Execute the provided BIN program file, if any. For the time of
+        this execution, arrange for the current directory to be EDIR if
+        not None."""
+
+        if not bin:
+            return
+        
+        to_run = [sys.executable, bin] if bin.endswith('.py') else [bin]
+
+        cwd = os.getcwd()
+        to_dir = edir if (edir and (edir != cwd)) else None
+        try:
+            if to_dir: os.chdir(to_dir)
+            p = Run (to_run)
+        finally:
+            if to_dir: os.chdir(cwd)
+
+        self.__push_altrun (["", "running hook: %s" % bin, p.out])
+
+        exit_if (
+            p.status != 0,
+            "Altrun hook failed (%s):\n" % bin + p.out
+            )
+
+    def __bin_for(self, base, indir=None):
+        """For a provided BASE filename (directory path allowed), return
+        the name of the file can be used as an executable program on the
+        current host. This includes python scripts as well as binary
+        executables. If INDIR is not None, check if a binary for INDIR/BASE
+        exists, but leave INDIR out of the return value.
+
+        For a "path/to/pgm" base on Unix, this would be
+        - "path/to/pgm.py" if this file exists, or
+        - "path/to/pgm" on Unix, if this file exists, or
+        - "path/to/pgm.exe" on Windows, if this file exists.
+
+        Return None if no candidate executable exists. Issue a fatal error
+        if there is more than one possibility.
+        """
+
+        candidate_exe = (
+            "base.%s" % self.env.host.os.exeext
+            if self.env.host.os.exeext else base
+            )
+        candidates = [candidate_exe, base+".py"]
+
+        def relative_for(p):
+            return p if indir is None else os.path.join(indir, p)
+
+        programs = [
+            p for p in candidates if os.path.exists(relative_for(p))]
+
+        exit_if (
+            len (programs) > 1,
+            "from %s, too many binaries for %s:\n%s" % \
+                (os.getcwd(), base, '\n'.join(programs))
+            )
+        return programs[0] if programs else None
+
+    def __setup_altrun_hooks (self):
+        """Finalize the altrun/<subdir> for this run, if any, and install the
+        pre/post hooks available from there."""
+
+        if not self.options.altrun:
+            return
+
+        ctldir = self.options.altrun
+        
+        # Run the altrun subdir setup code, if any, then check each possible
+        # hook of interest. Switch to the local directory for the setup step,
+        # designed for local operations:
+
+        self.maybe_exec (
+            bin=self.__bin_for("setup", indir=ctldir), edir=ctldir)
+
+        def install_altrun_for (p0, p1, binbase):
+            """Establish an implicit value for the --P0_P1 command line option
+            if we find a matching binary program in the altrun subdir we are
+            processing. BINBASE provides the binary base name to use."""
+
+            optname = optname_for(p0, p1)
+            bin = self.__bin_for(os.path.join(ctldir, binbase))
+
+            if not bin:
+                return
+
+            exit_if (
+                self.options.__dict__[optname],
+                "%s altrun conflicts with explicit --%s" % (bin, optname)
+                )
+
+            self.__push_altrun (["hooking %s to %s" % (optname, bin)])
+            self.options.__dict__[optname] = bin
+
+        # For the toplevel testsuite driver hooks, map on binaries
+        # matching the command line option names:
+
+        [install_altrun_for (p0=when, p1=what, binbase=optname_for(when, what))
+         for (when, what) in control.ALTRUN_HOOK_PAIRS]
+
+        # For the gnatcov <command> replacements, map on binaries called
+        # 'c<command>':
+
+        [install_altrun_for (p0=pgm, p1=cmd, binbase="c%s" % cmd)
+         for (pgm, cmd) in control.ALTRUN_GNATCOV_PAIRS]
+        
 # ==============
 # == TestCase ==
 # ==============
@@ -1519,5 +1721,9 @@ def _quoted_argv():
 # Instanciate and run a TestSuite object ...
 
 if __name__ == "__main__":
-    TestSuite().run()
+    tso = TestSuite()
+    tso.maybe_exec (bin=tso.options.pre_testsuite)
+    tso.run()
+    tso.maybe_exec (bin=tso.options.post_testsuite)
+
 

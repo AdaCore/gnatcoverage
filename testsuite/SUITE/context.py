@@ -22,7 +22,7 @@ from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, LANGINFO, target_info
 
 from SUITE.cutils import ndirs_in, lines_of
-from SUITE.control import KNOWN_LANGUAGES
+from SUITE.control import KNOWN_LANGUAGES, optname_for
 
 # This module is loaded as part of a Run operation for a test.py
 # file found and launched by the toplevel driver
@@ -319,13 +319,14 @@ class Test (object):
                   'when building the test programs.')
             )
 
-        # --gnatcov-<cmd> family
+        # --gnatcov_<cmd> family
 
         [main.add_option(
-                '--gnatcov-%s' % cmd, dest='gnatcov_%s' % cmd,
-                default=None, help='program to use instead of "gnatcov %s"' % cmd,
+                '--%s' % optname_for(pgm, cmd), dest=optname_for(pgm, cmd),
+                default=None,
+                help='program to use instead of "%s %s"' % (pgm, cmd),
                 metavar="...")
-         for cmd in control.GNATCOV_COMMANDS]
+         for (pgm, cmd) in control.ALTRUN_GNATCOV_PAIRS]
 
         main.add_option('--xcov-level', dest='xcov_level',
                         help='Force the --level argument passed to xcov '
