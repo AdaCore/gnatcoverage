@@ -8,7 +8,7 @@
 
 # ***************************************************************************
 
-import re, tempfile
+import re, tempfile, sys
 from gnatpython.fileutils import diff, os, cd, mkdir, which
 from gnatpython.ex import Run
 
@@ -216,6 +216,11 @@ class FatalError(Exception):
 
     def __str__(self):
         return self.comment
+
+def exit_if(t, comment):
+    if t:
+        print >> sys.stderr, comment
+        exit(1)
 
 # =================
 # == Identifiers ==
