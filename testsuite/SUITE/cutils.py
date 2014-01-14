@@ -25,8 +25,7 @@ def no_ext(filename):
 def contents_of(filename):
     """Return contents of file FILENAME"""
     with open(filename) as fd:
-        contents = fd.read()
-    return contents
+        return fd.read()
 
 # --------------
 # -- lines_of --
@@ -34,8 +33,7 @@ def contents_of(filename):
 def lines_of(filename):
     """Return contents of file FILENAME as a list of lines"""
     with open(filename) as fd:
-        contents = fd.readlines()
-    return contents
+        return fd.readlines()
 
 # --------------
 # -- set_from --
