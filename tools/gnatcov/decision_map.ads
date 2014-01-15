@@ -44,6 +44,13 @@ package Decision_Map is
    --  generate the decision map file to Map_Filename for stateful
    --  (historical) traces collection.
 
+   function Subp_Raises_Exception (Symbol_Name : String) return Boolean;
+   --  Return if the Symbol_Name subprogram is known to always raise an
+   --  exception.
+
+   function Is_Finalizer_Symbol (Name : String) return Boolean;
+   --  Return whether Name corresponds to a finalizer symbol name
+
    ---------------------------------
    -- Control flow graph analysis --
    ---------------------------------

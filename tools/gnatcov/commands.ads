@@ -39,6 +39,7 @@ package Commands is
       Cmd_Dump_Lines,
       Cmd_Disassemble_Raw,
       Cmd_Disassemble,
+      Cmd_Dump_CFG,
       Cmd_Run,
       Cmd_Scan_Objects,
       Cmd_Convert

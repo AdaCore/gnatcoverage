@@ -33,6 +33,7 @@ with Annotations.Html;
 with Annotations.Xcov;
 with Annotations.Xml;
 with Annotations.Report;
+with CFG_Dump;
 with Check_SCOs;
 with Commands;          use Commands;
 with Convert;
@@ -218,6 +219,34 @@ procedure GNATcov is
       P (" disassemble-raw EXEs");
       P ("   Disassemble executables");
       New_Line;
+      P (" dump-cfg EXE SELECTORs");
+      P ("   Display object code from EXE as a graph. SELECTORs must be a");
+      P ("   non-empty list of patterns, which is used to match code to");
+      P ("   draw. The patterns can be:");
+      P ("      file:line1:col1-line2-col2   Match code included in a source");
+      P ("                                   location range");
+      P ("      @0xADDRESS                   Match all code under the symbol");
+      P ("                                   an address belongs to");
+      P ("      0xADDRESS..0xADDRESS         Match code included in an");
+      P ("                                   address range");
+      P ("      SYMBOL_NAME                  Match all code under a symbol");
+      P ("   The object code included if the graph must belong to at least");
+      P ("   one provided pattern.");
+      P ("   -o FILE                     Put the graph output into FILE");
+      P ("                               (default: standard output)");
+      P ("   -f FORMAT                   If given, call dot(1) to produce");
+      P ("                               the actual output (SVG, PDF, DOT,");
+      P ("                               ...)");
+      P ("   -k                          Do not strip edges that are");
+      P ("                               supposed to be uncoverable due to");
+      P ("                               exceptions");
+      P ("   --alis=<FILE|@LISTFILE>");
+      P ("   --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from");
+      P ("                               FILE for this operation; or do that");
+      P ("                               for each file listed in LISTFILE");
+      P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
+      P ("                               LISTFILE to the list of traces");
+      New_Line;
    end Usage_Dump;
 
    --  General options
@@ -254,6 +283,8 @@ procedure GNATcov is
    Eargs_Option              : constant String := "-eargs";
    Stats_Option              : constant String := "--stats";
    Excluded_Option           : constant String := "--non-coverable";
+   Format_Option_Short       : constant String := "-f";
+   Keep_Edges_Option_Short   : constant String := "-k";
 
    --  Undocumented (maintenance only) options
 
@@ -284,6 +315,10 @@ procedure GNATcov is
    Tag                 : String_Access := null;
    Kernel              : String_Access := null;
    Eargs               : String_List_Access := null;
+   Executable_Path     : String_Access := null;
+   Locations_Inputs    : CFG_Dump.User_Locations;
+   Output_Format       : CFG_Dump.Output_Format := CFG_Dump.None;
+   Keep_Edges          : Boolean := False;
 
    Opt_Exe_Name : String_Access := null;
    --  Path to executable from the command line; it overrides the default one
@@ -618,13 +653,15 @@ procedure GNATcov is
 
                      elsif Arg = Output_Option_Short then
                         Check_Option (Arg, Command, (1 => Cmd_Run,
-                                                     2 => Cmd_Coverage));
+                                                     2 => Cmd_Coverage,
+                                                     3 => Cmd_Dump_CFG));
                         Output := new String'(Next_Arg ("output"));
 
                      elsif Has_Prefix (Arg, Output_Option) then
                         Check_Option (Arg, Command, (1 => Cmd_Run,
                                                      2 => Cmd_Coverage,
-                                                     3 => Cmd_Convert));
+                                                     3 => Cmd_Convert,
+                                                     4 => Cmd_Dump_CFG));
                         Output := new String'(Option_Parameter (Arg));
 
                      elsif Has_Prefix (Arg, Projects_Option) then
@@ -677,7 +714,8 @@ procedure GNATcov is
                         Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
                                                      2 => Cmd_Coverage,
                                                      3 => Cmd_Run,
-                                                     4 => Cmd_Convert));
+                                                     4 => Cmd_Convert,
+                                                     5 => Cmd_Dump_CFG));
                         Inputs.Add_Input
                           (ALIs_Inputs, Option_Parameter (Arg));
 
@@ -792,6 +830,7 @@ procedure GNATcov is
                           Cmd_Dump_Trace_Raw,
                           Cmd_Dump_Trace_Base,
                           Cmd_Dump_Trace_Asm,
+                          Cmd_Dump_CFG,
                           Cmd_Run));
 
                         --  Tag_Option_Short conflicts with Trace_Option_Short
@@ -808,7 +847,8 @@ procedure GNATcov is
                           Cmd_Dump_Trace,
                           Cmd_Dump_Trace_Raw,
                           Cmd_Dump_Trace_Base,
-                          Cmd_Dump_Trace_Asm));
+                          Cmd_Dump_Trace_Asm,
+                          Cmd_Dump_CFG));
                         Inputs.Add_Input
                           (Trace_Inputs, Option_Parameter (Arg));
 
@@ -852,6 +892,24 @@ procedure GNATcov is
                         Check_Option (Arg, Command, (1 => Cmd_Coverage));
                         Excluded_SCOs := True;
 
+                     elsif Arg = Format_Option_Short then
+                        Check_Option (Arg, Command, (1 => Cmd_Dump_CFG));
+                        declare
+                           Format_Name : constant String :=
+                             Next_Arg ("format name");
+                        begin
+                           Output_Format :=
+                             CFG_Dump.Output_Format'Value (Format_Name);
+                        exception
+                           when Constraint_Error =>
+                              Fatal_Error
+                                ("Invalid output format: " & Format_Name);
+                        end;
+
+                     elsif Arg = Keep_Edges_Option_Short then
+                        Check_Option (Arg, Command, (1 => Cmd_Dump_CFG));
+                        Keep_Edges := True;
+
                      elsif Common_Switch then
                         null;
 
@@ -891,6 +949,17 @@ procedure GNATcov is
                            | Cmd_Disassemble_Raw
                            | Cmd_Disassemble =>
                            Inputs.Add_Input (Exe_Inputs, Arg);
+
+                        when Cmd_Dump_CFG =>
+                           --  The first argument is the executable. The other
+                           --  ones are locations.
+
+                           if Executable_Path = null then
+                              Executable_Path := new String'(Arg);
+                           else
+                              Locations_Inputs.Append
+                                (CFG_Dump.Parse_User_Location (Arg));
+                           end if;
 
                         when Cmd_Map_Routines =>
                            --  Set MC/DC coverage level in order to generate
@@ -1382,6 +1451,23 @@ begin
             Check_Argument_Available (Exe_Inputs, "EXECs", Command);
             Inputs.Iterate (Exe_Inputs, Disassemble'Access);
          end;
+
+      when Cmd_Dump_CFG =>
+         if Executable_Path = null then
+            Fatal_Error ("The executable argument is missing");
+         elsif Locations_Inputs.Is_Empty then
+            Fatal_Error ("At least one location is required");
+         end if;
+
+         CFG_Dump.Dump
+           (Executable_Path.all,
+            Locations_Inputs,
+            Output,
+            Output_Format,
+            ALIs_Inputs,
+            Trace_Inputs,
+            Keep_Edges);
+         Free (Executable_Path);
 
       when Cmd_Coverage =>
 

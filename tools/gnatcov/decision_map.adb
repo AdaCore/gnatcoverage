@@ -135,9 +135,6 @@ package body Decision_Map is
    function "<" (L, R : Basic_Block) return Boolean;
    --  Order by From
 
-   function Is_Finalizer_Symbol (Name : String) return Boolean;
-   --  Return whether Name corresponds to a finalizer symbol name
-
    Finalizer_Symbol_Pattern : constant Regexp := Compile
      (".*___finalizer\.[0-9]+");
 
@@ -321,6 +318,20 @@ package body Decision_Map is
       end loop;
    end Analyze;
 
+   ---------------------------
+   -- Subp_Raises_Exception --
+   ---------------------------
+
+   function Subp_Raises_Exception (Symbol_Name : String) return Boolean is
+   begin
+      return
+        (Symbol_Name = "__gnat_last_chance_handler"
+         or else
+         Symbol_Name = "system__assertions__raise_assert_failure"
+         or else
+         Has_Prefix (Symbol_Name, Prefix => "__gnat_rcheck_"));
+   end Subp_Raises_Exception;
+
    ------------------
    -- Analyze_Call --
    ------------------
@@ -347,12 +358,7 @@ package body Decision_Map is
          if Sym_Name = "ada__exceptions__triggered_by_abort" then
             BB.Call := Finalizer;
 
-         elsif Sym_Name = "__gnat_last_chance_handler"
-                 or else
-               Sym_Name = "system__assertions__raise_assert_failure"
-                 or else
-               Has_Prefix (Sym_Name, Prefix => "__gnat_rcheck_")
-         then
+         elsif Subp_Raises_Exception (Sym_Name) then
             BB.Call := Raise_Exception;
 
          elsif Is_Finalizer_Symbol (Sym_Name) then
