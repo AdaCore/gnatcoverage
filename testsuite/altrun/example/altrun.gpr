@@ -1,0 +1,5 @@
+project ALTRUN is
+  for Source_Dirs use (".");
+  for Exec_Dir use ".";
+  for Object_Dir use "obj";
+end ALTRUN;
