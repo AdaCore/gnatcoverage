@@ -263,7 +263,7 @@ class TestSuite:
 
     def __init_logdir (self):
 
-        self.log_dir = os.path.join (os.getcwd(), 'output')
+        self.log_dir = os.path.join (self.root_dir, 'output')
         mkdir(self.log_dir)
 
         [open(os.path.join(self.log_dir, f), 'w').close()
@@ -308,7 +308,7 @@ class TestSuite:
     def __init_strbox (self):
         """Initialize the directory where the STR production artifacts
         will be dropped."""
-        self.strbox_dir = os.path.join (os.getcwd(), QSTRBOX_DIR)
+        self.strbox_dir = os.path.join (self.root_dir, QSTRBOX_DIR)
         mkdir(self.strbox_dir)
 
     def __dump_ctxdata(self):
@@ -451,6 +451,8 @@ class TestSuite:
         # up the altrun hooks, as their execution may dump output logs.
 
         self.env = Env()
+        self.root_dir = os.getcwd()
+
         self.__init_logdir ()
 
         # Parse command lines options, also setting self.enable_valgrind to
@@ -470,7 +472,7 @@ class TestSuite:
         # Add current directory in PYTHONPATH, allowing TestCases to find the
         # SUITE and SCOV packages:
 
-        self.env.add_search_path('PYTHONPATH', os.getcwd())
+        self.env.add_search_path('PYTHONPATH', self.root_dir)
 
         # If trying to update a previous run by only re-running
         # the testcases that failed in that previous run, make sure
