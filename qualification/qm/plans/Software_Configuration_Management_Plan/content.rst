@@ -15,7 +15,7 @@ GNATcoverage is a verification tool and, as such, its configuration items are ma
    3|Problem reporting, change control, change review, and configuration status accounting are established.|7.2.3, 7.2.4, 7.2.5, 7.2.6|Only items 7.2.4a and 7.2.4b are required for CC2.
    4|Archive, retrieval, and release are established.|7.2.7|Only 7.2.7a, 7.2.7b(1) and 7.2.7e are required for CC2.
    5|Software load control is established|7.2.8|Not applicable to tools.
-   6|Software life cycle environment control is established|7.2.9|Only 7.2.9a and 7.2.9b apply to tools.
+   6|Software life cycle environment control is established|7.2.9|7.2.9b apply to tools.
 
 
 Configuration Management Activities
@@ -34,8 +34,6 @@ Configuration Management Activities
 **Item 7.2.2g:** all configuration items are traceable to the GNATcoverage (pre-)qualification process.
 
 **Items 7.2.4a, 7.2.4b and 7.2.7:** see :ref:`adacore-cm`
-
-**Item 7.2.9a:** ???
 
 **Item 7.2.9b:** since GNATcoverage is a verification tool, the configuration management process should comply with Control Category 2.
 

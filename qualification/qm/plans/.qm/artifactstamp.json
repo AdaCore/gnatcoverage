@@ -1,8 +1,8 @@
 {
   "content-kind": "container",
   "signature": {
-    "default:///plans/content.rst": "c7c02d82a3b9957f067e8c868be0f74eca810420",
-    "default:///plans/conf.py": "6609ac07812cfac9648ba84efac47697c99c8bf2"
+    "default:///plans/content.rst": "ee5d37c85291ef70f198197d8277bf0031c4ba36",
+    "default:///plans/qmconf.py": "ef65551845c160016f1c6a064acf7eb377a9485a"
   },
   "location": "default:///plans",
   "dependencies": [
