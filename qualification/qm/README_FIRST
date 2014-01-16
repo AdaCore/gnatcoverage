@@ -10,8 +10,9 @@ To run the QM:
    select advanced properties, environment variables, update the PATH definition
    or define it to <qmachine_prefix>\bin;%PATH%
 * In the directory containing this README file, using the command line:
-  - To run the qmachine with the GUI:
+  - To run the qmachine with the GUI (requires gnatpython):
 
+    ./genmodel.py --dolevel=doB
     qmachine model.xml
 
   - To generate the documentation (html and pdf)

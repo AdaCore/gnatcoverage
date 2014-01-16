@@ -12,8 +12,8 @@ GNATcoverage is qualified as a verification tool.
    :header: "Item", "Description", "Ref.", "Notes", "Activity"
 
    1|Assurance is obtained that software development and integral processes comply with approved software plans and standards.|8.1a|For verification tools, this is limited to the compliance of tool processes with approved plans|:ref:`reading-plans`, :ref:`inspecting-other-data`
-   2|Assurance is obtained that transition criteria for the software life cycle processes are satisfied.|8.1b|Not required for verification tools|not applicable
-   3|Software conformity review is conducted.|8.1c, 8.3e| Items 8.3a, 8.3b. 8.3c, 8.3d, 8.3g, 8.3h and 8.3i are not required for verification tools or CC2; 8.3f is also not required because verification tool qualification is supposed to be black-box|:ref:`tool-conformity-review`
+   2|Assurance is obtained that transition criteria for the software life cycle processes are satisfied.|8.1b|Not required for verification tools, since they are treated as level D applications. This approach is not formalized in DO-178B, but is a common interpretation. DO-178C formally confirms this interpretation, see Table A-9|not applicable
+   3|Software conformity review is conducted.|8.1c, 8.3d, 8.3e, 8.3f, 8.3h|Detailed explanation available in :ref:`tool-conformity-review`|:ref:`tool-conformity-review`
 
 Quality Assurance Activities
 ============================
@@ -89,11 +89,20 @@ Inspection of test execution results
 
 .. _tool-conformity-review:
 
-Tool conformity review
-**********************
+Tool conformity review (8.1c)
+*****************************
 
-* **objectives:** 
+The following objectives **do not** apply for verification tools:
+ * **8.3a** (completion of software life cycle process activities), because development/verification plans are not required for verification tools.
+ * **8.3b** (traceability of software life cycle data), because development/verification plans are not required for verification tools.
+ * **8.3c** (compliance with plans and standards) because development/verification plans and standards are not required for verification tools. 
+ * **8.3g** (loading of software) does not apply to tools. 
+ * **8.3i** (certification credit of previously developed software) does not apply to tools.
 
-  * Record and approve software requirements deviations (8.3e) exposed by test failures reported in the GNATcoverage Software Test Results report provided as part of the tool qualification data.
+The following objectives **do** apply for verification tools:
+ * **8.3d**: Check that problems have been reported and evaluated as per the :qmref:`/PLANS/Software_Configuration_Management_Plan`.
+ * **8.3e**: Record and approve software requirements deviations exposed by test failures reported in the GNATcoverage Software Test Results report provided as part of the tool qualification data.
+ * **8.3f**: Check that the tool executable object code can be re-generated from the tool source code.
+ * **8.3h**: Check that problems from a previous Tool Conformity Review are re-evaluated.
 
-* **output:** QA inspection report (qa/YYYYMMDD/qa_conformity.doc)
+**output:** QA inspection report (qa/YYYYMMDD/qa_conformity.doc)

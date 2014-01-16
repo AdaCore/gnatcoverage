@@ -1,54 +1,46 @@
-=================================================
-Software Configuration Management Recommendations
-=================================================
+======================================
+Software Configuration Management Plan
+======================================
 
-As the compliance matrix below points out and as the
-:qmref:`/PLANS/Tool_Qualification_Plan/User_Activities` section of this
-document synthesizes, the configuration management of qualification data is a
-responsibility of the applicant. In this chapter we propose a possible
-approach for the configuration management of the GNATcoverage qualification
-data by the applicant and provide a high level overview of the internal
-configuration management process established at AdaCore.
+This section illustrates the Software Configuration process in place at AdaCore, the tool developer. 
+
+GNATcoverage is a verification tool and, as such, its configuration items are managed at CC2.
 
 .. csv-table:: Compliance matrix for Table A-8
    :delim: |
    :header: "Item", "Description", "Ref.", "Notes"
 
-   1|Configuration items are identified.|7.2.1| Up to the applicant.
-   2|Baselines and traceability are established.|7.2.2|Only items 7.2.2f and 7.2.2g apply. Up to the applicant.
-   3|Problem reporting, change control, change review, and configuration status accounting are established.|7.2.3, 7.2.4, 7.2.5, 7.2.6|Only items 7.2.4a nd 7.2.4b apply.  Up to the applicant.
-   4|Archive, retrieval, and release are established.|7.2.7|Up to the applicant.
-   5|Software load control is established|7.2.8|Not applicable.
-   6|Software life cycle environment control is established|7.2.9|Only item 7.2.9b applies. Up to the applicant.
+   1|Configuration items are identified.|7.2.1| 
+   2|Baselines and traceability are established.|7.2.2|Only items 7.2.2f and 7.2.2g are required for CC2. 
+   3|Problem reporting, change control, change review, and configuration status accounting are established.|7.2.3, 7.2.4, 7.2.5, 7.2.6|Only items 7.2.4a and 7.2.4b are required for CC2.
+   4|Archive, retrieval, and release are established.|7.2.7|Only 7.2.7a, 7.2.7b(1) and 7.2.7e are required for CC2.
+   5|Software load control is established|7.2.8|Not applicable to tools.
+   6|Software life cycle environment control is established|7.2.9|Only 7.2.9a and 7.2.9b apply to tools.
 
 
-Configuration Management Recommendations
-========================================
+Configuration Management Activities
+===================================
 
-In this section we provide a set of recommendations for configuration management for the items that are the applicant's responsibility as per the compliance matrix above.
+**Item 7.2.1:** The configuration items are listed in section :ref:`configuration-items`.
+   
+**Item 7.2.2f:** The following traceability relations are established:
+ 
+ * From TOR to Test Cases: each TOR and Test Case is contained in a folder on the repository.
+   Folders of Test Cases are nested inside the folders of the TOR they are tracebale
+   to.
 
- * **Item 7.2.1:** The suggested configuration items are:
+ Other trace data are not required for verification tools.
 
-   #. The .zip packages corresponding to the data items described in the
-      :ref:`qualification-data` section of this document.
-   #. The GNAT Pro binary package, which contains the GNAT Pro executable toolset and the associated documentation, in particular the GNAT Pro User's Guide.
-   #. The GNATemulator binary package, which contains the GNATemulator executable tool and the associated documentation.
-   #. The GNATcoverage binary package, which contains the GNATcoverage executable tool and the associated documentation, in particular the GNATcoverage User's Guide.
+**Item 7.2.2g:** all configuration items are traceable to the GNATcoverage (pre-)qualification process.
 
- * **Item 7.2.2f:** we suggest establishing traceability between configuration items above by considering the tool executable names and versions.
- * **Item 7.2.2g:** we suggest tracing all configuration items to the GNATcoverage qualification process.
- * **Items 7.2.4a, 7.2.4b and 7.2.7:** with respect to these items, we suggest that the user deploy the most appropriate process depending on their own configuration management process and tools.
- * **Item 7.2.9b:** since GNATcoverage is a verification tool, the configuration management process should comply with Control Category 2.
+**Items 7.2.4a, 7.2.4b and 7.2.7:** see :ref:`adacore-cm`
 
-.. _adacore-cm:
+**Item 7.2.9a:** ???
 
-Overview of the AdaCore Configuration Management Process
-========================================================
+**Item 7.2.9b:** since GNATcoverage is a verification tool, the configuration management process should comply with Control Category 2.
 
-This section describes the internal configuration management process at
-AdaCore and is provided for informational purposes only;
-it is not related to the configuration management process deployed by the
-applicant.
+
+..  _configuration-items:
 
 Version Controlled Items
 ************************
@@ -92,8 +84,14 @@ another team member for further action until a resolution is found. The
 complete problem evolution (related email exchanges) and status history are
 tracked in a database thanks to the unique issue identifier.
 
+.. _adacore-cm:
+
 Configuration Management Methods and Activities
 ***********************************************
+
+This section describes the internal configuration management process at
+AdaCore. It is not related to the configuration management process deployed by the
+applicant.
 
 Base technical support
 ----------------------
