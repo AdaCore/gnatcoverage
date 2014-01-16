@@ -562,35 +562,38 @@ package body Coverage.Source is
       use type Interfaces.Unsigned_32;
       use type Interfaces.Unsigned_64;
 
-      Exe        : Exe_File_Acc renames Subp_Info.Exec;
-      PC         : Pc_Type;
-      Insn_Len   : Natural;
-      SCO, S_SCO : SCO_Id;
-      Tag        : SC_Tag;
+      Exe      : Exe_File_Acc renames Subp_Info.Exec;
+      PC       : Pc_Type;
+      Insn_Len : Natural;
+      Tag      : SC_Tag;
 
       procedure Discharge_SCO
-        (SCO         : SCO_Id;
-         Tsloc       : Tagged_Sloc;
-         Empty_Range : Boolean);
+        (SCO                 : SCO_Id;
+         Tsloc               : Tagged_Sloc;
+         Empty_Range         : Boolean;
+         Multistatement_Line : Boolean);
       --  Discharge the coverage obligation denoted by SCO using the current
       --  execution trace for an instruction at PC, with the given tagged
       --  sloc. Empty_Range is True if the sloc for PC that is associated with
-      --  SCO has an empty PC range. Precise is True if the Sloc has column
-      --  information, False if it has only line information.
+      --  SCO has an empty PC range.
 
       -------------------
       -- Discharge_SCO --
       -------------------
 
       procedure Discharge_SCO
-        (SCO         : SCO_Id;
-         Tsloc       : Tagged_Sloc;
-         Empty_Range : Boolean)
+        (SCO                 : SCO_Id;
+         Tsloc               : Tagged_Sloc;
+         Empty_Range         : Boolean;
+         Multistatement_Line : Boolean)
       is
          Propagating, No_Propagation : Boolean;
 
+         S_SCO   : SCO_Id;
          Dom_SCO : SCO_Id;
          Dom_Val : Boolean;
+
+         Precise : constant Boolean := Tsloc.Sloc.L.Column /= 0;
 
          Line_Executed : Boolean;
          --  Set True if we are discharging from a trace with imprecise sloc
@@ -656,10 +659,10 @@ package body Coverage.Source is
                Cur_SCI     : constant Source_Coverage_Info_Access :=
                                Get_SCI (S_SCO, Tag);
             begin
-               Line_Executed := Tsloc.Sloc.L.Column = 0
+               Line_Executed := not Precise
                  and then Tsloc.Sloc.Source_File = S_SCO_First.Source_File
                  and then Tsloc.Sloc.L.Line
-               in S_SCO_First.L.Line .. S_SCO_Last.L.Line;
+                            in S_SCO_First.L.Line .. S_SCO_Last.L.Line;
 
                exit when Cur_SCI.Executed
                  or else (Line_Executed and Cur_SCI.Line_Executed);
@@ -667,9 +670,12 @@ package body Coverage.Source is
 
             --  For pragma Pre/Postcondition, no propagation: the statement
             --  is never marked as executed by propagation, and marking it
-            --  does not cause propagation to other statements.
+            --  does not cause propagation to other statements. We also
+            --  cannot propagate from an imprecise sloc if the line has
+            --  multiple statements.
 
-            No_Propagation := Is_Pragma_Pre_Post_Condition (S_SCO);
+            No_Propagation := Is_Pragma_Pre_Post_Condition (S_SCO)
+              or else (not Precise and then Multistatement_Line);
 
             if not (Propagating and No_Propagation) then
 
@@ -717,6 +723,7 @@ package body Coverage.Source is
            or else Kind (SCO) /= Condition
            or else not Cond_Branch_Map.Contains ((Subp_Info.Exec, PC))
            or else Empty_Range
+           or else not Precise
          then
             return;
          end if;
@@ -981,22 +988,51 @@ package body Coverage.Source is
          --  instruction.
 
          declare
-            SL : constant Tagged_Slocs :=
-                   Tag_Provider.Get_Slocs_And_Tags (PC);
+            SL         : constant Tagged_Slocs :=
+                           Tag_Provider.Get_Slocs_And_Tags (PC);
+            SCOs       : access SCO_Id_Array;
+            Single_SCO : aliased SCO_Id_Array := (0 => No_SCO_Id);
+
+            Multistatement_Line : Boolean;
+            --  Set True if discharging from an imprecise sloc on a line with
+            --  multiple statement SCOs.
+
          begin
             for J in SL'Range loop
-               SCO := Sloc_To_SCO (SL (J).Sloc);
                Tag := SL (J).Tag;
 
-               --  All but the first sloc in SL correspond to an empty PC range
-               --  (Address_Infos with shorter PC ranges sort higher).
-
-               if SCO /= No_SCO_Id then
-                  Discharge_SCO
-                    (SCO,
-                     Empty_Range => J > SL'First,
-                     Tsloc       => SL (J));
+               Multistatement_Line := False;
+               if SL (J).Sloc.L.Column = 0 then
+                  declare
+                     LI : constant Line_Info_Access := Get_Line (SL (J).Sloc);
+                  begin
+                     if LI /= null and then LI.SCOs /= null then
+                        SCOs := LI.SCOs.all'Access;
+                        Multistatement_Line :=
+                          To_Boolean (LI.Is_Multistatement);
+                     end if;
+                  end;
+               else
+                  Single_SCO (Single_SCO'First) := Sloc_To_SCO (SL (J).Sloc);
                end if;
+
+               if SCOs = null then
+                  SCOs := Single_SCO'Unchecked_Access;
+               end if;
+
+               for SCO of SCOs.all loop
+                  if SCO /= No_SCO_Id then
+                     --  All but the first sloc in SL correspond to an empty PC
+                     --  range (Address_Infos with shorter PC ranges sort
+                     --  higher).
+
+                     Discharge_SCO
+                       (SCO,
+                        Empty_Range         => J > SL'First,
+                        Tsloc               => SL (J),
+                        Multistatement_Line => Multistatement_Line);
+                  end if;
+               end loop;
             end loop;
          end;
 
