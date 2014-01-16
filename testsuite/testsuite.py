@@ -964,7 +964,7 @@ class TestSuite:
         # Construct the test command line
 
         testcase_cmd = [sys.executable,
-                        test.filename,
+                        os.path.join(test.rtestdir, test.filename),
                         '--report-file=' + outf,
                         '--log-file=' + logf,
                         '--target', self.env.target.platform,
@@ -1093,7 +1093,7 @@ class TestSuite:
         if (not self.options.quiet) or (not test.passed and not test.xfail):
             logging.info (
                 "%-68s %s - %s %s" % (
-                    test.filename,
+                    test.rtestdir,
                     "%02d m %02d s" % (dsec / 60, dsec % 60),
                     test.status, "(%s)" % test.comment if test.comment else "")
                 )
@@ -1460,13 +1460,16 @@ class TestCase(object):
     index = 0
 
     def __init__(self, diro, filename, trace_dir=None):
-        """Create a new TestCase for the given FILENAME, within the DIRO
-        directory object. If TRACE_DIR is specified, save the bootstrap traces
-        there."""
+        """Create a new TestCase for the given FILENAME within the DIRO
+        directory object, both relative to the current directory. If TRACE_DIR
+        is specified, save the bootstrap traces there."""
 
         self.diro         = diro
-        self.testdir      = self.diro.fspath
-        self.filename     = filename
+
+        self.rtestdir     = self.diro.fspath
+        self.atestdir     = os.path.join(os.getcwd(), self.rtestdir)
+        self.filename     = os.path.basename(filename)
+
         self.expected_out = None
         self.opt          = None
         self.trace_dir    = trace_dir
@@ -1475,8 +1478,8 @@ class TestCase(object):
         TestCase.index += 1
 
     def __lt__(self, right):
-        """Use filename alphabetical order"""
-        return self.filename < right.filename
+        """Use relative testdir alphabetical order"""
+        return self.rtestdir < right.rtestdir
 
     # ---------------------------------
     # -- Testcase options and status --
@@ -1508,7 +1511,7 @@ class TestCase(object):
 
         tags = suite_discriminants + self.discriminants()
 
-        test_opt = os.path.join(self.testdir, 'test.opt')
+        test_opt = os.path.join(self.atestdir, 'test.opt')
         self.opt = (
             OptFileParse(tags, test_opt) if os.path.exists(test_opt)
             else None
@@ -1590,7 +1593,7 @@ class TestCase(object):
         # these correctly can only be done from here. Doing the rest as well
         # is just simpler and more efficient.
 
-        [rm (os.path.join(self.testdir, gp), recursive=True)
+        [rm (os.path.join(self.atestdir, gp), recursive=True)
          for gp in ('tmp_*', 'st_*', 'dc_*', 'mc_*', 'uc_*', 'obj', 'obj_*',
                     '[0-9]', '*.adb.*', 'test.py.log', '*.dump')
          ]
@@ -1620,30 +1623,30 @@ class TestCase(object):
         """Return the name of the file where outputs of the provided
         test object should go. Same location as the test source script,
         with same name + a .out extra suffix extension."""
-        return os.path.join(os.getcwd(), self.filename + '.out')
+        return os.path.join(self.atestdir, self.filename + '.out')
 
     def logf(self):
         """Similar to outfile, for the file where logs of the commands
         executed by the provided test object should go."""
-        return os.path.join(os.getcwd(), self.filename + '.log')
+        return os.path.join(self.atestdir, self.filename + '.log')
 
     def diff(self):
         """Similar to outf, for the file where diffs of the provided test
         object should go."""
-        return os.path.join(os.getcwd(), self.filename + '.err')
+        return os.path.join(self.atestdir, self.filename + '.err')
 
     def qdaf(self):
-        return qdaf_in(self.testdir)
+        return qdaf_in(self.atestdir)
 
     def stdf(self):
-        return stdf_in(self.testdir)
+        return stdf_in(self.atestdir)
 
     def ctxf(self):
         """The file containing a SUITE_context describing the testcase run
 
         (the file is in pickle format).
         """
-        return os.path.join(self.testdir, 'ctx.dump')
+        return os.path.join(self.atestdir, 'ctx.dump')
 
     def has_previously_run(self):
         """Return True iff this testcase looks like it's been run before.
@@ -1658,23 +1661,19 @@ class TestCase(object):
                 and os.path.isfile(self.ctxf())
                 and os.path.isfile(self.outf()))
 
-    # -----------------------------
-    # -- Testcase identification --
-    # -----------------------------
+    # -------------------------
+    # -- Testcase properties --
+    # -------------------------
 
     def rname(self):
         """A unique representative name for TEST, to be used in GAIA web URLs."""
 
-        # Start from the path to test.py, remove the value-less parts and
-        # replace slashes which would introduce problematic articial layers in
-        # URLs eventually. Note that we expect the filename path to have been
-        # unixified here.
+        # Start from the path to test.py, remove the value-less parts like a
+        # "./" prefix or a "/" suffix", and replace slashes which would
+        # introduce problematic articial layers in URLs eventually. Note that
+        # we expect the paths to have been unixified here.
 
-        filename = self.filename.replace('test.py', '')
-        if filename.startswith('./'):
-            filename = filename[2:]
-
-        return filename.strip('/').replace('/', '-')
+        return self.rtestdir.strip('./').replace('/', '-')
 
     def qualif_levels(self):
         """List of qualification levels to which SELF applies"""
@@ -1682,12 +1681,12 @@ class TestCase(object):
         # Check which QLEVEL subtrees would match ...
         return [
             qlevel for qlevel in QLEVEL_INFO
-            if re.search (QLEVEL_INFO[qlevel].subtrees, self.testdir)]
+            if re.search (QLEVEL_INFO[qlevel].subtrees, self.rtestdir)]
 
     def lang(self):
         """The language specific subtree SELF pertains to"""
         for lang in KNOWN_LANGUAGES:
-            if self.testdir.find ("/%s/" % lang) != -1:
+            if self.rtestdir.find ("/%s/" % lang) != -1:
                 return lang
         return None
 
