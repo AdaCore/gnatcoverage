@@ -237,8 +237,8 @@ package body Files_Table is
       Line   : constant String := Get_Line (Sloc);
       Column : Natural := Sloc.L.Column;
       Result : Source_Location := Sloc;
-   begin
 
+   begin
       --  If the column is out of range, the source files and the sloc
       --  information are probably not synchronized. So just return Sloc
       --  unchanged.
