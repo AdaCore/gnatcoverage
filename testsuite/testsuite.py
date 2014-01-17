@@ -43,7 +43,9 @@ from SUITE.qdata import QSTRBOX_DIR, CTXDATA_FILE
 from SUITE.qdata import SUITE_context, TC_status, TOOL_info, OPT_info_from
 
 from SUITE import control
-from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES, optname_for
+from SUITE.control import BUILDER, XCOV
+from SUITE.control import altrun_opt_for, altrun_attr_for
+from SUITE.control import cargs_opt_for, cargs_attr_for
 from SUITE.vtree import Dir, DirTree
 
 DEFAULT_TIMEOUT = 600
@@ -391,9 +393,9 @@ class TestSuite:
                 errors.append('  * %s mismatch: "%s" (expected "%s")'
                               % (msg, new, expected))
 
-        for lang in KNOWN_LANGUAGES:
-            new = getattr(self.options, 'cargs_%s' % lang)
-            expected = getattr(ref_ctx.options, 'cargs_%s' % lang)
+        for lang in control.KNOWN_LANGUAGES:
+            new = getattr(self.options, cargs_attr_for(lang))
+            expected = getattr(ref_ctx.options, cargs_attr_for(lang))
             if new != expected:
                 errors.append('  * --cargs:%s option mismatch:'
                               ' "%s" (expected "%s")'
@@ -640,16 +642,17 @@ class TestSuite:
         leading dashes.
 
         For instance, if this testsuite is called with --cargs='-O1'
-        --cargs-Ada='-gnatp', then this function should return
+        --cargs:Ada='-gnatp', then this function should return
         ['CARGS_gnatp', 'CARGS_O1'].
 
         Return an empty list if --cargs was not used.
         """
 
         allopts = ' '.join (
-            [self.env.main_options.__dict__[opt] for opt in
-             ("cargs" + ext
-              for ext in [""] + ["_%s" % l for l in KNOWN_LANGUAGES])]
+            [getattr (self.env.main_options, attr)
+             for attr in (
+                    cargs_attr_for(l)
+                    for l in [None] + control.KNOWN_LANGUAGES)]
             )
         return ["CARGS_%s" % arg.lstrip('-') for arg in allopts.split()]
 
@@ -993,20 +996,6 @@ class TestSuite:
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
 
-        # Pass cargs for all the tests, qualif family or not, qualif mode
-        # or not.  Tests are not necessarily mono-language so we pass per
-        # language cargs as well.
-
-        [testcase_cmd.append(
-                '--cargs:%(lang)s=%(args)s' % {
-                    "lang" : lang,
-                    "args" : mopt.__dict__ ["cargs_" + lang]
-                    }
-                )
-         for lang in KNOWN_LANGUAGES]
-
-        testcase_cmd.append('--cargs=%s' % mopt.cargs)
-
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
 
@@ -1026,12 +1015,26 @@ class TestSuite:
 
         testcase_cmd.append('--tags=@%s' % self.__discriminants_log())
 
-        # --gnatcov_<cmd> family, per the "gnatcov_<cmd>" variables
+        # --gnatcov_<cmd> family
 
-        [testcase_cmd.append('--%s=%s' % (
-                    optname_for(pgm, cmd), mopt.__dict__[optname_for(pgm, cmd)]))
+        [testcase_cmd.append \
+             ('%(opt)s=%(val)s' % {
+                    'opt' : altrun_opt_for(pgm, cmd),
+                    'val' : getattr(mopt, altrun_attr_for(pgm, cmd))
+                    }
+              )
          for (pgm, cmd) in control.ALTRUN_GNATCOV_PAIRS
-         if mopt.__dict__[optname_for(pgm, cmd)] is not None]
+         if getattr(mopt, altrun_attr_for(pgm, cmd)) is not None]
+
+        # --cargs family
+
+        [testcase_cmd.append(
+                '%(opt)s=%(val)s' % {
+                    "opt" : cargs_opt_for(lang),
+                    "val" : getattr(mopt, cargs_attr_for(lang))
+                    }
+                )
+         for lang in [None] + control.KNOWN_LANGUAGES]
 
         return testcase_cmd
 
@@ -1160,39 +1163,14 @@ class TestSuite:
         add_mainloop_options (m, extended_options=True)
         m.add_option('--quiet', dest='quiet', action='store_true',
                      default=False, help='Quiet mode. Display test failures only')
-        m.add_option('--gprmode', dest='gprmode', action='store_true',
-                     default=False, help='Use -P instead of --scos')
         m.add_option('--diffs', dest='diffs', action='store_true',
                      default=False, help='show diffs on stdout')
-        m.add_option('--enable-valgrind', dest='enable_valgrind',
-                     choices='memcheck callgrind'.split(),
-                     default=None,
-                     help='enable the use of Valgrind when running each test.'
-                          ' The argument must be a Valgrind tool to use.'
-                          ' Supported tools: memcheck, callgrind.')
         m.add_option("--old-res", dest="old_res", type="string",
                         help="Old testsuite.res file")
 
         m.add_option('--post-run-cleanups', dest='do_post_run_cleanups',
                      action='store_true', default=False,
                      help='request post-run cleanup of temporary artifacts')
-
-        # --cargs[:<lang>] family: a common, language agnostic, one + one for
-        # each language we support. Iterations on cargs wrt languages will be
-        # performed using explicit references to the attribute dictionary of
-        # m.options. Provide a default to allow straight access from such
-        # iterations, without having to test.
-
-        m.add_option('--cargs', dest='cargs', metavar='ARGS',
-                     default="",
-                     help='Additional arguments to pass to the compiler '
-                          'when building the test programs. Language agnostic.')
-
-        [m.add_option(
-                '--cargs:%s' % lang, dest='cargs_%s' % lang,
-                default="", help='cargs specific to %s tests' % lang,
-                metavar="...")
-         for lang in KNOWN_LANGUAGES]
 
         m.add_option('--qualif-level', dest='qualif_level',
                      type="choice", choices=QLEVEL_INFO.keys(),
@@ -1206,14 +1184,6 @@ class TestSuite:
                      'Use xcov to assess coverage of its own testsuite. '
                      'Only supported on x86-linux. '
                      'Note that it disables the use of valgrind.')
-        m.add_option('--board', dest='board', metavar='BOARD',
-                     help='Specific target board to exercize.')
-
-        m.add_option('--RTS', dest='RTS', metavar='RTS', default="",
-                     help='Explicit --RTS to use for builds, if any.' \
-                          'Assume full profile otherwise.')
-        # defaulting to "" instead of None lets us perform RE searches
-        # unconditionally
 
         m.add_option(
             '--other-tool-info', dest='other_tool_info',
@@ -1223,25 +1193,11 @@ class TestSuite:
                 'tool##version info')
             )
 
-        m.add_option('--kernel', dest='kernel', metavar='KERNEL',
-                     help='KERNEL to pass to gnatcov run in addition to exe')
-        m.add_option(
-            '--toolchain', dest='toolchain', metavar='TOOLCHAIN',
-            default="", help='Use toolchain in the provided path value')
-
-        # --gnatcov_<cmd> family
-
-        [m.add_option(
-                '--%s' % optname_for(pgm, cmd), dest=optname_for(pgm, cmd),
-                default=None, help='use CMD instead of "%s %s"' % (pgm, cmd),
-                metavar="CMD")
-         for (pgm, cmd) in control.ALTRUN_GNATCOV_PAIRS]
-
         # --pre|post family
 
         [m.add_option(
-                '--%s' % optname_for(when, what), dest=optname_for(when, what),
-                default=None,
+                '%s' % altrun_opt_for(when, what),
+                dest=altrun_attr_for(when, what), default=None,
                 help='run CMD %s to %s run' % (when, what), metavar="CMD")
          for (when, what) in control.ALTRUN_HOOK_PAIRS]
 
@@ -1249,6 +1205,10 @@ class TestSuite:
             '--altrun', dest="altrun", metavar="ALTRUN_SUBDIR",
             default=None,
             help='name of custom hooks directory')
+
+        # shared options
+
+        control.add_shared_options_to (m, toplevel=True)
 
         # Parse what options we do have on our command line, then perform a
         # couple of validity checks and compute bits of internal state for
@@ -1260,29 +1220,19 @@ class TestSuite:
 
         m.options.run_test = m.args[0] if m.args else ""
 
-        # --cargs "" should be kept semantically equivalent to absence
-        # of --cargs at all, and forcing a string allows simpler code
-        # downstream.
-
-        [m.options.__dict__.__setitem__ (opt, "")
-         for opt in (
-                "cargs%s" % ext
-                for ext in [""] + ["_%s" % lang for lang in KNOWN_LANGUAGES])
-         if m.options.__dict__[opt] == None]
-
         # Enforce a default -gnat<version> for Ada, so each test can expect an
         # explicit setting to filter on. Expect an explicit one if we're
         # running for qualification, making sure we know what target language
         # we're qualifying for.
 
-        if not re.search (
-            "-gnat95|-gnat05|-gnat12", m.options.cargs_Ada
-            ):
+        attr_cargs_ada = cargs_attr_for("Ada")
+        cargs_ada = getattr(m.options, attr_cargs_ada)
+        if not re.search ("-gnat95|-gnat05|-gnat12", cargs_ada):
             if m.options.qualif_level:
                 raise FatalError (
                     "Missing -gnat<95|05|12> in cargs:Ada for qualification")
             else:
-                m.options.cargs_Ada += " -gnat05"
+                setattr(m.options, attr_cargs_ada, cargs_ada + " -gnat05")
 
         return m.options
 
@@ -1295,16 +1245,16 @@ class TestSuite:
         as relative from where the testsuite was launched, resolve
         to absolute paths."""
 
-        options_to_resolve = (
+        attributes_to_resolve = (
             ["kernel", "altrun"]
-            + [optname_for(p0, p1) for (p0, p1) in
+            + [altrun_attr_for(p0, p1) for (p0, p1) in
                control.ALTRUN_HOOK_PAIRS + control.ALTRUN_GNATCOV_PAIRS]
             )
 
-        [self.options.__dict__.__setitem__ (
-                opt, os.path.abspath (self.options.__dict__[opt]))
-         for opt in options_to_resolve
-         if self.options.__dict__[opt] is not None]
+        [setattr(self.options, attr,
+                 os.path.abspath (getattr(self.options, attr)))
+         for attr in attributes_to_resolve
+         if getattr(self.options, attr) is not None]
 
     # ---------------------
     # -- setup_toolchain --
@@ -1426,24 +1376,25 @@ class TestSuite:
             if we find a matching binary program in the altrun subdir we are
             processing. BINBASE provides the binary base name to use."""
 
-            optname = optname_for(p0, p1)
+            attr = altrun_attr_for(p0, p1)
             bin = self.__bin_for(os.path.join(ctldir, binbase))
 
             if not bin:
                 return
 
             exit_if (
-                self.options.__dict__[optname],
-                "%s altrun conflicts with explicit --%s" % (bin, optname)
+                getattr(self.options, attr),
+                "%s altrun conflicts with explicit --%s" % (bin, attr)
                 )
 
-            self.__push_altrun (["hooking %s to %s" % (optname, bin)])
-            self.options.__dict__[optname] = bin
+            self.__push_altrun (["hooking %s to %s" % (attr, bin)])
+            setattr (self.options, attr, bin)
 
         # For the toplevel testsuite driver hooks, map on binaries
         # matching the command line option names:
 
-        [install_altrun_for (p0=when, p1=what, binbase=optname_for(when, what))
+        [install_altrun_for (
+                p0=when, p1=what, binbase=altrun_opt_for(when, what))
          for (when, what) in control.ALTRUN_HOOK_PAIRS]
 
         # For the gnatcov <command> replacements, map on binaries called
@@ -1687,7 +1638,7 @@ class TestCase(object):
 
     def lang(self):
         """The language specific subtree SELF pertains to"""
-        for lang in KNOWN_LANGUAGES:
+        for lang in control.KNOWN_LANGUAGES:
             if self.rtestdir.find ("/%s/" % lang) != -1:
                 return lang
         return None

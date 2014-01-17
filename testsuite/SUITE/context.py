@@ -22,7 +22,6 @@ from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, LANGINFO, target_info
 
 from SUITE.cutils import ndirs_in, lines_of
-from SUITE.control import KNOWN_LANGUAGES, optname_for
 
 # This module is loaded as part of a Run operation for a test.py
 # file found and launched by the toplevel driver
@@ -286,11 +285,6 @@ class Test (object):
         main = Main(require_docstring=False, add_targets_options=True)
         main.add_option('--timeout', dest='timeout', type=int,
                         default=None)
-        main.add_option('--gprmode', dest='gprmode',
-                        action='store_true', default=False)
-        main.add_option('--enable-valgrind', dest='enable_valgrind',
-                        action='store', choices='memcheck callgrind'.split(),
-                        default=None)
         main.add_option('--trace_dir', dest='trace_dir', metavar='DIR',
                         help='Traces location. No bootstrap if not specified.',
                         default=None)
@@ -302,46 +296,14 @@ class Test (object):
                         help='The target qualification level when we are '
                              'running in qualification mode.')
 
-        # --cargs[:<lang>] family
-
-        [main.add_option (
-                '--cargs:%s' % lang, dest=self.__cargs_optvar_for (lang),
-                metavar='CARGS_%s' % lang, default="",
-                help=('Additional arguments to pass to the %s compiler '
-                      'when building the test programs.' % lang)
-                )
-         for lang in KNOWN_LANGUAGES]
-
-        main.add_option(
-            '--cargs', dest=self.__cargs_optvar_for(lang=None),
-            metavar='CARGS', default="",
-            help=('Additional arguments to pass to the compiler '
-                  'when building the test programs.')
-            )
-
-        # --gnatcov_<cmd> family
-
-        [main.add_option(
-                '--%s' % optname_for(pgm, cmd), dest=optname_for(pgm, cmd),
-                default=None,
-                help='program to use instead of "%s %s"' % (pgm, cmd),
-                metavar="...")
-         for (pgm, cmd) in control.ALTRUN_GNATCOV_PAIRS]
-
         main.add_option('--xcov-level', dest='xcov_level',
                         help='Force the --level argument passed to xcov '
                              'instead of deducing it from the test category '
                              'when that normally happens.')
-        main.add_option('--board', dest='board', metavar='BOARD',
-                        help='Specific target board to exercize')
-        main.add_option('--RTS', dest='RTS', metavar='RTS', default="",
-                     help='--RTS option to pass to gprbuild, if any.')
-        main.add_option('--kernel', dest='kernel', metavar='KERNEL',
-                     help='KERNEL to pass to gnatcov run in addition to exe')
-
-        main.add_option('--toolchain', dest='toolchain', default="")
 
         main.add_option('--tags', dest='tags', default="")
+
+        control.add_shared_options_to (main, toplevel=False)
 
         main.parse_args()
         if main.options.report_file is None:
@@ -361,22 +323,19 @@ class Test (object):
 
         return main.options
 
-    def __cargs_optvar_for (self, lang):
-        """Name of our options dictionary key name to hold cargs for LANG."""
-        return "-cargs" + (':%s' % lang if lang else "")
-
     def suite_cargs_for (self, lang):
         """String of options passed as --cargs[:LANG] to the testsuite
         driver. None if no such option passed. LANG might be None, to fetch
         options passed as --cargs."""
 
-        return thistest.options.__dict__ [self.__cargs_optvar_for (lang)]
+        return getattr(thistest.options, control.cargs_attr_for (lang))
 
     def suite_covpgm_for (self, cmd):
-        """Alternate program to launch in lieu of "gnatcov CMD", if any
-        specified with the --gnatcov-CMD= command line option. None otherwise."""
+        """Alternate program to launch in lieu of "gnatcov CMD", if
+        any specified with the --gnatcov-CMD= command line option. None
+        otherwise."""
 
-        return thistest.options.__dict__.get ('gnatcov_%s' % cmd, None)
+        return getattr(thistest.options, 'gnatcov_%s' % cmd, None)
 
     def support_dir(self):
         return os.path.join (ROOT_DIR, 'support')

@@ -215,14 +215,101 @@ ALTRUN_HOOK_PAIRS = (
     ('pre', 'testcase')
     )
 
-def optname_for(p0,p1):
+def altrun_opt_for(p0,p1):
     """Name of the command line option controlling the ALTRUN (P0, P1) pair."""
+    return "--%s_%s" % (p0, p1)
+
+def altrun_attr_for(p0,p1):
+    """Name of our internal controlling options attribute for the
+    ALTRUN (P0, P1) pair."""
     return "%s_%s" % (p0, p1)
+
+def cargs_opt_for (lang):
+    """Name of the command line option to pass for language LANG."""
+    return "--cargs" + (':%s' % lang if lang else "")
+
+def cargs_attr_for (lang):
+    """Name of our internal options attribute to hold cargs for
+    language LANG."""
+    return "cargs" + ('_%s' % lang if lang else "")
 
 # =================================
 # == Shared command line options ==
 # =================================
 
-# Shared options are those allowed at the testsuite.py level which need to be
-# passed down to individual test.py. This needs to be expanded.
+# Options are allowed at the testsuite.py level which need to be
+# passed down to individual test.py.
+
+def add_shared_options_to (o, toplevel):
+
+    # --gnatcov_<cmd> family
+
+    [o.add_option(
+            '%s' % altrun_opt_for(pgm, cmd), dest=altrun_attr_for(pgm, cmd),
+            default=None, help='use CMD instead of "%s %s"' % (pgm, cmd),
+            metavar="CMD")
+     for (pgm, cmd) in ALTRUN_GNATCOV_PAIRS]
+
+    # valgrind control
+
+    o.add_option(
+        '--enable-valgrind', dest='enable_valgrind',
+        choices='memcheck callgrind'.split(),
+        default=None,
+        help=('enable the use of Valgrind (memcheck or callgrind)'
+              'during the test execution.')
+        )
+
+    # RTS for tested programs. Defaulting to "" instead of None lets us
+    # perform RE searches unconditionally to determine profile.
+
+    o.add_option(
+        '--RTS', dest='RTS', metavar='RTS', default="",
+        help=('--RTS option to pass to gprbuild, if any. '
+              'Assume "full" profile by default.')
+        )
+
+    # --board
+
+    o.add_option(
+        '--board', dest='board', metavar='BOARD',
+        help='Specific target board to exercize'
+        )
+
+    # --gprmode
+
+    o.add_option(
+        '--gprmode', dest='gprmode', action='store_true',
+        default=False,
+        help='Use -P instead of --scos for analysis on source coverage tests'
+        )
+
+    # --kernel
+
+    o.add_option(
+        '--kernel', dest='kernel', metavar='KERNEL',
+        help='KERNEL to pass to gnatcov run in addition to exe'
+        )
+    
+    # --toolchain
+
+    o.add_option(
+        '--toolchain', dest='toolchain', metavar='TOOLCHAIN', default="",
+        help=('Prefix of the toolchain to use to compile tests' if toplevel
+              else 'Toolchain discriminant')
+        )
+
+    # --cargs[:<lang>] family: a common, language agnostic, one + one for each
+    # language we support. --cargs "" should be kept semantically equivalent
+    # to absence of --cargs at all, and forcing a string allows simpler code
+    # downstream.
+
+    [o.add_option (
+            cargs_opt_for(lang), dest=cargs_attr_for(lang),
+            metavar='CARGS', default="",
+            help=(
+                'Additional arguments to pass to the %scompiler when '
+                'building test programs.' % ("%s " % lang if lang else ""))
+            )
+     for lang in [None] + KNOWN_LANGUAGES]
 
