@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2013-2013, AdaCore                     --
+--                     Copyright (C) 2013-2014, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -164,6 +164,7 @@ package body Convert is
                                   7 => Trigger_Stop_ID
                                  );
          Spawn (Prg.all, Opts.all, Success);
+         Error ("Error from isys_drv during conversion");
       end if;
    end Run_Convert;
 
