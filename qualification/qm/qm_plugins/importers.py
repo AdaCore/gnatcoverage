@@ -186,6 +186,14 @@ def relative_links_for(artifact):
 
     return output
 
+
+def default_importer(artifact):
+
+    if is_req(artifact):
+        return RequirementImporter()
+    else:
+        return qm.rest.DefaultImporter()
+
 ####################################################################
 # Importers
 
@@ -284,6 +292,24 @@ class AppIndexImporter(ArtifactImporter):
         return '', []
 
 
+class RequirementImporter(ArtifactImporter):
+
+    def to_rest (self, artifact):
+
+        reference = ".. _%s:\n\n" % artifact.full_name.replace('/', '_')[1:]
+
+        result = qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
+
+        with_id = result.replace ('.. rubric:: Requirement\n',
+                                  '.. rubric:: Requirement\n' \
+                                  '**REQ ID**: %s\n' %
+                                   artifact.full_name)
+
+        result = reference + with_id + "|\n"
+
+        return result
+
+
 class ToplevelIndexImporter(ArtifactImporter):
 
     def qmlink_to_rest(self, parent, artifacts):
@@ -373,7 +399,7 @@ class SubsetIndexTocTree(ArtifactImporter):
 
     def qmlink_to_rest(self, parent, artifacts):
 
-        links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
+        links = [(a, default_importer(a)) for a in artifacts]
 
         output = writer.toctree(['/%s/content' % artifact_hash(*l)
                                  for l in links if not is_test(l[0])],
@@ -389,7 +415,7 @@ class SubsetIndexImporter(SubsetIndexTable):
         output, links = SubsetIndexTable.qmlink_to_rest(self,
                                                         parent, artifacts)
 
-        links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
+        links = [(a, default_importer(a)) for a in artifacts]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                   for l in links if not is_test(l[0])],
@@ -665,7 +691,7 @@ class TestCasesImporter(ArtifactImporter):
             elif is_source(a):
                 links.append((a, SourceCodeImporter()))
             else:
-                links.append((a, qm.rest.DefaultImporter()))
+                links.append((a, default_importer(a)))
 
         html_output = writer.toctree(['/%s/content' % artifact_hash(*l)
                                       for l in links], hidden=True)
