@@ -164,7 +164,9 @@ package body Convert is
                                   7 => Trigger_Stop_ID
                                  );
          Spawn (Prg.all, Opts.all, Success);
-         Error ("Error from isys_drv during conversion");
+         if not Success then
+            Error ("Error from isys_drv during conversion");
+         end if;
       end if;
    end Run_Convert;
 
