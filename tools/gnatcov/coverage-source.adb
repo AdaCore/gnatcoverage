@@ -1008,8 +1008,7 @@ package body Coverage.Source is
                   begin
                      if LI /= null and then LI.SCOs /= null then
                         SCOs := LI.SCOs.all'Access;
-                        Multistatement_Line :=
-                          To_Boolean (LI.Is_Multistatement);
+                        Multistatement_Line := Is_Multistatement_Line (LI.all);
                      end if;
                   end;
                else
