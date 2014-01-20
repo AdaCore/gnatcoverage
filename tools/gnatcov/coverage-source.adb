@@ -1002,6 +1002,9 @@ package body Coverage.Source is
                Tag := SL (J).Tag;
 
                Multistatement_Line := False;
+               Single_SCO (Single_SCO'First) := No_SCO_Id;
+               SCOs := null;
+
                if SL (J).Sloc.L.Column = 0 then
                   declare
                      LI : constant Line_Info_Access := Get_Line (SL (J).Sloc);
@@ -1009,13 +1012,27 @@ package body Coverage.Source is
                      if LI /= null and then LI.SCOs /= null then
                         SCOs := LI.SCOs.all'Access;
                         Multistatement_Line := Is_Multistatement_Line (LI.all);
+
+                     else
+                        --  No SCO at all on line: leave SCOs uninitialized,
+                        --  will be set below to point to Single_SCO (set to
+                        --  No_SCO_Id).
+
+                        null;
                      end if;
                   end;
                else
+                  --  If we have column-accurate sloc information, then there
+                  --  is at most a single SCO to discharge.
+
                   Single_SCO (Single_SCO'First) := Sloc_To_SCO (SL (J).Sloc);
                end if;
 
                if SCOs = null then
+
+                  --  Case where line has no SCO at all, or we have column-
+                  --  accurate sloc information.
+
                   SCOs := Single_SCO'Unchecked_Access;
                end if;
 
