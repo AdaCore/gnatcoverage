@@ -300,12 +300,11 @@ class RequirementImporter(ArtifactImporter):
 
         result = qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
 
-        with_id = result.replace ('.. rubric:: Requirement\n',
-                                  '.. rubric:: Requirement\n' \
-                                  '**REQ ID**: %s\n' %
-                                   artifact.full_name)
-
-        result = reference + with_id + "|\n"
+        result = (
+            reference + re.sub (
+                pattern=".. rubric:: Requirement\S*",
+                repl="**REQUIREMENT** %s" % artifact.full_name,
+                string=result) + "|\n")
 
         return result
 
