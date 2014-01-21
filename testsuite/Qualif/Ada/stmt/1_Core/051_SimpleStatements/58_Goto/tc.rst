@@ -9,5 +9,7 @@ Exercise backward and forward transfers of control within:
 * straight sequences of statements
 * block, case, if or loop statements
 
+LRMREF: 5.8
+
 
 
