@@ -1187,6 +1187,10 @@ package body Traces_Elf is
                   when others =>
                      raise Program_Error with "unhandled SPARC relocation";
                end case;
+            when EM_LMP =>
+               --  TODO???
+
+               null;
             when others =>
                Outputs.Fatal_Error
                  ("Relocs unhandled for this machine, reloc is"
