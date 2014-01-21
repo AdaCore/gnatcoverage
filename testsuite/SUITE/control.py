@@ -188,6 +188,9 @@ TARGETINFO = {
     "powerpc-wrs-vxworks": TargetInfo (
         exeext = ".out", partiallinks=True
         ),
+    "e500v2-wrs-vxworks": TargetInfo (
+        exeext = ".out", partiallinks=True
+        ),
     "default": TargetInfo (
         exeext = "", partiallinks=False
         )
