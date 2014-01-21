@@ -12,3 +12,4 @@ of code from explicit initialization expressions involving
 Check declarations in both global (i.e., library-level packages) and
 local (e.g., blocks, subprograms) contexts.
 
+LRMREF: 3.3.1, 4.8

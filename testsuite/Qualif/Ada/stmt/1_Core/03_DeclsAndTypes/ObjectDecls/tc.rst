@@ -15,3 +15,4 @@ fixed-size stack allocations only, which do not need a secondary stack
 (e.g. from functions returning unconstrained objects) or dynamic memory
 allocation (e.g. from standard "new" allocators).
 
+LRMREF: 3.3.1

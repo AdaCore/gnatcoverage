@@ -11,3 +11,4 @@ Exercise variant record declarations for which distinct variants trigger
 execution of distinct sequences of statements and check that only the code
 associated with the chosen variants is reported as covered.
 
+LRMREF: 3.8.1
