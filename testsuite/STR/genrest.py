@@ -129,7 +129,8 @@ class colid:
         htext="testcase", legend="Testcase Identifier")
 
     sta = Column (
-        htext="status", legend="Test execution status")
+        htext="status",
+        legend="Execution status, *passed* when all the expectations were satisfied")
 
     cat = Column (
         htext="category", legend="Test category")
@@ -137,19 +138,24 @@ class colid:
     # Expectation counters, for testcase table and counters summary
 
     nov = Column (
-        htext="nov", legend="# absence of violations")
+        htext="nov",
+        legend="Number of expected absence of violations in testcase")
 
     scv = Column (
-        htext="scv", legend="# STATEMENT Coverage violations")
+        htext="scv",
+        legend="Number of expected STATEMENT Coverage violations in testcase")
 
     dcv = Column (
-        htext="dcv", legend="# DECISION Coverage violations")
+        htext="dcv",
+        legend="Number of expected DECISION Coverage violations in testcase")
 
     mcv = Column (
-        htext="mcv", legend="# MCDC Coverage violations")
+        htext="mcv",
+        legend="Number of expected MCDC Coverage violations in testcase")
 
     xbv = Column (
-        htext="xbv", legend="# EXEMPTION blocks with violations")
+        htext="xbv",
+        legend="Number of expected EXEMPTION blocks with violations in testcase")
 
     igv = Column (
         htext="igv", legend="counters to be ignored", hidden=True)
@@ -157,10 +163,10 @@ class colid:
     # Status counters and overall status, for status summary
 
     failed = Column (
-        htext="failed", legend="# tests failed")
+        htext="failed", legend="Number of tests failed")
 
     passed = Column (
-        htext="passed", legend="# tests passed")
+        htext="passed", legend="Number of tests passed")
 
     ovsta = Column (
         htext="overall", legend="Testsuite overall status")
@@ -745,14 +751,13 @@ class QDreport:
             text = (
                 "The following tables list all the testcases that were "
                 "executed, with their execution status and a set of "
-                "expectation counters. '# <...>' in the legend abbreviates "
-                "\"number of satisfied expectations for <...>\". "
+                "expectation counters."
                 "\n\n"
-                "*Expectations* here refers to expected coverage results "
-                "stated as embedded comments within the test sources. "
+                "*Expectations* there refers to expected coverage assessment "
+                "diagnostics stated as embedded comments within the test sources. "
                 "*Violations* in this context refer to "
                 "deviations with respect to a given coverage criterion, "
-                "that tests trigger on purpose and which we expect the "
+                "that tests trigger on purpose and which we *expect* the "
                 "tool to detect. For example, a test arranging not to execute "
                 "a specific statement triggers a statement coverage violation "
                 "on purpose, which the tool must report for the test to pass. "
