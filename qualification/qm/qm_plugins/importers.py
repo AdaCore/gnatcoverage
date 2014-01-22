@@ -55,39 +55,32 @@ def class_to_content_key(a):
 ##############################################################
 # Tests on artifact class
 
-def is_req_or_reqset(a):
-    from qm import TORReq_Set, TORReq
-    return isinstance(a, TORReq_Set) or isinstance(a, TORReq)
-
-
 def is_req(a):
     from qm import TORReq
     return isinstance(a, TORReq)
-
 
 def is_reqset(a):
     from qm import TORReq_Set
     return isinstance(a, TORReq_Set)
 
-
-def is_test(a):
-    from qm import TC, TC_Set
-    return isinstance(a, TC) or isinstance(a, TC_Set)
+def is_req_or_set(a):
+    return is_req(a) or is_reqset(a)
 
 
-def is_test_set(a):
+def is_tc(a):
+    from qm import TC
+    return isinstance(a, TC)
+
+def is_tcset(a):
     from qm import TC_Set
     return isinstance(a, TC_Set)
 
-
-def is_test_case(a):
-    from qm import TC
-    return isinstance(a, TC)
+def is_tc_or_set(a):
+    return is_tc(a) or is_tcset(a)
 
 
 def is_test_result(a):
     from qm import TR
-
     return isinstance(a, TR)
 
 
@@ -98,12 +91,10 @@ def is_source(a):
 
 def is_consolidation(a):
     from qm import Conso_Sources
-
     return isinstance(a, Conso_Sources)
 
 
 def is_helper(source_resource):
-
     return not(is_test_driver(source_resource)
                or is_functional_source(source_resource))
 
@@ -161,8 +152,8 @@ def get_first_req_relative(artifact):
 def kind_of(artifact):
     return ("Requirement Group" if is_reqset(artifact)
             else "Requirement" if is_req(artifact)
-            else "Testcase Group" if is_test_set(artifact)
-            else "Testcase" if is_test_case(artifact)
+            else "Testcase Group" if is_tcset(artifact)
+            else "Testcase" if is_tc(artifact)
             else "Chapter")
 
 def short_kind_of(artifact):
@@ -204,7 +195,7 @@ class TCIndexImporter(ArtifactImporter):
         result = []
 
         for child in artifact.relatives:
-            if is_test(child):
+            if is_tc_or_set(child):
                 result.append(child)
                 if depth > 1:
                     result += self.get_recursive_relatives(child, depth - 1)
@@ -223,11 +214,11 @@ class TCIndexImporter(ArtifactImporter):
             if is_source(a):
                 continue
 
-            if is_test_case(a):
+            if is_tc(a):
                 reference = writer.role('ref', "%s <%s>" %
                                         (get_short_description(a),
                                          a.full_name.replace('/', '_')[1:]))
-            if is_test_set(a):
+            if is_tcset(a):
                 reference = writer.qmref(a.full_name)
 
             html_items.append([writer.strong(class_to_string(a)),
@@ -240,13 +231,13 @@ class TCIndexImporter(ArtifactImporter):
                 # We do include in the table children artifacts only
                 # in html format.
 
-                if is_test_case(suba):
+                if is_tc(suba):
                     subref = writer.role('ref',
                                          '%s <%s>' %
                                          (get_short_description(suba),
                                           suba.full_name.replace('/', '_')[1:]
                                           ))
-                if is_test_set(suba):
+                if is_tcset(suba):
                     subref = writer.qmref(suba.full_name)
 
                 html_items.append([class_to_string(suba),
@@ -263,7 +254,7 @@ class TCIndexImporter(ArtifactImporter):
             headers=["", "TestCases", "Description"],
             widths=[3, 25, 65])
 
-        if is_test_set(parent):
+        if is_tcset(parent):
             output += relative_links_for(parent)
 
         output += writer.only(html_table, "html")
@@ -272,17 +263,19 @@ class TCIndexImporter(ArtifactImporter):
 
         links = []
         for a in artifacts:
-            if is_test_case(a):
+            if is_tc(a):
                 links.append((a, TestCaseImporter()))
             elif is_source(a):
                 pass
             else:
                 links.append((a, qm.rest.DefaultImporter()))
 
-        output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                  for l in links if
-                                  not is_test(l[0]) or is_test(parent)],
-                                 hidden=True)
+        output += writer.toctree([
+            '/%s/content' % artifact_hash(*l)
+            for l in links
+            if not is_tc_or_set(l[0]) or is_tc_or_set(parent)],
+        hidden=True)
+
         return output, links
 
 
@@ -350,7 +343,7 @@ class ToplevelIndexImporter(ArtifactImporter):
                  for a in artifacts if "Index/.+" not in a.full_name]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                  for l in links if not is_test(l[0])],
+                                  for l in links if not is_tc_or_set(l[0])],
                                  hidden=True)
 
         return output, links
@@ -401,7 +394,7 @@ class SubsetIndexTocTree(ArtifactImporter):
         links = [(a, default_importer(a)) for a in artifacts]
 
         output = writer.toctree(['/%s/content' % artifact_hash(*l)
-                                 for l in links if not is_test(l[0])],
+                                 for l in links if not is_tc_or_set(l[0])],
                                 hidden=True)
 
         return output, links
@@ -417,7 +410,7 @@ class SubsetIndexImporter(SubsetIndexTable):
         links = [(a, default_importer(a)) for a in artifacts]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                  for l in links if not is_test(l[0])],
+                                  for l in links if not is_tc_or_set(l[0])],
                                  hidden=True)
         return output, links
 
@@ -619,7 +612,7 @@ class IndexImporter(ArtifactImporter):
         if artifacts:
             for art in artifacts:
 
-                if is_test_case(art):
+                if is_tc(art):
                     output += '%s %s\n\n' % (
                               art.full_name,
                               writer.role('ref',
@@ -655,7 +648,7 @@ class TestCasesImporter(ArtifactImporter):
     def get_testcases(self, artifact):
         result = []
 
-        if is_test(artifact):
+        if is_tc_or_set(artifact):
             return [artifact]
 
         for child in artifact.relatives:
@@ -685,7 +678,7 @@ class TestCasesImporter(ArtifactImporter):
 
         links = []
         for a in items:
-            if is_test_case(a):
+            if is_tc(a):
                 links.append((a, TestCaseImporter()))
             elif is_source(a):
                 links.append((a, SourceCodeImporter()))
