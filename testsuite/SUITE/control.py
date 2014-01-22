@@ -84,15 +84,19 @@ class BUILDER:
 
     # Common compilation args, passed to all build invocations.
 
-    __TARGET_CARGS = {
-        'powerpc-wrs-vxworks': ["-gno-strict-dwarf"]
-        }
-    
+    @staticmethod
+    def __TARGET_CARGS_FOR(triplet):
+        # Coverage analysis relies on advanced dwarf info disabled
+        # by default on VxWorks.
+        if 'vxworks' in triplet:
+            return ['-gno-strict-dwarf']
+   	return []
+ 
     @staticmethod
     def COMMON_CARGS():
         return (
             ["-g", "-fpreserve-control-flow", "-fdump-scos"]
-            + BUILDER.__TARGET_CARGS.get (Env().target.triplet, [])
+            + BUILDER.__TARGET_CARGS_FOR (Env().target.triplet)
             )
 
     # Base command for a build
