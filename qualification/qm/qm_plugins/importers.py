@@ -297,7 +297,7 @@ class RequirementImporter(ArtifactImporter):
             reference + re.sub (
                 pattern=".. rubric:: Requirement\S*",
                 repl="**REQUIREMENT** %s" % artifact.full_name,
-                string=result) + "|\n")
+                string=result))
 
         return result
 
