@@ -9,3 +9,5 @@ invocation:
 
 * Implicit calls as the result of evaluation of default initialization
   expressions;
+
+LRMREF: 3.9, 6.1,6.4
