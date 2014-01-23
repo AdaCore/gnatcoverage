@@ -14,7 +14,9 @@ GNATcoverage is qualified as a verification tool.
    1|8.1a|Yes|For verification tools, this is limited to the compliance of tool processes with approved plans, see :ref:`reading-plans`, :ref:`inspecting-other-data`
    2|8.1b|No|Not required for verification tools, since they are treated as level D applications. This approach is not formalized in DO-178B, but is a common interpretation. DO-178C formally confirms this interpretation, see Table A-9
    3|8.1c|Yes|See :ref:`tool-conformity-review`
-   3|8.3a,b,c,g,i|No|Detailed explanation available in :ref:`tool-conformity-review`
+   3|8.3a,b|No|Development and verification plans are not required for verification tools
+   3|8.3c|No|Development and verification plans and standards are not required for verification tools
+   3|8.3g,i|No|Do not apply to tools
    3|8.3d,e,f,h|Yes|Detailed explanation available in :ref:`tool-conformity-review`
 
 Quality Assurance Activities
@@ -94,14 +96,8 @@ Inspection of test execution results
 Tool conformity review
 **********************
 
-The following objectives **do not** apply for verification tools:
- * **8.3a** (completion of software life cycle process activities), because development/verification plans are not required for verification tools.
- * **8.3b** (traceability of software life cycle data), because development/verification plans are not required for verification tools.
- * **8.3c** (compliance with plans and standards) because development/verification plans and standards are not required for verification tools. 
- * **8.3g** (loading of software) does not apply to tools. 
- * **8.3i** (certification credit of previously developed software) does not apply to tools.
+These objectives are achieved in the scope of the tool conformity review:
 
-The following objectives **do** apply for verification tools:
  * **8.3d**: Check that problems have been reported and evaluated as per the :qmref:`/PLANS/Software_Configuration_Management_Plan`.
  * **8.3e**: Record and approve software requirements deviations exposed by test failures reported in the GNATcoverage Software Test Results report provided as part of the tool qualification data.
  * **8.3f**: Check that the tool executable object code can be re-generated from the tool source code.

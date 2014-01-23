@@ -14,9 +14,10 @@ GNATcoverage is a verification tool and, as such, its configuration items are ma
    2|7.2.2a,b,c,d,e|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
    2|7.2.2f,g|Yes|See :ref:`traceability`
    3|7.2.3|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
-   3|7.2.4a,b|Yes|See :ref:`adacore-cm`
+   3|7.2.4a,b|Yes|See :ref:`adacore-change-control`
    3|7.2.4, 7.2.5, 7.2.6|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
-   4|7.2.7a,b(1),e|Yes|See :ref:`adacore-cm`
+   4|7.2.7a,b(1)|Yes|See :ref:`adacore-archive`
+   4|7.2.7e|No|Not required for tools
    4|7.2.7b(2),(3),(4),c,d|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
    5|7.2.8|No|Does not apply to tools
    6|7.2.9a,c|No|Do not apply to tools
@@ -93,19 +94,47 @@ applicant.
 Base technical support
 ----------------------
 
-Configuration Management of artifacts is technically implemented via a Git or
-Subversion repository which tracks the life cycle of each artifact
-automatically.  E-mail-based discussions about each artifact are also tracked,
+Configuration Management of artifacts is technically implemented via Git repositories 
+which track the life cycle of each artifact automatically.  
+E-mail-based discussions about each artifact are also tracked,
 using the AdaCore ticket system deployed within the whole company for more
 than fifteen years now.
 
-Archiving
----------
+The location of the GNATcoverage repository is:
+**git+ssh://scm.forge.open-do.org/scmrepos/git/couverture**
 
-All repositories and mail servers are mirrored with machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
+The location of the GNATcoverege Qualification Kit repository is: 
+**git+ssh://git.eu.adacore.com/scmrepos/git/gnatcoverage**
+
+.. _adacore-change-control:
+
+Change control
+--------------
+
+**Item 7.2.4a:** Integrity of configuration items is guaranteed by the Git
+repositories where all configuration items are located. Only 
+authorized engineers can modify configuration items and all modifications are
+recorded. In addition, all repositories and mail servers are mirrored with 
+machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
+
+**Item 7.2.4b:** Each change to a configuration item is associated to a unique
+ID, which univocally identifies the version of a configuration item over its history.
+
+.. _adacore-archive:
+
+Archive, Retrieval and Release
+------------------------------
+
+**Item 7.2.7a:** Repositories are available for audit if necessary.
+
+**Item 7.2.7b(1):** Only authorized engineers can change the configuration
+items, thanks to the security mechanisms embedded in the Git
+repositories.
+
+Detailed procedures are as follows.
 
 Customer/Project specific tracking
-----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For each specific customer/project qualification we assign an internal *kit
 identifier*, referenced for example in QA reports. All the corresponding
@@ -119,7 +148,7 @@ setting up the qualification environment for kit production cycles.
 
 
 Official baseline production
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Official baselines are generated for customer-specific deliveries aimed at a
 precise operational environment and software level. Once the configuration
