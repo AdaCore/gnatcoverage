@@ -8,35 +8,19 @@ GNATcoverage is a verification tool and, as such, its configuration items are ma
 
 .. csv-table:: Compliance matrix for Table A-8
    :delim: |
-   :header: "Item", "Description", "Ref.", "Notes"
+   :header: "Item", "Ref.", "Achieved", "Notes"
 
-   1|Configuration items are identified.|7.2.1| 
-   2|Baselines and traceability are established.|7.2.2|Only items 7.2.2f and 7.2.2g are required for CC2. 
-   3|Problem reporting, change control, change review, and configuration status accounting are established.|7.2.3, 7.2.4, 7.2.5, 7.2.6|Only items 7.2.4a and 7.2.4b are required for CC2.
-   4|Archive, retrieval, and release are established.|7.2.7|Only 7.2.7a, 7.2.7b(1) and 7.2.7e are required for CC2.
-   5|Software load control is established|7.2.8|Not applicable to tools.
-   6|Software life cycle environment control is established|7.2.9|7.2.9b apply to tools.
-
-
-Configuration Management Activities
-===================================
-
-**Item 7.2.1:** The configuration items are listed in section :ref:`configuration-items`.
-   
-**Item 7.2.2f:** The following traceability relations are established:
- 
- * From TOR to Test Cases: each TOR and Test Case is contained in a folder on the repository.
-   Folders of Test Cases are nested inside the folders of the TOR they are tracebale
-   to.
-
- Other trace data are not required for verification tools.
-
-**Item 7.2.2g:** all configuration items are traceable to the GNATcoverage (pre-)qualification process.
-
-**Items 7.2.4a, 7.2.4b and 7.2.7:** see :ref:`adacore-cm`
-
-**Item 7.2.9b:** since GNATcoverage is a verification tool, the configuration management process should comply with Control Category 2.
-
+   1|7.2.1|Yes|See :ref:`configuration-items`
+   2|7.2.2a,b,c,d,e|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
+   2|7.2.2f,g|Yes|See :ref:`traceability`
+   3|7.2.3|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
+   3|7.2.4a,b|Yes|See :ref:`adacore-cm`
+   3|7.2.4, 7.2.5, 7.2.6|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
+   4|7.2.7a,b(1),e|Yes|See :ref:`adacore-cm`
+   4|7.2.7b(2),(3),(4),c,d|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
+   5|7.2.8|No|Does not apply to tools
+   6|7.2.9a,c|No|Do not apply to tools
+   6|7.2.9b|Yes|CC2
 
 ..  _configuration-items:
 
@@ -81,6 +65,21 @@ corrections, updating the problem status (open/closed) or assigning to
 another team member for further action until a resolution is found. The
 complete problem evolution (related email exchanges) and status history are
 tracked in a database thanks to the unique issue identifier.
+
+..  _traceability:
+
+Traceability
+************
+
+**Item 7.2.2f:** The following traceability relations are established:
+ 
+ * From TOR to Test Cases: each TOR and Test Case is contained in a folder on the repository.
+   Folders of Test Cases are nested inside the folders of the TOR they are tracebale
+   to.
+
+ Other trace data are not required for verification tools.
+
+**Item 7.2.2g:** all configuration items are traceable to the GNATcoverage (pre-)qualification process.
 
 .. _adacore-cm:
 

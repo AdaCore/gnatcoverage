@@ -9,11 +9,13 @@ GNATcoverage is qualified as a verification tool.
 
 .. csv-table:: Compliance matrix for Table A-9 of DO-178B
    :delim: |
-   :header: "Item", "Description", "Ref.", "Notes", "Activity"
+   :header: "Item", "Ref.", "Achieved", "Notes"
 
-   1|Assurance is obtained that software development and integral processes comply with approved software plans and standards.|8.1a|For verification tools, this is limited to the compliance of tool processes with approved plans|:ref:`reading-plans`, :ref:`inspecting-other-data`
-   2|Assurance is obtained that transition criteria for the software life cycle processes are satisfied.|8.1b|Not required for verification tools, since they are treated as level D applications. This approach is not formalized in DO-178B, but is a common interpretation. DO-178C formally confirms this interpretation, see Table A-9|not applicable
-   3|Software conformity review is conducted.|8.1c, 8.3d, 8.3e, 8.3f, 8.3h|Detailed explanation available in :ref:`tool-conformity-review`|:ref:`tool-conformity-review`
+   1|8.1a|Yes|For verification tools, this is limited to the compliance of tool processes with approved plans, see :ref:`reading-plans`, :ref:`inspecting-other-data`
+   2|8.1b|No|Not required for verification tools, since they are treated as level D applications. This approach is not formalized in DO-178B, but is a common interpretation. DO-178C formally confirms this interpretation, see Table A-9
+   3|8.1c|Yes|See :ref:`tool-conformity-review`
+   3|8.3a,b,c,g,i|No|Detailed explanation available in :ref:`tool-conformity-review`
+   3|8.3d,e,f,h|Yes|Detailed explanation available in :ref:`tool-conformity-review`
 
 Quality Assurance Activities
 ============================
@@ -89,8 +91,8 @@ Inspection of test execution results
 
 .. _tool-conformity-review:
 
-Tool conformity review (8.1c)
-*****************************
+Tool conformity review
+**********************
 
 The following objectives **do not** apply for verification tools:
  * **8.3a** (completion of software life cycle process activities), because development/verification plans are not required for verification tools.
