@@ -1,6 +1,5 @@
 # secnum     # Ada revs # sectitle # relevant ? # comment
 # -------------------------------------------------------
-
 1          # 95,05,12 # General
 1.1        # 95,05,12 # Scope                                              # no # no construct of relevance to SCA
 1.1.1      # 95,05,12 # Extent                                             # no # no construct of relevance to SCA
