@@ -131,6 +131,9 @@ Archive, Retrieval and Release
 items, thanks to the security mechanisms embedded in the Git
 repositories.
 
+Long-term archiving and retrieval of the tool executable object code and
+qualfication data is a responsibility of the applicant.
+
 Detailed procedures are as follows.
 
 Customer/Project specific tracking
