@@ -233,7 +233,7 @@ def altrun_attr_for(p0,p1):
 
 def cargs_opt_for (lang):
     """Name of the command line option to pass for language LANG."""
-    return "--cargs" + (':%s' % lang if lang else "")
+    return "cargs" + (':%s' % lang if lang else "")
 
 def cargs_attr_for (lang):
     """Name of our internal options attribute to hold cargs for
@@ -312,7 +312,7 @@ def add_shared_options_to (o, toplevel):
     # downstream.
 
     [o.add_option (
-            cargs_opt_for(lang), dest=cargs_attr_for(lang),
+            "--%s" % cargs_opt_for(lang), dest=cargs_attr_for(lang),
             metavar='CARGS', default="",
             help=(
                 'Additional arguments to pass to the %scompiler when '

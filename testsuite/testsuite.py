@@ -1038,7 +1038,7 @@ class TestSuite:
         # --cargs family
 
         [testcase_cmd.append(
-                '%(opt)s=%(val)s' % {
+                '--%(opt)s=%(val)s' % {
                     "opt" : cargs_opt_for(lang),
                     "val" : getattr(mopt, cargs_attr_for(lang))
                     }
