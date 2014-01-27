@@ -17,36 +17,35 @@ def __extra_block_for(dolevel):
 
     return '\n'.join(
         ('',
-         '<artifact_factory class="TC_Set">',
+         '<artifact_reader class="TC_Set">',
          '  <on_location',
          '     relative_class="TC_Set"',
-         '     pattern="$relative.location/%s/*/tc_set.rst"' % dolevel,
+         '     pattern="${relative.attributes.location}/%s/*/tc_set.rst"' % dolevel,
          '     type="content"',
          '  />',
-         '  <creates ',
-         '     location="$location.container"',
-         '     name="$subst($location.basename,([0-9]+_)?(.*),\\2)"',
-         '  />',
-         '</artifact_factory>'))
+         '  <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),\\2)">',
+         '      <assign attribute="location" value="${event.location.container}"/>',
+         '  </creates>',
+         '</artifact_reader>'))
 
 def __reqset_triggers_for (lang, chapter):
     return '\n'.join(
         ('<on_location ',
          '   relative_instance="/TOR/%s"' % lang,
-         '   pattern="$relative.location/%s/req_set.rst"' % chapter,
+         '   pattern="${relative.attributes.location}/%s/req_set.rst"' % chapter,
          '   type="content"',
          '/>'))
 
 def __langlevel_triggers_for(dolevel, languages):
     """Triggers so only the language/criterion sections of relevance
     are included."""
-    
+
     chapters_for = {
         'doC': ['stmt'],
         'doB': ['stmt', 'decision'],
         'doA': ['stmt', 'decision', 'mcdc']
         }
-    
+
     return '\n'+'\n'.join(
         (__reqset_triggers_for(lang, chapter)
          for lang in languages
@@ -55,7 +54,7 @@ def __langlevel_triggers_for(dolevel, languages):
 
 def __gen_model_for(dolevel, languages):
     """Generate model.xml from template.xml"""
-    
+
     with open('model.xml', 'w') as f:
         f.write(
             contents_of("template.xml") % {

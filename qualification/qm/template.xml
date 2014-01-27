@@ -1,29 +1,46 @@
 <project name="GNATcoverage" scripts="qm_plugins">
 
-  <repository name="default" class="fs" root="."/>
-  <repository name="tor" class="fs" root="../../testsuite/Qualif"/>
+  <repository class="fs" name="plans" root="./plans"/>
+  <repository class="fs" name="env" root="./env"/>
+  <repository class="fs" name="build" root="./build"/>
+  <repository class="fs" name="tor" root="../../testsuite/Qualif"/>
 
 <!-- Common -->
-
   <artifact_class name="Environment" role="artifact">
-    <location_content mime="text/x-python"/>
+    <attributes>
+      <location_content name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/x-python" occurs="1" pattern="${attributes.location}"/>
+    </resources>
   </artifact_class>
 
- <artifact_class name="Root_Document" role="document">
-    <location_container>
-      <resource name="content" location="content.rst" mime="text/x-rst"/>
-      <resource name="config" location="qmconf.py" mime="text/x-python"/>
-    </location_container>
+  <artifact_class name="Root_Document" role="document">
+    <attributes>
+      <location_container name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/x-rst" name="content" occurs="1" pattern="${attributes.location}/content.rst"/>
+      <collection mime="text/x-python" name="config" occurs="1" pattern="${attributes.location}/qmconf.py"/>
+    </resources>
   </artifact_class>
 
   <artifact_class name="Chapter" role="document">
-    <location_container>
-      <resource name="content" location="content.rst" mime="text/x-rst"/>
-    </location_container>
+    <attributes>
+      <location_container name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/x-rst" name="content" occurs="1" pattern="${attributes.location}/content.rst"/>
+    </resources>
   </artifact_class>
 
   <artifact_class name="PDF" role="pdf">
-    <location_content mime="application/pdf"/>
+    <attributes>
+      <location_content name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="application/pdf" occurs="1" pattern="${attributes.location}"/>
+    </resources>
   </artifact_class>
 
   <link_definition kind="dependency" name="ENV_PDF">
@@ -36,260 +53,292 @@
     <to class="PDF"/>
   </link_definition>
 
+  <artifact_reader class="PDF">
+    <on_location relative_class="Root_Document"
+                 pattern="build:///latexpdf/${relative.name}.pdf"
+                 type="content"/>
+    <creates name="${attributes.location.basename}">
+      <assign attribute="location" value="${event.location}"/>
+    </creates>
+  </artifact_reader>
+
+  <artifact_reader class="Environment">
+    <on_location pattern="env:///env.py"
+                 type="content"/>
+    <creates name="environment">
+       <assign attribute="location" value="${event.location}"/>
+    </creates>
+ </artifact_reader>
+
+
 <!-- PLANS -->
 
-  <artifact_factory class="Environment">
-    <on_location pattern="default:///env.py" type="content"/>
-    <creates name="environment"/>
-  </artifact_factory>
-
-  <artifact_factory class="Root_Document">
-    <on_location pattern="default:///plans/qmconf.py"
-                 type="content"/>
-    <creates location="$location.container" name="PLANS"/>
-  </artifact_factory>
-
-  <artifact_factory class="PDF">
-    <on_location relative_class="Root_Document"
-                 pattern="/build/latexpdf/$relative.name.pdf"
-                 type="content"/>
-    <creates name="$location.basename">
-      <link_constructor implements="ENV_PDF">
-        <from instance="environment"/>
-      </link_constructor>
-      <link_constructor implements="DOC_PDF">
-        <from instance="$relative"/>
-      </link_constructor>
+  <artifact_reader class="Root_Document">
+    <on_location pattern="plans:///qmconf.py" type="content"/>
+    <creates name="PLANS">
+      <assign attribute="location" value="${event.location.container}"/>
     </creates>
-  </artifact_factory>
+  </artifact_reader>
 
-  <artifact_factory name="Plan_Chapters" class="Chapter">
-    <on_location relative_factory="Plan_Chapters"
-                 pattern="$relative.location/*/content.rst"
+  <artifact_reader class="Chapter" name="Plan_Chapters">
+    <on_location relative_class="Chapter"
+                 pattern="${relative.attributes.location}/*/content.rst"
                  type="content"/>
     <on_location relative_instance="/PLANS"
-                 pattern="$relative.location/*/content.rst"
+                 pattern="${relative.attributes.location}/*/content.rst"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename"/>
-  </artifact_factory>
+    <creates name="${attributes.location.basename}">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
 
 <!-- TOR -->
+  <artifact_reader class="Root_Document">
+    <on_location pattern="tor:///qmconf.py" type="content"/>
+    <creates name="TOR">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
 
-  <artifact_factory class="Root_Document">
-    <on_location pattern="tor:///qmconf.py"
-                 type="content"/>
-    <creates location="$location.container" name="TOR"/>
-  </artifact_factory>
+  <artifact_reader class="Chapter" name="Intro">
+    <on_location pattern="${relative.attributes.location}/*/content.rst" relative_instance="/TOR" type="content"/>
+    <creates name="${attributes.location.basename}">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
 
-  <artifact_factory name="Intro" class="Chapter">
-    <on_location relative_instance="/TOR"
-                 pattern="$relative.location/*/content.rst"
-                 type="content"/>
-    <creates location="$location.container" name="$location.basename"/>
-  </artifact_factory>
-
-  <artifact_class name="Appendix" inherits="Chapter">
-    <location_container>
-      <resource name="app" location="app.rst" mime="text/x-rst"/>
-    </location_container>
+  <artifact_class inherits="Chapter" name="Appendix">
+    <resources>
+      <collection mime="text/x-rst" name="app" occurs="1" pattern="${attributes.location}/app.rst"/>
+    </resources>
   </artifact_class>
 
-  <artifact_factory class="Appendix" overrides="Intro">
-    <on_location relative_class="Appendix"
-                 pattern="$relative.location/*/app.rst"
-                 type="content"/>
-    <on_location relative_instance="/TOR"
-                 pattern="$relative.location/Appendix/content.rst"
-                 type="content"/>
-    <creates location="$location.container" name="$location.basename"/>
-  </artifact_factory>
+  <artifact_reader class="Appendix" overrides="Intro">
+    <on_location pattern="${relative.attributes.location}/*/app.rst" relative_class="Appendix" type="content"/>
+    <on_location pattern="${relative.attributes.location}/Appendix/content.rst" relative_instance="/TOR" type="content"/>
+    <creates name="${attributes.location.basename}">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
 
   <artifact_class name="Req_Set" role="set" abstract="true">
-    <location_container>
-       <resource name="set_content" location="*req_set.rst" mime="text/x-rst"/>
-    </location_container>
+    <attributes>
+      <location_container name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/x-rst" name="set_content" occurs="*" pattern="${attributes.location}/*req_set.rst"/>
+    </resources>
   </artifact_class>
 
   <artifact_class name="TORReq_Set" inherits="Req_Set"/>
 
   <artifact_class name="Req" role="tor" abstract="true">
-    <location_container>
-       <resource name="requirement" location="*req.rst" mime="text/x-rst"/>
-    </location_container>
+    <attributes>
+      <location_container name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/x-rst" name="requirement" occurs="*" pattern="${attributes.location}/*req.rst"/>
+    </resources>
   </artifact_class>
 
   <artifact_class name="TORReq" inherits="Req"/>
 
   <artifact_class name="TC_Set" role="settest">
-    <location_container>
-       <resource name="tc_set_content" location="tc_set.rst" mime="text/x-rst"/>
-    </location_container>
+    <attributes>
+      <location_container name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/x-rst" name="tc_set_content" occurs="1" pattern="${attributes.location}/tc_set.rst"/>
+    </resources>
   </artifact_class>
 
   <artifact_class name="TC" role="testcase">
-    <location_container>
-       <resource name="tc_content" location="tc.rst" mime="text/x-rst"/>
-    </location_container>
+    <attributes>
+      <location_container name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/x-rst" name="tc_content" occurs="1" pattern="${attributes.location}/tc.rst"/>
+    </resources>
   </artifact_class>
 
   <link_definition kind="dependency" name="TOR_TC">
-     <from class="Req"/>
-     <to class="TC"/>
+    <from class="Req"/>
+    <to class="TC"/>
   </link_definition>
-  <artifact_factory class="TORReq_Set">
+
+  <artifact_reader class="TORReq_Set">
     %(langlevel_reqset_triggers)s
     <on_location relative_class="TORReq_Set"
-                 pattern="$relative.location/*/req_set.rst"
+                 pattern="${relative.attributes.location}/*/req_set.rst"
                  type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
-  </artifact_factory>
+    <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),\2)">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
 
-
-  <artifact_factory class="TORReq">
+  <artifact_reader class="TORReq">
     <on_location relative_class="Chapter"
-                 pattern="$relative.location/*/req.rst"
+                 pattern="${relative.attributes.location}/*/req.rst"
                  type="content"/>
     <on_location relative_class="TORReq_Set"
-                 pattern="$relative.location/*/req.rst"
+                 pattern="${relative.attributes.location}/*/req.rst"
                  type="content"/>
-   <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
-  </artifact_factory>
+    <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),\2)">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
 
-  <artifact_factory class="TC_Set">
+  <artifact_reader class="TC_Set">
     <on_location relative_class="TORReq"
-                 pattern="$relative.location/*/tc_set.rst"
+                 pattern="${relative.attributes.location}/*/tc_set.rst"
                  type="content"/>
     <on_location relative_class="TORReq_Set"
-                 pattern="$relative.location/*/tc_set.rst"
+                 pattern="${relative.attributes.location}/*/tc_set.rst"
                  type="content"/>
     <on_location relative_class="TC_Set"
-                 pattern="$relative.location/*/tc_set.rst"
+                 pattern="${relative.attributes.location}/*/tc_set.rst"
                  type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
-  </artifact_factory>
-
-  <artifact_factory class="TC">
-    <on_location relative_class="TORReq"
-                 pattern="$relative.location/*/tc.rst"
-                 type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)">
-       <link_constructor implements="TOR_TC">
-          <from instance="$relative"/>
-       </link_constructor>
+    <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),\2)">
+      <assign attribute="location" value="${event.location.container}"/>
     </creates>
-  </artifact_factory>
+  </artifact_reader>
+
+  <artifact_reader class="TC">
+    <on_location relative_class="TORReq"
+                 pattern="${relative.attributes.location}/*/tc.rst"
+                 type="content"/>
+    <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),\2)">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
 
   %(extra_block)s
 
-  <artifact_factory class="TC">
+  <artifact_reader class="TC">
     <on_location relative_class="TORReq_Set"
-                 pattern="$relative.location/*/tc.rst"
+                 pattern="${relative.attributes.location}/*/tc.rst"
                  type="content"/>
     <on_location relative_class="TC_Set"
-                 pattern="$relative.location/*/tc.rst"
+                 pattern="${relative.attributes.location}/*/tc.rst"
                  type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)">
-      <link_constructor implements="TOR_TC">
-          <from instance="$relative.relative"/>
-      </link_constructor>
+    <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),\2)">
+      <assign attribute="location" value="${event.location.container}"/>
     </creates>
-  </artifact_factory>
+  </artifact_reader>
 
-  <artifact_factory class="TC">
+  <artifact_reader class="TC">
     <on_location relative_class="TORReq"
-                 pattern="$relative.location/*/tc.rst"
+                 pattern="${relative.attributes.location}/*/tc.rst"
                  type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)">
-      <link_constructor implements="TOR_TC">
-          <from instance="$relative"/>
-      </link_constructor>
+    <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),\2)">
+      <assign attribute="location" value="${event.location.container}"/>
     </creates>
-  </artifact_factory>
+  </artifact_reader>
 
-  <artifact_class name="Source_files" role="sources" abstract="true"/>
-
-  <artifact_class name="Ada_Sources" role="ada" inherits="Source_files">
-    <location_container>
-       <resource name="spec_sources" location="*.ads" mime="text/x-ada"/>
-       <resource name="body_sources" location="*.adb" mime="text/x-ada"/>
-    </location_container>
+  <artifact_class abstract="true" name="Source_files" role="sources"/>
+  <artifact_class inherits="Source_files" name="Ada_Sources" role="ada">
+    <attributes>
+      <location_container name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/x-ada" name="spec_sources" occurs="*" pattern="${attributes.location}/*.ads"/>
+      <collection mime="text/x-ada" name="body_sources" occurs="*" pattern="${attributes.location}/*.adb"/>
+    </resources>
   </artifact_class>
 
-  <artifact_class name="Conso_Sources" role="consolidation" inherits="Source_files">
-    <location_content mime="text/plain"/>
+  <artifact_class inherits="Source_files" name="Conso_Sources" role="consolidation">
+   <attributes>
+      <location_container name="location"/>
+   </attributes>
+   <resources>
+      <collection mime="text/plain" occurs="1" pattern="${attributes.location}"/>
+    </resources>
   </artifact_class>
 
-  <artifact_class name="C_Sources" role="C" inherits="Source_files">
-    <location_container>
-       <resource name="c_sources" location="*.c" mime="text/x-c"/>
-       <resource name="h_sources" location="*.h" mime="text/x-h"/>
-    </location_container>
+  <artifact_class inherits="Source_files" name="C_Sources" role="C">
+   <attributes>
+     <location_container name="location"/>
+   </attributes>
+   <resources>
+      <collection mime="text/x-c" name="c_sources" occurs="*" pattern="${attributes.location}/*.c"/>
+      <collection mime="text/x-h" name="h_sources" occurs="*" pattern="${attributes.location}/*.h"/>
+    </resources>
   </artifact_class>
 
-  <artifact_factory class="Ada_Sources">
+  <artifact_reader class="Ada_Sources">
     <on_location relative_instance="/TOR/Ada"
-                 pattern="$relative.location/src/*.ad?"
+                 pattern="${relative.attributes.location}/src/*.ad?"
                  type="content"/>
     <on_location relative_class="Req"
-                 pattern="$relative.location/src/*.ad?"
+                 pattern="${relative.attributes.location}/src/*.ad?"
                  type="content"/>
     <on_location relative_class="Req_Set"
-                 pattern="$relative.location/src/*.ad?"
+                 pattern="${relative.attributes.location}/src/*.ad?"
                  type="content"/>
     <on_location relative_class="TC_Set"
-                 pattern="$relative.location/src/*.ad?"
+                 pattern="${relative.attributes.location}/src/*.ad?"
                  type="content"/>
     <on_location relative_class="TC"
-                 pattern="$relative.location/src/*.ad?"
+                 pattern="${relative.attributes.location}/src/*.ad?"
                  type="content"/>
-    <creates location="$location.container" name="$subst($relative.name,(.*),\1_Ada)"/>
-  </artifact_factory>
+    <creates name="$subst(${relative.name},(.*),\1_Ada)">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
 
-  <artifact_factory class="Conso_Sources">
+  <artifact_reader class="Conso_Sources">
     <on_location relative_instance="/TOR/Ada"
-                 pattern="$relative.location/src/cons_*.txt"
+                 pattern="${relative.attributes.location}/src/cons_*.txt"
                  type="content"/>
     <on_location relative_class="Req"
-                 pattern="$relative.location/src/cons_*.txt"
+                 pattern="${relative.attributes.location}/src/cons_*.txt"
                  type="content"/>
     <on_location relative_class="Req_Set"
-                 pattern="$relative.location/src/cons_*.txt"
+                 pattern="${relative.attributes.location}/src/cons_*.txt"
                  type="content"/>
     <on_location relative_class="TC_Set"
-                 pattern="$relative.location/src/cons_*.txt"
+                 pattern="${relative.attributes.location}/src/cons_*.txt"
                  type="content"/>
     <on_location relative_class="TC"
-                 pattern="$relative.location/src/cons_*.txt"
+                 pattern="${relative.attributes.location}/src/cons_*.txt"
                  type="content"/>
-    <creates name="$location.basename"/>
-  </artifact_factory>
+    <creates name="${attributes.location.basename}">
+      <assign attribute="location" value="${event.location}"/>
+    </creates>
+  </artifact_reader>
 
-  <artifact_factory class="C_Sources">
+  <artifact_reader class="C_Sources">
     <on_location relative_class="Req"
-                 pattern="$relative.location/src/*.[ch]"
+                 pattern="${relative.attributes.location}/src/*.[ch]"
                  type="content"/>
     <on_location relative_class="Req_Set"
-                 pattern="$relative.location/src/*.[ch]"
+                 pattern="${relative.attributes.location}/src/*.[ch]"
                  type="content"/>
     <on_location relative_class="TC_Set"
-                 pattern="$relative.location/src/*.[ch]"
+                 pattern="${relative.attributes.location}/src/*.[ch]"
                  type="content"/>
     <on_location relative_class="TC"
-                 pattern="$relative.location/src/*.[ch]"
+                 pattern="${relative.attributes.location}/src/*.[ch]"
                  type="content"/>
-    <creates location="$location.container" name="$subst($relative.name,(.*),\1_C)"/>
-  </artifact_factory>
+    <creates name="$subst(${relative.name},(.*),\1_C)">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
+
 
 
 <!-- STR -->
 
   <artifact_class name="TR" role="result">
-    <location_container>
-       <resource name="dump" location="*.dump" mime="text/plain"/>
-       <resource name="tr_content" location="test.py.out" mime="text/plain"/>
-       <resource name="tr_err" location="test.py.err" mime="text/plain"/>
-       <resource name="generated_rest" location="[^tc]*.rst" mime="text/x-rst"/>
-    </location_container>
+    <attributes>
+      <location_container name="location"/>
+    </attributes>
+    <resources>
+      <collection mime="text/plain" name="dump" occurs="*" pattern="${attributes.location}/*.dump"/>
+      <collection mime="text/plain" name="tr_content" occurs="1" pattern="${attributes.location}/test.py.out"/>
+      <collection mime="text/plain" name="tr_err" occurs="1" pattern="${attributes.location}/test.py.err"/>
+      <collection mime="text/x-rst" name="generated_rest" occurs="*" pattern="${attributes.location}/[^tc]*.rst"/>
+    </resources>
   </artifact_class>
 
   <link_definition kind="dependency" name="TC_TR">
@@ -297,15 +346,37 @@
     <to class="TR"/>
   </link_definition>
 
-  <artifact_factory class="TR">
+  <artifact_reader class="TR">
     <on_location relative_class="TC"
-                 pattern="$relative.location/tc.dump"
+                 pattern="${relative.attributes.location}/tc.dump"
                  type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),TR_\2)">
-      <link_constructor implements="TC_TR">
-        <from instance="$relative"/>
-      </link_constructor>
-   </creates>
-  </artifact_factory>
+    <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),TR_\2)">
+      <assign attribute="location" value="${event.location.container}"/>
+    </creates>
+  </artifact_reader>
+
+
+<!-- link constructors -->
+
+  <link_constructor implements="ENV_PDF">
+    <on_artifact class="PDF"/>
+    <link_from instance="environment"/>
+  </link_constructor>
+
+  <link_constructor implements="DOC_PDF">
+    <on_artifact class="PDF"/>
+    <link_from instance="${event.artifact.relative}"/>
+  </link_constructor>
+
+  <link_constructor implements="TOR_TC">
+    <on_artifact class="TC"/>
+    <link_from instance="${event.artifact.relative}"/>
+  </link_constructor>
+
+  <link_constructor implements="TC_TR">
+    <on_artifact class="TR"/>
+    <link_from instance="${event.artifact.relative}"/>
+  </link_constructor>
+
 
 </project>
