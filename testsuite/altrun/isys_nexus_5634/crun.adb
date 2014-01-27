@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2012-2013, AdaCore                     --
+--                     Copyright (C) 2012-2014, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -88,6 +88,13 @@ begin
 
    Executable_Path := new String'(Normalize_Pathname (Argument (2)));
 
+   declare
+   begin
+      Remove_Dir (Wspace_Dir_Name, Recursive => True);
+   exception
+      when Directory_Error =>
+         null;
+   end;
    declare
    begin
       Make_Dir (Wspace_Dir_Name);
