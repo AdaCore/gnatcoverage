@@ -4,20 +4,26 @@ from qm.rest.pdfgenerator import artifact_hash
 from itertools import izip_longest
 from collections import OrderedDict
 import re
-import fileinput
 import os
-from os.path import join
 
 
 MISSING_TR_LOG = os.path.join(qm.get_project_dir(), "missing_tr_log.txt")
 
 
 def class_to_string(a):
+    """
+    Returns the two or three letters string
+    refering to the class of the artifact 'a' if defined,
+    the name of the class otherwise.
 
+    :param a: the artifact
+    :type a: artifact
+    """
     d = {'TORReq_Set': 'rqg',
          'TORReq': 'rq',
          'TC': 'tc',
          'TC_Set': 'tcg'}
+
     if 'Appendix' in a.full_name:
         return 'app'
     elif a.name == 'OpEnviron':
@@ -30,11 +36,14 @@ def class_to_string(a):
 
 def class_to_content_key(a):
     """
-    Returns key name for content of various container
+    Returns key name for the main content of an artifact
+    which is a container. (defined in xml model).
+
+    :param a: the artifact
+    :type a: artifact
     """
 
     # keys in the model are dependant of the artifact class
-
     d = {'TORReq_Set': 'set_content',
          'TORReq': 'requirement',
          'TC': 'tc_content',
@@ -52,16 +61,19 @@ def class_to_content_key(a):
         return None
 
 
-##############################################################
-# Tests on artifact class
+###########################
+# Tests on artifact class #
+###########################
 
 def is_req(a):
     from qm import TORReq
     return isinstance(a, TORReq)
 
+
 def is_reqset(a):
     from qm import TORReq_Set
     return isinstance(a, TORReq_Set)
+
 
 def is_req_or_set(a):
     return is_req(a) or is_reqset(a)
@@ -71,9 +83,11 @@ def is_tc(a):
     from qm import TC
     return isinstance(a, TC)
 
+
 def is_tcset(a):
     from qm import TC_Set
     return isinstance(a, TC_Set)
+
 
 def is_tc_or_set(a):
     return is_tc(a) or is_tcset(a)
@@ -95,18 +109,16 @@ def is_consolidation(a):
 
 
 def is_helper(source_resource):
-    return not(is_test_driver(source_resource)
-               or is_functional_source(source_resource))
+    return not(is_driver(source_resource)
+               or is_functional(source_resource))
 
 
 def is_driver(source_resource):
-
     # a resource named with  "test_" is necsseraly a 'driver'
     return "test_" in source_resource.basename
 
 
 def is_functional(source_resource):
-
     # a resource whom content contains "-- #" is
     # a functional source.  In case of Ada Sources !!
 
@@ -120,10 +132,18 @@ def is_functional(source_resource):
     return is_func
 
 
-####################################################################
-# Utils
+#########
+# Utils #
+#########
 
 def get_short_description(artifact):
+    """
+    Get the first line of a file as the short description.
+    Layout elements are removed from the description.
+
+    :param artifact: the artifact
+    :type artifact: artifact
+    """
 
     for item in artifact.contents(class_to_content_key(artifact)):
         content = item.get_content()
@@ -138,30 +158,64 @@ def get_short_description(artifact):
 
     return first_line
 
+
 def get_first_req_relative(artifact):
     """
-    Returns the first parent which is a req
+    Returns the first parent which is a req.
+
+    :param artifact: the artifact
+    :type artifact: artifact
+    """
+    parent = artifact.relative_to
+    return (parent if (parent is None or is_req(parent))
+            else get_first_req_relative(parent))
+
+
+def write_artifact_ref(artifact_full_name, label=None):
+    """
+    Returns a sphinx :ref: on 'artifact_full_name'
+    using as label: 'label' if declared, 'artifact_full_name' otherwise
+
+    :param artifact_full_name: the full name of the artifact
+    :type artifact_full_name: string
+    :param label: the label to be used un the hyperlink
+    :type label: string
     """
 
-    parent = artifact.relative_to
-    return (
-        parent if (parent is None or is_req(parent))
-        else get_first_req_relative(parent))
+    if label is None:
+        label = artifact_full_name
+
+    return writer.role('ref',
+                       '%s <%s>' % (label,
+                                    artifact_full_name.replace('/', '_')[1:]))
 
 
 def kind_of(artifact):
+    """
+    :param artifact: the artifact
+    :type artifact: artifact
+    """
     return ("Requirement Group" if is_reqset(artifact)
             else "Requirement" if is_req(artifact)
             else "Testcase Group" if is_tcset(artifact)
             else "Testcase" if is_tc(artifact)
             else "Chapter")
 
+
 def short_kind_of(artifact):
+    """
+    :param artifact: the artifact
+    :type artifact: artifact
+    """
     kind = kind_of(artifact)
     return "Group" if "Group" in kind else kind
 
-def relative_links_for(artifact):
 
+def relative_links_for(artifact):
+    """
+    :param artifact: the artifact
+    :type artifact: artifact
+    """
     output = ""
 
     req = get_first_req_relative(artifact)
@@ -173,13 +227,19 @@ def relative_links_for(artifact):
     if ancestor and ancestor != req:
         output += writer.paragraph(
             "**Parent %s**: %s\n\n" %
-            (short_kind_of(ancestor), writer.qmref(ancestor.full_name)))
+            (short_kind_of(ancestor), write_artifact_ref(ancestor.full_name)))
 
     return output
 
 
 def default_importer(artifact):
+    """
+    Returns the importer whom the to_rest() method
+    must be used for a given 'artifact' according to its class.
 
+    :param artifact: the artifact
+    :type artifact: artifact
+    """
     if is_req(artifact):
         return RequirementImporter()
     else:
@@ -192,6 +252,17 @@ def default_importer(artifact):
 class TCIndexImporter(ArtifactImporter):
 
     def get_recursive_relatives(self, artifact, depth):
+        """
+        Returns the list of the tc or tc_set children of an artifact
+        and recurcively the children of its children until the
+        required depth
+
+        :param artifact:
+        :type artifact: artifact
+        :param depth:
+        :type depth: positive integer
+
+        """
         result = []
 
         for child in artifact.relatives:
@@ -203,10 +274,9 @@ class TCIndexImporter(ArtifactImporter):
         return result
 
     def qmlink_to_rest(self, parent, artifacts):
-        from qm import TC
+
         html_items = []
         pdf_items = []
-
         output = ""
 
         for a in artifacts:
@@ -214,12 +284,9 @@ class TCIndexImporter(ArtifactImporter):
             if is_source(a):
                 continue
 
-            if is_tc(a):
-                reference = writer.role('ref', "%s <%s>" %
-                                        (get_short_description(a),
-                                         a.full_name.replace('/', '_')[1:]))
-            if is_tcset(a):
-                reference = writer.qmref(a.full_name)
+            if is_tc_or_set(a):
+                reference = write_artifact_ref(a.full_name,
+                                               get_short_description(a))
 
             html_items.append([writer.strong(class_to_string(a)),
                                writer.strong(a.name),
@@ -232,11 +299,9 @@ class TCIndexImporter(ArtifactImporter):
                 # in html format.
 
                 if is_tc(suba):
-                    subref = writer.role('ref',
-                                         '%s <%s>' %
-                                         (get_short_description(suba),
-                                          suba.full_name.replace('/', '_')[1:]
-                                          ))
+                    subref = write_artifact_ref(suba.full_name,
+                                                get_short_description(suba))
+
                 if is_tcset(suba):
                     subref = writer.qmref(suba.full_name)
 
@@ -252,14 +317,12 @@ class TCIndexImporter(ArtifactImporter):
         pdf_table = writer.csv_table(
             pdf_items,
             headers=["", "TestCases", "Description"],
-            widths=[3, 25, 65])
+            widths=[3, 25, 65]).strip()
 
-        if is_tcset(parent):
-            output += relative_links_for(parent)
 
         output += writer.only(html_table, "html")
-        output += writer.only(pdf_table, "latex")
-        output += "|\n\n"
+        output += writer.only(pdf_table, "latex").strip()
+        output += "\n\n"
 
         links = []
         for a in artifacts:
@@ -268,13 +331,13 @@ class TCIndexImporter(ArtifactImporter):
             elif is_source(a):
                 pass
             else:
-                links.append((a, qm.rest.DefaultImporter()))
+                links.append((a, default_importer(a)))
 
-        output += writer.toctree([
-            '/%s/content' % artifact_hash(*l)
-            for l in links
-            if not is_tc_or_set(l[0]) or is_tc_or_set(parent)],
-        hidden=True)
+        output += writer.toctree(
+            ['/%s/content' % artifact_hash(*l)
+             for l in links
+             if not is_tc_or_set(l[0]) or is_tc_or_set(parent)],
+            hidden=True)
 
         return output, links
 
@@ -286,6 +349,9 @@ class AppIndexImporter(ArtifactImporter):
 
 
 class RequirementImporter(ArtifactImporter):
+    """
+    The specific importer for requirements
+    """
 
     def to_rest (self, artifact):
 
@@ -418,6 +484,13 @@ class SubsetIndexImporter(SubsetIndexTable):
 class TestCaseImporter(ArtifactImporter):
 
     def log_missing_TR(self, artifact):
+        """
+        Logs in a specific files the test case
+        if it has no test results.
+
+        :param artifact: the artifact to analyse
+        :type artifact: artifact
+        """
 
         has_TR = False
 
@@ -436,6 +509,9 @@ class TestCaseImporter(ArtifactImporter):
         Returns all the sources an artifact TC needs to
         list. It means its own sources and all thoses
         of its parents
+
+        :param artifact: the artifact the sources are required from
+        :type artifact: artifact
         """
 
         result = []
@@ -451,7 +527,7 @@ class TestCaseImporter(ArtifactImporter):
 
     def to_rest(self, artifact):
 
-        reference = ".. _%s:\n\n" % artifact.full_name.replace('/', '_')[1:]
+        reference = "|\n\n.. _%s:\n" % artifact.full_name.replace('/', '_')[1:]
 
         result_pdf = '**TEST CASE**:  %s\n\n' % artifact.full_name
         result_html = '%s\n%s\n' % (artifact.full_name,
@@ -557,15 +633,15 @@ class TestCaseImporter(ArtifactImporter):
                                         headers)
 
         latex_content = writer.csv_table([k for k in for_table],
-                                         headers)
+                                         headers).strip()
 
         result += writer.only(html_content, "html")
 
         result += writer.only(latex_content, "latex")
 
-        result += "|\n\n"
+        output = "\n" + writer.minipage(result, r'\linewidth') + "|\n"
 
-        return result
+        return output
 
 
 class SourceCodeImporter(ArtifactImporter):
@@ -604,20 +680,15 @@ class IndexImporter(ArtifactImporter):
     def qmlink_to_rest(self, parent, artifacts):
 
         indexes = []
-
         output = ""
-
         artifacts.sort(key=lambda a: a.full_name)
 
         if artifacts:
             for art in artifacts:
-
                 if is_tc(art):
-                    output += '%s %s\n\n' % (
-                              art.full_name,
-                              writer.role('ref',
-                                          'refers to <%s>' %
-                                          art.full_name.replace('/', '_')[1:]))
+                    output += '%s %s\n\n' % (art.full_name,
+                                             write_artifact_ref(art.full_name,
+                                                                'refers to'))
 
         return output, indexes
 
@@ -628,6 +699,12 @@ class TestCasesImporter(ArtifactImporter):
         """
         Get the first line of both itself and the ancestor
         if the ancestor name is ended with 'head'
+
+        :param artifact: the artifact
+        :type artifact: artifact
+        :param head: the prefix of the main group of artifacts
+                     the description is required for
+        :type head: string
         """
 
         parent = artifact.relative_to
@@ -635,7 +712,6 @@ class TestCasesImporter(ArtifactImporter):
         main_desc = None
 
         if parent is not None:
-
             if parent.full_name.endswith(head):
                 main_desc = get_short_description(parent)
                 desc = get_short_description(artifact)
@@ -646,6 +722,13 @@ class TestCasesImporter(ArtifactImporter):
         return main_desc, desc
 
     def get_testcases(self, artifact):
+        """
+        Returns either itself if artifact is a tc or a tc_set
+        or the list of the test cases children of the artifact
+
+        :param artifact: the artifact
+        :type artifact: artifact
+        """
         result = []
 
         if is_tc_or_set(artifact):
@@ -657,6 +740,13 @@ class TestCasesImporter(ArtifactImporter):
         return result
 
     def get_sources(self, artifact):
+        """
+        Returns either itself if artifact is a source or
+        the list of the sources children of artifact
+
+        :param artifact: the artifact
+        :type artifact: artifact
+        """
         result = []
 
         if is_source(artifact):
@@ -668,8 +758,6 @@ class TestCasesImporter(ArtifactImporter):
         return result
 
     def qmlink_to_rest(self, parent, artifacts):
-
-        from qm import Source_files, TC, TC_Set
 
         items = []
         for a in artifacts:
