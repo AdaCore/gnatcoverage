@@ -248,6 +248,8 @@ def default_importer(artifact):
     """
     if is_req(artifact):
         return RequirementImporter()
+    elif is_tcset(artifact):
+        return TCSetImporter()
     else:
         return qm.rest.DefaultImporter()
 
@@ -460,6 +462,40 @@ class RequirementImporter(ArtifactImporter):
                                      artifact.full_name,
                                      string=result))
 
+        return result
+
+
+class TCSetImporter(ArtifactImporter):
+    """
+    The specific importer for TCSet
+    """
+
+    def to_rest(self, artifact):
+        """
+        Returns the 'rest' content of a tc set having the
+        title and the links to parents included in the same 'minipage'
+        in order to keep them close in the final pdf generation
+        """
+
+        reference = ".. _%s:\n\n" % artifact.full_name.replace('/', '_')[1:]
+        result = ""
+        qmlink = ""
+        in_qmlink  = False
+        content = qm.rest.DefaultImporter().to_rest(artifact)
+
+        for line in content.splitlines():
+            if line.startswith('.. qmlink:: TCIndexImporter'):
+               in_qmlink = True
+
+            if in_qmlink:
+               qmlink += line + '\n'
+            else:
+               result += line + '\n'
+
+        result = reference + result + '\n\n'
+        result += relative_links_for(artifact)
+        result = "|\n" + writer.minipage(result, r'\linewidth') + "|\n\n" + \
+                 qmlink
 
         return result
 
