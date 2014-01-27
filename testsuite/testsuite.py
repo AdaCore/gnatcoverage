@@ -1018,7 +1018,7 @@ class TestSuite:
         # --gnatcov_<cmd> family
 
         [testcase_cmd.append \
-             ('%(opt)s=%(val)s' % {
+             ('--%(opt)s=%(val)s' % {
                     'opt' : altrun_opt_for(pgm, cmd),
                     'val' : getattr(mopt, altrun_attr_for(pgm, cmd))
                     }
@@ -1196,7 +1196,7 @@ class TestSuite:
         # --pre|post family
 
         [m.add_option(
-                '%s' % altrun_opt_for(when, what),
+                '--%s' % altrun_opt_for(when, what),
                 dest=altrun_attr_for(when, what), default=None,
                 help='run CMD %s to %s run' % (when, what), metavar="CMD")
          for (when, what) in control.ALTRUN_HOOK_PAIRS]

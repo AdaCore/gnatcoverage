@@ -224,7 +224,7 @@ ALTRUN_HOOK_PAIRS = (
 
 def altrun_opt_for(p0,p1):
     """Name of the command line option controlling the ALTRUN (P0, P1) pair."""
-    return "--%s_%s" % (p0, p1)
+    return "%s_%s" % (p0, p1)
 
 def altrun_attr_for(p0,p1):
     """Name of our internal controlling options attribute for the
@@ -252,7 +252,7 @@ def add_shared_options_to (o, toplevel):
     # --gnatcov_<cmd> family
 
     [o.add_option(
-            '%s' % altrun_opt_for(pgm, cmd), dest=altrun_attr_for(pgm, cmd),
+            '--%s' % altrun_opt_for(pgm, cmd), dest=altrun_attr_for(pgm, cmd),
             default=None, help='use CMD instead of "%s %s"' % (pgm, cmd),
             metavar="CMD")
      for (pgm, cmd) in ALTRUN_GNATCOV_PAIRS]
