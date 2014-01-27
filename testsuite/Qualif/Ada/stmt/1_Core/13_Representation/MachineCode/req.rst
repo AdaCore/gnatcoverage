@@ -1,7 +1,7 @@
 Machine_Code insertions
 =======================
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 Machine code insertions shall be processed as simple statements.
 

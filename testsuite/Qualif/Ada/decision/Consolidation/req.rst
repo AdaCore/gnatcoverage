@@ -1,7 +1,7 @@
 DC requirements for the combination of multiple execution traces
 ================================================================
 
-.. rubric:: Requirement
+%REQ_ID%
 
 When the coverage achieved by multiple execution traces is evaluated, a
 decision coverage violation shall only be reported when it would have been

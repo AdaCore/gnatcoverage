@@ -2,7 +2,7 @@ SC requirements for Renaming declarations (ARM 8.5)
 ===================================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

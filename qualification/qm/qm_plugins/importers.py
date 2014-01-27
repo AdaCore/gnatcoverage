@@ -353,17 +353,21 @@ class RequirementImporter(ArtifactImporter):
     The specific importer for requirements
     """
 
-    def to_rest (self, artifact):
+    def to_rest(self, artifact):
+        """
+        Returns the 'rest' content of a requirement having the
+        macro %REQ_ID% replaced by the requirement fullname
+        """
 
         reference = ".. _%s:\n\n" % artifact.full_name.replace('/', '_')[1:]
 
         result = qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
 
-        result = (
-            reference + re.sub (
-                pattern=".. rubric:: Requirement\S*",
-                repl="**REQUIREMENT** %s" % artifact.full_name,
-                string=result))
+        result = (reference + re.sub(pattern="%REQ_ID%",
+                                     repl="**REQUIREMENT** %s" %
+                                     artifact.full_name,
+                                     string=result))
+
 
         return result
 

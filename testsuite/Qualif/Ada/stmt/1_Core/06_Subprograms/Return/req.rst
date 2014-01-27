@@ -2,7 +2,7 @@ SC requirements for Return statements
 =====================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

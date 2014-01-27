@@ -1,7 +1,7 @@
 Attribute Definition Clauses for Operational Attributes
 =======================================================
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 Subprogram calls issued through operational attributes shall be
 treated as regular subprogram calls, regarding both the call statement

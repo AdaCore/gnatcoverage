@@ -5,7 +5,7 @@ SC requirements regarding potentially confusing constructs, e.g. multiple
 statements sharing a line.
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

@@ -4,7 +4,7 @@ Core DC requirements
 Core expectations for Decision Coverage
 (DC) assessments. All the other DC-related sections rely on this one.
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 For Decision Coverage assessments, the tool focuses on decisions used to
 influence control-flow language constructs. The types involved need not be

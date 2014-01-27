@@ -1,7 +1,7 @@
 DC requirements for exemption regions
 =====================================
 
-.. rubric:: Requirement
+%REQ_ID%
 
 Exemption regions shall apply to decision coverage violations as they do
 to statement coverage violations.

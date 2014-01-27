@@ -1,7 +1,7 @@
 SC requirements for exemption regions
 =====================================
 
-.. rubric:: Requirement
+%REQ_ID%
 
 For proper behavior of the Coverage Exemptions facility, the
 following set of rules shall be obeyed:

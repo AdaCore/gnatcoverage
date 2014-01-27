@@ -2,7 +2,7 @@ SC requirements for Loop statements (ARM 5.5)
 =============================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 
