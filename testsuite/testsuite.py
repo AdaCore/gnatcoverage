@@ -215,11 +215,15 @@ QLEVEL_INFO = {
 #   The replacement programs may be python scripts or native executables for
 #   the host on which the testsuite runs. They need to support the command
 #   line interface of the facility they replace, at least the subset used by
-#   the tests. See the altrun/example subdir for examples of such alternate
-#   implementations.
+#   the tests.
+#
+#   When the alternate command is called, the current directory is that of
+#   the context at the point of the call. We don't switch to the directory
+#   which holds the alternate implementation prio to calling it.
 # 
-#   The control.ALTRUN_GNATCOV_PAIRS variable contains the list of
-#   ('gnatcov', <cmd>) pairs we support.
+#   The control.ALTRUN_GNATCOV_PAIRS variable contains the list of ('gnatcov',
+#   <cmd>) pairs we support.  See the altrun/example subdir for implementation
+#   examples.
 #
 # * --pre/post-testsuite/testcase allows providing programs to execute as
 #   hooks within the testsuite process:
@@ -234,17 +238,22 @@ QLEVEL_INFO = {
 #   tests), and possibly some preliminary local cleanup before each test can
 #   start.
 #
+#   When pre-testcase is called, the current directory is set to the testcase
+#   location. When pre/post-testsuite is called the current directory is set
+#   to the location where the hook hook script or binary resides.
+#
 #   The control.ALTRUN_HOOK_PAIRS variable contains the list of
 #   ('pre|post', 'testsuite|testcase') pairs we support.
 
 # For environments that need combinations of the aforedescribed facilities,
-# the --altrun=<profile-id> command line option provides a convenient way to
+# the --altrun=<path> command line option provides a convenient way to
 # wrap everything together.
 #
-# It instructs this driver to look in the <profile-id> subdirectory,
-# and then:
+# It instructs this driver to look in the <path> subdirectory as part
+# of the testsuite run preparation, and then:
 #
-# * If there is a "setup" binary (exe or .py) there, run it; then:
+# * If there is a "setup" binary (exe or .py) there, run it with the
+#   current directory set to <path>; then:
 #
 # * If there are binaries (exe or .py) matching the pre/post command option
 #   names, use each as if the corresponding option had been passed
@@ -1296,9 +1305,10 @@ class TestSuite:
     # -----------------------------
 
     def maybe_exec (self, bin, edir=None):
-        """Execute the provided BIN program file, if any. For the time of
-        this execution, arrange for the current directory to be EDIR if
-        not None."""
+        """Execute the provided BIN program file, if any. Keep the current
+        directory untouched if EDIR is None. Otherwise, adjust the current
+        working dir temporarily for this particular execution; to the location
+        where BIN resides if EDIR is "...", or to EDIR's value otherwise."""
 
         if not bin:
             return
@@ -1306,7 +1316,10 @@ class TestSuite:
         to_run = [sys.executable, bin] if bin.endswith('.py') else [bin]
 
         cwd = os.getcwd()
-        to_dir = edir if (edir and (edir != cwd)) else None
+        to_dir = (
+            os.path.dirname(bin) if edir == "..."
+            else edir if (edir is not None and edir != cwd)
+            else None)
         try:
             if to_dir: os.chdir(to_dir)
             p = Run (to_run)
@@ -1672,8 +1685,8 @@ def _quoted_argv():
 
 if __name__ == "__main__":
     tso = TestSuite()
-    tso.maybe_exec (bin=tso.options.pre_testsuite)
+    tso.maybe_exec (bin=tso.options.pre_testsuite, edir="...")
     tso.run()
-    tso.maybe_exec (bin=tso.options.post_testsuite)
+    tso.maybe_exec (bin=tso.options.post_testsuite, edir="...")
 
 
