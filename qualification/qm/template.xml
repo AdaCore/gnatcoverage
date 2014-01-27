@@ -4,6 +4,7 @@
   <repository class="fs" name="env" root="./env"/>
   <repository class="fs" name="build" root="./build"/>
   <repository class="fs" name="tor" root="../../testsuite/Qualif"/>
+  <repository name="rm_artifacts" class="lrm" root="LRM" />
 
 <!-- Common -->
   <artifact_class name="Environment" role="artifact">
@@ -69,6 +70,11 @@
        <assign attribute="location" value="${event.location}"/>
     </creates>
  </artifact_reader>
+
+<link_definition name="Lrm_Req" kind="traceability">
+   <from class="LRM_Section" occurs="*"/>
+   <to class="TC" occurs="1"/>
+</link_definition>
 
 
 <!-- PLANS -->
@@ -355,6 +361,33 @@
     </creates>
   </artifact_reader>
 
+<!-- LRM Sections -->
+
+<artifact_class name="LRM_Section">
+  <attributes>
+     <location name="location"/>
+     <string name="title"/>
+     <string name="relevance"/>
+     <string name="comment"/>
+     <string name="languages"/>
+  </attributes>
+  <resources>
+     <collection name="content" pattern="${attributes.location}/*" mime="text/x-rst"/>
+  </resources>
+</artifact_class>
+
+<artifact_reader class="LRM_Section">
+    <on_location pattern="rm_artifacts://lrm_ref.txt/*"
+                 type="content"/>
+    <creates name="$subst(${event.location.basename},([0-9]+(.[0-9]+)*) (.*),\1)">
+      <assign attribute="location" value="${event.location}"/>
+      <assign attribute="languages" value="$subst(${event.location.basename},(.*) # (.*) # (.*) # (.*) #(.*),\2)"/>
+      <assign attribute="title" value="$subst(${event.location.basename},(.*) # (.*) # (.*) # (.*) #(.*),\3)"/>
+      <assign attribute="relevance" value="$subst(${event.location.basename},(.*) # (.*) # (.*) # (.*) #(.*),\4)"/>
+      <assign attribute="comment" value="$subst(${event.location.basename},(.*) # (.*) # (.*) # (.*) #(.*),\5)"/>
+    </creates>
+</artifact_reader>
+
 
 <!-- link constructors -->
 
@@ -378,5 +411,9 @@
     <link_from instance="${event.artifact.relative}"/>
   </link_constructor>
 
+  <link_constructor implements="Lrm_Req">
+    <on_artifact class="TC"/>
+    <link_from script="link_lrm.parse_req"/>
+  </link_constructor>
 
 </project>

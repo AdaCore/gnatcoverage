@@ -98,6 +98,12 @@ def is_test_result(a):
     return isinstance(a, TR)
 
 
+def is_lrm_section(a):
+    from qm import LRM_Section
+
+    return isinstance(a, LRM_Section)
+
+
 def is_source(a):
     from qm import Source_files
     return isinstance(a, Source_files)
@@ -247,6 +253,92 @@ def default_importer(artifact):
 
 ####################################################################
 # Importers
+
+
+class LRMTableImporter(ArtifactImporter):
+    """
+    The specific importer to generate the Traceability matrix
+    between reference manual and testcases and requirements
+    """
+
+    def qmlink_to_rest(self, parent, artifacts):
+        """
+        Returns a matrix of traceability between
+        lrm section artifact and thi associated test cases
+        and requirements.
+        chosen format was dicussed in MB23-001.
+
+        :param parent: the artifact calling the qmlink
+        :type parent: artifact
+        :param artifacts: the list of artifacts listed in qmlink
+        :type artifacts: list of artifacts
+        """
+
+        pdf_items = []
+        output = ""
+
+        for a in artifacts:
+            if is_lrm_section(a):
+                ref = {}
+
+                for children in a.derived_to:
+                    for child in children.all:
+                        if is_tc(child):
+                            parent = get_first_req_relative(child).full_name
+
+                            if parent not in ref.keys():
+                                ref[parent] = []
+
+                            ref[parent].append([child.full_name,
+                                                child.name])
+
+                tc_list = ""
+                comment = ""
+
+                for req in ref.keys():
+
+                    test_ref = ""
+
+                    if len(req) != 1:
+                        test_ref = "%s + %d other tests" % \
+                            (writer.role("raw-latex", r'\newline'),
+                             (len(req) - 1))
+
+                    tc_list += "Req:  %s %s * TC: %s %s %s " % (
+                        write_artifact_ref(req),
+                        writer.role("raw-latex", r'\newline'),
+                        write_artifact_ref(ref[req][0][0], ref[req][0][1]),
+                        test_ref,
+                        writer.role("raw-latex", r'\newline'))
+
+                if a.attributes['relevance'].strip() == "no" and tc_list != "":
+                    comment = tc_list
+                    relevance = "no but cov"
+                elif a.attributes['relevance'].strip() == "" and tc_list == "":
+                    relevance = "YES but not cov"
+                elif a.attributes['relevance'].strip() == "" and tc_list != "":
+                    relevance = "yes"
+                    comment = tc_list
+                else:
+                    relevance = "no"
+                    comment = a.attributes['comment'].strip()
+
+                pdf_items.append(["%s %s" % (a.full_name.replace('/', ''),
+                                             a.attributes['title'].strip()),
+                                  a.attributes['languages'].strip(),
+                                  relevance,
+                                  comment])
+
+        pdf_table = writer.csv_table(
+            pdf_items,
+            headers=["Sections", "Ada rev", "Applicable", "Comment"],
+            latex_format='|p{0.20\linewidth}|p{0.08\linewidth}|' +
+            'p{0.12\linewidth}|p{0.48\linewidth}|')
+
+        output += writer.only(pdf_table, "latex")
+        output += "\n\n"
+
+        return output, []
 
 
 class TCIndexImporter(ArtifactImporter):
