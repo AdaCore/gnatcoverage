@@ -2,7 +2,7 @@
 Software Configuration Management Plan
 ======================================
 
-This section illustrates the Software Configuration process in place at AdaCore, the tool developer. 
+This section illustrates the Software Configuration process in place at AdaCore, the tool developer.
 
 GNATcoverage is a verification tool and, as such, its configuration items are managed at CC2.
 
@@ -23,7 +23,7 @@ GNATcoverage is a verification tool and, as such, its configuration items are ma
    6|7.2.9a,c|No|Do not apply to tools
    6|7.2.9b|Yes|CC2
 
-..  _configuration-items:
+.. _configuration-items:
 
 Version Controlled Items
 ************************
@@ -67,13 +67,13 @@ another team member for further action until a resolution is found. The
 complete problem evolution (related email exchanges) and status history are
 tracked in a database thanks to the unique issue identifier.
 
-..  _traceability:
+.. _traceability:
 
 Traceability
 ************
 
 **Item 7.2.2f:** The following traceability relations are established:
- 
+
  * From TOR to Test Cases: each TOR and Test Case is contained in a folder on the repository.
    Folders of Test Cases are nested inside the folders of the TOR they are tracebale
    to.
@@ -94,8 +94,8 @@ applicant.
 Base technical support
 ----------------------
 
-Configuration Management of artifacts is technically implemented via Git repositories 
-which track the life cycle of each artifact automatically.  
+Configuration Management of artifacts is technically implemented via Git repositories
+which track the life cycle of each artifact automatically.
 E-mail-based discussions about each artifact are also tracked,
 using the AdaCore ticket system deployed within the whole company for more
 than fifteen years now.
@@ -103,7 +103,7 @@ than fifteen years now.
 The location of the GNATcoverage repository is:
 **git+ssh://scm.forge.open-do.org/scmrepos/git/couverture**
 
-The location of the GNATcoverege Qualification Kit repository is: 
+The location of the GNATcoverege Qualification Kit repository is:
 **git+ssh://git.eu.adacore.com/scmrepos/git/gnatcoverage**
 
 .. _adacore-change-control:
@@ -112,9 +112,9 @@ Change control
 --------------
 
 **Item 7.2.4a:** Integrity of configuration items is guaranteed by the Git
-repositories where all configuration items are located. Only 
+repositories where all configuration items are located. Only
 authorized engineers can modify configuration items and all modifications are
-recorded. In addition, all repositories and mail servers are mirrored with 
+recorded. In addition, all repositories and mail servers are mirrored with
 machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
 
 **Item 7.2.4b:** Each change to a configuration item is associated to a unique
