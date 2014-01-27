@@ -1337,9 +1337,7 @@ class TestSuite:
         """
 
         candidate_exe = (
-            "base.%s" % self.env.host.os.exeext
-            if self.env.host.os.exeext else base
-            )
+            base + (self.env.host.os.exeext if self.env.host.os.exeext else ""))
         candidates = [candidate_exe, base+".py"]
 
         def relative_for(p):
@@ -1376,12 +1374,12 @@ class TestSuite:
             if we find a matching binary program in the altrun subdir we are
             processing. BINBASE provides the binary base name to use."""
 
-            attr = altrun_attr_for(p0, p1)
             bin = self.__bin_for(os.path.join(ctldir, binbase))
 
             if not bin:
                 return
 
+            attr = altrun_attr_for(p0, p1)
             exit_if (
                 getattr(self.options, attr),
                 "%s altrun conflicts with explicit --%s" % (bin, attr)
