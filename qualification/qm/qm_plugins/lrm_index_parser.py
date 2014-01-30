@@ -12,7 +12,6 @@ class LRMParser(qm.LocationParser):
     def parse(self, path, parent):
         """Main entry point"""
 
-        lineno = 0
         lines = []
         self.parent = parent
 
@@ -20,13 +19,16 @@ class LRMParser(qm.LocationParser):
             lines = fd.read().splitlines()
 
         for line in lines:
-            lineno += 1
 
-            if lineno > 3:
-                print line
+            if line.startswith('#'):
+               continue
 
-                if len(line) > 0:
-                    self.append_content_location(line, line, parent)
+            if line.startswith('Note'):
+                break
+
+            if len(line.strip()) > 0:
+                self.append_content_location(line, line, parent)
+
 
 qm.LocationParser.register_repository_factory(
     'lrm', '*.txt', LRMParser(), False)

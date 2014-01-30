@@ -275,14 +275,18 @@ class LRMTableImporter(ArtifactImporter):
         :param artifacts: the list of artifacts listed in qmlink
         :type artifacts: list of artifacts
         """
-
+        REQ_NAME_PREFIX = "/TOR/Ada"
         pdf_items = []
         output = ""
+        language_version = None
 
         for a in artifacts:
             if is_lrm_section(a):
-                ref = {}
 
+                if not language_version:
+                    language_version = a.attributes['language'].strip()
+
+                ref = {}
                 for children in a.derived_to:
                     for child in children.all:
                         if is_tc(child):
@@ -292,52 +296,90 @@ class LRMTableImporter(ArtifactImporter):
                                 ref[parent] = []
 
                             ref[parent].append([child.full_name,
-                                                child.name])
+                                                child.full_name.replace(
+                                                    parent, '')])
 
                 tc_list = ""
                 comment = ""
 
                 for req in ref.keys():
 
-                    test_ref = ""
+                    other_tcs = ""
 
-                    if len(req) != 1:
-                        test_ref = "%s + %d other tests" % \
+                    if len(ref[req]) != 1:
+                        other_tcs = "%s + %d other tests" % \
                             (writer.role("raw-latex", r'\newline'),
-                             (len(req) - 1))
+                             (len(ref[req]) - 1))
 
-                    tc_list += "Req:  %s %s * TC: %s %s %s " % (
-                        write_artifact_ref(req),
+                    requirement_str = "Req: %s" %  \
+                        write_artifact_ref(req,
+                                           req.replace(REQ_NAME_PREFIX,
+                                                       '')).strip()
+
+                    first_tc_str = "* TC: %s" % \
+                        write_artifact_ref(ref[req][0][0],
+                                           label=ref[req][0][1]).strip()
+
+                    tc_list += "%s %s %s %s %s " % (
+                        requirement_str,
                         writer.role("raw-latex", r'\newline'),
-                        write_artifact_ref(ref[req][0][0], ref[req][0][1]),
-                        test_ref,
+                        first_tc_str,
+                        other_tcs,
                         writer.role("raw-latex", r'\newline'))
 
-                if a.attributes['relevance'].strip() == "no" and tc_list != "":
-                    comment = tc_list
-                    relevance = "no but cov"
-                elif a.attributes['relevance'].strip() == "" and tc_list == "":
-                    relevance = "YES but not cov"
-                elif a.attributes['relevance'].strip() == "" and tc_list != "":
-                    relevance = "yes"
-                    comment = tc_list
-                else:
-                    relevance = "no"
-                    comment = a.attributes['comment'].strip()
+                applicable = a.attributes['relevance'].strip()
+                if tc_list != "":
+                    if applicable == "no":
+                        relevance = "no but cov"
+                    elif applicable == "partial":
+                        relevance = "partial"
+                        comment = a.attributes['comment'].strip() + ' ' + \
+                            writer.role("raw-latex", r'\newline') + ' '
+                    elif applicable == "yes":
+                        relevance = "yes"
+                    elif applicable == "no*":
+                        relevance = "no"
+                        comment = "Section does not require SCA-related " + \
+                            "tests, but some are supplied " + \
+                            writer.role("raw-latex", r'\newline') + ' '
+                    else:
+                        relevance = "unexpected value %s" % applicable
 
-                pdf_items.append(["%s %s" % (a.full_name.replace('/', ''),
-                                             a.attributes['title'].strip()),
-                                  a.attributes['languages'].strip(),
+                    comment += tc_list
+
+                else:
+                    if applicable == "no":
+                        relevance = "no"
+                        comment = a.attributes['comment'].strip()
+                    elif applicable == "partial":
+                        relevance = "PARTIAL but not cov"
+                        comment = a.attributes['comment'].strip()
+                    elif applicable == "yes":
+                        relevance = "YES but not cov"
+                    elif applicable == "no*":
+                        relevance = "NO but"
+                        comment = "indicated as no* in matrix." + \
+                            " Some test should be provided."
+                    else:
+                        relevance = "unexpected value %s" % applicable
+
+                pdf_items.append(["%s" % a.full_name.replace('/', ''),
+                                  a.attributes['title'].strip(),
                                   relevance,
                                   comment])
 
         pdf_table = writer.csv_table(
             pdf_items,
-            headers=["Sections", "Ada rev", "Applicable", "Comment"],
-            latex_format='|p{0.20\linewidth}|p{0.08\linewidth}|' +
-            'p{0.12\linewidth}|p{0.48\linewidth}|')
+            headers=["Section", "Title", "Applicable", "Comment"],
+            latex_format='|p{0.08\linewidth}|p{0.20\linewidth}|' +
+            'p{0.10\linewidth}|p{0.50\linewidth}|')
 
-        output += writer.only(pdf_table, "latex")
+        output += writer.paragraph(
+            "The matrix is established for version" +
+            " **%s** of the Ada Reference Manual." % language_version +
+            "\n\nMoreover the full_name prefix of requirements is *" +
+            REQ_NAME_PREFIX + "*.\n\n") + \
+            writer.only(pdf_table, "latex")
         output += "\n\n"
 
         return output, []
@@ -413,7 +455,6 @@ class TCIndexImporter(ArtifactImporter):
             headers=["", "TestCases", "Description"],
             widths=[3, 25, 65]).strip()
 
-
         output += writer.only(html_table, "html")
         output += writer.only(pdf_table, "latex").strip()
         output += "\n\n"
@@ -480,17 +521,17 @@ class TCSetImporter(ArtifactImporter):
         reference = ".. _%s:\n\n" % artifact.full_name.replace('/', '_')[1:]
         result = ""
         qmlink = ""
-        in_qmlink  = False
+        in_qmlink = False
         content = qm.rest.DefaultImporter().to_rest(artifact)
 
         for line in content.splitlines():
             if line.startswith('.. qmlink:: TCIndexImporter'):
-               in_qmlink = True
+                in_qmlink = True
 
             if in_qmlink:
-               qmlink += line + '\n'
+                qmlink += line + '\n'
             else:
-               result += line + '\n'
+                result += line + '\n'
 
         result = reference + result + '\n\n'
         result += relative_links_for(artifact)

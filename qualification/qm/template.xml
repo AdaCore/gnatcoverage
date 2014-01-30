@@ -369,7 +369,7 @@
      <string name="title"/>
      <string name="relevance"/>
      <string name="comment"/>
-     <string name="languages"/>
+     <string name="language"/>
   </attributes>
   <resources>
      <collection name="content" pattern="${attributes.location}/*" mime="text/x-rst"/>
@@ -377,17 +377,16 @@
 </artifact_class>
 
 <artifact_reader class="LRM_Section">
-    <on_location pattern="rm_artifacts://lrm_ref.txt/*"
+    <on_location pattern="rm_artifacts://lrm_ref_95.txt/*"
                  type="content"/>
     <creates name="$subst(${event.location.basename},([0-9]+(.[0-9]+)*) (.*),\1)">
       <assign attribute="location" value="${event.location}"/>
-      <assign attribute="languages" value="$subst(${event.location.basename},(.*) # (.*) # (.*) # (.*) #(.*),\2)"/>
+      <assign attribute="language" value="$subst(${event.location.container},lrm_ref_(.*).txt,\1)"/>
       <assign attribute="title" value="$subst(${event.location.basename},(.*) # (.*) # (.*) # (.*) #(.*),\3)"/>
       <assign attribute="relevance" value="$subst(${event.location.basename},(.*) # (.*) # (.*) # (.*) #(.*),\4)"/>
       <assign attribute="comment" value="$subst(${event.location.basename},(.*) # (.*) # (.*) # (.*) #(.*),\5)"/>
     </creates>
 </artifact_reader>
-
 
 <!-- link constructors -->
 
