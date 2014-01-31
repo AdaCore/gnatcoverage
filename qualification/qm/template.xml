@@ -377,7 +377,7 @@
 </artifact_class>
 
 <artifact_reader class="LRM_Section">
-    <on_location pattern="rm_artifacts://lrm_ref_95.txt/*"
+    <on_location pattern="rm_artifacts://lrm_ref_%(ada_version)s.txt/*"
                  type="content"/>
     <creates name="$subst(${event.location.basename},([0-9]+(.[0-9]+)*) (.*),\1)">
       <assign attribute="location" value="${event.location}"/>
