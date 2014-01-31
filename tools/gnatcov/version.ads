@@ -15,6 +15,7 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
 package Version is
-   Xcov_Version : constant String := "1.3.0w (20131023)";
+   Xcov_Version : constant String := "1.3.0w (20000000)";
 end Version;
