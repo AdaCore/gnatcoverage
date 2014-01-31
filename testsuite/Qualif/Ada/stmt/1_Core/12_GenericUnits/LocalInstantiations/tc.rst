@@ -8,3 +8,4 @@ reported as uncovered if the unit is not instantiated or if the instantiation
 is not executed/elaborated, because for unused generics in some cases no
 coverage information is generated.
 
+LRMREF: 12.3
