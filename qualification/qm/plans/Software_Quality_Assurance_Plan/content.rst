@@ -12,10 +12,10 @@ GNATcoverage is qualified as a verification tool.
    :header: "Item", "Ref.", "Achieved", "Notes"
 
    1|8.1a|Yes|See :ref:`reading-plans` and :ref:`inspecting-other-data`
-   2|8.1b|No|Not applicable, GNATcoverage is a verification tool
+   2|8.1b|Not applicable|GNATcoverage is a verification tool
    3|8.1c|Yes|See :ref:`tool-conformity-review`
    3|8.3a,b,c,d,e,f,g,h|Yes|See :ref:`tool-conformity-review`
-   3|8.3i|No|Not applicable, because no certification credit is sought for the use of previously developed software
+   3|8.3i|Not applicable|No certification credit is sought for the use of previously developed software
 
 Quality Assurance Activities
 ============================

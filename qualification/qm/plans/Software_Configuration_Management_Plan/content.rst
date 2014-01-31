@@ -11,16 +11,16 @@ GNATcoverage is a verification tool and, as such, its configuration items are ma
    :header: "Item", "Ref.", "Achieved", "Notes"
 
    1|7.2.1|Yes|See :ref:`configuration-items`
-   2|7.2.2a,b,c,d,e|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
+   2|7.2.2a,b,c,d,e|Not required for CC2|GNATcoverage is qualified as a verification tool
    2|7.2.2f,g|Yes|See :ref:`traceability`
-   3|7.2.3|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
+   3|7.2.3|Not required for CC2|GNATcoverage is qualified as a verification tool
    3|7.2.4a,b|Yes|See :ref:`adacore-change-control`
-   3|7.2.4, 7.2.5, 7.2.6|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
+   3|7.2.4, 7.2.5, 7.2.6|Not required for CC2|GNATcoverage is qualified as a verification tool
    4|7.2.7a,b(1)|Yes|See :ref:`adacore-archive`
-   4|7.2.7e|No|Not required for tools
-   4|7.2.7b(2),(3),(4),c,d|No|Not required for CC2 (GNATcoverage is qualified as a verification tool)
-   5|7.2.8|No|Does not apply to tools
-   6|7.2.9a,c|No|Do not apply to tools
+   4|7.2.7e|Does not apply to tools
+   4|7.2.7b(2),(3),(4),c,d|Not required for CC2|GNATcoverage is qualified as a verification tool
+   5|7.2.8|Does not apply to tools
+   6|7.2.9a,c|Does not apply to tools
    6|7.2.9b|Yes|CC2
 
 .. _configuration-items:
