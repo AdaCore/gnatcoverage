@@ -54,7 +54,7 @@
 3.6.3      # 95,05,12 # String Types                                             # no          # Not relevant to SCA
 3.7        # 95,05,12 # Discriminants                                            # no          # Not relevant to SCA
 3.7.1      # 95,05,12 # Discriminant Constraints                                 # no          # Not relevant to SCA
-3.7.2      # 95,05,12 # Operations of Discriminated Types                        # no          # Not relevant to SCA
+3.7.2      # 95,05,12 # Operations of Discriminated Types                        # no          # Covered by 4.1.4
 3.8        # 95,05,12 # Record Types                                             # partial     # SCA obligations are associated with default initializations for record components
 3.8.1      # 95,05,12 # Variant Parts and Discrete Choices                       # yes         #
 3.9        # 95,05,12 # Tagged Types and Type Extensions                         # no          # Not relevant to SCA
@@ -231,7 +231,7 @@
 13.8       # 95,05,12 # Machine Code Insertions                                  # yes         #
 13.9       # 95,05,12 # Unchecked Type Conversions                               # no          # Not relevant to SCA
 13.9.1     # 95,05,12 # Data Validity                                            # no          # General overview material
-13.9.2     # 95,05,12 # The Valid Attribute                                      # no          # Not relevant to SCA
+13.9.2     # 95,05,12 # The Valid Attribute                                      # no          # Covered by 4.1.4
 13.10      # 95,05,12 # Unchecked Access Value Creation                          # no          # Not relevant to SCA
 13.11      # 95,05,12 # Storage Management                                       # no          # Not relevant to SCA
 13.11.1    # 95,05    # The Max_Size_In_Storage_Elements Attribute               # no          # Not relevant to SCA
