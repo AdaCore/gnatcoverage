@@ -40,7 +40,7 @@
 3.5        # 95,05,12 # Scalar Types                                             # no          # Not relevant to SCA
 3.5.1      # 95,05,12 # Enumeration Types                                        # no          # Not relevant to SCA
 3.5.2      # 95,05,12 # Character Types                                          # no          # Not relevant to SCA
-3.5.3      # 95,05,12 # Boolean Types                                            # no          # Not relevant to SCA
+3.5.3      # 95,05,12 # Boolean Types                                            # yes         #
 3.5.4      # 95,05,12 # Integer Types                                            # no          # Not relevant to SCA
 3.5.5      # 95,05,12 # Operations of Discrete Types                             # no          # Not relevant to SCA
 3.5.6      # 95,05,12 # Real Types                                               # no          # Not relevant to SCA
