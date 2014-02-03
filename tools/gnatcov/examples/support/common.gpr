@@ -40,5 +40,13 @@ abstract project Common is
      when others   => Toolchain_Prefix := Target & "-";
    end case;
 
+   package IDE is
+      for Debugger_Command         use Target & "-gdb";
+      for Gnatlist                 use Target & "-gnatls";
+      for Gnat                     use Target & "-gnat";
+      for Compiler_Command ("Ada") use Target & "-gnatmake";
+      for Compiler_Command ("c")   use Target & "-gcc";
+   end IDE;
+
 end Common;
 
