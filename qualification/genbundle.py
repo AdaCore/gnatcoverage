@@ -552,7 +552,7 @@ class QMAT:
         # The qmachine model might use the "build" directory as
         # a repository, and it has to preexist:
 
-        os.mkdir ("build")
+        mkdir ("build")
         run ("qmachine model.xml -l scripts/generate_%s_%s.py" \
                  % (part, self.this_docformat))
 
