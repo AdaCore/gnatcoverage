@@ -1,6 +1,53 @@
 Traceability to LRM 
 ====================
 
+The table below demonstrates the TOR's coverage of a specific version of the
+Ada language, keyed to the Table of Contents of the corresponding Language
+Reference Manual (LRM).
+
+Each row in the table identifies an LRM section, indicates whether the
+features defined in that section are applicable to Source Coverage
+Analysis (SCA) (possible answers are "yes", "no", or "partial"),
+provides a comment explaining the rationale for "no" or "partial", and
+specifies a TOR testcase that exercises the features for "yes" or
+"partial".
+
+A feature is considered to be applicable to SCA if it is permitted by
+the ZFP profile, and if it is applicable to one or both of the forms of
+coverage that are reported by GNATcoverage: statement coverage, and
+decision coverage:
+
+* A feature is applicable to statement coverage if it is either a statement, a
+  declaration that results in initialization code, a pragma or
+  representation_clause that contains an expression that needs to be evaluated
+  at run time.
+
+* A feature is applicable to decision coverage if it corresponds to a decision
+  or condition, i.e., it is a language construct delivering a result of a
+  boolean type. The relevant features are thus logical operators, short
+  circuit control forms, relational operators, membership tests,
+  boolean-valued attributes, boolean-valued array elements and selected
+  components, functions delivering a boolean result, and simple boolean
+  variables.
+
+Because of the structure of the LRM, the description of the semantics of
+some features is spread over several sections. To avoid redundancy, only
+one of the sections is identified as applicable; the other sections are
+classified as non-applicable with a comment indicating the associated
+primary section for which SCA requirements are covered.
+
+A large part of the Ada LRM is devoted to constructs with static
+semantics but no run-time effect; since there are no SCA requirements
+for these features, they are regarded as not applicable.
+
+In many cases a feature that results in generated code is not applicable
+to SCA because it can only occur in contexts where SCA obligations will
+be associated with the surrounding construct. For example an array
+aggregate (section 4.3.3) can only occur as a constituent of a statement
+or a decision, it is not itself a statement or decision. Thus any SCA
+requirements for the aggregate will be associated with the enclosing
+statement or decision.
+
 .. qmlink:: LRMTableImporter
 
    :allclass:LRM_Section

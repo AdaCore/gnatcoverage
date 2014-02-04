@@ -375,10 +375,10 @@ class LRMTableImporter(ArtifactImporter):
             'p{0.10\linewidth}|p{0.50\linewidth}|')
 
         output += writer.paragraph(
-            "The matrix is established for version" +
-            " **%s** of the Ada Reference Manual." % language_version +
-            "\n\nMoreover the full_name prefix of requirements is *" +
-            REQ_NAME_PREFIX + "*.\n\n") + \
+            "This particular table is established for **Ada %s**." \
+                % language_version +
+            "\n\The requirement identifiers in this table were shortened by "
+            "removing the *%s* common prefix.\n\n" % REQ_NAME_PREFIX) + \
             writer.only(pdf_table, "latex")
         output += "\n\n"
 
