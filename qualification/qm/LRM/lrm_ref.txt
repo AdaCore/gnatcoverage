@@ -117,7 +117,7 @@
 6.3.1      # 95,05,12 # Conformance Rules                                        # no          # Not relevant to SCA
 6.3.2      # 95,05,12 # Inline Expansion of Subprograms                          # yes         #
 6.4        # 95,05,12 # Subprogram Calls                                         # yes         #
-6.4.1      # 95,05,12 # Parameter Associations                                   # no          # Not relevant to SCA
+6.4.1      # 95,05,12 # Parameter Associations                                   # no          # Covered by 6.4
 6.5        # 95,05,12 # Return Statements                                        # yes         #
 6.5.1      #    05    # Pragma No_Return                                         # no          # Ada 2005 feature
 6.5.1      #       12 # Nonreturning Procedures                                  # no          # Ada 2012 feature
