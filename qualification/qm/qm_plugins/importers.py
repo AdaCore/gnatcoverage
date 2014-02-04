@@ -330,7 +330,9 @@ class LRMTableImporter(ArtifactImporter):
                 applicable = a.attributes['relevance'].strip()
                 if tc_list != "":
                     if applicable == "no":
-                        relevance = "no but cov"
+                        relevance = "no"
+                        comment = a.attributes['comment'].strip() + ' ' + \
+                            writer.role("raw-latex", r'\newline') + ' '
                     elif applicable == "partial":
                         relevance = "partial"
                         comment = a.attributes['comment'].strip() + ' ' + \
