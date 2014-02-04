@@ -35,7 +35,7 @@
 3.3        # 95,05,12 # Objects and Named Numbers                                # no          # General overview material
 3.3.1      # 95,05,12 # Object Declarations                                      # yes         #
 3.3.2      # 95,05,12 # Number Declarations                                      # no          # Not relevant to SCA
-3.4        # 95,05,12 # Derived Types and Classes                                # no          # Not relevant to SCA
+3.4        # 95,05,12 # Derived Types and Classes                                # no          # Covered by 3.2.2
 3.4.1      # 95,05,12 # Derivation Classes                                       # no          # Not relevant to SCA
 3.5        # 95,05,12 # Scalar Types                                             # no          # Not relevant to SCA
 3.5.1      # 95,05,12 # Enumeration Types                                        # no          # Not relevant to SCA
