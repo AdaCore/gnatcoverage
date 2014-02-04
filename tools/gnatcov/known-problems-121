@@ -19,4 +19,6 @@ KP-121-N102-010 Spurious incomplete decision coverage with packed array
   Status:     This was fixed by a compiler adjustment available from the
               GNAT Pro 7.1 series.
 
-  Workaround: Extract the tests on packed array elements out of the decision.
+  Workaround: Extract the tests on packed array elements out of the decision,
+              or perform the decision coverage analysis by other means (object
+              level branch coverage analysis for example).
