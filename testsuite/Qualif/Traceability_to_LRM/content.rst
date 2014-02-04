@@ -6,7 +6,7 @@ Ada language, keyed to the Table of Contents of the corresponding Language
 Reference Manual (LRM).
 
 Each row in the table identifies an LRM section, indicates whether the
-features defined in that section are applicable to Source Coverage
+features defined in that section are applicable to Structural Coverage
 Analysis (SCA) (possible answers are "yes", "no", or "partial"),
 provides a comment explaining the rationale for "no" or "partial", and
 specifies a TOR testcase that exercises the features for "yes" or
@@ -18,7 +18,7 @@ coverage that are reported by GNATcoverage: statement coverage, and
 decision coverage:
 
 * A feature is applicable to statement coverage if it is either a statement, a
-  declaration that results in initialization code, a pragma or
+  declaration that results in initialization code, or a pragma or
   representation_clause that contains an expression that needs to be evaluated
   at run time.
 
