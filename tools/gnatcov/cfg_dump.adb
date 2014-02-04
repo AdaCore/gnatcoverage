@@ -543,15 +543,41 @@ package body CFG_Dump is
      (Context : Context_Access; PC : Pc_Type) return Boolean
    is
       Result : Boolean := False;
+      S      : Address_Info_Acc;
+
+      function "<=" (L, R : Local_Source_Location) return Boolean is
+        (L.Line < R.Line
+         or else (L.Line = R.Line and then L.Column <= R.Column));
+      --  Return if L is before R. Unlike in the Slocs package,
+      --  No_Sloc_Location must sort lower than specific slocs.
+
+      function In_Sloc_Range
+        (Sloc : Source_Location;
+         Sloc_Range : Source_Location_Range) return Boolean is
+        (Sloc.Source_File = Sloc_Range.Source_File
+         and then Sloc_Range.L.First_Sloc <= Sloc.L
+         and then Sloc.L <= Sloc_Range.L.Last_Sloc);
+      --  Return if Sloc belongs to in Sloc_Range
+
    begin
       for Loc of Context.Locs loop
-         Result :=
-           (case Loc.Kind is
-               when Address_Range =>
-                  PC in Loc.PC_First .. Loc.PC_Last,
-               when Sloc_Range    =>
-                  Get_Address_Info
-              (Context.Exec.all, Line_Addresses, PC) /= null);
+         case Loc.Kind is
+            when Address_Range =>
+               Result := PC in Loc.PC_First .. Loc.PC_Last;
+            when Sloc_Range =>
+               S := Get_Address_Info
+                 (Context.Exec.all, Subprogram_Addresses, PC);
+               if S /= null then
+                  declare
+                     Sloc : constant Address_Info_Acc :=
+                       Get_Address_Info (S.Lines, Line_Addresses, PC);
+                  begin
+                     Result :=
+                       (Sloc /= null
+                        and then In_Sloc_Range (Sloc.Sloc, Loc.Sloc_Range));
+                  end;
+               end if;
+         end case;
          if Result then
             return True;
          end if;
