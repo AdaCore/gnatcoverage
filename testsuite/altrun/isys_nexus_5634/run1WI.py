@@ -24,9 +24,17 @@ while (1):
 
 ws1 = os.path.abspath('ws/j.xjrf')
 
-cmgr = ic.ConnectionMgr()
+#cmgr = ic.ConnectionMgr()
 
-connectionConfig = ic.CConnectionConfig()
+#connectionConfig = ic.CConnectionConfig()
 connectionConfig.workspace (ws1)
 port = cmgr.startNewInstance (connectionConfig)
 print 'new winIDEA at port: ', port
+
+cmgr.connect(connectionConfig)
+executer = ic.CExecutionController (cmgr)
+executer.reset ()
+executer.stop ()
+# the steps above are included because the retrieval
+# of the firmware info from the ic5000 doesn't work
+# until some action has occured.
