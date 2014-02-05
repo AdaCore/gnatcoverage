@@ -65,11 +65,11 @@
 3.10       # 95,05,12 # Access Types                                             # partial     # SCA obligations are associated with default initializations for access values
 3.10.1     # 95,05,12 # Incomplete Type Declarations                             # no          # Not relevant to SCA
 3.10.2     # 95,05,12 # Operations of Access Types                               # no          # Not relevant to SCA
-3.11       # 95,05,12 # Declarative Parts                                        # no          # SCA obligations for a declarative_part are covered in other sections: either for the unit in which the declarativ_part occurs, or the constituent declarative_items in the declarative_part
+3.11       # 95,05,12 # Declarative Parts                                        # no          # SCA obligations for a declarative_part are covered in other sections: either for the unit in which the declarative_part occurs, or the constituent declarative_items in the declarative_part
 3.11.1     # 95,05,12 # Completions of Declarations                              # no          # Not relevant to SCA
 
 4          # 95,05,12 # Names and Expressions                                    # no          # General overview material
-4.1        # 95,05,12 # Names                                                    # no          # Not relevant to SCA
+4.1        # 95,05,12 # Names                                                    # no          # This is a general syntax section; TOR references are supplied for the relevant specific sections
 4.1.1      # 95,05,12 # Indexed Components                                       # partial     # This section applies when the indexed component is an element of a Boolean array and is used as a condition
 4.1.2      # 95,05,12 # Slices                                                   # no          # Not relevant to SCA
 4.1.3      # 95,05,12 # Selected Components                                      # partial     # This section applies when the selected component is a Boolean value and is used as a condition
