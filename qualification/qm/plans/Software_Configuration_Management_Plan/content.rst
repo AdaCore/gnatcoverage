@@ -100,10 +100,9 @@ E-mail-based discussions about each artifact are also tracked,
 using the AdaCore ticket system deployed within the whole company for more
 than fifteen years now.
 
-The location of the GNATcoverage repository is:
-**git+ssh://scm.forge.open-do.org/scmrepos/git/couverture**
+The GNATcoverage tool sources and Qualification Kit artifacts
+are hosted in distinct subdirectories on a single repository:
 
-The location of the GNATcoverege Qualification Kit repository is:
 **git+ssh://git.eu.adacore.com/scmrepos/git/gnatcoverage**
 
 .. _adacore-change-control:
