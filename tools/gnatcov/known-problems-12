@@ -1,0 +1,32 @@
+==========================================
+Known problems in GNATcoverage version 1.2
+==========================================
+
+Copyright (C) 2013-2014, AdaCore
+
+The following is a listing of known problems in releases 1.2.1 and 1.2.2.
+Each entry contains a status line stating when the problem was fixed, and on
+which release(s). In addition, any wavefront issued subsequent to the date
+specified (in ISO format YYYY-MM-DD) also contains the fix. This can be used
+to determine if a given release or wavefront has the fix identified in the
+entry.
+
+Note that older releases might or might not be affected by the problems listed
+in this document.
+
+Known problems fixed in 1.3.1 and above
+---------------------------------------
+
+KP-12-N102-010 Spurious incomplete decision coverage with packed array
+
+  Problem:    When performing decision coverage analysis on code compiled
+              with the GNAT Pro 7.0 series, gnatcov coverage might emit
+              spurious incomplete decision coverage diagnostics for properly
+              covered decisions that involve tests on packed array elements.
+
+  Status:     This was fixed by a compiler adjustment available from the
+              GNAT Pro 7.1 series.
+
+  Workaround: Extract the tests on packed array elements out of the decision,
+              or perform the decision coverage analysis by other means (object
+              level branch coverage analysis for example).
