@@ -277,6 +277,7 @@ class LRMTableImporter(ArtifactImporter):
         """
         REQ_NAME_PREFIX = "/TOR/Ada"
         pdf_items = []
+        html_items = []
         output = ""
         language_version = None
 
@@ -299,17 +300,25 @@ class LRMTableImporter(ArtifactImporter):
                                                 child.full_name.replace(
                                                     parent, '')])
 
-                tc_list = ""
-                comment = ""
+                pdf_tc_list = ""
+                html_tc_list = ""
+                pdf_comment = ""
+                html_comment = ""
 
                 for req in ref.keys():
 
-                    other_tcs = ""
+                    pdf_other_tcs = ""
+                    html_tcs = ""
 
-                    if len(ref[req]) != 1:
-                        other_tcs = "%s + %d other tests" % \
+                    if len(ref[req]) > 1:
+                        pdf_other_tcs = "%s + %d other tests" % \
                             (writer.role("raw-latex", r'\newline'),
                              (len(ref[req]) - 1))
+
+                    html_tcs = writer.role("raw-html", r'<br>').join([write_artifact_ref(
+                         k[0],
+                         label=k[1]) for k in ref[req]])
+
 
                     requirement_str = "Req: %s" %  \
                         write_artifact_ref(req,
@@ -320,30 +329,42 @@ class LRMTableImporter(ArtifactImporter):
                         write_artifact_ref(ref[req][0][0],
                                            label=ref[req][0][1]).strip()
 
-                    tc_list += "%s %s %s %s %s " % (
+                    pdf_tc_list += "%s %s %s %s %s " % (
                         requirement_str,
                         writer.role("raw-latex", r'\newline'),
                         first_tc_str,
-                        other_tcs,
+                        pdf_other_tcs,
                         writer.role("raw-latex", r'\newline'))
 
+                    html_tc_list += "%s %s  * TC: %s %s " % (
+                        requirement_str,
+                        writer.role("raw-html", r'<br>'),
+                        html_tcs,
+                        writer.role("raw-html", r'<br>'))
+
+
                 applicable = a.attributes['relevance'].strip()
-                if tc_list != "":
-                    if applicable == "no":
-                        relevance = "no"
-                        comment = a.attributes['comment'].strip() + ' ' + \
+                if pdf_tc_list != "":
+                    if applicable == "no" or applicable == "partial":
+                        relevance = applicable
+                        comment = a.attributes['comment'].strip()
+
+                        pdf_comment = comment + ' ' + \
                             writer.role("raw-latex", r'\newline') + ' '
-                    elif applicable == "partial":
-                        relevance = "partial"
-                        comment = a.attributes['comment'].strip() + ' ' + \
-                            writer.role("raw-latex", r'\newline') + ' '
+                        html_comment = comment + ' ' + \
+                            writer.role("raw-html", r'<br>') + ' '
+
                     elif applicable == "yes":
                         relevance = "yes"
                     elif applicable == "no*":
                         relevance = "no"
                         comment = "Section does not require SCA-related " + \
-                            "tests, but some are supplied " + \
+                            "tests, but some are supplied "
+
+                        pdf_comment = comment + \
                             writer.role("raw-latex", r'\newline') + ' '
+                        html_comment =  comment +  \
+                            writer.role("raw-html", r'<br>') + ' '
                     else:
                         relevance = "unexpected value %s" % applicable
 
@@ -353,22 +374,41 @@ class LRMTableImporter(ArtifactImporter):
                     if applicable == "no":
                         relevance = "no"
                         comment = a.attributes['comment'].strip()
+
+                        pdf_comment = comment
+                        html_comment = comment + ' ' + \
+                            writer.role("raw-html", r'<br>') + ' '
+
                     elif applicable == "partial":
                         relevance = "PARTIAL but not covered"
                         comment = a.attributes['comment'].strip()
+
+                        pdf_comment = comment
+                        html_comment = comment + ' ' + \
+                            writer.role("raw-html", r'<br>') + ' '
+
                     elif applicable == "yes":
                         relevance = "YES but not covered"
                     elif applicable == "no*":
                         relevance = "NO but"
                         comment = "Indicated as no* in matrix." + \
                             " Some test should be provided."
+
+                        pdf_comment = comment
+                        html_comment = comment + ' '
+
                     else:
                         relevance = "unexpected value %s" % applicable
 
                 pdf_items.append(["%s" % a.full_name.replace('/', ''),
                                   a.attributes['title'].strip(),
                                   relevance,
-                                  comment])
+                                  pdf_comment])
+
+                html_items.append(["%s" % a.full_name.replace('/', ''),
+                                   a.attributes['title'].strip(),
+                                   relevance,
+                                   html_comment])
 
         pdf_table = writer.csv_table(
             pdf_items,
@@ -376,12 +416,19 @@ class LRMTableImporter(ArtifactImporter):
             latex_format='|p{0.08\linewidth}|p{0.20\linewidth}|' +
             'p{0.10\linewidth}|p{0.50\linewidth}|')
 
+        html_table = writer.csv_table(
+            html_items,
+            headers=["Section", "Title", "Applicable", "Comment"],
+            widths=[8, 20, 10, 50])
+
         output += writer.paragraph(
             "This particular table is established for **Ada %s**." \
                 % language_version +
             "\n\The requirement identifiers in this table were shortened by "
             "removing the *%s* common prefix.\n\n" % REQ_NAME_PREFIX) + \
-            writer.only(pdf_table, "latex")
+            writer.only(pdf_table, "latex") + \
+            writer.only(html_table, "html")
+
         output += "\n\n"
 
         return output, []
