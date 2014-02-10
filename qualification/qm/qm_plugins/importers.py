@@ -354,13 +354,13 @@ class LRMTableImporter(ArtifactImporter):
                         relevance = "no"
                         comment = a.attributes['comment'].strip()
                     elif applicable == "partial":
-                        relevance = "PARTIAL but not cov"
+                        relevance = "PARTIAL but not covered"
                         comment = a.attributes['comment'].strip()
                     elif applicable == "yes":
-                        relevance = "YES but not cov"
+                        relevance = "YES but not covered"
                     elif applicable == "no*":
                         relevance = "NO but"
-                        comment = "indicated as no* in matrix." + \
+                        comment = "Indicated as no* in matrix." + \
                             " Some test should be provided."
                     else:
                         relevance = "unexpected value %s" % applicable
@@ -537,7 +537,7 @@ class TCSetImporter(ArtifactImporter):
 
         result = reference + result + '\n\n'
         result += relative_links_for(artifact)
-        result = "|\n" + writer.minipage(result, r'\linewidth') + "|\n\n" + \
+        result = "|\n\n" + writer.minipage(result, r'\linewidth') + "\n\n" + \
                  qmlink
 
         return result
@@ -702,7 +702,7 @@ class TestCaseImporter(ArtifactImporter):
 
     def to_rest(self, artifact):
 
-        reference = "|\n\n.. _%s:\n" % artifact.full_name.replace('/', '_')[1:]
+        reference = "\n\n.. _%s:\n" % artifact.full_name.replace('/', '_')[1:]
 
         result_pdf = '**TEST CASE**:  %s\n\n' % artifact.full_name
         result_html = '%s\n%s\n' % (artifact.full_name,
@@ -814,7 +814,7 @@ class TestCaseImporter(ArtifactImporter):
 
         result += writer.only(latex_content, "latex")
 
-        output = "\n" + writer.minipage(result, r'\linewidth') + "|\n"
+        output = '\n\n' + writer.minipage(result, r'\linewidth') + "|\n\n"
 
         return output
 
@@ -1003,12 +1003,12 @@ class TestCasesImporter(ArtifactImporter):
 
                 links_dict[desc].append(l)
 
-            pdf_output += writer.raw("\\newpage", "latex")
-            pdf_output += writer.subsection('%s' % main_desc) + '\n'
+            pdf_output += writer.role('raw-latex', r'\newpage') + '\n\n'
+            pdf_output += writer.subsection('%s' % main_desc) + '\n\n'
 
             for desc in links_dict.keys():
 
-                pdf_output += writer.subsubsection(desc) + '\n'
+                pdf_output += writer.subsubsection(desc) + '\n\n'
 
                 pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                              for l in links_dict[desc]],
@@ -1030,12 +1030,12 @@ class TestCasesImporter(ArtifactImporter):
 
                 links_dict[desc].append(l)
 
-            pdf_output += writer.raw("\\newpage", "latex")
-            pdf_output += writer.subsection('%s' % main_desc) + '\n'
+            pdf_output += writer.role('raw-latex', r'\newpage') + '\n\n'
+            pdf_output += writer.subsection('%s' % main_desc) + '\n\n'
 
             for desc in links_dict.keys():
 
-                pdf_output += writer.subsubsection(desc) + '\n'
+                pdf_output += writer.subsubsection(desc) + '\n\n'
 
                 pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                              for l in links_dict[desc]],
@@ -1053,8 +1053,8 @@ class TestCasesImporter(ArtifactImporter):
 
             section = "Language-independent Testcases"
 
-            pdf_output += writer.section('%s' % section) + '\n'
-            pdf_output += writer.subsection('%s' % main_desc) + '\n'
+            pdf_output += writer.section('%s' % section) + '\n\n'
+            pdf_output += writer.subsection('%s' % main_desc) + '\n\n'
 
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_rep],
