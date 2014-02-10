@@ -368,7 +368,13 @@ class LRMTableImporter(ArtifactImporter):
                     else:
                         relevance = "unexpected value %s" % applicable
 
-                    comment += tc_list
+                    if relevance != "no":
+                        # when applicable is set to no, the list of
+                        # tc must be ommitted.
+                        # otherwise it is added to the comment column
+                        # see N102-011  Feb 8, 2014
+                        pdf_comment += pdf_tc_list
+                        html_comment += html_tc_list
 
                 else:
                     if applicable == "no":
