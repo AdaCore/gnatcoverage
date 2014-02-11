@@ -193,6 +193,14 @@ private package Rundrv.Config is
          new String'("%exe"),
          new String'("%trace")
        )
+      ),
+      (Target => new String'("lmp-elf"),
+       Setup_Command => null,
+       Setup_Options => null,
+       Run_Command => new String'("lmp-elf-run"),
+       Run_Options => new String_List'(new String'("-a"),
+                                       new String'("--trace=%trace"),
+                                       new String'("%exe"))
       )
      );
 
