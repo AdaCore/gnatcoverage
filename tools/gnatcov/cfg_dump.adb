@@ -826,7 +826,34 @@ package body CFG_Dump is
                   Insn_Starts_BB := True;
 
                   if BP.Target.Known then
-                     Context.Basic_Block_Starters.Include (BP.Target.Address);
+                     if Matches_Locations (Context, BP.Target.Address) then
+                        Context.Basic_Block_Starters.Include
+                          (BP.Target.Address);
+
+                     elsif Insn.Selected then
+
+                        --  The destination of this branch is out of scope, but
+                        --  it is referenced anyway by the graph. Since we do
+                        --  not have the real instruction, create a dummy one
+                        --  so that a proper node is generated for it.
+
+                        declare
+                           PC         : constant Pc_Type := BP.Target.Address;
+                           Dummy_Insn : Instruction_Access :=
+                             new Instruction_Record'
+                               (Bytes => (null, PC, No_PC),
+                                Section => 0,
+                                others => <>);
+                           Cur        : Instruction_Sets.Cursor;
+                           Inserted   : Boolean;
+                        begin
+                           Context.Other_Outcome.Insert
+                             (Dummy_Insn, Cur, Inserted);
+                           if not Inserted then
+                              Free (Dummy_Insn);
+                           end if;
+                        end;
+                     end if;
                   end if;
                   Insn.Control_Flow_Pair := BP.Branch_Instruction;
                   Insn.Successors.Append (BP.Target);
