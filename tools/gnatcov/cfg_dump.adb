@@ -266,6 +266,9 @@ package body CFG_Dump is
    function Image (L : Proc_Location) return String;
    --  Return a human readable string for a processable location
 
+   function Image (L : Address_Info_Acc) return String;
+   --  Return a human readable string for a source location from debug info
+
    function Get_Symbol
      (Exec : Exe_File_Type;
       Name : String) return Address_Info_Acc;
@@ -386,6 +389,21 @@ package body CFG_Dump is
          when Sloc_Range =>
             return "Sloc range " & Image (L.Sloc_Range);
       end case;
+   end Image;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (L : Address_Info_Acc) return String is
+      use Interfaces;
+
+      Discr_Suffix : constant String :=
+        (if L.Disc > 0
+         then " discriminator" & Unsigned_32'Image (L.Disc)
+         else "");
+   begin
+      return Image (L.Sloc) & Discr_Suffix;
    end Image;
 
    -------------------------
@@ -1293,7 +1311,7 @@ package body CFG_Dump is
                   Append
                     (Result,
                      Colored
-                       (HTML_Escape (Image (Element (Sloc).Sloc)),
+                       (HTML_Escape (Image (Element (Sloc))),
                         Sloc_Color));
                   Append (Result, "<BR ALIGN=""left""/>");
                   Next (Sloc);
