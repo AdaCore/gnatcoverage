@@ -117,7 +117,7 @@ recorded. In addition, all repositories and mail servers are mirrored with
 machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
 
 **Item 7.2.4b:** Each change to a configuration item is associated to a unique
-ID, which univocally identifies the version of a configuration item over its history.
+ID, which unambiguously identifies the version of a configuration item over its history.
 
 .. _adacore-archive:
 
@@ -130,8 +130,6 @@ Archive, Retrieval and Release
 items, thanks to the security mechanisms embedded in the Git
 repositories.
 
-Long-term archiving and retrieval of the tool executable object code and
-qualfication data is a responsibility of the applicant.
 
 Detailed procedures are as follows.
 

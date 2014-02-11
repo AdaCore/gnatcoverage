@@ -48,6 +48,13 @@ or a decision, it is not itself a statement or decision. Thus any SCA
 requirements for the aggregate will be associated with the enclosing
 statement or decision.
 
+An LRM section is sometimes exercised directly by (i.e., directly traceable
+to) its associated TORs, and sometimes indirectly by TORs that are also
+testing other features. Indirect TORs arise for the sections in Chapter 4
+(Names and Expressions). Further, because many features are naturally used
+in a variety of tests, there is frequently more than one TOR that
+exercises a given LRM section.
+
 .. qmlink:: LRMTableImporter
 
    :allclass:LRM_Section
