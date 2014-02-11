@@ -1212,6 +1212,15 @@ package body CFG_Dump is
       function HTML_Escape (S : String) return String;
       --  Escape HTML special characters into HTML entities
 
+      function Format_Slocs_For_PC
+        (PC        : Pc_Type;
+         Last_Sloc : Address_Info_Sets.Cursor) return String;
+      --  Format the list of slocs associated to the instruction at PC for a
+      --  dot label.
+
+      function Format_Slocs_For_PC (PC : Pc_Type) return String;
+      --  Likewise, but automatically look for the sloc cursor
+
       function Format_Basic_Block_Label
         (BB : Basic_Block) return String;
       --  Format the content of a basic block (i.e. its instructions) into a
@@ -1326,6 +1335,52 @@ package body CFG_Dump is
          return To_String (Result);
       end HTML_Escape;
 
+      -------------------------
+      -- Format_Slocs_For_PC --
+      -------------------------
+
+      function Format_Slocs_For_PC
+        (PC        : Pc_Type;
+         Last_Sloc : Address_Info_Sets.Cursor) return String
+      is
+         use Address_Info_Sets;
+
+         Sloc   : Cursor := Last_Sloc;
+         Result : Unbounded_String;
+      begin
+         while Sloc /= No_Element
+           and then (PC in Element (Sloc).First .. Element (Sloc).Last)
+         loop
+            Append
+              (Result,
+               Colored
+                 (HTML_Escape (Image (Element (Sloc))),
+                  Sloc_Color));
+            Append (Result, "<BR ALIGN=""left""/>");
+            Previous (Sloc);
+         end loop;
+         return To_String (Result);
+      end Format_Slocs_For_PC;
+
+      -------------------------
+      -- Format_Slocs_For_PC --
+      -------------------------
+
+      function Format_Slocs_For_PC (PC : Pc_Type) return String
+      is
+         use Address_Info_Sets;
+
+         Subp : constant Address_Info_Acc := Get_Address_Info
+           (Context.Exec.all, Subprogram_Addresses, PC);
+         Sloc : Cursor := No_Element;
+      begin
+         if Subp /= null then
+            Sloc := Find_Address_Info
+              (Subp.Lines, Line_Addresses, PC);
+         end if;
+         return Format_Slocs_For_PC (PC, Sloc);
+      end Format_Slocs_For_PC;
+
       ------------------------------
       -- Format_Basic_Block_Label --
       ------------------------------
@@ -1357,18 +1412,7 @@ package body CFG_Dump is
             end if;
             if Sloc /= Last_Sloc then
                Last_Sloc := Sloc;
-               while Sloc /= No_Element
-                 and then (Address (Insn) in
-                               Element (Sloc).First .. Element (Sloc).Last)
-               loop
-                  Append
-                    (Result,
-                     Colored
-                       (HTML_Escape (Image (Element (Sloc))),
-                        Sloc_Color));
-                  Append (Result, "<BR ALIGN=""left""/>");
-                  Previous (Sloc);
-               end loop;
+               Append (Result, Format_Slocs_For_PC (Address (Insn), Sloc));
             end if;
 
             Disas.Disassemble_Insn
@@ -1675,6 +1719,7 @@ package body CFG_Dump is
             for Insn of Insns loop
                Put (F, Node_Id (Address (Insn)));
                Put (F, " [shape=ellipse, fontname=monospace, label=<");
+               Put (F, Format_Slocs_For_PC (Address (Insn)));
                Put (F, "0x" & Hex_Colored_Image (Address (Insn)));
                Put_Line (F, ">];");
             end loop;
