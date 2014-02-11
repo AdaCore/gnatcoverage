@@ -415,6 +415,7 @@ class LRMTableImporter(ArtifactImporter):
 
         pdf_table = writer.csv_table(
             pdf_items,
+            title="TOR/LRM Traceability Matrix for Ada %s" % language_version,
             headers=["Section", "Title", "Applicable", "Comment"],
             latex_format='|p{0.08\linewidth}|p{0.20\linewidth}|' +
             'p{0.10\linewidth}|p{0.50\linewidth}|')

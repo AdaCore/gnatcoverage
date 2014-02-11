@@ -1,5 +1,5 @@
-Traceability to LRM 
-====================
+Traceability to Language Reference Manual 
+=========================================
 
 The table below demonstrates the TOR's coverage of a specific version of the
 Ada language, keyed to the Table of Contents of the corresponding Language
