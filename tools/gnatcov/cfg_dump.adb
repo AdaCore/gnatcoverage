@@ -1314,7 +1314,7 @@ package body CFG_Dump is
                        (HTML_Escape (Image (Element (Sloc))),
                         Sloc_Color));
                   Append (Result, "<BR ALIGN=""left""/>");
-                  Next (Sloc);
+                  Previous (Sloc);
                end loop;
             end if;
 
