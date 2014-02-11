@@ -315,16 +315,14 @@ class LRMTableImporter(ArtifactImporter):
                             (writer.role("raw-latex", r'\newline'),
                              (len(ref[req]) - 1))
 
-                    html_tcs = writer.role("raw-html", r'<br>').join([write_artifact_ref(
-                         k[0],
-                         label=k[1]) for k in ref[req]])
-
+                    html_tcs = writer.role("raw-html", r'<br>').join(
+                        [write_artifact_ref(k[0],
+                                            label=k[1]) for k in ref[req]])
 
                     requirement_str = "Req: %s" %  \
                         write_artifact_ref(req,
                                            req.replace(REQ_NAME_PREFIX,
                                                        '')).strip()
-
                     first_tc_str = "* TC: %s" % \
                         write_artifact_ref(ref[req][0][0],
                                            label=ref[req][0][1]).strip()
@@ -341,7 +339,6 @@ class LRMTableImporter(ArtifactImporter):
                         writer.role("raw-html", r'<br>'),
                         html_tcs,
                         writer.role("raw-html", r'<br>'))
-
 
                 applicable = a.attributes['relevance'].strip()
                 if pdf_tc_list != "":
@@ -363,7 +360,7 @@ class LRMTableImporter(ArtifactImporter):
 
                         pdf_comment = comment + \
                             writer.role("raw-latex", r'\newline') + ' '
-                        html_comment =  comment +  \
+                        html_comment = comment +  \
                             writer.role("raw-html", r'<br>') + ' '
                     else:
                         relevance = "unexpected value %s" % applicable
@@ -428,8 +425,8 @@ class LRMTableImporter(ArtifactImporter):
             widths=[8, 20, 10, 50])
 
         output += writer.paragraph(
-            "This particular table is established for **Ada %s**." \
-                % language_version +
+            "This particular table is established for **Ada %s**." %
+            language_version +
             "\n\The requirement identifiers in this table were shortened by "
             "removing the *%s* common prefix.\n\n" % REQ_NAME_PREFIX) + \
             writer.only(pdf_table, "latex") + \
