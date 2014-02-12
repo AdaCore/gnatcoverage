@@ -103,7 +103,7 @@ These objectives are achieved in the scope of the tool conformity review:
  * **8.3c**: Check that software life cycle data is under configuration management and managed as described
    in :qmref:`../Software_Configuration_Management_Plan`
  * **8.3d**: Check that problems have been reported and evaluated as per the :qmref:`/PLANS/Software_Configuration_Management_Plan`.
- * **8.3e**: Record and approve software requirements deviations arising from several sources: (1) deviations exposed by test failures reported in the GNATcoverage Software Test Results report provided as part of the tool qualification data; and (2) deviations due to open problems or known limitations.
+ * **8.3e**: Record and approve software requirements deviations arising from two sources: (1) deviations exposed by test failures reported in the GNATcoverage Software Test Results report provided as part of the tool qualification data; and (2) deviations due to issues recorded in the known-problems file maintained by AdaCore for a given release of tool.
  * **8.3f**: Check that the tool executable object code can be re-generated from the tool source code.
  * **8.3g**: Check that the tool executable can be loaded and executed on the qualification environment.
  * **8.3h**: Check that problems from a previous Tool Conformity Review are re-evaluated.
