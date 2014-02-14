@@ -259,7 +259,14 @@ package body ALI_Files is
          File_Name : constant Virtual_File := Create (+Name);
       begin
          if Is_Absolute_Path (File_Name) then
-            return Get_Index_From_Full_Name (Name);
+
+            --  Library files are the only source of file names that may
+            --  contain base names (as opposed to absolute file names). Thus,
+            --  if we find an absolute path here, do not bother index its base
+            --  name, since it will potentially introduce base name clashes for
+            --  no benefit.
+
+            return Get_Index_From_Full_Name (Name, Index_Simple_Name => False);
          else
             return Get_Index_From_Simple_Name (Name);
          end if;

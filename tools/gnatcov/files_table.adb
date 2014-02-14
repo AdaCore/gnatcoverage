@@ -436,8 +436,9 @@ package body Files_Table is
    ------------------------------
 
    function Get_Index_From_Full_Name
-     (Full_Name : String;
-      Insert    : Boolean := True) return Source_File_Index
+     (Full_Name         : String;
+      Insert            : Boolean := True;
+      Index_Simple_Name : Boolean := True) return Source_File_Index
    is
       use Filename_Maps;
 
@@ -513,9 +514,10 @@ package body Files_Table is
          Files_Table.Append (Info);
          Res := Files_Table.Last_Index;
 
-         if Info_Simple = null then
+         if Info_Simple = null and then Index_Simple_Name then
             Simple_Name_Map.Insert (Simple_Path, Res);
-         else
+
+         elsif Info_Simple /= null then
             --  Set Alias_Num.
             --  The entry in Simple_Name_Map has always the highest index.
 
