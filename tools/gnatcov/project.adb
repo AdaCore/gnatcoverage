@@ -236,7 +236,7 @@ package body Project is
          Project := Extending_Project (Project, Recurse => True);
 
          Enumerate_Project : declare
-            Lib_Info : Library_Info_Lists.List;
+            Lib_Info : Library_Info_List;
 
             Inc_Units         : Unit_Maps.Map;
             Inc_Units_Defined : Boolean;
@@ -282,8 +282,7 @@ package body Project is
                         UI.LI_Seen := True;
                      end Set_LI_Seen;
 
-                     U  : constant String :=
-                       Unit_Name (Prj_Tree.Info (LI.Source_File));
+                     U  : constant String := Unit_Name (LI.Source.all);
                      UC : constant Unit_Maps.Cursor := Inc_Units.Find (U);
 
                   --  Start of processing for Process_LI
