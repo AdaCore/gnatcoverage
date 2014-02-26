@@ -177,6 +177,8 @@ procedure GNATcov is
       P ("                               ALI files in the provided SUBDIR of");
       P ("                               the projects' build directory.");
       P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
+      P ("   --output-dir=<SUBDIR>       Subdirectory where xcov or html");
+      P ("                               report files should be produced.");
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");
       P ("   -S <routine|instance>       Perform separate source coverage");
