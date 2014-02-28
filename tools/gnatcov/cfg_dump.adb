@@ -239,6 +239,7 @@ package body CFG_Dump is
       CFG                : Basic_Blocks;
       Group_By_Condition : Boolean;
       Keep_Edges         : Boolean;
+      Tag_Executed       : Boolean;
 
       Output : Output_Type;
       --  Output file to write the CFG to
@@ -317,6 +318,7 @@ package body CFG_Dump is
    Edge_Unselected_Color : constant Highlighting.Color_Type := "808080";
    Edge_Default_Color    : constant Highlighting.Color_Type := "800000";
    Edge_Executed_Color   : constant Highlighting.Color_Type := "008000";
+   Unexecuted_Insn_Color : constant Highlighting.Color_Type := "800000";
    Executed_Insn_Color   : constant Highlighting.Color_Type := "008000";
    Sloc_Color            : constant Highlighting.Color_Type := "004080";
 
@@ -1457,9 +1459,12 @@ package body CFG_Dump is
               (Result,
                Hex_Colored_Image
                  (Address (Insn),
-                   (if Insn.Executed
-                    then Executed_Insn_Color
-                    else Unexecuted_Insn_Color)));
+                  (if Context.Tag_Executed
+                   then
+                     (if Insn.Executed
+                      then Executed_Insn_Color
+                      else Unexecuted_Insn_Color)
+                  else Hex_Color)));
             Append (Result, "  ");
             declare
                use Highlighting;
@@ -1841,6 +1846,7 @@ package body CFG_Dump is
    begin
       Context.Group_By_Condition := Inputs.Length (SCO_Files_List) > 0;
       Context.Keep_Edges := Keep_Edges;
+      Context.Tag_Executed := Inputs.Length (Traces_Files_List) > 0;
 
       if Switches.Verbose then
          Report
