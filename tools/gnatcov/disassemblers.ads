@@ -23,6 +23,7 @@ with Ada.Exceptions;        use Ada.Exceptions;
 with Traces;         use Traces;
 with Traces_Elf;     use Traces_Elf;
 with Disa_Symbolize; use Disa_Symbolize;
+with Highlighting;
 
 package Disassemblers is
 
@@ -37,8 +38,7 @@ package Disassemblers is
      (Self     : Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
-      Line     : out String;
-      Line_Pos : out Natural;
+      Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class) is abstract;
    --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.

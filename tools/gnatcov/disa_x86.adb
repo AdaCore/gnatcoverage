@@ -21,9 +21,10 @@
 --  These manuals can be found at http://www.intel.com/product/manuals/
 
 with Elf_Common;
-with Interfaces; use Interfaces;
-with Outputs;    use Outputs;
-with Hex_Images; use Hex_Images;
+with Interfaces;   use Interfaces;
+with Outputs;      use Outputs;
+with Hex_Images;   use Hex_Images;
+with Highlighting; use Highlighting;
 
 package body Disa_X86 is
 
@@ -1767,8 +1768,7 @@ package body Disa_X86 is
      (Self     : X86_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
-      Line     : out String;
-      Line_Pos : out Natural;
+      Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class)
    is
@@ -1776,9 +1776,6 @@ package body Disa_X86 is
 
       Is_64bit   : constant Boolean := Machine = Elf_Common.EM_X86_64;
       Rex_Prefix : Byte             := 0;
-
-      Lo : Natural := Line'First;
-      --  Index in LINE of the next character to be written
 
       function Mem (Off : Pc_Type) return Byte;
       --  The instruction memory, 0 based
@@ -1798,10 +1795,6 @@ package body Disa_X86 is
       procedure Add_Name (Name : String);
       pragma Inline (Add_Name);
 
-      procedure Add_Char (C : Character);
-      pragma Inline (Add_Char);
-
-      procedure Add_String (Str : String);
       procedure Add_Byte (V : Byte);
       procedure Add_Comma;
 
@@ -1885,39 +1878,13 @@ package body Disa_X86 is
       --  XXX
 
       --------------
-      -- Add_Char --
-      --------------
-
-      procedure Add_Char (C : Character) is
-      begin
-         if Lo <= Line'Last then
-            Line (Lo) := C;
-            Lo := Lo + 1;
-         end if;
-      end Add_Char;
-
-      ----------------
-      -- Add_String --
-      ----------------
-
-      procedure Add_String (Str : String) is
-         Added_Length : constant Natural := Natural'Min
-           (Str'Length,
-            Line'Last + 1 - Lo);
-      begin
-         Line (Lo .. Lo + Added_Length - 1) :=
-            Str (Str'First .. Str'First + Added_Length - 1);
-         Lo := Lo + Added_Length;
-      end Add_String;
-
-      --------------
       -- Add_Byte --
       --------------
 
       procedure Add_Byte (V : Byte) is
       begin
-         Add_Char (Hex_Digit (Natural (Shift_Right (V, 4) and 16#0f#)));
-         Add_Char (Hex_Digit (Natural (Shift_Right (V, 0) and 16#0f#)));
+         Buffer.Put (Hex_Digit (Natural (Shift_Right (V, 4) and 16#0f#)));
+         Buffer.Put (Hex_Digit (Natural (Shift_Right (V, 0) and 16#0f#)));
       end Add_Byte;
 
       --------------
@@ -1928,7 +1895,7 @@ package body Disa_X86 is
       begin
          for I in Name'Range loop
             exit when Name (I) = ' ';
-            Add_Char (Name (I));
+            Buffer.Put (Name (I));
          end loop;
       end Add_Name;
 
@@ -1938,7 +1905,10 @@ package body Disa_X86 is
 
       procedure Add_Comma is
       begin
-         Add_String (", ");
+         Buffer.Start_Token (Punctuation);
+         Buffer.Put (',');
+         Buffer.Start_Token (Text);
+         Buffer.Put (' ');
       end Add_Comma;
 
       ----------------
@@ -1947,8 +1917,10 @@ package body Disa_X86 is
 
       procedure Name_Align (Orig : Natural) is
       begin
-         Add_Char (' ');
-         Add_String ((Lo .. Integer'Min (Orig + 8 - 1, Line'Last) => ' '));
+         Buffer.Start_Token (Text);
+         Buffer.Put (' ');
+         Buffer.Put ((Buffer.Last_Index + 1
+                     .. (Orig + 8 - 1) => ' '));
       end Name_Align;
 
       ----------------
@@ -1956,14 +1928,14 @@ package body Disa_X86 is
       ----------------
 
       procedure Add_Opcode (Name : String16; Width : Width_Type) is
-         L : constant Natural := Lo;
+         L : constant Natural := Buffer.Last_Index;
       begin
-         Add_Name (Name);
+         Buffer.Put (Name);
 
          --  Debugging utility: add operand data size suffix to the mnemonic
 
          if Debug and then Width /= W_None then
-            Add_Char (Width_Char (Width));
+            Buffer.Put (Width_Char (Width));
          end if;
 
          Name_Align (L);
@@ -1975,9 +1947,14 @@ package body Disa_X86 is
 
       procedure Add_Reg_St (F : Bit_Field_3) is
       begin
-         Add_String ("%st(");
-         Add_Char (Hex_Digit (Natural (F)));
-         Add_Char (')');
+         Buffer.Start_Token (Register);
+         Buffer.Put ("%st");
+         Buffer.Start_Token (Punctuation);
+         Buffer.Put ('(');
+         Buffer.Start_Token (Literal);
+         Buffer.Put (Hex_Digit (Natural (F)));
+         Buffer.Start_Token (Punctuation);
+         Buffer.Put (')');
       end Add_Reg_St;
 
       -----------------
@@ -1986,23 +1963,25 @@ package body Disa_X86 is
 
       procedure Add_Reg_Seg (F : Bit_Field_3) is
       begin
+         Buffer.Start_Token (Register);
          case F is
             when 2#000# =>
-               Add_String ("%es");
+               Buffer.Put ("%es");
             when 2#001# =>
-               Add_String ("%cs");
+               Buffer.Put ("%cs");
             when 2#010# =>
-               Add_String ("%ss");
+               Buffer.Put ("%ss");
             when 2#011# =>
-               Add_String ("%ds");
+               Buffer.Put ("%ds");
             when 2#100# =>
-               Add_String ("%fs");
+               Buffer.Put ("%fs");
             when 2#101# =>
-               Add_String ("%gs");
+               Buffer.Put ("%gs");
             when 2#110# =>
-               Add_String ("%??");
+               Buffer.Put ("%??");
             when 2#111# =>
-               Add_String ("%??");
+               Buffer.Start_Token (Error);
+               Buffer.Put ("%??");
          end case;
       end Add_Reg_Seg;
 
@@ -2041,7 +2020,8 @@ package body Disa_X86 is
             "xmm8 ", "xmm9 ", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14",
             "xmm15");
       begin
-         Add_Char ('%');
+         Buffer.Start_Token (Register);
+         Buffer.Put ('%');
          case R is
             when R_8 =>
                Add_Name (Regs_8 (F));
@@ -2127,7 +2107,8 @@ package body Disa_X86 is
       procedure Decode_Imm (Off : in out Pc_Type; Width : Width_Type)
       is
       begin
-         Add_String ("$0x");
+         Buffer.Start_Token (Literal);
+         Buffer.Put ("$0x");
          Decode_Val (Off, Width);
          Off := Off + Width_Len (Width);
       end Decode_Imm;
@@ -2144,7 +2125,7 @@ package body Disa_X86 is
          V : Unsigned_64;
       begin
          --  Note that even in 64bit, there is no 64-bit displacements
-         L := Lo;
+         L := Buffer.Last_Index;
          V := Decode_Val (Mem'Unrestricted_Access, Off, Width, True)
                + Unsigned_64 (Offset);
          if not Is_64bit then
@@ -2152,14 +2133,17 @@ package body Disa_X86 is
             --  in it.
             V := V and 16#ffff_ffff#;
          end if;
-         Sym.Symbolize (Pc_Type (V), Line, Lo);
-         if L /= Lo then
+         Buffer.Start_Token (Name);
+         Sym.Symbolize (Pc_Type (V), Buffer);
+         if L /= Buffer.Last_Index then
             if V = 0 then
                return;
             end if;
-            Add_String (" + ");
+            Buffer.Start_Token (Text);
+            Buffer.Put (" + ");
          end if;
-         Add_String ("0x");
+         Buffer.Start_Token (Literal);
+         Buffer.Put ("0x");
          if Offset = 0 then
             Decode_Val (Off, Width);
          else
@@ -2212,12 +2196,14 @@ package body Disa_X86 is
             Reg_Addr_Class := R_32;
          end if;
 
-         Add_Char ('(');
+         Buffer.Start_Token (Punctuation);
+         Buffer.Put ('(');
          if not (B = 2#101# and then B_Mod = 0) then
             --  Base
             Add_Reg (Reg_With_Rex (Base_Ext, B), Reg_Addr_Class);
             if I /= 2#100# then
-               Add_Char (',');
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (',');
             end if;
          end if;
          if I /= 2#100# then
@@ -2228,14 +2214,23 @@ package body Disa_X86 is
                when 2#00# =>
                   null;
                when 2#01# =>
-                  Add_String (",2");
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put (',');
+                  Buffer.Start_Token (Literal);
+                  Buffer.Put ('2');
                when 2#10# =>
-                  Add_String (",4");
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put (',');
+                  Buffer.Start_Token (Literal);
+                  Buffer.Put ('4');
                when 2#11# =>
-                  Add_String (",8");
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put (',');
+                  Buffer.Start_Token (Literal);
+                  Buffer.Put ('8');
             end case;
          end if;
-         Add_Char (')');
+         Buffer.Put (')');
       end Decode_Sib;
 
       ----------------------
@@ -2298,14 +2293,21 @@ package body Disa_X86 is
 
                   --  In 64-bit mode, we also add RIP to it
                   if Is_64bit then
-                     Add_String ("(%rip)");
+                     Buffer.Start_Token (Punctuation);
+                     Buffer.Put ('(');
+                     Buffer.Start_Token (Register);
+                     Buffer.Put ("%rip");
+                     Buffer.Start_Token (Punctuation);
+                     Buffer.Put (')');
                   end if;
 
                else
                   --  Otherwise, the address lies in a register
-                  Add_Char ('(');
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put ('(');
                   Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_Addr_Class);
-                  Add_Char (')');
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put (')');
                end if;
 
             when 2#01# =>
@@ -2319,9 +2321,11 @@ package body Disa_X86 is
                   --  Otherwise, the address is the content of a register plus
                   --  a 8-bit displacement.
                   Decode_Disp (Off + 1, W_8);
-                  Add_Char ('(');
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put ('(');
                   Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_Addr_Class);
-                  Add_Char (')');
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put (')');
                end if;
 
             when 2#10# =>
@@ -2334,9 +2338,9 @@ package body Disa_X86 is
                   --  Otherwise, the address is the content of a register plus
                   --  a 32-bit displacement.
                   Decode_Disp (Off + 1, W_32);
-                  Add_Char ('(');
+                  Buffer.Put ('(');
                   Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_Addr_Class);
-                  Add_Char (')');
+                  Buffer.Put (')');
                end if;
 
             -----------------------
@@ -2422,19 +2426,32 @@ package body Disa_X86 is
                | C_Reg_Sp | C_Reg_Bp | C_Reg_Si | C_Reg_Di =>
                Add_Reg (Reg_With_Rex (Reg_Ext, To_Register_Number (C)), R);
             when C_Reg_Cs =>
-               Add_String ("%cs");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%cs");
             when C_Reg_Ds =>
-               Add_String ("%ds");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%ds");
             when C_Reg_Es =>
-               Add_String ("%es");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%es");
             when C_Reg_Fs =>
-               Add_String ("%fs");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%fs");
             when C_Reg_Gs =>
-               Add_String ("%gs");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%gs");
             when C_Reg_Ss =>
-               Add_String ("%ss");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%ss");
             when C_Regs_Eax_Ecx_Edx =>
-               Add_String ("%eax, %ecx, %edx");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%eax");
+               Add_Comma;
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%ecx");
+               Add_Comma;
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%edx");
             when C_Ap =>
                declare
                   Off_Seg : Pc_Type := Off_Imm + Width_Len (W);
@@ -2502,31 +2519,58 @@ package body Disa_X86 is
                   Decode_Imm (Off_Imm, W_32);
                end if;
             when C_Yb =>
-               Add_String ("%es:(%edi)");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%es");
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (":(");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%edi");
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (')');
             when C_Yv | C_Yz =>
-               Add_String ("%es:(");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%es");
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (":(");
                Add_Reg (7, R);
-               Add_Char (')');
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (')');
             when C_Xv =>
-               Add_String ("%ds:(");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%ds");
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (":(");
                Add_Reg (6, R);
-               Add_Char (')');
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (')');
             when C_Xz =>
-               Add_String ("%ds:(");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%ds");
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (":(");
                if W = W_16 then
                   Add_Reg (6, R_16);
                else
                   Add_Reg (6, R_32);
                end if;
-               Add_Char (')');
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (')');
             when C_Xb =>
-               Add_String ("%ds:(%esi)");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%ds");
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (":(");
+               Buffer.Start_Token (Register);
+               Buffer.Put ("%esi");
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (')');
             when C_H =>
                Add_Reg_St (Ext_Modrm_Rm (Mem (Off_Modrm)));
             when C_H0 =>
                Add_Reg_St (0);
             when C_Cst_1 =>
-               Add_String ("1");
+               Buffer.Start_Token (Literal);
+               Buffer.Put ('1');
             when C_Sw =>
                Add_Reg_Seg (Ext_Modrm_Reg (Mem (Off_Modrm)));
             when C_Fv =>
@@ -2677,7 +2721,7 @@ package body Disa_X86 is
 
    begin
       Off := Insn_Bin.First;
-      Lo := Line'First;
+      Buffer.Start_Token (Text);
 
       --  Read the first instruction byte and handle prefixes
 
@@ -2777,19 +2821,25 @@ package body Disa_X86 is
       --  Process prefixes that are not mandatory
 
       if Prefix_Lock then
+         Buffer.Start_Token (Prefix);
          Add_Name ("lock            ");
-         Add_Char (' ');
+         Buffer.Start_Token (Text);
+         Buffer.Put (' ');
       end if;
       if Prefix_Oper and then not Mandatory_Oper and then W = W_32 then
          W := W_16;
       end if;
       if Prefix_Rep and then not Mandatory_Rep then
+         Buffer.Start_Token (Prefix);
          Add_Name ("rep             ");
-         Add_Char (' ');
+         Buffer.Start_Token (Text);
+         Buffer.Put (' ');
       end if;
       if Prefix_Repne and then not Mandatory_Repne then
+         Buffer.Start_Token (Prefix);
          Add_Name ("repne           ");
-         Add_Char (' ');
+         Buffer.Start_Token (Text);
+         Buffer.Put (' ');
       end if;
 
       --  Do further lookup for special instruction groups (group 1, group 2,
@@ -2956,12 +3006,13 @@ package body Disa_X86 is
          Off_Imm := Off_Modrm;
       end if;
 
-      if Line'Length > 0 then
+      if Buffer.Length > 0 then
          --  If the caller expects a disassembly text output, append the
          --  mnemonic and instruction operands.
 
+         Buffer.Start_Token (Mnemonic);
          Add_Name (Name);
-         Name_Align (Line'First);
+         Name_Align (1);
 
          case Extra is
             when Extra_None =>
@@ -2981,7 +3032,8 @@ package body Disa_X86 is
                when C_Prefix_Cs | C_Prefix_Ss | C_Prefix_Ds
                   | C_Prefix_Es | C_Prefix_Fs | C_Prefix_Gs =>
                   Add_Reg_Seg (To_Register_Segment (Seg));
-                  Add_String (":");
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put (":");
                when C_None =>
                   null;
                when others =>
@@ -3013,13 +3065,12 @@ package body Disa_X86 is
          end if;
       end if;
 
-      Line_Pos := Lo;
       Insn_Len := Natural (Off_Imm - Insn_Bin.First);
 
    exception
       when Bad_Memory =>
-         Add_String ("[truncated]");
-         Line_Pos := Lo;
+         Buffer.Start_Token (Error);
+         Buffer.Put ("[truncated]");
          Insn_Len := Integer (Length (Insn_Bin));
       when Error : others =>
          Abort_Disassembler_Error (Pc, Insn_Bin, Error);
@@ -3033,13 +3084,12 @@ package body Disa_X86 is
      (Self     : X86_Disassembler;
       Insn_Bin : Binary_Content) return Positive
    is
-      Line     : String (1 .. 0);
-      Line_Pos : Natural;
+      Buffer   : Highlighting.Buffer_Type (0);
       Len      : Natural;
 
    begin
       Disassemble_Insn
-        (Self, Insn_Bin, Insn_Bin.First, Line, Line_Pos, Len, Nul_Symbolizer);
+        (Self, Insn_Bin, Insn_Bin.First, Buffer, Len, Nul_Symbolizer);
       return Len;
    end Get_Insn_Length;
 

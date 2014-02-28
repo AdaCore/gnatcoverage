@@ -43,6 +43,7 @@ with Elf_Files;
 with Execs_Dbase;
 with Files_Table;
 with Hex_Images;  use Hex_Images;
+with Highlighting;
 with Outputs;     use Outputs;
 with Qemu_Traces;
 with SC_Obligations;
@@ -311,18 +312,17 @@ package body CFG_Dump is
    -- Colors --
    ------------
 
-   Hex_Zero_Color : constant String := "#a0a0a0";
-   Hex_Color      : constant String := "#808080";
+   Hex_Color      : constant Highlighting.Color_Type := "808080";
 
-   Edge_Unselected_Color : constant String := "#808080";
-   Edge_Default_Color    : constant String := "#800000";
-   Edge_Executed_Color   : constant String := "#008000";
-   Executed_Insn_Color   : constant String := "#008000";
-   Sloc_Color            : constant String := "#004080";
+   Edge_Unselected_Color : constant Highlighting.Color_Type := "808080";
+   Edge_Default_Color    : constant Highlighting.Color_Type := "800000";
+   Edge_Executed_Color   : constant Highlighting.Color_Type := "008000";
+   Executed_Insn_Color   : constant Highlighting.Color_Type := "008000";
+   Sloc_Color            : constant Highlighting.Color_Type := "004080";
 
-   Unknown_Color : constant String := "#a0a0a0";
-   True_Color    : constant String := "#008000";
-   False_Color   : constant String := "#800000";
+   Unknown_Color : constant Highlighting.Color_Type := "a0a0a0";
+   True_Color    : constant Highlighting.Color_Type := "008000";
+   False_Color   : constant Highlighting.Color_Type := "800000";
 
    ---------------------
    -- Get_Instruction --
@@ -1189,10 +1189,16 @@ package body CFG_Dump is
       --  Return the index of the first non-null digit in Address, or
       --  Address'Last if it contains only zeros.
 
-      function Colored (Text, Color : String) return String;
+      function Colored
+        (Text : String; Color : Highlighting.Color_Type) return String;
       --  Return markup code for Text to be displayed with Color
 
-      function Hex_Colored_Image (Address : Pc_Type) return String;
+      function Styled
+        (Text  : String; Style : Highlighting.Token_Style_Type) return String;
+      --  Return markup code for Text to be displayed according so Style
+
+      function Hex_Colored_Image
+        (Address : Pc_Type; Color : Highlighting.Color_Type) return String;
       --  Return a colored hexadecimal string
 
       function Tristate_Colored_Image
@@ -1268,32 +1274,49 @@ package body CFG_Dump is
       -- Colored --
       -------------
 
-      function Colored (Text, Color : String) return String is
+      function Colored
+        (Text : String; Color : Highlighting.Color_Type) return String is
       begin
-         return "<FONT COLOR=""" & Color & """>" & Text & "</FONT>";
+         return Styled (Text, (Color, False, False, False));
       end Colored;
+
+      ------------
+      -- Styled --
+      ------------
+
+      function Styled
+        (Text  : String; Style : Highlighting.Token_Style_Type) return String
+      is
+         Prefix, Suffix : Unbounded_String;
+      begin
+         Append (Prefix, "<FONT COLOR=""#" & Style.Color & """>");
+         Insert (Suffix, 1, "</FONT>");
+         if Style.Bold then
+            Append (Prefix, "<B>");
+            Insert (Suffix, 1, "</B>");
+         end if;
+         if Style.Italic then
+            Append (Prefix, "<I>");
+            Insert (Suffix, 1, "</I>");
+         end if;
+         if Style.Underlined then
+            Append (Prefix, "<U>");
+            Insert (Suffix, 1, "</U>");
+         end if;
+         return To_String (Prefix) & Text & To_String (Suffix);
+      end Styled;
 
       -----------------------
       -- Hex_Colored_Image --
       -----------------------
 
-      function Hex_Colored_Image (Address : Pc_Type) return String
+      function Hex_Colored_Image
+        (Address : Pc_Type; Color : Highlighting.Color_Type) return String
       is
          S      : constant String := Hex_Image (Address);
          Result : constant String := S (First_Addresses_Digit .. S'Last);
       begin
-         for I in Result'Range loop
-            if Result (I) /= '0' then
-               if I = Result'First then
-                  return Colored (Result, Hex_Color);
-               else
-                  return
-                    (Colored (Result (Result'First .. I - 1), Hex_Zero_Color)
-                     & Colored (Result (I .. Result'Last), Hex_Color));
-               end if;
-            end if;
-         end loop;
-         return Colored (Result, Hex_Color);
+         return Colored (Result, Color);
       end Hex_Colored_Image;
 
       -------------
@@ -1392,11 +1415,14 @@ package body CFG_Dump is
 
          Result : Unbounded_String;
 
-         Disas : constant access Disassemblers.Disassembler'Class :=
+         Disas    : constant access Disassemblers.Disassembler'Class :=
            Elf_Disassemblers.Disa_For_Machine (Machine);
-         Line : String (1 .. 80);
-         Line_Pos : Natural;
+         Buffer   : Highlighting.Buffer_Type (128);
          Insn_Len : Natural;
+
+         Branch                : Branch_Kind;
+         Flag_Indir, Flag_Cond : Boolean;
+         Branch_Dest, FT_Dest  : Disassemblers.Dest;
 
          Last_Sloc : Cursor := Address_Info_Sets.No_Element;
          Sloc      : Cursor;
@@ -1415,22 +1441,56 @@ package body CFG_Dump is
                Append (Result, Format_Slocs_For_PC (Address (Insn), Sloc));
             end if;
 
+            Buffer.Reset;
             Disas.Disassemble_Insn
               (Insn.Bytes, Address (Insn),
-               Line, Line_Pos,
+               Buffer,
                Insn_Len,
                Context.Exec.all);
+            Disas.Get_Insn_Properties
+              (Insn.Bytes, Address (Insn),
+               Branch,
+               Flag_Indir, Flag_Cond,
+               Branch_Dest, FT_Dest);
             Append (Result, "  ");
-            Append (Result, Hex_Colored_Image (Address (Insn)));
+            Append
+              (Result,
+               Hex_Colored_Image
+                 (Address (Insn),
+                   (if Insn.Executed
+                    then Executed_Insn_Color
+                    else Unexecuted_Insn_Color)));
             Append (Result, "  ");
             declare
-               Asm : constant String := HTML_Escape (Line (1 .. Line_Pos - 1));
+               use Highlighting;
+
+               Cur : Highlighting.Cursor := Buffer.First;
+               Mnemonic_Kind : constant Token_Kind :=
+                 (case Branch is
+                     when Br_Call | Br_Ret =>
+                    (if Flag_Cond
+                     then Mnemonic_Branch
+                     else Mnemonic_Call),
+
+                     when Br_Jmp =>
+                    (if Flag_Cond
+                     then Mnemonic_Branch
+                     else Mnemonic_Call),
+
+                     when others => Mnemonic);
+               Kind : Token_Kind;
+
             begin
-               if Insn.Executed then
-                  Append (Result, Colored (Asm, Executed_Insn_Color));
-               else
-                  Append (Result, Asm);
-               end if;
+               while Cur /= Highlighting.No_Element loop
+                  Kind := Token (Cur);
+                  if Kind = Mnemonic then
+                     Kind := Mnemonic_Kind;
+                  end if;
+                  Append
+                    (Result,
+                     Styled (HTML_Escape (Text (Cur)), Style_Default (Kind)));
+                  Next (Cur);
+               end loop;
             end;
             Append (Result, "<BR ALIGN=""left""/>");
          end loop;
@@ -1538,7 +1598,7 @@ package body CFG_Dump is
 
       procedure Output_Edge (Edge : Edge_Descriptor)
       is
-         Color : constant String :=
+         Color : constant Highlighting.Color_Type :=
            (if Edge.Selected
             then
               (if Edge.Executed
@@ -1549,7 +1609,7 @@ package body CFG_Dump is
          Put (F, To_String (Edge.From_Id));
          Put (F, " -> ");
          Put (F, To_String (Edge.To_Id));
-         Put (F, " [color=""" & Color & """,penwidth=3,style=");
+         Put (F, " [color=""#" & Color & """,penwidth=3,style=");
          Put (F, (case Edge.Kind is
                  when Fallthrough                   => "solid",
                  when Branch                        => "dashed",
@@ -1720,7 +1780,7 @@ package body CFG_Dump is
                Put (F, Node_Id (Address (Insn)));
                Put (F, " [shape=ellipse, fontname=monospace, label=<");
                Put (F, Format_Slocs_For_PC (Address (Insn)));
-               Put (F, "0x" & Hex_Colored_Image (Address (Insn)));
+               Put (F, "0x" & Hex_Colored_Image (Address (Insn), Hex_Color));
                Put_Line (F, ">];");
             end loop;
          end Output_Unknown_Nodes;

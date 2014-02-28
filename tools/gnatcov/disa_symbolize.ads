@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Highlighting;
 with Traces;
 
 package Disa_Symbolize is
@@ -26,16 +27,14 @@ package Disa_Symbolize is
    procedure Symbolize
      (Sym      : Symbolizer;
       Pc       : Traces.Pc_Type;
-      Line     : in out String;
-      Line_Pos : in out Natural) is abstract;
+      Buffer   : in out Highlighting.Buffer_Type) is abstract;
 
    type Nul_Symbolizer_Type is new Symbolizer with private;
 
    overriding procedure Symbolize
      (Sym      : Nul_Symbolizer_Type;
       Pc       : Traces.Pc_Type;
-      Line     : in out String;
-      Line_Pos : in out Natural) is null;
+      Buffer   : in out Highlighting.Buffer_Type) is null;
 
    Nul_Symbolizer : constant Nul_Symbolizer_Type;
 

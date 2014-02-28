@@ -34,6 +34,7 @@ with Disa_Symbolize; use Disa_Symbolize;
 with Elf_Arch;       use Elf_Arch;
 with Elf_Common;     use Elf_Common;
 with Elf_Files;      use Elf_Files;
+with Highlighting;
 with Traces;         use Traces;
 with Traces_Dbase;   use Traces_Dbase;
 with Traces_Files;   use Traces_Files;
@@ -90,8 +91,7 @@ package Traces_Elf is
    procedure Symbolize
      (Sym      : Exe_File_Type;
       Pc       : Traces.Pc_Type;
-      Line     : in out String;
-      Line_Pos : in out Natural);
+      Buffer   : in out Highlighting.Buffer_Type);
    --  Makes symbolize non-abstract.
 
    procedure Open_File

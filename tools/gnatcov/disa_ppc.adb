@@ -19,9 +19,10 @@
 with Interfaces; use Interfaces;
 
 with Disa_Common;
-with Hex_Images; use Hex_Images;
-with Ppc_Descs;  use Ppc_Descs;
-with Ppc_Disopc; use Ppc_Disopc;
+with Hex_Images;   use Hex_Images;
+with Highlighting; use Highlighting;
+with Ppc_Descs;    use Ppc_Descs;
+with Ppc_Disopc;   use Ppc_Disopc;
 
 package body Disa_Ppc is
 
@@ -50,21 +51,13 @@ package body Disa_Ppc is
      (Self     : PPC_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Traces.Pc_Type;
-      Line     : out String;
-      Line_Pos : out Natural;
+      Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class)
    is
       pragma Unreferenced (Self);
 
       W : constant Unsigned_32 := To_Insn (Insn_Bin);
-
-      procedure Add (C : Character);
-      pragma Inline (Add);
-      --  Add C to the line
-
-      procedure Add (Str : String);
-      --  Add Str to the line
 
       procedure Add_HT;
       --  Comment needed???
@@ -77,43 +70,16 @@ package body Disa_Ppc is
       procedure Add_Uimm (Val : Unsigned_32);
       --  Comment needed???
 
-      ---------
-      -- Add --
-      ---------
-
-      procedure Add (C : Character) is
-      begin
-         if Line_Pos <= Line'Last then
-            Line (Line_Pos) := C;
-            Line_Pos := Line_Pos + 1;
-         end if;
-      end Add;
-
-      ---------
-      -- Add --
-      ---------
-
-      procedure Add (Str : String) is
-      begin
-         if Line_Pos + Str'Length <= Line'Last then
-            Line (Line_Pos .. Line_Pos + Str'Length - 1) := Str;
-            Line_Pos := Line_Pos + Str'Length;
-         else
-            for I in Str'Range loop
-               Add (Str (I));
-            end loop;
-         end if;
-      end Add;
-
       ------------
       -- Add_HT --
       ------------
 
       procedure Add_HT is
       begin
-         Add (' ');
-         while Line_Pos - Line'First < 7 loop
-            Add (' ');
+         Buffer.Start_Token (Text);
+         Buffer.Put (' ');
+         while Buffer.Last_Index < 7 loop
+            Buffer.Put (' ');
          end loop;
       end Add_HT;
 
@@ -123,7 +89,7 @@ package body Disa_Ppc is
 
       procedure Add_Digit (N : Natural_0_9) is
       begin
-         Add (Character'Val (Character'Pos ('0') + N));
+         Buffer.Put (Character'Val (Character'Pos ('0') + N));
       end Add_Digit;
 
       --------------
@@ -148,12 +114,13 @@ package body Disa_Ppc is
       procedure Add_Simm (Val : Unsigned_32) is
          V : constant Unsigned_16 := Unsigned_16 (Val);
       begin
+         Buffer.Start_Token (Literal);
          if (V and 16#8000#) /= 0 then
-            Add ("-0x");
-            Add (Hex_Image (-V));
+            Buffer.Put ("-0x");
+            Buffer.Put (Hex_Image (-V));
          else
-            Add ("0x");
-            Add (Hex_Image (V));
+            Buffer.Put ("0x");
+            Buffer.Put (Hex_Image (V));
          end if;
       end Add_Simm;
 
@@ -164,8 +131,9 @@ package body Disa_Ppc is
       procedure Add_Uimm (Val : Unsigned_32) is
          V : constant Unsigned_16 := Unsigned_16 (Val);
       begin
-         Add ("0x");
-         Add (Hex_Image (V));
+         Buffer.Start_Token (Literal);
+         Buffer.Put ("0x");
+         Buffer.Put (Hex_Image (V));
       end Add_Uimm;
 
       Insn_Index : Integer := -1;
@@ -175,7 +143,6 @@ package body Disa_Ppc is
 
    begin
       Insn_Len := 4;
-      Line_Pos := Line'First;
 
       --  Find insn
 
@@ -204,9 +171,10 @@ package body Disa_Ppc is
             --  Display mnemonic.
             --  This is a bounded string padded with spaces.
 
+            Buffer.Start_Token (Mnemonic);
             for I in Insn.Name'Range loop
                exit when Insn.Name (I) = ' ';
-               Add (Insn.Name (I));
+               Buffer.Put (Insn.Name (I));
             end loop;
 
             --  Display fields
@@ -230,7 +198,8 @@ package body Disa_Ppc is
                   else
                      --  Add a comma separator between fields.
 
-                     Add (',');
+                     Buffer.Start_Token (Punctuation);
+                     Buffer.Put (',');
                   end if;
 
                else
@@ -247,58 +216,64 @@ package body Disa_Ppc is
                case F is
                   when F_OE =>
                      if Val /= 0 then
-                        Add ('o');
+                        Buffer.Put ('o');
                      end if;
 
                   when F_Rc =>
                      if Val /= 0 then
-                        Add ('.');
+                        Buffer.Put ('.');
                      end if;
 
                   when F_AA =>
                      if Val /= 0 then
-                        Add ('a');
+                        Buffer.Put ('a');
                      end if;
 
                   when F_LK =>
                      if Val /= 0 then
-                        Add ('l');
+                        Buffer.Put ('l');
                      end if;
 
                   when F_Br_Hint =>
                      if Val = 0 then
-                        Add ('-');
+                        Buffer.Put ('-');
                      else
-                        Add ('+');
+                        Buffer.Put ('+');
                      end if;
 
                   when F_L =>
                      if Val = 0 then
-                        Add ('w');
+                        Buffer.Put ('w');
                      else
-                        Add ('d');
+                        Buffer.Put ('d');
                      end if;
 
                   when F_U =>
                      if Val /= 0 then
-                        Add ('u');
+                        Buffer.Put ('u');
                      end if;
 
                   when F_A | F_D | F_S | F_B =>
-                     Add ('r');
+                     Buffer.Start_Token (Register);
+                     Buffer.Put ('r');
                      Add_Num2 (Val);
 
                   when F_FA | F_FD | F_FS | F_FB | F_FC =>
-                     Add ('f');
+                     Buffer.Start_Token (Register);
+                     Buffer.Put ('f');
                      Add_Num2 (Val);
 
                   when F_Disp =>
                      pragma Assert (Insn.Fields (I + 1) = F_A);
                      pragma Assert (Insn.Fields (I + 2) = F_Eof);
                      Add_Simm (Val);
-                     Add ("(r");
+                     Buffer.Start_Token (Punctuation);
+                     Buffer.Put ('(');
+                     Buffer.Start_Token (Register);
+                     Buffer.Put ('r');
                      Add_Num2 (Get_Field (F_A, W));
-                     Add (')');
+                     Buffer.Start_Token (Punctuation);
+                     Buffer.Put (')');
                      exit;
 
                   when F_SIMM =>
@@ -322,9 +297,11 @@ package body Disa_Ppc is
                         Val := Val + Unsigned_32 (Pc);
                      end if;
 
-                     Add ("0x");
-                     Add (Hex_Image (Val));
-                     Sym.Symbolize (Pc_Type (Val), Line, Line_Pos);
+                     Buffer.Start_Token (Literal);
+                     Buffer.Put ("0x");
+                     Buffer.Put (Hex_Image (Val));
+                     Buffer.Start_Token (Name);
+                     Sym.Symbolize (Pc_Type (Val), Buffer);
 
                   when F_BD =>
                      Val := Shift_Left (Val, 2);
@@ -340,26 +317,35 @@ package body Disa_Ppc is
                      if (W and 2) = 0 then
                         Val := Val + Unsigned_32 (Pc);
                      end if;
-                     Add ("0x");
-                     Add (Hex_Image (Val));
-                     Sym.Symbolize (Pc_Type (Val), Line, Line_Pos);
+                     Buffer.Start_Token (Literal);
+                     Buffer.Put ("0x");
+                     Buffer.Put (Hex_Image (Val));
+                     Buffer.Start_Token (Name);
+                     Sym.Symbolize (Pc_Type (Val), Buffer);
 
                   when F_CrfD | F_CrfS =>
-                     Add ("cr");
+                     Buffer.Start_Token (Register);
+                     Buffer.Put ("cr");
                      Add_Num2 (Val);
 
                   when F_BI | F_BO | F_SH | F_MB | F_ME =>
+                     Buffer.Start_Token (Literal);
                      Add_Num2 (Val);
 
                   when others =>
-                     Add (Hex_Image (Val));
+                     Buffer.Start_Token (Literal);
+                     Buffer.Put (Hex_Image (Val));
                end case;
             end loop;
          end;
 
       else
-         Add (".long ");
-         Add (Hex_Image (W));
+         Buffer.Start_Token (Prefix);
+         Buffer.Put (".long");
+         Buffer.Start_Token (Text);
+         Buffer.Put (' ');
+         Buffer.Start_Token (Literal);
+         Buffer.Put (Hex_Image (W));
       end if;
    end Disassemble_Insn;
 

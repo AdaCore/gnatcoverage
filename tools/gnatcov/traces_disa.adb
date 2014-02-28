@@ -22,6 +22,7 @@ with Disassemblers;     use Disassemblers;
 with Elf_Arch;          use Elf_Arch;
 with Interfaces;        use Interfaces;
 with Hex_Images;        use Hex_Images;
+with Highlighting;      use Highlighting;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Switches;
 with Traces_Files;
@@ -35,24 +36,16 @@ package body Traces_Disa is
    function Get_Label
      (Sym : Symbolizer'Class; Info : Address_Info_Acc) return String
    is
-      Line : String (1 .. 64);
-      Line_Pos : Natural;
+      Buffer : Highlighting.Buffer_Type (64);
    begin
       --  Display address
 
-      Line_Pos := Line'First;
-      Symbolize (Sym, Info.First, Line, Line_Pos);
+      Symbolize (Sym, Info.First, Buffer);
 
-      if Line_Pos > Line'First then
-         if Line_Pos > Line'Last then
-            Line_Pos := Line'Last;
-         end if;
-
-         Line (Line_Pos) := ':';
-         return Line (Line'First + 1 .. Line_Pos);
-
-      else
+      if Buffer.Last_Index < 1 then
          return "";
+      else
+         return Buffer.Get_Raw (2 .. Buffer.Last_Index) & ':';
       end if;
    end Get_Label;
 
@@ -65,17 +58,16 @@ package body Traces_Disa is
       Pc   : Pc_Type;
       Sym  : Symbolizer'Class) return String
    is
-      Line_Pos : Natural;
-      Line : String (1 .. 128);
+      Buffer : Buffer_Type (128);
       Insn_Len : Natural;
    begin
       Disa_For_Machine (Machine).
-        Disassemble_Insn (Insn, Pc, Line, Line_Pos, Insn_Len, Sym);
+        Disassemble_Insn (Insn, Pc, Buffer, Insn_Len, Sym);
 
       if Elf_Arch.Elf_Addr (Insn_Len) /= Length (Insn) then
          raise Constraint_Error;
       end if;
-      return Line (1 .. Line_Pos - 1);
+      return Buffer.Get_Raw;
    end Disassemble;
 
    ---------------------------
@@ -256,8 +248,7 @@ package body Traces_Disa is
       procedure Disp_Entry (E : Trace_Entry) is
          use Traces_Disa;
          Sec : Address_Info_Acc;
-         Line : String (1 .. 128);
-         Line_Pos : Natural := Line'First;
+         Buffer : Highlighting.Buffer_Type (128);
       begin
          Dump_Entry (E);
          if Addr = null
@@ -270,9 +261,9 @@ package body Traces_Disa is
             Put_Line ("(not in the executable)");
 
          else
-            Symbolize (Exe, E.First, Line, Line_Pos);
-            Line (Natural'Min (Line'Last, Line_Pos)) := ':';
-            Put_Line (Line (Line'First + 1 .. Line_Pos));
+            Symbolize (Exe, E.First, Buffer);
+            Buffer.Put (':');
+            Put_Line (Buffer.Get_Raw (2 .. Buffer.Last_Index));
 
             Sec := Addr.Parent;
             while Sec.Kind /= Section_Addresses loop

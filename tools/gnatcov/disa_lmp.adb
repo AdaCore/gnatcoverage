@@ -19,8 +19,9 @@
 with Ada.Unchecked_Conversion;
 with Interfaces; use Interfaces;
 
-with Disa_Common; use Disa_Common;
+with Disa_Common;  use Disa_Common;
 with Hex_Images;
+with Highlighting; use Highlighting;
 
 package body Disa_Lmp is
 
@@ -341,55 +342,27 @@ package body Disa_Lmp is
      (Self     : LMP_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
-      Line     : out String;
-      Line_Pos : out Natural;
+      Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class)
    is
       pragma Unreferenced (Self);
       pragma Unreferenced (Sym);
 
-      Line_Cursor : Natural := Line'First;
-      --  Next index where to write the next disassembly character in Line
-
-      procedure Put (C : Character);
-      --  Write C in Line, update Line_Cursor accordingly
-
-      procedure Put (S : String);
-      --  Write S in Line, update Line_Cursor accordingly
-
+      procedure Put_Comma;
       procedure Put_Register (Prefix : Character; N : Natural);
       procedure Put_Unsigned_Immediate (Imm : Unsigned_16);
       procedure Put_Signed_Immediate (Imm : Integer_16);
 
-      ---------
-      -- Put --
-      ---------
+      ---------------
+      -- Put_Comma --
+      ---------------
 
-      procedure Put (C : Character) is
+      procedure Put_Comma is
       begin
-         if Line_Cursor <= Line'Last then
-            Line (Line_Cursor) := C;
-            Line_Cursor := Line_Cursor + 1;
-         end if;
-      end Put;
-
-      ---------
-      -- Put --
-      ---------
-
-      procedure Put (S : String) is
-         Line_Remaining_Chars : constant Natural :=
-           (if Line_Cursor > Line'Last
-            then 0
-            else Line'Last - Line_Cursor + 1);
-         Length               : constant Natural :=
-           Natural'Min (S'Length, Line_Remaining_Chars);
-      begin
-         Line (Line_Cursor .. Line_Cursor + Length - 1) :=
-           S (S'First .. S'First + Length - 1);
-         Line_Cursor := Line_Cursor + Length;
-      end Put;
+         Buffer.Start_Token (Punctuation);
+         Buffer.Put (',');
+      end Put_Comma;
 
       ------------------
       -- Put_Register --
@@ -401,11 +374,12 @@ package body Disa_Lmp is
          --  There are at most 32 registers, so 2 digits are enough
 
          pragma Assert (N < 32);
-         Put (Prefix);
+         Buffer.Start_Token (Register);
+         Buffer.Put (Prefix);
          if N >= 10 then
-            Put (Digit_Set (N / 10));
+            Buffer.Put (Digit_Set (N / 10));
          end if;
-         Put (Digit_Set (N mod 10));
+         Buffer.Put (Digit_Set (N mod 10));
       end Put_Register;
 
       ----------------------------
@@ -417,7 +391,8 @@ package body Disa_Lmp is
       begin
          --  Strip the ' ' prefix
 
-         Put (Image (Image'First + 1 .. Image'Last));
+         Buffer.Start_Token (Literal);
+         Buffer.Put (Image (Image'First + 1 .. Image'Last));
       end Put_Unsigned_Immediate;
 
       --------------------------
@@ -426,8 +401,9 @@ package body Disa_Lmp is
 
       procedure Put_Signed_Immediate (Imm : Integer_16) is
       begin
+         Buffer.Start_Token (Literal);
          if Imm = 0 then
-            Put ('0');
+            Buffer.Put ('0');
          else
             declare
                Image : String := Integer_16'Image (Imm);
@@ -435,7 +411,7 @@ package body Disa_Lmp is
                if Imm > 0 then
                   Image (Image'First) := '+';
                end if;
-               Put (Image);
+               Buffer.Put (Image);
             end;
          end if;
       end Put_Signed_Immediate;
@@ -509,23 +485,23 @@ package body Disa_Lmp is
       --------------
 
       procedure Put_Insn (Desc : Insn_Descriptor) is
-
          Mnemonic_Cur : Natural := Desc.Mnemonic'First;
 
       begin
          --  Output the mnemonic, stripping ending spaces
 
+         Buffer.Start_Token (Mnemonic);
          while Mnemonic_Cur <= Desc.Mnemonic'Last
            and then Desc.Mnemonic (Mnemonic_Cur) /= ' '
          loop
-            Put (Desc.Mnemonic (Mnemonic_Cur));
+            Buffer.Put (Desc.Mnemonic (Mnemonic_Cur));
             Mnemonic_Cur := Mnemonic_Cur + 1;
          end loop;
 
          --  Add the operand size prefix if the instruction needs it
 
          if Desc.Sized then
-            Put
+            Buffer.Put
               (case Size is
                   when Byte => ".b",
                   when Word => ".w",
@@ -540,35 +516,43 @@ package body Disa_Lmp is
          --  operands to 8 characters when possible, or 9 when the mnemonic is
          --  8 characters long.
 
-         while Line_Cursor < Line'First + 8 loop
-            Put (' ');
+         Buffer.Start_Token (Text);
+         while Buffer.Last_Index < 8 loop
+            Buffer.Put (' ');
          end loop;
-         if Line (Line_Cursor - 1) /= ' ' then
-            Put (' ');
+         if Buffer.Get_Raw (Buffer.Last_Index) /= ' ' then
+            Buffer.Put (' ');
          end if;
 
          for I in Desc.Operands'Range loop
             if Desc.Operands (I) = None then
                exit;
             elsif I > 1 then
-               Put (',');
+               Put_Comma;
             end if;
 
             case Desc.Operands (I) is
                when Invalid =>
-                  Put ("???");
+                  Buffer.Start_Token (Error);
+                  Buffer.Put ("???");
 
                when None =>
                   raise Program_Error with "unreachable branch";
 
                when Block_Move =>
-                  Put ("r1,r2,r3");
+                  Put_Register ('r', 1);
+                  Put_Comma;
+                  Put_Register ('r', 2);
+                  Put_Comma;
+                  Put_Register ('r', 3);
 
                when Memory =>
                   Put_Unsigned_Immediate (Index);
-                  Put ('(');
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put ('(');
                   Put_Register ('r', Natural (Src_A));
-                  Put (")");
+                  Buffer.Start_Token (Punctuation);
+                  Buffer.Put (")");
 
                when Reg_Src_A =>
                   Put_Register ('r', Natural (Src_A));
@@ -589,7 +573,7 @@ package body Disa_Lmp is
                   Put_Register ('f', Natural (F_Dest));
                when Reg_F_Double =>
                   Put_Register ('f', Natural (F_Src_A));
-                  Put (',');
+                  Put_Comma;
                   Put_Register ('f', Natural (F_Src_B));
 
                when F_Inst_Operand =>
@@ -598,12 +582,14 @@ package body Disa_Lmp is
                   Put_Unsigned_Immediate (Unsigned_16 (EAM_Op));
 
                when Cond =>
-                  Put (Condition_Names (Condition));
+                  Buffer.Start_Token (Name);
+                  Buffer.Put (Condition_Names (Condition));
                when Imm =>
                   Put_Unsigned_Immediate (Immediate);
                when Word_Imm =>
-                  Put ("0x");
-                  Put (Hex_Images.Hex_Image (Immediate));
+                  Buffer.Start_Token (Literal);
+                  Buffer.Put ("0x");
+                  Buffer.Put (Hex_Images.Hex_Image (Immediate));
                when Signed_Rel =>
                   Put_Signed_Immediate (Signed_Relative);
             end case;
@@ -677,7 +663,6 @@ package body Disa_Lmp is
             end if;
       end case;
 
-      Line_Pos := Line_Cursor;
       Insn_Len := 4;
    end Disassemble_Insn;
 

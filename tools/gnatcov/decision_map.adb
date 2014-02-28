@@ -36,6 +36,7 @@ with Execs_Dbase;       use Execs_Dbase;
 with Disa_Symbolize;
 with Files_Table;       use Files_Table;
 with Hex_Images;        use Hex_Images;
+with Highlighting;
 with Qemu_Traces;
 with Slocs;             use Slocs;
 with Strings;           use Strings;
@@ -1456,21 +1457,19 @@ package body Decision_Map is
                  (Ctx.Basic_Blocks, CBE.Destination.Target);
                Sec      : constant Address_Info_Acc := Get_Address_Info
                  (Exe.all, Section_Addresses, BB.From);
-               Line     : String (1 .. 1);
-               Line_Pos : Natural := 0;
+               Buffer   : Highlighting.Buffer_Type (1);
                Line_Len : Natural;
             begin
                Disa_For_Machine (Machine).Disassemble_Insn
                  (Slice (Sec.Section_Content, BB.From, BB.To),
                   BB.From,
-                  Line,
-                  Line_Pos,
+                  Buffer,
                   Line_Len,
                   Disa_Symbolize.Nul_Symbolizer);
 
                --  x87-FPU instructions mnemonics are those starting with "f"
 
-               if Line /= "f" then
+               if Buffer.Get_Raw /= "f" then
                   return;
                end if;
             end;

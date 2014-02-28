@@ -3074,39 +3074,9 @@ package body Traces_Elf is
    procedure Symbolize
      (Sym      : Exe_File_Type;
       Pc       : Traces.Pc_Type;
-      Line     : in out String;
-      Line_Pos : in out Natural)
+      Buffer   : in out Highlighting.Buffer_Type)
    is
-      procedure Add (C : Character);
-      --  Add C to the line
-
-      procedure Add (Str : String);
-      --  Add STR to the line
-
       Symbol : constant Address_Info_Acc := Get_Symbol (Sym, Pc);
-
-      ---------
-      -- Add --
-      ---------
-
-      procedure Add (C : Character) is
-      begin
-         if Line_Pos <= Line'Last then
-            Line (Line_Pos) := C;
-            Line_Pos := Line_Pos + 1;
-         end if;
-      end Add;
-
-      ---------
-      -- Add --
-      ---------
-
-      procedure Add (Str : String) is
-      begin
-         for I in Str'Range loop
-            Add (Str (I));
-         end loop;
-      end Add;
 
    --  Start of processing for Symbolize
 
@@ -3115,13 +3085,13 @@ package body Traces_Elf is
          return;
       end if;
 
-      Add (" <");
-      Add (Symbol.Symbol_Name.all);
+      Buffer.Put (" <");
+      Buffer.Put (Symbol.Symbol_Name.all);
       if Pc /= Symbol.First then
-         Add ('+');
-         Add (Hex_Image (Pc - Symbol.First));
+         Buffer.Put ('+');
+         Buffer.Put (Hex_Image (Pc - Symbol.First));
       end if;
-      Add ('>');
+      Buffer.Put ('>');
    end Symbolize;
 
    -------------------
@@ -3244,8 +3214,7 @@ package body Traces_Elf is
          Insn_Len : Natural := 0;
          Sec      : constant Address_Info_Acc := Element (Cur);
          Insns    : Binary_Content;
-         Line_Pos : Natural;
-         Line     : String (1 .. 128);
+         Buffer   : Highlighting.Buffer_Type (128);
       begin
          Load_Section_Content (File, Sec);
          Put_Line ("section " & Sec.Section_Name.all);
@@ -3257,9 +3226,10 @@ package body Traces_Elf is
             Put (":");
             Put (ASCII.HT);
 
+            Buffer.Reset;
             Disa_For_Machine (Machine).
               Disassemble_Insn (Slice (Insns, Pc, Insns.Last), Pc,
-                                Line, Line_Pos, Insn_Len, File);
+                                Buffer, Insn_Len, File);
 
             for I in Pc .. Pc + Pc_Type (Insn_Len - 1) loop
                Put (Hex_Image (Get (Insns, I)));
@@ -3271,7 +3241,7 @@ package body Traces_Elf is
             end loop;
 
             Put ("  ");
-            Put (Line (Line'First .. Line_Pos - 1));
+            Put (Buffer.Get_Raw);
             New_Line;
 
             Pc := Pc + Pc_Type (Insn_Len);

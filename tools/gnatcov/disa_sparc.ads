@@ -20,6 +20,7 @@
 
 with Disa_Symbolize; use Disa_Symbolize;
 with Disassemblers;  use Disassemblers;
+with Highlighting;
 with Traces;         use Traces;
 with Traces_Elf;     use Traces_Elf;
 
@@ -36,8 +37,7 @@ package Disa_Sparc is
      (Self     : SPARC_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
-      Line     : out String;
-      Line_Pos : out Natural;
+      Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class);
    --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.

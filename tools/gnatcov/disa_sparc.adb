@@ -16,11 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces;  use Interfaces;
+with Interfaces;   use Interfaces;
 
-with Disa_Common; use Disa_Common;
-with Hex_Images;  use Hex_Images;
-with Sparc_Descs; use Sparc_Descs;
+with Disa_Common;  use Disa_Common;
+with Hex_Images;   use Hex_Images;
+with Highlighting; use Highlighting;
+with Sparc_Descs;  use Sparc_Descs;
 
 package body Disa_Sparc is
 
@@ -289,8 +290,7 @@ package body Disa_Sparc is
      (Self     : SPARC_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Traces.Pc_Type;
-      Line     : out String;
-      Line_Pos : out Natural;
+      Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class)
    is
@@ -300,11 +300,9 @@ package body Disa_Sparc is
         To_Big_Endian_U32
           (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3));
 
-      procedure Add (C : Character);
-      pragma Inline (Add);
-      --  Add CHAR to the line
+      procedure Add_Comma;
+      --  Add a comma token to the buffer
 
-      procedure Add (Str : String);
       procedure Add_Sp (Str : String);
       procedure Add_HT;
       procedure Disp_Hex (V : Unsigned_32);
@@ -317,17 +315,15 @@ package body Disa_Sparc is
       procedure Disp_Format (Desc : Insn_Desc_Type);
       --  Need comments???
 
-      ---------
-      -- Add --
-      ---------
+      ---------------
+      -- Add_Comma --
+      ---------------
 
-      procedure Add (C : Character) is
+      procedure Add_Comma is
       begin
-         if Line_Pos <= Line'Last then
-            Line (Line_Pos) := C;
-            Line_Pos := Line_Pos + 1;
-         end if;
-      end Add;
+         Buffer.Start_Token (Punctuation);
+         Buffer.Put (',');
+      end Add_Comma;
 
       ---------
       -- Add --
@@ -337,21 +333,9 @@ package body Disa_Sparc is
       begin
          for I in Str'Range loop
             exit when Str (I) = ' ';
-            Add (Str (I));
+            Buffer.Put (Str (I));
          end loop;
       end Add_Sp;
-
-      procedure Add (Str : String) is
-      begin
-         if Line_Pos + Str'Length <= Line'Last then
-            Line (Line_Pos .. Line_Pos + Str'Length - 1) := Str;
-            Line_Pos := Line_Pos + Str'Length;
-         else
-            for I in Str'Range loop
-               Add (Str (I));
-            end loop;
-         end if;
-      end Add;
 
       ------------
       -- Add_HT --
@@ -359,9 +343,10 @@ package body Disa_Sparc is
 
       procedure Add_HT is
       begin
-         Add (' ');
-         while Line_Pos - Line'First < 8 loop
-            Add (' ');
+         Buffer.Start_Token (Text);
+         Buffer.Put (' ');
+         while Buffer.Last_Index < 8 loop
+            Buffer.Put (' ');
          end loop;
       end Add_HT;
 
@@ -371,8 +356,9 @@ package body Disa_Sparc is
 
       procedure Disp_Hex (V : Unsigned_32) is
       begin
-         Add ("0x");
-         Add (Hex_Image (V));
+         Buffer.Start_Token (Literal);
+         Buffer.Put ("0x");
+         Buffer.Put (Hex_Image (V));
       end Disp_Hex;
 
       --------------
@@ -382,16 +368,18 @@ package body Disa_Sparc is
       procedure Add_Cond (Str : String; Map : Cond_Map_Type) is
          V : Unsigned_32;
       begin
-         Add (Str);
+         Buffer.Put (Str);
          Add_Sp (Map (Get_Field (F_Cond, W)));
          if (W and 16#2000_0000#) /= 0 then
-            Add (",a");
+            Buffer.Put (",a");
          end if;
          Add_HT;
-         Add ("0x");
+         Buffer.Start_Token (Literal);
+         Buffer.Put ("0x");
          V := Unsigned_32 (Pc) + Get_Field_Sext (F_Disp22, W) * 4;
-         Add (Hex_Image (V));
-         Sym.Symbolize (Pc_Type (V), Line, Line_Pos);
+         Buffer.Put (Hex_Image (V));
+         Buffer.Start_Token (Name);
+         Sym.Symbolize (Pc_Type (V), Buffer);
       end Add_Cond;
 
       --------------
@@ -400,31 +388,32 @@ package body Disa_Sparc is
 
       procedure Add_Ireg (R : Reg_Type) is
       begin
-         Add ('%');
+         Buffer.Start_Token (Register);
+         Buffer.Put ('%');
          if R <= 7 then
-            Add ('g');
+            Buffer.Put ('g');
 
          elsif R <= 15 then
             if R = 14 then
-               Add ("sp");
+               Buffer.Put ("sp");
                return;
             else
-               Add ('o');
+               Buffer.Put ('o');
             end if;
 
          elsif R <= 23 then
-            Add ('l');
+            Buffer.Put ('l');
 
          else
             if R = 30 then
-               Add ("fp");
+               Buffer.Put ("fp");
                return;
             else
-               Add ('i');
+               Buffer.Put ('i');
             end if;
          end if;
 
-         Add (Hex_Digit (R and 7));
+         Buffer.Put (Hex_Digit (R and 7));
       end Add_Ireg;
 
       ------------
@@ -435,9 +424,9 @@ package body Disa_Sparc is
       is
       begin
          if N >= 10 then
-            Add (Hex_Digit (N / 10));
+            Buffer.Put (Hex_Digit (N / 10));
          end if;
-         Add (Hex_Digit (N mod 10));
+         Buffer.Put (Hex_Digit (N mod 10));
       end Add_D2;
 
       --------------
@@ -447,12 +436,13 @@ package body Disa_Sparc is
       procedure Add_Freg (R : Reg_Type)
       is
       begin
-         Add ('%');
-         Add ('f');
+         Buffer.Start_Token (Register);
+         Buffer.Put ('%');
+         Buffer.Put ('f');
          if R >= 10 then
-            Add (Hex_Digit (R / 10));
+            Buffer.Put (Hex_Digit (R / 10));
          end if;
-         Add (Hex_Digit (R mod 10));
+         Buffer.Put (Hex_Digit (R mod 10));
       end Add_Freg;
 
       --------------
@@ -462,24 +452,29 @@ package body Disa_Sparc is
       procedure Disp_Mem is
          Imm : Unsigned_32;
       begin
-         Add ('[');
+         Buffer.Start_Token (Punctuation);
+         Buffer.Put ('[');
          Add_Ireg (Get_Field (F_Rs1, W));
          if Get_Field (F_I, W) /= 0 then
             Imm := Get_Field (F_Simm13, W);
             if Imm /= 0 then
-               Add ('+');
-               Add ("0x");
-               Add (Hex_Image (Unsigned_16 (Imm)));
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put ('+');
+               Buffer.Start_Token (Literal);
+               Buffer.Put ("0x");
+               Buffer.Put (Hex_Image (Unsigned_16 (Imm)));
             end if;
 
          else
             Imm := Get_Field (F_Rs2, W);
             if Imm /= 0 then
-               Add ('+');
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put ('+');
                Add_Ireg (Imm);
             end if;
          end if;
-         Add (']');
+         Buffer.Start_Token (Punctuation);
+         Buffer.Put (']');
       end Disp_Mem;
 
       ------------------
@@ -489,8 +484,9 @@ package body Disa_Sparc is
       procedure Disp_Rs2_Imm is
       begin
          if Get_Field (F_I, W) /= 0 then
-            Add ("0x");
-            Add (Hex_Image (Unsigned_16 ((Get_Field (F_Simm13, W)))));
+            Buffer.Start_Token (Literal);
+            Buffer.Put ("0x");
+            Buffer.Put (Hex_Image (Unsigned_16 ((Get_Field (F_Simm13, W)))));
          else
             Add_Ireg (Get_Field (F_Rs2, W));
          end if;
@@ -504,27 +500,29 @@ package body Disa_Sparc is
          Rd  : constant Unsigned_32 := Get_Field (F_Rd, W);
       begin
          if Desc.Name (1) = ' ' then
-            Add ("unknown op=");
-            Add (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
-            Add (", op3=");
-            Add (Hex_Image (Unsigned_8 (Get_Field (F_Op3, W))));
+            Buffer.Start_Token (Error);
+            Buffer.Put ("unknown op=");
+            Buffer.Put (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
+            Buffer.Put (", op3=");
+            Buffer.Put (Hex_Image (Unsigned_8 (Get_Field (F_Op3, W))));
             return;
          end if;
 
+         Buffer.Start_Token (Mnemonic);
          Add_Sp (Desc.Name);
          case Desc.Format is
             when Format_Rs1_Regimm_Rd =>
                Add_HT;
                Add_Ireg (Rd);
-               Add (',');
+               Add_Comma;
                Add_Ireg (Get_Field (F_Rs1, W));
-               Add (',');
+               Add_Comma;
                Disp_Rs2_Imm;
 
             when Format_Rs1_Regimm =>
                Add_HT;
                Add_Ireg (Get_Field (F_Rs1, W));
-               Add (',');
+               Add_Comma;
                Disp_Rs2_Imm;
 
             when Format_Rd =>
@@ -534,25 +532,25 @@ package body Disa_Sparc is
             when Format_Fp_Mem =>
                Add_HT;
                Add_Freg (Rd);
-               Add (',');
+               Add_Comma;
                Disp_Mem;
 
             when Format_Mem_Fp =>
                Add_HT;
                Disp_Mem;
-               Add (',');
+               Add_Comma;
                Add_Freg (Rd);
 
             when Format_Mem_Rd =>
                Add_HT;
                Disp_Mem;
-               Add (',');
+               Add_Comma;
                Add_Ireg (Rd);
 
             when Format_Rd_Mem =>
                Add_HT;
                Add_Ireg (Rd);
-               Add (',');
+               Add_Comma;
                Disp_Mem;
 
             when Format_Ticc =>
@@ -562,29 +560,31 @@ package body Disa_Sparc is
 
             when Format_Fregrs1_Fregrs2 =>
                Add_HT;
+               Buffer.Start_Token (Name);
                Add_Freg (Get_Field (F_Rs1, W));
-               Add (',');
+               Add_Comma;
                Add_Freg (Get_Field (F_Rs2, W));
 
             when Format_Fregrs2_Fregrd =>
                Add_HT;
                Add_Freg (Get_Field (F_Rs2, W));
-               Add (',');
+               Add_Comma;
                Add_Freg (Rd);
 
             when Format_Fregrs1_Fregrs2_Fregrd =>
                Add_HT;
                Add_Freg (Get_Field (F_Rs1, W));
-               Add (',');
+               Add_Comma;
                Add_Freg (Get_Field (F_Rs2, W));
-               Add (',');
+               Add_Comma;
                Add_Freg (Rd);
 
             when others =>
-               Add ("unhandled format op=");
-               Add (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
-               Add (", op3=");
-               Add (Hex_Image (Unsigned_8 (Get_Field (F_Op3, W))));
+               Buffer.Start_Token (Error);
+               Buffer.Put ("unhandled format op=");
+               Buffer.Put (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
+               Buffer.Put (", op3=");
+               Buffer.Put (Hex_Image (Unsigned_8 (Get_Field (F_Op3, W))));
          end case;
       end Disp_Format;
 
@@ -592,8 +592,8 @@ package body Disa_Sparc is
 
    begin
       Insn_Len := 4;
-      Line_Pos := Line'First;
 
+      Buffer.Start_Token (Mnemonic);
       case Get_Field (F_Op, W) is
          when 2#00# =>
 
@@ -601,7 +601,7 @@ package body Disa_Sparc is
 
             case Get_Field (F_Op2, W) is
                when 2#000# =>
-                  Add ("unimp");
+                  Buffer.Put ("unimp");
                   Add_HT;
                   Disp_Hex (Get_Field (F_Disp22, W));
 
@@ -617,19 +617,20 @@ package body Disa_Sparc is
                      Imm22 : constant Unsigned_32 := Get_Field (F_Imm22, W);
                   begin
                      if Rd = 0 and Imm22 = 0 then
-                        Add ("nop");
+                        Buffer.Put ("nop");
                      else
-                        Add ("sethi");
+                        Buffer.Put ("sethi");
                         Add_HT;
                         Disp_Hex (Shift_Left (Imm22, 10));
-                        Add (',');
+                        Add_Comma;
                         Add_Ireg (Rd);
                      end if;
                   end;
 
                when others =>
-                  Add ("unknown op=0 op2=");
-                  Add (Hex_Image (Get_Field (F_Op2, W)));
+                  Buffer.Start_Token (Error);
+                  Buffer.Put ("unknown op=0 op2=");
+                  Buffer.Put (Hex_Image (Get_Field (F_Op2, W)));
             end case;
 
          when 2#01# =>
@@ -640,11 +641,13 @@ package body Disa_Sparc is
                Val : constant Unsigned_32 := Unsigned_32 (Pc)
                                              + Shift_Left (W, 2);
             begin
-               Add ("call");
+               Buffer.Put ("call");
                Add_HT;
-               Add ("0x");
-               Add (Hex_Image (Val));
-               Sym.Symbolize (Pc_Type (Val), Line, Line_Pos);
+               Buffer.Start_Token (Literal);
+               Buffer.Put ("0x");
+               Buffer.Put (Hex_Image (Val));
+               Buffer.Start_Token (Name);
+               Sym.Symbolize (Pc_Type (Val), Buffer);
             end;
 
          when 2#10# =>
@@ -658,26 +661,27 @@ package body Disa_Sparc is
                      --  or rd,%g0,xx => mov
 
                      if Get_Field (F_Rs1, W) = 0 then
-                        Add ("mov");
+                        Buffer.Put ("mov");
                         Add_HT;
                         Disp_Rs2_Imm;
-                        Add (',');
+                        Add_Comma;
                         Add_Ireg (Get_Field (F_Rd, W));
                         return;
                      end if;
 
                   when 16#30# =>
                      Rd := Get_Field (F_Rd, W);
-                     Add ("wr");
+                     Buffer.Put ("wr");
                      Add_HT;
                      Add_Ireg (Get_Field (F_Rs1, W));
-                     Add (',');
+                     Add_Comma;
                      Disp_Rs2_Imm;
-                     Add (',');
+                     Add_Comma;
+                     Buffer.Start_Token (Register);
                      if Rd = 0 then
-                        Add ("%y");
+                        Buffer.Put ("%y");
                      else
-                        Add ("%asr");
+                        Buffer.Put ("%asr");
                         Add_D2 (Rd);
                      end if;
                      return;
@@ -687,8 +691,9 @@ package body Disa_Sparc is
                         Opf : constant Unsigned_32 := Get_Field (F_Opf, W);
                      begin
                         if Insn_Desc_Fp34 (Opf).Format = Format_Bad then
-                           Add ("unknown op=2 op3=34 opf=");
-                           Add (Hex_Image (Unsigned_16 (Opf)));
+                           Buffer.Start_Token (Error);
+                           Buffer.Put ("unknown op=2 op3=34 opf=");
+                           Buffer.Put (Hex_Image (Unsigned_16 (Opf)));
                         else
                            Disp_Format (Insn_Desc_Fp34 (Opf));
                         end if;
@@ -700,8 +705,9 @@ package body Disa_Sparc is
                         Opf : constant Unsigned_32 := Get_Field (F_Opf, W);
                      begin
                         if Insn_Desc_Fp35 (Opf).Format = Format_Bad then
-                           Add ("unknown op=2 op3=35 opf=");
-                           Add (Hex_Image (Unsigned_16 (Opf)));
+                           Buffer.Start_Token (Error);
+                           Buffer.Put ("unknown op=2 op3=35 opf=");
+                           Buffer.Put (Hex_Image (Unsigned_16 (Opf)));
                         else
                            Disp_Format (Insn_Desc_Fp35 (Opf));
                         end if;
@@ -716,11 +722,11 @@ package body Disa_Sparc is
                      then
                         case Get_Field (F_Rs1, W) is
                            when 15 => -- %o7
-                              Add ("retl");
+                              Buffer.Put ("retl");
                               return;
 
                            when 31 => -- %i7
-                              Add ("ret");
+                              Buffer.Put ("ret");
                               return;
 
                            when others =>
