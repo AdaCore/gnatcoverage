@@ -1353,6 +1353,16 @@ package body CFG_Dump is
                   Append (Result, "&lt;");
                when '>' =>
                   Append (Result, "&gt;");
+
+               --  These two entities are not necessary according to the dot
+               --  language specification, this is a workaround for a bug in
+               --  the graphviz/dot parser.
+
+               when '[' =>
+                  Append (Result, "&#91;");
+               when ']' =>
+                  Append (Result, "&#93;");
+
                when others =>
                   Append (Result, C);
             end case;
