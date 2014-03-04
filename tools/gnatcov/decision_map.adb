@@ -2309,22 +2309,33 @@ package body Decision_Map is
                               if Branch_SCO /= No_SCO_Id
                                 and then Kind (Branch_SCO) = Condition
                               then
-                                 Report_Non_Traceable
-                                   (BB, "multiple conditions for conditional "
-                                    & "branch");
+                                 if Branch_SCO /= SCO then
+                                    Report_Non_Traceable
+                                      (BB,
+                                       "multiple conditions for conditional "
+                                       & "branch");
+                                 else
+                                    --  Duplicate sloc info denoting the
+                                    --  same SCO as the one seen previously:
+                                    --  nothing to do.
+
+                                    null;
+                                 end if;
+
+                              else
+                                 Branch_SCO := SCO;
+
+                                 --  Queue for later processing
+
+                                 Pending_Cond_Branches.Append
+                                   ((Insn_First  => Insn.First,
+                                     Insn_Last   => Insn.Last,
+                                     Tag         => Tsloc.Tag,
+                                     C_SCO       => SCO,
+                                     Branch_Dest => Branch_Dest,
+                                     FT_Dest     => FT_Dest,
+                                     BB_From     => BB.From));
                               end if;
-                              Branch_SCO := SCO;
-
-                              --  Queue for later processing
-
-                              Pending_Cond_Branches.Append
-                                ((Insn_First  => Insn.First,
-                                  Insn_Last   => Insn.Last,
-                                  Tag         => Tsloc.Tag,
-                                  C_SCO       => SCO,
-                                  Branch_Dest => Branch_Dest,
-                                  FT_Dest     => FT_Dest,
-                                  BB_From     => BB.From));
                            end if;
 
                         else
