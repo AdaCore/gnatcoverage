@@ -45,6 +45,7 @@ with Elf_Files;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Inputs;            use Inputs;
+with Object_Locations;  use Object_Locations;
 with Outputs;           use Outputs;
 with Perf_Counters;
 with Project;           use Project;
@@ -318,7 +319,7 @@ procedure GNATcov is
    Kernel              : String_Access := null;
    Eargs               : String_List_Access := null;
    Executable_Path     : String_Access := null;
-   Locations_Inputs    : CFG_Dump.User_Locations;
+   Locations_Inputs    : Object_Locations.User_Locations;
    Output_Format       : CFG_Dump.Output_Format := CFG_Dump.None;
    Keep_Edges          : Boolean := False;
 
@@ -960,7 +961,7 @@ procedure GNATcov is
                               Executable_Path := new String'(Arg);
                            else
                               Locations_Inputs.Append
-                                (CFG_Dump.Parse_User_Location (Arg));
+                                (Object_Locations.Parse_User_Location (Arg));
                            end if;
 
                         when Cmd_Map_Routines =>
