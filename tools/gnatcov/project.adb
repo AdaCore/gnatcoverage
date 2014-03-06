@@ -412,7 +412,8 @@ package body Project is
         (Self                => Env.all,
          Language_Name       => "C",
          Default_Spec_Suffix => ".h",
-         Default_Body_Suffix => ".c");
+         Default_Body_Suffix => ".c",
+         Obj_Suffix          => ".o");
 
       for A in Attribute'Range loop
          declare
