@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Strings.Unbounded;
+
 package body Highlighting is
 
    function Get_Token_Last
@@ -164,5 +166,38 @@ package body Highlighting is
          return Position.Buffer.Tokens (Position.First);
       end if;
    end Token;
+
+   ------------------
+   -- Format_Token --
+   ------------------
+
+   function Format_Token (Text : String; Kind : Some_Token_Kind) return String
+   is
+      use Ada.Strings.Unbounded;
+
+      Hex_Digits : constant array (0 .. 15) of Character := "0123456789abcdef";
+      Result     : Unbounded_String;
+
+   begin
+      Append (Result, Some_Token_Kind'Image (Kind));
+      Append (Result, ASCII.HT);
+
+      --  Append printable characters (except '\') as-is and put other ones as
+      --  "\XX" escape sequences.
+      for C of Text loop
+         declare
+            Pos : constant Integer := Character'Pos (C);
+         begin
+            if C < ' ' or else C > '~' or else C = '\' then
+               Append (Result, '\');
+               Append (Result, Hex_Digits (Pos / 16));
+               Append (Result, Hex_Digits (Pos mod 16));
+            else
+               Append (Result, C);
+            end if;
+         end;
+      end loop;
+      return To_String (Result);
+   end Format_Token;
 
 end Highlighting;

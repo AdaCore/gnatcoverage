@@ -83,4 +83,25 @@ package Disassemblers is
    --  Print an error message suitable for disassembler error reports, giving
    --  enough context information to investigate and debug disassembly issues.
 
+   function Get_Mnemonic_Kind
+     (Branch    : Branch_Kind;
+      Flag_Cond : Boolean) return Highlighting.Some_Token_Kind
+   is
+     (case Branch is
+         when Br_Call | Br_Ret =>
+        (if Flag_Cond
+         then Highlighting.Mnemonic_Branch
+         else Highlighting.Mnemonic_Call),
+
+         when Br_Jmp =>
+        (if Flag_Cond
+         then Highlighting.Mnemonic_Branch
+         else Highlighting.Mnemonic_Call),
+
+         when others => Highlighting.Mnemonic);
+   --  Given some instruction properties, return the mnemonic token kind
+   --  suitable for it. Note that Disassemble_Insn do not return specialized
+   --  mnemonic tokens itself because it would require information that can
+   --  be costly to compute.
+
 end Disassemblers;

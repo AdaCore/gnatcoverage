@@ -41,6 +41,7 @@ with Coverage;          use Coverage;
 with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
 with Decision_Map;      use Decision_Map;
+with Disassemble_Source;
 with Elf_Files;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
@@ -222,6 +223,12 @@ procedure GNATcov is
       P (" disassemble-raw EXEs");
       P ("   Disassemble executables");
       New_Line;
+      P (" disassemble-source EXE SELECTORs");
+      P ("   Disassemble instructions in the executable matching SELECTORs.");
+      P ("   The output is formatted so that it can be used as assembly");
+      P ("   code quotes. See SELECTORs in the dump-cfg command for detailed");
+      P ("   explanations.");
+      New_Line;
       P (" dump-cfg EXE SELECTORs");
       P ("   Display object code from EXE as a graph. SELECTORs must be a");
       P ("   non-empty list of patterns, which is used to match code to");
@@ -320,7 +327,9 @@ procedure GNATcov is
    Eargs               : String_List_Access := null;
    Executable_Path     : String_Access := null;
    Locations_Inputs    : Object_Locations.User_Locations;
-   Output_Format       : CFG_Dump.Output_Format := CFG_Dump.None;
+   CFG_Output_Format   : CFG_Dump.Output_Format := CFG_Dump.None;
+   Disas_Output_Format : Disassemble_Source.Output_Format :=
+     Disassemble_Source.Text;
    Keep_Edges          : Boolean := False;
 
    Opt_Exe_Name : String_Access := null;
@@ -896,13 +905,22 @@ procedure GNATcov is
                         Excluded_SCOs := True;
 
                      elsif Arg = Format_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Dump_CFG));
+                        Check_Option
+                          (Arg, Command,
+                           (Cmd_Disassemble_Source,
+                            Cmd_Dump_CFG));
                         declare
                            Format_Name : constant String :=
                              Next_Arg ("format name");
                         begin
-                           Output_Format :=
-                             CFG_Dump.Output_Format'Value (Format_Name);
+                           if Command = Cmd_Disassemble_Source then
+                              Disas_Output_Format :=
+                                Disassemble_Source.Output_Format'Value
+                                  (Format_Name);
+                           else
+                              CFG_Output_Format :=
+                                CFG_Dump.Output_Format'Value (Format_Name);
+                           end if;
                         exception
                            when Constraint_Error =>
                               Fatal_Error
@@ -953,7 +971,7 @@ procedure GNATcov is
                            | Cmd_Disassemble =>
                            Inputs.Add_Input (Exe_Inputs, Arg);
 
-                        when Cmd_Dump_CFG =>
+                        when Cmd_Disassemble_Source | Cmd_Dump_CFG =>
                            --  The first argument is the executable. The other
                            --  ones are locations.
 
@@ -1455,21 +1473,29 @@ begin
             Inputs.Iterate (Exe_Inputs, Disassemble'Access);
          end;
 
-      when Cmd_Dump_CFG =>
+      when Cmd_Disassemble_Source | Cmd_Dump_CFG =>
          if Executable_Path = null then
             Fatal_Error ("The executable argument is missing");
          elsif Locations_Inputs.Is_Empty then
             Fatal_Error ("At least one location is required");
          end if;
 
-         CFG_Dump.Dump
-           (Executable_Path.all,
-            Locations_Inputs,
-            Output,
-            Output_Format,
-            ALIs_Inputs,
-            Trace_Inputs,
-            Keep_Edges);
+         if Command = Cmd_Disassemble_Source then
+            Disassemble_Source.Disassemble
+              (Executable_Path.all,
+               Locations_Inputs,
+               Disas_Output_Format);
+
+         else
+            CFG_Dump.Dump
+              (Executable_Path.all,
+               Locations_Inputs,
+               Output,
+               CFG_Output_Format,
+               ALIs_Inputs,
+               Trace_Inputs,
+               Keep_Edges);
+         end if;
          Free (Executable_Path);
 
       when Cmd_Coverage =>

@@ -24,6 +24,7 @@ package Highlighting is
      (None,
       Error,
       Text,
+      Comment,
       Punctuation,
       Prefix,
       Mnemonic,
@@ -106,6 +107,7 @@ package Highlighting is
      (None            => ("000000", False, False, False),
       Error           => ("a00000", True,  False, False),
       Text            => ("202020", False, False, False),
+      Comment         => ("808080", False, False, False),
       Punctuation     => ("202020", False, False, False),
       Prefix          => ("4080c0", False, False, False),
       Mnemonic        => ("0e84b5", False, False, False),
@@ -115,6 +117,9 @@ package Highlighting is
       Literal         => ("0e84b5", False, False, False),
       Register        => ("902000", False, False, False),
       Name            => ("007020", False, False, False));
+
+   function Format_Token (Text : String; Kind : Some_Token_Kind) return String;
+   --  Serialize a token to a textual format
 
 private
 
