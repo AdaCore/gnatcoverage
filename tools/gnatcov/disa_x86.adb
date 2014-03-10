@@ -1598,10 +1598,13 @@ package body Disa_X86 is
       Width          : Width_Type;
       Sign_Extend    : Boolean)
      return Unsigned_64;
-   --  Decode an immediate (unsigned) value given its memory location and its
-   --  size.
+   --  Decode an immediate value given its memory location, its size and its
+   --  signedness.
    --  Off is the immediate address and is relative to a certain PC. Mem is a
    --  function that reads one byte at an offset from this PC.
+
+   function Truncate_To_Pc_Type (Value : Unsigned_64) return Pc_Type is
+     (Pc_Type (Value and Unsigned_64 (Pc_Type'Last)));
 
    -----------
    -- Ext_0 --
@@ -1693,27 +1696,17 @@ package body Disa_X86 is
       Sign_Extend : Boolean)
      return Unsigned_64
    is
-      Is_64bit : constant Boolean := Machine = Elf_Common.EM_X86_64;
       Is_Negative : Boolean;
       V : Unsigned_64;
 
       subtype Sign_Extension_Width_Type is Width_Type range W_8 .. W_64;
       type Sign_Extension_Type is
-         array (Boolean, Sign_Extension_Width_Type) of Unsigned_64;
+         array (Sign_Extension_Width_Type) of Unsigned_64;
       Sign_Extension : constant Sign_Extension_Type :=
-        (
-           (16#0000_0000_ffff_ff00#,
-            16#0000_0000_ffff_0000#,
-            16#0000_0000_0000_0000#,
-            16#0000_0000_0000_0000#),
-            --  32 bits
-
-           (16#ffff_ffff_ffff_ff00#,
-            16#ffff_ffff_ffff_0000#,
-            16#ffff_ffff_0000_0000#,
-            16#0000_0000_0000_0000#)
-            --  64 bits
-        );
+        (16#ffff_ffff_ffff_ff00#,
+         16#ffff_ffff_ffff_0000#,
+         16#ffff_ffff_0000_0000#,
+         16#0000_0000_0000_0000#);
    begin
       --  For each size, once the value is read from memory, sign extend if
       --  needed.
@@ -1754,7 +1747,7 @@ package body Disa_X86 is
       end case;
 
       if Is_Negative then
-         V := Sign_Extension (Is_64bit, Width) or V;
+         V := Sign_Extension (Width) or V;
       end if;
 
       return V;
@@ -1795,7 +1788,15 @@ package body Disa_X86 is
       procedure Add_Name (Name : String);
       pragma Inline (Add_Name);
 
-      procedure Add_Byte (V : Byte);
+      procedure Add_Hex
+        (Value  : Unsigned_64;
+         Signed : Boolean;
+         Width  : Width_Type);
+      --  Add Value as an hexadecimal token to Buffer. Interpret it as a 64-bit
+      --  signed value if Signed. If Width is W_None, output as few digits as
+      --  needed, otherwise, output a "fixed-length" literal corresponding to
+      --  the given length.
+
       procedure Add_Comma;
 
       procedure Name_Align (Orig : Natural);
@@ -1819,7 +1820,10 @@ package body Disa_X86 is
       --  The following functions decode various instruction fields *and*
       --  directly add them to the output line.
 
-      procedure Decode_Val (Off : Pc_Type; Width : Width_Type);
+      procedure Decode_Val
+        (Off    : Pc_Type;
+         Width  : Width_Type;
+         Signed : Boolean);
       --  Add the value in the binary at the given "Off" offset of the given
       --  "Width" to the output.
 
@@ -1829,9 +1833,10 @@ package body Disa_X86 is
       --  prefix) and update "Off" to point to the first byte past the
       --  immediate.
 
-      procedure Decode_Disp (Off : Pc_Type;
-                             Width : Width_Type;
-                             Offset : Unsigned_32 := 0);
+      procedure Decode_Disp (Off           : Pc_Type;
+                             Width         : Width_Type;
+                             Lookup_Symbol : Boolean;
+                             Offset        : Unsigned_32 := 0);
       --  Add the displacement value of the given "Width" in the binary at the
       --  address "Off" plus the given "Offset" to the output.
 
@@ -1876,16 +1881,6 @@ package body Disa_X86 is
       procedure Add_Opcode (Name : String16; Width : Width_Type);
       pragma Unreferenced (Add_Opcode);
       --  XXX
-
-      --------------
-      -- Add_Byte --
-      --------------
-
-      procedure Add_Byte (V : Byte) is
-      begin
-         Buffer.Put (Hex_Digit (Natural (Shift_Right (V, 4) and 16#0f#)));
-         Buffer.Put (Hex_Digit (Natural (Shift_Right (V, 0) and 16#0f#)));
-      end Add_Byte;
 
       --------------
       -- Add_Name --
@@ -2066,38 +2061,70 @@ package body Disa_X86 is
          return Bit_Field_4 (Rex_Prefix) * 8 + Bit_Field_4 (Reg);
       end Reg_With_Rex;
 
+      -------------
+      -- Add_Hex --
+      -------------
+
+      procedure Add_Hex
+        (Value  : Unsigned_64;
+         Signed : Boolean;
+         Width  : Width_Type)
+      is
+         V          : Unsigned_64 := Value;
+
+         type Digit_Type is new Unsigned_8 range 0 .. 15;
+         Digits_Set   : constant array (Digit_Type) of Character :=
+           "0123456789abcdef";
+         Digits_Count : Natural := 0;
+         Digits_Arr   : array (1 .. 64 / 4) of Digit_Type;
+
+      begin
+         Buffer.Start_Token (Literal);
+
+         if Signed and then V >= 16#8000_0000_0000_0000# then
+
+            --  If Value is negative, set V to the absolute value of
+            --  Value.
+
+            Buffer.Put ('-');
+            V := not V;
+            V := V + 1;
+         end if;
+
+         for D of Digits_Arr loop
+            D := Digit_Type (V and 16#f#);
+            V := Shift_Right (V, 4);
+            Digits_Count := Digits_Count + 1;
+            exit when V = 0;
+         end loop;
+
+         Buffer.Put ("0x");
+
+         if Width /= W_None then
+            for D in Digits_Count + 1 .. Natural (Width_Len (Width) * 2) loop
+               Buffer.Put ('0');
+            end loop;
+         end if;
+
+         for D of reverse Digits_Arr (1 .. Digits_Count) loop
+            Buffer.Put (Digits_Set (D));
+         end loop;
+      end Add_Hex;
+
       ----------------
       -- Decode_Val --
       ----------------
 
-      procedure Decode_Val (Off : Pc_Type; Width : Width_Type)
+      procedure Decode_Val
+        (Off    : Pc_Type;
+         Width  : Width_Type;
+         Signed : Boolean)
       is
       begin
-         case Width is
-            when W_8 =>
-               Add_Byte (Mem (Off));
-            when W_16 =>
-               Add_Byte (Mem (Off + 1));
-               Add_Byte (Mem (Off));
-            when W_32 =>
-               Add_Byte (Mem (Off + 3));
-               Add_Byte (Mem (Off + 2));
-               Add_Byte (Mem (Off + 1));
-               Add_Byte (Mem (Off + 0));
-            when W_64 =>
-               Add_Byte (Mem (Off + 7));
-               Add_Byte (Mem (Off + 6));
-               Add_Byte (Mem (Off + 5));
-               Add_Byte (Mem (Off + 4));
-               Add_Byte (Mem (Off + 3));
-               Add_Byte (Mem (Off + 2));
-               Add_Byte (Mem (Off + 1));
-               Add_Byte (Mem (Off + 0));
-            when W_None =>
-               raise Invalid_Insn;
-            when others =>
-               raise Invalid_Insn with "invalid 128-bit immediate decoding";
-         end case;
+         Add_Hex
+           (Decode_Val (Mem'Unrestricted_Access, Off, Width, Signed),
+            Signed,
+            Width);
       end Decode_Val;
 
       ----------------
@@ -2108,8 +2135,8 @@ package body Disa_X86 is
       is
       begin
          Buffer.Start_Token (Literal);
-         Buffer.Put ("$0x");
-         Decode_Val (Off, Width);
+         Buffer.Put ('$');
+         Decode_Val (Off, Width, False);
          Off := Off + Width_Len (Width);
       end Decode_Imm;
 
@@ -2117,46 +2144,35 @@ package body Disa_X86 is
       -- Decode_Disp --
       -----------------
 
-      procedure Decode_Disp (Off : Pc_Type;
-                             Width : Width_Type;
-                             Offset : Unsigned_32 := 0)
+      procedure Decode_Disp (Off           : Pc_Type;
+                             Width         : Width_Type;
+                             Lookup_Symbol : Boolean;
+                             Offset        : Unsigned_32 := 0)
       is
-         L : Natural;
-         V : Unsigned_64;
+         Decoded_Width : constant Width_Type :=
+           (if Lookup_Symbol
+            then (if Is_64bit then W_64 else W_32)
+            else Width);
+         Signed        : Boolean := True;
+         V             : Unsigned_64;
       begin
-         --  Note that even in 64bit, there is no 64-bit displacements
-         L := Buffer.Last_Index;
          V := Decode_Val (Mem'Unrestricted_Access, Off, Width, True)
-               + Unsigned_64 (Offset);
-         if not Is_64bit then
-            --  If Pc_Type is only 32-bit wide, truncate V so that it  can fit
-            --  in it.
-            V := V and 16#ffff_ffff#;
+           + Unsigned_64 (Offset);
+
+         --  Displacements are always signed. At this point, V contains a
+         --  sign-extended value. If a symbol lookup has been requested,
+         --  what we want is an address, though.
+
+         if Lookup_Symbol then
+            V := Unsigned_64 (Truncate_To_Pc_Type (V));
+            Signed := False;
          end if;
-         Buffer.Start_Token (Name);
-         Sym.Symbolize (Pc_Type (V), Buffer);
-         if L /= Buffer.Last_Index then
-            if V = 0 then
-               return;
-            end if;
-            Buffer.Start_Token (Text);
-            Buffer.Put (" + ");
-         end if;
+
          Buffer.Start_Token (Literal);
-         Buffer.Put ("0x");
-         if Offset = 0 then
-            Decode_Val (Off, Width);
-         else
-            if Is_64bit then
-               Add_Byte (Byte (Shift_Right (V, 56) and 16#ff#));
-               Add_Byte (Byte (Shift_Right (V, 48) and 16#ff#));
-               Add_Byte (Byte (Shift_Right (V, 40) and 16#ff#));
-               Add_Byte (Byte (Shift_Right (V, 32) and 16#ff#));
-            end if;
-            Add_Byte (Byte (Shift_Right (V, 24) and 16#ff#));
-            Add_Byte (Byte (Shift_Right (V, 16) and 16#ff#));
-            Add_Byte (Byte (Shift_Right (V, 8) and 16#ff#));
-            Add_Byte (Byte (Shift_Right (V, 0) and 16#ff#));
+         Add_Hex (V, Signed, Decoded_Width);
+
+         if Lookup_Symbol then
+            Sym.Symbolize (Truncate_To_Pc_Type (V), Buffer);
          end if;
       end Decode_Disp;
 
@@ -2169,7 +2185,7 @@ package body Disa_X86 is
          Disp_Off : constant Pc_Type := Off;
       begin
          Off := Off + Width_Len (Width);
-         Decode_Disp (Disp_Off, Width, Unsigned_32 (Off));
+         Decode_Disp (Disp_Off, Width, True, Unsigned_32 (Off));
       end Decode_Disp_Rel;
 
       ----------------
@@ -2201,35 +2217,42 @@ package body Disa_X86 is
          if not (B = 2#101# and then B_Mod = 0) then
             --  Base
             Add_Reg (Reg_With_Rex (Base_Ext, B), Reg_Addr_Class);
-            if I /= 2#100# then
+            Buffer.Start_Token (Punctuation);
+            Buffer.Put (',');
+         end if;
+
+         --  Index
+         if I /= 2#100# then
+            Add_Reg (Reg_With_Rex (Index_Ext, I), Reg_Addr_Class);
+         else
+            Buffer.Start_Token (Register);
+            Buffer.Put ("%eiz");
+         end if;
+
+         --  Scale
+         case S is
+            when 2#00# =>
                Buffer.Start_Token (Punctuation);
                Buffer.Put (',');
-            end if;
-         end if;
-         if I /= 2#100# then
-            --  Index
-            Add_Reg (Reg_With_Rex (Index_Ext, I), Reg_Addr_Class);
-            --  Scale
-            case S is
-               when 2#00# =>
-                  null;
-               when 2#01# =>
-                  Buffer.Start_Token (Punctuation);
-                  Buffer.Put (',');
-                  Buffer.Start_Token (Literal);
-                  Buffer.Put ('2');
-               when 2#10# =>
-                  Buffer.Start_Token (Punctuation);
-                  Buffer.Put (',');
-                  Buffer.Start_Token (Literal);
-                  Buffer.Put ('4');
-               when 2#11# =>
-                  Buffer.Start_Token (Punctuation);
-                  Buffer.Put (',');
-                  Buffer.Start_Token (Literal);
-                  Buffer.Put ('8');
-            end case;
-         end if;
+               Buffer.Start_Token (Literal);
+               Buffer.Put ('1');
+            when 2#01# =>
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (',');
+               Buffer.Start_Token (Literal);
+               Buffer.Put ('2');
+            when 2#10# =>
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (',');
+               Buffer.Start_Token (Literal);
+               Buffer.Put ('4');
+            when 2#11# =>
+               Buffer.Start_Token (Punctuation);
+               Buffer.Put (',');
+               Buffer.Start_Token (Literal);
+               Buffer.Put ('8');
+         end case;
+         Buffer.Start_Token (Punctuation);
          Buffer.Put (')');
       end Decode_Sib;
 
@@ -2282,17 +2305,21 @@ package body Disa_X86 is
                   if Ext_Sib_Base (Sib) = 2#101# then
                      --  And in this case, there is also a 32-bit
                      --  displacement with no base.
-                     Decode_Disp (Off + 2, W_32);
+                     Decode_Disp (Off + 2, W_32, False);
                   end if;
                   Decode_Sib (Sib, B_Mod);
 
                elsif B_Rm = 2#101# then
                   --  In 32-bit mode, the address is the following 32-bit
                   --  address...
-                  Decode_Disp (Off + 1, W_32);
+                  if not Is_64bit then
+                     Decode_Disp (Off + 1, W_32, True);
 
-                  --  In 64-bit mode, we also add RIP to it
-                  if Is_64bit then
+                  else
+                     --  In 64-bit mode, we also add RIP to it
+
+                     Decode_Disp (Off + 1, W_32, False);
+
                      Buffer.Start_Token (Punctuation);
                      Buffer.Put ('(');
                      Buffer.Start_Token (Register);
@@ -2313,14 +2340,14 @@ package body Disa_X86 is
             when 2#01# =>
                if B_Rm = 2#100# then
                   --  The address encoded in the SIB byte plus a 8-bit
-                  --  displacement.
-                  Decode_Disp (Off + 2, W_8);
+                  --  signed displacement.
+                  Decode_Disp (Off + 2, W_8, False);
                   Decode_Sib (Mem (Off + 1), B_Mod);
 
                else
                   --  Otherwise, the address is the content of a register plus
-                  --  a 8-bit displacement.
-                  Decode_Disp (Off + 1, W_8);
+                  --  a 8-bit signed displacement.
+                  Decode_Disp (Off + 1, W_8, False);
                   Buffer.Start_Token (Punctuation);
                   Buffer.Put ('(');
                   Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_Addr_Class);
@@ -2331,15 +2358,17 @@ package body Disa_X86 is
             when 2#10# =>
                if B_Rm = 2#100# then
                   --  The address is encoded in the SIB byte plus a 32-bit
-                  --  displacement.
-                  Decode_Disp (Off + 2, W_32);
+                  --  signed displacement.
+                  Decode_Disp (Off + 2, W_32, False);
                   Decode_Sib (Mem (Off + 1), B_Mod);
                else
                   --  Otherwise, the address is the content of a register plus
-                  --  a 32-bit displacement.
-                  Decode_Disp (Off + 1, W_32);
+                  --  a signed 32-bit displacement.
+                  Decode_Disp (Off + 1, W_32, False);
+                  Buffer.Start_Token (Punctuation);
                   Buffer.Put ('(');
                   Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_Addr_Class);
+                  Buffer.Start_Token (Punctuation);
                   Buffer.Put (')');
                end if;
 
@@ -3162,7 +3191,8 @@ package body Disa_X86 is
             FT_Dest.Target := Pc + 2;
             Branch_Dest.Target :=
               FT_Dest.Target
-                + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
+                + Truncate_To_Pc_Type
+              (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
             return;
 
          when 16#0f# =>
@@ -3174,8 +3204,9 @@ package body Disa_X86 is
                Flag_Indir := False;
                FT_Dest.Target := Pc + 6;
                Branch_Dest.Target :=
-                 FT_Dest.Target + Pc_Type
-                    (Decode_Val (Mem'Unrestricted_Access, 2, W_32, True));
+                 FT_Dest.Target
+                   + Truncate_To_Pc_Type
+                 (Decode_Val (Mem'Unrestricted_Access, 2, W_32, True));
             end if;
             return;
 
@@ -3197,8 +3228,9 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              FT_Dest.Target +
-               Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
+              FT_Dest.Target
+                + Truncate_To_Pc_Type
+              (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
             return;
 
          when 16#9a# =>
@@ -3208,7 +3240,8 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32, False));
+              Truncate_To_Pc_Type
+                (Decode_Val (Mem'Unrestricted_Access, 1, W_32, False));
             return;
 
          when 16#e9# =>
@@ -3218,8 +3251,9 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              FT_Dest.Target + Pc_Type
-                 (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
+              FT_Dest.Target
+                + Truncate_To_Pc_Type
+              (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
             return;
 
          when 16#ea# =>
@@ -3229,7 +3263,8 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32, False));
+              Truncate_To_Pc_Type
+                (Decode_Val (Mem'Unrestricted_Access, 1, W_32, False));
             return;
 
          when 16#eb# =>
@@ -3240,7 +3275,8 @@ package body Disa_X86 is
             FT_Dest.Target := Pc + 2;
             Branch_Dest.Target :=
               FT_Dest.Target
-              + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
+                + Truncate_To_Pc_Type
+              (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
             return;
 
          when 16#ff# =>
