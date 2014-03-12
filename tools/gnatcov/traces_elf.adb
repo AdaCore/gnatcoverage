@@ -3076,6 +3076,8 @@ package body Traces_Elf is
       Pc       : Traces.Pc_Type;
       Buffer   : in out Highlighting.Buffer_Type)
    is
+      use Highlighting;
+
       Symbol : constant Address_Info_Acc := Get_Symbol (Sym, Pc);
 
    --  Start of processing for Symbolize
@@ -3085,12 +3087,19 @@ package body Traces_Elf is
          return;
       end if;
 
-      Buffer.Put (" <");
+      Buffer.Start_Token (Text);
+      Buffer.Put (' ');
+      Buffer.Start_Token (Punctuation);
+      Buffer.Put ('<');
+      Buffer.Start_Token (Highlighting.Name);
       Buffer.Put (Symbol.Symbol_Name.all);
       if Pc /= Symbol.First then
+         Buffer.Start_Token (Punctuation);
          Buffer.Put ('+');
+         Buffer.Start_Token (Literal);
          Buffer.Put (Hex_Image (Pc - Symbol.First));
       end if;
+      Buffer.Start_Token (Punctuation);
       Buffer.Put ('>');
    end Symbolize;
 
