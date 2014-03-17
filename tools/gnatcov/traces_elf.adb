@@ -25,6 +25,8 @@ with Ada.Text_IO;       use Ada.Text_IO;
 
 with System.Storage_Elements; use System.Storage_Elements;
 
+with GNATCOLL.VFS;
+
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
@@ -2078,10 +2080,12 @@ package body Traces_Elf is
          Read_ULEB128 (Base, Off, File_Dir);
 
          declare
-            Filename     : constant String := Read_String (Base + Old_Off);
-            Dir          : String_Access;
-            File_Index   : Source_File_Index;
-            Filter_Lines : constant Boolean := Source_Coverage_Enabled;
+            Filename          : constant String :=
+              Read_String (Base + Old_Off);
+            Dir               : String_Access;
+            File_Index        : Source_File_Index;
+            Filter_Lines      : constant Boolean := Source_Coverage_Enabled;
+            Index_Simple_Name : Boolean;
          begin
             if File_Dir /= 0
               and then File_Dir <= Nbr_Dirnames
@@ -2100,14 +2104,32 @@ package body Traces_Elf is
             Filenames_Vectors.Append
               (Filenames, Build_Filename (Dir.all, Filename));
 
+            --  If the base name of this file do not match with a file
+            --  registered in the table (i.e. a base name from the SCOs), there
+            --  is no need to register it now since SCOs matching is the only
+            --  thing we are interested in.
+
+            declare
+               use GNATCOLL.VFS;
+
+               Simple_Name : constant String :=
+                 +Base_Name (Create (+Filenames.Last_Element.all));
+            begin
+               Index_Simple_Name :=
+                 Get_Index_From_Simple_Name
+                   (Simple_Name => Simple_Name,
+                    Insert      => False) /= No_Source_File;
+            end;
+
             --  Optimization: in source coverage, we do not want to add new
             --  files to the files table: the ones added when loading SCOs are
             --  enought. Do not even load debug line information for files that
             --  don't have statement SCOs.
 
             File_Index := Get_Index_From_Full_Name
-              (Filenames.Last_Element.all,
-               Insert => not Filter_Lines);
+              (Full_Name         => Filenames.Last_Element.all,
+               Insert            => not Filter_Lines,
+               Index_Simple_Name => Index_Simple_Name);
 
             if Filter_Lines
               and then File_Index /= No_Source_File
