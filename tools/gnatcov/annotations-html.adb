@@ -542,15 +542,15 @@ package body Annotations.Html is
       function Create_Output_Filename return String is
          Img : String (1 .. 2) := "00";
       begin
-         if Info.Alias_Num = 0 then
-            return Info.Simple_Name.all & ".html";
-         else
+         if Is_Aliased (File) then
             pragma Assert (Info.Alias_Num < 100);
             Img (2) := Character'Val (Character'Pos ('0') +
                                         Info.Alias_Num mod 10);
             Img (1) := Character'Val (Character'Pos ('0') +
                                         Info.Alias_Num / 10);
             return Info.Simple_Name.all & '.' & Img & ".html";
+         else
+            return Info.Simple_Name.all & ".html";
          end if;
       end Create_Output_Filename;
 

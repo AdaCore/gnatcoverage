@@ -45,7 +45,23 @@ package body Files_Table is
       Equivalent_Keys => "=",
       "="             => "=");
 
-   Simple_Name_Map : Filename_Maps.Map;
+   type Simple_Name_Info is record
+      Matches : Positive;
+      --  Number of files that have this base name
+
+      File    : Source_File_Index;
+      --  The registered file, if any
+   end record;
+   --  Information about a source file base name registered in Simple_Name_Map
+
+   package Simple_Name_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Virtual_File,
+      Element_Type    => Simple_Name_Info,
+      Hash            => Full_Name_Hash,
+      Equivalent_Keys => "=",
+      "="             => "=");
+
+   Simple_Name_Map : Simple_Name_Maps.Map;
    Full_Name_Map   : Filename_Maps.Map;
 
    Current_File_Line_Cache : File_Info_Access := null;
@@ -441,17 +457,18 @@ package body Files_Table is
       Index_Simple_Name : Boolean := True) return Source_File_Index
    is
       use Filename_Maps;
+      use Simple_Name_Maps;
 
       Full_Path : constant Virtual_File := Create (+Full_Name);
 
-      Cur  : Cursor;
+      Cur  : Filename_Maps.Cursor;
       Res  : Source_File_Index;
       Info : File_Info_Access;
       Info_Simple : File_Info_Access;
    begin
       Cur := Full_Name_Map.Find (Full_Path);
 
-      if Cur /= No_Element then
+      if Cur /= Filename_Maps.No_Element then
          Res := Element (Cur);
          return Res;
       end if;
@@ -460,11 +477,14 @@ package body Files_Table is
 
       declare
          Simple_Path : constant Virtual_File := Create (Base_Name (Full_Path));
+         Simple_Cur  : Simple_Name_Maps.Cursor :=
+            Simple_Name_Map.Find (Simple_Path);
       begin
-         Cur := Simple_Name_Map.Find (Simple_Path);
 
-         if Cur /= No_Element then
-            Res := Element (Cur);
+         if Simple_Cur /= Simple_Name_Maps.No_Element
+           and then Element (Simple_Cur).File /= No_Source_File
+         then
+            Res := Element (Simple_Cur).File;
 
             --  If we are not allowed to insert something, do not modify
             --  existing entries.
@@ -492,10 +512,9 @@ package body Files_Table is
 
          elsif not Insert then
             return No_Source_File;
-
-         else
-            Info_Simple := null;
          end if;
+
+         --  If we reach this point, we inserting a new file into the table
 
          Info := new File_Info'
            (Full_Name                =>
@@ -503,7 +522,7 @@ package body Files_Table is
             Simple_Name              =>
                new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
             Has_Source               => True,
-            Alias_Num                => 0,
+            Alias_Num                => 1,
             Lines                    => (Source_Line_Vectors.Empty_Vector
                                            with null record),
             Stats                    => (others => 0),
@@ -514,24 +533,39 @@ package body Files_Table is
          Files_Table.Append (Info);
          Res := Files_Table.Last_Index;
 
-         if Info_Simple = null and then Index_Simple_Name then
-            Simple_Name_Map.Insert (Simple_Path, Res);
+         --  If needed, add an entry into the simple name map. It will help
+         --  aliasing computation. Do not register the file itself if not
+         --  told to.
 
-         elsif Info_Simple /= null then
-            --  Set Alias_Num.
-            --  The entry in Simple_Name_Map has always the highest index.
+         if Simple_Cur = Simple_Name_Maps.No_Element then
+            declare
+               Inserted : Boolean;
+               File_Index : constant Source_File_Index :=
+                 (if Index_Simple_Name then Res else No_Source_File);
+            begin
+               Simple_Name_Map.Insert
+                 (Simple_Path,
+                  (Matches => 1, File => File_Index),
+                  Simple_Cur,
+                  Inserted);
+               pragma Assert (Inserted);
+            end;
+            --  The alias number already contains the correct value
 
-            if Info_Simple.Alias_Num = 0 then
-               Info.Alias_Num := 1;
-            else
-               Info.Alias_Num := Info_Simple.Alias_Num;
-            end if;
+         else
+            --  The entry already exists: just updated its Match count and set
+            --  the correct value to the alias number to the current file.
 
-            Info_Simple.Alias_Num := Info.Alias_Num + 1;
+            declare
+               Simple_Entry : Simple_Name_Info := Element (Simple_Cur);
+            begin
+               Simple_Entry.Matches := Simple_Entry.Matches + 1;
+               Simple_Name_Map.Replace_Element (Simple_Cur, Simple_Entry);
+               Info.Alias_Num := Simple_Entry.Matches;
+            end;
          end if;
 
          Full_Name_Map.Insert (Full_Path, Res);
-
          return Res;
       end;
    end Get_Index_From_Full_Name;
@@ -545,16 +579,17 @@ package body Files_Table is
       Insert      : Boolean := True) return Source_File_Index
    is
       use Filename_Maps;
+      use Simple_Name_Maps;
 
       Simple_Path : constant Virtual_File := Create (+Simple_Name);
 
-      Cur  : constant Cursor :=
-               Simple_Name_Map.Find (Simple_Path);
+      Cur  : constant Simple_Name_Maps.Cursor :=
+        Simple_Name_Map.Find (Simple_Path);
       Res  : Source_File_Index;
       Info : File_Info_Access;
    begin
-      if Cur /= No_Element then
-         return Element (Cur);
+      if Cur /= Simple_Name_Maps.No_Element then
+         return Element (Cur).File;
       end if;
 
       if not Insert then
@@ -565,7 +600,7 @@ package body Files_Table is
                                 new String'(+Full_Name (Simple_Path)),
                              Full_Name                => null,
                              Has_Source               => True,
-                             Alias_Num                => 0,
+                             Alias_Num                => 1,
                              Lines                    =>
                                 (Source_Line_Vectors.Empty_Vector
                                     with null record),
@@ -576,7 +611,7 @@ package body Files_Table is
 
       Files_Table.Append (Info);
       Res := Files_Table.Last_Index;
-      Simple_Name_Map.Insert (Simple_Path, Res);
+      Simple_Name_Map.Insert (Simple_Path, (Matches => 1, File => Res));
 
       return Res;
    end Get_Index_From_Simple_Name;
@@ -654,6 +689,22 @@ package body Files_Table is
    begin
       return Files_Table.Element (Index).Simple_Name.all;
    end Get_Simple_Name;
+
+   ----------------
+   -- Is_Aliased --
+   ----------------
+
+   function Is_Aliased (Index : Source_File_Index) return Boolean is
+      use Simple_Name_Maps;
+
+      File    : File_Info renames
+        Files_Table.Element (Index).all;
+      SN_Info : Simple_Name_Info renames
+        Simple_Name_Map.Element (Create (+File.Simple_Name.all));
+
+   begin
+      return SN_Info.Matches > 1;
+   end Is_Aliased;
 
    ---------------------------
    -- Invalidate_Line_Cache --

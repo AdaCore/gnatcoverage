@@ -57,6 +57,9 @@ package Files_Table is
    function Get_Simple_Name (Index : Source_File_Index) return String;
    --  Comments needed???
 
+   function Is_Aliased (Index : Source_File_Index) return Boolean;
+   --  Return if there exist a file that has the same file base name
+
    --  Utilities to open files from the source file table. Source files will be
    --  searched on the local filesystem, in the following order:
    --  (1) from xcov's execution directory;
@@ -208,9 +211,8 @@ package Files_Table is
       Has_Source : Boolean := True;
       --  False if no source file is found that corresponds to this file name
 
-      Alias_Num : Natural;
-      --  0 if no other source file has the same basename, otherwise a unique
-      --  index.
+      Alias_Num : Positive;
+      --  Unique index for all source files that has the same basename.
 
       Lines : Source_Lines;
       --  Source file to display in the reports
