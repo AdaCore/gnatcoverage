@@ -198,7 +198,15 @@ package body Disassemble_Source is
                Insn_Len := Disassembler.Get_Insn_Length (Insns);
             end if;
 
-            PC := PC + Pc_Type (Insn_Len);
+            --  Get the address of the next instruction to disassemble and stop
+            --  when wrapping.
+
+            declare
+               Old_PC : constant Pc_Type := PC;
+            begin
+               PC := PC + Pc_Type (Insn_Len);
+               exit when PC < Old_PC;
+            end;
          end loop;
 
          GNATCOLL.Mmap.Free (Section.Section_Region);

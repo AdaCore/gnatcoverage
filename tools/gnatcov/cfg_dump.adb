@@ -314,7 +314,8 @@ package body CFG_Dump is
       Disas   : constant access Disassemblers.Disassembler'Class :=
         Elf_Disassemblers.Disa_For_Machine (Traces.Machine);
 
-      PC : Pc_Type := Code.First;
+      PC     : Pc_Type := Code.First;
+      Old_PC : Pc_Type;
 
       Insn, Last_Insn : Instruction_Access := null;
       --  Currently analyzed instructions and the previous one. Last_Insn is
@@ -424,6 +425,7 @@ package body CFG_Dump is
          --  Past this point, PC contains the address of the next instruction.
          --  Use Address (Insn) to get the address of the current one.
 
+         Old_PC := PC;
          PC := PC + Pc_Type (Insn_Len);
 
          --  Chain the previous instruction to this one only when needed
@@ -597,6 +599,10 @@ package body CFG_Dump is
             Last_Insn := null;
             Last_Insn_Added := False;
          end if;
+
+         --  Stop when wrapping
+
+         exit when PC < Old_PC;
       end loop;
    end Collect_Instructions;
 
