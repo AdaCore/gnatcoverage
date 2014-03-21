@@ -26,8 +26,9 @@ with Ppc_Disopc;   use Ppc_Disopc;
 
 package body Disa_Ppc is
 
-   function To_Insn (Insn_Bin : Binary_Content) return Unsigned_32
-     renames Disa_Common.To_Big_Endian_U32;
+   function To_Insn (Insn_Bin : Binary_Content) return Unsigned_32 is
+     (Disa_Common.To_Big_Endian_U32
+        (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3)));
 
    ---------------------
    -- Get_Insn_Length --
