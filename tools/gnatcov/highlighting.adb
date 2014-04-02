@@ -180,7 +180,7 @@ package body Highlighting is
 
    begin
       Append (Result, Some_Token_Kind'Image (Kind));
-      Append (Result, ASCII.HT);
+      Append (Result, ':');
 
       --  Append printable characters (except '\') as-is and put other ones as
       --  "\XX" escape sequences.
