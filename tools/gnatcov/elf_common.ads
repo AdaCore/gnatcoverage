@@ -275,4 +275,7 @@ package Elf_Common is
    R_PPC_NONE   : constant Elf_Word := 0;
    R_PPC_ADDR32 : constant Elf_Word := 1; -- S + A
 
+   --  For LMP
+   R_LMP_32     : constant Elf_Word := 3;
+
 end Elf_Common;

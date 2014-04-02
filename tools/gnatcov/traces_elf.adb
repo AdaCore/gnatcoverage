@@ -1190,9 +1190,16 @@ package body Traces_Elf is
                      raise Program_Error with "unhandled SPARC relocation";
                end case;
             when EM_LMP =>
-               --  TODO???
-
-               null;
+               case Elf_R_Type (R.R_Info) is
+                  when R_LMP_32 =>
+                     Write_Word4 (Exec,
+                                  Address_Of (Data, 0),
+                                  Storage_Offset (R.R_Offset),
+                                  Unsigned_32 (Offset
+                                    + Elf_Addr (R.R_Addend)));
+                  when others =>
+                     raise Program_Error with "unhandled LMP relocation";
+               end case;
             when others =>
                Outputs.Fatal_Error
                  ("Relocs unhandled for this machine, reloc is"
