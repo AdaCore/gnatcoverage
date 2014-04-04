@@ -1615,8 +1615,8 @@ begin
                end return;
             exception
                when E : Elf_Files.Error =>
-                  Fatal_Error ("cannot open ELF file for trace file "
-                               & Trace_File_Name & ": "
+                  Fatal_Error ("cannot open ELF file " & Exe_Name.all
+                               & " for trace file " & Trace_File_Name & ": "
                                & Ada.Exceptions.Exception_Message (E));
                   raise;
             end Open_Exec;
