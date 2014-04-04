@@ -222,8 +222,8 @@ package body Traces_Files is
       when E : others =>
          Close (Desc.Fd);
          Fatal_Error
-           ("Processing of trace file """ & Filename & """ failed:" & ASCII.LF
-            & Exception_Information (E));
+           ("Processing of trace file " & Filename
+            & " failed: " & Exception_Message (E));
    end Open_Trace_File;
 
    procedure Read_Trace_Entry
