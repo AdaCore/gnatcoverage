@@ -58,8 +58,28 @@ package body Elf_Files is
    -- Open_File --
    ---------------
 
-   procedure Open_File (File : out Elf_File; Filename : String) is
+   procedure Open_File (File : out Elf_File; Filename : String)
+   is
+      procedure Exit_With_Error (Status : Elf_File_Status; Msg : String);
+      --  Assign Status to File, close the file if needed and raise Error with
+      --  the filename and Msg.
+
+      ---------------------
+      -- Exit_With_Error --
+      ---------------------
+
+      procedure Exit_With_Error (Status : Elf_File_Status; Msg : String) is
+      begin
+         File.Status := Status;
+         if File.Fd /= Invalid_FD then
+            Close (File.File);
+            File.Fd := Invalid_FD;
+         end if;
+         raise Error with File.Filename.all & ": " & Msg;
+      end Exit_With_Error;
+
       Basename : constant String := Ada.Directories.Simple_Name (Filename);
+
    begin
       File := (Filename         => new String'(Filename),
                Fd               => Invalid_FD,
@@ -95,8 +115,7 @@ package body Elf_Files is
             Free (File.Filename);
             File.Filename := new String'(Basename);
          else
-            File.Status := Status_Open_Failure;
-            raise Error with File.Filename.all & ": not found";
+            Exit_With_Error (Status_Open_Failure, "not found");
          end if;
       end loop;
 
@@ -107,10 +126,7 @@ package body Elf_Files is
       File.Ehdr_Map := Read
         (File.File, 0, File_Size (Elf_Ehdr_Size));
       if Natural (GNATCOLL.Mmap.Last (File.Ehdr_Map)) /= Elf_Ehdr_Size then
-         File.Status := Status_Read_Error;
-         Close (File.File);
-         File.Fd := Invalid_FD;
-         raise Error with File.Filename.all & ": failed to read ELF header";
+         Exit_With_Error (Status_Read_Error, "failed to read ELF header");
       end if;
 
       --  Make it mutable if byte-swapping is needed
@@ -132,32 +148,34 @@ package body Elf_Files is
         or else File.Ehdr.E_Ident (EI_MAG2) /= ELFMAG2
         or else File.Ehdr.E_Ident (EI_MAG3) /= ELFMAG3
       then
-         File.Status := Status_Bad_Magic;
-         Close (File.File);
-         File.Fd := Invalid_FD;
+         --  In the case this is a trace file, should we instead get the
+         --  executable name from the trace file and retry???
 
-         --  Specialize error message for the case where the user passed a
-         --  trace file instead of an ELF file.
-
-         if Has_Suffix (File.Filename.all, ".trace") then
-            --  Should we instead get the executable name from the trace file
-            --  and retry???
-
-            raise Error with
-              File.Filename.all & ": ELF file expected, found a trace file";
-
-         else
-            raise Error with File.Filename.all & ": bad ELF magic";
-         end if;
+         Exit_With_Error
+           (Status_Bad_Magic,
+            (if Has_Suffix (File.Filename.all, ".trace")
+             then "ELF file expected, found a trace file"
+             else "bad ELF magic"));
       end if;
 
-      if File.Ehdr.E_Ident (EI_CLASS) /= Elf_Arch_Class
-        or File.Ehdr.E_Ident (EI_VERSION) /= EV_CURRENT
-      then
-         File.Status := Status_Bad_Class;
-         Close (File.File);
-         File.Fd := Invalid_FD;
-         raise Error with "unexpected ELF class or version";
+      declare
+         Input_Class : Elf_Uchar renames File.Ehdr.E_Ident (EI_CLASS);
+      begin
+         if Input_Class /= Elf_Arch_Class then
+            Exit_With_Error
+              (Status_Bad_Class,
+               (case Input_Class is
+                   when ELFCLASS32 => "unsupported ELF class (32bit)",
+                   when ELFCLASS64 => "unsupported ELF class (64bit)",
+                   when others =>
+                      ("invalid ELF class ("
+                       & Elf_Uchar'Image (Input_Class)
+                       & ')')));
+         end if;
+      end;
+
+      if File.Ehdr.E_Ident (EI_VERSION) /= EV_CURRENT then
+         Exit_With_Error (Status_Bad_Version, "unexpected ELF version");
       end if;
 
       File.CRC32 := Compute_CRC32 (File);

@@ -46,7 +46,8 @@ package Elf_Files is
       Status_Memory,
       Status_Read_Error,
       Status_Bad_Magic,
-      Status_Bad_Class
+      Status_Bad_Class,
+      Status_Bad_Version
       );
 
    --  Open a binary file.
