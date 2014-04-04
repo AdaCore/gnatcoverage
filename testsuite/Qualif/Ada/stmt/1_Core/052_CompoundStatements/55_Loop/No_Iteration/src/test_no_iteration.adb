@@ -8,13 +8,11 @@ with Instances, Support;      use Instances, Support;
 
 procedure Test_No_Iteration is
 
-   Null_Sample : Sample (Identity (1) .. Identity (0)) :=
-     (others => Level (Identity (1)));
+   Null_Sample : Sample (Identity (1) .. Identity (0));
 
-   Null_Big_Sample : Big_Sample (Identity (1) .. Identity (0)) :=
-     (others => Identity (1));
+   Null_Big_Sample : Big_Sample (Identity (1) .. Identity (0));
 
-   Null_String : String (Identity (1) .. Identity (0)) := (others => 'a');
+   Null_String : String (Identity (1) .. Identity (0));
 
    Res : Integer;
 begin
