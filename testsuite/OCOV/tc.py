@@ -87,11 +87,13 @@ class TestCase(object):
            for Source_Dirs use ({sourcedirs});
            for Object_Dir  use "{test_driver}-obj";
            for Exec_Dir    use ".";
-           for Languages   use ("C");
+           for Languages   use ("C", "Asm");
            for Main        use ("{test_driver}");
 
            package Compiler is
               for Default_Switches ("C")
+                 use ({default_switches});
+              for Default_Switches ("Asm")
                  use ({default_switches});'''.format(
                 sourcedirs = self.fmt_list(['..'] + self.extra_sourcedirs),
                 test_driver = test_driver,
