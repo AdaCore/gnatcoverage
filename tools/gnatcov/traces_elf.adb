@@ -237,6 +237,8 @@ package body Traces_Elf is
       --  Here if L.First = R.First and L.Last = R.Last
 
       case L.Kind is
+         when Compilation_Unit_Addresses =>
+            return L.DIE_CU < R.DIE_CU;
          when Section_Addresses =>
             return Names_Lt (L.Section_Name, R.Section_Name);
 
@@ -284,6 +286,9 @@ package body Traces_Elf is
 
    begin
       case El.Kind is
+         when Compilation_Unit_Addresses =>
+            return Range_Img & " compilation unit";
+
          when Section_Addresses =>
             return Range_Img & " section " & El.Section_Name.all;
 
@@ -1500,6 +1505,16 @@ package body Traces_Elf is
                                         Pc_Type (At_High_Pc)));
                   Current_DIE_CU := DIE_CU_Id (Exec.Compile_Units.Length);
 
+                  if At_High_Pc > At_Low_Pc then
+                     Exec.Desc_Sets (Compilation_Unit_Addresses).Insert
+                       (new Address_Info'
+                          (Kind   => Compilation_Unit_Addresses,
+                           First  => Exec.Exe_Text_Start + Pc_Type (At_Low_Pc),
+                           Last   => Pc_Type (At_High_Pc - 1),
+                           Parent => null,
+                           DIE_CU => Current_DIE_CU));
+                  end if;
+
                   if At_Ranges /= No_Ranges then
                      Cu_Base_Pc := 0;
 
@@ -2439,24 +2454,47 @@ package body Traces_Elf is
    ----------------------
 
    procedure Get_Compile_Unit
-     (Exec : Exe_File_Type;
-      PC   : Pc_Type;
+     (Exec                      : Exe_File_Type;
+      PC                        : Pc_Type;
       CU_Filename, CU_Directory : out String_Access)
    is
       use Compile_Unit_Vectors;
-      Subp_Info : constant Address_Info_Acc :=
-         Get_Address_Info (Exec, Subprogram_Addresses, PC);
-      CU        : Compile_Unit_Desc;
+
+      CU_Info : constant Address_Info_Acc :=
+        Get_Address_Info (Exec, Compilation_Unit_Addresses, PC);
+      CU_Id   : DIE_CU_Id := No_DIE_CU_Id;
+
    begin
-      if Subp_Info = null
-         or else Subp_Info.all.Subprogram_DIE_CU = No_DIE_CU_Id
-      then
+      --  See if we match a compile unit first, then fallback on searching at
+      --  the subprogram level.
+
+      if CU_Info = null then
+         declare
+            Subp_Info : constant Address_Info_Acc :=
+              Get_Address_Info (Exec, Subprogram_Addresses, PC);
+         begin
+            CU_Id :=
+              (if Subp_Info = null
+               then No_DIE_CU_Id
+               else Subp_Info.Subprogram_DIE_CU);
+         end;
+
+      else
+         CU_Id := CU_Info.DIE_CU;
+      end if;
+
+      if CU_Id = No_DIE_CU_Id then
          CU_Filename := null;
          CU_Directory := null;
+
       else
-         CU := Exec.Compile_Units.Element (Subp_Info.all.Subprogram_DIE_CU);
-         CU_Filename := CU.Compile_Unit_Filename;
-         CU_Directory := CU.Compilation_Directory;
+         declare
+            CU : Compile_Unit_Desc renames
+              Exec.Compile_Units.Element (CU_Id);
+         begin
+            CU_Filename := CU.Compile_Unit_Filename;
+            CU_Directory := CU.Compilation_Directory;
+         end;
       end if;
    end Get_Compile_Unit;
 

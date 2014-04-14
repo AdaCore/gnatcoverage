@@ -177,7 +177,8 @@ package Traces_Elf is
    --  Display or return information about El (for debugging purposes)
 
    type Address_Info_Kind is
-     (Section_Addresses,
+     (Compilation_Unit_Addresses,
+      Section_Addresses,
       Subprogram_Addresses,
       Symbol_Addresses,
       Line_Addresses);
@@ -232,13 +233,18 @@ package Traces_Elf is
       --  Note: this is NOT the parent node in the sense of the DWARF tree.
 
       --  Instead, in this structure:
-      --    Sections have no parent.
+      --    Compilation units and sections have no parent.
       --    Parent of a symbol is a section.
       --    Parent of a CU is a section.
       --    Parent of a subprogram is a section as well
       --    Parent of a line is a subprogram or a CU.
 
       case Kind is
+         when Compilation_Unit_Addresses =>
+            DIE_CU : DIE_CU_Id;
+            --  Compilation Unit from the DWARF information, used for
+            --  consolidation.
+
          when Section_Addresses =>
             Section_Name    : String_Access;
             Section_Index   : Elf_Common.Elf_Half;
@@ -251,7 +257,9 @@ package Traces_Elf is
             --  Compilation Unit (in the LI file sense) for SCOs
 
             Subprogram_DIE_CU : DIE_CU_Id;
-            --  Compilation Unit (in the DWARF sense) for consolidation
+            --  Compilation Unit (in the DWARF sense) for consolidation.
+            --  Associate one to each subprogram whenever possible since
+            --  CU DIEs may not be a single memory block.
 
             Lines             : aliased Address_Info_Sets.Set;
             --  Line_Addresses info for this subprogram
@@ -333,8 +341,8 @@ package Traces_Elf is
    --  length.
 
    procedure Get_Compile_Unit
-     (Exec : Exe_File_Type;
-      PC   : Pc_Type;
+     (Exec                      : Exe_File_Type;
+      PC                        : Pc_Type;
       CU_Filename, CU_Directory : out String_Access);
    --  Retrieve the filename/compilation directory of the compile unit that
    --  match the PC address, or set CU_* to null if no one matches.
@@ -413,7 +421,8 @@ private
       Element_Type => Pc_Type);
 
    type Desc_Sets_Type is
-     array (Address_Info_Kind range Section_Addresses .. Symbol_Addresses)
+     array (Address_Info_Kind
+            range Compilation_Unit_Addresses .. Symbol_Addresses)
      of aliased Address_Info_Sets.Set;
    --  Note: line addresses are stored within the enclosing Symbol entry
 
