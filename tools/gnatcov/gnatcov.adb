@@ -42,7 +42,7 @@ with Coverage;          use Coverage;
 with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
 with Decision_Map;      use Decision_Map;
-with Disassemble_Source;
+with Disassemble_Insn_Properties;
 with Elf_Files;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
@@ -224,11 +224,13 @@ procedure GNATcov is
       P (" disassemble-raw EXEs");
       P ("   Disassemble executables");
       New_Line;
-      P (" disassemble-source EXE SELECTORs");
+      P (" disassemble-insn-properties EXE SELECTORs");
       P ("   Disassemble instructions in the executable matching SELECTORs.");
-      P ("   The output is formatted so that it can be used as assembly");
-      P ("   code quotes. See SELECTORs in the dump-cfg command for detailed");
-      P ("   explanations.");
+      P ("   The output is a JSON document that describes sections,");
+      P ("   instruction disassembly tokens and instruction properties. See");
+      P ("   SELECTORs in the dump-cfg command for detailed");
+      P ("   --pretty-print              Output a pretty-printed JSON, to");
+      P ("                               ease debugging.");
       New_Line;
       P (" dump-cfg EXE SELECTORs");
       P ("   Display object code from EXE as a graph. SELECTORs must be a");
@@ -296,6 +298,7 @@ procedure GNATcov is
    Excluded_Option           : constant String := "--non-coverable";
    Format_Option_Short       : constant String := "-f";
    Keep_Edges_Option_Short   : constant String := "-k";
+   Pretty_Print_Option       : constant String := "--pretty-print";
 
    --  Undocumented (maintenance only) options
 
@@ -329,9 +332,8 @@ procedure GNATcov is
    Executable_Path     : String_Access := null;
    Locations_Inputs    : Object_Locations.User_Locations;
    CFG_Output_Format   : CFG_Dump.Output_Format := CFG_Dump.None;
-   Disas_Output_Format : Disassemble_Source.Output_Format :=
-     Disassemble_Source.Text;
    Keep_Edges          : Boolean := False;
+   Pretty_Print        : Boolean := False;
 
    Opt_Exe_Name : String_Access := null;
    --  Path to executable from the command line; it overrides the default one
@@ -906,22 +908,13 @@ procedure GNATcov is
                         Excluded_SCOs := True;
 
                      elsif Arg = Format_Option_Short then
-                        Check_Option
-                          (Arg, Command,
-                           (Cmd_Disassemble_Source,
-                            Cmd_Dump_CFG));
+                        Check_Option (Arg, Command, (1 => Cmd_Dump_CFG));
                         declare
                            Format_Name : constant String :=
                              Next_Arg ("format name");
                         begin
-                           if Command = Cmd_Disassemble_Source then
-                              Disas_Output_Format :=
-                                Disassemble_Source.Output_Format'Value
-                                  (Format_Name);
-                           else
-                              CFG_Output_Format :=
-                                CFG_Dump.Output_Format'Value (Format_Name);
-                           end if;
+                           CFG_Output_Format :=
+                             CFG_Dump.Output_Format'Value (Format_Name);
                         exception
                            when Constraint_Error =>
                               Fatal_Error
@@ -931,6 +924,12 @@ procedure GNATcov is
                      elsif Arg = Keep_Edges_Option_Short then
                         Check_Option (Arg, Command, (1 => Cmd_Dump_CFG));
                         Keep_Edges := True;
+
+                     elsif Arg = Pretty_Print_Option then
+                        Check_Option
+                          (Arg, Command,
+                           (1 => Cmd_Disassemble_Insn_Properties));
+                        Pretty_Print := True;
 
                      elsif Common_Switch then
                         null;
@@ -972,7 +971,7 @@ procedure GNATcov is
                            | Cmd_Disassemble =>
                            Inputs.Add_Input (Exe_Inputs, Arg);
 
-                        when Cmd_Disassemble_Source | Cmd_Dump_CFG =>
+                        when Cmd_Disassemble_Insn_Properties | Cmd_Dump_CFG =>
                            --  The first argument is the executable. The other
                            --  ones are locations.
 
@@ -1474,18 +1473,18 @@ begin
             Inputs.Iterate (Exe_Inputs, Disassemble'Access);
          end;
 
-      when Cmd_Disassemble_Source | Cmd_Dump_CFG =>
+      when Cmd_Disassemble_Insn_Properties | Cmd_Dump_CFG =>
          if Executable_Path = null then
             Fatal_Error ("The executable argument is missing");
          elsif Locations_Inputs.Is_Empty then
             Fatal_Error ("At least one location is required");
          end if;
 
-         if Command = Cmd_Disassemble_Source then
-            Disassemble_Source.Disassemble
+         if Command = Cmd_Disassemble_Insn_Properties then
+            Disassemble_Insn_Properties.Disassemble
               (Executable_Path.all,
                Locations_Inputs,
-               Disas_Output_Format);
+               not Pretty_Print);
 
          else
             CFG_Dump.Dump
