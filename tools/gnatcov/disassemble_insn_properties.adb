@@ -26,6 +26,7 @@ with GNATCOLL.Mmap;
 
 with Disassemblers;
 with Elf_Disassemblers;
+with Hex_Images;
 with Highlighting;
 with Traces_Elf;        use Traces_Elf;
 with Traces;            use Traces;
@@ -36,9 +37,11 @@ package body Disassemble_Insn_Properties is
                  renames Ada.Strings.Unbounded.To_Unbounded_String;
    --  Shortcut to To_Unbounded_String
 
-   function "+" (PC : Pc_Type) return Long_Integer is
-     (Long_Integer (PC));
-   --  Shortcut to convert addresses to GNATCOLL.JSON integers
+   function "+" (PC : Pc_Type) return JSON_Value is
+     (Create ("0x" & Hex_Images.Hex_Image (PC)));
+   --  Shortcut to convert addresses to GNATCOLL.JSON strings "0x...". We
+   --  represent addresses as hexadecimal strings in order not to rely on JSON
+   --  libraries implementation constraints about abritrarily sized integers.
 
    Branch_Kind_Strings : constant
      array (Branch_Kind)
