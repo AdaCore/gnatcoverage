@@ -41,7 +41,7 @@ package body ALI_Files is
    D_Matcher : constant Pattern_Matcher := Compile (D_Regexp);
 
    N_Regexp  : constant String :=
-     "A([0-9]*):([0-9]*) xcov " & "([^ ]*)( ""(.*)"")?";
+     "A([0-9]*):([0-9]*)(:[^ ]*)? xcov ([^ ]*)( ""(.*)"")?";
    N_Matcher : constant Pattern_Matcher := Compile (N_Regexp);
 
    U_Regexp  : constant String := "[^\t ]*[\t ]+([^\t ]*)[\t ]";
@@ -421,21 +421,40 @@ package body ALI_Files is
                begin
                   Match (N_Matcher, Line (3 .. Line'Last), Matches);
                   if Matches (0) /= No_Match then
-                     Sloc :=
-                       (Source_File => Current_Unit,
-                        L           => (Line   => Integer'Value (Match (1)),
-                                        Column => Integer'Value (Match (2))));
+                     declare
+                        Note_SFN : constant String := Match (3);
+                        Note_SFI : Source_File_Index := Current_Unit;
+
+                     begin
+                        if Note_SFN'Length > 0 then
+
+                           --  Case of a separate: the source file is not the
+                           --  current compilation unit but some other one
+                           --  identified explicitly.
+
+                           Note_SFI := Get_Index_From_Generic_Name
+                                         (Note_SFN (Note_SFN'First + 1
+                                                 .. Note_SFN'Last));
+                        end if;
+
+                        Sloc :=
+                          (Source_File => Note_SFI,
+                           L           => (Line   =>
+                                             Integer'Value (Match (1)),
+                                           Column =>
+                                             Integer'Value (Match (2))));
+                     end;
 
                      Valid := True;
 
                      begin
                         Annotation :=
-                          (Kind    => ALI_Annotation_Kind'Value (Match (3)),
-                           Message => new String'(Match (5)),
+                          (Kind    => ALI_Annotation_Kind'Value (Match (4)),
+                           Message => new String'(Match (6)),
                            others  => <>);
                      exception
                         when Constraint_Error =>
-                           Report (Sloc, "bad annotation " & Match (3));
+                           Report (Sloc, "bad annotation " & Match (4));
                            Valid := False;
                      end;
 
