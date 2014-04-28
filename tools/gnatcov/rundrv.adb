@@ -17,6 +17,8 @@
 ------------------------------------------------------------------------------
 
 with Ada.Unchecked_Conversion;
+with Ada.Unchecked_Deallocation;
+
 with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Directories;  use Ada.Directories;
@@ -53,6 +55,217 @@ package body Rundrv is
    procedure Run_Command (Command : String_Access; Options : String_List);
    --  Spawn command with options
 
+   type Driver_Target_Access is access constant Driver_Target;
+
+   function Driver_Control_For
+     (Target, Kernel : String_Access) return Driver_Target_Access;
+   --  Return an access to the Driver_Target control block to use for
+   --  TARGET/KERNEL. This will be a <target>-gnatemu block if GNATemulator is
+   --  available on PATH, or a low-level emulator block from our static
+   --  configuration table otherwise. Return null if we can't figure out any
+   --  sensible control block for the provided target name. KERNEL is the
+   --  command line --kernel argument, if any. TARGET is the command line
+   --  --target value, which may feature an optional board specification
+   --  (e.g. --target=powerpc-elf,prep).
+
+   --  The computation is split across the two helpers below.  TARGET_FAMILY
+   --  and TARGET_BOARD are set to the base target and board extension of the
+   --  original TARGET input.
+
+   function Gnatemu_Driver_Control_For
+     (Target_Family : String_Access;
+      Target_Board  : String_Access;
+      Kernel        : String_Access) return Driver_Target_Access;
+   --  Implement the GNATemulator case of Driver_Control_For
+
+   function Internal_Driver_Control_For
+     (Target_Family : String_Access;
+      Target_Board  : String_Access;
+      Kernel        : String_Access) return Driver_Target_Access;
+   --  Implement the internal tables case of Driver_Control_For
+
+   --------------------------------
+   -- Gnatemu_Driver_Control_For --
+   --------------------------------
+
+   function Gnatemu_Driver_Control_For
+     (Target_Family : String_Access;
+      Target_Board  : String_Access;
+      Kernel        : String_Access) return Driver_Target_Access
+   is
+      Gnatemu : constant String_Access :=
+        GNAT.OS_Lib.Locate_Exec_On_Path (Target_Family.all & "-gnatemu");
+
+      Common_Options, Kernel_Options, Board_Options : String_List_Access;
+
+   begin
+
+      if Gnatemu = null then
+         return null;
+      end if;
+
+      --  Compute the subsets of options we need to pass.  As common options,
+      --  we always need to pass the executable name to Gnatemu (last), and
+      --  request the production of traces straight to the underlying emulator
+      --  in addition to our own -eargs. Then we have the possible --kernel
+      --  and --board extensions.
+
+      Common_Options := new String_List'
+        ((new String'("--eargs"),
+          new String'("-exec-trace"),
+          new String'("%trace"),
+          new String'("%eargs"),
+          new String'("--eargs-end"),
+          new String'("%exe")));
+
+      if Kernel = null then
+         Kernel_Options := new String_List'(1 .. 0 => <>);
+      else
+         Kernel_Options := new String_List'
+           (1 => new String'("--kernel=" & Kernel.all));
+      end if;
+
+      if Target_Board = null then
+         Board_Options := new String_List'(1 .. 0 => <>);
+      else
+         Board_Options := new String_List'
+           (1 => new String'("--board=" & Target_Board.all));
+      end if;
+
+      --  Now construct the global set of options and the control
+      --  record to return.
+
+      declare
+         N_Options : constant Natural :=
+           Common_Options'Length
+           + Kernel_Options'Length
+           + Board_Options'Length;
+
+         Gnatemu_Options : constant String_List_Access :=
+           new String_List (1 .. N_Options);
+
+         --  To help accumulate options subsets within Gnatemu_Options:
+
+         Next_Gnatemu_Option : Natural := Gnatemu_Options'First;
+         procedure Add (Options : String_List_Access);
+
+         procedure Add (Options : String_List_Access) is
+         begin
+            for I in Options'Range loop
+               Gnatemu_Options (Next_Gnatemu_Option) := Options (I);
+               Next_Gnatemu_Option := Next_Gnatemu_Option + 1;
+            end loop;
+         end Add;
+
+         --  Once the options are latched in Gnatemu_Options, we
+         --  don't need the subset containers any more.
+
+         procedure Free_Array is new Ada.Unchecked_Deallocation
+           (Object => String_List, Name => String_List_Access);
+
+      begin
+         Add (Kernel_Options);
+         Add (Board_Options);
+         Add (Common_Options);
+
+         Free_Array (Kernel_Options);
+         Free_Array (Board_Options);
+         Free_Array (Common_Options);
+
+         return new Driver_Target'
+           (Target        => Target_Family,
+            Setup_Command => null,
+            Setup_Options => null,
+            Run_Command   => Gnatemu,
+            Run_Options   => Gnatemu_Options);
+      end;
+   end Gnatemu_Driver_Control_For;
+
+   ---------------------------------
+   -- Internal_Driver_Control_For --
+   ---------------------------------
+
+   function Internal_Driver_Control_For
+     (Target_Family : String_Access;
+      Target_Board  : String_Access;
+      Kernel        : String_Access) return Driver_Target_Access
+   is
+      pragma Unreferenced (Target_Board);
+      pragma Unreferenced (Kernel);
+
+      Resolved_Target : String_Access := Target_Family;
+   begin
+      --  Resolve against our target board Aliases table first,
+      --  then seek a matching Driver entry.
+
+      for I in Aliases'Range loop
+         if Resolved_Target.all = Aliases (I).Alias.all then
+            Resolved_Target := Aliases (I).Target;
+         end if;
+      end loop;
+
+      for I in Drivers'Range loop
+         if Match (Expression => Drivers (I).Target.all,
+                   Data => Resolved_Target.all)
+         then
+            return Drivers (I)'Access;
+         end if;
+      end loop;
+
+      return null;
+   end Internal_Driver_Control_For;
+
+   ------------------------
+   -- Driver_Control_For --
+   ------------------------
+
+   function Driver_Control_For
+     (Target, Kernel : String_Access) return Driver_Target_Access
+   is
+      Control : Driver_Target_Access;
+
+      --  We need to extract a possible <board> extension from the target
+      --  specification first. The input value is expected to be like
+      --  <target-family>,<target-board> where the ",<target-board>" extension
+      --  is optional. We use a simple regular expression matcher for this.
+
+      Target_Family, Target_Board : String_Access := null;
+
+      Matches : Match_Array (1 .. 2);
+      Family_Part : Match_Location renames Matches (1);
+      Board_Part  : Match_Location renames Matches (2);
+   begin
+      Match (Expression => "^([^,]*)(,.*)?", Data => Target.all,
+             Matches => Matches);
+
+      Target_Family := new String'
+        (Target (Family_Part.First .. Family_Part.Last));
+
+      if Board_Part /= No_Match then
+         Target_Board := new String'
+           (Target (Board_Part.First + 1 .. Board_Part.Last));
+      end if;
+
+      --  If we have GNATemulator for Target on PATH, use that.  --target
+      --  values provided by users are expected to match the GNATemulator
+      --  target names in such cases.
+
+      --  Otherwise, see if we have a bare internal emulator entry for Target.
+      --  The target name might be a generic alias for a low-level board name
+      --  in this case.
+
+      Control := Gnatemu_Driver_Control_For (Target_Family,
+                                             Target_Board,
+                                             Kernel);
+      if Control /= null then
+         return Control;
+      end if;
+
+      return Internal_Driver_Control_For (Target_Family,
+                                          Target_Board,
+                                          Kernel);
+   end Driver_Control_For;
+
    ------------
    -- Driver --
    ------------
@@ -66,97 +279,8 @@ package body Rundrv is
       Kernel   : String_Access;
       Eargs    : String_List_Access)
    is
-      type Driver_Target_Access is access constant Driver_Target;
-
-      function Driver_Control_For
-        (Target : String_Access) return Driver_Target_Access;
-      --  Return an access to the Driver_Target control block to use for
-      --  TARGET. This will be a <target>-gnatemu block if GNATemulator is
-      --  available on PATH, or a low-level emulator block from our static
-      --  configuration table otherwise. Return null if we can't figure out
-      --  any sensible control block for the provided target name.
-
-      ------------------------
-      -- Driver_Control_For --
-      ------------------------
-
-      function Driver_Control_For
-        (Target : String_Access) return Driver_Target_Access
-      is
-      begin
-         --  If we have GNATemulator for Target on PATH, use that. --target
-         --  values provided by users are expected to match the GNATemulator
-         --  target names in such cases, so there's no point looking into
-         --  the Aliases entries here.
-
-         declare
-            Gnatemu : constant String_Access :=
-              GNAT.OS_Lib.Locate_Exec_On_Path (Target.all & "-gnatemu");
-            List    : String_List_Access;
-         begin
-
-            if Gnatemu /= null then
-
-               --  We just need to pass the executable name to Gnatemu (last),
-               --  and request the production of traces straight to the
-               --  underlying emulator in addition to our own -eargs.
-
-               if Kernel = null then
-                  List := new String_List (1 .. 6);
-                  List (6) := new String'("%exe");
-               else
-                  List := new String_List (1 .. 7);
-                  List (6) := new String'("--kernel=" & Kernel.all);
-                  List (7) := new String'("%exe");
-               end if;
-
-               List (1 .. 5) := (new String'("--eargs"),
-                                 new String'("-exec-trace"),
-                                 new String'("%trace"),
-                                 new String'("%eargs"),
-                                 new String'("--eargs-end"));
-               return new Driver_Target'
-                  (Target        => Target,
-                   Setup_Command => null,
-                   Setup_Options => null,
-                   Run_Command   => Gnatemu,
-                   Run_Options   => List);
-            end if;
-         end;
-
-         --  Otherwise, see if we have a bare emulator entry for Target. The
-         --  target name might be a generic alias for a low-level board name
-         --  in this case.
-
-         declare
-            Resolved_Target : String_Access := Target;
-         begin
-
-            --  Resolve against our target board Aliases table first,
-            --  then seek a matching Driver entry.
-
-            for I in Aliases'Range loop
-               if Resolved_Target.all = Aliases (I).Alias.all then
-                  Resolved_Target := Aliases (I).Target;
-               end if;
-            end loop;
-
-            for I in Drivers'Range loop
-               if Match (Expression => Drivers (I).Target.all,
-                         Data => Resolved_Target.all)
-               then
-                  return Drivers (I)'Access;
-               end if;
-            end loop;
-         end;
-
-         --  Nothing we can do if we haven't found anything at this point
-
-         return null;
-
-      end Driver_Control_For;
-
-      Real_Target : not null String_Access := Target_Default;
+      Real_Target : constant not null String_Access :=
+        (if Target /= null then Target else Target_Default);
       --  What we should be using as the target name, possibly not
       --  provided on entry.
 
@@ -168,11 +292,8 @@ package body Rundrv is
    begin
       --  Setup our basic internal control parameters
 
-      if Target /= null then
-         Real_Target := Target;
-      end if;
-
-      Control := Driver_Control_For (Real_Target);
+      Control :=
+        Driver_Control_For (Target => Real_Target, Kernel => Kernel);
 
       if Control = null then
          Error ("unknown target " & Real_Target.all
@@ -323,7 +444,7 @@ package body Rundrv is
 
    begin
       P ("run [OPTIONS] [EXE] [-eargs EARGS...]");
-      P ("  -t TARGET  --target=TARGET   Select the execution target");
+      P ("  -t | --target=TARGET[,BOARD] Select the execution target");
       P ("                               for programs built with a cross");
       P ("                               toolchain.");
       P (Indent & "    targets: A prefix to a version of gnatemu on PATH, or");
