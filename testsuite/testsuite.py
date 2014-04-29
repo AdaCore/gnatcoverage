@@ -981,7 +981,7 @@ class TestSuite:
                         os.path.join(test.rtestdir, test.filename),
                         '--report-file=' + outf,
                         '--log-file=' + logf,
-                        '--target', self.env.target.platform,
+                        '--target', self.options.target,
                         '--timeout', str(timeout)]
         if self.enable_valgrind:
             testcase_cmd.append('--enable-valgrind=' + self.enable_valgrind)

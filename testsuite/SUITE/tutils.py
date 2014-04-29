@@ -381,14 +381,30 @@ def xrun(args, out=None, register_failure=True):
     nulinput = "devnul"
     touch(nulinput)
 
-    # Compute our --target argument to xcov run.  If we have a specific
-    # target board specified, use that.  Fallback on our general target
-    # triplet otherwise.
+    # Compute our --target argument to xcov run.  If we have a specific target
+    # board specified with --board, use that:
+    #
+    # --target=p55-elf --board=iSystem-5554
+    # --> gnatcov run --target=iSystem-5554
+    #
+    # (Such board indications are intended for probe based targets)
+    #
+    # Otherwise, just replace the target "platform" indication provided to the
+    # testsuite by the corresponding target triplet that gnatcov knows about.
+    # Note that board extensions, which gnatcov supports as well, remain in
+    # place.
+    #
+    # --target=p55-elf,p5566
+    # --> gnatcov run --target=powerpc-eabispe,p5566
+    #
+    # (Such board extensions are intended to request the selection of a
+    #  specific board emulation by gnatemu)
 
     if thistest.options.board:
         targetarg = thistest.options.board
     else:
-        targetarg = env.target.triplet
+        targetarg = thistest.options.target.replace (
+                       env.target.platform, env.target.triplet)
 
     # Compute our full list of arguments to gnatcov now, which might need
     # to include an extra --kernel
