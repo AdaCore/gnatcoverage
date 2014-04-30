@@ -2432,6 +2432,18 @@ package body SC_Obligations is
 
                      Dom_Sloc_SCO := Sloc_To_SCO (SCOD.Dominant_Sloc);
 
+                     --  In C, conditionals (IF blocks or ternary
+                     --  expressions) have the same sloc as their embedded
+                     --  condition/decision. In such cases, Sloc_To_SCO returns
+                     --  the SCO condition whereas we are interested in the SCO
+                     --  statement, so get the enclosing statement instead.
+
+                     if Dom_Sloc_SCO /= No_SCO_Id
+                        and then Kind (Dom_Sloc_SCO) = Condition
+                     then
+                        Dom_Sloc_SCO := Enclosing_Statement (Dom_Sloc_SCO);
+                     end if;
+
                      --  Dom_Sloc_SCO is permitted to be No_SCO_Id because
                      --  for a dominant that is a disabled pragma Debug, older
                      --  compiler versions used to omit the statement SCO.
