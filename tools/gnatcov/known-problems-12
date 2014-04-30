@@ -39,3 +39,17 @@ KP-12-N205-027 Missing doc section describing the known limitations of the tool
   Status:     This was fixed in 1.3 on 2014-02-05
 
   Workaround: N/A
+
+Known problems fixed in 1.2.2 and above
+---------------------------------------
+
+KP-12-N107-020 Exception on coverage --annotate=dhtml without -P
+
+  Problem:    gnatcov coverage terminates on exception without producing a
+              report when requested to produce a dhtml report without -P on
+              the command line in addition.
+
+  Status:     This was fixed in 1.3 on 2014-02-28
+              This was fixed in 1.2.2 on 2014-04-25
+
+  Workaround: Fallback to --annotate=html+ or provide a -P option
