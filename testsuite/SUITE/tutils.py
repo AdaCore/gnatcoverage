@@ -389,12 +389,10 @@ def xrun(args, out=None, register_failure=True):
     #
     # (Such board indications are intended for probe based targets)
     #
-    # Otherwise, just replace the target "platform" indication provided to the
-    # testsuite by the corresponding target triplet that gnatcov knows about.
-    # Note that board extensions, which gnatcov supports as well, remain in
-    # place.
+    # Otherwise, pass the target triplet indication, completed by a board
+    # extension if we also have a target "machine":
     #
-    # --target=p55-elf,p5566
+    # --target=p55-elf,,p5566
     # --> gnatcov run --target=powerpc-eabispe,p5566
     #
     # (Such board extensions are intended to request the selection of a
@@ -403,8 +401,9 @@ def xrun(args, out=None, register_failure=True):
     if thistest.options.board:
         targetarg = thistest.options.board
     elif thistest.options.target:
-        targetarg = thistest.options.target.replace (
-            env.target.platform, env.target.triplet)
+        targetarg = env.target.triplet
+        if env.target.machine:
+            targetarg += ",%s" % env.target.machine
     else:
         targetarg = None
 
