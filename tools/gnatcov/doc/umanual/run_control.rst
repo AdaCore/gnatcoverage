@@ -1,96 +1,65 @@
-*******************
-Trace File Contents
-*******************
+.. _execution-control:
 
-A trace file essentially consists in
+*******************************************
+Execution environment and arguments passing
+*******************************************
 
-* A header with general information about the trace generation context (name
-  of the binary executable passed to |gcvrun|, :option:`--tag` argument value,
-  production date & time, ...), followed by
+For cross configuarations, the :option:`--target` command line option allows
+specifying the target environment for which the program was built and for
+which |gcvrun| should pick a suitable execution environment. The option states
+a base target name (e.g. ``powperpc-eabispe``) possibly followed by a board
+specialization (e.g. ``mpc5566``) after a separating ``,``.  The engine
+selection strategy is as follows:
 
-* The machine execution trace entries (roughly, one per execution basic block,
-  with information on the branch decision at the end)
+* When |gem| for the base target is available on your PATH, as
+  `<base-target>-gnatemu`, |gcp| uses this to run the program. |gem| acts as a
+  wrapper around the real machine emulator in this case, taking care of
+  low-level interfacing details. If an optional board extension is provided in
+  the :option:`--target` argument, the specified board name is passed as an
+  extra :option:`--board=<board-name>` to |gem|.
 
-|gcv| offers a :option:`dump-trace` option to display the contents of trace
-files passed as arguments, displaying tags passed to |gcvrun| amongst other
-things. For example::
+* Otherwise, |gcv| resorts to a builtin low level emulator statically
+  configured for the base target. An ``unsupported target`` error is issued
+  and |gcv| exits if no such configuration is found to match.
 
-   gnatcov dump-trace test_divmod2.trace
+The :option:`-eargs` command line options that |gcvrun| receives are passed
+straight to the low-level emulation engine in both cases.  They are not
+interpreted by |gem| when it is used.
 
-   Tag  : DATE_TIME (Date)
-   Len  : 8
-   Data : dc 07 02 15 08 00 25 00
-          2012-02-21 08:00:37
+In native configurations, without an intermediate emulation engine, and the
+eargs are passed as command line arguments to the executable program. There is
+no notion of command line arguments passed to the executable program for cross
+environments.
 
-   Tag  : EXEC_FILE_NAME
-   Len  : 16
-   Data : obj/test_divmod2
+Here are a few examples of valid command lines. The simplest possible first::
 
-   Tag  : USER_DATA (User_Tag)
-   Len  : 10
-   Data : sample tag
+  gnatcov run --target=powerpc-elf myprog
+  # Run "myprog" using powerpc-elf-gnatemu as the execution environment.
+  # Produce myprog.trace in the current directory.
 
-   Traces:
-   fffffffc-fffffffb ?: 20 ---- fault
-   fffffffc-ffffffff ?: 11 ---t block
-   fff0067c-fff006b3 ?: 11 ---t block
-   fff006bc-fff006bf ?: 12 --t- block
-   [...]
+  gnatcov run --target=powerpc-elf myprog -o myrun.trace
+  # Likewise, producing myrun.trace instead, still in the current directory
 
-Prior to the execution traces per-se (list of executed instruction blocks past
-the ``Traces:`` label), we see a few information entries aimed at helping
-|gcp| and users on various accounts. Each entry has a tag identifying it's
-kind, then some associated data dependent on the kind. Our example above
-features the following information entries:
+  gnatcov run --target=powerpc-elf myprog -o myrun.trace -eargs --version
+  # Likewise, also requesting version output from the low level execution
+  # engine, *not* from gnatemulator if it happens to be involved.
 
-``DATE_TIME`` :
-  The trace production time stamp, always 8 bytes long.
+  gnatcov run --target=powerpc-elf -o myrun.trace -eargs myprog --version
+  # Likewise, providing the executable program to run as the first earg
 
-``EXEC_FILE_NAME`` :
-  Path to the binary probgram that was executed to produce the trace. This
-  path is exactly the one that was passed to |gcvrun| and which |gcvcov| uses
-  to find the program file again at analysis time, to find which machine code
-  corresponds to which address for example.
+  gnatcov run --target=powerpc-elf myprog -T "trace for doc example"
+  # Providing a trace tag, that can de retrieved with trace dump facilities
+  # and which is displayed in some output reports.
 
-``USER_DATA`` :
-  User string tag for this trace, when one was passed with :option:`-T`
-  to |gcvrun|.
+  gnatcov run --target=powerpc-eabispe myprog
+  # Run "myprog" using powerpc-eabispe-gnatemu as the execution environment.
+  # Produce myprog.trace in the current directory.
 
-The precise structure is described in the ``qemu_traces.ads`` unit of the
-gnatcov sources. 
+  gnatcov run --target=powerpc-eabispe,mpc5566 myprog
+  # Likewise, instructing gnatemu to select the "mpc5566" board emulation.
 
-.. _trace-control:
-
-**********************
-Trace control for MCDC
-**********************
-
-MCDC analysis using execution traces requires specific care to make sure that
-assessments are both accurate and efficient. In particular, branch history
-collection (chronological record of the directions taken at conditional branch
-points in the machine code) needs to be turned on for decisions that require
-it, which is achieved by the combination of two indications passed to
-|gcvrun|:
-
-* :option:`--level=stmt+mcdc` to activate the collection of object branch
-  histories,
-
-* command line switches specifying what units will be subject to MCDC
-  analysis, asking |gcv| to focus the branch history collections
-  on the critical branches only, as identified by each unit's SCOs.
-  This indication can be given either using project files, or using
-  the low-level :option:`--scos` switch (see section :ref:`sunits`).
-
-With :option:`--level=stmt+mcdc` and in the absence of any explicit
-selection of relevant units using one of the available methods, history is
-activated for all the object conditional branch instructions, resulting in
-larger traces and increased processing time compared to what is strictly
-needed. Providing SCOs instructs |gcv| to restrict history collections
-to branches that need it, allowing optimized operation downstream.
-Care must be taken in this case not to request MCDC analysis for units whose
-SCOs were not included in the set provided to |gcvrun|.
-
-Statement or decision coverage assessments, conversely, can be performed with
-any kind of trace, so traces with history aimed at MCDC may be used for those
-other criteria as well.
+  gnatcov run -eargs myprog arg1 arg2
+  # Where supported, run "myprog" in the native environment through an
+  # instrumentation layer to produce the execution trace. Pass arg1 and arg2
+  # as command line arguments to "myprog".
 

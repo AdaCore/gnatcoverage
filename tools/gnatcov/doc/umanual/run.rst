@@ -12,3 +12,5 @@ native Linux configurations or cross environments operating within |gem|, the
 
    run_commandline
    run_control
+   trace_control
+   trace_format
