@@ -402,14 +402,19 @@ def xrun(args, out=None, register_failure=True):
 
     if thistest.options.board:
         targetarg = thistest.options.board
-    else:
+    elif thistest.options.target:
         targetarg = thistest.options.target.replace (
-                       env.target.platform, env.target.triplet)
+            env.target.platform, env.target.triplet)
+    else:
+        targetarg = None
 
     # Compute our full list of arguments to gnatcov now, which might need
     # to include an extra --kernel
 
-    allargs = ['run', '--target=' + targetarg]
+    allargs = ['run']
+
+    if targetarg:
+        allargs.append ('--target=' + targetarg)
 
     if thistest.options.kernel:
         allargs.append ('--kernel=' + thistest.options.kernel)

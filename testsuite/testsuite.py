@@ -981,8 +981,8 @@ class TestSuite:
                         os.path.join(test.rtestdir, test.filename),
                         '--report-file=' + outf,
                         '--log-file=' + logf,
-                        '--target', self.options.target,
                         '--timeout', str(timeout)]
+
         if self.enable_valgrind:
             testcase_cmd.append('--enable-valgrind=' + self.enable_valgrind)
         if self.trace_dir is not None:
@@ -1004,6 +1004,9 @@ class TestSuite:
             testcase_cmd.append('--qualif-level=%s' % mopt.qualif_level)
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
+
+        if mopt.target:
+            testcase_cmd.append('--target=%s' % mopt.target)
 
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
