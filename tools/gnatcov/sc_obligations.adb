@@ -2435,8 +2435,8 @@ package body SC_Obligations is
                      --  In C, conditionals (IF blocks or ternary
                      --  expressions) have the same sloc as their embedded
                      --  condition/decision. In such cases, Sloc_To_SCO returns
-                     --  the SCO condition whereas we are interested in the SCO
-                     --  statement, so get the enclosing statement instead.
+                     --  the condition SCO, whereas we are interested in the
+                     --  enclosing statement SCO.
 
                      if Dom_Sloc_SCO /= No_SCO_Id
                         and then Kind (Dom_Sloc_SCO) = Condition
