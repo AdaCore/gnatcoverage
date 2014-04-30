@@ -16,3 +16,9 @@ NF-13-MA15-040 ELF files memory mapping (2013-11-04)
 
   GNATcoverage now loads ELF files using memory mapping if available. This
   improves memory handling for loaded sections for big executables.
+
+NF-13-N425-027 support board extensions in gnatcov run --target (2014-04-30)
+
+  A ",<board-name>" extension to the --target argument values passed to
+  gnatcov run now allows the specification of a specific board to use, of
+  particular interest for GNATemulator based execution environments.
