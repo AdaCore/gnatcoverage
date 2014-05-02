@@ -2312,7 +2312,10 @@ package body SC_Obligations is
             function Equivalent (L, R : SCO_Descriptor) return Boolean;
             --  Return if L and R can be considered as the same SCOs. This
             --  is used to avoid duplicate SCOs coming from static inline
-            --  functions in C.
+            --  functions in C headers included in many places: SCOs for such
+            --  functions are duplicated across compile units, and we want to
+            --  eliminate them but still emit warnings for SCOs that are too
+            --  different.
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor);
             --  Set up Parent link for SCOD at index SCO, and insert
@@ -2324,8 +2327,8 @@ package body SC_Obligations is
 
             function Equivalent (L, R : SCO_Descriptor) return Boolean is
             begin
-               if L.Kind /= L.Kind
-                 or else L.Sloc_Range /= L.Sloc_Range
+               if L.Kind /= R.Kind
+                 or else L.Sloc_Range /= R.Sloc_Range
                then
                   return False;
                end if;
