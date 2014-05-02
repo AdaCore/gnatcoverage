@@ -30,8 +30,8 @@ package Slocs is
    -----------------------------
 
    type Local_Source_Location is record
-      Line        : Natural;
-      Column      : Natural;
+      Line   : Natural;
+      Column : Natural;
    end record;
 
    function "<"  (L, R : Local_Source_Location) return Boolean;
