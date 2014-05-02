@@ -19,6 +19,7 @@
 --  Source Coverage Obligations
 
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
@@ -405,6 +406,13 @@ package body SC_Obligations is
        (Index_Type   => Valid_SCO_Id,
         Element_Type => SCO_Descriptor);
    SCO_Vector : SCO_Vectors.Vector;
+
+   package Source_File_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Source_File_Index);
+   Already_Met_Source_Files : Source_File_Sets.Set;
+   --  When loading SCOs, we want to discard entries corresponding to some
+   --  source file if we already met entries for such a file in a previous
+   --  library file. This set holds files for which SCOs were already loaded.
 
    function Next_BDD_Node
      (SCO   : SCO_Id;
@@ -1900,6 +1908,16 @@ package body SC_Obligations is
    procedure Load_SCOs (ALI_Filename : String) is
       use SCOs;
 
+      Met_Source_Files : Source_File_Sets.Set;
+      --  In order not to discard all SCOs related to some source file but the
+      --  first one, we should not update Already_Met_Source_File until all
+      --  SCOs from ALI_Filename are loaded. This set holds the source files
+      --  we meet in the meantime.
+
+      Is_Cur_Source_File_Already_Met : Boolean;
+      --  Whether Cur_Source_File is already met. If it is, discard the
+      --  corresponding SCOs.
+
       Cur_Source_File        : Source_File_Index := No_Source_File;
       Cur_SCO_Unit           : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
@@ -1993,7 +2011,15 @@ package body SC_Obligations is
                   Cur_Source_File := Get_Index_From_Simple_Name
                     (SCOUE.File_Name.all);
                end if;
+
+               Met_Source_Files.Include (Cur_Source_File);
+               Is_Cur_Source_File_Already_Met :=
+                 Already_Met_Source_Files.Contains (Cur_Source_File);
             end;
+         end if;
+
+         if Is_Cur_Source_File_Already_Met then
+            goto Continue;
          end if;
 
          pragma Assert (Cur_Source_File /= No_Source_File);
@@ -2264,7 +2290,11 @@ package body SC_Obligations is
                     with "unexpected SCO entry code: " & SCOE.C1;
             end case;
          end Process_Entry;
+
+         <<Continue>>
       end loop;
+
+      Already_Met_Source_Files.Union (Met_Source_Files);
 
       --  Record compilation unit and instance range
 
