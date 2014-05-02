@@ -19,7 +19,6 @@
 --  Source Coverage Obligations
 
 with Ada.Containers.Indefinite_Ordered_Maps;
-with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
@@ -401,18 +400,16 @@ package body SC_Obligations is
       end case;
    end record;
 
+   No_SCO_Descriptor : constant SCO_Descriptor :=
+     (Kind   => Statement,
+      Origin => No_Source_File,
+      others => <>);
+
    package SCO_Vectors is
      new Ada.Containers.Vectors
        (Index_Type   => Valid_SCO_Id,
         Element_Type => SCO_Descriptor);
    SCO_Vector : SCO_Vectors.Vector;
-
-   package Source_File_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Source_File_Index);
-   Already_Met_Source_Files : Source_File_Sets.Set;
-   --  When loading SCOs, we want to discard entries corresponding to some
-   --  source file if we already met entries for such a file in a previous
-   --  library file. This set holds files for which SCOs were already loaded.
 
    function Next_BDD_Node
      (SCO   : SCO_Id;
@@ -1908,16 +1905,6 @@ package body SC_Obligations is
    procedure Load_SCOs (ALI_Filename : String) is
       use SCOs;
 
-      Met_Source_Files : Source_File_Sets.Set;
-      --  In order not to discard all SCOs related to some source file but the
-      --  first one, we should not update Already_Met_Source_File until all
-      --  SCOs from ALI_Filename are loaded. This set holds the source files
-      --  we meet in the meantime.
-
-      Is_Cur_Source_File_Already_Met : Boolean;
-      --  Whether Cur_Source_File is already met. If it is, discard the
-      --  corresponding SCOs.
-
       Cur_Source_File        : Source_File_Index := No_Source_File;
       Cur_SCO_Unit           : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
@@ -2011,15 +1998,7 @@ package body SC_Obligations is
                   Cur_Source_File := Get_Index_From_Simple_Name
                     (SCOUE.File_Name.all);
                end if;
-
-               Met_Source_Files.Include (Cur_Source_File);
-               Is_Cur_Source_File_Already_Met :=
-                 Already_Met_Source_Files.Contains (Cur_Source_File);
             end;
-         end if;
-
-         if Is_Cur_Source_File_Already_Met then
-            goto Continue;
          end if;
 
          pragma Assert (Cur_Source_File /= No_Source_File);
@@ -2290,11 +2269,7 @@ package body SC_Obligations is
                     with "unexpected SCO entry code: " & SCOE.C1;
             end case;
          end Process_Entry;
-
-         <<Continue>>
       end loop;
-
-      Already_Met_Source_Files.Union (Met_Source_Files);
 
       --  Record compilation unit and instance range
 
@@ -2334,9 +2309,39 @@ package body SC_Obligations is
 
       for SCO in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
          declare
+            function Equivalent (L, R : SCO_Descriptor) return Boolean;
+            --  Return if L and R can be considered as the same SCOs. This
+            --  is used to avoid duplicate SCOs coming from static inline
+            --  functions in C.
+
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor);
             --  Set up Parent link for SCOD at index SCO, and insert
             --  Sloc -> SCO map entry.
+
+            ----------------
+            -- Equivalent --
+            ----------------
+
+            function Equivalent (L, R : SCO_Descriptor) return Boolean is
+            begin
+               if L.Kind /= L.Kind
+                 or else L.Sloc_Range /= L.Sloc_Range
+               then
+                  return False;
+               end if;
+
+               return
+                 (case L.Kind is
+                     when Statement =>
+                        L.S_Kind = R.S_Kind,
+                     when Condition =>
+                        L.Value = R.Value and then L.Index = R.Index,
+                     when Decision =>
+                        (L.D_Kind = R.D_Kind
+                         and then L.Control_Location = R.Control_Location),
+                     when Operator =>
+                        L.Op_Kind = R.Op_Kind);
+            end Equivalent;
 
             ------------------------
             -- Process_Descriptor --
@@ -2397,11 +2402,15 @@ package body SC_Obligations is
                      --  SCO and proceed???
 
                      if Enclosing_SCO /= No_SCO_Id then
-                        Report
-                          (First,
-                           "unexpected SCO nesting in "
-                           & Image (Enclosing_SCO)
-                           & ", discarding nested SCO");
+                        if not Equivalent
+                          (SCOD, SCO_Vector (Enclosing_SCO))
+                        then
+                           Report
+                             (First,
+                              "unexpected SCO nesting in "
+                              & Image (Enclosing_SCO)
+                              & ", discarding nested SCO");
+                        end if;
                         return;
                      end if;
 
@@ -2420,13 +2429,33 @@ package body SC_Obligations is
 
                end case;
 
-               Sloc_To_SCO_Map (Sloc_Range.Source_File, SCOD.Kind).Insert
-                 (Sloc_Range.L, SCO);
-               --  Note: we used to handle Constraint_Error here to account for
-               --  old compilers that generated junk SCOs with the same source
-               --  locations. These bugs have now been fixed, so the
-               --  work-around was removed, and if this happened again we'd
-               --  propagate the exception.
+               declare
+                  use Sloc_To_SCO_Maps;
+
+                  Map      : constant access Sloc_To_SCO_Maps.Map :=
+                    Sloc_To_SCO_Map (Sloc_Range.Source_File, SCOD.Kind);
+                  Cur      : Sloc_To_SCO_Maps.Cursor;
+                  Inserted : Boolean;
+               begin
+                  --  If we have equivalent SCOs, wipe them out of the table.
+
+                  --  Note: we used to handle Constraint_Error here to account
+                  --  for old compilers that generated junk SCOs with the same
+                  --  source locations. These bugs have now been fixed, so the
+                  --  work-around was removed, and if this happened again we'd
+                  --  propagate the exception.
+
+                  Map.Insert (Sloc_Range.L, SCO, Cur, Inserted);
+                  if not Inserted then
+                     if not Equivalent (SCOD, SCO_Vector (Element (Cur))) then
+                        Report
+                          (First,
+                           "sloc range conflict for SCOs "
+                           & Image (Element (Cur)));
+                     end if;
+                     SCOD := No_SCO_Descriptor;
+                  end if;
+               end;
             end Process_Descriptor;
 
          begin
