@@ -65,23 +65,32 @@ def gprbuild_cargs_with (thiscargs, suitecargs=True):
         thistest.options.qualif_level and (not suitecargs or thiscargs),
         FatalError("CARGS requested for qualification test. Forbidden."))
 
-    all_cargs = []
+    # Compute the language specific cargs, all testsuite level:
 
-    # If we are requested to include the testsuite level compilation args,
-    # do so, then append the flags requested for this specific invocation:
+    lang_cargs = []
+
+    def add_for_lang(lang):
+        lcargs = to_list (thistest.suite_cargs_for (lang))
+        if lcargs:
+            lang_cargs.extend (["-cargs:%s" % lang] + lcargs)
 
     if suitecargs:
-        all_cargs.extend (to_list(thistest.suite_cargs_for (lang=None)))
-        [all_cargs.extend (
-                ["-cargs:%s" % lang] + to_list (thistest.suite_cargs_for (lang)))
-         for lang in KNOWN_LANGUAGES]
+        [add_for_lang (lang=lang) for lang in KNOWN_LANGUAGES]
 
-    all_cargs.extend (to_list (thiscargs))
+    # Compute the language agnostic cargs, testsuite level + those
+    # for this specific run:
 
-    if all_cargs:
-        all_cargs.insert (0, '-cargs')
+    other_cargs = []
 
-    return all_cargs
+    if suitecargs:
+        other_cargs.extend (to_list(thistest.suite_cargs_for (lang=None)))
+
+    other_cargs.extend (to_list (thiscargs))
+
+    if other_cargs:
+        other_cargs = ['-cargs'] + other_cargs
+
+    return lang_cargs + other_cargs
 
 # -------------------------
 # -- gprbuild_largs_with --
