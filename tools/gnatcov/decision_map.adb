@@ -72,10 +72,6 @@ package body Decision_Map is
    package SCO_Sets is new Ada.Containers.Ordered_Sets (SCO_Id);
    use type SCO_Sets.Set;
 
-   package Statement_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Pc_Type,
-      Element_Type => SCO_Sets.Set);
-
    type Call_Kind is (Normal, Raise_Exception, Finalizer);
    --  Classification of calls:
    --    - normal calls to subprograms
@@ -126,9 +122,6 @@ package body Decision_Map is
       --  instructions in the decision occurrence must be excluded from
       --  coverage analysis. Set False for basic blocks that are known to be
       --  reachable while the outcome is not determined yet.
-
-      Statements             : Statement_Maps.Map;
-      --  Statement SCOs associated with each PC range within the basic block
    end record;
 
    No_Basic_Block : constant Basic_Block := (others => <>);
@@ -1845,26 +1838,20 @@ package body Decision_Map is
          Next_PC_Sloc := Get_Sloc (Ctx.Subprg.Lines, Next_PC);
 
          --  Check for exception or outcome using dominance information.
-         --  Note that this relies on an accurate mapping of slocs to
-         --  SCO for statements, not conditions. Since statements slocs have
-         --  only only line granularity (not column granularity), this must be
-         --  disabled in the case of multiple statements occurring on the same
-         --  line.
+         --  Note that this relies on an accurate mapping of slocs to SCO for
+         --  statements, not conditions. For a statement sloc that has only
+         --  line granularity (no column info), this must be disabled if the
+         --  line has multiple statements.
 
-         declare
-            use Statement_Maps;
-            Cur : constant Statement_Maps.Cursor :=
-                    BB.Statements.Ceiling (Next_PC);
-         begin
-            if Cur /= No_Element then
-               Next_PC_SCO := Element (Cur).First_Element;
-            else
-               Next_PC_SCO := No_SCO_Id;
-            end if;
-         end;
+         Next_PC_SCO := Sloc_To_SCO (Next_PC_Sloc, Include_Decisions => False);
+         if Next_PC_SCO /= No_SCO_Id then
+            Next_PC_SCO := Enclosing_Statement (Next_PC_SCO);
+         end if;
 
          if Next_PC_SCO /= No_SCO_Id
-           and then not Is_Multistatement_Line (Next_PC_Sloc)
+           and then not (Next_PC_Sloc.L.Column = 0
+                           and then
+                         Is_Multistatement_Line (Next_PC_Sloc))
          then
             declare
                Dom_SCO : SCO_Id;
@@ -2066,12 +2053,6 @@ package body Decision_Map is
       Current_Basic_Block_Start : Pc_Type;
       --  Start of current basic block
 
-      Current_Basic_Block_S_Map : Statement_Maps.Map;
-      --  Statements map of current basic block
-
-      Prev_Insn_S_SCOs, Cur_Insn_S_SCOs : SCO_Sets.Set;
-      --  Statement SCOs of the previous and current instructions
-
       Context : Cond_Branch_Context;
 
       procedure New_Basic_Block;
@@ -2093,7 +2074,6 @@ package body Decision_Map is
       procedure New_Basic_Block is
       begin
          Current_Basic_Block_Start := PC;
-         Current_Basic_Block_S_Map := Statement_Maps.Empty_Map;
       end New_Basic_Block;
 
       --------------
@@ -2183,7 +2163,6 @@ package body Decision_Map is
 
       PC := Insns.First;
       New_Basic_Block;
-      Prev_Insn_S_SCOs.Clear;
 
       while PC <= Insns.Last loop
          Insn_Len :=
@@ -2208,28 +2187,16 @@ package body Decision_Map is
             --  Find lines for this PC, and mark all corresponding statement
             --  SCOs as having code.
 
-            Cur_Insn_S_SCOs.Clear;
             for Tsloc of Tslocs loop
                LI := Get_Line (Tsloc.Sloc);
                if LI /= null and then LI.SCOs /= null then
                   for SCO of LI.SCOs.all loop
                      if Kind (SCO) = Statement then
                         Set_Basic_Block_Has_Code (SCO, Tsloc.Tag);
-                        Cur_Insn_S_SCOs.Include (SCO);
                      end if;
                   end loop;
                end if;
             end loop;
-
-            --  If this instruction has a distinct set of statements from the
-            --  previous one, add an entry to the statements map.
-
-            if not Cur_Insn_S_SCOs.Is_Empty
-              and then Prev_Insn_S_SCOs /= Cur_Insn_S_SCOs
-            then
-               Current_Basic_Block_S_Map.Insert (PC, Cur_Insn_S_SCOs);
-               Prev_Insn_S_SCOs := Cur_Insn_S_SCOs;
-            end if;
 
             --  Disassemble instruction
 
@@ -2278,7 +2245,6 @@ package body Decision_Map is
                           FT_Dest     => FT_Dest,
                           Branch      => Branch,
                           Cond        => Flag_Cond,
-                          Statements  => Current_Basic_Block_S_Map,
                           others      => <>);
 
                   SCO            : SCO_Id;
