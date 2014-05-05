@@ -97,6 +97,10 @@ package body Decision_Map is
       Cond                   : Boolean;
       --  True if conditional branch
 
+      First_Cond             : Boolean := False;
+      --  True if Cond and this is the first conditional branch in the
+      --  enclosing decision occurrence.
+
       Call                   : Call_Kind := Normal;
       Called_Sym             : String_Access;
       --  If Branch = Br_Call, information about the called subprogram
@@ -861,6 +865,10 @@ package body Decision_Map is
       --  For each valuation of each condition, indicates whether there is
       --  one edge corresponding to each possible valuation of the condition.
 
+      First_Cond_Branch : Boolean;
+      --  Set True when Label_Destinations is called for the first conditional
+      --  branch instruction in the decision occurrence.
+
       ----------------------
       -- Decision_Of_Jump --
       ----------------------
@@ -1220,7 +1228,16 @@ package body Decision_Map is
                   null;
 
                when False =>
-                  if Outcome_Reached then
+
+                  --  Reject attempt to exclude (i.e. mark as post-outcome)
+                  --  a basic block that is already known to be pre-outcome.
+                  --  Generate a warning in that case, except in the case where
+                  --  the basic block is the first one in the decision, in
+                  --  which case this edge is a loop, and we are really
+                  --  branching to a new evaluation of the decision (for the
+                  --  next loop iteration).
+
+                  if Outcome_Reached and then not BB.First_Cond then
                      Report (Exe, Cond_Branch_PC,
                              "tried to exclude pre-outcome basic block",
                              Kind => Error);
@@ -1240,16 +1257,40 @@ package body Decision_Map is
             return;
          end if;
 
-         --  Skip branch if outcome is already known when we reach it
+         --  Skip branch if outcome is already known when we reach it. For the
+         --  first cond branch in the occurrence, we know for certain that the
+         --  outcome has not been reached (the first cond branch is always
+         --  contributive). We need to record this in order to handle the
+         --  case of a tight loop where an outcome appears to branch back to
+         --  the beginning of the decision.
 
-         if Find_Basic_Block
-           (Ctx.Basic_Blocks, Cond_Branch_PC).Outcome_Reached = True
-         then
-            CBI.Condition := No_SCO_Id;
-            Report (Exe, Cond_Branch_PC,
-                    "skipping post-outcome branch", Kind => Notice);
-            return;
-         end if;
+         declare
+            use Basic_Block_Sets;
+
+            Cur : constant Cursor :=
+                   Find_Basic_Block (Ctx.Basic_Blocks, Cond_Branch_PC);
+            BB  : Basic_Block := Element (Cur);
+         begin
+            if First_Cond_Branch then
+               if BB.Outcome_Reached = Unknown then
+                  --  Mark this BB as being the first one in the decision
+                  --  occurrence, and therefore necessarily pre-outcome.
+
+                  BB.First_Cond := True;
+                  BB.Outcome_Reached := False;
+
+                  Ctx.Basic_Blocks.Replace_Element (Cur, BB);
+               end if;
+               pragma Assert (BB.Outcome_Reached = False);
+            end if;
+
+            if BB.Outcome_Reached = True then
+               CBI.Condition := No_SCO_Id;
+               Report (Exe, Cond_Branch_PC,
+                       "skipping post-outcome branch", Kind => Notice);
+               return;
+            end if;
+         end;
 
          --  Label each destination
 
@@ -2000,12 +2041,16 @@ package body Decision_Map is
       end if;
 
       --  Label edge destinations. Perform two passes so that the second can
-      --  reuse known destinations identified by the first.
+      --  reuse known destinations identified by the first. First_Cond_Branch
+      --  is set while labeling the destinations for the first conditional
+      --  branch insn in the decision.
 
       for Pass in 1 .. 2 loop
+         First_Cond_Branch := True;
          for CB_PC of D_Occ.Conditional_Branches loop
             Cond_Branch_Map.Update_Element
               (Cond_Branch_Map.Find ((Exe, CB_PC)), Label_Destinations'Access);
+            First_Cond_Branch := False;
          end loop;
       end loop;
 
