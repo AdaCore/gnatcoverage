@@ -422,7 +422,8 @@ package body SC_Obligations is
    --  debugging purposes).
 
    function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id;
-   --  Return the innermost enclosing SCO with the given Kind
+   --  Return the innermost enclosing SCO with the given Kind (if SCO has the
+   --  given Kind, returns SCO itself).
 
    -----------------------
    -- Instance coverage --

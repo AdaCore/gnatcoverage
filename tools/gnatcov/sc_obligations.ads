@@ -234,7 +234,7 @@ package SC_Obligations is
    function Enclosing_Statement (SCO : SCO_Id) return SCO_Id;
    --  Enclosing statement (climbing up the tree through any enclosing
    --  conditions). May be No_SCO_Id for decisions that are not part of any
-   --  statement (e.g. Entry_Guard).
+   --  statement (e.g. Entry_Guard). Returns SCO itself if it is a Statement.
 
    function Is_Expression (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Assert/Pre/Postcondition/Check, or an
