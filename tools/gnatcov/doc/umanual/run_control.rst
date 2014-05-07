@@ -4,19 +4,19 @@
 Execution environment and arguments passing
 *******************************************
 
-For cross configuarations, the :option:`--target` command line option allows
+For cross configurations, the :option:`--target` command line option allows
 specifying the target environment for which the program was built and for
 which |gcvrun| should pick a suitable execution environment. The option states
-a base target name (e.g. ``powperpc-eabispe``) possibly followed by a board
-specialization (e.g. ``mpc5566``) after a separating ``,``.  The engine
-selection strategy is as follows:
+a base target name possibly followed by a board specialization after a
+separating '``,``' (:option:`--target=powperpc-eabispe,mpc5566` for
+example).  The engine selection strategy is as follows:
 
 * When |gem| for the base target is available on your PATH, as
-  `<base-target>-gnatemu`, |gcp| uses this to run the program. |gem| acts as a
+  `<base-target>-gnatemu`, |gcv| uses this to run the program. |gem| acts as a
   wrapper around the real machine emulator in this case, taking care of
   low-level interfacing details. If an optional board extension is provided in
   the :option:`--target` argument, the specified board name is passed as an
-  extra :option:`--board=<board-name>` to |gem|.
+  extra :option:`--board=<board-name>` command line option to |gem|.
 
 * Otherwise, |gcv| resorts to a builtin low level emulator statically
   configured for the base target. An ``unsupported target`` error is issued
@@ -26,12 +26,19 @@ The :option:`-eargs` command line options that |gcvrun| receives are passed
 straight to the low-level emulation engine in both cases.  They are not
 interpreted by |gem| when it is used.
 
-In native configurations, without an intermediate emulation engine, and the
-eargs are passed as command line arguments to the executable program. There is
-no notion of command line arguments passed to the executable program for cross
-environments.
+In native configurations, when no :option:`--target` is passed, the program
+executes in the host environment and the :option:`-eargs` that |gcv| receives
+are passed as command line arguments to the executable program.
 
-Here are a few examples of valid command lines. The simplest possible first::
+In addition, if the executable program name is not provided otherwise, the
+first :option:`earg` value is used for this purpose, so users can just prefix
+a regular host command line by "gnatcov run ... -eargs" to produce execution
+traces, as illustrated by the native case in the set of valid |gcv| command
+line examples below.
+
+This facility to pass command line arguments to the executable program is
+specific to native configurations; there is no notion of program command line
+arguments for cross environments::
 
   gnatcov run --target=powerpc-elf myprog
   # Run "myprog" using powerpc-elf-gnatemu as the execution environment.
