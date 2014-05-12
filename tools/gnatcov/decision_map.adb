@@ -1817,8 +1817,14 @@ package body Decision_Map is
          --  Set of BB.To_Pc for all visited basic blocks, used to avoid
          --  infinite loops.
 
-         Next_PC : Pc_Type := Edge_Info.Destination.Target;
-         BB      : Basic_Block;
+         Next_PC    : Pc_Type := Edge_Info.Destination.Target;
+         BB         : Basic_Block;
+
+         After_Call : Boolean := False;
+         --  Whether the previous basic block ends with a call instruction.
+         --  In the reguler case, we expect there is a basic block after all
+         --  "fallback instructions". However, calls can be "no-return", so we
+         --  must deal with situations when there is no basic block after them.
 
          Next_PC_Sloc : Source_Location;
          Next_PC_SCO  : SCO_Id;
@@ -1860,13 +1866,25 @@ package body Decision_Map is
 
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
          if BB = No_Basic_Block then
-            --  This should *never* happen: we are walking through the CFG of
-            --  the current routine, so all jumps must target an existing basic
-            --  block.
+            if After_Call then
+               --  The previously processed basic block is probably a
+               --  non-returning call (although there is no way for us to be
+               --  sure about this), so do not complain about the control flow
+               --  and consider the decision will never have an outcome when
+               --  executing it.
 
-            raise Program_Error with
-              "Cannot find a basic block for the instruction at "
-              & Hex_Image (Next_PC);
+               Edge_Info.Dest_Kind := Unknown;
+               return;
+
+            else
+               --  This should *never* happen: we are walking through the CFG
+               --  of the current routine, so all jumps must target an existing
+               --  basic block.
+
+               raise Program_Error with
+                 "Cannot find a basic block for the instruction at "
+                 & Hex_Image (Next_PC);
+            end if;
 
          elsif Is_Visited_BB (BB.From) then
             --  Stop when coming across an already visited basic block, in
@@ -1874,7 +1892,9 @@ package body Decision_Map is
 
             return;
          end if;
+
          Visited_BB.Insert (BB.From);
+         After_Call := False;
 
          Next_PC_Sloc := Get_Sloc (Ctx.Subprg.Lines, Next_PC);
 
@@ -2011,6 +2031,7 @@ package body Decision_Map is
 
                elsif BB.Call = Normal then
                   Next_PC := BB.To + 1;
+                  After_Call := True;
                   goto Follow_Jump;
                end if;
 
