@@ -1601,7 +1601,7 @@ package body Decision_Map is
 
             else
                --  This should *never* happen: for every edge, there must be a
-               --  basic block that contain the destination of the edge.
+               --  basic block that contains the destination of the edge.
 
                raise Program_Error with
                   "Cannot find a basic block for the edge "
