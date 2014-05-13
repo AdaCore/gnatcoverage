@@ -22,7 +22,9 @@ available from ``gnatcov`` ``--help``, as follows::
 
 .. _eargs:
 :option:`-eargs` :
-  Pass what follows to the machine simulator that eventually executes the
+  For cross configurations (with :option:`--target`), pass what follows to the
+  machine simulator that eventually executes the program. For native
+  configurations, pass what follows as command line arguments to the executed
   program. If the executable program to run is not provided elsewhere on the
   command line, the first earg is used for this purpose.
 
