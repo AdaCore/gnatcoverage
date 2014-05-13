@@ -2261,14 +2261,20 @@ package body Decision_Map is
             --  Properties of Insn
 
          begin
-            --  Find lines for this PC, and mark all corresponding statement
-            --  SCOs as having code.
+            --  Find lines for this PC, and mark relevant statement SCOs as
+            --  as having code: if the PC has no column information, this
+            --  is done for all SCOs on the line, else only for those that
+            --  contain that column number.
 
             for Tsloc of Tslocs loop
                LI := Get_Line (Tsloc.Sloc);
                if LI /= null and then LI.SCOs /= null then
                   for SCO of LI.SCOs.all loop
-                     if Kind (SCO) = Statement then
+                     if Kind (SCO) = Statement
+                          and then
+                        (Tsloc.Sloc.L.Column = 0
+                           or else In_Range (Tsloc.Sloc, Sloc_Range (SCO)))
+                     then
                         Set_Basic_Block_Has_Code (SCO, Tsloc.Tag);
                      end if;
                   end loop;
