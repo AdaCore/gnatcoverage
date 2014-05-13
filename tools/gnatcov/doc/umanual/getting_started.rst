@@ -33,11 +33,12 @@ analysis proceeds in two steps:
      gnatcov convert <probe-output> -o <yourapp.trace>
 
 
-2) Use |gcvcov| to produce a coverage report from the execution trace, like::
+2) Use |gcvcov| to produce a coverage report from one or more such execution
+   traces, like::
 
      gnatcov coverage --level=<criterion> --annotate=<report-format>
         [--scos=@<libfiles-list> | -P<root-gpr>] [--routines=@<symbols-list>]
-        <yourapp.trace>
+        <yourapp.trace1> <yourapp.trace2> ...
 
 Very briefly here:
 
@@ -87,8 +88,8 @@ Very briefly here:
 
 For source coverage assessments, sources must be compiled with :option:`-g
 -fpreserve-control-flow -fdump-scos`, plus :option:`-gno-strict-dwarf`
-for VxWorks targets.  Optimization is supported up to :option:`-O1` and
-inlining is allowed.  For backwards compatibility, :option:`-gnateS`
+for VxWorks targets.  Optimization is supported up to :option:`-O1`, with
+inlining allowed.  For backwards compatibility, :option:`-gnateS`
 can be used as a synonym of :option:`-fdump-scos` for Ada.
 
 Object coverage analysis proceeds in a similar fashion, with different
@@ -100,12 +101,10 @@ Beyond the simple cases sketched above, |gcp| supports advanced capabilities
 available for both source and object coverage criteria. Two examples are
 *coverage consolidation*, computing results for a set of execution traces, and
 *exemption regions*, allowing users to define code regions for which coverage
-violations are expected and legitimate.
-
-The following chapters in this manual provide many more details on the various
-possible modes of operation. Prior to this, next in this chapter, comes a
-complete example sequence illustrating steps from compilation to coverage
-analysis of a very simple Ada program.
+violations are expected and legitimate. The following chapters in this manual
+provide many more details on the various possible modes of operation. Prior to
+this, next in this chapter, comes a complete example sequence illustrating
+steps from compilation to coverage analysis of a very simple Ada program.
 
 
 Example session, from sources to coverage analysis
