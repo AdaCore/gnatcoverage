@@ -2841,6 +2841,32 @@ package body SC_Obligations is
       SCO_Vector.Update_Element (SCO, Set_SCOD_Degraded_Origins'Access);
    end Set_Degraded_Origins;
 
+   ----------------
+   -- Sloc_Range --
+   ----------------
+
+   function Sloc_Range (SCO : SCO_Id) return Source_Location_Range is
+      Result : Source_Location_Range;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Result := SCOD.Sloc_Range;
+      end Q;
+
+   --  Start of processing for Sloc_Range
+
+   begin
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
+   end Sloc_Range;
+
    ------------------
    -- Slocs_To_SCO --
    ------------------

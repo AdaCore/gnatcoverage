@@ -66,10 +66,10 @@ package body Slocs is
 
    function "<" (L, R : Source_Location) return Boolean is
    begin
-      --  Note: No_Source_Location must sort higher than any specific source
-      --  location, and No_Source_File sorts *lower* than any specific source
-      --  file index, so the comparison between L.Source_File and R.Source_File
-      --  is intentionally reversed.
+      --  Note: No_Location must sort higher than any specific source location,
+      --  and No_Source_File sorts *lower* than any specific source file index,
+      --  so the comparison between L.Source_File and R.Source_File is
+      --  intentionally reversed.
 
       return (L.Source_File > R.Source_File
               or else (L.Source_File = R.Source_File and then L.L < R.L));
@@ -148,6 +148,20 @@ package body Slocs is
            & "-" & Abridged_Image (Sloc => Last_Sloc, Ref => First_Sloc);
       end if;
    end Image;
+
+   --------------
+   -- In_Range --
+   --------------
+
+   function In_Range
+      (Sloc       : Source_Location;
+       Sloc_Range : Source_Location_Range) return Boolean
+   is
+   begin
+      return First_Sloc (Sloc_Range) <= Sloc
+               and then
+             Sloc <= Last_Sloc (Sloc_Range);
+   end In_Range;
 
    ---------------
    -- Last_Sloc --

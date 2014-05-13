@@ -111,6 +111,7 @@ package SC_Obligations is
    function Kind       (SCO : SCO_Id) return SCO_Kind;
    function First_Sloc (SCO : SCO_Id) return Source_Location;
    function Last_Sloc  (SCO : SCO_Id) return Source_Location;
+   function Sloc_Range (SCO : SCO_Id) return Source_Location_Range;
    function Parent     (SCO : SCO_Id) return SCO_Id;
 
    --  Statement SCOs

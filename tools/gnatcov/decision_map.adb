@@ -1948,12 +1948,23 @@ package body Decision_Map is
 
          --  Determine whether the jump is known to branch to another statement
 
+         --  Note: we first check the Next_PC_SCO, then we fall back to testing
+         --  whether Next_PC_Sloc falls outside of the sloc range of S_SCO,
+         --  to handle the case where Next_PC_Sloc is present but does not
+         --  correspond to any SCO (this may be the case e.g. for a NOP
+         --  generated to carry the sloc of an END).
+
          Leaves_Statement :=
            Leaves_Statement
              or else
                (S_SCO /= No_SCO_Id
-                  and then Next_PC_SCO /= No_SCO_Id
-                  and then S_SCO /= Enclosing_Statement (Next_PC_SCO));
+                  and then
+                (if Next_PC_SCO /= No_SCO_Id then
+                   S_SCO /= Enclosing_Statement (Next_PC_SCO)
+                 elsif Next_PC_Sloc /= No_Location then
+                   not In_Range (Next_PC_Sloc, Sloc_Range (S_SCO))
+                 else
+                   False));
 
          --  Here if we remain within the current decision: continue tracing
          --  object control flow: find SCOs for jump at end of basic block.

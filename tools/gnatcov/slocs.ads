@@ -90,6 +90,11 @@ package Slocs is
    --  Return range from First_Sloc to Last_Sloc, which must be in the same
    --  source file, unless either is No_Location.
 
+   function In_Range
+      (Sloc       : Source_Location;
+       Sloc_Range : Source_Location_Range) return Boolean;
+   --  True if Sloc is in Sloc_Range
+
    function First_Sloc (R : Source_Location_Range) return Source_Location;
    function Last_Sloc (R : Source_Location_Range) return Source_Location;
 
