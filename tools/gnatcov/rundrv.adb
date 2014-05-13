@@ -443,11 +443,13 @@ package body Rundrv is
    --  Start of processing for Help
 
    begin
-      P ("run [OPTIONS] [EXE] [-eargs EARGS...]");
+      P ("run [OPTIONS] [EXE] [-eargs [EXE] EARGS...]");
       P ("  -t | --target=TARGET[,BOARD] Select the execution target");
       P ("                               for programs built with a cross");
       P ("                               toolchain.");
-      P (Indent & "    targets: A prefix to a version of gnatemu on PATH, or");
+      P (Indent
+           & "     targets: A prefix to a version of gnatemu on PATH, "
+           & "or one of");
 
       Driver_Idx := Drivers'First;
       loop
@@ -485,6 +487,15 @@ package body Rundrv is
       P ("  -P, --projects, --units,     Designate units of interest when");
       P ("  --recursive, --scos          mcdc coverage analysis is intended");
       P ("                               later on. See ""coverage"" options.");
+      P ("");
+      P ("  With a --target designating a cross environment, EXE must be");
+      P ("  provided before -eargs, if any, and the EARGS values are passed");
+      P ("  straight to the low level emulation engine.");
+      P ("");
+      P ("  For executions within the host environment (without --target),");
+      P ("  the EARGS values are passed as as command line arguments to the");
+      P ("  executable program and the first EARG is taken as the executable");
+      P ("  name if it wasn't provided otherwise.");
    end Help;
 
    -----------------
