@@ -7,11 +7,13 @@ General Principles
 
 |gcp| provides coverage analysis facilities through the |gcv| command-line
 tool. |gcv| relies on an instrumented execution environment to produce
-execution traces instead of having to instrument to program itself. |gem|
-provides such an environment, offering support for coverage assessments
-directly on the target code in cross configurations. Hardware probes might
-be used as trace producers as well, provided trace data is converted to the
-format |gcv| expects.
+execution traces instead of having to instrument to program itself. For cross
+configurations, |gem| provides such an environment, offering support for
+coverage assessments directly on the target code in cross
+configurations. Hardware probes might be used as trace producers as well,
+provided trace data is converted to the format |gcv| expects. Some native
+configurations are supported as well, using host-specific wrappers to produce
+traces within the host environment (e.g. valgrind on Linux).
 
 |gcp| supports both source and object level coverage criteria: statement,
 decision, or mcdc coverage for the source level, and instruction or branch
@@ -42,8 +44,11 @@ Very briefly here:
 - :option:`--target` selects the execution environment that will know how to
   produce execution traces, such as <target>-gnatemu for emulated
   configurations.  Not providing this option requests instrumented execution
-  on the native platform, for example on x86 or x86_64 Linux using an
-  instrumented version of `valgrind`.
+  within the host environment, in which case command line arguments can be
+  passed to the executable program by adding a :option:`-eargs` sequence on
+  the |gcv| command line. You may provide the executable name as part of this
+  sequence as well. See the :ref:`execution-control` section of this manual
+  for more details.
 
 - :option:`--kernel` is necessary for cross configurations where an operating
   system kernel is needed to load and launch your applicative modules on top

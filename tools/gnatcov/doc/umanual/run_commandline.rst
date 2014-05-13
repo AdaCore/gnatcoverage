@@ -11,14 +11,14 @@
 machine and produce execution traces. The general interface synopsis is
 available from ``gnatcov`` ``--help``, as follows::
 
-   run [OPTIONS] [EXE] [-eargs EARGS...]
+   run [OPTIONS] [EXE] [-eargs [EXE] EARGS...]
 
 :option:`EXE`:
   The executable program to be emulated. The provided name is stored in the
   output trace header that |gcvcov| fetches for analysis purposes later on.
   Relative paths there will be considered relative to the location where
   |gcvcov| is launched. When :ref:`eargs <eargs>` are passed, the executable
-  may be provided there instead.
+  name may be provided there instead.
 
 .. _eargs:
 :option:`-eargs` :
