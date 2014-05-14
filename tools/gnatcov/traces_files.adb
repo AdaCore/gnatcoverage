@@ -350,9 +350,9 @@ package body Traces_Files is
       Trace_File : out Trace_File_Type;
       Base       : in out Traces_Base)
    is
-      Desc : Trace_File_Descriptor;
-      E : Trace_Entry;
-      Eof : Boolean;
+      Desc   : Trace_File_Descriptor;
+      E      : Trace_Entry;
+      Eof    : Boolean;
       Offset : Pc_Type;
    begin
       Open_Trace_File (Filename, Desc, Trace_File);
