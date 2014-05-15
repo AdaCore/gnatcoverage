@@ -12,6 +12,13 @@ This date shows the implementation date of the feature. Any 1.2.0w wavefront
 subsequent to this date will contain the indicated feature, as will any
 release issued after this one.
 
+NF-12-M405-014 Support for the dynamic html output format (2014-01-06)
+
+  gnatcov coverage now supports --annotate=dhtml, which produces annotated
+  source reports a-la html with a more modern look & feel, project file support
+  (per-project indexes on the root page) and ability to sort tables of results
+  by clicking on column headers.
+
 NF-12-M105-006 Extended projects in --projects (2013-01-08)
 
   An extended project can now be named in a --projects switch, in which case
