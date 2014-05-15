@@ -477,25 +477,20 @@ package body Rundrv is
       P ("  -v --verbose                 Be verbose");
       P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
       P ("  -o FILE  --output=FILE       Write traces to FILE");
-      P ("  -eargs EARGS                 Pass the provided EARGS to the");
-      P ("                               low-level emulator. First earg is");
-      P ("                               picked as the EXE program to run if");
-      P ("                               not provided explicitly.");
+      P ("  -eargs EARGS                 For emulated cross targets, pass");
+      P ("                               EARGS to the low-level emulator.");
+      P ("                               For native configurations, pass");
+      P ("                               EARGS as command line arguments to");
+      P ("                               the executable program.");
+      P ("                               The first EARG is picked as the");
+      P ("                               EXEcutable program to run if it was");
+      P ("                               not provided explicitly otherwise.");
       P ("  --kernel=FILE                Specify which kernel to use");
       P ("  --level=CRIT                 Assume CRIT as the strictest future");
       P ("                               analysis criterion.");
       P ("  -P, --projects, --units,     Designate units of interest when");
       P ("  --recursive, --scos          mcdc coverage analysis is intended");
       P ("                               later on. See ""coverage"" options.");
-      P ("");
-      P ("  With a --target designating a cross environment, EXE must be");
-      P ("  provided before -eargs, if any, and the EARGS values are passed");
-      P ("  straight to the low level emulation engine.");
-      P ("");
-      P ("  For executions within the host environment (without --target),");
-      P ("  the EARGS values are passed as as command line arguments to the");
-      P ("  executable program and the first EARG is taken as the executable");
-      P ("  name if it wasn't provided otherwise.");
    end Help;
 
    -----------------
