@@ -180,30 +180,7 @@ package body Project is
    --------------------------
 
    procedure Compute_Project_View is
-      Vars     : Scenario_Variable_Array := Prj_Tree.Scenario_Variables;
-      Changed  : Boolean := False;
-      --  Set True if one scenario variable is specified explicitly
-
    begin
-      --  First set values of all specified scenario variables
-
-      for J in Vars'Range loop
-         declare
-            Ext_Name : constant String := External_Name (Vars (J));
-         begin
-            if Scv_Map.Contains (Ext_Name) then
-               Set_Value (Vars (J), Scv_Map.Element (Ext_Name));
-               Changed := True;
-            end if;
-         end;
-      end loop;
-
-      if Changed then
-         Prj_Tree.Change_Environment (Vars);
-      end if;
-
-      --  Then compute project view
-
       Prj_Tree.Recompute_View;
    end Compute_Project_View;
 
@@ -402,6 +379,7 @@ package body Project is
    ----------------
 
    procedure Initialize (Target : GNAT.Strings.String_Access) is
+      use Scv_Maps;
    begin
       Initialize (Env);
 
@@ -414,6 +392,8 @@ package body Project is
          Default_Spec_Suffix => ".h",
          Default_Body_Suffix => ".c",
          Obj_Suffix          => ".o");
+
+      --  Register attributes of package Coverage
 
       for A in Attribute'Range loop
          declare
@@ -430,6 +410,8 @@ package body Project is
          end;
       end loop;
 
+      --  Set project search path for target
+
       declare
          Gnatls_Version : GNAT.Strings.String_Access;
       begin
@@ -444,6 +426,12 @@ package body Project is
             Free (Gnatls_Version);
          end if;
       end;
+
+      --  Set scenario variables
+
+      for Scv_C in Scv_Map.Iterate loop
+         Change_Environment (Env.all, Key (Scv_C), Element (Scv_C));
+      end loop;
    end Initialize;
 
    -----------------------
