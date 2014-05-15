@@ -18,15 +18,15 @@ The available options are as follows:
 :option:`-c`, :option:`--level` |marg| :
    Tell the set of coverage criteria to be assessed. The possible values are
    :option:`branch` and :option:`insn` for object coverage analysis, and
-   :option:`stmt`, :option:`stmt+decicion` and :option:`stmt+mcdc` for source
+   :option:`stmt`, :option:`stmt+decision` and :option:`stmt+mcdc` for source
    coverage analysis.
 
 :option:`-a`, :option:`--annotate` |marg| :
    Request a specific output report format.  All the criteria support
-   ``xcov[+]``, ``html[+]`` and ``report`` formats, with interpretations
-   that vary depending on the assessed criteria. See the corresponding
-   sections in the Source and Object Coverage Analysis chapters of this
-   documentation for more details.
+   ``xcov[+]``, ``html[+]``, ``dhtml`` and ``report`` formats, with
+   interpretations that vary depending on the assessed criteria. See the
+   corresponding sections in the Source and Object Coverage Analysis chapters
+   of this documentation for more details.
 
 :option:`-o` :
    Request that the synthetic report produced by ``--annotate=report`` be
@@ -36,11 +36,11 @@ The available options are as follows:
 .. _cov-outdir:
 
 :option:`--output-dir` :
-   Request that the report files (index and annotated sources for the ``xcov``
-   and ``html`` output formats) be output in the provided directory. If not
-   specified, the default is the root project's object directory if using
-   projects, and the current directory if not. The directory must exist prior
-   to invoking |gcv|.
+   Request that the report files (index and annotated sources for the
+   ``xcov``, ``html`` and ``dhtml`` output formats) be output in the provided
+   directory. If not specified, the default is the root project's object
+   directory if using projects, and the current directory if not. The
+   directory must exist prior to invoking |gcv|.
 
 :option:`-t`, :option:`--target` :
   The target architecture/board/abi that the analyzed program was built for.
