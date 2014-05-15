@@ -25,13 +25,5 @@ abstract project Base is
      for Leading_Switches ("Ada") use ("-Wl,-u,__gnat_last_chance_handler");
    end Linker;
 
-   package IDE is
-     for Compiler_Command ("Ada") use Common.Toolchain_Prefix & "gnatmake";
-     for Compiler_Command ("C") use Common.Toolchain_Prefix & "gcc";
-     for Gnatlist use Common.Toolchain_Prefix & "gnatls";
-     for Gnat use Common.Toolchain_Prefix & "-gnat";
-     for Debugger_Command use Common.Toolchain_Prefix & "gdb";
-   end IDE;
-
 end Base;
 

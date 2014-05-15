@@ -11,15 +11,14 @@ abstract project Common is
    --  library directory selector.
 
    type Target_Type is 
-   ( "native",
-     "powerpc-elf", "powerpc-eabispe",
+   ( "powerpc-elf", "powerpc-eabispe",
      "leon-elf", "leon3-elf",
      "unspecified"
    );
    Target : Target_Type := external ("TARGET", "unspecified");
 
    --  "unspecified" is useful for cases where a project that imports or
-   --  extends this one are used for operations that don't depend on any of
+   --  extends this one is used for operations that don't depend on any of
    --  the built artifacts, such as the Coverage facilities. This will setup
    --  attributes so project processing doesn't complain about missing dirs
    --  and such that something will go wrong if we happen to really come to
@@ -31,22 +30,6 @@ abstract project Common is
      "unspecified"
    );
    Board : Board_Type := external ("BOARD", "unspecified");
-
-   --  Compute the Toolchain_Prefix to use
-
-   Toolchain_Prefix := "";
-   case Target is
-     when "native" => Toolchain_Prefix := "";
-     when others   => Toolchain_Prefix := Target & "-";
-   end case;
-
-   package IDE is
-      for Debugger_Command         use Target & "-gdb";
-      for Gnatlist                 use Target & "-gnatls";
-      for Gnat                     use Target & "-gnat";
-      for Compiler_Command ("Ada") use Target & "-gnatmake";
-      for Compiler_Command ("c")   use Target & "-gcc";
-   end IDE;
 
 end Common;
 
