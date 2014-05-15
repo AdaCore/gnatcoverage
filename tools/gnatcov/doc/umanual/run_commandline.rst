@@ -30,11 +30,11 @@ available from ``gnatcov`` ``--help``, as follows::
 
 Then the available :option:`[OPTIONS]` are:
 
-:option:`--kernel` :
-  Tell the underlying emulator that the executable program actually
-  is a module to be loaded on top of the provided kernel binary. This is
-  typically for VxWorks kinds of targets, where the kernel is a tailored
-  version built to include GNATemulator support.
+:option:`--level` :
+  Convey the most precise kind of analysis that is intended from the produced
+  traces later on. This defaults to `stmt+decision` and is best combined with
+  :option:`-P` or :option:`--scos` for efficiency when set to `stmt+mcdc`. See
+  the :ref:`trace-control` section of this chapter for additional details.
 
 :option:`-t`, :option:`--target` :
   The target architecture/abi/board that your program was built for. This
@@ -44,6 +44,12 @@ Then the available :option:`[OPTIONS]` are:
   execution engine used to run the program, assumed to be the host environment
   by default. See the :ref:`execution-control` section of this chapter for
   additional details.
+
+:option:`--kernel` :
+  Tell the underlying emulator that the executable program actually
+  is a module to be loaded on top of the provided kernel binary. This is
+  typically for VxWorks kinds of targets, where the kernel is a tailored
+  version built to include GNATemulator support.
 
 :option:`-v`, :option:`--verbose` :
   Request verbose output. In particular, this displays the commands launched
@@ -60,10 +66,4 @@ Then the available :option:`[OPTIONS]` are:
   Store the provided string argument verbatim as a trace tag attribute in the
   output trace header.  The tag so associated with a trace can be retrieved
   from trace dumps and is output as part of some analysis reports.
-
-:option:`--level` :
-  Convey the most precise kind of analysis that is intended from the produced
-  traces later on. This defaults to `stmt+decision` and is best combined with
-  :option:`-P` or :option:`--scos` for efficiency when set to `stmt+mcdc`. See
-  the :ref:`trace-control` section of this chapter for additional details.
 
