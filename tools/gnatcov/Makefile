@@ -289,7 +289,7 @@ INSTALL_ADAPTERS_VARS_windows =
 .PHONY: distrib-linux-extra distrib-windows-extra distrib
 
 distrib-linux-extra:
-	$(CP) README INSTALL $(PREFIX)
+	$(CP) README INSTALL LICENSE $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
