@@ -62,11 +62,12 @@ The :option:`asm` format produces an annotated assembly output, with a
 coverage indication attached to every single instruction. This is the base
 information of interest to object coverage analysis, simply presented in
 different manners through the other possible output formats. The
-:option:`xcov` and :option:`html` formats both produce a set of annotated
-source files, in the directory where |gcv| is launched unless overriden with a
-:ref:`--output-dir option <cov-outdir>`. Even though presented on sources, the
-annotations remain representative of object coverage metrics, synthesized for
-all the instructions associated with each source line.
+:option:`xcov`, :option:`html`, and :option:`dhtml` formats produce a set of
+annotated source files, in the directory where |gcv| is launched unless
+overriden with a :ref:`--output-dir option <cov-outdir>`. Even though
+presented on sources, the annotations remain representative of object coverage
+metrics, synthesized for all the instructions associated with each source
+line.
 
 Later in this chapter we name output formats by the text to add to
 :option:`--annotate` on the command line. For example, we use "the
@@ -203,13 +204,12 @@ With :option:`--annotate=xcov+` (extra ``+`` at the end), the machine
 instructions and their individual coverage status are printed next to their
 associated source line.
 
-Annotated sources, html (:option:`=html[+]`)
---------------------------------------------
+Annotated sources, html (:option:`=html[+]`) or dynamic html (:option:`=dhtml`)
+-------------------------------------------------------------------------------
 
 For object coverage criteria, |gcvcov| :option:`--annotate=html` produces an
 annotated version of each source file, in html format, named after the original
 source with an extra ``.html`` extension at the end.
-
 Each annotated source page contains a summary of the assessment results
 followed by the original source lines, all numbered and marked with a coverage
 annotation as in the :option:`--annotate=xcov` case. In addition, lines with
@@ -229,6 +229,11 @@ fetched from a ``xcov.css`` file in the directory where |gcv| is launched. If
 this file is available when |gcv| starts, |gcv| uses it so users may setup a
 customized version if needed. If the file is not available, |gcv| creates a
 default one.
+
+As for source coverage criteria, the :option:`dhtml` variant produces a more
+elaborate kind of report, with sortable columns and per-project indexes on the
+root page when the units of interest were specified using the :option:`-P`
+option.
 
 .. _ocov-insn:
 

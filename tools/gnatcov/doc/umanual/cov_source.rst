@@ -54,13 +54,13 @@ Output report formats (:option:`--annotate`)
 ============================================
 
 Source coverage reports may be produced in various formats, as requested with
-the :option:`--annotate` command line argument of |gcvcov|.
-The :option:`xcov` and :option:`html` formats both produce a set of annotated
-source files, in the directory where |gcv| is launched unless overriden with a
-:ref:`--output-dir option <cov-outdir>`. The :option:`report` output consists
-in a synthetic text report of :term:`coverage violations` with respect to the
-requested criteria, produced on standard output by default or in the file
-specified by the :option:`-o` command line option.
+the :option:`--annotate` command line argument of |gcvcov|. The
+:option:`xcov`, :option:`html` and :option:`dhtml` formats produce a set of
+annotated source files, in the directory where |gcv| is launched unless
+overriden with a :ref:`--output-dir option <cov-outdir>`. The :option:`report`
+output consists in a synthetic text report of :term:`coverage violations` with
+respect to the requested criteria, produced on standard output by default or
+in the file specified by the :option:`-o` command line option.
 
 Later in this chapter we name output formats by the text to add to
 :option:`--annotate` on the command line. For example, we use "the
@@ -144,22 +144,20 @@ Annotated sources, html (:option:`=html[+]`)
 
 For source coverage criteria, |gcvcov| :option:`--annotate=html` produces an
 annotated version of each source file, in html format, named after the
-original source with an extra ``.html`` extension at the end. 
-
-Each annotated source page contains a summary of the assessment results
-followed by the original source lines, all numbered and marked with a coverage
-annotation as in the :option:`--annotate=xcov` case. Lines with obligations
-are colorized in green, orange or red for ``+``, ``!`` or ``-`` coverage
-respectively.
+original source with an extra ``.html`` extension at the end.  Each annotated
+source page contains a summary of the assessment results followed by the
+original source lines, all numbered and marked with a coverage annotation as
+in the :option:`--annotate=xcov` case. Lines with obligations are colorized in
+green, orange or red for ``+``, ``!`` or ``-`` coverage respectively. 
 
 An `index.html` page is also produced, which contains a summary of the
 assessment context (assessed criteria, trace files involved, ...) and of the
 coverage results for all the units, with links to their annotated sources.
+See our :ref:`sample html index <sample_sc_html_index>` appendix for an
+example index page, which embeds a self-description of all the items it
+contains. See the :ref:`sample annotated source <sample_sc_html_unit>`
+appendix for a sample of html annotated source.
 
-See our :ref:`sample html index <sample_sc_html_index>`
-appendix for an example index page, which embeds a self-description of all the
-items it contains. See the :ref:`sample annotated source
-<sample_sc_html_unit>` appendix for a sample of html annotated source.
 The page style is governed by a set of Cascading Style Sheet (CSS) parameters,
 fetched from a ``xcov.css`` file in the directory where |gcv| is launched. If
 this file is available when |gcv| starts, |gcv| uses it so users may setup a
@@ -168,42 +166,44 @@ default one.
 
 Similarily to the :option:`xcov` format case, :option:`--annotate=html+` (with
 a trailing +) adds details about improperly satisfied obligations.  In the
-html version, these extra details are not immediatly visible: they are folded
-within their associated line and expanded when a mouse click hits the line.
+html version, these extra details are initially folded within their associated
+line and expanded by a mouse click on the line.
 
-Violations summary, text (`=report`)
-------------------------------------
+Annotated sources, dynamic html (:option:`=dhtml`)
+-------------------------------------------------
+
+:option:`--annotate=dhtml` produces a *dynamic html* output, which essentially
+features:
+
+* A more modern look & feel compared to the :option:`html` formats described
+  earlier,
+
+* The ability to sort indexes by clicking on column headers, allowing for
+  example sorts keyed on unit names or on relative coverage achievement,
+
+* Per-project indexes on the root page when :option:`-P` was used to designate
+  the source units of interest.
+
+The option produces a set of `.js` javascript files implementing most of the
+report displays and interactions, as well as an `index.html` root page which
+users should open as an entry point to the report contents.
+
+The per-line details that differentiates :option:`html+` from :option:`html`
+are always produced, initially folded and available on line clicks as well.
+
+Violations summary, text (:option:`=report`)
+--------------------------------------------
 
 For source coverage criteria, |gcvcov| :option:`--annotate=report` produces a
 summary that lists all the :term:`coverage violations` (failure
 to satisfy some aspect of a coverage criterion) relevant to the set of
 assessed criteria.
 
-The report features explicit start/end of report notifications and
-at least three sections in between: Assessment Context, Coverage Violations,
-and Analysis Summary.  The general structure is sketched below and a more
-detailed description of each report section follows::
-
-  ** COVERAGE REPORT **
-
-  ===========================
-  == 1. ASSESSMENT CONTEXT ==
-  ===========================
-  ...
-  ============================
-  == 2. COVERAGE VIOLATIONS ==
-  ============================
-  ...
-  =========================
-  == 3. ANALYSIS SUMMARY ==
-  =========================
-  ...
-  ** END OF REPORT **
-
-
-A few variations are introduced when :term:`exemption regions` are in scope.
-See the :ref:`exemptions` section for more details on their use and effect on
-the output reports.
+The report features explicit start/end of report notifications and at least
+three sections in between: Assessment Context, Coverage Violations, and
+Analysis Summary.  A few variations are introduced when :term:`exemption
+regions` are in scope.  See the :ref:`exemptions` section for more details on
+their use and effect on the output reports.
 
 Assessment Context
 ^^^^^^^^^^^^^^^^^^
