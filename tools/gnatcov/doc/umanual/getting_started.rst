@@ -66,8 +66,9 @@ Very briefly here:
 
 - :option:`--annotate` specifies the desired output report format
   (:option:`=report` for a synthetic list of coverage violations, :option:`=xcov`
-  for annotated sources in text format, :option:`=html` for annotated sources in
-  in html format, with colors and a toplevel index, ...)
+  for annotated sources in text format, :option:`=dhtml` for annotated sources
+  in html format, with colors, a toplevel and per-project indexes, sortable
+  columns ...)
 
 - :option:`--scos` is specific to the source level criteria, to convey the so
   called `Source Coverage Obligations` (statements, decisions, ...) to be
