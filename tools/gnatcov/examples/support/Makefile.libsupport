@@ -19,9 +19,9 @@ $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR):
 	mkdir -p $@
 
 $(LIBSUPPORT_ARCHIVE): force
-	$(BUILDER) -XBUILD=yes -p -Plibsupport -f \
+	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport -f \
                    -cargs $(LIBSUPPORT_CFLAGS)
-	$(BUILDER) -XBUILD=yes -p -Plibsupport -XUNITTEST=yes \
+	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport -XUNITTEST=yes \
                    -cargs $(LIBSUPPORT_CFLAGS)
 
 clean:

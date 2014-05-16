@@ -16,11 +16,25 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-package Libsupport is
+with System; use System;
+with Interfaces.C; use Interfaces.C;
 
-   --  Root package for our testsuite support library, aimed at filling RTS
-   --  gaps. This particular (empty) unit is always part of the closure, so
-   --  there's something to build a library from also in cases where no real
-   --  "support" is needed, e.g. with native configurations.
+package Libsupport.Memory is
+  
+   --  Simple services possibly invoked by the low level code generation
+   --  passes, without Ada RTS violation per se at the user level (e.g. when
+   --  doing array or slice assignments or comparisons).
 
-end Libsupport;
+   --  This is the really basic common ground that we want to be able to rely
+   --  on for any possible kind of RTS profile, down to strict ZFP.
+
+   function memcmp (S1 : Address; S2 : Address; N : size_t) return int;
+   pragma Export (C, memcmp, "memcmp");
+
+   procedure memcpy (Dest : Address; Src : Address; N : size_t);
+   pragma Export (C, memcpy, "memcpy");
+
+   procedure memmove (Dest : Address; Src : Address; N : size_t);
+   pragma Export (C, memmove, "memmove");
+
+end;

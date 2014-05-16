@@ -20,8 +20,6 @@
 # each, but final results for one are likely to be intermixed or partially
 # clobbered by those for another.
 
-include ../support/Makefile.common
-
 # User arguments to pass to the builder
 BUILDFLAGS=
 
@@ -32,7 +30,7 @@ XCOVLEVEL?=stmt+decision
 # Pick a default RTS from TARGET, if not provided already
 # ---------------------------------------------------------------------------
 
-RTS = default
+RTS = 
 ifeq ($(TARGET), powerpc-elf)
 RTS = powerpc-elf/ravenscar-sfp-prep
 endif
@@ -42,6 +40,8 @@ endif
 ifeq ($(TARGET), leon-elf)
 RTS = ravenscar
 endif
+
+include ../support/Makefile.common
 
 # ----------------------------------------------------------------------------
 # Object vs source coverage action variants for common rules
@@ -57,6 +57,12 @@ endif
 OBJECT_LEVELS=branch insn
 SOURCE_LEVELS=stmt stmt+decision stmt+mcdc
 
+ifneq ($(TARGET),)
+BINDIR = obj/$(TARGET)
+else
+BINDIR = obj/unspecified
+endif
+
 ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
 
   # Object coverage: use --routines to filter. No extra build option.
@@ -66,7 +72,7 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
     $(XCOV) disp-routines $(wildcard obj/$(TARGET)/*.o) > $*.routines
   XCOVFILTER=--routines=@$*.routines
   XCOVRUN=$(XCOV) run \
-    --target=$(XCOVTARGET) --level=$(XCOVLEVEL) obj/$(TARGET)/$<
+    $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$<
 
 else
 ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
@@ -77,10 +83,10 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
 
   INTERNALBUILDFLAGS = -cargs -g -fdump-scos -fpreserve-control-flow
   GENXCOVLIST=\
-    ls $(wildcard obj/$(TARGET)/*.ali) > $*.alis
+    ls $(wildcard $(BINDIR)/*.ali) > $*.alis
   XCOVFILTER=--scos=@$*.alis
   XCOVRUN=$(XCOV) run \
-    --target=$(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) obj/$(TARGET)/$<
+    $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$<
 endif
 endif
 
@@ -147,7 +153,7 @@ $(UNIT_TESTS): libsupport force
 	$(BUILDER) -f -p -Pharness $(BUILDERFLAGS)\
 	-XRUNTIME=zfp -XUNITTEST=yes -XPLATFORM=$(TARGET)
 
-MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) RTS=$(RTS) -f Makefile.libsupport
+MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) -f Makefile.libsupport
 
 libsupport:
 	$(MKSUPPORT) all

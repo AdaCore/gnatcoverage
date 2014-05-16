@@ -7,7 +7,7 @@ with "common";
 
 library project Libsupport is
 
-   Do_Build  : Common.Yes_No_Type := external ("BUILD", "no");
+   Do_Build  : Common.Yes_No_Type := external ("LIBSUPPORT_BUILD", "no");
    --  Whether we're using this file to build the library or to link
    --  with it.
 
@@ -15,7 +15,7 @@ library project Libsupport is
    --  Whether we are building/using for an Aunit context or not, with
    --  influence on the last_chance handler inclusion.
 
-   Source_Dirs := ();
+   Source_Dirs := ("src");
    --  Variable where we compute the Source_Dirs attribute to use,
    --  depending on the target, the board, and on the use of Aunit.
 
@@ -26,33 +26,33 @@ library project Libsupport is
    for Library_Auto_Init use "False";
    for Languages use ("Ada", "C");
 
+   for Library_Dir use "lib/" & Common.Target;
+   for Object_Dir use "obj/" & Common.Target;
+
+   --  We might have needs for both aunit and !aunit libs for a run
+   --  so pick a different libname for each case:
+
+   case Use_AUnit is
+      when "yes" =>
+         for Library_Name use "supportaunit";
+      when "no" =>
+         for Library_name use "support";
+   end case;
+
+   case Do_Build is
+      when "no"  => for Externally_Built use "true";
+      when "yes" => for Externally_Built use "false";
+   end case;
+
    case Common.Target is
-      when "unspecified" =>
-         Do_Build := "no";
-         for Library_Dir use "lib";
-         for Library_Name use "dummy";
+      when "unspecified" => null;
 
       when others =>
-
-         for Library_Dir use "lib/" & Common.Target;
-         for Object_Dir use "obj/" & Common.Target;
-
-         --  We might have needs for both aunit and !aunit libs for a run
-         --  so pick a different libname for each case:
-
-         case Use_AUnit is
-           when "yes" =>
-              for Library_Name use "supportaunit";
-
-           when "no" =>
-	      for Library_name use "support";
-         end case;
-
          --  Now compute the set of source directories to use. A common one,
          --  always, then an additional Target specific one. FOR SELDOM USES
          --  ONLY. We don't wan't yet another zfp support approx here:
 
-         Source_Dirs := ("src");
+         Source_Dirs := Source_Dirs & ("src/memory");
          Source_Dirs := Source_Dirs & ("src/" & Common.Target);
 
          --  Add whatever we need to find our Last Chance Handler, to
@@ -79,13 +79,9 @@ library project Libsupport is
               end case;
          end case;
 
-         for Source_Dirs use Source_Dirs;
-   end case;
+    end case;
 
-   case Do_Build is
-      when "no"  => for Externally_Built use "true";
-      when "yes" => for Externally_Built use "false";
-   end case;
+   for Source_Dirs use Source_Dirs;
 
    --  Make sure recursive project file inclusions don't get
    --  to produce reports for parts of this support lib, never

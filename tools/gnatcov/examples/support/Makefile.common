@@ -3,16 +3,16 @@
 
 # ==========================================================
 # Target specific subdir name and a target toolchain prefix,
-# unless "native":
+# if any
 # ==========================================================
 
-TARGET = powerpc-elf
+TARGET =
 
 # ==========================================================
 # Extra -XBOARD to pass to gprbuild
 # ==========================================================
 
-BOARD = unspecified
+BOARD =
 
 # ==========================================================
 # What --target will we pass to XCOV run
@@ -22,7 +22,13 @@ BOARD = unspecified
 # target (e.g. sbc8348 for powerpc-elf binaries), but knows
 # of target variants such as "qemu-prep" or "qemu-sbc8348x".
 
-XCOVTARGET = $(TARGET)
+XCOVTARGET = 
+ifneq ($(TARGET),)
+XCOVTARGET += --target=$(TARGET)
+endif
+ifneq ($(BOARD),)
+XCOVTARGET += ,,$(BOARD)
+endif
 
 # ============================================================
 # Examples support directory, relative to example subdir, and
@@ -48,12 +54,12 @@ SUPPORT_TARGET_SRC_DIR = $(SUPPORT_DIR)/src/$(TARGET)
 # language filtering here, which allows even C only applications to benefit
 # from the BSP including in the Ada library.
 
-GPRBUILD_TARGETARGS=--RTS=$(RTS)
-
+ifneq ($(RTS),)
+  GPRBUILD_TARGETARGS += --RTS=$(RTS)
+endif
 ifneq ($(TARGET),)
   GPRBUILD_TARGETARGS += --target=$(TARGET) -XTARGET=$(TARGET)
 endif
-
 ifneq ($(BOARD),)
   GPRBUILD_TARGETARGS += -XBOARD=$(BOARD)
 endif

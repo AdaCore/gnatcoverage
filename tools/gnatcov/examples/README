@@ -20,8 +20,8 @@
 #
 # as well as
 #
-# make TARGET=native XCOVTARGET=i686-pc-linux-gnu
+# make
 #
-# for native x86-linux runs relying on a specially instrumended
+# for native x86-linux or x86_64-linux runs relying on a specially instrumended
 # version of valgrind.
 

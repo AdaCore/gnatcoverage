@@ -2,7 +2,7 @@
 --                                                                          --
 --                              GNATcoverage                                --
 --                                                                          --
---                       Copyright (C) 2012, AdaCore                        --
+--                       Copyright (C) 2014, AdaCore                        --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -18,8 +18,8 @@
 
 with Ada.Unchecked_Conversion;
 
-package body Libsupport is
-
+package body Libsupport.Memory is
+   
    subtype mem is char_array (size_t);
    type memptr is access all mem;
    function to_memptr is new Ada.Unchecked_Conversion (Address, memptr);
@@ -87,4 +87,4 @@ package body Libsupport is
       end if;
    end memmove;
 
-end Libsupport;
+end Libsupport.Memory;
