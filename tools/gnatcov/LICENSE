@@ -1,9 +1,10 @@
 GNATcoverage as a whole is licensed under the terms of the General Public
 License version 3 (see COPYING3). 
 
-However, the gnatcov-dhtml.min.js file incorporates code from the Google
-Closure library (http://code.google.com/p/closure-library/) licensed under the
-Apache 2.0 license reproduced below:
+However, the gnatcov-dhtml.min.js file used in dynamic html reports
+incorporates code from the Google Closure library
+(http://code.google.com/p/closure-library/) licensed under the Apache 2.0
+license reproduced below:
 
                                 Apache License
                            Version 2.0, January 2004
