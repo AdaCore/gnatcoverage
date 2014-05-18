@@ -57,11 +57,7 @@ include ../support/Makefile.common
 OBJECT_LEVELS=branch insn
 SOURCE_LEVELS=stmt stmt+decision stmt+mcdc
 
-ifneq ($(TARGET),)
 BINDIR = obj/$(TARGET)
-else
-BINDIR = obj/unspecified
-endif
 
 ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
 
@@ -69,7 +65,7 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
 
   INTERNALBUILDFLAGS =
   GENXCOVLIST=\
-    $(XCOV) disp-routines $(wildcard obj/$(TARGET)/*.o) > $*.routines
+    $(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) > $*.routines
   XCOVFILTER=--routines=@$*.routines
   XCOVRUN=$(XCOV) run \
     $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$<

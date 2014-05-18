@@ -45,7 +45,7 @@ library project Libsupport is
    end case;
 
    case Common.Target is
-      when "unspecified" => null;
+      when "" => null;
 
       when others =>
          --  Now compute the set of source directories to use. A common one,
@@ -69,7 +69,7 @@ library project Libsupport is
               --  overrides of the last chance handler:
 
               case Common.Board is
-                when "unspecified" => 
+                when "" => 
                    Source_Dirs :=
                      Source_Dirs & ("src/last_chance");
 

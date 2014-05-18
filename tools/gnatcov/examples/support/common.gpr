@@ -13,23 +13,35 @@ abstract project Common is
    type Target_Type is 
    ( "powerpc-elf", "powerpc-eabispe",
      "leon-elf", "leon3-elf",
-     "unspecified"
+     "unspecified", ""
    );
    Target : Target_Type := external ("TARGET", "unspecified");
 
-   --  "unspecified" is useful for cases where a project that imports or
-   --  extends this one is used for operations that don't depend on any of
-   --  the built artifacts, such as the Coverage facilities. This will setup
-   --  attributes so project processing doesn't complain about missing dirs
-   --  and such that something will go wrong if we happen to really come to
-   --  depend on real contents there.
+   --  An unspecified Target is the same as an empty Target. Normalize:
+
+   case Target is
+      when "unspecified" => Target := "";
+   end case;
+
+   --  "" is useful for cases where a project that imports or extends this one
+   --  is used for operations that don't depend on any of the built artifacts,
+   --  such as the Coverage facilities. This will setup attributes so project
+   --  processing doesn't complain about missing dirs and such that something
+   --  will go wrong if we happen to really come to depend on real contents
+   --  there.
 
    type Board_Type is 
    ( "iSystem-5554",
      "iSystem-5634",
-     "unspecified"
+     "unspecified", ""
    );
    Board : Board_Type := external ("BOARD", "unspecified");
+
+   --  An unspecified Target is the same as an empty Target. Normalize:
+
+   case Board is
+      when "unspecified" => Board := "";
+   end case;
 
 end Common;
 
