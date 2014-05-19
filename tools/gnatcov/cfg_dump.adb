@@ -404,6 +404,11 @@ package body CFG_Dump is
 
          --  First decode the current instruction
 
+         --  This is incorrect: there is an assumption here that the entire
+         --  section is a contiguous sequence of well-formed instructions.
+         --  However there is no guarantee that the padding between symbols
+         --  is valid instructions???
+
          Insn_Len := Disas.Get_Insn_Length
            (Slice (Code, PC, Code.Last));
          Insn.Bytes := Slice
