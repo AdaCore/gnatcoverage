@@ -244,6 +244,11 @@ package body CFG_Dump is
       Section : Address_Info_Acc);
    --  Complete Context.Instructions with instructions found in Section that
    --  match provided locations.
+   --  This disassembles all of Section, not just the specified locations,
+   --  which is a hughe waste and means that any issue impacting disassembly
+   --  of any symbol in the section can potentially hinder dumping the CFG
+   --  for an entirely unrelated symbol, even if the offending location is
+   --  outside of the specified range???
 
    procedure Build_Basic_Blocks (Context : Context_Access);
    --  Group Context.Instructions into Context.Basic_Blocks. Make
