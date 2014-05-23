@@ -24,6 +24,7 @@ with GNATCOLL.Mmap;
 with Diagnostics; use Diagnostics;
 with Hex_Images;  use Hex_Images;
 with Outputs;     use Outputs;
+with Strings;     use Strings;
 with Switches;
 
 package body Inputs is
@@ -32,8 +33,11 @@ package body Inputs is
    -- Add_Input --
    ---------------
 
-   procedure Add_Input (Inputs : in out Inputs_Type; Name : String) is
-
+   procedure Add_Input
+     (Inputs    : in out Inputs_Type;
+      Name      : String;
+      Qualifier : String_Access := null)
+   is
       procedure Add_Input (Name : String);
       --  Add_Input for this particular Inputs (the one given in parameter)
 
@@ -43,7 +47,7 @@ package body Inputs is
 
       procedure Add_Input (Name : String) is
       begin
-         Inputs.Add_Input (Name);
+         Inputs.Add_Input (Name, Qualifier);
       end Add_Input;
 
    --  Start of processing for Add_Input
@@ -54,7 +58,7 @@ package body Inputs is
       end if;
 
       if Name (Name'First) /= '@' then
-         Inputs.Append (new String'(Name));
+         Inputs.Append ((Name => new String'(Name), Qualifier => Qualifier));
       else
          if Name'Length = 1 then
             return;
@@ -72,10 +76,23 @@ package body Inputs is
             end;
          else
             Inputs.Append
-              (new String'(Name (Name'First + 1 .. Name'Last)));
+              ((Name      => new String'(Name (Name'First + 1 .. Name'Last)),
+                Qualifier => Qualifier));
          end if;
       end if;
    end Add_Input;
+
+   -----------
+   -- Equal --
+   -----------
+
+   function Equal (L, R : Inputs_Entry) return Boolean is
+   begin
+      return Equal (L.Name, R.Name) and then
+        (if L.Qualifier /= null and then R.Qualifier /= null
+         then Equal (L.Qualifier, R.Qualifier)
+         else L.Qualifier = R.Qualifier);
+   end Equal;
 
    -------------
    -- Iterate --
@@ -95,9 +112,37 @@ package body Inputs is
       -------------------------
 
       procedure Input_Lists_Process (Position : Cursor) is
-         Input : constant String_Access := Element (Position);
+         IE : constant Inputs_Entry := Element (Position);
       begin
-         Process (Input.all);
+         Process (IE.Name.all);
+      end Input_Lists_Process;
+
+   --  Start of processing for Iterate
+
+   begin
+      Inputs.Iterate (Input_Lists_Process'Access);
+   end Iterate;
+
+   procedure Iterate
+     (Inputs  : Inputs_Type;
+      Process : not null access procedure
+                                  (Input : String; Qualifier : String))
+   is
+      use Input_Lists;
+
+      procedure Input_Lists_Process (Position : Cursor);
+      --  Call Process with Input at Cursor
+
+      -------------------------
+      -- Input_Lists_Process --
+      -------------------------
+
+      procedure Input_Lists_Process (Position : Cursor) is
+         IE : constant Inputs_Entry := Element (Position);
+      begin
+         Process
+           (IE.Name.all,
+            (if IE.Qualifier = null then "" else IE.Qualifier.all));
       end Input_Lists_Process;
 
    --  Start of processing for Iterate

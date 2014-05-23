@@ -303,8 +303,8 @@ procedure GNATcov is
    --  Undocumented (maintenance only) options
 
    Exec_Option               : constant String := "--exec=";
-   --  --exec=E tells xcov to use E as the base executable for all the traces
-   --  passed for analysis on the xcov command line.
+   --  --exec=E tells xcov to use E as the base executable for all following
+   --  traces passed for analysis on the xcov command line.
 
    Deprecated_Routine_List_Option       : constant String := "--routine-list=";
    Deprecated_Routine_List_Option_Short : constant String := "-l";
@@ -765,7 +765,21 @@ procedure GNATcov is
                      elsif Has_Prefix (Arg, Exec_Option) then
                         Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                                      2 => Cmd_Convert));
-                        Opt_Exe_Name := new String'(Option_Parameter (Arg));
+
+                        --  Note: previous value of Opt_Exe_Name is potentially
+                        --  referenced in Trace_Inputs, so don't free it!
+
+                        declare
+                           Exe_Name_Arg : constant String :=
+                                            Option_Parameter (Arg);
+                        begin
+                           if Exe_Name_Arg = "" then
+                              Opt_Exe_Name := null;
+                           else
+                              Opt_Exe_Name := new String'(Exe_Name_Arg);
+                              Inputs.Add_Input (Exe_Inputs, Exe_Name_Arg);
+                           end if;
+                        end;
 
                      elsif Arg = "--all-decisions" then
                         Switches.All_Decisions := True;
@@ -854,7 +868,9 @@ procedure GNATcov is
                            Tag := new String'(Next_Arg (Arg));
                         else
                            Inputs.Add_Input
-                             (Trace_Inputs, Next_Arg ("trace file"));
+                             (Trace_Inputs,
+                              Next_Arg ("trace file"),
+                              Qualifier => Opt_Exe_Name);
                         end if;
 
                      elsif Has_Prefix (Arg, Trace_Option) then
@@ -865,7 +881,9 @@ procedure GNATcov is
                           Cmd_Dump_Trace_Asm,
                           Cmd_Dump_CFG));
                         Inputs.Add_Input
-                          (Trace_Inputs, Option_Parameter (Arg));
+                          (Trace_Inputs,
+                           Option_Parameter (Arg),
+                           Qualifier => Opt_Exe_Name);
 
                      elsif Has_Prefix (Arg, Trace_Source_Option) then
                         Check_Option (Arg, Command, (1 => Cmd_Convert));
@@ -956,7 +974,8 @@ procedure GNATcov is
                            | Cmd_Dump_Trace
                            | Cmd_Dump_Trace_Raw
                            | Cmd_Dump_Trace_Base =>
-                           Inputs.Add_Input (Trace_Inputs, Arg);
+                           Inputs.Add_Input
+                             (Trace_Inputs, Arg, Qualifier => Opt_Exe_Name);
 
                         when Cmd_Disp_Routines
                            | Cmd_Scan_Objects =>
@@ -1004,7 +1023,8 @@ procedure GNATcov is
                            if Inputs.Length (Exe_Inputs) < 1 then
                               Inputs.Add_Input (Exe_Inputs, Arg);
                            else
-                              Inputs.Add_Input (Trace_Inputs, Arg);
+                              Inputs.Add_Input
+                                (Trace_Inputs, Arg, Qualifier => Opt_Exe_Name);
                            end if;
 
                         when Cmd_Convert =>
@@ -1536,9 +1556,11 @@ begin
                Inputs.Iterate (Routines_Inputs,
                                Traces_Names.Add_Routine_Of_Interest'Access);
                Routines_Of_Interest_Origin := From_Command_Line;
+
             elsif Inputs.Length (Trace_Inputs) > 1 then
                Fatal_Error ("routine list required"
                             & " when reading multiple trace files");
+
             else
                --  If no routines were given on the command line, we'll add
                --  them when processing the list of symbols from the only
@@ -1557,48 +1579,81 @@ begin
          --  Read and process traces
 
          declare
-            procedure Process_Trace (Trace_File_Name : String);
-            --  Common dispatching point for object and source coverage
+            procedure Process_Exec (Exec_Name : String);
+            --  Load a consolidated executable
+
+            procedure Process_Trace
+              (Trace_File_Name    : String;
+               Exec_Name_Override : String);
+            --  Common dispatching point for object and source coverage:
+            --  process one trace file (with optional override of exec file
+            --  name), or load one consolidated executable (if Trace_File_Name
+            --  is an empty string, in which case Exec_Name_Override is not
+            --  allowed to be null).
 
             procedure Process_Trace_For_Obj_Coverage
-              (Trace_File : Trace_File_Element_Acc);
+              (Trace_File         : Trace_File_Element_Acc;
+               Exec_Name_Override : String);
             --  Open Trace_File and merge it into the trace database
 
             procedure Process_Trace_For_Src_Coverage
-              (Trace_File : Trace_File_Element_Acc);
+              (Trace_File         : Trace_File_Element_Acc;
+               Exec_Name_Override : String);
             --  Process Trace_File for source coverage. No trace database is
             --  used.
 
-            function Open_Exec
-              (Trace_File_Name : String;
-               Trace_File      : Trace_File_Type) return Exe_File_Acc;
+            function Open_Exec_For_Trace
+              (Trace_File_Name    : String;
+               Trace_File         : Trace_File_Type;
+               Exec_Name_Override : String) return Exe_File_Acc;
             --  Open the executable for TF, taking into account a possible
             --  command line override of the executable file name. The opened
             --  exec file is entered in the global execs list.
 
-            ---------------
-            -- Open_Exec --
-            ---------------
+            -------------------------
+            -- Open_Exec_For_Trace --
+            -------------------------
 
-            function Open_Exec
-              (Trace_File_Name : String;
-               Trace_File      : Trace_File_Type) return Exe_File_Acc
+            function Open_Exec_For_Trace
+              (Trace_File_Name    : String;
+               Trace_File         : Trace_File_Type;
+               Exec_Name_Override : String) return Exe_File_Acc
             is
                use Qemu_Traces;
-               Exe_Name : String_Access;
-            begin
-               if Opt_Exe_Name /= null then
-                  Exe_Name := Opt_Exe_Name;
-               else
-                  Exe_Name :=
-                    new String'(Get_Info (Trace_File, Exec_File_Name));
-                  if Exe_Name.all = "" then
-                     Fatal_Error ("cannot find exec filename in trace file "
-                                  & Trace_File_Name);
+
+               function Get_Exe_Name return String;
+               --  Executable name as determined from trace file or overridden
+
+               ------------------
+               -- Get_Exe_Name --
+               ------------------
+
+               function Get_Exe_Name return String is
+               begin
+                  if Exec_Name_Override /= "" then
+                     return Exec_Name_Override;
                   end if;
-               end if;
+
+                  declare
+                     Exec_Name_From_Trace : constant String :=
+                       Get_Info (Trace_File, Exec_File_Name);
+                  begin
+                     if Exec_Name_From_Trace = "" then
+                        Fatal_Error ("cannot find exec filename in trace file "
+                                     & Trace_File_Name);
+                     end if;
+
+                     return Exec_Name_From_Trace;
+                  end;
+               end Get_Exe_Name;
+
+               Exe_Name : constant String := Get_Exe_Name;
+
+            --  Start of processing for Open_Exec_For_Trace
+
+            begin
                return Exe_File : Exe_File_Acc do
-                  Open_Exec (Exe_Name.all, Text_Start, Exe_File);
+                  Open_Exec (Exe_Name, Text_Start, Exe_File);
                   declare
                      Mismatch_Reason : constant String :=
                         Match_Trace_Executable (Exe_File.all, Trace_File);
@@ -1606,7 +1661,7 @@ begin
                   begin
                      if Mismatch_Reason /= "" then
                         Warn
-                          ("ELF file " & Exe_Name.all
+                          ("ELF file " & Exe_Name
                            & " does not seem to match trace file "
                            & Trace_File_Name & ": " & Mismatch_Reason);
                      end if;
@@ -1614,27 +1669,48 @@ begin
                end return;
             exception
                when E : Elf_Files.Error =>
-                  Fatal_Error ("cannot open ELF file " & Exe_Name.all
+                  Fatal_Error ("cannot open ELF file " & Exe_Name
                                & " for trace file " & Trace_File_Name & ": "
                                & Ada.Exceptions.Exception_Message (E));
                   raise;
-            end Open_Exec;
+            end Open_Exec_For_Trace;
+
+            ------------------
+            -- Process_Exec --
+            ------------------
+
+            procedure Process_Exec (Exec_Name : String) is
+            begin
+               Process_Trace
+                 (Trace_File_Name => "", Exec_Name_Override => Exec_Name);
+            end Process_Exec;
 
             -------------------
             -- Process_Trace --
             -------------------
 
-            procedure Process_Trace (Trace_File_Name : String) is
-               Trace_File : constant Trace_File_Element_Acc :=
-                              new Trace_File_Element'
-                                (Filename => new String'(Trace_File_Name),
-                                 others   => <>);
+            procedure Process_Trace
+              (Trace_File_Name    : String;
+               Exec_Name_Override : String)
+            is
+               Trace_File : Trace_File_Element_Acc;
             begin
-               Traces_Files_List.Files.Append (Trace_File);
-               if Object_Coverage_Enabled then
-                  Process_Trace_For_Obj_Coverage (Trace_File);
+               if Trace_File_Name /= "" then
+                  Trace_File := new Trace_File_Element'
+                    (Filename => new String'(Trace_File_Name),
+                     others   => <>);
+
+                  Traces_Files_List.Files.Append (Trace_File);
                else
-                  Process_Trace_For_Src_Coverage (Trace_File);
+                  pragma Assert (Exec_Name_Override /= "");
+               end if;
+
+               if Object_Coverage_Enabled then
+                  Process_Trace_For_Obj_Coverage
+                    (Trace_File, Exec_Name_Override);
+               else
+                  Process_Trace_For_Src_Coverage
+                    (Trace_File, Exec_Name_Override);
                end if;
             end Process_Trace;
 
@@ -1643,16 +1719,24 @@ begin
             ------------------------------------
 
             procedure Process_Trace_For_Obj_Coverage
-              (Trace_File : Trace_File_Element_Acc)
+              (Trace_File         : Trace_File_Element_Acc;
+               Exec_Name_Override : String)
             is
                Exe_File : Exe_File_Acc;
             begin
                Init_Base (Base);
-               Read_Trace_File
-                 (Trace_File.Filename.all, Trace_File.Trace, Base);
 
-               Exe_File :=
-                 Open_Exec (Trace_File.Filename.all, Trace_File.Trace);
+               if Trace_File = null then
+                  Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
+               else
+                  Read_Trace_File
+                    (Trace_File.Filename.all, Trace_File.Trace, Base);
+
+                  Exe_File :=
+                    Open_Exec_For_Trace (Trace_File.Filename.all,
+                               Trace_File.Trace,
+                               Exec_Name_Override);
+               end if;
 
                --  If there is no routine in list, get routine names from the
                --  first executable. A test earlier allows this only if there
@@ -1664,7 +1748,7 @@ begin
 
                Build_Debug_Compile_Units (Exe_File.all);
 
-               if Verbose then
+               if Verbose and then Trace_File /= null then
                   Put_Line
                     ("processing traces from " & Trace_File.Filename.all);
                end if;
@@ -1677,7 +1761,8 @@ begin
             ------------------------------------
 
             procedure Process_Trace_For_Src_Coverage
-              (Trace_File : Trace_File_Element_Acc)
+              (Trace_File         : Trace_File_Element_Acc;
+               Exec_Name_Override : String)
             is
                use Interfaces;
 
@@ -1694,18 +1779,29 @@ begin
             --  Start of processing for Process_Trace_For_Src_Coverage
 
             begin
-               Open_Trace_File (Trace_File.Filename.all,
-                                Desc, Trace_File.Trace);
+               if Trace_File = null then
+                  Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
+               else
+                  Open_Trace_File
+                    (Trace_File.Filename.all, Desc, Trace_File.Trace);
 
-               Exe_File := Open_Exec (Trace_File.Filename.all,
-                                      Trace_File.Trace);
+                  Exe_File := Open_Exec_For_Trace
+                                (Trace_File.Filename.all,
+                                 Trace_File.Trace,
+                                 Exec_Name_Override);
+               end if;
 
                --  Load symbols from executable (sets the rebase offset for
                --  each symbol) and perform static analysis.
 
                Decision_Map.Analyze (Exe_File);
 
+               if Trace_File = null then
+                  return;
+               end if;
+
                --  Read the load address
+
                Read_Loadaddr_Trace_Entry (Desc, Trace_File.Trace, Offset);
 
                --  Iterate on trace entries
@@ -1775,6 +1871,7 @@ begin
 
          begin
             Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
+            Inputs.Iterate (Exe_Inputs,  Process_Exec'Access);
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
          end;
 

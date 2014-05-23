@@ -18,7 +18,6 @@
 
 with Ada.Containers.Doubly_Linked_Lists;
 with GNAT.Strings; use GNAT.Strings;
-with Strings; use Strings;
 
 package Inputs is
    --  This package provides a simple way to accumulate a set of
@@ -41,7 +40,10 @@ package Inputs is
    --  Input lists. Can be used to accumulate the arguments given on
    --  a command line.
 
-   procedure Add_Input (Inputs : in out Inputs_Type; Name : String);
+   procedure Add_Input
+     (Inputs    : in out Inputs_Type;
+      Name      : String;
+      Qualifier : String_Access := null);
    --  If Name does not begin with '@', it is an input: add it to Inputs.
    --
    --  If Name begins with '@', it is a file name; this corresponding
@@ -51,10 +53,17 @@ package Inputs is
    --  If Name begins with '@@', it is an input ('@' is escaped): add
    --  Name (Name'First + 1 .. Name'Last) to Inputs.
 
+   --  An optional qualifier may be provided for each input
+
    procedure Iterate
      (Inputs  : Inputs_Type;
       Process : not null access procedure (Input : String));
-   --  Go through the input list and call Process on each entry
+   procedure Iterate
+     (Inputs  : Inputs_Type;
+      Process : not null access procedure
+        (Input : String; Qualifier : String));
+   --  Go through the input list and call Process on each entry (qualifiers are
+   --  ignored in the first variant).
 
    function Length (Inputs : Inputs_Type) return Ada.Containers.Count_Type;
    --  Return the number of elements in Inputs
@@ -64,8 +73,15 @@ package Inputs is
    --  open. Try to include the CRC32 checksum.
 
 private
+
+   type Inputs_Entry is record
+      Name, Qualifier : String_Access;
+   end record;
+
+   function Equal (L, R : Inputs_Entry) return Boolean;
+
    package Input_Lists is new Ada.Containers.Doubly_Linked_Lists
-     (Element_Type => String_Access,
+     (Element_Type => Inputs_Entry,
       "="          => Equal);
 
    type Inputs_Type is new Input_Lists.List with null record;
