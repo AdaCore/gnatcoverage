@@ -62,7 +62,7 @@ package body Traces_Disa is
       Insn_Len : Natural;
    begin
       Disa_For_Machine (Machine).
-        Disassemble_Insn (Insn, Pc, Buffer, Insn_Len, Sym);
+        Disassemble_Insn_Or_Abort (Insn, Pc, Buffer, Insn_Len, Sym);
 
       if Elf_Arch.Elf_Addr (Insn_Len) /= Length (Insn) then
          raise Constraint_Error;
@@ -157,7 +157,7 @@ package body Traces_Disa is
       Pc := Insns.First;
       while Pc <= Insns.Last loop
          Insn_Len :=
-           Disa_For_Machine (Machine).Get_Insn_Length
+           Disa_For_Machine (Machine).Get_Insn_Length_Or_Abort
                                         (Slice (Insns, Pc, Insns.Last));
          Cb.all
            (Pc, State, Slice (Insns, Pc, Pc + Pc_Type (Insn_Len - 1)), Sym);

@@ -1187,7 +1187,7 @@ package body CFG_Dump is
             end if;
 
             Buffer.Reset;
-            Disas.Disassemble_Insn
+            Disas.Disassemble_Insn_Or_Abort
               (Insn.Bytes, Address (Insn),
                Buffer,
                Insn_Len,

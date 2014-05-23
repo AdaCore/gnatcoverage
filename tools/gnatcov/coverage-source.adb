@@ -981,8 +981,8 @@ package body Coverage.Source is
       Trace_Insns :
       while PC <= T.Last + Subp_Info.Offset loop
          Insn_Len :=
-           Disa_For_Machine (Machine).
-           Get_Insn_Length (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
+           Disa_For_Machine (Machine).Get_Insn_Length_Or_Abort
+           (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
 
          --  Discharge each SCO for source locations associated with this
          --  instruction.

@@ -30,8 +30,6 @@ package body Disa_X86 is
 
    Debug : constant Boolean := False;
 
-   Invalid_Insn, Unhandled_Insn : exception;
-
    subtype Byte is Interfaces.Unsigned_8;
    type Bit is mod 2;
    type Bit_Field_2 is mod 2 ** 2;
@@ -1766,6 +1764,7 @@ package body Disa_X86 is
       Sym      : Symbolizer'Class)
    is
       pragma Unreferenced (Self);
+      pragma Unreferenced (Pc);
 
       Is_64bit   : constant Boolean := Machine = Elf_Common.EM_X86_64;
       Rex_Prefix : Byte             := 0;
@@ -3101,8 +3100,6 @@ package body Disa_X86 is
          Buffer.Start_Token (Error);
          Buffer.Put ("[truncated]");
          Insn_Len := Integer (Length (Insn_Bin));
-      when Error : others =>
-         Abort_Disassembler_Error (Pc, Insn_Bin, Error);
    end Disassemble_Insn;
 
    ---------------------

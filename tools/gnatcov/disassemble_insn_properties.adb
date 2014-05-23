@@ -122,7 +122,7 @@ package body Disassemble_Insn_Properties is
       begin
          --  Get disassembly tokens and instruction properties
 
-         Disassembler.Disassemble_Insn
+         Disassembler.Disassemble_Insn_Or_Abort
            (Insn, PC, Buffer, Insn_Len, Exec);
          Disassembler.Get_Insn_Properties
            (Insn, PC,
@@ -205,7 +205,7 @@ package body Disassemble_Insn_Properties is
 
          while PC <= Insns.Last loop
 
-            Insn_Len := Disassembler.Get_Insn_Length (Insns);
+            Insn_Len := Disassembler.Get_Insn_Length_Or_Abort (Insns);
 
             if Matches_Locations (Exec_Acc, Proc_Locs, PC) then
                Append (JSON_Insns, Create_Instruction (PC));

@@ -1494,7 +1494,7 @@ package body Decision_Map is
                Buffer   : Highlighting.Buffer_Type (1);
                Line_Len : Natural;
             begin
-               Disa_For_Machine (Machine).Disassemble_Insn
+               Disa_For_Machine (Machine).Disassemble_Insn_Or_Abort
                  (Slice (Sec.Section_Content, BB.From, BB.To),
                   BB.From,
                   Buffer,
@@ -2244,7 +2244,7 @@ package body Decision_Map is
       while PC <= Insns.Last loop
          Insn_Len :=
            Disa_For_Machine (Machine).
-             Get_Insn_Length (Slice (Insns, PC, Insns.Last));
+             Get_Insn_Length_Or_Abort (Slice (Insns, PC, Insns.Last));
 
          declare
             LI   : Line_Info_Access;

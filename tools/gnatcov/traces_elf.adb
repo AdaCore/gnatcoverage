@@ -2777,7 +2777,7 @@ package body Traces_Elf is
          Last_Pc_2 := Trace.First;
          loop
             Last_Insn_2_Len := Pc_Type
-              (Disa_For_Machine (Machine).Get_Insn_Length
+              (Disa_For_Machine (Machine).Get_Insn_Length_Or_Abort
                 (Slice (Section, Last_Pc_2, Trace.Last)));
             Next_Pc := Last_Pc_2 + Last_Insn_2_Len;
             exit when Next_Pc = Trace.Last + 1;
@@ -3303,9 +3303,9 @@ package body Traces_Elf is
             Put (ASCII.HT);
 
             Buffer.Reset;
-            Disa_For_Machine (Machine).
-              Disassemble_Insn (Slice (Insns, Pc, Insns.Last), Pc,
-                                Buffer, Insn_Len, File);
+            Disa_For_Machine (Machine).Disassemble_Insn_Or_Abort
+              (Slice (Insns, Pc, Insns.Last), Pc,
+               Buffer, Insn_Len, File);
 
             for I in Pc .. Pc + Pc_Type (Insn_Len - 1) loop
                Put (Hex_Image (Get (Insns, I)));
