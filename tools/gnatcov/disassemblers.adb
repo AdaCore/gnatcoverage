@@ -22,6 +22,7 @@ with Ada.Text_IO;           use Ada.Text_IO;
 with Elf_Arch;
 with Interfaces; use Interfaces;
 with Hex_Images; use Hex_Images;
+with Outputs;
 with Version;
 
 package body Disassemblers is
@@ -91,7 +92,9 @@ package body Disassemblers is
       Put_Line
         (Standard_Error,
          "This is GNATcoverage " & Version.Xcov_Version);
-      raise Program_Error with "Aborting";
+
+      Outputs.Error ("Aborting.");
+      raise Outputs.Xcov_Exit_Exc;
    end Abort_Disassembler_Error;
 
    ------------------------------

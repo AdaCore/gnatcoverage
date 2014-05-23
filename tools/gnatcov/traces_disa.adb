@@ -24,6 +24,7 @@ with Interfaces;        use Interfaces;
 with Hex_Images;        use Hex_Images;
 with Highlighting;      use Highlighting;
 with Elf_Disassemblers; use Elf_Disassemblers;
+with Outputs;
 with Switches;
 with Traces_Files;
 
@@ -167,10 +168,12 @@ package body Traces_Disa is
          exit when Pc = 0;
       end loop;
    exception
-      --  Catch everything except Program_Errors, since Get_Insn_Length may
-      --  have already caught one and aborted.
+      --  Catch everything except Xcov_Exit_Exc errors, since
+      --  Get_Insn_Length_Or_Abort may have already caught a disassembly error:
+      --  if an Xcov_Exit_Exc is raised, an error message has already been
+      --  printed.
 
-      when Program_Error =>
+      when Outputs.Xcov_Exit_Exc =>
          raise;
       when Error : others =>
          Abort_Disassembler_Error (Pc, Slice (Insns, Pc, Insns.Last), Error);

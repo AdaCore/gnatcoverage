@@ -1978,7 +1978,8 @@ begin
    end if;
 
 exception
-   when Error : Elf_Files.Error | Ada.IO_Exceptions.Name_Error =>
+   when Error : Elf_Files.Error
+      | Ada.IO_Exceptions.Name_Error =>
       Outputs.Error (Ada.Exceptions.Exception_Message (Error));
 
    when Xcov_Exit_Exc =>
