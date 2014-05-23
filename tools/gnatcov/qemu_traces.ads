@@ -211,10 +211,15 @@ package Qemu_Traces is
    --  The Operation conveyed is a bitmask of the following possibilities:
 
    Trace_Op_Block : constant Unsigned_8 := 16#10#;
-   --  Basic block pc .. pc+size-1 was executed
+   --  Basic block PC .. PC+SIZE-1 was executed. This is the usual trace when
+   --  a new basic block has been executed (or when the trace generator has
+   --  no memory of executed basic blocks). If this flags doesn't appear (and
+   --  in that case Br0 or Br1 is usually set), the trace entry means that a
+   --  new outcome (of a branch) has been executed for a basic block at PC.
 
    Trace_Op_Fault : constant Unsigned_8 := 16#20#;
-   --  Machine fault occurred at pc
+   --  Machine fault occurred at PC. The basic block hasn't been completly
+   --  executed.
 
    Trace_Op_Br0 : constant Unsigned_8 := 16#01#; --  Branch
    Trace_Op_Br1 : constant Unsigned_8 := 16#02#; --  Fallthrough
