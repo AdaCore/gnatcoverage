@@ -501,6 +501,20 @@ package body Traces_Elf is
       return Set.Floor (PC_Addr'Unchecked_Access);
    end Find_Address_Info;
 
+   -----------------------
+   -- Find_Address_Info --
+   -----------------------
+
+   function Find_Address_Info
+     (Exec : Exe_File_Type;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Sets.Cursor
+   is
+      Set : Address_Info_Sets.Set renames Get_Desc_Set (Exec, Kind, PC).all;
+   begin
+      return Find_Address_Info (Set, Kind, PC);
+   end Find_Address_Info;
+
    ------------------
    -- Get_Filename --
    ------------------

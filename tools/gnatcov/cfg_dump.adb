@@ -319,8 +319,31 @@ package body CFG_Dump is
       Disas   : constant access Disassemblers.Disassembler'Class :=
         Elf_Disassemblers.Disa_For_Machine (Traces.Machine);
 
-      PC     : Pc_Type := Code.First;
-      Old_PC : Pc_Type;
+      type Disassembly_State is
+        (OK,
+         Invalid_Insn,
+         Skip_Padding);
+      State : Disassembly_State;
+      --  Disassembled instructions
+
+      Saved_Exn : Exception_Occurrence;
+      --  When disassembling fails, there is a need to delay the exception
+      --  handling: this variable is used to keep exception information.
+
+      PC      : Pc_Type := Code.First;
+      --  Address of the first byte of the instruction we are about to
+      --  disassemble.
+
+      Old_PC  : Pc_Type;
+      --  Likewise for the previous instruction
+
+      Sym_Cur : Address_Info_Sets.Cursor :=
+        Find_Address_Info (Context.Exec.all, Symbol_Addresses, PC);
+      --  Cursor to the symbol that contains PC, if it exists, or to the first
+      --  symbol after PC. If there is no such symbol, No_Element.
+
+      Symbol  : Address_Info_Acc;
+      --  Symbol corresponding to Sym_Cur, on null if it is No_Element
 
       Insn, Last_Insn : Instruction_Access := null;
       --  Currently analyzed instructions and the previous one. Last_Insn is
@@ -407,136 +430,231 @@ package body CFG_Dump is
             Insn_Added := False;
          end if;
 
+         --  Adjust Sym according to PC; Symbol as well
+
+         while Address_Info_Sets."/=" (Sym_Cur, Address_Info_Sets.No_Element)
+           and then Address_Info_Sets.Element (Sym_Cur).Last < PC
+         loop
+            Sym_Cur := Address_Info_Sets.Next (Sym_Cur);
+         end loop;
+         Symbol :=
+           (if Address_Info_Sets."=" (Sym_Cur, Address_Info_Sets.No_Element)
+            then null
+            else Address_Info_Sets.Element (Sym_Cur));
+
          --  First decode the current instruction
 
-         --  This is incorrect: there is an assumption here that the entire
-         --  section is a contiguous sequence of well-formed instructions.
-         --  However there is no guarantee that the padding between symbols
-         --  is valid instructions???
+         begin
+            State := OK;
+            Insn_Len := Disas.Get_Insn_Length
+              (Slice (Code, PC, Code.Last));
+            Insn.Bytes := Slice
+              (Code, PC, PC + Pc_Type (Insn_Len) - 1);
 
-         Insn_Len := Disas.Get_Insn_Length
-           (Slice (Code, PC, Code.Last));
-         Insn.Bytes := Slice
-           (Code, PC, PC + Pc_Type (Insn_Len) - 1);
-         Disas.Get_Insn_Properties
-           (Insn_Bin    => Insn.Bytes,
-            Pc          => PC,
-            Branch      => Insn_Branch,
-            Flag_Indir  => Insn_Flag_Indir,
-            Flag_Cond   => Insn_Flag_Cond,
-            Branch_Dest => Insn_Branch_Dest,
-            FT_Dest     => Insn_FT_Dest);
+            if Symbol /= null then
+               if Insn.Bytes.First < Symbol.First
+                 and then Symbol.First <= Insn.Bytes.Last
+               then
+                  --  This instruction crosses a symbol's lower address: it
+                  --  looks like we are disassembling padding bytes. Skip
+                  --  these until this symbol.
 
-         Insn.Selected := Matches_Locations
-           (Context.Exec, Context.Locs, Address (Insn));
-         Insn.Executed := False;
-         Insn.Control_Flow_Pair := No_PC;
+                  State := Skip_Padding;
 
-         --  Past this point, PC contains the address of the next instruction.
-         --  Use Address (Insn) to get the address of the current one.
+               elsif Insn.Bytes.First <= Symbol.Last
+                 and then Symbol.Last < Insn.Bytes.Last
+               then
+                  --  This instruction crosses a symbol's upper address: we
+                  --  assume instructions are not supposed to do that.
 
-         Old_PC := PC;
-         PC := PC + Pc_Type (Insn_Len);
+                  State := Invalid_Insn;
 
-         --  Chain the previous instruction to this one only when needed
+                  --  Raise an exception: this is the only way to craft an
+                  --  Exception_Occurrence object...
 
-         if Last_Insn /= null then
-            Last_Insn.Successors.Append
-              ((Kind    => Fallthrough,
-                Known   => True,
-                Address => Address (Insn)));
-
-            if not Insn.Selected and then Last_Insn.Selected then
-               --  This instruction is not selected, but since it's directly
-               --  referenced by the previous instruction, we are interested
-               --  in it anyway.
-
-               Context.Other_Outcome.Include (Insn);
-               Insn_Added := True;
-
-            elsif Insn.Selected and then not Last_Insn.Selected then
-               --  Likewise, reciprocally
-
-               Context.Other_Income.Insert (Last_Insn);
-               Last_Insn_Added := True;
-            end if;
-         end if;
-
-         if Insn.Selected then
-            Context.Instructions.Append (Insn);
-            Insn_Added := True;
-
-            if Insn_Starts_BB then
-               Context.Basic_Block_Starters.Include (Address (Insn));
-            end if;
-         end if;
-
-         --  If this is a control flow instruction, memorize its effect to
-         --  apply them after the delay slot.
-
-         case Insn_Branch is
-            when Br_Jmp =>
-               Add_Branch_Point
-                 (Address (Insn),
-                  Insn_Branch_Dest.Target,
-                  Insn_Branch_Dest.Delay_Slot,
-                  Branch,
-                  Insn_Flag_Cond);
-               Insn.Control_Flow_Pair := Insn_Branch_Dest.Delay_Slot;
-
-            when Br_Ret =>
-               Add_Branch_Point
-                 (Address (Insn),
-                  No_PC,
-                  Insn_Branch_Dest.Delay_Slot,
-                  Subp_Return,
-                  Insn_Flag_Cond);
-
-            when Br_Call =>
-               --  Calls usually have a fallthrough edge. However, calls that
-               --  raise an exception do have one.
-
-               if not Context.Keep_Edges then
-
-                  --  Use debug information to get indirect call target, if
-                  --  possible.
-
-                  if Insn_Flag_Indir then
-                     Insn_Branch_Dest.Target := Get_Call_Target
-                       (Context.Exec.all, Address (Insn), Pc_Type (Insn_Len));
-                  end if;
-
-                  declare
-                     Symbol : constant Address_Info_Acc :=
-                       Get_Symbol (Context.Exec.all, Insn_Branch_Dest.Target);
-                     Symbol_Name : constant String_Access :=
-                       (if Symbol = null
-                        then null
-                        else Symbol.Symbol_Name);
                   begin
-                     if Symbol_Name /= null
-                       and then
-                         Decision_Map.Subp_Raises_Exception (Symbol_Name.all)
-                     then
-                        Add_Branch_Point
-                          (Address (Insn),
-                           No_PC,
-                           Insn_Branch_Dest.Delay_Slot,
-                           Raise_Exception,
-                           Insn_Flag_Cond);
-                     end if;
+                     raise Disassemblers.Invalid_Insn
+                     with "Insn crosses a symbol's upper address";
+                  exception
+                     when Exn : Disassemblers.Invalid_Insn =>
+                        Save_Occurrence (Saved_Exn, Exn);
                   end;
                end if;
+            end if;
 
-            when others =>
-               null;
+            if State = OK then
+               Disas.Get_Insn_Properties
+                 (Insn_Bin    => Insn.Bytes,
+                  Pc          => PC,
+                  Branch      => Insn_Branch,
+                  Flag_Indir  => Insn_Flag_Indir,
+                  Flag_Cond   => Insn_Flag_Cond,
+                  Branch_Dest => Insn_Branch_Dest,
+                  FT_Dest     => Insn_FT_Dest);
+            end if;
+
+         exception
+            when Exn : Disassemblers.Invalid_Insn
+               | Disassemblers.Unhandled_Insn =>
+
+               --  Keep in mind that we may end up here because of an error
+               --  while computing the instruction's length. Thus, we cannot
+               --  rely on the length (Insn_len) nor on the address of the
+               --  last byte (Insn.Last).
+
+               if Symbol = null
+                 or else not (PC in Symbol.First .. Symbol.Last)
+               then
+
+                  --  We came across an invalid instruction and we are not
+                  --  inside a symbol: we probably met padding bytes.
+
+                  State := Skip_Padding;
+
+               else
+
+                  --  There is an invalid instruction inside a symbol: the code
+                  --  generator looks buggy.
+
+                  State := Invalid_Insn;
+                  Save_Occurrence (Saved_Exn, Exn);
+               end if;
+         end;
+
+         case State is
+            when OK =>
+               Insn.Selected := Matches_Locations
+                 (Context.Exec, Context.Locs, Address (Insn));
+               Insn.Executed := False;
+               Insn.Control_Flow_Pair := No_PC;
+
+               --  Past this point, PC contains the address of the next
+               --  instruction. Use Address (Insn) to get the address of
+               --  the current one.
+
+               Old_PC := PC;
+               PC := PC + Pc_Type (Insn_Len);
+
+               --  Chain the previous instruction to this one only when needed
+
+               if Last_Insn /= null then
+                  Last_Insn.Successors.Append
+                    ((Kind    => Fallthrough,
+                      Known   => True,
+                      Address => Address (Insn)));
+
+                  if not Insn.Selected and then Last_Insn.Selected then
+                     --  This instruction is not selected, but since it's
+                     --  directly referenced by the previous instruction,
+                     --  we are interested in it anyway.
+
+                     Context.Other_Outcome.Include (Insn);
+                     Insn_Added := True;
+
+                  elsif Insn.Selected and then not Last_Insn.Selected then
+                     --  Likewise, reciprocally
+
+                     Context.Other_Income.Insert (Last_Insn);
+                     Last_Insn_Added := True;
+                  end if;
+               end if;
+
+               if Insn.Selected then
+                  Context.Instructions.Append (Insn);
+                  Insn_Added := True;
+
+                  if Insn_Starts_BB then
+                     Context.Basic_Block_Starters.Include (Address (Insn));
+                  end if;
+               end if;
+
+               --  If this is a control flow instruction, memorize its effect
+               --  to apply them after the delay slot.
+
+               case Insn_Branch is
+               when Br_Jmp =>
+                  Add_Branch_Point
+                    (Address (Insn),
+                     Insn_Branch_Dest.Target,
+                     Insn_Branch_Dest.Delay_Slot,
+                     Branch,
+                     Insn_Flag_Cond);
+                  Insn.Control_Flow_Pair := Insn_Branch_Dest.Delay_Slot;
+
+               when Br_Ret =>
+                  Add_Branch_Point
+                    (Address (Insn),
+                     No_PC,
+                     Insn_Branch_Dest.Delay_Slot,
+                     Subp_Return,
+                     Insn_Flag_Cond);
+
+               when Br_Call =>
+                  --  Calls usually have a fallthrough edge. However, calls
+                  --  that raise an exception do have one.
+
+                  if not Context.Keep_Edges then
+
+                     --  Use debug information to get indirect call target, if
+                     --  possible.
+
+                     if Insn_Flag_Indir then
+                        Insn_Branch_Dest.Target := Get_Call_Target
+                          (Context.Exec.all,
+                           Address (Insn),
+                           Pc_Type (Insn_Len));
+                     end if;
+
+                     declare
+                        Symbol : constant Address_Info_Acc := Get_Symbol
+                          (Context.Exec.all, Insn_Branch_Dest.Target);
+                        Symbol_Name : constant String_Access :=
+                          (if Symbol = null
+                           then null
+                           else Symbol.Symbol_Name);
+                     begin
+                        if Symbol_Name /= null
+                          and then
+                            Decision_Map.Subp_Raises_Exception
+                              (Symbol_Name.all)
+                        then
+                           Add_Branch_Point
+                             (Address (Insn),
+                              No_PC,
+                              Insn_Branch_Dest.Delay_Slot,
+                              Raise_Exception,
+                              Insn_Flag_Cond);
+                        end if;
+                     end;
+                  end if;
+
+               when others =>
+                  null;
+               end case;
+
+            when Invalid_Insn =>
+               Disassemblers.Abort_Disassembler_Error
+                 (PC, Slice (Code, PC, Code.Last), Saved_Exn);
+
+            when Skip_Padding =>
+
+               --  If there is no symbol anymore to re-synchronize the
+               --  disassembling process, we consider that all remaining
+               --  bytes are padding.
+
+               if Symbol = null then
+                  return;
+               end if;
+
+               Insn.Selected := False;
+               PC := Symbol.First;
          end case;
 
          --  These are for the next instruction, during the next iteration.
          --  If the current instruction wasn't selected, be sure to break the
          --  basic block anyway: propagate the Insn_Starts_BB flag.
 
-         Insn_Has_FT := True;
+         Insn_Has_FT := State = OK;
          Insn_Starts_BB := Insn_Starts_BB and then not Insn.Selected;
 
          --  Apply branch points when needed

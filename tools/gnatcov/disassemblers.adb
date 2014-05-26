@@ -75,8 +75,7 @@ package body Disassemblers is
    procedure Abort_Disassembler_Error
      (PC       : Pc_Type;
       Insn_Bin : Binary_Content;
-      Exn      : Exception_Occurrence)
-   is
+      Exn      : Exception_Occurrence) is
    begin
       New_Line (Standard_Error);
       Put_Line (Standard_Error, "========================================");
