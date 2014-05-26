@@ -332,13 +332,18 @@ package body Annotations.Dynamic_Html is
          begin
             Simplified.Set_Field ("filename", Filename);
             Simplified.Set_Field
-              ("project", String'(Source.Get ("project")));
-            Simplified.Set_Field
               ("stats", JSON_Value'(Source.Get ("stats")));
             Simplified.Set_Field
               ("coverage_level", String'(Source.Get ("coverage_level")));
             Simplified.Set_Field
               ("hunk_filename", Get_Hunk_Filename (Filename));
+
+            if Source.Has_Field ("project") then
+               --  Project name is optional. Add it only when relevant
+
+               Simplified.Set_Field
+                 ("project", String'(Source.Get ("project")));
+            end if;
 
             Append (Sources, Simplified);
          end;
