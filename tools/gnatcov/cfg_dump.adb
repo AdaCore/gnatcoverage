@@ -1427,7 +1427,10 @@ package body CFG_Dump is
                     (Decision_Map.Cond_Branch_Map, Branch_Info).Condition;
                   exit;
 
-               elsif Successors (BB.all).Length = 1 then
+               elsif Successors (BB.all).Length = 1
+                 and then (Successors (BB.all).First_Element.Kind in
+                               Fallthrough | Branch)
+               then
                   declare
                      Successor : Successor_Record renames
                        Successors (BB.all).First_Element;
