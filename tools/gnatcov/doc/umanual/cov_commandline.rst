@@ -58,6 +58,18 @@ The available options are as follows:
    :ref:`consolidation` section for a description of the consolidation
    facility.
 
+:option:`--exec`:
+   Override executable from traces. Trace files contain an indication of the
+   executable used to generate them. This option causes the named executable
+   to be loaded for coverage analysis, and to override the indication contained
+   in any trace specified after it on the command line. An empty executable
+   name may be specified to restore the default behaviour of using the
+   indication contained in each trace file. Note that :option:`--exec` may
+   appear last on the command line, in which case it applies to no trace file,
+   but still causes the indicated executable to be included in the coverage
+   analysis. This ensures that any code in that executable that is not exercised
+   by some trace file will be reported as not covered.
+
 :option:`--routines`, |rarg|:
    For object coverage analysis specifically, provide the list of object
    symbol names that correspond to routines for which the coverage assessment
