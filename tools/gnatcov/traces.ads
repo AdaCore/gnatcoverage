@@ -31,6 +31,11 @@ package Traces is
    subtype Pc_Type is Elf_Addr;
    No_PC : constant Pc_Type := 0;
 
+   function Empty_Range (First, Last : Pc_Type) return Boolean is
+      (Last - First >= 2 ** (Pc_Type'Size - 1));
+   --  True if First .. Last denotes an empty range. Note that Pc_Type is a
+   --  modular type, so this cannot be defined as (Last - First < 0).
+   --
    package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    Pc_Type_Size : constant Unsigned_8 := Pc_Type'Size / System.Storage_Unit;

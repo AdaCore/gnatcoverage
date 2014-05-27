@@ -1797,27 +1797,21 @@ package body Traces_Elf is
 
          Last_Line.Last := Exec.Exe_Text_Start + Pc - 1;
 
-         --  Work-around a gc-section issue: there may be an empty line
-         --  statement at address 0 (because it was discarded). Avoid setting
-         --  Last to 0xffff_ffff as it would cover all the executable.
-         --  FIXME: discard the whole block ?
-
-         if Last_Line.Last = Pc_Type'Last and then Last_Line.First = 0 then
-            Last_Line.First := 1;
-            Last_Line.Last  := 0;
-         end if;
+         --  Note: if previous entry is at offset 0 and has an empty range,
+         --  this will set its Last to PC_Type'Last, so care must be taken
+         --  downstream to not interpret it as covering the whole executable.
 
          --  If this entry has a non-empty range, mark it as such using the
          --  Is_Non_Empty flag, and propagate the range to all entries with
          --  the same start address and an empty range.
 
-         if Last_Line.Last >= Last_Line.First then
+         if not Empty_Range (Last_Line.all) then
             Last_Line.Is_Non_Empty := True;
 
             for Info of Get_Address_Infos
               (Subprg.Lines, Line_Addresses, Last_Line.First)
             loop
-               if Info.Last < Info.First then
+               if Empty_Range (Info.all) then
                   pragma Assert (not Info.Is_Non_Empty);
                   Info.Last := Last_Line.Last;
                end if;
@@ -2432,7 +2426,7 @@ package body Traces_Elf is
 
    begin
       for Addr_Info of Line_Infos loop
-         if Addr_Info.Last >= Addr_Info.First
+         if not Empty_Range (Addr_Info.all)
               and then
             (Addr_Info.Is_Non_Empty or else not Non_Empty_Only)
          then
@@ -3040,8 +3034,7 @@ package body Traces_Elf is
      (Exec : Exe_File_Type;
       Kind : Address_Info_Kind;
       PC   : Pc_Type) return Address_Info_Acc
-   is
-     (Get_Address_Info (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC));
+   is (Get_Address_Info (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC));
 
    -----------------------
    -- Get_Address_Infos --
@@ -4161,4 +4154,5 @@ package body Traces_Elf is
          First   => 0,
          Last    => Pc_Type (Last (Region)));
    end Make_Mutable;
+
 end Traces_Elf;

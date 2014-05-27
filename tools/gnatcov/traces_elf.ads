@@ -280,6 +280,10 @@ package Traces_Elf is
       end case;
    end record;
 
+   function Empty_Range (Info : Address_Info) return Boolean
+     is (Traces.Empty_Range (Info.First, Info.Last));
+   --  True if Info has an empty PC range
+
    function Find_Address_Info
      (Set  : Address_Info_Sets.Set;
       Kind : Address_Info_Kind;
