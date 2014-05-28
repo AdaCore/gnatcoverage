@@ -690,21 +690,38 @@ package body Files_Table is
       return Files_Table.Element (Index).Simple_Name.all;
    end Get_Simple_Name;
 
-   ----------------
-   -- Is_Aliased --
-   ----------------
+   ---------------------
+   -- Get_Unique_Name --
+   ---------------------
 
-   function Is_Aliased (Index : Source_File_Index) return Boolean is
+   function Get_Unique_Name (Index : Source_File_Index) return String is
       use Simple_Name_Maps;
 
-      File    : File_Info renames
-        Files_Table.Element (Index).all;
+      File    : File_Info renames Files_Table.Element (Index).all;
       SN_Info : Simple_Name_Info renames
         Simple_Name_Map.Element (Create (+File.Simple_Name.all));
 
    begin
-      return SN_Info.Matches > 1;
-   end Is_Aliased;
+      if SN_Info.Matches > 1 then
+
+         --  This file is aliased: build an unique name for it
+
+         declare
+            Num_Img          : constant String :=
+              Positive'Image (File.Alias_Num);
+
+            --  Get the alias number image without the leading space
+
+            Stripped_Num_Img : String renames
+              Num_Img (Num_Img'First + 1 .. Num_Img'Last);
+         begin
+            return File.Simple_Name.all & "." & Stripped_Num_Img;
+         end;
+
+      else
+         return File.Simple_Name.all;
+      end if;
+   end Get_Unique_Name;
 
    ---------------------------
    -- Invalidate_Line_Cache --

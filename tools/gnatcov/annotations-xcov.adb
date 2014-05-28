@@ -164,7 +164,7 @@ package body Annotations.Xcov is
       end if;
 
       declare
-         Output_Filename : constant String := Info.Simple_Name.all & ".xcov";
+         Output_Filename : constant String := Get_Unique_Name (File) & ".xcov";
       begin
          Create_Output_File (Pp.Xcov_File, Output_Filename);
       exception

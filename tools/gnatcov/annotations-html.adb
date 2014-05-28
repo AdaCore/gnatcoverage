@@ -518,9 +518,6 @@ package body Annotations.Html is
       procedure Pi (S : String);
       --  Print S to Pp's index file; new line at the end
 
-      function Create_Output_Filename return String;
-      --  Create the name of the html file.
-
       --------
       -- Ni --
       --------
@@ -539,25 +536,11 @@ package body Annotations.Html is
          Put (Pp.Index_File, S);
       end Pi;
 
-      function Create_Output_Filename return String is
-         Img : String (1 .. 2) := "00";
-      begin
-         if Is_Aliased (File) then
-            pragma Assert (Info.Alias_Num < 100);
-            Img (2) := Character'Val (Character'Pos ('0') +
-                                        Info.Alias_Num mod 10);
-            Img (1) := Character'Val (Character'Pos ('0') +
-                                        Info.Alias_Num / 10);
-            return Info.Simple_Name.all & '.' & Img & ".html";
-         else
-            return Info.Simple_Name.all & ".html";
-         end if;
-      end Create_Output_Filename;
-
       --  Local variables
 
       Simple_Source_Filename : String renames Info.Simple_Name.all;
-      Output_Filename        : constant String := Create_Output_Filename;
+      Output_Filename        : constant String :=
+        Get_Unique_Name (File) & ".html";
 
    --  Start of processing for Pretty_Print_File
 

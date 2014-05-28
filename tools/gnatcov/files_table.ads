@@ -57,8 +57,9 @@ package Files_Table is
    function Get_Simple_Name (Index : Source_File_Index) return String;
    --  Comments needed???
 
-   function Is_Aliased (Index : Source_File_Index) return Boolean;
-   --  Return if there exist a file that has the same file base name
+   function Get_Unique_Name (Index : Source_File_Index) return String;
+   --  For files whose base name are unique, return their basename. Return a
+   --  discriminated one for other (aliased) files.
 
    --  Utilities to open files from the source file table. Source files will be
    --  searched on the local filesystem, in the following order:
