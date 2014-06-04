@@ -216,7 +216,7 @@ package body Elf_Files is
    -- Get_Size --
    --------------
 
-   function Get_Size (File : Elf_File) return Long_Integer is
+   function Get_Size (File : Elf_File) return Size_Type is
    begin
       return File.Size;
    end Get_Size;
