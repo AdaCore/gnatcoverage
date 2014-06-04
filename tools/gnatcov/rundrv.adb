@@ -28,7 +28,6 @@ with Interfaces;
 with GNAT.OS_Lib;
 with GNAT.Regpat;  use GNAT.Regpat;
 
-with Elf_Files;
 with Execs_Dbase;
 with Qemu_Traces;
 with Switches;     use Switches;
@@ -350,7 +349,7 @@ package body Rundrv is
          Append_Info
            (Trace_File,
             Exec_File_Size,
-            Elf_Files.Size_Type'Image (Get_Size (Exec.all)));
+            Long_Integer'Image (Get_Size (Exec.all)));
          Append_Info
            (Trace_File,
             Exec_File_Time_Stamp,

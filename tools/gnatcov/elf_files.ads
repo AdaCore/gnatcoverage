@@ -22,10 +22,6 @@ with Interfaces;
 
 with System; use System;
 
-pragma Warnings (Off);
-with System.CRTL;
-pragma Warnings (On);
-
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with GNATCOLL.Mmap; use GNATCOLL.Mmap;
@@ -52,9 +48,7 @@ package Elf_Files is
       Status_Bad_Magic,
       Status_Bad_Class,
       Status_Bad_Version
-     );
-
-   subtype Size_Type is System.CRTL.int64;
+      );
 
    --  Open a binary file.
    procedure Open_File (File : out Elf_File; Filename : String);
@@ -65,7 +59,7 @@ package Elf_Files is
    function Get_Status (File : Elf_File) return Elf_File_Status;
 
    function Get_Filename (File : Elf_File) return String;
-   function Get_Size (File : Elf_File) return Size_Type;
+   function Get_Size (File : Elf_File) return Long_Integer;
    function Get_Time_Stamp (File : Elf_File) return OS_Time;
    function Get_CRC32 (File : Elf_File) return Interfaces.Unsigned_32;
 
@@ -177,7 +171,7 @@ private
       --  as the file is open, since the ELF might be closed when they are
       --  requested.
 
-      Size             : System.CRTL.int64;
+      Size             : Long_Integer;
       Time_Stamp       : OS_Time;
       CRC32            : Interfaces.Unsigned_32;
 

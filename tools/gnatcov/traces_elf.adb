@@ -537,7 +537,7 @@ package body Traces_Elf is
    -- Get_Size --
    --------------
 
-   function Get_Size (Exec : Exe_File_Type) return Size_Type is
+   function Get_Size (Exec : Exe_File_Type) return Long_Integer is
    begin
       return Get_Size (Exec.Exe_File);
    end Get_Size;
@@ -636,7 +636,7 @@ package body Traces_Elf is
                                              (Trace_File,
                                               Exec_File_CRC32);
 
-      File_Size  : constant String := Size_Type'Image (Get_Size (Exec));
+      File_Size  : constant String := Long_Integer'Image (Get_Size (Exec));
       File_TS    : constant String := Time_Stamp_Image (Get_Time_Stamp (Exec));
       File_CRC32 : constant String := Unsigned_32'Image (Get_CRC32 (Exec));
    begin

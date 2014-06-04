@@ -114,7 +114,7 @@ package Traces_Elf is
    function Get_Machine (Exec : Exe_File_Type) return Interfaces.Unsigned_16;
    --  Get the machine type (ELF machine id)
 
-   function Get_Size (Exec : Exe_File_Type) return Size_Type;
+   function Get_Size (Exec : Exe_File_Type) return Long_Integer;
    --  Get the size of the Exec file
 
    function Get_Time_Stamp (Exec : Exe_File_Type) return GNAT.OS_Lib.OS_Time;
