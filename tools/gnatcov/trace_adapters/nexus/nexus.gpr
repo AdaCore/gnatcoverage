@@ -5,7 +5,7 @@ project Nexus is
    for Main use ("nexus_trace_gen.adb", "isys_drv.adb");
 
    package Compiler is
-      for Default_Switches ("Ada") use ("-g", "-gnatyy", "-gnat05");
+      for Default_Switches ("Ada") use ("-g", "-gnatyy", "-gnat12");
    end Compiler;
 
 end Nexus;
