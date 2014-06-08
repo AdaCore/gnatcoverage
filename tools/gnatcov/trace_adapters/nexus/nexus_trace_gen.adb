@@ -532,7 +532,8 @@ begin
       if Op_Code = 16 or else Op_Code = 18 or else
         (Op_Code = 19 and then ((Insns_Ptr (J) and 16#3fe#) = 16#20#)) or else
         (Op_Code = 19 and then ((Insns_Ptr (J) and 16#3fe#) = 16#12c#)) or else
-        (Op_Code = 31 and then ((Insns_Ptr (J) and 16#3fe#) = 16#008#)) then
+        (Op_Code = 31 and then ((Insns_Ptr (J) and 16#3fe#) = 16#008#))
+      then
          Insn_Flags (J) := (Is_Branch => True, others => False);
       else
          Insn_Flags (J) := (others => False);
