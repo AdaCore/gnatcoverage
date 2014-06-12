@@ -162,27 +162,33 @@ package Dwarf is
    DW_AT_MIPS_linkage_name    : constant := 16#2007#; -- string
    DW_AT_hi_user              : constant := 16#3fff#; -- ---
 
-   DW_FORM_addr      : constant := 16#01#; -- address
-   DW_FORM_block2    : constant := 16#03#; -- block
-   DW_FORM_block4    : constant := 16#04#; -- block
-   DW_FORM_data2     : constant := 16#05#; -- constant
-   DW_FORM_data4     : constant := 16#06#; -- constant, lineptr, loclistptr...
-   DW_FORM_data8     : constant := 16#07#; -- ...  macptr, rangelistptr
-   DW_FORM_string    : constant := 16#08#; -- string
-   DW_FORM_block     : constant := 16#09#; -- block
-   DW_FORM_block1    : constant := 16#0a#; -- block
-   DW_FORM_data1     : constant := 16#0b#; -- constant
-   DW_FORM_flag      : constant := 16#0c#; -- flag
-   DW_FORM_sdata     : constant := 16#0d#; -- constant
-   DW_FORM_strp      : constant := 16#0e#; -- string
-   DW_FORM_udata     : constant := 16#0f#; -- constant
-   DW_FORM_ref_addr  : constant := 16#10#; -- reference
-   DW_FORM_ref1      : constant := 16#11#; -- reference
-   DW_FORM_ref2      : constant := 16#12#; -- reference
-   DW_FORM_ref4      : constant := 16#13#; -- reference
-   DW_FORM_ref8      : constant := 16#14#; -- reference
-   DW_FORM_ref_udata : constant := 16#15#; -- reference
-   DW_FORM_indirect  : constant := 16#16#; -- (see Section 7.5.3)
+   DW_FORM_addr         : constant := 16#01#; -- address
+   DW_FORM_block2       : constant := 16#03#; -- block
+   DW_FORM_block4       : constant := 16#04#; -- block
+   DW_FORM_data2        : constant := 16#05#; -- constant
+   DW_FORM_data4        : constant := 16#06#;
+   --  constant, lineptr, loclistptr, macptr, rangelistptr
+   DW_FORM_data8        : constant := 16#07#; -- Likewise
+   DW_FORM_string       : constant := 16#08#; -- string
+   DW_FORM_block        : constant := 16#09#; -- block
+   DW_FORM_block1       : constant := 16#0a#; -- block
+   DW_FORM_data1        : constant := 16#0b#; -- constant
+   DW_FORM_flag         : constant := 16#0c#; -- flag
+   DW_FORM_sdata        : constant := 16#0d#; -- constant
+   DW_FORM_strp         : constant := 16#0e#; -- string
+   DW_FORM_udata        : constant := 16#0f#; -- constant
+   DW_FORM_ref_addr     : constant := 16#10#; -- reference
+   DW_FORM_ref1         : constant := 16#11#; -- reference
+   DW_FORM_ref2         : constant := 16#12#; -- reference
+   DW_FORM_ref4         : constant := 16#13#; -- reference
+   DW_FORM_ref8         : constant := 16#14#; -- reference
+   DW_FORM_ref_udata    : constant := 16#15#; -- reference
+   DW_FORM_indirect     : constant := 16#16#; -- (see Section 7.5.3)
+   DW_FORM_sec_offset   : constant := 16#17#;
+   --  lineptr, loclistptr, macptr, rangelistptr
+   DW_FORM_exprloc      : constant := 16#18#; -- exprloc
+   DW_FORM_flag_present : constant := 16#19#; -- flag
+   DW_FORM_ref_sig8     : constant := 16#20#; -- reference
 
    DW_OP_addr        : constant := 16#03#; -- 1 constant address (target spec)
    DW_OP_deref       : constant := 16#06#; -- 0

@@ -873,7 +873,8 @@ package body Traces_Elf is
             end;
 
          when DW_FORM_data4
-            | DW_FORM_ref4 =>
+            | DW_FORM_ref4
+            | DW_FORM_sec_offset =>
             declare
                V : Unsigned_32;
             begin
@@ -1025,7 +1026,8 @@ package body Traces_Elf is
 
          when DW_FORM_data4
             | DW_FORM_ref4
-            | DW_FORM_strp =>
+            | DW_FORM_strp
+            | DW_FORM_sec_offset =>
             Off := Off + 4;
 
          when DW_FORM_data8 =>
@@ -1054,6 +1056,22 @@ package body Traces_Elf is
                   exit when C = 0;
                end loop;
             end;
+
+         when DW_FORM_exprloc =>
+            --  Skip the bytes count, then "count" bytes
+
+            declare
+               Size : Unsigned_32;
+            begin
+               Read_ULEB128 (Base, Off, Size);
+               Off := Off + Storage_Offset (Size);
+            end;
+
+         when DW_FORM_flag_present =>
+            --  This flag is implicitely present, so it is not materialized
+            --  outside abbreviations.
+
+            null;
 
          when others =>
             Put_Line ("Unhandled dwarf form #" & Unsigned_32'Image (Form));
@@ -1406,11 +1424,21 @@ package body Traces_Elf is
 
          Sec_Off := Off;
          Read_Word4 (Exec, Base, Off, Len);
+         if Len >= 16#ffff_fff0# then
+
+            --  It looks like GCC never produces such sections, so they are not
+            --  supported at the moment.
+
+            raise Program_Error with "Unsupported 64-bit DWARF section";
+         end if;
+
          Last := Off + Storage_Offset (Len);
          Read_Word2 (Exec, Base, Off, Ver);
          Read_Word4 (Exec, Base, Off, Abbrev_Off);
          Read_Byte (Base, Off, Ptr_Sz);
-         exit when Ver not in 2 .. 3;
+         if Ver not in 2 .. 4 then
+            Put_Line ("!! DWARF version not supported: " & Ver'Img);
+         end if;
          Level := 0;
 
          Exec.Addr_Size := Natural (Ptr_Sz);
