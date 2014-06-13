@@ -183,8 +183,11 @@ begin
                if Poss_Args (K).Arg_Name'Length = 8 and then
                  Poss_Args (K).Arg_Name.all = "--target"
                then
-                  Gnatcov_Args (Next_Arg_Idx) := new String'(
-                    "--trace-source" & Argument (J) (9 .. Argument (J)'Last));
+                  Gnatcov_Args (Next_Arg_Idx) := new String'(Argument (J));
+                  Next_Arg_Idx := Next_Arg_Idx + 1;
+
+                  Gnatcov_Args (Next_Arg_Idx) :=
+                    new String'("--trace-source=iSystem-5634");
                else
                   Gnatcov_Args (Next_Arg_Idx) := new String'(Argument (J));
                end if;
