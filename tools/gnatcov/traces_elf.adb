@@ -1349,15 +1349,19 @@ package body Traces_Elf is
       At_Comp_Dir        : Address := Null_Address;
       At_Linkage_Name    : Address := Null_Address;
       At_Abstract_Origin : Unsigned_64 := 0;
-      Cu_Base_Pc         : Unsigned_64;
 
-      Current_Sec     : Address_Info_Acc;
-      Current_Subprg  : Address_Info_Acc;
-      Current_CU      : CU_Id := No_CU_Id;
-      Current_DIE_CU  : DIE_CU_Id := No_DIE_CU_Id;
-      Compilation_Dir : String_Access;
-      Unit_Filename   : String_Access;
-      Subprg_Low      : Pc_Type;
+      Current_Sec       : Address_Info_Acc;
+      Current_Subprg    : Address_Info_Acc;
+      Current_CU        : CU_Id := No_CU_Id;
+      Current_DIE_CU    : DIE_CU_Id := No_DIE_CU_Id;
+      Compilation_Dir   : String_Access;
+      Unit_Filename     : String_Access;
+      Subprg_Low        : Pc_Type;
+
+      Is_High_Pc_Offset : Boolean := False;
+      --  The DWARF standard defines two ways to interpret DW_AT_high_pc
+      --  attributes: it can be encoded as an address or as a constant,
+      --  in which case it represents the offset from the low PC.
 
       --  The generation of the mapping: call site -> target function (for
       --  indirect calls) is done in two steps: first accumulate information as
@@ -1442,7 +1446,6 @@ package body Traces_Elf is
          Level := 0;
 
          Exec.Addr_Size := Natural (Ptr_Sz);
-         Cu_Base_Pc := 0;
 
          Build_Abbrev_Map (Abbrev_Base + Storage_Offset (Abbrev_Off), Map);
 
@@ -1505,14 +1508,9 @@ package body Traces_Elf is
                      Read_Dwarf_Form_U32 (Exec, Base, Off, Form, At_Ranges);
                   when DW_AT_low_pc =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Low_Pc);
-                     if Form /= DW_FORM_addr then
-                        At_Low_Pc := At_Low_Pc + Cu_Base_Pc;
-                     end if;
                   when DW_AT_high_pc =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_High_Pc);
-                     if Form /= DW_FORM_addr then
-                        At_High_Pc := At_High_Pc + Cu_Base_Pc;
-                     end if;
+                     Is_High_Pc_Offset := Form /= DW_FORM_addr;
                   when DW_AT_language =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Lang);
                   when DW_AT_abstract_origin =>
@@ -1528,6 +1526,14 @@ package body Traces_Elf is
                      Skip_Dwarf_Form (Exec, Base, Off, Form);
                end case;
             end loop;
+
+            --  Patch the high PC only now, since it may need the value for the
+            --  DW_AT_low_pc attribute and we cannot assume that DW_AT_low_pc
+            --  appears before DW_AT_high_pc.
+
+            if Is_High_Pc_Offset then
+               At_High_Pc := At_Low_Pc + At_High_Pc;
+            end if;
 
             case Tag is
                when DW_TAG_compile_unit =>
@@ -1555,17 +1561,6 @@ package body Traces_Elf is
                            Last   => Pc_Type (At_High_Pc - 1),
                            Parent => null,
                            DIE_CU => Current_DIE_CU));
-                  end if;
-
-                  if At_Ranges /= No_Ranges then
-                     Cu_Base_Pc := 0;
-
-                  elsif At_Low_Pc = 0 and At_High_Pc = 0 then
-                     --  This field are not required
-                     Cu_Base_Pc := 0;
-
-                  else
-                     Cu_Base_Pc := At_Low_Pc;
                   end if;
 
                   At_Lang := 0;
@@ -1656,6 +1651,8 @@ package body Traces_Elf is
             At_Name := Null_Address;
             At_Comp_Dir := Null_Address;
             At_Linkage_Name := Null_Address;
+
+            Is_High_Pc_Offset := False;
          end loop;
          Free (Map);
       end loop;
