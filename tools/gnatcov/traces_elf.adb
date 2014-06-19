@@ -1568,7 +1568,8 @@ package body Traces_Elf is
 
                when DW_TAG_subprogram =>
                   if At_High_Pc > At_Low_Pc then
-                     --  This subprogram is present in this compile unit
+                     --  It looks like this subprogram is present in this
+                     --  compile unit.
 
                      Subprg_Low := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
                      if Current_Sec = null
@@ -1580,26 +1581,39 @@ package body Traces_Elf is
                      end if;
 
                      if Current_Sec = null then
-                        --  Can this happen???
+                        --  When the linker eliminate a subprogram (this can
+                        --  happen when compiling with -ffunction-sections),
+                        --  the debug info for it may remain unrelocated in
+                        --  the output ELF.
 
-                        raise Program_Error with "no section for subprogram";
+                        --  In DWARFv4, DW_AT_high_pc may contain an offset, so
+                        --  it may be greater than DW_AT_low_pc (which is then
+                        --  0) even in this case. That's why we must handle
+                        --  this particular case here: these subprograms have
+                        --  no matching code section.
+
+                        if At_Low_Pc /= Unsigned_64 (No_PC) then
+                           raise Program_Error
+                             with "no section for subprogram";
+                        end if;
+
+                     else
+                        Current_Subprg :=
+                          new Address_Info'
+                            (Kind              => Subprogram_Addresses,
+                             First             => Subprg_Low,
+                             Last              =>
+                               Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
+                             Parent            => Current_Sec,
+                             Subprogram_Name   =>
+                                new String'(Read_String (At_Name)),
+                             Subprogram_CU     => Current_CU,
+                             Subprogram_DIE_CU => Current_DIE_CU,
+                             Lines             => Address_Info_Sets.Empty_Set);
+                        Exec.Desc_Sets (Subprogram_Addresses).
+                          Insert (Current_Subprg);
+                        Subprg_To_PC.Insert (Tag_Off, Pc_Type (At_Low_Pc));
                      end if;
-
-                     Current_Subprg :=
-                       new Address_Info'
-                       (Kind              => Subprogram_Addresses,
-                        First             => Subprg_Low,
-                        Last              =>
-                          Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
-                        Parent            => Current_Sec,
-                        Subprogram_Name   =>
-                          new String'(Read_String (At_Name)),
-                        Subprogram_CU     => Current_CU,
-                        Subprogram_DIE_CU => Current_DIE_CU,
-                        Lines             => Address_Info_Sets.Empty_Set);
-                     Exec.Desc_Sets (Subprogram_Addresses).
-                       Insert (Current_Subprg);
-                     Subprg_To_PC.Insert (Tag_Off, Pc_Type (At_Low_Pc));
 
                   elsif At_Linkage_Name /= Null_Address
                            or else
