@@ -862,7 +862,21 @@ package body CFG_Dump is
          BB          : Cursor;
          Branch_Insn : Instruction_Access;
       begin
+         --  Look for the last basic block that starts before this trace entry
+
          BB := Context.CFG.Floor (Trace.First);
+
+         --  If we cannot find any, the first selected basic block may start
+         --  after this trace entry so give it another try. Note that the CFG
+         --  is supposed to contain at least one basic block, so First_Element
+         --  is safe.
+
+         if BB = No_Element
+           and then Address (Context.CFG.First_Element.all) <= Trace.Last
+         then
+            BB := Context.CFG.First;
+         end if;
+
          while BB /= No_Element
            and then Address (Element (BB).all) <= Trace.Last
          loop
