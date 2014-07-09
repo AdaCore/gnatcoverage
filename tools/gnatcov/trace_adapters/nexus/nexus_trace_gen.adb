@@ -390,8 +390,8 @@ procedure Nexus_Trace_Gen is
          --  In the symbol name case.... look up in Executable
          A := Lookup_Sym_Value (Arg);
          if A = Impossible_PC then
-           Put_Line (Standard_Error, "Symbol """ & Arg & """ not found");
-           raise Constraint_Error;
+            Put_Line (Standard_Error, "Symbol """ & Arg & """ not found");
+            raise Constraint_Error;
          end if;
          return A;
       end if;
@@ -991,7 +991,8 @@ begin
                   if not Insn_Flags (Insn_Idx).Is_Branch then
                      if IBM_Type /= Exception_Occur then
                         Put_Line (Unsigned_32'Image (New_Addr));
-                        raise Program_Error with "End of block not a branch(1)";
+                        raise Program_Error with
+                          "End of block not a branch(1)";
                      end if;
                   end if;
                   Insn_Flags (Insn_Idx).Br_Taken := True;
@@ -1065,7 +1066,8 @@ begin
                Insn_Flags (Insn_Idx).Been_Executed := True;
                if Insn_Idx = Block_End_Idx then
                   if not Insn_Flags (Insn_Idx).Is_Branch then
-                     raise Program_Error with "End of block not a branch";
+                     raise Program_Error with
+                       "End of block not a branch";
                   end if;
                   Insn_Flags (Insn_Idx).Br_Taken := True;
                   if Writing_Trace then
@@ -1156,7 +1158,8 @@ begin
                if Insn_Idx = Block_End_Idx then
                   if not Insn_Flags (Insn_Idx).Is_Branch then
                      if IBM_Type /= Exception_Occur then
-                        raise Program_Error with "End of block not a branch(2)";
+                        raise Program_Error with
+                          "End of block not a branch(2)";
                      end if;
                   end if;
                   Insn_Flags (Insn_Idx).Br_Taken := True;
