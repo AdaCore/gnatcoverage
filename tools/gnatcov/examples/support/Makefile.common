@@ -91,7 +91,7 @@ XCOV=gnatcov
 # This name remains a proper abstraction of a an actual name that we
 # don't really care about. 
 
-BUILDER=GPR_PROJECT_PATH=../support gprbuild $(GPRBUILD_TARGETARGS)
+BUILDER=gprbuild -aP ../support $(GPRBUILD_TARGETARGS)
 MKDIR=mkdir -p
 RM=rm
 CP=cp
