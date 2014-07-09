@@ -118,6 +118,16 @@ procedure Nexus_Trace_Gen is
    N_Insns          : Positive;
    Insn_Count       : Natural;
 
+   Number_Exception_Vectors : Natural := 0;
+   --  In the future, the exeption vectors may be specified
+   --  on the command line. For now, the one is hard coded here,
+   --  and after the argument processing we pretend that 1 was
+   --  specified through the args.
+   Exception_Vec_Addr : Unsigned_32;
+   Impossible_PC : constant Unsigned_32 := 1;
+   type IBM_Type_Type is (Branch_Insn, Exception_Occur);
+   IBM_Type : IBM_Type_Type;
+
    EV_Code : Nexus_Packet_T;
 
    ICNT_Adj_Val     : Nexus_Packet_T;
@@ -319,8 +329,8 @@ procedure Nexus_Trace_Gen is
 
          end loop;
 
-         Put_Line (Standard_Error, "Symbol """ & S & """ not found");
-         raise Constraint_Error;
+         --  Put_Line (Standard_Error, "Symbol """ & S & """ not found");
+         return Impossible_PC;
       end Lookup_Sym_Value;
 
    begin
@@ -378,7 +388,12 @@ procedure Nexus_Trace_Gen is
          return A;
       else
          --  In the symbol name case.... look up in Executable
-         return Lookup_Sym_Value (Arg);
+         A := Lookup_Sym_Value (Arg);
+         if A = Impossible_PC then
+           Put_Line (Standard_Error, "Symbol """ & Arg & """ not found");
+           raise Constraint_Error;
+         end if;
+         return A;
       end if;
    end Exe_Address_From_Arg;
 
@@ -404,6 +419,7 @@ procedure Nexus_Trace_Gen is
    end To_Hex_Word_Str;
    --  Keep around for debugging.
 
+   No_Insns_Executed : Boolean;
    Do_History : Boolean;
    History_FD : File_Descriptor;
    Trace_FD   : File_Descriptor;
@@ -430,6 +446,9 @@ begin
       Set_Exit_Status (1);
       return;
    end if;
+   --  for J in 1 .. Argument_Count loop
+   --     Put (Argument (J) & ' ');
+   --  end loop;
 
    Processor_ID := new String'(Argument (1));
    Executable_Filename := new String'(Argument (2));
@@ -453,6 +472,7 @@ begin
    --  Open the executable file before processing of PT_Start_Addr, in
    --  case a symbol name is used for the address, which requires
    --  processing of the executable.
+   Exception_Vec_Addr := Exe_Address_From_Arg ("_jump_to_handler");
 
    if To_Upper (Argument (6)) = "IAC1" then
       PT_Start_IAC_Bit := 1;
@@ -483,6 +503,16 @@ begin
    else
       Put_Line (Standard_Error,
                 "PT_Stop_IAC must be 'never' or in range 1 .. 4");
+      Set_Exit_Status (1);
+      return;
+   end if;
+
+   --  See comment at declaration of Number_Exception_Vectors.
+   Number_Exception_Vectors := 1;
+
+   if Number_Exception_Vectors /= 0 and then Do_History then
+      Put_Line (Standard_Error,
+        "History file cannot be specified with exception vectors.");
       Set_Exit_Status (1);
       return;
    end if;
@@ -531,6 +561,7 @@ begin
       Op_Code := Shift_Right (Insns_Ptr (J), 26);
       if Op_Code = 16 or else Op_Code = 18 or else
         (Op_Code = 19 and then ((Insns_Ptr (J) and 16#3fe#) = 16#20#)) or else
+        (Op_Code = 19 and then ((Insns_Ptr (J) and 16#3fe#) = 16#64#)) or else
         (Op_Code = 19 and then ((Insns_Ptr (J) and 16#3fe#) = 16#12c#)) or else
         (Op_Code = 31 and then ((Insns_Ptr (J) and 16#3fe#) = 16#008#))
       then
@@ -926,23 +957,42 @@ begin
             Block_Begin_Idx := Positive (New_Addr - Text_First_Addr) / 4 + 1;
 
          when Prog_Trace_Indirect_Branch_Message           =>
-            N_Insns := Positive
-              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_V.I_CNT
-               + ICNT_Adj);
-            Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
-            Insn_Idx := Block_Begin_Idx;
-            if Do_History and then Insn_Flags (Insn_Idx).Historical then
-               Writing_Trace := True;
-               Trace_Start_Idx := Insn_Idx;
+            U_Addr := Unsigned_32
+              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_V.U_ADDR);
+            New_Addr := Last_Indirect_Or_Sync_Addr xor U_Addr;
+            if New_Addr = Exception_Vec_Addr then
+               IBM_Type := Exception_Occur;
             else
-               Writing_Trace := False;
+               IBM_Type := Branch_Insn;
+            end if;
+            if IBM_Type = Exception_Occur and then
+               Nexus_Msg.Prog_Trace_Indirect_Branch_Message_V.I_CNT = 0
+            then
+               No_Insns_Executed := True;
+            else
+               No_Insns_Executed := False;
+               N_Insns := Positive
+                 (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_V.I_CNT
+                  + ICNT_Adj);
+               Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
+               Insn_Idx := Block_Begin_Idx;
+               if Do_History and then Insn_Flags (Insn_Idx).Historical then
+                  Writing_Trace := True;
+                  Trace_Start_Idx := Insn_Idx;
+               else
+                  Writing_Trace := False;
+               end if;
             end if;
 
             loop
+               exit when No_Insns_Executed;
                Insn_Flags (Insn_Idx).Been_Executed := True;
                if Insn_Idx = Block_End_Idx then
                   if not Insn_Flags (Insn_Idx).Is_Branch then
-                     raise Program_Error with "End of block not a branch";
+                     if IBM_Type /= Exception_Occur then
+                        Put_Line (Unsigned_32'Image (New_Addr));
+                        raise Program_Error with "End of block not a branch(1)";
+                     end if;
                   end if;
                   Insn_Flags (Insn_Idx).Br_Taken := True;
                   if Writing_Trace then
@@ -995,10 +1045,6 @@ begin
                end if;
                Insn_Idx := Insn_Idx + 1;
             end loop;
-            U_Addr := Unsigned_32
-              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_V.U_ADDR);
-            --  Br_Addr:= Text_First_Addr + Unsigned_32(Block_End_Idx - 1) * 4;
-            New_Addr := Last_Indirect_Or_Sync_Addr xor U_Addr;
             Block_Begin_Idx := Positive (New_Addr - Text_First_Addr) / 4 + 1;
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
@@ -1078,23 +1124,40 @@ begin
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
          when Prog_Trace_Indirect_Branch_Message_Sync      =>
-            N_Insns := Positive
-              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.I_CNT
-               + ICNT_Adj);
-            Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
-            Insn_Idx := Block_Begin_Idx;
-            if Do_History and then Insn_Flags (Insn_Idx).Historical then
-               Writing_Trace := True;
-               Trace_Start_Idx := Insn_Idx;
+            New_Addr := Unsigned_32
+              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.F_ADDR);
+            if New_Addr = Exception_Vec_Addr then
+               IBM_Type := Exception_Occur;
             else
-               Writing_Trace := False;
+               IBM_Type := Branch_Insn;
+            end if;
+            if IBM_Type = Exception_Occur and then
+               Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.I_CNT = 0
+            then
+               No_Insns_Executed := True;
+            else
+               No_Insns_Executed := False;
+               N_Insns := Positive
+                 (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.I_CNT
+                  + ICNT_Adj);
+               Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
+               Insn_Idx := Block_Begin_Idx;
+               if Do_History and then Insn_Flags (Insn_Idx).Historical then
+                  Writing_Trace := True;
+                  Trace_Start_Idx := Insn_Idx;
+               else
+                  Writing_Trace := False;
+               end if;
             end if;
 
             loop
+               exit when No_Insns_Executed;
                Insn_Flags (Insn_Idx).Been_Executed := True;
                if Insn_Idx = Block_End_Idx then
                   if not Insn_Flags (Insn_Idx).Is_Branch then
-                     raise Program_Error with "End of block not a branch";
+                     if IBM_Type /= Exception_Occur then
+                        raise Program_Error with "End of block not a branch(2)";
+                     end if;
                   end if;
                   Insn_Flags (Insn_Idx).Br_Taken := True;
                   if Writing_Trace then
@@ -1147,8 +1210,6 @@ begin
             end loop;
 
             --  In Sync messages, the full address is provided.
-            New_Addr := Unsigned_32
-              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.F_ADDR);
             Block_Begin_Idx := Positive (New_Addr - Text_First_Addr) / 4 + 1;
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
