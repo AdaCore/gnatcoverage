@@ -1,0 +1,252 @@
+# secnum   # Ada revs # sectitle                                                 # applicable? # comment                  #
+# ---------#----------#--------------------------------------------------------- #------------ #--------------------------#
+#          #          #                                                          #             #                          #
+1          # 95,05,12 # General                                                  # no          # General overview material
+1.1        # 95,05,12 # Scope                                                    # no          # Not relevant to SCA
+1.1.1      # 95,05,12 # Extent                                                   # no          # Not relevant to SCA
+1.1.2      # 95,05,12 # Structure                                                # no          # Not relevant to SCA
+1.1.3      # 95,05,12 # Conformity of an Implementation with the Standard        # no          # Not relevant to SCA
+1.1.4      # 95,05,12 # Method of Description and Syntax Notation                # no          # Not relevant to SCA
+1.1.5      # 95,05,12 # Classification of Errors                                 # no          # Not relevant to SCA
+1.2        # 95,05,12 # Normative References                                     # no          # Not relevant to SCA
+1.3        # 95,05    # Definitiona                                              # no          # Not relevant to SCA
+1.3        #       12 # Terms and Definitions                                    # no          # Not relevant to SCA
+
+2          # 95,05,12 # Lexical Elements                                         # no          # General overview material
+2.1        # 95,05,12 # Character Set                                            # no          # Not relevant to SCA
+2.2        # 95,05,12 # Lexical Elements, Separators, and Delimiters             # no          # Not relevant to SCA
+2.3        # 95,05,12 # Identifiers                                              # no          # Not relevant to SCA
+2.4        # 95,05,12 # Numeric Literals                                         # no          # Not relevant to SCA
+2.4.1      # 95,05,12 # Decimal Literals                                         # no          # Not relevant to SCA
+2.4.2      # 95,05,12 # Based Literals                                           # no          # Not relevant to SCA
+2.5        # 95,05,12 # Character Literals                                       # no          # Not relevant to SCA
+2.6        # 95,05,12 # String Literals                                          # no          # Not relevant to SCA
+2.7        # 95,05,12 # Comments                                                 # no          # Not relevant to SCA
+2.8        # 95,05,12 # Pragmas                                                  # yes         #
+2.9        # 95,05,12 # Reserved Words                                           # no          # Not relevant to SCA
+
+3          # 95,05,12 # Declarations and Types                                   # no          # General overview material
+3.1        # 95,05,12 # Declarations                                             # no          # This is a general overview section; TOR references are supplied for the associated specific sections. Only declarations that result in generated code are considered to have SCA obligations.
+3.2        # 95,05,12 # Types and Subtypes                                       # no          # General overview material
+3.2.1      # 95,05,12 # Type Declarations                                        # no          # This is a general syntax section; TOR references are supplied for the relevant specific sections
+3.2.2      # 95,05,12 # Subtype Declarations                                     # yes         #
+3.2.3      # 95,05,12 # Classification of Operations                             # no          # Not relevant to SCA
+3.2.4      #       12 # Subtype Predicates                                       # no          # Ada 2012 feature
+3.3        # 95,05,12 # Objects and Named Numbers                                # no          # General overview material
+3.3.1      # 95,05,12 # Object Declarations                                      # yes         #
+3.3.2      # 95,05,12 # Number Declarations                                      # no          # Not relevant to SCA
+3.4        # 95,05,12 # Derived Types and Classes                                # no          # Covered by 3.2.2
+3.4.1      # 95,05,12 # Derivation Classes                                       # no          # Not relevant to SCA
+3.5        # 95,05,12 # Scalar Types                                             # no          # Not relevant to SCA
+3.5.1      # 95,05,12 # Enumeration Types                                        # no          # Not relevant to SCA
+3.5.2      # 95,05,12 # Character Types                                          # no          # Not relevant to SCA
+3.5.3      # 95,05,12 # Boolean Types                                            # yes         #
+3.5.4      # 95,05,12 # Integer Types                                            # no          # Not relevant to SCA
+3.5.5      # 95,05,12 # Operations of Discrete Types                             # no          # Not relevant to SCA
+3.5.6      # 95,05,12 # Real Types                                               # no          # Not relevant to SCA
+3.5.7      # 95,05,12 # Floating Point Types                                     # no          # Not relevant to SCA
+3.5.8      # 95,05,12 # Operations of Floating Point Types                       # no          # Not relevant to SCA
+3.5.9      # 95,05,12 # Fixed Point Types                                        # no          # Not relevant to SCA
+3.5.10     # 95,05,12 # Operations of Fixed Point Types                          # no          # Not relevant to SCA
+3.6        # 95,05,12 # Array Types                                              # yes         #
+3.6.1      # 95,05,12 # Index Constraints and Discrete Ranges                    # yes         #
+3.6.2      # 95,05,12 # Operations of Array Types                                # no          # Not relevant to SCA
+3.6.3      # 95,05,12 # String Types                                             # no          # Not relevant to SCA
+3.7        # 95,05,12 # Discriminants                                            # no          # Not relevant to SCA
+3.7.1      # 95,05,12 # Discriminant Constraints                                 # no          # Not relevant to SCA
+3.7.2      # 95,05,12 # Operations of Discriminated Types                        # no          # Covered by 4.1.4
+3.8        # 95,05,12 # Record Types                                             # partial     # SCA obligations are associated with default initializations for record components
+3.8.1      # 95,05,12 # Variant Parts and Discrete Choices                       # yes         #
+3.9        # 95,05,12 # Tagged Types and Type Extensions                         # no          # Not relevant to SCA
+3.9.1      # 95,05,12 # Type Extensions                                          # no          # Not relevant to SCA
+3.9.2      # 95,05,12 # Dispatching Operations of Tagged Types                   # yes         #
+3.9.3      # 95,05,12 # Abstract Types and Subprograms                           # no          # Not relevant to SCA
+3.9.4      #    05,12 # Interface Types                                          # no          # Ada 2005 feature
+3.10       # 95,05,12 # Access Types                                             # partial     # SCA obligations are associated with default initializations for access values
+3.10.1     # 95,05,12 # Incomplete Type Declarations                             # no          # Not relevant to SCA
+3.10.2     # 95,05,12 # Operations of Access Types                               # no          # Not relevant to SCA
+3.11       # 95,05,12 # Declarative Parts                                        # no          # SCA obligations for a declarative_part are covered in other sections: either for the unit in which the declarative_part occurs, or the constituent declarative_items in the declarative_part
+3.11.1     # 95,05,12 # Completions of Declarations                              # no          # Not relevant to SCA
+
+4          # 95,05,12 # Names and Expressions                                    # no          # General overview material
+4.1        # 95,05,12 # Names                                                    # no          # This is a general syntax section; TOR references are supplied for the relevant specific sections
+4.1.1      # 95,05,12 # Indexed Components                                       # partial     # This section applies when the indexed component is an element of a Boolean array and is used as a condition
+4.1.2      # 95,05,12 # Slices                                                   # no          # Not relevant to SCA
+4.1.3      # 95,05,12 # Selected Components                                      # partial     # This section applies when the selected component is a Boolean value and is used as a condition
+4.1.4      # 95,05,12 # Attributes                                               # partial     # This section applies when the attribute is a Boolean value and is used as a condition
+4.1.5      #       12 # User-Defined References                                  # no          # Ada 2012 feature
+4.1.6      #       12 # User-Defined Indexing                                    # no          # Ada 2012 feature
+4.2        # 95,05,12 # Literals                                                 # no          # Not relevant to SCA
+4.3        # 95,05,12 # Aggregates                                               # no          # Not relevant to SCA
+4.3.1      # 95,05,12 # Record Aggregates                                        # no          # Not relevant to SCA
+4.3.2      # 95,05,12 # Extension Aggregates                                     # no          # Not relevant to SCA
+4.3.3      # 95,05,12 # Array Aggregates                                         # no          # Not relevant to SCA
+4.4        # 95,05,12 # Expressions                                              # no          # This is a general syntax section; TOR references are supplied for the relevant specific sections
+4.5        # 95,05,12 # Operators and Expression Evaluation                      # no          # This is a general syntax section; TOR references are supplied for the relevant specific sections
+4.5.1      # 95,05,12 # Logical Operators and Short-circuit Control Forms        # yes         #
+4.5.2      # 95,05,12 # Relational Operators and Membership Tests                # yes         #
+4.5.3      # 95,05,12 # Binary Adding Operators                                  # no          # Not relevant to SCA
+4.5.4      # 95,05,12 # Unary Adding Operators                                   # no          # Not relevant to SCA
+4.5.5      # 95,05,12 # Multiplying Operators                                    # no          # Not relevant to SCA
+4.5.6      # 95,05,12 # Highest Precedence Operators                             # partial     # The "not" operator is the only highest_precedence_operator relevant to SCA
+4.5.7      #       12 # Conditional Expressions                                  # no          # Ada 2012 feature
+4.5.8      #       12 # Quantified Expressions                                   # no          # Ada 2012 feature
+4.6        # 95,05,12 # Type Conversions                                         # partial     # This section applies when the type conversion is to type Boolean and is used as a condition
+4.7        # 95,05,12 # Qualified Expressions                                    # partial     # This section applies when the type qualification is to type Boolean and is used as a condition
+4.8        # 95,05,12 # Allocators                                               # no          # Not relevant to SCA
+4.9        # 95,05,12 # Static Expressions and Static Subtypes                   # no          # SCA-related requirements for static expressions are the same as for non-static expressions and are addressed in the corresponding sections
+4.9.1      # 95,05,12 # Statically Matching Constraints and Subtypes             # no          # Not relevant to SCA
+
+5          # 95,05,12 # Statements                                               # no          # General overview material
+5.1        # 95,05,12 # Simple and Compound Statements - Sequences of Statements # partial     # This is a general syntax section; the null statement is the only one specifically addressed here, since all others are either covered elsewhere or are outside the ZFP profile
+5.2        # 95,05,12 # Assignment Statements                                    # yes         #
+5.3        # 95,05,12 # If Statements                                            # yes         #
+5.4        # 95,05,12 # Case Statements                                          # yes         #
+5.5        # 95,05,12 # Loop Statements                                          # yes         #
+5.5.1      #       12 # User-Defined Iterator Types                              # no          # Ada 2012 feature
+5.5.2      #       12 # Generalized Loop Iteration                               # no          # Ada 2012 feature
+5.6        # 95,05,12 # Block Statements                                         # yes         #
+5.7        # 95,05,12 # Exit Statements                                          # yes         #
+5.8        # 95,05,12 # Goto Statements                                          # yes         #
+
+6          # 95,05,12 # Subprograms                                              # no          # General overview material
+6.1        # 95,05,12 # Subprogram Declarations                                  # no          # Not relevant to SCA
+6.1.1      #       12 # Preconditions and Postconditions                         # no          # Ada 2012 feature
+6.2        # 95,05,12 # Formal Parameter Modes                                   # no          # Not relevant to SCA
+6.3        # 95,05,12 # Subprogram Bodies                                        # no          # SCA obligations are associated with the constituents of the subprogram body
+6.3.1      # 95,05,12 # Conformance Rules                                        # no          # Not relevant to SCA
+6.3.2      # 95,05,12 # Inline Expansion of Subprograms                          # yes         #
+6.4        # 95,05,12 # Subprogram Calls                                         # yes         #
+6.4.1      # 95,05,12 # Parameter Associations                                   # no          # Covered by 6.4
+6.5        # 95,05,12 # Return Statements                                        # yes         #
+6.5.1      #    05    # Pragma No_Return                                         # no          # Ada 2005 feature
+6.5.1      #       12 # Nonreturning Procedures                                  # no          # Ada 2012 feature
+6.6        # 95,05,12 # Overloading of Operators                                 # no          # Not relevant to SCA
+6.7        #    05,12 # Null Procedures                                          # no          # Ada 2005 feature
+6.8        #       12 # Expression Functions                                     # no          # Ada 2012 feature
+
+7          # 95,05,12 # Packages                                                 # no          # General overview material
+7.1        # 95,05,12 # Package Specifications and Declarations                  # no          # SCA obligations are associated with the constituent basic_declarative_items in the package_specification
+7.2        # 95,05,12 # Package Bodies                                           # no          # SCA obligations are associated with the constituent declarations and statements in the package_body
+7.3        # 95,05,12 # Private Types and Private Extensions                     # no          # Not relevant to SCA
+7.3.1      # 95,05,12 # Private Operations                                       # no          # Not relevant to SCA
+7.3.2      #       12 # Type Invariants                                          # no          # Ada 2012 feature
+7.4        # 95,05,12 # Deferred Constants                                       # yes         #
+7.5        # 95,05,12 # Limited Types                                            # no          # Not relevant to SCA
+7.6        # 95,05    # User-Defined Assignment and Finalization                 # no          # User-defined assignment and finalization are only relevant for controlled types, which are outside the ZFP profile
+7.6        #       12 # Assignment and Finalization                              # no          # Ada 2012 feature
+7.6.1      # 95,05,12 # Completion and Finalization                              # no          # Completion and finalization only have SCA-related obligations for task types, protected types, and controlled types, and all of these are outside the ZFP profile
+
+8          # 95,05,12 # Visibility Rules                                         # no          # General overview material
+8.1        # 95,05,12 # Declarative Region                                       # no          # Not relevant to SCA
+8.2        # 95,05,12 # Scope of Declarations                                    # no          # Not relevant to SCA
+8.3        # 95,05,12 # Visibility                                               # no          # Not relevant to SCA
+8.3.1      #    05,12 # Overriding Indicators                                    # no          # Ada 2005 feature
+8.4        # 95,05,12 # Use Clauses                                              # no          # Not relevant to SCA
+8.5        # 95,05,12 # Renaming Declarations                                    # no          # Not relevant to SCA
+8.5.1      # 95,05,12 # Object Renaming Declarations                             # no          # Not relevant to SCA
+8.5.2      # 95,05,12 # Exception Renaming Declarations                          # no          # Not relevant to SCA
+8.5.3      # 95,05,12 # Package Renaming Declarations                            # no          # Not relevant to SCA
+8.5.4      # 95,05,12 # Subprogram Renaming Declarations                         # no          # Not relevant to SCA
+8.5.5      # 95,05,12 # Generic Renaming Declarations                            # no          # Not relevant to SCA
+8.6        # 95,05,12 # The Context of Overload Resolution                       # no          # Not relevant to SCA
+
+9          # 95,05,12 # Tasks and Synchronization                                # no          # Not in ZFP profile
+9.1        # 95,05,12 # Task Units and Task Objects                              # no          # Not in ZFP profile
+9.2        # 95,05,12 # Task Execution - Task Activation                         # no          # Not in ZFP profile
+9.3        # 95,05,12 # Task Dependence - Termination of Tasks                   # no          # Not in ZFP profile
+9.4        # 95,05,12 # Protected Units and Protected Objects                    # no          # Not in ZFP profile
+9.5        # 95,05,12 # Intertask Communication                                  # no          # Not in ZFP profile
+9.5.1      # 95,05,12 # Protected Subprograms and Protected Actions              # no          # Not in ZFP profile
+9.5.2      # 95,05,12 # Entries and Accept Statements                            # no          # Not in ZFP profile
+9.5.3      # 95,05,12 # Entry Calls                                              # no          # Not in ZFP profile
+9.5.4      # 95,05,12 # Requeue Statements                                       # no          # Not in ZFP profile
+9.6        # 95,05,12 # Delay Statements, Duration, and Time                     # no          # Not in ZFP profile
+9.6.1      #    05,12 # Formatting, Time Zones, and other operations for Time    # no          # Not in ZFP profile
+9.7        # 95,05,12 # Select Statements                                        # no          # Not in ZFP profile
+9.7.1      # 95,05,12 # Selective Accept                                         # no          # Not in ZFP profile
+9.7.2      # 95,05,12 # Timed Entry Calls                                        # no          # Not in ZFP profile
+9.7.3      # 95,05,12 # Conditional Entry Calls                                  # no          # Not in ZFP profile
+9.7.4      # 95,05,12 # Asynchronous Transfer of Control                         # no          # Not in ZFP profile
+9.8        # 95,05,12 # Abort of a Task - Abort of a Sequence of Statements      # no          # Not in ZFP profile
+9.9        # 95,05,12 # Task and Entry Attributes                                # no          # Not in ZFP profile
+9.10       # 95,05,12 # Shared Variables                                         # no          # Not in ZFP profile
+9.11       # 95,05,12 # Example of Tasking and Synchronization                   # no          # Not in ZFP profile
+
+10         # 95,05,12 # Program Structure and Compilation Issues                 # no          # General overview material
+10.1       # 95,05,12 # Separate Compilation                                     # no          # Not relevant to SCA
+10.1.1     # 95,05,12 # Compilation Units - Library Units                        # no          # Not relevant to SCA
+10.1.2     # 95,05,12 # Context Clauses - With Clauses                           # no          # Not relevant to SCA
+10.1.3     # 95,05,12 # Subunits of Compilation Units                            # no          # Not relevant to SCA
+10.1.4     # 95,05,12 # The Compilation Process                                  # no          # Not relevant to SCA
+10.1.5     # 95,05,12 # Pragmas and Program Units                                # no          # Not relevant to SCA
+10.1.6     # 95,05,12 # Environment-Level Visibility Rules                       # no          # Not relevant to SCA
+10.2       # 95,05,12 # Program Execution                                        # no          # SCA obligations are associated with the constitents of the units comprising the program's partitions
+10.2.1     # 95,05,12 # Elaboration Control                                      # no          # SCA obligations are associated with the constitents of the units whose elaboration is controlled by the pragmas defined in this section
+
+11         # 95,05,12 # Exceptions                                               # no          # General overview material
+11.1       # 95,05,12 # Exception Declarations                                   # no          # Not relevant to SCA
+11.2       # 95,05,12 # Exception Handlers                                       # yes         #
+11.3       # 95,05,12 # Raise Statements                                         # yes         #
+11.4       # 95,05,12 # Exception Handling                                       # no          # The semantics for control transferring to a local handler are described in 11.2.  The more general propagation described in 11.4 is not supported by the ZFP profile.
+11.4.1     # 95,05,12 # The Package Exceptions                                   # no          # The only subprogram defined in Ada.Exceptions that has SCA obligations is Raise_Exception, and this has the same treatment as the raise statement (11.3)
+11.4.2     # 95       # Example of Exception Handling                            # no          # Not relevant to SCA
+11.4.2     #    05,12 # Pragmas Assert and Assertion_Policy                      # no          # Ada 2005 feature
+11.4.3     #    05,12 # Example of Exception Handling                            # no          # Not relevant to SCA
+11.5       # 95,05,12 # Suppressing Checks                                       # no          # Not relevant to SCA
+11.6       # 95,05,12 # Exceptions and Optimization                              # no          # Not relevant to SCA
+
+12         # 95,05,12 # Generic Units                                            # no          # General overview material
+12.1       # 95,05,12 # Generic Declarations                                     # no          # The SCA obligations of generic declarations are only manifest at instantiations (12.3)
+12.2       # 95,05,12 # Generic Bodies                                           # no          # The SCA obligations of generic bodies are only manifest at instantiations (12.3)
+12.3       # 95,05,12 # Generic Instantiation                                    # yes         #
+12.4       # 95,05,12 # Formal Objects                                           # no          # Not relevant to SCA
+12.5       # 95,05,12 # Formal Types                                             # no          # Not relevant to SCA
+12.5.1     # 95,05,12 # Formal Private and Derived Types                         # no          # Not relevant to SCA
+12.5.2     # 95,05,12 # Formal Scalar Types                                      # no          # Not relevant to SCA
+12.5.3     # 95,05,12 # Formal Array Types                                       # no          # Not relevant to SCA
+12.5.4     # 95,05,12 # Formal Access Types                                      # no          # Not relevant to SCA
+12.5.5     #    05,12 # Formal Interface Types                                   # no          # Not relevant to SCA
+12.6       # 95,05,12 # Formal Subprograms                                       # no          # Not relevant to SCA
+12.7       # 95,05,12 # Formal Packages                                          # no          # Not relevant to SCA
+12.8       # 95,05,12 # Example of a Generic Package                             # no          # Not relevant to SCA
+
+13         # 95,05,12 # Representation Issues                                    # no          # General overview material
+13.1       # 95,05    # Operational and Representation Items                     # no          # This is a general syntax section; TOR references are supplied for the relevant specific sections
+13.1       #       12 # Operational and Representation Aspects                   # no          # Ada 2012 feature
+13.1.1     #       12 # Aspect Specifications                                    # no          # Ada 2012 feature
+13.2       # 95,05    # Pragma Pack                                              # no          # Not relevant to SCA
+13.2       #       12 # Packed Types                                             # no          # Ada 2012 feature
+13.3       # 95       # Representation Attributes                                # partial     # The only construct relevant to SCA is the address attribute definition
+13.3       #    05,12 # Operational and Representation Attributes                # no          # Ada 2005 feature
+13.4       # 95,05,12 # Enumeration Representation Clauses                       # no          # Not relevant to SCA
+13.5       # 95,05,12 # Record Layout                                            # no          # General overview material
+13.5.1     # 95,05,12 # Record Representation Clauses                            # no          # Not relevant to SCA
+13.5.2     # 95,05,12 # Storage Place Attributes                                 # no          # Not relevant to SCA
+13.5.3     # 95,05,12 # Bit Ordering                                             # no          # Not relevant to SCA
+13.6       # 95,05,12 # Change of Representation                                 # no          # Not relevant to SCA
+13.7       # 95,05,12 # The Package System                                       # partial     # The only consitutents of package System that are relevant to SCA are the relational operators for type Address
+13.7.1     # 95,05,12 # The Package System.Storage_Elements                      # no          # Not relevant to SCA
+13.7.2     # 95,05,12 # The Package System.Address_To_Access_Conversions         # no          # Not relevant to SCA
+13.8       # 95,05,12 # Machine Code Insertions                                  # yes         #
+13.9       # 95,05,12 # Unchecked Type Conversions                               # no          # Not relevant to SCA
+13.9.1     # 95,05,12 # Data Validity                                            # no          # General overview material
+13.9.2     # 95,05,12 # The Valid Attribute                                      # no          # Covered by 4.1.4
+13.10      # 95,05,12 # Unchecked Access Value Creation                          # no          # Not relevant to SCA
+13.11      # 95,05,12 # Storage Management                                       # no          # Not relevant to SCA
+13.11.1    # 95,05    # The Max_Size_In_Storage_Elements Attribute               # no          # Not relevant to SCA
+13.11.1    #       12 # Storage Allocation Attributes                            # no          # Ada 2012 feature
+13.11.2    # 95,05,12 # Unchecked Storage Deallocation                           # no          # Not relevant to SCA
+13.11.3    # 95,05    # Pragma Controlled                                        # no          # Not relevant to SCA
+13.11.3    #       12 # Default Storage Pools                                    # no          # Ada 2012 feature
+13.11.4    #       12 # Storage Subpools                                         # no          # Ada 2012 feature
+13.11.5    #       12 # Subpool Reclamation                                      # no          # Ada 2012 feature
+13.11.6    #       12 # Storage Subpool Example                                  # no          # Ada 2012 feature
+13.12      # 95,05    # Pragma Restrictions                                      # no          # Not relevant to SCA
+13.12      #       12 # Pragma Restrictions and Pragma Profile                   # no          # Ada 2005 feature
+13.12.1    #    05    # Language-Defined Restrictions                            # no          # Ada 2005 feature
+13.12.1    #       12 # Language-Defined Restrictions and Profiles               # no          # Ada 2012 feature
+13.13      # 95,05,12 # Streams                                                  # no          # General overview material
+13.13.1    # 95,05,12 # The Package Streams                                      # no          # Not relevant to SCA
+13.13.2    # 95,05,12 # Stream-Oriented Attributes                               # no          # Not relevant to SCA
+13.14      # 95,05,12 # Freezing Rules                                           # no          # Not relevant to SCA

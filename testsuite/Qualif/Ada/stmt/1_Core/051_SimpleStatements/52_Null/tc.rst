@@ -12,3 +12,5 @@ Check various code fragments that contain null statements such as:
 Check that only those null statements that are not executed are reported as
 uncovered.
 
+LRMREF: 5.2
+

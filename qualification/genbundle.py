@@ -533,7 +533,8 @@ class QMAT:
             )
 
         run (sys.executable + \
-                 " genmodel.py --dolevel=%s" % self.o.dolevel)
+                 " genmodel.py --dolevel=%s --languages=%s" %
+             (self.o.dolevel, self.o.languages))
 
     # ----------------
     # -- __qm_build --
@@ -547,6 +548,11 @@ class QMAT:
         os.chdir (
             os.path.join (self.repodir, "qualification", "qm")
             )
+        
+        # The qmachine model might use the "build" directory as
+        # a repository, and it has to preexist:
+
+        mkdir ("build")
         run ("qmachine model.xml -l scripts/generate_%s_%s.py" \
                  % (part, self.this_docformat))
 
@@ -938,6 +944,7 @@ valid_docformats = ('html', 'pdf')
 valid_parts      = ('tor', 'plans', 'str')
 valid_dolevels   = ('doA', 'doB', 'doC')
 valid_xada       = ('95', '2005', '2012')
+valid_languages  = ["Ada%s" % version for version in valid_xada]
 
 def commandline():
     """Build and return an OptionParser instance for this script."""
@@ -998,6 +1005,13 @@ def commandline():
         help = (
             "Target DO178 qualification level. One of %s." \
                 % valid_dolevels.__str__())
+        )
+
+    op.add_option (
+        "--languages", dest="languages", default=None,
+        help = (
+            "Comma separated list of languages, for traceability matrix "
+            "purposes. Amongst %s." % valid_languages.__str__())
         )
 
     op.add_option (
@@ -1109,6 +1123,13 @@ def check_valid(options, args):
         options.gitpull and options.gitsource,
         "Specifying git source is incompatible with "
         "request to pull from current origin"
+        )
+
+    # Now that we produce TOR/LRM traceability matrixes ...
+
+    exit_if (
+        not options.languages,
+        "Please specify the qualified languages (--languages)"
         )
 
     # -xada, -xgnatcov etc

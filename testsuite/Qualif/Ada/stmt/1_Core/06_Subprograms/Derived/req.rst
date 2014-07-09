@@ -2,7 +2,7 @@ SC requirements for subprogram overridings
 ==========================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

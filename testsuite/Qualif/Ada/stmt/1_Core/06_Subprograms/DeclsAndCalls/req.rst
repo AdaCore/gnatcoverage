@@ -2,7 +2,7 @@ SC requirements for subprogram declarations and calls
 =====================================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

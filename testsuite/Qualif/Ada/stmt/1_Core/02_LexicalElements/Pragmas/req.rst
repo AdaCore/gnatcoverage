@@ -2,7 +2,7 @@ SC requirements for Pragmas (ARM 2.8)
 =====================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

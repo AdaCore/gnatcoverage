@@ -1,7 +1,7 @@
 DC requirements for potentially confusing constructs
 ====================================================
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 Decision Coverage assessment shall remain correct in the presence of code
 constructs that require sophisticated analysis by the coverage tool, e.g. on

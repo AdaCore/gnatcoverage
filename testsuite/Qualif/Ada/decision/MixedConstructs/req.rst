@@ -5,7 +5,7 @@ DC requirements for combinations of statement and decision constructs
 representative of application code.
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 Correct coverage is reported for programs that use a combination of

@@ -2,7 +2,7 @@ SC requirements for ARM chap. 11 : Exceptions
 =============================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

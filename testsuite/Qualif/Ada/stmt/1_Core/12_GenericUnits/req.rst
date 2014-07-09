@@ -2,7 +2,7 @@ SC requirements for ARM chap. 12 : Generic Units
 ================================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

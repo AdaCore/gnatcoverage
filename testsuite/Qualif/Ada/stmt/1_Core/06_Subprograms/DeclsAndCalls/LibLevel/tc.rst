@@ -21,4 +21,4 @@ Reached through:
 * Implicit calls as the result of evaluation of default initialization
   expressions.
 
-
+LRMREF: 3.8, 3.10, 6.1,6.3

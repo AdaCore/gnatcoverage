@@ -2,7 +2,7 @@ SC requirements for Inlining effects
 ====================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

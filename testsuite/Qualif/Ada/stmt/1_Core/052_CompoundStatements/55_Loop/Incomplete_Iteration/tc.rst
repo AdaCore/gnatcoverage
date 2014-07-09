@@ -2,3 +2,5 @@
 
 Check, in particular, that the nested statements past the EXIT point are
 reported uncovered.
+
+LRMREF: 5.5

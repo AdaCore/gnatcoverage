@@ -2,7 +2,7 @@ SC requirements for Case statements (ARM 5.4)
 =============================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

@@ -5,4 +5,6 @@ blocks that are within regular subprograms or subprograms that are generic
 instances, and blocks that contain FOR loops, IF constructs,
 or exception handlers.
 
+LRMREF: 5.6
+
 

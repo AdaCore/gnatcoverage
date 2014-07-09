@@ -2,7 +2,7 @@ SC requirements for Subunits (ARM 10.1.3)
 =========================================
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 
