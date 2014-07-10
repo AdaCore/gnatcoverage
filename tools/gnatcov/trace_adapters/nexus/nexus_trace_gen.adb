@@ -234,20 +234,26 @@ procedure Nexus_Trace_Gen is
       Free (Region);
    end Load_Section;
 
-   function Exe_Address_From_Arg (Arg : String) return Unsigned_32;
+   function Exe_Address_From_Arg
+     (Arg : String; Required : Boolean) return Unsigned_32;
    --  Some command line options can specify an address from the
    --  executable. The address can be given either by a symbol name,
    --  or a hexadecimal value using either the C 0xHHHH syntax or
    --  the Ada 16#HHHH# syntax. A symbol name cannot have "0x" or
    --  "16#" as a proper prefix.
    --
-   --  If a valid address is not found, a message will be output to
-   --  Standard_Error and a Constraint_Error will be raised.
+   --  If a valid address is not found and Required is True, a message will
+   --  be output to Standard_Error and a Constraint_Error will be raised.
+   --
+   --  If a valid address is not found and Required is False, Impossible_PC
+   --  is returned.
    --
    --  Presumes "Executable_File" has been opened, "Ehdr" retrieved and
    --  Section Headers loaded.
 
-   function Exe_Address_From_Arg (Arg : String) return Unsigned_32 is
+   function Exe_Address_From_Arg
+     (Arg : String; Required : Boolean) return Unsigned_32
+   is
       A : Unsigned_32 := 0;
       Invalid_Insn_Addr : constant Unsigned_32 := 1;
 
@@ -389,7 +395,7 @@ procedure Nexus_Trace_Gen is
       else
          --  In the symbol name case.... look up in Executable
          A := Lookup_Sym_Value (Arg);
-         if A = Impossible_PC then
+         if Required and then A = Impossible_PC then
             Put_Line (Standard_Error, "Symbol """ & Arg & """ not found");
             raise Constraint_Error;
          end if;
@@ -472,7 +478,8 @@ begin
    --  Open the executable file before processing of PT_Start_Addr, in
    --  case a symbol name is used for the address, which requires
    --  processing of the executable.
-   Exception_Vec_Addr := Exe_Address_From_Arg ("_jump_to_handler");
+   Exception_Vec_Addr :=
+     Exe_Address_From_Arg ("_jump_to_handler", Required => False);
 
    if To_Upper (Argument (6)) = "IAC1" then
       PT_Start_IAC_Bit := 1;
@@ -488,7 +495,8 @@ begin
       return;
    end if;
 
-   PT_Start_Address := Exe_Address_From_Arg (Argument (7));
+   PT_Start_Address :=
+     Exe_Address_From_Arg (Argument (7), Required => True);
 
    if Argument (8) = "0" then
       PT_Stop_IAC_Bit := 0;
