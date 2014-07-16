@@ -120,9 +120,9 @@ procedure Nexus_Trace_Gen is
 
    Number_Exception_Vectors : Natural := 0;
    --  In the future, the exeption vectors may be specified
-   --  on the command line. For now, the one is hard coded here,
-   --  and after the argument processing we pretend that 1 was
-   --  specified through the args.
+   --  on the command line. For now, the name of one is hard
+   --  to '_jump_to_handler' and if that is found in the target
+   --  executable, Number_Excetion_Vectors is set to 1.
    Exception_Vec_Addr : Unsigned_32;
    Impossible_PC : constant Unsigned_32 := 1;
    type IBM_Type_Type is (Branch_Insn, Exception_Occur);
@@ -480,6 +480,9 @@ begin
    --  processing of the executable.
    Exception_Vec_Addr :=
      Exe_Address_From_Arg ("_jump_to_handler", Required => False);
+   if Exception_Vec_Addr /= Impossible_PC then
+      Number_Exception_Vectors := 1;
+   end if;
 
    if To_Upper (Argument (6)) = "IAC1" then
       PT_Start_IAC_Bit := 1;
@@ -514,9 +517,6 @@ begin
       Set_Exit_Status (1);
       return;
    end if;
-
-   --  See comment at declaration of Number_Exception_Vectors.
-   Number_Exception_Vectors := 1;
 
    if Number_Exception_Vectors /= 0 and then Do_History then
       Put_Line (Standard_Error,
@@ -993,7 +993,11 @@ begin
             end if;
 
             loop
-               exit when No_Insns_Executed;
+               --  exit when No_Insns_Executed;
+               --  ??? do better fix for warning caused by this.
+               if No_Insns_Executed then
+                  exit;
+               end if;
                Insn_Flags (Insn_Idx).Been_Executed := True;
                if Insn_Idx = Block_End_Idx then
                   if not Insn_Flags (Insn_Idx).Is_Branch then
@@ -1161,7 +1165,11 @@ begin
             end if;
 
             loop
-               exit when No_Insns_Executed;
+               --  exit when No_Insns_Executed;
+               --  ??? do better fix for warning caused by this.
+               if No_Insns_Executed then
+                  exit;
+               end if;
                Insn_Flags (Insn_Idx).Been_Executed := True;
                if Insn_Idx = Block_End_Idx then
                   if not Insn_Flags (Insn_Idx).Is_Branch then
