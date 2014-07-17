@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2014, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -35,10 +35,16 @@ package body Traces_Dump is
    is
       use Traces_Disa;
 
+      Routine_Seen : Boolean := False;
+
       procedure Process_One
         (Key  : Subprogram_Key;
          Info : in out Subprogram_Info);
       --  Display traces for one routine
+
+      -----------------
+      -- Process_One --
+      -----------------
 
       procedure Process_One
         (Key  : Subprogram_Key;
@@ -46,6 +52,7 @@ package body Traces_Dump is
       is
          use Hex_Images;
       begin
+         Routine_Seen := True;
          Put (Key_To_Name (Key).all);
 
          if Info.Traces /= null then
@@ -102,6 +109,10 @@ package body Traces_Dump is
       Put_Line ("Coverage level: " & Coverage.Coverage_Option_Value);
       Iterate (Process_One'Access);
 
+      if not Routine_Seen then
+         Put_Line ("*** No routine of interest");
+      end if;
+
       Set_Output (Entry_Output.all);
    end Dump_Routines_Traces;
 
@@ -116,6 +127,10 @@ package body Traces_Dump is
         (Key  : Subprogram_Key;
          Info : in out Subprogram_Info);
       --  Report information for the given routine
+
+      -----------------
+      -- Process_One --
+      -----------------
 
       procedure Process_One
         (Key  : Subprogram_Key;
