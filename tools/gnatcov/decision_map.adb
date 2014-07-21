@@ -2223,8 +2223,7 @@ package body Decision_Map is
 
    begin
       if Branch_Stats then
-         Put_Line
-           ("Branch statistics for " & Subp_Name, '=');
+         Put_Line ("Branch statistics for " & Subp_Name, '^');
 
       elsif Verbose then
          Put_Line ("building decision map for " & Subp_Name);
@@ -2550,7 +2549,7 @@ package body Decision_Map is
                New_Line;
             end if;
 
-            Put_Line ("Summary by branch kind", '-');
+            Put_Line ("Summary by branch kind", '"');
             for J in Context.Stats.Branch_Counts'Range (1) loop
                First := True;
                for K in Context.Stats.Branch_Counts'Range (2) loop
@@ -2579,11 +2578,16 @@ package body Decision_Map is
                   end if;
                end loop;
             end loop;
-            New_Line;
 
-            Put_Line ("Conditional branches", '-');
+            First := True;
             for J in Context.Stats.Cond_Branch_Counts'Range loop
                if Context.Stats.Cond_Branch_Counts (J) > 0 then
+                  if First then
+                     New_Line;
+                     Put_Line ("Conditional branches", '"');
+                     First := False;
+                  end if;
+
                   Put_Line
                     (" "
                      & (case J is
@@ -2595,11 +2599,12 @@ package body Decision_Map is
                      & Context.Stats.Cond_Branch_Counts (J)'Img);
                end if;
             end loop;
-            New_Line;
 
+            New_Line;
             Put_Line
               (Img (Context.Stats.Non_Traceable)
                & " non-traceable conditional branches reported");
+            New_Line;
          end;
       end if;
    end Analyze_Routine;
