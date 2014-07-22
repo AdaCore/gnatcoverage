@@ -22,6 +22,7 @@ with Ada.Containers.Ordered_Maps;
 
 with Slocs;  use Slocs;
 with Traces; use Traces;
+with Types; use Types;
 
 package SC_Obligations is
 
@@ -33,10 +34,9 @@ package SC_Obligations is
    No_CU_Id : constant CU_Id := 0;
    subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
 
-   function Comp_Unit (LI_Name : String) return CU_Id;
-   --  Return the identifier for a given compilation unit, identified by the
-   --  base name of its LI file, or No_CU_Id if no such LI file has been
-   --  loaded.
+   function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
+   --  Return the identifier for the compilation unit containing the given
+   --  source, or No_CU_Id if no such LI file has been loaded.
 
    ---------------------------------
    -- Source Coverage Obligations --

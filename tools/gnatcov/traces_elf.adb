@@ -19,7 +19,6 @@
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
-with Ada.Directories;   use Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
@@ -1544,7 +1543,8 @@ package body Traces_Elf is
                   end if;
 
                   Unit_Filename := new String'(Read_String (At_Name));
-                  Current_CU    := Comp_Unit (Base_Name (Unit_Filename.all));
+                  Current_CU    :=
+                    Comp_Unit (Get_Index_From_Full_Name (Unit_Filename.all));
                   Exec.Compile_Units.Append
                     (Compile_Unit_Desc'(Unit_Filename,
                                         Compilation_Dir,

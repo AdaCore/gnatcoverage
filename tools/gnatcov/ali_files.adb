@@ -44,7 +44,7 @@ package body ALI_Files is
      "A([0-9]*):([0-9]*)(:[^ ]*)? xcov ([^ ]*)( ""(.*)"")?";
    N_Matcher : constant Pattern_Matcher := Compile (N_Regexp);
 
-   U_Regexp  : constant String := "[^\t ]*[\t ]+([^\t ]*)[\t ]";
+   U_Regexp  : constant String := "^[^\t ]*[\t ]+([^\t ]*)";
    U_Matcher : constant Pattern_Matcher := Compile (U_Regexp);
 
    V_Regexp  : constant String := "^V ""(.*)""$";
@@ -92,18 +92,22 @@ package body ALI_Files is
    --------------
 
    procedure Load_ALI (ALI_Filename : String) is
-      Discard_SFI  : Source_File_Index;
-      Discard_Deps : SFI_Vector;
+      Discard_ALI  : Source_File_Index;
+      Discard_Units, Discard_Deps : SFI_Vector;
 
-      pragma Unreferenced (Discard_SFI);
+      pragma Unreferenced (Discard_ALI);
+      pragma Warnings (Off, Discard_Units);
       pragma Warnings (Off, Discard_Deps);
 
    begin
-      Discard_SFI := Load_ALI (ALI_Filename, Discard_Deps, With_SCOs => False);
+      Discard_ALI :=
+        Load_ALI (ALI_Filename, Discard_Units, Discard_Deps,
+                  With_SCOs => False);
    end Load_ALI;
 
    function Load_ALI
      (ALI_Filename : String;
+      Units        : out SFI_Vector;
       Deps         : out SFI_Vector;
       With_SCOs    : Boolean) return Source_File_Index
    is
@@ -274,8 +278,6 @@ package body ALI_Files is
 
       --  Local variables
 
-      Current_Unit : Source_File_Index := No_Source_File;
-
       No_Object                  : Boolean := False;
       --  Set True if the P line contains the NO flag
 
@@ -403,7 +405,7 @@ package body ALI_Files is
             when 'U' =>
                Match (U_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
-                  Current_Unit := Get_Index_From_Generic_Name (Match (1));
+                  Units.Append (Get_Index_From_Generic_Name (Match (1)));
                end if;
 
             when 'D' =>
@@ -423,7 +425,7 @@ package body ALI_Files is
                   if Matches (0) /= No_Match then
                      declare
                         Note_SFN : constant String := Match (3);
-                        Note_SFI : Source_File_Index := Current_Unit;
+                        Note_SFI : Source_File_Index := Units.Last_Element;
 
                      begin
                         if Note_SFN'Length > 0 then

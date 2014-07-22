@@ -31,19 +31,22 @@ package ALI_Files is
    package SFI_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Pos,
       Element_Type => Source_File_Index);
-   --  Vector of source file indices, used to map dependency indicies in an
+   --  Vector of source file indices, used to map dependency indices in an
    --  ALI file to our source file indices.
 
    subtype SFI_Vector is SFI_Vectors.Vector;
 
    function Load_ALI
      (ALI_Filename : String;
+      Units        : out SFI_Vector;
       Deps         : out SFI_Vector;
       With_SCOs    : Boolean) return Types.Source_File_Index;
    --  Load coverage related information (coverage exemptions and, if With_SCOs
    --  is True, source coverage obligations) from ALI_Filename. Returns the
    --  source file index for the ALI file. Subsequent calls for the same ALI
    --  file will return No_Source_File immediately, without reloading the file.
+   --  Units are the units contained in this compilation. Deps are the
+   --  dependencies of the compilation.
 
    procedure Load_ALI (ALI_Filename : String);
    --  Load ALI information for Filename, without SCOs

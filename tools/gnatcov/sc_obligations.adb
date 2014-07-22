@@ -18,11 +18,9 @@
 
 --  Source Coverage Obligations
 
-with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Vectors;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -38,7 +36,6 @@ with Snames;        use Snames;
 with Strings;       use Strings;
 with Switches;      use Switches;
 with Traces_Elf;    use Traces_Elf;
-with Types;         use Types;
 
 package body SC_Obligations is
 
@@ -260,6 +257,9 @@ package body SC_Obligations is
    ------------------------
 
    type CU_Info is record
+      LI : Source_File_Index;
+      --  Simple name of LI file
+
       First_Instance, Last_Instance : Inst_Id;
       --  First and last index of SCO_Instance_Table entries for this unit
 
@@ -271,16 +271,17 @@ package body SC_Obligations is
      (Index_Type   => Valid_CU_Id,
       Element_Type => CU_Info);
 
-   package CU_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => String,
+   CU_Vector : CU_Info_Vectors.Vector;
+   --  Vector of compilation unit info (one entry per LI file)
+
+   package CU_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Source_File_Index,
       Element_Type => Valid_CU_Id);
 
    CU_Map    : CU_Maps.Map;
-   CU_Vector : CU_Info_Vectors.Vector;
-
-   procedure New_CU (Base_Name : String; Info : CU_Info);
-   --  Enter a new source unit, identified by the base name of its LI/object
-   --  files, and return its SU identifier.
+   --  Map of source file simple names to CU_Vector indicies. Note: there may
+   --  be multiple CU_Map entries designating the same LI file (case of an
+   --  extended main source unit comprised of more than one source file).
 
    function Instance_Loc (Inst_Index : Inst_Id) return String;
    --  Return a string representation of the instantiation location denoted
@@ -1046,9 +1047,9 @@ package body SC_Obligations is
    -- Comp_Unit --
    ---------------
 
-   function Comp_Unit (LI_Name : String) return CU_Id is
+   function Comp_Unit (Src_File : Source_File_Index) return CU_Id is
       use CU_Maps;
-      Cur : constant Cursor := CU_Map.Find (LI_Name);
+      Cur : constant Cursor := CU_Map.Find (Src_File);
    begin
       if Cur = CU_Maps.No_Element then
          return No_CU_Id;
@@ -1934,11 +1935,11 @@ package body SC_Obligations is
       Last_SCO_Upon_Entry      : constant SCO_Id  := SCO_Vector.Last_Index;
       Last_Instance_Upon_Entry : constant Inst_Id := Inst_Vector.Last_Index;
 
-      Deps      : SFI_Vector;
-      --  Dependencies of this compilation unit
+      Units, Deps : SFI_Vector;
+      --  Units and dependencies of this compilation
 
       ALI_Index : constant Source_File_Index :=
-                             Load_ALI (ALI_Filename, Deps, With_SCOs => True);
+                    Load_ALI (ALI_Filename, Units, Deps, With_SCOs => True);
       --  Load ALI file and update the last SCO and instance indices
 
       Deps_Present : constant Boolean := not Deps.Is_Empty;
@@ -1969,6 +1970,18 @@ package body SC_Obligations is
       Cur_SCO_Unit := SCO_Unit_Table.First;
       Last_Entry_In_Cur_Unit := SCOs.SCO_Table.First - 1;
       --  Note, the first entry in the SCO_Unit_Table is unused
+
+      --  Record compilation unit
+
+      CU_Vector.Append
+        (CU_Info'
+           (LI             => ALI_Index,
+            First_Instance => Last_Instance_Upon_Entry + 1,
+            Last_Instance  => Last_Instance_Upon_Entry + 1
+            + Inst_Id (SCO_Instance_Table.Last)
+            - Inst_Id (SCO_Instance_Table.First),
+            Deps           => Deps,
+            others         => <>));
 
       for Cur_SCO_Entry in
         SCOs.SCO_Table.First .. SCOs.SCO_Table.Last
@@ -2001,6 +2014,12 @@ package body SC_Obligations is
                end if;
             end;
          end if;
+
+         --  Record source file -> compilation mapping. Note: for C files,
+         --  the same source file may be encountered several times, hence the
+         --  use of Include rather than Insert.
+
+         CU_Map.Include (Cur_Source_File, CU_Vector.Last_Index);
 
          pragma Assert (Cur_Source_File /= No_Source_File);
          Process_Entry : declare
@@ -2272,15 +2291,6 @@ package body SC_Obligations is
          end Process_Entry;
       end loop;
 
-      --  Record compilation unit and instance range
-
-      New_CU (Base_Name (ALI_Filename),
-        (First_Instance => Last_Instance_Upon_Entry + 1,
-         Last_Instance  => Last_Instance_Upon_Entry + 1
-                             + Inst_Id (SCO_Instance_Table.Last)
-                             - Inst_Id (SCO_Instance_Table.First),
-         Deps           => Deps));
-
       --  Import unit instance table into global table
 
       for J in SCO_Instance_Table.First .. SCO_Instance_Table.Last loop
@@ -2534,16 +2544,6 @@ package body SC_Obligations is
          end;
       end loop;
    end Load_SCOs;
-
-   ------------
-   -- New_CU --
-   ------------
-
-   procedure New_CU (Base_Name : String; Info : CU_Info) is
-   begin
-      CU_Vector.Append (Info);
-      CU_Map.Insert (Base_Name, CU_Vector.Last_Index);
-   end New_CU;
 
    -------------------
    -- Next_BDD_Node --
