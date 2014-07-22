@@ -461,10 +461,11 @@ package body Files_Table is
 
       Full_Path : constant Virtual_File := Create (+Full_Name);
 
-      Cur  : Filename_Maps.Cursor;
-      Res  : Source_File_Index;
-      Info : File_Info_Access;
+      Cur         : Filename_Maps.Cursor;
+      Res         : Source_File_Index;
+      Info        : File_Info_Access;
       Info_Simple : File_Info_Access;
+
    begin
       Cur := Full_Name_Map.Find (Full_Path);
 
