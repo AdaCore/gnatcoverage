@@ -963,13 +963,6 @@ procedure GNATcov is
                         when No_Command =>
                            Fatal_Error ("No command specified");
 
-                        when Cmd_Help
-                           | Cmd_Help_Dump =>
-                           Fatal_Error ("no parameter allowed");
-
-                        when Cmd_Version =>
-                           null;
-
                         when Cmd_Coverage
                            | Cmd_Dump_Trace
                            | Cmd_Dump_Trace_Raw
@@ -1027,8 +1020,10 @@ procedure GNATcov is
                                 (Trace_Inputs, Arg, Qualifier => Opt_Exe_Name);
                            end if;
 
-                        when Cmd_Convert =>
-                           null;
+                        when others =>
+                           Fatal_Error
+                             ("no parameter allowed for "
+                              & To_Switch (Command));
 
                         end case;
                      end if;
