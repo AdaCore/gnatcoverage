@@ -78,6 +78,9 @@ package SC_Obligations is
    procedure Report_SCOs_Without_Code;
    --  Output a list of conditions without associated conditional branches
 
+   procedure Report_Multipath_Decisions;
+   --  Output a list of decisions containing multiple paths
+
    procedure Iterate (P : access procedure (SCO : SCO_Id));
    --  Execute P for each SCO
 
@@ -160,7 +163,7 @@ package SC_Obligations is
    --  never generate any code and is excluded from the scope of coverage
    --  analysis.
 
-   function Previous   (SCO : SCO_Id) return SCO_Id;
+   function Previous (SCO : SCO_Id) return SCO_Id;
    --  Previous statement in basic block
 
    procedure Dominant

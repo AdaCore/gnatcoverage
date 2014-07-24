@@ -42,6 +42,7 @@ package Commands is
       Cmd_Disassemble,
       Cmd_Dump_CFG,
       Cmd_Run,
+      Cmd_Scan_Decisions,
       Cmd_Scan_Objects,
       Cmd_Convert
      );

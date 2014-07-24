@@ -187,6 +187,9 @@ procedure GNATcov is
       P ("   -S <routine|instance>       Perform separate source coverage");
       P ("                               (EXPERIMENTAL)");
       New_Line;
+      P (" scan-decisions --scos=...");
+      P ("   Scan source coverage obligations for multiple paths decisions");
+      New_Line;
    end Usage;
 
    ----------------
@@ -730,14 +733,16 @@ procedure GNATcov is
                                                      2 => Cmd_Coverage,
                                                      3 => Cmd_Run,
                                                      4 => Cmd_Convert,
-                                                     5 => Cmd_Dump_CFG));
+                                                     5 => Cmd_Dump_CFG,
+                                                     6 => Cmd_Scan_Decisions));
                         Inputs.Add_Input
                           (ALIs_Inputs, Option_Parameter (Arg));
 
                      elsif Has_Prefix (Arg, Units_Option) then
                         Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
                                                      2 => Cmd_Coverage,
-                                                     3 => Cmd_Run));
+                                                     3 => Cmd_Run,
+                                                     4 => Cmd_Scan_Decisions));
                         Inputs.Add_Input
                           (Units_Inputs, Option_Parameter (Arg));
 
@@ -1300,6 +1305,10 @@ begin
                SC_Obligations.Report_SCOs_Without_Code;
             end if;
          end;
+
+      when Cmd_Scan_Decisions =>
+         Load_All_SCOs (Check_SCOs => True);
+         SC_Obligations.Report_Multipath_Decisions;
 
       when Cmd_Check_SCOs =>
          Inputs.Iterate (ALIs_Inputs, Check_SCOs.Check_SCO_Syntax'Access);

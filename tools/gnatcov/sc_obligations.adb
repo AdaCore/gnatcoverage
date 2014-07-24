@@ -2730,6 +2730,43 @@ package body SC_Obligations is
       return Enclosing_Statement (Dom_SCO);
    end Previous;
 
+   --------------------------------
+   -- Report_Multipath_Decisions --
+   --------------------------------
+
+   procedure Report_Multipath_Decisions is
+      use SCO_Vectors;
+
+      procedure Report_Multipath (Cur : Cursor);
+      --  If Cur is a Decision with multiple paths, report it
+
+      ----------------------
+      -- Report_Multipath --
+      ----------------------
+
+      procedure Report_Multipath (Cur : Cursor) is
+         use BDD, BDD.BDD_Vectors;
+
+         SCOD : SCO_Descriptor renames Element (Cur);
+         DB   : BDD_Node_Id;
+      begin
+         if SCOD.Kind = Decision then
+            DB := SCOD.Decision_BDD.Diamond_Base;
+            if DB /= No_BDD_Node_Id then
+               Report
+                 (First_Sloc (BDD_Vector (DB).C_SCO),
+                  "condition is reachable through multiple paths",
+                  Kind => Warning);
+            end if;
+         end if;
+      end Report_Multipath;
+
+   --  Start of processing for Report_Multipath_Decisions
+
+   begin
+      SCO_Vector.Iterate (Report_Multipath'Access);
+   end Report_Multipath_Decisions;
+
    ------------------------------
    -- Report_SCOs_Without_Code --
    ------------------------------
