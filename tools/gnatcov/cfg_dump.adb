@@ -1533,6 +1533,11 @@ package body CFG_Dump is
                           (This_Branch.Condition))));
                      Put (F, " is ");
                      Put (F, Tristate_Colored_Image (This_Edge.Outcome));
+                     if Degraded_Origins
+                          (Enclosing_Decision (This_Branch.Condition))
+                     then
+                        Put (F, "???");
+                     end if;
                      Line_Started := True;
 
                   when Raise_Exception =>
