@@ -76,10 +76,10 @@ class Runner:
         """Compute a list of command line arguments to pass to
         gnatcov run from what we have received."""
 
-        args = [
-            "--level=%s" % self.options.covlevel,
-            "--target=%s" % self.options.target
-            ]
+        args = ["--level=%s" % self.options.covlevel]
+
+        if self.options.target:
+            args.append ("--target=%s" % self.options.target)
 
         if self.options.scos:
             args.append ("--scos=%s" % self.options.scos)
