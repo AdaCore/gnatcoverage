@@ -231,16 +231,17 @@ QLEVEL_INFO = {
 #   - Before the complete test sequence starts (--pre-testsuite)
 #   - After the complete test sequence has finished (--post-testsuite)
 #   - Before each testcase executes (--pre-testcase)
+#   - After each testcase executes (--post-testcase)
 #
 #   A typical use is with environments requiring on-board execution through a
 #   probe, which might need some service to startup before any program loading
 #   may take place, some shutdown operation afterwards (once done with all the
 #   tests), and possibly some preliminary local cleanup before each test can
-#   start.
+#   start or after each test has run.
 #
-#   When pre-testcase is called, the current directory is set to the testcase
-#   location. When pre/post-testsuite is called the current directory is set
-#   to the location where the hook hook script or binary resides.
+#   When pre/post-testcase is called, the current directory is set to the
+#   testcase location. When pre/post-testsuite is called the current directory
+#   is set to the location where the hook hook script or binary resides.
 #
 #   The control.ALTRUN_HOOK_PAIRS variable contains the list of
 #   ('pre|post', 'testsuite|testcase') pairs we support.
@@ -1154,6 +1155,8 @@ class TestSuite:
 
         self.__log_results_for(test)
         self.__check_stop_after(test)
+
+        self.maybe_exec (self.options.post_testcase, edir=test.atestdir)
 
         if test.status != 'FAILED' and self.options.do_post_run_cleanups:
             test.do_post_run_cleanups()

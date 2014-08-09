@@ -219,7 +219,8 @@ ALTRUN_GNATCOV_PAIRS = (
 ALTRUN_HOOK_PAIRS = (
     ('pre', 'testsuite'),
     ('post', 'testsuite'),
-    ('pre', 'testcase')
+    ('pre', 'testcase'),
+    ('post', 'testcase')
     )
 
 def altrun_opt_for(p0,p1):
