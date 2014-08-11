@@ -241,7 +241,7 @@ QLEVEL_INFO = {
 #
 #   When pre/post-testcase is called, the current directory is set to the
 #   testcase location. When pre/post-testsuite is called the current directory
-#   is set to the location where the hook hook script or binary resides.
+#   is set to the location where the hook script or binary resides.
 #
 #   The control.ALTRUN_HOOK_PAIRS variable contains the list of
 #   ('pre|post', 'testsuite|testcase') pairs we support.
@@ -1064,7 +1064,9 @@ class TestSuite:
 
         timeout = test.getopt('limit', default=DEFAULT_TIMEOUT)
 
-        self.maybe_exec (self.options.pre_testcase, edir=test.atestdir)
+        self.maybe_exec (
+            self.options.pre_testcase, args=[self.options.altrun],
+            edir=test.atestdir)
 
         testcase_cmd = self.__prepare_testcase (test=test, timeout=timeout)
 
@@ -1156,7 +1158,9 @@ class TestSuite:
         self.__log_results_for(test)
         self.__check_stop_after(test)
 
-        self.maybe_exec (self.options.post_testcase, edir=test.atestdir)
+        self.maybe_exec (
+            self.options.post_testcase, args=[self.options.altrun],
+            edir=test.atestdir)
 
         if test.status != 'FAILED' and self.options.do_post_run_cleanups:
             test.do_post_run_cleanups()
@@ -1310,16 +1314,21 @@ class TestSuite:
     # -- altrun hooks & friends --
     # -----------------------------
 
-    def maybe_exec (self, bin, edir=None):
+    def maybe_exec (self, bin, args=None, edir=None):
         """Execute the provided BIN program file, if any. Keep the current
         directory untouched if EDIR is None. Otherwise, adjust the current
         working dir temporarily for this particular execution; to the location
-        where BIN resides if EDIR is "...", or to EDIR's value otherwise."""
+        where BIN resides if EDIR is "...", or to EDIR's value otherwise. Pass
+        the provided list of ARGS, if any, on the command line. Skip possible
+        empty or None arg values there."""
 
         if not bin:
             return
         
         to_run = [sys.executable, bin] if bin.endswith('.py') else [bin]
+
+        if args:
+            to_run.extend([arg for arg in args if arg])
 
         cwd = os.getcwd()
         to_dir = (
