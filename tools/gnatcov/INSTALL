@@ -39,9 +39,9 @@ requires a working installation of the Sphinx framework.
 
 GNATcoverage depends on the GNATcoll components collection for project files
 processing. This needs to be built and installed in your target <prefix>
-first.
+first. Make sure to include --enable-projects when configuring.
 
-To build the gnatcov binary, just invoke "make". This requires an Ada 2005
+To build the gnatcov binary, just invoke "make". This requires an Ada 2012
 capable compiler and the Makefile resorts to GNAT for this purpose.
 
 Then, to install, make install PREFIX=<your-prefix>
