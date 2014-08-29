@@ -1542,7 +1542,8 @@ package body Traces_Elf is
                      Compilation_Dir := null;
                   end if;
 
-                  Unit_Filename := new String'(Read_String (At_Name));
+                  Unit_Filename :=
+                    Canonicalize_Filename (Read_String (At_Name));
                   Current_CU    :=
                     Comp_Unit (Get_Index_From_Full_Name (Unit_Filename.all));
                   Exec.Compile_Units.Append

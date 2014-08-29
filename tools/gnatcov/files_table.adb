@@ -208,16 +208,14 @@ package body Files_Table is
       Last_Source_Search_Entry := E;
    end Add_Source_Search;
 
-   --------------------
-   -- Build_Filename --
-   --------------------
+   ---------------------------
+   -- Canonicalize_Filename --
+   ---------------------------
 
-   function Build_Filename
-     (Dir      : String;
-      Filename : String) return String_Access
+   function Canonicalize_Filename (Filename : String) return String_Access
    is
       use Ada.Characters.Handling;
-      Res : String := Dir & '/' & Filename;
+      Res : String := Filename;
    begin
       if Res'Length > 2 and then Res (Res'First + 1) = ':' then
          --  Looks like a Windows file name
@@ -237,6 +235,18 @@ package body Files_Table is
          end loop;
       end if;
       return new String'(Res);
+   end Canonicalize_Filename;
+
+   --------------------
+   -- Build_Filename --
+   --------------------
+
+   function Build_Filename
+     (Dir      : String;
+      Filename : String) return String_Access
+   is
+   begin
+      return Canonicalize_Filename (Dir & '/' & Filename);
    end Build_Filename;
 
    ---------------------
