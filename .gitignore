@@ -10,3 +10,11 @@ test.py.*
 *.qm
 /tools/gnatcov/obj32/
 /tools/gnatcov/obj64/
+/tools/gnatcov/examples/support/lib
+/tools/gnatcov/examples/support/obj
+/testsuite/install
+/testsuite/output
+/testsuite/rep_gnatcov
+/testsuite/suite.cgpr
+/testsuite/support
+/testsuite/tests
