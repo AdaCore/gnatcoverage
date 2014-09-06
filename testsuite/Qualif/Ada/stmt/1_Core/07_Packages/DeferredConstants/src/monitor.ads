@@ -2,7 +2,7 @@ with Environ;
 
 package Monitor is
    
-   Initial_Environ_State : constant Environ.State; -- # decl
+   Initial_Environ_State : constant Environ.State;
    
    procedure Compare_With_Initial_State_Now;
    N_Matches : Natural := 0;
