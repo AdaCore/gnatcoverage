@@ -1,2 +1,0 @@
-../../tests/qualification/A/testcases/src/level_a_testcases-test_1.ads
-../../tests/qualification/A/testcases/src/level_a_testcases-test_3.ads

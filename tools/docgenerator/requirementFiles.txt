@@ -1,2 +1,0 @@
-../../tests/qualification/A/src/drivers-level_a.ads
-../../tests/qualification/A/src/drivers-level_a-loops.ads
