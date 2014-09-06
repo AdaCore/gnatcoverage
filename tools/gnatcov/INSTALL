@@ -44,4 +44,15 @@ first. Make sure to include --enable-projects when configuring.
 To build the gnatcov binary, just invoke "make". This requires an Ada 2012
 capable compiler and the Makefile resorts to GNAT for this purpose.
 
-Then, to install, make install PREFIX=<your-prefix>
+Then, to install, "make install PREFIX=<your-prefix>"
+
+GNATcoverage relies on the production of execution traces by the
+environment. For cross configurations (gnatcov run --target=<target>), this is
+achieved by the corresponding GNATemulator companion (<target>-gnatemu) when
+available on PATH or by a suitable version of Qemu.
+
+For native configurations (typically, 32 or 64bit x86 linux, no --target
+passed to gnatcov run), this is achieved by a valgrind "trace adapter". This
+is built with "make adapters" and installed in an existing valgrind tree with
+"make install-adapters VALGRIND_PREFIX=<root-of-your-valgrind-install-tree>".
+
