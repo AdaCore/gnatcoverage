@@ -1,6 +1,6 @@
 With Monitor, Environ, Support; use Monitor, Environ, Support;
 
-procedure Test_Monitor_Other is
+procedure Test_Monitor_2Cmp is
    Current_State : State;
 begin
    Assert (Did_Initial_Probe = True);
