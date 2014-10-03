@@ -2268,7 +2268,11 @@ package body Decision_Map is
             for Tsloc of Tslocs loop
                LI := Get_Line (Tsloc.Sloc);
                if LI /= null and then LI.SCOs /= null then
+
+                  --  Record presence of code for all Statement SCOs on line
+
                   for SCO of LI.SCOs.all loop
+
                      if Kind (SCO) = Statement
                           and then
                         (Tsloc.Sloc.L.Column = 0
@@ -2277,6 +2281,10 @@ package body Decision_Map is
                         Set_Basic_Block_Has_Code (SCO, Tsloc.Tag);
                      end if;
                   end loop;
+
+                  --  Record presence of code for compilation unit
+
+                  Set_Unit_Has_Code (Comp_Unit (Tsloc.Sloc.Source_File));
                end if;
             end loop;
 

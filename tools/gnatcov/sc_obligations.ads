@@ -38,6 +38,13 @@ package SC_Obligations is
    --  Return the identifier for the compilation unit containing the given
    --  source, or No_CU_Id if no such LI file has been loaded.
 
+   procedure Set_Unit_Has_Code (CU : CU_Id);
+   --  Record the presence of object code for CU
+
+   procedure Report_Units_Without_Code;
+   --  Emit an error message for any unit of interest for which no object code
+   --  has been seen.
+
    ---------------------------------
    -- Source Coverage Obligations --
    ---------------------------------

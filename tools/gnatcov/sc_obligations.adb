@@ -257,14 +257,18 @@ package body SC_Obligations is
    ------------------------
 
    type CU_Info is record
-      LI : Source_File_Index;
+      LI            : Source_File_Index;
       --  Simple name of LI file
 
-      First_Instance, Last_Instance : Inst_Id;
+      First_Instance,
+      Last_Instance : Inst_Id;
       --  First and last index of SCO_Instance_Table entries for this unit
 
-      Deps : SFI_Vector;
+      Deps          : SFI_Vector;
       --  Mapping of this unit's dependency numbers to source file indices
+
+      Has_Code      : Boolean := False;
+      --  Set True when object code for some source file in this unit is seen
    end record;
 
    package CU_Info_Vectors is new Ada.Containers.Vectors
@@ -278,7 +282,7 @@ package body SC_Obligations is
      (Key_Type     => Source_File_Index,
       Element_Type => Valid_CU_Id);
 
-   CU_Map    : CU_Maps.Map;
+   CU_Map : CU_Maps.Map;
    --  Map of source file simple names to CU_Vector indices. Note: there may
    --  be multiple CU_Map entries designating the same LI file (case of an
    --  extended main source unit comprising more than one source file).
@@ -2775,7 +2779,8 @@ package body SC_Obligations is
       use SCO_Vectors;
 
       procedure Check_Condition (Cur : Cursor);
-      --  Check whether this condition has an associated conditional branch
+      --  Check whether the SCO at Cur is a Condition, and if so, warn if
+      --  it has no associated conditional branch instruction.
 
       ---------------------
       -- Check_Condition --
@@ -2823,6 +2828,36 @@ package body SC_Obligations is
    begin
       SCO_Vector.Iterate (Check_Condition'Access);
    end Report_SCOs_Without_Code;
+
+   -------------------------------
+   -- Report_Units_Without_Code --
+   -------------------------------
+
+   procedure Report_Units_Without_Code is
+      use CU_Info_Vectors;
+
+      procedure Check_Unit (Cur : Cursor);
+      --  Warn if the unit at Cur has no associated object code
+
+      ----------------
+      -- Check_Unit --
+      ----------------
+
+      procedure Check_Unit (Cur : Cursor) is
+         CUI : CU_Info renames Element (Cur);
+      begin
+         if not CUI.Has_Code then
+            Report
+              (Msg  => "no object code for " & Get_Simple_Name (CUI.LI),
+               Kind => Diagnostics.Error);
+         end if;
+      end Check_Unit;
+
+   --  Start of processing for Report_Units_Without_Code
+
+   begin
+      CU_Vector.Iterate  (Check_Unit'Access);
+   end Report_Units_Without_Code;
 
    ------------
    -- S_Kind --
@@ -2877,6 +2912,29 @@ package body SC_Obligations is
    begin
       SCO_Vector.Update_Element (SCO, Set_SCOD_Degraded_Origins'Access);
    end Set_Degraded_Origins;
+
+   -----------------------
+   -- Set_Unit_Has_Code --
+   -----------------------
+
+   procedure Set_Unit_Has_Code (CU : CU_Id) is
+      procedure Set_CUI_Has_Code (CUI : in out CU_Info);
+      --  Set CUI.Has_Code True
+
+      ----------------------
+      -- Set_CUI_Has_Code --
+      ----------------------
+
+      procedure Set_CUI_Has_Code (CUI : in out CU_Info) is
+      begin
+         CUI.Has_Code := True;
+      end Set_CUI_Has_Code;
+
+   --  Start of processing for Set_Unit_Has_Code
+
+   begin
+      CU_Vector.Update_Element (CU, Set_CUI_Has_Code'Access);
+   end Set_Unit_Has_Code;
 
    ----------------
    -- Sloc_Range --

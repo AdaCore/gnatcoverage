@@ -1304,6 +1304,7 @@ begin
             if Verbose then
                SC_Obligations.Report_SCOs_Without_Code;
             end if;
+            SC_Obligations.Report_Units_Without_Code;
          end;
 
       when Cmd_Scan_Decisions =>
@@ -1889,6 +1890,10 @@ begin
             if Annotation /= Annotate_Asm then
                Traces_Elf.Build_Source_Lines;
             end if;
+         end if;
+
+         if Source_Coverage_Enabled then
+            SC_Obligations.Report_Units_Without_Code;
          end if;
 
          --  Generate annotated reports
