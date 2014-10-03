@@ -279,9 +279,9 @@ package body SC_Obligations is
       Element_Type => Valid_CU_Id);
 
    CU_Map    : CU_Maps.Map;
-   --  Map of source file simple names to CU_Vector indicies. Note: there may
+   --  Map of source file simple names to CU_Vector indices. Note: there may
    --  be multiple CU_Map entries designating the same LI file (case of an
-   --  extended main source unit comprised of more than one source file).
+   --  extended main source unit comprising more than one source file).
 
    function Instance_Loc (Inst_Index : Inst_Id) return String;
    --  Return a string representation of the instantiation location denoted
