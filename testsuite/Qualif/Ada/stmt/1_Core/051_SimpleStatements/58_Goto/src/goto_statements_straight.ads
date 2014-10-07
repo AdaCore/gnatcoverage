@@ -2,10 +2,7 @@
 
 package GOTO_Statements_Straight is
 
-   generic
-      type T is range <>;
-   function Update_G (N : T) return T;
-   --  If N < 0 then returns -N. If N = 0 then returns 1. If N > 0 then returns
-   --  N ** 2.
+   function Map (N : Integer) return Integer;
+   --  Return -N if N < 0, 1 if N = 0, and N ** 2 otherwise.
 
 end GOTO_Statements_Straight;

@@ -5,9 +5,8 @@
 with GOTO_Statements_Straight; use GOTO_Statements_Straight;
 with Support;                  use Support;
 procedure Test_GOTO_Statements_Straight_2 is
-   function My_Update is new Update_G (Integer);
 begin
-   Assert (My_Update (Identity (0)) = 1);
+   Assert (Map (Identity (0)) = 1);
 end Test_GOTO_Statements_Straight_2;
 
 --# goto_statements_straight.adb

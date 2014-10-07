@@ -1,7 +1,7 @@
 package body GOTO_Statements_Straight is
 
-   function Update_G (N : T) return T is
-      Result : T;
+   function Map (N : Integer) return Integer is
+      Result : Integer; -- # decl
    begin
       if N > 0 then                           -- # 1if
          goto GT_O;                           -- # 1goto
@@ -20,7 +20,7 @@ package body GOTO_Statements_Straight is
       <<EQ_0>> Result := 1;                   -- # after4goto
 
       <<Fin>> return Result;                  -- # fin
-   end Update_G;
+   end;
 
 end GOTO_Statements_Straight;
 
