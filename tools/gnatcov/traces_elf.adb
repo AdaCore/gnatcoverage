@@ -1546,6 +1546,17 @@ package body Traces_Elf is
                     Canonicalize_Filename (Read_String (At_Name));
                   Current_CU    :=
                     Comp_Unit (Get_Index_From_Full_Name (Unit_Filename.all));
+
+                  --  Mark unit as having code in the executable, to silence
+                  --  warning about unit of interest not present in test cases.
+                  --  Note: there might be no sloc referring to any source
+                  --  file of this unit, for example if it is a library level
+                  --  generic instance.
+
+                  if Current_CU /= No_CU_Id then
+                     Set_Unit_Has_Code (Current_CU);
+                  end if;
+
                   Exec.Compile_Units.Append
                     (Compile_Unit_Desc'(Unit_Filename,
                                         Compilation_Dir,
