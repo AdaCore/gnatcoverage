@@ -39,6 +39,9 @@ copy.html:
 	-mkdir -p $(COPYDIR)
 	rsync -a --delete $(BUILDDIR)/html/ $(COPYDIR)
 
+# Images need to be produced in two formats, pdf and png for
+# inclusion by sphinx within pdf or html documents.
+
 %.png: %.dot
 	dot -T png -o $@ $<
 
@@ -53,7 +56,14 @@ consolidation.pdf: consolidation.dot
 
 prepare-images:: consolidation.png consolidation.pdf
 prepare-images:: multipath-bdd.png multipath-bdd.pdf
-prepare-images:: gen_prjtrees.py prjtree.dot 
+
+# Images related to project facilities. There is actually a set of images,
+# produced out of generated dot files. We use one of the binary results as
+# a marker to determine whether we need to regenerate the whole set.
+
+prepare-images:: Proot.pdf
+
+Proot.pdf: gen_prjtrees.py prjtree.dot 
 	python gen_prjtrees.py
 
 prepare-version: ../../version.ads
