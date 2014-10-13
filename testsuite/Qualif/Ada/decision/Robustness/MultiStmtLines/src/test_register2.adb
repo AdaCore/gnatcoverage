@@ -14,11 +14,11 @@ end;
 --  thus typically expect d! for decisions take only one way.
 
 --# register.adb
---  /init/   l! ## s!,~s-:"This_Score .= 0",d!
---  /double/ l! ## s!
---  /triple/ l! ## s!,~s-:"This_Score .=",d!
---  /hits/   l! ## s!,~s-:"Fancy_Hits .=",dT-
---  /times/  l- ## s-
+--  /init/   l! ## s-:"This_Score .= 0",dF-
+--  /double/ l! ## dF-:"if Double"
+--  /triple/ l! ## s-:"This_Score .=",dT-:"if Triple"
+--  /hits/   l! ## dF-
+--  /times/  l+ ## 0
   
 -- %cargs: -O1
---  =/init/  l! ## s!,~s-:"This_Score .= 0",dF-
+--  =/init/  l! ## s-:"This_Score .= 0",dF-

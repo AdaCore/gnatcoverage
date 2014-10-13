@@ -9,4 +9,4 @@ end;
 
 --# halfadd.adb
 --  /sum/   l+ ## 0
---  /carry/ l! ## s!,~s-:"Carry .= True"
+--  /carry/ l! ## s-:"Carry .= True"

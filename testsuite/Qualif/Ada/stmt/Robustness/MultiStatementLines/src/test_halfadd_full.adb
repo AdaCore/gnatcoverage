@@ -15,4 +15,4 @@ end;
 
 --# halfadd.adb
 --  /sum/   l+ ## 0
---  /carry/ l! ## s!
+--  /carry/ l+ ## 0

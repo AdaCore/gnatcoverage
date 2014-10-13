@@ -12,4 +12,4 @@ begin
 end;
 
 --# addmult.adb
---  /compute/ l! ## s!
+--  /compute/ l+ ## 0
