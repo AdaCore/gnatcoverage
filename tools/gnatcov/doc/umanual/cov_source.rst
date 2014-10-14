@@ -46,7 +46,7 @@ application units to be considered for coverage assessment are to be
 specified.  Essentially, this is achieved by command line options that
 designate the sets of relevant Source Coverage Obligations, either straight
 from Library Information files with the :option:`--scos` option, or leveraging
-the higher level GNAT project file support with :option:`-P` related option.
+the higher level GNAT project file support with a :option:`-P` option.
 
 .. _sreport-formats:
 
@@ -563,12 +563,11 @@ Decision Coverage analysis (:option:`--level=stmt+decision`)
 With the :option:`--level=stmt+decision` command line option, |gcv| performs
 combined Statement and Decision Coverage assessments.
 
-In this context, we consider to be a :dfn:`decision` any Boolean
-expression used to influence the control flow via explicit constructs in the
-source program, such as ``if`` statements or ``while`` loops. The types
-involved in decisions need not be restricted to the standard Boolean type when
-one is defined by the language; For Ada, typically, they may subtypes or types
-derived from the fundamental Boolean type.
+In this context, we consider to be a :dfn:`decision` any Boolean expression
+used to influence the control flow via explicit constructs in the source
+program, such as ``if`` statements or ``while`` loops, regardless of the type
+of this expression. This may be of essentially any type in C, and subtypes or
+types derived from the fundamental Boolean type in Ada.
 
 A decision is said :dfn:`fully covered`, or just :dfn:`covered`, as soon as it
 has been evaluated at least once True and once False during the program
@@ -709,8 +708,9 @@ Now we exercise with another test driver:
    end Test_Divmod0;
 
 Here we issue a single call passing 0 for the Y argument, which triggers a
-check failure for the ``mod`` operation. This results in the following
-:option:`=xcov` output::
+check failure for the ``mod`` operation.
+
+This results in the following :option:`=xcov` output::
 
    8 .: procedure Divmod
    9 .:   (X, Y : Integer; Value : out Integer;
@@ -762,31 +762,27 @@ Modified Condition/Decision Coverage analysis (:option:`--level=stmt+mcdc`)
 ===========================================================================
 
 |gcv| performs combined Statement and Modified Condition/Decision Coverage
-analysis with :option:`--level=stmt+mcdc` passed to |gcvcov|. In addition to
-this particular :option:`--level` option, you also need to specify
-the list of units on which MCDC analysis will be performed to |gcvrun|.
-See the :ref:`trace-control` section for more details on this aspect of
-the procedure.
+analysis with the :option:`--level=stmt+mcdc` option passed to |gcvcov|. In
+addition to this particular :option:`--level` option, you also need to tell
+|gcvrun| the list of units on which MCDC analysis will be performed.  See
+the :ref:`trace-control` section for more details on this aspect of the
+procedure.
 
-Compared to Decision Coverage, MCDC analysis incurs three important
-differences:
+Compared to Decision Coverage, MCDC analysis incurs two important differences:
+
+* In addition to expressions that pilot an explicit control-flow construct, we
+  treat as decisions all the Boolean expressions that combine operands with
+  short-circuit logical operators, such as the expression on the right hand
+  side of the assignment in ``X := A and then B;`` More details on the
+  identification of decisions, together with extra examples, are provided in
+  the :ref:`mcdc-decisions` section of this chapter
 
 * For each decision in the sources of interest, testing shall demonstrate the
-  :dfn:`independant influence` of every operand in addition to just exercising
-  the two expression outcomes (see the :ref:`mcdc-variants` section that
-  follows). The Boolean operands are called :term:`conditions` in the DO-178
-  literature.
-
-* Only short-circuit operators are allowed to combine operands; ``and-then``
-  or ``or-else`` in Ada, ``&&`` or ``||`` in C.  |gnat| compilers offer the
-  ``No_Direct_Boolean_Operator`` restriction to enforce this for Ada.  Boolean
-  expressions with more than one operands are called :term:`complex Boolean
-  expressions` in the remainder of this chapter.
-
-* In addition to any expression that pilots an explicit control-flow
-  construct, we treat as decisions all the complex Boolean expressions in non
-  control-flow contexts, for example on the right hand side of an assignment
-  as in ``X := A and then B;``
+  :dfn:`independant influence` of every operand (:term:`conditions` in the
+  DO-178 parlance) in addition to just exercising the True/False outcomes of
+  the expression as a whole. The :ref:`mcdc-variants` section that follows
+  expands on the notion of :dfn:`independant influence` and on possible
+  variations of the MCDC criterion definition.
 
 Output-wise, the source annotations for the :option:`=xcov` or :option:`=html`
 formats are the same as for decision coverage, with condition specific cases
@@ -818,8 +814,8 @@ more general diagnostic applies on the associated entity. Condition specific
 diagnostics, for example, are only produced in absence of enclosing statement
 or decision level violation.
 
-See the :ref:`mcdc-examples` section that follows for a few illustrations of
-these points.
+See the :ref:`mcdc-examples` section of this chapter for a few illustrations
+of these points.
 
 .. _mcdc-variants:
 
@@ -1022,6 +1018,65 @@ condition expressions are such that running vector 4 is not possible,
 however, since we can't have V both < X1 (condition 1 False) and V >
 X2 (condition 2 False) at the same time when X1 < X2.
 
+.. _mcdc-decisions:
+
+Decision composition rules for MCDC
+-----------------------------------
+
+For MCDC analysis purposes, we treat as decisions two categories of
+expressions:
+
+- As for the :dfn:`decision coverage` criterion, all the expressions
+  that directly influence control-flow constructs and which we will call
+  :dfn:`control-flow expressions`,
+
+- All the expressions obtained by composition of short-circuit logical
+  operators, ``and-then`` and ``or-else`` for Ada, ``&&`` and ``||`` for C.
+
+The most straightforward examples of non control-flow expressions treated as
+decisions for MCDC are the logical expressions appearing in contexts such as
+the right-hand side of assignments. For example::
+
+  Valid_Data, Sensor_OK, Last_Update_OK : Boolean;
+  ...
+  Valid_Data := Sensor_OK and then Last_Update_OK; -- 1 decision here, in Ada
+
+  bool needs_update;
+  struct sensor_state * state;
+  ...
+  needs_update = (state && !state->valid);   /* 1 decision here, in C */
+
+Non short-circuit binary operators, when allowed by the coding standard, are
+taken as regular computational devices and may either participate in the
+construction of operands or split an expression into multiple decisions. For
+instance::
+
+  bool aligned (int x, y)
+  ...
+    return !(x & 0x3) && !(y & 0x3);
+
+in C produces a single decision with two bitwise ``&`` operands.
+And the following Ada excerpt::
+
+  A, B, C, D, E : Boolean;
+  ...
+  if ((A and then not B) == (C or else (D and then E)))
+
+produces three decisions: ``(A and then not B)``, 2 operands combined with
+short-circuit ``and then``, ``(C or else (D and then E)))``, 3 operands
+combined with short-circuit ``and then`` and ``or else``, and the whole
+toplevel expression as it is controlling an ``if`` statement.
+
+In C as in Ada, logical negation is allowed anywhere and just participates in
+the operands construction without influencing decision boundaries.
+
+Non short-circuit binary operators in logical expressions might complexify the
+identification of decision boundaries for users. To alleviate this, |gnat|
+compilers offer the ``No_Direct_Boolean_Operator`` restriction pragma to
+support coding standards prohibiting the use of such operators in Ada. There
+is no equivalent in C, where the allowed operand types are much more varied
+and where the restriction would make the language really much harder to use.
+
 .. _mcdc-limitations:
 
 Limitations with multi-threaded applications 
@@ -1080,69 +1135,52 @@ Specifying the units of interest
 ================================
 
 This section describes the command line switches that can be passed to
-|gcvrun| and |gcvcov| to indicate on what units coverage should be assessed.
+|gcvrun| and |gcvcov| to convey the set of units on which coverage should be
+assessed, which we will call the set of :dfn:`units of interest`.
 
 .. _passing_scos:
 
 Low-level interface (:option:`--scos`)
 --------------------------------------
 
-|gcvcov| can be instructed about which source units to analyze by
-way of the :option:`--scos` command line argument. In this case, the user
-needs to provide the list of Library Information files corresponding to units
-of interest.
+With the :option:`--scos` command line argument, users convey the set of units
+of interest by providing the set of Library Information files corresponding to
+those units.
 
-For Ada test drivers or applications, GNAT provides a useful device for this
+For Ada programs, the GNAT toolchain provides a useful device for this
 computation: the :option:`-A` command line argument to :command:`gnatbind`
-which produces a list of all the .ali files involved in the executable
+which produces a list of all the .ali files involved in an executable
 construction.  By default, the list goes to standard output. It may be
-directed to a file on request with :option:`-A=<list-filename>`, and you may
+directed to a file on request with :option:`-A=<list-filename>`, and users may
 of course filter this list as you see fit depending on your analysis purposes.
-
-For example, the illustrative cases we have included in the previous sections
-were constructed as unit tests with functional units and sample drivers to
-exercise them in specific ways. In such situations, coverage results are
-typically meaningful only for the functional units and results corresponding
-to the drivers need to be filtered out to prevent pointless noise to reports.
-The unit names in our samples were chosen so that test drivers are easily
-identified, starting with :literal:`test\_`, so the filtering is
-straightforward.
-
 Below is an example sequence of commands to illustrate, using the standard
-Unix ``grep`` tool to filter::
+Unix ``grep`` tool to filter out test harness units, assuming a basic naming
+convention::
 
-    # Build executable and produce the corresponding list of ALI files, using
-    # the gprbuild GNAT tool and passing -A to gnatbind through -bargs:
+    # Build executable and produce the corresponding list of ALI files. Pass
+    # -A to gnatbind through gprbuild -bargs then filter out the test units:
 
-    gprbuild -p --target=powerpc-elf --RTS=powerpc-elf/zfp-prep
-         -Put.gpr test_divmod0.adb
-         -cargs:Ada -fdump-scos -gnaty -gnatwe -cargs -g -fpreserve-control-flow
-     ==> -bargs -A=test_divmod0.alis
+    gprbuild -p --target=powerpc-elf --RTS=powerpc-elf/zfp-prep -Pmy.gpr
+     test_divmod0.adb -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
 
-    # Filter the driver/harness units out of the list:
+    grep -v 'test_[^/]*.ali' all.alis > divmod0.alis
 
-    grep -v 'test_[^/]*.ali' test_divmod0.alis > divmod0.alis
+    # Run/Analyse using the list of interest:
 
-    # Run/Analyse using the lists. We use the superset for "run", which
-    # allows accurate mcdc analysis of the test_ units later on if that
-    # happens to become of interest.
-
-    gnatcov run --level=stmt+mcdc --scos=@test_divmod0.alis
+    gnatcov run --level=stmt+mcdc --scos=@divmod0.alis
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
 
 Each occurrence of :option:`--scos` on the command line expects a single
-argument which specifies a subset of units of interest. Multiple occurrences
-are allowed and the subsets accumulate. The argument might be either a single
-unit name or a :term:`@listfile argument` expected to contain a list of unit
-names.
+argument which specifies a set of units of interest. Multiple occurrences are
+allowed and the sets accumulate. The argument might be either a single unit
+name or a :term:`@listfile argument` expected to contain a list of unit names.
 
 For example, focusing on three Ada units ``u1``, ``u2`` and ``u3`` can be
-achieved with either one of the following set of :option:`--scos`
-combinations, provided a ``ulist12`` text file containing the first two ALI
-file names and a ``ulist123`` text file containing the three of them::
+achieved with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, or with
+``--scos=u3.ali --scos=@ulist12``, provided a ``ulist12`` text file containing
+the first two ALI file names, or with ``--scos=@ulist123`` where ``ulist123``
+is text file containing the three unit names.
 
-  --scos=u1.ali --scos=u2.ali --scos=u3.ali
-  or --scos=@ulist123, or --scos=u3.ali --scos=@ulist12
 
 .. _passing_gpr:
 
@@ -1151,14 +1189,13 @@ Using project files
 
 As an alternative to manually specifying the complete list of Library
 Information files to be loaded, you can use GNAT project files to specify
-units of interest, and let |gcv| determine automatically the location of these
+units of interest and let |gcv| determine automatically the location of these
 files.
 
 Projects are passed to |gcv| using :option:`-P` and :option:`--projects`.  A
 single root project must be specified using :option:`-P`. Multiple projects of
 interest, within the project tree rooted at the given root project, may be
 specified using :option:`--projects`.
-
 If :option:`-P` is used alone, without any :option:`--projects`, then units of
 interest from the root project itself are considered. With
 :option:`--projects` options, only the projects listed by these options are
@@ -1172,7 +1209,7 @@ The following set of figures illustrates the effect of various possible
 combinations of options, assuming an example source tree with a root project
 importing two sub-projects A and B, each of which importing further projects
 A1, A2, A3, B1, B2, B3, with A1 and B3 importing some common code. The first
-figure below depicts the general project tree structure.
+figure below depicts the general project tree structure:
 
 .. image:: prjtree.*
   :align: center
@@ -1225,24 +1262,17 @@ For example, given a project with three packages Pak1, Pak2, and Pak3,
 if you want to do coverage analysis only for Pak1 and Pak3 you can
 specify::
 
-   project proj is
-      package Coverage is
-         for Units use ("pak1", "pak3");
-         --  Or alternatively using a units list:
-         --  for Units_List use "units.txt";
-      end Coverage;
-   end proj;
+  package Coverage is              OR:   package Coverage is
+    for Units use ("pak1","pak3");         for Units_List use "units.txt";
+  end Coverage;                          end Coverage
 
 ``Excluded_Units`` and ``Excluded_Units_List`` operate in a similar way,
 indicating units that are never considered for coverage. Back to our example,
 the same result as above is obtained by specifying::
 
-   project proj is
-      package Coverage is
-         --  Consider all units except one:
-         for Excluded_Units use ("pak2");
-      end Coverage;
-   end proj;
+   package Coverage is
+      for Excluded_Units use ("pak2");  -- Consider all units except "pak2"
+   end Coverage;
 
 When the exclude/include sets overlap, the excluding attributes prevail
 over the including ones. The exact rules for computation of the units to be
@@ -1361,7 +1391,6 @@ Separation by routine (:option:`-S routine`)
 In this mode, two code regions coming from the same source construct
 will undergo separate coverage analyses if they occur in different
 symbols of the executable file.
-
 When a given subprogram is inlined in two different calling routines,
 each inlined copy thus undergoes a separate coverage assessment.  In the
 absence of inlining, this will also ensure that different instances of
@@ -1375,12 +1404,10 @@ coverage analysis since they now occur in the same symbol.
 Separation by instance (:option:`-S instance`)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this mode, two code regions coming from the same source construct
-will undergo separate coverage analyses if they come from different
-generic instances. Note that this requires specific compiler support,
-
-This ensures accurate per-instance coverage analysis even in the presence
-of inlining.
+In this mode, two code regions coming from the same source construct will
+undergo separate coverage analyses if they come from different generic
+instances. This ensures accurate per-instance coverage analysis even in the
+presence of inlining.
 
 .. _optimization:
 

@@ -123,13 +123,11 @@ respect to the analyzed criterion, with a meaning which depends on both the
 criterion and the kind of instruction -- typically, whether the instruction
 is a conditional branch and whether we are doing mere instruction or object
 branch coverage analysis.
-
 Other annotations, conveying *partial coverage*, might show up as well, also
 depending on the criterion and kind of instruction. More details on the
 instruction specific annotations are provided in the criterion specific
 sections that follow.
-
-As the first line of the example suggests, the report also annotates each
+Then, as the first line of the example suggests, the report also annotates each
 subprogram symbol as a whole, with the range of addresses that the subprogram
 spans and a synthetic coverage indication according to the following table:
 
@@ -360,7 +358,6 @@ the :option:`=xcov+` output, where the individual instructions are visible as
 well together with their own coverage indications::
 
    examples/src/assert.adb:
-   50% of 4 lines covered
    Coverage level: branch
       1 +: procedure Assert (T : Boolean) is
    <_ada_assert+00000000>:+
@@ -454,16 +451,7 @@ set they build::
 
 Annotated source reports, when requested, are generated for sources associated
 with the selected symbols' object code via debug information, and coverage
-annotations are produced only on the corresponding lines.
-
-For example, assuming we have a ``robots.adb`` Ada unit featuring a ``Reset``
-subprogram, which produces a ``robots__reset`` object symbol::
-
-  gnatcov coverage --level=insn --annotate=xcov --routines=robots__reset
-
-... would produce a single `robots.adb.xcov` annotated source report with
-annotations on the `Reset` subprogram lines only when the debug info maps the
-code of the unique symbol of interest there and only there. Inlining can have
+annotations are produced only on the corresponding.  Inlining can have
 surprising effects in this context, as the following section describes in
 greater details.
 
@@ -487,8 +475,8 @@ source report for routine A, intuitively expected to yield a report for Ua
 only, will typically produce an output file for Ub as well, for lines
 referenced by the machine code inlined in A.
 
-Consider the following Ada units for example, in source files named
-``intops.ads``, ``intops.adb`` and ``test_inc0.adb``:
+Consider the following Ada units for example, in ``intops.ads``,
+``intops.adb`` and ``test_inc0.adb``:
 
 .. code-block:: ada
 
@@ -506,27 +494,25 @@ Consider the following Ada units for example, in source files named
       end Inc;
    end Intops;
 
-
    -- Test Driver
 
    procedure Test_Inc0  is
       X : Integer := 0;
    begin
       Inc (X);
-      Assert (X = 1);
    end Test_Inc0;
 
 
-Compiling so that the ``Inc (X);`` call in Test_Inc0 is inlined, and after
-execution of the ``test_inc0`` executable, the following analysis::
+The following analysis::
 
   gnatcov coverage --level=insn --routines=_test_inc0 --annotate=xcov+ test_inc0.trace
 
-Thanks to :option:`--routines`, this requests to report about the Test_Inc0
+... requests, with :option:`--routines`, to report about the Test_Inc0
 procedure only, so we intuitively expect a single ``test_inc0.adb.xcov``
-annotated source result. The command actually produces an ``intops.adb.xcov``
-report as well because the object code of Test_Inc0 also contains inlined
-code coming from the other unit.
+annotated source result. If the ``Inc(X)`` call in Test_Inc0 is inlined,
+however, the command actually produces an ``intops.adb.xcov`` report as well
+because the object code of Test_Inc0 also contains inlined code coming from
+the other unit.
 
 For generic units, information for all the instances is aggregated on the
 generic source, so each line annotation is a super synthesis of the coverage
@@ -578,10 +564,7 @@ for ``Count`` in the second instance (not going within the *if* statement):
    procedure Test_Genpos is
    begin
       Pos_T1.Count (X => 1);
-      Assert (Pos_T1.N_Positive = 1);
-
       Pos_T2.Count (X => -1);
-      Assert (Pos_T2.N_Positive = 0);
    end Test_Genpos;
 
 The precise :option:`insn` coverage difference is first visible in the
@@ -598,7 +581,6 @@ and on)::
    ...                                        v
    1d4 +:  60 00 00 00      ori    r0,r0,0x0000
    ...
-
    posi__pos_t2__count !: 1fc-237
    1fc +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
    200 +:  40 9d 00 24      ble-   cr7,0x224 <posi__pos_t2__count+0000003c>
