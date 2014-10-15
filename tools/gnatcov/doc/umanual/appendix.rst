@@ -64,3 +64,51 @@ In annotated sources kinds of outputs, this materializes as '!' note
 indicating partial coverage on the affected lines, with the :option:`=report`
 violation text quoted above available as part of the line extra-details
 expanded on demand (:option:`=html+` and :option:`xcov+` output formats).
+
+.. _mcdc-limitations:
+
+MCDC inaccuracies with interrupts and multi-threaded applications 
+-----------------------------------------------------------------
+
+There is one limitation in |gcp| with respect to MCDC assessments: potential
+inaccuracies in results reported for particular decisions when these decisions
+are evaluated concurrently by different threads or mixed with interrupt
+processing in bareboard configurations.
+
+Technically, the decisions of concern are those for which the associated
+binary decision diagram is not a tree, that is, those with at least one
+condition node joining several possible evaluation paths.
+
+The code sample below illustrates the simplest possible problematic decision
+and the following figure depicts the corresponding Binary Decision Diagram
+(commonly abbreviated as *BDD*), which states how sequence of operand
+evaluations, starting from the left, eventually lead to the expression
+outcome, here on the right:
+
+.. code-block:: ada
+
+  function Mp (A, B, C : Boolean) return Boolean is
+  begin
+    return (A or else B) and then C;
+  end;
+
+.. figure:: multipath-bdd.*
+  :align: center
+
+  BDD for ``(A or else B) and then C``, not a tree
+
+The expression BDD is indeed not a tree, as the node representing the
+evaluation of C is reachable either directly from A, when A is True, or
+via B when A is False.
+
+According to measures performed on a few large real code bases, occurrences of
+such decisions are statistically rare.  |gcv| can report about them on demand,
+thanks to the :command:`scan-decisions` command together with the the set of
+coverage obligations to examine. Below is an excerpt of a an execution for a
+project which encompasses this function, where we see that |gcv| provides the
+source location of conditions rechable through multiple paths::
+
+  gnatcov scan-decisions -Pmytest.gpr
+  ...
+  *** mp.adb:4:33: warning: condition is reachable through multiple paths
+

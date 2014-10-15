@@ -1077,58 +1077,6 @@ support coding standards prohibiting the use of such operators in Ada. There
 is no equivalent in C, where the allowed operand types are much more varied
 and where the restriction would make the language really much harder to use.
 
-.. _mcdc-limitations:
-
-Limitations with multi-threaded applications 
---------------------------------------------
-
-There is one limitation in |gcp| with respect to mcdc assessments: potential
-inaccuracies in results reported for particular decisions when these decisions
-are evaluated concurrently by different threads.
-
-Technically, the decisions of concern are those for which the associated
-binary decision diagram is not a tree, that is, those with at least one
-condition node joining several possible evaluation paths.
-
-According to measures performed on a few large real code bases, occurrences of
-such decisions are statistically rare.  |gcv| can report about them on demand,
-thanks to the :command:`map-routines` analysis command when provided with the
-:option:`-v` option and the set of coverage obligations to examine.
-
-The code sample below illustrates the simplest possible problematic decision
-and the following figure depicts the corresponding Binary Decision Diagram
-(commonly abbreviated as *BDD*), which states how sequence of operand
-evaluations, starting from the left, eventually lead to the expression
-outcome, here on the right:
-
-.. code-block:: ada
-
-  function Mp (A, B, C : Boolean) return Boolean is
-  begin
-    return (A or else B) and then C;
-  end;
-
-.. figure:: multipath-bdd.*
-  :align: center
-
-  BDD for ``(A or else B) and then C``, not a tree
-
-The expression BDD is indeed not a tree, as the node representing the
-evaluation of C is reachable either directly from A, when A is True, or
-via B when A is False.
-
-Below is an excerpt of a |gcvmap| execution for a project which encompasses
-this function. While the output actually contains a lot more details, the
-pattern displayed for the decisions of interest is consistent so can easily be
-filtered out to provide a synthetic view of all the relevant source locations.
-::
-
-  gnatcov map-routines -v -Pmytest.gpr
-  ...
-  --- mp.adb:4:12: notice: BDD node 7 reachable through multiple paths
-  --- notice: OBC does not imply MC/DC coverage
-
-
 .. _sunits:
 
 Specifying the units of interest
