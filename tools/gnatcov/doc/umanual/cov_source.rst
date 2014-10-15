@@ -1123,11 +1123,11 @@ argument which specifies a set of units of interest. Multiple occurrences are
 allowed and the sets accumulate. The argument might be either a single unit
 name or a :term:`@listfile argument` expected to contain a list of unit names.
 
-For example, focusing on three Ada units ``u1``, ``u2`` and ``u3`` can be
-achieved with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, or with
-``--scos=u3.ali --scos=@ulist12``, provided a ``ulist12`` text file containing
-the first two ALI file names, or with ``--scos=@ulist123`` where ``ulist123``
-is text file containing the three unit names.
+For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
+with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with
+``--scos=u3.ali --scos=@lst12``, provided a ``lst12`` text file containing the
+first two ALI file names, or with ``--scos=@lst123`` where ``lst123`` is a text
+file containing the three unit names.
 
 
 .. _passing_gpr:
@@ -1140,59 +1140,55 @@ Information files to be loaded, you can use GNAT project files to specify
 units of interest and let |gcv| determine automatically the location of these
 files.
 
-Projects are passed to |gcv| using :option:`-P` and :option:`--projects`.  A
-single root project must be specified using :option:`-P`. Multiple projects of
-interest, within the project tree rooted at the given root project, may be
-specified using :option:`--projects`.
+For starters, a single :dfn:`root project` must be specified using the
+:option:`-P` option, then :dfn:`projects of interest`, within the project tree
+rooted at the given root, may be specified using :option:`--projects` options.
 If :option:`-P` is used alone, without any :option:`--projects`, then units of
 interest from the root project itself are considered. With
 :option:`--projects` options, only the projects listed by these options are
 considered. The root project designated by :option:`-P` is not included in the
 scope if it is not listed in the :option:`--projects` set as well.
-In both cases, with a lone :option:`-P` or with :option:`--projects` in
-addition, projects imported by the listed ones are also considered recursively
-if :option:`--recursive` is used.
+With a lone :option:`-P` or with :option:`--projects` in addition, projects
+imported by the listed ones are also considered recursively if
+:option:`--recursive` is used.
 
-The following set of figures illustrates the effect of various possible
-combinations of options, assuming an example source tree with a root project
-importing two sub-projects A and B, each of which importing further projects
-A1, A2, A3, B1, B2, B3, with A1 and B3 importing some common code. The first
-figure below depicts the general project tree structure:
+The following figures illustrate the effect of various combinations, assuming
+an example source tree depicted below:
 
 .. image:: prjtree.*
   :align: center
 
 On this project tree, :ref:`fig-Proot` restricts the analysis to units in the
-root project only. :ref:`fig-Proot-ss_a` allows focusing on the Subsystem A
-project only, and if the root project is of interest as well, it must be listed
-explicitly as in :ref:`fig-Proot-root-ss_a`.
+root project only, and :ref:`fig-Proot-ss_a` allows focusing on the Subsystem
+A project only. If the root project is of interest as well, it must be listed
+explicitly, as in :ref:`fig-Proot-root-ss_a`.
 
 .. _fig-Proot:
 .. figure:: Proot.*
   :align: center
 
-  ``gnatcov coverage -Proot ...``
+  ``-Proot``
 
 .. _fig-Proot-ss_a:
 .. figure:: Proot-ss_a.*
   :align: center
 
-  ``gnatcov coverage -Proot --projects=subsystem_a ...``
+  ``-Proot --projects=subsystem_a``
 
 .. _fig-Proot-root-ss_a:
 .. figure:: Proot-root-ss_a.*
   :align: center
 
-  ``gnatcov coverage -Proot --projects=root --projects=ss_a``
+  ``-Proot --projects=root --projects=ss_a``
 
-You can also recursively consider all projects imported by specified
-projects with :option:`--recursive`, for example :ref:`fig-Proot-ss_a-recursive`:
+:option:`--recursive` lets you consider all the projects transitevely imported
+by the designated ones. For example:
 
 .. _fig-Proot-ss_a-recursive:
 .. figure:: Proot-ss_a-recursive.*
   :align: center
 
-  ``gnatcov coverage -Proot --projects=subsystem_a --recursive ...``
+  ``-Proot --projects=subsystem_a --recursive``
 
 The :option:`-P` and :option:`--projects` options select *projects* of
 interest. Now within each of these projects, *units* of interest can also be
@@ -1366,11 +1362,15 @@ In rare cases, when compiling with inlining and optimization enabled
 (:option:`-O1 -gnatn` for Ada with GNAT), constant propagation results in
 total absence of code for some sequences of statements in inlined local
 subprograms.  |gcp| considers that there is just nothing to cover at all in
-such sequences, so the lines are annotated with a ``.`` in the annotated
+such sequences, and the lines are annotated with a ``.`` in the annotated
 source reports and no violation is emitted in the :option:`=report` outputs.
 
 Here is an example outcome illustrating this possibility for the statement
-coverage criterion (see the ``.`` annotations on lines 14 and 15):
+coverage criterion (see the ``.`` annotations on lines 14 and 15). The local
+``Pos`` function is called only once, with a constant argument such that only
+one alternative of the ``if`` statement is exercised. It is statically known
+that the ``else`` part can never be entered, so no code is emitted at all for
+this alternative and there is really just nothing to cover there:
 
 .. code-block:: ada
 
@@ -1392,12 +1392,6 @@ coverage criterion (see the ``.`` annotations on lines 14 and 15):
   19 .: begin
   20 +:    Assert (Pos (1) = True);
   21 .: end Test_Pos1;
-
-The local ``Pos`` function is called only once, with a constant argument such
-that only one alternative of the ``if`` statement is exercised. It is
-statically known that the ``else`` part can never be entered, so no code is
-emitted at all for this alternative and there is really just nothing to cover
-there.
 
 This effect is really specific to the case of local subprograms, as only is
 this situation can the compiler determine that the alternate part is not

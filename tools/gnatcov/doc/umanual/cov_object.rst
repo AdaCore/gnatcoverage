@@ -124,12 +124,13 @@ criterion and the kind of instruction -- typically, whether the instruction
 is a conditional branch and whether we are doing mere instruction or object
 branch coverage analysis.
 Other annotations, conveying *partial coverage*, might show up as well, also
-depending on the criterion and kind of instruction. More details on the
-instruction specific annotations are provided in the criterion specific
-sections that follow.
-Then, as the first line of the example suggests, the report also annotates each
-subprogram symbol as a whole, with the range of addresses that the subprogram
-spans and a synthetic coverage indication according to the following table:
+depending on the criterion and kind of instruction.
+
+More details on the instruction specific annotations are provided in the
+criterion specific sections that follow. Then, as the first line of the
+example suggests, the report also annotates each subprogram symbol as a whole,
+with the range of addresses that the subprogram spans and a synthetic coverage
+indication according to the following table:
 
 .. tabularcolumns:: cl
 
@@ -268,7 +269,7 @@ executions where the subprogram is never called with T False::
    ...
    120 +:  4e 80 00 20      blr
 
-Expectedely, the coverage annotations report all the instructions as executed
+Expectedly, the coverage annotations report all the instructions as executed
 except the two issuing the call to ``__gnat_last_chance_handler``, which
 correspond to the ``raise`` statement in the GNAT high integrity profiles
 without exception propagation support. The two instructions at offsets 0ec and
@@ -322,10 +323,9 @@ The ``v`` and ``>`` annotations are representative of situations where a
 conditional branch instruction is executed and :dfn:`taken one way` only, which
 constitutes *partial coverage* of the instruction.
 
-An example of partial coverage is observable on our now familiar Assert case,
-where the conditional branch at offset 0f0 is always taken, jumping over the
-raise statement code as expected for nominal executions with all assertions
-satisfied::
+An example of partial coverage is observable on our Assert case, where the
+conditional branch at offset 0f0 is always taken, jumping over the raise
+statement code as expected for nominal executions::
 
    _ada_assert !: 0c4-123
    0c4 +:  94 21 ff e0      stwu   r1,-0x0020(r1)
@@ -639,7 +639,6 @@ Orphaned regions usually show up out of legitimate code alignment requests
 issued for performance or target ABI considerations. Empty symbols most often
 result from low level assembly programmed parts missing the assembly
 directives aimed at populating the symbol table flags and fields.
-
 Both cases are typically harmless and easy to deal with once identified, so
 information about them is only emitted on explicit request, not by default.
 |gcv| provides the :option:`scan-objects` command for this purpose, which
