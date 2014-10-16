@@ -20,11 +20,11 @@ essential point is twofold:
 - Illustrate the |gcp| capability to offer accurate results for both kinds of
   criteria.
 
-Basic example
-=============
+Main differences examplified
+============================
 
-The first example we will look at is exercising the following functional
-Ada unit:
+To illustrate the main differences between the two kinds of metrics, we
+exercise the following functional Ada unit:
 
 .. code-block:: ada
 

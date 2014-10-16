@@ -1206,7 +1206,7 @@ For example, given a project with three packages Pak1, Pak2, and Pak3,
 if you want to do coverage analysis only for Pak1 and Pak3 you can
 specify::
 
-  package Coverage is              OR:   package Coverage is
+  package Coverage is              or:   package Coverage is
     for Units use ("pak1","pak3");         for Units_List use "units.txt";
   end Coverage;                          end Coverage
 

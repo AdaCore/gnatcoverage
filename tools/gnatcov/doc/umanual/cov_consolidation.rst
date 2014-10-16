@@ -26,7 +26,7 @@ possibly overlapping symbols. This is typically useful with unit testing
 campains, when different programs are built to exercise differents aspects of
 a common application part.
 
-Introductory Example
+Introductory example
 ====================
 
 We will consider achieving statement coverage of the following example Ada
