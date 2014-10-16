@@ -9,16 +9,20 @@ begin
    Assert (G.Fancy_Hits = 1);
 end;
 
---  With multiple stmts on a line, there usually remains imprecise debug
---  slocs that prevent accurate dc assessment on single cond decisions. We
---  thus typically expect d! for decisions take only one way.
-
 --# register.adb
 --  /init/   l! ## s-:"This_Score .= 0",dF-
 --  /double/ l! ## dF-:"if Double"
 --  /triple/ l! ## s-:"This_Score .=",dT-:"if Triple"
 --  /hits/   l! ## dF-
 --  /times/  l+ ## 0
-  
+
+--  7.0.3 is imprecise with multiple stmts on a line
+
+-- %tags:7.0.3
+--  =/init/   l! ## s!, d!
+--  =/double/ l! ## s!, d!
+--  =/triple/ l! ## s!, d!
+--  =/hits/   l! ## s!, dF-
+
 -- %cargs: -O1
 --  =/init/  l! ## s-:"This_Score .= 0",dF-

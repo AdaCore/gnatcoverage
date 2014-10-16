@@ -16,3 +16,6 @@ end;
 --# halfadd.adb
 --  /sum/   l+ ## 0
 --  /carry/ l+ ## 0
+
+-- %tags: 7.0.3
+-- =/carry/ l! ## s!

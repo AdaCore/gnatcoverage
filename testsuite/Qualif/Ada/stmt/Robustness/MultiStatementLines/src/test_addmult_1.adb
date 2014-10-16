@@ -1,7 +1,6 @@
 with Support, Addmult; use Support;
 
---  Call the provided service, covering all the statements. Verify that
---  partial coverage is reported on lines featuring multiple statements.
+--  Call the provided service, covering all the statements.
 
 procedure Test_Addmult_1 is
    S, P : Integer;
@@ -13,3 +12,6 @@ end;
 
 --# addmult.adb
 --  /compute/ l+ ## 0
+
+-- %tags: 7.0.3
+-- =/compute/ l! ## s!
