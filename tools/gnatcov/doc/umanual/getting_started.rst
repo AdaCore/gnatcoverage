@@ -158,7 +158,7 @@ project file::
 
 First, we build with this command line::
 
-   gprbuild -p --target=powerpc-elf --RTS=powerpc-elf/zfp-prep -Pops.gpr test_inc.adb
+   gprbuild -p --target=powerpc-elf --RTS=zfp-prep -Pops.gpr test_inc.adb
     -cargs:Ada -gnata -cargs -g -fpreserve-control-flow -fdump-scos
 
 In this particular case:

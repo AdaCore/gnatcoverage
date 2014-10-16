@@ -32,10 +32,10 @@ XCOVLEVEL?=stmt+decision
 
 RTS = 
 ifeq ($(TARGET), powerpc-elf)
-RTS = powerpc-elf/ravenscar-sfp-prep
+RTS = ravenscar-sfp-prep
 endif
 ifeq ($(TARGET), powerpc-eabispe)
-RTS = powerpc-eabispe/ravenscar-sfp-p2020
+RTS = ravenscar-sfp-p2020
 endif
 ifeq ($(TARGET), leon-elf)
 RTS = ravenscar

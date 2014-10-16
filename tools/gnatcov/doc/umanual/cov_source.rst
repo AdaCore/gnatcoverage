@@ -1108,7 +1108,7 @@ convention::
     # Build executable and produce the corresponding list of ALI files. Pass
     # -A to gnatbind through gprbuild -bargs then filter out the test units:
 
-    gprbuild -p --target=powerpc-elf --RTS=powerpc-elf/zfp-prep -Pmy.gpr
+    gprbuild -p --target=powerpc-elf --RTS=zfp-prep -Pmy.gpr
      test_divmod0.adb -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
 
     grep -v 'test_[^/]*.ali' all.alis > divmod0.alis

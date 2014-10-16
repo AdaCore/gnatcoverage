@@ -1,6 +1,6 @@
 # Invoke this with the TARGET and RTS you wish to exercise.
 # For example 
-#   make TARGET=powerpc-elf RTS=powerpc-elf/zfp-prep
+#   make TARGET=powerpc-elf RTS=zfp-prep
 # or
 #   make TARGET=leon-elf RTS=ravenscar
 

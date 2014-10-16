@@ -30,8 +30,8 @@ project Ops is
 
   case My_Target is
     when "native"          => RTS := "native";
-    when "powerpc-elf"     => RTS := "powerpc-elf/zfp-prep";
-    when "powerpc-eabispe" => RTS := "powerpc-elf/zfp-p2020";
+    when "powerpc-elf"     => RTS := "zfp-prep";
+    when "powerpc-eabispe" => RTS := "zfp-p2020";
     when "leon-elf"        => RTS := "zfp";
   end case;
 
