@@ -12,4 +12,7 @@ possible criteria, producing reports in a variety of possible formats.
    cov_commandline
    cov_source
    cov_object
-   cov_common
+   cov_metrics
+   cov_consolidation
+   cov_exemptions
+   cov_gpr
