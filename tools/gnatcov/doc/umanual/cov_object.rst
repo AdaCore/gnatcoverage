@@ -457,8 +457,8 @@ greater details.
 
 .. _ocov-generics:
 
-Inlining & Generic units
-========================
+Inlining & Ada Generic units
+============================
 
 The generated code for an inlined subprogram call or a generic instantiation
 materializes two distinct source entities: the expanded source (of the inlined

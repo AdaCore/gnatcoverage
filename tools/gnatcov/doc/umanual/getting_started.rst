@@ -226,6 +226,26 @@ Focus on specific units, excluding the test driver from the analysis closure
 for example, can be achieved by adding a ``Coverage`` package to the project
 file or by using :option:`--scos=obj/ops.ali` instead of :option:`-P`.
 
+Supported languages
+===================
+
+Object coverage analysis is essentially language agnostic. The object level
+criteria definitions care about machine instructions, not source constructs,
+and even reports formatted as sources annotated with object level coverage
+results rely on no more than basic DWARF debugging information associated with
+the analyzed object code.
+
+Source coverage criteria, on the other hand, are defined in close association
+with each particular source language and their processing relies on a correct
+implementation of :option:`-fpreserve-control-flow` and :option:`-fdump-scos`
+by the compiler.
+
+As of today, |gcp| supports all the variants of Ada and C supported by the
+compilation toolchain. The behavior on Ada 2012 functional constructs such as
+*if* or *case* expressions is still subject to change, in particular regarding
+decision or mcdc analysis as the criteria definition aren't yet well
+established for such constructs in general.
+
 Target specific considerations
 ==============================
 

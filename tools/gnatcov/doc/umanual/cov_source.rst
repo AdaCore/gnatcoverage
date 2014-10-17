@@ -1237,8 +1237,8 @@ syntax the name of a file containing a list of units to focus on. When
 and ``Excluded_Units_List`` attributes are ignored.
 
 
-Inlining & Generic Units
-========================
+Inlining & Ada Generic Units
+============================
 
 In the vast majority of situations, inlining is just transparent to source
 coverage metrics: calls are treated as regular statements, and coverage of
@@ -1352,6 +1352,79 @@ In this mode, two code regions coming from the same source construct will
 undergo separate coverage analyses if they come from different generic
 instances. This ensures accurate per-instance coverage analysis even in the
 presence of inlining.
+
+.. _c_macros:
+
+Processing of C macros
+----------------------
+
+For source coverage purposes, Source Coverage Obligations for C are produced
+after the preprocessing of sources, with two consequences of note:
+
+- Macro expansions leading to code with conditionals will trigger coverage
+  violations, and multiple "calls" to the same macro just multiply these as
+  they yield distinct expansions.
+
+- The source locations output by |gcv| for coverage violations within macro
+  expansions designate preprocessed tokens at the macro expansion site,
+  typically on the line of the macro invocation but with column numbers
+  unrelated to what is visible in the source on this line.
+
+Consider this C code for example:
+
+.. code-block:: c
+
+     1	#define COND_INC(cond,x,y) \
+     2	  do {                     \
+     3	    if (cond)              \
+     4	      (x)++;               \
+     5	    else                   \
+     6	      (y)++;               \
+     7	  } while(0)
+     8	
+     9	int main ()
+    10	{
+    11	  volatile x = 0, y = 0;
+    12	
+    13	  COND_INC(x == 0, x, y);
+    14	  COND_INC(x == 0, x, y);
+    15	}
+
+
+The two macro invocations actually expand as:
+
+.. code-block:: c
+
+    13    do { if (x == 0) (x)++; else (y)++; } while(0);
+    14    do { if (x == 0) (x)++; else (y)++; } while(0);
+
+
+The expanded version is the basis of SCO identification process, so we have
+one decision and two conditioned statements on line 13, likewise on line 14.
+
+Only one of each is exercised at execution time, and a :option:`stmt+decision`
+analysis on this program yields::
+
+  2.1. STMT COVERAGE
+  ------------------
+
+  t.c:13:32: statement not executed
+  t.c:14:20: statement not executed
+
+  2 violations.
+
+  2.2. DECISION COVERAGE
+  ----------------------
+
+  t.c:13:12: decision outcome FALSE never exercised
+  t.c:14:12: decision outcome TRUE never exercised
+
+  2 violations.
+
+We do see one statement and one decision coverage violation per invocation,
+different in the two cases since the :code:`x == 0` test is True on the first
+call and False on the second one. We also observe column numbers unrelated to
+what the original source lines contain on line 13 and 14.
 
 .. _optimization:
 
