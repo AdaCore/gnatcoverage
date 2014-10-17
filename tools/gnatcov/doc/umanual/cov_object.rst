@@ -636,14 +636,14 @@ addition. In particular, care is required regarding:
 * Empty symbols, for which the reported code size is null.
 
 Orphaned regions usually show up out of legitimate code alignment requests
-issued for performance or target ABI considerations. Empty symbols most often
+issued for performance or target ABI specificities. Empty symbols most often
 result from low level assembly programmed parts missing the assembly
-directives aimed at populating the symbol table flags and fields.
-Both cases are typically harmless and easy to deal with once identified, so
-information about them is only emitted on explicit request, not by default.
-|gcv| provides the :option:`scan-objects` command for this purpose, which
-expects the set of object files to examine on the command line, as a sequence
-of either object file or :term:`@listfile argument`, and reports about the two
+directives aimed at populating the symbol table flags and fields.  Both cases
+are typically harmless and easy to deal with once identified, so information
+about them is only emitted on explicit request, not by default.  |gcv|
+provides the :option:`scan-objects` command for this purpose, which expects
+the set of object files to examine on the command line, as a sequence of
+either object file or :term:`@listfile argument`, and reports about the two
 kinds of situations described above.
 
 
