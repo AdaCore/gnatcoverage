@@ -315,8 +315,8 @@ package body SC_Obligations is
    type Operand_Pair is array (Operand_Position) of SCO_Id;
 
    type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
-      Origin : Source_File_Index;
-      --  ALI file containing this SCO
+      Origin : CU_Id;
+      --  Compilation unit whose LI file containing this SCO
 
       Sloc_Range : Source_Location_Range := No_Range;
       --  For a decision, cumulative range from all conditions
@@ -330,7 +330,7 @@ package body SC_Obligations is
 
       case Kind is
          when Statement =>
-            S_Kind   : Statement_Kind;
+            S_Kind         : Statement_Kind;
             --  Statement kind indication
 
             Dominant       : SCO_Id   := No_SCO_Id;
@@ -407,7 +407,7 @@ package body SC_Obligations is
 
    No_SCO_Descriptor : constant SCO_Descriptor :=
      (Kind   => Statement,
-      Origin => No_Source_File,
+      Origin => No_CU_Id,
       others => <>);
 
    package SCO_Vectors is
@@ -1704,7 +1704,8 @@ package body SC_Obligations is
       SCOD  : SCO_Descriptor renames SCO_Vector (SCO);
    begin
       pragma Assert (SCOD.Kind = Statement);
-      return SCOD.S_Kind = Disabled_Pragma_Statement;
+      return SCOD.S_Kind = Disabled_Pragma_Statement
+               or else SCOD.Origin = No_CU_Id;
    end Is_Disabled_Statement;
 
    -------------------
@@ -1942,6 +1943,9 @@ package body SC_Obligations is
       Units, Deps : SFI_Vector;
       --  Units and dependencies of this compilation
 
+      CU_Index  : CU_Id;
+      --  Compilation unit for this ALI
+
       ALI_Index : constant Source_File_Index :=
                     Load_ALI (ALI_Filename, Units, Deps, With_SCOs => True);
       --  Load ALI file and update the last SCO and instance indices
@@ -1986,6 +1990,7 @@ package body SC_Obligations is
             - Inst_Id (SCO_Instance_Table.First),
             Deps           => Deps,
             others         => <>));
+      CU_Index := CU_Vector.Last_Index;
 
       for Cur_SCO_Entry in
         SCOs.SCO_Table.First .. SCOs.SCO_Table.Last
@@ -2099,7 +2104,7 @@ package body SC_Obligations is
                pragma Assert (Current_Decision /= No_SCO_Id);
                SCO_Vector.Append
                  (SCO_Descriptor'(Kind       => Operator,
-                                  Origin     => ALI_Index,
+                                  Origin     => CU_Index,
                                   Sloc_Range => SCO_Range,
                                   Op_Kind    => Kind,
                                   others     => <>));
@@ -2195,7 +2200,7 @@ package body SC_Obligations is
 
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind                 => Statement,
-                                     Origin               => ALI_Index,
+                                     Origin               => CU_Index,
                                      Sloc_Range           => SCO_Range,
                                      S_Kind               =>
                                        To_Statement_Kind (SCOE.C2),
@@ -2223,7 +2228,7 @@ package body SC_Obligations is
                   pragma Assert (Current_Decision = No_SCO_Id);
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind                => Decision,
-                                     Origin              => ALI_Index,
+                                     Origin              => CU_Index,
                                      Control_Location    =>
                                         Slocs.To_Sloc
                                           (Cur_Source_File, From_Sloc),
@@ -2253,7 +2258,7 @@ package body SC_Obligations is
 
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Condition,
-                                     Origin     => ALI_Index,
+                                     Origin     => CU_Index,
                                      Sloc_Range => SCO_Range,
                                      Value      => Make_Condition_Value,
                                      Index      => Current_Condition_Index,
@@ -2471,6 +2476,11 @@ package body SC_Obligations is
                            "sloc range conflict for SCOs "
                            & Image (Element (Cur)));
                      end if;
+
+                     --  Reset SCOD to No_SCO_Descriptor, which acts as a
+                     --  placeholder to cancel the entry. The corresponding
+                     --  SCO is a (disabled) statement with no origin.
+
                      SCOD := No_SCO_Descriptor;
                   end if;
                end;
@@ -3169,5 +3179,47 @@ package body SC_Obligations is
          when others => raise Constraint_Error;
       end case;
    end To_Statement_Kind;
+
+   -------------------
+   -- Unit_Has_Code --
+   -------------------
+
+   function Unit_Has_Code (SCO : SCO_Id) return Boolean is
+      Result : Boolean;
+
+      procedure QS (SCOD : SCO_Descriptor);
+      --  Set Result from SCOD.Origin
+
+      procedure QC (CUI  : CU_Info);
+      --  Set Result from CUI
+
+      --------
+      -- QS --
+      --------
+
+      procedure QS (SCOD : SCO_Descriptor) is
+      begin
+         CU_Vector.Query_Element (SCOD.Origin, QC'Access);
+      end QS;
+
+      --------
+      -- QC --
+      --------
+
+      procedure QC (CUI : CU_Info) is
+      begin
+         Result := CUI.Has_Code;
+      end QC;
+
+   --  Start of processing for S_Kind
+
+   begin
+      if SCO = No_SCO_Id then
+         return False;
+      end if;
+
+      SCO_Vector.Query_Element (SCO, QS'Access);
+      return Result;
+   end Unit_Has_Code;
 
 end SC_Obligations;

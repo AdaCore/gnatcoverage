@@ -124,6 +124,10 @@ package SC_Obligations is
    function Sloc_Range (SCO : SCO_Id) return Source_Location_Range;
    function Parent     (SCO : SCO_Id) return SCO_Id;
 
+   function Unit_Has_Code (SCO : SCO_Id) return Boolean;
+   --  True if object code has been seen for the compilation unit containing
+   --  This SCO.
+
    --  Statement SCOs
 
    --  Statement_Kind denotes the various statement kinds identified in SCOs
@@ -168,7 +172,8 @@ package SC_Obligations is
    function Is_Disabled_Statement (SCO : SCO_Id) return Boolean;
    --  True for a disabled statement, i.e. a statement that is guaranteed to
    --  never generate any code and is excluded from the scope of coverage
-   --  analysis.
+   --  analysis. Also True for a dummy entry that results from cancelling an
+   --  irrelevant SCO.
 
    function Previous (SCO : SCO_Id) return SCO_Id;
    --  Previous statement in basic block

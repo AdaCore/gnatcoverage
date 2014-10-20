@@ -1892,7 +1892,7 @@ begin
             end if;
          end if;
 
-         if Source_Coverage_Enabled then
+         if Source_Coverage_Enabled and then Verbose then
             SC_Obligations.Report_Units_Without_Code;
          end if;
 
