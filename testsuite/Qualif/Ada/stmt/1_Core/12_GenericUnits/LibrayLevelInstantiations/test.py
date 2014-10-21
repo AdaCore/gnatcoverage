@@ -1,5 +1,5 @@
 from SCOV.tc import *
 
-TestCase().run()
+TestCase().run(CovControl(covoptions="--source-search=../../src"))
 thistest.result()
 

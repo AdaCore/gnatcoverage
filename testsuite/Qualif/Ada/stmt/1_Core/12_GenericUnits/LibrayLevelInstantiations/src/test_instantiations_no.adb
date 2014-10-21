@@ -4,7 +4,7 @@
 --  to be reported as covered.
 
 with Pack;
-with Stacks_G;
+with Stacks_G, Update_G;
 with Support;         use Support;
 procedure Test_Instantiations_No is
 begin
@@ -13,19 +13,19 @@ end Test_Instantiations_No;
 
 --# pack.adb
 -- /decl/         ~l- ## ~s-
--- /new_value_g/  ~l- ## ~s-
 -- /swap/          l- ## s-
 -- /proc/          l- ## s-
 
 --#  stacks_g.ads
--- /elab/          ~l- ## ~s-
+-- /elab/          l- ## s-
+-- /line-elab/     l- ## 0c
 
 --#  stacks_g.adb
--- /push/          ~l- ## ~s-
--- /pop/           ~l- ## ~s-
--- /n_values/      ~l- ## ~s-
--- /default_stack/ ~l- ## ~s-
--- /elab/          ~l- ## ~s-
+-- /push/          l- ## s-
+-- /pop/           l- ## s-
+-- /n_values/      l- ## s-
+-- /default_stack/ l- ## s-
+-- /elab/          l- ## s-
 
 --# update_g.adb
--- /stmt/          ~l- ## ~s-
+-- /stmt/          l- ## s-

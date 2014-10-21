@@ -5,7 +5,7 @@ generic
 
 package Stacks_G is
 
-   type Stack is private;
+   type Stack is private; -- # elab
 
    procedure Push (V : Value; S : in out Stack);
    procedure Pop (V : out Value; S : in out Stack);
@@ -22,9 +22,9 @@ private
    type Value_Array is array (1 .. 5) of Value; -- # elab
    
    type Stack is record           -- # elab
-      Store : Value_Array;        -- # elab
-      N_Values : Natural := 0;    -- # elab
-   end record;
+      Store : Value_Array;        -- # line-elab
+      N_Values : Natural := 0;    -- # line-elab
+   end record;                    -- # line-elab
 
    Default_Stack_Var : Stack;     -- # elab
 end Stacks_G;
