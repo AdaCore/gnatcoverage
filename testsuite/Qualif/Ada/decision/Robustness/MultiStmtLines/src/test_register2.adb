@@ -1,6 +1,6 @@
 with Darts, Register, Support; use Darts, Support;
 
-procedure Test_Register1 is
+procedure Test_Register2 is
    G : Game;
 begin
    Register (Hit => 20, Double => True, Triple => False, G => G);
