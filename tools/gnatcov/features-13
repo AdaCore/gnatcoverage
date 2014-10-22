@@ -12,6 +12,14 @@ This date shows the implementation date of the feature. Any 1.3.0w wavefront
 subsequent to this date will contain the indicated feature, as will any
 release issued after this one.
 
+NF-13-NA17-035 Flag statements in non-exercised units (2014-10-20)
+
+  When a unit of interest for source coverage is entirely missing from all
+  submitted executables (i.e. has not been exercised at all), all of its
+  statements are now reported as "not executed" (i.e. not covered for
+  statement coverage). This ensure that a missing unit test for some
+  unit in a library does not go unnoticed.
+
 NF-13-MA15-040 ELF files memory mapping (2013-11-04)
 
   GNATcoverage now loads ELF files using memory mapping if available. This
