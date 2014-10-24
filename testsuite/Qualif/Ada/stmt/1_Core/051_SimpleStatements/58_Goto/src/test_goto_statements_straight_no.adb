@@ -10,7 +10,7 @@ begin
 end Test_GOTO_Statements_Straight_No;
 
 --# goto_statements_straight.adb
--- /decl/        l- ## s-
+-- /decl/       ~l- ## ~s-
 -- /1if/         l- ## s-
 -- /1goto/       l- ## s-
 -- /2if/         l- ## s-
