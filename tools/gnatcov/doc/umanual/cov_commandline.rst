@@ -84,6 +84,11 @@ The available options are as follows:
    :option:`--projects`, the units of interest are those designated by this
    project only.
 
+:option:`--non-coverable`:
+   For source coverage analysis specifically, report about language
+   statements for which no object code could be found in the surrounding
+   suprogram (typically out of optimization).
+   
 :option:`--projects`, |rarg|:
    When using :option:`-P`, use the provided projects to select units of
    interest. These projects must all be part of the import transitive closure
@@ -125,10 +130,9 @@ extra details and examples of use.
 Elements on the command line that are not tied to a particular option are
 considered as trace file arguments. At least one trace file is required for
 the `coverage` command to operate, which may but need not be introduced with
-:option:`-T` or :option:`--trace`.
-
-Here are a few examples of valid command lines to illustrate. Other examples
-will be exposed along the course of the following sections::
+:option:`-T` or :option:`--trace`. Here are a few examples of valid command
+lines to illustrate. Other examples will be exposed along the course of the
+following sections::
 
   gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=prog.trace
   #                      (a)         (b)              (c)            (d)
