@@ -51,6 +51,8 @@ package body Coverage.Source is
    package Evaluation_Sets is new Ada.Containers.Ordered_Sets (Evaluation);
 
    type Outcome_Taken_Type is array (Boolean) of Boolean;
+   No_Outcome_Taken    : constant Outcome_Taken_Type := (others => False);
+   Both_Outcomes_Taken : constant Outcome_Taken_Type := (others => True);
 
    type Line_States is array (Coverage_Level) of Line_State;
 
@@ -79,7 +81,7 @@ package body Coverage.Source is
 
          when Decision =>
             Outcome_Taken, Known_Outcome_Taken : Outcome_Taken_Type :=
-                                                   (others => False);
+                                                   No_Outcome_Taken;
             --  Each of these components is set True when the corresponding
             --  outcome has been exercised. Outcome_Taken is set depending
             --  on conditional branch instructions, and might be reversed
@@ -367,17 +369,23 @@ package body Coverage.Source is
                         --  report output.
                      end if;
 
-                  elsif SCI.Outcome_Taken (False)
-                    and then SCI.Outcome_Taken (True)
+                  elsif SCI.Outcome_Taken = Both_Outcomes_Taken
+                          or else
+                        SCI.Known_Outcome_Taken = Both_Outcomes_Taken
                   then
-                     --  Here for a decision that is not coverable (outcome is
-                     --  compile time known): nothing to do at Decision level.
+                     --  Here for a decision whose both outcomes have been
+                     --  exercised.
 
                      SCO_State := Covered;
 
-                  elsif SCI.Outcome_Taken (False)
-                    or else SCI.Outcome_Taken (True)
+                  elsif SCI.Outcome_Taken /= No_Outcome_Taken
+                          or else
+                        SCI.Known_Outcome_Taken /= No_Outcome_Taken
                   then
+                     --  Here if at least one outcome has been exercised,
+                     --  determined either by conditional branch instructions
+                     --  (Outcome_Taken) or dominance (Known_Outcome_Taken).
+
                      SCO_State := Partially_Covered;
 
                      declare
@@ -387,19 +395,13 @@ package body Coverage.Source is
                         --  FALSE has been taken then this is outcome TRUE,
                         --  else FALSE.
 
-                        if Degraded_Origins (SCO) then
-                           --  Degraded origins: try to recover accurate
-                           --  information about the missing outcome through
-                           --  dominance information.
+                        if SCI.Known_Outcome_Taken (False)
+                          /= SCI.Known_Outcome_Taken (True)
+                        then
+                           Missing_Outcome :=
+                             To_Tristate (SCI.Known_Outcome_Taken (False));
 
-                           if SCI.Known_Outcome_Taken (False)
-                             /= SCI.Known_Outcome_Taken (True)
-                           then
-                              Missing_Outcome :=
-                                To_Tristate (SCI.Known_Outcome_Taken (False));
-                           end if;
-
-                        else
+                        elsif not Degraded_Origins (SCO) then
                            Missing_Outcome :=
                              To_Tristate (SCI.Outcome_Taken (False));
                         end if;
