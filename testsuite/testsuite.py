@@ -1180,7 +1180,7 @@ class TestSuite:
 
         m = Main(add_targets_options=True)
         add_mainloop_options (m, extended_options=True)
-        m.add_option('--quiet', dest='quiet', action='store_true',
+        m.add_option('--quiet', '-q', dest='quiet', action='store_true',
                      default=False, help='Quiet mode. Display test failures only')
         m.add_option('--diffs', dest='diffs', action='store_true',
                      default=False, help='show diffs on stdout')
