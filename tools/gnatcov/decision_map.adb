@@ -94,7 +94,7 @@ package body Decision_Map is
       Branch                 : Branch_Kind := Br_None;
       --  Branch kind
 
-      Cond                   : Boolean;
+      Cond                   : Boolean := False;
       --  True if conditional branch
 
       First_Cond             : Boolean := False;
@@ -1817,8 +1817,11 @@ package body Decision_Map is
          --  Set of BB.To_Pc for all visited basic blocks, used to avoid
          --  infinite loops.
 
-         Next_PC    : Pc_Type := Edge_Info.Destination.Target;
-         BB         : Basic_Block;
+         Next_Dest     : Dest := Edge_Info.Destination;
+         Next_PC       : Pc_Type;
+         In_Delay_Slot : Boolean := False;
+
+         BB            : Basic_Block;
 
          After_Call : Boolean := False;
          --  Whether the previous basic block ends with a call instruction.
@@ -1857,10 +1860,19 @@ package body Decision_Map is
 
       begin
          <<Follow_Jump>>
-         if Next_PC = No_PC then
-            --  We cannot follow indirect jumps.  If we end up there, we can
-            --  only stop the analysis of the current edge.
 
+         if Next_Dest.Delay_Slot = No_PC then
+            Next_PC := Next_Dest.Target;
+            In_Delay_Slot := False;
+         else
+            Next_PC := Next_Dest.Delay_Slot;
+            In_Delay_Slot := True;
+         end if;
+
+         --  We cannot follow indirect jumps. If we end up there, we can only
+         --  stop the analysis of the current edge.
+
+         if Next_PC = No_PC then
             return;
          end if;
 
@@ -1946,6 +1958,17 @@ package body Decision_Map is
             end;
          end if;
 
+         --  If we have processed a delay slot instruction, proceed with the
+         --  branch target.
+
+         if In_Delay_Slot then
+            Next_Dest.Delay_Slot := No_PC;
+            goto Follow_Jump;
+         end if;
+
+         --  Here if we remain within the current decision: continue tracing
+         --  object control flow: find SCOs for jump at end of basic block.
+
          --  Determine whether the jump is known to branch to another statement
 
          --  Note: we first check the Next_PC_SCO, then we fall back to testing
@@ -1965,9 +1988,6 @@ package body Decision_Map is
                    not In_Range (Next_PC_Sloc, Sloc_Range (S_SCO))
                  else
                    False));
-
-         --  Here if we remain within the current decision: continue tracing
-         --  object control flow: find SCOs for jump at end of basic block.
 
          --  Condition or Statement
 
@@ -2004,7 +2024,7 @@ package body Decision_Map is
                   --  statement, because some intermediate insns might be
                   --  decorated with just the statement sloc).
 
-                  Next_PC := BB.Branch_Dest.Target;
+                  Next_Dest := BB.Branch_Dest;
                   goto Follow_Jump;
                end if;
 
@@ -2041,7 +2061,7 @@ package body Decision_Map is
                   end if;
 
                elsif BB.Call = Normal then
-                  Next_PC := BB.To + 1;
+                  Next_Dest := (BB.To + 1, Delay_Slot => No_PC);
                   After_Call := True;
                   goto Follow_Jump;
                end if;
@@ -2127,8 +2147,8 @@ package body Decision_Map is
       PC       : Pc_Type;
       Insn_Len : Natural;
 
-      Current_Basic_Block_Start : Pc_Type;
-      --  Start of current basic block
+      BB : Basic_Block;
+      --  Current basic block information
 
       Context : Cond_Branch_Context;
 
@@ -2150,7 +2170,9 @@ package body Decision_Map is
 
       procedure New_Basic_Block is
       begin
-         Current_Basic_Block_Start := PC;
+         --  Initialize for new basic block starting at PC
+
+         BB := (From => PC, others => <>);
       end New_Basic_Block;
 
       --------------
@@ -2213,7 +2235,7 @@ package body Decision_Map is
 
       Pending_Cond_Branches : Pending_Cond_Branch_Vectors.Vector;
       --  Conditional branches analysis needs to have information about all
-      --  basic blocks. All conditional branch instructions to be analyzed are
+      --  basic blocks. All conditional branch instructions to be analyzeAd are
       --  therefore queued in this vector while performing an initial code
       --  scan (first pass), during which all basic blocks are identified.
       --  They are actually processed after this scan is completed (second
@@ -2327,16 +2349,6 @@ package body Decision_Map is
 
             if Branch /= Br_None then
                Analyze_Branch : declare
-                  BB : Basic_Block :=
-                         (From        => Current_Basic_Block_Start,
-                          To_PC       => Insn.First,
-                          To          => Insn.Last,
-                          Branch_Dest => Branch_Dest,
-                          FT_Dest     => FT_Dest,
-                          Branch      => Branch,
-                          Cond        => Flag_Cond,
-                          others      => <>);
-
                   SCO            : SCO_Id;
                   Tag            : SC_Tag;
 
@@ -2346,6 +2358,15 @@ package body Decision_Map is
                --  Start of processing for Analyze_Branch
 
                begin
+                  --  Update BB info
+
+                  BB.To_PC       := Insn.First;
+                  BB.To          := Insn.Last;
+                  BB.Branch_Dest := Branch_Dest;
+                  BB.FT_Dest     := FT_Dest;
+                  BB.Branch      := Branch;
+                  BB.Cond        := Flag_Cond;
+
                   if Branch = Br_Call then
                      Analyze_Call (Exec, BB);
                   end if;
@@ -2411,7 +2432,6 @@ package body Decision_Map is
                   end loop;
 
                   Context.Basic_Blocks.Insert (BB);
-
                end Analyze_Branch;
             end if;
 
@@ -2426,6 +2446,15 @@ package body Decision_Map is
             end if;
          end;
       end loop;
+
+      --  On targets with delay slots, a subprogram may end with a delay slot,
+      --  in which case we need to create an additional basic block for it.
+
+      if BB.From <= Insns.Last then
+         BB.To_PC := Insns.Last - Pc_Type (Insn_Len) + 1;
+         BB.To    := Insns.Last;
+         Context.Basic_Blocks.Insert (BB);
+      end if;
 
       --  All done if doing only statement coverage
 
