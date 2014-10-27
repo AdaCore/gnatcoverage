@@ -24,5 +24,8 @@ end;
 --  =/triple/ l! ## s!, d!
 --  =/hits/   l! ## s!, dF-
 
+-- See test_register1 for comments on the dF- for
+-- "triple" on 7.0.3 without gnatp.
+
 -- %cargs: -O1
 --  =/init/  l! ## s-:"This_Score .= 0",dF-
