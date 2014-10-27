@@ -17,6 +17,7 @@ end Test_Instantiations_No;
 -- /proc/          l- ## s-
 
 --#  stacks_g.ads
+-- /decl/          l- ## s-
 -- /elab/          l- ## s-
 -- /line-elab/     l- ## 0c
 

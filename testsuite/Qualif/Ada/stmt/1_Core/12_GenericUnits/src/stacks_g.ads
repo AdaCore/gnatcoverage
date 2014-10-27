@@ -5,7 +5,7 @@ generic
 
 package Stacks_G is
 
-   type Stack is private; -- # elab
+   type Stack is private; -- # decl
 
    procedure Push (V : Value; S : in out Stack);
    procedure Pop (V : out Value; S : in out Stack);
