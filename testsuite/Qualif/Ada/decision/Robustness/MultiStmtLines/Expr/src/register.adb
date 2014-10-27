@@ -5,8 +5,8 @@ is
    pragma No_Inline (Times);
    
    function Times (X, Factor : Integer; Cond : Boolean) return Natural is
-      Cond_Latch : Boolean; -- # times
-      pragma Volatile (Cond_Latch);  -- # times
+      Cond_Latch : Boolean; -- # decl
+      pragma Volatile (Cond_Latch);  -- # decl
    begin
       Cond_Latch := Cond; -- # times
       return X * Factor;  -- # times
