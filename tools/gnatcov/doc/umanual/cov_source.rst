@@ -1421,7 +1421,7 @@ analysis on this program yields::
   2 violations.
 
 We do see one statement and one decision coverage violation per invocation,
-different in the two cases since the :code:`x == 0` test is True on the first
+different in the two cases since the ``x == 0`` test is True on the first
 call and False on the second one. We also observe column numbers unrelated to
 what the original source lines contain on line 13 and 14.
 
@@ -1480,8 +1480,8 @@ Another way to get this in Ada is with generic instanciations where constant
 parameters turn what appears to be conditional in the source into a constant
 value in some instances.
 
-Back to our :code:`Test_Pos1` example, no code is emitted for the test on line
-10 either. |gcv| is however able to infer the :code:`if` coverage status by
+Back to our ``Test_Pos1`` example, no code is emitted for the test on line
+10 either. |gcv| is however able to infer the ``if`` coverage status by
 looking at the status of statements controlled by the decision, and the
 Decision coverage report remains accurate:
 
@@ -1496,7 +1496,7 @@ Decision coverage report remains accurate:
 
 |gcvcov| features the :option:`--non-coverable` command line option to expose
 the non-coverable statements if needed. They are listed in an additional
-":code:`NON COVERABLE ITEMS`" section of the :option:`=report` outputs and the
+"``NON COVERABLE ITEMS``" section of the :option:`=report` outputs and the
 corresponding lines are flagged with a '0' mark in annotated sources, as well
 as a specific color in the html formats. For our example, this yields:
 
