@@ -16,22 +16,21 @@ end;
 --  /hits/   l! ## dF-
 --  /times/  l+ ## 0
 
+-- %cargs: -O1
+--  =/init/  l! ## s-:"This_Score .= 0",dF-
+
 --  7.0.3 is imprecise with multiple stmts on a line
 
--- %tags:7.0.3 %cargs:gnatp
+-- %tags:7.0.3
 --  =/init/   l! ## s!, d!
 --  =/double/ l! ## s!, d!
 --  =/triple/ l! ## s!, d!
 --  =/hits/   l! ## s!, dF-
 
--- %tags:7.0.3 %cargs:!gnatp
---  =/init/   l! ## s!, d!
+-- %tags:7.0.3 %cargs:!-gnatp
 --  =/double/ l! ## dF-
 --  =/triple/ l! ## dF-
---  =/hits/   l! ## s!, dF-
 
 -- See test_register1 for comments on the dF- for
 -- "triple" on 7.0.3 without gnatp.
 
--- %cargs: -O1
---  =/init/  l! ## s-:"This_Score .= 0",dF-

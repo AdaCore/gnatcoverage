@@ -18,6 +18,9 @@ end;
 --  /decl/  ~l- ## ~s-
 --  /times/  l- ## s-
   
+-- %cargs: -O1
+--  =/init/  l! ## s-:"This_Score .= 0",dF-
+
 --  7.0.3 is imprecise with multiple stmts on a line
 
 -- %tags:7.0.3 
@@ -25,8 +28,4 @@ end;
 -- =/double/ l! ## s!,d!:"if Double"
 -- =/triple/ l! ## s!,d!:"if Triple"
 -- =/hits/   l! ## s!,dT-
-
--- %cargs: -O1
---  =/init/  l! ## s-:"This_Score .= 0",dF-
-
 
