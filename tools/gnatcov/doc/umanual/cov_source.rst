@@ -1435,8 +1435,9 @@ interest thanks to debug information mapping machine code addresses to source
 locations.  With optimization enabled, there sometimes is no machine code
 attached to a given statement, for example when the statement is determined to
 be redundant or when the machine code for it can be factorized with the
-machine code for another statement. There really is nothing to cover in this
-case and those statements are categorized as :dfn:`non-coverable` by |gcp|.
+machine code for another statement. When the coverage status of a code-less
+statement cannot be be inferred from that of other statements around, |gcp|
+categorizes the statement as :dfn:`non-coverable`.
 
 By default, nothing is said about non-coverable statements in the
 :option:`=report` outputs and the corresponding lines are marked with a '.' in
