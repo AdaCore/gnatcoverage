@@ -7,7 +7,7 @@
 Coverage Consolidation
 **********************
 
-Coverage consolidation is the |gcp| facility allowing the computation of the
+Coverage consolidation is the |gcp| facility allowing the assessment of the
 overall coverage achieved by a set of executions. Consolidation is queried by
 passing the corresponding set of execution traces to |gcvcov|, which produces
 a single coverage report as a result. The focus of the analysis must be
@@ -16,18 +16,164 @@ specified, via :ref:`--scos` or project files for source coverage, or via
 
 A typical case where consolidation is useful is when some part of an
 application depends on external inputs and several executions are required to
-exercise different scenarii in the application program. |gcp| supports this
-kind of use just fine, where the execution traces to consolidate are obtained
-from the same executable.
+exercise different scenarios in the application program. The execution traces
+to consolidate are obtained from the same executable in this case.
 
-|gcp| supports another kind of situation as well, where consolidation is
-queried to compute the coverage achieved by different executables with
-possibly overlapping symbols. This is typically useful with unit testing
-campains, when different programs are built to exercise differents aspects of
-a common application part.
+Another common situation is when execution of different executables is needed
+to achieve the required coverage for a software, either because distinct
+software modules are tested independently (e.g. the different units of a
+library), and/or because different aspects of the behavior of modules are
+tested separately (e.g. the different subprograms of a library unit or
+different scenarios of a given subprogram).
 
-Introductory example
-====================
+Example 1: consolidation over a single program
+==============================================
+
+Consider the example C program below, offering a simple command line interface
+to perform very basic math operations. This is splitted in two main source
+files: ``process.c`` doing the computation and displaying the result, and
+``main.c`` for the main entry point and basic usage control:
+
+.. code-block:: c
+
+   #include <stdio.h>        /* main.c */
+   #include <assert.h>
+   #include "process.h"
+
+   void usage ()
+   {
+     printf ("calc <int1> <int2> <op>, print result of <int1> <op> <int2>\n");
+   }
+
+   int main (int argc, const char * argv[])
+   {
+     if (argc != 4)
+       {
+         usage ();
+         exit (1);
+       }
+
+     process (argv);
+     return 0;
+   }
+
+
+.. code-block:: c
+
+   #include <stdio.h>        /* process.c */
+   #include <assert.h>
+   #include "process.h"
+
+   void process (const char * argv[])
+   {
+     int x = atoi (argv[1]), y = atoi (argv[2]);
+     char opcode = argv[3][0];
+
+     int result;
+
+     switch (opcode)
+       {
+       case '*':
+         result = x * y;
+         break;
+       case '+':
+         result = x + y;
+         break;
+       default:
+         printf ("unsupported opcode %c\n", opcode);
+         return;
+       }
+
+     printf ("%d %c %d = %d\n", x, opcode, y, result);  
+   }  
+
+
+.. code-block:: c
+
+   #ifndef __PROCESS_H__     /* process.h */
+   #define __PROCESS_H__
+   extern void process (const char * argv[]);
+   #endif
+
+
+Here is a sequence of compilation/executions for various use cases, on a
+native system where command line arguments for the program are supported by
+|gcvrun|. Each execution is requested to produce a specific trace file::
+
+   gcc -o calc main.c process.c -g -fpreserve-control-flow -fdump-scos
+   gnatcov run --output=mult.trace -eargs ./calc 6 5 '*'             
+   gnatcov run --output=plus.trace -eargs ./calc 2 3 '+'  
+   gnatcov run --output=div.trace -eargs ./calc 2 3 '/'  
+   gnatcov run --output=misuse.trace -eargs ./calc 
+
+Now we can use |gcvcov| to assess the coverage achieved by arbitrary
+combinations of the executions, just by passing the corresponding traces.
+For example, combining the two executions exercising the ``*`` and ``+``
+computations for statement coverage can be achieved with::
+
+   gnatcov coverage --scos=main.c.gli --scos=process.c.gli \
+      --annotate=xcov --level=stmt mult.trace plus.trace
+
+And this yields reports in ``main.c.xcov`` and ``process.c.xcov`` like:
+
+.. code-block:: c
+
+   ...
+   5 .: void usage ()
+   6 .: {
+   7 -:   printf ("calc <i1> <i2> <op>, print result of <i1> <op> <i2>\n");
+   8 .: }
+   9 .: 
+  10 .: int main (int argc, const char * argv[])
+  11 .: {
+  12 +:   if (argc != 4)
+  13 .:     {
+  14 -:       usage ();
+  15 -:       exit (1);
+  16 .:     }
+  17 .: 
+  18 +:   process (argv);
+  19 +:   return 0;
+  20 .: }
+
+
+.. code-block:: c
+
+   ...
+   5 .: void process (const char * argv[])
+   6 .: {
+   7 +:   int x = atoi (argv[1]), y = atoi (argv[2]);
+   8 +:   char opcode = argv[3][0];
+   9 .: 
+  10 +:   int result;
+  11 .: 
+  12 +:   switch (opcode)
+  13 .:     {
+  14 .:     case '*':
+  15 +:       result = x * y;
+  16 +:       break;
+  17 .:     case '+':
+  18 +:       result = x + y;
+  19 +:       break;
+  20 .:     default:
+  21 -:       printf ("unsupported opcode %c\n", opcode);
+  22 -:       return;
+  23 .:     }
+  24 .:   
+  25 +:   printf ("%d %c %d = %d\n", x, opcode, y, result);  
+  26 .: }  
+
+
+We observe a reported absence of coverage for statements corresponding to the
+treatment of two kinds of usage error: wrong number of command line arguments,
+visible on lines 7, 14, and 15 of main.c, and attempt to compute an
+unsupported operation, visible on lines 21 and 22 of process.c. These two
+scenarios, exercised through div.trace and misuse.trace were indeed not
+included in the consolidation scope.
+
+
+Example 2: consolidation over a single unit by different programs
+==================================================================
 
 We will consider achieving statement coverage of the following example Ada
 units to illustrate:
@@ -67,8 +213,9 @@ units to illustrate:
       end Safe;
    end Commands;
 
-We test the Commands package body by combining two sorts of drivers. The first
-one exercises cases where the ``Safe`` function is expected to return True:
+We test the ``Commands`` package body by combining two sorts of drivers. The
+first one exercises cases where the ``Safe`` function is expected to return
+True:
 
 .. code-block:: ada
 
@@ -80,8 +227,8 @@ one exercises cases where the ``Safe`` function is expected to return True:
       Assert (Safe (Cmd => Step, Front => Room));
    end Test_Cmd_Safe;
 
-Running the first program and analysing the achieved coverage for this one
-alone would be something like::
+Running this first program and analysing the achieved coverage would be
+something like::
 
   gnatcov run test_cmd_safe   # produces test_cmd_safe.trace
   gnatcov coverage --level=stmt --scos=commands.ali --annotate=xcov test_cmd_safe.trace
@@ -114,7 +261,7 @@ expected to return False:
       Assert (not Safe (Cmd => Step, Front => Pit));
    end Test_Cmd_Unsafe;
 
-This one alone produces the symetric ``commands.adb.xcov`` report, with:
+This one alone produces the symmetric ``commands.adb.xcov`` report, with:
 
 .. code-block:: ada
 
@@ -150,12 +297,8 @@ Commands package body::
   13 .:    end Stat;
 
 
-Further use cases
-=================
-
-In our example, the performed consolidation involved different programs with
-only partial unit and object code overlap, as depicted on the following
-representation:
+In this example, consolidation involved different programs with only partial
+object code overlap, as depicted on the following representation:
 
 .. _fig-consolidation:
 .. figure:: consolidation.*
@@ -163,17 +306,132 @@ representation:
 
   Overlapping executables
   
-The example analysis focused on the Commands unit for a source coverage
-criterion. The other units may be included in the analysis as well, even
-though not overlapping between the different executables.
-
 Consolidation actually doesn't *require* overlapping: users might well, for
 example, consolidate results from different programs testing entirely disjoint
 sets of units. A typical situation where this would happen is when testing
-independant units of a library.
+independent units of a library, as illustrated by the following example.
 
-Overlap processing during consolidation
-=======================================
+Example 3: consolidation over a library by different programs
+=============================================================
+
+This example is a nice opportunity to illustrate a possible use of project
+files to denote the units of interest, so we'll provide more details on that
+aspect. Let us consider an example library composed of the following two Ada
+procedures, implemented in separate source files ``inc.adb`` and ``mult.adb``:
+
+.. code-block:: ada
+
+  procedure Inc (X : in out Integer; Amount : Integer) is   -- inc.adb
+  begin
+     X := X + Amount;
+  end;
+
+  procedure Mult (X : in out Integer; Amount : Integer) is  -- mult.adb
+  begin
+     X := X * Amount;
+  end;
+
+
+We first build an archive library from these, using the *gprbuild* tool (part
+of the GNAT toolchain). We place the two sources in a ``libops`` (*library of
+operations*) subdirectory and use the ``libops.gpr`` example project file
+below::
+
+   library project Libops is
+      for Library_Dir use "lib";     -- Request creation of lib/libops.a
+      for Library_Kind use "static";
+      for Library_Name use "ops";
+
+      for Languages use ("Ada");     -- Sources are Ada, in libops/ subdir
+      for Source_Dirs use ("libops");
+      for Object_Dir use "obj";
+
+      package Compiler is
+         for default_switches ("Ada") use
+            ("-g", "-fdump-scos", "-fpreserve-control-flow");
+      end compiler;
+   end Libops;
+
+``gprbuild -Plibops`` builds the library with the proper compilation options,
+then we move on to unit tests. We write two different programs for this
+purpose:
+
+.. code-block:: ada
+
+   with Inc, Assert;     -- test_inc.adb
+   procedure Test_Inc is
+      X : Integer := 0;
+   begin
+      Inc (X, 1);
+      Assert (X = 1);
+   end;
+
+   with Mult, Assert;    -- test_mult.adb
+   procedure Test_Mult is
+      X : Integer := 2;
+   begin
+      Mult (X, 2);
+      Assert (X = 4);
+   end;
+
+
+We build the corresponding executables using gprbuild again, with the
+``test.gpr`` project file below::
+
+   with "libops";  -- test.gpr
+   project Test is
+     for Languages use ("Ada");
+     for Object_Dir use "obj";
+
+     package Compiler is
+       for Default_Switches("Ada") use ("-fno-inline");
+     end Compiler;
+   end Test;
+
+   gprbuild -Ptest.gpr test_inc.adb test_mult.adb
+
+We're not interested in the coverage of the test procedures themselves so we
+don't need the coverage related compilation options. :option:`-fno-inline` is
+enforced nevertheless, to make sure that the library object code really gets
+exercised and not an inlined version of it within the test harness.
+
+Now we can run the tests and perform coverage analysis for various
+combinations. For example::
+
+   gnatcov run obj/test_inc   -- produces test_inc.trace
+   gnatcov run obj/test_mult  -- produces test_mult.trace
+
+Then assessing the library statement coverage achieved by the ``test_inc`` unit
+test, say as a violations report, would go like::
+
+  gnatcov coverage --level=stmt --annotate=report -Plibops test_inc.trace
+
+Note the use of :option:`-Plibops` to state that the library units are those
+of interest for our analysis, without having to specify the location of the
+corresponding LI files. From the single provided trace, there's no reference
+to the ``mult`` unit at all and all the statements therein are marked
+uncovered in this case. We'd get::
+
+   2.1. STMT COVERAGE
+   ------------------
+
+   mult.adb:3:4: statement not executed
+
+   1 violation.
+
+Proper coverage of the library units is achieved by the two unit tests,
+which we can see  by requesting the consolidated coverage achieved by the
+two executions::
+
+   gnatcov coverage --level=stmt --annotate=report -Plibops test_*.trace
+   ...
+   2.1. STMT COVERAGE
+   ------------------
+
+   No violation.
+
+Processing of object code overlap during consolidation
+======================================================
 
 For object or source level criteria, |gcv| computes the coverage achieved for
 the full set of routines or source units declared to be of interest amongst
@@ -186,14 +444,14 @@ coverage achieved by all the executions.
 For the purpose of computing combined coverage achievements, two symbols are
 considered overlapping when all the following conditions are met:
 
-* Both symbols have identical object level symbol names,
+* Both symbols have identical names at the object level,
 
 * Both symbols have DWARF debug information attached to them,
 
 * According to this debug information, both symbols originate from the same
   compilation unit, denoted by the full path of the corresponding source file.
 
-By construction, a symbol missing debug information is never considered
+By this construction, a symbol missing debug information is never considered
 overlapping with any other symbol. Whatever coverage is achieved on such a
 symbol never gets combined with anything else and the only kind of report
 where the symbol coverage is exposed is the :option:`=asm` assembly output for
