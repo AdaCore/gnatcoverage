@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2013, AdaCore                     --
+--                     Copyright (C) 2006-2014, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,5 +17,5 @@
 ------------------------------------------------------------------------------
 
 package Version is
-   Xcov_Version : constant String := "1.3.0w (20000000)";
+   Xcov_Version : constant String := "1.3.1 (20141030)";
 end Version;
