@@ -1315,7 +1315,7 @@ from which object files are produced.
 
 Typically, from a sample ``foo.c`` source like:
 
-.. code-block: c
+.. code-block:: c
 
    #include "foo.h"
 
@@ -1340,107 +1340,119 @@ Inlining & Ada Generic Units
 ============================
 
 In the vast majority of situations, inlining is just transparent to source
-coverage metrics: calls are treated as regular statements, and coverage of
-the inlined bodies is reported on the corresponding sources regardless of
-their actual inlining status.
+coverage metrics: calls are treated as regular statements, and coverage of the
+inlined bodies is reported on the corresponding sources regardless of their
+actual inlining status. See the :ref:`optimization` section for a description
+of effects that might show up on rare occasions.
 
-By default, generic units are also uniformly treated as single source
+By default, Ada generic units are also uniformly treated as single source
 entities, with the coverage achieved by all the instances combined and
 reported against the generic source only, not for each individual instance.
 
-Consider the following functional Ada generic unit for example:
+Consider the following functional Ada generic unit for example. It provides a
+simple vector type abstraction on which two operations are available; ``Inc``
+adds some amount to each element of a vector, and ``Mult`` multiplies each
+element by some amount. The exposed type is of fixed size, provided as a
+parameter:
 
 .. code-block:: ada
 
-   generic
-      type Num_T is range <>;
-   package Genpos is
-      procedure Count (X : Num_T);
-      --  Increment N_Positive is X > 0
+   generic                               -- vops.ads
+      Size : in Integer;
+   package Vops is
+      type Vector_Type is array (1 .. Size) of Integer;
 
-      N_Positive : Natural := 0;
-      --  Number of positive values passed to Count
-   end Genpos;
+      procedure Inc (V : in out Vector_Type; Amount : Integer);
+      procedure Mult (V : in out Vector_Type; Amount : Integer);
+   end;
 
-   package body Genpos is
-      procedure Count (X : Num_T) is
+   package body Vops is                  -- vops.adb
+
+      procedure Inc (V : in out Vector_Type; Amount : Integer) is
       begin
-         if X > 0 then
-            N_Positive := N_Positive + 1;
-         end if;
-      end Count;
-   end Genpos;
+         for I in V'Range loop
+            V(I) := V(I) + Amount;
+         end loop;
+      end;
 
-The body of ``Count`` features a decision.  Now consider the simple test
-driver below:
+      procedure Mult (V : in out Vector_Type; Amount : Integer) is
+      begin
+         for I in V'Range loop
+            V(I) := V(I) * Amount;
+         end loop;
+      end;
+   end;
+
+Now consider this test, checking operations on vectors of different
+sizes, from two instances of the ``Vops`` unit:
 
 .. code-block:: ada
 
-   procedure Test_Genpos is
-      type T1 is new Integer;
-      package Pos_T1 is new Genpos (Num_T => T1);
+   with Vops;                            -- v5.ads
+   package V5 is new Vops (Size => 5);
 
-      type T2 is new Integer;
-      package Pos_T2 is new Genpos (Num_T => T2);
+   with Vops;                            -- v8.ads
+   package V8 is new Vops (Size => 8);
+
+   with V5, V8;                          -- test_5inc_8mult.adb
+   procedure Test_5inc_8mult is
+      V5o : V5.Vector_Type := (others => 1);
+      V8o : V8.Vector_Type := (others => 2);
    begin
-      Pos_T1.Count (X => 1);
-      Assert (Pos_T1.N_Positive = 1);
+      V5.Inc (V5o, 3);
+      V8.Mult (V8o, 2);
+   end;
 
-      Pos_T2.Count (X => -1);
-      Assert (Pos_T2.N_Positive = 0);
-   end Test_Genpos;
+Only the ``Inc`` subprogram is called through the V5 instance and only
+the ``Mult`` subprogram is called through the V8 instance. Both suprograms
+are nevertheless called overall, so the ``Vops`` package body is claimed
+fully covered by default::
 
-This instanciates the generic unit twice, and each instance exercises one
-outcome of the decision only. The two combined together do exercise the
-decision boths ways, though, and this is what |gcp| reports::
+ gnatcov coverage -Pvops.gpr --level=stmt --annotate=xcov test_5inc_8mult.trace
+ ...
+ 100% of 4 lines covered
+ Coverage level: stmt
+   1 .: package body Vops is
+   2 .:    
+   3 .:    procedure Inc (V : in out Vector_Type; Amount : Integer) is
+   4 .:    begin
+   5 +:       for I in V'Range loop
+   6 +:          V(I) := V(I) + Amount;
+   7 .:       end loop;
+   8 .:    end;
+   9 .:    
+  10 .:    procedure Mult (V : in out Vector_Type; Amount : Integer) is
+  11 .:    begin
+  12 +:       for I in V'Range loop
+  13 +:          V(I) := V(I) * Amount;
+  14 .:       end loop;
+  15 .:    end;
+  16 .: end;
 
-  gnatcov coverage --level=stmt+decision --annotate=xcov+ ...
+Per instance analysis is possible though, as part of what we refer to as
+:dfn:`separated coverage` facilities.
 
-  -- genpos.adb.xcov:
+Separated coverage analysis
+---------------------------
 
-  100% of 2 lines covered
-  Coverage level: stmt+decision
-   1 .: package body Genpos is
-   2 .:    procedure Count (X : Num_T) is
-   3 .:    begin
-   4 +:       if X > 0 then
-   5 +:          N_Positive := N_Positive + 1;
-   6 .:       end if;
-   7 .:    end Count;
-   8 .: end Genpos;
-
-Separated coverage (experimental)
----------------------------------
-
-As described above, by default a single coverage analysis of any source
-construct is performed, consolidating all code copies generated by this
-construct. For subrpograms, this means consolidation over all inlined
+As described above, a single coverage analysis of any source construct is
+performed by default, consolidating all code copies generated by this
+construct. For subprograms, this means consolidation over all inlined
 copies. For generic units, consolidation over all instances.
 
 A finer-grained analysis is possible, where distinct copies of the code coming
 from a given source construct are identified according to some criterion, and
-a separate coverage assessment is made for each of these copies. The violation
-of a coverage obligation carries an additional indication of which code copy
-the violation is reported for.
+a separate coverage assessment is made for each of these copies. 
 
-|gcv| supports a general mechanism for such ''separated'' analyses, which has
-several different modes, detailed in the following subsections.
+In this case, coverage violations carry an additional indication of which code
+copy the violation is reported for, available in all but the non-extended
+``xcov`` and ``html`` output formats. The non-extended ``xcov`` and ``html``
+formats simply convey partial coverage achievement on a line as soon one
+violation get reported for an obligation on that line, regardless of which
+copy the violation originates from.
 
-
-Separation by routine (:option:`-S routine`)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In this mode, two code regions coming from the same source construct
-will undergo separate coverage analyses if they occur in different
-symbols of the executable file.
-When a given subprogram is inlined in two different calling routines,
-each inlined copy thus undergoes a separate coverage assessment.  In the
-absence of inlining, this will also ensure that different instances of
-the same generic unit will have separated coverage analyses, since the
-compiler generates different symbol names for different program units. On
-the other hand, if two distinct instances of a generic subprogram are
-inlined within a single calling routine, they will undergo a single
-coverage analysis since they now occur in the same symbol.
+|gcv| supports different modes for such analyses, detailed in the following
+subsections.
 
 
 Separation by instance (:option:`-S instance`)
@@ -1448,13 +1460,64 @@ Separation by instance (:option:`-S instance`)
 
 In this mode, two code regions coming from the same source construct will
 undergo separate coverage analyses if they come from different generic
-instances. This ensures accurate per-instance coverage analysis even in the
-presence of inlining.
+instances, identified by the instanciation source location.
+
+For our ``Vops`` example, selecting an output format where the
+violations detailed are exposed, this translates as::
+
+ gnatcov coverage -Pvops.gpr --annotate=report -S instance [...]
+ ...
+ vops.adb:5:11: statement not executed (from v8.ads:2:1)
+ vops.adb:6:10: statement not executed (from v8.ads:2:1)
+ vops.adb:12:11: statement not executed (from v5.ads:2:1)
+ vops.adb:13:10: statement not executed (from v5.ads:2:1)
+
+
+We do observe violations on the ``Vops`` generic body, fully covered without
+:option:`-S instance`. This is the outcome of an analysis conducted on the two
+generic instances separately, each designated by a ``(from <instantiation
+source location>)`` indication.
+
+|gcv| needs to see the coverage obligations correponding to each instance in
+this mode. This is achieved transparently by the use of a project file in the
+example command lines we quoted and needs particular care when the Library
+Information files are provided manually with :option:`--scos` instead.
+
+Indeed, even if we aim at getting coverage results for the ``vops.adb``
+source, passing :option:`--scos=vops.ali` alone isn't enough when per instance
+separate analysis is desired. Separate coverage analysis for the instances
+entails coverage obligations for the instances, and this requires the units
+where the instantiations occur to be declared of interest as well. In our
+example, this means passing :option:`--scos=v5.ali` and
+:option:`--scos=v8.ali` in addition.
+
+Separation by instance relies on specific compiler support available in the
+GNAT Pro toolchain since the 7.2 release. For older toolchains, another mode
+is available which reports separate coverage statuses for copies associated
+with distinct symbols of the executable file. As we will describe, this
+provides a good approximation of per-instance analysis in absence of inlining,
+and becomes inaccurate when inlining comes into play.
+
+Separation by routine (:option:`-S routine`)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this mode, two code regions coming from the same source construct will
+undergo separate coverage analyses if they occur in different symbols of the
+executable file.
+
+When a given subprogram is inlined in two different calling routines, each
+inlined copy thus undergoes a separate coverage assessment.  In the absence of
+inlining, this will also ensure that different instances of the same generic
+unit will have separated coverage analyses, since the compiler generates
+different symbol names for different program units. On the other hand, if two
+distinct instances of a generic subprogram are inlined within a single calling
+routine, they will undergo a single coverage analysis since they now occur in
+the same symbol.
 
 .. _c_macros:
 
 Processing of C macros
-----------------------
+======================
 
 For source coverage purposes, Source Coverage Obligations for C are produced
 after the preprocessing of sources, with two consequences of note:
