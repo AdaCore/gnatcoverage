@@ -30,3 +30,10 @@ NF-13-N425-027 support board extensions in gnatcov run --target (2014-04-30)
   A ",<board-name>" extension to the --target argument values passed to
   gnatcov run now allows the specification of a specific board to use, of
   particular interest for GNATemulator based execution environments.
+
+NF-13-MB05-039 gnatcov coverage --non-coverable (2013-12-12)
+
+  gnatcov coverage now supports the --non-coverable command line option to
+  expose "non-coverable" statements, that have no attached machine code and
+  for which the coverage status cannot be inferred from other statements
+  around.
