@@ -259,7 +259,19 @@ package body Project is
                         UI.LI_Seen := True;
                      end Set_LI_Seen;
 
-                     U  : constant String := Unit_Name (LI.Source.all);
+                     LI_Source_Unit : constant String :=
+                                        Unit_Name (LI.Source.all);
+                     LI_Source_File : constant String :=
+                                        +Base_Name (File (LI.Source.all));
+
+                     U  : constant String :=
+                            (if LI_Source_Unit'Length >  0
+                             then LI_Source_Unit
+                             else LI_Source_File);
+                     --  For unit-based languages (Ada), retrieve unit name
+                     --  from LI file. For file-based languages (C), fall back
+                     --  to translation unit source file name instead.
+
                      UC : constant Unit_Maps.Cursor := Inc_Units.Find (U);
 
                   --  Start of processing for Process_LI
