@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2014, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -44,8 +44,10 @@ private package Rundrv.Expander is
    --  to set environment variables, without actually inserting anything in
    --  the final command line.
 
-   --  Macro references are all like %<macro-name>, with the following set of
-   --  supported names:
+   --  Macro references are recognized as %<macro-name>. For a given argument,
+   --  text is allowed before and after the macro reference. This allows specs
+   --  like "--trace=%trace,extra-arg-as-needed".  The set of recognized macro
+   --  names is described below:
 
    ----------------------
    -- Available macros --
@@ -62,7 +64,15 @@ private package Rundrv.Expander is
 
    --  %trace:
    --  -------
-   --  The trace filename provided on the command line, as-is.
+   --  Arguments to pass to the execution engine to request the production of
+   --  a trace, for engines that support parameters controlling history.  This
+   --  our output trace filename prefixed by a history control argument if we
+   --  are targeting mcdc analysis. The prefix is "histmap=<decision-map>," if
+   --  we have SCOs at hand, just "history," otherwise.
+
+   --  %tracefile:
+   --  -----------
+   --  Our output trace filename.
 
    --  %eargs:
    --  -------
@@ -118,12 +128,15 @@ private
    function Exe return String;
    function Exe_Dir return String;
    function Trace return String;
+   function Tracefile return String;
 
    function Set_Valgrind_Env return String;
    function Valgrind return String;
 
    --  A table saying which value function to call for each macro. Better
-   --  extracted out to be computed once only.
+   --  extracted out to be computed once only. This is scanned in order during
+   --  expansion and entries with a common macro-name prefix should be ordered
+   --  such that the longest name comes first.
 
    type Smacro_Entry is record
       Key  : String_Access;
@@ -138,6 +151,9 @@ private
 
       (Key => new String'("%exe_dir"),
        Eval => Exe_Dir'Access),
+
+      (Key => new String'("%tracefile"),
+       Eval => Tracefile'Access),
 
       (Key => new String'("%trace"),
        Eval => Trace'Access),

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2013, AdaCore                     --
+--                     Copyright (C) 2009-2014, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -88,6 +88,13 @@ package body Rundrv.Expander is
          return Trace_Output.all;
       end if;
    end Trace;
+
+   --  %tracefile
+
+   function Tracefile return String is
+   begin
+      return Trace_Output.all;
+   end Tracefile;
 
    --  %set_valgrind_env
 
