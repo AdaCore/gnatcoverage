@@ -307,6 +307,13 @@ def add_shared_options_to (o, toplevel):
               else 'Toolchain discriminant')
         )
 
+    # --largs
+
+    o.add_option(
+        '--largs', dest='largs', metavar='LARGS', default="",
+        help=('-largs to pass to gprbuild')
+        )
+
     # --cargs[:<lang>] family: a common, language agnostic, one + one for each
     # language we support. --cargs "" should be kept semantically equivalent
     # to absence of --cargs at all, and forcing a string allows simpler code

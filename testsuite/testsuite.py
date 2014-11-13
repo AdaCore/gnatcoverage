@@ -1026,6 +1026,9 @@ class TestSuite:
         if mopt.RTS:
             testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
+        if mopt.largs:
+            testcase_cmd.append('--largs=%s' % mopt.largs)
+
         testcase_cmd.append('--tags=@%s' % self.__discriminants_log())
 
         # --gnatcov_<cmd> family

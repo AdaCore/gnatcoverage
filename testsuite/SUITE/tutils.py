@@ -100,7 +100,8 @@ def gprbuild_largs_with (thislargs):
     """Compute and return all the largs gprbuild arguments to pass.
        Account for specific requests in THISLARGS."""
 
-    all_largs = to_list (thislargs)
+    all_largs = to_list (thistest.options.largs)
+    all_largs.extend (to_list (thislargs))
     if all_largs:
         all_largs.insert (0, '-largs')
 
