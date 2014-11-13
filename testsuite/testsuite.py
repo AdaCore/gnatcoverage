@@ -192,7 +192,7 @@ QLEVEL_INFO = {
 #                     o----> ADD <----o
 #                             |
 #                             v
-#     run "gprbuild -Pgpr --cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
+#     run "gprbuild -Pgpr -cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
 
 # In addition to the SUITE.control bits, the only default option we enforce is
 # -gnat05 for Ada.
