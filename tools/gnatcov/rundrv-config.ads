@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2013, AdaCore                     --
+--                     Copyright (C) 2009-2014, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -199,7 +199,7 @@ private package Rundrv.Config is
        Setup_Options => null,
        Run_Command => new String'("lmp-elf-run"),
        Run_Options => new String_List'(new String'("-a"),
-                                       new String'("--trace=%trace"),
+                                       new String'("--trace=%tracefile"),
                                        new String'("%exe"))
       )
      );
