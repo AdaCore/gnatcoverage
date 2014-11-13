@@ -12,7 +12,7 @@ abstract project Common is
 
    type Target_Type is 
    ( "powerpc-elf", "powerpc-eabispe",
-     "leon-elf", "leon3-elf",
+     "leon-elf", "leon3-elf", "lmp-elf",
      "unspecified", ""
    );
    Target : Target_Type := external ("TARGET", "unspecified");
