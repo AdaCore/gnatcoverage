@@ -714,7 +714,7 @@ class TestSuite:
         possibly followed by "rc", then by maybe a '/' prior to the end of
         string."""
 
-        m = re.search ("(\d\.[01]\.[0123](?:rc)?)/?$", self.options.toolchain)
+        m = re.search ("(\d\.\d\.\d(?:rc)?)/?$", self.options.toolchain)
         return [m.group(1)] if m else []
 
     def __generate_group (self, dirname, group_py):
