@@ -13,5 +13,5 @@ end;
 --# addmult.adb
 --  /compute/ l+ ## 0
 
--- %tags: 7.0.3
+-- %tags: (7.0.3|7.2.2)
 -- =/compute/ l! ## s!
