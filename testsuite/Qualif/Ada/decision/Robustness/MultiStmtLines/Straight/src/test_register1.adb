@@ -21,9 +21,9 @@ end;
 -- %cargs: -O1
 --  =/init/  l! ## s-:"This_Score .= 0",dF-
 
---  7.0.3 is imprecise with multiple stmts on a line
+-- Some compilers are imprecise with multiple stmts on a line
 
--- %tags:7.0.3 
+-- %tags:(7.0.3|7.2.2) 
 -- =/init/   l! ## s!,d!:"if Hit > 0"
 -- =/double/ l! ## s!,d!:"if Double"
 -- =/triple/ l! ## s!,d!:"if Triple"

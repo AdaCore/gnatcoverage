@@ -19,18 +19,18 @@ end;
 -- %cargs: -O1
 --  =/init/  l! ## s-:"This_Score .= 0",dF-
 
---  7.0.3 is imprecise with multiple stmts on a line
+--  Some compilers are imprecise with multiple stmts on a line
 
--- %tags:7.0.3
+-- %tags:(7.0.3|7.2.2)
 --  =/init/   l! ## s!, d!
 --  =/double/ l! ## s!, d!
 --  =/triple/ l! ## s!, d!
 --  =/hits/   l! ## s!, dF-
 
--- %tags:7.0.3 %cargs:!-gnatp
+-- %tags:(7.0.3|7.2.2) %cargs:!-gnatp
 --  =/double/ l! ## dF-
 --  =/triple/ l! ## dF-
 
 -- See test_register1 for comments on the dF- for
--- "triple" on 7.0.3 without gnatp.
+-- "triple" on 7.0.3 or 7.2.2 without gnatp.
 
