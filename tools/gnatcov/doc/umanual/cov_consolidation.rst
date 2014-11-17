@@ -114,9 +114,7 @@ computations for statement coverage can be achieved with::
    gnatcov coverage --scos=main.c.gli --scos=process.c.gli \
       --annotate=xcov --level=stmt mult.trace plus.trace
 
-And this yields reports in ``main.c.xcov`` and ``process.c.xcov`` like:
-
-.. code-block:: c
+And this yields reports in ``main.c.xcov`` and ``process.c.xcov`` like::
 
    ...
    5 .: void usage ()
@@ -135,9 +133,6 @@ And this yields reports in ``main.c.xcov`` and ``process.c.xcov`` like:
   18 +:   process (argv);
   19 +:   return 0;
   20 .: }
-
-
-.. code-block:: c
 
    ...
    5 .: void process (const char * argv[])
@@ -233,9 +228,7 @@ something like::
   gnatcov run test_cmd_safe   # produces test_cmd_safe.trace
   gnatcov coverage --level=stmt --scos=commands.ali --annotate=xcov test_cmd_safe.trace
 
-Producing a ``commands.adb.xcov`` report with:
-
-.. code-block:: ada
+Producing a ``commands.adb.xcov`` report with::
 
    6 .:    procedure Stat (Safe : Boolean) is
    7 .:    begin
@@ -261,9 +254,7 @@ expected to return False:
       Assert (not Safe (Cmd => Step, Front => Pit));
    end Test_Cmd_Unsafe;
 
-This one alone produces the symmetric ``commands.adb.xcov`` report, with:
-
-.. code-block:: ada
+This one alone produces the symmetric ``commands.adb.xcov`` report, with::
 
    6 .:    procedure Stat (Safe : Boolean) is
    7 .:    begin
@@ -284,8 +275,6 @@ Commands package body::
 
   gnatcov coverage [...] test_cmd_safe.trace test_cmd_unsafe.trace
   ...
-
-.. code-block:: ada
 
    6 .:    procedure Stat (Safe : Boolean) is
    7 .:    begin

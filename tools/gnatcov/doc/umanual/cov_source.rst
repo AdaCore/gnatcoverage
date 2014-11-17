@@ -69,7 +69,9 @@ Later in this chapter we name output formats by the text to add to
 
 We will illustrate the various formats with samples extracted from outputs
 obtained by perfoming coverage analysis of the following example Ada
-application unit::
+application unit:
+
+.. code-block:: ada
 
    function Between (X1, X2, V : Integer) return Boolean;
    --  Whether V is between X1 and X2, inclusive and regardless
@@ -83,6 +85,7 @@ application unit::
          return V >= X2 and then V <= X1;
       end if;
    end Between;
+
 
 Annotated sources, text (:option:`=xcov[+]`)
 --------------------------------------------
@@ -695,6 +698,7 @@ partial coverage annotation on the inner ``if`` control line::
   21 +:    Value := X / Y;
   22 .: end Divmod;
 
+
 Now we exercise with another test driver:
 
 .. code-block:: ada
@@ -706,6 +710,7 @@ Now we exercise with another test driver:
       Divmod (X => 5, Y => 0, Value => Value,
               Divides => Divides, Tell => True);
    end Test_Divmod0;
+
 
 Here we issue a single call passing 0 for the Y argument, which triggers a
 check failure for the ``mod`` operation.
@@ -727,6 +732,7 @@ This results in the following :option:`=xcov` output::
   20 .:
   21 -:    Value := X / Y;
   22 .: end Divmod;
+
 
 We have an interesting situation here, where
 
@@ -1035,36 +1041,48 @@ expressions:
 
 The most straightforward examples of non control-flow expressions treated as
 decisions for MCDC are the logical expressions appearing in contexts such as
-the right-hand side of assignments. For example::
+the right-hand side of assignments. For example:
+
+.. code-block:: ada
 
   Valid_Data, Sensor_OK, Last_Update_OK : Boolean;
   ...
-  Valid_Data := Sensor_OK and then Last_Update_OK; -- 1 decision here, in Ada
+  Valid_Data := Sensor_OK and then Last_Update_OK; -- 1 decision here
+
+
+.. code-block:: c
 
   bool needs_update;
   struct sensor_state * state;
   ...
-  needs_update = (state && !state->valid);   /* 1 decision here, in C */
+  needs_update = (state && !state->valid);   /* 1 decision here */
+
 
 Non short-circuit binary operators, when allowed by the coding standard, are
 taken as regular computational devices and may either participate in the
 construction of operands or split an expression into multiple decisions. For
-instance::
+instance:
+
+.. code-block:: c
 
   bool aligned (int x, y)
   ...
-    return !(x & 0x3) && !(y & 0x3);
+    return !(x & 0x3) && !(y & 0x3);  /* 1 decision here */
+
 
 in C produces a single decision with two bitwise ``&`` operands.
-And the following Ada excerpt::
+And the following Ada excerpt:
+
+.. code-block:: ada
 
   A, B, C, D, E : Boolean;
   ...
-  if ((A and then not B) == (C or else (D and then E)))
+  if ((A and then not B) == (C or else (D and then E))) then -- 3 decisions here
+
 
 produces three decisions: ``(A and then not B)``, 2 operands combined with
-short-circuit ``and then``, ``(C or else (D and then E)))``, 3 operands
-combined with short-circuit ``and then`` and ``or else``, and the whole
+short-circuit ``and-then``, ``(C or else (D and then E)))``, 3 operands
+combined with short-circuit ``and-then`` and ``or-else``, and the whole
 toplevel expression as it is controlling an ``if`` statement.
 
 In C as in Ada, logical negation is allowed anywhere and just participates in
@@ -1153,8 +1171,8 @@ With a lone :option:`-P` or with :option:`--projects` in addition, projects
 imported by the listed ones are also considered recursively if
 :option:`--recursive` is used.
 
-The following figures illustrate the effect of various combinations, assuming
-an example source tree depicted below:
+We will illustrate the effect of various combinations, assuming an example
+source tree depicted below:
 
 .. image:: prjtree.*
   :align: center
@@ -1448,9 +1466,7 @@ absence of code for a couple of Ada statments was triggered by constant
 propagation and inlining. The local ``Pos`` function is called only once, with
 a constant argument such that only one alternative of the ``if`` statement is
 taken. With :option:`-O1 -gnatn`, the compiler sees that the ``else`` part can
-never be entered and no code is emitted at all for this alternative:
-
-.. code-block:: ada
+never be entered and no code is emitted at all for this alternative::
 
    4 .: procedure Test_Pos1 is
    5 .:    function Pos (X : Integer) return Boolean;
@@ -1484,9 +1500,7 @@ value in some instances.
 Back to our ``Test_Pos1`` example, no code is emitted for the test on line
 10 either. |gcv| is however able to infer the ``if`` coverage status by
 looking at the status of statements controlled by the decision, and the
-Decision coverage report remains accurate:
-
-.. code-block:: ada
+Decision coverage report remains accurate::
 
     8 .:    function Pos (X : Integer) return Boolean is
     9 .:    begin
@@ -1499,9 +1513,7 @@ Decision coverage report remains accurate:
 the non-coverable statements if needed. They are listed in an additional
 "``NON COVERABLE ITEMS``" section of the :option:`=report` outputs and the
 corresponding lines are flagged with a '0' mark in annotated sources, as well
-as a specific color in the html formats. For our example, this yields:
-
-.. code-block:: ada
+as a specific color in the html formats. For our example, this yields::
 
   10 !:       if X > 0 then
   11 +:          Put_Line ("X is positive");
