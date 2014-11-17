@@ -1120,14 +1120,15 @@ convention::
 
 Each occurrence of :option:`--scos` on the command line expects a single
 argument which specifies a set of units of interest. Multiple occurrences are
-allowed and the sets accumulate. The argument might be either a single unit
-name or a :term:`@listfile argument` expected to contain a list of unit names.
+allowed and the sets accumulate. The argument might be either the name of a
+single Library Information file for a unit (typically a ``.ali`` file for Ada,
+or a ``.c.gli`` file for C), or a :term:`@listfile argument` expected to
+contain a list of such Library Information file names.
 
 For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
 with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with
-``--scos=u3.ali --scos=@lst12``, provided a ``lst12`` text file containing the
-first two ALI file names, or with ``--scos=@lst123`` where ``lst123`` is a text
-file containing the three unit names.
+``--scos=u3.ali --scos=@lst12`` where ``lst12`` is a text file containing the
+first two ALI file names, or with other combinations alike.
 
 
 .. _passing_gpr:
