@@ -70,7 +70,12 @@ prepare-version: ../../version.ads
 	VERSION=$$(sed -n -e 's/.*Version.*"\(.*\)".*/\1/p' ../../version.ads); \
 	perl -pi -e "s#^version =.*#version = \"$$VERSION\"#" conf.py
 
-stamp-prepare: prepare-images prepare-version
+# Production mode needs to assume that the binary prerequisites
+# are up to date. We can't rely on timestamps for this.
+
+PREPARE_IMAGES=$(if $(filter prod, $(BUILD_MODE)),,prepare-images)
+
+stamp-prepare: $(PREPARE_IMAGES) prepare-version
 	touch stamp-prepare
 
 html: stamp-prepare

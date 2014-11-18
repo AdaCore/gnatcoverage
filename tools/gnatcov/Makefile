@@ -172,10 +172,10 @@ ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 UMAN_DOCDIR=doc/umanual
 
 doc-build.%:
-	make -C $(UMAN_DOCDIR) $*
+	make -C $(UMAN_DOCDIR) BUILD_MODE=$(BUILD_MODE) $*
 
 doc-copy.%:
-	make -C $(UMAN_DOCDIR) COPYDIR=$(shell pwd)/doc/$* copy.$*
+	make -C $(UMAN_DOCDIR) BUILD_MODE=$(BUILD_MODE) COPYDIR=$(shell pwd)/doc/$* copy.$*
 
 .PHONY: doc
 
