@@ -1100,28 +1100,37 @@ and where the restriction would make the language really much harder to use.
 Specifying the units of interest
 ================================
 
-This section describes the command line switches that can be passed to
-|gcvrun| and |gcvcov| to convey the set of units on which coverage should be
-assessed, which we will call the set of :dfn:`units of interest`.
+This section describes the means available to convey the set of units on
+which coverage should be assessed, which we will call the set of :dfn:`units
+of interest` and which are relevant to both |gcvrun| and |gcvcov|.
 
 .. _passing_scos:
 
-Low-level interface (:option:`--scos`)
---------------------------------------
+Providing the Library Information files (:option:`--scos`)
+----------------------------------------------------------
 
 With the :option:`--scos` command line argument, users convey the set of units
 of interest by providing the set of Library Information files corresponding to
-those units.
+those units. Each occurrence of :option:`--scos` on the command line expects a
+single argument which specifies a set of units of interest. Multiple
+occurrences are allowed and the sets accumulate. The argument might be either
+the name of a single Library Information file for a unit (typically, a
+``.ali`` file for Ada, or a ``.c.gli`` file for C), or a :term:`@listfile
+argument` expected to contain a list of such Library Information file names.
 
-For Ada programs, the GNAT toolchain provides a useful device for this
-computation: the :option:`-A` command line argument to :command:`gnatbind`
-which produces a list of all the .ali files involved in an executable
-construction.  By default, the list goes to standard output. It may be
-directed to a file on request with :option:`-A=<list-filename>`, and users may
-of course filter this list as you see fit depending on your analysis purposes.
-Below is an example sequence of commands to illustrate, using the standard
-Unix ``grep`` tool to filter out test harness units, assuming a basic naming
-convention::
+For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
+with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with
+``--scos=u3.ali --scos=@lst12`` where ``lst12`` is a text file containing the
+first two ALI file names, or with other combinations alike.
+
+The GNAT toolchain provides a useful device for list computations: the
+:option:`-A` command line argument to :command:`gnatbind` which produces a
+list of all the .ali files involved in an executable construction.  By
+default, the list goes to standard output. It may be directed to a file on
+request with :option:`-A=<list-filename>`, and users may of course filter this
+list as you see fit depending on your analysis purposes.  Below is an example
+sequence of commands to illustrate, using the standard Unix ``grep`` tool to
+filter out test harness units, assuming a basic naming convention::
 
     # Build executable and produce the corresponding list of ALI files. Pass
     # -A to gnatbind through gprbuild -bargs then filter out the test units:
@@ -1129,57 +1138,48 @@ convention::
     gprbuild -p --target=powerpc-elf --RTS=zfp-prep -Pmy.gpr
      test_divmod0.adb -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
 
-    grep -v 'test_[^/]*.ali' all.alis > divmod0.alis
+    # Run and analyse all units except the test harness:
 
-    # Run/Analyse using the list of interest:
+    grep -v 'test_[^/]*.ali' all.alis > divmod0.alis
 
     gnatcov run --level=stmt+mcdc --scos=@divmod0.alis
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
 
-Each occurrence of :option:`--scos` on the command line expects a single
-argument which specifies a set of units of interest. Multiple occurrences are
-allowed and the sets accumulate. The argument might be either the name of a
-single Library Information file for a unit (typically a ``.ali`` file for Ada,
-or a ``.c.gli`` file for C), or a :term:`@listfile argument` expected to
-contain a list of such Library Information file names.
-
-For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
-with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with
-``--scos=u3.ali --scos=@lst12`` where ``lst12`` is a text file containing the
-first two ALI file names, or with other combinations alike.
-
 
 .. _passing_gpr:
 
-Using project files
--------------------
+Using project files (:option:`-P`, :option:`--projects`, :option:`--units`)
+---------------------------------------------------------------------------
 
-As an alternative to manually specifying the complete list of Library
-Information files to be loaded, you can use GNAT project files to specify
-units of interest and let |gcv| determine automatically the location of these
-files.
+As an alternative to manually providing the complete list of Library
+Information files to consider, you can use GNAT project files to specify units
+of interest directly. As an application often incurs a tree of (sub-)projects,
+the units of interest designation incurs two levels of selection: first,
+specify the set of :dfn:`projects of interest` where the units of interest
+reside, then for each project of interest, specify units of interest therein
+if needed.
 
 For starters, a single :dfn:`root project` must be specified using the
-:option:`-P` option, then :dfn:`projects of interest`, within the project tree
-rooted at the given root, may be specified using :option:`--projects` options.
-If :option:`-P` is used alone, without any :option:`--projects`, then units of
-interest from the root project itself are considered. With
-:option:`--projects` options, only the projects listed by these options are
-considered. The root project designated by :option:`-P` is not included in the
-scope if it is not listed in the :option:`--projects` set as well.
-With a lone :option:`-P` or with :option:`--projects` in addition, projects
-imported by the listed ones are also considered recursively if
-:option:`--recursive` is used.
+:option:`-P` option, then projects of interest within the tree rooted at the
+given root may be specified with :option:`--projects` options.  If
+:option:`-P` is used alone, without any :option:`--projects` option, then the
+root project itself is considered of interest.  With :option:`--projects`
+options, the projects listed by these options are considered of interest. The
+root project designated by :option:`-P` needs to be listed in the
+:option:`--projects` set to be considered of interest as well. With a lone
+:option:`-P` or with :option:`--projects` in addition, projects imported by
+the listed ones are also considered recursively if :option:`--recursive` is
+used.
 
 We will illustrate the effect of various combinations, assuming an example
-source tree depicted below:
+project tree depicted below:
 
 .. image:: prjtree.*
   :align: center
 
-On this project tree, :ref:`fig-Proot` restricts the analysis to units in the
-root project only, and :ref:`fig-Proot-ss_a` allows focusing on the Subsystem
-A project only. If the root project is of interest as well, it must be listed
+On this tree, :ref:`fig-Proot` restricts the analysis to units in the root
+project only, and :ref:`fig-Proot-ss_a` allows focusing on the Subsystem A
+project only. If the root project is of interest as well, it must be listed
 explicitly, as in :ref:`fig-Proot-root-ss_a`.
 
 .. _fig-Proot:
@@ -1209,37 +1209,40 @@ by the designated ones. For example:
 
   ``-Proot --projects=subsystem_a --recursive``
 
-The :option:`-P` and :option:`--projects` options select *projects* of
-interest. Now within each of these projects, *units* of interest can also be
-specified, using specific attributes in package ``Coverage`` of project files.
-Four attributes are available for this purpose: ``Units``, ``Units_List``,
-``Excluded_Units``, and ``Excluded_Units_List``.
+By default, all the units encompassed by a project of interest are considered
+of interest. This can be tailored thanks to specific attributes in package
+``Coverage`` of project files.
+
+Four attributes are available to control the set of units to be considered of
+interest within a project: ``Units``, ``Units_List``, ``Excluded_Units``, and
+``Excluded_Units_List``.
 
 ``Units`` and ``Units_List`` are used to construct an initial set of units for
-which coverage analysis should be performed.  Similarily to ``Sources`` and
-``Sources_List``, ``Units`` specifies a set of units, and ``Units_List``
-specifies the name of a text file containing a list of units. If neither is
-specified, then by default all units in the project are considered for
-coverage analysis.
-For example, given a project with three packages Pak1, Pak2, and Pak3,
-if you want to do coverage analysis only for Pak1 and Pak3 you can
-specify::
+which coverage analysis should be performed.  For example, given a project
+with three packages ``Pak1``, ``Pak2``, and ``Pak3``, if you want to do
+coverage analysis only for ``Pak1`` and ``Pak3`` you can specify::
 
-  package Coverage is              or:   package Coverage is
-    for Units use ("pak1","pak3");         for Units_List use "units.txt";
-  end Coverage;                          end Coverage
+  package Coverage is 
+    for Units use ("pak1", "pak3"); -- pak1 and pak3 are of interest
+  end Coverage;
 
-``Excluded_Units`` and ``Excluded_Units_List`` operate in a similar way,
-indicating units that are never considered for coverage. Back to our example,
-the same result as above is obtained by specifying::
+Similarily to ``Sources`` and ``Sources_List``, the ``Units`` attribute
+specifies a set of units and ``Units_List`` specifies the name of a text file
+containing a list of units.  See the :ref:`unit-names` section for details
+how individual units should be denoted depending on the source language.
+
+``Excluded_Units`` and ``Excluded_Units_List`` operate like ``Units`` and
+``Units_List`` but for units that should never be considered of interest for
+coverage. Back to our example, the same result as above is obtained by
+specifying::
 
    package Coverage is
-      for Excluded_Units use ("pak2");  -- Consider all units except "pak2"
+      for Excluded_Units use ("pak2");  -- all units except pak2 are of interest
    end Coverage;
 
 When the exclude/include sets overlap, the excluding attributes prevail
 over the including ones. The exact rules for computation of the units to be
-considered for a project are as follows:
+considered of interest within a project are as follows:
 
 - An initial set is determined using the ``Units`` and ``Units_List``
   attributes in the project's ``Coverage`` package; By default, if no such
@@ -1248,12 +1251,89 @@ considered for a project are as follows:
 - Units determined using the ``Excluded_Units`` and ``Excluded_Units_List``
   attributes are removed from the initial set to yield the set to consider.
 
-The list of units to be considered for a given execution of |gcv| can also be
-overridden from the command line using :option:`--units=<UNIT|@LISTFILE>`.
+Finally, the list of units of interest for a given execution of |gcv| can also
+be overriden from the command line using the :option:`--units` switch.  When
+this option is used, the project files attributes are ignored.
+
 Each occurrence of this switch indicates one unit to focus on, or with the @
-syntax the name of a file containing a list of units to focus on. When
-:option:`--units` is used, the ``Units``, ``Units_List``, ``Excluded_Units``,
-and ``Excluded_Units_List`` attributes are ignored.
+syntax the name of a file containing a list of units to focus on.
+
+.. _unit-names:
+
+Compilation unit vs source file names
+-------------------------------------
+
+For Ada, explicit *compilation unit* names are given to library level packages
+or suprograms, case insensitive. This is what must be used in project file
+attributes or :option:`--units` arguments to elaborate the set of :dfn:`units
+of interest`, not source file names.
+
+This offers a simple and consistent naming basis to users, orthogonal to the
+unit/source name mapping. Consider, for example, a project file with the set
+of declarations below, which parameterizes the source file name to use for the
+body of a ``Logger`` package depending on the kind of build performed::
+
+  type Build_Mode_Type is ("Production", "Debug");
+  Build_Mode : Build_Mode_Type := external ("BUILD_MODE", "Debug");
+
+  package Naming is
+     case Build_Mode is
+        when "Production" =>
+           for Implementation ("Logger") use "production-logger.adb";
+        when "Debug" =>
+           for Implementation ("Logger") use "debug-logger.adb";
+     end case;
+  end Naming;
+
+Regardless of the build mode, restricting the analysis to the ``Logger``
+package would be achieved with :option:`-P<project> --units=logger` or
+with a ``Units`` attribute such as::
+  
+  package Coverage is
+     for Units use ("Logger"); -- compilation unit name here
+  end Coverage;
+
+
+Source file names are used in the output reports, still, either in source
+location references as part of the :option:`=report` outputs, or as the base
+filename of annotated source files for other formats. For our ``Logger`` case
+above, the analysis with, for example, :option:`--annotate=xcov` of a program
+built in Debug mode would yield a ``debug-logger.adb.xcov`` annotated source
+result.
+
+Subunits, declared with a ``separate`` keyword and implemented in a separate
+source file, are compiled as part of their parent and are not considered as
+units on their own. Only the parent name has an effect in the coverage
+analysis scope specifications and it denotes the set of sources involved
+in the entire unit implementation, subunit sources included.
+
+For C, the notion of *translation unit* resolves to the set of tokens that the
+compiler gets to work on, after the pre-processing expansion of macros,
+#include directives and the like. This doesn't have an explicit name and
+:dfn:`units of interest` must be designated by the toplevel source file names
+from which object files are produced.
+
+Typically, from a sample ``foo.c`` source like:
+
+.. code-block: c
+
+   #include "foo.h"
+
+   static int bar (void)
+   { ... }
+
+   ...
+   void foo (int x)
+   { ... }
+
+
+``gcc -c foo.c -fdump-scos ...`` would produce a ``foo.o`` object file, a
+``foo.c.gli`` companion Library Information file, and excluding it from the
+analysis scope can be achieved with::
+
+  package Coverage is
+     for Excluded_Units use ("foo.c"); /* source file name here  */
+  end Coverage;
 
 
 Inlining & Ada Generic Units
