@@ -13,7 +13,7 @@ available from ``gnatcov`` ``--help``, as follows::
 
    run [OPTIONS] [EXE] [-eargs [EXE] EARGS...]
 
-:option:`EXE`:
+:option:`EXE` :
   The executable program to be emulated. The provided name is stored in the
   output trace header that |gcvcov| fetches for analysis purposes later on.
   Relative paths there will be considered relative to the location where
@@ -21,6 +21,7 @@ available from ``gnatcov`` ``--help``, as follows::
   name may be provided there instead.
 
 .. _eargs:
+
 :option:`-eargs` :
   For cross configurations (with :option:`--target`), pass what follows to the
   machine simulator that eventually executes the program. For native

@@ -170,7 +170,7 @@ html version, these extra details are initially folded within their associated
 line and expanded by a mouse click on the line.
 
 Annotated sources, dynamic html (:option:`=dhtml`)
--------------------------------------------------
+--------------------------------------------------
 
 :option:`--annotate=dhtml` produces a *dynamic html* output, which essentially
 features:
