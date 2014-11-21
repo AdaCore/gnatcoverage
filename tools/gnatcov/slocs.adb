@@ -24,9 +24,11 @@ with Strings;     use Strings;
 package body Slocs is
 
    function Abridged_Image
-     (Sloc : Source_Location;
-      Ref  : Source_Location) return String;
-   --  Return the image of Sloc, omitting elements that are common with Ref
+     (Sloc        : Source_Location;
+      Ref         : Source_Location;
+      Unique_Name : Boolean := False) return String;
+   --  Return the image of Sloc, omitting elements that are common with Ref. If
+   --  Unique_Name then use unique filenames, simple ones otherwise.
 
    ---------
    -- "<" --
@@ -95,9 +97,15 @@ package body Slocs is
    --------------------
 
    function Abridged_Image
-     (Sloc : Source_Location;
-      Ref  : Source_Location) return String
+     (Sloc        : Source_Location;
+      Ref         : Source_Location;
+      Unique_Name : Boolean := False) return String
    is
+      function Get_Name (File : Source_File_Index) return String is
+        (if Unique_Name
+         then Get_Unique_Name (File)
+         else Get_Simple_Name (File));
+
       Show_File, Show_Line, Show_Column : Boolean;
 
    begin
@@ -112,7 +120,7 @@ package body Slocs is
                        or else Sloc.L.Column /= Ref.L.Column;
 
       return
-        (if Show_File then Get_Simple_Name (Sloc.Source_File) & ":" else "")
+        (if Show_File then Get_Name (Sloc.Source_File) & ":" else "")
         &
         (if Show_Line then Img (Sloc.L.Line) & ":" else "")
         &
@@ -130,9 +138,13 @@ package body Slocs is
    -- Image --
    -----------
 
-   function Image (Sloc : Source_Location) return String is
+   function Image (Sloc : Source_Location;
+                   Unique_Name : Boolean := False) return String is
    begin
-      return Abridged_Image (Sloc, Ref => No_Location);
+      return Abridged_Image
+        (Sloc        => Sloc,
+         Ref         => No_Location,
+         Unique_Name => Unique_Name);
    end Image;
 
    function Image (Sloc_Range : Source_Location_Range) return String is

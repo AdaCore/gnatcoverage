@@ -449,7 +449,7 @@ package body Annotations.Xml is
 
       Simple_Source_Filename : constant String := Info.Simple_Name.all;
       Xml_File_Name          : constant String :=
-        Get_Unique_Name (File) & ".xml";
+        Get_Unique_Filename (File, "xml");
    begin
       if not (Info.Has_Source or Flag_Show_Missing) then
          Warn_File_Missing (Info.all);

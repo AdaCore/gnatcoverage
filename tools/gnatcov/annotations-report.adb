@@ -446,7 +446,8 @@ package body Annotations.Report is
 
          begin
             if M.SCO /= No_SCO_Id then
-               Put (Output.all, Image (First_Sloc (M.SCO)));
+               Put
+                 (Output.all, Image (First_Sloc (M.SCO), Unique_Name => True));
                Put (Output.all, ": ");
                if Msg (First) = '^' then
                   First := First + 1;
@@ -457,7 +458,7 @@ package body Annotations.Report is
                end if;
 
             else
-               Put (Output.all, Image (M.Sloc));
+               Put (Output.all, Image (M.Sloc, Unique_Name => True));
                Put (Output.all, ": ");
             end if;
 

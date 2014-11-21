@@ -62,8 +62,11 @@ package Files_Table is
    --  Comments needed???
 
    function Get_Unique_Name (Index : Source_File_Index) return String;
-   --  For files whose base name are unique, return their basename. Return a
-   --  discriminated one for other (aliased) files.
+   --  Return the shortest unambiguous file name. It is the smallest suffix for
+   --  full name that is unique to this file (multiple files can have the same
+   --  base name). Since unicity changes when new files are registered in the
+   --  table, it is invalid to register file once Get_Unique_Name has been
+   --  invoked once.
 
    --  Utilities to open files from the source file table. Source files will be
    --  searched on the local filesystem, in the following order:
@@ -213,11 +216,14 @@ package Files_Table is
       Simple_Name : String_Access;
       --  File name of the source file, without the path
 
+      Unique_Name : String_Access;
+      --  Shortest unambiguous file name. It is the smallest Full_Name suffix
+      --  that is unique to this file (multiple files can have the same base
+      --  name). Computed by Get_Unique_Name once all files are registered in
+      --  the table.
+
       Has_Source : Boolean := True;
       --  False if no source file is found that corresponds to this file name
-
-      Alias_Num : Positive;
-      --  Unique index for all source files that has the same basename.
 
       Lines : Source_Lines;
       --  Source file to display in the reports

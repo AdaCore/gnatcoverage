@@ -66,7 +66,9 @@ package Slocs is
                                   (No_Source_File, No_Local_Location);
    --  Note: No_Location must sort higher than any non-null location
 
-   function Image (Sloc : Source_Location) return String;
+   function Image
+     (Sloc : Source_Location;
+      Unique_Name : Boolean := False) return String;
 
    type Source_Location_Range is record
       Source_File : Source_File_Index;

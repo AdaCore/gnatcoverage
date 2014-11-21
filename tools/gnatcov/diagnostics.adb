@@ -106,7 +106,11 @@ package body Diagnostics is
       function Sloc_Image return String is
       begin
          if M.Sloc /= No_Location then
-            return " " & Image (M.Sloc) & ":";
+
+            --  Diagnostics can be emitted before the file table is complete,
+            --  so we cannot rely on unique filenames, here.
+
+            return " " & Image (M.Sloc, Unique_Name => False) & ":";
          else
             return "";
          end if;

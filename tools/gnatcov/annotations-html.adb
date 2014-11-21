@@ -540,7 +540,7 @@ package body Annotations.Html is
 
       Simple_Source_Filename : String renames Info.Simple_Name.all;
       Output_Filename        : constant String :=
-        Get_Unique_Name (File) & ".html";
+        Get_Unique_Filename (File, "html");
 
    --  Start of processing for Pretty_Print_File
 

@@ -18,8 +18,12 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Characters.Handling;
+with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Unchecked_Deallocation;
+
+with System;
+with System.Address_To_Access_Conversions;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
@@ -34,7 +38,16 @@ package body Files_Table is
      (Index_Type   => Valid_Source_File_Index,
       Element_Type => File_Info_Access);
 
-   Files_Table : File_Vectors.Vector;
+   Files_Table           : File_Vectors.Vector;
+
+   Unique_Names_Computed : Boolean := False;
+   --  Whether Unique_Name fields for element of Files_Table have been
+   --  computed. It is invalid to add files to the table after this is set
+   --  to True.
+
+   procedure Build_Unique_Names;
+   --  Compute unique names for all files in the table. Also take care of
+   --  setting Unique_Names_Computed.
 
    procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive);
 
@@ -527,13 +540,15 @@ package body Files_Table is
 
          --  If we reach this point, we inserting a new file into the table
 
+         pragma Assert (not Unique_Names_Computed);
+
          Info := new File_Info'
            (Full_Name                =>
                new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
             Simple_Name              =>
                new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
+            Unique_Name              => null,
             Has_Source               => True,
-            Alias_Num                => 1,
             Lines                    => (Source_Line_Vectors.Empty_Vector
                                            with null record),
             Stats                    => (others => 0),
@@ -572,7 +587,6 @@ package body Files_Table is
             begin
                Simple_Entry.Matches := Simple_Entry.Matches + 1;
                Simple_Name_Map.Replace_Element (Simple_Cur, Simple_Entry);
-               Info.Alias_Num := Simple_Entry.Matches;
             end;
          end if;
 
@@ -607,11 +621,13 @@ package body Files_Table is
          return No_Source_File;
       end if;
 
+      pragma Assert (not Unique_Names_Computed);
+
       Info := new File_Info'(Simple_Name              =>
                                 new String'(+Full_Name (Simple_Path)),
                              Full_Name                => null,
+                             Unique_Name              => null,
                              Has_Source               => True,
-                             Alias_Num                => 1,
                              Lines                    =>
                                 (Source_Line_Vectors.Empty_Vector
                                     with null record),
@@ -701,37 +717,270 @@ package body Files_Table is
       return Files_Table.Element (Index).Simple_Name.all;
    end Get_Simple_Name;
 
+   ------------------------
+   -- Build_Unique_Names --
+   ------------------------
+
+   procedure Build_Unique_Names is
+
+      package Conversions is new System.Address_To_Access_Conversions
+        (Object => File_Info);
+      function "+" (A : File_Info_Access) return System.Address is
+        (Conversions.To_Address (Conversions.Object_Pointer (A)));
+      function "<" (Left, Right : File_Info_Access) return Boolean is
+        (System."<" (+Left, +Right));
+      --  Utilities to deal with File_Info_Access in ordered sets
+
+      package File_Sets is new Ada.Containers.Ordered_Sets
+        (Element_Type => File_Info_Access);
+      type File_Set_Access is access File_Sets.Set;
+      --  Set of files that have the same name
+
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Object => File_Sets.Set, Name => File_Set_Access);
+
+      package Alias_Maps is new Ada.Containers.Hashed_Maps
+        (Key_Type        => Virtual_File,
+         Element_Type    => File_Set_Access,
+         Hash            => Full_Name_Hash,
+         Equivalent_Keys => "=");
+      --  Mapping from file name to a set of files that have the same name
+
+      use type Ada.Containers.Count_Type;
+      use Alias_Maps;
+
+      procedure Add_File
+        (Key  : String_Access;
+         File : File_Info_Access;
+         Map  : in out Alias_Maps.Map);
+      --  Add a file to the corresponding file set in Map, according to Key.
+      --  Create the file set if it does not exist.
+
+      procedure Clear (Map : in out Alias_Maps.Map);
+      --  Free all file sets in Map
+
+      procedure Grow_Unique_Name (File : File_Info_Access);
+      --  If File.Unique_Name is null, set it to the last subdirectory plus the
+      --  base name. Otherwise, extend it to include the previous containing
+      --  subdirectory. If it cannot be extended, raise a Program_Error: this
+      --  is really not supposed to happen.
+      --
+      --  For instance, considering a file /foo/bar/baz, successive calls to
+      --  Grow_Unique_Name will turn Unique_Name from null to "bar/baz", then
+      --  to "foo/bar/baz" and then to "/foo/bar/baz".
+
+      --------------
+      -- Add_File --
+      --------------
+
+      procedure Add_File
+        (Key  : String_Access;
+         File : File_Info_Access;
+         Map  : in out Alias_Maps.Map)
+      is
+         V_Key       : constant Virtual_File :=
+           Create (+Key.all);
+         Cur         : constant Cursor := Map.Find (V_Key);
+         File_Set   : File_Set_Access;
+      begin
+         if Cur = No_Element then
+            File_Set := new File_Sets.Set;
+            Map.Insert (V_Key, File_Set);
+         else
+            File_Set := Element (Cur);
+         end if;
+         File_Set.Insert (File);
+      end Add_File;
+
+      -----------
+      -- Clear --
+      -----------
+
+      procedure Clear (Map : in out Alias_Maps.Map) is
+      begin
+         for File_Set of Map loop
+            Free (File_Set);
+         end loop;
+      end Clear;
+
+      ----------------------
+      -- Grow_Unique_Name --
+      ----------------------
+
+      procedure Grow_Unique_Name (File : File_Info_Access) is
+         Full : String renames File.Full_Name.all;
+
+         procedure Get_Previous_Separator (Index : in out Positive);
+         --  Assuming index is a valid index in Full, decrease it until either
+         --  it meets the start of Full or until it meets a path separator
+         --  (slash or backslash). Note that consecutive path separators are
+         --  considered as a single separator.
+
+         ----------------------------
+         -- Get_Previous_Separator --
+         ----------------------------
+
+         procedure Get_Previous_Separator (Index : in out Positive) is
+            function Is_Sep (Index : Positive) return Boolean is
+              (Full (Index) in '/' | '\');
+            --  Return whether the character in Full at Index is a path
+            --  separator.
+
+            Crossed_Non_Sep : Boolean := False;
+         begin
+            --  To simplify the next steps, prepare the initial case (when
+            --  Index is at the end of Full) to look like we are already on
+            --  the last separator character to skip.
+
+            if Full'Last = Index then
+               while Full'First < Index and then not Is_Sep (Index) loop
+                  Index := Index - 1;
+               end loop;
+
+            --  When resuming in the middle of a path, we start from the first
+            --  character of a subdirectory. In such a case, first get to the
+            --  path separator.
+
+            elsif Full'First < Index
+              and then not Is_Sep (Index)
+              and then Is_Sep (Index - 1)
+            then
+               Index := Index - 1;
+            end if;
+
+            --  Skip all consecutive path separators
+
+            while Full'First < Index and then Is_Sep (Index) loop
+               Index := Index - 1;
+            end loop;
+
+            --  At this point, either we are already at the beginning of Full,
+            --  either we are over a non-separator character. In the latter
+            --  case, get to the next separator.
+
+            while Full'First < Index and then not Is_Sep (Index) loop
+               Crossed_Non_Sep := True;
+               Index := Index - 1;
+            end loop;
+
+            --  And now, if we crossed a non-separator character, we stopped
+            --  either because we met a separator or because we reached the
+            --  beginning of Full. In the former case, we do not want to
+            --  include the separator character in the output.
+
+            if Crossed_Non_Sep and then Is_Sep (Index) then
+               Index := Index + 1;
+            end if;
+         end Get_Previous_Separator;
+
+         First : Positive :=
+           (if File.Unique_Name = null
+            then Full'Last
+            else Full'Last - File.Unique_Name.all'Length + 1);
+      begin
+         --  Get the substring in Full that will make the next Unique_Name
+
+         Get_Previous_Separator (First);
+
+         --  Assign it to Unique_Name
+
+         declare
+            New_Unique_Name : String renames Full (First .. Full'Last);
+         begin
+            if File.Unique_Name /= null then
+
+               --  Complain if the unique name did not grow
+
+               if New_Unique_Name'Length = File.Unique_Name.all'Length then
+                  raise Program_Error
+                    with "Multiple files have the same full name";
+               end if;
+
+               Free (File.Unique_Name);
+            end if;
+            File.Unique_Name := new String'(New_Unique_Name);
+         end;
+      end Grow_Unique_Name;
+
+      Alias_Map : Alias_Maps.Map;
+      --  Mapping: simple name to set of files that have this simple name
+
+      --  Start of processing for Build_Unique_Names
+
+   begin
+      --  First, build the alias map: conflicting files will get grouped under
+      --  a single alias set.
+
+      for File of Files_Table loop
+         Add_File (File.Simple_Name, File, Alias_Map);
+      end loop;
+
+      --  Then, for each set of aliased files, find the shortest unique suffix.
+      --  Note that the loops below will not get executed ofter (aliases are
+      --  rare), so efficiency should not be an issue.
+
+      for Alias_Set of Alias_Map loop
+
+         --  The loop below will not run at all if this alias set contains a
+         --  single file: in such a case, make sure the file gets an unique
+         --  name.
+
+         if Alias_Set.Length = 1 then
+            declare
+               File : File_Info renames Alias_Set.First_Element.all;
+            begin
+               File.Unique_Name := new String'(File.Simple_Name.all);
+            end;
+         end if;
+
+         --  While there are conflicts between candidate unique names, make the
+         --  suffix longer for all. When one candidate has no longer conflicts
+         --  with other files, remove it from the set.
+
+         while Alias_Set.Length > 1 loop
+            declare
+               Unique_Name_Map : Alias_Maps.Map;
+            begin
+               --  Make the suffix longer and sort file in a dedicated map,
+               --  so that we can see what files still confilct with new
+               --  Unique_Name attributes.
+
+               for File of Alias_Set.all loop
+                  Grow_Unique_Name (File);
+                  Add_File (File.Unique_Name, File, Unique_Name_Map);
+               end loop;
+
+               --  Remove from Alias_Set all the files that now have an
+               --  Unique_Name that is really unique.
+
+               for File_Set of Unique_Name_Map loop
+                  if File_Set.Length = 1 then
+                     Alias_Set.Delete (File_Set.First_Element);
+                  end if;
+               end loop;
+
+               Clear (Unique_Name_Map);
+            end;
+         end loop;
+      end loop;
+
+      Clear (Alias_Map);
+      Unique_Names_Computed := True;
+   end Build_Unique_Names;
+
    ---------------------
    -- Get_Unique_Name --
    ---------------------
 
    function Get_Unique_Name (Index : Source_File_Index) return String is
-      use Simple_Name_Maps;
-
-      File    : File_Info renames Files_Table.Element (Index).all;
-      SN_Info : Simple_Name_Info renames
-        Simple_Name_Map.Element (Create (+File.Simple_Name.all));
+      File : File_Info renames Get_File (Index).all;
 
    begin
-      if SN_Info.Matches > 1 then
-
-         --  This file is aliased: build an unique name for it
-
-         declare
-            Num_Img          : constant String :=
-              Positive'Image (File.Alias_Num);
-
-            --  Get the alias number image without the leading space
-
-            Stripped_Num_Img : String renames
-              Num_Img (Num_Img'First + 1 .. Num_Img'Last);
-         begin
-            return File.Simple_Name.all & "." & Stripped_Num_Img;
-         end;
-
-      else
-         return File.Simple_Name.all;
+      if not Unique_Names_Computed then
+         Build_Unique_Names;
       end if;
+
+      return File.Unique_Name.all;
    end Get_Unique_Name;
 
    ---------------------------

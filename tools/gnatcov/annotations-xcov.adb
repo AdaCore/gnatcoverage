@@ -163,10 +163,8 @@ package body Annotations.Xcov is
          return;
       end if;
 
-      declare
-         Output_Filename : constant String := Get_Unique_Name (File) & ".xcov";
       begin
-         Create_Output_File (Pp.Xcov_File, Output_Filename);
+         Create_Output_File (Pp.Xcov_File, Get_Unique_Filename (File, "xcov"));
       exception
          when Name_Error =>
             --  Failed to create output file, an error message has been printed

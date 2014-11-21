@@ -55,6 +55,11 @@ package Annotations is
 
 private
 
+   function Get_Unique_Filename
+     (File      : Source_File_Index;
+      Extension : String) return String;
+   --  Return an unique filename to hold coverage annotations for File
+
    function SCO_Text (SCO : SCO_Id; Length : Natural := 8) return String;
    --  Extract the text of SCO from source file, truncating it to the
    --  first source line and the first Length characters. If it has been
