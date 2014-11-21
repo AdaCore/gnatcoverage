@@ -1561,10 +1561,9 @@ The two macro invocations actually expand as:
 
 
 The expanded version is the basis of SCO identification process, so we have
-one decision and two conditioned statements on line 13, likewise on line 14.
-
-Only one of each is exercised at execution time, and a :option:`stmt+decision`
-analysis on this program yields::
+one decision and two conditioned statements on line 13, likewise on
+line 14. Only one of each is exercised at execution time, and a
+:option:`stmt+decision` analysis on this program yields::
 
   2.1. STMT COVERAGE
   ------------------
