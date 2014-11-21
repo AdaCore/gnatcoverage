@@ -99,7 +99,6 @@ For object coverage analysis, :option:`--annotate=asm` produces annotated
 assembly code for all the selected routines on standard output.  The
 annotations are first visible as a special character on each machine code line
 to convey the coverage status of the corresponding instruction.
-
 The following output excerpt, for example, is part of a coverage report for
 our ``Assert`` subprogram compiled for the PowerPc architecture::
 
@@ -120,17 +119,16 @@ A ``-`` annotation for a line always conveys that the instruction was not
 executed at all. The instruction is also said to be *uncovered* in this
 case. Conversely, a ``+`` means that the instruction is *fully covered* with
 respect to the analyzed criterion, with a meaning which depends on both the
-criterion and the kind of instruction -- typically, whether the instruction
-is a conditional branch and whether we are doing mere instruction or object
-branch coverage analysis.
-Other annotations, conveying *partial coverage*, might show up as well, also
-depending on the criterion and kind of instruction.
+criterion and the kind of instruction -- whether the instruction is a
+conditional branch and whether we are doing mere instruction or object branch
+coverage analysis.  Annotations conveying *partial coverage* might show up as
+well, also depending on the criterion and kind of instruction.
 
 More details on the instruction specific annotations are provided in the
-criterion specific sections that follow. Then, as the first line of the
-example suggests, the report also annotates each subprogram symbol as a whole,
-with the range of addresses that the subprogram spans and a synthetic coverage
-indication according to the following table:
+sections that follow. Then, as the first line of the example suggests, the
+report also annotates each subprogram symbol as a whole, with the range of
+addresses that the subprogram spans and a synthetic coverage indication
+according to the following table:
 
 .. tabularcolumns:: cl
 
@@ -142,6 +140,7 @@ indication according to the following table:
    ``-`` | All the subprogram instructions are uncovered (none executed)
    ``+`` | All the subprogram instructions are fully covered
    ``!`` | Some of the subprogram instructions were fully or partially covered
+
 
 In our example, the code features both fully covered and uncovered
 instructions, and the ``_assert`` symbol as a whole is marked partially
@@ -475,28 +474,24 @@ source report for routine A, intuitively expected to yield a report for Ua
 only, will typically produce an output file for Ub as well, for lines
 referenced by the machine code inlined in A.
 
-Consider the following Ada units for example, in ``intops.ads``,
-``intops.adb`` and ``test_inc0.adb``:
+Consider the following Ada units for example, with a functional unit in
+``intops.ads`` and ``intops.adb``, then a test driver in ``test_inc0.adb``:
 
 .. code-block:: ada
 
-   -- Functional unit
-
-   package Intops is
+   package Intops is                        -- intops.ads
       procedure Inc (X : in out Integer);
       pragma Inline (Inc);
    end Intops;
 
-   package body Intops is
+   package body Intops is                   -- intops.adb
       procedure Inc (X : in out Integer) is
       begin
          X := X + 1;
       end Inc;
    end Intops;
 
-   -- Test Driver
-
-   procedure Test_Inc0  is
+   procedure Test_Inc0  is                  -- test_inc0.adb
       X : Integer := 0;
    begin
       Inc (X);
@@ -613,11 +608,9 @@ identifiable by the associated object symbol names::
    <posi__pos_t1__count+0000001c>:+
    1b4 +:  3c 00 00 00  lis    r0,0x0000
    ...
-   1d0 +:  91 2b 10 48  stw    r9,0x1048(r11)
    <posi__pos_t2__count+0000001c>:-
    204 -:  3c 00 00 00  lis    r0,0x0000
    ...
-   220 -:  91 2b 10 4c  stw    r9,0x104c(r11)
 
 
 .. _ocov-full:
@@ -626,24 +619,18 @@ Full object coverage considerations
 ===================================
 
 The previous sections focus on the coverage analysis of code attached to
-*symbols*, as listed by |gcv| :option:`disp-routines`. When full object level
-coverage is to be reached, a few extra details need to be looked at in
-addition. In particular, care is required regarding:
-
-* Orphaned code regions, that are not attached to any symbol and are
-  unaddressed by regular coverage reports,
-
-* Empty symbols, for which the reported code size is null.
+symbols. When full object level coverage is to be reached, extra care is
+required regarding :dfn:`orphaned code regions`, which are not attached to any
+symbol, and :dfn:`empty symbols`, for which the reported code size is null.
 
 Orphaned regions usually show up out of legitimate code alignment requests
 issued for performance or target ABI specificities. Empty symbols most often
 result from low level assembly programmed parts missing the assembly
-directives aimed at populating the symbol table flags and fields.  Both cases
-are typically harmless and easy to deal with once identified, so information
-about them is only emitted on explicit request, not by default.  |gcv|
-provides the :option:`scan-objects` command for this purpose, which expects
-the set of object files to examine on the command line, as a sequence of
-either object file or :term:`@listfile argument`, and reports about the two
-kinds of situations described above.
+directives aimed at populating the symbol table.
+Both are typically harmless so information about them is only emitted on
+explicit request. |gcv| provides the :option:`scan-objects` command for this
+purpose. The command expects the set of object files to examine on the command
+line, as a sequence of either object file or :term:`@listfile argument`, and
+reports about the two kinds of situations described above.
 
 

@@ -7,12 +7,12 @@
 Coverage Consolidation
 **********************
 
-Coverage consolidation is the |gcp| facility allowing the assessment of the
-overall coverage achieved by a set of executions. Consolidation is queried by
-passing the corresponding set of execution traces to |gcvcov|, which produces
-a single coverage report as a result. The focus of the analysis must be
-specified, via :ref:`--scos` or project files for source coverage, or via
-:ref:`--routines <oroutines>` for object coverage.
+Coverage consolidation is the facility allowing the computation of the overall
+coverage achieved by a set of executions. Consolidation is queried by passing
+the corresponding set of execution traces to |gcvcov|, which produces a single
+coverage report as a result. The focus of the analysis must be specified, via
+:ref:`--scos` or project files for source coverage, or via :ref:`--routines
+<oroutines>` for object coverage.
 
 A typical case where consolidation is useful is when some part of an
 application depends on external inputs and several executions are required to
@@ -22,9 +22,12 @@ to consolidate are obtained from the same executable in this case.
 Another common situation is when execution of different executables is needed
 to achieve the required coverage for a software, either because distinct
 software modules are tested independently (e.g. the different units of a
-library), and/or because different aspects of the behavior of modules are
+library), or because different aspects of the behavior of modules are
 tested separately (e.g. the different subprograms of a library unit or
 different scenarios of a given subprogram).
+
+A simple example is provided for each of these cases in the following
+sections.
 
 Example 1: consolidation over a single program
 ==============================================
@@ -161,10 +164,10 @@ And this yields reports in ``main.c.xcov`` and ``process.c.xcov`` like::
 
 We observe a reported absence of coverage for statements corresponding to the
 treatment of two kinds of usage error: wrong number of command line arguments,
-visible on lines 7, 14, and 15 of main.c, and attempt to compute an
-unsupported operation, visible on lines 21 and 22 of process.c. These two
-scenarios, exercised through div.trace and misuse.trace were indeed not
-included in the consolidation scope.
+visible on lines 7, 14, and 15 of ``main.c``, and attempt to compute an
+unsupported operation, visible on lines 21 and 22 of ``process.c``. These two
+scenarios, exercised through ``div.trace`` and ``misuse.trace`` were indeed
+not included in the consolidation scope.
 
 
 Example 2: consolidation over a single unit by different programs
@@ -188,7 +191,6 @@ units to illustrate:
 
    package body Commands is
 
-      --  Update our eval counters according to a SAFE evaluation just made
       procedure Stat (Safe : Boolean) is
       begin
          if Safe then
@@ -199,8 +201,10 @@ units to illustrate:
       end Stat;
 
       function Safe (Cmd : Command; Front : Perceived) return Boolean is
+
          --  Standing straight is always safe, and any other action is
          --  safe as soon as there is room ahead.
+
          Result : constant Boolean := Cmd = Hold or else Front = Room;
       begin
          Stat (Result);
@@ -217,6 +221,7 @@ True:
    procedure Test_Cmd_Safe is
    begin
       --  Remaining still is always safe, as is stepping with room ahead
+
       Assert (Safe (Cmd => Hold, Front => Rock));
       Assert (Safe (Cmd => Hold, Front => Pit));
       Assert (Safe (Cmd => Step, Front => Room));
@@ -226,6 +231,7 @@ Running this first program and analysing the achieved coverage would be
 something like::
 
   gnatcov run test_cmd_safe   # produces test_cmd_safe.trace
+
   gnatcov coverage --level=stmt --scos=commands.ali --annotate=xcov test_cmd_safe.trace
 
 Producing a ``commands.adb.xcov`` report with::
@@ -322,11 +328,11 @@ procedures, implemented in separate source files ``inc.adb`` and ``mult.adb``:
 
 
 We first build an archive library from these, using the *gprbuild* tool (part
-of the GNAT toolchain). We place the two sources in a ``libops`` (*library of
-operations*) subdirectory and use the ``libops.gpr`` example project file
-below::
+of the GNAT toolchain). We place the two sources in a ``libops`` subdirectory
+and use the ``libops.gpr`` example project file below at the toplevel::
 
    library project Libops is
+
       for Library_Dir use "lib";     -- Request creation of lib/libops.a
       for Library_Kind use "static";
       for Library_Name use "ops";
@@ -339,6 +345,7 @@ below::
          for default_switches ("Ada") use
             ("-g", "-fdump-scos", "-fpreserve-control-flow");
       end compiler;
+
    end Libops;
 
 ``gprbuild -Plibops`` builds the library with the proper compilation options,
@@ -368,6 +375,7 @@ We build the corresponding executables using gprbuild again, with the
 ``test.gpr`` project file below::
 
    with "libops";  -- test.gpr
+
    project Test is
      for Languages use ("Ada");
      for Object_Dir use "obj";
@@ -381,13 +389,14 @@ We build the corresponding executables using gprbuild again, with the
 
 We're not interested in the coverage of the test procedures themselves so we
 don't need the coverage related compilation options. :option:`-fno-inline` is
-enforced nevertheless, to make sure that the library object code really gets
-exercised and not an inlined version of it within the test harness.
+enforced to make sure that the library object code really gets exercised and
+not an inlined version of it within the test harness.
 
 Now we can run the tests and perform coverage analysis for various
-combinations. For example::
+combinations. To begin with::
 
    gnatcov run obj/test_inc   -- produces test_inc.trace
+
    gnatcov run obj/test_mult  -- produces test_mult.trace
 
 Then assessing the library statement coverage achieved by the ``test_inc`` unit

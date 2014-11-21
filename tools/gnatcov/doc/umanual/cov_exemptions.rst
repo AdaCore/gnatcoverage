@@ -12,11 +12,10 @@ violations away from the genuine defects of a testing campaign.
 Exemption Regions
 =================
 
-:dfn:`exemption regions` are lexical sections of sources in which
-coverage violations are expected and can be justified.
-
-For Ada with the |gnat| compilers, regions are defined by the insertion of
-dedicated pragmas in the sources:
+:dfn:`exemption regions` are lexical sections of sources in which coverage
+violations are expected and can be justified. For Ada with the |gnat|
+compilers, regions are defined by the insertion of dedicated pragmas in the
+sources:
 
 - ``pragma Annotate (Xcov, Exempt_On, "justification text");`` starts a
   region, providing some justification text that will be recalled in coverage
@@ -26,9 +25,7 @@ dedicated pragmas in the sources:
 
 There may be no overlap between exemption regions.
 
-To illustrate, let us consider a common assertion control procedure in Ada,
-which raises an exception when a provided condition, expected to be True,
-happens to be False:
+To illustrate, let us consider a common assertion control procedure in Ada:
 
 .. code-block:: ada
 
@@ -60,9 +57,8 @@ over the whole section, respectively.
 For our ``Eassert`` example above, a typical :option:`=xcov` output
 for :option:`stmt+decision` coverage for would be::
 
- 0% of 2 lines covered
- Coverage level: stmt+decision
- ......
+ 0% of 2 lines covered, Coverage level: stmt+decision
+ ...
    6 .: procedure Eassert (T : Boolean) is
    7 .: begin
    8 *:    pragma Annotate (Xcov, Exempt_On, "assert condition never to be False");

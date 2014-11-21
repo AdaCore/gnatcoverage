@@ -4,20 +4,20 @@
 Object/Source level metrics considerations
 ******************************************
 
-Even though the executable object code reflects semantics originally expressed
-in the application sources, Object and Source level coverage metrics are of
-very different nature, concerned with entities of very different kinds
-(machine instructions vs high level constructs). Our purpose here is to
-illustrate a few differences observable in the |gcp| annotated source
-outputs. It is *not* to perform a qualitative comparison between the two
-categories of criteria, way beyond the scope of this toolset user guide. The
-essential point is twofold:
+Even though the executable code reflects semantics expressed in the
+application sources, Object and Source level coverage metrics are of very
+different nature, concerned with machine instructions vs high level constructs
+respectively.
 
-- Stress further that annotated source reports for object level criteria
-  remain focused on object level metrics, and that source representations are
-  just a means to organize and present the results in this case.
+Our purpose here is to illustrate this through a few examples, *not* to
+perform a qualitative comparison between the two kinds of criteria, way beyond
+the scope of this toolset user guide. The essential point is twofold:
 
-- Illustrate the |gcp| capability to offer accurate results for both kinds of
+- Stress that annotated source reports for object criteria remain focused on
+  object level metrics, and that source representations are just a means to
+  present the results in this case.
+
+- Illustrate the |gcp| ability to compute accurate results for both kinds of
   criteria.
 
 Main differences examplified
@@ -28,8 +28,7 @@ exercise the following functional Ada unit:
 
 .. code-block:: ada
 
-   --  Whether X divides Y (as Y mod X is 0), outputing a message
-   --  on standard output when True
+   --  Return whether X divides Y, print a message when True
 
    function Divides (X, Y : Integer) return Boolean is
    begin
@@ -53,13 +52,14 @@ Using the basic test driver below:
 
 ``Divides`` features a simple decision controlling an *if* statement exercised
 both ways so the driver achieves statement and decision coverage. It even
-achieves MCDC since the decision has a single condition, and this is correctly
-reported by |gcp|, with 100% stmt+mcdc coverage and ``+`` annotations
-everywhere in the :option:`=xcov` output::
+achieves mcdc since the decision has a single condition, which is reported by
+|gcp| with 100% stmt+mcdc coverage and ``+`` annotations everywhere in the
+:option:`=xcov` output::
 
   gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov test_ops1.trace
   ...
-  100% of 4 lines covered, Coverage level: stmt+mcdc
+  100% of 4 lines covered
+  Coverage level: stmt+mcdc
   ...
    5 .:    function Divides (X, Y : Integer) return Boolean is
    6 .:    begin
@@ -81,7 +81,8 @@ execution trace correctly reports partial achievement only::
 
   gnatcov coverage --level=insn --annotate=xcov test_ops1.trace
   ...
-  67% of 6 lines covered, Coverage level: insn
+  67% of 6 lines covered
+  Coverage level: insn
   ...
    5 +:    function Divides (X, Y : Integer) return Boolean is
    6 .:    begin
@@ -139,7 +140,7 @@ experiments::
 
   gnatcov run --scos=@alis --level=stmt+mcdc test_orand
 
-Now we verify that |gcp| correctly reports full object coverage, as expected::
+Now we verify that |gcp| reports full object coverage as expected::
 
    gnatcov coverage --level=branch --annotate=xcov test_orand.trace
    ...
@@ -170,6 +171,6 @@ We have a clear illustration of the |gcp| ability to perform accurate
 assessments of distinct source and object criteria here, actually based on
 solid theoretical grounds established as part of the *Couverture* research
 project from which |gcp| originates. The core particularity allowing full
-branch coverage without MCDC is the presence of decisions with BDDs which
+branch coverage without mcdc is the presence of decisions with BDDs which
 are not trees, as we have in this specfic case,
 
