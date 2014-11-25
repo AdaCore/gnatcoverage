@@ -1509,10 +1509,20 @@ When a given subprogram is inlined in two different calling routines, each
 inlined copy thus undergoes a separate coverage assessment.  In the absence of
 inlining, this will also ensure that different instances of the same generic
 unit will have separated coverage analyses, since the compiler generates
-different symbol names for different program units. On the other hand, if two
-distinct instances of a generic subprogram are inlined within a single calling
-routine, they will undergo a single coverage analysis since they now occur in
-the same symbol.
+different symbol names for different program units. For our ``Vops`` example,
+this would be::
+
+ gnatcov coverage -Pvops.gpr --annotate=report -S routine [...]
+ ...
+ vops.adb:5:11: statement not executed (from v8__inc)
+ vops.adb:6:10: statement not executed (from v8__inc)
+ vops.adb:12:11: statement not executed (from v5__mult)
+ vops.adb:13:10: statement not executed (from v5__mult)
+
+
+On the other hand, if two distinct instances of a generic subprogram are
+inlined within a single calling routine, they will undergo a single coverage
+analysis since they now occur in the same symbol.
 
 .. _c_macros:
 
