@@ -58,6 +58,7 @@ achieves mcdc since the decision has a single condition, which is reported by
 
   gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov test_ops1.trace
   ...
+
   100% of 4 lines covered
   Coverage level: stmt+mcdc
   ...
@@ -121,7 +122,7 @@ Decision Diagram:
 
   BDD for ``(A or else B) and then C``
 
-The simple driver below exercises all the paths through this BDD:
+The following simple driver exercises all the paths through this BDD:
 
 .. code-block:: ada
 
