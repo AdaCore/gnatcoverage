@@ -174,7 +174,8 @@ Example 2: consolidation over a single unit by different programs
 ==================================================================
 
 We will consider achieving statement coverage of the following example Ada
-units to illustrate:
+unit, which implements part of a robot controller able to send actuator
+commands depending on what a front sensor perceives is ahead of the robot:
 
 .. code-block:: ada
 
@@ -203,8 +204,7 @@ units to illustrate:
       function Safe (Cmd : Command; Front : Perceived) return Boolean is
 
          --  Standing straight is always safe, and any other action is
-         --  safe as soon as there is room ahead.
-
+         --  safe as soon as there is room ahead:
          Result : constant Boolean := Cmd = Hold or else Front = Room;
       begin
          Stat (Result);
@@ -212,26 +212,23 @@ units to illustrate:
       end Safe;
    end Commands;
 
-We test the ``Commands`` package body by combining two sorts of drivers. The
-first one exercises cases where the ``Safe`` function is expected to return
-True:
+We test the ``Commands`` body by combining two sorts of drivers. The first one
+exercises safe commands only:
 
 .. code-block:: ada
 
    procedure Test_Cmd_Safe is
    begin
-      --  Remaining still is always safe, as is stepping with room ahead
-
+      --  Remaining still is always safe, as is stepping with room ahead:
       Assert (Safe (Cmd => Hold, Front => Rock));
       Assert (Safe (Cmd => Hold, Front => Pit));
       Assert (Safe (Cmd => Step, Front => Room));
    end Test_Cmd_Safe;
 
 Running this first program and analysing the achieved coverage would be
-something like::
+something as follows::
 
   gnatcov run test_cmd_safe   # produces test_cmd_safe.trace
-
   gnatcov coverage --level=stmt --scos=commands.ali --annotate=xcov test_cmd_safe.trace
 
 Producing a ``commands.adb.xcov`` report with::
@@ -396,19 +393,17 @@ Now we can run the tests and perform coverage analysis for various
 combinations. To begin with::
 
    gnatcov run obj/test_inc   -- produces test_inc.trace
-
    gnatcov run obj/test_mult  -- produces test_mult.trace
 
-Then assessing the library statement coverage achieved by the ``test_inc`` unit
-test, say as a violations report, would go like::
+Then assessing the library statement coverage achieved by ``test_inc`` alone,
+as a violations report, would go as::
 
   gnatcov coverage --level=stmt --annotate=report -Plibops test_inc.trace
 
 Note the use of :option:`-Plibops` to state that the library units are those
-of interest for our analysis, without having to specify the location of the
-corresponding LI files. From the single provided trace, there's no reference
-to the ``mult`` unit at all and all the statements therein are marked
-uncovered in this case. We'd get::
+of interest for our analysis. There is no reference to the ``mult`` unit at
+all in the test and all the associated statements are marked uncovered in this
+case::
 
    2.1. STMT COVERAGE
    ------------------
