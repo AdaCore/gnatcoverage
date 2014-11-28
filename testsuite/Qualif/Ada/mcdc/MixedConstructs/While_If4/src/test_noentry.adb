@@ -25,3 +25,5 @@ end;
 -- /AF_ok/    l- ## s-
 -- /AF_next/  l- ## s-
 
+-- %tags: 7.2.2
+-- =/AF_while/ l! ## d!
