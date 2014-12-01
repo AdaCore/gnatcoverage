@@ -1045,45 +1045,36 @@ the right-hand side of assignments. For example:
 
 .. code-block:: ada
 
-  Valid_Data, Sensor_OK, Last_Update_OK : Boolean;
-  ...
-  Valid_Data := Sensor_OK and then Last_Update_OK; -- 1 decision here
+  Valid_Data := Sensor_OK and then Last_Sensor_Update_OK; -- 1 decision here
 
 
 .. code-block:: c
 
-  bool needs_update;
-  struct sensor_state * state;
-  ...
-  needs_update = (state && !state->valid);   /* 1 decision here */
+  need_update = (sensor != NULL && sensor->invalid);   /* 1 decision here */
 
 
 Non short-circuit binary operators, when allowed by the coding standard, are
 taken as regular computational devices and may either participate in the
 construction of operands or split an expression into multiple decisions. For
-instance:
+instance, the following C excerpt:
 
 .. code-block:: c
 
-  bool aligned (int x, y)
-  ...
     return !(x & 0x3) && !(y & 0x3);  /* 1 decision here */
 
 
-in C produces a single decision with two bitwise ``&`` operands.
-And the following Ada excerpt:
+produces a single decision with two bitwise ``&`` operands.  And the following
+Ada excerpt:
 
 .. code-block:: ada
 
-  A, B, C, D, E : Boolean;
-  ...
   if ((A and then not B) == (C or else (D and then E))) then -- 3 decisions here
 
 
 produces three decisions: ``(A and then not B)``, 2 operands combined with
 short-circuit ``and-then``, ``(C or else (D and then E)))``, 3 operands
 combined with short-circuit ``and-then`` and ``or-else``, and the whole
-toplevel expression as it is controlling an ``if`` statement.
+toplevel expression controlling the ``if`` statement.
 
 In C as in Ada, logical negation is allowed anywhere and just participates in
 the operands construction without influencing decision boundaries.
@@ -1136,15 +1127,19 @@ The GNAT toolchain provides a useful device for list computations: the
 list of all the .ali files involved in an executable construction.  By
 default, the list goes to standard output. It may be directed to a file on
 request with :option:`-A=<list-filename>`, and users may of course filter this
-list as you see fit depending on your analysis purposes.  Below is an example
-sequence of commands to illustrate, using the standard Unix ``grep`` tool to
-filter out test harness units, assuming a basic naming convention::
+list as they see fit depending on their analysis purposes. 
+
+Below is an example sequence of commands to illustrate, using the standard
+Unix ``grep`` tool to filter out test harness units, assuming a basic naming
+convention::
 
     # Build executable and produce the corresponding list of ALI files. Pass
     # -A to gnatbind through gprbuild -bargs then filter out the test units:
 
     gprbuild -p --target=powerpc-elf --RTS=zfp-prep -Pmy.gpr
      test_divmod0.adb -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
+
+
 
     # Run and analyse all units except the test harness:
 
