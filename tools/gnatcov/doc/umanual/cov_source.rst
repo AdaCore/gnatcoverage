@@ -1089,11 +1089,19 @@ In C as in Ada, logical negation is allowed anywhere and just participates in
 the operands construction without influencing decision boundaries.
 
 Non short-circuit binary operators in logical expressions might complexify the
-identification of decision boundaries for users. To alleviate this, |gnat|
-compilers offer the ``No_Direct_Boolean_Operator`` restriction pragma to
-support coding standards prohibiting the use of such operators in Ada. There
-is no equivalent in C, where the allowed operand types are much more varied
-and where the restriction would make the language really much harder to use.
+identification of decision boundaries for users. |gnat| compilers offer two
+devices to alleviate this for Ada:
+
+* The ``No_Direct_Boolean_Operator`` restriction pragma, which will trigger
+  compilation errors on the use of non short-circuit Boolean operators and
+  facilitates the enforcement of coding standards prohibiting such uses.
+
+* The ``Short_Circuit_And_Or`` pragma, which directs the compiler to translate
+  non-short circuit ``and/or`` operators as their short-circuit counterparts.
+
+There is no equivalent in C, where the allowed operand types are much more
+varied and where the restriction would make the language really much harder to
+use.
 
 .. _sunits:
 
