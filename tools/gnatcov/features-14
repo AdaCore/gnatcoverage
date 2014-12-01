@@ -1,0 +1,21 @@
+==================================
+GNATcoverage 1.4 NEW FEATURES LIST
+==================================
+
+Copyright (C) 2012-2014, AdaCore
+
+This file contains a complete list of new features in version 1.4 of
+GNATcoverage.
+
+An ISO date (YYYY-MM-DD) appears in parentheses after the description line.
+This date shows the implementation date of the feature. Any 1.4.0w wavefront
+subsequent to this date will contain the indicated feature, as will any
+release issued after this one.
+
+NF-14-L803-037 Support for pragma Short_Circuit_And_Or (2014-11-27)
+
+  The compiler was updated to emit proper Source Coverage Information in
+  association with the code generation changes enforced to honor the
+  Short_Circuit_And_Or pragma. With this pragma, non short-circuit and/or
+  operators are then now considered as their short-circuit counterparts for
+  source coverage analysis purposes as well.
