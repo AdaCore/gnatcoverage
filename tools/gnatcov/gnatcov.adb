@@ -523,7 +523,11 @@ procedure GNATcov is
                Fatal_Error ("only one root project may be specified");
             end if;
             Root_Project := new String'(Prj_Name);
-            Load_Root_Project (Prj_Name, Target);
+
+            --  Note: this is called during the first pass of command line
+            --  switches scanning, prior to setting all scenario variables.
+            --  So, don't call Load_Root_Project just yet (this will be done
+            --  one the Command_Line_1 pass is completed).
          end Set_Root_Project;
 
       --  Start of processing for Process_Switches
@@ -1066,6 +1070,12 @@ procedure GNATcov is
       --  Scan default switches from root project
 
       if Root_Project /= null then
+
+         --  All -X command line switches have now been processed (during
+         --  the Command_Line_1 pass): initialize the project subsystem and
+         --  load the root project.
+
+         Load_Root_Project (Root_Project.all, Target);
          Compute_Project_View;
 
          Switches_From_Project : declare
