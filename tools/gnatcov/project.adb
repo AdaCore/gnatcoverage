@@ -81,8 +81,12 @@ package body Project is
        (Key_Type     => String,
         Element_Type => Unit_Info);
 
-   Env      : Project_Environment_Access;
-   Prj_Tree : Project_Tree_Access;
+   Env        : Project_Environment_Access;
+   Prj_Tree   : Project_Tree_Access;
+
+   Obj_Subdir : Unbounded_String;
+   --  Hold the object subdirectory to use (if any) for all loaded projects.
+   --  Should be processed each time we load a project tree.
 
    package Project_Maps is
      new Ada.Containers.Indefinite_Ordered_Maps
@@ -539,6 +543,10 @@ package body Project is
          Packages_To_Check => Coverage_Package_List'Access,
          Recompute_View    => False,
          Errors            => Outputs.Warning_Or_Error'Access);
+
+      if Obj_Subdir /= Null_Unbounded_String then
+         Env.Set_Object_Subdir (+To_String (Obj_Subdir));
+      end if;
    end Load_Root_Project;
 
    ----------------
@@ -585,8 +593,11 @@ package body Project is
 
    procedure Set_Subdirs (Subdir : String) is
    begin
+      Obj_Subdir := To_Unbounded_String (Subdir);
+
       --  The --subdirs switch is relevant only if projects are used, otherwise
-      --  it can safely be ignored.
+      --  it can safely be ignored. If projects are not loaded yet, the
+      --  subdirectory will be used anyway thanks to Obj_Subdir.
 
       if Env /= null then
          Env.Set_Object_Subdir (+Subdir);
