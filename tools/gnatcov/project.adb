@@ -604,4 +604,13 @@ package body Project is
       return (if Prj /= No_Project then Prj.Name else "");
    end Project_Name;
 
+   ------------
+   -- Target --
+   ------------
+
+   function Target return String is
+   begin
+      return Get_Target (Prj_Tree.Root_Project);
+   end Target;
+
 end Project;

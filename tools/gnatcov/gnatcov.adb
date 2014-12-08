@@ -1119,6 +1119,16 @@ procedure GNATcov is
          if not Outputs.Output_Dir_Defined then
             Outputs.Set_Output_Dir (Project.Output_Dir);
          end if;
+
+         --  Likewise for the target
+
+         declare
+            Project_Target : constant String := Project.Target;
+         begin
+            if Target = null and then Project_Target /= "" then
+               Target := new String'(Project_Target);
+            end if;
+         end;
       end if;
 
       --  Second command line scan: process remainder of options

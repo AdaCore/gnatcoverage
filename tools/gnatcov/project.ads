@@ -70,4 +70,8 @@ package Project is
    --  the empty string if Source_Name cannot be associated with a project
    --  name. This can happen for sources that belong eg. to the runtime.
 
+   function Target return String;
+   --  Return the runtime in the root project, if any, and the empty string
+   --  otherwise. This concerns only the runtime for Ada.
+
 end Project;
