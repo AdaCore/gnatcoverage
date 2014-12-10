@@ -460,6 +460,17 @@ class SCOV_helper:
         # Even though we remember them here, we won't be looking at the
         # xlnotes if we're running for qualification.
 
+    # -----------------------
+    # -- xcov_basename_for --
+    # -----------------------
+    def xcov_basename_for(self, source):        
+        """Basename of an =xcov annotated source report for a reference to
+        SOURCE in expectations. '/' might reach here for source references
+        prefixed with '+', and for which we expect gnatcov to produce some
+        alternate name in the single output directory."""
+
+        return source.replace('/', '-')
+
     # ----------------
     # -- singletest --
     # ----------------
@@ -746,12 +757,14 @@ class SCOV_helper:
     # -- gen_xcov_reports --
     # ----------------------
 
-    def force_xcov_report(self, filename):
+    def force_xcov_report(self, source):
+
+        filename = self.xcov_basename_for(source)+'.xcov'
 
         if not os.path.exists (filename):
             report = open(filename, 'w')
             report.write ("dummy xcov report")
-            report.close
+            report.close()
 
     def gen_xcov_reports(self):
         """Generate the reports against which we will check expectation
@@ -808,7 +821,7 @@ class SCOV_helper:
         # generates nothing at all. Create dummy reports here to prevent
         # fatal exceptions trying to open them downstream.
 
-        [self.force_xcov_report(source+'.xcov') for source in self.xrnotes]
+        [self.force_xcov_report(source) for source in self.xrnotes]
 
         # Now expand the reports into source->emitted-notes dictionaries
         # and check against our per-source expectations.
@@ -936,11 +949,16 @@ class SCOV_helper:
         if thistest.options.qualif_level:
             return
 
+        # The report basename, also used as an key into the elnotes
+        # dictionary:
+
+        lrbase = self.xcov_basename_for(source)
+
         _Xchecker (
-            report = source+'.xcov',
+            report = lrbase+'.xcov',
             xdict  = self.xlnotes.get(source),
             rxp    = r_lxp_for[relevance_cat],
-            edict  = self.elnotes.get(source, KnoteDict(elNoteKinds)),
+            edict  = self.elnotes.get(lrbase, KnoteDict(elNoteKinds)),
             ren    = r_eln_for[relevance_cat]
             ).run (l_discharge_kdict)
 

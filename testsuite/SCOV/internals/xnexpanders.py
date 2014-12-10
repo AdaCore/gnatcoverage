@@ -67,6 +67,40 @@ from SUITE.cutils import Identifier
 # free-text comment.  Any comment thereafter is assumed to be part of the
 # SCOV data.
 
+# SOURCES
+# -------
+# Expectations apply to sets of sources conveyed by the "sources" item of our
+# grammar. Source files are searched from standards paths for a testcase (src/
+# ../src/ etc) and so are most often referenced by their basename in
+# expectations.
+#
+# A group of expectations may apply to several sources, just listed in sequence
+# as in:
+# 
+#   -- # x0.adb y0.adb        : in x0.adb and y0.adb, expect ...
+#
+# Alternatives sets, useful for shared drivers, are allowed for a given group.
+# Sets are separated with '|' as in:
+#
+#   -- # x0.adb | x1.c y1.c   : in (x0.adb) or (x1.c and y1.c), expect ...
+#
+# Individual source names may contain paths relative to the testcase "src"
+# subdirectories (local and uptree). e.g.:
+#
+#   -- # subdir1/p.adb
+#
+# This allows locating sources when they aren't straight within src/, which is
+# useful e.g. for tests of GPR facilities. This doesn't influence how we
+# expect the source to be referenced in reports, however: we still match with
+# basename in =report slocs (p.adb:128:15) or in annotated source file names
+# (p.adb.xcov).
+#
+# A '+' prefix allows stating that we expect the subdirs to be visible in the
+# report references (slocs or filenames), necessary for tests involving
+# sources with identical basenames in different subdirs. Currently, this turns
+# '/' into '-' in annotated source filenames, so +subdir1/p.adb is expected to
+# produce subdir1-p.adb.xcov reports.
+
 # LINE REGULAR EXPRESSION (LREs)
 # ------------------------------
 # LX_LRE in our grammar is a regular expression that is used to identify
@@ -94,7 +128,6 @@ from SUITE.cutils import Identifier
 
 # RNOTE SUBTEXT FOCUS/SPECIALIZATION (:"TEXT" extensions)
 # -------------------------------------------------------
-
 # The optional :"TEXT" part in a rnote lets users state that some diagnostic
 # is expected to designate a particular piece of a source line. This is most
 # typically useful for c! expectations on lines where there are multiple
@@ -167,7 +200,6 @@ from SUITE.cutils import Identifier
 
 # CONDITIONAL EXPECTATIONS WITHIN A GROUP (CTL lines)
 # ---------------------------------------------------
-#
 # %cargs: opt1[, opt2, ... optn] means: from now on, only grab the next-coming
 # lx lines if opt1 (and opt2 and ... up to optn) are part of the compilation
 # options for the test. A '!' at the beginning of an option inverts the logic
@@ -273,6 +305,38 @@ from SUITE.cutils import Identifier
 # * One instantating internal note objects for /bla/ + /blo/ from p2.adb
 #
 # * One instantating internal note objects for /blu/ from x.adb
+
+# ----------
+# -- Sref --
+# ----------
+
+class Sref:
+    """Source reference class, materializing source names expressed in
+    expectations."""
+
+    def __resolve(self, xpath):
+        """Return a valid relative path were the source designated by XPATH
+        in the expectations may be found, searching plausible locations uptree
+        from the current point."""
+
+        for pdir in ("../"*n + "src/" for n in range (0, thistest.depth)):
+            if os.path.exists(pdir+xpath):
+                return pdir+xpath
+
+        return None
+
+    def __init__(self, xsource):
+        """Materialize the XSOURCE indication provided for an expectation
+        group."""
+
+        self.xsource = xsource
+
+        # XPATH: The relative path expressed in the expectation:
+        self.xpath = xsource[1:] if xsource.startswith('+') else xsource
+        
+        # SPATH: The resolved path to an actual source file reachable for
+        # the testcase at hand:
+        self.spath = self.__resolve(self.xpath)
 
 # ------------
 # -- LineCX --
@@ -417,7 +481,7 @@ class UnitCX:
          for lx in self.LXset if re.search (lx.lre, tline.text)]
         self.check_block_on (tline)
 
-    def __init__(self, sourcepath, LXset):
+    def __init__(self, sref, LXset):
 
         self.LXset = LXset
 
@@ -430,16 +494,9 @@ class UnitCX:
         self.current_srules = {}
 
         self.tfile  = Tfile (
-            filename=sourcepath, process=self.process_tline)
+            filename=sref.spath, process=self.process_tline)
 
-        # Source names in expectations might contain paths, which facilitates
-        # tests of GPR facilities with a project hierarchy.
-        #
-        # Record the source basename as our source attribute, which is used to
-        # key in the various dictionaries and match the the name of annotated
-        # source reports, always produced in the current directory only.
-
-        self.source = os.path.basename (sourcepath)
+        self.sref = sref
 
         thistest.stop_if (
             self.current_block, FatalError ("fuzz block still open at EOF"))
@@ -452,9 +509,9 @@ class UXgroup:
 
     def __init__ (self, candlists):
 
-        # SPLIST: good list of source paths from the set of candidate lists
-        # received in CANDLISTS for this group, as specified in the expectation
-        # spec. This is a list of lists like
+        # SRLIST: good list of source ref objects from the set of candidate
+        # lists received in CANDLISTS for this group, as specified in the
+        # expectation spec. This is a list of lists like
         #
         #   [[x0.adb, y0.adb], [x1.c, y1.c]]
         #
@@ -466,7 +523,7 @@ class UXgroup:
         # - exactly one sublist is expected to correspond to sources
         #   we can actually find, which will be _the_ good one.
 
-        self.splist = self.__select_splist_from (candlists=candlists)
+        self.srlist = self.__select_srlist_from (candlists=candlists)
 
         # LXSET: During parsing, a dictionary of LineCX objects corresponding
         # to the stated expectations for the sources we can find, indexed by
@@ -486,32 +543,22 @@ class UXgroup:
     # -- Helpers for __init__ --
     # --------------------------
 
-    def __locate_source(self, source):
-        """Return valid relative path were SOURCE may be found, searching
-        plausible locations uptree from the current point."""
-
-        for pdir in ("../"*n + "src/" for n in range (0, thistest.depth)):
-            if os.path.exists(pdir+source):
-                return pdir+source
-
-        return None
-
     def __examine_source_list (self, slist, goodlists):
         """See if all the sources in SLIST can be resolved to existing
         source paths looking uptree. Add the corresponding list of paths
         to GOODLISTS when so."""
 
-        pathlist = []
+        srlist = []
         for s in slist:
-            spath = self.__locate_source (s)
-            if not spath:
+            sr = Sref (xsource=s)
+            if not sr.spath:
                 return
             else:
-                pathlist.append (spath)
+                srlist.append (sr)
 
-        goodlists.append (pathlist)
+        goodlists.append (srlist)
 
-    def __select_splist_from (self, candlists):
+    def __select_srlist_from (self, candlists):
         """Search and return the one good list of units amongst the candidates
         we have."""
 
@@ -557,15 +604,15 @@ class UXgroup:
         # same for our list.
 
         [self.__wrap_lre(
-                lx, language_info(self.splist[0]))
+                lx, language_info(self.srlist[0].xpath))
          for lx in self.lxset]
 
         # Now instanciate a unit coverage expectations object for each
-        # sourcepath in our list:
+        # source ref in our list:
 
         self.uxset = [
-            UnitCX(sourcepath=sp, LXset=self.lxset)
-            for sp in self.splist
+            UnitCX(sref=sref, LXset=self.lxset)
+            for sref in self.srlist
             ]
 
         return self.uxset
@@ -651,8 +698,17 @@ class XnotesExpander:
          self.__parse_scovdata (self.__get_scovdata (xfile))]
 
     def __to_xnotes(self, ux):
-        self.xlnotes [ux.source] = ux.xldict
-        self.xrnotes [ux.source] = ux.xrdict
+
+        # A '+' prefix on the source reference means we expect
+        # sources to be referenced with relative dir indications:
+        
+        source = (
+            ux.sref.xpath if ux.sref.xsource.startswith('+')
+            else os.path.basename (ux.sref.xpath)
+            )
+
+        self.xrnotes [source] = ux.xrdict
+        self.xlnotes [source] = ux.xldict
 
     # --------------------
     # -- __get_scovdata --
@@ -703,7 +759,7 @@ class XnotesExpander:
         # uxgroups = [UXgroup (), UXgroup () ...]
         #             v
         #            ---------
-        #            .splist = ["p1.adb", "subdir/p2.adb", ...]
+        #            .srlist = ["p1.adb", "subdir/p2.adb", ...]
         #            .lxset  = [LineCX (), LineCX (), ...]
         #            .           v
         #            .        -------
@@ -1055,7 +1111,7 @@ class XnotesExpander:
                 tl for tl in tf.contents() if "# %s" % self.imark in tl.text
                 ]
 
-        spaths = [sp for uxg in uxgroups for sp in uxg.splist]
+        spaths = [sref.spath for uxg in uxgroups for sref in uxg.srlist]
         idict = dict (
             [(sp, __ilines_for (sp)) for sp in spaths])
 
