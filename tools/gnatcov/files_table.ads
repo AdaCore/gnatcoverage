@@ -61,6 +61,11 @@ package Files_Table is
    function Get_Simple_Name (Index : Source_File_Index) return String;
    --  Comments needed???
 
+   function Get_Index_From_Generic_Name
+     (Name : String) return Source_File_Index;
+   --  Call Get_Index_From_Simple_Name or Get_Index_From_Full_Name depending
+   --  on whether Name is an absolute path. Return the result of this call.
+
    function Get_Unique_Name (Index : Source_File_Index) return String;
    --  Return the shortest unambiguous file name. It is the smallest suffix for
    --  full name that is unique to this file (multiple files can have the same

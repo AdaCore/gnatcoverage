@@ -22,8 +22,6 @@ with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Regpat; use GNAT.Regpat;
 
-with GNATCOLL.VFS;
-
 with Diagnostics; use Diagnostics;
 with Files_Table; use Files_Table;
 with Get_SCOs;
@@ -141,11 +139,6 @@ package body ALI_Files is
       --  Return True if either M1 or M2 is null or designates an empty string,
       --  else return True if M1 and M2 designate identical strings.
 
-      function Get_Index_From_Generic_Name
-         (Name : String) return Source_File_Index;
-      --  Call Get_Index_From_Simple_Name or Get_Index_From_Full_Name depending
-      --  on whether Name is an absolute path. Return the result of this call.
-
       -------------------
       -- Check_Message --
       -------------------
@@ -250,31 +243,6 @@ package body ALI_Files is
       end Skipc;
 
       procedure Get_SCOs_From_ALI is new Get_SCOs;
-
-      ---------------------------------
-      -- Get_Index_From_Generic_Name --
-      ---------------------------------
-
-      function Get_Index_From_Generic_Name
-         (Name : String) return Source_File_Index
-      is
-         use GNATCOLL.VFS;
-
-         File_Name : constant Virtual_File := Create (+Name);
-      begin
-         if Is_Absolute_Path (File_Name) then
-
-            --  Library files are the only source of file names that may
-            --  contain base names (as opposed to absolute file names). Thus,
-            --  if we find an absolute path here, do not bother index its base
-            --  name, since it will potentially introduce base name clashes for
-            --  no benefit.
-
-            return Get_Index_From_Full_Name (Name, Index_Simple_Name => False);
-         else
-            return Get_Index_From_Simple_Name (Name);
-         end if;
-      end Get_Index_From_Generic_Name;
 
       --  Local variables
 

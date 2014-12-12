@@ -1544,8 +1544,8 @@ package body Traces_Elf is
 
                   Unit_Filename :=
                     Canonicalize_Filename (Read_String (At_Name));
-                  Current_CU    :=
-                    Comp_Unit (Get_Index_From_Full_Name (Unit_Filename.all));
+                  Current_CU := Comp_Unit
+                    (Get_Index_From_Generic_Name (Unit_Filename.all));
 
                   --  Mark unit as having code in the executable, to silence
                   --  warning about unit of interest not present in test cases.
