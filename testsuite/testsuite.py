@@ -635,15 +635,31 @@ class TestSuite:
 
         return (
             self.__base_discriminants()
+            + self.__board_discriminants()
             + self.__qualif_level_discriminants()
             + self.__cargs_discriminants()
             + self.__rts_discriminants()
             + self.__toolchain_discriminants()
             )
 
-
     def __base_discriminants(self):
         return ['ALL'] + self.env.discriminants
+
+    def __board_discriminants(self):
+        """Compute a list of string discriminants that convey a
+        request to run for a particular target board."""
+
+        # There are two possible sources for this, with slightly different
+        # operational meanings but which don't need to be differentiated
+        # discriminant-wise. The board name and an indication that a specific
+        # board was requested are good enough:
+
+        boardname = (
+            self.options.board if self.options.board
+            else self.env.target.machine if self.env.target.machine
+            else None)
+
+        return ['board', boardname] if boardname else []
 
     def __cargs_discriminants(self):
         """Compute a list of discriminants (string) for each switch passed in
