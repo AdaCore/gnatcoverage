@@ -19,3 +19,9 @@ NF-14-L803-037 Support for pragma Short_Circuit_And_Or (2014-11-27)
   Short_Circuit_And_Or pragma. With this pragma, non short-circuit and/or
   operators are then now considered as their short-circuit counterparts for
   source coverage analysis purposes as well.
+
+NF-14-NC08-027 Support for Target attribute in project files (2014-12-09)
+
+  In addition to the --target option, it is now possible to specify the target
+  architecture to use in GNATcoverage thanks to the Target attribute in the
+  root project file.
