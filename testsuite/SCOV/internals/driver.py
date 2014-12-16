@@ -962,9 +962,6 @@ class SCOV_helper:
         if thistest.options.qualif_level:
             return
 
-        # The report basename, also used as an key into the elnotes
-        # dictionary:
-
         strans = self.xcov_translation_for(source)
         _Xchecker (
             report = strans+'.xcov',
