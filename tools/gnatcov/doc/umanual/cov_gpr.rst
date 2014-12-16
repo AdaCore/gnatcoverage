@@ -102,7 +102,7 @@ specified in the project file.
 
 .. _target_attr:
 
-Specifying the target from project files
+Specifying the Target from project files
 ========================================
 
 Similarly to other tools, |gcv| uses any existing ``Target`` attribute in the
