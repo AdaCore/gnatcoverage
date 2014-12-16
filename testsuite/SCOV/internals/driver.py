@@ -460,16 +460,23 @@ class SCOV_helper:
         # Even though we remember them here, we won't be looking at the
         # xlnotes if we're running for qualification.
 
-    # -----------------------
-    # -- xcov_basename_for --
-    # -----------------------
-    def xcov_basename_for(self, source):        
-        """Basename of an =xcov annotated source report for a reference to
-        SOURCE in expectations. '/' might reach here for source references
-        prefixed with '+', and for which we expect gnatcov to produce some
-        alternate name in the single output directory."""
+    # --------------------------
+    # -- xcov_translation_for --
+    # --------------------------
+    def xcov_translation_for(self, source):
+        """How a SOURCE reference in expectations translates as the basename
+        of an =xcov annotated source file."""
 
         return source.replace('/', '-')
+
+    # ----------------------------
+    # -- report_translation_for --
+    # ----------------------------
+    def report_translation_for(self, source):
+        """How a SOURCE reference in expectations translates in slocs
+        found in =report outputs."""
+
+        return os.sep.join(source.split('/'))
 
     # ----------------
     # -- singletest --
@@ -759,7 +766,7 @@ class SCOV_helper:
 
     def force_xcov_report(self, source):
 
-        filename = self.xcov_basename_for(source)+'.xcov'
+        filename = self.xcov_translation_for(source)+'.xcov'
 
         if not os.path.exists (filename):
             report = open(filename, 'w')
@@ -934,13 +941,19 @@ class SCOV_helper:
 
         frame ("Processing UX for %s" % (source), post=0, char='~').display()
 
+        # Source names in expectations might still contain path indications
+        # when they reach here, to indicate that the path components are
+        # expected to be conveyed in the gnatcov results (slocs in =report
+        # outputs and report file name for =xcov outputs).
+
         # Report notes checks
 
+        strans = self.report_translation_for(source)
         _Xchecker (
             report ='test.rep',
             xdict  = self.xrnotes.get(source),
             rxp    = r_rxp_for[relevance_cat],
-            edict  = self.ernotes.get(source, KnoteDict(erNoteKinds)),
+            edict  = self.ernotes.get(strans, KnoteDict(erNoteKinds)),
             ren    = r_ern_for[relevance_cat]
             ).run (r_discharge_kdict)
 
@@ -952,13 +965,12 @@ class SCOV_helper:
         # The report basename, also used as an key into the elnotes
         # dictionary:
 
-        lrbase = self.xcov_basename_for(source)
-
+        strans = self.xcov_translation_for(source)
         _Xchecker (
-            report = lrbase+'.xcov',
+            report = strans+'.xcov',
             xdict  = self.xlnotes.get(source),
             rxp    = r_lxp_for[relevance_cat],
-            edict  = self.elnotes.get(lrbase, KnoteDict(elNoteKinds)),
+            edict  = self.elnotes.get(strans, KnoteDict(elNoteKinds)),
             ren    = r_eln_for[relevance_cat]
             ).run (l_discharge_kdict)
 

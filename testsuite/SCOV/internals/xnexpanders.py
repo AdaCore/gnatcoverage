@@ -100,6 +100,8 @@ from SUITE.cutils import Identifier
 # sources with identical basenames in different subdirs. Currently, this turns
 # '/' into '-' in annotated source filenames, so +subdir1/p.adb is expected to
 # produce subdir1-p.adb.xcov reports.
+#
+# Only '/' is allowed as the directory separator in this context.
 
 # LINE REGULAR EXPRESSION (LREs)
 # ------------------------------
