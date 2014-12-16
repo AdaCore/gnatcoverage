@@ -9,7 +9,9 @@ specifying the target environment for which the program was built and for
 which |gcvrun| should pick a suitable execution environment. The option states
 a base target name possibly followed by a board specialization after a
 separating '``,``' (:option:`--target=powperpc-eabispe,mpc5566` for
-example).  The engine selection strategy is as follows:
+example). If only the target name is provided, it is possible to let |gcv|
+detect it from the ``Target`` attribute from the project file (see
+:ref:`target_attr` section). The engine selection strategy is as follows:
 
 * When |gem| for the base target is available on your PATH, as
   `<base-target>-gnatemu`, |gcv| uses this to run the program. |gem| acts as a

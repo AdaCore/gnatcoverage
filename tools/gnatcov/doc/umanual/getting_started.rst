@@ -26,7 +26,7 @@ analysis proceeds in two steps:
    like::
 
      gnatcov run <yourapp> [--target=<target>] [--kernel=<kernel>]
-     (implicit -o <yourapp.trace> in this case)
+       [--scos=@<libfiles-list> | -P<root-gpr>] (implicit -o <yourapp.trace>)
 
    or |gcvcnv| to convert a trace obtained through a hardware probe, like::
 
@@ -44,12 +44,14 @@ Very briefly here:
 
 - :option:`--target` selects the execution environment that will know how to
   produce execution traces, such as <target>-gnatemu for emulated
-  configurations.  Not providing this option requests instrumented execution
-  within the host environment, in which case command line arguments can be
-  passed to the executable program by adding a :option:`-eargs` sequence on
-  the |gcv| command line. You may provide the executable name as part of this
-  sequence as well. See the :ref:`execution-control` section of this manual
-  for more details.
+  configurations.  This can also be achieved with a ``Target`` attribute in
+  the project file designated by :option:`-P` (see the :ref:`target_attr`
+  section of this manual). Absence of a target specification requests
+  instrumented execution within the host environment, in which case command
+  line arguments can be passed to the executable program by adding a
+  :option:`-eargs` sequence on the |gcv| command line. You may provide the
+  executable name as part of this sequence as well. See the
+  :ref:`execution-control` section of this manual for more details.
 
 - :option:`--kernel` is necessary for cross configurations where an operating
   system kernel is needed to load and launch your applicative modules on top

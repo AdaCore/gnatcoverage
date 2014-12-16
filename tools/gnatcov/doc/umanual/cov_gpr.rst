@@ -19,7 +19,9 @@ coverage analysis activity, in particular:
 2. Select units of interest and retrieve Source Coverage Obligations
    for source coverage analysis,
 
-3. Retrieve exemption regions for source and object coverage analysis.
+3. Retrieve exemption regions for source and object coverage analysis,
+
+4. Specify the target architecture for which the analyzed program was built.
   
 A common set of rules apply in all cases:
 
@@ -98,3 +100,29 @@ For switches such as :option:`--units` which have cumulative effect, later
 occurrences on the command line add up with, rather than replace, those
 specified in the project file.
 
+.. _target_attr:
+
+Specifying the target from project files
+========================================
+
+Similarly to other tools, |gcv| uses any existing ``Target`` attribute in the
+root project file in order to detect what target architecture to consider. This
+can be done instead of providing the :option:`--target` option both for correct
+processing of project files and to run the appropriate execution environment in
+|gcvrun|.  Here is a simple example::
+
+    project My_Program is
+       for Languages use ("Ada");
+       for Main use ("my_program.adb");
+
+       for Target use "powerpc-elf";
+
+       package Compiler is
+          for Default_Switches ("Ada") use
+            ("-g", "-fdump-scos", "-fpreserve-control-flow");
+       end Compiler;
+    end My_Program;
+
+When the root project provides a ``Target`` attribute and |gcv| is passed a
+:option:`--target` option on the command line, the option takes precedence over
+the attribute.

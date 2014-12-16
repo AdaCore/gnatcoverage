@@ -43,13 +43,14 @@ The available options are as follows:
    directory must exist prior to invoking |gcv|.
 
 :option:`-t`, :option:`--target` :
-  The target architecture/board/abi that the analyzed program was built for.
-  This corresponds to the target prefix of your compilation toolchain,
-  for example ``powerpc-elf`` or ``leon-elf``. By default, |gcv| assumes
-  this is the same as its host environment. Stating this properly is required
-  for correct processing of project files with the :option:`-P` family of
-  options.
-  
+  State the target architecture/board/abi for which the analyzed program was
+  built.  This corresponds to the target prefix of your compilation toolchain,
+  for example ``powerpc-elf`` or ``leon-elf``, and can also be specified as a
+  ``Target`` attribute within the project file designated by -P, if any. By
+  default, |gcv| assumes that this target is the same as the host
+  environment. Stating the correct target is required for correct processing
+  of project files.
+
 :option:`-T`, :option:`--trace` |marg|, |rarg| :
    Provide the set of execution traces for which a report is to be
    produced. When multiple traces are provided, |gcv| produces a consolidated
