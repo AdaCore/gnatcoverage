@@ -83,4 +83,4 @@ html: stamp-prepare
 
 pdf: stamp-prepare
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/pdf
-	make -C $(BUILDDIR)/pdf all-pdf
+	make -C $(BUILDDIR)/pdf all-pdf LATEXOPTS="-interaction=nonstopmode"
