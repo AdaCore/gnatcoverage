@@ -17,6 +17,11 @@ NF-13-NA29-019 C units-of-interest description from project files (2014-11-21)
   The project file attributes allowing the "units of interest" description
   for a project now work for C units as well.
 
+NF-13-NA09-054 C support documentation (2014-11-21)
+
+  The GNATcoverage capabilities regarding the C language are now
+  part of the product documentation.
+
 NF-13-NA17-035 Flag statements in non-exercised units (2014-10-20)
 
   When a unit of interest for source coverage is entirely missing from all
