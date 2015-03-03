@@ -538,7 +538,7 @@ package body Files_Table is
             return No_Source_File;
          end if;
 
-         --  If we reach this point, we inserting a new file into the table
+         --  If we reach this point, we are inserting a new file into the table
 
          pragma Assert (not Unique_Names_Computed);
 
@@ -579,7 +579,7 @@ package body Files_Table is
             --  The alias number already contains the correct value
 
          else
-            --  The entry already exists: just updated its Match count and set
+            --  The entry already exists: just update its Match count and set
             --  the correct value to the alias number to the current file.
 
             declare
