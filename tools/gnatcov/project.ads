@@ -58,6 +58,12 @@ package Project is
    --  defined by the project through the Units, Units_List, Exclude_Units, and
    --  Exclude_Units_List attributes is used.
 
+   function Find_Source_File (Simple_Name : String) return String_Access;
+   --  Look for the absolute path for the source file called Simple_Name. If no
+   --  such source file is found, return null. Otherwise, a string is allocated
+   --  and returned. In this case, the caller is responsible for deallocating
+   --  the returned access.
+
    function Switches (Op : String) return String_List_Access;
    --  Return a list of gnatcov switches defined by the root project. Caller
    --  is responsible for deallocation.

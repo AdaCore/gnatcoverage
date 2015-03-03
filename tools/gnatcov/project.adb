@@ -390,6 +390,32 @@ package body Project is
       Report_Units_Without_LI (Override_Units_Map, Origin => "<command line>");
    end Enumerate_LIs;
 
+   ----------------------
+   -- Find_Source_File --
+   ----------------------
+
+   function Find_Source_File (Simple_Name : String)
+                              return GNAT.Strings.String_Access
+   is
+   begin
+      if Prj_Tree = null then
+         return null;
+      end if;
+
+      declare
+         Result : constant Virtual_File := GNATCOLL.Projects.Create
+           (Self            => Prj_Tree.all,
+            Name            => +Simple_Name,
+            Use_Object_Path => False);
+      begin
+         if Result = No_File then
+            return null;
+         else
+            return new String'(+Full_Name (Result));
+         end if;
+      end;
+   end Find_Source_File;
+
    ----------------
    -- Initialize --
    ----------------

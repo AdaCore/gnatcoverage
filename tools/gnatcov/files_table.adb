@@ -29,6 +29,7 @@ with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Outputs;
 with Perf_Counters; use Perf_Counters;
+with Project;
 
 package body Files_Table is
 
@@ -1145,14 +1146,30 @@ package body Files_Table is
 
       Try_Open (File, Name.all, Success);
 
-      if Success and then FI.Full_Name = null then
+      if FI.Full_Name = null then
 
-         --  Found using simple name (in current directory)
+         if Success then
 
-         FI.Full_Name :=
-           Build_Filename
-             (Ada.Directories.Current_Directory,
-              FI.Simple_Name.all);
+            --  Found using simple name (in current directory)
+
+            FI.Full_Name :=
+              Build_Filename
+                (Ada.Directories.Current_Directory,
+                 FI.Simple_Name.all);
+         else
+            --  If previous attempt failed, try again to locate the source file
+            --  with the help of the project manager
+
+            FI.Full_Name :=
+              Project.Find_Source_File (FI.Simple_Name.all);
+            if FI.Full_Name /= null then
+               Try_Open (File, FI.Full_Name.all, Success);
+               if not Success then
+                  Free (FI.Full_Name);
+               end if;
+            end if;
+         end if;
+
       end if;
 
       --  Try to rebase
