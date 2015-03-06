@@ -210,6 +210,7 @@ their use and effect on the output reports.
 
 Assessment Context
 ^^^^^^^^^^^^^^^^^^
+
 The *Assessment Context* report section exposes the following information
 items:
 
@@ -353,7 +354,7 @@ sections that precede.
 .. _scov-stmt:
 
 Statement Coverage analysis (:option:`--level=stmt`)
-=======================================================
+====================================================
 
 |gcv| performs Statement Coverage assessments with the :option:`--level=stmt`
 command line option.
@@ -412,6 +413,12 @@ statement below::
 Will be reported as covered as soon as it is reached, even if the expression
 evaluation never really terminates.
 
+Note that if no executable for a given unit can be found in any of the
+executables submitted to gnatcov, then all statements in the unit will
+be conservatively reported as not covered. This ensures that if tests
+for an entire unit have been omitted from a test campaign, a violation
+will be properly reported. Such violations can be suppressed either using
+exemptions, or by removing the unit from the list of units of interest.
 
 Example program and assessments
 -------------------------------
