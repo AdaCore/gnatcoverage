@@ -380,7 +380,7 @@ When a single statement spans multiple lines, the coverage annotation is
 present on all the lines, as the two ``+`` signs for the single assignment
 in the following excerpt::
 
-  2 .:  -- A single assignment spanning two lines:
+  3 .:  -- A single assignment spanning two lines:
   4 +:  Result :=
   5 +:     Input1 * Input2;
 
