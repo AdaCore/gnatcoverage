@@ -380,11 +380,9 @@ When a single statement spans multiple lines, the coverage annotation is
 present on all the lines, as the two ``+`` signs for the single assignment
 in the following excerpt::
 
-  2 .:  -- A single assignment spanning two lines
-  3 .:
+  2 .:  -- A single assignment spanning two lines:
   4 +:  Result :=
-  5 +:     Input1 + Input2;
-  6 .:
+  5 +:     Input1 * Input2;
 
 For compound statements, the coverage status of the compound construct per se
 is reported only on the parts that embed flow control expressions. For an Ada
@@ -413,7 +411,7 @@ statement below::
 Will be reported as covered as soon as it is reached, even if the expression
 evaluation never really terminates.
 
-Note that if no executable for a given unit can be found in any of the
+Note that if no executable code for a given unit can be found in any of the
 executables submitted to gnatcov, then all statements in the unit will
 be conservatively reported as not covered. This ensures that if tests
 for an entire unit have been omitted from a test campaign, a violation
