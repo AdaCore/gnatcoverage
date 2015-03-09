@@ -188,6 +188,41 @@ evals   : Int -> (Decision_Element -> Tristate)]
    }
 }
 
+-----------------------
+-- cond_outcome_sync --
+-----------------------
+
+pred cond_outcome_sync
+[d      : Decision,
+c       : Condition,
+outcome : seq Decision_Outcome,
+evals   : Int -> (Decision_Element -> Tristate)]
+{
+   --  True if for in evals there is an evaluation where c and outcome
+   --  are True, and an other evaluation where they are False. Only
+   --  makes some sense with no 'not' operators (or in NNF), where
+   --  all conditions have the same polarity.
+
+   -------------------
+   -- preconditions --
+   -------------------
+
+   c in conditions [d]
+   are_evaluation_vectors [d, outcome, evals]
+   #not_ops [d] = 0
+
+   --------------------
+   -- postconditions --
+   --------------------
+
+   some eT, eF : inds [outcome] {
+      c.(evals[eT]) = T_True
+      c.(evals[eF]) = T_False
+      outcome[eT] = Outcome_True
+      outcome[eF] = Outcome_False
+   }
+}
+
 -------------------------------------
 -- cond_independent_effect_masking --
 -------------------------------------
@@ -246,6 +281,19 @@ evals   : Int -> (Decision_Element -> Tristate)]
 	 influence_set [d, g] = c
 	 ran [g] & Condition = c
       }
+}
+
+-----------------------
+-- cond_outcome_sync --
+-----------------------
+
+pred cond_outcome_sync
+[d      : Decision,
+outcome : seq Decision_Outcome,
+evals   : Int -> (Decision_Element -> Tristate)]
+{
+   all c : conditions [d] |
+      cond_outcome_sync [d, c, outcome, evals]
 }
 
 ------------------
@@ -309,6 +357,21 @@ assert unique_cause_stronger_than_masking {
 check unique_cause_stronger_than_masking for 5 but 1 Decision,
 7 Decision_Element
 
+pred cond_outcome_sync_and_not_masking
+[d : Decision,
+outcome : seq Decision_Outcome,
+evals : Int -> (Decision_Element -> Tristate)]
+{
+   --  Show that condition/outcome sync does not imply masking.
+   --  First counterexample shows up with 4 conditions.
+
+   cond_outcome_sync [d, outcome, evals]
+   not masking_mcdc [d, outcome, evals]
+}
+
+run cond_outcome_sync_and_not_masking for 5 but 1 Decision,
+7 Decision_Element, 4 Condition
+
 private pred complex_decision [d : Decision]
 {
    #and_then_ops [d] > 0
@@ -360,6 +423,21 @@ evals   : Int -> (Decision_Element -> Tristate)]
 }
 
 run show_cond_independent_effect_masking for 5 but 1 Decision,
+8 Decision_Element
+
+private pred show_cond_outcome_sync
+[d      : Decision,
+c       : Condition,
+outcome : seq Decision_Outcome,
+evals   : Int -> (Decision_Element -> Tristate)]
+{
+   #inds [outcome] = 2
+   #and_then_ops [d] > 0
+   #or_else_ops [d] > 0
+   cond_outcome_sync [d, c, outcome, evals]
+}
+
+run show_cond_outcome_sync for 5 but 1 Decision,
 8 Decision_Element
 
 private pred show_masking_mcdc
