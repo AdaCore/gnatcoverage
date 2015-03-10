@@ -1,4 +1,4 @@
-GNATMAKE=gnatmake
+GPRBUILD=gprbuild
 PREFIX=install
 
 include ../../host.mk
@@ -25,7 +25,7 @@ DOCFORMATS=pdf html
 all: $(EXENAMES)
 
 $(EXENAMES): force
-	$(GNATMAKE) -Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
+	$(GPRBUILD) -Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
 
 
 ###################

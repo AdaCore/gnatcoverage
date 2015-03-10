@@ -60,7 +60,7 @@ PREFIX=$(PWD)/install
 # Internal macros #
 ###################
 
-GNATMAKE=gnatmake
+GPRBUILD=gprbuild
 
 # Binary program name
 PGMNAME=gnatcov
@@ -132,7 +132,7 @@ bin: $(PGMPATH)
 all: bin adapters
 
 $(PGMPATH):
-	$(GNATMAKE) -Pgnatcov -p -j$(PARALLEL_BUILD) \
+	$(GPRBUILD) -Pgnatcov -p -j$(PARALLEL_BUILD) \
 	-XARCH=$(BITS_ARCH) -XBUILD_MODE=$(BUILD_MODE) \
 	$(EXTRA_ADAFLAGS) $(PGMNAME)
 
@@ -145,7 +145,7 @@ $(ALL_ADAPTER_SUBDIRS):
 #######################
 
 ppc_genopc:
-	$(GNATMAKE) -j$(PARALLEL_BUILD) -Pgnatcov $(EXTRA_ADAFLAGS) $@
+	$(GPRBUILD) -j$(PARALLEL_BUILD) -Pgnatcov $(EXTRA_ADAFLAGS) $@
 
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@
