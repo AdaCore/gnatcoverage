@@ -15,7 +15,7 @@ release issued after this one.
 NF-14-MC05-049 Locate source files using project files (2015-03-04)
 
   GNATcoverage has been improved to be able to locate source files using
-  informations from project files. This is useful for compile units that
+  information from project files. This is useful for compile units that
   generate no code.
 
 NF-14-L803-037 Support for pragma Short_Circuit_And_Or (2014-11-27)
