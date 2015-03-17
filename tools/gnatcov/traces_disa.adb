@@ -19,7 +19,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 
 with Disassemblers;     use Disassemblers;
-with Elf_Arch;          use Elf_Arch;
+with Arch;              use Arch;
 with Interfaces;        use Interfaces;
 with Hex_Images;        use Hex_Images;
 with Highlighting;      use Highlighting;
@@ -65,7 +65,7 @@ package body Traces_Disa is
       Disa_For_Machine (Machine).
         Disassemble_Insn_Or_Abort (Insn, Pc, Buffer, Insn_Len, Sym);
 
-      if Elf_Arch.Elf_Addr (Insn_Len) /= Length (Insn) then
+      if Arch.Arch_Addr (Insn_Len) /= Length (Insn) then
          raise Constraint_Error;
       end if;
       return Buffer.Get_Raw;

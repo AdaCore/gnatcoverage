@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Elf_Arch; use Elf_Arch;
+with Arch;     use Arch;
 with Swaps;    use Swaps;
 with Traces;   use Traces;
 

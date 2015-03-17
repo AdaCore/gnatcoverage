@@ -2269,7 +2269,7 @@ package body Traces_Elf is
 
                when DW_LNE_set_address =>
                   Read_Address
-                    (Exec, Base, Off, Elf_Arch.Elf_Addr'Size / 8, Pc);
+                    (Exec, Base, Off, Arch.Arch_Addr'Size / 8, Pc);
                   Base_Pc := Pc;
 
                when DW_LNE_define_file =>
@@ -4117,7 +4117,7 @@ package body Traces_Elf is
 
    procedure Relocate
      (Bin_Cont  : in out Binary_Content;
-      New_First : Elf_Arch.Elf_Addr) is
+      New_First : Arch.Arch_Addr) is
    begin
       Bin_Cont.Last := New_First + Length (Bin_Cont) - 1;
       Bin_Cont.First := New_First;
@@ -4127,7 +4127,7 @@ package body Traces_Elf is
    -- Length --
    ------------
 
-   function Length (Bin_Cont : Binary_Content) return Elf_Arch.Elf_Addr is
+   function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr is
    begin
       if Bin_Cont.First > Bin_Cont.Last then
          return 0;
@@ -4151,7 +4151,7 @@ package body Traces_Elf is
 
    function Get
      (Bin_Cont : Binary_Content;
-      Offset : Elf_Arch.Elf_Addr) return Interfaces.Unsigned_8 is
+      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8 is
    begin
       return Bin_Cont.Content (Offset - Bin_Cont.First);
    end Get;
@@ -4162,13 +4162,13 @@ package body Traces_Elf is
 
    function Slice
      (Bin_Cont    : Binary_Content;
-      First, Last : Elf_Arch.Elf_Addr) return Binary_Content
+      First, Last : Arch.Arch_Addr) return Binary_Content
    is
-      RFirst : constant Elf_Arch.Elf_Addr :=
+      RFirst : constant Arch.Arch_Addr :=
         (if Bin_Cont.First <= First
          then First
          else raise Constraint_Error with "First out of bounds");
-      RLast : constant Elf_Arch.Elf_Addr :=
+      RLast : constant Arch.Arch_Addr :=
         (if Bin_Cont.Last >= Last
          then Last
          else raise Constraint_Error with "Last out of bounds");
@@ -4185,7 +4185,7 @@ package body Traces_Elf is
 
    function Address_Of
      (Bin_Cont : Binary_Content;
-      Offset   : Elf_Arch.Elf_Addr) return System.Address is
+      Offset   : Arch.Arch_Addr) return System.Address is
    begin
       return Bin_Cont.Content (Offset - Bin_Cont.First)'Address;
    end Address_Of;

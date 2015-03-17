@@ -27,7 +27,7 @@ with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNATCOLL.Mmap; use GNATCOLL.Mmap;
 
 with Elf_Common; use Elf_Common;
-with Elf_Arch; use Elf_Arch;
+with Arch; use Arch;
 
 package Elf_Files is
    type Elf_File is limited private;

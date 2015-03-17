@@ -19,7 +19,7 @@
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
-with Elf_Arch;
+with Arch;
 with Interfaces; use Interfaces;
 with Hex_Images; use Hex_Images;
 with Outputs;
@@ -53,7 +53,7 @@ package body Disassemblers is
    function Dump_Bin (Bin : Binary_Content; Size : Positive) return String
    is
       Dump : Unbounded_String;
-      I    : Elf_Arch.Elf_Addr := Bin.First;
+      I    : Arch.Arch_Addr := Bin.First;
    begin
       while I <= Bin.Last and then Natural (I - Bin.First) < Size loop
          if I > Bin.First then

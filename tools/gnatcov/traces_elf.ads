@@ -31,7 +31,7 @@ with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 
 with Coverage;       use Coverage;
 with Disa_Symbolize; use Disa_Symbolize;
-with Elf_Arch;       use Elf_Arch;
+with Arch;           use Arch;
 with Elf_Common;     use Elf_Common;
 with Elf_Files;      use Elf_Files;
 with Highlighting;
@@ -45,13 +45,13 @@ with Symbols;        use Symbols;
 package Traces_Elf is
 
    type Binary_Content_Bytes is
-     array (Elf_Arch.Elf_Addr) of Interfaces.Unsigned_8;
+     array (Arch.Arch_Addr) of Interfaces.Unsigned_8;
    type Binary_Content_Bytes_Acc is access Binary_Content_Bytes;
    pragma No_Strict_Aliasing (Binary_Content_Bytes_Acc);
 
    type Binary_Content is record
       Content     : Binary_Content_Bytes_Acc;
-      First, Last : Elf_Arch.Elf_Addr;
+      First, Last : Arch.Arch_Addr;
       --  Content is an unconstrained array, so we can set it to some memory
       --  mapped content. Thus, we have to store bounds ourselves.
    end record;
@@ -62,18 +62,18 @@ package Traces_Elf is
 
    procedure Relocate
      (Bin_Cont  : in out Binary_Content;
-      New_First : Elf_Arch.Elf_Addr);
-   function Length (Bin_Cont : Binary_Content) return Elf_Arch.Elf_Addr;
+      New_First : Arch.Arch_Addr);
+   function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr;
    function Is_Loaded (Bin_Cont : Binary_Content) return Boolean;
    function Get
      (Bin_Cont : Binary_Content;
-      Offset : Elf_Arch.Elf_Addr) return Interfaces.Unsigned_8;
+      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8;
    function Slice
      (Bin_Cont    : Binary_Content;
-      First, Last : Elf_Arch.Elf_Addr) return Binary_Content;
+      First, Last : Arch.Arch_Addr) return Binary_Content;
    function Address_Of
      (Bin_Cont : Binary_Content;
-      Offset   : Elf_Arch.Elf_Addr) return System.Address;
+      Offset   : Arch.Arch_Addr) return System.Address;
    --  Return the address of the Offset'th item in the binary content
 
    pragma Inline (Relocate);

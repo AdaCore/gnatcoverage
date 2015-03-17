@@ -11,7 +11,7 @@ project Gnatcov is
    Build_Mode : Build_Mode_Type := external("BUILD_MODE", "dev");
 
    package Naming is
-      for Specification ("Elf_Arch") use "elf_arch__" & Bits & ".ads";
+      for Specification ("Arch") use "arch__" & Bits & ".ads";
       for Specification ("Qemu_Traces_Entries")
          use"qemu_traces_entries__" & Bits & ".ads";
    end Naming;

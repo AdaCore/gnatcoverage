@@ -19,7 +19,7 @@
 --  Package to handle traces at object/exec level
 
 with Ada.Containers.Ordered_Sets;
-with Elf_Arch;   use Elf_Arch;
+with Arch;       use Arch;
 with Interfaces; use Interfaces;
 with System;     use System;
 
