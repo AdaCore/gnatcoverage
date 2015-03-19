@@ -16,7 +16,7 @@ SC assessments shall treat subunits as  regular units.
 We perform a variety of basic statement coverage assessments within several
 kinds of subunits (subprograms or packages), declared in various possible
 source contexts (visible or private part of package specs, package body,
-or subprogram declarative parts):
+generic package or subprogram declarative parts):
 
 
 .. qmlink:: TCIndexImporter
