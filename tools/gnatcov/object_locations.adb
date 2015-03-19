@@ -45,7 +45,7 @@ package body Object_Locations is
      Compile ("^0x([0-9a-fA-F]+)..0x([0-9a-fA-F]+)$");
 
    function Get_Symbol
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Name : String) return Address_Info_Acc;
    --  Return the symbol that matches Name, or null if there is no such symbol.
    --  Performs a linear search to do so.
@@ -298,7 +298,7 @@ package body Object_Locations is
    ----------------
 
    function Get_Symbol
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Name : String) return Address_Info_Acc
    is
       Cur    : Addresses_Iterator;

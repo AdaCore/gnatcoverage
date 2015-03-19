@@ -16,13 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Directories;
-
 with Interfaces; use Interfaces;
 
 with GNAT.CRC32; use GNAT.CRC32;
 
-with Inputs;  use Inputs;
 with Strings; use Strings;
 
 package body Elf_Files is
@@ -54,11 +51,12 @@ package body Elf_Files is
 
    My_Data : constant Elf_Uchar := Get_My_Data;
 
-   ---------------
-   -- Open_File --
-   ---------------
+   ---------------------
+   -- Open_File_By_Fd --
+   ---------------------
 
-   procedure Open_File (File : out Elf_File; Filename : String)
+   procedure Open_File_By_Fd
+     (File : out Elf_File; Fd : File_Descriptor; Filename : String_Access)
    is
       procedure Exit_With_Error (Status : Elf_File_Status; Msg : String);
       --  Assign Status to File, close the file if needed and raise Error with
@@ -78,11 +76,9 @@ package body Elf_Files is
          raise Error with File.Filename.all & ": " & Msg;
       end Exit_With_Error;
 
-      Basename : constant String := Ada.Directories.Simple_Name (Filename);
-
    begin
-      File := (Filename         => new String'(Filename),
-               Fd               => Invalid_FD,
+      File := (Filename         => Filename,
+               Fd               => Fd,
                File             => Invalid_Mapped_File,
                Status           => Status_Ok,
                Need_Swap        => False,
@@ -96,28 +92,7 @@ package body Elf_Files is
                Shdr             => null,
                Sh_Strtab        => null);
 
-      --  Open the file
-
-      loop
-         File.Fd := Open_Read (File.Filename.all, Binary);
-         if File.Fd /= Invalid_FD then
-            --  Stop when opening succeeded
-
-            Log_File_Open (File.Filename.all);
-            File.File := Open_Read (File.Filename.all);
-            exit;
-         end if;
-
-         --  If open failed and Filename includes a directory name, try again
-         --  with just the base name, else bail out.
-
-         if File.Filename.all /= Basename then
-            Free (File.Filename);
-            File.Filename := new String'(Basename);
-         else
-            Exit_With_Error (Status_Open_Failure, "not found");
-         end if;
-      end loop;
+      File.File := Open_Read (File.Filename.all);
 
       File.Size := File_Length (File.Fd);
       File.Time_Stamp := File_Time_Stamp (File.Fd);
@@ -179,7 +154,7 @@ package body Elf_Files is
       end if;
 
       File.CRC32 := Compute_CRC32 (File);
-   end Open_File;
+   end Open_File_By_Fd;
 
    ----------------
    -- Close_File --

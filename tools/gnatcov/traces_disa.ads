@@ -66,6 +66,6 @@ package Traces_Disa is
                                     Sym : Symbolizer'Class);
 
    --  Debug procedure: dump a trace file and the disassembly for each entry.
-   procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
+   procedure Dump_Traces_With_Asm (Exe : Exe_File_Type'Class;
                                    Trace_Filename : String);
 end Traces_Disa;

@@ -84,23 +84,23 @@ package Traces_Elf is
    pragma Inline (Address_Of);
 
    type Exe_File_Type is limited new Symbolizer with private;
-   type Exe_File_Acc is access all Exe_File_Type;
+   type Exe_File_Acc is access all Exe_File_Type'Class;
    --  Executable file type.
    --  Extracted information are stored into such object.
 
-   procedure Symbolize
+   overriding procedure Symbolize
      (Sym      : Exe_File_Type;
       Pc       : Traces.Pc_Type;
       Buffer   : in out Highlighting.Buffer_Type);
    --  Makes symbolize non-abstract.
 
-   procedure Open_File
-     (Exec : out Exe_File_Type; Filename : String; Text_Start : Pc_Type);
+   function Open_File
+     (Filename : String; Text_Start : Pc_Type) return Exe_File_Type'Class;
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
 
-   procedure Close_Exe_File (Exec : in out Exe_File_Type);
+   procedure Close_Exe_File (Exec : in out Exe_File_Type'Class);
    --  Close the ELF file.
    --  The resources are still present but nothing anymore can be read from
    --  the file.

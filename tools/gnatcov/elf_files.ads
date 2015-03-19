@@ -51,7 +51,8 @@ package Elf_Files is
       );
 
    --  Open a binary file.
-   procedure Open_File (File : out Elf_File; Filename : String);
+   procedure Open_File_By_Fd
+     (File : out Elf_File; Fd : File_Descriptor; Filename : String_Access);
 
    procedure Close_File (File : in out Elf_File);
 

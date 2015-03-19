@@ -60,7 +60,7 @@ package body Disassemble_Insn_Properties is
       Locations      : User_Locations;
       Compact        : Boolean)
    is
-      Exec     : aliased Exe_File_Type;
+      Exec     : aliased Exe_File_Type'Class := Open_File (Exec_File_Name, 0);
       Exec_Acc : constant Exe_File_Acc := Exec'Unchecked_Access;
 
       Proc_Locs : Proc_Locations;
@@ -184,7 +184,6 @@ package body Disassemble_Insn_Properties is
    --  Start of processing for Disassemble
 
    begin
-      Open_File (Exec, Exec_File_Name, 0);
       Disassembler := Elf_Disassemblers.Disa_For_Machine (Machine);
       Build_Sections (Exec);
       Build_Symbols (Exec_Acc);

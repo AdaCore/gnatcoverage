@@ -19,6 +19,7 @@
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
+with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
@@ -37,6 +38,7 @@ with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Hex_Images;        use Hex_Images;
+with Inputs;
 with Outputs;
 with Perf_Counters;     use Perf_Counters;
 with Qemu_Traces;
@@ -67,7 +69,7 @@ package body Traces_Elf is
    No_Ranges    : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_ranges
 
-   function Get_Strtab_Idx (Exec : Exe_File_Type) return Elf_Half;
+   function Get_Strtab_Idx (Exec : Exe_File_Type'Class) return Elf_Half;
    --  Get the section index of the symtab string table.
    --  Return SHN_UNDEF if not found (or in case of error).
 
@@ -152,13 +154,13 @@ package body Traces_Elf is
    --  not specified.
 
    procedure Alloc_And_Load_Section
-     (Exec    : Exe_File_Type;
+     (Exec    : Exe_File_Type'Class;
       Sec     : Elf_Half;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
       Region  : out Mapped_Region);
    procedure Alloc_And_Load_Section
-     (Exec    : Exe_File_Type;
+     (Exec    : Exe_File_Type'Class;
       Sec     : Elf_Half;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
@@ -169,7 +171,7 @@ package body Traces_Elf is
    --  region it comes from is stored in REGION. It is up to the caller to free
    --  it after use. The low bound of CONTENT is 0.
 
-   procedure Load_Symtab (Exec : in out Exe_File_Type);
+   procedure Load_Symtab (Exec : in out Exe_File_Type'Class);
    --  Load the symbol table (but not the string table) if not already
    --  loaded.
 
@@ -371,69 +373,94 @@ package body Traces_Elf is
    -- Open_File --
    ---------------
 
-   procedure Open_File
-     (Exec       : out Exe_File_Type;
-      Filename   : String;
-      Text_Start : Pc_Type)
+   function Open_File
+     (Filename   : String; Text_Start : Pc_Type) return Exe_File_Type'Class
    is
       Ehdr : Elf_Ehdr;
    begin
-      Open_File (Exec.Exe_File, Filename);
-      Exec.Exe_Text_Start := Text_Start;
-      Ehdr := Get_Ehdr (Exec.Exe_File);
-      Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
-      Exec.Exe_Machine := Ehdr.E_Machine;
-
-      if Machine = 0 then
-         Machine := Ehdr.E_Machine;
-
-      elsif Machine /= Ehdr.E_Machine then
-         --  Mixing different architectures.
-
-         Outputs.Fatal_Error ("unexpected architecture for " & Filename);
-      end if;
-
-      --  Be sure the section headers are loaded
-
-      Load_Shdr (Exec.Exe_File);
-
-      for I in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
+      return  Exec : Exe_File_Type do
+         --  Open the executable; try the full name and then the base name.
          declare
-            Name : constant String := Get_Shdr_Name (Exec.Exe_File, I);
+            use GNAT.OS_Lib;
+            Fd : File_Descriptor;
+            Name : GNAT.OS_Lib.String_Access;
          begin
-            if Name = ".symtab" then
-               Exec.Sec_Symtab := I;
-
-            elsif Name = ".debug_abbrev" then
-               Exec.Sec_Debug_Abbrev := I;
-
-            elsif Name = ".debug_info" then
-               Exec.Sec_Debug_Info := I;
-
-            elsif Name = ".rela.debug_info" then
-               Exec.Sec_Debug_Info_Rel := I;
-
-            elsif Name = ".debug_line" then
-               Exec.Sec_Debug_Line := I;
-
-            elsif Name = ".rela.debug_line" then
-               Exec.Sec_Debug_Line_Rel := I;
-
-            elsif Name = ".debug_str" then
-               Exec.Sec_Debug_Str := I;
-
-            elsif Name = ".debug_ranges" then
-               Exec.Sec_Debug_Ranges := I;
+            Fd := Open_Read (Filename, Binary);
+            if Fd /= Invalid_FD then
+               Name := new String'(Filename);
+            else
+               declare
+                  Basename : constant String :=
+                    Ada.Directories.Simple_Name (Filename);
+               begin
+                  Fd := Open_Read (Basename, Binary);
+                  if Fd = Invalid_FD then
+                     raise Elf_Files.Error with Filename & ": File not found";
+                  end if;
+                  Name := new String'(Basename);
+               end;
             end if;
+
+            Inputs.Log_File_Open (Name.all);
+            Open_File_By_Fd (Exec.Exe_File, Fd, Name);
          end;
-      end loop;
+
+         Exec.Exe_Text_Start := Text_Start;
+         Ehdr := Get_Ehdr (Exec.Exe_File);
+         Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
+         Exec.Exe_Machine := Ehdr.E_Machine;
+
+         if Machine = 0 then
+            Machine := Ehdr.E_Machine;
+
+         elsif Machine /= Ehdr.E_Machine then
+            --  Mixing different architectures.
+
+            Outputs.Fatal_Error ("unexpected architecture for " & Filename);
+         end if;
+
+         --  Be sure the section headers are loaded
+
+         Load_Shdr (Exec.Exe_File);
+
+         for I in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
+            declare
+               Name : constant String := Get_Shdr_Name (Exec.Exe_File, I);
+            begin
+               if Name = ".symtab" then
+                  Exec.Sec_Symtab := I;
+
+               elsif Name = ".debug_abbrev" then
+                  Exec.Sec_Debug_Abbrev := I;
+
+               elsif Name = ".debug_info" then
+                  Exec.Sec_Debug_Info := I;
+
+               elsif Name = ".rela.debug_info" then
+                  Exec.Sec_Debug_Info_Rel := I;
+
+               elsif Name = ".debug_line" then
+                  Exec.Sec_Debug_Line := I;
+
+               elsif Name = ".rela.debug_line" then
+                  Exec.Sec_Debug_Line_Rel := I;
+
+               elsif Name = ".debug_str" then
+                  Exec.Sec_Debug_Str := I;
+
+               elsif Name = ".debug_ranges" then
+                  Exec.Sec_Debug_Ranges := I;
+               end if;
+            end;
+         end loop;
+      end return;
    end Open_File;
 
    --------------------
    -- Close_Exe_File --
    --------------------
 
-   procedure Close_Exe_File (Exec : in out Exe_File_Type) is
+   procedure Close_Exe_File (Exec : in out Exe_File_Type'Class) is
    begin
       Close_File (Exec.Exe_File);
 
@@ -663,7 +690,7 @@ package body Traces_Elf is
    -- Get_Strtab_Idx --
    --------------------
 
-   function Get_Strtab_Idx (Exec : Exe_File_Type) return Elf_Half is
+   function Get_Strtab_Idx (Exec : Exe_File_Type'Class) return Elf_Half is
       Symtab_Shdr : Elf_Shdr_Acc;
    begin
       if Exec.Sec_Symtab = SHN_UNDEF then
@@ -1252,7 +1279,7 @@ package body Traces_Elf is
    ----------------------------
 
    procedure Alloc_And_Load_Section
-     (Exec    : Exe_File_Type;
+     (Exec    : Exe_File_Type'Class;
       Sec     : Elf_Half;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
@@ -1282,7 +1309,7 @@ package body Traces_Elf is
    ----------------------------
 
    procedure Alloc_And_Load_Section
-     (Exec    : Exe_File_Type;
+     (Exec    : Exe_File_Type'Class;
       Sec     : Elf_Half;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
@@ -1714,7 +1741,7 @@ package body Traces_Elf is
    -- Load_Symtab --
    -----------------
 
-   procedure Load_Symtab (Exec : in out Exe_File_Type) is
+   procedure Load_Symtab (Exec : in out Exe_File_Type'Class) is
       Symtab_Shdr : Elf_Shdr_Acc;
       Symtab_Len : Elf_Addr;
    begin

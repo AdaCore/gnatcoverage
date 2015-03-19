@@ -236,7 +236,7 @@ package body Traces_Disa is
    --------------------------
 
    procedure Dump_Traces_With_Asm
-    (Exe : Exe_File_Type; Trace_Filename : String)
+    (Exe : Exe_File_Type'Class; Trace_Filename : String)
    is
       use Traces_Files;
       Addr : Address_Info_Acc := null;

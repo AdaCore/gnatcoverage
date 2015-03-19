@@ -1191,7 +1191,7 @@ procedure GNATcov is
    end Show_CWD;
 
    Base : aliased Traces_Base;
-   Exec : aliased Exe_File_Type;
+   Exec : Exe_File_Acc;
 
    use type Tag_Provider_Access;
 
@@ -1380,7 +1380,7 @@ begin
 
             procedure Dump_Trace (Trace_File_Name : String) is
             begin
-               Traces_Disa.Dump_Traces_With_Asm (Exec, Trace_File_Name);
+               Traces_Disa.Dump_Traces_With_Asm (Exec.all, Trace_File_Name);
             end Dump_Trace;
 
             ---------------
@@ -1389,9 +1389,10 @@ begin
 
             procedure Open_Exec (Exec_File_Name : String) is
             begin
-               Open_File (Exec, Exec_File_Name, Text_Start);
-               Build_Sections (Exec);
-               Build_Symbols (Exec'Unchecked_Access);
+               Exec := new Exe_File_Type'Class'
+                 (Open_File (Exec_File_Name, Text_Start));
+               Build_Sections (Exec.all);
+               Build_Symbols (Exec);
             end Open_Exec;
 
          begin
@@ -1417,23 +1418,24 @@ begin
             procedure Dump_Exec (Exec_File_Name : String) is
                To_Display : Address_Info_Kind;
             begin
-               Open_File (Exec, Exec_File_Name, Text_Start);
-               Build_Sections (Exec);
+               Exec := new Exe_File_Type'Class'
+                 (Open_File (Exec_File_Name, Text_Start));
+               Build_Sections (Exec.all);
 
                case Command is
                   when Cmd_Dump_Sections =>
                      To_Display := Section_Addresses;
 
                   when Cmd_Dump_Symbols =>
-                     Build_Symbols (Exec'Unchecked_Access);
+                     Build_Symbols (Exec);
                      To_Display := Symbol_Addresses;
 
                   when Cmd_Dump_Subprograms =>
-                     Build_Debug_Compile_Units (Exec);
+                     Build_Debug_Compile_Units (Exec.all);
                      To_Display := Subprogram_Addresses;
 
                   when Cmd_Dump_Lines =>
-                     Build_Debug_Lines (Exec);
+                     Build_Debug_Lines (Exec.all);
                      To_Display := Line_Addresses;
 
                   when others =>
@@ -1442,8 +1444,8 @@ begin
                      raise Program_Error;
                end case;
 
-               Disp_Addresses (Exec, To_Display);
-               Close_File (Exec);
+               Disp_Addresses (Exec.all, To_Display);
+               Close_File (Exec.all);
             end Dump_Exec;
 
          begin
@@ -1462,11 +1464,11 @@ begin
 
             procedure Dump_Compilation_Units (Exec_File_Name : String) is
             begin
-               Open_File (Exec, Exec_File_Name, 0);
-               Build_Sections (Exec);
-               Build_Debug_Compile_Units (Exec);
-               Disp_Compilation_Units (Exec);
-               Close_File (Exec);
+               Exec := new Exe_File_Type'Class'(Open_File (Exec_File_Name, 0));
+               Build_Sections (Exec.all);
+               Build_Debug_Compile_Units (Exec.all);
+               Disp_Compilation_Units (Exec.all);
+               Close_File (Exec.all);
             end Dump_Compilation_Units;
 
          begin
@@ -1485,9 +1487,9 @@ begin
 
             procedure Disassemble (Exec_File_Name : String) is
             begin
-               Open_File (Exec, Exec_File_Name, 0);
-               Disassemble_File_Raw (Exec);
-               Close_File (Exec);
+               Exec := new Exe_File_Type'Class'(Open_File (Exec_File_Name, 0));
+               Disassemble_File_Raw (Exec.all);
+               Close_File (Exec.all);
             end Disassemble;
 
          begin
@@ -1506,11 +1508,11 @@ begin
 
             procedure Disassemble (Exec_File_Name : String) is
             begin
-               Open_File (Exec, Exec_File_Name, 0);
-               Build_Sections (Exec);
-               Build_Symbols (Exec'Unchecked_Access);
-               Disassemble_File (Exec);
-               Close_File (Exec);
+               Exec := new Exe_File_Type'Class'(Open_File (Exec_File_Name, 0));
+               Build_Sections (Exec.all);
+               Build_Symbols (Exec);
+               Disassemble_File (Exec.all);
+               Close_File (Exec.all);
             end Disassemble;
 
          begin
