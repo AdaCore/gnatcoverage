@@ -65,7 +65,7 @@ with Isys2nex;  use Isys2nex;
 with Elf_Files;    use Elf_Files;
 with Elf_Common;   use Elf_Common;
 with Elf32;        use Elf32;
-with Elf_Arch;     use Elf_Arch;
+with Arch;         use Arch;
 with Swaps;        use Swaps;
 with Traces;       use Traces;
 with Qemu_Traces;  use Qemu_Traces;
