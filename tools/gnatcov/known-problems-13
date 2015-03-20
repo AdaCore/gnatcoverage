@@ -17,6 +17,18 @@ in this document.
 Known problems fixed in 1.4.1 and above
 ---------------------------------------
 
+KP-13-O320-024 Dead links in DHTML reports served through a Web server
+
+  Problem:     When browsing DHTML reports that are served by a Web server on a
+               non-standard port (i.e. not 80 for HTTP and not 443 for HTTPS),
+               all links from the report index are invalid: they lead to a
+               connection error.
+
+  Status:      This was fixed on 2015-03-20.
+
+  Workaround:  Download the report files and open the local files in the
+               browser.
+
 KP-13-O319-006 No report for subunits in generic units
 
   Problem:     GNATcoverage does not generate coverage report and thus does not
