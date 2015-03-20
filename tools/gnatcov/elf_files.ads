@@ -18,51 +18,25 @@
 
 with Ada.Unchecked_Conversion;
 
-with Interfaces;
-
 with System; use System;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with GNATCOLL.Mmap; use GNATCOLL.Mmap;
+with Binary_Files;  use Binary_Files;
 
 with Elf_Common; use Elf_Common;
 with Arch; use Arch;
 
 package Elf_Files is
-   type Elf_File is limited private;
-
-   Error : exception;
-
-   type Elf_File_Status is
-     (
-      --  No error.
-      Status_Ok,
-
-      --  Cannot open file.
-      Status_Open_Failure,
-
-      Status_Bad_File,
-      Status_Memory,
-      Status_Read_Error,
-      Status_Bad_Magic,
-      Status_Bad_Class,
-      Status_Bad_Version
-      );
+   type Elf_File is new Binary_File with private;
 
    --  Open a binary file.
-   procedure Open_File_By_Fd
-     (File : out Elf_File; Fd : File_Descriptor; Filename : String_Access);
+   function Create_File
+     (Fd : File_Descriptor; Filename : String_Access) return Elf_File;
 
-   procedure Close_File (File : in out Elf_File);
-
-   --  Return status of previous operation.
-   function Get_Status (File : Elf_File) return Elf_File_Status;
-
-   function Get_Filename (File : Elf_File) return String;
-   function Get_Size (File : Elf_File) return Long_Integer;
-   function Get_Time_Stamp (File : Elf_File) return OS_Time;
-   function Get_CRC32 (File : Elf_File) return Interfaces.Unsigned_32;
+   --  Check if the file is an ELF file.
+   function Is_ELF_File (Fd : File_Descriptor) return Boolean;
 
    type Elf_Ehdr_Acc is access constant Elf_Ehdr;
 
@@ -160,25 +134,7 @@ private
    function To_Elf_Sym_Acc is new Ada.Unchecked_Conversion
      (Address, Elf_Sym_Acc);
 
-   type Elf_File is record
-      Filename         : String_Access;
-      --  Name of the file
-
-      Fd               : File_Descriptor;
-      File             : Mapped_File;
-      --  Access the ELF content. FD is open first, then File is open using FD.
-
-      --  A few characteristics for this file. They will be saved here as soon
-      --  as the file is open, since the ELF might be closed when they are
-      --  requested.
-
-      Size             : Long_Integer;
-      Time_Stamp       : OS_Time;
-      CRC32            : Interfaces.Unsigned_32;
-
-      Status           : Elf_File_Status;
-      --  Status, used to report errors.
-
+   type Elf_File is new Binary_File with record
       Need_Swap        : Boolean;
       --  Whether the endianess of the ELF is the same as the one on this
       --  machine.

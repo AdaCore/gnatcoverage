@@ -18,14 +18,9 @@
 
 with Interfaces; use Interfaces;
 
-with GNAT.CRC32; use GNAT.CRC32;
-
 with Strings; use Strings;
 
 package body Elf_Files is
-
-   function Compute_CRC32 (File : Elf_File) return Unsigned_32;
-   --  Compute and return the CRC32 of File
 
    function Get_My_Data return Elf_Uchar;
    function Get_String (Strtab : Elf_Strtab_Acc; Idx : Elf_Addr) return String;
@@ -51,14 +46,33 @@ package body Elf_Files is
 
    My_Data : constant Elf_Uchar := Get_My_Data;
 
-   ---------------------
-   -- Open_File_By_Fd --
-   ---------------------
+   -----------------
+   -- Is_ELF_File --
+   -----------------
 
-   procedure Open_File_By_Fd
-     (File : out Elf_File; Fd : File_Descriptor; Filename : String_Access)
+   function Is_ELF_File (Fd : File_Descriptor) return Boolean
    is
-      procedure Exit_With_Error (Status : Elf_File_Status; Msg : String);
+      type Header_Type is array (0 .. 3) of Unsigned_8;
+      Header : Header_Type;
+   begin
+      Lseek (Fd, 0, Seek_Set);
+
+      if Read (Fd, Header'Address, 4) /= 4 then
+         return False;
+      end if;
+
+      return Header = (ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3);
+   end Is_ELF_File;
+
+   -----------------
+   -- Create_File --
+   -----------------
+
+   function Create_File
+     (Fd : File_Descriptor; Filename : String_Access) return Elf_File
+   is
+      procedure Exit_With_Error
+        (File : in out Elf_File; Status : Binary_File_Status; Msg : String);
       --  Assign Status to File, close the file if needed and raise Error with
       --  the filename and Msg.
 
@@ -66,153 +80,83 @@ package body Elf_Files is
       -- Exit_With_Error --
       ---------------------
 
-      procedure Exit_With_Error (Status : Elf_File_Status; Msg : String) is
+      procedure Exit_With_Error
+        (File : in out Elf_File; Status : Binary_File_Status; Msg : String) is
       begin
-         File.Status := Status;
-         if File.Fd /= Invalid_FD then
-            Close (File.File);
-            File.Fd := Invalid_FD;
-         end if;
-         raise Error with File.Filename.all & ": " & Msg;
+         Set_Status (File, Status);
+         Close_File (File);
+         raise Error with File.Filename & ": " & Msg;
       end Exit_With_Error;
-
    begin
-      File := (Filename         => Filename,
-               Fd               => Fd,
-               File             => Invalid_Mapped_File,
-               Status           => Status_Ok,
-               Need_Swap        => False,
-               Size             => 0,
-               Time_Stamp       => Invalid_Time,
-               CRC32            => 0,
-               Ehdr_Map         => Invalid_Mapped_Region,
-               Shdr_Map         => Invalid_Mapped_Region,
-               Sh_Strtab_Map    => Invalid_Mapped_Region,
-               Ehdr             => null,
-               Shdr             => null,
-               Sh_Strtab        => null);
-
-      File.File := Open_Read (File.Filename.all);
-
-      File.Size := File_Length (File.Fd);
-      File.Time_Stamp := File_Time_Stamp (File.Fd);
-
-      --  Read the Ehdr
-      File.Ehdr_Map := Read
-        (File.File, 0, File_Size (Elf_Ehdr_Size));
-      if Natural (GNATCOLL.Mmap.Last (File.Ehdr_Map)) /= Elf_Ehdr_Size then
-         Exit_With_Error (Status_Read_Error, "failed to read ELF header");
-      end if;
-
-      --  Make it mutable if byte-swapping is needed
-
-      File.Ehdr := To_Elf_Ehdr_Var_Acc (Data (File.Ehdr_Map).all'Address);
-      File.Need_Swap := File.Ehdr.E_Ident (EI_DATA) /= My_Data;
-
-      if File.Need_Swap then
-         Make_Mutable (File, File.Ehdr_Map);
-         File.Ehdr := To_Elf_Ehdr_Var_Acc (Data (File.Ehdr_Map).all'Address);
-      end if;
-
-      if File.Need_Swap then
-         Elf_Ehdr_Swap (File.Ehdr.all);
-      end if;
-
-      if File.Ehdr.E_Ident (EI_MAG0) /= ELFMAG0
-        or else File.Ehdr.E_Ident (EI_MAG1) /= ELFMAG1
-        or else File.Ehdr.E_Ident (EI_MAG2) /= ELFMAG2
-        or else File.Ehdr.E_Ident (EI_MAG3) /= ELFMAG3
-      then
-         --  In the case this is a trace file, should we instead get the
-         --  executable name from the trace file and retry???
-
-         Exit_With_Error
-           (Status_Bad_Magic,
-            (if Has_Suffix (File.Filename.all, ".trace")
-             then "ELF file expected, found a trace file"
-             else "bad ELF magic"));
-      end if;
-
-      declare
-         Input_Class : Elf_Uchar renames File.Ehdr.E_Ident (EI_CLASS);
-      begin
-         if Input_Class /= Elf_Arch_Class then
+      return File : Elf_File := (Binary_File'(Create_File (Fd, Filename))
+                                 with
+                                 Need_Swap        => False,
+                                 Ehdr_Map         => Invalid_Mapped_Region,
+                                 Shdr_Map         => Invalid_Mapped_Region,
+                                 Sh_Strtab_Map    => Invalid_Mapped_Region,
+                                 Ehdr             => null,
+                                 Shdr             => null,
+                                 Sh_Strtab        => null)
+      do
+         --  Read the Ehdr
+         File.Ehdr_Map := Read
+           (File.File, 0, File_Size (Elf_Ehdr_Size));
+         if Natural (GNATCOLL.Mmap.Last (File.Ehdr_Map)) /= Elf_Ehdr_Size then
             Exit_With_Error
-              (Status_Bad_Class,
-               (case Input_Class is
-                   when ELFCLASS32 => "unsupported ELF class (32bit)",
-                   when ELFCLASS64 => "unsupported ELF class (64bit)",
-                   when others =>
-                      ("invalid ELF class ("
-                       & Elf_Uchar'Image (Input_Class)
-                       & ')')));
+              (File, Status_Read_Error, "failed to read ELF header");
          end if;
-      end;
 
-      if File.Ehdr.E_Ident (EI_VERSION) /= EV_CURRENT then
-         Exit_With_Error (Status_Bad_Version, "unexpected ELF version");
-      end if;
+         --  Make it mutable if byte-swapping is needed
 
-      File.CRC32 := Compute_CRC32 (File);
-   end Open_File_By_Fd;
+         File.Ehdr := To_Elf_Ehdr_Var_Acc (Data (File.Ehdr_Map).all'Address);
+         File.Need_Swap := File.Ehdr.E_Ident (EI_DATA) /= My_Data;
 
-   ----------------
-   -- Close_File --
-   ----------------
+         if File.Need_Swap then
+            Make_Mutable (File, File.Ehdr_Map);
+            File.Ehdr :=
+              To_Elf_Ehdr_Var_Acc (Data (File.Ehdr_Map).all'Address);
+         end if;
 
-   procedure Close_File (File : in out Elf_File) is
-   begin
-      Close (File.File);
-      File.Fd := Invalid_FD;
+         if File.Need_Swap then
+            Elf_Ehdr_Swap (File.Ehdr.all);
+         end if;
 
-      --  Note: File.Filename may be referenced later on to produce error
-      --  messages, so we don't deallocate it.
-   end Close_File;
+         if File.Ehdr.E_Ident (EI_MAG0) /= ELFMAG0
+           or else File.Ehdr.E_Ident (EI_MAG1) /= ELFMAG1
+           or else File.Ehdr.E_Ident (EI_MAG2) /= ELFMAG2
+           or else File.Ehdr.E_Ident (EI_MAG3) /= ELFMAG3
+         then
+            --  In the case this is a trace file, should we instead get the
+            --  executable name from the trace file and retry???
 
-   ----------------
-   -- Get_Status --
-   ----------------
+            Exit_With_Error
+              (File, Status_Bad_Magic,
+               (if Has_Suffix (File.Filename, ".trace")
+                then "ELF file expected, found a trace file"
+                else "bad ELF magic"));
+         end if;
 
-   function Get_Status (File : Elf_File) return Elf_File_Status is
-   begin
-      return File.Status;
-   end Get_Status;
+         declare
+            Input_Class : Elf_Uchar renames File.Ehdr.E_Ident (EI_CLASS);
+         begin
+            if Input_Class /= Elf_Arch_Class then
+               Exit_With_Error
+                 (File, Status_Bad_Class,
+                  (case Input_Class is
+                     when ELFCLASS32 => "unsupported ELF class (32bit)",
+                     when ELFCLASS64 => "unsupported ELF class (64bit)",
+                     when others =>
+                        ("invalid ELF class ("
+                         & Elf_Uchar'Image (Input_Class) & ')')));
+            end if;
+         end;
 
-   ------------------
-   -- Get_Filename --
-   ------------------
-
-   function Get_Filename (File : Elf_File) return String is
-   begin
-      return File.Filename.all;
-   end Get_Filename;
-
-   --------------
-   -- Get_Size --
-   --------------
-
-   function Get_Size (File : Elf_File) return Long_Integer is
-   begin
-      return File.Size;
-   end Get_Size;
-
-   --------------------
-   -- Get_Time_Stamp --
-   --------------------
-
-   function Get_Time_Stamp (File : Elf_File) return OS_Time is
-   begin
-      return File.Time_Stamp;
-   end Get_Time_Stamp;
-
-   ---------------
-   -- Get_CRC32 --
-   ---------------
-
-   function Get_CRC32 (File : Elf_File) return Unsigned_32 is
-   begin
-      return File.CRC32;
-   end Get_CRC32;
+         if File.Ehdr.E_Ident (EI_VERSION) /= EV_CURRENT then
+            Exit_With_Error
+              (File, Status_Bad_Version, "unexpected ELF version");
+         end if;
+      end return;
+   end Create_File;
 
    ---------------
    -- Load_Shdr --
@@ -448,20 +392,5 @@ package body Elf_Files is
       end if;
       return Res;
    end Get_Sym;
-
-   -------------------
-   -- Compute_CRC32 --
-   -------------------
-
-   function Compute_CRC32 (File : Elf_File) return Unsigned_32 is
-      C              : CRC32;
-      Content        : Mapped_Region := Read (File.File);
-      Content_Length : constant Integer := Integer (Length (File.File));
-   begin
-      Initialize (C);
-      Update (C, String (Data (Content).all (1 .. Content_Length)));
-      Free (Content);
-      return Get_Value (C);
-   end Compute_CRC32;
 
 end Elf_Files;

@@ -43,7 +43,7 @@ with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
 with Decision_Map;      use Decision_Map;
 with Disassemble_Insn_Properties;
-with Elf_Files;
+with Binary_Files;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Inputs;            use Inputs;
@@ -1695,7 +1695,7 @@ begin
                   end;
                end return;
             exception
-               when E : Elf_Files.Error =>
+               when E : Binary_Files.Error =>
                   Fatal_Error ("cannot open ELF file " & Exe_Name
                                & " for trace file " & Trace_File_Name & ": "
                                & Ada.Exceptions.Exception_Message (E));
@@ -2009,7 +2009,7 @@ begin
    end if;
 
 exception
-   when Error : Elf_Files.Error
+   when Error : Binary_Files.Error
       | Ada.IO_Exceptions.Name_Error =>
       Outputs.Error (Ada.Exceptions.Exception_Message (Error));
 

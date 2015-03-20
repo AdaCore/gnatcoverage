@@ -36,7 +36,7 @@ with Diagnostics; use Diagnostics;
 with Disassemblers;
 with Elf_Common;
 with Elf_Disassemblers;
-with Elf_Files;
+with Binary_Files;
 with Execs_Dbase;
 with Hex_Images;  use Hex_Images;
 with Highlighting;
@@ -1758,7 +1758,8 @@ package body CFG_Dump is
       begin
          Execs_Dbase.Open_Exec (Exec_Path, 0, Context.Exec);
       exception
-         when Elf_Files.Error => Fatal_Error ("Could not open " & Exec_Path);
+         when Binary_Files.Error =>
+            Fatal_Error ("Could not open " & Exec_Path);
       end;
 
       if Switches.Verbose then

@@ -437,6 +437,8 @@ private
    --  Note: line addresses are stored within the enclosing Symbol entry
 
    type Exe_File_Type is limited new Symbolizer with record
+      Exe_File : Elf_Files.Elf_File;
+
       --  Sections index
 
       Sec_Symtab          : Elf_Half := SHN_UNDEF;
@@ -448,7 +450,6 @@ private
       Sec_Debug_Str       : Elf_Half := SHN_UNDEF;
       Sec_Debug_Ranges    : Elf_Half := SHN_UNDEF;
 
-      Exe_File            : Elf_Files.Elf_File;
       Exe_Text_Start      : Elf_Addr;
       Exe_Machine         : Elf_Half;
       Is_Big_Endian       : Boolean;

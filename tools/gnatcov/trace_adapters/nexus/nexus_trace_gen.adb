@@ -62,6 +62,7 @@ with GNATCOLL.Mmap; use GNATCOLL.Mmap;
 with Nexus_Rep; use Nexus_Rep;
 with Isys2nex;  use Isys2nex;
 
+with Binary_Files; use Binary_Files;
 with Elf_Files;    use Elf_Files;
 with Elf_Common;   use Elf_Common;
 with Elf32;        use Elf32;
@@ -475,7 +476,7 @@ begin
    if Fd = Invalid_FD then
       raise Exe_Exception with Executable_Filename.all & ": File not found";
    end if;
-   Open_File_By_Fd (Executable_File, Fd, Executable_Filename);
+   Executable_File := Create_File (Fd, Executable_Filename);
    Chk_Exe ("Error Opening");
    Ehdr := Get_Ehdr (Executable_File);
    Chk_Exe ("Error reading file header");

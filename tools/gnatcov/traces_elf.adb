@@ -27,6 +27,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 
 with GNATCOLL.VFS;
 
+with Binary_Files;
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
@@ -376,84 +377,87 @@ package body Traces_Elf is
    function Open_File
      (Filename   : String; Text_Start : Pc_Type) return Exe_File_Type'Class
    is
+      use GNAT.OS_Lib;
+      Fd : File_Descriptor;
+      Name : GNAT.OS_Lib.String_Access;
+
       Ehdr : Elf_Ehdr;
    begin
-      return  Exec : Exe_File_Type do
-         --  Open the executable; try the full name and then the base name.
+      --  Open the executable; try the full name and then the base name.
+      Fd := Open_Read (Filename, Binary);
+      if Fd /= Invalid_FD then
+         Name := new String'(Filename);
+      else
          declare
-            use GNAT.OS_Lib;
-            Fd : File_Descriptor;
-            Name : GNAT.OS_Lib.String_Access;
+            Basename : constant String :=
+              Ada.Directories.Simple_Name (Filename);
          begin
-            Fd := Open_Read (Filename, Binary);
-            if Fd /= Invalid_FD then
-               Name := new String'(Filename);
-            else
-               declare
-                  Basename : constant String :=
-                    Ada.Directories.Simple_Name (Filename);
-               begin
-                  Fd := Open_Read (Basename, Binary);
-                  if Fd = Invalid_FD then
-                     raise Elf_Files.Error with Filename & ": File not found";
-                  end if;
-                  Name := new String'(Basename);
-               end;
+            Fd := Open_Read (Basename, Binary);
+            if Fd = Invalid_FD then
+               raise Binary_Files.Error with Filename & ": File not found";
+            end if;
+            Name := new String'(Basename);
+         end;
+      end if;
+
+      Inputs.Log_File_Open (Name.all);
+
+      if Is_ELF_File (Fd) then
+         return Exec : Exe_File_Type := (Exe_File => Create_File (Fd, Name),
+                                         others => <>) do
+
+            Exec.Exe_Text_Start := Text_Start;
+            Ehdr := Get_Ehdr (Exec.Exe_File);
+            Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
+            Exec.Exe_Machine := Ehdr.E_Machine;
+
+            if Machine = 0 then
+               Machine := Ehdr.E_Machine;
+
+            elsif Machine /= Ehdr.E_Machine then
+               --  Mixing different architectures.
+
+               Outputs.Fatal_Error ("unexpected architecture for " & Filename);
             end if;
 
-            Inputs.Log_File_Open (Name.all);
-            Open_File_By_Fd (Exec.Exe_File, Fd, Name);
-         end;
+            --  Be sure the section headers are loaded
 
-         Exec.Exe_Text_Start := Text_Start;
-         Ehdr := Get_Ehdr (Exec.Exe_File);
-         Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
-         Exec.Exe_Machine := Ehdr.E_Machine;
+            Load_Shdr (Exec.Exe_File);
 
-         if Machine = 0 then
-            Machine := Ehdr.E_Machine;
+            for I in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
+               declare
+                  Name : constant String := Get_Shdr_Name (Exec.Exe_File, I);
+               begin
+                  if Name = ".symtab" then
+                     Exec.Sec_Symtab := I;
 
-         elsif Machine /= Ehdr.E_Machine then
-            --  Mixing different architectures.
+                  elsif Name = ".debug_abbrev" then
+                     Exec.Sec_Debug_Abbrev := I;
 
-            Outputs.Fatal_Error ("unexpected architecture for " & Filename);
-         end if;
+                  elsif Name = ".debug_info" then
+                     Exec.Sec_Debug_Info := I;
 
-         --  Be sure the section headers are loaded
+                  elsif Name = ".rela.debug_info" then
+                     Exec.Sec_Debug_Info_Rel := I;
 
-         Load_Shdr (Exec.Exe_File);
+                  elsif Name = ".debug_line" then
+                     Exec.Sec_Debug_Line := I;
 
-         for I in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
-            declare
-               Name : constant String := Get_Shdr_Name (Exec.Exe_File, I);
-            begin
-               if Name = ".symtab" then
-                  Exec.Sec_Symtab := I;
+                  elsif Name = ".rela.debug_line" then
+                     Exec.Sec_Debug_Line_Rel := I;
 
-               elsif Name = ".debug_abbrev" then
-                  Exec.Sec_Debug_Abbrev := I;
+                  elsif Name = ".debug_str" then
+                     Exec.Sec_Debug_Str := I;
 
-               elsif Name = ".debug_info" then
-                  Exec.Sec_Debug_Info := I;
-
-               elsif Name = ".rela.debug_info" then
-                  Exec.Sec_Debug_Info_Rel := I;
-
-               elsif Name = ".debug_line" then
-                  Exec.Sec_Debug_Line := I;
-
-               elsif Name = ".rela.debug_line" then
-                  Exec.Sec_Debug_Line_Rel := I;
-
-               elsif Name = ".debug_str" then
-                  Exec.Sec_Debug_Str := I;
-
-               elsif Name = ".debug_ranges" then
-                  Exec.Sec_Debug_Ranges := I;
-               end if;
-            end;
-         end loop;
-      end return;
+                  elsif Name = ".debug_ranges" then
+                     Exec.Sec_Debug_Ranges := I;
+                  end if;
+               end;
+            end loop;
+         end return;
+      else
+         Outputs.Fatal_Error ("unknown binary format for " & Filename);
+      end if;
    end Open_File;
 
    --------------------
@@ -547,7 +551,7 @@ package body Traces_Elf is
 
    function Get_Filename (Exec : Exe_File_Type) return String is
    begin
-      return Get_Filename (Exec.Exe_File);
+      return Filename (Exec.Exe_File);
    end Get_Filename;
 
    -----------------
@@ -3592,7 +3596,7 @@ package body Traces_Elf is
          Close_File (Efile);
       end;
    exception
-      when Elf_Files.Error =>
+      when Binary_Files.Error =>
          Put_Line (Standard_Error, "cannot open: " & Filename);
          raise;
    end On_Elf_From;
