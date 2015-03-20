@@ -84,16 +84,18 @@ procedure Nexus_Trace_Gen is
       P ("  PT_Start_IAC_# PT_Start_Addr never|PT_Stop_IAC");
    end Usage;
 
-   type String_Ptr is access String;
+   use GNAT.OS_Lib;
 
-   Tracefile_Path      : String_Ptr;
-   Histfile_Path       : String_Ptr;
-   Executable_Filename : String_Ptr;
-   Processor_ID        : String_Ptr;
+   Tracefile_Path      : String_Access;
+   Histfile_Path       : String_Access;
+   Executable_Filename : String_Access;
+   Processor_ID        : String_Access;
 
-   OCD_Filename        : String_Ptr;
+   OCD_Filename        : String_Access;
    --  On Chip Debug file: file containing the Nexus trace messages.
 
+
+   Fd               : File_Descriptor;
    Executable_File  : Elf_File;
    Ehdr             : Elf_Ehdr;
    Text_Shdr_Idx    : Elf_Half;
@@ -469,7 +471,11 @@ begin
 
    Tracefile_Path := new String'(Argument (5));
 
-   Open_File (Executable_File, Executable_Filename.all);
+   Fd := Open_Read (Executable_Filename.all, Binary);
+   if Fd = Invalid_FD then
+      raise Exe_Exception with Executable_Filename.all & ": File not found";
+   end if;
+   Open_File_By_Fd (Executable_File, Fd, Executable_Filename);
    Chk_Exe ("Error Opening");
    Ehdr := Get_Ehdr (Executable_File);
    Chk_Exe ("Error reading file header");
