@@ -222,7 +222,7 @@ package body Annotations.Dynamic_Html is
    function Src_Range (SCO : SCO_Id) return JSON_Array;
    --  Return a JSON array for the range Sloc_Start .. Sloc_End from SCO
 
-   function Get_Hunk_Filename (Orig_Filename : String) return String;
+   function Get_Hunk_Filename (File : Source_File_Index) return String;
    --  Return the name of the file containing the coverage data for the
    --  given source file.
 
@@ -336,7 +336,7 @@ package body Annotations.Dynamic_Html is
             Simplified.Set_Field
               ("coverage_level", String'(Source.Get ("coverage_level")));
             Simplified.Set_Field
-              ("hunk_filename", Get_Hunk_Filename (Filename));
+              ("hunk_filename", String'(Source.Get ("hunk_filename")));
 
             if Source.Has_Field ("project") then
                --  Project name is optional. Add it only when relevant
@@ -397,7 +397,8 @@ package body Annotations.Dynamic_Html is
 
       --  Generate the JSON object for this source file
 
-      Source.Set_Field ("filename", Info.Simple_Name.all);
+      Source.Set_Field ("filename", Get_Unique_Name (File));
+      Source.Set_Field ("hunk_filename", Get_Hunk_Filename (File));
       Source.Set_Field ("coverage_level", Coverage_Option_Value);
       Source.Set_Field ("stats", Stats);
 
@@ -715,9 +716,9 @@ package body Annotations.Dynamic_Html is
    -- Get_Hunk_Filename --
    -----------------------
 
-   function Get_Hunk_Filename (Orig_Filename : String) return String is
+   function Get_Hunk_Filename (File : Source_File_Index) return String is
    begin
-      return Orig_Filename & ".hunk.js";
+      return Get_Unique_Filename (File, "hunk.js");
    end Get_Hunk_Filename;
 
    -----------------------
@@ -859,8 +860,7 @@ package body Annotations.Dynamic_Html is
       ----------------
 
       procedure Write_Hunk (Hunk : JSON_Value) is
-         Filename : constant String :=
-                      Get_Hunk_Filename (Hunk.Get ("filename"));
+         Filename : constant String := Hunk.Get ("hunk_filename");
          Output   : File_Type;
 
       begin
