@@ -235,26 +235,6 @@ package body Elf_Files is
       return Result;
    end Load_Section;
 
-   ------------------
-   -- Make_Mutable --
-   ------------------
-
-   procedure Make_Mutable
-     (File : Elf_File; Region : in out Mapped_Region) is
-   begin
-      --  If the region is already mutable (this can happen, for instance, if
-      --  it was byte-swapped), do not risk losing changes remapping it.
-
-      if not Is_Mutable (Region) then
-         Read
-           (File    => File.File,
-            Region  => Region,
-            Offset  => Offset (Region),
-            Length  => File_Size (Last (Region)),
-            Mutable => True);
-      end if;
-   end Make_Mutable;
-
    --------------
    -- Get_Ehdr --
    --------------

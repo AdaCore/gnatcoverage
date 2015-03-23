@@ -144,4 +144,24 @@ package body Binary_Files is
       return Get_Value (C);
    end Compute_CRC32;
 
+   ------------------
+   -- Make_Mutable --
+   ------------------
+
+   procedure Make_Mutable
+     (File : Binary_File; Region : in out Mapped_Region) is
+   begin
+      --  If the region is already mutable (this can happen, for instance, if
+      --  it was byte-swapped), do not risk losing changes remapping it.
+
+      if not Is_Mutable (Region) then
+         Read
+           (File    => File.File,
+            Region  => Region,
+            Offset  => Offset (Region),
+            Length  => File_Size (Last (Region)),
+            Mutable => True);
+      end if;
+   end Make_Mutable;
+
 end Binary_Files;

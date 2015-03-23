@@ -66,6 +66,11 @@ package Binary_Files is
    --  copied.
 
    procedure Close_File (File : in out Binary_File);
+
+   procedure Make_Mutable
+     (File : Binary_File; Region : in out Mapped_Region);
+   --  Make some previously-mapped region mutable
+
 private
 
    type Binary_File is tagged record

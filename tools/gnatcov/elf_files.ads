@@ -82,10 +82,6 @@ package Elf_Files is
      (File : Elf_File; Shdr : Elf_Shdr_Acc) return Mapped_Region;
    --  Load a section in memory. Only the file length bytes are loaded
 
-   procedure Make_Mutable
-     (File : Elf_File; Region : in out Mapped_Region);
-   --  Make some previously-mapped region mutable
-
    type Elf_Rela_Acc is access Elf_Rela;
 
    type Elf_Strtab is array (Elf_Addr) of Character;
