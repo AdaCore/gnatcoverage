@@ -1047,8 +1047,8 @@ class TestSuite:
         # (e.g. C only programs). This is a workaround:
 
         if ((not mopt.toolchain) and mopt.target
-            and any ((t in mopt.target for t in 
-                      ['ppc-elf', 'p55-elf', 'leon-elf']))):
+            and any (t in mopt.target for t in 
+                      ['ppc-elf', 'p55-elf', 'leon-elf'])):
             mopt.largs += " -lgnat"
             
         if mopt.largs:
