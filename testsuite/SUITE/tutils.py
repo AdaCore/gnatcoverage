@@ -103,11 +103,6 @@ def gprbuild_largs_with (thislargs):
     all_largs = to_list (thistest.options.largs)
     all_largs.extend (to_list (thislargs))
 
-    # ??? libgnat is sometimes needed for an executable to run and not added
-    # automatically by the toolchain, so:
-
-    all_largs.append ("-lgnat")
-
     if all_largs:
         all_largs.insert (0, '-largs')
 
