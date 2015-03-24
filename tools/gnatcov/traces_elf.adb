@@ -28,6 +28,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 with GNATCOLL.VFS;
 
 with Binary_Files;
+with PECoff_Files; use PECoff_Files;
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
@@ -455,6 +456,8 @@ package body Traces_Elf is
                end;
             end loop;
          end return;
+      elsif Is_PE_File (Fd) then
+         Outputs.Fatal_Error ("PE file not supported: " & Filename);
       else
          Outputs.Fatal_Error ("unknown binary format for " & Filename);
       end if;
