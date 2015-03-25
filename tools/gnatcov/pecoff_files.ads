@@ -17,9 +17,22 @@
 ------------------------------------------------------------------------------
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
+with Coff; use Coff;
+with Binary_Files; use Binary_Files;
 
 package PECoff_Files is
+   type PE_File is new Binary_File with private;
 
    function Is_PE_File (Fd : File_Descriptor) return Boolean;
    --  Return True if FD is a PE-COFF file
+
+   --  Open a binary file
+   function Create_File
+     (Fd : File_Descriptor; Filename : String_Access) return PE_File;
+
+private
+   type PE_File is new Binary_File with record
+      Hdr : Filehdr;
+   end record;
+
 end PECoff_Files;

@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Coff; use Coff;
 with Interfaces; use Interfaces;
 
 package body PECoff_Files is
@@ -49,4 +48,33 @@ package body PECoff_Files is
 
       return PE_Sig = Pe_Magic;
    end Is_PE_File;
+
+   function Create_File
+     (Fd : File_Descriptor; Filename : String_Access) return PE_File is
+      procedure Exit_With_Error
+        (File : in out PE_File; Status : Binary_File_Status; Msg : String);
+      --  Assign Status to File, close the file if needed and raise Error with
+      --  the filename and Msg.
+
+      ---------------------
+      -- Exit_With_Error --
+      ---------------------
+
+      procedure Exit_With_Error
+        (File : in out PE_File; Status : Binary_File_Status; Msg : String) is
+      begin
+         Set_Status (File, Status);
+         Close_File (File);
+         raise Error with File.Filename & ": " & Msg;
+      end Exit_With_Error;
+   begin
+      return File : PE_File := (Binary_File'(Create_File (Fd, Filename))
+                                with others => <>) do
+         if Read (Fd, File.Hdr'Address, Filehdr_Size) /= Filehdr_Size then
+            Exit_With_Error
+              (File, Status_Read_Error, "failed to read COFF header");
+         end if;
+      end return;
+   end Create_File;
+
 end PECoff_Files;
