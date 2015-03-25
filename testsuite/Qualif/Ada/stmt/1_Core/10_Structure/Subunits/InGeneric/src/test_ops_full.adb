@@ -2,7 +2,7 @@ with Do_Ops;
 with Ops; use Ops;
 with Support; use Support;
 
-procedure Test_Ops_0 is
+procedure Test_Ops_Full is
    Opd : Opdata;
 begin
    Do_Ops (True, Opd);
