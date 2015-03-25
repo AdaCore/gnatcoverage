@@ -12,6 +12,13 @@ This date shows the implementation date of the feature. Any 1.4.0w wavefront
 subsequent to this date will contain the indicated feature, as will any
 release issued after this one.
 
+NF-14-O320-026 DHTML support ascending and descending sort order (2015-03-25)
+
+  The DHTML output tables have been augmented to support reverse sorting on the
+  second click: click once on the column header to sort the table in ascending
+  order using the column as sort criteria; click a second time on the same
+  column header to sort the table in descending order.
+
 NF-14-MC05-049 Locate source files using project files (2015-03-04)
 
   GNATcoverage has been improved to be able to locate source files using
