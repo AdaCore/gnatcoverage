@@ -503,8 +503,6 @@ private
       --  Sections index
 
       Sec_Symtab          : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Info_Rel  : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Line_Rel  : Elf_Half := SHN_UNDEF;
    end record;
 
    procedure Close_Exe_File (Exec : in out Elf_Exe_File_Type);

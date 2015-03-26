@@ -420,14 +420,8 @@ package body Traces_Elf is
                   elsif Name = ".debug_info" then
                      Exec.Sec_Debug_Info := Section_Index (I);
 
-                  elsif Name = ".rela.debug_info" then
-                     Exec.Sec_Debug_Info_Rel := I;
-
                   elsif Name = ".debug_line" then
                      Exec.Sec_Debug_Line := Section_Index (I);
-
-                  elsif Name = ".rela.debug_line" then
-                     Exec.Sec_Debug_Line_Rel := I;
 
                   elsif Name = ".debug_str" then
                      Exec.Sec_Debug_Str := Section_Index (I);
@@ -482,8 +476,6 @@ package body Traces_Elf is
       Close_Exe_File (Exe_File_Type (Exec));
 
       Exec.Sec_Symtab         := SHN_UNDEF;
-      Exec.Sec_Debug_Info_Rel := SHN_UNDEF;
-      Exec.Sec_Debug_Line_Rel := SHN_UNDEF;
    end Close_Exe_File;
 
    ----------------
