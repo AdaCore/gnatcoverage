@@ -71,6 +71,18 @@ package Binary_Files is
      (File : Binary_File; Region : in out Mapped_Region);
    --  Make some previously-mapped region mutable
 
+   type Section_Index is new Natural;
+   No_Section : constant Section_Index := Section_Index'Last;
+
+   function Get_Nbr_Sections (File : Binary_File) return Section_Index;
+   procedure Set_Nbr_Sections (File : in out Binary_File; Nbr : Section_Index);
+
+   function Get_Section_Length
+     (File : Binary_File; Index : Section_Index) return Interfaces.Unsigned_32;
+
+   function Load_Section
+     (File : Binary_File; Index : Section_Index) return Mapped_Region;
+
 private
 
    type Binary_File is tagged record
@@ -87,6 +99,9 @@ private
       --  A few characteristics for this file. They will be saved here as soon
       --  as the file is open, since the ELF might be closed when they are
       --  requested.
+
+      Nbr_Sections     : Section_Index;
+      --  Number of sections.  This is the index of the last section + 1.
 
       Size             : Long_Integer;
       Time_Stamp       : GNAT.OS_Lib.OS_Time;

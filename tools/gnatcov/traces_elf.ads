@@ -32,6 +32,7 @@ with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 with Coverage;       use Coverage;
 with Disa_Symbolize; use Disa_Symbolize;
 with Arch;           use Arch;
+with Binary_Files;   use Binary_Files;
 with Elf_Common;     use Elf_Common;
 with Elf_Files;      use Elf_Files;
 with Highlighting;
@@ -83,7 +84,7 @@ package Traces_Elf is
    pragma Inline (Slice);
    pragma Inline (Address_Of);
 
-   type Exe_File_Type is limited new Symbolizer with private;
+   type Exe_File_Type is abstract limited new Symbolizer with private;
    type Exe_File_Acc is access all Exe_File_Type'Class;
    --  Executable file type.
    --  Extracted information are stored into such object.
@@ -100,7 +101,7 @@ package Traces_Elf is
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
 
-   procedure Close_Exe_File (Exec : in out Exe_File_Type'Class);
+   procedure Close_Exe_File (Exec : in out Exe_File_Type);
    --  Close the ELF file.
    --  The resources are still present but nothing anymore can be read from
    --  the file.
@@ -108,26 +109,37 @@ package Traces_Elf is
    procedure Close_File (Exec : in out Exe_File_Type);
    --  Close file and free built informations
 
-   function Get_Filename (Exec : Exe_File_Type) return String;
+   procedure Apply_Relocations
+     (Exec    : in out Exe_File_Type;
+      Sec_Idx : Section_Index;
+      Region  : in out Mapped_Region;
+      Data    : in out Binary_Content) is abstract;
+   --  Apply relocations from SEC_REL to DATA.
+   --  This procedure should only be called to relocate dwarf debug sections,
+   --  and therefore handles only a small subset of the relocations. DATA must
+   --  be a writable memory area.
+
+   function Get_Filename (Exec : Exe_File_Type) return String is abstract;
    --  Get the filename of Exec
 
    function Get_Machine (Exec : Exe_File_Type) return Interfaces.Unsigned_16;
    --  Get the machine type (ELF machine id)
 
-   function Get_Size (Exec : Exe_File_Type) return Long_Integer;
+   function Get_Size (Exec : Exe_File_Type) return Long_Integer is abstract;
    --  Get the size of the Exec file
 
-   function Get_Time_Stamp (Exec : Exe_File_Type) return GNAT.OS_Lib.OS_Time;
+   function Get_Time_Stamp (Exec : Exe_File_Type) return GNAT.OS_Lib.OS_Time
+     is abstract;
    --  Get the time stamp of the Exec file
 
-   function Get_CRC32 (Exec : Exe_File_Type) return Unsigned_32;
+   function Get_CRC32 (Exec : Exe_File_Type) return Unsigned_32 is abstract;
    --  Get the CRC32 checksum of the content of the Exec file
 
    function Time_Stamp_Image (TS : GNAT.OS_Lib.OS_Time) return String;
    --  Return a simple string representation of a timestamp
 
    function Match_Trace_Executable
-     (Exec : Exe_File_Type; Trace_File : Trace_File_Type)
+     (Exec : Exe_File_Type'Class; Trace_File : Trace_File_Type)
      return String;
    --  If the given executable file does not match the executable used to
    --  produce the given trace file, return why. Return an empty string
@@ -137,7 +149,7 @@ package Traces_Elf is
    type Address_Info_Acc is access all Address_Info;
    type Address_Info_Arr is array (Positive range <>) of Address_Info_Acc;
 
-   procedure Build_Sections (Exec : in out Exe_File_Type);
+   procedure Build_Sections (Exec : in out Exe_File_Type) is abstract;
    --  Build sections map for the current ELF file
 
    procedure Load_Section_Content
@@ -156,12 +168,12 @@ package Traces_Elf is
    --  Comment needed???
 
    --  Read dwarfs info to build compile_units/subprograms lists.
-   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type);
+   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type'Class);
 
-   procedure Build_Symbols (Exec : Exe_File_Acc);
-   --  Read ELF symbol table.
+   procedure Build_Symbols (Exec : in out Exe_File_Type) is abstract;
+   --  Read symbol table.
 
-   procedure Build_Debug_Lines (Exec : in out Exe_File_Type);
+   procedure Build_Debug_Lines (Exec : in out Exe_File_Type'Class);
    --  Read dwarfs info to build lines list
 
    procedure Build_Source_Lines_For_Section
@@ -247,7 +259,7 @@ package Traces_Elf is
 
          when Section_Addresses =>
             Section_Name    : String_Access;
-            Section_Index   : Elf_Common.Elf_Half;
+            Section_Sec_Idx : Section_Index;
             Section_Content : Binary_Content;
             Section_Region  : Mapped_Region;
 
@@ -358,7 +370,7 @@ package Traces_Elf is
    --  match the PC address, or set CU_* to null if no one matches.
 
    procedure Scan_Symbols_From
-     (File   : Exe_File_Acc;
+     (File   : Exe_File_Type'Class;
       Sym_Cb : access procedure (Sym : Address_Info_Acc);
       Strict : Boolean);
    procedure Scan_Symbols_From
@@ -375,7 +387,7 @@ package Traces_Elf is
       Exclude   : Boolean;
       Strict    : Boolean);
    procedure Read_Routine_Names
-     (File    : Exe_File_Acc;
+     (File    : Exe_File_Type'Class;
       Exclude : Boolean;
       Strict  : Boolean := False);
    --  Add (or remove if EXCLUDE is true) routines read from an ELF image to
@@ -402,7 +414,7 @@ package Traces_Elf is
    --  This should be used only when the subroutine
    --  database has been populated with its traces.
 
-   procedure Disassemble_File_Raw (File : in out Exe_File_Type);
+   procedure Disassemble_File_Raw (File : in out Exe_File_Type'Class);
    --  Disassemble the file (for debugging purposes)
 
    procedure Disassemble_File (File : in out Exe_File_Type);
@@ -436,23 +448,23 @@ private
      of aliased Address_Info_Sets.Set;
    --  Note: line addresses are stored within the enclosing Symbol entry
 
-   type Exe_File_Type is limited new Symbolizer with record
-      Exe_File : Elf_Files.Elf_File;
+   type Binary_File_Acc is access all Binary_File'Class;
 
-      --  Sections index
+   type File_Kind is (File_Executable, File_Object, File_Others);
 
-      Sec_Symtab          : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Abbrev    : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Info      : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Info_Rel  : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Line      : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Line_Rel  : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Str       : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Ranges    : Elf_Half := SHN_UNDEF;
+   type Exe_File_Type is abstract limited new Symbolizer with record
+      File                : Binary_File_Acc;
+      Kind                : File_Kind;
 
       Exe_Text_Start      : Elf_Addr;
       Exe_Machine         : Elf_Half;
       Is_Big_Endian       : Boolean;
+
+      Sec_Debug_Abbrev    : Section_Index := No_Section;
+      Sec_Debug_Info      : Section_Index := No_Section;
+      Sec_Debug_Line      : Section_Index := No_Section;
+      Sec_Debug_Str       : Section_Index := No_Section;
+      Sec_Debug_Ranges    : Section_Index := No_Section;
 
       --  FIXME
       --  What is there to fix???
@@ -484,6 +496,30 @@ private
       Desc_Sets           : Desc_Sets_Type;
       --  Address descriptor sets
    end record;
+
+   type Elf_Exe_File_Type is limited new Exe_File_Type  with record
+      Elf_File : aliased Elf_Files.Elf_File;
+
+      --  Sections index
+
+      Sec_Symtab          : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Info_Rel  : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Line_Rel  : Elf_Half := SHN_UNDEF;
+   end record;
+
+   procedure Close_Exe_File (Exec : in out Elf_Exe_File_Type);
+   function Get_Filename (Exec : Elf_Exe_File_Type) return String;
+   function Get_Size (Exec : Elf_Exe_File_Type) return Long_Integer;
+   function Get_Time_Stamp
+     (Exec : Elf_Exe_File_Type) return GNAT.OS_Lib.OS_Time;
+   function Get_CRC32 (Exec : Elf_Exe_File_Type) return Unsigned_32;
+   procedure Build_Symbols (Exec : in out Elf_Exe_File_Type);
+   procedure Build_Sections (Exec : in out Elf_Exe_File_Type);
+   procedure Apply_Relocations
+     (Exec    : in out Elf_Exe_File_Type;
+      Sec_Idx : Section_Index;
+      Region  : in out Mapped_Region;
+      Data    : in out Binary_Content);
 
    type Addresses_Iterator is limited record
       Cur : Address_Info_Sets.Cursor;

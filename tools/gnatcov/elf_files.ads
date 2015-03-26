@@ -19,6 +19,7 @@
 with Ada.Unchecked_Conversion;
 
 with System; use System;
+with Interfaces;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
@@ -43,9 +44,6 @@ package Elf_Files is
    --  Get ELF header.
    function Get_Ehdr (File : Elf_File) return Elf_Ehdr;
 
-   procedure Load_Shdr (File : in out Elf_File);
-   --  Load internally Section header table and well as shdr string table.
-
    procedure Enable_Section_Relocation (File : in out Elf_File);
    --  Reload the Section header table if needed to make it mutable. This will
    --  enable one to relocate sections. The Section header table must already
@@ -67,8 +65,8 @@ package Elf_Files is
    function Get_Shdr_By_Name (File : Elf_File; Name : String)
                              return Elf_Shdr_Acc;
 
-   function Get_Section_Length (File : Elf_File; Index : Elf_Half)
-                               return Elf_Addr;
+   function Get_Section_Length (File : Elf_File; Index : Section_Index)
+                               return Interfaces.Unsigned_32;
 
    --  Extract and swap bytes (if necessary) a relocation entry
    function Get_Rela (File : Elf_File; Addr : Address) return Elf_Rela;
@@ -77,9 +75,7 @@ package Elf_Files is
    function Get_Sym (File : Elf_File; Addr : Address) return Elf_Sym;
 
    function Load_Section
-     (File : Elf_File; Index : Elf_Half) return Mapped_Region;
-   function Load_Section
-     (File : Elf_File; Shdr : Elf_Shdr_Acc) return Mapped_Region;
+     (File : Elf_File; Index : Section_Index) return Mapped_Region;
    --  Load a section in memory. Only the file length bytes are loaded
 
    type Elf_Rela_Acc is access Elf_Rela;

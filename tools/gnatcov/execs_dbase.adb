@@ -55,7 +55,7 @@ package body Execs_Dbase is
          Base_Entry.Exec := Exec;
          Exec_Base.Insert (Exec_File_Name, Base_Entry);
          Build_Sections (Exec.all);
-         Build_Symbols (Exec);
+         Build_Symbols (Exec.all);
       end if;
    end Open_Exec;
 

@@ -25,6 +25,9 @@ package body Elf_Files is
    function Get_My_Data return Elf_Uchar;
    function Get_String (Strtab : Elf_Strtab_Acc; Idx : Elf_Addr) return String;
 
+   procedure Load_Shdr (File : in out Elf_File);
+   --  Load internally Section header table and well as shdr string table.
+
    -----------------
    -- Get_My_Data --
    -----------------
@@ -155,6 +158,9 @@ package body Elf_Files is
             Exit_With_Error
               (File, Status_Bad_Version, "unexpected ELF version");
          end if;
+
+         Set_Nbr_Sections (File, Section_Index (File.Ehdr.E_Shnum));
+         Load_Shdr (File);
       end return;
    end Create_File;
 
@@ -171,6 +177,7 @@ package body Elf_Files is
          raise Error;
       end if;
       if File.Shdr /= null then
+         --  Alread loaded
          return;
       end if;
 
@@ -192,7 +199,8 @@ package body Elf_Files is
          end loop;
       end if;
 
-      File.Sh_Strtab_Map := Load_Section (File, File.Ehdr.E_Shstrndx);
+      File.Sh_Strtab_Map := Load_Section
+        (File, Section_Index (File.Ehdr.E_Shstrndx));
       File.Sh_Strtab :=
         To_Elf_Strtab_Acc (Data (File.Sh_Strtab_Map).all'Address);
    end Load_Shdr;
@@ -214,18 +222,8 @@ package body Elf_Files is
    ------------------
 
    function Load_Section
-     (File : Elf_File; Index : Elf_Half) return Mapped_Region is
-   begin
-      return Load_Section (File, Get_Shdr (File, Index));
-   end Load_Section;
-
-   ------------------
-   -- Load_Section --
-   ------------------
-
-   function Load_Section
-     (File : Elf_File; Shdr : Elf_Shdr_Acc) return Mapped_Region
-   is
+     (File : Elf_File; Index : Section_Index) return Mapped_Region is
+      Shdr : constant Elf_Shdr_Acc := Get_Shdr (File, Elf_Half (Index));
       Result : constant Mapped_Region := Read
         (File.File, File_Size (Shdr.Sh_Offset), File_Size (Shdr.Sh_Size));
    begin
@@ -269,10 +267,10 @@ package body Elf_Files is
    -- Get_Section_Length --
    ------------------------
 
-   function Get_Section_Length (File : Elf_File; Index : Elf_Half)
-                                      return Elf_Addr is
+   function Get_Section_Length (File : Elf_File; Index : Section_Index)
+                               return Elf_Addr is
    begin
-      return Get_Shdr (File, Index).Sh_Size;
+      return Get_Shdr (File, Elf_Half (Index)).Sh_Size;
    end Get_Section_Length;
 
    --  Load a section in memory.  Only the file length bytes are loaded

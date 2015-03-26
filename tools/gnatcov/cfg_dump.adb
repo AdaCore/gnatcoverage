@@ -34,7 +34,6 @@ with Coverage.Source;
 with Decision_Map;
 with Diagnostics; use Diagnostics;
 with Disassemblers;
-with Elf_Common;
 with Elf_Disassemblers;
 with Binary_Files;
 with Execs_Dbase;
@@ -125,7 +124,7 @@ package body CFG_Dump is
       Bytes               : Binary_Content;
       --  Location and content for this instruction
 
-      Section             : Elf_Common.Elf_Half;
+      Section             : Binary_Files.Section_Index;
       --  Index of the section in which this instruction was found
 
       Selected            : Boolean;
@@ -315,7 +314,7 @@ package body CFG_Dump is
       Section : Address_Info_Acc)
    is
       Code    : constant Binary_Content := Section.Section_Content;
-      Sec_Ndx : constant Elf_Common.Elf_Half := Section.Section_Index;
+      Sec_Ndx : constant Binary_Files.Section_Index := Section.Section_Sec_Idx;
       Disas   : constant access Disassemblers.Disassembler'Class :=
         Elf_Disassemblers.Disa_For_Machine (Traces.Machine);
 
@@ -1765,7 +1764,7 @@ package body CFG_Dump is
       if Switches.Verbose then
          Report (Msg => "Reading symbols...", Kind => Notice);
       end if;
-      Build_Symbols (Context.Exec);
+      Build_Symbols (Context.Exec.all);
 
       Translate_Locations (Ctx.Exec, Locations, Context.Locs);
 
@@ -1780,7 +1779,7 @@ package body CFG_Dump is
          if Switches.Verbose then
             Report (Msg => "Reading routine names...", Kind => Notice);
          end if;
-         Read_Routine_Names (Context.Exec, Exclude => False);
+         Read_Routine_Names (Context.Exec.all, Exclude => False);
       end if;
 
       if Switches.Verbose then
@@ -1810,7 +1809,7 @@ package body CFG_Dump is
                if Switches.Verbose then
                   Report
                     (Msg => "ELF section #"
-                     & Strings.Img (Integer (Section.Section_Index))
+                     & Strings.Img (Integer (Section.Section_Sec_Idx))
                      & " looks interesting: loading its instructions...",
                      Kind => Notice);
                end if;

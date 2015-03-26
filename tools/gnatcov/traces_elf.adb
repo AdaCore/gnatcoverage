@@ -27,7 +27,6 @@ with System.Storage_Elements; use System.Storage_Elements;
 
 with GNATCOLL.VFS;
 
-with Binary_Files;
 with PECoff_Files; use PECoff_Files;
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Source;
@@ -57,96 +56,79 @@ package body Traces_Elf is
    function Convert is new Ada.Unchecked_Conversion
      (System.Address, Binary_Content_Bytes_Acc);
 
-   procedure Make_Mutable
-     (Exe      : Exe_File_Type;
-      Region   : in out Mapped_Region;
-      Bin_Cont : out Binary_Content);
-   --  Make sure Region (from File) is mutable. Do not remap it if it already
-   --  is, so that no existing change is lost.Create a copy of some binary
-   --  content and return it.
-
    No_Stmt_List : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_stmt_list
 
    No_Ranges    : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_ranges
 
-   function Get_Strtab_Idx (Exec : Exe_File_Type'Class) return Elf_Half;
+   function Get_Strtab_Idx (Exec : Elf_Exe_File_Type) return Elf_Half;
    --  Get the section index of the symtab string table.
    --  Return SHN_UNDEF if not found (or in case of error).
 
    procedure Read_Word8
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Res  : out Unsigned_64);
    procedure Read_Word4
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Res  : out Unsigned_32);
    procedure Read_Word2
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Res  : out Unsigned_16);
    procedure Write_Word8
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Val  : Unsigned_64);
    procedure Write_Word4
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Val  : Unsigned_32);
    procedure Write_Word4
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Val  : Integer_32);
    pragma Unreferenced (Write_Word4);
    procedure Read_Address
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Sz   : Natural;
       Res  : out Pc_Type);
    procedure Read_Dwarf_Form_U64
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32;
       Res  : out Unsigned_64);
    procedure Read_Dwarf_Form_U32
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32;
       Res  : out Unsigned_32);
    procedure Read_Dwarf_Form_String
-     (Exec : in out Exe_File_Type;
+     (Exec : in out Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32;
       Res  : out Address);
    procedure Skip_Dwarf_Form
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32);
 
-   procedure Apply_Relocations
-     (Exec    : in out Exe_File_Type;
-      Sec_Rel : Elf_Half;
-      Data    : in out Binary_Content);
-   --  Apply relocations from SEC_REL to DATA.
-   --  This procedure should only be called to relocate dwarf debug sections,
-   --  and therefore handles only a small subset of the relocations. DATA must
-   --  be a writable memory area.
-
    procedure Read_Debug_Lines
-     (Exec                  : in out Exe_File_Type;
+     (Exec                  : in out Exe_File_Type'Class;
       Stmt_List_Offset      : Unsigned_32;
       Compilation_Directory : String_Access);
    --  Read the debug lines of a compilation unit.
@@ -157,23 +139,16 @@ package body Traces_Elf is
 
    procedure Alloc_And_Load_Section
      (Exec    : Exe_File_Type'Class;
-      Sec     : Elf_Half;
+      Sec     : Section_Index;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
       Region  : out Mapped_Region);
-   procedure Alloc_And_Load_Section
-     (Exec    : Exe_File_Type'Class;
-      Sec     : Elf_Half;
-      Len     : out Elf_Addr;
-      Content : out Binary_Content;
-      Region  : out Mapped_Region;
-      Base    : out Address);
    --  Allocate memory for section SEC of EXEC and read it. LEN is the length
    --  of the section. Loaded bytes will be stored in CONTENT, and the mapped
    --  region it comes from is stored in REGION. It is up to the caller to free
    --  it after use. The low bound of CONTENT is 0.
 
-   procedure Load_Symtab (Exec : in out Exe_File_Type'Class);
+   procedure Load_Symtab (Exec : in out Elf_Exe_File_Type);
    --  Load the symbol table (but not the string table) if not already
    --  loaded.
 
@@ -404,11 +379,13 @@ package body Traces_Elf is
       Inputs.Log_File_Open (Name.all);
 
       if Is_ELF_File (Fd) then
-         return Exec : Exe_File_Type := (Exe_File => Create_File (Fd, Name),
-                                         others => <>) do
+         return Exec : Elf_Exe_File_Type :=
+           (Elf_File => Create_File (Fd, Name),
+            others => <>) do
 
+            Exec.File := Exec.Elf_File'Unchecked_Access;
             Exec.Exe_Text_Start := Text_Start;
-            Ehdr := Get_Ehdr (Exec.Exe_File);
+            Ehdr := Get_Ehdr (Exec.Elf_File);
             Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
             Exec.Exe_Machine := Ehdr.E_Machine;
 
@@ -421,37 +398,42 @@ package body Traces_Elf is
                Outputs.Fatal_Error ("unexpected architecture for " & Filename);
             end if;
 
-            --  Be sure the section headers are loaded
+            case Get_Ehdr (Exec.Elf_File).E_Type is
+               when ET_EXEC =>
+                  Exec.Kind := File_Executable;
+               when ET_REL =>
+                  Exec.Kind := File_Object;
+               when others =>
+                  Exec.Kind := File_Others;
+            end case;
 
-            Load_Shdr (Exec.Exe_File);
-
-            for I in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
+            for I in 0 .. Get_Shdr_Num (Exec.Elf_File) - 1 loop
                declare
-                  Name : constant String := Get_Shdr_Name (Exec.Exe_File, I);
+                  Name : constant String := Get_Shdr_Name (Exec.Elf_File, I);
                begin
                   if Name = ".symtab" then
                      Exec.Sec_Symtab := I;
 
                   elsif Name = ".debug_abbrev" then
-                     Exec.Sec_Debug_Abbrev := I;
+                     Exec.Sec_Debug_Abbrev := Section_Index (I);
 
                   elsif Name = ".debug_info" then
-                     Exec.Sec_Debug_Info := I;
+                     Exec.Sec_Debug_Info := Section_Index (I);
 
                   elsif Name = ".rela.debug_info" then
                      Exec.Sec_Debug_Info_Rel := I;
 
                   elsif Name = ".debug_line" then
-                     Exec.Sec_Debug_Line := I;
+                     Exec.Sec_Debug_Line := Section_Index (I);
 
                   elsif Name = ".rela.debug_line" then
                      Exec.Sec_Debug_Line_Rel := I;
 
                   elsif Name = ".debug_str" then
-                     Exec.Sec_Debug_Str := I;
+                     Exec.Sec_Debug_Str := Section_Index (I);
 
                   elsif Name = ".debug_ranges" then
-                     Exec.Sec_Debug_Ranges := I;
+                     Exec.Sec_Debug_Ranges := Section_Index (I);
                   end if;
                end;
             end loop;
@@ -467,10 +449,8 @@ package body Traces_Elf is
    -- Close_Exe_File --
    --------------------
 
-   procedure Close_Exe_File (Exec : in out Exe_File_Type'Class) is
+   procedure Close_Exe_File (Exec : in out Exe_File_Type) is
    begin
-      Close_File (Exec.Exe_File);
-
       if Exec.Lines_Region /= Invalid_Mapped_Region then
          Free (Exec.Lines_Region);
       end if;
@@ -485,17 +465,25 @@ package body Traces_Elf is
          Free (Exec.Debug_Strs_Region);
       end if;
 
+      Exec.Sec_Debug_Abbrev   := No_Section;
+      Exec.Sec_Debug_Info     := No_Section;
+      Exec.Sec_Debug_Line     := No_Section;
+      Exec.Sec_Debug_Str      := No_Section;
+      Exec.Sec_Debug_Ranges   := No_Section;
+
       Exec.Debug_Str_Base := Null_Address;
       Exec.Debug_Str_Len := 0;
+   end Close_Exe_File;
+
+   procedure Close_Exe_File (Exec : in out Elf_Exe_File_Type) is
+   begin
+      Close_File (Exec.Elf_File);
+
+      Close_Exe_File (Exe_File_Type (Exec));
 
       Exec.Sec_Symtab         := SHN_UNDEF;
-      Exec.Sec_Debug_Abbrev   := SHN_UNDEF;
-      Exec.Sec_Debug_Info     := SHN_UNDEF;
       Exec.Sec_Debug_Info_Rel := SHN_UNDEF;
-      Exec.Sec_Debug_Line     := SHN_UNDEF;
       Exec.Sec_Debug_Line_Rel := SHN_UNDEF;
-      Exec.Sec_Debug_Str      := SHN_UNDEF;
-      Exec.Sec_Debug_Ranges   := SHN_UNDEF;
    end Close_Exe_File;
 
    ----------------
@@ -552,9 +540,9 @@ package body Traces_Elf is
    -- Get_Filename --
    ------------------
 
-   function Get_Filename (Exec : Exe_File_Type) return String is
+   function Get_Filename (Exec : Elf_Exe_File_Type) return String is
    begin
-      return Filename (Exec.Exe_File);
+      return Filename (Exec.File.all);
    end Get_Filename;
 
    -----------------
@@ -570,27 +558,28 @@ package body Traces_Elf is
    -- Get_Size --
    --------------
 
-   function Get_Size (Exec : Exe_File_Type) return Long_Integer is
+   function Get_Size (Exec : Elf_Exe_File_Type) return Long_Integer is
    begin
-      return Get_Size (Exec.Exe_File);
+      return Get_Size (Exec.File.all);
    end Get_Size;
 
    --------------------
    -- Get_Time_Stamp --
    --------------------
 
-   function Get_Time_Stamp (Exec : Exe_File_Type) return GNAT.OS_Lib.OS_Time is
+   function Get_Time_Stamp
+     (Exec : Elf_Exe_File_Type) return GNAT.OS_Lib.OS_Time is
    begin
-      return Get_Time_Stamp (Exec.Exe_File);
+      return Get_Time_Stamp (Exec.File.all);
    end Get_Time_Stamp;
 
    ---------------
    -- Get_CRC32 --
    ---------------
 
-   function Get_CRC32 (Exec : Exe_File_Type) return Unsigned_32 is
+   function Get_CRC32 (Exec : Elf_Exe_File_Type) return Unsigned_32 is
    begin
-      return Get_CRC32 (Exec.Exe_File);
+      return Get_CRC32 (Exec.File.all);
    end Get_CRC32;
 
    ------------------
@@ -655,7 +644,7 @@ package body Traces_Elf is
    ----------------------------
 
    function Match_Trace_Executable
-     (Exec : Exe_File_Type; Trace_File : Trace_File_Type)
+     (Exec : Exe_File_Type'Class; Trace_File : Trace_File_Type)
      return String
    is
       use Qemu_Traces;
@@ -697,14 +686,14 @@ package body Traces_Elf is
    -- Get_Strtab_Idx --
    --------------------
 
-   function Get_Strtab_Idx (Exec : Exe_File_Type'Class) return Elf_Half is
+   function Get_Strtab_Idx (Exec : Elf_Exe_File_Type) return Elf_Half is
       Symtab_Shdr : Elf_Shdr_Acc;
    begin
       if Exec.Sec_Symtab = SHN_UNDEF then
          return SHN_UNDEF;
       end if;
 
-      Symtab_Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Symtab);
+      Symtab_Shdr := Get_Shdr (Exec.Elf_File, Exec.Sec_Symtab);
 
       if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
         or else Symtab_Shdr.Sh_Link = 0
@@ -721,7 +710,7 @@ package body Traces_Elf is
    ----------------
 
    procedure Read_Word8
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Res  : out Unsigned_64)
@@ -739,7 +728,7 @@ package body Traces_Elf is
    ----------------
 
    procedure Read_Word4
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Res  : out Unsigned_32)
@@ -757,7 +746,7 @@ package body Traces_Elf is
    ----------------
 
    procedure Read_Word2
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Res  : out Unsigned_16)
@@ -775,7 +764,7 @@ package body Traces_Elf is
    -----------------
 
    procedure Write_Word8
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Val  : Unsigned_64)
@@ -793,7 +782,7 @@ package body Traces_Elf is
    -----------------
 
    procedure Write_Word4
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Val  : Unsigned_32)
@@ -811,7 +800,7 @@ package body Traces_Elf is
    -----------------
 
    procedure Write_Word4
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Val  : Integer_32)
@@ -827,7 +816,7 @@ package body Traces_Elf is
    ------------------
 
    procedure Read_Address
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Sz   : Natural;
@@ -864,7 +853,7 @@ package body Traces_Elf is
    -------------------------
 
    procedure Read_Dwarf_Form_U64
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32;
@@ -949,7 +938,7 @@ package body Traces_Elf is
    -------------------------
 
    procedure Read_Dwarf_Form_U32
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32;
@@ -966,7 +955,7 @@ package body Traces_Elf is
    ----------------------------
 
    procedure Read_Dwarf_Form_String
-     (Exec : in out Exe_File_Type;
+     (Exec : in out Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32;
@@ -981,13 +970,13 @@ package body Traces_Elf is
             begin
                Read_Word4 (Exec, Base, Off, V);
                if Exec.Debug_Str_Base = Null_Address then
+                  if Exec.Sec_Debug_Str = No_Section then
+                     return;
+                  end if;
                   Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Str,
                                           Exec.Debug_Str_Len,
                                           Exec.Debug_Strs,
                                           Exec.Debug_Strs_Region);
-                  if Exec.Sec_Debug_Str = SHN_UNDEF then
-                     return;
-                  end if;
                   Exec.Debug_Str_Base := Address_Of (Exec.Debug_Strs, 0);
                end if;
                Res := Exec.Debug_Str_Base + Storage_Offset (V);
@@ -1015,7 +1004,7 @@ package body Traces_Elf is
    ---------------------
 
    procedure Skip_Dwarf_Form
-     (Exec : Exe_File_Type;
+     (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32)
@@ -1117,14 +1106,15 @@ package body Traces_Elf is
    -----------------------
 
    procedure Apply_Relocations
-     (Exec    : in out Exe_File_Type;
-      Sec_Rel : Elf_Half;
+     (Exec    : in out Elf_Exe_File_Type;
+      Sec_Idx : Section_Index;
+      Region  : in out Mapped_Region;
       Data    : in out Binary_Content)
    is
+      Sec_Rel       : Elf_Half;
       Relocs_Len    : Elf_Addr;
       Relocs        : Binary_Content;
       Relocs_Region : Mapped_Region;
-      Relocs_Base   : Address;
 
       Sym_Num       : Unsigned_32;
       Sym           : Elf_Sym;
@@ -1152,7 +1142,21 @@ package body Traces_Elf is
       --  the offsets already present in the debug sections. Thus, we do not
       --  handle relocation sections without addend.
 
-      Shdr := Get_Shdr (Exec.Exe_File, Sec_Rel);
+      --  Find relocation section
+      Sec_Rel := 0;
+      for I in 0 .. Get_Nbr_Sections (Exec.Elf_File) - 1 loop
+         Shdr := Get_Shdr (Exec.Elf_File, Elf_Half (I));
+         if Shdr.Sh_Type = SHT_RELA
+           and then Shdr.Sh_Link = Elf_Word (Sec_Idx)
+         then
+            Sec_Rel := Elf_Half (I);
+            exit;
+         end if;
+      end loop;
+
+      if Sec_Rel = 0 then
+         return;
+      end if;
       if Shdr.Sh_Type /= SHT_RELA then
          raise Program_Error;
       end if;
@@ -1162,8 +1166,11 @@ package body Traces_Elf is
       if Shdr.Sh_Size mod Pc_Type (Elf_Rela_Size) /= 0 then
          raise Program_Error;
       end if;
+
+      Make_Mutable (Exec.Elf_File, Region);
+
       Alloc_And_Load_Section
-        (Exec, Sec_Rel, Relocs_Len, Relocs, Relocs_Region, Relocs_Base);
+        (Exec, Section_Index (Sec_Rel), Relocs_Len, Relocs, Relocs_Region);
       if Relocs_Len /= Shdr.Sh_Size then
          raise Program_Error;
       end if;
@@ -1174,9 +1181,7 @@ package body Traces_Elf is
       while Off < Storage_Offset (Relocs_Len) loop
          --  Read relocation entry
 
-         R := Get_Rela
-           (Exec.Exe_File,
-            Address_Of (Relocs, Elf_Addr (Off)));
+         R := Get_Rela (Exec.Elf_File, Address_Of (Relocs, Elf_Addr (Off)));
          Off := Off + Storage_Offset (Elf_Rela_Size);
 
          if R.R_Offset > Data.Last then
@@ -1188,12 +1193,12 @@ package body Traces_Elf is
             raise Program_Error with "invalid symbol number in relocation";
          end if;
          Sym := Get_Sym
-           (Exec.Exe_File,
+           (Exec.Elf_File,
             Address_Of
               (Exec.Symtab, Elf_Addr (Sym_Num) * Elf_Addr (Elf_Sym_Size)));
 
          if Elf_St_Type (Sym.St_Info) = STT_SECTION then
-            Offset := Get_Shdr (Exec.Exe_File,
+            Offset := Get_Shdr (Exec.Elf_File,
                                 Sym.St_Shndx).Sh_Addr;
          else
             --  Also relocate global/local symbols ???
@@ -1287,19 +1292,19 @@ package body Traces_Elf is
 
    procedure Alloc_And_Load_Section
      (Exec    : Exe_File_Type'Class;
-      Sec     : Elf_Half;
+      Sec     : Section_Index;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
       Region  : out Mapped_Region)
    is
-      Sec_Len : Elf_Addr;
+      Sec_Len : Unsigned_32;
    begin
-      if Sec /= SHN_UNDEF then
-         Sec_Len := Get_Section_Length (Exec.Exe_File, Sec);
+      if Sec /= No_Section then
+         Sec_Len := Get_Section_Length (Exec.File.all, Sec);
          pragma Assert (Sec_Len > 0);
 
          Len := Sec_Len;
-         Region := Load_Section (Exec.Exe_File, Sec);
+         Region := Load_Section (Exec.File.all, Sec);
          Content.Content := Convert (Data (Region));
          if Sec_Len > 0 then
             Content.First := 0;
@@ -1311,29 +1316,6 @@ package body Traces_Elf is
       end if;
    end Alloc_And_Load_Section;
 
-   ----------------------------
-   -- Alloc_And_Load_Section --
-   ----------------------------
-
-   procedure Alloc_And_Load_Section
-     (Exec    : Exe_File_Type'Class;
-      Sec     : Elf_Half;
-      Len     : out Elf_Addr;
-      Content : out Binary_Content;
-      Region  : out Mapped_Region;
-      Base    : out Address)
-   is
-   begin
-      if Sec /= SHN_UNDEF then
-         Alloc_And_Load_Section (Exec, Sec, Len, Content, Region);
-         Base := Address_Of (Content, 0);
-      else
-         Content := (null, 0, 0);
-         Base := Null_Address;
-         Len := 0;
-      end if;
-   end Alloc_And_Load_Section;
-
    --  Extract lang, subprogram name and stmt_list (offset in .debug_line).
    --  What does this comment apply to???
 
@@ -1341,7 +1323,7 @@ package body Traces_Elf is
    -- Build_Debug_Compile_Units --
    -------------------------------
 
-   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type) is
+   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type'Class) is
       use Dwarf;
       use Compile_Unit_Vectors;
 
@@ -1433,26 +1415,22 @@ package body Traces_Elf is
       --  Load .debug_abbrev
 
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Abbrev,
-                              Abbrev_Len, Abbrevs,
-                              Abbrevs_Region, Abbrev_Base);
+                              Abbrev_Len, Abbrevs, Abbrevs_Region);
+      Abbrev_Base := Address_Of (Abbrevs, 0);
 
       Map := null;
 
       --  Load .debug_info
 
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info,
-                              Info_Len, Infos,
-                              Infos_Region, Base);
+                              Info_Len, Infos, Infos_Region);
+      Base := Address_Of (Infos, 0);
 
       --  Load symbols
 
-      Build_Symbols (Exec'Unchecked_Access);
+      Build_Symbols (Exec);
 
-      if Exec.Sec_Debug_Info_Rel /= SHN_UNDEF then
-         Make_Mutable (Exec, Infos_Region, Infos);
-         Base := Address_Of (Infos, 0);
-         Apply_Relocations (Exec, Exec.Sec_Debug_Info_Rel, Infos);
-      end if;
+      Apply_Relocations (Exec, Exec.Sec_Debug_Info, Infos_Region, Infos);
 
       Off := 0;
       while Off < Storage_Offset (Info_Len) loop
@@ -1748,7 +1726,7 @@ package body Traces_Elf is
    -- Load_Symtab --
    -----------------
 
-   procedure Load_Symtab (Exec : in out Exe_File_Type'Class) is
+   procedure Load_Symtab (Exec : in out Elf_Exe_File_Type) is
       Symtab_Shdr : Elf_Shdr_Acc;
       Symtab_Len : Elf_Addr;
    begin
@@ -1761,9 +1739,9 @@ package body Traces_Elf is
          raise Program_Error with "no symbol table";
       end if;
 
-      Alloc_And_Load_Section (Exec, Exec.Sec_Symtab,
+      Alloc_And_Load_Section (Exec, Section_Index (Exec.Sec_Symtab),
                               Symtab_Len, Exec.Symtab, Exec.Symtab_Region);
-      Symtab_Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Symtab);
+      Symtab_Shdr := Get_Shdr (Exec.Elf_File, Exec.Sec_Symtab);
       if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
         or else Symtab_Shdr.Sh_Link = 0
         or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
@@ -1792,7 +1770,7 @@ package body Traces_Elf is
    ----------------------
 
    procedure Read_Debug_Lines
-     (Exec                  : in out Exe_File_Type;
+     (Exec                  : in out Exe_File_Type'Class;
       Stmt_List_Offset      : Unsigned_32;
       Compilation_Directory : String_Access)
    is
@@ -1924,7 +1902,7 @@ package body Traces_Elf is
          --  Discard 0-relative entries in exec files, corresponding to
          --  regions garbage collected by gc-section.
 
-         if Base_Pc = 0 and then Get_Ehdr (Exec.Exe_File).E_Type = ET_EXEC then
+         if Base_Pc = 0 and then Exec.Kind = File_Executable then
             return;
          end if;
 
@@ -2129,11 +2107,10 @@ package body Traces_Elf is
       if not Is_Loaded (Exec.Lines) then
          Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
                                  Exec.Lines_Len, Exec.Lines,
-                                 Exec.Lines_Region, Base);
-         if Exec.Sec_Debug_Line_Rel /= SHN_UNDEF then
-            Make_Mutable (Exec, Exec.Lines_Region, Exec.Lines);
-            Apply_Relocations (Exec, Exec.Sec_Debug_Line_Rel, Exec.Lines);
-         end if;
+                                 Exec.Lines_Region);
+         Base := Address_Of (Exec.Lines, 0);
+         Apply_Relocations
+           (Exec, Exec.Sec_Debug_Line, Exec.Lines_Region, Exec.Lines);
       end if;
 
       Off := Storage_Offset (Stmt_List_Offset);
@@ -2390,7 +2367,7 @@ package body Traces_Elf is
    -- Build_Debug_Lines --
    -----------------------
 
-   procedure Build_Debug_Lines (Exec : in out Exe_File_Type) is
+   procedure Build_Debug_Lines (Exec : in out Exe_File_Type'Class) is
    begin
       --  Return now if already loaded
 
@@ -2413,7 +2390,7 @@ package body Traces_Elf is
    --  Build_Sections --
    ---------------------
 
-   procedure Build_Sections (Exec : in out Exe_File_Type) is
+   procedure Build_Sections (Exec : in out Elf_Exe_File_Type) is
       Shdr : Elf_Shdr_Acc;
       Addr : Pc_Type;
       Last : Pc_Type;
@@ -2429,14 +2406,14 @@ package body Traces_Elf is
       --  Iterate over all section headers
 
       Offset := 0;
-      Do_Reloc := Get_Ehdr (Exec.Exe_File).E_Type = ET_REL;
+      Do_Reloc := Get_Ehdr (Exec.Elf_File).E_Type = ET_REL;
 
       if Do_Reloc then
-         Enable_Section_Relocation (Exec.Exe_File);
+         Enable_Section_Relocation (Exec.Elf_File);
       end if;
 
-      for Idx in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
-         Shdr := Get_Shdr (Exec.Exe_File, Idx);
+      for Idx in 0 .. Get_Shdr_Num (Exec.Elf_File) - 1 loop
+         Shdr := Get_Shdr (Exec.Elf_File, Idx);
 
          --  Only A+X sections are interesting.
 
@@ -2466,8 +2443,8 @@ package body Traces_Elf is
                      Last            => Last,
                      Parent          => null,
                      Section_Name    => new String'(
-                                          Get_Shdr_Name (Exec.Exe_File, Idx)),
-                     Section_Index   => Idx,
+                                          Get_Shdr_Name (Exec.Elf_File, Idx)),
+                     Section_Sec_Idx => Section_Index (Idx),
                      Section_Content => Invalid_Binary_Content,
                      Section_Region  => Invalid_Mapped_Region));
          end if;
@@ -2603,7 +2580,7 @@ package body Traces_Elf is
    begin
       if not Is_Loaded (Sec.Section_Content) then
          Alloc_And_Load_Section
-           (Exec, Sec.Section_Index,
+           (Exec, Sec.Section_Sec_Idx,
             Len, Sec.Section_Content, Sec.Section_Region);
          Relocate (Sec.Section_Content, Sec.First);
       end if;
@@ -2969,10 +2946,10 @@ package body Traces_Elf is
    -- Build_Symbols --
    -------------------
 
-   procedure Build_Symbols (Exec : Exe_File_Acc) is
+   procedure Build_Symbols (Exec : in out Elf_Exe_File_Type) is
       use Address_Info_Sets;
 
-      type Addr_Info_Acc_Arr is array (0 .. Get_Shdr_Num (Exec.Exe_File))
+      type Addr_Info_Acc_Arr is array (0 .. Get_Shdr_Num (Exec.Elf_File))
         of Address_Info_Acc;
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
       Sec : Address_Info_Acc;
@@ -3011,7 +2988,7 @@ package body Traces_Elf is
       Cur := First (Exec.Desc_Sets (Section_Addresses));
       while Has_Element (Cur) loop
          Sec := Element (Cur);
-         Sections_Info (Sec.Section_Index) := Sec;
+         Sections_Info (Elf_Half (Sec.Section_Sec_Idx)) := Sec;
          Next (Cur);
       end loop;
 
@@ -3020,22 +2997,22 @@ package body Traces_Elf is
       if Exec.Sec_Symtab = SHN_UNDEF then
          return;
       end if;
-      Load_Symtab (Exec.all);
+      Load_Symtab (Exec);
       Symtab_Base := Address_Of (Exec.Symtab, 0);
 
-      Strtab_Idx := Get_Strtab_Idx (Exec.all);
+      Strtab_Idx := Get_Strtab_Idx (Exec);
       if Strtab_Idx = SHN_UNDEF then
          return;
       end if;
-      Alloc_And_Load_Section (Exec.all, Strtab_Idx,
+      Alloc_And_Load_Section (Exec, Section_Index (Strtab_Idx),
                               Strtab_Len, Strtabs, Strtabs_Region);
 
-      Do_Reloc := Get_Ehdr (Exec.Exe_File).E_Type = ET_REL;
+      Do_Reloc := Get_Ehdr (Exec.Elf_File).E_Type = ET_REL;
       Offset := Exec.Exe_Text_Start;
 
       for I in 1 .. Exec.Nbr_Symbols loop
          ESym := Get_Sym
-           (Exec.Exe_File,
+           (Exec.Elf_File,
             Symtab_Base + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (ESym.St_Info);
 
@@ -3367,7 +3344,7 @@ package body Traces_Elf is
    -- Disassemble_File_Raw --
    --------------------------
 
-   procedure Disassemble_File_Raw (File : in out Exe_File_Type) is
+   procedure Disassemble_File_Raw (File : in out Exe_File_Type'Class) is
       use Address_Info_Sets;
 
       procedure Local_Disassembler (Cur : Cursor);
@@ -3421,7 +3398,7 @@ package body Traces_Elf is
 
    begin
       Build_Sections (File);
-      Build_Symbols (File'Unchecked_Access);
+      Build_Symbols (File);
       File.Desc_Sets (Section_Addresses).Iterate (Local_Disassembler'Access);
    end Disassemble_File_Raw;
 
@@ -3575,7 +3552,7 @@ package body Traces_Elf is
 
    procedure On_Elf_From
      (Filename : String;
-      Cb       : access procedure (Exec : Exe_File_Acc));
+      Cb       : access procedure (Exec : Exe_File_Type'Class));
    --  Call CB with an open executable file descriptor for FILE,
    --  closed on return.
 
@@ -3585,19 +3562,13 @@ package body Traces_Elf is
 
    procedure On_Elf_From
      (Filename : String;
-      Cb       : access procedure (Exec : Exe_File_Acc))
+      Cb       : access procedure (Exec : Exe_File_Type'Class))
    is
       Exec : Exe_File_Acc;
    begin
       Open_Exec (Filename, 0, Exec); --  ??? Text_Start
-
-      declare
-         Efile : Elf_File renames Exec.Exe_File;
-      begin
-         Load_Shdr (Efile);
-         Cb (Exec);
-         Close_File (Efile);
-      end;
+      Cb (Exec.all);
+      Close_File (Exec.all);
    exception
       when Binary_Files.Error =>
          Put_Line (Standard_Error, "cannot open: " & Filename);
@@ -3609,13 +3580,15 @@ package body Traces_Elf is
    -----------------------
 
    procedure Scan_Symbols_From
-     (File   : Exe_File_Acc;
+     (File   : Exe_File_Type'Class;
       Sym_Cb : access procedure (Sym : Address_Info_Acc);
       Strict : Boolean)
    is
       use Address_Info_Sets;
 
-      Efile : Elf_File renames File.Exe_File;
+      File_Elf : Elf_Exe_File_Type renames Elf_Exe_File_Type (File);
+
+      Efile : Elf_File renames File_Elf.Elf_File;
       --  Corresponding Elf_File - as we do low level accesses
 
       Nbr_Shdr : constant Elf_Half := Get_Shdr_Num (Efile);
@@ -3659,11 +3632,11 @@ package body Traces_Elf is
    begin
       --  Search symtab and strtab, exit in case of failure
 
-      if File.Sec_Symtab = SHN_UNDEF then
+      if File_Elf.Sec_Symtab = SHN_UNDEF then
          Put_Line ("# No symbol table - file stripped ?");
          return;
       end if;
-      Strtab_Idx := Get_Strtab_Idx (File.all);
+      Strtab_Idx := Get_Strtab_Idx (File_Elf);
       if Strtab_Idx = SHN_UNDEF then
          Put_Line ("# no strtab for .symtab - ill formed ELF file ?");
          return;
@@ -3688,10 +3661,10 @@ package body Traces_Elf is
 
       --  Load symtab and strtab
 
-      Alloc_And_Load_Section (File.all, File.Sec_Symtab,
-                              Symtab_Len, Symtabs,
-                              Symtabs_Region, Symtab_Base);
-      Alloc_And_Load_Section (File.all, Strtab_Idx,
+      Alloc_And_Load_Section (File, Section_Index (File_Elf.Sec_Symtab),
+                              Symtab_Len, Symtabs, Symtabs_Region);
+      Symtab_Base := Address_Of (Symtabs, 0);
+      Alloc_And_Load_Section (File, Section_Index (Strtab_Idx),
                               Strtab_Len, Strtabs, Strtabs_Region);
 
       --  Walk the symtab and put interesting symbols into the containers.
@@ -3861,9 +3834,9 @@ package body Traces_Elf is
    is
       --  Bridge to the version working from an executable file descriptor
 
-      procedure Process (Exec : Exe_File_Acc);
+      procedure Process (Exec : Exe_File_Type'Class);
 
-      procedure Process (Exec : Exe_File_Acc) is
+      procedure Process (Exec : Exe_File_Type'Class) is
       begin
          Scan_Symbols_From (Exec, Sym_Cb, Strict);
       end Process;
@@ -3876,7 +3849,7 @@ package body Traces_Elf is
    ------------------------
 
    procedure Read_Routine_Names
-     (File    : Exe_File_Acc;
+     (File    : Exe_File_Type'Class;
       Exclude : Boolean;
       Strict  : Boolean := False)
    is
@@ -3934,14 +3907,14 @@ package body Traces_Elf is
    is
       --  Wrapper for the version working from an executable file descriptor
 
-      procedure Process (Exec : Exe_File_Acc);
+      procedure Process (Exec : Exe_File_Type'Class);
       --  Needs comment???
 
       -------------
       -- Process --
       -------------
 
-      procedure Process (Exec : Exe_File_Acc) is
+      procedure Process (Exec : Exe_File_Type'Class) is
       begin
          Read_Routine_Names (Exec, Exclude, Strict);
       end Process;
@@ -4223,21 +4196,5 @@ package body Traces_Elf is
    begin
       return Bin_Cont.Content (Offset - Bin_Cont.First)'Address;
    end Address_Of;
-
-   ------------------
-   -- Make_Mutable --
-   ------------------
-
-   procedure Make_Mutable
-     (Exe      : Exe_File_Type;
-      Region   : in out Mapped_Region;
-      Bin_Cont : out Binary_Content) is
-   begin
-      Make_Mutable (Exe.Exe_File, Region);
-      Bin_Cont :=
-        (Content => Convert (Data (Region)),
-         First   => 0,
-         Last    => Pc_Type (Last (Region)));
-   end Make_Mutable;
 
 end Traces_Elf;

@@ -1392,7 +1392,7 @@ begin
                Exec := new Exe_File_Type'Class'
                  (Open_File (Exec_File_Name, Text_Start));
                Build_Sections (Exec.all);
-               Build_Symbols (Exec);
+               Build_Symbols (Exec.all);
             end Open_Exec;
 
          begin
@@ -1427,7 +1427,7 @@ begin
                      To_Display := Section_Addresses;
 
                   when Cmd_Dump_Symbols =>
-                     Build_Symbols (Exec);
+                     Build_Symbols (Exec.all);
                      To_Display := Symbol_Addresses;
 
                   when Cmd_Dump_Subprograms =>
@@ -1510,7 +1510,7 @@ begin
             begin
                Exec := new Exe_File_Type'Class'(Open_File (Exec_File_Name, 0));
                Build_Sections (Exec.all);
-               Build_Symbols (Exec);
+               Build_Symbols (Exec.all);
                Disassemble_File (Exec.all);
                Close_File (Exec.all);
             end Disassemble;
@@ -1770,7 +1770,7 @@ begin
                --  is one trace file.
 
                if Inputs.Length (Routines_Inputs) = 0 then
-                  Read_Routine_Names (Exe_File, Exclude => False);
+                  Read_Routine_Names (Exe_File.all, Exclude => False);
                end if;
 
                Build_Debug_Compile_Units (Exe_File.all);

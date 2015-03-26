@@ -50,6 +50,21 @@ package body Binary_Files is
       return F.Filename.all;
    end Filename;
 
+   ----------------------
+   -- Get_Nbr_Sections --
+   ----------------------
+
+   function Get_Nbr_Sections (File : Binary_File) return Section_Index is
+   begin
+      return File.Nbr_Sections;
+   end Get_Nbr_Sections;
+
+   procedure Set_Nbr_Sections (File : in out Binary_File; Nbr : Section_Index)
+   is
+   begin
+      File.Nbr_Sections := Nbr;
+   end Set_Nbr_Sections;
+
    ----------------
    -- Get_Status --
    ----------------
@@ -108,6 +123,7 @@ package body Binary_Files is
                                    File       => Invalid_Mapped_File,
                                    Status     => Status_Ok,
                                    Size       => File_Length (Fd),
+                                   Nbr_Sections => 0,
                                    Time_Stamp => File_Time_Stamp (Fd),
                                    CRC32      => 0)
       do
@@ -163,5 +179,29 @@ package body Binary_Files is
             Mutable => True);
       end if;
    end Make_Mutable;
+
+   ------------------------
+   -- Get_Section_Length --
+   ------------------------
+
+   function Get_Section_Length
+     (File : Binary_File;
+      Index : Section_Index) return Interfaces.Unsigned_32 is
+   begin
+      raise Program_Error;
+      return 0;
+   end Get_Section_Length;
+
+   ------------------
+   -- Load_Section --
+   ------------------
+
+   function Load_Section
+     (File : Binary_File; Index : Section_Index) return Mapped_Region is
+      Res : Mapped_Region;
+   begin
+      raise Program_Error;
+      return Res;
+   end Load_Section;
 
 end Binary_Files;

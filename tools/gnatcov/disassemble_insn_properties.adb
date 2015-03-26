@@ -186,7 +186,7 @@ package body Disassemble_Insn_Properties is
    begin
       Disassembler := Elf_Disassemblers.Disa_For_Machine (Machine);
       Build_Sections (Exec);
-      Build_Symbols (Exec_Acc);
+      Build_Symbols (Exec);
       Build_Debug_Lines (Exec);
 
       Translate_Locations (Exec_Acc, Locations, Proc_Locs);
