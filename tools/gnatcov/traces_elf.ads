@@ -119,20 +119,19 @@ package Traces_Elf is
    --  and therefore handles only a small subset of the relocations. DATA must
    --  be a writable memory area.
 
-   function Get_Filename (Exec : Exe_File_Type) return String is abstract;
+   function Get_Filename (Exec : Exe_File_Type) return String;
    --  Get the filename of Exec
 
    function Get_Machine (Exec : Exe_File_Type) return Interfaces.Unsigned_16;
    --  Get the machine type (ELF machine id)
 
-   function Get_Size (Exec : Exe_File_Type) return Long_Integer is abstract;
+   function Get_Size (Exec : Exe_File_Type) return Long_Integer;
    --  Get the size of the Exec file
 
-   function Get_Time_Stamp (Exec : Exe_File_Type) return GNAT.OS_Lib.OS_Time
-     is abstract;
+   function Get_Time_Stamp (Exec : Exe_File_Type) return GNAT.OS_Lib.OS_Time;
    --  Get the time stamp of the Exec file
 
-   function Get_CRC32 (Exec : Exe_File_Type) return Unsigned_32 is abstract;
+   function Get_CRC32 (Exec : Exe_File_Type) return Unsigned_32;
    --  Get the CRC32 checksum of the content of the Exec file
 
    function Time_Stamp_Image (TS : GNAT.OS_Lib.OS_Time) return String;
@@ -506,11 +505,6 @@ private
    end record;
 
    procedure Close_Exe_File (Exec : in out Elf_Exe_File_Type);
-   function Get_Filename (Exec : Elf_Exe_File_Type) return String;
-   function Get_Size (Exec : Elf_Exe_File_Type) return Long_Integer;
-   function Get_Time_Stamp
-     (Exec : Elf_Exe_File_Type) return GNAT.OS_Lib.OS_Time;
-   function Get_CRC32 (Exec : Elf_Exe_File_Type) return Unsigned_32;
    procedure Build_Symbols (Exec : in out Elf_Exe_File_Type);
    procedure Build_Sections (Exec : in out Elf_Exe_File_Type);
    procedure Apply_Relocations

@@ -16,7 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with System;
+with Ada.Unchecked_Conversion;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
+with GNATCOLL.Mmap;
 with Coff; use Coff;
 with Binary_Files; use Binary_Files;
 
@@ -31,8 +34,19 @@ package PECoff_Files is
      (Fd : File_Descriptor; Filename : String_Access) return PE_File;
 
 private
+   use GNATCOLL.Mmap;
+
+   type PE_Scn_Arr is array (Section_Index) of Scnhdr;
+   type PE_Scn_Arr_Acc is access PE_Scn_Arr;
+
+   function To_PE_Scn_Arr_Acc is new Ada.Unchecked_Conversion
+     (System.Address, PE_Scn_Arr_Acc);
+
    type PE_File is new Binary_File with record
       Hdr : Filehdr;
+
+      Scn_Map : Mapped_Region;
+      Scn     : PE_Scn_Arr_Acc;
    end record;
 
 end PECoff_Files;

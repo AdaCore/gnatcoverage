@@ -20,27 +20,49 @@ with Interfaces; use Interfaces;
 
 package body PECoff_Files is
 
+   function Read_Coff_Header_Offset (Fd : File_Descriptor) return Long_Integer;
+   --  Read the offset of the PE signature (4 bytes before the COFF header).
+   --  Returns 0 in case of error (bad magic number).
+
+   -----------------------------
+   -- Read_Coff_Header_Offset --
+   -----------------------------
+
+   function Read_Coff_Header_Offset (Fd : File_Descriptor) return Long_Integer
+   is
+      MS_Hdr : PEHdr;
+   begin
+      Lseek (Fd, 0, Seek_Set);
+
+      if Read (Fd, MS_Hdr'Address, PEHdrsz) /= PEHdrsz then
+         return 0;
+      end if;
+
+      --  Only handle little endian
+      if MS_Hdr.E_MZHdr /= MZhdr then
+         return 0;
+      end if;
+
+      return Long_Integer (MS_Hdr.E_Lfanew);
+   end Read_Coff_Header_Offset;
+
    ----------------
    -- Is_PE_File --
    ----------------
 
    function Is_PE_File (Fd : File_Descriptor) return Boolean
    is
-      MS_Hdr : PEHdr;
+      Off    : Long_Integer;
       PE_Sig : Unsigned_32;
    begin
       Lseek (Fd, 0, Seek_Set);
+      Off := Read_Coff_Header_Offset (Fd);
 
-      if Read (Fd, MS_Hdr'Address, PEHdrsz) /= PEHdrsz then
+      if Off = 0 then
          return False;
       end if;
 
-      --  Only handle little endian
-      if MS_Hdr.E_MZHdr /= MZhdr then
-         return False;
-      end if;
-
-      Lseek (Fd, Long_Integer (MS_Hdr.E_Lfanew), Seek_Set);
+      Lseek (Fd, Off, Seek_Set);
 
       if Read (Fd, PE_Sig'Address, 4) /= 4 then
          return False;
@@ -67,13 +89,40 @@ package body PECoff_Files is
          Close_File (File);
          raise Error with File.Filename & ": " & Msg;
       end Exit_With_Error;
+
+      Hdr_Off : Long_Integer;
    begin
+      Hdr_Off := Read_Coff_Header_Offset (Fd);
+      pragma Assert (Hdr_Off > 0);
+
       return File : PE_File := (Binary_File'(Create_File (Fd, Filename))
                                 with others => <>) do
+         Lseek (Fd, Hdr_Off + 4, Seek_Set);
          if Read (Fd, File.Hdr'Address, Filehdr_Size) /= Filehdr_Size then
             Exit_With_Error
               (File, Status_Read_Error, "failed to read COFF header");
          end if;
+
+         Set_Nbr_Sections (File, Section_Index (File.Hdr.F_Nscns));
+
+         --  Map sections.
+         declare
+            Size : constant File_Size :=
+              File_Size (File.Hdr.F_Nscns) * File_Size (Scnhdr_Size);
+         begin
+            File.Scn_Map := Read
+              (File    => File.File,
+               Offset  => File_Size (Hdr_Off + 4 +
+                                     Long_Integer (Filehdr_Size)),
+               Length  => Size,
+               Mutable => False);
+            File.Scn := To_PE_Scn_Arr_Acc (Data (File.Scn_Map).all'Address);
+
+            if File_Size (GNATCOLL.Mmap.Last (File.Scn_Map)) /= Size then
+               raise Error;
+            end if;
+         end;
+
       end return;
    end Create_File;
 

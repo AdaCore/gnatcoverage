@@ -532,7 +532,7 @@ package body Traces_Elf is
    -- Get_Filename --
    ------------------
 
-   function Get_Filename (Exec : Elf_Exe_File_Type) return String is
+   function Get_Filename (Exec : Exe_File_Type) return String is
    begin
       return Filename (Exec.File.all);
    end Get_Filename;
@@ -550,7 +550,7 @@ package body Traces_Elf is
    -- Get_Size --
    --------------
 
-   function Get_Size (Exec : Elf_Exe_File_Type) return Long_Integer is
+   function Get_Size (Exec : Exe_File_Type) return Long_Integer is
    begin
       return Get_Size (Exec.File.all);
    end Get_Size;
@@ -559,8 +559,7 @@ package body Traces_Elf is
    -- Get_Time_Stamp --
    --------------------
 
-   function Get_Time_Stamp
-     (Exec : Elf_Exe_File_Type) return GNAT.OS_Lib.OS_Time is
+   function Get_Time_Stamp (Exec : Exe_File_Type) return GNAT.OS_Lib.OS_Time is
    begin
       return Get_Time_Stamp (Exec.File.all);
    end Get_Time_Stamp;
@@ -569,7 +568,7 @@ package body Traces_Elf is
    -- Get_CRC32 --
    ---------------
 
-   function Get_CRC32 (Exec : Elf_Exe_File_Type) return Unsigned_32 is
+   function Get_CRC32 (Exec : Exe_File_Type) return Unsigned_32 is
    begin
       return Get_CRC32 (Exec.File.all);
    end Get_CRC32;
