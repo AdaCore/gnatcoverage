@@ -1305,6 +1305,9 @@ package body Traces_Elf is
             Content.First := 1;
             Content.Last := 0;
          end if;
+      else
+         Content := (null, 0, 0);
+         Len := 0;
       end if;
    end Alloc_And_Load_Section;
 
@@ -4186,7 +4189,11 @@ package body Traces_Elf is
      (Bin_Cont : Binary_Content;
       Offset   : Arch.Arch_Addr) return System.Address is
    begin
-      return Bin_Cont.Content (Offset - Bin_Cont.First)'Address;
+      if Bin_Cont.Content = null then
+         return Null_Address;
+      else
+         return Bin_Cont.Content (Offset - Bin_Cont.First)'Address;
+      end if;
    end Address_Of;
 
 end Traces_Elf;
