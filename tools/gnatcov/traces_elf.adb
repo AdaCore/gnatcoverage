@@ -1139,7 +1139,7 @@ package body Traces_Elf is
       for I in 0 .. Get_Nbr_Sections (Exec.Elf_File) - 1 loop
          Shdr := Get_Shdr (Exec.Elf_File, Elf_Half (I));
          if Shdr.Sh_Type = SHT_RELA
-           and then Shdr.Sh_Link = Elf_Word (Sec_Idx)
+           and then Shdr.Sh_Info = Elf_Word (Sec_Idx)
          then
             Sec_Rel := Elf_Half (I);
             exit;
