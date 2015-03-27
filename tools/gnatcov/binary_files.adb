@@ -186,7 +186,7 @@ package body Binary_Files is
 
    function Get_Section_Length
      (File : Binary_File;
-      Index : Section_Index) return Interfaces.Unsigned_32 is
+      Index : Section_Index) return Arch.Arch_Addr is
    begin
       raise Program_Error;
       return 0;

@@ -1289,7 +1289,7 @@ package body Traces_Elf is
       Content : out Binary_Content;
       Region  : out Mapped_Region)
    is
-      Sec_Len : Unsigned_32;
+      Sec_Len : Arch_Addr;
    begin
       if Sec /= No_Section then
          Sec_Len := Get_Section_Length (Exec.File.all, Sec);

@@ -18,6 +18,7 @@
 with Interfaces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNATCOLL.Mmap; use GNATCOLL.Mmap;
+with Arch;
 
 package Binary_Files is
    Error : exception;
@@ -78,7 +79,7 @@ package Binary_Files is
    procedure Set_Nbr_Sections (File : in out Binary_File; Nbr : Section_Index);
 
    function Get_Section_Length
-     (File : Binary_File; Index : Section_Index) return Interfaces.Unsigned_32;
+     (File : Binary_File; Index : Section_Index) return Arch.Arch_Addr;
 
    function Load_Section
      (File : Binary_File; Index : Section_Index) return Mapped_Region;

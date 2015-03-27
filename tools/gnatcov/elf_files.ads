@@ -19,7 +19,6 @@
 with Ada.Unchecked_Conversion;
 
 with System; use System;
-with Interfaces;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
@@ -66,7 +65,7 @@ package Elf_Files is
                              return Elf_Shdr_Acc;
 
    function Get_Section_Length (File : Elf_File; Index : Section_Index)
-                               return Interfaces.Unsigned_32;
+                               return Arch.Arch_Addr;
 
    --  Extract and swap bytes (if necessary) a relocation entry
    function Get_Rela (File : Elf_File; Addr : Address) return Elf_Rela;

@@ -268,7 +268,7 @@ package body Elf_Files is
    ------------------------
 
    function Get_Section_Length (File : Elf_File; Index : Section_Index)
-                               return Elf_Addr is
+                               return Arch.Arch_Addr is
    begin
       return Get_Shdr (File, Elf_Half (Index)).Sh_Size;
    end Get_Section_Length;

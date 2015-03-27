@@ -225,7 +225,7 @@ procedure Nexus_Trace_Gen is
       Shdr : Elf_Half;
       Addr : System.Address)
    is
-      Region : Mapped_Region := Load_Section (File, Shdr);
+      Region : Mapped_Region := Load_Section (File, Section_Index (Shdr));
 
       function Convert is new Ada.Unchecked_Conversion
         (System.Address, Str_Access);
@@ -480,7 +480,6 @@ begin
    Chk_Exe ("Error Opening");
    Ehdr := Get_Ehdr (Executable_File);
    Chk_Exe ("Error reading file header");
-   Load_Shdr (Executable_File);
    Chk_Exe ("Error retrieving section headers");
    --  Open the executable file before processing of PT_Start_Addr, in
    --  case a symbol name is used for the address, which requires
