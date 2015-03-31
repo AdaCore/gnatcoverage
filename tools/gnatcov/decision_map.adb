@@ -1833,8 +1833,8 @@ package body Decision_Map is
          Next_PC_SCO  : SCO_Id;
          --  Statement at Next_PC
 
-         SCO_For_Jump, D_SCO_For_Jump : SCO_Id;
-         --  Statement and decision SCOs for jump instruction at end of BB
+         D_SCO_For_Jump : SCO_Id;
+         --  Decision SCO for jump instruction at end of BB
 
          D_SCO : constant SCO_Id := Enclosing_Decision (CBI.Condition);
          S_SCO : constant SCO_Id := Enclosing_Statement (D_SCO);
@@ -1989,11 +1989,7 @@ package body Decision_Map is
                  else
                    False));
 
-         --  Condition or Statement
-
-         SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Ctx.Subprg.Lines, BB.To_PC));
-
-         --  Decision
+         --  Decision for the jump at the end of BB (if any)
 
          D_SCO_For_Jump := Decision_Of_Jump (BB.To_PC);
 
@@ -2037,19 +2033,22 @@ package body Decision_Map is
                if BB.Call = Finalizer then
                   Edge_Info.Dest_Kind := Outcome;
 
-               --  If the sloc of the call is within the condition, and it is
-               --  a call to a runtime routine raising an exception, then
-               --  assume that the conditional branch is for a run time check.
+               --  Case of a call emitted within the same decision, and raising
+               --  an exception: the edge is either a failed run time check
+               --  or a False outcome for an assertion/pre/post-condition.
 
-               elsif SCO_For_Jump = CBI.Condition
+               elsif BB.Call = Raise_Exception
                        and then
-                     BB.Call = Raise_Exception
+                     D_SCO_For_Jump = D_SCO
                then
-                  --  Special case of call to Raise_Assert_Failure in an
-                  --  Assert/PPC decision: False outcome.
+                  --  Call to Raise_Assert_Failure in an Assert/PPC decision:
+                  --  False outcome. Note that more than one condition within
+                  --  the decision may generate such an outcome, and share the
+                  --  call insn. In this case, the call may be labeled with the
+                  --  sloc of any of them: it can be for some other condition
+                  --  than SCO (but always within the same enclosing decision).
 
-                  if D_SCO_For_Jump = D_SCO
-                    and then Is_Assertion (D_SCO)
+                  if Is_Assertion (D_SCO)
                     and then BB.Called_Sym.all
                                = "system__assertions__raise_assert_failure"
                   then
