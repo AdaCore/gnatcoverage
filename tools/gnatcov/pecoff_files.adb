@@ -109,11 +109,13 @@ package body PECoff_Files is
          declare
             Size : constant File_Size :=
               File_Size (File.Hdr.F_Nscns) * File_Size (Scnhdr_Size);
+            Scn_Off : constant File_Size :=
+              File_Size (Hdr_Off + 4) + File_Size (File.Hdr.F_Opthdr)
+              + File_Size (Filehdr_Size);
          begin
             File.Scn_Map := Read
               (File    => File.File,
-               Offset  => File_Size (Hdr_Off + 4 +
-                                     Long_Integer (Filehdr_Size)),
+               Offset  => Scn_Off,
                Length  => Size,
                Mutable => False);
             File.Scn := To_PE_Scn_Arr_Acc (Data (File.Scn_Map).all'Address);
@@ -126,4 +128,40 @@ package body PECoff_Files is
       end return;
    end Create_File;
 
+   -------------
+   -- Get_Hdr --
+   -------------
+
+   function Get_Hdr (File : PE_File) return Filehdr is
+   begin
+      return File.Hdr;
+   end Get_Hdr;
+
+   ----------------------
+   -- Get_Section_Name --
+   ----------------------
+
+   function Get_Section_Name (File : PE_File; Sec : Section_Index)
+                             return String
+   is
+      pragma Assert (Sec < Section_Index (File.Hdr.F_Nscns));
+      S : Scnhdr renames File.Scn (Sec);
+   begin
+      for I in S.S_Name'Range loop
+         if S.S_Name (I) = ASCII.NUL then
+            return S.S_Name (1 .. I - 1);
+         end if;
+      end loop;
+      return S.S_Name;
+   end Get_Section_Name;
+
+   ----------------
+   -- Get_Scnhdr --
+   ----------------
+
+   function Get_Scnhdr (File : PE_File; Sec : Section_Index) return Scnhdr is
+   begin
+      pragma Assert (Sec < Section_Index (File.Hdr.F_Nscns));
+      return File.Scn (Sec);
+   end Get_Scnhdr;
 end PECoff_Files;

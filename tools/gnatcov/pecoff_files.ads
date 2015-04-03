@@ -33,6 +33,15 @@ package PECoff_Files is
    function Create_File
      (Fd : File_Descriptor; Filename : String_Access) return PE_File;
 
+   function Get_Hdr (File : PE_File) return Filehdr;
+   --  Get COFF header
+
+   function Get_Section_Name (File : PE_File; Sec : Section_Index)
+                             return String;
+   --  Return the name of section SEC
+
+   function Get_Scnhdr (File : PE_File; Sec : Section_Index) return Scnhdr;
+   --  Get section header for SEC
 private
    use GNATCOLL.Mmap;
 

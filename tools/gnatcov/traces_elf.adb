@@ -27,7 +27,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 
 with GNATCOLL.VFS;
 
-with PECoff_Files; use PECoff_Files;
+with Coff;
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
@@ -353,6 +353,25 @@ package body Traces_Elf is
    function Open_File
      (Filename   : String; Text_Start : Pc_Type) return Exe_File_Type'Class
    is
+      procedure Merge_Architecture (Arch : Unsigned_16);
+      --  Set Machine or check it.
+
+      ------------------------
+      -- Merge_Architecture --
+      ------------------------
+
+      procedure Merge_Architecture (Arch : Unsigned_16) is
+      begin
+         if Machine = 0 then
+            Machine := Arch;
+
+         elsif Machine /= Arch then
+            --  Mixing different architectures.
+
+            Outputs.Fatal_Error ("unexpected architecture for " & Filename);
+         end if;
+      end Merge_Architecture;
+
       use GNAT.OS_Lib;
       Fd : File_Descriptor;
       Name : GNAT.OS_Lib.String_Access;
@@ -389,14 +408,7 @@ package body Traces_Elf is
             Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
             Exec.Exe_Machine := Ehdr.E_Machine;
 
-            if Machine = 0 then
-               Machine := Ehdr.E_Machine;
-
-            elsif Machine /= Ehdr.E_Machine then
-               --  Mixing different architectures.
-
-               Outputs.Fatal_Error ("unexpected architecture for " & Filename);
-            end if;
+            Merge_Architecture (Exec.Exe_Machine);
 
             case Get_Ehdr (Exec.Elf_File).E_Type is
                when ET_EXEC =>
@@ -433,7 +445,51 @@ package body Traces_Elf is
             end loop;
          end return;
       elsif Is_PE_File (Fd) then
-         Outputs.Fatal_Error ("PE file not supported: " & Filename);
+         return Exec : PE_Exe_File_Type :=
+           (PE_File => Create_File (Fd, Name),
+            others => <>) do
+
+            Exec.File := Exec.PE_File'Unchecked_Access;
+            Exec.Exe_Text_Start := Text_Start;
+            --  Ehdr := Get_Ehdr (Exec.Elf_File);
+            Exec.Is_Big_Endian := False;
+            if Get_Hdr (Exec.PE_File).F_Magic = Coff.I386magic then
+               Exec.Exe_Machine := EM_386;
+            else
+               Outputs.Fatal_Error
+                 ("unhandled PE architecture for " & Filename);
+            end if;
+
+            Merge_Architecture (Exec.Exe_Machine);
+
+            if (Get_Hdr (Exec.PE_File).F_Flags and Coff.F_Exec) /= 0 then
+               Exec.Kind := File_Executable;
+            else
+               Exec.Kind := File_Others;
+            end if;
+
+            for I in 0 .. Get_Nbr_Sections (Exec.PE_File) - 1 loop
+               declare
+                  Name : constant String := Get_Section_Name (Exec.PE_File, I);
+               begin
+                  if Name = ".debug_abbrev" then
+                     Exec.Sec_Debug_Abbrev := Section_Index (I);
+
+                  elsif Name = ".debug_info" then
+                     Exec.Sec_Debug_Info := Section_Index (I);
+
+                  elsif Name = ".debug_line" then
+                     Exec.Sec_Debug_Line := Section_Index (I);
+
+                  elsif Name = ".debug_str" then
+                     Exec.Sec_Debug_Str := Section_Index (I);
+
+                  elsif Name = ".debug_ranges" then
+                     Exec.Sec_Debug_Ranges := Section_Index (I);
+                  end if;
+               end;
+            end loop;
+         end return;
       else
          Outputs.Fatal_Error ("unknown binary format for " & Filename);
       end if;
@@ -476,6 +532,13 @@ package body Traces_Elf is
       Close_Exe_File (Exe_File_Type (Exec));
 
       Exec.Sec_Symtab         := SHN_UNDEF;
+   end Close_Exe_File;
+
+   procedure Close_Exe_File (Exec : in out PE_Exe_File_Type) is
+   begin
+      Close_File (Exec.PE_File);
+
+      Close_Exe_File (Exe_File_Type (Exec));
    end Close_Exe_File;
 
    ----------------
@@ -1275,6 +1338,16 @@ package body Traces_Elf is
 
       end loop;
       Free (Relocs_Region);
+   end Apply_Relocations;
+
+   procedure Apply_Relocations
+     (Exec    : in out PE_Exe_File_Type;
+      Sec_Idx : Section_Index;
+      Region  : in out Mapped_Region;
+      Data    : in out Binary_Content) is
+   begin
+      --  Not handled for PE Coff
+      null;
    end Apply_Relocations;
 
    ----------------------------
@@ -2445,6 +2518,47 @@ package body Traces_Elf is
       end loop;
    end Build_Sections;
 
+   procedure Build_Sections (Exec : in out PE_Exe_File_Type) is
+      use Coff;
+      Scn : Scnhdr;
+      Addr : Pc_Type;
+      Last : Pc_Type;
+   begin
+      --  Return now if already built
+
+      if not Exec.Desc_Sets (Section_Addresses).Is_Empty then
+         return;
+      end if;
+
+      --  Iterate over all section headers
+
+      for Idx in 0 .. Get_Nbr_Sections (Exec.PE_File) - 1 loop
+         Scn := Get_Scnhdr (Exec.PE_File, Idx);
+
+         --  Only TEXT sections are interesting.
+
+         if (Scn.S_Flags and STYP_TEXT) /= 0
+           and then Scn.S_Size > 0
+         then
+            Addr := Pc_Type (Scn.S_Vaddr);
+            Last := Pc_Type (Scn.S_Vaddr + Scn.S_Size);
+
+            Insert
+              (Exec.Desc_Sets (Section_Addresses),
+               new Address_Info'
+               (Kind            => Section_Addresses,
+                First           => Addr,
+                Last            => Last,
+                Parent          => null,
+                Section_Name    => new String'(
+                                      Get_Section_Name (Exec.PE_File, Idx)),
+                Section_Sec_Idx => Section_Index (Idx),
+                Section_Content => Invalid_Binary_Content,
+                Section_Region  => Invalid_Mapped_Region));
+         end if;
+      end loop;
+   end Build_Sections;
+
    --------------
    -- Get_Sloc --
    --------------
@@ -3065,6 +3179,11 @@ package body Traces_Elf is
       end loop;
 
       Free (Strtabs_Region);
+   end Build_Symbols;
+
+   procedure Build_Symbols (Exec : in out PE_Exe_File_Type) is
+   begin
+      null;
    end Build_Symbols;
 
    ----------------------

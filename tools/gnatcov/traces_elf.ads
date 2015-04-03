@@ -35,6 +35,7 @@ with Arch;           use Arch;
 with Binary_Files;   use Binary_Files;
 with Elf_Common;     use Elf_Common;
 with Elf_Files;      use Elf_Files;
+with PECoff_Files;   use PECoff_Files;
 with Highlighting;
 with Traces;         use Traces;
 with Traces_Dbase;   use Traces_Dbase;
@@ -509,6 +510,19 @@ private
    procedure Build_Sections (Exec : in out Elf_Exe_File_Type);
    procedure Apply_Relocations
      (Exec    : in out Elf_Exe_File_Type;
+      Sec_Idx : Section_Index;
+      Region  : in out Mapped_Region;
+      Data    : in out Binary_Content);
+
+   type PE_Exe_File_Type is limited new Exe_File_Type  with record
+      PE_File : aliased PECoff_Files.PE_File;
+   end record;
+
+   procedure Close_Exe_File (Exec : in out PE_Exe_File_Type);
+   procedure Build_Symbols (Exec : in out PE_Exe_File_Type);
+   procedure Build_Sections (Exec : in out PE_Exe_File_Type);
+   procedure Apply_Relocations
+     (Exec    : in out PE_Exe_File_Type;
       Sec_Idx : Section_Index;
       Region  : in out Mapped_Region;
       Data    : in out Binary_Content);
