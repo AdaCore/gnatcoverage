@@ -2541,7 +2541,7 @@ package body Traces_Elf is
            and then Scn.S_Size > 0
          then
             Addr := Pc_Type (Scn.S_Vaddr);
-            Last := Pc_Type (Scn.S_Vaddr + Scn.S_Size);
+            Last := Pc_Type (Scn.S_Vaddr + Scn.S_Size - 1);
 
             Insert
               (Exec.Desc_Sets (Section_Addresses),

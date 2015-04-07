@@ -137,6 +137,17 @@ package body PECoff_Files is
       return File.Hdr;
    end Get_Hdr;
 
+   ------------------------
+   -- Get_Section_Length --
+   ------------------------
+
+   function Get_Section_Length
+     (File : PE_File; Index : Section_Index) return Arch.Arch_Addr is
+   begin
+      pragma Assert (Index < Section_Index (File.Hdr.F_Nscns));
+      return File.Scn (Index).S_Size;
+   end Get_Section_Length;
+
    ----------------------
    -- Get_Section_Name --
    ----------------------
@@ -164,4 +175,21 @@ package body PECoff_Files is
       pragma Assert (Sec < Section_Index (File.Hdr.F_Nscns));
       return File.Scn (Sec);
    end Get_Scnhdr;
+
+   ------------------
+   -- Load_Section --
+   ------------------
+
+   function Load_Section
+     (File : PE_File; Index : Section_Index) return Mapped_Region is
+      Scn : constant Scnhdr := Get_Scnhdr (File, Index);
+      Result : constant Mapped_Region := Read
+        (File.File, File_Size (Scn.S_Scnptr), File_Size (Scn.S_Size));
+   begin
+      if File_Size (Last (Result)) /= File_Size (Scn.S_Size) then
+         raise Error;
+      end if;
+      return Result;
+   end Load_Section;
+
 end PECoff_Files;
