@@ -84,7 +84,8 @@ package Coff is
       E_Sclass : Unsigned_8;
       E_Numaux : Unsigned_8;
    end record;
-   Symesz : constant Natural := 18;
+   for Syment'Alignment use 2;
+   Symesz : constant := 18;
    for Syment'Size use Symesz * Storage_Unit;
 
    N_UNDEF : constant Unsigned_16 := 16#00_00#;

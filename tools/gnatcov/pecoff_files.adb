@@ -16,7 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces; use Interfaces;
+with System.Storage_Elements;
+with Dwarf_Handling;
 
 package body PECoff_Files is
 
@@ -90,6 +91,11 @@ package body PECoff_Files is
          raise Error with File.Filename & ": " & Msg;
       end Exit_With_Error;
 
+      use System.Storage_Elements;
+
+      function To_Address is new Ada.Unchecked_Conversion
+        (Str_Access, System.Address);
+
       Hdr_Off : Long_Integer;
    begin
       Hdr_Off := Read_Coff_Header_Offset (Fd);
@@ -105,26 +111,16 @@ package body PECoff_Files is
 
          Set_Nbr_Sections (File, Section_Index (File.Hdr.F_Nscns));
 
+         Read (File.File);
+         File.Data := To_Address (Data (File.File));
+
          --  Map sections.
-         declare
-            Size : constant File_Size :=
-              File_Size (File.Hdr.F_Nscns) * File_Size (Scnhdr_Size);
-            Scn_Off : constant File_Size :=
-              File_Size (Hdr_Off + 4) + File_Size (File.Hdr.F_Opthdr)
-              + File_Size (Filehdr_Size);
-         begin
-            File.Scn_Map := Read
-              (File    => File.File,
-               Offset  => Scn_Off,
-               Length  => Size,
-               Mutable => False);
-            File.Scn := To_PE_Scn_Arr_Acc (Data (File.Scn_Map).all'Address);
+         File.Scn := To_PE_Scn_Arr_Acc
+           (File.Data + Storage_Offset (Hdr_Off + 4)
+            + Storage_Offset (File.Hdr.F_Opthdr)
+            + Storage_Offset (Filehdr_Size));
 
-            if File_Size (GNATCOLL.Mmap.Last (File.Scn_Map)) /= Size then
-               raise Error;
-            end if;
-         end;
-
+         File.Str_Off := File.Hdr.F_Symptr + File.Hdr.F_Nsyms * Symesz;
       end return;
    end Create_File;
 
@@ -145,7 +141,7 @@ package body PECoff_Files is
      (File : PE_File; Index : Section_Index) return Arch.Arch_Addr is
    begin
       pragma Assert (Index < Section_Index (File.Hdr.F_Nscns));
-      return File.Scn (Index).S_Size;
+      return Arch.Arch_Addr (File.Scn (Index).S_Size);
    end Get_Section_Length;
 
    ----------------------
@@ -192,4 +188,42 @@ package body PECoff_Files is
       return Result;
    end Load_Section;
 
+   -----------------
+   -- Get_Symbols --
+   -----------------
+
+   function Get_Symbols (File : PE_File) return Mapped_Region is
+   begin
+      return Read (File.File, File_Size (File.Hdr.F_Symptr),
+                   File_Size (File.Hdr.F_Nsyms * Symesz));
+   end Get_Symbols;
+
+   ----------------
+   -- Get_String --
+   ----------------
+
+   function Get_String (File : PE_File; Off : Unsigned_32) return String is
+      use System.Storage_Elements;
+   begin
+      return Dwarf_Handling.Read_String
+        (File.Data + Storage_Offset (Off + File.Str_Off));
+   end Get_String;
+
+   ---------------------
+   -- Get_Symbol_Name --
+   ---------------------
+
+   function Get_Symbol_Name (File : PE_File; Sym : Syment) return String is
+   begin
+      if Sym.E.E.E_Zeroes = 0 then
+         return Get_String (File, Sym.E.E.E_Offset);
+      else
+         for I in Sym.E.E_Name'Range loop
+            if Sym.E.E_Name (I) = ASCII.NUL then
+               return Sym.E.E_Name (1 .. I - 1);
+            end if;
+         end loop;
+         return Sym.E.E_Name;
+      end if;
+   end Get_Symbol_Name;
 end PECoff_Files;

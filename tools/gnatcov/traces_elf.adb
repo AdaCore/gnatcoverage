@@ -3182,8 +3182,77 @@ package body Traces_Elf is
    end Build_Symbols;
 
    procedure Build_Symbols (Exec : in out PE_Exe_File_Type) is
+      use Address_Info_Sets;
+
+      type Addr_Info_Acc_Arr is array (0 .. Get_Nbr_Sections (Exec.File.all))
+        of Address_Info_Acc;
+      Sections_Info : Addr_Info_Acc_Arr := (others => null);
+      Sec : Address_Info_Acc;
+
+      Sym      : Address_Info_Acc;
+
+      Cur : Cursor;
+      Ok : Boolean;
    begin
-      null;
+      --  Build_Sections must be called before
+
+      if Exec.Desc_Sets (Section_Addresses).Is_Empty then
+         return;
+      end if;
+
+      if not Exec.Desc_Sets (Symbol_Addresses).Is_Empty then
+         return;
+      end if;
+
+      --  Fill Sections_Info
+
+      Cur := First (Exec.Desc_Sets (Section_Addresses));
+      while Has_Element (Cur) loop
+         Sec := Element (Cur);
+         Sections_Info (Sec.Section_Sec_Idx + 1) := Sec;
+         Next (Cur);
+      end loop;
+
+      declare
+         function To_Address is new Ada.Unchecked_Conversion
+           (Str_Access, Address);
+         Syms : constant Mapped_Region := Get_Symbols (Exec.PE_File);
+         Syms_Base : constant Address := To_Address (Data (Syms));
+         Nbr_Syms : constant Unsigned_32 :=
+           Get_Hdr (Exec.PE_File).F_Nsyms;
+         I : Unsigned_32;
+      begin
+         I := 0;
+         while I < Nbr_Syms loop
+            declare
+               use Coff;
+               S : Syment;
+               for S'Address use Syms_Base + Storage_Offset (I * Symesz);
+               pragma Import (Ada, S);
+            begin
+               if S.E_Type = 16#20# then
+                  --  A function
+                  Sec := Sections_Info (Section_Index (S.E_Scnum));
+                  if Sec /= null then
+                     Sym := new Address_Info'
+                       (Kind        => Symbol_Addresses,
+                        First       => Sec.First + Pc_Type (S.E_Value),
+                        Last        => Sec.First + Pc_Type (S.E_Value + 1),
+                        Parent      => Sec,
+                        Symbol_Name => new String'
+                        (Get_Symbol_Name (Exec.PE_File, S)),
+                        others      => <>);
+
+                     Address_Info_Sets.Insert
+                       (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
+                  end if;
+
+               end if;
+
+               I := I + 1 + Unsigned_32 (S.E_Numaux);
+            end;
+         end loop;
+      end;
    end Build_Symbols;
 
    ----------------------

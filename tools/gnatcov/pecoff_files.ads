@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with System;
+with Interfaces; use Interfaces;
 with Ada.Unchecked_Conversion;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNATCOLL.Mmap; use GNATCOLL.Mmap;
@@ -50,6 +51,14 @@ package PECoff_Files is
 
    function Get_Scnhdr (File : PE_File; Sec : Section_Index) return Scnhdr;
    --  Get section header for SEC
+
+   function Get_Symbols (File : PE_File) return Mapped_Region;
+   --  Get the table of symbols
+
+   function Get_String (File : PE_File; Off : Unsigned_32) return String;
+   --  Get string at offset OFF in the string table
+
+   function Get_Symbol_Name (File : PE_File; Sym : Syment) return String;
 private
    type PE_Scn_Arr is array (Section_Index) of Scnhdr;
    type PE_Scn_Arr_Acc is access PE_Scn_Arr;
@@ -60,8 +69,9 @@ private
    type PE_File is new Binary_File with record
       Hdr : Filehdr;
 
-      Scn_Map : Mapped_Region;
+      Data : System.Address;
       Scn     : PE_Scn_Arr_Acc;
+      Str_Off : Unsigned_32;
    end record;
 
 end PECoff_Files;
