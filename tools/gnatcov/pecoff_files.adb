@@ -25,6 +25,10 @@ package body PECoff_Files is
    --  Read the offset of the PE signature (4 bytes before the COFF header).
    --  Returns 0 in case of error (bad magic number).
 
+   function Extract_Nul_Terminated (S : String) return String;
+   --  Return the first characters of S until but not including Nul, or S if
+   --  there is no Nul character.
+
    -----------------------------
    -- Read_Coff_Header_Offset --
    -----------------------------
@@ -138,11 +142,29 @@ package body PECoff_Files is
    ------------------------
 
    function Get_Section_Length
-     (File : PE_File; Index : Section_Index) return Arch.Arch_Addr is
-   begin
+     (File : PE_File; Index : Section_Index) return Arch.Arch_Addr
+   is
       pragma Assert (Index < Section_Index (File.Hdr.F_Nscns));
-      return Arch.Arch_Addr (File.Scn (Index).S_Size);
+      Sec : Scnhdr renames File.Scn (Index);
+   begin
+      --  Contrary to COFF, on PE S_Paddr is the real length.
+      pragma Assert (Sec.S_Size >= Sec.S_Paddr);
+      return Arch.Arch_Addr (Sec.S_Paddr);
    end Get_Section_Length;
+
+   ----------------------------
+   -- Extract_Nul_Terminated --
+   ----------------------------
+
+   function Extract_Nul_Terminated (S : String) return String is
+   begin
+      for I in S'Range loop
+         if S (I) = ASCII.NUL then
+            return S (S'First .. I - 1);
+         end if;
+      end loop;
+      return S;
+   end Extract_Nul_Terminated;
 
    ----------------------
    -- Get_Section_Name --
@@ -152,14 +174,24 @@ package body PECoff_Files is
                              return String
    is
       pragma Assert (Sec < Section_Index (File.Hdr.F_Nscns));
-      S : Scnhdr renames File.Scn (Sec);
+      Name : String renames File.Scn (Sec).S_Name;
    begin
-      for I in S.S_Name'Range loop
-         if S.S_Name (I) = ASCII.NUL then
-            return S.S_Name (1 .. I - 1);
-         end if;
-      end loop;
-      return S.S_Name;
+      if Name (1) = '/' then
+         --  Long section name, name in string table
+         declare
+            Num : Unsigned_32;
+         begin
+            Num := 0;
+            for I in 2 .. Name'Last loop
+               exit when Name (I) = ASCII.NUL;
+               Num := Num * 10
+                 + (Character'Pos (Name (I)) - Character'Pos ('0'));
+            end loop;
+            return Get_String (File, Num);
+         end;
+      else
+         return Extract_Nul_Terminated (Name);
+      end if;
    end Get_Section_Name;
 
    ----------------
@@ -218,12 +250,7 @@ package body PECoff_Files is
       if Sym.E.E.E_Zeroes = 0 then
          return Get_String (File, Sym.E.E.E_Offset);
       else
-         for I in Sym.E.E_Name'Range loop
-            if Sym.E.E_Name (I) = ASCII.NUL then
-               return Sym.E.E_Name (1 .. I - 1);
-            end if;
-         end loop;
-         return Sym.E.E_Name;
+         return Extract_Nul_Terminated (Sym.E.E_Name);
       end if;
    end Get_Symbol_Name;
 end PECoff_Files;

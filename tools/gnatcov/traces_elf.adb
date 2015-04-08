@@ -356,6 +356,11 @@ package body Traces_Elf is
       procedure Merge_Architecture (Arch : Unsigned_16);
       --  Set Machine or check it.
 
+      procedure Set_Debug_Section (File : in out Exe_File_Type'Class;
+                                   Index : Section_Index;
+                                   Name : String);
+      --  If NAME is the name of a known dwarf debug section, save index.
+
       ------------------------
       -- Merge_Architecture --
       ------------------------
@@ -371,6 +376,27 @@ package body Traces_Elf is
             Outputs.Fatal_Error ("unexpected architecture for " & Filename);
          end if;
       end Merge_Architecture;
+
+      procedure Set_Debug_Section (File : in out Exe_File_Type'Class;
+                                   Index : Section_Index;
+                                   Name : String) is
+      begin
+         if Name = ".debug_abbrev" then
+            File.Sec_Debug_Abbrev := Index;
+
+         elsif Name = ".debug_info" then
+            File.Sec_Debug_Info := Index;
+
+         elsif Name = ".debug_line" then
+            File.Sec_Debug_Line := Index;
+
+         elsif Name = ".debug_str" then
+            File.Sec_Debug_Str := Index;
+
+         elsif Name = ".debug_ranges" then
+            File.Sec_Debug_Ranges := Index;
+         end if;
+      end Set_Debug_Section;
 
       use GNAT.OS_Lib;
       Fd : File_Descriptor;
@@ -425,21 +451,8 @@ package body Traces_Elf is
                begin
                   if Name = ".symtab" then
                      Exec.Sec_Symtab := I;
-
-                  elsif Name = ".debug_abbrev" then
-                     Exec.Sec_Debug_Abbrev := Section_Index (I);
-
-                  elsif Name = ".debug_info" then
-                     Exec.Sec_Debug_Info := Section_Index (I);
-
-                  elsif Name = ".debug_line" then
-                     Exec.Sec_Debug_Line := Section_Index (I);
-
-                  elsif Name = ".debug_str" then
-                     Exec.Sec_Debug_Str := Section_Index (I);
-
-                  elsif Name = ".debug_ranges" then
-                     Exec.Sec_Debug_Ranges := Section_Index (I);
+                  else
+                     Set_Debug_Section (Exec, Section_Index (I), Name);
                   end if;
                end;
             end loop;
@@ -472,21 +485,7 @@ package body Traces_Elf is
                declare
                   Name : constant String := Get_Section_Name (Exec.PE_File, I);
                begin
-                  if Name = ".debug_abbrev" then
-                     Exec.Sec_Debug_Abbrev := Section_Index (I);
-
-                  elsif Name = ".debug_info" then
-                     Exec.Sec_Debug_Info := Section_Index (I);
-
-                  elsif Name = ".debug_line" then
-                     Exec.Sec_Debug_Line := Section_Index (I);
-
-                  elsif Name = ".debug_str" then
-                     Exec.Sec_Debug_Str := Section_Index (I);
-
-                  elsif Name = ".debug_ranges" then
-                     Exec.Sec_Debug_Ranges := Section_Index (I);
-                  end if;
+                  Set_Debug_Section (Exec, I, Name);
                end;
             end loop;
          end return;
