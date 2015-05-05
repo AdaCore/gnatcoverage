@@ -9,30 +9,33 @@ import isystem.connect as ic
 
 cmgr = ic.ConnectionMgr ()
 
-connectionConfig = ic.CConnectionConfig ()
+connectionMgr = ic.ConnectionMgr()
+connectionConfig = ic.CConnectionConfig()
+winIDEAInstances = ic.VectorWinIDEAInstanceInfo()
 
-port = 0
-while (1):
-  port = cmgr.findExistingInstance ('', connectionConfig)
-  if (port < 0):
-    break;
-  else:
-    print 'stopping winIDEA at port: ', port
-    cmgr.connect('', port)
-    cmgr.disconnect (ic.IConnect.dfCloseServerUnconditional | ic.IConnect.dfCloseAutoSaveNone)
+hostAddress = ''  # enumerate instances on local host. You may also specify remote host
+                  # here, for example as IP address: '10.1.2.91'
+connectionMgr.enumerateWinIDEAInstances(hostAddress, connectionConfig, winIDEAInstances)
 
+# Now we'll connect to each of found winIDEA instances and close them
+for instance in winIDEAInstances:
+    instanceCMgr = ic.ConnectionMgr()
+    instanceCMgr.connect(hostAddress, instance.getTcpPort())
+    instanceCMgr.disconnect (ic.IConnect.dfCloseServerUnconditional | ic.IConnect.dfCloseAutoSaveNone)
+    print 'Kill WinIDEA at port: ', instance.getTcpPort()
 
 ws1 = os.path.abspath('ws/j.xjrf')
 
-#cmgr = ic.ConnectionMgr()
-
-#connectionConfig = ic.CConnectionConfig()
+cmgr = ic.ConnectionMgr()
+connectionConfig = ic.CConnectionConfig()
 connectionConfig.workspace (ws1)
 port = cmgr.startNewInstance (connectionConfig)
 print 'new winIDEA at port: ', port
 
-cmgr.connect(connectionConfig)
-executer = ic.CExecutionController (cmgr)
+cMgr = ic.ConnectionMgr()
+cMgr.connectMRU('')
+
+executer = ic.CExecutionController (cMgr)
 executer.reset ()
 executer.stop ()
 # the steps above are included because the retrieval
