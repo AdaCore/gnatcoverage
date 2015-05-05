@@ -10,8 +10,40 @@ cmgr.connectMRU()
 wspaceControl = ic.CWorkspaceController (cmgr)
 wspaceControl.open(os.path.abspath('.\isyswspace\justrun.xjrf'))
 
-traceDoc = ic.CTraceController (cmgr, 'justrun.trd', 'w')
-traceDoc.select ('justrun')
+traceDoc = ic.CTraceController (cmgr, 'new_trigger.trd',  'w')
+triggerIdx = traceDoc.createTrigger ('new_trigger')
+traceDoc.select (triggerIdx)
+
+# Full list of available option can be found in WinIDEA Help->Display Options...
+traceDoc.setTriggerOption (triggerIdx, "UseAdvancedTrigger", "TRUE")
+traceDoc.setTriggerOption (triggerIdx, "EnableProfiler", "FALSE")
+traceDoc.setTriggerOption (triggerIdx, "EnableCoverage", "FALSE")
+#traceDoc.setTriggerOption (triggerIdx, "Trigger.Global.ProfilerOperationMode", "Range")
+
+traceDoc.setTriggerOption (triggerIdx, "HW.Recorder.Start", "Immediately")
+traceDoc.setTriggerOption (triggerIdx, "HW.Recorder.BufferSize", "1 GB")
+traceDoc.setTriggerOption (triggerIdx, "HW.Recorder.TriggerPosition", "Begin")
+traceDoc.setTriggerOption (triggerIdx, "HW.Recorder.StallCPU ", "FALSE")
+traceDoc.setTriggerOption (triggerIdx, "HW.Recorder.BreakOnTrigger", "FALSE")
+
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.Enabled", "TRUE")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].Enabled", "TRUE")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].Anything", "FALSE")
+
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].IAC_Enable[0]", "TRUE")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].IAC_Enable[1]", "TRUE")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].IAC_Combination[0]", "None")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.e200[0].IAC_Address[0]", "main")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.e200[0].IAC_Address[1]", "exit")
+
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].RecordProgram", "TRUE")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].RecordData", "FALSE")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].RecordOTM", "FALSE")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].PeriodicOTM", "FALSE")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].RecordWP", "All")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].ProgramTrace", "BranchMsg")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].PgmStart", "IAC1")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].PgmEnd", "IAC2")
 
 loader   = ic.CLoaderController (cmgr)
 executer = ic.CExecutionController (cmgr)
@@ -40,18 +72,18 @@ isyminfo = dbg.getSymbolInfo (ic.IConnectDebug.fMonitor |
                               ic.IConnectDebug.gafExpression, '_start')
 dbg.gotoAddress (0, isyminfo.getAddress () )
 isyminfo = dbg.getSymbolInfo (ic.IConnectDebug.fMonitor |
-                              ic.IConnectDebug.gafExpression, '_after_main')
+                              ic.IConnectDebug.gafExpression, 'exit')
 
 traceDoc.start ()
+
+print 'Start execution...'
+
 executer.runUntilAddress (0, isyminfo.getAddress () )
 executer.waitUntilStopped ()
 
-isyminfo = dbg.getSymbolInfo (ic.IConnectDebug.fMonitor |
-                              ic.IConnectDebug.gafExpression, '__gnat_unexpected_last_chance_call')
-varType = ic.SType()
-varType.m_byBitSize = 32
-varType.m_byType = ic.SType.tSigned
-last_chance = dbg.readValue (ic.IConnectDebug.fMonitor, isyminfo.getMemArea (), isyminfo.getAddress (), varType)
+print '... execution stoped.'
+
+last_chance = dbg.evaluate(ic.IConnectDebug.fRealTime, '__gnat_unexpected_last_chance_call')
 if last_chance.getInt() != 0:
    print '!!! EXCEPTION RAISED !!!'
 
