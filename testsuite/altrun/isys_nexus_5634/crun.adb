@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2012-2014, AdaCore                     --
+--                     Copyright (C) 2012-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -20,9 +20,9 @@ with Text_IO;                   use Text_IO;
 with Ada.Command_Line;          use Ada.Command_Line;
 with GNAT.OS_Lib;               use GNAT.OS_Lib;
 with GNAT.Directory_Operations; use GNAT.Directory_Operations;
+with Ada.Directories;
 
 procedure crun is
-
 
    Executable_Path : String_Access;
 
@@ -167,6 +167,13 @@ begin
             Gnatcov_Args (Next_Arg_Idx) :=
               new String'("--exec=" & Argument (J));
             Next_Arg_Idx := Next_Arg_Idx + 1;
+
+            Gnatcov_Args (Next_Arg_Idx) :=
+              new String'("--output=" &
+                            Ada.Directories.Base_name (Argument (J)) &
+                            ".trace");
+            Next_Arg_Idx := Next_Arg_Idx + 1;
+
             Target_Exec_Seen := True;
          end if;
       else
