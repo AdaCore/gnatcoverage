@@ -93,6 +93,21 @@ private package Rundrv.Config is
                                        new String'("%exe"),
                                        new String'("-exec-trace"),
                                        new String'("%trace"))
+       ),
+      (Target => new String'("qemu-8641d"),
+       Setup_Command => null,
+       Setup_Options => null,
+       Run_Command => new String'("qemu-system-ppc"),
+       Run_Options => new String_List'(new String'("-nographic"),
+                                       new String'("-M"),
+                                       new String'("wrsbc8641d_vxworks"),
+                                       new String'("-no-reboot"),
+                                       new String'("-bios"),
+                                       new String'("-"),
+                                       new String'("-kernel"),
+                                       new String'("%exe"),
+                                       new String'("-exec-trace"),
+                                       new String'("%trace"))
       ),
       (Target => new String'("qemu-sbc834x"),
        Setup_Command => null,
@@ -233,7 +248,7 @@ private package Rundrv.Config is
 
    Aliases : constant Target_Aliases_Array :=
      (1 => (Alias => new String'("powerpc-elf"),
-            Target => new String'("qemu-prep")
+            Target => new String'("qemu-8641d")
            )
      );
 
