@@ -1042,15 +1042,6 @@ class TestSuite:
         if mopt.RTS:
             testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
-        # On some targets, we need to link with -lgnat for any executable
-        # to run and the toolchain doesn't do it automatically in some cases
-        # (e.g. C only programs). This is a workaround:
-
-        if ((not mopt.toolchain) and mopt.target
-            and any (t in mopt.target for t in 
-                      ['ppc-elf', 'p55-elf', 'leon-elf'])):
-            mopt.largs += " -lgnat"
-            
         if mopt.largs:
             testcase_cmd.append('--largs=%s' % mopt.largs.strip())
 
@@ -1281,6 +1272,15 @@ class TestSuite:
             else:
                 setattr(m.options, attr_cargs_ada, cargs_ada + " -gnat05")
 
+        # On some targets, we need to link with -lgnat for any executable
+        # to run and the toolchain doesn't do it automatically in some cases
+        # (e.g. C only programs). This is a workaround:
+
+        if ((not m.options.toolchain) and m.options.target
+            and any (t in m.options.target for t in 
+                      ['ppc-elf', 'p55-elf', 'leon-elf'])):
+            m.options.largs += " -lgnat"
+            
         return m.options
 
     # ---------------------
