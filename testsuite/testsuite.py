@@ -1278,7 +1278,7 @@ class TestSuite:
 
         if ((not m.options.toolchain) and m.options.target
             and any (t in m.options.target for t in 
-                      ['ppc-elf', 'p55-elf', 'leon-elf'])):
+                      ['ppc-elf', 'p55-elf', 'leon-elf', 'leon3-elf'])):
             m.options.largs += " -lgnat"
             
         return m.options
