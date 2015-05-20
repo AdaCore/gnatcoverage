@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Disa_ARM;
 with Disa_Lmp;
 with Disa_Ppc;
 with Disa_Sparc;
@@ -23,6 +24,7 @@ with Disa_X86;
 
 package body Elf_Disassemblers is
 
+   Disa_For_ARM   : aliased Disa_ARM.ARM_Disassembler;
    Disa_For_LMP   : aliased Disa_Lmp.LMP_Disassembler;
    Disa_For_Ppc   : aliased Disa_Ppc.PPC_Disassembler;
    Disa_For_Sparc : aliased Disa_Sparc.SPARC_Disassembler;
@@ -37,6 +39,8 @@ package body Elf_Disassemblers is
    is
    begin
       case Machine is
+         when EM_ARM =>
+            return Disa_For_ARM'Access;
          when EM_PPC =>
             return Disa_For_Ppc'Access;
          when EM_SPARC =>

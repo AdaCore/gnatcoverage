@@ -49,6 +49,7 @@ package Elf_Common is
    EM_MIPS        : constant Elf_Half := 8;  --  MIPS RS3000 Big-Endian
    EM_MIPS_RS4_BE : constant Elf_Half := 10; --  MIPS RS4000 Big-Endian
    EM_PPC         : constant Elf_Half := 20; --  PowerPc
+   EM_ARM         : constant Elf_Half := 40; --  ARM
    EM_X86_64      : constant Elf_Half := 62; --  Intel 64 Architecture
    EM_LMP         : constant Elf_Half := 16#6240#; --  AEC GR5/GR6
    EM_VISIUM      : constant Elf_Half := 221;  -- VISIUMcore
