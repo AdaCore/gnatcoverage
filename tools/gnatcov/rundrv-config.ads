@@ -221,8 +221,7 @@ private package Rundrv.Config is
        Setup_Command => null,
        Setup_Options => null,
        Run_Command => new String'("visium-elf-run"),
-       Run_Options => new String_List'(new String'("-a"),
-                                       new String'("--trace=%tracefile"),
+       Run_Options => new String_List'(new String'("--trace=%tracefile"),
                                        new String'("%exe"))
       )
      );
