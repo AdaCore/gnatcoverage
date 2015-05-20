@@ -45,7 +45,7 @@ package body Elf_Disassemblers is
             return Disa_For_X86'Access;
          when EM_X86_64 =>
             return Disa_For_X86'Access;
-         when EM_LMP =>
+         when EM_LMP | EM_VISIUM =>
             return Disa_For_LMP'Access;
          when others =>
             return null;
