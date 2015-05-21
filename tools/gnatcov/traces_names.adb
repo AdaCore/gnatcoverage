@@ -146,9 +146,10 @@ package body Traces_Names is
    -----------------
 
    procedure Add_Routine
-     (Key  : in out Subprogram_Key;
-      Exec : Exe_File_Acc;
-      Tag  : out SC_Tag)
+     (Key     : in out Subprogram_Key;
+      Exec    : Exe_File_Acc;
+      Section : Section_Index;
+      Tag     : out SC_Tag)
    is
       use Routines_Maps;
       TP  : Tag_Provider_Access renames Tag_Provider;
@@ -189,6 +190,7 @@ package body Traces_Names is
          Routines.Insert
            (Key,
             Subprogram_Info'(Exec        => Exec,
+                             Section     => Section,
                              Insns       => Invalid_Binary_Content,
                              Traces      => null,
                              Offset      => 0,

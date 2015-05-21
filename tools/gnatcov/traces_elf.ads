@@ -34,6 +34,7 @@ with Binary_Files;   use Binary_Files;
 with Coverage;       use Coverage;
 with Disa_Symbolize; use Disa_Symbolize;
 with Elf_Common;     use Elf_Common;
+with Elf_Disassemblers; use Elf_Disassemblers;
 with Elf_Files;      use Elf_Files;
 with Highlighting;
 with PECoff_Files;   use PECoff_Files;
@@ -125,7 +126,9 @@ package Traces_Elf is
    --  traces into the routine database.
 
    procedure Set_Insn_State
-     (Base : in out Traces_Base; Section : Binary_Content);
+     (Base     : in out Traces_Base;
+      Section  : Binary_Content;
+      I_Ranges : Insn_Set_Ranges);
    --  Comment needed???
 
    --  Read dwarfs info to build compile_units/subprograms lists.
@@ -381,6 +384,11 @@ package Traces_Elf is
    procedure Disassemble_File (File : in out Exe_File_Type);
    --  Disassemble file with labels (for debugging purposes)
 
+   function Get_Insn_Set_Ranges
+     (File    : Exe_File_Type;
+      Section : Section_Index) return Insn_Set_Ranges_Cst_Acc;
+   --  Return an Insn_Set_Ranges that describes Section
+
 private
 
    type Compile_Unit_Desc is record
@@ -402,6 +410,10 @@ private
    package Symbol_To_PC_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Symbol,
       Element_Type => Pc_Type);
+
+   package Insn_Set_Ranges_Per_Section is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Section_Index,
+      Element_Type => Insn_Set_Ranges_Acc);
 
    type Desc_Sets_Type is
      array (Address_Info_Kind
@@ -456,6 +468,10 @@ private
 
       Desc_Sets           : Desc_Sets_Type;
       --  Address descriptor sets
+
+      Insn_Set_Ranges     : Insn_Set_Ranges_Per_Section.Map;
+      --  For each section, a set of associations: address range -> instruction
+      --  set; see Elf_Disassemblers.
    end record;
 
    type Elf_Exe_File_Type is limited new Exe_File_Type  with record

@@ -19,16 +19,17 @@
 with GNAT.Strings; use GNAT.Strings;
 
 with Binary_Files;   use Binary_Files;
+with Diagnostics;    use Diagnostics;
 with Disa_Symbolize; use Disa_Symbolize;
+with Elf_Disassemblers; use Elf_Disassemblers;
 with Files_Table;    use Files_Table;
+with SC_Obligations; use SC_Obligations;
+with Slocs;          use Slocs;
 with Traces;         use Traces;
 with Traces_Dbase;   use Traces_Dbase;
 with Traces_Elf;     use Traces_Elf;
 with Traces_Lines;   use Traces_Lines;
 with Traces_Stats;   use Traces_Stats;
-with Diagnostics;    use Diagnostics;
-with Slocs;          use Slocs;
-with SC_Obligations; use SC_Obligations;
 with Types;          use Types;
 
 package Annotations is
@@ -125,11 +126,12 @@ private
    procedure Pretty_Print_End_Symbol (Pp : in out Pretty_Printer) is null;
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class) is null;
+     (Pp       : in out Pretty_Printer;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class) is null;
    --  Let Pp print the instruction at Pc using Sym as a symbolizer. State
    --  should be the coverage state of this instruction and Insn its binary
    --  content.

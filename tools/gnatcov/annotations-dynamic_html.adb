@@ -199,11 +199,12 @@ package body Annotations.Dynamic_Html is
    procedure Pretty_Print_End_Symbol (Pp : in out Dynamic_Html);
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Dynamic_Html;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class);
+     (Pp       : in out Dynamic_Html;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class);
 
    ----------------------
    -- Internal Helpers --
@@ -588,11 +589,12 @@ package body Annotations.Dynamic_Html is
    -----------------------
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Dynamic_Html;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class)
+     (Pp       : in out Dynamic_Html;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class)
    is
       use Hex_Images;
       use Traces_Disa;
@@ -602,7 +604,8 @@ package body Annotations.Dynamic_Html is
    begin
       Instruction.Set_Field ("address", Hex_Image (Pc));
       Instruction.Set_Field ("coverage", Insn_State_Char (State) & "");
-      Instruction.Set_Field ("assembly", Disassemble (Insn, Pc, Sym));
+      Instruction.Set_Field
+        ("assembly", Disassemble (Insn, Pc, Insn_Set, Sym));
 
       Append (Pp.Current_Insns, Instruction);
    end Pretty_Print_Insn;

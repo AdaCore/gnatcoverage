@@ -63,8 +63,11 @@ package Traces_Names is
    --  Information recorded about each subprogram in the routines database
 
    type Subprogram_Info is record
-      Exec  : Exe_File_Acc;
+      Exec    : Exe_File_Acc;
       --  Pointer to the Exec file where this subprogram has first been found
+
+      Section : Section_Index;
+      --  Section index in Exec where this subprogram comes from
 
       Insns : Binary_Content;
       --  Subprogram binary content
@@ -87,9 +90,10 @@ package Traces_Names is
    --  deallocated.
 
    procedure Add_Routine
-     (Key  : in out Subprogram_Key;
-      Exec : Exe_File_Acc;
-      Tag  : out SC_Tag);
+     (Key     : in out Subprogram_Key;
+      Exec    : Exe_File_Acc;
+      Section : Section_Index;
+      Tag     : out SC_Tag);
    --  Create a Subprogram_Info entry for the given Subprogram_Key in the
    --  routines database if it doesn't exist. Key.Origin member is updated if
    --  there is no associated Compile_Unit. Returns the assigned routine tag.

@@ -30,23 +30,23 @@ with Interfaces;
 with GNAT.Expect; use GNAT.Expect;
 with GNAT.OS_Lib;
 
-with Binary_Files;   use Binary_Files;
+with Binary_Files; use Binary_Files;
 with Coverage.Source;
 with Decision_Map;
-with Diagnostics; use Diagnostics;
+with Diagnostics;  use Diagnostics;
 with Disassemblers;
 with Elf_Disassemblers;
 with Execs_Dbase;
-with Hex_Images;  use Hex_Images;
+with Hex_Images;   use Hex_Images;
 with Highlighting;
-with Outputs;     use Outputs;
+with Outputs;      use Outputs;
 with Qemu_Traces;
 with SC_Obligations;
 with Strings;
 with Switches;
-with Traces;      use Traces;
+with Traces;       use Traces;
 with Traces_Dbase;
-with Traces_Elf;  use Traces_Elf;
+with Traces_Elf;   use Traces_Elf;
 with Traces_Files;
 
 package body CFG_Dump is
@@ -126,6 +126,8 @@ package body CFG_Dump is
 
       Section             : Binary_Files.Section_Index;
       --  Index of the section in which this instruction was found
+
+      Insn_Set            : Elf_Disassemblers.Insn_Set_Type;
 
       Selected            : Boolean;
       --  Whether this instruction matches selected locations
@@ -315,8 +317,13 @@ package body CFG_Dump is
    is
       Code    : constant Binary_Content := Section.Section_Content;
       Sec_Ndx : constant Binary_Files.Section_Index := Section.Section_Sec_Idx;
-      Disas   : constant access Disassemblers.Disassembler'Class :=
-        Elf_Disassemblers.Disa_For_Machine (Traces.Machine);
+
+      I_Ranges : Elf_Disassemblers.Insn_Set_Ranges renames
+        Get_Insn_Set_Ranges (Context.Exec.all, Sec_Ndx).all;
+      Cache    : Elf_Disassemblers.Insn_Set_Cache :=
+        Elf_Disassemblers.Empty_Cache;
+      Disas    : access Disassemblers.Disassembler'Class;
+      Insn_Set : Elf_Disassemblers.Insn_Set_Type;
 
       type Disassembly_State is
         (OK,
@@ -420,12 +427,18 @@ package body CFG_Dump is
 
    begin
 
-      while PC <= Code.Last loop
+      while Elf_Disassemblers.Iterate_Over_Insns
+        (I_Ranges, Cache, Code.Last, PC, Insn_Set)
+      loop
+         Disas := Elf_Disassemblers.Disa_For_Machine
+           (Traces.Machine, Insn_Set);
+
          if Insn = null or else Insn_Added then
             Insn := new Instruction_Record'
-              (Bytes   => (null, PC, No_PC),
-               Section => Sec_Ndx,
-               others  => <>);
+              (Bytes    => (null, PC, No_PC),
+               Section  => Sec_Ndx,
+               Insn_Set => Insn_Set,
+               others   => <>);
             Insn_Added := False;
          end if;
 
@@ -647,6 +660,7 @@ package body CFG_Dump is
 
                Insn.Selected := False;
                PC := Symbol.First;
+
          end case;
 
          --  These are for the next instruction, during the next iteration.
@@ -1291,8 +1305,7 @@ package body CFG_Dump is
 
          Result : Unbounded_String;
 
-         Disas    : constant access Disassemblers.Disassembler'Class :=
-           Elf_Disassemblers.Disa_For_Machine (Machine);
+         Disas    : access Disassemblers.Disassembler'Class;
          Buffer   : Highlighting.Buffer_Type (128);
          Insn_Len : Natural;
 
@@ -1308,6 +1321,9 @@ package body CFG_Dump is
 
       begin
          for Insn of BB loop
+            Disas := Elf_Disassemblers.Disa_For_Machine
+              (Traces.Machine, Insn.Insn_Set);
+
             if Subp /= null then
                Sloc := Find_Address_Info
                  (Subp.Lines, Line_Addresses, Address (Insn));

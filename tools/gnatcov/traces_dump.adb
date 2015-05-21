@@ -16,15 +16,16 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Binary_Files; use Binary_Files;
-with Traces_Disa;
-with Hex_Images;
 with Coverage;
+with Binary_Files; use Binary_Files;
+with Disa_Symbolize;
+with Elf_Disassemblers; use Elf_Disassemblers;
+with Hex_Images;
 with Traces_Names; use Traces_Names;
 with Traces_Dbase; use Traces_Dbase;
+with Traces_Disa;
 with Traces_Lines; use Traces_Lines;
 with Traces_Elf; use Traces_Elf;
-with Disa_Symbolize;
 
 package body Traces_Dump is
 
@@ -52,6 +53,10 @@ package body Traces_Dump is
          Info : in out Subprogram_Info)
       is
          use Hex_Images;
+
+         I_Ranges : Insn_Set_Ranges renames
+           Get_Insn_Set_Ranges (Info.Exec.all, Info.Section).all;
+
       begin
          Routine_Seen := True;
          Put (Key_To_Name (Key).all);
@@ -71,14 +76,14 @@ package body Traces_Dump is
             if Flag_Show_Asm then
                if Info.Exec = null then
                   Disp_Assembly_Lines
-                    (Info.Insns,
+                    (Info.Insns, I_Ranges,
                      Info.Traces.all,
                      Textio_Disassemble_Cb'Access,
                      Disa_Symbolize.Nul_Symbolizer);
 
                else
                   Disp_Assembly_Lines
-                    (Info.Insns,
+                    (Info.Insns, I_Ranges,
                      Info.Traces.all,
                      Textio_Disassemble_Cb'Access,
                      Info.Exec.all);

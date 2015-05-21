@@ -177,10 +177,11 @@ package body Annotations is
       use Traces_Disa;
 
       procedure Pretty_Print_Insn
-        (Addr  : Pc_Type;
-         State : Insn_State;
-         Insn  : Binary_Content;
-         Sym   : Symbolizer'Class);
+        (Addr     : Pc_Type;
+         State    : Insn_State;
+         Insn     : Binary_Content;
+         Insn_Set : Insn_Set_Type;
+         Sym      : Symbolizer'Class);
       --  Call Pp.Pretty_Print_Insn with the corresponding parameters; this
       --  procedure is meant to be used as a callback in an iterator over
       --  assembly lines (Traces_Disa.Disp_Assembly_Lines).
@@ -190,12 +191,13 @@ package body Annotations is
       -----------------------
 
       procedure Pretty_Print_Insn
-        (Addr  : Pc_Type;
-         State : Insn_State;
-         Insn  : Binary_Content;
-         Sym   : Symbolizer'Class) is
+        (Addr     : Pc_Type;
+         State    : Insn_State;
+         Insn     : Binary_Content;
+         Insn_Set : Insn_Set_Type;
+         Sym      : Symbolizer'Class) is
       begin
-         Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
+         Pretty_Print_Insn (Pp, Addr, State, Insn, Insn_Set, Sym);
       end Pretty_Print_Insn;
 
       --  Local variables
@@ -253,6 +255,7 @@ package body Annotations is
            (Slice (Sec_Info.Section_Content,
                    Instruction_Set.First,
                    Instruction_Set.Last),
+            Get_Insn_Set_Ranges (Info.Exec.all, Sec_Info.Section_Sec_Idx).all,
             Info.Base.all, Pretty_Print_Insn'Access, Info.Exec.all);
 
          if In_Symbol then

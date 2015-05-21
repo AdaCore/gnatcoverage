@@ -1495,7 +1495,7 @@ package body Decision_Map is
                Buffer   : Highlighting.Buffer_Type (1);
                Line_Len : Natural;
             begin
-               Disa_For_Machine (Machine).Disassemble_Insn_Or_Abort
+               Disa_For_Machine (Machine, Default).Disassemble_Insn_Or_Abort
                  (Slice (Sec.Section_Content, BB.From, BB.To),
                   BB.From,
                   Buffer,
@@ -2241,6 +2241,11 @@ package body Decision_Map is
       --  They are actually processed after this scan is completed (second
       --  pass).
 
+      Disas    : access Disassembler'Class;
+      I_Ranges : Insn_Set_Ranges_Cst_Acc;
+      Cache    : Insn_Set_Cache := Empty_Cache;
+      Insn_Set : Insn_Set_Type;
+
    --  Start of processing for Analyze_Routine
 
    begin
@@ -2253,6 +2258,8 @@ package body Decision_Map is
 
       Context.Subprg :=
         Get_Address_Info (Exec.all, Subprogram_Addresses, Insns.First);
+      I_Ranges :=
+        Get_Insn_Set_Ranges (Exec.all, Context.Subprg.Parent.Section_Sec_Idx);
 
       --  First pass: instruction scan
 
@@ -2262,10 +2269,12 @@ package body Decision_Map is
       PC := Insns.First;
       New_Basic_Block;
 
-      while PC <= Insns.Last loop
-         Insn_Len :=
-           Disa_For_Machine (Machine).
-             Get_Insn_Length_Or_Abort (Slice (Insns, PC, Insns.Last));
+      while Iterate_Over_Insns
+        (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
+      loop
+         Disas := Disa_For_Machine (Machine, Insn_Set);
+         Insn_Len := Disas.Get_Insn_Length_Or_Abort
+           (Slice (Insns, PC, Insns.Last));
 
          declare
             LI   : Line_Info_Access;
@@ -2312,7 +2321,7 @@ package body Decision_Map is
 
             --  Disassemble instruction
 
-            Disa_For_Machine (Machine).Get_Insn_Properties
+            Disas.Get_Insn_Properties
               (Insn_Bin    => Insn,
                Pc          => PC,
                Branch      => Branch,

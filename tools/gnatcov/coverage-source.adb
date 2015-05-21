@@ -991,6 +991,11 @@ package body Coverage.Source is
          end Process_Conditional_Branch;
       end Discharge_SCO;
 
+      I_Ranges : Insn_Set_Ranges renames
+        Get_Insn_Set_Ranges (Subp_Info.Exec.all, Subp_Info.Section).all;
+      Cache    : Insn_Set_Cache := Empty_Cache;
+      Insn_Set : Insn_Set_Type;
+
    --  Start of processing for Compute_Source_Coverage
 
    begin
@@ -1003,10 +1008,12 @@ package body Coverage.Source is
       PC := T.First + Subp_Info.Offset;
 
       Trace_Insns :
-      while PC <= T.Last + Subp_Info.Offset loop
-         Insn_Len :=
-           Disa_For_Machine (Machine).Get_Insn_Length_Or_Abort
-           (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
+      while Iterate_Over_Insns
+        (I_Ranges, Cache, T.Last + Subp_Info.Offset, PC, Insn_Set)
+      loop
+         Insn_Len := Disa_For_Machine (Machine, Insn_Set).
+           Get_Insn_Length_Or_Abort
+             (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
 
          --  Discharge each SCO for source locations associated with this
          --  instruction.

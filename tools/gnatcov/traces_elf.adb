@@ -35,7 +35,6 @@ with Diagnostics;
 with Disassemblers;     use Disassemblers;
 with Dwarf;
 with Dwarf_Handling;    use Dwarf_Handling;
-with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Hex_Images;        use Hex_Images;
@@ -58,6 +57,27 @@ package body Traces_Elf is
 
    No_Ranges    : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_ranges
+
+   type Mapping_Symbol is record
+      Address  : Pc_Type;
+      Insn_Set : Insn_Set_Type;
+   end record;
+   --  Temporary data structure created when reading mapping symbols (in ARM
+   --  ELF, these tell us whether code is ARM or Thumb). We use these symbols
+   --  to fill Insn_Set_Ranges data structures.
+
+   function "<" (L, R : Mapping_Symbol) return Boolean is
+     (L.Address < R.Address);
+
+   package Mapping_Symbol_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Mapping_Symbol);
+
+   procedure Build_Insn_Set_Ranges
+     (Exec            : in out Exe_File_Type'Class;
+      Mapping_Symbols : Mapping_Symbol_Sets.Set;
+      Section         : Address_Info_Acc);
+   --  Turn Mapping_Symbol_Vectors in to the Insn_Set_Range corresponding to
+   --  Section_Index in Exec.
 
    function Get_Strtab_Idx (Exec : Elf_Exe_File_Type) return Elf_Half;
    --  Get the section index of the symtab string table.
@@ -519,6 +539,10 @@ package body Traces_Elf is
 
       Exec.Debug_Str_Base := Null_Address;
       Exec.Debug_Str_Len := 0;
+
+      for I_Ranges of Exec.Insn_Set_Ranges loop
+         Free (I_Ranges);
+      end loop;
    end Close_Exe_File;
 
    procedure Close_Exe_File (Exec : in out Elf_Exe_File_Type) is
@@ -2724,7 +2748,8 @@ package body Traces_Elf is
             --  routines database.
 
             Traces_Names.Key_From_Symbol (Exec, Sym, Subp_Key);
-            Traces_Names.Add_Routine (Subp_Key, Exec, Sym.Symbol_Tag);
+            Traces_Names.Add_Routine
+              (Subp_Key, Exec, Sec.Section_Sec_Idx, Sym.Symbol_Tag);
 
             begin
                Traces_Names.Add_Code_And_Traces
@@ -2872,7 +2897,9 @@ package body Traces_Elf is
    --------------------
 
    procedure Set_Insn_State
-     (Base : in out Traces_Base; Section : Binary_Content)
+     (Base     : in out Traces_Base;
+      Section  : Binary_Content;
+      I_Ranges : Insn_Set_Ranges)
    is
       use Address_Info_Sets;
 
@@ -2922,6 +2949,7 @@ package body Traces_Elf is
       First_Cond_Len : Pc_Type;
       Cond_State     : Insn_State;
 
+      Cache          : Insn_Set_Cache := Empty_Cache;
       Next_Pc        : Pc_Type;
       --  Temporary instruction address, used only when looking for last
       --  instructions.
@@ -2930,6 +2958,8 @@ package body Traces_Elf is
       Flag_Indir           : Boolean;
       Branch_Dest, FT_Dest : Dest;
       --  Unused, but mandatory arguments when getting instructions properties
+
+      Disa : access Disassembler'Class;
 
    --  Start of processing for Set_Insn_State
 
@@ -2945,9 +2975,10 @@ package body Traces_Elf is
          Last_Pc_1 := No_PC;
          Last_Pc_2 := Trace.First;
          loop
+            Disa := Disa_For_Machine (Machine, I_Ranges, Cache, Last_Pc_2);
             Last_Insn_2_Len := Pc_Type
-              (Disa_For_Machine (Machine).Get_Insn_Length_Or_Abort
-                (Slice (Section, Last_Pc_2, Trace.Last)));
+              (Disa.Get_Insn_Length_Or_Abort
+                 (Slice (Section, Last_Pc_2, Trace.Last)));
             Next_Pc := Last_Pc_2 + Last_Insn_2_Len;
             exit when Next_Pc = Trace.Last + 1;
 
@@ -2973,7 +3004,7 @@ package body Traces_Elf is
 
          First_Cond_Pc := No_PC;
          if Last_Pc_1 /= No_PC then
-            Disa_For_Machine (Machine).Get_Insn_Properties
+            Disa.Get_Insn_Properties
               (Slice (Section, Last_Pc_1, Last_Pc_1 + Last_Insn_1_Len - 1),
                Last_Pc_1,
                Branch,
@@ -2986,7 +3017,7 @@ package body Traces_Elf is
             end if;
          end if;
          if First_Cond_Pc = No_PC then
-            Disa_For_Machine (Machine).Get_Insn_Properties
+            Disa.Get_Insn_Properties
               (Slice (Section, Last_Pc_2, Last_Pc_2 + Last_Insn_2_Len - 1),
                Last_Pc_2,
                Branch,
@@ -3041,6 +3072,47 @@ package body Traces_Elf is
       end loop;
    end Set_Insn_State;
 
+   ---------------------------
+   -- Build_Insn_Set_Ranges --
+   ---------------------------
+
+   procedure Build_Insn_Set_Ranges
+     (Exec            : in out Exe_File_Type'Class;
+      Mapping_Symbols : Mapping_Symbol_Sets.Set;
+      Section         : Address_Info_Acc)
+   is
+      Sec_Idx          : constant Section_Index := Section.Section_Sec_Idx;
+      I_Ranges         : constant Insn_Set_Ranges_Acc := new Insn_Set_Ranges;
+
+      Current_Insn_Set : Insn_Set_Type := Default;
+      First_Addr       : Pc_Type := Section.First;
+
+   begin
+      Exec.Insn_Set_Ranges.Insert (Sec_Idx, I_Ranges);
+
+      for Sym of Mapping_Symbols loop
+         if Sym.Insn_Set /= Current_Insn_Set then
+            if Current_Insn_Set /= Default
+              and then Sym.Address /= First_Addr
+            then
+               Add_Range
+                 (I_Ranges.all,
+                  First_Addr, Sym.Address  - 1,
+                  Current_Insn_Set);
+            end if;
+            First_Addr := Sym.Address;
+            Current_Insn_Set := Sym.Insn_Set;
+         end if;
+      end loop;
+
+      if Current_Insn_Set /= Default then
+         Add_Range
+           (I_Ranges.all,
+            First_Addr, Section.Last,
+            Current_Insn_Set);
+      end if;
+   end Build_Insn_Set_Ranges;
+
    -------------------
    -- Build_Symbols --
    -------------------
@@ -3052,6 +3124,10 @@ package body Traces_Elf is
         of Address_Info_Acc;
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
       Sec : Address_Info_Acc;
+
+      type Mapping_Symbols_Arr is array (0 .. Get_Shdr_Num (Exec.Elf_File))
+        of Mapping_Symbol_Sets.Set;
+      Mapping_Symbols : Mapping_Symbols_Arr;
 
       Symtab_Base : Address;
       Do_Reloc : Boolean;
@@ -3137,6 +3213,15 @@ package body Traces_Elf is
                  (Read_String (Address_Of (Strtabs, Elf_Addr (ESym.St_Name)))),
                others        => <>);
 
+            --  On ARM, the low address bit is used to distinguish ARM and
+            --  Thumb instructions but it must be discarded when dealing
+            --  with memory.
+
+            if Get_Machine (Exec) = EM_ARM and (Sym.First and 1) = 1 then
+               Sym.First := Sym.First - 1;
+               Sym.Last := Sym.Last - 1;
+            end if;
+
             Address_Info_Sets.Insert
               (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
          end if;
@@ -3167,10 +3252,56 @@ package body Traces_Elf is
                   Offset + Pc_Type (ESym.St_Value));
             end;
          end if;
+
+         if Machine = EM_ARM
+           and then Sym_Type = STT_NOTYPE
+           and then Elf_St_Bind (ESym.St_Info) = STB_LOCAL
+         then
+            declare
+               Name : constant String := Read_String
+                 (Address_Of (Strtabs, Elf_Addr (ESym.St_Name)));
+            begin
+               if Name'Length >= 2 and then Name (1) = '$' then
+
+                  if ESym.St_Size /= 0 then
+                     raise Program_Error with
+                       "Illegal mapping symbol (size not null)";
+
+                  elsif not (Name (2) in 'a' | 'd' | 't')
+                    or else (Name'Length > 2
+                             and then Name (3) /= '.')
+                  then
+                     raise Program_Error with
+                       "Illegal mapping symbol (invalid name)";
+                  end if;
+
+                  Mapping_Symbols (ESym.St_Shndx).Insert
+                    ((Address  => ESym.St_Value,
+                      Insn_Set => (case Name (2) is
+                                   when 'a' => ARM,
+                                   when 'd' => Data,
+                                   when 't' => Thumb,
+                                   when others => raise Program_Error)));
+               end if;
+            end;
+         end if;
+      end loop;
+
+      for Section_Index in Mapping_Symbols_Arr'Range loop
+         if Sections_Info (Section_Index) /= null then
+            Build_Insn_Set_Ranges
+              (Exec,
+               Mapping_Symbols (Section_Index),
+               Sections_Info (Section_Index));
+         end if;
       end loop;
 
       Free (Strtabs_Region);
    end Build_Symbols;
+
+   -------------------
+   -- Build_Symbols --
+   -------------------
 
    procedure Build_Symbols (Exec : in out PE_Exe_File_Type) is
       use Address_Info_Sets;
@@ -3503,7 +3634,10 @@ package body Traces_Elf is
          pragma Unreferenced (Key);
       begin
          if Is_Loaded (Info.Insns) then
-            Set_Insn_State (Info.Traces.all, Info.Insns);
+            Set_Insn_State
+              (Info.Traces.all,
+               Info.Insns,
+               Get_Insn_Set_Ranges (Info.Exec.all, Info.Section).all);
          end if;
       end Build_Routine_Insn_State;
 
@@ -3531,6 +3665,11 @@ package body Traces_Elf is
          Pc       : Pc_Type;
          Insn_Len : Natural := 0;
          Sec      : constant Address_Info_Acc := Element (Cur);
+
+         I_Ranges : Insn_Set_Ranges renames
+           Get_Insn_Set_Ranges (File, Sec.Section_Sec_Idx).all;
+         Cache    : Insn_Set_Cache := Empty_Cache;
+
          Insns    : Binary_Content;
          Buffer   : Highlighting.Buffer_Type (128);
       begin
@@ -3545,9 +3684,10 @@ package body Traces_Elf is
             Put (ASCII.HT);
 
             Buffer.Reset;
-            Disa_For_Machine (Machine).Disassemble_Insn_Or_Abort
-              (Slice (Insns, Pc, Insns.Last), Pc,
-               Buffer, Insn_Len, File);
+            Disa_For_Machine (Machine, I_Ranges, Cache, Pc).
+              Disassemble_Insn_Or_Abort
+                (Slice (Insns, Pc, Insns.Last), Pc,
+                 Buffer, Insn_Len, File);
 
             for I in Pc .. Pc + Pc_Type (Insn_Len - 1) loop
                Put (Hex_Image (Get (Insns, I)));
@@ -3581,17 +3721,18 @@ package body Traces_Elf is
 
    procedure Disassemble_File (File : in out Exe_File_Type) is
       use Address_Info_Sets;
-      Cur : Cursor;
-      Sec : Address_Info_Acc;
-      Addr : Pc_Type;
+      Cur        : Cursor;
+      Sec        : Address_Info_Acc;
+      I_Ranges   : Insn_Set_Ranges_Cst_Acc;
+      Addr       : Pc_Type;
 
       Cur_Subprg : Cursor;
-      Subprg : Address_Info_Acc;
+      Subprg     : Address_Info_Acc;
 
       Cur_Symbol : Cursor;
-      Symbol : Address_Info_Acc;
+      Symbol     : Address_Info_Acc;
 
-      Last_Addr : Pc_Type;
+      Last_Addr  : Pc_Type;
    begin
       Cur := First (File.Desc_Sets (Section_Addresses));
 
@@ -3612,6 +3753,7 @@ package body Traces_Elf is
       while Cur /= No_Element loop
          Sec := Element (Cur);
          Load_Section_Content (File, Sec);
+         I_Ranges := Get_Insn_Set_Ranges (File, Sec.Section_Sec_Idx);
 
          --  Display section name
 
@@ -3712,6 +3854,7 @@ package body Traces_Elf is
 
             Traces_Disa.For_Each_Insn
               (Slice (Sec.Section_Content, Addr, Last_Addr),
+               I_Ranges.all,
                Not_Covered, Traces_Disa.Textio_Disassemble_Cb'Access, File);
 
             Addr := Last_Addr;
@@ -4271,7 +4414,10 @@ package body Traces_Elf is
 
                      Key_From_Symbol (Exec, Symbol, Subp_Key);
                      if not Is_In (Subp_Key) then
-                        Add_Routine (Subp_Key, Exec, Symbol.Symbol_Tag);
+                        Add_Routine
+                          (Subp_Key,
+                           Exec, Symbol.Parent.Section_Sec_Idx,
+                           Symbol.Symbol_Tag);
                         Symbol.Symbol_Origin := Subp_Key.Origin;
                      end if;
 
@@ -4290,5 +4436,24 @@ package body Traces_Elf is
          end loop;
       end loop;
    end Routine_Names_From_Lines;
+
+   -------------------------
+   -- Get_Insn_Set_Ranges --
+   -------------------------
+
+   function Get_Insn_Set_Ranges
+     (File    : Exe_File_Type;
+      Section : Section_Index) return Insn_Set_Ranges_Cst_Acc
+   is
+      use Insn_Set_Ranges_Per_Section;
+
+      Cur : constant Cursor := File.Insn_Set_Ranges.Find (Section);
+   begin
+      if Cur = No_Element then
+         return No_Insn_Set_Ranges'Access;
+      else
+         return Insn_Set_Ranges_Cst_Acc (Element (Cur));
+      end if;
+   end Get_Insn_Set_Ranges;
 
 end Traces_Elf;

@@ -16,11 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Binary_Files;   use Binary_Files;
-with Traces; use Traces;
-with Traces_Dbase; use Traces_Dbase;
-with Traces_Elf; use Traces_Elf;
-with Disa_Symbolize; use Disa_Symbolize;
+with Binary_Files;      use Binary_Files;
+with Disa_Symbolize;    use Disa_Symbolize;
+with Elf_Disassemblers; use Elf_Disassemblers;
+with Traces;            use Traces;
+with Traces_Dbase;      use Traces_Dbase;
+with Traces_Elf;        use Traces_Elf;
 
 package Traces_Disa is
    --  If True, Disp_Line_State will also display assembly code.
@@ -31,43 +32,51 @@ package Traces_Disa is
    function Get_Label (Sym : Symbolizer'Class; Info : Address_Info_Acc)
                       return String;
 
-   type Disassemble_Cb is access procedure (Addr : Pc_Type;
-                                            State : Insn_State;
-                                            Insn : Binary_Content;
-                                            Sym : Symbolizer'Class);
+   type Disassemble_Cb is access procedure (Addr     : Pc_Type;
+                                            State    : Insn_State;
+                                            Insn     : Binary_Content;
+                                            Insn_Set : Insn_Set_Type;
+                                            Sym      : Symbolizer'Class);
 
    --  Call CB for each instruction of INSNS.
    --  (State and Sym are parameters of CB).
-   procedure For_Each_Insn (Insns : Binary_Content;
-                            State : Insn_State;
-                            Cb : Disassemble_Cb;
-                            Sym : Symbolizer'Class);
+   procedure For_Each_Insn (Insns    : Binary_Content;
+                            I_Ranges : Insn_Set_Ranges;
+                            State    : Insn_State;
+                            Cb       : Disassemble_Cb;
+                            Sym      : Symbolizer'Class);
 
    --  Generate the disassembly for INSN.
    --  INSN is exactly one instruction.
    --  PC is the target address of INSN (used to display branch targets).
    function Disassemble
-     (Insn : Binary_Content; Pc : Pc_Type; Sym : Symbolizer'Class)
-     return String;
+     (Insn     : Binary_Content;
+      Pc       : Pc_Type;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class)
+      return String;
 
    --  Call CB for each insn in INSNS.
    --  The state of the insn is computed.
    procedure Disp_Assembly_Lines
-     (Insns : Binary_Content;
-      Base : Traces_Base;
-      Cb : access procedure (Addr : Pc_Type;
-                             State : Insn_State;
-                             Insn : Binary_Content;
-                             Sym : Symbolizer'Class);
-      Sym : Symbolizer'Class);
+     (Insns    : Binary_Content;
+      I_Ranges : Insn_Set_Ranges;
+      Base     : Traces_Base;
+      Cb       : access procedure (Addr     : Pc_Type;
+                                   State    : Insn_State;
+                                   Insn     : Binary_Content;
+                                   Insn_Set : Insn_Set_Type;
+                                   Sym      : Symbolizer'Class);
+      Sym      : Symbolizer'Class);
 
    --  Simple callback from the previous subprogram.
-   procedure Textio_Disassemble_Cb (Addr : Pc_Type;
-                                    State : Insn_State;
-                                    Insn : Binary_Content;
-                                    Sym : Symbolizer'Class);
+   procedure Textio_Disassemble_Cb (Addr     : Pc_Type;
+                                    State    : Insn_State;
+                                    Insn     : Binary_Content;
+                                    Insn_Set : Insn_Set_Type;
+                                    Sym      : Symbolizer'Class);
 
    --  Debug procedure: dump a trace file and the disassembly for each entry.
-   procedure Dump_Traces_With_Asm (Exe : Exe_File_Type'Class;
+   procedure Dump_Traces_With_Asm (Exe            : Exe_File_Type'Class;
                                    Trace_Filename : String);
 end Traces_Disa;

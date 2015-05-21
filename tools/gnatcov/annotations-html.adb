@@ -93,11 +93,12 @@ package body Annotations.Html is
       State  : Line_State);
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Html_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class);
+     (Pp       : in out Html_Pretty_Printer;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class);
 
    procedure Pretty_Print_Message
      (Pp    : in out Html_Pretty_Printer;
@@ -347,11 +348,12 @@ package body Annotations.Html is
    -----------------------
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Html_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class) is
+     (Pp       : in out Html_Pretty_Printer;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class) is
    begin
       Wrh (Pp, "      <tr class=""");
 
@@ -380,7 +382,7 @@ package body Annotations.Html is
          Wrh (Pp, " ");
       end loop;
       Wrh (Pp, "  ");
-      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc, Sym)));
+      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc, Insn_Set, Sym)));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "      </tr>");
    end Pretty_Print_Insn;

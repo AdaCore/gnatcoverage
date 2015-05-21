@@ -162,11 +162,12 @@ package body Annotations.Xml is
    procedure Pretty_Print_End_Symbol (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Xml_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class);
+     (Pp       : in out Xml_Pretty_Printer;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class);
 
    procedure Pretty_Print_Message
      (Pp : in out Xml_Pretty_Printer;
@@ -322,16 +323,17 @@ package body Annotations.Xml is
    -----------------------
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Xml_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class) is
+     (Pp       : in out Xml_Pretty_Printer;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class) is
    begin
       Pp.T ("instruction",
             A ("address", Hex_Image (Pc))
             & A ("coverage", Insn_State_Char (State) & "")
-            & A ("assembly", Disassemble (Insn, Pc, Sym)));
+            & A ("assembly", Disassemble (Insn, Pc, Insn_Set, Sym)));
    end Pretty_Print_Insn;
 
    --------------------------------------

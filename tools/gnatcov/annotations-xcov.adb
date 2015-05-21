@@ -58,11 +58,12 @@ package body Annotations.Xcov is
       State  : Line_State);
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Xcov_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class);
+     (Pp       : in out Xcov_Pretty_Printer;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class);
 
    procedure Pretty_Print_Message
      (Pp : in out Xcov_Pretty_Printer;
@@ -95,11 +96,12 @@ package body Annotations.Xcov is
    -----------------------
 
    procedure Pretty_Print_Insn
-     (Pp    : in out Xcov_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class) is
+     (Pp       : in out Xcov_Pretty_Printer;
+      Pc       : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class) is
    begin
       Put (Pp.Xcov_File, Hex_Image (Pc));
       Put (Pp.Xcov_File, ' ' & Insn_State_Char (State) & ":  ");
@@ -108,7 +110,7 @@ package body Annotations.Xcov is
          Put (Pp.Xcov_File, " ");
       end loop;
       Put (Pp.Xcov_File, " ");
-      Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Sym));
+      Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Insn_Set, Sym));
    end Pretty_Print_Insn;
 
    --------------------------

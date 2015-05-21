@@ -182,10 +182,13 @@ package body Disassemble_Insn_Properties is
          return Result;
       end Create_Instruction;
 
+      I_Ranges : Elf_Disassemblers.Insn_Set_Ranges_Cst_Acc;
+      Cache    : Elf_Disassemblers.Insn_Set_Cache;
+      Insn_Set : Elf_Disassemblers.Insn_Set_Type;
+
    --  Start of processing for Disassemble
 
    begin
-      Disassembler := Elf_Disassemblers.Disa_For_Machine (Machine);
       Build_Sections (Exec);
       Build_Symbols (Exec);
       Build_Debug_Lines (Exec);
@@ -203,9 +206,17 @@ package body Disassemble_Insn_Properties is
          Insns := Section.Section_Content;
          JSON_Section := Create_Section (Section);
 
-         while PC <= Insns.Last loop
+         I_Ranges := Get_Insn_Set_Ranges (Exec, Section.Section_Sec_Idx);
+         Cache := Elf_Disassemblers.Empty_Cache;
 
-            Insn_Len := Disassembler.Get_Insn_Length_Or_Abort (Insns);
+         while Elf_Disassemblers.Iterate_Over_Insns
+           (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
+         loop
+            Disassembler := Elf_Disassemblers.Disa_For_Machine
+              (Machine, Insn_Set);
+            Insn_Len := Disassembler.
+              Get_Insn_Length_Or_Abort
+                (Slice (Insns, PC, Insns.Last));
 
             if Matches_Locations (Exec_Acc, Proc_Locs, PC) then
                Append (JSON_Insns, Create_Instruction (PC));

@@ -23,7 +23,6 @@ with Arch;              use Arch;
 with Interfaces;        use Interfaces;
 with Hex_Images;        use Hex_Images;
 with Highlighting;      use Highlighting;
-with Elf_Disassemblers; use Elf_Disassemblers;
 with Outputs;
 with Switches;
 with Traces_Files;
@@ -55,14 +54,15 @@ package body Traces_Disa is
    -----------------
 
    function Disassemble
-     (Insn : Binary_Content;
-      Pc   : Pc_Type;
-      Sym  : Symbolizer'Class) return String
+     (Insn     : Binary_Content;
+      Pc       : Pc_Type;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class) return String
    is
       Buffer : Buffer_Type (128);
       Insn_Len : Natural;
    begin
-      Disa_For_Machine (Machine).
+      Disa_For_Machine (Machine, Insn_Set).
         Disassemble_Insn_Or_Abort (Insn, Pc, Buffer, Insn_Len, Sym);
 
       if Arch.Arch_Addr (Insn_Len) /= Length (Insn) then
@@ -76,10 +76,11 @@ package body Traces_Disa is
    ---------------------------
 
    procedure Textio_Disassemble_Cb
-     (Addr  : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class)
+     (Addr     : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class)
    is
       Off : Pc_Type := Addr;
       I : Pc_Type;
@@ -115,7 +116,7 @@ package body Traces_Disa is
 
             --  And display the disassembly only in the first line
             if Off = Addr then
-               Put (Disassemble (Insn, Addr, Sym));
+               Put (Disassemble (Insn, Addr, Insn_Set, Sym));
             end if;
             New_Line;
 
@@ -135,7 +136,7 @@ package body Traces_Disa is
             Put ("   ");
          end loop;
          Put ("  ");
-         Put (Disassemble (Insn, Addr, Sym));
+         Put (Disassemble (Insn, Addr, Insn_Set, Sym));
          New_Line;
          return;
       end if;
@@ -147,21 +148,31 @@ package body Traces_Disa is
    -------------------
 
    procedure For_Each_Insn
-     (Insns : Binary_Content;
-      State : Insn_State;
-      Cb    : Disassemble_Cb;
-      Sym  : Symbolizer'Class)
+     (Insns    : Binary_Content;
+      I_Ranges : Insn_Set_Ranges;
+      State    : Insn_State;
+      Cb       : Disassemble_Cb;
+      Sym      : Symbolizer'Class)
    is
-      Pc : Pc_Type;
+      Pc       : Pc_Type;
       Insn_Len : Natural := 0;
+
+      Cache    : Insn_Set_Cache := Empty_Cache;
+      Insn_Set : Insn_Set_Type;
+
    begin
       Pc := Insns.First;
-      while Pc <= Insns.Last loop
-         Insn_Len :=
-           Disa_For_Machine (Machine).Get_Insn_Length_Or_Abort
-                                        (Slice (Insns, Pc, Insns.Last));
+      while Iterate_Over_Insns (I_Ranges, Cache, Insns.Last, Pc, Insn_Set) loop
+         Insn_Len := Disa_For_Machine (Machine, Insn_Set).
+           Get_Insn_Length_Or_Abort
+             (Slice (Insns, Pc, Insns.Last));
+
          Cb.all
-           (Pc, State, Slice (Insns, Pc, Pc + Pc_Type (Insn_Len - 1)), Sym);
+           (Pc,
+            State,
+            Slice (Insns, Pc, Pc + Pc_Type (Insn_Len - 1)),
+            Insn_Set,
+            Sym);
          Pc := Pc + Pc_Type (Insn_Len);
 
          --  Handle wrap around.
@@ -184,19 +195,21 @@ package body Traces_Disa is
    -------------------------
 
    procedure Disp_Assembly_Lines
-     (Insns : Binary_Content;
-      Base  : Traces_Base;
-      Cb    : access procedure (Addr  : Pc_Type;
-                                State : Insn_State;
-                                Insn  : Binary_Content;
-                                Sym   : Symbolizer'Class);
-      Sym   : Symbolizer'Class)
+     (Insns    : Binary_Content;
+      I_Ranges : Insn_Set_Ranges;
+      Base     : Traces_Base;
+      Cb       : access procedure (Addr     : Pc_Type;
+                                   State    : Insn_State;
+                                   Insn     : Binary_Content;
+                                   Insn_Set : Insn_Set_Type;
+                                   Sym      : Symbolizer'Class);
+      Sym      : Symbolizer'Class)
    is
-      It : Entry_Iterator;
-      E : Trace_Entry;
-      Addr : Pc_Type;
+      It        : Entry_Iterator;
+      E         : Trace_Entry;
+      Addr      : Pc_Type;
       Next_Addr : Pc_Type;
-      State : Insn_State;
+      State     : Insn_State;
    begin
       Init (Base, It, Insns.First);
       Get_Next_Trace (E, It);
@@ -225,7 +238,8 @@ package body Traces_Disa is
             end if;
          end if;
 
-         For_Each_Insn (Slice (Insns, Addr, Next_Addr), State, Cb, Sym);
+         For_Each_Insn
+           (Slice (Insns, Addr, Next_Addr), I_Ranges, State, Cb, Sym);
          exit when Next_Addr >= Insns.Last;
          Addr := Next_Addr + 1;
       end loop;
@@ -275,6 +289,7 @@ package body Traces_Disa is
 
             Load_Section_Content (Exe, Sec);
             For_Each_Insn (Slice (Sec.Section_Content, E.First, E.Last),
+                           Get_Insn_Set_Ranges (Exe, Sec.Section_Sec_Idx).all,
                            Covered, Textio_Disassemble_Cb'Access, Exe);
          end if;
       end Disp_Entry;
