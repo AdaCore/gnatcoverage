@@ -20,8 +20,8 @@
 
 with Ada.Exceptions;        use Ada.Exceptions;
 
+with Binary_Files;   use Binary_Files;
 with Traces;         use Traces;
-with Traces_Elf;     use Traces_Elf;
 with Disa_Symbolize; use Disa_Symbolize;
 with Highlighting;
 

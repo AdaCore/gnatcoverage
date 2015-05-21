@@ -19,7 +19,9 @@
 --  Common subprograms shared by several disassembler components
 
 with Interfaces; use Interfaces;
-with Traces_Elf; use Traces_Elf;
+
+with Binary_Files; use Binary_Files;
+with Traces_Elf;   use Traces_Elf;
 
 package Disa_Common is
 

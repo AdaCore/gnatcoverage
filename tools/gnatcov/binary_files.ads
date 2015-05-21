@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -15,9 +15,13 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
 with Interfaces;
+with System;
+
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNATCOLL.Mmap; use GNATCOLL.Mmap;
+
 with Arch;
 
 package Binary_Files is
@@ -83,6 +87,66 @@ package Binary_Files is
 
    function Load_Section
      (File : Binary_File; Index : Section_Index) return Mapped_Region;
+
+   --  We wish we could expose memory mapped files as unconstrained arrays,
+   --  but it's not possible in Ada. So instead we use the following types
+   --  and primitives to emulate this.
+
+   type Binary_Content_Bytes is
+     array (Arch.Arch_Addr) of Interfaces.Unsigned_8;
+
+   type Binary_Content_Bytes_Acc is access Binary_Content_Bytes;
+   pragma No_Strict_Aliasing (Binary_Content_Bytes_Acc);
+
+   type Binary_Content is record
+      Content     : Binary_Content_Bytes_Acc;
+      First, Last : Arch.Arch_Addr;
+      --  Content is an unconstrained array, so we can set it to some memory
+      --  mapped content. Thus, we have to store bounds ourselves.
+   end record;
+   --  An array of byte, used to store ELF sections
+
+   Invalid_Binary_Content : constant Binary_Content :=
+     (null, 0, 0);
+
+   function Wrap
+     (Content     : System.Address;
+      First, Last : Arch.Arch_Addr) return Binary_Content;
+   --  Constructor for Binary_Content
+
+   procedure Relocate
+     (Bin_Cont  : in out Binary_Content;
+      New_First : Arch.Arch_Addr);
+   --  Update First and Last in Bin_Cont so that Fisrt is New_First
+
+   function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr;
+   --  Return the number of bytes in Bin_Cont
+
+   function Is_Loaded (Bin_Cont : Binary_Content) return Boolean;
+   --  Return whether Bin_Cont actually contains something
+
+   function Get
+     (Bin_Cont : Binary_Content;
+      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8;
+   --  Return the byte in Bin_Cont at Offset
+
+   function Slice
+     (Bin_Cont    : Binary_Content;
+      First, Last : Arch.Arch_Addr) return Binary_Content;
+   --  Return a new Binary_Content value referencing the slice of bytes in
+   --  Bin_Cont from First to Last (no copy is done).
+
+   function Address_Of
+     (Bin_Cont : Binary_Content;
+      Offset   : Arch.Arch_Addr) return System.Address;
+   --  Return the address of the Offset'th item in the binary content
+
+   pragma Inline (Relocate);
+   pragma Inline (Length);
+   pragma Inline (Is_Loaded);
+   pragma Inline (Get);
+   pragma Inline (Slice);
+   pragma Inline (Address_Of);
 
 private
 

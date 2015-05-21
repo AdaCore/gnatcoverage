@@ -29,61 +29,22 @@ with GNAT.Strings;     use GNAT.Strings;
 with GNATCOLL.Mmap;    use GNATCOLL.Mmap;
 with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 
-with Coverage;       use Coverage;
-with Disa_Symbolize; use Disa_Symbolize;
 with Arch;           use Arch;
 with Binary_Files;   use Binary_Files;
+with Coverage;       use Coverage;
+with Disa_Symbolize; use Disa_Symbolize;
 with Elf_Common;     use Elf_Common;
 with Elf_Files;      use Elf_Files;
-with PECoff_Files;   use PECoff_Files;
 with Highlighting;
-with Traces;         use Traces;
-with Traces_Dbase;   use Traces_Dbase;
-with Traces_Files;   use Traces_Files;
+with PECoff_Files;   use PECoff_Files;
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
 with Symbols;        use Symbols;
+with Traces;         use Traces;
+with Traces_Dbase;   use Traces_Dbase;
+with Traces_Files;   use Traces_Files;
 
 package Traces_Elf is
-
-   type Binary_Content_Bytes is
-     array (Arch.Arch_Addr) of Interfaces.Unsigned_8;
-   type Binary_Content_Bytes_Acc is access Binary_Content_Bytes;
-   pragma No_Strict_Aliasing (Binary_Content_Bytes_Acc);
-
-   type Binary_Content is record
-      Content     : Binary_Content_Bytes_Acc;
-      First, Last : Arch.Arch_Addr;
-      --  Content is an unconstrained array, so we can set it to some memory
-      --  mapped content. Thus, we have to store bounds ourselves.
-   end record;
-   --  An array of byte, used to store ELF sections
-
-   Invalid_Binary_Content : constant Binary_Content :=
-     (null, 0, 0);
-
-   procedure Relocate
-     (Bin_Cont  : in out Binary_Content;
-      New_First : Arch.Arch_Addr);
-   function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr;
-   function Is_Loaded (Bin_Cont : Binary_Content) return Boolean;
-   function Get
-     (Bin_Cont : Binary_Content;
-      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8;
-   function Slice
-     (Bin_Cont    : Binary_Content;
-      First, Last : Arch.Arch_Addr) return Binary_Content;
-   function Address_Of
-     (Bin_Cont : Binary_Content;
-      Offset   : Arch.Arch_Addr) return System.Address;
-   --  Return the address of the Offset'th item in the binary content
-
-   pragma Inline (Relocate);
-   pragma Inline (Length);
-   pragma Inline (Is_Loaded);
-   pragma Inline (Get);
-   pragma Inline (Slice);
-   pragma Inline (Address_Of);
 
    type Exe_File_Type is abstract limited new Symbolizer with private;
    type Exe_File_Acc is access all Exe_File_Type'Class;

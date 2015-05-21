@@ -21,6 +21,7 @@
 with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 with GNATCOLL.Utils;   use GNATCOLL.Utils;
 
+with Binary_Files;  use Binary_Files;
 with Coverage;      use Coverage;
 with Traces;        use Traces;
 with Traces_Dbase;  use Traces_Dbase;

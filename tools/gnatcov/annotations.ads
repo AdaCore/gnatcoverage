@@ -18,6 +18,7 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Binary_Files;   use Binary_Files;
 with Disa_Symbolize; use Disa_Symbolize;
 with Files_Table;    use Files_Table;
 with Traces;         use Traces;

@@ -500,7 +500,7 @@ package body Disa_Sparc is
          Rd  : constant Unsigned_32 := Get_Field (F_Rd, W);
       begin
          if Desc.Name (1) = ' ' then
-            Buffer.Start_Token (Error);
+            Buffer.Start_Token (Highlighting.Error);
             Buffer.Put ("unknown op=");
             Buffer.Put (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
             Buffer.Put (", op3=");
@@ -580,7 +580,7 @@ package body Disa_Sparc is
                Add_Freg (Rd);
 
             when others =>
-               Buffer.Start_Token (Error);
+               Buffer.Start_Token (Highlighting.Error);
                Buffer.Put ("unhandled format op=");
                Buffer.Put (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
                Buffer.Put (", op3=");
@@ -628,7 +628,7 @@ package body Disa_Sparc is
                   end;
 
                when others =>
-                  Buffer.Start_Token (Error);
+                  Buffer.Start_Token (Highlighting.Error);
                   Buffer.Put ("unknown op=0 op2=");
                   Buffer.Put (Hex_Image (Get_Field (F_Op2, W)));
             end case;
@@ -691,7 +691,7 @@ package body Disa_Sparc is
                         Opf : constant Unsigned_32 := Get_Field (F_Opf, W);
                      begin
                         if Insn_Desc_Fp34 (Opf).Format = Format_Bad then
-                           Buffer.Start_Token (Error);
+                           Buffer.Start_Token (Highlighting.Error);
                            Buffer.Put ("unknown op=2 op3=34 opf=");
                            Buffer.Put (Hex_Image (Unsigned_16 (Opf)));
                         else
@@ -705,7 +705,7 @@ package body Disa_Sparc is
                         Opf : constant Unsigned_32 := Get_Field (F_Opf, W);
                      begin
                         if Insn_Desc_Fp35 (Opf).Format = Format_Bad then
-                           Buffer.Start_Token (Error);
+                           Buffer.Start_Token (Highlighting.Error);
                            Buffer.Put ("unknown op=2 op3=35 opf=");
                            Buffer.Put (Hex_Image (Unsigned_16 (Opf)));
                         else

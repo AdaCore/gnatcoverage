@@ -21,6 +21,7 @@ with Ada.Containers.Ordered_Sets;
 
 with Interfaces;
 
+with Binary_Files;      use Binary_Files;
 with Coverage.Tags;     use Coverage.Tags;
 with Decision_Map;      use Decision_Map;
 with Diagnostics;       use Diagnostics;
@@ -894,7 +895,7 @@ package body Coverage.Source is
                   Report
                     (Exe, PC,
                      "unlabeled edge " & E'Img & " taken",
-                     Kind => Error);
+                     Kind => Diagnostics.Error);
 
                else
                   --  Record value of condition for this evaluation
@@ -924,7 +925,7 @@ package body Coverage.Source is
                         Report
                           (Exe, PC,
                            "edge " & E'Img & " with unlabeled origin taken",
-                           Kind => Error);
+                           Kind => Diagnostics.Error);
                      end if;
 
                   else

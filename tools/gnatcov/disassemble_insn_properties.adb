@@ -24,6 +24,7 @@ with Interfaces;  use Interfaces;
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.Mmap;
 
+with Binary_Files;      use Binary_Files;
 with Disassemblers;
 with Elf_Disassemblers;
 with Hex_Images;

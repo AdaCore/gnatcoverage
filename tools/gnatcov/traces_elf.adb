@@ -51,10 +51,7 @@ with Types;             use Types;
 package body Traces_Elf is
 
    function Convert is new Ada.Unchecked_Conversion
-     (Str_Access, Binary_Content_Bytes_Acc);
-
-   function Convert is new Ada.Unchecked_Conversion
-     (System.Address, Binary_Content_Bytes_Acc);
+     (Str_Access, System.Address);
 
    No_Stmt_List : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_stmt_list
@@ -1368,16 +1365,11 @@ package body Traces_Elf is
 
          Len := Sec_Len;
          Region := Load_Section (Exec.File.all, Sec);
-         Content.Content := Convert (Data (Region));
-         if Sec_Len > 0 then
-            Content.First := 0;
-            Content.Last := Sec_Len - 1;
-         else
-            Content.First := 1;
-            Content.Last := 0;
-         end if;
+         Content := (if Sec_Len > 0
+                     then Wrap (Convert (Data (Region)), 0, Sec_Len - 1)
+                     else Wrap (Convert (Data (Region)), 1, 0));
       else
-         Content := (null, 0, 0);
+         Content := Invalid_Binary_Content;
          Len := 0;
       end if;
    end Alloc_And_Load_Section;
@@ -4298,88 +4290,5 @@ package body Traces_Elf is
          end loop;
       end loop;
    end Routine_Names_From_Lines;
-
-   --------------
-   -- Relocate --
-   --------------
-
-   procedure Relocate
-     (Bin_Cont  : in out Binary_Content;
-      New_First : Arch.Arch_Addr) is
-   begin
-      Bin_Cont.Last := New_First + Length (Bin_Cont) - 1;
-      Bin_Cont.First := New_First;
-   end Relocate;
-
-   ------------
-   -- Length --
-   ------------
-
-   function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr is
-   begin
-      if Bin_Cont.First > Bin_Cont.Last then
-         return 0;
-      else
-         return Bin_Cont.Last - Bin_Cont.First + 1;
-      end if;
-   end Length;
-
-   ---------------
-   -- Is_Loaded --
-   ---------------
-
-   function Is_Loaded (Bin_Cont : Binary_Content) return Boolean is
-   begin
-      return Bin_Cont.Content /= null;
-   end Is_Loaded;
-
-   ---------
-   -- Get --
-   ---------
-
-   function Get
-     (Bin_Cont : Binary_Content;
-      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8 is
-   begin
-      return Bin_Cont.Content (Offset - Bin_Cont.First);
-   end Get;
-
-   -----------
-   -- Slice --
-   -----------
-
-   function Slice
-     (Bin_Cont    : Binary_Content;
-      First, Last : Arch.Arch_Addr) return Binary_Content
-   is
-      RFirst : constant Arch.Arch_Addr :=
-        (if Bin_Cont.First <= First
-         then First
-         else raise Constraint_Error with "First out of bounds");
-      RLast : constant Arch.Arch_Addr :=
-        (if Bin_Cont.Last >= Last
-         then Last
-         else raise Constraint_Error with "Last out of bounds");
-   begin
-      return
-        (Content => Convert (Address_Of (Bin_Cont, RFirst)),
-         First   => RFirst,
-         Last    => RLast);
-   end Slice;
-
-   ----------------
-   -- Address_Of --
-   ----------------
-
-   function Address_Of
-     (Bin_Cont : Binary_Content;
-      Offset   : Arch.Arch_Addr) return System.Address is
-   begin
-      if Bin_Cont.Content = null then
-         return Null_Address;
-      else
-         return Bin_Cont.Content (Offset - Bin_Cont.First)'Address;
-      end if;
-   end Address_Of;
 
 end Traces_Elf;

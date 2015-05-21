@@ -533,7 +533,7 @@ package body Disa_Lmp is
 
             case Desc.Operands (I) is
                when Invalid =>
-                  Buffer.Start_Token (Error);
+                  Buffer.Start_Token (Highlighting.Error);
                   Buffer.Put ("???");
 
                when None =>

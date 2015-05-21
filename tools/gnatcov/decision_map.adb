@@ -27,6 +27,7 @@ with Interfaces; use Interfaces;
 
 with System.Storage_Elements;
 
+with Binary_Files;   use Binary_Files;
 with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
 with Diagnostics;       use Diagnostics;
@@ -1240,7 +1241,7 @@ package body Decision_Map is
                   if Outcome_Reached and then not BB.First_Cond then
                      Report (Exe, Cond_Branch_PC,
                              "tried to exclude pre-outcome basic block",
-                             Kind => Error);
+                             Kind => Diagnostics.Error);
                   end if;
             end case;
          end Mark_Successors;

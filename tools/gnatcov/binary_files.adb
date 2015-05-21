@@ -16,10 +16,16 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.CRC32; use GNAT.CRC32;
+with Ada.Unchecked_Conversion;
 with Interfaces; use Interfaces;
 
+with GNAT.CRC32; use GNAT.CRC32;
+
 package body Binary_Files is
+
+   function Convert is new Ada.Unchecked_Conversion
+     (System.Address, Binary_Content_Bytes_Acc);
+
    function Compute_CRC32 (File : Binary_File) return Unsigned_32;
    --  Compute and return the CRC32 of File
 
@@ -203,5 +209,102 @@ package body Binary_Files is
       raise Program_Error;
       return Res;
    end Load_Section;
+
+   ----------
+   -- Wrap --
+   ----------
+
+   function Wrap
+     (Content     : System.Address;
+      First, Last : Arch.Arch_Addr) return Binary_Content
+   is
+   begin
+      return (Content => Convert (Content),
+              First   => First,
+              Last    => Last);
+   end Wrap;
+
+   --------------
+   -- Relocate --
+   --------------
+
+   procedure Relocate
+     (Bin_Cont  : in out Binary_Content;
+      New_First : Arch.Arch_Addr) is
+   begin
+      Bin_Cont.Last := New_First + Length (Bin_Cont) - 1;
+      Bin_Cont.First := New_First;
+   end Relocate;
+
+   ------------
+   -- Length --
+   ------------
+
+   function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr is
+   begin
+      if Bin_Cont.First > Bin_Cont.Last then
+         return 0;
+      else
+         return Bin_Cont.Last - Bin_Cont.First + 1;
+      end if;
+   end Length;
+
+   ---------------
+   -- Is_Loaded --
+   ---------------
+
+   function Is_Loaded (Bin_Cont : Binary_Content) return Boolean is
+   begin
+      return Bin_Cont.Content /= null;
+   end Is_Loaded;
+
+   ---------
+   -- Get --
+   ---------
+
+   function Get
+     (Bin_Cont : Binary_Content;
+      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8 is
+   begin
+      return Bin_Cont.Content (Offset - Bin_Cont.First);
+   end Get;
+
+   -----------
+   -- Slice --
+   -----------
+
+   function Slice
+     (Bin_Cont    : Binary_Content;
+      First, Last : Arch.Arch_Addr) return Binary_Content
+   is
+      RFirst : constant Arch.Arch_Addr :=
+        (if Bin_Cont.First <= First
+         then First
+         else raise Constraint_Error with "First out of bounds");
+      RLast : constant Arch.Arch_Addr :=
+        (if Bin_Cont.Last >= Last
+         then Last
+         else raise Constraint_Error with "Last out of bounds");
+   begin
+      return
+        (Content => Convert (Address_Of (Bin_Cont, RFirst)),
+         First   => RFirst,
+         Last    => RLast);
+   end Slice;
+
+   ----------------
+   -- Address_Of --
+   ----------------
+
+   function Address_Of
+     (Bin_Cont : Binary_Content;
+      Offset   : Arch.Arch_Addr) return System.Address is
+   begin
+      if Bin_Cont.Content = null then
+         return System.Null_Address;
+      else
+         return Bin_Cont.Content (Offset - Bin_Cont.First)'Address;
+      end if;
+   end Address_Of;
 
 end Binary_Files;

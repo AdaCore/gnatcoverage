@@ -15,6 +15,8 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
+with Binary_Files;   use Binary_Files;
 with Traces; use Traces;
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Elf; use Traces_Elf;

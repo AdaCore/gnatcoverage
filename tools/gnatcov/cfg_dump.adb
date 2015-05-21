@@ -30,12 +30,12 @@ with Interfaces;
 with GNAT.Expect; use GNAT.Expect;
 with GNAT.OS_Lib;
 
+with Binary_Files;   use Binary_Files;
 with Coverage.Source;
 with Decision_Map;
 with Diagnostics; use Diagnostics;
 with Disassemblers;
 with Elf_Disassemblers;
-with Binary_Files;
 with Execs_Dbase;
 with Hex_Images;  use Hex_Images;
 with Highlighting;

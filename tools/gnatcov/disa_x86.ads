@@ -18,6 +18,7 @@
 
 --  PowerPC disassembler
 
+with Binary_Files;   use Binary_Files;
 with Disa_Symbolize; use Disa_Symbolize;
 with Disassemblers;  use Disassemblers;
 with Highlighting;

@@ -1974,7 +1974,7 @@ package body Disa_X86 is
             when 2#110# =>
                Buffer.Put ("%??");
             when 2#111# =>
-               Buffer.Start_Token (Error);
+               Buffer.Start_Token (Highlighting.Error);
                Buffer.Put ("%??");
          end case;
       end Add_Reg_Seg;
@@ -3097,7 +3097,7 @@ package body Disa_X86 is
 
    exception
       when Bad_Memory =>
-         Buffer.Start_Token (Error);
+         Buffer.Start_Token (Highlighting.Error);
          Buffer.Put ("[truncated]");
          Insn_Len := Integer (Length (Insn_Bin));
    end Disassemble_Insn;

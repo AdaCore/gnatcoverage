@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Binary_Files; use Binary_Files;
 with Traces_Disa;
 with Hex_Images;
 with Coverage;
