@@ -69,13 +69,12 @@ package body Disa_ARM is
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class)
    is
-      pragma Unreferenced (Self);
-      pragma Unreferenced (Insn_Len);
       pragma Unreferenced (Sym);
    begin
+      Insn_Len := Get_Insn_Length (Self, Insn_Bin);
       Buffer.Start_Token (Text);
       Buffer.Put
-        ("<unknown insn " & Hex_Image (To_Insn (Insn_Bin))
+        ("<unknown ARM insn " & Hex_Image (To_Insn (Insn_Bin))
          & " at " & Hex_Image (Pc) & ">");
    end Disassemble_Insn;
 
