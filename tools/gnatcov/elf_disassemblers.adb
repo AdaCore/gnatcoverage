@@ -23,6 +23,7 @@ with Disa_ARM;
 with Disa_Lmp;
 with Disa_Ppc;
 with Disa_Sparc;
+with Disa_Thumb;
 with Disa_X86;
 
 package body Elf_Disassemblers is
@@ -36,6 +37,7 @@ package body Elf_Disassemblers is
    Disa_For_LMP   : aliased Disa_Lmp.LMP_Disassembler;
    Disa_For_Ppc   : aliased Disa_Ppc.PPC_Disassembler;
    Disa_For_Sparc : aliased Disa_Sparc.SPARC_Disassembler;
+   Disa_For_Thumb : aliased Disa_Thumb.Thumb_Disassembler;
    Disa_For_X86   : aliased Disa_X86.X86_Disassembler;
 
    ----------------------
@@ -46,7 +48,6 @@ package body Elf_Disassemblers is
      (Machine  : Elf_Half;
       Insn_Set : Insn_Set_Type) return access Disassembler'Class
    is
-      pragma Unreferenced (Insn_Set);
    begin
       case Machine is
          when EM_ARM =>
@@ -60,8 +61,7 @@ package body Elf_Disassemblers is
                when ARM =>
                   return Disa_For_ARM'Access;
                when Thumb =>
-                  raise Program_Error with
-                    "Cannot disassemble Thumb (ARM): not implemented yet";
+                  return Disa_For_Thumb'Access;
             end case;
          when EM_PPC =>
             return Disa_For_Ppc'Access;
