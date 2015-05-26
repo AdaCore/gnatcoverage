@@ -187,6 +187,12 @@ class Test (object):
         if self.options.board:
             self.gprvaroptions.append ('-XBOARD=%s' % self.options.board)
 
+        # Workaround a desynchronization between default build configuration
+        # for TMS570 and GNATemulator's settings: see O519-032. We may get rid
+        # of this kludge one day adapting GNATemulator.
+        if self.options.RTS and self.options.RTS.endswith('-tms570'):
+            self.gprvaroptions.append ('-XLOADER=LORAM')
+
         self.tinfo = target_info ()
 
         # Whether this test will be using project files to locate SCOs when
