@@ -22,6 +22,50 @@ with Traces;   use Traces;
 
 package body Disa_Common is
 
+   ----------------
+   -- ELF_To_U16 --
+   ----------------
+
+   function ELF_To_U16 (Bin : Binary_Content) return Unsigned_16 is
+      pragma Assert (Length (Bin) = 2);
+
+      type Bin_U16 is array (Elf_Addr range 1 .. 2) of Unsigned_8;
+
+      Bin_Aligned : Bin_U16 := Bin_U16 (Bin.Content (0 .. 1));
+      for Bin_Aligned'Alignment use Unsigned_16'Alignment;
+
+      Result : Unsigned_16;
+      pragma Import (Ada, Result);
+      for Result'Address use Bin_Aligned'Address;
+   begin
+      if Big_Endian_Host /= Big_Endian_ELF then
+         Swap_16 (Result);
+      end if;
+      return Result;
+   end ELF_To_U16;
+
+   ----------------
+   -- ELF_To_U32 --
+   ----------------
+
+   function ELF_To_U32 (Bin : Binary_Content) return Unsigned_32 is
+      pragma Assert (Length (Bin) = 4);
+
+      type Bin_U32 is array (Elf_Addr range 1 .. 4) of Unsigned_8;
+
+      Bin_Aligned : Bin_U32 := Bin_U32 (Bin.Content (0 .. 3));
+      for Bin_Aligned'Alignment use Unsigned_32'Alignment;
+
+      Result : Unsigned_32;
+      pragma Import (Ada, Result);
+      for Result'Address use Bin_Aligned'Address;
+   begin
+      if Big_Endian_Host /= Big_Endian_ELF then
+         Swap_32 (Result);
+      end if;
+      return Result;
+   end ELF_To_U32;
+
    -----------------------
    -- To_Big_Endian_U32 --
    -----------------------

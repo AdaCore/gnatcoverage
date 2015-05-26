@@ -48,6 +48,13 @@ package Traces is
    --  Target machine.  The value is the EM field defined by ELF.
    --  Set to 0 when unknown.
 
+   Big_Endian_ELF : Boolean := False;
+   --  Whether the value in the EI_DATA field is big endian
+
+   Big_Endian_ELF_Initialized : Boolean := False;
+   --  whether Big_Endian_ELF was initialized. Used only to start performing
+   --  consistency checks across binaries from the second binary.
+
    --  Insn_State denotes the coverage of a range of machine instructions, i.e.
    --  coverage state for object-level coverage objectives: instruction
    --  coverage and object branch coverage.

@@ -25,6 +25,12 @@ with Traces_Elf;   use Traces_Elf;
 
 package Disa_Common is
 
+   function ELF_To_U16 (Bin : Binary_Content) return Unsigned_16;
+   --  Decode a 16bit value from ELF to native endianness
+
+   function ELF_To_U32 (Bin : Binary_Content) return Unsigned_32;
+   --  Decode a 32bit value from ELF to native endianness
+
    function To_Big_Endian_U32 (Bin : Binary_Content) return Unsigned_32;
    --  Convert big endian binary representation to Unsigned_32 value
 

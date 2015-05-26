@@ -370,7 +370,9 @@ package body Traces_Elf is
    function Open_File
      (Filename   : String; Text_Start : Pc_Type) return Exe_File_Type'Class
    is
-      procedure Merge_Architecture (Arch : Unsigned_16);
+      procedure Merge_Architecture
+        (Arch          : Unsigned_16;
+         Is_Big_Endian : Boolean);
       --  Set Machine or check it.
 
       procedure Set_Debug_Section (File : in out Exe_File_Type'Class;
@@ -382,15 +384,30 @@ package body Traces_Elf is
       -- Merge_Architecture --
       ------------------------
 
-      procedure Merge_Architecture (Arch : Unsigned_16) is
+      procedure Merge_Architecture
+        (Arch          : Unsigned_16;
+         Is_Big_Endian : Boolean)
+      is
       begin
          if Machine = 0 then
             Machine := Arch;
+            Big_Endian_ELF := Is_Big_Endian;
+            Big_Endian_ELF_Initialized := True;
+            return;
 
          elsif Machine /= Arch then
             --  Mixing different architectures.
 
             Outputs.Fatal_Error ("unexpected architecture for " & Filename);
+
+         elsif Big_Endian_ELF_Initialized
+           and then Big_Endian_ELF /= Is_Big_Endian
+         then
+            Outputs.Fatal_Error ("unexpected endianness for " & Filename);
+
+         else
+            Big_Endian_ELF := Is_Big_Endian;
+            Big_Endian_ELF_Initialized := True;
          end if;
       end Merge_Architecture;
 
@@ -451,7 +468,7 @@ package body Traces_Elf is
             Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
             Exec.Exe_Machine := Ehdr.E_Machine;
 
-            Merge_Architecture (Exec.Exe_Machine);
+            Merge_Architecture (Exec.Exe_Machine, Exec.Is_Big_Endian);
 
             case Get_Ehdr (Exec.Elf_File).E_Type is
                when ET_EXEC =>
@@ -490,7 +507,7 @@ package body Traces_Elf is
                  ("unhandled PE architecture for " & Filename);
             end if;
 
-            Merge_Architecture (Exec.Exe_Machine);
+            Merge_Architecture (Exec.Exe_Machine, Exec.Is_Big_Endian);
 
             if (Get_Hdr (Exec.PE_File).F_Flags and Coff.F_Exec) /= 0 then
                Exec.Kind := File_Executable;

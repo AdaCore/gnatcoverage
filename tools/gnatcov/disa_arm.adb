@@ -25,7 +25,7 @@ with Highlighting; use Highlighting;
 package body Disa_ARM is
 
    function To_Insn (Insn_Bin : Binary_Content) return Unsigned_32 is
-     (Disa_Common.To_Big_Endian_U32
+     (Disa_Common.ELF_To_U32
         (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3)));
 
    type Cond_Type is mod 2 ** 4;
