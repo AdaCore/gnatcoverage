@@ -38,3 +38,18 @@ KP-13-O319-006 No report for subunits in generic units
                available from the GNAT Pro 7.4 series.
 
   Workaround:  Do not use subunits in generic units.
+
+Known problems fixed in 1.3.2
+-----------------------------
+
+KP-13-O417-005 Possible crash when "not X" is compile time known
+
+  Problem:     If analyzed Ada source code includes a "not X" construct with
+               "X" being a compile time known value, GNATcoverage may crash or
+               provide inconsistent coverage reports for the corresponding
+               unit.
+
+  Status:      This was fixed by a compiler adjustment in 7.4 on 2015-04-28
+               This was fixed by a compiler adjustment in 7.3.2 on 2015-05-29
+
+  Workaround:  Replace such constructs with "True and then not X".
