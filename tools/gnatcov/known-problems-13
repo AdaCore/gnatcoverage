@@ -25,7 +25,6 @@ KP-13-O417-005 Possible crash when "not X" is compile time known
                reports for the corresponding unit.
 
   Status:      This was fixed by a compiler adjustment in 7.4 on 2015-04-28
-               This was fixed by a compiler adjustment in 7.3.2 on 2015-05-29
 
   Workaround:  Replace such constructs with "True and then not X" so that
                "not X" is part of a decision and thus not affected by the
