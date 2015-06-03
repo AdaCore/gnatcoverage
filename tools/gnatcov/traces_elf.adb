@@ -458,39 +458,49 @@ package body Traces_Elf is
       Inputs.Log_File_Open (Name.all);
 
       if Is_ELF_File (Fd) then
-         return Exec : Elf_Exe_File_Type :=
-           (Elf_File => Create_File (Fd, Name),
-            others => <>) do
+         declare
+            --  Because of a bug in GNAT (see O602-042), we should not invoke
+            --  Create_File from an aggregate, so store its result in a local
+            --  variable first.
 
-            Exec.File := Exec.Elf_File'Unchecked_Access;
-            Exec.Exe_Text_Start := Text_Start;
-            Ehdr := Get_Ehdr (Exec.Elf_File);
-            Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
-            Exec.Exe_Machine := Ehdr.E_Machine;
+            E_File : constant Elf_File := Create_File (Fd, Name);
+         begin
+            return Exec : Elf_Exe_File_Type :=
+              (Elf_File => E_File,
+               others => <>)
+            do
+               Exec.File := Exec.Elf_File'Unchecked_Access;
+               Exec.Exe_Text_Start := Text_Start;
+               Ehdr := Get_Ehdr (Exec.Elf_File);
+               Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
+               Exec.Exe_Machine := Ehdr.E_Machine;
 
-            Merge_Architecture (Exec.Exe_Machine, Exec.Is_Big_Endian);
+               Merge_Architecture (Exec.Exe_Machine, Exec.Is_Big_Endian);
 
-            case Get_Ehdr (Exec.Elf_File).E_Type is
-               when ET_EXEC =>
-                  Exec.Kind := File_Executable;
-               when ET_REL =>
-                  Exec.Kind := File_Object;
-               when others =>
-                  Exec.Kind := File_Others;
-            end case;
+               case Get_Ehdr (Exec.Elf_File).E_Type is
+                  when ET_EXEC =>
+                     Exec.Kind := File_Executable;
+                  when ET_REL =>
+                     Exec.Kind := File_Object;
+                  when others =>
+                     Exec.Kind := File_Others;
+               end case;
 
-            for I in 0 .. Get_Shdr_Num (Exec.Elf_File) - 1 loop
-               declare
-                  Name : constant String := Get_Shdr_Name (Exec.Elf_File, I);
-               begin
-                  if Name = ".symtab" then
-                     Exec.Sec_Symtab := I;
-                  else
-                     Set_Debug_Section (Exec, Section_Index (I), Name);
-                  end if;
-               end;
-            end loop;
-         end return;
+               for I in 0 .. Get_Shdr_Num (Exec.Elf_File) - 1 loop
+                  declare
+                     Name : constant String :=
+                       Get_Shdr_Name (Exec.Elf_File, I);
+                  begin
+                     if Name = ".symtab" then
+                        Exec.Sec_Symtab := I;
+                     else
+                        Set_Debug_Section (Exec, Section_Index (I), Name);
+                     end if;
+                  end;
+               end loop;
+            end return;
+         end;
+
       elsif Is_PE_File (Fd) then
          return Exec : PE_Exe_File_Type :=
            (PE_File => Create_File (Fd, Name),
