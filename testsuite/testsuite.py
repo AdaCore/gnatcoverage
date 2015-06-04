@@ -498,11 +498,6 @@ class TestSuite:
                     'The following errors were detected:\n'
                     + '\n'.join(errors))
 
-        # Perform the environment adjustments required to run the compilation
-        # toolchain properly:
-
-        self.setup_toolchain (self.options.toolchain)
-
         # Setup trace directories for bootstrap runs:
 
         if self.options.bootstrap_scos != None:
@@ -1301,41 +1296,6 @@ class TestSuite:
                  os.path.abspath (getattr(self.options, attr)))
          for attr in attributes_to_resolve
          if getattr(self.options, attr) is not None]
-
-    # ---------------------
-    # -- setup_toolchain --
-    # ---------------------
-
-    def setup_toolchain (self, prefix):
-
-        """If a PREFIX is provided, adjust PATH to have PREFIX/bin ahead in
-        PATH after sanity checking that it contains at least a couple of
-        programs we'll need (e.g. <target>-gcc and gprbuild)."""
-
-        # If we don't have a PREFIX to enforce, stop here. Otherwise, proceed
-        # to update PATH for that.
-
-        if not prefix:
-            return
-
-        # Sanity check that <toolchain>/bin contains at least
-        # a couple of binaries we'll need
-
-        bindir = os.path.join (prefix, "bin")
-        exeext = self.env.host.os.exeext
-
-        def check_for (pgm):
-            if (not os.path.exists (os.path.join (bindir, pgm))):
-                raise FatalError ('Missing "%s" in "%s"' % (pgm, bindir))
-
-        [check_for (p+exeext) for p in (
-                self.env.target.triplet+"-gcc", "gprbuild")]
-
-        # Adjust PATH to place <bindir> ahead so that the tests we
-        # spawn use it.
-
-        self.env.add_search_path(
-            env_var = 'PATH', path = bindir, append = False)
 
     # -----------------------------
     # -- altrun hooks & friends --
