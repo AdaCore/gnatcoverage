@@ -231,7 +231,10 @@ install-doc.%:
 
 install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 
-install: install-bin install-examples install-doc
+install-common: install-bin install-examples
+install-without-doc: install-common
+install-with-doc: install-common install-doc
+install: install-with-doc
 
 install-adapters:
 	for dir in $(HOST_ADAPTER_SUBDIRS); do \
@@ -272,7 +275,10 @@ distrib-linux-extra:
 
 distrib-windows-extra:
 
-distrib: install install-adapters distrib-${HOST_OS}-extra
+distrib-common: install-adapters distrib-${HOST_OS}-extra
+distrib-without-doc: distrib-common install-without-doc
+distrib-with-doc: distrib-common install-with-doc
+distrib: distrib-with-doc
 
 .PHONY: force
 
