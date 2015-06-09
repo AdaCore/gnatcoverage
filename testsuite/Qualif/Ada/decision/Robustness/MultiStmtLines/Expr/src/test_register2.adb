@@ -21,15 +21,15 @@ end;
 
 --  Some compilers are imprecise with multiple stmts on a line
 
--- %tags:(7.0.3|7.2.2)
+-- %tags:(7.0.2|7.2.2)
 --  =/init/   l! ## s!, d!
 --  =/double/ l! ## dF-
 --  =/triple/ l! ## dF-
 --  =/hits/   l! ## s!, dF-
 
--- %tags:(7.0.3|7.2.2) %cargs:-O1,-gnatn
+-- %tags:(7.0.2|7.2.2) %cargs:-O1,-gnatn
 --  =/init/   l! ## s!, dF-
 
 -- See test_register1 for comments on the dF- for
--- "triple" on 7.0.3 without gnatp.
+-- "triple" on 7.0.2 without gnatp.
 
