@@ -413,7 +413,7 @@ def xrun(args, out=None, register_failure=True):
         targetarg = thistest.options.board
     elif thistest.options.target:
         targetarg = env.target.triplet
-        if env.target.machine:
+        if env.target.machine and env.target.machine != "unknown":
             targetarg += ",%s" % env.target.machine
     else:
         targetarg = None
