@@ -47,6 +47,28 @@ traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].PgmEnd", "IAC2")
 
 loader   = ic.CLoaderController (cmgr)
 executer = ic.CExecutionController (cmgr)
+debug    = ic.CDebugFacade(cmgr)
+status   = debug.getCPUStatus()
+
+for try_nb in range(10):
+    debug = ic.CDebugFacade(cmgr)
+    status = debug.getCPUStatus()
+    isConnected = (not status.isMustInit())
+    print 'is connected: ' + str(isConnected)
+    if isConnected:
+        break
+
+    executer = ic.CExecutionController (cmgr)
+    try:
+        executer.reset()
+    except:
+        print 'exception in executer.reset()'
+    try:
+        executer.stop()
+    except:
+        print 'exception in executer.reset()'
+
+    time.sleep (1)
 
 executer.reset ()
 executer.stop ()
