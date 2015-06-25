@@ -236,8 +236,7 @@ package body Traces_Files is
    begin
       if Desc.Sizeof_Target_Pc /= Pc_Type_Size then
          raise Bad_File_Format with
-            "only "
-            & Unsigned_8'Image (Pc_Type_Size)
+            "only" & Unsigned_8'Image (Pc_Type_Size)
             & " bytes pc are handled";
       end if;
 
