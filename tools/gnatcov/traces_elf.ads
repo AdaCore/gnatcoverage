@@ -59,17 +59,12 @@ package Traces_Elf is
    --  Makes symbolize non-abstract.
 
    function Open_File
-     (Filename : String; Text_Start : Pc_Type) return Exe_File_Type'Class;
+     (Filename : String; Text_Start : Pc_Type) return Exe_File_Acc;
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
 
-   procedure Close_Exe_File (Exec : in out Exe_File_Type);
-   --  Close the ELF file.
-   --  The resources are still present but nothing anymore can be read from
-   --  the file.
-
-   procedure Close_File (Exec : in out Exe_File_Type);
+   procedure Close_File (Exec : in out Exe_File_Acc);
    --  Close file and free built informations
 
    procedure Apply_Relocations
@@ -473,6 +468,11 @@ private
       --  For each section, a set of associations: address range -> instruction
       --  set; see Elf_Disassemblers.
    end record;
+
+   procedure Close_Exe_File (Exec : in out Exe_File_Type);
+   --  Prepare Exec for closing/deallocation
+   --  The resources are still present but nothing anymore can be read from
+   --  the file.
 
    type Elf_Exe_File_Type is limited new Exe_File_Type  with record
       Elf_File : aliased Elf_Files.Elf_File;

@@ -49,8 +49,7 @@ package body Execs_Dbase is
          Exec := Element (Position).Exec;
          Free (Exec_File_Name);
       else
-         Exec := new Exe_File_Type'Class'
-           (Open_File (Exec_File_Name.all, Text_Start));
+         Exec := Open_File (Exec_File_Name.all, Text_Start);
          Base_Entry.Exec_File_Name := Exec_File_Name;
          Base_Entry.Exec := Exec;
          Exec_Base.Insert (Exec_File_Name, Base_Entry);

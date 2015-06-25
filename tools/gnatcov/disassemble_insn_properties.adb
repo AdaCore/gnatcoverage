@@ -61,8 +61,8 @@ package body Disassemble_Insn_Properties is
       Locations      : User_Locations;
       Compact        : Boolean)
    is
-      Exec     : aliased Exe_File_Type'Class := Open_File (Exec_File_Name, 0);
-      Exec_Acc : constant Exe_File_Acc := Exec'Unchecked_Access;
+      Exec_Acc : Exe_File_Acc := Open_File (Exec_File_Name, 0);
+      Exec     : Exe_File_Type'Class renames Exec_Acc.all;
 
       Proc_Locs : Proc_Locations;
 
@@ -246,7 +246,7 @@ package body Disassemble_Insn_Properties is
 
       end loop;
 
-      Close_File (Exec);
+      Close_File (Exec_Acc);
       Put_Line (Result.Write (Compact));
    end Disassemble;
 

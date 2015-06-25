@@ -1389,8 +1389,7 @@ begin
 
             procedure Open_Exec (Exec_File_Name : String) is
             begin
-               Exec := new Exe_File_Type'Class'
-                 (Open_File (Exec_File_Name, Text_Start));
+               Exec := Open_File (Exec_File_Name, Text_Start);
                Build_Sections (Exec.all);
                Build_Symbols (Exec.all);
             end Open_Exec;
@@ -1418,8 +1417,7 @@ begin
             procedure Dump_Exec (Exec_File_Name : String) is
                To_Display : Address_Info_Kind;
             begin
-               Exec := new Exe_File_Type'Class'
-                 (Open_File (Exec_File_Name, Text_Start));
+               Exec := Open_File (Exec_File_Name, Text_Start);
                Build_Sections (Exec.all);
 
                case Command is
@@ -1445,7 +1443,7 @@ begin
                end case;
 
                Disp_Addresses (Exec.all, To_Display);
-               Close_File (Exec.all);
+               Close_File (Exec);
             end Dump_Exec;
 
          begin
@@ -1464,11 +1462,11 @@ begin
 
             procedure Dump_Compilation_Units (Exec_File_Name : String) is
             begin
-               Exec := new Exe_File_Type'Class'(Open_File (Exec_File_Name, 0));
+               Exec := Open_File (Exec_File_Name, 0);
                Build_Sections (Exec.all);
                Build_Debug_Compile_Units (Exec.all);
                Disp_Compilation_Units (Exec.all);
-               Close_File (Exec.all);
+               Close_File (Exec);
             end Dump_Compilation_Units;
 
          begin
@@ -1487,9 +1485,9 @@ begin
 
             procedure Disassemble (Exec_File_Name : String) is
             begin
-               Exec := new Exe_File_Type'Class'(Open_File (Exec_File_Name, 0));
+               Exec := Open_File (Exec_File_Name, 0);
                Disassemble_File_Raw (Exec.all);
-               Close_File (Exec.all);
+               Close_File (Exec);
             end Disassemble;
 
          begin
@@ -1508,11 +1506,11 @@ begin
 
             procedure Disassemble (Exec_File_Name : String) is
             begin
-               Exec := new Exe_File_Type'Class'(Open_File (Exec_File_Name, 0));
+               Exec := Open_File (Exec_File_Name, 0);
                Build_Sections (Exec.all);
                Build_Symbols (Exec.all);
                Disassemble_File (Exec.all);
-               Close_File (Exec.all);
+               Close_File (Exec);
             end Disassemble;
 
          begin

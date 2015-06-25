@@ -2711,7 +2711,7 @@ package body Decision_Map is
       Analyze (Exec);
       Decision_Map.Write_Map (Map_Filename);
 
-      Close_File (Exec.all);
+      Close_File (Exec);
    end Build_Decision_Map;
 
    ----------------------

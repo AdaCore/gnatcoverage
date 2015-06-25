@@ -49,6 +49,9 @@ with Types;             use Types;
 
 package body Traces_Elf is
 
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Exe_File_Type'Class, Exe_File_Acc);
+
    function Convert is new Ada.Unchecked_Conversion
      (Str_Access, System.Address);
 
@@ -368,7 +371,7 @@ package body Traces_Elf is
    ---------------
 
    function Open_File
-     (Filename   : String; Text_Start : Pc_Type) return Exe_File_Type'Class
+     (Filename   : String; Text_Start : Pc_Type) return Exe_File_Acc
    is
       procedure Merge_Architecture
         (Arch          : Unsigned_16;
@@ -464,48 +467,51 @@ package body Traces_Elf is
             --  variable first.
 
             E_File : constant Elf_File := Create_File (Fd, Name);
-         begin
-            return Exec : Elf_Exe_File_Type :=
+            Exec_Acc : constant Exe_File_Acc := new Elf_Exe_File_Type'
               (Elf_File => E_File,
-               others => <>)
-            do
-               Exec.File := Exec.Elf_File'Unchecked_Access;
-               Exec.Exe_Text_Start := Text_Start;
-               Ehdr := Get_Ehdr (Exec.Elf_File);
-               Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
-               Exec.Exe_Machine := Ehdr.E_Machine;
+               others => <>);
+            Exec : Elf_Exe_File_Type renames Elf_Exe_File_Type (Exec_Acc.all);
 
-               Merge_Architecture (Exec.Exe_Machine, Exec.Is_Big_Endian);
+         begin
+            Exec.File := Exec.Elf_File'Unchecked_Access;
+            Exec.Exe_Text_Start := Text_Start;
+            Ehdr := Get_Ehdr (Exec.Elf_File);
+            Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
+            Exec.Exe_Machine := Ehdr.E_Machine;
 
-               case Get_Ehdr (Exec.Elf_File).E_Type is
-                  when ET_EXEC =>
-                     Exec.Kind := File_Executable;
-                  when ET_REL =>
-                     Exec.Kind := File_Object;
-                  when others =>
-                     Exec.Kind := File_Others;
-               end case;
+            Merge_Architecture (Exec.Exe_Machine, Exec.Is_Big_Endian);
 
-               for I in 0 .. Get_Shdr_Num (Exec.Elf_File) - 1 loop
-                  declare
-                     Name : constant String :=
-                       Get_Shdr_Name (Exec.Elf_File, I);
-                  begin
-                     if Name = ".symtab" then
-                        Exec.Sec_Symtab := I;
-                     else
-                        Set_Debug_Section (Exec, Section_Index (I), Name);
-                     end if;
-                  end;
-               end loop;
-            end return;
+            case Get_Ehdr (Exec.Elf_File).E_Type is
+               when ET_EXEC =>
+                  Exec.Kind := File_Executable;
+               when ET_REL =>
+                  Exec.Kind := File_Object;
+               when others =>
+                  Exec.Kind := File_Others;
+            end case;
+
+            for I in 0 .. Get_Shdr_Num (Exec.Elf_File) - 1 loop
+               declare
+                  Name : constant String :=
+                    Get_Shdr_Name (Exec.Elf_File, I);
+               begin
+                  if Name = ".symtab" then
+                     Exec.Sec_Symtab := I;
+                  else
+                     Set_Debug_Section (Exec, Section_Index (I), Name);
+                  end if;
+               end;
+            end loop;
+            return Exec_Acc;
          end;
 
       elsif Is_PE_File (Fd) then
-         return Exec : PE_Exe_File_Type :=
-           (PE_File => Create_File (Fd, Name),
-            others => <>) do
-
+         declare
+            Exec_Acc : constant Exe_File_Acc := new PE_Exe_File_Type'
+               (PE_File => Create_File (Fd, Name),
+                others => <>);
+            Exec : PE_Exe_File_Type renames PE_Exe_File_Type (Exec_Acc.all);
+         begin
             Exec.File := Exec.PE_File'Unchecked_Access;
             Exec.Exe_Text_Start := Text_Start;
             --  Ehdr := Get_Ehdr (Exec.Elf_File);
@@ -532,7 +538,8 @@ package body Traces_Elf is
                   Set_Debug_Section (Exec, I, Name);
                end;
             end loop;
-         end return;
+            return Exec_Acc;
+         end;
       else
          Outputs.Fatal_Error ("unknown binary format for " & Filename);
       end if;
@@ -592,15 +599,17 @@ package body Traces_Elf is
    -- Close_File --
    ----------------
 
-   procedure Close_File (Exec : in out Exe_File_Type) is
+   procedure Close_File (Exec : in out Exe_File_Acc) is
    begin
-      Close_Exe_File (Exec);
+      Close_Exe_File (Exec.all);
 
       --  FIXME: free contents
 
       for J in Exec.Desc_Sets'Range loop
          Exec.Desc_Sets (J).Clear;
       end loop;
+
+      Free (Exec);
    end Close_File;
 
    -----------------------
@@ -3911,7 +3920,7 @@ package body Traces_Elf is
    begin
       Open_Exec (Filename, 0, Exec); --  ??? Text_Start
       Cb (Exec.all);
-      Close_File (Exec.all);
+      Close_File (Exec);
    exception
       when Binary_Files.Error =>
          Put_Line (Standard_Error, "cannot open: " & Filename);
