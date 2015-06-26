@@ -2710,8 +2710,6 @@ package body Decision_Map is
       Init_Base (Decision_Map_Base);
       Analyze (Exec);
       Decision_Map.Write_Map (Map_Filename);
-
-      Close_File (Exec);
    end Build_Decision_Map;
 
    ----------------------
