@@ -3311,13 +3311,34 @@ package body Traces_Elf is
                        "Illegal mapping symbol (invalid name)";
                   end if;
 
-                  Mapping_Symbols (ESym.St_Shndx).Insert
-                    ((Address  => ESym.St_Value,
-                      Insn_Set => (case Name (2) is
-                                   when 'a' => ARM,
-                                   when 'd' => Data,
-                                   when 't' => Thumb,
-                                   when others => raise Program_Error)));
+                  declare
+                     Mapping  : Mapping_Symbol_Sets.Set renames
+                        Mapping_Symbols (ESym.St_Shndx);
+                     Symbol   : constant Mapping_Symbol :=
+                       ((Address  => ESym.St_Value,
+                         Insn_Set => (case Name (2) is
+                                      when 'a' => ARM,
+                                      when 'd' => Data,
+                                      when 't' => Thumb,
+                                      when others => raise Program_Error)));
+                     Position : Mapping_Symbol_Sets.Cursor;
+                     Inserted : Boolean;
+                  begin
+                     Mapping.Insert (Symbol, Position, Inserted);
+
+                     --  Having multiple mapping symbols at the same address
+                     --  can happen: just check that they are not inconsistent.
+
+                     if not Inserted
+                          and then
+                        (Mapping_Symbol_Sets.Element (Position).Insn_Set
+                         /= Symbol.Insn_Set)
+                     then
+                        raise Program_Error with
+                          ("Inconsistent mapping symbols at "
+                           & Hex_Image (ESym.St_Value));
+                     end if;
+                  end;
                end if;
             end;
          end if;
