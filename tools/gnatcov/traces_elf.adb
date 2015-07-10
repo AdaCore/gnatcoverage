@@ -4077,21 +4077,34 @@ package body Traces_Elf is
                Free (Sym_Name);
 
             else
+               declare
+                  Sym_First : Pc_Type := Pc_Type (A_Sym.St_Value);
+                  Sym_Last  : Pc_Type :=
+                     Sym_First + Pc_Type (A_Sym.St_Size) - 1;
+               begin
+                  --  On ARM, the low address bit is used to distinguish ARM
+                  --  and Thumb instructions but it must be discarded when
+                  --  dealing with memory.
 
-               --  Non-empy symbol. Latch into our local container for
-               --  processing downstream.
+                  if Get_Machine (File) = EM_ARM and (Sym_First and 1) = 1 then
+                     Sym_First := Sym_First - 1;
+                     Sym_Last := Sym_Last - 1;
+                  end if;
 
-               Address_Info_Sets.Insert
-                 (Shdr_Sets (A_Sym.St_Shndx).all,
-                  new Address_Info'
-                    (Kind        => Symbol_Addresses,
-                     First       => Pc_Type (A_Sym.St_Value),
-                     Last        => Pc_Type (A_Sym.St_Value
-                                               + Elf_Addr (A_Sym.St_Size) - 1),
-                     Parent      => null,
-                     Symbol_Name => Sym_Name,
-                     others      => <>),
-                  Cur, Ok);
+                  --  Non-empy symbol. Latch into our local container for
+                  --  processing downstream.
+
+                  Address_Info_Sets.Insert
+                    (Shdr_Sets (A_Sym.St_Shndx).all,
+                     new Address_Info'
+                       (Kind        => Symbol_Addresses,
+                        First       => Sym_First,
+                        Last        => Sym_Last,
+                        Parent      => null,
+                        Symbol_Name => Sym_Name,
+                        others      => <>),
+                     Cur, Ok);
+               end;
 
                if not Ok then
                   Put_Line (Standard_Error,
