@@ -284,7 +284,7 @@ package body Disa_Thumb is
 
                --  B(T2)
 
-               Flag_Cond := True;
+               Flag_Cond := False;
                Branch := Br_Jmp;
                declare
                   Immediate : constant Unsigned_32 :=
