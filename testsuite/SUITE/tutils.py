@@ -379,21 +379,16 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
 
     return p
 
-# ----------
-# -- xrun --
-# ----------
-def xrun(args, out=None, register_failure=True):
-    """Run <xcov run> with arguments ARGS for the current target."""
+# -----------------
+# -- xrun_target --
+# -----------------
+def xrun_target():
+    """Value of the --target argument we should pass to gnatcov run to
+    obey what the testsuite command line requested, accounting for --target,
+    --board, and board specifications passed through --target."""
 
-    # We special case xcov --run to pass an extra --target option and
-    # force a dummy input to prevent mysterious qemu misbehavior when
-    # input is a terminal.
-
-    nulinput = "devnul"
-    touch(nulinput)
-
-    # Compute our --target argument to xcov run.  If we have a specific target
-    # board specified with --board, use that:
+    # If we have a specific target board specified with --board, use that
+    # as --target:
     #
     # --target=p55-elf --board=iSystem-5554
     # --> gnatcov run --target=iSystem-5554
@@ -418,11 +413,27 @@ def xrun(args, out=None, register_failure=True):
     else:
         targetarg = None
 
+    return targetarg
+
+# ----------
+# -- xrun --
+# ----------
+def xrun(args, out=None, register_failure=True):
+    """Run <xcov run> with arguments ARGS for the current target."""
+
+    # We special case xcov --run to pass an extra --target option and
+    # force a dummy input to prevent mysterious qemu misbehavior when
+    # input is a terminal.
+
+    nulinput = "devnul"
+    touch(nulinput)
+
     # Compute our full list of arguments to gnatcov now, which might need
     # to include an extra --kernel
 
     allargs = ['run']
 
+    targetarg = xrun_target()
     if targetarg:
         allargs.append ('--target=' + targetarg)
 
