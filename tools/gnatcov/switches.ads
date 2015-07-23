@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with GNAT.Strings; use GNAT.Strings;
+with Ada.Containers.Indefinite_Ordered_Maps;
 
 package Switches is
 
@@ -44,11 +45,24 @@ package Switches is
    --  If True, report SCOs whose coverage cannot be established due to
    --  absence of executable code.
 
+   type Separated_Source_Coverage_Type is (None, Routines, Instances);
+   Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
+
+   -------------------------------------------------------------
+   -- Project related switches that may need to be propagated --
+   -------------------------------------------------------------
+
    Root_Project : String_Access := null;
    --  Project name as specified to the -P option of the command line.
 
-   type Separated_Source_Coverage_Type is (None, Routines, Instances);
-   Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
+   package Key_Element_Maps is
+     new Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => String,
+        Element_Type => String);
+
+   S_Variables : Key_Element_Maps.Map;
+   --  All defined scenario variables, as provided through -X options on
+   --  the command line.
 
    ------------------------------
    -- Debugging switches (-d?) --

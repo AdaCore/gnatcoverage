@@ -619,9 +619,9 @@ procedure GNATcov is
 
                            Value_First := Name_Last + 2;
 
-                           Add_Scenario_Var
-                             (Key   => Arg (Name_First .. Name_Last),
-                              Value => Arg (Value_First .. Arg'Last));
+                           S_Variables.Include
+                             (Arg (Name_First .. Name_Last),
+                              Arg (Value_First .. Arg'Last));
                         end;
 
                      elsif Has_Prefix (Arg, Subdirs_Option) then

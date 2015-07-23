@@ -59,13 +59,6 @@ package body Project is
    function "+" (A : List_Attribute) return Attribute_Pkg_List;
    --  Build identifiers for attributes in package Coverage
 
-   package Scv_Maps is
-     new Ada.Containers.Indefinite_Ordered_Maps
-       (Key_Type     => String,
-        Element_Type => String);
-   Scv_Map : Scv_Maps.Map;
-   --  All defined scenario variables
-
    type Unit_Info is record
       Original_Name : Unbounded_String;
       --  Units are referenced in unit maps under their lowercased name.
@@ -169,15 +162,6 @@ package body Project is
 
       Prj_Map.Insert (Prj_Name, Prj);
    end Add_Project;
-
-   ----------------------
-   -- Add_Scenario_Var --
-   ----------------------
-
-   procedure Add_Scenario_Var (Key, Value : String) is
-   begin
-      Scv_Map.Include (Key, Value);
-   end Add_Scenario_Var;
 
    --------------------------
    -- Compute_Project_View --
@@ -421,7 +405,7 @@ package body Project is
    ----------------
 
    procedure Initialize (Target : GNAT.Strings.String_Access) is
-      use Scv_Maps;
+      use Key_Element_Maps;
    begin
       Initialize (Env);
 
@@ -471,7 +455,7 @@ package body Project is
 
       --  Set scenario variables
 
-      for Scv_C in Scv_Map.Iterate loop
+      for Scv_C in S_Variables.Iterate loop
          Change_Environment (Env.all, Key (Scv_C), Element (Scv_C));
       end loop;
    end Initialize;

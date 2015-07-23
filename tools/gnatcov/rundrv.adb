@@ -97,6 +97,27 @@ package body Rundrv is
         GNAT.OS_Lib.Locate_Exec_On_Path (Target_Family.all & "-gnatemu");
 
       Common_Options, Kernel_Options, Board_Options : String_List_Access;
+      P_Options, X_Options : String_List_Access;
+
+      function X_Switches return String_List_Access;
+      --  Compute a string list of -X switches to pass to gnatemu from the set
+      --  of -X switches we have received on our own command line.
+
+      function X_Switches return String_List_Access is
+         use Key_Element_Maps;
+
+         Switches : constant String_List_Access :=
+           new String_List (1 .. Integer (Length (S_Variables)));
+         Switch_Index : Natural;
+      begin
+         Switch_Index := Switches'First;
+         for Scv_C in S_Variables.Iterate loop
+            Switches (Switch_Index) :=
+              new String'("-X" & Key (Scv_C) & "=" & Element (Scv_C));
+            Switch_Index := Switch_Index + 1;
+         end loop;
+         return Switches;
+      end X_Switches;
 
    begin
 
@@ -108,7 +129,7 @@ package body Rundrv is
       --  we always need to pass the executable name to Gnatemu (last), and
       --  request the production of traces straight to the underlying emulator
       --  in addition to our own -eargs. Then we have the possible --kernel
-      --  and --board extensions.
+      --  and --board extensions, and the project file related options.
 
       Common_Options := new String_List'
         ((new String'("--eargs"),
@@ -132,6 +153,15 @@ package body Rundrv is
            (1 => new String'("--board=" & Target_Board.all));
       end if;
 
+      if Root_Project = null then
+         P_Options := new String_List'(1 .. 0 => <>);
+         X_Options := new String_List'(1 .. 0 => <>);
+      else
+         P_Options := new String_List'
+           ((new String'("-P"), new String'(Root_Project.all)));
+         X_Options := X_Switches;
+      end if;
+
       --  Now construct the global set of options and the control
       --  record to return.
 
@@ -139,7 +169,9 @@ package body Rundrv is
          N_Options : constant Natural :=
            Common_Options'Length
            + Kernel_Options'Length
-           + Board_Options'Length;
+           + Board_Options'Length
+           + P_Options'Length
+           + X_Options'Length;
 
          Gnatemu_Options : constant String_List_Access :=
            new String_List (1 .. N_Options);
@@ -147,15 +179,7 @@ package body Rundrv is
          --  To help accumulate options subsets within Gnatemu_Options:
 
          Next_Gnatemu_Option : Natural := Gnatemu_Options'First;
-         procedure Add (Options : String_List_Access);
-
-         procedure Add (Options : String_List_Access) is
-         begin
-            for I in Options'Range loop
-               Gnatemu_Options (Next_Gnatemu_Option) := Options (I);
-               Next_Gnatemu_Option := Next_Gnatemu_Option + 1;
-            end loop;
-         end Add;
+         procedure Add_And_Release (Options : in out String_List_Access);
 
          --  Once the options are latched in Gnatemu_Options, we
          --  don't need the subset containers any more.
@@ -163,14 +187,21 @@ package body Rundrv is
          procedure Free_Array is new Ada.Unchecked_Deallocation
            (Object => String_List, Name => String_List_Access);
 
-      begin
-         Add (Kernel_Options);
-         Add (Board_Options);
-         Add (Common_Options);
+         procedure Add_And_Release (Options : in out String_List_Access) is
+         begin
+            for I in Options'Range loop
+               Gnatemu_Options (Next_Gnatemu_Option) := Options (I);
+               Next_Gnatemu_Option := Next_Gnatemu_Option + 1;
+            end loop;
+            Free_Array (Options);
+         end Add_And_Release;
 
-         Free_Array (Kernel_Options);
-         Free_Array (Board_Options);
-         Free_Array (Common_Options);
+      begin
+         Add_And_Release (Kernel_Options);
+         Add_And_Release (Board_Options);
+         Add_And_Release (P_Options);
+         Add_And_Release (X_Options);
+         Add_And_Release (Common_Options);
 
          return new Driver_Target'
            (Target        => Target_Family,

@@ -36,9 +36,6 @@ package Project is
    --  desired. This must be a project in the closure of the previously loaded
    --  root project. Prj_Name may optionally have a Project_File_Extension.
 
-   procedure Add_Scenario_Var (Key, Value : String);
-   --  Set the indicated scenario variable to the given value
-
    procedure Compute_Project_View;
    --  Recompute the view of the loaded project within the current scenario
 
