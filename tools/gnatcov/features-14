@@ -33,6 +33,13 @@ NF-14-L803-037 Support for pragma Short_Circuit_And_Or (2014-11-27)
   operators are then now considered as their short-circuit counterparts for
   source coverage analysis purposes as well.
 
+NF-14-N630-009 Forward -P and -X options to GNATemulator (2015-07-24)
+
+  GNATcoverage now forwards the -P and -X command line options to GNATemulator
+  when it is invoked as part of "gnatcov run". This allows the use of the Emulator
+  package in project files to control the switches GNATemulator needs to consider
+  as well as the selection of a particular board for a given target.
+
 NF-14-NC08-027 Support for Target attribute in project files (2014-12-09)
 
   In addition to the --target option, it is now possible to specify the target
