@@ -379,16 +379,18 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
 
     return p
 
-# -----------------
-# -- xrun_target --
-# -----------------
-def xrun_target():
-    """Value of the --target argument we should pass to gnatcov run to
-    obey what the testsuite command line requested, accounting for --target,
-    --board, and board specifications passed through --target."""
+# ---------------------
+# -- xrun_suite_args --
+# ---------------------
+def xrun_suite_args():
+    """Arguments we should pass to gnatcov run to obey what we received on the
+    testsuite command line, in particular --target, --board and --kernel."""
 
-    # If we have a specific target board specified with --board, use that
-    # as --target:
+    args = []
+
+    # --target & --board translate as --target to gnatcov run.
+
+    # If we have a specific target board specified with --board, use that:
     #
     # --target=p55-elf --board=iSystem-5554
     # --> gnatcov run --target=iSystem-5554
@@ -413,7 +415,15 @@ def xrun_target():
     else:
         targetarg = None
 
-    return targetarg
+    if targetarg:
+        args.append ('--target=' + targetarg)
+
+    # --kernel translates as --kernel to gnatcov run.
+
+    if thistest.options.kernel:
+        args.append ('--kernel=' + thistest.options.kernel)
+
+    return args
 
 # ----------
 # -- xrun --
@@ -421,29 +431,18 @@ def xrun_target():
 def xrun(args, out=None, register_failure=True):
     """Run <xcov run> with arguments ARGS for the current target."""
 
-    # We special case xcov --run to pass an extra --target option and
-    # force a dummy input to prevent mysterious qemu misbehavior when
-    # input is a terminal.
+    # We special case xcov --run to pass the extra options corresponding to
+    # --target and --kernel requests on our command line, and to force a dummy
+    # input to prevent mysterious qemu misbehavior when input is a terminal.
 
     nulinput = "devnul"
     touch(nulinput)
 
-    # Compute our full list of arguments to gnatcov now, which might need
-    # to include an extra --kernel
-
-    allargs = ['run']
-
-    targetarg = xrun_target()
-    if targetarg:
-        allargs.append ('--target=' + targetarg)
-
-    if thistest.options.kernel:
-        allargs.append ('--kernel=' + thistest.options.kernel)
-
-    allargs.extend (to_list(args))
+    runargs = xrun_suite_args()
+    runargs.extend (to_list(args))
 
     return xcov (
-        allargs, inp=nulinput, out=out,
+        ['run'] + runargs, inp=nulinput, out=out,
         register_failure=register_failure)
 
 # --------
