@@ -124,15 +124,30 @@ package body Disa_ARM is
       when others =>
          Flag_Cond := Cond /= 2#1110#;
 
-         case Shift_Right (Insn, 24) and 2#1111# is
-         when 2#1010# =>
+         case Shift_Right (Insn, 22) and 2#111111# is
+
+         when 2#1000_10# =>
+
+            --  LDM/LDMIA/LDMFD (A1)
+
+            if (Insn and 2**15) = 0 then
+               Branch := Br_None;
+            else
+               --  This instructions writes in PC, so it's a control-flow
+               --  instruction.
+
+               Branch := Br_Jmp;
+               Flag_Indir := True;
+            end if;
+
+         when 2#1010_00# .. 2#1010_11# =>
 
             --  B
 
             Branch := Br_Jmp;
             Branch_Dest.Target := Pc_Type (Get_Target24 (Insn, PC32));
 
-         when 2#1011# =>
+         when 2#1011_00# .. 2#1011_11# =>
 
             --  BL
 

@@ -218,7 +218,20 @@ package body Disa_Thumb is
                end;
 
             when others => --  2#11#
-               null;
+               if (Insn32 and 16#ffd0_2000#) = 16#e890_0000# then
+
+                  --  LDM/LDMIA/LDMFD (T2)
+
+                  if (Insn32 and 2**15) = 0 then
+                     Branch := Br_None;
+                  else
+                     --  This instruction writes in PC, so it's a control-flow
+                     --  instruction.
+
+                     Branch := Br_Jmp;
+                     Flag_Indir := True;
+                  end if;
+               end if;
             end case;
          end;
 
