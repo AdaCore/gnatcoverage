@@ -136,7 +136,7 @@ package body Disa_Thumb is
             when 2#01# =>
                if (Insn32 and 16#fff0_ffe0#) = 16#e8d0_f000# then
 
-                  --  TBB/TBH(T15
+                  --  TBB/TBH(T15)
 
                   Branch := Br_Jmp;
                   Flag_Indir := True;
