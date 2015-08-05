@@ -1445,6 +1445,29 @@ package body Traces_Elf is
       use Dwarf;
       use Compile_Unit_Vectors;
 
+      function Symbol_Exists (Low : Pc_Type; Name : Address) return Boolean;
+      --  Return whether there exists a symbol at Low whose name is Name.
+      --  Return False if Name is Null_Address.
+
+      function Symbol_Exists (Low : Pc_Type; Name : Address) return Boolean is
+         Sym : Address_Info_Acc;
+      begin
+         if Name = Null_Address then
+            return False;
+         end if;
+
+         Sym := Get_Address_Info (Exec, Symbol_Addresses, Low);
+         if Sym = null then
+            return False;
+         end if;
+
+         declare
+            Name_Str : constant String := Read_String (Name);
+         begin
+            return Name_Str = Sym.Symbol_Name.all;
+         end;
+      end Symbol_Exists;
+
       Abbrev_Len     : Elf_Addr;
       Abbrevs        : Binary_Content;
       Abbrevs_Region : Mapped_Region;
@@ -1739,7 +1762,20 @@ package body Traces_Elf is
                              with "no section for subprogram";
                         end if;
 
-                     else
+                     --  On ARM, we have seen runtime code at 0x0 so the above
+                     --  guard isn't useful there for the -ffunction-sections
+                     --  case. For this special case, use another heuristic
+                     --  to discard eliminated programs: see if we can find a
+                     --  symbol with the same name. If there is no such symbol,
+                     --  then the subprogram was very likely eliminated.
+
+                     elsif At_Low_Pc /= Unsigned_64 (No_PC)
+                       or else
+                         Symbol_Exists (Subprg_Low,
+                                        (if At_Linkage_Name = Null_Address
+                                         then At_Name
+                                         else At_Linkage_Name))
+                     then
                         Current_Subprg :=
                           new Address_Info'
                             (Kind              => Subprogram_Addresses,
