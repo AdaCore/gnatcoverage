@@ -1449,6 +1449,10 @@ package body Traces_Elf is
       --  Return whether there exists a symbol at Low whose name is Name.
       --  Return False if Name is Null_Address.
 
+      -------------------
+      -- Symbol_Exists --
+      -------------------
+
       function Symbol_Exists (Low : Pc_Type; Name : Address) return Boolean is
          Sym : Address_Info_Acc;
       begin
