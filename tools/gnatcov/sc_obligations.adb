@@ -3222,4 +3222,6 @@ package body SC_Obligations is
       return Result;
    end Unit_Has_Code;
 
+begin
+   Snames.Initialize;
 end SC_Obligations;
