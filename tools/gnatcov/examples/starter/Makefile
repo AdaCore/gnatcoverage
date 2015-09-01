@@ -3,15 +3,25 @@
 #   make TARGET=powerpc-elf RTS=zfp-prep
 # or
 #   make TARGET=leon-elf RTS=ravenscar
+#
+# Leaving TARGET undefined conveys intent to exercise for
+# the current native configuration.
 
 ANNOTATE=html
 
-TARGET=TARGET_WAS_NOT_SET
-RTS=RTS_WAS_NOT_SET
+TARGET=
+ifneq ($(strip $(TARGET)),)
+TARGET_ARG=--target=$(TARGET)
+endif
+
+RTS=
+ifneq ($(strip $(RTS)),)
+RTS_ARG=--RTS=$(RTS)
+endif
 
 all:
-	gprbuild -p -f --target=$(TARGET) --RTS=$(RTS) -Pops.gpr test_inc.adb \
+	gprbuild -p -f $(TARGET_ARG) $(RTS_ARG) -Pops.gpr test_inc.adb \
 	 -cargs -g -fpreserve-control-flow -fdump-scos
-	gnatcov run --target=$(TARGET) obj/test_inc
+	gnatcov run $(TARGET_ARG) obj/test_inc
 	gnatcov coverage --level=stmt --annotate=$(ANNOTATE) test_inc.trace \
-          --target=$(TARGET) -Pops.gpr
+          $(TARGET_ARG) -Pops.gpr
