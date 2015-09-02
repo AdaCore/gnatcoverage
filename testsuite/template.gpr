@@ -15,6 +15,7 @@ for Languages use (%(languages)s);
 
 package Compiler is
 %(compswitches)s
+%(compiler_extra)s
 end Compiler;
 
 for Main use (%(gprmains)s);

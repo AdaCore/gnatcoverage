@@ -12,7 +12,6 @@ from SUITE.tutils import *
 
 class TestCase(object):
 
-    PROJECT_FILE  = '{}.gpr'
     ROUTINES_FILE = 'routines.list'
     RESULT_FILE   = 'coverage.result'
 
@@ -46,7 +45,7 @@ class TestCase(object):
 
         # Compile and run separately each test driver.
         for test_driver, switches in self.test_drivers.items():
-            self._compile(test_driver, *switches)
+            self._compile(test_driver, switches)
             self._run(test_driver)
 
         # Tell to gnatcov which symbols we are interested in (those are symbols
@@ -78,41 +77,23 @@ class TestCase(object):
             )
         return True
 
-    def _compile(self, test_driver, default_switches, compile_unit_switches):
+    def _compile(self, test_driver, compile_unit_switches):
         test_driver_wd = Wdir('{}-obj'.format(test_driver)).to_homedir()
-        project_file = self.PROJECT_FILE.format(test_driver)
-
-        with open(project_file, 'w') as f:
-            f.write('''project {test_driver} is
-           for Source_Dirs use ({sourcedirs});
-           for Object_Dir  use "{test_driver}-obj";
-           for Exec_Dir    use ".";
-           for Languages   use ("C", "Asm");
-           for Main        use ("{test_driver}");
-
-           package Compiler is
-              for Default_Switches ("C")
-                 use ({default_switches});
-              for Default_Switches ("Asm")
-                 use ({default_switches});'''.format(
-                sourcedirs = self.fmt_list(['..'] + self.extra_sourcedirs),
-                test_driver = test_driver,
-                default_switches = self.fmt_list(default_switches)
-            ))
-
-            for compile_units, switches in compile_unit_switches:
-                for cu in compile_units:
-                    f.write('''
-              for Switches ("{compile_unit}")
-                 use Compiler'Default_Switches ("C") & ({switches});'''.format(
-                        compile_unit = cu,
-                        switches = self.fmt_list(switches)
-                    ))
-
-            f.write('''
-           end Compiler;
-        end {};
-    '''.format(test_driver))
+        print(compile_unit_switches)
+        project_file = gprfor(
+            mains=[test_driver + '.c'],
+            prjid=test_driver,
+            srcdirs=['..'] + self.extra_sourcedirs,
+            objdir='{}-obj'.format(test_driver),
+            langs=['C', 'ASM'],
+            compiler_extra='\n'.join(
+                ('for Switches("{}") use '
+                 ' Compiler\'Default_Switches ("C") & ({});').format(
+                    cu, self.fmt_list(switches)
+                )
+                for cu, switches in compile_unit_switches.iteritems()
+            )
+        )
 
         gprbuild(project_file, suitecargs=self.suitecargs)
 
