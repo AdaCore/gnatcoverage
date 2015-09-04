@@ -182,7 +182,6 @@ static void
 create_trace_file (const char *filename)
 {
   struct trace_header hdr = { QEMU_TRACE_MAGIC };
-  int kind = 
 
   tracefile = dr_open_file (filename,
 			     DR_FILE_CLOSE_ON_FORK | DR_FILE_WRITE_APPEND);
@@ -210,18 +209,36 @@ create_trace_file (const char *filename)
 DR_EXPORT
 void dr_init(client_id_t id)
 {
-    dr_set_client_name("DynamoRIO Sample Client 'cbrtrace'",
-                       "http://dynamorio.org/issues");
-    dr_log(NULL, LOG_ALL, 1, "Client 'cbrtrace' initializing");
+  char filename[MAXIMUM_PATH];
+  char arg[MAXIMUM_PATH + 8];
+  const char *p;
 
-    client_id = id;
+  dr_set_client_name("DynamoRIO Sample Client 'cbrtrace'",
+		     "http://dynamorio.org/issues");
+  dr_log(NULL, LOG_ALL, 1, "Client 'cbrtrace' initializing");
+  client_id = id;
 
-    dr_register_bb_event(event_basic_block);
-    dr_register_exit_event(event_exit);
+  strcpy_s (filename, sizeof (filename), "dynamorio.trace");
+
+  /* Decode options.  */
+  p = dr_get_options (id);
+  while ((p = dr_get_token (p, arg, sizeof (arg))) != NULL)
+    {
+      if (strcmp (arg, "-o") == 0)
+	{
+	  p = dr_get_token (p, filename, sizeof (filename));
+	  DR_ASSERT_MSG (p != NULL, "missing -o filename");
+	}
+      else
+	DR_ASSERT_MSG (false, "invalid option");
+    }
+
+  dr_register_bb_event(event_basic_block);
+  dr_register_exit_event(event_exit);
 
 #ifdef WINDOWS
-    dr_enable_console_printing();
+  dr_enable_console_printing();
 #endif /* WINDOWS */
 
-    create_trace_file ("dynrio.trace");
+  create_trace_file (filename);
 }
