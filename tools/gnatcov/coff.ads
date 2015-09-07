@@ -42,6 +42,26 @@ package Coff is
 
    F_Lsyms : constant Unsigned_16 := 16#0008#;
 
+   type Opthdr32 is record
+      magic                          : Unsigned_16;
+      major_linker_version           : Unsigned_8;
+      minor_linker_version           : Unsigned_8;
+      size_of_code                   : Unsigned_32;
+      size_of_initialized_data       : Unsigned_32;
+      size_of_uninitialized_data     : Unsigned_32;
+      address_of_entry_point         : Unsigned_32;
+      base_of_code                   : Unsigned_32;
+      base_of_data                   : Unsigned_32;
+      image_base                     : Unsigned_32;
+      section_alignment              : Unsigned_32;
+      file_alignment                 : Unsigned_32;
+      major_operating_system_version : Unsigned_16;
+      minor_operating_system_version : Unsigned_16;
+      --  ...
+   end record;
+
+   Opt_Hdr32_Size : constant Natural := Opthdr32'Size / Storage_Unit;
+
    type Scnhdr is record
       S_Name    : String (1 .. 8);
       S_Paddr   : Unsigned_32;

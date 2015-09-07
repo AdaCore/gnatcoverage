@@ -2631,8 +2631,8 @@ package body Traces_Elf is
          if (Scn.S_Flags and STYP_TEXT) /= 0
            and then Scn.S_Size > 0
          then
-            Addr := Pc_Type (Scn.S_Vaddr);
-            Last := Pc_Type (Scn.S_Vaddr + Scn.S_Size - 1);
+            Addr := Pc_Type (Scn.S_Vaddr) + Get_Image_Base (Exec.PE_File);
+            Last := Addr + Pc_Type (Scn.S_Size) - 1;
 
             Insert
               (Exec.Desc_Sets (Section_Addresses),

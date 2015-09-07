@@ -101,6 +101,7 @@ package body PECoff_Files is
         (Str_Access, System.Address);
 
       Hdr_Off : Long_Integer;
+      Opt_Hdr32 : Opthdr32;
    begin
       Hdr_Off := Read_Coff_Header_Offset (Fd);
       pragma Assert (Hdr_Off > 0);
@@ -111,6 +112,19 @@ package body PECoff_Files is
          if Read (Fd, File.Hdr'Address, Filehdr_Size) /= Filehdr_Size then
             Exit_With_Error
               (File, Status_Read_Error, "failed to read COFF header");
+         end if;
+
+         if File.Hdr.F_Opthdr > Unsigned_16 (Opt_Hdr32_Size)
+           and then File.Hdr.F_Magic = I386magic
+         then
+            if Read (Fd, Opt_Hdr32'Address, Opt_Hdr32_Size) /= Opt_Hdr32_Size
+            then
+               Exit_With_Error
+                 (File, Status_Read_Error, "failed to read COFF opt header");
+            end if;
+            File.Image_Base := Opt_Hdr32.image_base;
+         else
+            File.Image_Base := 0;
          end if;
 
          Set_Nbr_Sections (File, Section_Index (File.Hdr.F_Nscns));
@@ -219,6 +233,15 @@ package body PECoff_Files is
       end if;
       return Result;
    end Load_Section;
+
+   --------------------
+   -- Get_Image_Base --
+   --------------------
+
+   function Get_Image_Base (File : PE_File) return Arch.Arch_Addr is
+   begin
+      return File.Image_Base;
+   end Get_Image_Base;
 
    -----------------
    -- Get_Symbols --

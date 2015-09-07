@@ -59,6 +59,8 @@ package PECoff_Files is
    --  Get string at offset OFF in the string table
 
    function Get_Symbol_Name (File : PE_File; Sym : Syment) return String;
+
+   function Get_Image_Base (File : PE_File) return Arch.Arch_Addr;
 private
    type PE_Scn_Arr is array (Section_Index) of Scnhdr;
    type PE_Scn_Arr_Acc is access PE_Scn_Arr;
@@ -68,6 +70,8 @@ private
 
    type PE_File is new Binary_File with record
       Hdr : Filehdr;
+
+      Image_Base : Arch.Arch_Addr;
 
       Data : System.Address;
       Scn     : PE_Scn_Arr_Acc;
