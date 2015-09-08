@@ -80,11 +80,10 @@ private package Rundrv.Expander is
 
    --  %valgrind:
    --  ----------
-   --  Valgrind command name to use.
-   --  "<prefix>/libexec/gnatcoverage/bin/valgrind" if this exists, meaning we
-   --  have a valgrind install tree bundled-in. "valgrind" otherwise, meaning
-   --  we'll rely on PATH to provide a suitable valgrind with the coverage tool
-   --  installed.
+   --  Valgrind command name to use. Full path to the bundled-in
+   --  valgrind binary if this exists, "valgrind" otherwise, meaning
+   --  we'll rely on PATH to provide a suitable valgrind with the
+   --  coverage tool installed.
 
    --  %set_valgrind_env:
    --  ------------------
@@ -92,6 +91,16 @@ private package Rundrv.Expander is
    --  environment variable to designate the corresponding lib dir, where
    --  our coverage tool should have been installed together with the core
    --  valgrind libs.
+
+   --  %drrun:
+   --  -------
+   --  DynamoRIO drrun command name to use. Full path to the bundled-in
+   --  drrun binary if this exists, "drrun" otherwise, meaning we'll rely
+   --  on PATH to find an available DynamoRIO install.
+
+   --  %drclient:
+   --  ----------
+   --  DynamoRIO trace client argument to pass, as -c to drrun.
 
    ---------------------------------
    -- Valgrind selection strategy --
@@ -132,6 +141,8 @@ private
 
    function Set_Valgrind_Env return String;
    function Valgrind return String;
+   function Drrun return String;
+   function Drclient return String;
 
    --  A table saying which value function to call for each macro. Better
    --  extracted out to be computed once only. This is scanned in order during
@@ -151,6 +162,12 @@ private
 
       (Key => new String'("%exe_dir"),
        Eval => Exe_Dir'Access),
+
+      (Key => new String'("%drrun"),
+       Eval => Drrun'Access),
+
+      (Key => new String'("%drclient"),
+       Eval => Drclient'Access),
 
       (Key => new String'("%tracefile"),
        Eval => Tracefile'Access),

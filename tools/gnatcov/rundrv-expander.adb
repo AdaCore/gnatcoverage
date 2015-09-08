@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with GNAT.Regpat; use GNAT.Regpat;
+with Ada.Strings.Fixed; use Ada.Strings.Fixed; use Ada.Strings;
 with Ada.Strings.Maps; use Ada.Strings.Maps;
 
 with Ada.Containers.Vectors;
@@ -24,6 +25,7 @@ with Ada.Directories; use Ada.Directories;
 with Ada.Command_Line; use Ada.Command_Line;
 
 with Coverage;     use Coverage;
+with Arch;
 with GNAT.OS_Lib;
 
 with Rundrv.State; use Rundrv.State;
@@ -56,6 +58,25 @@ package body Rundrv.Expander is
    ------------------------
    -- Try_Expand helpers --
    ------------------------
+
+   function Bits return String;
+   --  String representing the target architecture address size in bits.
+
+   function Bundled_Or_Plain (What, Where : String) return String;
+   --  Return the PATH to use to reference WHAT, an executable or a shared
+   --  library ossibly located in the WHERE subdir of our local libexec tree.
+   --  If <libexec>/WHERE/WHAT exists, return that.  Return WHAT otherwise.
+
+   function Bits return String is
+   begin
+      return Trim (Integer'Image (Arch.Arch_Addr'Object_Size), Left);
+   end Bits;
+
+   function Bundled_Or_Plain (What, Where : String) return String is
+      Bundled : constant String := Libexec_Dir & "/" & Where & "/" & What;
+   begin
+      return (if Exists (Bundled) then Bundled else What);
+   end Bundled_Or_Plain;
 
    --  Value functions, each return the single-string value corresponding
    --  to a specific string-macro:
@@ -115,15 +136,23 @@ package body Rundrv.Expander is
    --  %valgrind
 
    function Valgrind return String is
-
-      --  If we have a valgrind bundled-in our local libexec subdir, use that.
-      --  Rely on PATH otherwise.
-
-      Local_Valgrind : constant String := Libexec_Dir & "bin/valgrind";
-
    begin
-      return (if Exists (Local_Valgrind) then Local_Valgrind else "valgrind");
+      return Bundled_Or_Plain (What => "valgrind", Where => "bin");
    end Valgrind;
+
+   --  %drclient
+
+   function Drclient return String is
+   begin
+      return Bundled_Or_Plain (What => "qtrace.dll", Where => "lib" & Bits);
+   end Drclient;
+
+   --  %drrun
+
+   function Drrun return String is
+   begin
+      return Bundled_Or_Plain (What => "drrun", Where => "bin" & Bits);
+   end Drrun;
 
    ----------------------
    -- Expand_Arguments --

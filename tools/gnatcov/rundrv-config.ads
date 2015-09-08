@@ -183,6 +183,17 @@ private package Rundrv.Config is
                                        new String'("--cov-exec-file=%trace"),
                                        new String'("%exe"))
       ),
+      (Target => new String'("(i686|x86_64).*mingw"),
+       Setup_Command => null,
+       Setup_Options => null,
+       Run_Command => new String'("%drrun"),
+       Run_Options => new String_List'(new String'("-c"),
+                                       new String'("%drclient"),
+                                       new String'("-o"),
+                                       new String'("%trace"),
+                                       new String'("--"),
+                                       new String'("%exe"))
+      ),
       (Target => new String'("prepare"),
        Setup_Command => null,
        Setup_Options => null,
