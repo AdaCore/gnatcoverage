@@ -346,28 +346,58 @@ package body Rundrv.Expander is
 
       M : aliased Macro_Matches;
 
+      Maybe_Refs : Natural;
+      --  Estimated number of macro references to substitute
+
+      Expanded : String_Access;
+      --  Current expansion result
+
+      Candidate_Match : Integer;
+      --  Index of the next macro entry to try-match against what
+      --  remains to expand.
+
    --  Start of processing for Try_Expand
 
    begin
 
-      --  If there's not even the start of a possible macro reference
-      --  in what we're queried to expand, return immediatly.
+      --  Estimate number of references to substitute. The value computed here
+      --  may be greater than the actual number of references, e.g. when there
+      --  are occurrences of '%' that are not part of a macro ref.
 
-      if not Is_In ('%', To_Set (Arg.all)) then
-         return Arg;
-      end if;
+      Maybe_Refs := Count (Arg.all, To_Set ('%'));
 
-      --  Loop over the candidate macro replacements.  Substitute and
-      --  return as soon we find a match.
+      --  Loop over the candidate macro replacements and substitute as
+      --  needed.  Allow several subsitutions per candidate.
 
-      for I in Mta'Range loop
-         if Match (Arg.all, Mta (I).Key.all, M'Access) then
-            return new String'
-              (Substitute (M, Arg.all, Mta (I).Eval.all));
+      Expanded := Arg;
+      Candidate_Match := Mta'First;
+
+      while Candidate_Match <= Mta'Last and then Maybe_Refs > 0 loop
+
+         --  If we have a match, substitute and retry.  Otherwise, move to the
+         --  next candidate.  Release intermediate substitution results along
+         --  the way.
+
+         if Match (Expanded.all, Mta (Candidate_Match).Key.all, M'Access) then
+
+            declare
+               Pre_Substitution : String_Access := Expanded;
+            begin
+               Expanded := new String'
+                 (Substitute (M, Expanded.all,
+                              Mta (Candidate_Match).Eval.all));
+               if Pre_Substitution /= Arg then
+                  Free (Pre_Substitution);
+               end if;
+               Maybe_Refs := Maybe_Refs - 1;
+            end;
+
+         else
+            Candidate_Match := Candidate_Match + 1;
          end if;
       end loop;
 
-      return Arg;
+      return Expanded;
    end Try_Expand;
 
 end Rundrv.Expander;
