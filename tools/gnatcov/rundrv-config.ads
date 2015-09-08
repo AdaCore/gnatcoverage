@@ -187,12 +187,16 @@ private package Rundrv.Config is
        Setup_Command => null,
        Setup_Options => null,
        Run_Command => new String'("%drrun"),
-       Run_Options => new String_List'(new String'("-c"),
+       Run_Options => new String_List'(new String'("-quiet"),
+                                       new String'("-c"),
                                        new String'("%drclient"),
                                        new String'("-o"),
                                        new String'("%trace"),
                                        new String'("--"),
                                        new String'("%exe"))
+
+       --  -quiet silences the warnings emitted by DynamoRIO on the assumption
+       --  that it is invoked from an official release install tree.
       ),
       (Target => new String'("prepare"),
        Setup_Command => null,
