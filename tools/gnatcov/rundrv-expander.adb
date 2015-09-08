@@ -151,7 +151,7 @@ package body Rundrv.Expander is
 
    function Drrun return String is
    begin
-      return Bundled_Or_Plain (What => "drrun", Where => "bin" & Bits);
+      return Bundled_Or_Plain (What => "drrun.exe", Where => "bin" & Bits);
    end Drrun;
 
    ----------------------
