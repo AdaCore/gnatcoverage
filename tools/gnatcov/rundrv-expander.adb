@@ -64,7 +64,7 @@ package body Rundrv.Expander is
 
    function Bundled_Or_Plain (What, Where : String) return String;
    --  Return the PATH to use to reference WHAT, an executable or a shared
-   --  library ossibly located in the WHERE subdir of our local libexec tree.
+   --  library possibly located in the WHERE subdir of our local libexec tree.
    --  If <libexec>/WHERE/WHAT exists, return that.  Return WHAT otherwise.
 
    function Bits return String is
