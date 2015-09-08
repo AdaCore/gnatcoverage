@@ -122,7 +122,7 @@ package body PECoff_Files is
                Exit_With_Error
                  (File, Status_Read_Error, "failed to read COFF opt header");
             end if;
-            File.Image_Base := Opt_Hdr32.image_base;
+            File.Image_Base := Arch.Arch_Addr (Opt_Hdr32.image_base);
          else
             File.Image_Base := 0;
          end if;
