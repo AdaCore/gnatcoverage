@@ -3408,7 +3408,7 @@ package body Traces_Elf is
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
       Sec : Address_Info_Acc;
 
-      Sym      : Address_Info_Acc;
+      Sym : Address_Info_Acc;
 
       Cur : Cursor;
       Ok : Boolean;
@@ -3471,6 +3471,23 @@ package body Traces_Elf is
                I := I + 1 + Unsigned_32 (S.E_Numaux);
             end;
          end loop;
+      end;
+
+      --  Set range on symbols. We assume there is no hole.
+      declare
+         Prev : Address_Info_Acc;
+      begin
+         Cur := First (Exec.Desc_Sets (Symbol_Addresses));
+         if Has_Element (Cur) then
+            Prev := Element (Cur);
+            Next (Cur);
+            while Has_Element (Cur) loop
+               Sym := Element (Cur);
+               Prev.Last := Sym.First - 1;
+               Prev := Sym;
+               Next (Cur);
+            end loop;
+         end if;
       end;
    end Build_Symbols;
 
