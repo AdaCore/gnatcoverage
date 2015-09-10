@@ -138,16 +138,20 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
   instr_t *instr;
   app_pc bb_pc = dr_fragment_app_pc(tag);
 
-  for (instr  = instrlist_first_app(bb); instr != NULL; )
+  /* For each instruction of the basic block.  */
+  for (instr = instrlist_first_app (bb); instr != NULL; )
     {
       instr_t *next_instr = instr_get_next_app(instr);
       if (instr_is_cbr(instr))
 	{
+	  /* Instruction is a conditional branch.  */
 	  if (next_instr != NULL)
 	    {
+	      /* Should be the last one of the basic block.  */
 	      instrlist_disassemble(drcontext, tag, bb, STDOUT);
 	      dr_exit_process (126);
 	    }
+	  /* Insert a call to at_cbr to generate a trace.  */
 	  dr_insert_cbr_instrumentation_ex
 	    (drcontext, bb, instr, (void *)at_cbr, OPND_CREATE_INTPTR(bb_pc));
         }
@@ -157,12 +161,16 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 		 || instr_is_ubr(instr)
 		 || instr_is_mbr(instr))
 	  {
+	    /* This is an unconditional branch.  */
 	    app_pc instr_pc = instr_get_app_pc (instr);
 	    if (next_instr != NULL)
 	      {
+		/* Must be the last instruction of the basic block.  */
 		instrlist_disassemble(drcontext, tag, bb, STDOUT);
 		dr_exit_process (126);
 	      }
+	    /* Generate the trace now, assuming the basic block will be
+	       fully executed.  */
 	    write_trace (bb_pc, instr_pc - bb_pc + 1, TRACE_OP_BLOCK);
 	}
 	instr = next_instr;
@@ -226,14 +234,32 @@ void dr_init(client_id_t id)
     {
       if (strcmp (arg, "-o") == 0)
 	{
+	  int l;
+
 	  p = dr_get_token (p, filename, sizeof (filename));
 	  DR_ASSERT_MSG (p != NULL, "missing -o filename");
+
+	  /* Strip 'history,' and 'histmap='.  */
+	  l = strlen (filename);
+	  if (memcmp (filename, "history,", 8) == 0)
+	    memmove (filename, filename + 8, l + 1 - 8);
+	  if (memcmp (filename, "histmap=", 8) == 0)
+	    {
+	      char *s = filename + 8;
+
+	      while (*s && *s != ',')
+		s++;
+	      if (*s)
+		memmove (filename, s + 1, l - (s - filename));
+	    }
 	}
       else
 	DR_ASSERT_MSG (false, "invalid option");
     }
 
+  /* Intercept all BB translation.  */
   dr_register_bb_event(event_basic_block);
+
   dr_register_exit_event(event_exit);
 
 #ifdef WINDOWS
