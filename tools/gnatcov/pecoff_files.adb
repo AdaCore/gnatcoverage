@@ -59,21 +59,29 @@ package body PECoff_Files is
    is
       Off    : Long_Integer;
       PE_Sig : Unsigned_32;
+      Coff_Sig : Unsigned_16;
    begin
       Lseek (Fd, 0, Seek_Set);
       Off := Read_Coff_Header_Offset (Fd);
 
       if Off = 0 then
-         return False;
+         --  A pure COFF file (without the PE header).
+         Lseek (Fd, 0, Seek_Set);
+
+         if Read (Fd, Coff_Sig'Address, 2) /= 2 then
+            return False;
+         end if;
+
+         return Coff_Sig = I386magic;
+      else
+         Lseek (Fd, Off, Seek_Set);
+
+         if Read (Fd, PE_Sig'Address, 4) /= 4 then
+            return False;
+         end if;
+
+         return PE_Sig = Pe_Magic;
       end if;
-
-      Lseek (Fd, Off, Seek_Set);
-
-      if Read (Fd, PE_Sig'Address, 4) /= 4 then
-         return False;
-      end if;
-
-      return PE_Sig = Pe_Magic;
    end Is_PE_File;
 
    function Create_File
@@ -104,11 +112,12 @@ package body PECoff_Files is
       Opt_Hdr32 : Opthdr32;
    begin
       Hdr_Off := Read_Coff_Header_Offset (Fd);
-      pragma Assert (Hdr_Off > 0);
-
+      if Hdr_Off /= 0 then
+         Hdr_Off := Hdr_Off + 4;
+      end if;
       return File : PE_File := (Binary_File'(Create_File (Fd, Filename))
                                 with others => <>) do
-         Lseek (Fd, Hdr_Off + 4, Seek_Set);
+         Lseek (Fd, Hdr_Off, Seek_Set);
          if Read (Fd, File.Hdr'Address, Filehdr_Size) /= Filehdr_Size then
             Exit_With_Error
               (File, Status_Read_Error, "failed to read COFF header");
@@ -134,7 +143,7 @@ package body PECoff_Files is
 
          --  Map sections.
          File.Scn := To_PE_Scn_Arr_Acc
-           (File.Data + Storage_Offset (Hdr_Off + 4)
+           (File.Data + Storage_Offset (Hdr_Off)
             + Storage_Offset (File.Hdr.F_Opthdr)
             + Storage_Offset (Filehdr_Size));
 
@@ -161,9 +170,15 @@ package body PECoff_Files is
       pragma Assert (Index < Section_Index (File.Hdr.F_Nscns));
       Sec : Scnhdr renames File.Scn (Index);
    begin
-      --  Contrary to COFF, on PE S_Paddr is the real length.
+      --  Contrary to COFF, on PE S_Paddr is the real length
       pragma Assert (Sec.S_Size >= Sec.S_Paddr);
-      return Arch.Arch_Addr (Sec.S_Paddr);
+      if Sec.S_Paddr = 0 then
+         --  For object files
+         return Arch.Arch_Addr (Sec.S_Size);
+      else
+         --  For images
+         return Arch.Arch_Addr (Sec.S_Paddr);
+      end if;
    end Get_Section_Length;
 
    ----------------------------
