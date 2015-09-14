@@ -329,7 +329,7 @@ package Traces_Elf is
    --  match the PC address, or set CU_* to null if no one matches.
 
    procedure Scan_Symbols_From
-     (File   : Exe_File_Type'Class;
+     (File   : in out Exe_File_Type;
       Sym_Cb : access procedure (Sym : Address_Info_Acc);
       Strict : Boolean);
    procedure Scan_Symbols_From
@@ -346,7 +346,7 @@ package Traces_Elf is
       Exclude   : Boolean;
       Strict    : Boolean);
    procedure Read_Routine_Names
-     (File    : Exe_File_Type'Class;
+     (File    : in out Exe_File_Type'Class;
       Exclude : Boolean;
       Strict  : Boolean := False);
    --  Add (or remove if EXCLUDE is true) routines read from an ELF image to
@@ -490,6 +490,10 @@ private
       Sec_Idx : Section_Index;
       Region  : in out Mapped_Region;
       Data    : in out Binary_Content);
+   procedure Scan_Symbols_From
+     (File   : in out Elf_Exe_File_Type;
+      Sym_Cb : access procedure (Sym : Address_Info_Acc);
+      Strict : Boolean);
 
    type PE_Exe_File_Type is limited new Exe_File_Type  with record
       PE_File : aliased PECoff_Files.PE_File;

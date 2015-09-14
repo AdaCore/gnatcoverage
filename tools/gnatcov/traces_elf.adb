@@ -3476,15 +3476,24 @@ package body Traces_Elf is
       --  Set range on symbols. We assume there is no hole.
       declare
          Prev : Address_Info_Acc;
+         Prev_Cur : Cursor;
       begin
          Cur := First (Exec.Desc_Sets (Symbol_Addresses));
          if Has_Element (Cur) then
             Prev := Element (Cur);
+            Prev_Cur := Cur;
             Next (Cur);
             while Has_Element (Cur) loop
                Sym := Element (Cur);
-               Prev.Last := Sym.First - 1;
+               if Prev.First = Sym.First then
+                  --  Symbol is empty.  Remove it.
+                  Address_Info_Sets.Delete
+                    (Exec.Desc_Sets (Symbol_Addresses), Prev_Cur);
+               else
+                  Prev.Last := Sym.First - 1;
+               end if;
                Prev := Sym;
+               Prev_Cur := Cur;
                Next (Cur);
             end loop;
          end if;
@@ -3982,7 +3991,7 @@ package body Traces_Elf is
 
    procedure On_Elf_From
      (Filename : String;
-      Cb       : access procedure (Exec : Exe_File_Type'Class));
+      Cb       : access procedure (Exec : in out Exe_File_Type'Class));
    --  Call CB with an open executable file descriptor for FILE,
    --  closed on return.
 
@@ -3992,7 +4001,7 @@ package body Traces_Elf is
 
    procedure On_Elf_From
      (Filename : String;
-      Cb       : access procedure (Exec : Exe_File_Type'Class))
+      Cb       : access procedure (Exec : in out Exe_File_Type'Class))
    is
       Exec : Exe_File_Acc;
    begin
@@ -4010,15 +4019,34 @@ package body Traces_Elf is
    -----------------------
 
    procedure Scan_Symbols_From
-     (File   : Exe_File_Type'Class;
+     (File   : in out Exe_File_Type;
+      Sym_Cb : access procedure (Sym : Address_Info_Acc);
+      Strict : Boolean)
+   is
+      pragma Unreferenced (Strict);
+      It : Addresses_Iterator;
+      Sym : Address_Info_Acc;
+      Sym_Copy : Address_Info (Symbol_Addresses);
+   begin
+      Build_Symbols (Exe_File_Type'Class (File));
+
+      Init_Iterator (File, Symbol_Addresses, It);
+      loop
+         Next_Iterator (It, Sym);
+         exit when Sym = null;
+         Sym_Copy := Sym.all;
+         Sym_Cb (Sym_Copy'Unrestricted_Access);
+      end loop;
+   end Scan_Symbols_From;
+
+   procedure Scan_Symbols_From
+     (File   : in out Elf_Exe_File_Type;
       Sym_Cb : access procedure (Sym : Address_Info_Acc);
       Strict : Boolean)
    is
       use Address_Info_Sets;
 
-      File_Elf : Elf_Exe_File_Type renames Elf_Exe_File_Type (File);
-
-      Efile : Elf_File renames File_Elf.Elf_File;
+      Efile : Elf_File renames File.Elf_File;
       --  Corresponding Elf_File - as we do low level accesses
 
       Nbr_Shdr : constant Elf_Half := Get_Shdr_Num (Efile);
@@ -4062,11 +4090,11 @@ package body Traces_Elf is
    begin
       --  Search symtab and strtab, exit in case of failure
 
-      if File_Elf.Sec_Symtab = SHN_UNDEF then
+      if File.Sec_Symtab = SHN_UNDEF then
          Put_Line ("# No symbol table - file stripped ?");
          return;
       end if;
-      Strtab_Idx := Get_Strtab_Idx (File_Elf);
+      Strtab_Idx := Get_Strtab_Idx (File);
       if Strtab_Idx = SHN_UNDEF then
          Put_Line ("# no strtab for .symtab - ill formed ELF file ?");
          return;
@@ -4091,7 +4119,7 @@ package body Traces_Elf is
 
       --  Load symtab and strtab
 
-      Alloc_And_Load_Section (File, Section_Index (File_Elf.Sec_Symtab),
+      Alloc_And_Load_Section (File, Section_Index (File.Sec_Symtab),
                               Symtab_Len, Symtabs, Symtabs_Region);
       Symtab_Base := Address_Of (Symtabs, 0);
       Alloc_And_Load_Section (File, Section_Index (Strtab_Idx),
@@ -4277,9 +4305,9 @@ package body Traces_Elf is
    is
       --  Bridge to the version working from an executable file descriptor
 
-      procedure Process (Exec : Exe_File_Type'Class);
+      procedure Process (Exec : in out Exe_File_Type'Class);
 
-      procedure Process (Exec : Exe_File_Type'Class) is
+      procedure Process (Exec : in out Exe_File_Type'Class) is
       begin
          Scan_Symbols_From (Exec, Sym_Cb, Strict);
       end Process;
@@ -4292,7 +4320,7 @@ package body Traces_Elf is
    ------------------------
 
    procedure Read_Routine_Names
-     (File    : Exe_File_Type'Class;
+     (File    : in out Exe_File_Type'Class;
       Exclude : Boolean;
       Strict  : Boolean := False)
    is
@@ -4350,14 +4378,14 @@ package body Traces_Elf is
    is
       --  Wrapper for the version working from an executable file descriptor
 
-      procedure Process (Exec : Exe_File_Type'Class);
+      procedure Process (Exec : in out Exe_File_Type'Class);
       --  Needs comment???
 
       -------------
       -- Process --
       -------------
 
-      procedure Process (Exec : Exe_File_Type'Class) is
+      procedure Process (Exec : in out Exe_File_Type'Class) is
       begin
          Read_Routine_Names (Exec, Exclude, Strict);
       end Process;
