@@ -1365,6 +1365,8 @@ package body Decision_Map is
          --  conditional branch instructions in the decision occurrence as
          --  cleanup actions that play no role in outcome determination, else
          --  mark successors as still contributing to the decision outcome.
+         --  (Do nothing if we don't know whether or not a given destination
+         --  is an outcome or not!)
 
          --  Note: this is primarily targetting edges that correspond to
          --  front-end generated cleanup code for controlled objects. For
@@ -1374,9 +1376,11 @@ package body Decision_Map is
          --  conditional branch instructions with any source conditions.
 
          for CBE of CBI.Edges loop
-            Mark_Successors
-              (CBE.Destination.Target,
-               Outcome_Reached => CBE.Dest_Kind = Outcome);
+            if CBE.Dest_Kind /= Unknown then
+               Mark_Successors
+                 (CBE.Destination.Target,
+                  Outcome_Reached => CBE.Dest_Kind = Outcome);
+            end if;
          end loop;
       end Label_Destinations;
 
