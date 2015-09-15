@@ -195,6 +195,9 @@ TARGETINFO = {
     "e500v2-wrs-vxworks": TargetInfo (
         exeext = ".out", partiallinks=True
         ),
+    "i686-pc-mingw32": TargetInfo (
+        exeext = ".exe", partiallinks=False
+        ),
     "default": TargetInfo (
         exeext = "", partiallinks=False
         )
