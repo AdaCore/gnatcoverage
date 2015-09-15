@@ -124,10 +124,18 @@ write_trace (app_pc pc, unsigned int size, unsigned char op)
 
 /* Clean call for the cbr */
 static void
-at_cbr(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr, int taken,
+at_cbr2(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr, int taken,
        void *bb_addr)
 {
-  write_trace ((app_pc)bb_addr, inst_addr - (app_pc)bb_addr + 1,
+  write_trace ((app_pc)bb_addr, inst_addr + 2 - (app_pc)bb_addr,
+	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
+}
+
+static void
+at_cbr6(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr, int taken,
+       void *bb_addr)
+{
+  write_trace ((app_pc)bb_addr, inst_addr + 6 - (app_pc)bb_addr,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
 }
 
@@ -144,6 +152,8 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
       instr_t *next_instr = instr_get_next_app(instr);
       if (instr_is_cbr(instr))
 	{
+	  void *at_fun;
+
 	  /* Instruction is a conditional branch.  */
 	  if (next_instr != NULL)
 	    {
@@ -152,8 +162,21 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 	      dr_exit_process (126);
 	    }
 	  /* Insert a call to at_cbr to generate a trace.  */
+	  switch (instr_length (drcontext, instr))
+	    {
+	    case 2:
+	      /* Conditionnal jump with a byte offset.  */
+	      at_fun = (void *) at_cbr2;
+	      break;
+	    case 6:
+	      /* Conditionnal jump with a long word offset.  */
+	      at_fun = (void *) at_cbr6;
+	      break;
+	    default:
+	      dr_abort ();
+	    }
 	  dr_insert_cbr_instrumentation_ex
-	    (drcontext, bb, instr, (void *)at_cbr, OPND_CREATE_INTPTR(bb_pc));
+	    (drcontext, bb, instr, at_fun, OPND_CREATE_INTPTR(bb_pc));
         }
         else if (instr_is_call_direct(instr)
 		 || instr_is_call_indirect(instr)
@@ -162,7 +185,8 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 		 || instr_is_mbr(instr))
 	  {
 	    /* This is an unconditional branch.  */
-	    app_pc instr_pc = instr_get_app_pc (instr);
+	    app_pc next_pc = instr_get_app_pc (instr)
+	      + instr_length (drcontext, instr);
 	    if (next_instr != NULL)
 	      {
 		/* Must be the last instruction of the basic block.  */
@@ -171,7 +195,7 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 	      }
 	    /* Generate the trace now, assuming the basic block will be
 	       fully executed.  */
-	    write_trace (bb_pc, instr_pc - bb_pc + 1, TRACE_OP_BLOCK);
+	    write_trace (bb_pc, next_pc - bb_pc, TRACE_OP_BLOCK);
 	}
 	instr = next_instr;
     }
