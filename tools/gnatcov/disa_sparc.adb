@@ -890,4 +890,18 @@ package body Disa_Sparc is
       Branch := Br_None;
    end Get_Insn_Properties;
 
+   ----------------
+   -- Is_Padding --
+   ----------------
+
+   function Is_Padding
+     (Self     : SPARC_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean
+   is
+      pragma Unreferenced (Self, Insn_Bin, Pc);
+   begin
+      return False;
+   end Is_Padding;
+
 end Disa_Sparc;

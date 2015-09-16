@@ -192,4 +192,22 @@ package body Disa_ARM is
       FT_Dest.Target := Pc + Pc_Type (Get_Insn_Length (Self, Insn_Bin));
    end Get_Insn_Properties;
 
+   ----------------
+   -- Is_Padding --
+   ----------------
+
+   function Is_Padding
+     (Self     : ARM_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean
+   is
+      pragma Unreferenced (Self, Insn_Bin, Pc);
+   begin
+      --  We don't need to implement this on all platforms (i.e. we have no
+      --  padding problem on native Linux for instance), so let disassemblers
+      --  override this if needed.
+
+      return False;
+   end Is_Padding;
+
 end Disa_ARM;

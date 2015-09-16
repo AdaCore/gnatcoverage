@@ -28,6 +28,8 @@ with GNAT.Strings;  use GNAT.Strings;
 
 with Coverage.Object;  use Coverage.Object;
 with Coverage.Tags;    use Coverage.Tags;
+with Disassemblers;    use Disassemblers;
+with Elf_Disassemblers; use Elf_Disassemblers;
 with Inputs;           use Inputs;
 with Outputs;          use Outputs;
 with Switches;         use Switches;
@@ -72,6 +74,19 @@ package body Traces_Names is
       Element_Type => Subprogram_Info,
       "<"          => "<",
       "="          => Equal);
+
+   procedure Match_Routine_Insns
+     (Exec      : Exe_File_Acc;
+      Subp_Info : in out Subprogram_Info;
+      Content   : Binary_Content;
+      Success   : out Boolean);
+   --  Match the machine instructions in Subp_Info.Insn and Content: set
+   --  Success to whether they indeed match.
+   --
+   --  In the case where they have inconsistent padding instruction, this tries
+   --  to determine which instructions are padding and does the matching
+   --  without considering these.  In this case, the Insn.Last and
+   --  Padding_Stripped fields of Subp_Info are updated.
 
    Routines : Routines_Maps.Map;
    --  Each item stores coverage information for one (consolidated) routine.
@@ -189,12 +204,13 @@ package body Traces_Names is
 
          Routines.Insert
            (Key,
-            Subprogram_Info'(Exec        => Exec,
-                             Section     => Section,
-                             Insns       => Invalid_Binary_Content,
-                             Traces      => null,
-                             Offset      => 0,
-                             Routine_Tag => Tag));
+            Subprogram_Info'(Exec             => Exec,
+                             Section          => Section,
+                             Padding_Stripped => <>,
+                             Insns            => Invalid_Binary_Content,
+                             Traces           => null,
+                             Offset           => 0,
+                             Routine_Tag      => Tag));
       else
          --  If doing routine-based separated coverage analysis, take the tag
          --  of the consolidated subprogram.
@@ -272,6 +288,7 @@ package body Traces_Names is
         (Subp_Key  : Subprogram_Key;
          Subp_Info : in out Subprogram_Info)
       is
+         Success : Boolean;
       begin
          --  First, check if a trace base has already been added to the
          --  subprogram info; if so, check that it does not conflict with the
@@ -290,13 +307,9 @@ package body Traces_Names is
             --  one we already registered; if the two contents were different
             --  (e.g. came from two executables compiled with different
             --  compilation options), the consolidation would not make sense.
-            --  ??? Checking the actual content is actually quite complicated;
-            --  we cannot just compare the binary content, as between two
-            --  different executables the same symbol may be located in a
-            --  different location. So far, we just make sure that the function
-            --  has the same size in the two executables.
 
-            if Length (Content) /= Length (Subp_Info.Insns) then
+            Match_Routine_Insns (Exec, Subp_Info, Content, Success);
+            if not Success then
                Put_Line (Standard_Error,
                          "error: different function size for "
                            & Key_To_Name (Subp_Key).all);
@@ -594,5 +607,104 @@ package body Traces_Names is
       when Name_Error | Status_Error =>
          Fatal_Error ("cannot open routine list: " & Filename);
    end Read_Routine_Names_From_Text;
+
+   -------------------------
+   -- Match_Routine_Insns --
+   -------------------------
+
+   procedure Match_Routine_Insns
+     (Exec      : Exe_File_Acc;
+      Subp_Info : in out Subprogram_Info;
+      Content   : Binary_Content;
+      Success   : out Boolean)
+   is
+      use type Pc_Type;
+
+      function Find_Padding_First (Insns : Binary_Content) return Pc_Type;
+      --  Find the address of the first padding instruction in Insns. Padding
+      --  instructions are consecutive effect-less instruction at the end of
+      --  the routine.  If there is no padding instruction in Insn, return
+      --  Insn.Last + 1.
+
+      ------------------------
+      -- Find_Padding_First --
+      ------------------------
+
+      function Find_Padding_First (Insns : Binary_Content) return Pc_Type
+      is
+         Disas    : access Disassembler'Class;
+         I_Ranges : Insn_Set_Ranges_Cst_Acc;
+         Cache    : Insn_Set_Cache := Empty_Cache;
+         Insn_Set : Insn_Set_Type;
+
+         First_Padding : Pc_Type := Insns.Last + 1;
+         PC            : Pc_Type := Insns.First;
+         Insn_Len      : Pc_Type;
+      begin
+         I_Ranges := Get_Insn_Set_Ranges (Exec.all, Subp_Info.Section);
+
+         while Iterate_Over_Insns
+           (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
+         loop
+            Disas := Disa_For_Machine (Machine, Insn_Set);
+            Insn_Len := Pc_Type
+              (Disas.Get_Insn_Length_Or_Abort (Slice (Insns, PC, Insns.Last)));
+
+            --  As soon as we meet a non-padding instruction, pretend that the
+            --  padding ones start right after.  As we are going through all of
+            --  them, we wil get the real first one in the end.
+
+            if not Disas.Is_Padding (Insns, PC) then
+               First_Padding := PC + Insn_Len;
+            end if;
+
+            PC := PC + Insn_Len;
+         end loop;
+         return First_Padding;
+      end Find_Padding_First;
+
+      Ref_Padding_First, New_Padding_First : Pc_Type;
+
+   --  Start of processing for Match_Routine_Insns
+
+   begin
+      --  ??? Checking the actual content is actually quite complicated; we
+      --  cannot just compare the binary content, as between two different
+      --  executables the same symbol may be located in a different location.
+      --  So far, we just make sure that the function has the same size in the
+      --  two executables.
+
+      if Length (Subp_Info.Insns) = Length (Content) then
+         Success := True;
+         return;
+      end if;
+
+      --  For some executables such as Windows', the size of routines is an
+      --  approximation that includes padding instructions.  See how long the
+      --  input routines really are when stripping trailing padding
+      --  instructions.
+
+      Ref_Padding_First :=
+        (if Subp_Info.Padding_Stripped
+         then Subp_Info.Insns.Last + 1
+         else Find_Padding_First (Subp_Info.Insns));
+      New_Padding_First := Find_Padding_First (Content);
+
+      declare
+         Ref_Padding_Offset : constant Pc_Type :=
+            Ref_Padding_First - Subp_Info.Insns.First;
+         New_Padding_Offset : constant Pc_Type :=
+            New_Padding_First - Content.First;
+      begin
+         if Ref_Padding_Offset = New_Padding_Offset then
+            Subp_Info.Insns.Last := Ref_Padding_First - 1;
+            Subp_Info.Padding_Stripped := True;
+            Success := True;
+         else
+            Success := False;
+         end if;
+      end;
+
+   end Match_Routine_Insns;
 
 end Traces_Names;

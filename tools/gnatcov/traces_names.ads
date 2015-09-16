@@ -69,6 +69,9 @@ package Traces_Names is
       Section : Section_Index;
       --  Section index in Exec where this subprogram comes from
 
+      Padding_Stripped : Boolean := False;
+      --  Whether Insn.Last was adjusted to eliminate padding instructions
+
       Insns : Binary_Content;
       --  Subprogram binary content
 

@@ -3473,7 +3473,10 @@ package body Traces_Elf is
          end loop;
       end;
 
-      --  Set range on symbols. We assume there is no hole.
+      --  Set range on symbols. We assume there is no hole: additional
+      --  instructions are there for padding. Padding is an issue for
+      --  consolidation, but we have a dedicated machinery to deal with it in
+      --  Traces_Names.
 
       declare
          Prev : Address_Info_Acc;

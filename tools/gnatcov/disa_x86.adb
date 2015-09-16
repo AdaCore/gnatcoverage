@@ -31,6 +31,7 @@ package body Disa_X86 is
    Debug : constant Boolean := False;
 
    subtype Byte is Interfaces.Unsigned_8;
+   type Bytes is array (Pc_Type range <>) of Byte;
    type Bit is mod 2;
    type Bit_Field_2 is mod 2 ** 2;
    type Bit_Field_3 is mod 2 ** 3;
@@ -3305,5 +3306,157 @@ package body Disa_X86 is
       when Bad_Memory =>
          Warn ("assembler analysis truncated at PC = " & Hex_Image (Pc));
    end Get_Insn_Properties;
+
+   ----------------
+   -- Is_Padding --
+   ----------------
+
+   overriding function Is_Padding
+     (Self     : X86_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean
+   is
+      pragma Unreferenced (Self);
+
+      PC_Cursor : Pc_Type := Pc;
+      --  The memory accessors below fetch bytes from an offset plus this
+      --  address.  This address is incremented as prefix bytes are discovered
+      --  so that memory accesses have constant offsets.
+
+      function Mem (Off : Pc_Type) return Byte;
+      function Mem (Off, Size : Pc_Type) return Bytes;
+
+      ---------
+      -- Mem --
+      ---------
+
+      function Mem (Off : Pc_Type) return Byte is
+      begin
+         if Off > Length (Insn_Bin) then
+            raise Bad_Memory;
+         end if;
+         return Get (Insn_Bin, PC_Cursor + Off);
+      end Mem;
+
+      ---------
+      -- Mem --
+      ---------
+
+      function Mem (Off, Size : Pc_Type) return Bytes is
+         Result : Bytes (PC_Cursor + Off .. PC_Cursor + Off + Size - 1);
+      begin
+         if Off + Size > Length (Insn_Bin) then
+            raise Bad_Memory;
+         end if;
+         for I in Result'Range loop
+            Result (I) := Get (Insn_Bin, I);
+         end loop;
+         return Result;
+      end Mem;
+
+   begin
+      --  In the Intel Manuals, there is a list of "Recommented Multi-Byte
+      --  Sequence of NOP Instruction", in which all instructions have "nop"
+      --  mnemonics.  However we noticed that linker sometimes insert other
+      --  sequences for NOPs: mostly LEA instructions: also match these as
+      --  NOPs.
+
+      --  Strip the operand size override prefix
+
+      if Mem (0) = 16#66# then
+         PC_Cursor := PC_Cursor + 1;
+      end if;
+
+      case Mem (0) is
+         when 16#0f# =>
+            --  All "NOP DWORD ptr [...]" instructions start with 0F 1F:
+            --  assuming this instruction is valid, there is no need to decode
+            --  further.
+            return Mem (1) = 16#1f#;
+
+         when 16#90# =>
+            --  NOP
+            return True;
+
+         when 16#8d# =>
+            declare
+               --  LEA [...]
+               ModRM     : constant Byte        := Mem (1);
+               Mod_Value : constant Bit_Field_2 := Ext_Modrm_Mod (ModRM);
+               RM        : constant Bit_Field_3 := Ext_Modrm_Rm (ModRM);
+               Reg       : constant Bit_Field_3 := Ext_Modrm_Reg (ModRM);
+            begin
+               case RM is
+               when 2#100# =>
+                  if Mod_Value = 2#11# then
+                     return False;
+                  end if;
+
+                  --  This corresponds to the [--][--] +disp8/32 lines in
+                  --  Intel's manual: we have a SIB byte.
+                  declare
+                     SIB   : constant Byte := Mem (2);
+                     Scale : constant Bit_Field_2 := Ext_Sib_Scale (SIB);
+                     Index : constant Bit_Field_3 := Ext_Sib_Index (SIB);
+                     Base  : constant Bit_Field_3 := Ext_Sib_Base (SIB);
+                  begin
+                     if Base = 2#101# then
+                        --  The base depends on Mod_Value...
+                        if Mod_Value /= 2#00# then
+                           --  %ebp is part of the computation: this cannot be
+                           --  a NOP.
+                           return False;
+                        end if;
+                        --  At this point, we have a NOP iff the scaled index
+                        --  is 1*Reg and the (32-bit) displacement is 0.
+                        return (Scale = 0 and then Index = Reg
+                                  and then
+                                Mem (3, 4) = (0, 0, 0, 0));
+
+                     --  Past this point, the base address is a register
+                     elsif Index = 2#100# then
+                        --  If we have no index to scale, this is a NOP iff
+                        --  we're just copying a register to itself
+                        return Base = Reg;
+
+                     --  Past this point, the base address is a register and we
+                     --  have an index to scale: this cannot be a NOP.
+                     else
+                        return False;
+                     end if;
+                  end;
+
+               when 2#101# =>
+                  --  Loading something independent of a register in the
+                  --  register: actually doing something.
+                  return False;
+
+               when others =>
+                  --  This is a NOP iff loading the register with its own
+                  --  value.
+
+                  --  Source and destination must be the same register
+                  if RM /= Reg then
+                     return False;
+                  end if;
+
+                  --  Check the displacement is null (if any)
+                  return (case Mod_Value is
+                          when 2#00#  => True,
+                          when 2#01#  => Mem (2) = 0,
+                          when 2#10#  => Mem (2, 4) = (0, 0, 0, 0),
+                          when others => False);
+               end case;
+            end;
+
+         when others =>
+            return False;
+      end case;
+
+   exception
+      when Bad_Memory =>
+         Warn ("assembler analysis truncated at PC = " & Hex_Image (Pc));
+         return False;
+   end Is_Padding;
 
 end Disa_X86;

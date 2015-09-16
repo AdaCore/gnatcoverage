@@ -59,6 +59,12 @@ package Disa_X86 is
    --  For a branch, indicate whether it is indirect (Flag_Indir) and whether
    --  it is conditional (Flag_Cond), and determine its destination (Dest).
 
+   overriding function Is_Padding
+     (Self     : X86_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean;
+   --  See disassemblers.ads
+
 private
    type X86_Disassembler is new Disassembler with null record;
 end Disa_X86;

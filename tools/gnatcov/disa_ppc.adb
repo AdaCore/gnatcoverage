@@ -430,4 +430,18 @@ package body Disa_Ppc is
       FT_Dest.Target := PC + Pc_Type (Get_Insn_Length (Self, Insn_Bin));
    end Get_Insn_Properties;
 
+   ----------------
+   -- Is_Padding --
+   ----------------
+
+   function Is_Padding
+     (Self     : PPC_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean
+   is
+      pragma Unreferenced (Self, Insn_Bin, Pc);
+   begin
+      return False;
+   end Is_Padding;
+
 end Disa_Ppc;

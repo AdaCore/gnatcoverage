@@ -60,6 +60,12 @@ package Disa_Sparc is
    --  it is conditional (Flag_Cond), and determine its destination (Dest).
    --  NOT IMPLEMENTED for SPARC (will raise Program_Error).
 
+   overriding function Is_Padding
+     (Self     : SPARC_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean;
+   --  See disassemblers.ads
+
 private
    type SPARC_Disassembler is new Disassembler with null record;
 end Disa_Sparc;

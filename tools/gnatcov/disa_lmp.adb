@@ -757,4 +757,18 @@ package body Disa_Lmp is
       end case;
    end Get_Insn_Properties;
 
+   ----------------
+   -- Is_Padding --
+   ----------------
+
+   function Is_Padding
+     (Self     : LMP_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean
+   is
+      pragma Unreferenced (Self, Insn_Bin, Pc);
+   begin
+      return False;
+   end Is_Padding;
+
 end Disa_Lmp;

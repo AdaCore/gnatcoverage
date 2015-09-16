@@ -80,6 +80,13 @@ package Disassemblers is
    --  destination, where the Target will be the next sequential instruction
    --  after the delay slot.
 
+   function Is_Padding
+     (Self     : Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean is abstract;
+   --  Return whether the given instruction, located at PC, is a potential
+   --  padding (NOP) instruction.
+
    procedure Abort_Disassembler_Error
      (PC       : Pc_Type;
       Insn_Bin : Binary_Content;

@@ -58,6 +58,12 @@ package Disa_Lmp is
    --  Flag_Cond. Also determine its destinations when possible in
    --  Branch_Dest and FT_Dest (for fallthrough).
 
+   overriding function Is_Padding
+     (Self     : LMP_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean;
+   --  See disassemblers.ads
+
 private
    type LMP_Disassembler is new Disassembler with null record;
 end Disa_Lmp;
