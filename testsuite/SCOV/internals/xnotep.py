@@ -218,7 +218,7 @@ class XnoteP:
             )
 
     def instantiate_stag (self):
-        self.stag = Stag_from (self.stag)
+        self.stag = Stag_from (self.stag, False)
 
     def instanciate_over (self, tline, block, srules):
 

@@ -184,9 +184,22 @@ def need_libsupport ():
 # ==========================
 
 class TargetInfo:
-    def __init__ (self, exeext, partiallinks):
+    """
+    Gather target specific information and behaviors
+
+    exeext (str): Filename extension for programs.
+
+    partiallinks (bool): Whether the linker performs partial links.  Knowing
+    this is needed to make -gc-sections work properly.
+
+    to_platform_specific_symbol: Function that turns a platform-independent
+    symbol into a platform specific one, or None if they are the same.  This
+    enables us to use platform-independent symbol names in testcases.
+    """
+    def __init__ (self, exeext, partiallinks, to_platform_specific_symbol=None):
         self.exeext = exeext
         self.partiallinks = partiallinks
+        self.to_platform_specific_symbol = to_platform_specific_symbol or (lambda x: x)
 
 TARGETINFO = {
     "powerpc-wrs-vxworks": TargetInfo (
@@ -196,7 +209,8 @@ TARGETINFO = {
         exeext = ".out", partiallinks=True
         ),
     "i686-pc-mingw32": TargetInfo (
-        exeext = ".exe", partiallinks=False
+        exeext = ".exe", partiallinks=False,
+        to_platform_specific_symbol=lambda x: '_{}'.format(x)
         ),
     "default": TargetInfo (
         exeext = "", partiallinks=False

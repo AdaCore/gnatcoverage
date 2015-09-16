@@ -308,6 +308,18 @@ def maybe_valgrind(command):
             thistest.options.enable_valgrind))
     return prefix + command
 
+# -------------------------------
+# -- platform_specific_symbols --
+# -------------------------------
+def platform_specific_symbols(symbols):
+    """
+    Given SYMBOLS, a list of architecture-independant symbol names, return a
+    list of corresponding of architecture-specific symbol names.
+
+    For instance for Windows, this prepends an underscore to every symbol name.
+    """
+    return [thistest.tinfo.to_platform_specific_symbol(sym) for sym in symbols]
+
 # ----------
 # -- xcov --
 # ----------

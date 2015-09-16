@@ -30,7 +30,10 @@ class TestCase(object):
         suitecargs=True,
     ):
         self.test_drivers = test_drivers
-        self.coverage_expectations = coverage_expectations
+        self.coverage_expectations = {
+            thistest.tinfo.to_platform_specific_symbol(symbol): data
+            for symbol, data in coverage_expectations.iteritems()
+        }
         self.extra_sourcedirs = extra_sourcedirs
         self.level = level
         self.annotate = annotate

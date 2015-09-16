@@ -19,6 +19,9 @@
 from . segments import Sloc, Sloc_from
 import itertools
 
+from SUITE.context import thistest
+
+
 # ==========
 # == Stag ==
 # ==========
@@ -35,9 +38,15 @@ class Stag:
             else self.match_akin (other)
             )
 
-def Stag_from (text):
+def Stag_from (text, from_report):
     stag = Itag (text)
     if stag.components[0] is None:
+        # Symbol names from report come from the binary file, so there is no
+        # special processing for them.  Symbol names from expected notes
+        # however need platform-specific transformations to match symbols from
+        # binary files.
+        if not from_report:
+            text = thistest.tinfo.to_platform_specific_symbol (text)
         stag = Rtag (text)
     return stag
 

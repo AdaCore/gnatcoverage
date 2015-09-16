@@ -235,7 +235,8 @@ class Nblock(Rblock):
         # attempted first.
 
         def __stag_replacement_for (m):
-            enote.stag = Stag_from (m.group(1))  # side effect on caller here
+            # Side effect on caller here
+            enote.stag = Stag_from (m.group(1), True)
             return ""
 
         this_diag = re.sub (
