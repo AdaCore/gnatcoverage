@@ -144,7 +144,7 @@ package body Rundrv.Expander is
 
    function Drclient return String is
    begin
-      return Bundled_Or_Plain (What => "qtrace.dll", Where => "lib" & Bits);
+      return Bundled_Or_Plain (What => "qtrace.dll", Where => "");
    end Drclient;
 
    --  %drrun
