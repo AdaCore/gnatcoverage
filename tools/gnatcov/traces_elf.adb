@@ -3474,6 +3474,7 @@ package body Traces_Elf is
       end;
 
       --  Set range on symbols. We assume there is no hole.
+
       declare
          Prev : Address_Info_Acc;
          Prev_Cur : Cursor;
@@ -3496,6 +3497,15 @@ package body Traces_Elf is
                Prev_Cur := Cur;
                Next (Cur);
             end loop;
+         end if;
+
+         --  Don't forget the range for last symbol: span it until the end of
+         --  the corresponding section.
+
+         Cur := Last (Exec.Desc_Sets (Symbol_Addresses));
+         if Has_Element (Cur) then
+            Sym := Element (Cur);
+            Sym.Last := Sym.Parent.Last;
          end if;
       end;
    end Build_Symbols;
