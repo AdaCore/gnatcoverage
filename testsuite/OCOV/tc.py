@@ -79,7 +79,6 @@ class TestCase(object):
 
     def _compile(self, test_driver, compile_unit_switches):
         test_driver_wd = Wdir('{}-obj'.format(test_driver)).to_homedir()
-        print(compile_unit_switches)
         project_file = gprfor(
             mains=[test_driver + '.c'],
             prjid=test_driver,
