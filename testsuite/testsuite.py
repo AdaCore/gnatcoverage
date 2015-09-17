@@ -1017,6 +1017,9 @@ class TestSuite:
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
 
+        if mopt.build:
+            testcase_cmd.append('--build=%s' % mopt.build)
+
         if mopt.target:
             testcase_cmd.append('--target=%s' % mopt.target)
 
