@@ -20,6 +20,7 @@
 */
 
 #include "dr_api.h"
+#include "dr_tools.h"
 
 #define EM_386         3        /* Intel 80386 */
 #define EM_X86_64      62       /* AMD x86-64 architecture */
@@ -85,6 +86,7 @@ typedef struct trace_entry64 trace_entry;
 #  error "unhandled machine"
 #endif
 
+static module_data_t *main_module;
 static client_id_t client_id;
 static file_t tracefile;
 
@@ -145,6 +147,10 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 {
   instr_t *instr;
   app_pc bb_pc = dr_fragment_app_pc(tag);
+
+  /* No instrumentation if not part of the main module.  */
+  if (bb_pc < main_module->start || bb_pc > main_module->end)
+    return DR_EMIT_DEFAULT;
 
   /* For each instruction of the basic block.  */
   for (instr = instrlist_first_app (bb); instr != NULL; )
@@ -291,4 +297,7 @@ void dr_init(client_id_t id)
 #endif /* WINDOWS */
 
   create_trace_file (filename);
+
+  main_module = dr_get_main_module ();
+  DR_ASSERT_MSG (main_module != NULL, "cannot get main_module");
 }
