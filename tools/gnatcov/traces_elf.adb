@@ -2632,7 +2632,7 @@ package body Traces_Elf is
            and then Scn.S_Size > 0
          then
             Addr := Pc_Type (Scn.S_Vaddr) + Get_Image_Base (Exec.PE_File);
-            Last := Addr + Pc_Type (Scn.S_Size) - 1;
+            Last := Addr + Get_Section_Length (Exec.PE_File, Idx) - 1;
 
             Insert
               (Exec.Desc_Sets (Section_Addresses),
