@@ -628,7 +628,8 @@ package body CFG_Dump is
                         if Symbol_Name /= null
                           and then
                             Decision_Map.Subp_Raises_Exception
-                              (Symbol_Name.all)
+                              (Traces_Elf.Platform_Independent_Symbol
+                                 (Symbol_Name.all, Context.Exec.all))
                         then
                            Add_Branch_Point
                              (Address (Insn),

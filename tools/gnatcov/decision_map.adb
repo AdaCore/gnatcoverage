@@ -351,7 +351,8 @@ package body Decision_Map is
       end if;
 
       declare
-         Sym_Name : String renames BB.Called_Sym.all;
+         Sym_Name : constant String :=
+            Platform_Independent_Symbol (BB.Called_Sym.all, Exe.all);
 
       begin
          if Sym_Name = "ada__exceptions__triggered_by_abort" then
@@ -2063,7 +2064,8 @@ package body Decision_Map is
                   --  than SCO (but always within the same enclosing decision).
 
                   if Is_Assertion (D_SCO)
-                    and then BB.Called_Sym.all
+                    and then Platform_Independent_Symbol (BB.Called_Sym.all,
+                                                          Exe.all)
                                = "system__assertions__raise_assert_failure"
                   then
                      Edge_Info.Dest_Kind := Outcome;

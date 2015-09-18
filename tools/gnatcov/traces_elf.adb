@@ -4624,4 +4624,23 @@ package body Traces_Elf is
       end if;
    end Get_Insn_Set_Ranges;
 
+   ---------------------------------
+   -- Platform_Independent_Symbol --
+   ---------------------------------
+
+   function Platform_Independent_Symbol
+     (Name : String;
+      File : Exe_File_Type) return String
+   is
+   begin
+      if File.File.all in PE_File'Class
+         and then Name'Length > 0
+         and then Name (Name'First) = '_'
+      then
+         return Name (Name'First + 1 .. Name'Last);
+      else
+         return Name;
+      end if;
+   end Platform_Independent_Symbol;
+
 end Traces_Elf;
