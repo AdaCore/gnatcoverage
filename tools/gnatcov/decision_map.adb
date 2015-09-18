@@ -1883,12 +1883,21 @@ package body Decision_Map is
 
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
          if BB = No_Basic_Block then
-            if After_Call then
-               --  The previously processed basic block is probably a
-               --  non-returning call (although there is no way for us to be
-               --  sure about this), so do not complain about the control flow
-               --  and consider the decision will never have an outcome when
-               --  executing it.
+            if After_Call
+               or else Next_PC not in Ctx.Subprg.First .. Ctx.Subprg.Last
+            then
+               --  If After_Call is true, the previously processed basic block
+               --  is probably a non-returning call (although there is no way
+               --  for us to be sure about this).
+               --
+               --  If Next_PC is out of the current routine, this is either a
+               --  tail call (unlikely at -O0 or -O1) or a JUMP padding (likely
+               --  present in the routine because PE executables on Windows
+               --  lack symbol size information).
+               --
+               --  In both case, just ignore, so do not complain about the
+               --  control flow and consider the decision will never have an
+               --  outcome when executing it.
 
                Edge_Info.Dest_Kind := Unknown;
                return;
