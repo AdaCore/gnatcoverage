@@ -633,6 +633,13 @@ procedure GNATcov is
                      elsif Has_Prefix (Arg, Target_Option) then
                         Target := new String'(Option_Parameter (Arg));
 
+                     elsif Arg = Eargs_Option then
+                        --  Everything that follow -eargs is not for gnatcov
+                        --  itself: discard it. Note that -eargs is valid only
+                        --  for "gnatcov run": just let the second pass handle
+                        --  this.
+                        return;
+
                      elsif Common_Switch then
                         null;
                      end if;
