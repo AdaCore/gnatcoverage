@@ -384,6 +384,21 @@ package Traces_Elf is
       Section : Section_Index) return Insn_Set_Ranges_Cst_Acc;
    --  Return an Insn_Set_Ranges that describes Section
 
+   function Has_Precise_Symbol_Size (File : Exe_File_Type) return Boolean
+     with Inline => True;
+   --  Return whether File contains precise sizes for symbols.  This is true
+   --  for ELF binaries but false for PE-COFF ones.
+   --
+   --  When we don't have precise symbol size information, we approximate the
+   --  size of routines as if they spanned until the next routine (i.e. as if
+   --  there was no padding between routines).  This is good enough in most
+   --  cases but sometimes (for instance in object coverage) we need to peform
+   --  more expensive computations in order to recover a more accurate proper
+   --  symbol size.
+   --
+   --  This function is used to know whether it is necessary to perform these
+   --  computations.
+
    function Platform_Independent_Symbol
      (Name : String;
       File : Exe_File_Type) return String;

@@ -4624,6 +4624,15 @@ package body Traces_Elf is
       end if;
    end Get_Insn_Set_Ranges;
 
+   -----------------------------
+   -- Has_Precise_Symbol_Size --
+   -----------------------------
+
+   function Has_Precise_Symbol_Size (File : Exe_File_Type) return Boolean is
+   begin
+      return File.File.all in PE_File'Class;
+   end Has_Precise_Symbol_Size;
+
    ---------------------------------
    -- Platform_Independent_Symbol --
    ---------------------------------
