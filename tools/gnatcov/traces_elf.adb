@@ -2973,9 +2973,10 @@ package body Traces_Elf is
    --------------------
 
    procedure Set_Insn_State
-     (Base     : in out Traces_Base;
-      Section  : Binary_Content;
-      I_Ranges : Insn_Set_Ranges)
+     (Base          : in out Traces_Base;
+      Section       : Binary_Content;
+      I_Ranges      : Insn_Set_Ranges;
+      Last_Executed : out Pc_Type)
    is
       use Address_Info_Sets;
 
@@ -3040,10 +3041,14 @@ package body Traces_Elf is
    --  Start of processing for Set_Insn_State
 
    begin
+      Last_Executed := No_PC;
+
       Init_Post (Base, It, Section.First);
       Get_Next_Trace (Trace, It);
 
       while Trace /= Bad_Trace loop
+
+         Last_Executed := Trace.Last;
 
          --  First, search the two last instructions (two to handle the delay
          --  slot if needed).
@@ -3759,6 +3764,11 @@ package body Traces_Elf is
          Info : in out Subprogram_Info);
       --  Set trace state for the given routine
 
+      procedure Do_Set_Insn_State
+        (Info          : in out Subprogram_Info;
+         Last_Executed : out Pc_Type);
+      --  Helper to invoke Set_Insn_Trace in Build_Routine_Insn_State
+
       ------------------------------
       -- Build_Routine_Insn_State --
       ------------------------------
@@ -3768,14 +3778,50 @@ package body Traces_Elf is
          Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Key);
+
+         Last_Executed : Pc_Type;
+         Padding_Found : Boolean;
       begin
-         if Is_Loaded (Info.Insns) then
-            Set_Insn_State
-              (Info.Traces.all,
-               Info.Insns,
-               Get_Insn_Set_Ranges (Info.Exec.all, Info.Section).all);
+         if not Is_Loaded (Info.Insns) then
+            return;
+         end if;
+
+         Do_Set_Insn_State (Info, Last_Executed);
+
+         --  If there's a chance that padding NOPs yield pessimistic object
+         --  coverage results (because they are never executed) for this
+         --  subprogram, try to strip them (if not already done) and recompute
+         --  the object coverage for it.
+
+         if Last_Executed < Info.Insns.Last
+              and then
+            not Info.Padding_Stripped
+              and then
+            not Has_Precise_Symbol_Size (Info.Exec.all)
+         then
+            Strip_Padding (Info.Exec, Info.Section, Info.Insns, Padding_Found);
+            Info.Padding_Stripped := True;
+            if Padding_Found then
+               Do_Set_Insn_State (Info, Last_Executed);
+            end if;
          end if;
       end Build_Routine_Insn_State;
+
+      -----------------------
+      -- Do_Set_Insn_State --
+      -----------------------
+
+      procedure Do_Set_Insn_State
+        (Info          : in out Subprogram_Info;
+         Last_Executed : out Pc_Type)
+      is
+      begin
+         Set_Insn_State
+           (Info.Traces.all,
+            Info.Insns,
+            Get_Insn_Set_Ranges (Info.Exec.all, Info.Section).all,
+            Last_Executed);
+      end Do_Set_Insn_State;
 
    --  Start of processing for Build_Routines_Insn_State
 
@@ -4632,6 +4678,78 @@ package body Traces_Elf is
    begin
       return File.File.all not in PE_File'Class;
    end Has_Precise_Symbol_Size;
+
+   ------------------------
+   -- Find_Padding_First --
+   ------------------------
+
+   function Find_Padding_First
+     (Exec    : Exe_File_Acc;
+      Section : Section_Index;
+      Insns   : Binary_Content) return Pc_Type
+   is
+      Disas    : access Disassembler'Class;
+      I_Ranges : Insn_Set_Ranges_Cst_Acc;
+      Cache    : Insn_Set_Cache := Empty_Cache;
+      Insn_Set : Insn_Set_Type;
+
+      First_Padding : Pc_Type := Insns.Last + 1;
+      PC            : Pc_Type := Insns.First;
+      Insns_Slice   : Binary_Content;
+      Insn_Len      : Pc_Type;
+   begin
+      I_Ranges := Get_Insn_Set_Ranges (Exec.all, Section);
+
+      while Iterate_Over_Insns
+        (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
+      loop
+         Disas := Disa_For_Machine (Machine, Insn_Set);
+         Insns_Slice := Slice (Insns, PC, Insns.Last);
+         Insn_Len := Pc_Type (Disas.Get_Insn_Length_Or_Abort (Insns_Slice));
+
+         --  Invalid code may get us past the last byte available in Insns,
+         --  without the above function to raise an error. Do complain if it's
+         --  the case.
+
+         if Insn_Len > Insns.Last - PC + 1 then
+            Abort_Disassembler_Error
+              (PC, Insns_Slice,
+               "suspicious instruction is out of bounds");
+         end if;
+
+         --  As soon as we meet a non-padding instruction, pretend that the
+         --  padding ones start right after.  As we are going through all of
+         --  them, we wil get the real first one in the end.
+
+         if not Disas.Is_Padding (Insns, PC) then
+            First_Padding := PC + Insn_Len;
+         end if;
+
+         PC := PC + Insn_Len;
+      end loop;
+      return First_Padding;
+   end Find_Padding_First;
+
+   -------------------
+   -- Strip_Padding --
+   -------------------
+
+   procedure Strip_Padding
+     (Exec          : Exe_File_Acc;
+      Section       : Section_Index;
+      Insns         : in out Binary_Content;
+      Padding_Found : out Boolean)
+   is
+      Padding_First : constant Pc_Type :=
+         Find_Padding_First (Exec, Section, Insns) - 1;
+   begin
+      if Padding_First /= Insns.Last then
+         Padding_Found := True;
+         Insns.Last := Find_Padding_First (Exec, Section, Insns) - 1;
+      else
+         Padding_Found := False;
+      end if;
+   end Strip_Padding;
 
    ---------------------------------
    -- Platform_Independent_Symbol --

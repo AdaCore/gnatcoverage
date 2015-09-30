@@ -121,10 +121,14 @@ package Traces_Elf is
    --  traces into the routine database.
 
    procedure Set_Insn_State
-     (Base     : in out Traces_Base;
-      Section  : Binary_Content;
-      I_Ranges : Insn_Set_Ranges);
-   --  Comment needed???
+     (Base          : in out Traces_Base;
+      Section       : Binary_Content;
+      I_Ranges      : Insn_Set_Ranges;
+      Last_Executed : out Pc_Type);
+   --  Using information from traces in Base and given the corresponding
+   --  I_Ranges mapping, compute the state (i.e.  coverage) for instructions in
+   --  Section. Set Last_Executed to the last PC executed (i.e. the PC for the
+   --  last byte of the last executed instruction).
 
    --  Read dwarfs info to build compile_units/subprograms lists.
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type'Class);
@@ -398,6 +402,24 @@ package Traces_Elf is
    --
    --  This function is used to know whether it is necessary to perform these
    --  computations.
+
+   function Find_Padding_First
+     (Exec    : Exe_File_Acc;
+      Section : Section_Index;
+      Insns   : Binary_Content) return Pc_Type;
+   --  Find the address of the first padding instruction in Insns. Padding
+   --  instructions are consecutive effect-less instruction at the end of
+   --  the routine.  If there is no padding instruction in Insn, return
+   --  Insn.Last + 1.
+
+   procedure Strip_Padding
+     (Exec          : Exe_File_Acc;
+      Section       : Section_Index;
+      Insns         : in out Binary_Content;
+      Padding_Found : out Boolean);
+   --  Assuming Insns contains instructions coming from Section in Exec, update
+   --  it in order to remove any padding instruction it might contain. Set
+   --  Padding_Found to whether we found padding instructions.
 
    function Platform_Independent_Symbol
      (Name : String;

@@ -28,7 +28,6 @@ with GNAT.Strings;  use GNAT.Strings;
 
 with Coverage.Object;  use Coverage.Object;
 with Coverage.Tags;    use Coverage.Tags;
-with Disassemblers;    use Disassemblers;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Inputs;           use Inputs;
 with Outputs;          use Outputs;
@@ -74,15 +73,6 @@ package body Traces_Names is
       Element_Type => Subprogram_Info,
       "<"          => "<",
       "="          => Equal);
-
-   function Find_Padding_First
-     (Exec    : Exe_File_Acc;
-      Section : Section_Index;
-      Insns   : Binary_Content) return Pc_Type;
-   --  Find the address of the first padding instruction in Insns. Padding
-   --  instructions are consecutive effect-less instruction at the end of
-   --  the routine.  If there is no padding instruction in Insns, return
-   --  Insn.Last + 1.
 
    procedure Match_Routine_Insns
      (Exec      : Exe_File_Acc;
@@ -310,21 +300,6 @@ package body Traces_Names is
             Subp_Info.Exec := Exec;
             Subp_Info.Offset := 0;
             First_Code := True;
-
-            --  Padding instructions between symbols produces more uncovered
-            --  instructions than expected in object coverage.  If we have
-            --  precise symbol size then this padding is not part of routines
-            --  anyway, but we don't have this luck with inaccurate sizes.
-            --  Strip padding in this case.
-
-            if Object_Coverage_Enabled
-                 and then
-               not Has_Precise_Symbol_Size (Exec.all)
-            then
-               Subp_Info.Insns.Last := Find_Padding_First
-                 (Exec, Subp_Info.Section, Subp_Info.Insns) - 1;
-               Subp_Info.Padding_Stripped := True;
-            end if;
 
          else
             --  Check that the Content passed in parameter is the same as the
@@ -631,59 +606,6 @@ package body Traces_Names is
       when Name_Error | Status_Error =>
          Fatal_Error ("cannot open routine list: " & Filename);
    end Read_Routine_Names_From_Text;
-
-   ------------------------
-   -- Find_Padding_First --
-   ------------------------
-
-   function Find_Padding_First
-     (Exec    : Exe_File_Acc;
-      Section : Section_Index;
-      Insns   : Binary_Content) return Pc_Type
-   is
-      use type Pc_Type;
-
-      Disas    : access Disassembler'Class;
-      I_Ranges : Insn_Set_Ranges_Cst_Acc;
-      Cache    : Insn_Set_Cache := Empty_Cache;
-      Insn_Set : Insn_Set_Type;
-
-      First_Padding : Pc_Type := Insns.Last + 1;
-      PC            : Pc_Type := Insns.First;
-      Insns_Slice   : Binary_Content;
-      Insn_Len      : Pc_Type;
-   begin
-      I_Ranges := Get_Insn_Set_Ranges (Exec.all, Section);
-
-      while Iterate_Over_Insns
-        (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
-      loop
-         Disas := Disa_For_Machine (Machine, Insn_Set);
-         Insns_Slice := Slice (Insns, PC, Insns.Last);
-         Insn_Len := Pc_Type (Disas.Get_Insn_Length_Or_Abort (Insns_Slice));
-
-         --  Invalid code may get us past the last byte available in Insns,
-         --  without the above function to raise an error. Do complain if it's
-         --  the case.
-
-         if Insn_Len > Insns.Last - PC + 1 then
-            Abort_Disassembler_Error
-              (PC, Insns_Slice,
-               "suspicious instruction is out of bounds");
-         end if;
-
-         --  As soon as we meet a non-padding instruction, pretend that the
-         --  padding ones start right after.  As we are going through all of
-         --  them, we wil get the real first one in the end.
-
-         if not Disas.Is_Padding (Insns, PC) then
-            First_Padding := PC + Insn_Len;
-         end if;
-
-         PC := PC + Insn_Len;
-      end loop;
-      return First_Padding;
-   end Find_Padding_First;
 
    -------------------------
    -- Match_Routine_Insns --
