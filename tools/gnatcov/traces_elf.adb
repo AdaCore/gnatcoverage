@@ -4630,7 +4630,7 @@ package body Traces_Elf is
 
    function Has_Precise_Symbol_Size (File : Exe_File_Type) return Boolean is
    begin
-      return File.File.all in PE_File'Class;
+      return not (File.File.all in PE_File'Class);
    end Has_Precise_Symbol_Size;
 
    ---------------------------------
