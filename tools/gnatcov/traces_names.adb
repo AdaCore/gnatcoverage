@@ -81,7 +81,7 @@ package body Traces_Names is
       Insns   : Binary_Content) return Pc_Type;
    --  Find the address of the first padding instruction in Insns. Padding
    --  instructions are consecutive effect-less instruction at the end of
-   --  the routine.  If there is no padding instruction in Insn, return
+   --  the routine.  If there is no padding instruction in Insns, return
    --  Insn.Last + 1.
 
    procedure Match_Routine_Insns
@@ -650,6 +650,7 @@ package body Traces_Names is
 
       First_Padding : Pc_Type := Insns.Last + 1;
       PC            : Pc_Type := Insns.First;
+      Insns_Slice   : Binary_Content;
       Insn_Len      : Pc_Type;
    begin
       I_Ranges := Get_Insn_Set_Ranges (Exec.all, Section);
@@ -658,8 +659,18 @@ package body Traces_Names is
         (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
       loop
          Disas := Disa_For_Machine (Machine, Insn_Set);
-         Insn_Len := Pc_Type
-           (Disas.Get_Insn_Length_Or_Abort (Slice (Insns, PC, Insns.Last)));
+         Insns_Slice := Slice (Insns, PC, Insns.Last);
+         Insn_Len := Pc_Type (Disas.Get_Insn_Length_Or_Abort (Insns_Slice));
+
+         --  Invalid code may get us past the last byte available in Insns,
+         --  without the above function to raise an error. Do complain if it's
+         --  the case.
+
+         if Insn_Len > Insns.Last - PC + 1 then
+            Abort_Disassembler_Error
+              (PC, Insns_Slice,
+               "suspicious instruction is out of bounds");
+         end if;
 
          --  As soon as we meet a non-padding instruction, pretend that the
          --  padding ones start right after.  As we are going through all of
