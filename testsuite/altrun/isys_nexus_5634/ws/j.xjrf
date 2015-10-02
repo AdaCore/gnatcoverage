@@ -3934,7 +3934,7 @@
         <Port>1</Port>
         <Speed>0</Speed>
         <TCPPortNumber>5313</TCPPortNumber>
-        <USBDeviceName></USBDeviceName>
+        <USBDeviceName>iC5000 (SN 68020)</USBDeviceName>
        </Communication>
       </HW>
       <Trace>
