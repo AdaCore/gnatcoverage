@@ -53,6 +53,10 @@ package body CFG_Dump is
 
    use type Pc_Type;
 
+   function To_Unbounded_String
+     (S : String) return Ada.Strings.Unbounded.Unbounded_String
+      renames Ada.Strings.Unbounded.To_Unbounded_String;
+
    --------------------
    -- Output helpers --
    --------------------
@@ -332,9 +336,8 @@ package body CFG_Dump is
       State : Disassembly_State;
       --  Disassembled instructions
 
-      Saved_Exn : Exception_Occurrence;
-      --  When disassembling fails, there is a need to delay the exception
-      --  handling: this variable is used to keep exception information.
+      Disas_Error : Ada.Strings.Unbounded.Unbounded_String;
+      --  Hold the error message when disassembling failed
 
       PC      : Pc_Type := Code.First;
       --  Address of the first byte of the instruction we are about to
@@ -480,17 +483,8 @@ package body CFG_Dump is
                   --  assume instructions are not supposed to do that.
 
                   State := Invalid_Insn;
-
-                  --  Raise an exception: this is the only way to craft an
-                  --  Exception_Occurrence object...
-
-                  begin
-                     raise Disassemblers.Invalid_Insn
-                     with "Insn crosses a symbol's upper address";
-                  exception
-                     when Exn : Disassemblers.Invalid_Insn =>
-                        Save_Occurrence (Saved_Exn, Exn);
-                  end;
+                  Disas_Error := To_Unbounded_String
+                    ("Insn crosses a symbol's upper address");
                end if;
             end if;
 
@@ -517,19 +511,18 @@ package body CFG_Dump is
                if Symbol = null
                  or else not (PC in Symbol.First .. Symbol.Last)
                then
-
                   --  We came across an invalid instruction and we are not
                   --  inside a symbol: we probably met padding bytes.
 
                   State := Skip_Padding;
 
                else
-
                   --  There is an invalid instruction inside a symbol: the code
                   --  generator looks buggy.
 
                   State := Invalid_Insn;
-                  Save_Occurrence (Saved_Exn, Exn);
+                  Disas_Error := To_Unbounded_String
+                    (Exception_Information (Exn));
                end if;
          end;
 
@@ -647,7 +640,8 @@ package body CFG_Dump is
 
             when Invalid_Insn =>
                Disassemblers.Abort_Disassembler_Error
-                 (PC, Slice (Code, PC, Code.Last), Saved_Exn);
+                 (PC, Slice (Code, PC, Code.Last),
+                  Ada.Strings.Unbounded.To_String (Disas_Error));
 
             when Skip_Padding =>
 

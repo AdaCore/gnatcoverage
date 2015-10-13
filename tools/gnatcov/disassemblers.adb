@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Exceptions;        use Ada.Exceptions;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
@@ -75,7 +76,7 @@ package body Disassemblers is
    procedure Abort_Disassembler_Error
      (PC       : Pc_Type;
       Insn_Bin : Binary_Content;
-      Exn      : Exception_Occurrence) is
+      Exn_Info : String) is
    begin
       New_Line (Standard_Error);
       Put_Line (Standard_Error, "========================================");
@@ -83,8 +84,7 @@ package body Disassemblers is
         (Standard_Error,
          "An error occurred while disassembling the instruction at "
          & Hex_Image (PC) & ":");
-      Put (Standard_Error,
-           Exception_Information (Exn));
+      Put (Standard_Error, Exn_Info);
       Put_Line
         (Standard_Error,
          "The involved bytes are: " & Dump_Bin (Insn_Bin, 20));
@@ -108,9 +108,11 @@ package body Disassemblers is
       return Get_Insn_Length (Self, Insn_Bin);
    exception
       when Exn : Invalid_Insn | Unhandled_Insn =>
-         Abort_Disassembler_Error (Insn_Bin.First, Insn_Bin, Exn);
+         Abort_Disassembler_Error
+           (Insn_Bin.First, Insn_Bin, Exception_Information (Exn));
 
-         --  This is unreachable: Abort_Disassembler_Error raises an exception
+         --  The following statement is unreachable: Abort_Disassembler_Error
+         --  raises an exception.
 
          return 1;
    end Get_Insn_Length_Or_Abort;
@@ -131,7 +133,7 @@ package body Disassemblers is
       Disassemble_Insn (Self, Insn_Bin, Pc, Buffer, Insn_Len, Sym);
    exception
       when Exn : Invalid_Insn | Unhandled_Insn =>
-         Abort_Disassembler_Error (Pc, Insn_Bin, Exn);
+         Abort_Disassembler_Error (Pc, Insn_Bin, Exception_Information (Exn));
    end Disassemble_Insn_Or_Abort;
 
 end Disassemblers;

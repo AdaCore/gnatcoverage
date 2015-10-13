@@ -18,8 +18,6 @@
 
 --  Abstract support for disassembly engines
 
-with Ada.Exceptions;        use Ada.Exceptions;
-
 with Binary_Files;   use Binary_Files;
 with Traces;         use Traces;
 with Disa_Symbolize; use Disa_Symbolize;
@@ -90,7 +88,7 @@ package Disassemblers is
    procedure Abort_Disassembler_Error
      (PC       : Pc_Type;
       Insn_Bin : Binary_Content;
-      Exn      : Exception_Occurrence);
+      Exn_Info : String);
    --  Print an error message suitable for disassembler error reports, giving
    --  enough context information to investigate and debug disassembly issues.
 

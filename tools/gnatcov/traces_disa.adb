@@ -16,7 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Exceptions; use Ada.Exceptions;
+with Ada.Text_IO;    use Ada.Text_IO;
 
 with Disassemblers;     use Disassemblers;
 with Arch;              use Arch;
@@ -186,8 +187,9 @@ package body Traces_Disa is
 
       when Outputs.Xcov_Exit_Exc =>
          raise;
-      when Error : others =>
-         Abort_Disassembler_Error (Pc, Slice (Insns, Pc, Insns.Last), Error);
+      when Exn : others =>
+         Abort_Disassembler_Error
+           (Pc, Slice (Insns, Pc, Insns.Last), Exception_Information (Exn));
    end For_Each_Insn;
 
    -------------------------
