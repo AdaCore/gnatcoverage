@@ -10,10 +10,11 @@ tool. |gcv| relies on an instrumented execution environment to produce
 execution traces instead of having to instrument to program itself. For cross
 configurations, |gem| provides such an environment, offering support for
 coverage assessments directly on the target code in cross
-configurations. Hardware probes might be used as trace producers as well,
-provided trace data is converted to the format |gcv| expects. Some native
-configurations are supported as well, using host-specific wrappers to produce
-traces within the host environment (e.g. valgrind on Linux).
+configurations. Hardware probes maye also be used as trace producers, provided
+trace data is converted to the format |gcv| expects. Some native
+configurations are supported as well, using process wrappers to produce traces
+within the host environment (for example valgrind on Linux or dynamoRIO on
+Windows).
 
 |gcp| supports both source and object level coverage criteria: statement,
 decision, or mcdc coverage for the source level, and instruction or branch
