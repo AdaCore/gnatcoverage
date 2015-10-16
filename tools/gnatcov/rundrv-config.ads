@@ -188,6 +188,7 @@ private package Rundrv.Config is
        Setup_Options => null,
        Run_Command => new String'("%drrun"),
        Run_Options => new String_List'(new String'("-quiet"),
+                                       new String'("-no_follow_children"),
                                        new String'("-c"),
                                        new String'("%drclient"),
                                        new String'("-o"),
