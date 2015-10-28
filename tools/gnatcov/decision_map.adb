@@ -1241,7 +1241,8 @@ package body Decision_Map is
 
                   if Outcome_Reached and then not BB.First_Cond then
                      Report (Exe, Cond_Branch_PC,
-                             "tried to exclude pre-outcome basic block",
+                             "tried to exclude pre-outcome basic block at "
+                             & Hex_Image (Next_PC),
                              Kind => Diagnostics.Error);
                   end if;
             end case;
