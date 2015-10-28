@@ -3134,14 +3134,15 @@ package body Disa_X86 is
       Branch_Dest : out Dest;
       FT_Dest     : out Dest)
    is
-      pragma Unreferenced (Self);
-
       Is_64bit   : constant Boolean := Machine = Elf_Common.EM_X86_64;
 
       Opcode_Off : Pc_Type := 0;
       B, B1      : Byte;
 
       function Mem (Off : Pc_Type) return Byte;
+
+      function Length return Pc_Type is
+        (Pc_Type (Get_Insn_Length (Self, Insn_Bin)));
 
       ---------
       -- Mem --
@@ -3285,6 +3286,7 @@ package body Disa_X86 is
                   Branch     := Br_Call;
                   Flag_Cond  := False;
                   Flag_Indir := True;
+                  FT_Dest.Target := Pc + Length;
                   return;
 
                when 2#100# | 2#101# =>
@@ -3292,6 +3294,7 @@ package body Disa_X86 is
                   Branch     := Br_Jmp;
                   Flag_Cond  := False;
                   Flag_Indir := True;
+                  FT_Dest.Target := Pc + Length;
                   return;
 
                when others =>
