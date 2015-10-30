@@ -17,5 +17,5 @@
 ------------------------------------------------------------------------------
 
 package Version is
-   Xcov_Version : constant String := "1.4.0w (00000000)";
+   Xcov_Version : constant String := "1.4.0 (20151029)";
 end Version;
