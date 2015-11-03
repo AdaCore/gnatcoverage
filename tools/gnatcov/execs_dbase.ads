@@ -33,13 +33,19 @@ with Traces; use Traces;
 package Execs_Dbase is
 
    procedure Open_Exec
-     (File_Name : String; Text_Start : Pc_Type; Exec : out Exe_File_Acc);
+     (File_Name  : String;
+      Text_Start : Pc_Type;
+      Target     : String_Access;
+      Exec       : out Exe_File_Acc);
    --  Search for a file named File_Name in the Exec database. If one found,
    --  return it; otherwise, open File_Name and add it to the database, then
    --  return it in Exec.
    --
    --  Sections and symbols are read.
    --  In case of error, exception is propagated (see trace_elf.ads)
+   --
+   --  Target is used to find the actual filename on target which have, for
+   --  instance, implicit suffixes (like ".exe" on Windows).
 
    Routine_Name_Ambiguity : exception;
 

@@ -338,6 +338,7 @@ package Traces_Elf is
       Strict : Boolean);
    procedure Scan_Symbols_From
      (Filename : String;
+      Target   : String_Access;
       Sym_Cb   : access procedure (Sym : Address_Info_Acc);
       Strict   : Boolean);
    --  Scan FILE/FILENAME for executable symbols, calling SYM_CB for each
@@ -347,6 +348,7 @@ package Traces_Elf is
 
    procedure Read_Routine_Names
      (Filename  : String;
+      Target    : String_Access;
       Exclude   : Boolean;
       Strict    : Boolean);
    procedure Read_Routine_Names

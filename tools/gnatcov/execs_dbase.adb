@@ -18,6 +18,10 @@
 
 with Ada.Containers; use Ada.Containers;
 
+with GNAT.OS_Lib;
+
+with Binary_Files;
+
 package body Execs_Dbase is
 
    Exec_Base : Execs_Maps.Map;
@@ -38,18 +42,60 @@ package body Execs_Dbase is
    procedure Open_Exec
      (File_Name  : String;
       Text_Start : Pc_Type;
+      Target     : String_Access;
       Exec       : out Exe_File_Acc)
    is
+      function Get_Path return String_Access;
+      --  Try to locate File_Name as an executable and return the path to it
+
+      --------------
+      -- Get_Path --
+      --------------
+
+      function Get_Path return String_Access is
+         Result : String_Access := null;
+
+      begin
+         --  Perform a platform-specific lookup only for native targets. For
+         --  instance, it does not make sense on Windows to look for "foo.exe"
+         --  for a "foo" executable for ARM ELF.
+
+         if not GNAT.OS_Lib.Is_Executable_File (File_Name)
+              and then
+            (Target = null or else Target.all = Standard'Target_Name)
+         then
+            Result := GNAT.OS_Lib.Locate_Exec_On_Path (File_Name);
+         end if;
+
+         --  For other configurations or if we just cannot find the executable,
+         --  let the usual machinery work with the user-given file name.
+
+         if Result = null then
+            return new String'(File_Name);
+         else
+            return Result;
+         end if;
+      end Get_Path;
+
       use Execs_Maps;
-      Exec_File_Name : String_Access := new String'(File_Name);
+      Exec_File_Name : String_Access := Get_Path;
       Base_Entry     : Exec_Base_Entry;
       Position       : constant Cursor := Exec_Base.Find (Exec_File_Name);
+
    begin
       if Position /= No_Element then
          Exec := Element (Position).Exec;
          Free (Exec_File_Name);
+
       else
-         Exec := Open_File (Exec_File_Name.all, Text_Start);
+         begin
+            Exec := Open_File (Exec_File_Name.all, Text_Start);
+         exception
+            when Binary_Files.Error =>
+               Free (Exec_File_Name);
+               raise;
+         end;
+
          Base_Entry.Exec_File_Name := Exec_File_Name;
          Base_Entry.Exec := Exec;
          Exec_Base.Insert (Exec_File_Name, Base_Entry);

@@ -84,6 +84,18 @@ package body Rundrv is
       Kernel        : String_Access) return Driver_Target_Access;
    --  Implement the internal tables case of Driver_Control_For
 
+   -----------------
+   -- Real_Target --
+   -----------------
+
+   function Real_Target (Target : String_Access) return String_Access
+   is
+   begin
+      return (if Target = null
+              then Target_Default
+              else Target);
+   end Real_Target;
+
    --------------------------------
    -- Gnatemu_Driver_Control_For --
    --------------------------------
@@ -310,11 +322,6 @@ package body Rundrv is
       Kernel   : String_Access;
       Eargs    : String_List_Access)
    is
-      Real_Target : constant not null String_Access :=
-        (if Target /= null then Target else Target_Default);
-      --  What we should be using as the target name, possibly not
-      --  provided on entry.
-
       Control : Driver_Target_Access;
       --  The corresponding Driver_Target control block
 
@@ -324,28 +331,14 @@ package body Rundrv is
       --  Setup our basic internal control parameters
 
       Control :=
-        Driver_Control_For (Target => Real_Target, Kernel => Kernel);
+        Driver_Control_For (Target => Real_Target (Target), Kernel => Kernel);
 
       if Control = null then
-         Error ("unknown target " & Real_Target.all
+         Error ("unknown target " & Real_Target (Target).all
                 & " (use --help to get target list)");
          --  ??? xcov run --help should give the target list
          return;
       end if;
-
-      --  Setup global state
-
-      if Output /= null then
-         Trace_Output := Output;
-      else
-         Trace_Output := new String'(Simple_Name (Exe_File & ".trace"));
-      end if;
-
-      Histmap_Filename := Histmap;
-
-      Executable := new String'(Exe_File);
-
-      --  Create the trace file
 
       declare
          use GNAT.OS_Lib;
@@ -365,6 +358,25 @@ package body Rundrv is
            (Trace_Info_Date, String_8);
 
       begin
+         Open_Exec (Exe_File, 0, Real_Target (Target), Exec);
+
+         --  Setup global state: we had to wait for opening the executable file
+         --  since the trace file path depends on the precise executable file
+         --  name.
+
+         Executable := new String'(Get_Filename (Exec.all));
+
+         if GNAT.Strings."/=" (Output, null) then
+            Trace_Output := Output;
+         else
+            Trace_Output :=
+               new String'(Simple_Name (Executable.all & ".trace"));
+         end if;
+
+         Histmap_Filename := Histmap;
+
+         --  And now create the trace file itself.
+
          Create_Trace_File (Info, Trace_File);
          Date_Info := Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
                                        Month => Unsigned_8 (GM_Month (Date)),
@@ -376,7 +388,6 @@ package body Rundrv is
          Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
          Append_Info (Trace_File, Exec_File_Name, Exe_File);
 
-         Open_Exec (Exe_File, 0, Exec);
          Append_Info
            (Trace_File,
             Exec_File_Size,

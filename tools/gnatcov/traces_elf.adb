@@ -4050,6 +4050,7 @@ package body Traces_Elf is
 
    procedure On_Elf_From
      (Filename : String;
+      Target   : String_Access;
       Cb       : access procedure (Exec : in out Exe_File_Type'Class));
    --  Call CB with an open executable file descriptor for FILE,
    --  closed on return.
@@ -4060,11 +4061,12 @@ package body Traces_Elf is
 
    procedure On_Elf_From
      (Filename : String;
+      Target   : String_Access;
       Cb       : access procedure (Exec : in out Exe_File_Type'Class))
    is
       Exec : Exe_File_Acc;
    begin
-      Open_Exec (Filename, 0, Exec); --  ??? Text_Start
+      Open_Exec (Filename, 0, Target, Exec); --  ??? Text_Start
       Cb (Exec.all);
       Close_File (Exec);
    exception
@@ -4359,6 +4361,7 @@ package body Traces_Elf is
 
    procedure Scan_Symbols_From
      (Filename : String;
+      Target   : String_Access;
       Sym_Cb   : access procedure (Sym : Address_Info_Acc);
       Strict   : Boolean)
    is
@@ -4371,7 +4374,7 @@ package body Traces_Elf is
          Scan_Symbols_From (Exec, Sym_Cb, Strict);
       end Process;
    begin
-      On_Elf_From (Filename, Process'Access);
+      On_Elf_From (Filename, Target, Process'Access);
    end Scan_Symbols_From;
 
    ------------------------
@@ -4432,6 +4435,7 @@ package body Traces_Elf is
 
    procedure Read_Routine_Names
      (Filename : String;
+      Target   : String_Access;
       Exclude  : Boolean;
       Strict   : Boolean)
    is
@@ -4452,7 +4456,7 @@ package body Traces_Elf is
    --  Start of processing for Read_Routine_Names
 
    begin
-      On_Elf_From (Filename, Process'Access);
+      On_Elf_From (Filename, Target, Process'Access);
    end Read_Routine_Names;
 
    ------------------------------

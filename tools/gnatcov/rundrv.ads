@@ -20,6 +20,10 @@ with GNAT.Strings; use GNAT.Strings;
 
 package Rundrv is
 
+   function Real_Target (Target : String_Access) return String_Access;
+   --  If Target is null, return the default target, otherwise return Target
+   --  itself. Callers must *not* free the result.
+
    procedure Driver
      (Exe_File : String;
       Target   : String_Access;

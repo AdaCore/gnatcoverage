@@ -1197,8 +1197,9 @@ procedure GNATcov is
       Put_Line ("CWD = " & GNAT.OS_Lib.Normalize_Pathname ("."));
    end Show_CWD;
 
-   Base : aliased Traces_Base;
-   Exec : Exe_File_Acc;
+   Base        : aliased Traces_Base;
+   Exec        : Exe_File_Acc;
+   Real_Target : String_Access;
 
    use type Tag_Provider_Access;
 
@@ -1234,6 +1235,8 @@ begin
    if Tag_Provider = null then
       Tag_Provider := Tag_Providers.Create (Default_Tag_Provider_Name);
    end if;
+
+   Real_Target := Rundrv.Real_Target (Target);
 
    --  Now execute the specified command
 
@@ -1273,6 +1276,7 @@ begin
                else
                   Traces_Elf.Read_Routine_Names
                     (Disp_Routine_Arg,
+                     Real_Target,
                      Exclude => Mode_Exclude,
                      Strict  => False);
                end if;
@@ -1300,6 +1304,7 @@ begin
             begin
                Traces_Elf.Scan_Symbols_From
                  (Elf_Name,
+                  Real_Target,
                   Sym_Cb => null,
                   Strict => True);
             end Scan_One_Elf;
@@ -1322,7 +1327,8 @@ begin
             begin
                --  Just set the filename
 
-               Build_Decision_Map (Exec_Name, Text_Start, Exec_Name & ".dmap");
+               Build_Decision_Map
+                 (Exec_Name, Text_Start, Exec_Name & ".dmap", Real_Target);
             end Build_Decision_Map;
 
          begin
@@ -1541,6 +1547,7 @@ begin
          else
             CFG_Dump.Dump
               (Executable_Path.all,
+               Real_Target,
                Locations_Inputs,
                Output,
                CFG_Output_Format,
@@ -1685,7 +1692,7 @@ begin
 
             begin
                return Exe_File : Exe_File_Acc do
-                  Open_Exec (Exe_Name, Text_Start, Exe_File);
+                  Open_Exec (Exe_Name, Text_Start, Real_Target, Exe_File);
                   declare
                      Mismatch_Reason : constant String :=
                         Match_Trace_Executable (Exe_File.all, Trace_File);
@@ -1759,7 +1766,8 @@ begin
                Init_Base (Base);
 
                if Trace_File = null then
-                  Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
+                  Open_Exec
+                    (Exec_Name_Override, Text_Start, Real_Target, Exe_File);
                else
                   Read_Trace_File
                     (Trace_File.Filename.all, Trace_File.Trace, Base);
@@ -1812,7 +1820,8 @@ begin
 
             begin
                if Trace_File = null then
-                  Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
+                  Open_Exec
+                    (Exec_Name_Override, Text_Start, Real_Target, Exe_File);
                else
                   Open_Trace_File
                     (Trace_File.Filename.all, Desc, Trace_File.Trace);
@@ -1978,7 +1987,8 @@ begin
                   else
                      Histmap := new String'(Exe_File & ".dmap");
                      Load_All_SCOs (Check_SCOs => False);
-                     Build_Decision_Map (Exe_File, Text_Start, Histmap.all);
+                     Build_Decision_Map
+                       (Exe_File, Text_Start, Histmap.all, Real_Target);
                   end if;
                end if;
 
@@ -2001,7 +2011,7 @@ begin
                   Histmap := new String'(Opt_Exe_Name.all & ".dmap");
                   Load_All_SCOs (Check_SCOs => False);
                   Build_Decision_Map (Opt_Exe_Name.all, Text_Start,
-                                      Histmap.all);
+                                      Histmap.all, Real_Target);
                end if;
             end if;
 
