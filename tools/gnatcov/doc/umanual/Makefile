@@ -66,16 +66,12 @@ prepare-images:: Proot.pdf
 Proot.pdf: gen_prjtrees.py prjtree.dot 
 	python gen_prjtrees.py
 
-prepare-version: ../../version.ads
-	VERSION=$$(sed -n -e 's/.*Version.*"\(.*\)".*/\1/p' ../../version.ads); \
-	perl -pi -e "s#^version =.*#version = \"$$VERSION\"#" conf.py
-
 # Production mode needs to assume that the binary prerequisites
 # are up to date. We can't rely on timestamps for this.
 
 PREPARE_IMAGES=$(if $(filter prod, $(BUILD_MODE)),,prepare-images)
 
-stamp-prepare: $(PREPARE_IMAGES) prepare-version
+stamp-prepare: $(PREPARE_IMAGES)
 	touch stamp-prepare
 
 html: stamp-prepare
