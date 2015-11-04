@@ -40,6 +40,16 @@ For **powerpc-vxworks6**:
 
 - Support for the ``kernel`` Ada RTS and Downloadable Kernel Modules only.
 
+For **Windows native**:
+
+- One can omit the extension for the program passed to |gcvrun|. So for
+  instance on this target, ``gnatcov run foo`` is equivalent to ``gnatcov run
+  foo.exe``.  In any case, unless the ``-o`` option is passed, the name for the
+  generated trace file is based on the actual program file name, not the one
+  passed to |gcvrun|. So both previous examples will generate ``foo.exe.trace``
+  files. Besides, both will leave "foo.exe" as the executable name stored in
+  the trace header.
+
 .. _known_limitations:
 
 Known Limitations

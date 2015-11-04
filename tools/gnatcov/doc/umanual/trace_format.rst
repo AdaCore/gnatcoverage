@@ -47,10 +47,12 @@ features the following information entries:
   The trace production time stamp, always 8 bytes long.
 
 ``EXEC_FILE_NAME`` :
-  Path to the binary probgram that was executed to produce the trace. This
-  path is exactly the one that was passed to |gcvrun| and which |gcvcov| uses
-  to find the program file again at analysis time, to find which machine code
-  corresponds to which address for example.
+  Path to the binary program that was executed to produce the trace. This path
+  can be exactly the one that was passed to |gcvrun| or a derived path, for
+  instance if |gcvrun| had to add an extension to find the actual file (see
+  :ref:`target_specific_notes`). |gcvcov| uses this path to find the program
+  file again at analysis time, to find which machine code corresponds to which
+  address for example.
 
 ``USER_DATA`` :
   User string tag for this trace, when one was passed with :option:`-T`

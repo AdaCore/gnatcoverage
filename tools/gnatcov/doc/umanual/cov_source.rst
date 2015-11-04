@@ -223,7 +223,7 @@ items:
 * Coverage level requested to be analyzed
 
 * Details on the input trace files:
-  path to binary program exercised (as provided on the command line),
+  path to binary program exercised (as recorded in the trace header),
   production time stamp and tag string (:option:`--tag` command line
   argument value).
 
