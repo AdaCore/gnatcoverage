@@ -386,7 +386,7 @@ package body Rundrv is
                                        Sec   => Unsigned_8 (GM_Second (Date)),
                                        Pad   => 0);
          Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
-         Append_Info (Trace_File, Exec_File_Name, Exe_File);
+         Append_Info (Trace_File, Exec_File_Name, Executable.all);
 
          Append_Info
            (Trace_File,
