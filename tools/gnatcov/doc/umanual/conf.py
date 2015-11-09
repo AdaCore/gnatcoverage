@@ -64,7 +64,7 @@ rst_epilog = """
 
 # General information about the project.
 project = u'GNATcoverage'
-copyright = u'2009-2012, AdaCore'
+copyright = u'2009-2015, AdaCore'
 docname = u'User\'s Guide'
 
 # The version info for the project you're documenting, acts as replacement for
