@@ -16,7 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers; use Ada.Containers;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Containers;          use Ada.Containers;
+with Ada.Strings.Fixed;
 
 with GNAT.OS_Lib;
 
@@ -24,7 +26,41 @@ with Binary_Files;
 
 package body Execs_Dbase is
 
+   function Is_Windows_Target (Target : String) return Boolean;
+   --  Return whether we are targetting native Windows
+
+   function Has_Suffix (Name, Suffix : String) return Boolean;
+   --  Return whether the last characters of Name are equal to Suffix (case
+   --  insensitive equality).
+
    Exec_Base : Execs_Maps.Map;
+
+   -----------------------
+   -- Is_Windows_Target --
+   -----------------------
+
+   function Is_Windows_Target (Target : String) return Boolean is
+   begin
+      return Ada.Strings.Fixed.Index (Target, "mingw") /= 0;
+   end Is_Windows_Target;
+
+   ----------------
+   -- Has_Suffix --
+   ----------------
+
+   function Has_Suffix (Name, Suffix : String) return Boolean is
+   begin
+      if Suffix'Length > Name'Length then
+         return False;
+      end if;
+
+      declare
+         Actual_Suffix : String renames
+           Name (Name'Last - Suffix'Length + 1 .. Name'Last);
+      begin
+         return To_Lower (Actual_Suffix) = To_Lower (Suffix);
+      end;
+   end Has_Suffix;
 
    ---------
    -- "=" --
@@ -45,40 +81,39 @@ package body Execs_Dbase is
       Target     : String_Access;
       Exec       : out Exe_File_Acc)
    is
-      function Get_Path return String_Access;
-      --  Try to locate File_Name as an executable and return the path to it
 
-      --------------
-      -- Get_Path --
-      --------------
+      function Get_Actual_Name return String_Access;
+      --  Expand File_Name so that it is an actual executable file name
 
-      function Get_Path return String_Access is
-         Result : String_Access := null;
+      ---------------------
+      -- Get_Actual_Name --
+      ---------------------
 
+      function Get_Actual_Name return String_Access is
+         Is_Windows : constant Boolean :=
+           Is_Windows_Target (if Target = null
+                              then Standard'Target_Name
+                              else Target.all);
       begin
-         --  Perform a platform-specific lookup only for native targets. For
-         --  instance, it does not make sense on Windows to look for "foo.exe"
-         --  for a "foo" executable for ARM ELF.
+         --  On Windows, users can omit ".exe" suffixes for executables, so
+         --  add it if it's missing on this platform. Be careful not to add it
+         --  everytime since we sometimes have to deal with other kind of files
+         --  (for instance object files).
 
-         if not GNAT.OS_Lib.Is_Executable_File (File_Name)
-              and then
-            (Target = null or else Target.all = Standard'Target_Name)
+         if Is_Windows
+           and then
+             not GNAT.OS_Lib.Is_Readable_File (File_Name)
+           and then
+             not Has_Suffix (File_Name, ".exe")
          then
-            Result := GNAT.OS_Lib.Locate_Exec_On_Path (File_Name);
-         end if;
-
-         --  For other configurations or if we just cannot find the executable,
-         --  let the usual machinery work with the user-given file name.
-
-         if Result = null then
-            return new String'(File_Name);
+            return new String'(File_Name & ".exe");
          else
-            return Result;
+            return new String'(File_Name);
          end if;
-      end Get_Path;
+      end Get_Actual_Name;
 
       use Execs_Maps;
-      Exec_File_Name : String_Access := Get_Path;
+      Exec_File_Name : String_Access := Get_Actual_Name;
       Base_Entry     : Exec_Base_Entry;
       Position       : constant Cursor := Exec_Base.Find (Exec_File_Name);
 
