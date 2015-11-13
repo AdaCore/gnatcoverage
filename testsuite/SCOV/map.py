@@ -37,7 +37,7 @@ class MapChecker:
             self.execs = to_list(execs)
         else:
             self.execs = [
-                os.path.join("obj", exename_for (source.split('.')[0]))
+                exename_for (source.split('.')[0])
                 for source in self.sources
             ]
 
