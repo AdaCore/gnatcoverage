@@ -29,7 +29,6 @@ package CFG_Dump is
    --  without passing it to dot(1)".
 
    procedure Dump (Exec_Path         : String;
-                   Target            : String_Access;
                    Locations         : User_Locations;
                    Output            : String_Access;
                    Format            : Output_Format;

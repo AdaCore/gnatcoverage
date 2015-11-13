@@ -358,7 +358,7 @@ package body Rundrv is
            (Trace_Info_Date, String_8);
 
       begin
-         Open_Exec (Exe_File, 0, Real_Target (Target), Exec);
+         Open_Exec (Exe_File, 0, Exec);
 
          --  Setup global state: we had to wait for opening the executable file
          --  since the trace file path depends on the precise executable file

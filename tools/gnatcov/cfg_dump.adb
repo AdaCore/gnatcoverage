@@ -1723,7 +1723,6 @@ package body CFG_Dump is
    ----------
 
    procedure Dump (Exec_Path         : String;
-                   Target            : String_Access;
                    Locations         : User_Locations;
                    Output            : String_Access;
                    Format            : Output_Format;
@@ -1767,7 +1766,7 @@ package body CFG_Dump is
       end if;
 
       begin
-         Execs_Dbase.Open_Exec (Exec_Path, 0, Target, Context.Exec);
+         Execs_Dbase.Open_Exec (Exec_Path, 0, Context.Exec);
       exception
          when Binary_Files.Error =>
             Fatal_Error ("Could not open " & Exec_Path);

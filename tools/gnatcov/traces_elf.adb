@@ -19,7 +19,6 @@
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
-with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
@@ -180,6 +179,18 @@ package body Traces_Elf is
       PC   : Pc_Type) return access constant Address_Info_Sets.Set;
    pragma Inline (Get_Desc_Set);
    --  Return the Address_Info_Set of type Kind in Exec containing PC
+
+   procedure Open_Exec_Fd
+     (File_Name        : String;
+      Actual_File_Name : out String_Access;
+      Fd               : out GNAT.OS_Lib.File_Descriptor);
+   --  Try to open the File_Name executable. This makes multiple attempts: it
+   --  may try to append ".exe" (for instance of Windows) to the file name, or
+   --  if not found it may look at the current directory.
+   --
+   --  If successful, put the corresponding file descriptor in Fd and the
+   --  file name used in Actual_File_Name (to be free'd by the caller). If
+   --  unsuccessful, raise a Binary_Files.Error exception.
 
    ---------
    -- "<" --
@@ -366,12 +377,38 @@ package body Traces_Elf is
      (Set : in out Address_Info_Sets.Set;
       El  : Address_Info_Acc) renames Address_Info_Sets.Insert;
 
+   ------------------
+   -- Open_Exec_Fd --
+   ------------------
+
+   procedure Open_Exec_Fd
+     (File_Name        : String;
+      Actual_File_Name : out String_Access;
+      Fd               : out GNAT.OS_Lib.File_Descriptor)
+   is
+      use GNAT.OS_Lib;
+      Path : constant String := Lookup_Exec (File_Name);
+   begin
+      if Path'Length = 0 then
+         raise Binary_Files.Error with File_Name & ": File not found";
+      end if;
+
+      Fd := Open_Read (Path, Binary);
+      if Fd = Invalid_FD then
+         raise Binary_Files.Error with "Could not open " & Path;
+      end if;
+
+      Actual_File_Name := new String'(Path);
+   end Open_Exec_Fd;
+
    ---------------
    -- Open_File --
    ---------------
 
    function Open_File
-     (Filename   : String; Text_Start : Pc_Type) return Exe_File_Acc
+     (Filename   : String;
+      Text_Start : Pc_Type)
+      return Exe_File_Acc
    is
       procedure Merge_Architecture
         (Arch          : Unsigned_16;
@@ -414,6 +451,10 @@ package body Traces_Elf is
          end if;
       end Merge_Architecture;
 
+      -----------------------
+      -- Set_Debug_Section --
+      -----------------------
+
       procedure Set_Debug_Section (File : in out Exe_File_Type'Class;
                                    Index : Section_Index;
                                    Name : String) is
@@ -436,28 +477,15 @@ package body Traces_Elf is
       end Set_Debug_Section;
 
       use GNAT.OS_Lib;
-      Fd : File_Descriptor;
-      Name : GNAT.OS_Lib.String_Access;
+      Fd   : File_Descriptor;
+      Name : GNAT.Strings.String_Access;
 
       Ehdr : Elf_Ehdr;
-   begin
-      --  Open the executable; try the full name and then the base name.
-      Fd := Open_Read (Filename, Binary);
-      if Fd /= Invalid_FD then
-         Name := new String'(Filename);
-      else
-         declare
-            Basename : constant String :=
-              Ada.Directories.Simple_Name (Filename);
-         begin
-            Fd := Open_Read (Basename, Binary);
-            if Fd = Invalid_FD then
-               raise Binary_Files.Error with Filename & ": File not found";
-            end if;
-            Name := new String'(Basename);
-         end;
-      end if;
 
+   --  Start of processing for Open_File
+
+   begin
+      Open_Exec_Fd (Filename, Name, Fd);
       Inputs.Log_File_Open (Name.all);
 
       if Is_ELF_File (Fd) then
@@ -4050,7 +4078,6 @@ package body Traces_Elf is
 
    procedure On_Elf_From
      (Filename : String;
-      Target   : String_Access;
       Cb       : access procedure (Exec : in out Exe_File_Type'Class));
    --  Call CB with an open executable file descriptor for FILE,
    --  closed on return.
@@ -4061,12 +4088,11 @@ package body Traces_Elf is
 
    procedure On_Elf_From
      (Filename : String;
-      Target   : String_Access;
       Cb       : access procedure (Exec : in out Exe_File_Type'Class))
    is
       Exec : Exe_File_Acc;
    begin
-      Open_Exec (Filename, 0, Target, Exec); --  ??? Text_Start
+      Open_Exec (Filename, 0, Exec); --  ??? Text_Start
       Cb (Exec.all);
       Close_File (Exec);
    exception
@@ -4361,7 +4387,6 @@ package body Traces_Elf is
 
    procedure Scan_Symbols_From
      (Filename : String;
-      Target   : String_Access;
       Sym_Cb   : access procedure (Sym : Address_Info_Acc);
       Strict   : Boolean)
    is
@@ -4374,7 +4399,7 @@ package body Traces_Elf is
          Scan_Symbols_From (Exec, Sym_Cb, Strict);
       end Process;
    begin
-      On_Elf_From (Filename, Target, Process'Access);
+      On_Elf_From (Filename, Process'Access);
    end Scan_Symbols_From;
 
    ------------------------
@@ -4435,7 +4460,6 @@ package body Traces_Elf is
 
    procedure Read_Routine_Names
      (Filename : String;
-      Target   : String_Access;
       Exclude  : Boolean;
       Strict   : Boolean)
    is
@@ -4456,7 +4480,7 @@ package body Traces_Elf is
    --  Start of processing for Read_Routine_Names
 
    begin
-      On_Elf_From (Filename, Target, Process'Access);
+      On_Elf_From (Filename, Process'Access);
    end Read_Routine_Names;
 
    ------------------------------

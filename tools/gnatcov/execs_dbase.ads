@@ -35,7 +35,6 @@ package Execs_Dbase is
    procedure Open_Exec
      (File_Name  : String;
       Text_Start : Pc_Type;
-      Target     : String_Access;
       Exec       : out Exe_File_Acc);
    --  Search for a file named File_Name in the Exec database. If one found,
    --  return it; otherwise, open File_Name and add it to the database, then

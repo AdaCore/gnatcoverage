@@ -88,6 +88,18 @@ package Files_Table is
    --  Add Prefix to the source search path. A file named "something" would
    --  be looked for in Prefix & "something".
 
+   procedure Set_Exec_Prefix (Prefix : String);
+   --  Set the executable search prefix to Prefix. If an executable named
+   --  "/path/to/something" is not found, it would be searched in
+   --  Build_Filename(Prefix, "something").
+
+   function Lookup_Exec (Name : String) return String;
+   --  If Name exists, return its name unchanged. Otherwise look for the Name
+   --  executable in the prefix registered through Add_Exec_Prefix. If it is
+   --  found, return the full path, return an empty string otherwise. Name can
+   --  be both a base name or a full path: only the base name part will be used
+   --  during the search.
+
    procedure Expand_Line_Table (File : Source_File_Index; Line : Positive);
    --  If Line is not in File's line table, expand this table and mark the new
    --  line as No_Code.

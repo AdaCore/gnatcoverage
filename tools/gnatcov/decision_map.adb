@@ -21,6 +21,7 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.Regexp;  use GNAT.Regexp;
+with GNAT.Strings; use GNAT.Strings;
 
 with Interfaces; use Interfaces;
 
@@ -2716,12 +2717,11 @@ package body Decision_Map is
    procedure Build_Decision_Map
      (Exec_Name    : String;
       Text_Start   : Pc_Type;
-      Map_Filename : String;
-      Target       : String_Access)
+      Map_Filename : String)
    is
       Exec : Exe_File_Acc;
    begin
-      Open_Exec (Exec_Name, Text_Start, Target, Exec);
+      Open_Exec (Exec_Name, Text_Start, Exec);
 
       Init_Base (Decision_Map_Base);
       Analyze (Exec);

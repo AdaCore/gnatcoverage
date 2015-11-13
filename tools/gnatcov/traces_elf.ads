@@ -59,7 +59,9 @@ package Traces_Elf is
    --  Makes symbolize non-abstract.
 
    function Open_File
-     (Filename : String; Text_Start : Pc_Type) return Exe_File_Acc;
+     (Filename   : String;
+      Text_Start : Pc_Type)
+      return Exe_File_Acc;
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
@@ -338,7 +340,6 @@ package Traces_Elf is
       Strict : Boolean);
    procedure Scan_Symbols_From
      (Filename : String;
-      Target   : String_Access;
       Sym_Cb   : access procedure (Sym : Address_Info_Acc);
       Strict   : Boolean);
    --  Scan FILE/FILENAME for executable symbols, calling SYM_CB for each
@@ -348,7 +349,6 @@ package Traces_Elf is
 
    procedure Read_Routine_Names
      (Filename  : String;
-      Target    : String_Access;
       Exclude   : Boolean;
       Strict    : Boolean);
    procedure Read_Routine_Names

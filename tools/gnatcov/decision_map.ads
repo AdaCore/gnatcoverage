@@ -26,8 +26,6 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 
-with GNAT.Strings; use GNAT.Strings;
-
 with Disassemblers;  use Disassemblers;
 with SC_Obligations; use SC_Obligations;
 with Traces;         use Traces;
@@ -43,8 +41,7 @@ package Decision_Map is
    procedure Build_Decision_Map
      (Exec_Name    : String;
       Text_Start   : Pc_Type;
-      Map_Filename : String;
-      Target       : String_Access);
+      Map_Filename : String);
    --  Analyze the named executable using the provided ALI list to
    --  generate the decision map file to Map_Filename for stateful
    --  (historical) traces collection.

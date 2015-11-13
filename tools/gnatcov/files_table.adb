@@ -25,6 +25,9 @@ with Ada.Unchecked_Deallocation;
 with System;
 with System.Address_To_Access_Conversions;
 
+with GNAT.OS_Lib;
+with Osint;
+
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Outputs;
@@ -106,6 +109,10 @@ package body Files_Table is
 
    First_Source_Search_Entry : Source_Search_Entry_Acc := null;
    Last_Source_Search_Entry  : Source_Search_Entry_Acc := null;
+
+   --  Executable search prefix
+
+   Exec_Search_Prefix : Virtual_File;
 
    ---------------------
    -- Append_To_Array --
@@ -221,6 +228,74 @@ package body Files_Table is
 
       Last_Source_Search_Entry := E;
    end Add_Source_Search;
+
+   ---------------------
+   -- Set_Exec_Prefix --
+   ---------------------
+
+   procedure Set_Exec_Prefix (Prefix : String) is
+   begin
+      Exec_Search_Prefix := Create (+Prefix);
+   end Set_Exec_Prefix;
+
+   -----------------
+   -- Lookup_Exec --
+   -----------------
+
+   function Lookup_Exec (Name : String) return String
+   is
+      function Lookup_Path (Path : String) return String;
+      --  If Path, or a name derived from Path (i.e. with the ".exe" suffix on
+      --  Windows) exists, return it. Return an empty string otherwise.
+
+      -----------------
+      -- Lookup_Path --
+      -----------------
+
+      function Lookup_Path (Path : String) return String is
+      begin
+         if GNAT.OS_Lib.Is_Readable_File (Path) then
+            return Path;
+
+         else
+            --  On Windows, users can omit ".exe" suffixes for executables,
+            --  so add it if it's missing on this platform. Be careful not
+            --  to add it everytime since we sometimes have to deal with
+            --  other kind of files (for instance object files).
+
+            declare
+               Exe_Path : constant String := Osint.Executable_Name (Path);
+            begin
+               if GNAT.OS_Lib.Is_Readable_File (Exe_Path) then
+                  return Exe_Path;
+               end if;
+            end;
+         end if;
+
+         return "";
+      end Lookup_Path;
+
+      Path : constant String := Lookup_Path (Name);
+
+   --  Start of processing for Lookup_Exec
+
+   begin
+      --  If we could not find Name, look in Exec_Search_Prefix
+
+      if Path'Length = 0 and then Exec_Search_Prefix /= No_File then
+         declare
+            Base_Name : constant String := Ada.Directories.Base_Name (Name);
+            VPath     : constant Virtual_File :=
+              Create_From_Dir (Exec_Search_Prefix, +Base_Name);
+            Path      : constant String := Lookup_Path (+Full_Name (VPath));
+         begin
+            return Path;
+         end;
+      else
+         return Path;
+      end if;
+
+   end Lookup_Exec;
 
    ---------------------------
    -- Canonicalize_Filename --
