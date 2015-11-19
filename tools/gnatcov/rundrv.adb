@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2013, AdaCore                     --
+--                     Copyright (C) 2009-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,27 +16,26 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Command_Line;      use Ada.Command_Line;
+with Ada.Directories;       use Ada.Directories;
+with Ada.Strings.Unbounded;
+with Ada.Text_IO;           use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
-
-with Ada.Text_IO;      use Ada.Text_IO;
-with Ada.Command_Line; use Ada.Command_Line;
-with Ada.Directories;  use Ada.Directories;
 
 with Interfaces;
 
 with GNAT.OS_Lib;
-with GNAT.Regpat;  use GNAT.Regpat;
+with GNAT.Regpat; use GNAT.Regpat;
 
 with Execs_Dbase;
 with Qemu_Traces;
-with Switches;     use Switches;
-with Traces_Elf;
-with Traces_Files; use Traces_Files;
-
 with Rundrv.Config;   use Rundrv.Config;
 with Rundrv.Expander; use Rundrv.Expander;
 with Rundrv.State;    use Rundrv.State;
+with Switches;        use Switches;
+with Traces_Elf;
+with Traces_Files;    use Traces_Files;
 
 package body Rundrv is
 
@@ -334,9 +333,8 @@ package body Rundrv is
         Driver_Control_For (Target => Real_Target (Target), Kernel => Kernel);
 
       if Control = null then
-         Error ("unknown target " & Real_Target (Target).all
-                & " (use --help to get target list)");
-         --  ??? xcov run --help should give the target list
+         Error ("Unknown target " & Real_Target (Target).all
+                & " (use --help to get target list).");
          return;
       end if;
 
@@ -460,6 +458,28 @@ package body Rundrv is
       Put_Line (Standard_Error, Msg);
       Set_Exit_Status (Failure);
    end Error;
+
+   -----------------------
+   -- Available_Targets --
+   -----------------------
+
+   function Available_Targets return String
+   is
+      use Ada.Strings.Unbounded;
+
+      Result : Unbounded_String;
+      First  : Boolean := True;
+   begin
+      for Driver of Drivers loop
+         if not First then
+            Append (Result, ", ");
+         end if;
+         First := False;
+
+         Append (Result, Driver.Target.all);
+      end loop;
+      return To_String (Result);
+   end Available_Targets;
 
    ----------
    -- Help --

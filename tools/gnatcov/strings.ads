@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,6 +17,9 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers;
+with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
+
 with GNAT.Strings; use GNAT.Strings;
 
 package Strings is
@@ -43,6 +46,25 @@ package Strings is
 
    function Has_Suffix (S : String; Suffix : String) return Boolean;
    --  True if S ends with Suffix
+
+   function "+"
+     (S : String)
+      return Ada.Strings.Unbounded.Unbounded_String
+      renames Ada.Strings.Unbounded.To_Unbounded_String;
+
+   function "+"
+     (S : Ada.Strings.Unbounded.Unbounded_String)
+      return String
+      renames Ada.Strings.Unbounded.To_String;
+
+   package String_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Ada.Strings.Unbounded.Unbounded_String,
+      "="          => Ada.Strings.Unbounded."=");
+
+   function Vector_To_List
+     (V : String_Vectors.Vector)
+      return String_List_Access;
 
 private
    pragma Inline (Hash);

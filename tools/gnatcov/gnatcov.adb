@@ -16,16 +16,16 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces;
-
 with Ada.Command_Line;
-with Ada.Containers; use Ada.Containers;
+with Ada.Containers;        use Ada.Containers;
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
-with Ada.Text_IO;    use Ada.Text_IO;
+with Ada.Text_IO;           use Ada.Text_IO;
+
+with Interfaces;
 
 with GNAT.OS_Lib;
-with GNAT.Strings;      use GNAT.Strings;
+with GNAT.Strings; use GNAT.Strings;
 
 with ALI_Files;         use ALI_Files;
 with Annotations;       use Annotations;
@@ -36,7 +36,8 @@ with Annotations.Xml;
 with Annotations.Report;
 with CFG_Dump;
 with Check_SCOs;
-with Commands;          use Commands;
+with Command_Line;      use Command_Line;
+use Command_Line.Parser;
 with Convert;
 with Coverage;          use Coverage;
 with Coverage.Source;   use Coverage.Source;
@@ -69,255 +70,16 @@ with Version;
 
 procedure GNATcov is
 
-   procedure Usage;
-   --  Display usage information for documented commands
+   Arg_Parser   : Parser_Type := Command_Line.Create;
+   --  Parser for command-line arguments
 
-   procedure Usage_Dump;
-   --  Display usage information for internal debugging commands
+   Args         : Parsed_Arguments;
+   --  Results of the arguments parsing (first only command-line, then also
+   --  arguments from project file).
 
-   procedure Show_Version;
-   --  Show gnatcov version
+   --  Results of the command line parsing. It is filled by Process_Arguments
+   --  once Args reached its final value.
 
-   procedure Show_CWD;
-   --  Show the current working directory
-
-   procedure Check_Argument_Available
-     (Args            : Inputs.Inputs_Type;
-      What            : String;
-      Command         : Command_Type := No_Command;
-      Additional_Info : String := "");
-   --  Report a fatal error if Args is empty
-
-   procedure Load_All_SCOs (Check_SCOs : Boolean);
-   --  Load all listed SCO files and initialize source coverage data structure.
-   --  If Check_SCOs is True, report an error if no SCOs are provided.
-
-   ------------------------------
-   -- Check_Argument_Available --
-   ------------------------------
-
-   procedure Check_Argument_Available
-     (Args            : Inputs.Inputs_Type;
-      What            : String;
-      Command         : Command_Type := No_Command;
-      Additional_Info : String := "")
-   is
-   begin
-      if Inputs.Length (Args) = 0 then
-         Fatal_Error
-           ("missing " & What & For_Command_Switch (Command)
-           & Additional_Info);
-      end if;
-   end Check_Argument_Available;
-
-   -----------
-   -- Usage --
-   -----------
-
-   procedure Usage is
-      procedure P (S : String) renames Put_Line;
-   begin
-      P ("Usage: " & Ada.Command_Line.Command_Name & " ACTION [OPTIONS...]");
-      P ("Action is one of:");
-      P (" --help");
-      P ("   Display this help");
-      New_Line;
-      P (" --help-dump");
-      P ("   Display extra help for dump commands (useful for maintainance)");
-      New_Line;
-      P (" --version");
-      P ("   Display version");
-      New_Line;
-      Rundrv.Help (" ");
-      New_Line;
-      P (" disp-routines {[--exclude|--include] FILES}");
-      P ("   Build a list of routines from object files");
-      P (" scan-objects {FILES}");
-      P ("   Scan object FILES for empty symbols or orphan regions");
-      New_Line;
-      P (" convert --trace-source=SOURCE_ID --exec=EXECUTABLE");
-      P ("  --input=INPUT_TRACE [OPTIONS]");
-      P ("     SOURCE_ID specifies source of trace data (e.g. iSystem-5634)");
-      P ("     EXECUTABLE is name of executable which generated data");
-      P ("     INPUT_TRACE is file containing trace data to be converted");
-      P ("  --output=OUTPUT_TRACE file to place converted trace into");
-      P ("  --hw-trigger-traces=START_ID,START_ADDR,STOP_ID");
-      P ("     identity of start and stop triggers, and address for start");
-      P ("  --tag=TAG put TAG into trace file");
-      P ("  --level=.... same as for 'run' command");
-      P ("  --scos=...   same as for 'run' command");
-      New_Line;
-      P (" coverage OPTIONS TRACE_FILES");
-      P ("   Generate coverage report");
-      P ("   -c LEVEL --level=LEVEL     Specify coverage levels");
-      P ("      LEVEL is one of " & Valid_Coverage_Options);
-      P ("   -a FORM  --annotate=FORM    Generate a FORM report");
-      P ("      FORM is one of asm,xcov,html,xcov+,html+,dhtml,report");
-      P ("   --routines=<ROUTINE|@FILE>  Add ROUTINE, or all routine listed");
-      P ("                               in FILE to the list of routines");
-      P ("   --alis=<FILE|@LISTFILE>");
-      P ("   --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from");
-      P ("                               FILE for this operation; or do that");
-      P ("                               for each file listed in LISTFILE");
-      P ("   -P=<GPR>                    Use GPR as root project to locate");
-      P ("                               SCOs, select units to analyze and");
-      P ("                               find default options.");
-      P ("   --projects=<GPR|@LISTFILE>  Focus on specific projects within");
-      P ("                               the transitive closure reachable");
-      P ("                               from the root designated by -P.");
-      P ("   --recursive                 In addition to those designated by");
-      P ("                               -P/--projects, consider units from");
-      P ("                               any transitively imported project.");
-      P ("   --units=<UNIT|@LISTFILE>    State the set of units of interest");
-      P ("                               by name, overriding the gpr based");
-      P ("                               selection by -P etc.");
-      P ("   -t TARGET --target=TARGET   When using projects files, state");
-      P ("                               the target toolchain prefix used to");
-      P ("                               build the analyzed pograms. This is");
-      P ("                               required for correct project files");
-      P ("                               processing with cross targets.");
-      P ("   --subdirs=<SUBDIR>          When using project files, look for");
-      P ("                               ALI files in the provided SUBDIR of");
-      P ("                               the projects' build directory.");
-      P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
-      P ("   --output-dir=<SUBDIR>       Subdirectory where xcov or html");
-      P ("                               report files should be produced.");
-      P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
-      P ("                               LISTFILE to the list of traces");
-      P ("   -S <routine|instance>       Perform separate source coverage");
-      P ("                               (EXPERIMENTAL)");
-      New_Line;
-      P (" scan-decisions --scos=...");
-      P ("   Scan source coverage obligations for multiple paths decisions");
-      New_Line;
-   end Usage;
-
-   ----------------
-   -- Usage_Dump --
-   ----------------
-
-   procedure Usage_Dump is
-      procedure P (S : String) renames Put_Line;
-   begin
-      P ("Debugging commands:");
-      New_Line;
-      P (" check-scos");
-      P ("   Parse and load SCOs files to check them");
-      New_Line;
-      P (" dump-trace FILES");
-      P ("   Display of trace files, slided if necessary");
-      New_Line;
-      P (" dump-trace-raw FILES");
-      P ("   Raw display of trace files");
-      New_Line;
-      P (" dump-trace-base FILES");
-      P ("   Display of merged trace files");
-      New_Line;
-      P (" dump-trace-asm EXE TRACE_FILES");
-      P ("   Display of trace files with assembly code for each trace");
-      New_Line;
-      P (" dump-sections EXEs");
-      P (" dump-symbols EXEs");
-      P (" dump-compile-units EXEs");
-      P (" dump-subprograms EXEs");
-      P (" dump-lines EXEs");
-      P ("   Dump info from executable files");
-      New_Line;
-      P (" disassemble EXEs");
-      P (" disassemble-raw EXEs");
-      P ("   Disassemble executables");
-      New_Line;
-      P (" disassemble-insn-properties EXE SELECTORs");
-      P ("   Disassemble instructions in the executable matching SELECTORs.");
-      P ("   The output is a JSON document that describes sections,");
-      P ("   instruction disassembly tokens and instruction properties. See");
-      P ("   SELECTORs in the dump-cfg command for detailed");
-      P ("   --pretty-print              Output a pretty-printed JSON, to");
-      P ("                               ease debugging.");
-      New_Line;
-      P (" dump-cfg EXE SELECTORs");
-      P ("   Display object code from EXE as a graph. SELECTORs must be a");
-      P ("   non-empty list of patterns, which is used to match code to");
-      P ("   draw. The patterns can be:");
-      P ("      file:line1:col1-line2-col2   Match code included in a source");
-      P ("                                   location range");
-      P ("      @0xADDRESS                   Match all code under the symbol");
-      P ("                                   an address belongs to");
-      P ("      0xADDRESS..0xADDRESS         Match code included in an");
-      P ("                                   address range");
-      P ("      SYMBOL_NAME                  Match all code under a symbol");
-      P ("   The object code included if the graph must belong to at least");
-      P ("   one provided pattern.");
-      P ("   -o FILE                     Put the graph output into FILE");
-      P ("                               (default: standard output)");
-      P ("   -f FORMAT                   If given, call dot(1) to produce");
-      P ("                               the actual output (SVG, PDF, DOT,");
-      P ("                               ...)");
-      P ("   -k                          Do not strip edges that are");
-      P ("                               supposed to be uncoverable due to");
-      P ("                               exceptions");
-      P ("   --alis=<FILE|@LISTFILE>");
-      P ("   --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from");
-      P ("                               FILE for this operation; or do that");
-      P ("                               for each file listed in LISTFILE");
-      P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
-      P ("                               LISTFILE to the list of traces");
-      New_Line;
-   end Usage_Dump;
-
-   --  General options
-
-   Coverage_Option           : constant String := "--level=";
-   Coverage_Option_Short     : constant String := "-c";
-   Annotate_Option           : constant String := "--annotate=";
-   Annotate_Option_Short     : constant String := "-a";
-   Routines_Option           : constant String := "--routines=";
-   SCOs_Option               : constant String := "--scos=";
-   ALIs_Option               : constant String := "--alis=";
-   Units_Option              : constant String := "--units=";
-   Final_Report_Option       : constant String := "--report=";
-   Kernel_Option             : constant String := "--kernel=";
-   Output_Dir_Option         : constant String := "--output-dir=";
-   Root_Project_Option       : constant String := "-P";
-   Projects_Option           : constant String := "--projects=";
-   Subdirs_Option            : constant String := "--subdirs=";
-   Scenario_Var_Option       : constant String := "-X";
-   Recursive_Option          : constant String := "--recursive";
-   Trace_Option              : constant String := "--trace=";
-   Trace_Option_Short        : constant String := "-T";
-   Trace_Source_Option       : constant String := "--trace-source=";
-   Target_Option             : constant String := "--target=";
-   Target_Option_Short       : constant String := "-t";
-   HW_Trigger_Traces_Option  : constant String := "--hw-trigger-traces=";
-   Input_Option              : constant String := "--input=";
-   Output_Option             : constant String := "--output=";
-   Output_Option_Short       : constant String := "-o";
-   Separate_Option_Short     : constant String := "-S";
-   Tag_Option                : constant String := "--tag=";
-   Verbose_Option            : constant String := "--verbose";
-   Verbose_Option_Short      : constant String := "-v";
-   Eargs_Option              : constant String := "-eargs";
-   Stats_Option              : constant String := "--stats";
-   Excluded_Option           : constant String := "--non-coverable";
-   Format_Option_Short       : constant String := "-f";
-   Keep_Edges_Option_Short   : constant String := "-k";
-   Pretty_Print_Option       : constant String := "--pretty-print";
-
-   --  Undocumented (maintenance only) options
-
-   Exec_Option               : constant String := "--exec=";
-   --  --exec=E tells xcov to use E as the base executable for all following
-   --  traces passed for analysis on the xcov command line.
-
-   Deprecated_Routine_List_Option       : constant String := "--routine-list=";
-   Deprecated_Routine_List_Option_Short : constant String := "-l";
-   --  "--routine-list=@LISTFILE" adds all routines listed in LISTFILE to the
-   --  list of routines. Same thing for  "-l ".
-   --  This option is now deprecated; use --routines=@LISTFILE instead.
-
-   --  Results of the command line parsing
-
-   Command             : Command_Type := No_Command;
    Annotation          : Annotation_Format renames Annotations.Annotation;
    Trace_Inputs        : Inputs.Inputs_Type;
    Exe_Inputs          : Inputs.Inputs_Type;
@@ -331,24 +93,176 @@ procedure GNATcov is
    Output              : String_Access := null;
    Tag                 : String_Access := null;
    Kernel              : String_Access := null;
-   Eargs               : String_List_Access := null;
+   Eargs               : String_Vectors.Vector;
    Executable_Path     : String_Access := null;
    Locations_Inputs    : Object_Locations.User_Locations;
    CFG_Output_Format   : CFG_Dump.Output_Format := CFG_Dump.None;
    Keep_Edges          : Boolean := False;
    Pretty_Print        : Boolean := False;
 
-   Opt_Exe_Name : String_Access := null;
-   --  Path to executable from the command line; it overrides the default one
-   --  from trace files.
+   function Command_Name return String
+   is
+     (Command_Line.Parser.Command_Name (Arg_Parser, Args.Command));
 
-   procedure Parse_Command_Line;
-   --  Parse the command line and set the above local variables
+   procedure Fatal_Error_With_Usage (Msg : String);
+   --  Shortcut for Outputs.Fatal_Error_With_Usage
 
-   procedure Set_Subjects_From_Project;
-   --  Load the project file and set defaults for options identifying the
-   --  entities of interest coverage analysis if they have not been identified
-   --  on the command line.
+   function Command_Line_Args return String_List_Access;
+   --  Return a dynamically alocated list of arguments to hold arguments from
+   --  Ada.Command_Line.
+
+   function Parse
+     (Argv         : GNAT.Strings.String_List_Access;
+      With_Command : Command_Type := No_Command;
+      Callback     : access procedure (Result : in out Parsed_Arguments;
+                                       Ref    : Option_Reference) := null)
+      return Parsed_Arguments;
+   --  Parse Args using Arg_Parser. Deallocate Args before returning. If there
+   --  is an error, call Fatal_Error with the error message.
+
+   procedure Copy_Arg
+     (Option   : String_Options;
+      Variable : out String_Access);
+   --  Copy Arg into Var. If Arg is not null, this allocates a new string in
+   --  Var.
+
+   procedure Copy_Arg_List
+     (Option : String_List_Options;
+      List   : in out Inputs.Inputs_Type);
+   --  Copy the list of strings referenced in Option to the List input list
+
+   procedure Load_Project_Arguments;
+   --  Load the project, if any, specified in Args, get the command-line
+   --  arguments it may specify in its Coverage package corresponding to
+   --  Args.Command. Then decode them and merge them with Args into Args
+   --  itself.
+
+   procedure Process_Arguments;
+   --  Process all the arguments present in Args and forward them to local
+   --  varibles.
+
+   procedure Show_Version;
+   --  Show gnatcov version
+
+   procedure Show_CWD;
+   --  Show the current working directory
+
+   procedure Report_Missing_Argument
+     (What            : String;
+      Additional_Info : String := "");
+   --  Report a fatal error telling the user that an argument is missing.
+
+   procedure Check_Argument_Available
+     (Input_Args      : Inputs.Inputs_Type;
+      What            : String;
+      Additional_Info : String := "");
+   --  Invoke Report_Missing_Argument if Input_Args is empty
+
+   procedure Load_All_SCOs (Check_SCOs : Boolean);
+   --  Load all listed SCO files and initialize source coverage data structure.
+   --  If Check_SCOs is True, report an error if no SCOs are provided.
+
+   procedure Fatal_Error_With_Usage (Msg : String) is
+   begin
+      Error (Msg);
+      Print_Usage (Arg_Parser, False, True, Args.Command);
+      raise Xcov_Exit_Exc;
+   end Fatal_Error_With_Usage;
+
+   -----------------------
+   -- Command_Line_Args --
+   -----------------------
+
+   function Command_Line_Args return String_List_Access is
+      Result : constant String_List_Access :=
+        new String_List (1 .. Ada.Command_Line.Argument_Count);
+   begin
+      for I in Result'Range loop
+         Result (I) := new String'(Ada.Command_Line.Argument (I));
+      end loop;
+      return Result;
+   end Command_Line_Args;
+
+   -----------
+   -- Parse --
+   -----------
+
+   function Parse
+     (Argv         : GNAT.Strings.String_List_Access;
+      With_Command : Command_Type := No_Command;
+      Callback     : access procedure (Result : in out Parsed_Arguments;
+                                       Ref    : Option_Reference) := null)
+      return Parsed_Arguments
+   is
+      Args_Var : GNAT.Strings.String_List_Access := Argv;
+      Result   : constant Parsed_Arguments :=
+        Parse (Arg_Parser, Argv, With_Command, Callback);
+      Error    : constant String := +Result.Error;
+   begin
+      Free (Args_Var);
+      if Error'Length /= 0 then
+         Args.Command := Result.Command;
+         Fatal_Error_With_Usage (Error);
+      end if;
+      return Result;
+   end Parse;
+
+   --------------
+   -- Copy_Arg --
+   --------------
+
+   procedure Copy_Arg
+     (Option   : String_Options;
+      Variable : out String_Access)
+   is
+      Opt : String_Option renames Args.String_Args (Option);
+   begin
+      if Opt.Present then
+         Variable := new String'(+Opt.Value);
+      end if;
+   end Copy_Arg;
+
+   -------------------
+   -- Copy_Arg_List --
+   -------------------
+
+   procedure Copy_Arg_List
+     (Option : String_List_Options;
+      List   : in out Inputs.Inputs_Type) is
+   begin
+      for Arg of Args.String_List_Args (Option) loop
+         Inputs.Add_Input (List, +Arg);
+      end loop;
+   end Copy_Arg_List;
+
+   -----------------------------
+   -- Report_Missing_Argument --
+   -----------------------------
+
+   procedure Report_Missing_Argument
+     (What            : String;
+      Additional_Info : String := "")
+   is
+   begin
+      Fatal_Error_With_Usage
+        ("Please specify " & What & " on the command line" & Additional_Info
+         & ".");
+   end Report_Missing_Argument;
+
+   ------------------------------
+   -- Check_Argument_Available --
+   ------------------------------
+
+   procedure Check_Argument_Available
+     (Input_Args      : Inputs.Inputs_Type;
+      What            : String;
+      Additional_Info : String := "")
+   is
+   begin
+      if Inputs.Length (Input_Args) = 0 then
+         Report_Missing_Argument (What, Additional_Info);
+      end if;
+   end Check_Argument_Available;
 
    -------------------
    -- Load_All_SCOs --
@@ -360,827 +274,508 @@ procedure GNATcov is
          Check_Argument_Available
            (ALIs_Inputs,
             "SCOs",
-            Command,
-            " (specify Units in project or use --units/--scos)");
+            ", specifying Units in project or using --units/--scos");
       end if;
       Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
       Coverage.Source.Initialize_SCI;
    end Load_All_SCOs;
 
-   ------------------------
-   -- Parse_Command_Line --
-   ------------------------
+   ----------------------------
+   -- Load_Project_Arguments --
+   ----------------------------
 
-   procedure Parse_Command_Line is
-      type Pass_Type is (Command_Line_1, Root_Prj, Command_Line_2);
+   procedure Load_Project_Arguments is
 
-      procedure Process_Switches
-        (S     : Switches_Source'Class;
-         First : Natural;
-         Pass  : Pass_Type);
-      --  Process switches from S starting at index First. Pass Command_Line_1
-      --  is the initial scan for the root project, pass Root_Prj is for
-      --  default switches from the root project, and pass Command_Line_2 is
-      --  for the normal processing of the remainder of the command line.
+      procedure Check_Allowed_Option (Result : in out Parsed_Arguments;
+                                      Ref    : Option_Reference);
+      --  Put an error message in Result if Ref is an option that is forbidden
+      --  in project files.
 
-      ----------------------
-      -- Process_Switches --
-      ----------------------
+      --------------------------
+      -- Check_Allowed_Option --
+      --------------------------
 
-      procedure Process_Switches
-        (S     : Switches_Source'Class;
-         First : Natural;
-         Pass  : Pass_Type)
+      procedure Check_Allowed_Option (Result : in out Parsed_Arguments;
+                                      Ref    : Option_Reference)
       is
-         Arg_Count : constant Natural := S.Argument_Count;
-         Arg_Index : Natural := First;
-
-         procedure Check_Annotation_Format (Annotation : Annotation_Format);
-         --  Warn if Annotation is unknown or deprecated
-
-         procedure Check_Argument_Available
-           (What    : String;
-            Command : Command_Type := No_Command);
-         --  Check that Arg_Index is not greater than Arg_Count. If not,
-         --  display an error message and raise Fatal_Error.
-
-         function Next_Arg (What : String) return String;
-         --  Increment Arg_Index and return Argument (Arg_Index). If end of
-         --  command line is reached, display an error message, and raise
-         --  Constraint_Error.
-
-         function Option_Parameter (S : String) return String;
-         --  Assuming that S is of the form "<part1>=<part2>",
-         --  return "<part2>".
-
-         function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
-         --  Parse S to get an hexadecimal number (form : 0x[0-9a-f]+) and
-         --  return the value. If the parsing fails, fatal error.
-
-         function Rest_Of_Command_Line return String_List_Access;
-         --  Return the rest of the command line in a string list
-
-         procedure Set_Root_Project (Prj_Name : String);
-         --  Use the named project file as root project. No-op during
-         --  Command_Line_2, fatal error if encountered during Root_Prj.
-
-         -----------------------------
-         -- Check_Annotation_Format --
-         -----------------------------
-
-         procedure Check_Annotation_Format (Annotation : Annotation_Format) is
-         begin
-            if Annotation = Annotate_Unknown then
-               Fatal_Error ("bad parameter for " & Annotate_Option_Short);
-            end if;
-         end Check_Annotation_Format;
-
-         ------------------------------
-         -- Check_Argument_Available --
-         ------------------------------
-
-         procedure Check_Argument_Available
-           (What    : String;
-            Command : Command_Type := No_Command) is
-         begin
-            if Arg_Index > Arg_Count then
-               Fatal_Error ("missing " & What & " argument "
-                            & For_Command_Switch (Command));
-            end if;
-         end Check_Argument_Available;
-
-         --------------
-         -- Next_Arg --
-         --------------
-
-         function Next_Arg (What : String) return String is
-         begin
-            Arg_Index := Arg_Index + 1;
-            Check_Argument_Available (What);
-            return S.Argument (Arg_Index);
-         end Next_Arg;
-
-         ----------------------
-         -- Option_Parameter --
-         ----------------------
-
-         function Option_Parameter (S : String) return String is
-         begin
-            for J in S'Range loop
-               if S (J) = '=' then
-                  return S (J + 1 .. S'Last);
-               end if;
-            end loop;
-            return S;
-         end Option_Parameter;
-
-         ---------------
-         -- Parse_Hex --
-         ---------------
-
-         function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
-         is
-            Res : Pc_Type;
-            Pos : Natural;
-         begin
-            if S'Length < 3
-              or else S (S'First) /= '0'
-              or else (S (S'First + 1) /= 'x' and then S (S'First + 1) /= 'X')
-            then
-               Fatal_Error ("missing '0x' prefix for " & Flag_Name);
-            end if;
-            Pos := S'First + 2;
-            Get_Pc (Res, S, Pos);
-            if Pos <= S'Last then
-               Fatal_Error ("bad hexadecimal number for " & Flag_Name);
-            end if;
-            return Res;
-         end Parse_Hex;
-
-         --------------------------
-         -- Rest_Of_Command_Line --
-         --------------------------
-
-         function Rest_Of_Command_Line return String_List_Access is
-            Result : constant String_List_Access :=
-              new String_List (1 .. Arg_Count - Arg_Index);
-            I : Natural := 1;
-         begin
-            while Arg_Index < Arg_Count loop
-               Result (I) := new String'(Next_Arg ("eargs"));
-               I := I + 1;
-            end loop;
-            return Result;
-         end Rest_Of_Command_Line;
-
-         ----------------------
-         -- Set_Root_Project --
-         ----------------------
-
-         procedure Set_Root_Project (Prj_Name : String) is
-         begin
-            if Root_Project /= null then
-               Fatal_Error ("only one root project may be specified");
-            end if;
-            Root_Project := new String'(Prj_Name);
-
-            --  Note: this is called during the first pass of command line
-            --  switches scanning, prior to setting all scenario variables.
-            --  So, don't call Load_Root_Project just yet (this will be done
-            --  one the Command_Line_1 pass is completed).
-         end Set_Root_Project;
-
-      --  Start of processing for Process_Switches
-
+         Complain : Boolean := False;
       begin
-         while Arg_Index <= Arg_Count loop
-            Process_Switch : declare
-               Arg : String renames S.Argument (Arg_Index);
-
-               function Common_Switch return Boolean;
-               --  Processing for switch valid in both command line and
-               --  project, and that need to be processed in all passes.
-               --  Return True if switch processed.
-
-               -------------------
-               -- Common_Switch --
-               -------------------
-
-               function Common_Switch return Boolean is
-               begin
-                  --  Debugging options
-
-                  if Has_Prefix (Arg, "-d") then
-                     declare
-                        Pos : Positive := Arg'First + 2;
-                     begin
-                        if Pos > Arg'Last then
-                           Fatal_Error ("parameter required for -d");
-                        end if;
-
-                        while Pos <= Arg'Last loop
-                           case Arg (Pos) is
-                           when 'b' =>
-                              Switches.Debug_Break_Long_Instructions := True;
-                           when 'h' =>
-                              Switches.Debug_Full_History       := True;
-                           when 'i' =>
-                              Switches.Debug_Ignore_Exemptions  := True;
-                           when others =>
-                              Fatal_Error ("bad parameter -d" & Arg (Pos));
-                           end case;
-                           Pos := Pos + 1;
-                        end loop;
-                     end;
-
-                  elsif Arg = Verbose_Option
-                          or else
-                        Arg = Verbose_Option_Short
-                  then
-                     Verbose := True;
-
-                  else
-                     return False;
-                  end if;
-
-                  return True;
-               end Common_Switch;
-
-            --  Start of processing for Process_Switch
-
-            begin
-               case Pass is
-                  when Command_Line_1 =>
-                     --  A subset of switches are processed before projects
-                     --  are loaded.
-
-                     if Arg = Root_Project_Option then
-                        Set_Root_Project (Next_Arg ("root project"));
-
-                     elsif Has_Prefix (Arg, Root_Project_Option) then
-                        Set_Root_Project
-                          (Arg (Arg'First + Root_Project_Option'Length ..
-                                Arg'Last));
-
-                     elsif Has_Prefix (Arg, Scenario_Var_Option) then
-
-                        --  Get name and value from "-X<name>=<value>"
-
-                        declare
-                           Name_First, Name_Last, Value_First : Positive;
-                        begin
-                           Name_First := Arg'First + 2;
-                           Name_Last := Name_First - 1;
-                           while Name_Last < Arg'Last
-                             and then Arg (Name_Last + 1) /= '='
-                           loop
-                              Name_Last := Name_Last + 1;
-                           end loop;
-
-                           Value_First := Name_Last + 2;
-
-                           S_Variables.Include
-                             (Arg (Name_First .. Name_Last),
-                              Arg (Value_First .. Arg'Last));
-                        end;
-
-                     elsif Has_Prefix (Arg, Subdirs_Option) then
-                        Set_Subdirs (Option_Parameter (Arg));
-
-                     elsif Arg = Target_Option_Short then
-                        Target := new String'(Next_Arg ("target"));
-
-                     elsif Has_Prefix (Arg, Target_Option) then
-                        Target := new String'(Option_Parameter (Arg));
-
-                     elsif Arg = Eargs_Option then
-                        --  Everything that follow -eargs is not for gnatcov
-                        --  itself: discard it. Note that -eargs is valid only
-                        --  for "gnatcov run": just let the second pass handle
-                        --  this.
-                        return;
-
-                     elsif Common_Switch then
-                        null;
-                     end if;
-
-                  when Command_Line_2 | Root_Prj =>
-                     if Arg = Root_Project_Option
-                       or else Arg = Target_Option_Short
-                       or else Has_Prefix (Arg, Root_Project_Option)
-                       or else Has_Prefix (Arg, Scenario_Var_Option)
-                       or else Has_Prefix (Arg, Subdirs_Option)
-                       or else Has_Prefix (Arg, Target_Option)
-                     then
-                        --  Ignore in command line pass 2, reject in project
-
-                        if Pass = Root_Prj then
-                           Fatal_Error
-                             (Arg & " may not be specified in a project");
-                        end if;
-
-                        --  Ignore next argument as well if appropriate
-
-                        if Arg = Root_Project_Option
-                          or else Arg = Target_Option_Short
-                        then
-                           Arg_Index := Arg_Index + 1;
-                        end if;
-
-                     elsif Arg = Eargs_Option then
-                        Check_Option (Arg, Command, (1 => Cmd_Run));
-
-                        --  If we don't yet have an Executable specified,
-                        --  pick the first earg.
-
-                        if Inputs.Length (Exe_Inputs) = 0 then
-                           Inputs.Add_Input (Exe_Inputs, Next_Arg ("eargs"));
-                        end if;
-
-                        Eargs := Rest_Of_Command_Line;
-                        return;
-
-                     elsif Arg = Output_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Run,
-                                                     2 => Cmd_Coverage,
-                                                     3 => Cmd_Dump_CFG));
-                        Output := new String'(Next_Arg ("output"));
-
-                     elsif Has_Prefix (Arg, Output_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Run,
-                                                     2 => Cmd_Coverage,
-                                                     3 => Cmd_Convert,
-                                                     4 => Cmd_Dump_CFG));
-                        Output := new String'(Option_Parameter (Arg));
-
-                     elsif Has_Prefix (Arg, Projects_Option) then
-                        Inputs.Add_Input
-                          (Projects_Inputs, Option_Parameter (Arg));
-
-                     elsif Arg = Recursive_Option then
-                        Switches.Recursive_Projects := True;
-
-                     elsif Has_Prefix (Arg, Tag_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Run,
-                                                     2 => Cmd_Convert));
-                        Tag := new String'(Option_Parameter (Arg));
-
-                     elsif Has_Prefix (Arg, Kernel_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Run));
-                        Kernel := new String'(Option_Parameter (Arg));
-
-                     elsif Arg = Coverage_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                                     2 => Cmd_Run));
-                        declare
-                           Coverage_Level : constant String := Next_Arg
-                             ("coverage level");
-                        begin
-                           Set_Coverage_Levels (Coverage_Level);
-                        exception
-                           when Constraint_Error =>
-                              Fatal_Error
-                                ("bad parameter "
-                                 & Coverage_Option_Short & " "
-                                 & Coverage_Level);
-                        end;
-
-                     elsif Has_Prefix (Arg, Coverage_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                                     2 => Cmd_Run,
-                                                     3 => Cmd_Convert));
-                        begin
-                           Set_Coverage_Levels (Option_Parameter (Arg));
-                        exception
-                           when Constraint_Error =>
-                              Fatal_Error
-                                ("bad parameter " & Arg);
-                        end;
-
-                     elsif Has_Prefix (Arg, SCOs_Option)
-                       or else Has_Prefix (Arg, ALIs_Option)
-                     then
-                        Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
-                                                     2 => Cmd_Coverage,
-                                                     3 => Cmd_Run,
-                                                     4 => Cmd_Convert,
-                                                     5 => Cmd_Dump_CFG,
-                                                     6 => Cmd_Scan_Decisions));
-                        Inputs.Add_Input
-                          (ALIs_Inputs, Option_Parameter (Arg));
-
-                     elsif Has_Prefix (Arg, Units_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
-                                                     2 => Cmd_Coverage,
-                                                     3 => Cmd_Run,
-                                                     4 => Cmd_Scan_Decisions));
-                        Inputs.Add_Input
-                          (Units_Inputs, Option_Parameter (Arg));
-
-                     elsif Has_Prefix (Arg, Routines_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
-                                                     2 => Cmd_Coverage,
-                                                     3 => Cmd_Run));
-                        Inputs.Add_Input
-                          (Routines_Inputs, Option_Parameter (Arg));
-
-                     elsif Arg = Deprecated_Routine_List_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                                     2 => Cmd_Run));
-                        Inputs.Add_Input (Routines_Inputs,
-                                          "@" & Next_Arg ("function list"));
-
-                     elsif Has_Prefix
-                       (Arg, Deprecated_Routine_List_Option)
-                     then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                                     2 => Cmd_Run));
-                        Inputs.Add_Input (Routines_Inputs,
-                                          "@" & Option_Parameter (Arg));
-
-                     elsif Has_Prefix (Arg, Exec_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                                     2 => Cmd_Convert));
-
-                        --  Note: previous value of Opt_Exe_Name is potentially
-                        --  referenced in Trace_Inputs, so don't free it!
-
-                        declare
-                           Exe_Name_Arg : constant String :=
-                                            Option_Parameter (Arg);
-                        begin
-                           if Exe_Name_Arg = "" then
-                              Opt_Exe_Name := null;
-                           else
-                              Opt_Exe_Name := new String'(Exe_Name_Arg);
-                              Inputs.Add_Input (Exe_Inputs, Exe_Name_Arg);
-                           end if;
-                        end;
-
-                     elsif Arg = "--all-decisions" then
-                        Switches.All_Decisions := True;
-
-                     elsif Arg = "--all-messages" then
-                        Switches.All_Messages := True;
-
-                     elsif Arg = "--missing-files" then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        Flag_Show_Missing := True;
-
-                     elsif Has_Prefix (Arg, "--text-start=") then
-                        --  FIXME: not yet supported???
-                        --  Should be a global option (used when building
-                        --  decision map for --run)???
-
-                        begin
-                           Text_Start :=
-                             Parse_Hex
-                               (Arg (Arg'First + 13 .. Arg'Last),
-                                "--text-start");
-                        exception
-                           when Constraint_Error =>
-                              Fatal_Error ("Failure to parse --text-start");
-                        end;
-
-                     elsif Has_Prefix (Arg, "--source-rebase=") then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        declare
-                           Pos : Natural := 0;
-                        begin
-                           --  Parse source-rebase's argument. This option's
-                           --  form should be
-                           --  "--source-rebase=<OLD_PREFIX>=<NEW_PREFIX>".
-
-                           for I in Arg'First + 16 .. Arg'Last loop
-                              if Arg (I) = '=' then
-                                 Pos := I;
-                                 exit;
-                              end if;
-                           end loop;
-                           if Pos = 0 then
-                              Fatal_Error ("missing '=' in --source-rebase=");
-                           end if;
-                           Add_Source_Rebase (Arg (Arg'First + 16 .. Pos - 1),
-                                              Arg (Pos + 1 .. Arg'Last));
-                        end;
-
-                     elsif Has_Prefix (Arg, "--source-search=") then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
-
-                     elsif Has_Prefix (Arg, "--exec-prefix=") then
-                        Set_Exec_Prefix (Arg (Arg'First + 14 .. Arg'Last));
-
-                     elsif Arg = Annotate_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        Annotation :=
-                          To_Annotation_Format
-                            (Next_Arg ("annotation format"));
-                        Check_Annotation_Format (Annotation);
-
-                     elsif Has_Prefix (Arg, Annotate_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        Annotation :=
-                          To_Annotation_Format (Option_Parameter (Arg));
-                        Check_Annotation_Format (Annotation);
-
-                     elsif Has_Prefix (Arg, Final_Report_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        Output := new String'(Option_Parameter (Arg));
-
-                     elsif Has_Prefix (Arg, Output_Dir_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        Outputs.Set_Output_Dir (Option_Parameter (Arg));
-
-                     elsif Arg = Trace_Option_Short then
-                        Check_Option (Arg, Command, (Cmd_Coverage,
-                          Cmd_Dump_Trace,
-                          Cmd_Dump_Trace_Raw,
-                          Cmd_Dump_Trace_Base,
-                          Cmd_Dump_Trace_Asm,
-                          Cmd_Dump_CFG,
-                          Cmd_Run));
-
-                        --  Tag_Option_Short conflicts with Trace_Option_Short
-
-                        if Command = Cmd_Run then
-                           Tag := new String'(Next_Arg (Arg));
-                        else
-                           Inputs.Add_Input
-                             (Trace_Inputs,
-                              Next_Arg ("trace file"),
-                              Qualifier => Opt_Exe_Name);
-                        end if;
-
-                     elsif Has_Prefix (Arg, Trace_Option) then
-                        Check_Option (Arg, Command, (Cmd_Coverage,
-                          Cmd_Dump_Trace,
-                          Cmd_Dump_Trace_Raw,
-                          Cmd_Dump_Trace_Base,
-                          Cmd_Dump_Trace_Asm,
-                          Cmd_Dump_CFG));
-                        Inputs.Add_Input
-                          (Trace_Inputs,
-                           Option_Parameter (Arg),
-                           Qualifier => Opt_Exe_Name);
-
-                     elsif Has_Prefix (Arg, Trace_Source_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Convert));
-                        Convert.Set_Trace_Source (Option_Parameter (Arg));
-
-                     elsif Has_Prefix (Arg, HW_Trigger_Traces_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Convert));
-                        Convert.HW_Trigger_Arg :=
-                          new String'(Option_Parameter (Arg));
-
-                     elsif Has_Prefix (Arg, Input_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Convert));
-                        Convert.Input_Arg :=
-                          new String'(Option_Parameter (Arg));
-
-                     elsif Arg = "--exclude" then
-                        Inputs.Add_Input (Obj_Inputs, Arg);
-
-                     elsif Arg = "--include" then
-                        Inputs.Add_Input (Obj_Inputs, Arg);
-
-                     elsif Arg = Separate_Option_Short then
-                        begin
-                           Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                           Tag_Provider :=
-                             Tag_Providers.Create
-                               (Next_Arg ("separate coverage scope"));
-                        exception
-                           when Constraint_Error =>
-                              Fatal_Error
-                                ("bad parameter for " & Separate_Option_Short);
-                        end;
-
-                     elsif Arg = Stats_Option then
-                        Check_Option (Arg, Command, (1 => Cmd_Map_Routines));
-                        Branch_Stats := True;
-
-                     elsif Arg = Excluded_Option then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        Excluded_SCOs := True;
-
-                     elsif Arg = Format_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Dump_CFG));
-                        declare
-                           Format_Name : constant String :=
-                             Next_Arg ("format name");
-                        begin
-                           CFG_Output_Format :=
-                             CFG_Dump.Output_Format'Value (Format_Name);
-                        exception
-                           when Constraint_Error =>
-                              Fatal_Error
-                                ("Invalid output format: " & Format_Name);
-                        end;
-
-                     elsif Arg = Keep_Edges_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Dump_CFG));
-                        Keep_Edges := True;
-
-                     elsif Arg = Pretty_Print_Option then
-                        Check_Option
-                          (Arg, Command,
-                           (1 => Cmd_Disassemble_Insn_Properties));
-                        Pretty_Print := True;
-
-                     elsif Common_Switch then
-                        null;
-
-                     elsif Arg (1) = '-' then
-                        Fatal_Error ("unknown option: " & Arg);
-
-                     else
-                        --  Handling of parameters that are not options (i.e.
-                        --  file list).
-
-                        case Command is
-                        when No_Command =>
-                           Fatal_Error ("No command specified");
-
-                        when Cmd_Coverage
-                           | Cmd_Dump_Trace
-                           | Cmd_Dump_Trace_Raw
-                           | Cmd_Dump_Trace_Base =>
-                           Inputs.Add_Input
-                             (Trace_Inputs, Arg, Qualifier => Opt_Exe_Name);
-
-                        when Cmd_Disp_Routines
-                           | Cmd_Scan_Objects =>
-                           Inputs.Add_Input (Obj_Inputs, Arg);
-
-                        when Cmd_Dump_Sections
-                           | Cmd_Dump_Symbols
-                           | Cmd_Dump_Compile_Units
-                           | Cmd_Dump_Subprograms
-                           | Cmd_Dump_Lines
-                           | Cmd_Disassemble_Raw
-                           | Cmd_Disassemble =>
-                           Inputs.Add_Input (Exe_Inputs, Arg);
-
-                        when Cmd_Disassemble_Insn_Properties | Cmd_Dump_CFG =>
-                           --  The first argument is the executable. The other
-                           --  ones are locations.
-
-                           if Executable_Path = null then
-                              Executable_Path := new String'(Arg);
-                           else
-                              Locations_Inputs.Append
-                                (Object_Locations.Parse_User_Location (Arg));
-                           end if;
-
-                        when Cmd_Map_Routines =>
-                           --  Set MC/DC coverage level in order to generate
-                           --  a complete decision map.
-
-                           Set_Coverage_Levels ("stmt+mcdc");
-                           Inputs.Add_Input (Exe_Inputs, Arg);
-
-                        when Cmd_Run =>
-                           if Inputs.Length (Exe_Inputs) > 1 then
-                              Fatal_Error
-                                ("Only one EXEC parameter is allowed with "
-                                 & To_Switch (Command));
-                           end if;
-                           Inputs.Add_Input (Exe_Inputs, Arg);
-
-                        when Cmd_Check_SCOs =>
-                           Inputs.Add_Input (ALIs_Inputs, Arg);
-
-                        when Cmd_Dump_Trace_Asm =>
-                           if Inputs.Length (Exe_Inputs) < 1 then
-                              Inputs.Add_Input (Exe_Inputs, Arg);
-                           else
-                              Inputs.Add_Input
-                                (Trace_Inputs, Arg, Qualifier => Opt_Exe_Name);
-                           end if;
-
-                        when others =>
-                           Fatal_Error
-                             ("no parameter allowed for "
-                              & To_Switch (Command));
-
-                        end case;
-                     end if;
-               end case;
-            end Process_Switch;
-
-            Arg_Index := Arg_Index + 1;
-         end loop;
-      end Process_Switches;
-
-      Command_Line : Command_Line_Switches_Source;
-
-   --  Start of processing for Parse_Command_Line
+         case Ref.Kind is
+            when String_Opt =>
+               Complain := Ref.String_Option in
+                 Opt_Project | Opt_Target | Opt_Subdirs;
+            when others =>
+               null;
+         end case;
+         if Complain then
+            Result.Error := +(Option_Name (Arg_Parser, Ref)
+                              & " may not be specified in a project.");
+         end if;
+      end Check_Allowed_Option;
+
+      Project_Args : Parsed_Arguments;
+
+   --  Start of processing for Load_Project_Arguments
 
    begin
-      --  Require at least one argument
-
-      if Command_Line.Argument_Count = 0 then
-         Usage;
-         Normal_Exit;
+      if not Args.String_Args (Opt_Project).Present then
+         return;
       end if;
 
-      --  Decode command
+      --  In order to load the project file we need to set:
+      --    * scenario variables;
+      --    * the object subdir;
+      --    * the target architecture.
 
-      Command := To_Command (Command_Line.Argument (1));
-      if Command = No_Command then
-         Fatal_Error ("bad command " & Command_Line.Argument (1)
-                      & ".  Try option --help");
-      end if;
+      Root_Project := new String'(+Args.String_Args (Opt_Project).Value);
 
-      --  First command line scan: set root project and scenario variables
-
-      Process_Switches (Command_Line, 2, Command_Line_1);
-
-      --  Scan default switches from root project
-
-      if Root_Project /= null then
-
-         --  All -X command line switches have now been processed (during
-         --  the Command_Line_1 pass): initialize the project subsystem and
-         --  load the root project.
-
-         Load_Root_Project (Root_Project.all, Target);
-         Compute_Project_View;
-
-         Switches_From_Project : declare
-            procedure Get_Switches_From_Project (Index : String);
-            --  Get switches from project with indicated index
-
-            -------------------------------
-            -- Get_Switches_From_Project --
-            -------------------------------
-
-            procedure Get_Switches_From_Project (Index : String) is
-               Project_Switches : String_List_Access :=
-                                    Project.Switches (Index);
-            begin
-               if Project_Switches /= null then
-                  declare
-                     Project_Src : String_List_Switches_Source
-                       (Project_Switches.all'Access);
-                  begin
-                     Process_Switches (Project_Src, 1, Root_Prj);
-                     Free (Project_Switches);
-                  end;
-               end if;
-            end Get_Switches_From_Project;
-
-         --  Start of processing for Switches_From_Project
-
-         begin
-            --  First get common switches...
-
-            Get_Switches_From_Project ("*");
-
-            --  ... then get command-specific switches
-
-            Get_Switches_From_Project (To_Switch (Command));
-         end Switches_From_Project;
-
-         --  Set default output dir from project if not defined from project
-         --  switches (can be overridden later on in pass Command_Line_2).
-
-         if not Outputs.Output_Dir_Defined then
-            Outputs.Set_Output_Dir (Project.Output_Dir);
-         end if;
-
-         --  Likewise for the target
+      for S_Var of Args.String_List_Args (Opt_Scenario_Var) loop
+         --  Get name and value from "-X<name>=<value>"
 
          declare
-            Project_Target : constant String := Project.Target;
+            Str                    : constant String := +S_Var;
+            Name_Last, Value_First : Natural;
          begin
-            if Target = null and then Project_Target /= "" then
-               Target := new String'(Project_Target);
+            Name_Last := Str'First - 1;
+            while Name_Last < Str'Last
+              and then Str (Name_Last + 1) /= '='
+            loop
+               Name_Last := Name_Last + 1;
+            end loop;
+
+            Value_First := Name_Last + 2;
+
+            S_Variables.Include
+              (Str (Str'First .. Name_Last),
+               Str (Value_First .. Str'Last));
+         end;
+      end loop;
+
+      if Args.String_Args (Opt_Subdirs).Present then
+         Set_Subdirs (+Args.String_Args (Opt_Subdirs).Value);
+      end if;
+
+      --  If the project file does not define a target, loading it needs the
+      --  target information: load it here.
+
+      Copy_Arg (Opt_Target, Target);
+
+      --  All -X command line switches have now been processed: initialize the
+      --  project subsystem and load the root project.
+
+      Load_Root_Project (Root_Project.all, Target);
+      Compute_Project_View;
+
+      --  Get common and command-specific switches, decode them (if any) and
+      --  store the result in Project_Args, then merge it into Args.
+
+      declare
+         Common_Switches  : constant String_List_Access :=
+           Project.Switches ("*");
+         Command_Switches : constant String_List_Access :=
+           Project.Switches (Command_Name);
+      begin
+         if Common_Switches /= null then
+            Project_Args := Parse
+              (Common_Switches,
+               With_Command => Args.Command,
+               Callback     => Check_Allowed_Option'Access);
+         end if;
+
+         if Command_Switches /= null then
+            Merge
+              (Project_Args,
+               Parse
+                 (Command_Switches,
+                  With_Command => Args.Command,
+                  Callback     => Check_Allowed_Option'Access));
+         end if;
+
+         --  Project_Args have precedence over Args, so merge in Project_Args
+         --  first.
+
+         Merge (Project_Args, Args);
+         Args := Project_Args;
+      end;
+
+      --  Set default output directory and target from the project
+
+      if not Args.String_Args (Opt_Output_Directory).Present then
+         Args.String_Args (Opt_Output_Directory) :=
+           (Present => True, Value => +Project.Output_Dir);
+      end if;
+
+      if not Args.String_Args (Opt_Target).Present
+        and then Project.Target /= ""
+      then
+         Args.String_Args (Opt_Target) :=
+           (Present => True, Value => +Project.Target);
+      end if;
+   end Load_Project_Arguments;
+
+   -----------------------
+   -- Process_Arguments --
+   -----------------------
+
+   procedure Process_Arguments is
+
+      function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
+      --  Parse S to get an hexadecimal number (form : 0x[0-9a-f]+) and
+      --  return the value. If the parsing fails, fatal error.
+
+      Current_Exec : GNAT.Strings.String_Access := null;
+      --  Some arguments specify what executable the next traces will have to
+      --  refer to: this holds the current executable for the next traces.
+
+      procedure Handle_Trace_List_Element (Element : String);
+      --  If Element starts with ASCII.NUL, consider it comes from --exec and
+      --  assign it to Current_Exec. Otherwise, add it to the Trace_Inputs
+      --  input-list.
+
+      ---------------
+      -- Parse_Hex --
+      ---------------
+
+      function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
+      is
+         Res : Pc_Type;
+         Pos : Natural;
+      begin
+         if S'Length < 3
+           or else S (S'First) /= '0'
+           or else (S (S'First + 1) /= 'x' and then S (S'First + 1) /= 'X')
+         then
+            Fatal_Error ("Missing '0x' prefix for " & Flag_Name);
+         end if;
+         Pos := S'First + 2;
+         Get_Pc (Res, S, Pos);
+         if Pos <= S'Last then
+            Fatal_Error ("Bad hexadecimal number for " & Flag_Name);
+         end if;
+         return Res;
+      end Parse_Hex;
+
+      -------------------------------
+      -- Handle_Trace_List_Element --
+      -------------------------------
+
+      procedure Handle_Trace_List_Element (Element : String) is
+      begin
+         if Element'Length > 0
+           and then Element (Element'First) = ASCII.NUL
+         then
+            Current_Exec :=
+              new String'(Element (Element'First + 1 .. Element'Last));
+         else
+            Inputs.Add_Input
+              (Trace_Inputs, Element, Qualifier => Current_Exec);
+         end if;
+      end Handle_Trace_List_Element;
+
+   --  Start of processing for Process_Arguments
+
+   begin
+      --  First, handle all options...
+
+      Switches.Recursive_Projects := Args.Bool_Args (Opt_Recursive);
+      Verbose                     := Args.Bool_Args (Opt_Verbose);
+      Switches.All_Decisions      := Args.Bool_Args (Opt_All_Decisions);
+      Switches.All_Messages       := Args.Bool_Args (Opt_All_Messages);
+      Flag_Show_Missing           := Args.Bool_Args (Opt_Missing_Files);
+      Branch_Stats                := Args.Bool_Args (Opt_Branch_Stats);
+      Excluded_SCOs               := Args.Bool_Args (Opt_Excluded_SCOs);
+      Keep_Edges                  := Args.Bool_Args (Opt_Keep_Edges);
+      Pretty_Print                := Args.Bool_Args (Opt_Pretty_Print);
+
+      Copy_Arg (Opt_Target, Target);
+      Copy_Arg (Opt_Output, Output);
+      Copy_Arg (Opt_Final_Report, Output);
+      Copy_Arg (Opt_Tag, Tag);
+      Copy_Arg (Opt_Kernel, Kernel);
+      Copy_Arg (Opt_HW_Trigger_Traces, Convert.HW_Trigger_Arg);
+      Copy_Arg (Opt_Input, Convert.Input_Arg);
+
+      Copy_Arg_List (Opt_Projects, Projects_Inputs);
+      Copy_Arg_List (Opt_Scos, ALIs_Inputs);
+      Copy_Arg_List (Opt_Units, Units_Inputs);
+      Copy_Arg_List (Opt_Routines, Routines_Inputs);
+      Copy_Arg_List (Opt_Exec, Exe_Inputs);
+
+      if Args.String_Args (Opt_Coverage_Level).Present then
+         declare
+            Arg : constant String :=
+              +Args.String_Args (Opt_Coverage_Level).Value;
+         begin
+            Set_Coverage_Levels (Arg);
+         exception
+            when Constraint_Error =>
+               Fatal_Error ("Bad coverage level: " & Arg);
+         end;
+      end if;
+
+      if Args.String_Args (Opt_Annotation_Format).Present then
+         declare
+            Arg : constant String :=
+              +Args.String_Args (Opt_Annotation_Format).Value;
+         begin
+            Annotation := To_Annotation_Format (Arg);
+            if Annotation = Annotate_Unknown then
+               Fatal_Error ("Bad annotation format: " & Arg);
             end if;
          end;
       end if;
 
-      --  Second command line scan: process remainder of options
+      for Arg of Args.String_List_Args (Opt_Routines_List) loop
+         Inputs.Add_Input (Routines_Inputs, '@' & (+Arg));
+      end loop;
 
-      Process_Switches (Command_Line, 2, Command_Line_2);
-   end Parse_Command_Line;
+      if Args.String_Args (Opt_Text_Start).Present then
 
-   -------------------------------
-   -- Set_Subjects_From_Project --
-   -------------------------------
+         --  FIXME: not yet supported???
+         --
+         --  Should be a global option (used when building decision map for
+         --  --run)???
 
-   procedure Set_Subjects_From_Project is
-
-      generic
-         Input_List : in out Inputs_Type;
-      procedure Add_Item (S : String);
-      --  Add S to Input_List
-
-      --------------
-      -- Add_Item --
-      --------------
-
-      procedure Add_Item (S : String) is
-      begin
-         Inputs.Add_Input (Input_List, S);
-      end Add_Item;
-
-      procedure Add_LI is new Add_Item (ALIs_Inputs);
-
-   --  Start of processing for Set_Subjects_From_Project
-
-   begin
-      if Object_Coverage_Enabled then
-
-         --  Set routines from project, not supported yet???
-
-         null;
-
-      elsif Inputs.Length (ALIs_Inputs) = 0 then
-         Enumerate_LIs (Add_LI'Access, Override_Units => Units_Inputs);
+         begin
+            Text_Start := Parse_Hex
+              (+Args.String_Args (Opt_Text_Start).Value,
+               "--text-start");
+         exception
+            when Constraint_Error =>
+               Fatal_Error ("Failure to parse --text-start");
+         end;
       end if;
-   end Set_Subjects_From_Project;
+
+      for Arg_Acc of Args.String_List_Args (Opt_Source_Rebase) loop
+         declare
+            --  Parse source-rebase's argument. This option's form should be:
+            --
+            --  "<OLD_PREFIX>=<NEW_PREFIX>"
+
+            Arg : constant String := +Arg_Acc;
+            Pos : Natural := 0;
+         begin
+            for I in Arg'First .. Arg'Last loop
+               if Arg (I) = '=' then
+                  Pos := I;
+                  exit;
+               end if;
+            end loop;
+            if Pos = 0 then
+               Fatal_Error ("Missing '=' in --source-rebase");
+            end if;
+            Add_Source_Rebase (Arg (Arg'First .. Pos - 1),
+                               Arg (Pos + 1 .. Arg'Last));
+         end;
+      end loop;
+
+      for Arg of Args.String_List_Args (Opt_Source_Search) loop
+         Add_Source_Search (+Arg);
+      end loop;
+
+      if Args.String_Args (Opt_Exec_Prefix).Present then
+         Set_Exec_Prefix (+Args.String_Args (Opt_Exec_Prefix).Value);
+      end if;
+
+      if Args.String_Args (Opt_Output_Directory).Present then
+         Outputs.Set_Output_Dir
+           (+Args.String_Args (Opt_Output_Directory).Value);
+      end if;
+
+      for Arg of Args.String_List_Args (Opt_Trace) loop
+         Handle_Trace_List_Element (+Arg);
+      end loop;
+
+      if Args.String_Args (Opt_Trace_Source).Present then
+         Convert.Set_Trace_Source (+Args.String_Args (Opt_Trace_Source).Value);
+      end if;
+
+      if Args.String_Args (Opt_Separate).Present then
+         Tag_Provider := Tag_Providers.Create
+           (+Args.String_Args (Opt_Separate).Value);
+      end if;
+
+      if Args.String_Args (Opt_Output_Format).Present then
+         declare
+            Arg : constant String :=
+              +Args.String_Args (Opt_Output_Format).Value;
+         begin
+            CFG_Output_Format := CFG_Dump.Output_Format'Value (Arg);
+         exception
+            when Constraint_Error =>
+               Fatal_Error ("Invalid output format: " & Arg);
+         end;
+      end if;
+
+      --  ... then, handle remaning arguments, which have subcommand-specific
+      --  meanings.
+
+      case Args.Command is
+         when Cmd_Coverage
+            | Cmd_Dump_Trace
+            | Cmd_Dump_Trace_Raw
+            | Cmd_Dump_Trace_Base
+            | Cmd_Dump_Trace_Asm =>
+
+            if Args.Command = Cmd_Coverage
+              and then
+                not Args.String_Args (Opt_Annotation_Format).Present
+            then
+               Report_Missing_Argument ("an annotation format");
+            end if;
+
+            --  Remaining arguments are supposed to be copied to Opt_Trace,
+            --  which is already handled, so there's nothing left to do with
+            --  them.
+
+         when Cmd_Disp_Routines
+            | Cmd_Scan_Objects =>
+            for Arg of Args.Remaining_Args loop
+               Inputs.Add_Input (Obj_Inputs, +Arg);
+            end loop;
+
+         when Cmd_Dump_Sections
+            | Cmd_Dump_Symbols
+            | Cmd_Dump_Compile_Units
+            | Cmd_Dump_Subprograms
+            | Cmd_Dump_Lines
+            | Cmd_Disassemble_Raw
+            | Cmd_Disassemble =>
+            for Arg of Args.Remaining_Args loop
+               Inputs.Add_Input (Exe_Inputs, +Arg);
+            end loop;
+
+         when Cmd_Disassemble_Insn_Properties | Cmd_Dump_CFG =>
+            --  The first argument is the executable. The other ones are
+            --  locations.
+
+            declare
+               use String_Vectors;
+               Arg_Vector : Vector renames Args.Remaining_Args;
+               Cur        : Cursor;
+            begin
+               if Arg_Vector.Length < 2 then
+                  Fatal_Error ("Missing arguments");
+               else
+                  Cur := Arg_Vector.First;
+                  Executable_Path := new String'(+Element (Cur));
+                  loop
+                     Next (Cur);
+                     exit when Cur = No_Element;
+                     Locations_Inputs.Append
+                       (Object_Locations.Parse_User_Location
+                          (+Element (Cur)));
+                  end loop;
+               end if;
+            end;
+
+         when Cmd_Map_Routines =>
+            --  Set MC/DC coverage level in order to generate a complete
+            --  decision map.
+
+            Set_Coverage_Levels ("stmt+mcdc");
+            for Arg of Args.Remaining_Args loop
+               Inputs.Add_Input (Exe_Inputs, +Arg);
+            end loop;
+
+         when Cmd_Run =>
+            --  If we don't yet have an executable specified, pick the first
+            --  EARG. Forward the remaining EARGS from Args to the Eargs local.
+
+            case Args.Remaining_Args.Length is
+               when 0 =>
+                  declare
+                     Eargs_Arg : String_Vectors.Vector
+                     renames Args.String_List_Args (Opt_Eargs);
+                  begin
+                     if Eargs_Arg.Length = 0 then
+                        Report_Missing_Argument
+                          ("an executable to run (EXE)");
+                     end if;
+                     for Arg of Eargs_Arg loop
+                        if Inputs.Length (Exe_Inputs) = 0 then
+                           Inputs.Add_Input
+                             (Exe_Inputs, +Eargs_Arg.First_Element);
+                        else
+                           Eargs.Append (Arg);
+                        end if;
+                     end loop;
+                  end;
+
+               when 1 =>
+                  Inputs.Add_Input
+                    (Exe_Inputs, +Args.Remaining_Args.First_Element);
+                  Eargs := Args.String_List_Args (Opt_Eargs);
+
+               when others =>
+                  Fatal_Error ("Only one EXEC parameter is allowed");
+            end case;
+
+         when Cmd_Check_SCOs =>
+            for Arg of Args.Remaining_Args loop
+               Inputs.Add_Input (ALIs_Inputs, +Arg);
+            end loop;
+
+         when Cmd_Convert =>
+            if Args.String_List_Args (Opt_Exec).Is_Empty then
+               Fatal_Error
+                 (Option_Name (Arg_Parser, (String_List_Opt, Opt_Exec))
+                  & " is missing (required for ""convert"")");
+            end if;
+
+         when others =>
+            null;
+      end case;
+
+      if Root_Project /= null then
+         --  If a root project has been specified but no project is being
+         --  considered for coverage analysis, consider the root by default.
+
+         if Length (Projects_Inputs) = 0 then
+            Inputs.Add_Input (Projects_Inputs, Root_Project.all);
+         end if;
+         Inputs.Iterate (Projects_Inputs, Project.Add_Project'Access);
+
+         --  Set defaults for options identifying the entities of interest
+         --  coverage analysis if they have not been identified on the command
+         --  line.
+
+         if Object_Coverage_Enabled then
+            --  Set routines from project, not supported yet???
+            null;
+
+         elsif Inputs.Length (ALIs_Inputs) = 0 then
+            declare
+               procedure Add_LI (S : String);
+               --  Callback to add items to ALIs_Inputs
+
+               ------------
+               -- Add_LI --
+               ------------
+
+               procedure Add_LI (S : String) is
+               begin
+                  Inputs.Add_Input (ALIs_Inputs, S);
+               end Add_LI;
+            begin
+               Enumerate_LIs (Add_LI'Access, Override_Units => Units_Inputs);
+            end;
+         end if;
+
+      elsif Length (Projects_Inputs) /= 0 then
+         Fatal_Error ("--projects requires -P");
+      end if;
+
+      --  Set defaults for options not specified so far
+
+      declare
+         use type Tag_Provider_Access;
+      begin
+         if Tag_Provider = null then
+            Tag_Provider := Tag_Providers.Create (Default_Tag_Provider_Name);
+         end if;
+      end;
+   end Process_Arguments;
 
    ------------------
    -- Show_Version --
@@ -1203,49 +798,42 @@ procedure GNATcov is
    Base        : aliased Traces_Base;
    Exec        : Exe_File_Acc;
 
-   use type Tag_Provider_Access;
-
---  Start of processing for Xcov
+--  Start of processing for GNATcov
 
 begin
-   --  Process command line
+   --  Require at least one argument
 
-   Parse_Command_Line;
+   if Ada.Command_Line.Argument_Count = 0 then
+      Print_Usage (Arg_Parser, False, False);
+      Normal_Exit;
+   end if;
+
+   --  Load arguments from command-line and from the project file (if any)
+
+   Args := Parse (Command_Line_Args);
+   Load_Project_Arguments;
+   Process_Arguments;
 
    if Verbose then
       Show_Version;
       Show_CWD;
    end if;
 
-   if Root_Project /= null then
-      --  If a root project has been specified but no project is being
-      --  considered for coverage analysis, consider the root by default.
-
-      if Length (Projects_Inputs) = 0 then
-         Inputs.Add_Input (Projects_Inputs, Root_Project.all);
-      end if;
-
-      Inputs.Iterate (Projects_Inputs, Project.Add_Project'Access);
-      Set_Subjects_From_Project;
-
-   elsif Length (Projects_Inputs) /= 0 then
-      Fatal_Error (Projects_Option & " requires " & Root_Project_Option);
-   end if;
-
-   --  Set defaults for options not specified so far
-
-   if Tag_Provider = null then
-      Tag_Provider := Tag_Providers.Create (Default_Tag_Provider_Name);
-   end if;
-
    --  Now execute the specified command
 
-   case Command is
-      when No_Command | Cmd_Help =>
-         Usage;
+   case Args.Command is
+      when None =>
+         --  This can happen only if there is an error during arguments
+         --  parsing. In this case, we are supposed to stop earlier, so
+         --  we're not supposed to end up here.
 
-      when Cmd_Help_Dump =>
-         Usage_Dump;
+         raise Program_Error;
+
+      when Cmd_Help =>
+         Print_Usage (Arg_Parser, False, False);
+
+      when Cmd_Help_Internal =>
+         Print_Usage (Arg_Parser, True, False);
 
       when Cmd_Version =>
          if not Verbose then
@@ -1282,7 +870,7 @@ begin
             end Read_Routine_Name;
 
          begin
-            Check_Argument_Available (Obj_Inputs, "EXEC", Command);
+            Check_Argument_Available (Obj_Inputs, "FILEs");
             Inputs.Iterate (Obj_Inputs, Read_Routine_Name'Access);
             Traces_Names.Disp_All_Routines_Of_Interest;
          end;
@@ -1308,7 +896,7 @@ begin
             end Scan_One_Elf;
 
          begin
-            Check_Argument_Available (Obj_Inputs, "EXEC", Command);
+            Check_Argument_Available (Obj_Inputs, "FILEs");
             Inputs.Iterate (Obj_Inputs, Scan_One_Elf'Access);
          end;
 
@@ -1346,11 +934,11 @@ begin
          Load_All_SCOs (Check_SCOs => True);
 
       when Cmd_Dump_Trace =>
-         Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
+         Check_Argument_Available (Trace_Inputs, "TRACE_FILEs");
          Inputs.Iterate (Trace_Inputs, Dump_Trace_File'Access);
 
       when Cmd_Dump_Trace_Raw =>
-         Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
+         Check_Argument_Available (Trace_Inputs, "TRACE_FILEs");
          Inputs.Iterate (Trace_Inputs, Dump_Raw_Trace_File'Access);
 
       when Cmd_Dump_Trace_Base =>
@@ -1371,7 +959,7 @@ begin
             end Dump_Trace_Base;
 
          begin
-            Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
+            Check_Argument_Available (Trace_Inputs, "TRACE_FILEs");
             Inputs.Iterate (Trace_Inputs, Dump_Trace_Base'Access);
          end;
 
@@ -1405,8 +993,8 @@ begin
             end Open_Exec;
 
          begin
-            Check_Argument_Available (Exe_Inputs, "EXEC", Command);
-            Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
+            Check_Argument_Available (Exe_Inputs, "EXE");
+            Check_Argument_Available (Trace_Inputs, "TRACE_FILEs");
             Inputs.Iterate (Exe_Inputs, Open_Exec'Access);
             Inputs.Iterate (Trace_Inputs, Dump_Trace'Access);
          end;
@@ -1430,7 +1018,7 @@ begin
                Exec := Open_File (Exec_File_Name, Text_Start);
                Build_Sections (Exec.all);
 
-               case Command is
+               case Args.Command is
                   when Cmd_Dump_Sections =>
                      To_Display := Section_Addresses;
 
@@ -1457,7 +1045,7 @@ begin
             end Dump_Exec;
 
          begin
-            Check_Argument_Available (Exe_Inputs, "EXECs", Command);
+            Check_Argument_Available (Exe_Inputs, "EXEs");
             Inputs.Iterate (Exe_Inputs, Dump_Exec'Access);
          end;
 
@@ -1480,7 +1068,7 @@ begin
             end Dump_Compilation_Units;
 
          begin
-            Check_Argument_Available (Exe_Inputs, "EXECs", Command);
+            Check_Argument_Available (Exe_Inputs, "EXEs");
             Inputs.Iterate (Exe_Inputs, Dump_Compilation_Units'Access);
          end;
 
@@ -1501,7 +1089,7 @@ begin
             end Disassemble;
 
          begin
-            Check_Argument_Available (Exe_Inputs, "EXECs", Command);
+            Check_Argument_Available (Exe_Inputs, "EXEs");
             Inputs.Iterate (Exe_Inputs, Disassemble'Access);
          end;
 
@@ -1524,18 +1112,18 @@ begin
             end Disassemble;
 
          begin
-            Check_Argument_Available (Exe_Inputs, "EXECs", Command);
+            Check_Argument_Available (Exe_Inputs, "EXEs");
             Inputs.Iterate (Exe_Inputs, Disassemble'Access);
          end;
 
       when Cmd_Disassemble_Insn_Properties | Cmd_Dump_CFG =>
          if Executable_Path = null then
-            Fatal_Error ("The executable argument is missing");
+            Report_Missing_Argument ("an executable (EXE)");
          elsif Locations_Inputs.Is_Empty then
-            Fatal_Error ("At least one location is required");
+            Report_Missing_Argument ("at least one location (SELECTORs)");
          end if;
 
-         if Command = Cmd_Disassemble_Insn_Properties then
+         if Args.Command = Cmd_Disassemble_Insn_Properties then
             Disassemble_Insn_Properties.Disassemble
               (Executable_Path.all,
                Locations_Inputs,
@@ -1559,7 +1147,7 @@ begin
 
          if Annotation = Annotate_Report and then Object_Coverage_Enabled then
             Fatal_Error
-              ("Report output is supported for source coverage only");
+              ("Report output is supported for source coverage only.");
          end if;
 
          --  Validate availability of the output format
@@ -1568,7 +1156,7 @@ begin
             not Annotations.Dynamic_Html.Installed
          then
             Fatal_Error
-              ("Dynamic HTML report format support is not installed");
+              ("Dynamic HTML report format support is not installed.");
          end if;
 
          --  Load ALI files
@@ -1580,7 +1168,7 @@ begin
             Inputs.Iterate (ALIs_Inputs, Load_ALI'Access);
 
          else
-            Fatal_Error ("Please specify a coverage level");
+            Report_Missing_Argument ("a coverage level");
          end if;
 
          --  Load routines from command line
@@ -1593,8 +1181,9 @@ begin
                Routines_Of_Interest_Origin := From_Command_Line;
 
             elsif Inputs.Length (Trace_Inputs) > 1 then
-               Fatal_Error ("routine list required"
-                            & " when reading multiple trace files");
+               Report_Missing_Argument
+                 ("a list of routines",
+                  "required when reading multiple trace files");
 
             else
                --  If no routines were given on the command line, we'll add
@@ -1606,8 +1195,7 @@ begin
 
          else
             if Inputs.Length (Routines_Inputs) /= 0 then
-               Fatal_Error ("routine list not allowed"
-                            & " for source coverage");
+               Fatal_Error ("Routine list not allowed for source coverage.");
             end if;
          end if;
 
@@ -1674,8 +1262,9 @@ begin
                        Get_Info (Trace_File, Exec_File_Name);
                   begin
                      if Exec_Name_From_Trace = "" then
-                        Fatal_Error ("cannot find exec filename in trace file "
-                                     & Trace_File_Name);
+                        Fatal_Error
+                          ("Cannot find executable filename in trace file "
+                           & Trace_File_Name);
                      end if;
 
                      return Exec_Name_From_Trace;
@@ -1704,7 +1293,7 @@ begin
                end return;
             exception
                when E : Binary_Files.Error =>
-                  Fatal_Error ("cannot open ELF file " & Exe_Name
+                  Fatal_Error ("Cannot open ELF file " & Exe_Name
                                & " for trace file " & Trace_File_Name & ": "
                                & Ada.Exceptions.Exception_Message (E));
                   raise;
@@ -1785,7 +1374,7 @@ begin
 
                if Verbose and then Trace_File /= null then
                   Put_Line
-                    ("processing traces from " & Trace_File.Filename.all);
+                    ("Processing traces from " & Trace_File.Filename.all);
                end if;
 
                Load_Code_And_Traces (Exe_File, Base'Access);
@@ -1843,7 +1432,7 @@ begin
 
                if Verbose then
                   Put_Line
-                    ("processing traces from " & Trace_File.Filename.all);
+                    ("Processing traces from " & Trace_File.Filename.all);
                end if;
 
                loop
@@ -1852,7 +1441,7 @@ begin
 
                   if E.Op = Qemu_Traces.Trace_Op_Special then
                      Fatal_Error
-                       ("Unexpected 'loadaddr' special trace entry");
+                       ("Unexpected 'loadaddr' special trace entry.");
                   end if;
 
                   --  Skip everything until the first trace entry after
@@ -1905,7 +1494,7 @@ begin
             end Process_Trace_For_Src_Coverage;
 
          begin
-            Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
+            Check_Argument_Available (Trace_Inputs, "TRACE_FILEs");
             Inputs.Iterate (Exe_Inputs,  Process_Exec'Access);
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
          end;
@@ -1932,7 +1521,7 @@ begin
             when Annotate_Asm =>
                if Source_Coverage_Enabled then
                   Fatal_Error
-                    ("Asm output supported for object coverage only");
+                    ("Asm output supported for object coverage only.");
                end if;
                Traces_Disa.Flag_Show_Asm := True;
                Traces_Dump.Dump_Routines_Traces (Output);
@@ -1957,11 +1546,14 @@ begin
                Annotations.Report.Generate_Report (Output);
 
             when Annotate_Unknown =>
-               Fatal_Error ("Please specify an annotation format.");
+               --  This should be unreachable: we are supposed to check that
+               --  the user provided a format earlier.
+
+               raise Program_Error;
          end case;
 
       when Cmd_Run =>
-         Check_Argument_Available (Exe_Inputs, "EXE", Command);
+         Check_Argument_Available (Exe_Inputs, "EXE");
 
          declare
             procedure Run (Exe_File : String);
@@ -1976,7 +1568,7 @@ begin
             begin
                if MCDC_Coverage_Enabled then
                   if Length (ALIs_Inputs) = 0 then
-                     Warn ("No SCOs specified for MC/DC level");
+                     Warn ("No SCOs specified for MC/DC level.");
 
                   else
                      Histmap := new String'(Exe_File & ".dmap");
@@ -1986,7 +1578,7 @@ begin
                end if;
 
                Rundrv.Driver (Exe_File, Target, Tag, Output, Histmap,
-                              Kernel, Eargs);
+                              Kernel, Vector_To_List (Eargs));
             end Run;
          begin
             Inputs.Iterate (Exe_Inputs, Run'Access);
@@ -1994,23 +1586,32 @@ begin
 
       when Cmd_Convert =>
          declare
-            Histmap : String_Access := null;
+            Exec    : constant String :=
+              +Args.String_List_Args (Opt_Exec).Last_Element;
+            Histmap : constant String :=
+              Exec & ".dmap";
          begin
             if MCDC_Coverage_Enabled then
                if Length (ALIs_Inputs) = 0 then
-                  Warn ("No SCOs specified for MC/DC level");
+                  Warn ("No SCOs specified for MC/DC level.");
 
                else
-                  Histmap := new String'(Opt_Exe_Name.all & ".dmap");
                   Load_All_SCOs (Check_SCOs => False);
-                  Build_Decision_Map (Opt_Exe_Name.all, Text_Start,
-                                      Histmap.all);
+                  Build_Decision_Map (Exec, Text_Start, Histmap);
                end if;
             end if;
 
-            Convert.Run_Convert (Opt_Exe_Name, Output, Histmap, Tag);
+            --  TODO??? Run_Convert is not supposed to write to Exec. Actually,
+            --  it uses the String_Access as a way to know if the user passed
+            --  an executable argument, which is not needed now we have a clean
+            --  way to process arguments. Likwise for Histmap.
+
+            Convert.Run_Convert (Exec'Unrestricted_Access, Output,
+                                 Histmap'Unrestricted_Access, Tag);
          end;
    end case;
+
+   Destroy (Arg_Parser);
 
    if Verbose then
       Perf_Counters.Display;

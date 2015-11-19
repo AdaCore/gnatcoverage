@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -86,5 +86,24 @@ package body Strings is
       return S'Length > Length
         and then S (S'Last - Length + 1 .. S'Last) = Suffix;
    end Has_Suffix;
+
+   --------------------
+   -- Vector_To_List --
+   --------------------
+
+   function Vector_To_List
+     (V : String_Vectors.Vector)
+      return String_List_Access
+   is
+      Result : constant String_List_Access :=
+        new String_List (1 .. Natural (V.Length));
+      I      : Positive := 1;
+   begin
+      for S of V loop
+         Result (I) := new String'(+S);
+         I := I + 1;
+      end loop;
+      return Result;
+   end Vector_To_List;
 
 end Strings;

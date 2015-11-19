@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -204,7 +204,7 @@ package body Coverage is
       procedure Put_Option (Cur : Cursor) is
       begin
          if Length (Options) /= 0 then
-            Append (Options, '|');
+            Append (Options, ", ");
          end if;
          Append (Options, Key (Cur).all);
       end Put_Option;

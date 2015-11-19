@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -23,6 +23,9 @@ package Rundrv is
    function Real_Target (Target : String_Access) return String_Access;
    --  If Target is null, return the default target, otherwise return Target
    --  itself. Callers must *not* free the result.
+
+   function Available_Targets return String;
+   --  Return a list of available targets
 
    procedure Driver
      (Exe_File : String;

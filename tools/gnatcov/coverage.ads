@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -50,7 +50,7 @@ package Coverage is
    --  Set the coverage levels to be assessed by xcov
 
    function Valid_Coverage_Options return String;
-   --  Return |-separated list of acceptable values for Set_Coverage_Levels
+   --  Return a list of acceptable values for Set_Coverage_Levels
 
    function Enabled (Level : Coverage_Level) return Boolean;
    --  True when Level is enabled
