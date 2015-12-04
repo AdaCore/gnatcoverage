@@ -284,7 +284,7 @@ package body Files_Table is
 
       if Path'Length = 0 and then Exec_Search_Prefix /= No_File then
          declare
-            Base_Name : constant String := Ada.Directories.Base_Name (Name);
+            Base_Name : constant String := Ada.Directories.Simple_Name (Name);
             VPath     : constant Virtual_File :=
               Create_From_Dir (Exec_Search_Prefix, +Base_Name);
             Path      : constant String := Lookup_Path (+Full_Name (VPath));
