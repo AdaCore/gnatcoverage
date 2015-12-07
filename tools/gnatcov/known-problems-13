@@ -17,6 +17,21 @@ in this document.
 Known problems fixed in 1.4.1 and above
 ---------------------------------------
 
+KP-13-O911-032 Spurious coverage violations on types from unit in library
+
+  Problem:     GNATcoverage reports statement coverage violations for type
+               declarations provided by a unit to which a No_Elaboration_Code
+               or No_Multiple_Elaboration restriction applies, when the unit
+               is included by way of a library project, the static elaboration
+               model is used and no variable or subprogram entity of the unit
+               is referenced y the program.
+               
+  Status:      This was fixed by a compiler adjustment in 17w on 2015-12-01
+
+  Workaround:  Remove the elaboration restriction on the unit, turn the
+               library project into a standalone library, or arrange to
+               reference some data or subprogram entity offered by the unit.
+
 KP-13-O417-005 Possible crash when "not X" is compile time known
 
   Problem:     If analyzed Ada source code includes a "not X" construct that is
