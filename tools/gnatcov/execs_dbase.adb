@@ -58,4 +58,20 @@ package body Execs_Dbase is
       end if;
    end Open_Exec;
 
+   ----------------
+   -- Close_Exec --
+   ----------------
+
+   procedure Close_Exec (File_Name : String) is
+      use Execs_Maps;
+      Base_Entry : Exec_Base_Entry;
+      Position   : Cursor := Exec_Base.Find (File_Name'Unrestricted_Access);
+   begin
+      pragma Assert (Position /= No_Element);
+      Base_Entry := Element (Position);
+      Exec_Base.Delete (Position);
+      Free (Base_Entry.Exec_File_Name);
+      Close_File (Base_Entry.Exec);
+   end Close_Exec;
+
 end Execs_Dbase;

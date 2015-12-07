@@ -4094,7 +4094,7 @@ package body Traces_Elf is
    begin
       Open_Exec (Filename, 0, Exec); --  ??? Text_Start
       Cb (Exec.all);
-      Close_File (Exec);
+      Close_Exec (Filename);
    exception
       when Binary_Files.Error =>
          Put_Line (Standard_Error, "cannot open: " & Filename);

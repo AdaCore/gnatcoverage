@@ -46,6 +46,12 @@ package Execs_Dbase is
    --  Target is used to find the actual filename on target which have, for
    --  instance, implicit suffixes (like ".exe" on Windows).
 
+   procedure Close_Exec (File_Name : String);
+   --  Remove the File_Name entry from the Exec database, closing the resources
+   --  allocated for the corresponding executable.
+   --
+   --  This must be called iff. Open_Exec was called on File_Name with success.
+
    Routine_Name_Ambiguity : exception;
 
 private
