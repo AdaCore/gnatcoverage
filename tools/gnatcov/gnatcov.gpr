@@ -25,19 +25,20 @@ project Gnatcov is
       for Switches ("ppc_genopc.adb") use ("-g", "-gnat12");
 
       common_switches := 
-         ("-gnat12", "-gnatwae", "-gnatyg", "-g");
+         ("-gnat12", "-gnatwae", "-gnatyg");
 
       mode_switches := ();
 
       case Build_Mode is
          when "dev" =>
-            mode_switches := ("-O0", "-gnata");
+            mode_switches := ("-O0", "-gnata", "-g");
 
          when "prod" =>
             mode_switches := ("-O2");
 
          when "boot" =>
-            mode_switches := ("-O1", "-fdump-scos", "-fpreserve-control-flow");
+            mode_switches :=
+              ("-O1", "-fdump-scos", "-fpreserve-control-flow", "-g");
 
        end case;
 
