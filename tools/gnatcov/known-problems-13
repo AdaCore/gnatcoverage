@@ -24,6 +24,7 @@ KP-13-OB26-040 Spurious coverage violations on deactivated Type_Invariant
                an explicit Assertion_Policy pragma.
                
   Status:      This was fixed by a compiler adjustment in 17w on 2015-12-01
+               This was fixed by a compiler adjustment in 7.4.1 on 2015-12-18
 
   Workaround:  Use coverage exemptions to categorize the violations as
                spurious with a justification.
