@@ -904,7 +904,7 @@ class TestSuite:
                 QLEVEL_INFO[self.options.qualif_level].subtrees)
             )
 
-        try :
+        try:
             MainLoop(
                 self.__next_testcase (),
                 self.run_testcase, self.collect_result,
