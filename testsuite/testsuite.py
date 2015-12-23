@@ -15,7 +15,7 @@ See ./testsuite.py -h for more help
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
-from gnatpython.fileutils import mkdir, rm, ln, which, cp
+from gnatpython.fileutils import mkdir, rm, ln, which, cp, ls
 from gnatpython.main import Main
 from gnatpython.mainloop import (MainLoop, add_mainloop_options,
                                  SKIP_EXECUTION)
@@ -1169,19 +1169,26 @@ class TestSuite:
 
         test.compute_status()
 
+        # Execute a post-testcase action if requested so, before the test
+        # artifacts might be cleared by a post-run cleanup:
+
+        self.maybe_exec (
+            self.options.post_testcase, args=[self.options.altrun],
+            edir=test.atestdir)
+
+        # Perform post-run cleanups if request so. Note that this may
+        # alter the test execution status to make sure that unexpected cleanup
+        # failures get visibility:
+
+        if test.status != 'FAILED' and self.options.do_post_run_cleanups:
+            test.do_post_run_cleanups()
+
         if self.options.qualif_level:
             test.latch_status()
 
         self.__log_results_for(test)
         self.__check_stop_after(test)
 
-        self.maybe_exec (
-            self.options.post_testcase, args=[self.options.altrun],
-            edir=test.atestdir)
-
-        if test.status != 'FAILED' and self.options.do_post_run_cleanups:
-            test.do_post_run_cleanups()
-        
     def outfile_for(self, test):
         """Returns path to diff file in the suite output directory.  This file
         is used to generate report and results files."""
@@ -1553,8 +1560,31 @@ class TestCase(object):
     def latched_status(self):
         return pload_from (self.stdf())
 
+    def __handle_info_for(self, path):
+        """Return a string describing file handle information related to
+        the provided PATH, such as the output of the "handle" sysinternal
+        on Windows."""
+
+        if sys.platform != 'win32':
+            return "No handle info on non-windows platform"
+
+        # Adjust the provided path to something
+        path = re.sub('^[a-zA-Z]:(.*)', r'\1', path).replace('/', '\\')
+
+        gpdir = os.path.dirname(sys.executable)
+
+        handle_path = os.path.abspath(
+            os.path.join(gpdir, 'Lib', 'site-packages',
+                         'gnatpython', 'internal', 'data', 'libexec',
+                         'x86-windows', 'handle.exe'))
+
+        return Run([handle_path, '/AcceptEULA', '-a', '-u', path]).out
+
     def do_post_run_cleanups(self):
-        """Cleanup temporary artifacts from the testcase directory."""
+        """Cleanup temporary artifacts from the testcase directory. Append
+        removal failure info to the test error log."""
+
+        comments = []
 
         # In principle, most of this is the spawned test.py responsibilty,
         # because _it_ knows what it creates etc.  We have artifacts of our
@@ -1562,10 +1592,28 @@ class TestCase(object):
         # these correctly can only be done from here. Doing the rest as well
         # is just simpler and more efficient.
 
-        [rm (os.path.join(self.atestdir, gp), recursive=True)
-         for gp in ('tmp_*', 'st_*', 'dc_*', 'mc_*', 'uc_*', 'obj', 'obj_*',
-                    '[0-9]', '*.adb.*', 'test.py.log', '*.dump')
-         ]
+        # Deal with occasional removal failures presumably caused by stray
+        # handles. Expand glob patterns locally, issue separate rm requests
+        # for distinct filesystem entries and turn exceptions from rm into
+        # test failures.
+
+        for globp in ('tmp_*', 'st_*', 'dc_*', 'mc_*', 'uc_*', 'obj', 'obj_*',
+                      '[0-9]', '*.adb.*', 'test.py.log', '*.dump'):
+            
+            for path in set(ls(os.path.join(self.atestdir, globp))):
+                try:
+                    rm (path, recursive=True)
+                except:
+                    handle_comment = self.__handle_info_for(path)
+                    self.passed = False
+                    self.status = 'RMFAILED'
+
+                    comments.append(
+                        "Removal of %s failed\nHandle info follows:" % path)
+                    comments.append(handle_comment)
+
+        with open(self.errf(), 'a') as f:
+            f.write('\n'.join(comments))
 
     # --------------------------------------
     # -- Testscase specific discriminants --
