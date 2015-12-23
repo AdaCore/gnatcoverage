@@ -975,10 +975,10 @@ class TestSuite:
 
         outf = test.outf()
         logf = test.logf()
-        diff = test.diff()
+        errf = test.errf()
         qdaf = test.qdaf()
 
-        [cutils.clear (f) for f in (outf, logf, diff, qdaf)]
+        [cutils.clear (f) for f in (outf, logf, errf, qdaf)]
 
         # Save a copy of the context data in case the user wants to
         # re-run the testsuite with --skip-if-* later on.  Since
@@ -1090,7 +1090,7 @@ class TestSuite:
         test.start_time = time.time()
 
         return Run(
-            testcase_cmd, output=test.diff(), bg=True, timeout=int(timeout))
+            testcase_cmd, output=test.errf(), bg=True, timeout=int(timeout))
 
     # --------------------
     # -- collect_result --
@@ -1106,9 +1106,9 @@ class TestSuite:
         # dedicated subdirectory where the original log resides)
 
         if not test.passed:
-            odiff = self.odiff_for(test)
-            cutils.clear (odiff)
-            ln(test.diff(), odiff)
+            outfile = self.outfile_for(test)
+            cutils.clear (outfile)
+            ln(test.errf(), outfile)
 
         # 2) log and populate the "results" file for gaia: file the test
         # status + possible comment on failure
@@ -1144,7 +1144,7 @@ class TestSuite:
         # Dump errlog on unexpected failure
 
         if self.options.diffs and not test.passed and not test.xfail:
-            logging.info("Error log:\n" + contents_of (test.diff()))
+            logging.info("Error log:\n" + contents_of (test.errf()))
 
     def __check_stop_after(self, test):
         """Internal helper for collect_result. Check if we need to stop the
@@ -1182,7 +1182,7 @@ class TestSuite:
         if test.status != 'FAILED' and self.options.do_post_run_cleanups:
             test.do_post_run_cleanups()
         
-    def odiff_for(self, test):
+    def outfile_for(self, test):
         """Returns path to diff file in the suite output directory.  This file
         is used to generate report and results files."""
 
@@ -1599,7 +1599,7 @@ class TestCase(object):
         executed by the provided test object should go."""
         return os.path.join(self.atestdir, self.filename + '.log')
 
-    def diff(self):
+    def errf(self):
         """Similar to outf, for the file where diffs of the provided test
         object should go."""
         return os.path.join(self.atestdir, self.filename + '.err')
