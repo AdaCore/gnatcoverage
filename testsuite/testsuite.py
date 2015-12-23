@@ -1176,7 +1176,7 @@ class TestSuite:
             self.options.post_testcase, args=[self.options.altrun],
             edir=test.atestdir)
 
-        # Perform post-run cleanups if request so. Note that this may
+        # Perform post-run cleanups if requested so. Note that this may
         # alter the test execution status to make sure that unexpected cleanup
         # failures get visibility:
 
