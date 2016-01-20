@@ -1,4 +1,5 @@
 with "gnat_util", "gnatcoll";
+
 project Gnatcov is
 
    type Bits_Type is ("32", "64");
@@ -24,31 +25,55 @@ project Gnatcov is
 
       for Switches ("ppc_genopc.adb") use ("-g", "-gnat12");
 
-      common_switches := 
-         ("-gnat12", "-gnatwae", "-gnatyg");
+      common_switches :=
+        ("-gnat12", "-gnatwae", "-gnatyg");
+
+      c_common_switches :=
+        ("-Wall", "-Wextra", "-Werror", "-std=c99");
 
       mode_switches := ();
+      ada_mode_switches := ();
+      c_mode_switches := ();
 
       case Build_Mode is
          when "dev" =>
-            mode_switches := ("-O0", "-gnata", "-g");
+            mode_switches := ("-O0", "-g");
+            ada_mode_switches := ("-gnata");
 
          when "prod" =>
             mode_switches := ("-O2");
+            c_mode_switches := ("-DNDEBUG");
 
          when "boot" =>
             mode_switches :=
               ("-O1", "-fdump-scos", "-fpreserve-control-flow", "-g");
-
+            c_mode_switches := ("-DNDEBUG");
        end case;
 
        for Default_Switches ("ada")
-          use common_switches & mode_switches;
+          use common_switches & mode_switches & ada_mode_switches;
+
+       for Default_Switches ("C")
+         use  c_common_switches & mode_switches & c_mode_switches;
 
    end Compiler;
 
-   for Source_Dirs use (".");
+   package Linker is
+      for Required_Switches use ("-lopcodes", "-lbfd", "-liberty", "-lz");
+   end Linker;
+
+   package Binder is
+      case Build_Mode is
+        when "dev" =>
+           for Default_Switches ("Ada") use ("-Es");
+         when others =>
+            null;
+      end case;
+   end Binder;
+
+   for Source_Dirs use (".", "libopcodes_bind");
    for Object_Dir use "obj" & Bits;
+   for Languages use ("Ada", "C");
    for Main use ("gnatcov.adb", "ppc_genopc.adb");
 
 end Gnatcov;
