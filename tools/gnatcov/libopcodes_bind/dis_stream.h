@@ -1,3 +1,4 @@
+/*
 ------------------------------------------------------------------------------
 --                                                                          --
 --                               GNATcoverage                               --
@@ -15,39 +16,24 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+*/
 
-with Highlighting;
-with Traces;
+#ifndef DIS_STREAM_H_
+#define DIS_STREAM_H_
 
-package Disa_Symbolize is
+typedef struct disassembler_stream disassembler_stream;
 
-   --  Call-back used to find a relocation symbol
+extern disassembler_stream *create_stream(void);
 
-   type Symbolizer is limited interface;
-   procedure Symbolize
-     (Sym      : Symbolizer;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type) is abstract;
+extern void delete_stream(disassembler_stream *const ds);
 
-   function Symbolize
-     (Sym : Symbolizer; Pc : Traces.Pc_Type) return String is abstract;
-   --  Returns the name of symbol at address PC if any.
-   --  Returns an empty string otherwise.
+extern int stream_printf(disassembler_stream *ptr, const char *format, ...);
 
-   type Nul_Symbolizer_Type is new Symbolizer with private;
+extern void clear_stream(disassembler_stream *const ds);
 
-   overriding procedure Symbolize
-     (Sym      : Nul_Symbolizer_Type;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type) is null;
+extern unsigned char stream_is_empty(disassembler_stream *const ds);
 
-   overriding function Symbolize
-     (Sym : Nul_Symbolizer_Type; Pc : Traces.Pc_Type) return String
-   is ("");
+extern void set_stream_buffer(disassembler_stream *const ds, char *const buff,
+                              int size);
 
-   Nul_Symbolizer : constant Nul_Symbolizer_Type;
-
-private
-   type Nul_Symbolizer_Type is new Symbolizer with null record;
-   Nul_Symbolizer : constant Nul_Symbolizer_Type := (null record);
-end Disa_Symbolize;
+#endif /* !DIS_STREAM_H_ */

@@ -1,3 +1,4 @@
+/*
 ------------------------------------------------------------------------------
 --                                                                          --
 --                               GNATcoverage                               --
@@ -15,39 +16,35 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+*/
 
-with Highlighting;
-with Traces;
+#ifndef DIS_WRAPPER_H_
+#define DIS_WRAPPER_H_
 
-package Disa_Symbolize is
+/* The following defines are needed to bypass check in libbfd include.  */
+#define PACKAGE 1
+#define PACKAGE_VERSION 1
 
-   --  Call-back used to find a relocation symbol
+#include <bfd.h>
+#include <dis-asm.h>
 
-   type Symbolizer is limited interface;
-   procedure Symbolize
-     (Sym      : Symbolizer;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type) is abstract;
+typedef struct disassemble_handle disassemble_handle;
 
-   function Symbolize
-     (Sym : Symbolizer; Pc : Traces.Pc_Type) return String is abstract;
-   --  Returns the name of symbol at address PC if any.
-   --  Returns an empty string otherwise.
+/* Functions of this type can write at most BUFF_SIZE bytes.  */
+typedef int (*print_symbol_cb) (bfd_vma addr, void *symbolizer,
+                                char *const buff, int buff_size);
 
-   type Nul_Symbolizer_Type is new Symbolizer with private;
+extern disassemble_handle *create_arm_disassembler(void);
 
-   overriding procedure Symbolize
-     (Sym      : Nul_Symbolizer_Type;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type) is null;
+extern void delete_disassembler(disassemble_handle *const dh);
 
-   overriding function Symbolize
-     (Sym : Nul_Symbolizer_Type; Pc : Traces.Pc_Type) return String
-   is ("");
+extern int disassemble_to_text(disassemble_handle *const dh, bfd_vma pc,
+                               char *const dest, unsigned int dest_size,
+                               bfd_byte *const insn_buffer,
+                               unsigned int ib_size, enum bfd_endian endian);
 
-   Nul_Symbolizer : constant Nul_Symbolizer_Type;
+extern void set_disassembler_symbolizer(disassemble_handle *const dh,
+                                        void *const symbolizer,
+                                        print_symbol_cb addr_cb);
 
-private
-   type Nul_Symbolizer_Type is new Symbolizer with null record;
-   Nul_Symbolizer : constant Nul_Symbolizer_Type := (null record);
-end Disa_Symbolize;
+#endif /* !DIS_WRAPPER_H_ */

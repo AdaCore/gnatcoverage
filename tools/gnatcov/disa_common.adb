@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2016, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -15,6 +15,8 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
+with Ada.Unchecked_Conversion;
 
 with Arch;     use Arch;
 with Swaps;    use Swaps;
@@ -87,5 +89,79 @@ package body Disa_Common is
       end if;
       return Result;
    end To_Big_Endian_U32;
+
+   -----------------------
+   -- Print_Symbol_Func --
+   -----------------------
+
+   function Print_Symbol_Func
+     (Addr           : Dis_Opcodes.BFD_VMA;
+      Symbol_Manager : System.Address;
+      Buff_Addr      : System.Address;
+      Buff_Size      : int) return int is
+
+      type Symbolizer_Access is access Symbolizer'Class;
+
+      function Symbolizer_Cast is
+        new Ada.Unchecked_Conversion (System.Address, Symbolizer_Access);
+
+      SBuff      : String (1 .. Integer (Buff_Size));
+      for SBuff'Address use Buff_Addr;
+      Symb       : Symbolizer_Access renames
+        Symbolizer_Cast (Symbol_Manager);
+      Symbol     : constant String := Symb.Symbolize (Pc_Type (Addr));
+      Copy_Size  : constant Natural :=
+        Natural'Min (Symbol'Length, Natural (Buff_Size));
+   begin
+      SBuff (1 .. Copy_Size) :=
+        Symbol (Symbol'First .. Symbol'First + Copy_Size - 1);
+
+      return int (Copy_Size);
+   end Print_Symbol_Func;
+
+   ------------------------------
+   -- Opcodes_Disassemble_Insn --
+   ------------------------------
+
+   procedure Opcodes_Disassemble_Insn
+     (Handle       : Dis_Opcodes.Disassemble_Handle;
+      Insn_Bin     : Binary_Content;
+      Pc           : Pc_Type;
+      Buffer       : in out Highlighting.Buffer_Type;
+      Insn_Len     : out Natural;
+      Sym          : Symbolizer'Class;
+      Insn_Max_Len : Positive) is
+
+      Insn_Bytes : Dis_Opcodes.BFD_Byte_Array (0 .. Insn_Max_Len - 1);
+      for Insn_Bytes'Address use Insn_Bin.Content.all'Address;
+
+      Buff       : C.char_array :=
+        (C.size_t (1) .. C.size_t (256) => <>);
+
+   begin
+      Dis_Opcodes.Set_Disassembler_Symbolizer
+        (Handle, Sym'Address, Disa_Common.Print_Symbol_Func'Access);
+
+      pragma Assert (Big_Endian_ELF_Initialized);
+
+      Insn_Len :=
+        Natural
+          (Dis_Opcodes.Disassemble_To_Text
+             (DH          => Handle,
+              Pc          => Dis_Opcodes.BFD_VMA (Pc),
+              Dest        => Buff,
+              Dest_Size   => Buff'Length,
+              Insn_Buffer => Insn_Bytes,
+              Ib_Size     =>
+                C.unsigned
+                  (Unsigned_32'Min
+                       (Insn_Bytes'Length, Unsigned_32 (Length (Insn_Bin)))),
+              Endian      => (if Big_Endian_ELF then Dis_Opcodes.BFD_ENDIAN_BIG
+                              else Dis_Opcodes.BFD_ENDIAN_LITTLE)));
+
+      Buffer.Start_Token (Highlighting.Text);
+
+      Buffer.Put (C.To_Ada (Buff));
+   end Opcodes_Disassemble_Insn;
 
 end Disa_Common;

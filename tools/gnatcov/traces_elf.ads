@@ -56,7 +56,12 @@ package Traces_Elf is
      (Sym      : Exe_File_Type;
       Pc       : Traces.Pc_Type;
       Buffer   : in out Highlighting.Buffer_Type);
-   --  Makes symbolize non-abstract.
+   --  Makes symbolize non-abstract
+
+   overriding function Symbolize
+     (Sym : Exe_File_Type;
+      Pc  : Traces.Pc_Type) return String;
+   --  Makes symbolize non-abstract
 
    function Open_File
      (Filename   : String;
