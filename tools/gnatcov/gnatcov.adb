@@ -162,6 +162,10 @@ procedure GNATcov is
    --  Load all listed SCO files and initialize source coverage data structure.
    --  If Check_SCOs is True, report an error if no SCOs are provided.
 
+   ----------------------------
+   -- Fatal_Error_With_Usage --
+   ----------------------------
+
    procedure Fatal_Error_With_Usage (Msg : String) is
    begin
       Error (Msg);
