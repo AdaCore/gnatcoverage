@@ -105,7 +105,8 @@ package Command_Line is
       Opt_Source_Rebase,
       Opt_Source_Search,
       Opt_Trace,
-      Opt_Checkpoint);
+      Opt_Checkpoint,
+      Opt_Ignore_Source_Files);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -625,7 +626,14 @@ package Command_Line is
          Help        => "Specify checkpointed coverage information to load.",
          Commands    => (Cmd_Coverage => True,
                          others       => False),
-         Internal    => False));
+         Internal    => False),
+      Opt_Ignore_Source_Files => Create
+        (Long_Name => "--ignore-source-files",
+         Pattern   => "[FILE|@LISTFILE]",
+         Help      => "Specify a list of source files to ignore for coverage",
+         Commands  => (Cmd_Coverage | Cmd_Map_Routines => True,
+                       others => False),
+         Internal  => False));
 
    procedure Bool_Callback
      (Result : in out Parsed_Arguments;

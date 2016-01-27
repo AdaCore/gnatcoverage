@@ -54,6 +54,12 @@ package body ALI_Files is
    --  If needed, unquote a filename, such as the ones that can be found on D
    --  lines.
 
+   procedure Mark_Ignored_Units
+     (Ignored_Source_Files : String_Sets.Set;
+      Deps                 : SFI_Vector);
+   --  Mark SCOs.SCO_Unit_Table entries to be ignored by setting their Dep_Num
+   --  to Missing_Dep_Num.
+
    function SCO_Tables_Fingerprint return SCOs_Hash;
    --  Return a fingerprint for all SCO tables in SCOs
 
@@ -89,6 +95,33 @@ package body ALI_Files is
          return To_String (Result);
       end if;
    end Unquote;
+
+   ------------------------
+   -- Mark_Ignored_Units --
+   ------------------------
+
+   procedure Mark_Ignored_Units
+     (Ignored_Source_Files : String_Sets.Set;
+      Deps                 : SFI_Vector)
+   is
+      use Ada.Strings.Unbounded;
+      use SCOs;
+      Deps_Present : constant Boolean := not Deps.Is_Empty;
+   begin
+      for J in SCO_Unit_Table.First + 1 .. SCO_Unit_Table.Last loop
+         declare
+            U    : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (J);
+            Name : constant String :=
+              (if Deps_Present
+               then Get_Simple_Name (Deps.Element (U.Dep_Num))
+               else U.File_Name.all);
+         begin
+            if Ignored_Source_Files.Contains (To_Unbounded_String (Name)) then
+               U.Dep_Num := Missing_Dep_Num;
+            end if;
+         end;
+      end loop;
+   end Mark_Ignored_Units;
 
    ----------------------------
    -- SCO_Tables_Fingerprint --
@@ -135,29 +168,32 @@ package body ALI_Files is
          declare
             U : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (I);
          begin
-            --  Directly streaming U to the hash stream would make the
-            --  fingerprint computation depend on compiler internals (here,
-            --  pragma representation values). Instead, use human-readable
-            --  and compiler-independant values.
+            if U.Dep_Num /= Missing_Dep_Num then
+               --
+               --  Directly streaming U to the hash stream would make the
+               --  fingerprint computation depend on compiler internals (here,
+               --  pragma representation values). Instead, use human-readable
+               --  and compiler-independant values.
 
-            Update (U.File_Name.all);
-            Update (Nat'Image (U.Dep_Num));
+               Update (U.File_Name.all);
+               Update (Nat'Image (U.Dep_Num));
 
-            for S in U.From .. U.To loop
-               declare
-                  E : SCO_Table_Entry renames SCO_Table.Table (S);
-               begin
-                  Update (E.From);
-                  Update (E.To);
-                  Update (String'((E.C1, E.C2)));
-                  if E.Last then
-                     Update ("Last");
-                  end if;
-                  if E.Pragma_Aspect_Name /= No_Name then
-                     Update (Get_Name_String (E.Pragma_Aspect_Name));
-                  end if;
-               end;
-            end loop;
+               for S in U.From .. U.To loop
+                  declare
+                     E : SCO_Table_Entry renames SCO_Table.Table (S);
+                  begin
+                     Update (E.From);
+                     Update (E.To);
+                     Update (String'((E.C1, E.C2)));
+                     if E.Last then
+                        Update ("Last");
+                     end if;
+                     if E.Pragma_Aspect_Name /= No_Name then
+                        Update (Get_Name_String (E.Pragma_Aspect_Name));
+                     end if;
+                  end;
+               end loop;
+            end if;
          end;
       end loop;
 
@@ -180,18 +216,23 @@ package body ALI_Files is
 
    begin
       Discard_ALI :=
-        Load_ALI (ALI_Filename, No_CU_Id,
+        Load_ALI (ALI_Filename, No_CU_Id, SC_Obligations.String_Sets.Empty_Set,
                   Discard_Units, Discard_Deps, Discard_Fingerprint,
                   With_SCOs => False);
    end Load_ALI;
 
+   --------------
+   -- Load_ALI --
+   --------------
+
    function Load_ALI
-     (ALI_Filename : String;
-      CU           : CU_Id;
-      Units        : out SFI_Vector;
-      Deps         : out SFI_Vector;
-      Fingerprint  : out SCOs_Hash;
-      With_SCOs    : Boolean) return Source_File_Index
+     (ALI_Filename         : String;
+      CU                   : CU_Id;
+      Ignored_Source_Files : String_Sets.Set;
+      Units                : out SFI_Vector;
+      Deps                 : out SFI_Vector;
+      Fingerprint          : out SCOs_Hash;
+      With_SCOs            : Boolean) return Source_File_Index
    is
       ALI_File  : File_Type;
       ALI_Index : Source_File_Index;
@@ -612,6 +653,7 @@ package body ALI_Files is
          else
             Index := 1;
             Get_SCOs_From_ALI;
+            Mark_Ignored_Units (Ignored_Source_Files, Deps);
             Fingerprint := SCO_Tables_Fingerprint;
          end if;
       end if;

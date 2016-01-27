@@ -82,27 +82,28 @@ procedure GNATcov is
    --  Results of the command line parsing. It is filled by Process_Arguments
    --  once Args reached its final value.
 
-   Annotation          : Annotation_Format renames Annotations.Annotation;
-   Trace_Inputs        : Inputs.Inputs_Type;
-   Exe_Inputs          : Inputs.Inputs_Type;
-   Obj_Inputs          : Inputs.Inputs_Type;
-   ALIs_Inputs         : Inputs.Inputs_Type;
-   Routines_Inputs     : Inputs.Inputs_Type;
-   Units_Inputs        : Inputs.Inputs_Type;
-   Projects_Inputs     : Inputs.Inputs_Type;
-   Checkpoints_Inputs  : Inputs.Inputs_Type;
-   Text_Start          : Pc_Type := 0;
-   Target              : String_Access := null;
-   Output              : String_Access := null;
-   Tag                 : String_Access := null;
-   Kernel              : String_Access := null;
-   Save_Checkpoint     : String_Access := null;
-   Eargs               : String_Vectors.Vector;
-   Executable_Path     : String_Access := null;
-   Locations_Inputs    : Object_Locations.User_Locations;
-   CFG_Output_Format   : CFG_Dump.Output_Format := CFG_Dump.None;
-   Keep_Edges          : Boolean := False;
-   Pretty_Print        : Boolean := False;
+   Annotation           : Annotation_Format renames Annotations.Annotation;
+   Trace_Inputs         : Inputs.Inputs_Type;
+   Exe_Inputs           : Inputs.Inputs_Type;
+   Obj_Inputs           : Inputs.Inputs_Type;
+   ALIs_Inputs          : Inputs.Inputs_Type;
+   Routines_Inputs      : Inputs.Inputs_Type;
+   Units_Inputs         : Inputs.Inputs_Type;
+   Projects_Inputs      : Inputs.Inputs_Type;
+   Checkpoints_Inputs   : Inputs.Inputs_Type;
+   Ignored_Source_Files : Inputs.Inputs_Type;
+   Text_Start           : Pc_Type := 0;
+   Target               : String_Access := null;
+   Output               : String_Access := null;
+   Tag                  : String_Access := null;
+   Kernel               : String_Access := null;
+   Save_Checkpoint      : String_Access := null;
+   Eargs                : String_Vectors.Vector;
+   Executable_Path      : String_Access := null;
+   Locations_Inputs     : Object_Locations.User_Locations;
+   CFG_Output_Format    : CFG_Dump.Output_Format := CFG_Dump.None;
+   Keep_Edges           : Boolean := False;
+   Pretty_Print         : Boolean := False;
 
    function Command_Name return String
    is
@@ -165,6 +166,9 @@ procedure GNATcov is
    procedure Load_All_SCOs (Check_SCOs : Boolean);
    --  Load all listed SCO files and initialize source coverage data structure.
    --  If Check_SCOs is True, report an error if no SCOs are provided.
+
+   function Ignored_Source_Files_Set return String_Sets.Set;
+   --  Create a string set out of Ignored_Source_File and return it
 
    ----------------------------
    -- Fatal_Error_With_Usage --
@@ -277,6 +281,24 @@ procedure GNATcov is
    -------------------
 
    procedure Load_All_SCOs (Check_SCOs : Boolean) is
+      Ignored : constant String_Sets.Set :=
+        Ignored_Source_Files_Set;
+
+      procedure Load_SCOs_Wrapper (ALI_Filename : String);
+      --  Wrapper for SC_Obligations.Load_SCOs that uses Ignored to ignore
+      --  source files.
+
+      -----------------------
+      -- Load_SCOs_Wrapper --
+      -----------------------
+
+      procedure Load_SCOs_Wrapper (ALI_Filename : String) is
+      begin
+         Load_SCOs (ALI_Filename, Ignored);
+      end Load_SCOs_Wrapper;
+
+   --  Start of processing for Load_All_SCOs
+
    begin
       if Check_SCOs and then Inputs.Length (Checkpoints_Inputs) = 0 then
          Check_Argument_Available
@@ -284,7 +306,7 @@ procedure GNATcov is
             "SCOs",
             ", specifying Units in project or using --units/--scos");
       end if;
-      Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
+      Inputs.Iterate (ALIs_Inputs, Load_SCOs_Wrapper'Access);
       Coverage.Source.Initialize_SCI;
    end Load_All_SCOs;
 
@@ -510,6 +532,7 @@ procedure GNATcov is
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
+      Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
 
       if Args.String_Args (Opt_Coverage_Level).Present then
          declare
@@ -820,6 +843,32 @@ procedure GNATcov is
          end if;
       end;
    end Process_Arguments;
+
+   ------------------------------
+   -- Ignored_Source_Files_Set --
+   ------------------------------
+
+   function Ignored_Source_Files_Set return String_Sets.Set is
+      Result : String_Sets.Set;
+
+      procedure Process (File : String);
+      --  Include File in Result
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (File : String) is
+      begin
+         Result.Include (Ada.Strings.Unbounded.To_Unbounded_String (File));
+      end Process;
+
+   --  Start of processing for Ignored_Source_Files_Set
+
+   begin
+      Inputs.Iterate (Ignored_Source_Files, Process'Access);
+      return Result;
+   end Ignored_Source_Files_Set;
 
    ------------------
    -- Show_Version --

@@ -22,7 +22,6 @@ with Ada.Containers.Vectors;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;     use ALI_Files;
@@ -2430,7 +2429,10 @@ package body SC_Obligations is
    -- Load_SCOs --
    ---------------
 
-   procedure Load_SCOs (ALI_Filename : String) is
+   procedure Load_SCOs
+     (ALI_Filename         : String;
+      Ignored_Source_Files : String_Sets.Set)
+   is
       use SCOs;
 
       Cur_Source_File        : Source_File_Index := No_Source_File;
@@ -2438,6 +2440,10 @@ package body SC_Obligations is
       Last_Entry_In_Cur_Unit : Int;
       Last_Entry_Last_Line   : Natural := 0;
       --  Line number of high bound of sloc range of last processed entry
+
+      Skip_Current_File : Boolean := False;
+      --  Whether the SCOs referring to the current source file should be
+      --  ignored.
 
       Dom_SCO  : SCO_Id          := No_SCO_Id;
       Dom_Sloc : Source_Location := No_Location;
@@ -2471,7 +2477,7 @@ package body SC_Obligations is
       --  Compilation unit for this ALI
 
       ALI_Index : constant Source_File_Index :=
-        Load_ALI (ALI_Filename, CU_Index,
+        Load_ALI (ALI_Filename, CU_Index, Ignored_Source_Files,
                   Units, Deps, Fingerprint, With_SCOs => True);
       --  Load ALI file and update the last SCO and instance indices
 
@@ -2568,20 +2574,29 @@ package body SC_Obligations is
             begin
                pragma Assert (Cur_SCO_Entry in SCOUE.From .. SCOUE.To);
                Last_Entry_In_Cur_Unit := SCOUE.To;
-               if Deps_Present then
-                  --  Get source file name from deps table. Note that this
-                  --  is a simple name for Ada, but a full path for C.
+               Skip_Current_File := SCOUE.Dep_Num = Missing_Dep_Num;
+               if not Skip_Current_File then
+                  if Deps_Present then
+                     --  Get source file name from deps table. Note that this
+                     --  is a simple name for Ada, but a full path for C.
 
-                  Cur_Source_File := Deps.Element (SCOUE.Dep_Num);
+                     Cur_Source_File := Deps.Element (SCOUE.Dep_Num);
 
-               else
-                  --  For C, GLI files from older compilers did not provide a
-                  --  proper deps table.
+                  else
+                     --  For C, GLI files from older compilers did not provide
+                     --  a proper deps table.
 
-                  Cur_Source_File := Get_Index_From_Simple_Name
-                    (SCOUE.File_Name.all, Source_File);
+                     Cur_Source_File := Get_Index_From_Simple_Name
+                       (SCOUE.File_Name.all, Source_File);
+                  end if;
                end if;
             end;
+         end if;
+
+         --  If asked to, ignore this entry
+
+         if Skip_Current_File then
+            goto Skip_Entry;
          end if;
 
          --  Record source file -> compilation unit mapping for non-main
@@ -2861,6 +2876,8 @@ package body SC_Obligations is
                     with "unexpected SCO entry code: " & SCOE.C1;
             end case;
          end Process_Entry;
+
+         <<Skip_Entry>>
       end loop;
 
       --  Import unit instance table into global table

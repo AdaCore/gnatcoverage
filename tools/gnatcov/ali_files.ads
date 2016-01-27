@@ -42,19 +42,26 @@ package ALI_Files is
    type SCOs_Hash is private;
 
    function Load_ALI
-     (ALI_Filename : String;
-      CU           : CU_Id;
-      Units        : out SFI_Vector;
-      Deps         : out SFI_Vector;
-      Fingerprint  : out SCOs_Hash;
-      With_SCOs    : Boolean) return Types.Source_File_Index;
+     (ALI_Filename         : String;
+      CU                   : CU_Id;
+      Ignored_Source_Files : String_Sets.Set;
+      Units                : out SFI_Vector;
+      Deps                 : out SFI_Vector;
+      Fingerprint          : out SCOs_Hash;
+      With_SCOs            : Boolean) return Types.Source_File_Index;
    --  Load coverage related information (coverage exemptions and, if With_SCOs
    --  is True, source coverage obligations) from ALI_Filename. Returns the
    --  source file index for the ALI file. Subsequent calls for the same ALI
    --  file will return No_Source_File immediately, without reloading the file.
-   --  Units are the units contained in this compilation. Deps are the
-   --  dependencies of the compilation. Fingerprint is a unique hash of SCO
-   --  information in the ALI file, and is undefined if With_SCOs is False.
+   --  Units are the units contained in this compilation.
+   --
+   --  Ignored_Source_Files is a set of base file names for which SCOs must be
+   --  ignored.
+   --
+   --  Deps are the dependencies of the compilation.
+   --
+   --  Fingerprint is a unique hash of SCO information in the ALI file, and is
+   --  undefined if With_SCOs is False.
 
    procedure Load_ALI (ALI_Filename : String);
    --  Load ALI information for Filename, without SCOs

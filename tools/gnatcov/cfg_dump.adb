@@ -57,6 +57,10 @@ package body CFG_Dump is
      (S : String) return Ada.Strings.Unbounded.Unbounded_String
       renames Ada.Strings.Unbounded.To_Unbounded_String;
 
+   procedure Load_SCOs (ALI_Filename : String);
+   --  Wrapper for SC_Obligations.Load_SCOs, assumes there is no source file to
+   --  ignore.
+
    --------------------
    -- Output helpers --
    --------------------
@@ -1758,7 +1762,7 @@ package body CFG_Dump is
          if Switches.Verbose then
             Report (Msg => "Loading ALI files...", Kind => Notice);
          end if;
-         Inputs.Iterate (SCO_Files_List, SC_Obligations.Load_SCOs'Access);
+         Inputs.Iterate (SCO_Files_List, Load_SCOs'Access);
          Coverage.Source.Initialize_SCI;
 
          if Switches.Verbose then
@@ -1932,5 +1936,15 @@ package body CFG_Dump is
          Output.To_Close := False;
       end if;
    end Close;
+
+   ---------------
+   -- Load_SCOs --
+   ---------------
+
+   procedure Load_SCOs (ALI_Filename : String) is
+   begin
+      SC_Obligations.Load_SCOs
+        (ALI_Filename, SC_Obligations.String_Sets.Empty_Set);
+   end Load_SCOs;
 
 end CFG_Dump;

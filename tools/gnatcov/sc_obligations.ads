@@ -18,7 +18,10 @@
 
 --  Source Coverage Obligations
 
+with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 
 with Ada.Streams; use Ada.Streams;
 
@@ -28,6 +31,11 @@ with Traces;      use Traces;
 with Types;       use Types;
 
 package SC_Obligations is
+
+   package String_Sets is new Ada.Containers.Hashed_Sets
+     (Element_Type        => Unbounded_String,
+      Hash                => Ada.Strings.Unbounded.Hash,
+      Equivalent_Elements => "=");
 
    -----------------------
    -- Compilation units --
@@ -90,8 +98,11 @@ package SC_Obligations is
    --  Return True if there is at least one Statement or Condition SCO whose
    --  range has a non-null intersection with Sloc_Begin .. Sloc_End.
 
-   procedure Load_SCOs (ALI_Filename : String);
-   --  Load source coverage obligations from ALI_Filename
+   procedure Load_SCOs
+     (ALI_Filename         : String;
+      Ignored_Source_Files : String_Sets.Set);
+   --  Load source coverage obligations from ALI_Filename, ignoring SCOs that
+   --  target files in Ignored_Source_Files.
 
    procedure Report_SCOs_Without_Code;
    --  Output a list of conditions without associated conditional branches
