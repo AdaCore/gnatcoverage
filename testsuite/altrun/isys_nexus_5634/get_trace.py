@@ -34,7 +34,7 @@ traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].IAC_Enable[0]", "T
 traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].IAC_Enable[1]", "TRUE")
 traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].IAC_Combination[0]", "None")
 traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.e200[0].IAC_Address[0]", "main")
-traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.e200[0].IAC_Address[1]", "exit")
+traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.e200[0].IAC_Address[1]", "_exit")
 
 traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].RecordProgram", "TRUE")
 traceDoc.setTriggerOption (triggerIdx, "HW.PPC5xxx.HW.e200[0].RecordData", "FALSE")
@@ -94,7 +94,7 @@ isyminfo = dbg.getSymbolInfo (ic.IConnectDebug.fMonitor |
                               ic.IConnectDebug.gafExpression, '_start')
 dbg.gotoAddress (0, isyminfo.getAddress () )
 isyminfo = dbg.getSymbolInfo (ic.IConnectDebug.fMonitor |
-                              ic.IConnectDebug.gafExpression, 'exit')
+                              ic.IConnectDebug.gafExpression, '_exit')
 
 traceDoc.start ()
 
