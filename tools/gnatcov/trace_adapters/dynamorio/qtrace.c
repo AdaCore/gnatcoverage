@@ -56,15 +56,19 @@ struct trace_header {
 
 /* Header is followed by trace entries.  */
 
+typedef unsigned long pctype32;
+
 struct trace_entry32 {
-    unsigned long pc;
+    pctype32 pc;
     unsigned short size;
     unsigned char op;
     unsigned char  _pad[1];
 };
 
+typedef unsigned long long pctype64;
+
 struct trace_entry64 {
-  unsigned long long pc;
+  pctype64 pc;
   unsigned short size;
   unsigned char  op;
   unsigned char  _pad[5];
@@ -76,23 +80,81 @@ struct trace_entry64 {
 #define TRACE_OP_BR0   0x01     /* Branch */
 #define TRACE_OP_BR1   0x02     /* Fallthrough */
 
+#define TRACE_OP_HIST_SET 0x80
+
 #ifdef X86_32
 #  define ELF_MACHINE      EM_386
 typedef struct trace_entry32 trace_entry;
+typedef pctype32 pctype;
 #elif defined(X86_64)
 #  define ELF_MACHINE      EM_X86_64
 typedef struct trace_entry64 trace_entry;
+typedef pctype64 pctype;
 #else
 #  error "unhandled machine"
 #endif
+
+/* History map.  This is a sorted and fixed array of PCs for which a trace
+   must be written each time the instruction is executed.  */
+static int    nbr_histmap_entries;
+static pctype *histmap_entries;
+static int    tracefile_history;
 
 static module_data_t *main_module;
 static client_id_t client_id;
 static file_t tracefile;
 
+/* Buffer of traces to be written on disk.  */
 #define NBR_ENTRIES 1024
 static trace_entry trace_buffer[NBR_ENTRIES];
 static int nbr_entries = 0;
+
+/* Cache for traces, to coallesce flags.  */
+struct trace_cache_entry
+{
+  /* Address of the branch instruction.  Must be checked (for equality)
+     before using the entry.  */
+  app_pc addr;
+
+  /* Branch flags.  Same as a trace entry.  */
+  unsigned char op;
+
+  /* Number of bytes in the BB before and after the instruction.  Used to
+     reconstruct the trace.  */
+  unsigned int blen : 20;
+  unsigned int alen : 4;
+};
+
+#define NBR_CACHE_ENTRIES 102400
+static struct trace_cache_entry cache_entries[NBR_CACHE_ENTRIES];
+static int cache_entries_idx = 0;
+
+static int
+tracefile_history_search (pctype pc)
+{
+  if (tracefile_history)
+    return 1;
+
+  if (nbr_histmap_entries)
+    {
+      int low  = 0;
+      int high = nbr_histmap_entries - 1;
+
+      while (low <= high)
+	{
+	  int   mid = low + (high - low) / 2;
+	  pctype hist_pc = histmap_entries[mid];
+
+	  if (hist_pc == pc)
+	    return 1;
+	  if (pc < hist_pc)
+	    high = mid - 1;
+	  else
+	    low = mid + 1;
+	}
+    }
+  return 0;
+}
 
 static void
 flush_traces (void)
@@ -124,21 +186,37 @@ write_trace (app_pc pc, unsigned int size, unsigned char op)
   ent->op = op;
 }
 
+static void
+write_trace_cache_entry (struct trace_cache_entry *tce)
+{
+  write_trace
+    (tce->addr - tce->blen, tce->blen + tce->alen, TRACE_OP_BLOCK | tce->op);
+}
+
 /* Clean call for the cbr */
 static void
-at_cbr2(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr, int taken,
-       void *bb_addr)
+at_cbr2_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
+		int taken, void *bb_addr)
 {
   write_trace ((app_pc)bb_addr, inst_addr + 2 - (app_pc)bb_addr,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
 }
 
 static void
-at_cbr6(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr, int taken,
-       void *bb_addr)
+at_cbr6_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
+		int taken, void *bb_addr)
 {
   write_trace ((app_pc)bb_addr, inst_addr + 6 - (app_pc)bb_addr,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
+}
+
+static void
+at_cache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
+	 int taken, void *arg)
+{
+  struct trace_cache_entry *tce = (struct trace_cache_entry *)arg;
+
+  tce->op |= taken ? TRACE_OP_BR0 : TRACE_OP_BR1;
 }
 
 static dr_emit_flags_t
@@ -156,9 +234,11 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
   for (instr = instrlist_first_app (bb); instr != NULL; )
     {
       instr_t *next_instr = instr_get_next_app(instr);
+
       if (instr_is_cbr(instr))
 	{
-	  void *at_fun;
+	  app_pc br_pc = instr_get_app_pc (instr);
+	  int br_len;
 
 	  /* Instruction is a conditional branch.  */
 	  if (next_instr != NULL)
@@ -167,22 +247,47 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 	      instrlist_disassemble(drcontext, tag, bb, STDOUT);
 	      dr_exit_process (126);
 	    }
+
+	  br_len = instr_length (drcontext, instr);
+
 	  /* Insert a call to at_cbr to generate a trace.  */
-	  switch (instr_length (drcontext, instr))
+	  if (tracefile_history_search ((pctype)br_pc))
 	    {
-	    case 2:
-	      /* Conditionnal jump with a byte offset.  */
-	      at_fun = (void *) at_cbr2;
-	      break;
-	    case 6:
-	      /* Conditionnal jump with a long word offset.  */
-	      at_fun = (void *) at_cbr6;
-	      break;
-	    default:
-	      dr_abort ();
+	      void *at_fun;
+
+	      switch (br_len)
+		{
+		case 2:
+		  /* Conditionnal jump with a byte offset.  */
+		  at_fun = (void *) at_cbr2_nocache;
+		  break;
+		case 6:
+		  /* Conditionnal jump with a long word offset.  */
+		  at_fun = (void *) at_cbr6_nocache;
+		  break;
+		default:
+		  dr_abort ();
+		}
+	      dr_insert_cbr_instrumentation_ex
+		(drcontext, bb, instr, at_fun, OPND_CREATE_INTPTR(bb_pc));
 	    }
-	  dr_insert_cbr_instrumentation_ex
-	    (drcontext, bb, instr, at_fun, OPND_CREATE_INTPTR(bb_pc));
+	  else
+	    {
+	      struct trace_cache_entry *tce =
+		&cache_entries[cache_entries_idx++];
+
+	      tce->addr = br_pc;
+	      tce->op = 0;
+	      tce->blen = br_pc - bb_pc;
+	      tce->alen = br_len;
+
+	      if (cache_entries_idx == NBR_CACHE_ENTRIES)
+		{
+		  dr_abort ();
+		}
+	      dr_insert_cbr_instrumentation_ex
+		(drcontext, bb, instr, at_cache, OPND_CREATE_INTPTR(tce));
+	    }
         }
         else if (instr_is_call_direct(instr)
 		 || instr_is_call_indirect(instr)
@@ -211,9 +316,107 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 static void
 event_exit(void)
 {
+  int i;
+
+#if 0
+  dr_fprintf (STDERR, "flushing caches\n");
+  write_trace (0, 0, 0);
+#endif
+
+  for (i = 0; i < cache_entries_idx; i++)
+    write_trace_cache_entry (&cache_entries[i]);
   flush_traces ();
   dr_close_file (tracefile);
   tracefile = INVALID_FILE;
+}
+
+static void
+read_map_file(const char *filename)
+{
+  file_t histfile;
+  struct trace_header hdr;
+  uint64 length;
+  int ent_sz;
+  int i;
+
+  histfile = dr_open_file (filename, DR_FILE_READ);
+
+  if (tracefile == INVALID_FILE)
+    {
+      dr_fprintf (STDERR, "cannot open file %s\n", filename);
+      dr_exit_process (127);
+    }
+
+  if (dr_read_file (histfile, &hdr, sizeof(hdr)) != sizeof(hdr))
+    {
+      dr_fprintf (STDERR,
+		  "cannot read trace header for histmap file '%s'\n",
+		  filename);
+      dr_exit_process (127);
+    }
+
+  if (memcmp (hdr.magic, QEMU_TRACE_MAGIC, sizeof(hdr.magic)) != 0
+      || hdr.version != QEMU_TRACE_VERSION
+      || hdr.kind != QEMU_TRACE_KIND_DECISION_MAP
+      || hdr.sizeof_target_pc != sizeof (void *)
+      || (hdr.big_endian != 0 && hdr.big_endian != 1)
+      || hdr.machine[0] != (ELF_MACHINE >> 8)
+      || hdr.machine[1] != (ELF_MACHINE & 0xff)
+      || hdr._pad != 0)
+    {
+      dr_fprintf (STDERR, "bad header for histmap file '%s'\n", filename);
+      dr_exit_process (127);
+    }
+
+    /* Get number of entries. */
+  if (!dr_file_size (histfile, &length))
+    {
+      dr_fprintf (STDERR, "cannot get size of histmap file '%s'\n", filename);
+      dr_exit_process (127);
+    }
+
+  if (!dr_file_seek (histfile, sizeof(hdr), DR_SEEK_SET))
+    {
+      dr_fprintf (STDERR, "cannot set seek of histmap file '%s'\n", filename);
+      dr_exit_process (127);
+    }
+
+  length -= sizeof(hdr);
+  if (sizeof (void *) == 4)
+    ent_sz = sizeof(struct trace_entry32);
+  else
+    ent_sz = sizeof(struct trace_entry64);
+
+  if ((length % ent_sz) != 0)
+    {
+      dr_fprintf (STDERR, "bad length of histmap file '%s'\n", filename);
+      dr_exit_process (127);
+    }
+
+  nbr_histmap_entries = (int)(length / ent_sz);
+  if (nbr_histmap_entries)
+    histmap_entries = dr_global_alloc (nbr_histmap_entries * sizeof(void *));
+
+  for (i = 0; i < nbr_histmap_entries; i++)
+    {
+      trace_entry ent;
+
+      if (dr_read_file (histfile, &ent, sizeof(ent)) != sizeof(ent))
+	{
+	  dr_fprintf (STDERR, "cannot read histmap entry from '%s'\n",
+		      filename);
+	  dr_exit_process (127);
+	}
+      if (i > 0 && ent.pc < histmap_entries[i - 1])
+	{
+	  dr_fprintf (STDERR, "unordered entry #%d in histmap file '%s'\n",
+		      i, filename);
+	  dr_exit_process (127);
+	}
+
+      histmap_entries[i] = ent.pc;
+    }
+  dr_close_file (histfile);
 }
 
 static void
@@ -248,6 +451,7 @@ DR_EXPORT
 void dr_init(client_id_t id)
 {
   char filename[MAXIMUM_PATH];
+  char histmap[MAXIMUM_PATH];
   char arg[MAXIMUM_PATH + 8];
   const char *p;
 
@@ -257,6 +461,7 @@ void dr_init(client_id_t id)
   client_id = id;
 
   strcpy_s (filename, sizeof (filename), "dynamorio.trace");
+  histmap[0] = 0;
 
   /* Decode options.  */
   p = dr_get_options (id);
@@ -279,6 +484,8 @@ void dr_init(client_id_t id)
 
 	      while (*s && *s != ',')
 		s++;
+	      memcpy (histmap, filename + 8, s - (filename + 8));
+	      histmap[s - (filename + 8)] = 0;
 	      if (*s)
 		memmove (filename, s + 1, l - (s - filename));
 	    }
@@ -295,6 +502,9 @@ void dr_init(client_id_t id)
 #ifdef WINDOWS
   dr_enable_console_printing();
 #endif /* WINDOWS */
+
+  if (histmap[0])
+    read_map_file (histmap);
 
   create_trace_file (filename);
 
