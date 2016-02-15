@@ -8,7 +8,7 @@ package body Silent_Last_Chance is
       pragma Unreferenced (Msg, Line);
 
       procedure C_exit (Status : Integer);
-      pragma Import (C, C_exit, "_exit");
+      pragma Import (C, C_exit, "exit");
       pragma No_Return (C_exit);
    begin
       --  No return procedure.
