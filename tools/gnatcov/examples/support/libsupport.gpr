@@ -53,6 +53,7 @@ library project Libsupport is
          --  ONLY. We don't wan't yet another zfp support approx here:
 
          Source_Dirs := Source_Dirs & ("src/memory");
+         Source_Dirs := Source_Dirs & ("src/exit");
          Source_Dirs := Source_Dirs & ("src/" & Common.Target);
 
          --  Add whatever we need to find our Last Chance Handler, to
