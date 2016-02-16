@@ -550,6 +550,12 @@ class TestSuite:
             if self.options.board:
                 targetargs.append ("BOARD=%s" % self.options.board)
 
+            # The 7.0 series of toolchain have their own version of "exit",
+            # which would conflict with ours
+
+            if self.options.toolchain and "7.0" in self.options.toolchain:
+                targetargs.append ("LIBSUPPORT_EXIT=no")
+
             logfile = os.path.join (self.log_dir, 'build_support.out')
 
             p = Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']
