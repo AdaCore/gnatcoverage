@@ -7,12 +7,12 @@ package body Silent_Last_Chance is
    procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
       pragma Unreferenced (Msg, Line);
 
-      procedure C_exit (Status : Integer);
-      pragma Import (C, C_exit, "exit");
-      pragma No_Return (C_exit);
+      procedure C_abort;
+      pragma Import (C, C_abort, "abort");
+      pragma No_Return (C_abort);
    begin
       --  No return procedure.
-      C_exit (0);
+      C_abort;
    end Last_Chance_Handler;
 
 end;
