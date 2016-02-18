@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,10 +16,11 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Unchecked_Conversion;
-
 with Interfaces; use Interfaces;
+
 with Disa_Common;
+with Hex_Images;   use Hex_Images;
+with Highlighting; use Highlighting;
 
 package body Disa_ARM is
 
@@ -41,26 +42,6 @@ package body Disa_ARM is
    is (Pc + Shift_Left (Get_Imm24 (Insn, True), 2) + 8);
    --  The PC is always 2 instructions beyond the currently executing
    --  instruction, hence the +8 offset.
-
-   ----------------
-   -- Initialize --
-   ----------------
-
-   overriding procedure Initialize
-     (Object : in out ARM_Disassembler) is
-   begin
-      Object.Handle := Dis_Opcodes.Create_Arm_Disassembler;
-   end Initialize;
-
-   --------------
-   -- Finalize --
-   --------------
-
-   overriding procedure Finalize
-     (Object : in out ARM_Disassembler) is
-   begin
-      Dis_Opcodes.Delete_Disassembler (Object.Handle);
-   end Finalize;
 
    ---------------------
    -- Get_Insn_Length --
@@ -88,9 +69,13 @@ package body Disa_ARM is
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class)
    is
+      pragma Unreferenced (Sym);
    begin
-      Disa_Common.Opcodes_Disassemble_Insn
-        (Self.Handle, Insn_Bin, Pc, Buffer, Insn_Len, Sym, 4);
+      Insn_Len := Get_Insn_Length (Self, Insn_Bin);
+      Buffer.Start_Token (Text);
+      Buffer.Put
+        ("<unknown ARM insn " & Hex_Image (To_Insn (Insn_Bin))
+         & " at " & Hex_Image (Pc) & ">");
    end Disassemble_Insn;
 
    -------------------------

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2015, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -20,16 +20,13 @@
 
 with Binary_Files;   use Binary_Files;
 with Disa_Symbolize; use Disa_Symbolize;
-private with Dis_Opcodes;
 with Disassemblers;  use Disassemblers;
 with Highlighting;
 with Traces;         use Traces;
-
-with Ada.Finalization;
+with Traces_Elf;     use Traces_Elf;
 
 package Disa_ARM is
-   type ARM_Disassembler is
-   new Ada.Finalization.Limited_Controlled and Disassembler with private;
+   type ARM_Disassembler is new Disassembler with private;
 
    overriding function Get_Insn_Length
      (Self     : ARM_Disassembler;
@@ -67,17 +64,6 @@ package Disa_ARM is
       Pc       : Pc_Type) return Boolean;
    --  See disassemblers.ads
 
-   overriding procedure Initialize
-     (Object : in out ARM_Disassembler);
-   --  Override of controlled object primitive
-
-   overriding procedure Finalize
-     (Object : in out ARM_Disassembler);
-   --  Override of controlled object primitive
-
 private
-   type ARM_Disassembler is
-   new Ada.Finalization.Limited_Controlled and Disassembler with record
-      Handle : Dis_Opcodes.Disassemble_Handle;
-   end record;
+   type ARM_Disassembler is new Disassembler with null record;
 end Disa_ARM;

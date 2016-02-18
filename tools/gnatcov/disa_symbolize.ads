@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2012, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -29,19 +29,12 @@ package Disa_Symbolize is
       Pc       : Traces.Pc_Type;
       Buffer   : in out Highlighting.Buffer_Type) is abstract;
 
-   function Symbolize
-     (Sym : Symbolizer; Pc : Traces.Pc_Type) return String is abstract;
-
    type Nul_Symbolizer_Type is new Symbolizer with private;
 
    overriding procedure Symbolize
      (Sym      : Nul_Symbolizer_Type;
       Pc       : Traces.Pc_Type;
       Buffer   : in out Highlighting.Buffer_Type) is null;
-
-   overriding function Symbolize
-     (Sym : Nul_Symbolizer_Type; Pc : Traces.Pc_Type) return String
-   is ("");
 
    Nul_Symbolizer : constant Nul_Symbolizer_Type;
 
