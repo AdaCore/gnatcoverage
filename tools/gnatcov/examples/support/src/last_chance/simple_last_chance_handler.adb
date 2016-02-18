@@ -28,9 +28,9 @@ package body Simple_Last_Chance_Handler is
    procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
       pragma Unreferenced (Msg, Line);
 
-      procedure C_Exit(Code : Integer);
-      pragma Import (C, C_Exit, "exit");
-      pragma No_Return (C_Exit);
+      procedure C_Abort;
+      pragma Import (C, C_Abort, "abort");
+      pragma No_Return (C_Abort);
    begin
       GNAT.IO.New_Line;
       GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -38,7 +38,7 @@ package body Simple_Last_Chance_Handler is
       GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
 
       --  No return procedure.
-      C_Exit(1);
+      C_Abort;
    end Last_Chance_Handler;
 
 end Simple_Last_Chance_Handler;
