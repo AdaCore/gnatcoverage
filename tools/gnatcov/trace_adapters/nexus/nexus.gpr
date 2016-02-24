@@ -8,4 +8,8 @@ project Nexus is
       for Default_Switches ("Ada") use ("-g", "-gnatyy", "-gnat12");
    end Compiler;
 
+   package Linker is
+      for Required_Switches use Gnatcov.Linker'Required_Switches;
+   end Linker;
+
 end Nexus;
