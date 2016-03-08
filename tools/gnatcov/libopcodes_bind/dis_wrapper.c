@@ -56,7 +56,13 @@ _print_address_cb(bfd_vma addr, disassemble_info *dinfo)
     }
   else
     /* No symbol found at addr.  */
-    generic_print_address(addr, dinfo);
+#if TARGET_BITS == 32
+    stream_printf (dinfo->stream, "0x%08lx", addr);
+#elif TARGET_BITS == 64
+    stream_printf (dinfo->stream, "0x%016lx", addr);
+#else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
+#error "Target arch is neither 32 or 64bits, not supported."
+#endif
 }
 
 /* Set necessary information for symbol resolution for the disassembler
