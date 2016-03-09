@@ -148,7 +148,16 @@ package body Elf_Disassemblers is
                   end if;
 
                   Next_I_Range := Element (Next_Cur);
-                  if PC in Next_I_Range.First .. Next_I_Range.Last then
+                  if PC < Next_I_Range.First then
+
+                     --  This is the case in which PC is between two ranges,
+                     --  but none covers it. This is not supposed to happen
+                     --  in practice, but try to be correct anyway.
+
+                     Cur := No_Element;
+                     return Default;
+
+                  elsif PC in Next_I_Range.First .. Next_I_Range.Last then
 
                      --  This is the case for which we hope this cache is the
                      --  more useful: the PC we were looking for is in the next
@@ -157,16 +166,11 @@ package body Elf_Disassemblers is
 
                      Cur := Next_Cur;
                      return Next_I_Range.Insn_Set;
-
-                  else
-
-                     --  This is the case in which PC is between two ranges,
-                     --  but none covers it. This is not supposed to happen
-                     --  in practice, but try to be correct anyway.
-
-                     Cur := No_Element;
-                     return Default;
                   end if;
+
+                  --  Execution reaches this point when we failed to get a
+                  --  result just using the cache: it's time to perform a full
+                  --  search...
                end;
             end if;
 
