@@ -55,7 +55,12 @@ package body Traces_Files is
       Qemu_Traces_Entries.Trace_Entry'Size / System.Storage_Unit;
 
    procedure Check_Header (Desc : in out Trace_File_Descriptor;
-                          Hdr : Trace_Header);
+                           Hdr  : Trace_Header);
+   --  Perform basic validation on Hdr: make sure it has the proper magic
+   --  header, format version and that the endianity is valid. Raise a
+   --  Bad_File_Format if something is invalid. Update the endianity
+   --  information in Desc otherwise.
+
    procedure Read_Trace_File_Infos (Trace_File : out Trace_File_Type;
                                     Desc : Trace_File_Descriptor);
    procedure Decode_Trace_Header (Hdr : Trace_Header;
@@ -82,6 +87,7 @@ package body Traces_Files is
       if not Hdr.Big_Endian'Valid then
          raise Bad_File_Format with "invalid header (bad endianness)";
       end if;
+
       Desc.Big_Endian := Hdr.Big_Endian;
    end Check_Header;
 
@@ -182,6 +188,8 @@ package body Traces_Files is
       Desc       : out Trace_File_Descriptor;
       Trace_File : out Trace_File_Type)
    is
+      Truncated_File : exception;
+
       Hdr : Trace_Header;
       Res : Integer;
    begin
@@ -193,37 +201,52 @@ package body Traces_Files is
          raise Bad_File_Format with "cannot open file " & Filename;
       end if;
 
-      --  Read header
+      --  We expect at least the following:
+      --    (1) a first header whose kind is Info;
+      --    (2) trace info entries;
+      --    (3) a second header whose kind is anything but Info.
+      --  We raise a Bad_File_Format for anything else.
+
+      --  (1) Read the first header
 
       if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
         /= Trace_Header_Size
       then
-         raise Bad_File_Format with "cannot read header";
+         raise Truncated_File with "cannot read first header";
       end if;
       Check_Header (Desc, Hdr);
 
-      if Hdr.Kind = Info then
-         Read_Trace_File_Infos (Trace_File, Desc);
-
-         --  Read header
-
-         Res := Read (Desc.Fd, Hdr'Address, Trace_Header_Size);
-         if Res = 0 then
-            --  No trace header
-            return;
-         end if;
-         if Res /= Trace_Header_Size then
-            raise Bad_File_Format with "cannot read header";
-         end if;
-         Check_Header (Desc, Hdr);
+      if Hdr.Kind /= Info then
+         raise Bad_File_Format with
+            "first header must describe an information section";
       end if;
+
+      --  (2) Read trace info entries
+
+      Read_Trace_File_Infos (Trace_File, Desc);
+
+      --  (3) Read the second header
+
+      Res := Read (Desc.Fd, Hdr'Address, Trace_Header_Size);
+      if Res /= Trace_Header_Size then
+         raise Truncated_File with "cannot read second header";
+      elsif Hdr.Kind = Info then
+         raise Bad_File_Format with
+            "second header must not describe an information section";
+      end if;
+
+      Check_Header (Desc, Hdr);
       Decode_Trace_Header (Hdr, Trace_File, Desc);
+
    exception
       when E : others =>
          Close (Desc.Fd);
          Fatal_Error
-           ("Processing of trace file " & Filename
-            & " failed: " & Exception_Message (E));
+           ("processing of trace file " & Filename
+            & " failed: " & Exception_Message (E)
+            & (if Exception_Identity (E) = Truncated_File'Identity
+               then " (truncated file?)"
+               else ""));
    end Open_Trace_File;
 
    ----------------------
