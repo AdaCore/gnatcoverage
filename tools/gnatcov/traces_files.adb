@@ -226,6 +226,10 @@ package body Traces_Files is
             & " failed: " & Exception_Message (E));
    end Open_Trace_File;
 
+   ----------------------
+   -- Read_Trace_Entry --
+   ----------------------
+
    procedure Read_Trace_Entry
      (Desc       : Trace_File_Descriptor;
       Eof        : out Boolean;
