@@ -4,7 +4,7 @@
 /*--------------------------------------------------------------------*/
 
 /*
-   Copyright (C) 2013, AdaCore
+   Copyright (C) 2013-2016, AdaCore
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -41,7 +41,6 @@
 static UChar *clo_cov_exec_file=NULL;
 
 //#define DEBUG
-
 static VG_REGPARM(2) void per_branch(struct trace_entry *te, Word taken)
 {
     if (tracefile_history_for_te(te) && (te->op & 0x3) != 0) {
@@ -60,7 +59,21 @@ static VG_REGPARM(2) void per_branch(struct trace_entry *te, Word taken)
 #endif
 }
 
+/* From libvex pre 3.11.  */
+
+#if VEX_HOST_WORDSIZE == 8
+   static inline void* ULong_to_Ptr ( ULong n ) {
+      return (void*)n;
+   }
+#elif VEX_HOST_WORDSIZE == 4
+   static inline void* ULong_to_Ptr ( ULong n ) {
+      UInt w = (UInt)n;
+      return (void*)w;
+   }
+#endif
+
 /* From Callgrind */
+
 static Addr IRConst2Addr(IRConst* con)
 {
     Addr addr;
