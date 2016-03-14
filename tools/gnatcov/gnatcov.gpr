@@ -29,7 +29,7 @@ project Gnatcov is
         ("-gnat12", "-gnatwae", "-gnatyg");
 
       c_common_switches :=
-        ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-Werror", "-std=c99");
+        ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-Werror", "-std=gnu99");
 
       mode_switches := ();
       ada_mode_switches := ();

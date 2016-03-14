@@ -34,24 +34,24 @@ typedef struct disassembler_stream
 /* Printf-like function to add content to the DS stream according to FORMAT.
    Returns the number of characters written to the stream.  */
 int
-stream_printf(disassembler_stream *ds, const char *format, ...)
+stream_printf (disassembler_stream *ds, const char *format, ...)
 {
   va_list ap;
   int res;
 
-  va_start(ap, format);
+  va_start (ap, format);
 
-  res = vsnprintf(ds->buff + ds->idx, ds->size - ds->idx, format, ap);
+  res = vsnprintf (ds->buff + ds->idx, ds->size - ds->idx, format, ap);
   ds->idx += res;
 
-  va_end(ap);
+  va_end (ap);
 
   return res;
 }
 
 /* Empties the content of the DS stream.  */
 void
-clear_stream(disassembler_stream *const ds)
+clear_stream (disassembler_stream *const ds)
 {
   ds->buff = NULL;
   ds->size = 0;
@@ -60,24 +60,24 @@ clear_stream(disassembler_stream *const ds)
 
 /* Creates a stream.  */
 disassembler_stream *
-create_stream(void)
+create_stream (void)
 {
-  disassembler_stream *ds = calloc(1, sizeof (disassembler_stream));
+  disassembler_stream *ds = calloc (1, sizeof (disassembler_stream));
 
   return ds;
 }
 
 /* Frees memory used by the DS stream.  */
 void
-delete_stream(disassembler_stream *const ds)
+delete_stream (disassembler_stream *const ds)
 {
-  clear_stream(ds);
-  free(ds);
+  clear_stream (ds);
+  free (ds);
 }
 
 /* Returns 1 if the DS stream is empty, 0 otherwise.  */
 unsigned char
-stream_is_empty(disassembler_stream *const ds)
+stream_is_empty (disassembler_stream *const ds)
 {
   return !ds || !ds->size;
 }
@@ -86,7 +86,7 @@ stream_is_empty(disassembler_stream *const ds)
    on DS will write to BUFF.  This function should be called before the first
    call to stream_printf with DS as argument.  */
 void
-set_stream_buffer(disassembler_stream *const ds, char *const buff, int size)
+set_stream_buffer (disassembler_stream *const ds, char *const buff, int size)
 {
   ds->buff = buff;
   ds->size = size;

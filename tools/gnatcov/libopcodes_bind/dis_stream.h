@@ -23,17 +23,17 @@
 
 typedef struct disassembler_stream disassembler_stream;
 
-extern disassembler_stream *create_stream(void);
+extern disassembler_stream *create_stream (void);
 
-extern void delete_stream(disassembler_stream *const ds);
+extern void delete_stream (disassembler_stream *const ds);
 
-extern int stream_printf(disassembler_stream *ptr, const char *format, ...);
+extern int stream_printf (disassembler_stream *ptr, const char *format, ...);
 
-extern void clear_stream(disassembler_stream *const ds);
+extern void clear_stream (disassembler_stream *const ds);
 
-extern unsigned char stream_is_empty(disassembler_stream *const ds);
+extern unsigned char stream_is_empty (disassembler_stream *const ds);
 
-extern void set_stream_buffer(disassembler_stream *const ds, char *const buff,
-                              int size);
+extern void set_stream_buffer (disassembler_stream *const ds, char *const buff,
+                               int size);
 
 #endif /* !DIS_STREAM_H_ */

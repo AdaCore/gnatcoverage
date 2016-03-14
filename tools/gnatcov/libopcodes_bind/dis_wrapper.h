@@ -34,17 +34,19 @@ typedef struct disassemble_handle disassemble_handle;
 typedef int (*print_symbol_cb) (bfd_vma addr, void *symbolizer,
                                 char *const buff, int buff_size);
 
-extern disassemble_handle *create_arm_disassembler(void);
+extern disassemble_handle *create_arm_disassembler (void);
 
-extern void delete_disassembler(disassemble_handle *const dh);
+extern disassemble_handle *create_thumb_disassembler (void);
 
-extern int disassemble_to_text(disassemble_handle *const dh, bfd_vma pc,
-                               char *const dest, unsigned int dest_size,
-                               bfd_byte *const insn_buffer,
-                               unsigned int ib_size, enum bfd_endian endian);
+extern void delete_disassembler (disassemble_handle *const dh);
 
-extern void set_disassembler_symbolizer(disassemble_handle *const dh,
-                                        void *const symbolizer,
-                                        print_symbol_cb addr_cb);
+extern int disassemble_to_text (disassemble_handle *const dh, bfd_vma pc,
+                                char *const dest, unsigned int dest_size,
+                                bfd_byte *const insn_buffer,
+                                unsigned int ib_size, enum bfd_endian endian);
+
+extern void set_disassembler_symbolizer (disassemble_handle *const dh,
+                                         void *const symbolizer,
+                                         print_symbol_cb addr_cb);
 
 #endif /* !DIS_WRAPPER_H_ */

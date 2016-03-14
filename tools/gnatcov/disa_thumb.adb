@@ -19,7 +19,6 @@
 with Interfaces; use Interfaces;
 
 with Disa_Common;
-with Hex_Images;   use Hex_Images;
 with Highlighting; use Highlighting;
 
 package body Disa_Thumb is
@@ -60,6 +59,26 @@ package body Disa_Thumb is
    --  The PC is always 2 instructions beyond the currently executing
    --  instruction, hence the +4 offset.
 
+   ----------------
+   -- Initialize --
+   ----------------
+
+   overriding procedure Initialize
+     (Object : in out Thumb_Disassembler) is
+   begin
+      Object.Handle := Dis_Opcodes.Create_Thumb_Disassembler;
+   end Initialize;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   overriding procedure Finalize
+     (Object : in out Thumb_Disassembler) is
+   begin
+      Dis_Opcodes.Delete_Disassembler (Object.Handle);
+   end Finalize;
+
    ---------------------
    -- Get_Insn_Length --
    ---------------------
@@ -86,18 +105,9 @@ package body Disa_Thumb is
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class)
    is
-      pragma Unreferenced (Sym);
-
-      Image : constant String :=
-        (if Is_32bit_Insn (Insn_Bin)
-         then Hex_Image (To_Insn32 (Insn_Bin))
-         else Hex_Image (To_Insn16 (Insn_Bin)));
    begin
-      Insn_Len := Get_Insn_Length (Self, Insn_Bin);
-      Buffer.Start_Token (Text);
-      Buffer.Put
-        ("<unknown Thumb insn " & Image
-         & " at " & Hex_Image (Pc) & ">");
+      Disa_Common.Opcodes_Disassemble_Insn
+        (Self.Handle, Insn_Bin, Pc, Buffer, Insn_Len, Sym, 4);
    end Disassemble_Insn;
 
    -------------------------

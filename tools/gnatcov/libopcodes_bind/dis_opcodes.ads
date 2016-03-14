@@ -52,6 +52,12 @@ package Dis_Opcodes is
           External_Name => "create_arm_disassembler";
    --  Returns a handle to disassemble ARM binary code
 
+   function Create_Thumb_Disassembler return Disassemble_Handle
+     with Import        => True,
+          Convention    => C,
+          External_Name => "create_thumb_disassembler";
+   --  Returns a handle to disassemble Thumb binary code
+
    procedure Delete_Disassembler (DH : Disassemble_Handle)
      with Import        => True,
           Convention    => C,
