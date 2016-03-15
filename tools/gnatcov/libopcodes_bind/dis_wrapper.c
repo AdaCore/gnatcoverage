@@ -48,6 +48,8 @@ typedef struct symbolizer_data
 
 char *const dis_thumb_option = "force-thumb";
 char *const dis_arm_option = "no-force-thumb";
+char *const dis_x86_option = "i386";
+char *const dis_x86_64_option = "x86-64";
 
 /* This is a callback for disassemble_info->print_address_func.  */
 static void
@@ -73,12 +75,9 @@ _print_address_cb (bfd_vma addr, disassemble_info *dinfo)
 #endif
 }
 
-
-/* Create disassembler set up for ARM.
-   If FOR_THUMB is true, the disassembler will disassemble Thumb instruction
-   set.  Otherwise the disassembler will disassemble ARM instruction set.  */
+/* Allocates and sets up data common to all disassemblers.  */
 static disassemble_handle *
-_create_arm_arch_disassembler (unsigned char for_thumb)
+_create_base_disassembler (enum bfd_architecture arch)
 {
   disassemble_handle *dh = malloc (sizeof (disassemble_handle));
 
@@ -96,21 +95,35 @@ _create_arm_arch_disassembler (unsigned char for_thumb)
 
     init_disassemble_info (&(dh->dinfo), ds, (fprintf_ftype) stream_printf);
 
-    dh->dinfo.arch = bfd_arch_arm;
-
-    dh->dinfo.application_data = calloc (1, sizeof (symbolizer_data));
-
-    if (for_thumb)
-      dh->disassembler_options = dis_thumb_option;
-    else
-      dh->disassembler_options = dis_arm_option;
+    dh->dinfo.arch = arch;
 
     disassemble_init_for_target (&(dh->dinfo));
 
-    dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_arm;
-    dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_arm;
-    dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
+    dh->dinfo.application_data = calloc (1, sizeof (symbolizer_data));
   }
+
+  return dh;
+}
+
+/* Create disassembler set up for ARM.
+   If FOR_THUMB is true, the disassembler will disassemble Thumb instruction
+   set.  Otherwise the disassembler will disassemble ARM instruction set.  */
+static disassemble_handle *
+_create_arm_arch_disassembler (unsigned char for_thumb)
+{
+  disassemble_handle *dh = _create_base_disassembler (bfd_arch_arm);
+
+  if (!dh)
+    return NULL;
+
+  if (for_thumb)
+    dh->disassembler_options = dis_thumb_option;
+  else
+    dh->disassembler_options = dis_arm_option;
+
+  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_arm;
+  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_arm;
+  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
 
   return dh;
 }
@@ -140,6 +153,30 @@ disassemble_handle *
 create_thumb_disassembler (void)
 {
   return _create_arm_arch_disassembler (1);
+}
+
+/* Sets up disassembler for x86.  */
+disassemble_handle *
+create_x86_disassembler (void)
+{
+  disassemble_handle *dh = _create_base_disassembler (bfd_arch_i386);
+
+  if (!dh)
+    return NULL;
+
+#if TARGET_BITS == 32
+  dh->disassembler_options = dis_x86_option;
+#elif TARGET_BITS == 64
+  dh->disassembler_options = dis_x86_64_option;
+#else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
+#error "Target arch is neither 32 or 64bits, not supported."
+#endif
+
+  dh->disass_func[BFD_ENDIAN_BIG] = NULL;
+  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_i386;
+  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
+
+  return dh;
 }
 
 /* Frees the memory allocated for the disassembler represented by DH.  */

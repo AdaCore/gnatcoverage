@@ -38,6 +38,8 @@ extern disassemble_handle *create_arm_disassembler (void);
 
 extern disassemble_handle *create_thumb_disassembler (void);
 
+extern disassemble_handle *create_x86_disassembler (void);
+
 extern void delete_disassembler (disassemble_handle *const dh);
 
 extern int disassemble_to_text (disassemble_handle *const dh, bfd_vma pc,

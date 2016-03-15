@@ -58,6 +58,12 @@ package Dis_Opcodes is
           External_Name => "create_thumb_disassembler";
    --  Returns a handle to disassemble Thumb binary code
 
+   function Create_X86_Disassembler return Disassemble_Handle
+     with Import        => True,
+          Convention    => C,
+          External_Name => "create_x86_disassembler";
+   --  Returns a handle to disassemble x86 binary code
+
    procedure Delete_Disassembler (DH : Disassemble_Handle)
      with Import        => True,
           Convention    => C,
