@@ -1556,6 +1556,8 @@ begin
               (Trace_File         : Trace_File_Element_Acc;
                Exec_Name_Override : String)
             is
+               --  TODO??? Handle shared objects
+
                Exe_File : Exe_File_Acc;
             begin
                Init_Base (Base);
@@ -1601,16 +1603,28 @@ begin
                Exe_File : Exe_File_Acc;
                --  Executable this trace file refers to
 
+               Current_Exec            : Exe_File_Acc;
                Current_Sym             : Address_Info_Acc;
                Current_Subp_Key        : Subprogram_Key;
                Current_Subp_Info       : aliased Subprogram_Info;
                Current_Subp_Info_Valid : Boolean;
 
                procedure Process_Info_Entries (TF : Trace_File_Type);
+
+               function Load_Shared_Object
+                  (TF          : Trace_File_Type;
+                   Filename    : String;
+                   Signature   : Binary_Files.Binary_File_Signature;
+                   First, Last : Traces.Pc_Type) return Exe_File_Acc;
+
                procedure Process_Trace_Entry
-                 (TF : Trace_File_Type; E : Trace_Entry);
+                 (TF : Trace_File_Type; SO : Exe_File_Acc; E : Trace_Entry);
+
                procedure Read_Trace_File is new Read_Trace_File_Gen
-                 (Process_Info_Entries => Process_Info_Entries,
+                 (Shared_Object_Type   => Exe_File_Acc,
+                  No_Shared_Object     => null,
+                  Process_Info_Entries => Process_Info_Entries,
+                  Load_Shared_Object   => Load_Shared_Object,
                   Process_Trace_Entry  => Process_Trace_Entry);
 
                --------------------------
@@ -1625,30 +1639,58 @@ begin
                                  Exec_Name_Override);
                   Decision_Map.Analyze (Exe_File);
                end Process_Info_Entries;
-                  --  Get the symbol the trace entry is in
+
+               ------------------------
+               -- Load_Shared_Object --
+               ------------------------
+
+               function Load_Shared_Object
+                  (TF          : Trace_File_Type;
+                   Filename    : String;
+                   Signature   : Binary_Files.Binary_File_Signature;
+                   First, Last : Traces.Pc_Type) return Exe_File_Acc
+               is
+                  pragma Unreferenced (TF);
+                  pragma Unreferenced (First);
+                  pragma Unreferenced (Last);
+                  Result : Exe_File_Acc;
+               begin
+                  Open_Exec_For_Trace
+                    (Filename, 0,
+                     Trace_File.Filename.all, Signature,
+                     Result);
+                  Decision_Map.Analyze (Result);
+                  return Result;
+               end Load_Shared_Object;
 
                -------------------------
                -- Process_Trace_Entry --
                -------------------------
 
                procedure Process_Trace_Entry
-                 (TF : Trace_File_Type; E : Trace_Entry)
+                 (TF : Trace_File_Type; SO : Exe_File_Acc; E : Trace_Entry)
                is
                   pragma Unreferenced (TF);
+
+                  Exe : constant Exe_File_Acc :=
+                    (if SO = null then Exe_File else SO);
                begin
-                  if Current_Sym = null
+                  --  Get the symbol the trace entry is in
+
+                  if Current_Sym = null or else Current_Exec /= Exe
                     or else
-                    E.First not in Current_Sym.First .. Current_Sym.Last
+                     E.First not in Current_Sym.First .. Current_Sym.Last
                   then
+                     Current_Exec := Exe;
                      Current_Sym :=
                        Get_Address_Info
-                         (Exe_File.all, Symbol_Addresses, E.First);
+                         (Exe.all, Symbol_Addresses, E.First);
 
                      if Current_Sym = null then
                         Current_Subp_Info_Valid := False;
                      else
                         Key_From_Symbol
-                          (Exe_File, Current_Sym, Current_Subp_Key);
+                          (Exe, Current_Sym, Current_Subp_Key);
                         Current_Subp_Info_Valid :=
                            Is_In (Current_Subp_Key);
                      end if;

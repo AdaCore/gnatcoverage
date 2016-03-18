@@ -18,9 +18,11 @@
 
 with Ada.Text_IO;    use Ada.Text_IO;
 
-with Disassemblers;     use Disassemblers;
-with Arch;              use Arch;
 with Interfaces;        use Interfaces;
+
+with Arch;              use Arch;
+with Disassemblers;     use Disassemblers;
+with Execs_Dbase;
 with Hex_Images;        use Hex_Images;
 with Highlighting;      use Highlighting;
 with Switches;
@@ -243,13 +245,44 @@ package body Traces_Disa is
       use Traces_Files;
       Addr : Address_Info_Acc := null;
 
+      function Load_Shared_Object
+         (Trace_File  : Trace_File_Type;
+          Filename    : String;
+          Signature   : Binary_File_Signature;
+          First, Last : Traces.Pc_Type) return Exe_File_Acc;
+
       procedure Disp_Entry
         (Trace_File : Trace_File_Type;
+         Shared_Obj : Exe_File_Acc;
          E          : Trace_Entry);
       --  Comment needed???
 
       procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Process_Trace_Entry => Disp_Entry);
+        (Shared_Object_Type  => Exe_File_Acc,
+         No_Shared_Object    => Exe'Unrestricted_Access,
+         Load_Shared_Object  => Load_Shared_Object,
+         Process_Trace_Entry => Disp_Entry);
+
+      ------------------------
+      -- Load_Shared_Object --
+      ------------------------
+
+      function Load_Shared_Object
+         (Trace_File  : Trace_File_Type;
+          Filename    : String;
+          Signature   : Binary_File_Signature;
+          First, Last : Traces.Pc_Type) return Exe_File_Acc
+      is
+         pragma Unreferenced (Trace_File);
+         pragma Unreferenced (First);
+         pragma Unreferenced (Last);
+
+         SO : Exe_File_Acc;
+      begin
+         Execs_Dbase.Open_Exec_For_Trace
+           (Filename, 0, Trace_Filename, Signature, SO);
+         return SO;
+      end Load_Shared_Object;
 
       ----------------
       -- Disp_Entry --
@@ -257,10 +290,12 @@ package body Traces_Disa is
 
       procedure Disp_Entry
         (Trace_File : Trace_File_Type;
+         Shared_Obj : Exe_File_Acc;
          E          : Trace_Entry)
       is
          pragma Unreferenced (Trace_File);
          use Traces_Disa;
+         SO     : Exe_File_Type'Class renames Shared_Obj.all;
          Sec    : Address_Info_Acc;
          Buffer : Highlighting.Buffer_Type (128);
       begin
@@ -268,14 +303,14 @@ package body Traces_Disa is
          if Addr = null
            or else E.First not in Addr.First .. Addr.Last
          then
-            Addr := Get_Symbol (Exe, E.First);
+            Addr := Get_Symbol (SO, E.First);
          end if;
 
          if Addr = null then
             Put_Line ("(not in the executable)");
 
          else
-            Symbolize (Exe, E.First, Buffer);
+            Symbolize (SO, E.First, Buffer);
             Buffer.Put (':');
             Put_Line (Buffer.Get_Raw (2 .. Buffer.Last_Index));
 
@@ -284,10 +319,10 @@ package body Traces_Disa is
                Sec := Sec.Parent;
             end loop;
 
-            Load_Section_Content (Exe, Sec);
+            Load_Section_Content (SO, Sec);
             For_Each_Insn (Slice (Sec.Section_Content, E.First, E.Last),
-                           Get_Insn_Set_Ranges (Exe, Sec.Section_Sec_Idx).all,
-                           Covered, Textio_Disassemble_Cb'Access, Exe);
+                           Get_Insn_Set_Ranges (SO, Sec.Section_Sec_Idx).all,
+                           Covered, Textio_Disassemble_Cb'Access, SO);
          end if;
       end Disp_Entry;
 

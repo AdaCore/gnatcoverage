@@ -119,9 +119,11 @@ package Qemu_Traces is
    --  The section header fields after Kind (but big_endian) should be 0.
 
    --  The section contents is a sequence of Trace Info Entries, each with a
-   --  Trace Info Header followed by data. Data interpretation depends on the
-   --  entry Kind found in the item header.  We expect an Info_End kind of
-   --  entry to finish the sequence.
+   --  Trace Info Header followed by data. We expect an Info_End kind of entry
+   --  to finish the sequence. Data interpretation depends on the entry Kind
+   --  found in the item header. Note that trace info entries may also appear
+   --  in the middle of trace entries, for instance to describe shared objects
+   --  loading/unloading: data interpretation is also different there.
 
    --  Info_Kind_Type identifies the various information items that can be
    --  stored in a trace file. This section is private to gnatcov. Note that
@@ -135,7 +137,8 @@ package Qemu_Traces is
 
       Exec_File_Name,
       --  In trace information section, this is the file name for the
-      --  executable run when creating this trace.
+      --  executable run when creating this trace. For shared objects
+      --  loading/unloading, this is the shared object file name.
 
       Coverage_Options,
       --  ??? Unused at the time of writing
@@ -161,9 +164,16 @@ package Qemu_Traces is
       --  ASCII representation of CRC32 checksum for the executable file, as a
       --  32-bit unsigned number.
 
-      Coverage_Context
+      Coverage_Context,
       --  Streams-encoded coverage assessment context information (only set
       --  in checkpointed infos).
+
+      Exec_Code_Size
+      --  ASCII representation of the size (in bytes) of the code section
+      --  (i.e. the one that contains executable instructions). In trace
+      --  information section, this is the code section of the executable. For
+      --  shared objects loading/unloading, this is the code section of the
+      --  shared object.
      );
 
    type Trace_Info_Header is record
@@ -264,6 +274,43 @@ package Qemu_Traces is
 
    Trace_Special_Loadaddr : constant Unsigned_16 := 1;
    --  Module loaded at PC
+
+   --  The following two operations are used to handle shared objects.
+   --
+   --  A particularity with shared objects is that their executable code can be
+   --  loaded and unloaded at multiple places at different times, so there is
+   --  no direct mapping: instruction <-> PC. Actually, if a program loads A,
+   --  then unloads it and then loads B, executable code for A and B may share
+   --  the same address space.
+   --
+   --  In order to precisely describe execution traces for these, we introduce
+   --  two special operations to represent the shared object loading/unloading:
+   --    * The load operation provides the address at which the executable
+   --      code is relocated and additional informtation such as the path for
+   --      the shared object file.
+   --    * The unload operation just provides the address for the shared object
+   --      to unload.
+   --
+   --  The trace entries between the load/unload couple of operations can then
+   --  reference instructions from the shared object.
+
+   Trace_Special_Load_Shared_Object   : constant Unsigned_16 := 2;
+   --  This trace entry describes the event: a shared object has been loaded,
+   --  its executable code has be relocated at the address indicated by this
+   --  trace entry. This trace entry is followed by a sequence of Trace Info
+   --  Entries. The following kind of entries are required:
+   --
+   --    * Exec_File_Name: the file name for the loaded shared object.
+   --    * Exec_File_Size: its file size (in bytes).
+   --    * Exec_Time_Stamp: its modification time.
+   --    * Exec_File_CRC32: its CRC32 checksum.
+   --    * Exec_Code_Size: the size (in bytes) of the code section
+
+   Trace_Special_Unload_Shared_Object : constant Unsigned_16 := 3;
+   --  This trace entry (whose address is PC) describes the event: the shared
+   --  object that was previously loaded at PC has been unloaded. In order to
+   --  be valid, it must exclusively match an earlier
+   --  Trace_Special_Load_Shared_Object event at the same address.
 
    -------------------------------------------
    -- Decision Map or Trace Control Section --

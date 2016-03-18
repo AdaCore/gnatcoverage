@@ -47,6 +47,13 @@ package Traces_Files is
    --  Create an empty Trace_File object of the given kind
 
    generic
+      type Shared_Object_Type is private;
+      --  Type to use to represent shared objects
+
+      No_Shared_Object : Shared_Object_Type;
+      --  Value to use to mean "it's not in a shared object, it's in the main
+      --  executable".
+
       with procedure Process_Info_Entries
         (Trace_File : Trace_File_Type) is null;
       --  Called right before processing trace entries
@@ -57,18 +64,38 @@ package Traces_Files is
       --  Called when coming across a Loadaddr special trace entry. Note that
       --  this is not called when such an entry is unexpected.
 
+      with function Load_Shared_Object
+         (Trace_File  : Trace_File_Type;
+          Filename    : String;
+          Signature   : Binary_File_Signature;
+          First, Last : Traces.Pc_Type) return Shared_Object_Type is <>;
+      --  Called when processing a load shared object event. The result will be
+      --  used as an actual for the SO formal in Process_Trace_Entry when
+      --  processing trace entries related to this shared object.
+
       with procedure Process_Trace_Entry
         (Trace_File : Trace_File_Type;
+         SO         : Shared_Object_Type;
          E          : Traces.Trace_Entry) is null;
-      --  Called for each regular trace entry (i.e. not for Loadaddr ones)
+      --  Called for each regular trace entry (i.e. not for special ones). Some
+      --  regular entries may also be skipped: see documentation below for
+      --  Handle_Relocations.
 
-      Handle_Loadaddr : Boolean := True;
-      --  Whether the Loadaddr special trace entry should be handled. If it is,
-      --  trace entries whose addresses are located before the load address are
-      --  discarded and the addresses are relocated as if the module was
-      --  loadded at address 0. Otherwise, all trace entries are yielded
-      --  unchanged. In any case, Process_Loadaddr is called when the Loadaddr
-      --  entry is decoded.
+      Handle_Relocations : Boolean := True;
+      --  Whether trace entries are relocated using Loadaddr and shared object
+      --  load/unload events.
+      --
+      --  Most use need relocations, hence the default value. The only use case
+      --  for disabling relocation is to be able to dump the trace file as it
+      --  is encoded on the disk, so only for debug purposes.
+      --
+      --  Note that when this is True, in the case of Loadaddr handling, trace
+      --  entries:
+      --    * for which the PC is lower than the Loadaddr load address,
+      --    * that appear before the Loadaddr special trace entry in the stream
+      --      of trace entries
+      --  are discarded: we will not call Process_Trace_Entry on them, as they
+      --  are irrelevant after the relocation process.
 
    procedure Read_Trace_File_Gen
      (Filename   : String;
@@ -84,7 +111,8 @@ package Traces_Files is
      (Filename   : String;
       Trace_File : out Trace_File_Type;
       Base       : in out Traces_Base);
-   --  Specialization of Read_Trace_File_Gen that imports traces into a base
+   --  Specialization of Read_Trace_File_Gen that imports traces into a base.
+   --  TODO??? This does not handle shared objects.
 
    procedure Free (Trace_File : in out Trace_File_Type);
    --  Deallocate all dynamic data associated with Trace_File

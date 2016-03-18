@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
+with Ada.Containers.Ordered_Sets;
 with Ada.Exceptions;          use Ada.Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
@@ -117,6 +118,14 @@ package body Traces_Files is
                        Mode     : File_Open_Mode) return File_Descriptor;
    --  Open a file, without reading or writing to it. In case of failure, an
    --  exception is raised and the file is considered as not open.
+
+   procedure Read_SO_Info
+     (Desc      : Trace_File_Descriptor;
+      Filename  : out String_Access;
+      Signature : out Binary_File_Signature;
+      Code_Size : out Traces.Pc_Type);
+   --  Read the trace info entries related to a shared object load event. This
+   --  raises a Bad_File_Format exception if any information is missing.
 
    function Decode_Trace_Entry
      (E      : Qemu_Trace_Entry;
@@ -256,6 +265,68 @@ package body Traces_Files is
       end if;
       return Fd;
    end Open_File;
+
+   ------------------
+   -- Read_SO_Info --
+   ------------------
+
+   procedure Read_SO_Info
+     (Desc      : Trace_File_Descriptor;
+      Filename  : out String_Access;
+      Signature : out Binary_File_Signature;
+      Code_Size : out Traces.Pc_Type)
+   is
+      use type Ada.Strings.Unbounded.Unbounded_String;
+
+      Fname : String_Access;
+      Sig   : Binary_File_Signature;
+      CS    : Pc_Type := 0;
+
+      procedure Process_Info_Entry
+        (Kind : Info_Kind_Type;
+         Data : String);
+      --  Decode shared object information and import them in the local
+      --  variables above.
+
+      procedure Read_Info_Entries is new Read_Trace_File_Entries
+        (Process_Info_Entry);
+
+      ------------------------
+      -- Process_Info_Entry --
+      ------------------------
+
+      procedure Process_Info_Entry
+        (Kind : Info_Kind_Type;
+         Data : String)
+      is
+      begin
+         case Kind is
+         when Exec_File_Name  => Fname := new String'(Data);
+         when Exec_File_Size  => Sig.Size := Long_Integer'Value (Data);
+         when Exec_File_Time_Stamp =>
+            Sig.Time_Stamp := Ada.Strings.Unbounded.To_Unbounded_String (Data);
+         when Exec_File_CRC32 => Sig.CRC32 := Unsigned_32'Value (Data);
+         when Exec_Code_Size  => CS := Pc_Type'Value (Data);
+         when others => null;
+         end case;
+      end Process_Info_Entry;
+
+   begin
+      Read_Info_Entries (Desc);
+
+      if Fname = null
+         or else Sig.Size = 0
+         or else Sig.Time_Stamp = Ada.Strings.Unbounded.Null_Unbounded_String
+         or else Sig.CRC32 = 0
+         or else CS = 0
+      then
+         raise Bad_File_Format with "incomplete shared object load event";
+      end if;
+
+      Filename := Fname;
+      Signature := Sig;
+      Code_Size := CS;
+   end Read_SO_Info;
 
    ------------------------
    -- Decode_Trace_Entry --
@@ -476,7 +547,37 @@ package body Traces_Files is
    is
       Desc   : Trace_File_Descriptor;
       F      : Trace_File_Type;
-      Offset : Traces.Pc_Type := 0;
+      Offset : Pc_Type := 0;
+
+      type Shared_Object_Desc is record
+         First, Last : Pc_Type;
+         --  Address range for the shared object executable code in the process
+         --  address space for this trace.
+
+         SO          : Shared_Object_Type;
+         --  User data for this shared object
+      end record;
+      --  Describe the features of a loaded shared library
+
+      function "=" (L, R : Shared_Object_Desc) return Boolean is
+        (L.First <= R.Last and then L.Last >= R.First);
+      function "<" (L, R : Shared_Object_Desc) return Boolean is
+        (L.Last < R.First);
+      --  Ordering predicates to order shared objects in our internal mapping.
+      --  We consider any overlapping entries to be conflicting: processes are
+      --  not supposed to be able to map two things at the same address.
+
+      package Shared_Object_Sets is new Ada.Containers.Ordered_Sets
+        (Element_Type => Shared_Object_Desc);
+
+      SO_Set    : Shared_Object_Sets.Set;
+      --  Set of shared objects that are loaded at some point. Updated each
+      --  time we process a loading/unloading event.
+
+      function SOD_For_PC (PC : Pc_Type) return Shared_Object_Desc is
+        ((First  => PC, Last => PC, others => <>));
+      --  Return a Shared_Object_Desc that can be used as a key for lookups in
+      --  SO_Set.
 
       EOF       : Boolean;
       Raw_Entry : Qemu_Trace_Entry;
@@ -513,15 +614,16 @@ package body Traces_Files is
 
                Process_Loadaddr (F, Raw_Entry.Pc);
 
-               if Handle_Loadaddr then
+               if Handle_Relocations then
                   Offset := Raw_Entry.Pc;
                end if;
 
                exit;
             end if;
 
-            if not Handle_Loadaddr then
-               Process_Trace_Entry (F, Decode_Trace_Entry (Raw_Entry));
+            if not Handle_Relocations then
+               Process_Trace_Entry
+                 (F, No_Shared_Object, Decode_Trace_Entry (Raw_Entry));
             end if;
          end loop;
       end if;
@@ -532,19 +634,45 @@ package body Traces_Files is
          Read_Trace_Entry (Desc, EOF, Raw_Entry);
          exit when EOF;
 
-         --  There can be only one loadaddr special trace entry per trace file.
-         --  If it exists, we already processed it before the loop, above.
-
          if Raw_Entry.Op = Qemu_Traces.Trace_Op_Special then
             case Raw_Entry.Size is
             when Trace_Special_Loadaddr =>
+
+               --  There can be only one loadaddr special trace entry per trace
+               --  file.  If it exists, we already processed it before the
+               --  loop, above.
+
                Fatal_Error
                  ("Unexpected 'loadaddr' special trace entry.");
+
+            when Trace_Special_Load_Shared_Object =>
+               declare
+                  Filename  : String_Access;
+                  Sig       : Binary_File_Signature;
+                  Code_Size : Pc_Type;
+
+                  First, Last : Pc_Type;
+               begin
+                  Read_SO_Info (Desc, Filename, Sig, Code_Size);
+                  First := Raw_Entry.Pc;
+                  Last := First + Code_Size - 1;
+                  SO_Set.Insert
+                    ((First => First,
+                      Last  => Last,
+                      SO    => Load_Shared_Object
+                                 (F, Filename.all, Sig, First, Last)));
+                  Free (Filename);
+               end;
+
+            when Trace_Special_Unload_Shared_Object =>
+               SO_Set.Delete (SOD_For_PC (Raw_Entry.Pc));
+
             when others =>
                Fatal_Error
                  ("Unknown special trace entry: 0x"
                   & Hex_Image (Raw_Entry.Size));
             end case;
+            goto Skip;
          end if;
 
          --  If there is an offset, it means that we care about only one module
@@ -560,7 +688,32 @@ package body Traces_Files is
             goto Skip;
          end if;
 
-         Process_Trace_Entry (F, Decode_Trace_Entry (Raw_Entry, Offset));
+         --  Determine if this trace entry is related to a shared object or to
+         --  the main executable.
+
+         declare
+            use Shared_Object_Sets;
+
+            Cur          : constant Cursor :=
+               SO_Set.Find (SOD_For_PC (Raw_Entry.Pc));
+            SOD          : Shared_Object_Desc;
+            Trace_Offset : Pc_Type;
+            SO           : Shared_Object_Type;
+         begin
+            if Cur = No_Element then
+               Trace_Offset := Offset;
+               SO := No_Shared_Object;
+            else
+               SOD := Element (Cur);
+               Trace_Offset := (if Handle_Relocations
+                                then SOD.First
+                                else 0);
+               SO := SOD.SO;
+            end if;
+
+            Process_Trace_Entry
+              (F, SO, Decode_Trace_Entry (Raw_Entry, Trace_Offset));
+         end;
 
          << Skip >> null;
       end loop;
@@ -664,11 +817,23 @@ package body Traces_Files is
       Trace_File : out Trace_File_Type;
       Base       : in out Traces_Base)
    is
+      function Load_Shared_Object
+         (Trace_File  : Trace_File_Type;
+          Filename    : String;
+          Signature   : Binary_File_Signature;
+          First, Last : Traces.Pc_Type) return Boolean
+      is (True);
+
       procedure Process_Trace_Entry
         (Trace_File : Trace_File_Type;
+         SO         : Boolean;
          E          : Trace_Entry);
+
       procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Process_Trace_Entry => Process_Trace_Entry);
+        (Shared_Object_Type  => Boolean,
+         No_Shared_Object    => False,
+         Load_Shared_Object  => Load_Shared_Object,
+         Process_Trace_Entry => Process_Trace_Entry);
 
       -------------------------
       -- Process_Trace_Entry --
@@ -676,9 +841,11 @@ package body Traces_Files is
 
       procedure Process_Trace_Entry
         (Trace_File : Trace_File_Type;
+         SO         : Boolean;
          E          : Trace_Entry)
       is
          pragma Unreferenced (Trace_File);
+         pragma Unreferenced (SO);
       begin
          Add_Entry (Base, First => E.First, Last => E.Last, Op => E.Op);
       end Process_Trace_Entry;
@@ -754,19 +921,34 @@ package body Traces_Files is
    ---------------------
 
    procedure Dump_Trace_File (Filename : String; Raw : Boolean) is
+      use Ada.Strings.Unbounded;
 
       procedure Process_Info_Entries (Trace_File : Trace_File_Type);
+
       procedure Process_Loadaddr
         (Trace_File : Trace_File_Type;
          Offset     : Pc_Type);
+
       procedure Process_Trace_Entry
         (Trace_File : Trace_File_Type;
+         SO         : Unbounded_String;
          E          : Trace_Entry);
+
+      function Load_Shared_Object
+        (Trace_File  : Trace_File_Type;
+         Filename    : String;
+         Signature   : Binary_File_Signature;
+         First, Last : Pc_Type)
+         return Unbounded_String;
+
       procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Process_Info_Entries => Process_Info_Entries,
-         Process_Loadaddr     => Process_Loadaddr,
-         Process_Trace_Entry  => Process_Trace_Entry,
-         Handle_Loadaddr      => not Raw);
+        (Shared_Object_Type  => Unbounded_String,
+         No_Shared_Object    => Null_Unbounded_String,
+         Process_Info_Entries => Process_Info_Entries,
+         Process_Loadaddr    => Process_Loadaddr,
+         Load_Shared_Object  => Load_Shared_Object,
+         Process_Trace_Entry => Process_Trace_Entry,
+         Handle_Relocations  => not Raw);
 
       --------------------------
       -- Process_Info_Entries --
@@ -790,15 +972,36 @@ package body Traces_Files is
          Put_Line ("Kernel was loaded at: " & Hex_Image (Offset));
       end Process_Loadaddr;
 
+      ------------------------
+      -- Load_Shared_Object --
+      ------------------------
+
+      function Load_Shared_Object
+        (Trace_File  : Trace_File_Type;
+         Filename    : String;
+         Signature   : Binary_File_Signature;
+         First, Last : Pc_Type)
+         return Unbounded_String
+      is
+         pragma Unreferenced (Trace_File);
+         pragma Unreferenced (Signature);
+      begin
+         Put_Line ("Loading shared object " & Filename);
+         Put_Line ("   at " & Hex_Image (First) & " .. " & Hex_Image (Last));
+         return To_Unbounded_String (Filename);
+      end Load_Shared_Object;
+
       -------------------------
       -- Process_Trace_Entry --
       -------------------------
 
       procedure Process_Trace_Entry
         (Trace_File : Trace_File_Type;
+         SO         : Unbounded_String;
          E          : Trace_Entry)
       is
          pragma Unreferenced (Trace_File);
+         pragma Unreferenced (SO);
       begin
          Dump_Entry (E);
       end Process_Trace_Entry;
