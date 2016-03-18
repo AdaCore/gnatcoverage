@@ -35,6 +35,20 @@ package body Traces_Files is
 
    type File_Open_Mode is (Read_Only, Read_Write);
 
+   generic
+      with procedure Process_Info (Kind : Info_Kind_Type; Data : String);
+      --  Called for each trace info entry
+
+   procedure Read_Trace_File_Entries (Desc : Trace_File_Descriptor);
+   --  Read all trace file info entries from Desc and call Process_Info for
+   --  each of them. Close Desc and raise a Bad_File_Format if one entry is
+   --  invalid.
+
+   procedure Append_Info_Entries_From_Descriptor
+     (Desc       : Trace_File_Descriptor;
+      Trace_File : in out Trace_File_Type);
+   --  Calls Read_Trace_File_Entries to add all file info entries to Trace_File
+
    procedure Dump_Infos (Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Info (Fd : File_Descriptor;
                                     Trace_File : Trace_File_Type);
@@ -75,8 +89,6 @@ package body Traces_Files is
    --    - trace info entries
    --    - an optional second header whose kind is anything but Info
 
-   procedure Read_Trace_File_Infos (Trace_File : out Trace_File_Type;
-                                    Desc : Trace_File_Descriptor);
    procedure Decode_Trace_Header (Hdr : Trace_Header;
                                   Trace_File : in out Trace_File_Type;
                                   Desc : in out Trace_File_Descriptor);
@@ -144,7 +156,7 @@ package body Traces_Files is
 
       --  (2) Read trace info entries
 
-      Read_Trace_File_Infos (Trace_File, Desc);
+      Append_Info_Entries_From_Descriptor (Desc, Trace_File);
 
       if Check_2nd_Header then
 
@@ -216,64 +228,6 @@ package body Traces_Files is
       return Fd;
    end Open_File;
 
-   ---------------------------
-   -- Read_Trace_File_Infos --
-   ---------------------------
-
-   procedure Read_Trace_File_Infos (Trace_File : out Trace_File_Type;
-                                    Desc : Trace_File_Descriptor)
-   is
-      Ihdr : Trace_Info_Header;
-      Pad : String (1 .. Trace_Info_Alignment);
-      Pad_Len : Natural;
-   begin
-      loop
-         --  Read header.
-         if Read (Desc.Fd, Ihdr'Address, Trace_Info_Header_Size)
-           /= Trace_Info_Header_Size
-         then
-            raise Bad_File_Format with "cannot read info header";
-         end if;
-
-         if Desc.Big_Endian /= Big_Endian_Host then
-            Swaps.Swap_32 (Ihdr.Info_Kind);
-            Swaps.Swap_32 (Ihdr.Info_Length);
-         end if;
-
-         if Info_Kind_Type'Val (Ihdr.Info_Kind) = Info_End then
-            if Ihdr.Info_Length /= 0 then
-               raise Bad_File_Format with "bad end info length";
-            end if;
-            exit;
-         end if;
-
-         --  Read data.
-         declare
-            Data : String (1 .. Natural (Ihdr.Info_Length));
-         begin
-            if Read (Desc.Fd, Data'Address, Data'Length) /= Data'Length then
-               raise Bad_File_Format with "cannot read info data";
-            end if;
-
-            Append_Info (Trace_File,
-              Info_Kind_Type'Val (Ihdr.Info_Kind), Data);
-         end;
-
-         --  Read pad.
-         Pad_Len := Natural (Ihdr.Info_Length) mod Trace_Info_Alignment;
-         if Pad_Len /= 0 then
-            Pad_Len := Trace_Info_Alignment - Pad_Len;
-            if Read (Desc.Fd, Pad'Address, Pad_Len) /= Pad_Len then
-               raise Bad_File_Format with "cannot read info pad";
-            end if;
-            if Pad (1 .. Pad_Len) /= (1 .. Pad_Len => Character'Val (0)) then
-               raise Bad_File_Format with "bad padding content";
-            end if;
-         end if;
-
-      end loop;
-   end Read_Trace_File_Infos;
-
    ---------------------
    -- Open_Trace_File --
    ---------------------
@@ -281,16 +235,10 @@ package body Traces_Files is
    procedure Open_Trace_File
      (Filename   : String;
       Desc       : out Trace_File_Descriptor;
-      Trace_File : out Trace_File_Type)
-   is
+      Trace_File : out Trace_File_Type) is
    begin
-
       Desc.Fd := Open_File (Filename, Read_Only);
-
-      Check_Trace_File_Headers (Desc,
-                                Trace_File,
-                                Check_2nd_Header => True);
-
+      Check_Trace_File_Headers (Desc, Trace_File, Check_2nd_Header => True);
    exception
       when E : others =>
          Close (Desc.Fd);
@@ -314,7 +262,6 @@ package body Traces_Files is
 
       Flat_Hdr : constant Trace_Header := Make_Trace_Header (Flat);
    begin
-
       Desc.Fd := Open_File (Filename, Read_Write);
 
       Check_Trace_File_Headers (Desc,
@@ -371,6 +318,106 @@ package body Traces_Files is
       Desc.Sizeof_Target_Pc := Hdr.Sizeof_Target_Pc;
       Desc.Big_Endian := Hdr.Big_Endian;
    end Open_Decision_Map_File;
+
+   -----------------------------
+   -- Read_Trace_File_Entries --
+   -----------------------------
+
+   procedure Read_Trace_File_Entries (Desc : Trace_File_Descriptor) is
+      Ihdr    : Trace_Info_Header;
+      Pad     : String (1 .. Trace_Info_Alignment);
+      Pad_Len : Natural;
+      Kind    : Info_Kind_Type;
+   begin
+      loop
+         --  Read the Trace_Info_Header
+
+         if Read (Desc.Fd, Ihdr'Address, Trace_Info_Header_Size)
+               /= Trace_Info_Header_Size
+         then
+            raise Bad_File_Format with "cannot read info header";
+         end if;
+
+         if Desc.Big_Endian /= Big_Endian_Host then
+            Swaps.Swap_32 (Ihdr.Info_Kind);
+            Swaps.Swap_32 (Ihdr.Info_Length);
+         end if;
+
+         declare
+            Data : String (1 .. Natural (Ihdr.Info_Length));
+         begin
+            --  Read the associated data
+
+            if Read (Desc.Fd, Data'Address, Data'Length) /= Data'Length
+            then
+               raise Bad_File_Format with "cannot read info data";
+            end if;
+
+            --  Discard padding. Still check that it's only null bytes.
+
+            Pad_Len := Natural (Ihdr.Info_Length) mod Trace_Info_Alignment;
+            if Pad_Len /= 0 then
+               Pad_Len := Trace_Info_Alignment - Pad_Len;
+               if Read (Desc.Fd, Pad'Address, Pad_Len) /= Pad_Len then
+                  raise Bad_File_Format with "cannot read info pad";
+               end if;
+               if Pad (1 .. Pad_Len) /= (1 .. Pad_Len => Character'Val (0))
+               then
+                  raise Bad_File_Format with "bad padding content";
+               end if;
+            end if;
+
+            begin
+               Kind := Info_Kind_Type'Val (Ihdr.Info_Kind);
+            exception
+               when Constraint_Error =>
+                  raise Bad_File_Format with
+                    ("unknown trace info kind: 0x"
+                     & Hex_Image (Ihdr.Info_Kind));
+            end;
+
+            --  If it's an "end" trace info entry, just stop
+
+            if Kind = Info_End then
+               if Data'Length /= 0 then
+                  raise Bad_File_Format with "bad end info length";
+               end if;
+               exit;
+            else
+               Process_Info (Kind, Data);
+            end if;
+         end;
+      end loop;
+   end Read_Trace_File_Entries;
+
+   -----------------------------------------
+   -- Append_Info_Entries_From_Descriptor --
+   -----------------------------------------
+
+   procedure Append_Info_Entries_From_Descriptor
+     (Desc       : Trace_File_Descriptor;
+      Trace_File : in out Trace_File_Type)
+   is
+      procedure Process_Info (Kind : Info_Kind_Type; Data : String);
+      --  Hook for Read_Trace_Info_Entries, processing one info entry that was
+      --  just read from Desc. Append a representation of that entry to
+      --  Trace_File internals.
+
+      procedure Read_Info_Entries is new Read_Trace_File_Entries
+        (Process_Info);
+
+      ------------------
+      -- Process_Info --
+      ------------------
+
+      procedure Process_Info (Kind : Info_Kind_Type; Data : String) is
+      begin
+         Append_Info (Trace_File, Kind, Data);
+      end Process_Info;
+
+   begin
+      Read_Info_Entries (Desc);
+   end Append_Info_Entries_From_Descriptor;
 
    ----------------------
    -- Read_Trace_Entry --
