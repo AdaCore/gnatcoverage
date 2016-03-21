@@ -125,14 +125,36 @@ package Qemu_Traces is
 
    type Info_Kind_Type is
      (Info_End,
+      --  Special entry: indicates the end of a sequence of trace info entries
+
       Exec_File_Name,
+      --  In trace information section, this is the file name for the
+      --  executable run when creating this trace.
+
       Coverage_Options,
+      --  ??? Unused at the time of writing
+
       User_Data,
+      --  Arbitrary storage for user data. This is exposed to users as the
+      --  trace "tag".
+
       Date_Time,
+      --  Memory dump for the Trace_Info_Date record below. Indicates the trace
+      --  file creation time.
+
       Kernel_File_Name,
+      --  File name for the kernel used to produce this trace (if any)
+
       Exec_File_Size,
+      --  ASCII representation of executable file size (in bytes)
+
       Exec_File_Time_Stamp,
-      Exec_File_CRC32);
+      --  Human-readable date/time for the executable file modification time
+
+      Exec_File_CRC32
+      --  ASCII representation of CRC32 checksum for the executable file, as a
+      --  32-bit unsigned number.
+     );
 
    type Trace_Info_Header is record
       Info_Kind   : Unsigned_32;
