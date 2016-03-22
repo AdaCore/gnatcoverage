@@ -243,16 +243,25 @@ package body Traces_Disa is
       use Traces_Files;
       Addr : Address_Info_Acc := null;
 
-      procedure Disp_Entry (E : Trace_Entry);
+      procedure Disp_Entry
+        (Trace_File : Trace_File_Type;
+         E          : Trace_Entry);
       --  Comment needed???
+
+      procedure Read_Trace_File is new Read_Trace_File_Gen
+        (Process_Trace_Entry => Disp_Entry);
 
       ----------------
       -- Disp_Entry --
       ----------------
 
-      procedure Disp_Entry (E : Trace_Entry) is
+      procedure Disp_Entry
+        (Trace_File : Trace_File_Type;
+         E          : Trace_Entry)
+      is
+         pragma Unreferenced (Trace_File);
          use Traces_Disa;
-         Sec : Address_Info_Acc;
+         Sec    : Address_Info_Acc;
          Buffer : Highlighting.Buffer_Type (128);
       begin
          Dump_Entry (E);
@@ -284,10 +293,10 @@ package body Traces_Disa is
 
       File : Trace_File_Type;
 
-   --  Start of processing for Dump_Traces_Wth_Asm
+   --  Start of processing for Dump_Traces_With_Asm
 
    begin
-      Read_Trace_File (Trace_Filename, File, null, Disp_Entry'Access);
+      Read_Trace_File (Trace_Filename, File);
       Free (File);
    end Dump_Traces_With_Asm;
 

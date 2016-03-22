@@ -35,6 +35,16 @@ package body Traces_Files is
 
    type File_Open_Mode is (Read_Only, Read_Write);
 
+   subtype Qemu_Trace_Entry is Qemu_Traces_Entries.Trace_Entry;
+
+   procedure Open_Trace_File
+     (Filename   : String;
+      Desc       : out Trace_File_Descriptor;
+      Trace_File : out Trace_File_Type);
+   --  Open a trace file, check headers consistency and read leading Info
+   --  entries without reading the traces. In case of failure, an exception is
+   --  raised and the file is considered as not open.
+
    generic
       with procedure Process_Info (Kind : Info_Kind_Type; Data : String);
       --  Called for each trace info entry
@@ -48,6 +58,15 @@ package body Traces_Files is
      (Desc       : Trace_File_Descriptor;
       Trace_File : in out Trace_File_Type);
    --  Calls Read_Trace_File_Entries to add all file info entries to Trace_File
+
+   procedure Read_Trace_Entry
+     (Desc       : Trace_File_Descriptor;
+      Eof        : out Boolean;
+      E          : out Qemu_Trace_Entry);
+   --  Read a trace from DESC. Set EOF to True in case of end-of-file (in
+   --  this case E isn't set), otherwise EOF is set to False and E is
+   --  valid. In case of failure, an exception is raised and the file is
+   --  closed.
 
    procedure Dump_Infos (Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Info (Fd : File_Descriptor;
@@ -69,7 +88,7 @@ package body Traces_Files is
                               Trace_Info_Header'Size / System.Storage_Unit;
 
    Trace_Entry_Size : constant Natural :=
-      Qemu_Traces_Entries.Trace_Entry'Size / System.Storage_Unit;
+      Qemu_Trace_Entry'Size / System.Storage_Unit;
 
    Truncated_File : exception;
 
@@ -97,6 +116,15 @@ package body Traces_Files is
                        Mode     : File_Open_Mode) return File_Descriptor;
    --  Open a file, without reading or writing to it. In case of failure, an
    --  exception is raised and the file is considered as not open.
+
+   function Decode_Trace_Entry
+     (E      : Qemu_Trace_Entry;
+      Offset : Pc_Type := 0)
+      return Trace_Entry;
+   --  Turn a raw trace entry from a trace file into a high-level trace entry
+   --  that fits our internal data structures. Offset is used to relocate the
+   --  entry. It is 0 for statically linked code and non-null for dynamically
+   --  linked code.
 
    ------------------
    -- Check_Header --
@@ -227,6 +255,24 @@ package body Traces_Files is
       end if;
       return Fd;
    end Open_File;
+
+   ------------------------
+   -- Decode_Trace_Entry --
+   ------------------------
+
+   function Decode_Trace_Entry
+     (E      : Qemu_Trace_Entry;
+      Offset : Pc_Type := 0)
+      return Trace_Entry
+   is
+      First : constant Pc_Type := E.Pc - Offset;
+   begin
+      return
+        (First => First,
+         Last  => First + Pc_Type (E.Size) - 1,
+         Op    => E.Op,
+         State => Unknown);
+   end Decode_Trace_Entry;
 
    ---------------------
    -- Open_Trace_File --
@@ -419,6 +465,109 @@ package body Traces_Files is
       Read_Info_Entries (Desc);
    end Append_Info_Entries_From_Descriptor;
 
+   ---------------------
+   -- Read_Trace_File --
+   ---------------------
+
+   procedure Read_Trace_File_Gen
+     (Filename   : String;
+      Trace_File : out Trace_File_Type)
+   is
+      Desc   : Trace_File_Descriptor;
+      F      : Trace_File_Type;
+      Offset : Traces.Pc_Type := 0;
+
+      EOF       : Boolean;
+      Raw_Entry : Qemu_Trace_Entry;
+   begin
+      Open_Trace_File (Filename, Desc, F);
+      Process_Info_Entries (F);
+
+      --  Look for a Loadaddr special trace entry, if expected
+
+      if Get_Info (F, Qemu_Traces.Kernel_File_Name)'Length /= 0 then
+
+         --  If execution reaches this point, we know there is a kernel and
+         --  therefore a load address. As a consequence, we also know that the
+         --  rest of this trace file is only mere trace entries until one that
+         --  must be a "loadaddr" special entry.
+
+         loop
+            Read_Trace_Entry (Desc, EOF, Raw_Entry);
+            if EOF then
+               raise Bad_File_Format with "No 'loadaddr' special trace entry";
+            end if;
+
+            if Raw_Entry.Op = Qemu_Traces.Trace_Op_Special then
+               if Raw_Entry.Size /= Qemu_Traces.Trace_Special_Loadaddr then
+                  raise Bad_File_Format with
+                    ("'loadaddr' special trace entry expected but got instead"
+                     & " a 0x" & Hex_Image (Raw_Entry.Size)
+                     & " special entry");
+               elsif Raw_Entry.Pc = 0 then
+                  raise Bad_File_Format with
+                     ("Invalid 'loadaddr' special trace entry: offset must not"
+                      & " be 0");
+               end if;
+
+               Process_Loadaddr (F, Raw_Entry.Pc);
+
+               if Handle_Loadaddr then
+                  Offset := Raw_Entry.Pc;
+               end if;
+
+               exit;
+            end if;
+
+            if not Handle_Loadaddr then
+               Process_Trace_Entry (F, Decode_Trace_Entry (Raw_Entry));
+            end if;
+         end loop;
+      end if;
+
+      --  Then process the remaining trace entries
+
+      loop
+         Read_Trace_Entry (Desc, EOF, Raw_Entry);
+         exit when EOF;
+
+         --  There can be only one loadaddr special trace entry per trace file.
+         --  If it exists, we already processed it before the loop, above.
+
+         if Raw_Entry.Op = Qemu_Traces.Trace_Op_Special then
+            case Raw_Entry.Size is
+            when Trace_Special_Loadaddr =>
+               Fatal_Error
+                 ("Unexpected 'loadaddr' special trace entry.");
+            when others =>
+               Fatal_Error
+                 ("Unknown special trace entry: 0x"
+                  & Hex_Image (Raw_Entry.Size));
+            end case;
+         end if;
+
+         --  If there is an offset, it means that we care about only one module
+         --  whereas this trace file contains trace entries inside and outside
+         --  this module. We want to process only the relevant entries and
+         --  relocate them as if the module was loaded at address 0.
+         --
+         --  Skip all trace entries that cannot possibly be relevant to this
+         --  module (i.e. the one with addresses below "Offset"), and remove
+         --  "Offset" from the bounds of the remainder.
+
+         if Offset /= 0 and then Raw_Entry.Pc < Offset then
+            goto Skip;
+         end if;
+
+         Process_Trace_Entry (F, Decode_Trace_Entry (Raw_Entry, Offset));
+
+         << Skip >> null;
+      end loop;
+
+      Close_Trace_File (Desc);
+      Trace_File := F;
+   end Read_Trace_File_Gen;
+
    ----------------------
    -- Read_Trace_Entry --
    ----------------------
@@ -426,9 +575,8 @@ package body Traces_Files is
    procedure Read_Trace_Entry
      (Desc       : Trace_File_Descriptor;
       Eof        : out Boolean;
-      E          : out Trace_Entry)
+      E          : out Qemu_Trace_Entry)
    is
-      Ent : Qemu_Traces_Entries.Trace_Entry;
       Res : Integer;
    begin
       if Desc.Sizeof_Target_Pc /= Pc_Type_Size then
@@ -437,35 +585,23 @@ package body Traces_Files is
             & " bytes pc are handled";
       end if;
 
-      --  Read an entry
+      --  Read an entry, making sure the read operation could get a whole one
 
-      Res := Read (Desc.Fd, Ent'Address, Trace_Entry_Size);
-
-      --  Check result
-
+      Res := Read (Desc.Fd, E'Address, Trace_Entry_Size);
       if Res = 0 then
          Eof := True;
          return;
-      else
-         Eof := False;
-      end if;
-
-      if Res /= Trace_Entry_Size then
+      elsif Res /= Trace_Entry_Size then
          Close (Desc.Fd);
          raise Bad_File_Format with "file truncated";
       end if;
 
-      --  Basic checks
+      Eof := False;
 
       if Desc.Big_Endian /= Big_Endian_Host then
-         Qemu_Traces.Swap_Pc (Ent.Pc);
-         Swaps.Swap_16 (Ent.Size);
+         Qemu_Traces.Swap_Pc (E.Pc);
+         Swaps.Swap_16 (E.Size);
       end if;
-
-      E := Trace_Entry'(First  => Pc_Type (Ent.Pc),
-                        Last   => Pc_Type (Ent.Pc) + Pc_Type (Ent.Size) - 1,
-                        Op     => Ent.Op,
-                        State  => Unknown);
    end Read_Trace_Entry;
 
    -----------------------
@@ -507,86 +643,16 @@ package body Traces_Files is
 
    end Write_Trace_Entry;
 
-   -------------------------------
-   -- Read_Loadaddr_Trace_Entry --
-   -------------------------------
-
-   procedure Read_Loadaddr_Trace_Entry
-     (Desc       : Trace_File_Descriptor;
-      Trace_File : Trace_File_Type;
-      Offset     : out Pc_Type)
-   is
-      Eof : Boolean;
-      E : Trace_Entry;
-   begin
-      if Get_Info (Trace_File, Qemu_Traces.Kernel_File_Name)'Length > 0 then
-         --  Has a kernel and therefore a load address.
-
-         --  Go to the loadaddr entry
-         loop
-            Read_Trace_Entry (Desc, Eof, E);
-            if Eof then
-               raise Bad_File_Format with "No 'loadaddr' special trace entry";
-            end if;
-
-            if E.Op = Qemu_Traces.Trace_Op_Special then
-               if E.First = 0 then
-                  raise Bad_File_Format
-                    with "Invalid 'loadaddr' special trace entry";
-               else
-                  Offset := E.First;
-               end if;
-               return;
-            end if;
-         end loop;
-      else
-         Offset := 0;
-      end if;
-   end Read_Loadaddr_Trace_Entry;
-
    ----------------------
    -- Close_Trace_File --
    ----------------------
 
-   procedure Close_Trace_File
-     (Desc : in out Trace_File_Descriptor)
+   procedure Close_Trace_File (Desc : in out Trace_File_Descriptor)
    is
    begin
       Close (Desc.Fd);
+      Desc.Fd := Invalid_FD;
    end Close_Trace_File;
-
-   ---------------------
-   -- Read_Trace_File --
-   ---------------------
-
-   procedure Read_Trace_File
-     (Filename   : String;
-      Trace_File : out Trace_File_Type;
-      Info_Cb    : access procedure (File : Trace_File_Type);
-      Trace_Cb   : not null access procedure (E : Trace_Entry))
-   is
-      Desc : Trace_File_Descriptor;
-      E : Trace_Entry;
-      Eof : Boolean;
-   begin
-      --  Open file
-      Open_Trace_File (Filename, Desc, Trace_File);
-
-      if Info_Cb /= null then
-         Info_Cb.all (Trace_File);
-      end if;
-
-      loop
-         Read_Trace_Entry (Desc, Eof, E);
-         exit when Eof;
-
-         --  Supply entry to caller
-
-         Trace_Cb.all (E);
-      end loop;
-
-      Close_Trace_File (Desc);
-   end Read_Trace_File;
 
    ---------------------
    -- Read_Trace_File --
@@ -597,29 +663,27 @@ package body Traces_Files is
       Trace_File : out Trace_File_Type;
       Base       : in out Traces_Base)
    is
-      Desc   : Trace_File_Descriptor;
-      E      : Trace_Entry;
-      Eof    : Boolean;
-      Offset : Pc_Type;
+      procedure Process_Trace_Entry
+        (Trace_File : Trace_File_Type;
+         E          : Trace_Entry);
+      procedure Read_Trace_File is new Read_Trace_File_Gen
+        (Process_Trace_Entry => Process_Trace_Entry);
+
+      -------------------------
+      -- Process_Trace_Entry --
+      -------------------------
+
+      procedure Process_Trace_Entry
+        (Trace_File : Trace_File_Type;
+         E          : Trace_Entry)
+      is
+         pragma Unreferenced (Trace_File);
+      begin
+         Add_Entry (Base, First => E.First, Last => E.Last, Op => E.Op);
+      end Process_Trace_Entry;
+
    begin
-      Open_Trace_File (Filename, Desc, Trace_File);
-
-      Read_Loadaddr_Trace_Entry (Desc, Trace_File, Offset);
-
-      loop
-         Read_Trace_Entry (Desc, Eof, E);
-         exit when Eof;
-
-         if E.Op = Trace_Op_Special then
-            raise Bad_File_Format with "Unexpected special trace entry";
-         elsif E.First >= Offset then
-            Add_Entry (Base,
-                       First => E.First - Offset, Last => E.Last - Offset,
-                       Op => E.Op);
-         end if;
-      end loop;
-
-      Close_Trace_File (Desc);
+      Read_Trace_File (Filename, Trace_File);
    end Read_Trace_File;
 
    ----------------
@@ -689,35 +753,59 @@ package body Traces_Files is
    ---------------------
 
    procedure Dump_Trace_File (Filename : String; Raw : Boolean) is
+
+      procedure Process_Info_Entries (Trace_File : Trace_File_Type);
+      procedure Process_Loadaddr
+        (Trace_File : Trace_File_Type;
+         Offset     : Pc_Type);
+      procedure Process_Trace_Entry
+        (Trace_File : Trace_File_Type;
+         E          : Trace_Entry);
+      procedure Read_Trace_File is new Read_Trace_File_Gen
+        (Process_Info_Entries => Process_Info_Entries,
+         Process_Loadaddr     => Process_Loadaddr,
+         Process_Trace_Entry  => Process_Trace_Entry,
+         Handle_Loadaddr      => not Raw);
+
+      --------------------------
+      -- Process_Info_Entries --
+      --------------------------
+
+      procedure Process_Info_Entries (Trace_File : Trace_File_Type) is
+      begin
+         Dump_Infos (Trace_File);
+      end Process_Info_Entries;
+
+      ----------------------
+      -- Process_Loadaddr --
+      ----------------------
+
+      procedure Process_Loadaddr
+        (Trace_File : Trace_File_Type;
+         Offset     : Pc_Type)
+      is
+         pragma Unreferenced (Trace_File);
+      begin
+         Put_Line ("Kernel was loaded at: " & Hex_Image (Offset));
+      end Process_Loadaddr;
+
+      -------------------------
+      -- Process_Trace_Entry --
+      -------------------------
+
+      procedure Process_Trace_Entry
+        (Trace_File : Trace_File_Type;
+         E          : Trace_Entry)
+      is
+         pragma Unreferenced (Trace_File);
+      begin
+         Dump_Entry (E);
+      end Process_Trace_Entry;
+
       Trace_File : Trace_File_Type;
-      Desc : Trace_File_Descriptor;
-      E : Trace_Entry;
-      Eof : Boolean;
-      Offset : Pc_Type;
+
    begin
-      --  Open file
-      Open_Trace_File (Filename, Desc, Trace_File);
-
-      Dump_Infos (Trace_File);
-
-      if Raw then
-         Offset := 0;
-      else
-         Read_Loadaddr_Trace_Entry (Desc, Trace_File, Offset);
-      end if;
-
-      loop
-         Read_Trace_Entry (Desc, Eof, E);
-         exit when Eof;
-
-         if Raw or else E.First >= Offset then
-            E.First := E.First - Offset;
-            E.Last := E.Last - Offset;
-            Dump_Entry (E);
-         end if;
-      end loop;
-
-      Close_Trace_File (Desc);
+      Read_Trace_File (Filename, Trace_File);
       Free (Trace_File);
    end Dump_Trace_File;
 
@@ -828,7 +916,7 @@ package body Traces_Files is
       Hdr : constant Trace_Header := Make_Trace_Header (Kind);
 
       E        : Trace_Entry;
-      Ent      : Qemu_Traces_Entries.Trace_Entry;
+      Ent      : Qemu_Trace_Entry;
       Addr     : System.Address;
       Res_Size : Natural;
       Cur      : Entry_Iterator;

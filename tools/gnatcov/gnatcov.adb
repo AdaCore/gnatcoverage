@@ -23,8 +23,6 @@ with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
-with Interfaces;
-
 with GNAT.OS_Lib;
 with GNAT.Strings; use GNAT.Strings;
 
@@ -1609,77 +1607,44 @@ begin
               (Trace_File         : Trace_File_Element_Acc;
                Exec_Name_Override : String)
             is
-               use Interfaces;
+               Exe_File : Exe_File_Acc;
+               --  Executable this trace file refers to
 
-               Exe_File                : Exe_File_Acc;
                Current_Sym             : Address_Info_Acc;
                Current_Subp_Key        : Subprogram_Key;
                Current_Subp_Info       : aliased Subprogram_Info;
                Current_Subp_Info_Valid : Boolean;
-               E                       : Trace_Entry;
-               Desc                    : Trace_File_Descriptor;
-               Eof                     : Boolean;
-               Offset                  : Pc_Type := 0;
 
-            --  Start of processing for Process_Trace_For_Src_Coverage
+               procedure Process_Info_Entries (TF : Trace_File_Type);
+               procedure Process_Trace_Entry
+                 (TF : Trace_File_Type; E : Trace_Entry);
+               procedure Read_Trace_File is new Read_Trace_File_Gen
+                 (Process_Info_Entries => Process_Info_Entries,
+                  Process_Trace_Entry  => Process_Trace_Entry);
 
-            begin
-               if Trace_File = null then
-                  Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
-               else
-                  Open_Trace_File
-                    (Trace_File.Filename.all, Desc, Trace_File.Trace);
+               --------------------------
+               -- Process_Info_Entries --
+               --------------------------
 
+               procedure Process_Info_Entries (TF : Trace_File_Type) is
+               begin
                   Exe_File := Open_Exec_For_Trace
                                 (Trace_File.Filename.all,
-                                 Trace_File.Trace,
+                                 TF,
                                  Exec_Name_Override);
-               end if;
-
-               --  Load symbols from executable (sets the rebase offset for
-               --  each symbol) and perform static analysis.
-
-               Decision_Map.Analyze (Exe_File);
-
-               if Trace_File = null then
-                  return;
-               end if;
-
-               --  Read the load address
-
-               Read_Loadaddr_Trace_Entry (Desc, Trace_File.Trace, Offset);
-
-               --  Iterate on trace entries
-
-               if Verbose then
-                  Put_Line
-                    ("Processing traces from " & Trace_File.Filename.all);
-               end if;
-
-               loop
-                  Read_Trace_Entry (Desc, Eof, E);
-                  exit when Eof;
-
-                  if E.Op = Qemu_Traces.Trace_Op_Special then
-                     Fatal_Error
-                       ("Unexpected 'loadaddr' special trace entry.");
-                  end if;
-
-                  --  Skip everything until the first trace entry after
-                  --  "Offset", and remove "Offset" from the bounds of the
-                  --  remainder.
-
-                  if Offset /= 0 then
-                     if E.First < Offset then
-                        goto Skip;
-                     else
-                        E.First := E.First - Offset;
-                        E.Last := E.Last - Offset;
-                     end if;
-                  end if;
-
+                  Decision_Map.Analyze (Exe_File);
+               end Process_Info_Entries;
                   --  Get the symbol the trace entry is in
 
+               -------------------------
+               -- Process_Trace_Entry --
+               -------------------------
+
+               procedure Process_Trace_Entry
+                 (TF : Trace_File_Type; E : Trace_Entry)
+               is
+                  pragma Unreferenced (TF);
+               begin
                   if Current_Sym = null
                     or else
                     E.First not in Current_Sym.First .. Current_Sym.Last
@@ -1707,11 +1672,24 @@ begin
                      Compute_Source_Coverage
                        (Current_Subp_Key, Current_Subp_Info, E);
                   end if;
+               end Process_Trace_Entry;
 
-                  << Skip >> null;
-               end loop;
+            --  Start of processing for Process_Trace_For_Src_Coverage
 
-               Close_Trace_File (Desc);
+            begin
+               --  Whether we have a trace file or just an executable, load
+               --  symbols from executable (sets the rebase offset for each
+               --  symbol) and perform static analysis.
+               --
+               --  If this is a trace file, also make it contribute to coverage
+               --  state.
+
+               if Trace_File = null then
+                  Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
+                  Decision_Map.Analyze (Exe_File);
+               else
+                  Read_Trace_File (Trace_File.Filename.all, Trace_File.Trace);
+               end if;
             end Process_Trace_For_Src_Coverage;
 
          begin

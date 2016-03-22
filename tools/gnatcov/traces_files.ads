@@ -28,10 +28,65 @@ with Traces;
 package Traces_Files is
 
    type Trace_File_Type is limited private;
-   --  In memory content of a trace file
+   --  In memory content of a trace file. Note that this only contains the Info
+   --  section, not the trace entries themselves.
 
    type Trace_File_Descriptor is limited private;
    --  Descriptor to open/read a trace file
+
+   Bad_File_Format : exception;
+   --  Exception is raised if an input trace file is invalid or corrupted
+
+   Write_Error : exception;
+   --  Exception is raised in case of OS error during write
+
+   procedure Create_Trace_File
+     (Kind       : Trace_Kind;
+      Trace_File : out Trace_File_Type);
+   --  Create an empty Trace_File object of the given kind
+
+   generic
+      with procedure Process_Info_Entries
+        (Trace_File : Trace_File_Type) is null;
+      --  Called right before processing trace entries
+
+      with procedure Process_Loadaddr
+        (Trace_File : Trace_File_Type;
+         Offset     : Traces.Pc_Type) is null;
+      --  Called when coming across a Loadaddr special trace entry. Note that
+      --  this is not called when such an entry is unexpected.
+
+      with procedure Process_Trace_Entry
+        (Trace_File : Trace_File_Type;
+         E          : Traces.Trace_Entry) is null;
+      --  Called for each regular trace entry (i.e. not for Loadaddr ones)
+
+      Handle_Loadaddr : Boolean := True;
+      --  Whether the Loadaddr special trace entry should be handled. If it is,
+      --  trace entries whose addresses are located before the load address are
+      --  discarded and the addresses are relocated as if the module was
+      --  loadded at address 0. Otherwise, all trace entries are yielded
+      --  unchanged. In any case, Process_Loadaddr is called when the Loadaddr
+      --  entry is decoded.
+
+   procedure Read_Trace_File_Gen
+     (Filename   : String;
+      Trace_File : out Trace_File_Type);
+   --  Open a trace file and read its content. The file is expected to contain
+   --  an Info section and a traces section (either flat or with history). Put
+   --  the result in Trace_File.
+   --
+   --  In case of failure, an exception is raised and the file is considered as
+   --  not open.
+
+   procedure Read_Trace_File
+     (Filename   : String;
+      Trace_File : out Trace_File_Type;
+      Base       : in out Traces_Base);
+   --  Specialization of Read_Trace_File_Gen that imports traces into a base
+
+   procedure Free (Trace_File : in out Trace_File_Type);
+   --  Deallocate all dynamic data associated with Trace_File
 
    procedure Append_Info
      (File : in out Trace_File_Type;
@@ -50,22 +105,6 @@ package Traces_Files is
    --  passed as Raw_String must have the same memory layout as a
    --  Trace_Info_Date record.
 
-   procedure Free (Trace_File : in out Trace_File_Type);
-   --  Deallocate all dynamic data associated with Trace_File
-
-   Bad_File_Format : exception;
-   --  Exception is raised if the trace file is invalid or corrupted
-
-   Write_Error : exception;
-   --  Exception is raised in case of OS error during write
-
-   procedure Open_Trace_File
-     (Filename   : String;
-      Desc       : out Trace_File_Descriptor;
-      Trace_File : out Trace_File_Type);
-   --  Open a trace file, without reading the traces.  In case of failure,
-   --  an exception is raised and the file is considered as not open.
-
    procedure Open_Output_Flat_Trace_File
      (Filename   : String;
       Desc       : out Trace_File_Descriptor;
@@ -80,25 +119,6 @@ package Traces_Files is
    --  Open a decision map file, without reading the traces. In case of
    --  failure, an exception is raised and the file is considered as not open.
 
-   procedure Read_Loadaddr_Trace_Entry
-     (Desc       : Trace_File_Descriptor;
-      Trace_File : Trace_File_Type;
-      Offset     : out Traces.Pc_Type);
-   --  Fetch the load address from the entries, and discard all entries
-   --  before the special trace:
-   --  * if the trace file has a kernel info, then skip all traces until the
-   --  loadaddr special entry and set Offset to the load address.
-   --  * if there is no kernel, set Offset to 0.
-
-   procedure Read_Trace_Entry
-     (Desc       : Trace_File_Descriptor;
-      Eof        : out Boolean;
-      E          : out Traces.Trace_Entry);
-   --  Read a trace from DESC. Set EOF to True in case of end-of-file (in
-   --  this case E isn't set), otherwise EOF is set to False and E is
-   --  valid. In case of failure, an exception is raised and the file is
-   --  closed.
-
    procedure Write_Trace_Entry
      (Desc       : Trace_File_Descriptor;
       E          : Traces.Trace_Entry);
@@ -109,25 +129,11 @@ package Traces_Files is
      (Desc : in out Trace_File_Descriptor);
    --  Close DESC
 
-   procedure Read_Trace_File
-     (Filename   : String;
-      Trace_File : out Trace_File_Type;
-      Base       : in out Traces_Base);
-   --  Load in memory (and possibly merge) a trace file
-
-   procedure Read_Trace_File
-     (Filename   : String;
-      Trace_File : out Trace_File_Type;
-      Info_Cb    : access procedure (File : Trace_File_Type);
-      Trace_Cb   : not null access procedure (E : Traces.Trace_Entry));
-   --  Read a trace file, call Info_Cb after reading infos (if not null), and
-   --  call Trace_Cb for each entry.
-
    procedure Write_Trace_File
      (Filename   : String;
       Trace_File : Trace_File_Type;
       Base       : Traces_Base);
-   --  Write traces to a file
+   --  Write traces to a file, including trace entries from Base
 
    procedure Write_Trace_File
      (Filename   : String;
@@ -139,11 +145,6 @@ package Traces_Files is
 
    procedure Dump_Raw_Trace_File (Filename : String);
    --  Raw dump of a trace file
-
-   procedure Create_Trace_File
-     (Kind       : Trace_Kind;
-      Trace_File : out Trace_File_Type);
-   --  Create an empty Trace_File object of the given kind
 
    procedure Checkpoint_Save
      (S          : access Root_Stream_Type'Class;
@@ -193,5 +194,6 @@ private
       Sizeof_Target_Pc : Unsigned_8;
       Big_Endian       : Boolean;
    end record;
+   --  Descriptor to open/read a trace file
 
 end Traces_Files;
