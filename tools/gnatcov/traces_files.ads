@@ -43,7 +43,9 @@ package Traces_Files is
    --  Return an empty string if the info is not found.
 
    function Format_Date_Info (Raw_String : String) return String;
-   --  Needs comment???
+   --  Decode a Trace_Info_Date into a human-readable date string. The string
+   --  passed as Raw_String must have the same memory layout as a
+   --  Trace_Info_Date record.
 
    procedure Free (Trace_File : in out Trace_File_Type);
    --  Deallocate all dynamic data associated with Trace_File
