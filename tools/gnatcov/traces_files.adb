@@ -180,7 +180,7 @@ package body Traces_Files is
    end Read_Trace_File_Infos;
 
    ---------------------
-   -- Read_Trace_File --
+   -- Open_Trace_File --
    ---------------------
 
    procedure Open_Trace_File
@@ -298,6 +298,10 @@ package body Traces_Files is
                         State  => Unknown);
    end Read_Trace_Entry;
 
+   -------------------------------
+   -- Read_Loadaddr_Trace_Entry --
+   -------------------------------
+
    procedure Read_Loadaddr_Trace_Entry
      (Desc       : Trace_File_Descriptor;
       Trace_File : Trace_File_Type;
@@ -331,12 +335,20 @@ package body Traces_Files is
       end if;
    end Read_Loadaddr_Trace_Entry;
 
+   ----------------------
+   -- Close_Trace_File --
+   ----------------------
+
    procedure Close_Trace_File
      (Desc : in out Trace_File_Descriptor)
    is
    begin
       Close (Desc.Fd);
    end Close_Trace_File;
+
+   ---------------------
+   -- Read_Trace_File --
+   ---------------------
 
    procedure Read_Trace_File
      (Filename   : String;
@@ -499,6 +511,10 @@ package body Traces_Files is
       Close_Trace_File (Desc);
       Free (Trace_File);
    end Dump_Trace_File;
+
+   ---------------------
+   -- Dump_Trace_File --
+   ---------------------
 
    procedure Dump_Trace_File (Filename : String) is
    begin
@@ -744,6 +760,10 @@ package body Traces_Files is
 
       Res : String (1 .. 19) := "YYYY-MM-DD HH:MM:SS";
       procedure Put_Pad (Num : Natural; S : out String);
+
+      -------------
+      -- Put_Pad --
+      -------------
 
       procedure Put_Pad (Num : Natural; S : out String)
       is
