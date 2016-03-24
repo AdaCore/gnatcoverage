@@ -189,7 +189,7 @@ package Command_Line is
         (Name        => "dump-trace-asm",
          Pattern     => "[EXE] [TRACE_FILEs]",
          Description => ("Display of trace files with assembly code for each"
-                         & "trace."),
+                         & " trace."),
          Internal    => True),
       Cmd_Dump_Sections => Create
         (Name        => "dump-sections",
