@@ -25,6 +25,7 @@ with Interfaces;
 
 with GNAT.OS_Lib;
 
+with Binary_Files;
 with Execs_Dbase;
 with Qemu_Traces;
 with Rundrv.Config; use Rundrv.Config;
@@ -124,7 +125,7 @@ package body Rundrv is
          Append_Info
            (Trace_File,
             Exec_File_Time_Stamp,
-            Time_Stamp_Image (Get_Time_Stamp (Exec.all)));
+            Binary_Files.Time_Stamp_Image (Get_Time_Stamp (Exec.all)));
          Append_Info
            (Trace_File,
             Exec_File_CRC32,

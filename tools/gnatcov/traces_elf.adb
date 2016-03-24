@@ -40,7 +40,6 @@ with Hex_Images;      use Hex_Images;
 with Inputs;
 with Outputs;
 with Perf_Counters;   use Perf_Counters;
-with Qemu_Traces;
 with Traces_Disa;
 with Traces_Lines;    use Traces_Lines;
 with Traces_Names;
@@ -770,89 +769,6 @@ package body Traces_Elf is
          return Get_Address_Info (Exec, Subprogram_Addresses, PC).Lines'Access;
       end if;
    end Get_Desc_Set;
-
-   ----------------------
-   -- Time_Stamp_Image --
-   ----------------------
-
-   function Time_Stamp_Image (TS : GNAT.OS_Lib.OS_Time) return String is
-
-      use GNAT.OS_Lib;
-
-      function Pad (N, Length : Natural) return String;
-      --  Pad the given number with zeros on the left until the given length of
-      --  the image is reached.
-
-      ---------
-      -- Pad --
-      ---------
-
-      function Pad (N, Length : Natural) return String
-      is
-         Raw_Image   : constant String  := Natural'Image (N);
-         First_Idx   : constant Natural :=
-            (if Raw_Image (1) = ' ' then 2 else 1);
-         Digits_Number : constant Natural := Raw_Image'Length - First_Idx + 1;
-         Padding_Len : constant Natural :=
-            (if Length > Digits_Number then Length - Digits_Number else 0);
-         Padding     : constant String (1 .. Padding_Len) := (others => '0');
-
-      begin
-         return Padding & Raw_Image (First_Idx .. Raw_Image'Last);
-      end Pad;
-
-   begin
-      return
-         Pad (Integer (GM_Year (TS)), 0)
-         & "-" & Pad (Natural (GM_Month (TS)), 2)
-         & "-" & Pad (Natural (GM_Day (TS)), 2)
-         & " " & Pad (Natural (GM_Hour (TS)), 2)
-         & ":" & Pad (Natural (GM_Minute (TS)), 2)
-         & ":" & Pad (Natural (GM_Second (TS)), 2);
-   end Time_Stamp_Image;
-
-   ----------------------------
-   -- Match_Trace_Executable --
-   ----------------------------
-
-   function Match_Trace_Executable
-     (Exec : Exe_File_Type'Class; Trace_File : Trace_File_Type)
-     return String
-   is
-      use Qemu_Traces;
-
-      Trace_Exe_Size  : constant String := Get_Info
-                                             (Trace_File, Exec_File_Size);
-      Trace_Exe_TS    : constant String := Get_Info
-                                             (Trace_File,
-                                              Exec_File_Time_Stamp);
-      Trace_Exe_CRC32 : constant String := Get_Info
-                                             (Trace_File,
-                                              Exec_File_CRC32);
-
-      File_Size  : constant String := Long_Integer'Image (Get_Size (Exec));
-      File_TS    : constant String := Time_Stamp_Image (Get_Time_Stamp (Exec));
-      File_CRC32 : constant String := Unsigned_32'Image (Get_CRC32 (Exec));
-   begin
-      if Trace_Exe_Size /= "" and then Trace_Exe_Size /= File_Size then
-         return
-            "ELF file is" & File_Size
-            & " bytes long, but trace indicates" & Trace_Exe_Size;
-
-      elsif Trace_Exe_TS /= "" and then Trace_Exe_TS /= File_TS then
-         return
-            "ELF file created on " & File_TS
-            & " but trace indicates " & Trace_Exe_TS;
-
-      elsif Trace_Exe_CRC32 /= "" and then Trace_Exe_CRC32 /= File_CRC32 then
-         return
-            "ELF file CRC32 checksum is " & File_CRC32
-            & " but trace indicates " & Trace_Exe_CRC32;
-
-      else
-         return "";
-      end if;
-   end Match_Trace_Executable;
 
    --------------------
    -- Get_Strtab_Idx --

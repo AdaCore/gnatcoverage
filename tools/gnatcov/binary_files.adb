@@ -19,7 +19,10 @@
 with Ada.Unchecked_Conversion;
 with Interfaces; use Interfaces;
 
-with GNAT.CRC32; use GNAT.CRC32;
+with GNAT.CRC32;  use GNAT.CRC32;
+with GNAT.Regpat; use GNAT.Regpat;
+
+with Hex_Images; use Hex_Images;
 
 package body Binary_Files is
 
@@ -28,6 +31,11 @@ package body Binary_Files is
 
    function Compute_CRC32 (File : Binary_File) return Unsigned_32;
    --  Compute and return the CRC32 of File
+
+   Time_Stamp_Regexp  : constant String :=
+      "([0-9]+)-([0-9]+)-([0-9]+) ([0-9]+):([0-9]+):([0-9]+)";
+   Time_Stamp_Matcher : constant Pattern_Matcher :=
+      Compile (Time_Stamp_Regexp);
 
    --------
    -- Fd --
@@ -326,5 +334,114 @@ package body Binary_Files is
          return Bin_Cont.Content (Offset - Bin_Cont.First)'Address;
       end if;
    end Address_Of;
+
+   ----------------------
+   -- Time_Stamp_Image --
+   ----------------------
+
+   function Time_Stamp_Image (TS : GNAT.OS_Lib.OS_Time) return String is
+
+      function Pad (N, Length : Natural) return String;
+      --  Pad the given number with zeros on the left until the given length of
+      --  the image is reached.
+
+      ---------
+      -- Pad --
+      ---------
+
+      function Pad (N, Length : Natural) return String
+      is
+         Raw_Image   : constant String  := Natural'Image (N);
+         First_Idx   : constant Natural :=
+            (if Raw_Image (1) = ' ' then 2 else 1);
+         Digits_Number : constant Natural := Raw_Image'Length - First_Idx + 1;
+         Padding_Len : constant Natural :=
+            (if Length > Digits_Number then Length - Digits_Number else 0);
+         Padding     : constant String (1 .. Padding_Len) := (others => '0');
+
+      begin
+         return Padding & Raw_Image (First_Idx .. Raw_Image'Last);
+      end Pad;
+
+      Year   : Year_Type;
+      Month  : Month_Type;
+      Day    : Day_Type;
+      Hour   : Hour_Type;
+      Minute : Minute_Type;
+      Second : Second_Type;
+   begin
+      GM_Split (TS, Year, Month, Day, Hour, Minute, Second);
+      return
+         Pad (Integer (Year), 0)
+         & "-" & Pad (Natural (Month), 2)
+         & "-" & Pad (Natural (Day), 2)
+         & " " & Pad (Natural (Hour), 2)
+         & ":" & Pad (Natural (Minute), 2)
+         & ":" & Pad (Natural (Second), 2);
+   end Time_Stamp_Image;
+
+   ----------------------
+   -- Time_Stamp_Value --
+   ----------------------
+
+   function Time_Stamp_Value (TS : String) return GNAT.OS_Lib.OS_Time is
+
+      Matches : Match_Array (1 .. 6);
+
+      function Match (Index : Positive) return String is
+        (if Matches (Index) = No_Match
+         then raise Program_Error
+         else TS (Matches (Index).First
+               .. Matches (Index).Last));
+
+   begin
+      Match (Time_Stamp_Matcher, TS, Matches);
+      if Matches (1) = No_Match then
+         raise Constraint_Error with "invalid time stamp: " & TS;
+      end if;
+
+      return GM_Time_Of
+        (Year   => Year_Type'Value (Match (1)),
+         Month  => Month_Type'Value (Match (2)),
+         Day    => Day_Type'Value (Match (3)),
+         Hour   => Hour_Type'Value (Match (4)) + 1,
+         Minute => Minute_Type'Value (Match (5)),
+         Second => Second_Type'Value (Match (6)));
+   end Time_Stamp_Value;
+
+   ----------------------
+   -- Match_Signatures --
+   ----------------------
+
+   function Match_Signatures
+     (S_File, S_Trace : Binary_File_Signature)
+      return String
+   is
+      use Ada.Strings.Unbounded;
+   begin
+      if S_Trace.Size /= 0 and then S_File.Size /= S_Trace.Size then
+         return
+            ("Executable file is" & Long_Integer'Image (S_File.Size)
+             & " bytes long, but trace indicates"
+             & Long_Integer'Image (S_Trace.Size));
+
+      elsif S_Trace.Time_Stamp /= Null_Unbounded_String
+            and then S_File.Time_Stamp /= S_Trace.Time_Stamp
+      then
+         return
+            ("Executable file created on "
+             & To_String (S_File.Time_Stamp)
+             & " but trace indicates "
+             & To_String (S_Trace.Time_Stamp));
+
+      elsif S_Trace.CRC32 /= 0 and then S_File.CRC32 /= S_Trace.CRC32 then
+         return
+            ("Executable file CRC32 checksum is 0x" & Hex_Image (S_File.CRC32)
+             & " but trace indicates 0x" & Hex_Image (S_Trace.CRC32));
+
+      else
+         return "";
+      end if;
+   end Match_Signatures;
 
 end Binary_Files;

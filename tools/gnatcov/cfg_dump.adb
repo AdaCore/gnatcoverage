@@ -831,8 +831,12 @@ package body CFG_Dump is
       begin
          Read_Trace_File (Filename, Trace_File, Base);
          declare
+            Exec_Sig        : constant Binary_File_Signature :=
+               Get_Signature (Context.Exec.all);
+            Trace_Sig       : constant Binary_File_Signature :=
+               Get_Signature (Trace_File);
             Mismatch_Reason : constant String :=
-              Match_Trace_Executable (Context.Exec.all, Trace_File);
+               Match_Signatures (Exec_Sig, Trace_Sig);
 
          begin
             if Mismatch_Reason /= "" then

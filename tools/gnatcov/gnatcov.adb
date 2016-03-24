@@ -1497,8 +1497,14 @@ begin
                return Exe_File : Exe_File_Acc do
                   Open_Exec (Exe_Name, Text_Start, Exe_File);
                   declare
+                     use Binary_Files;
+
+                     Exec_Sig        : constant Binary_File_Signature :=
+                        Get_Signature (Exe_File.all);
+                     Trace_Sig       : constant Binary_File_Signature :=
+                        Get_Signature (Trace_File);
                      Mismatch_Reason : constant String :=
-                        Match_Trace_Executable (Exe_File.all, Trace_File);
+                        Match_Signatures (Exec_Sig, Trace_Sig);
 
                   begin
                      if Mismatch_Reason /= "" then

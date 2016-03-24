@@ -42,7 +42,6 @@ with Slocs;          use Slocs;
 with Symbols;        use Symbols;
 with Traces;         use Traces;
 with Traces_Dbase;   use Traces_Dbase;
-with Traces_Files;   use Traces_Files;
 
 package Traces_Elf is
 
@@ -93,15 +92,8 @@ package Traces_Elf is
    function Get_CRC32 (Exec : Exe_File_Type) return Unsigned_32;
    --  Get the CRC32 checksum of the content of the Exec file
 
-   function Time_Stamp_Image (TS : GNAT.OS_Lib.OS_Time) return String;
-   --  Return a simple string representation of a timestamp
-
-   function Match_Trace_Executable
-     (Exec : Exe_File_Type'Class; Trace_File : Trace_File_Type)
-     return String;
-   --  If the given executable file does not match the executable used to
-   --  produce the given trace file, return why. Return an empty string
-   --  otherwise.
+   function Get_Signature (Exec : Exe_File_Type) return Binary_File_Signature;
+   --  Return the binary file signature for Exec
 
    type Address_Info;
    type Address_Info_Acc is access all Address_Info;
@@ -552,6 +544,10 @@ private
    --  Prepare Exec for closing/deallocation
    --  The resources are still present but nothing anymore can be read from
    --  the file.
+
+   function Get_Signature (Exec : Exe_File_Type) return Binary_File_Signature
+   is
+      (Get_Signature (Exec.File.all));
 
    type Elf_Exe_File_Type is limited new Exe_File_Type  with record
       Elf_File : aliased Elf_Files.Elf_File;

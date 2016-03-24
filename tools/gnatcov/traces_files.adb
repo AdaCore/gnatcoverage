@@ -18,6 +18,7 @@
 
 with Ada.Characters.Handling;
 with Ada.Exceptions;          use Ada.Exceptions;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
@@ -1129,6 +1130,32 @@ package body Traces_Files is
       Put_Pad (Natural (Date_Info.Sec), Res (18 .. 19));
       return Res;
    end Format_Date_Info;
+
+   -------------------
+   -- Get_Signature --
+   -------------------
+
+   function Get_Signature
+     (File : Trace_File_Type)
+      return Binary_File_Signature
+   is
+      Result : Binary_File_Signature;
+
+      Size  : constant String := Get_Info (File, Exec_File_Size);
+      TS    : constant String := Get_Info (File, Exec_File_Time_Stamp);
+      CRC32 : constant String := Get_Info (File, Exec_File_CRC32);
+   begin
+      if Size'Length > 0 then
+         Result.Size := Long_Integer'Value (Size);
+      end if;
+      if TS'Length > 0 then
+         Result.Time_Stamp := Ada.Strings.Unbounded.To_Unbounded_String (TS);
+      end if;
+      if CRC32'Length > 0 then
+         Result.CRC32 := Unsigned_32'Value (CRC32);
+      end if;
+      return Result;
+   end Get_Signature;
 
    ----------
    -- Free --

@@ -20,6 +20,7 @@ with Ada.Streams; use Ada.Streams;
 with Interfaces; use Interfaces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
+with Binary_Files; use Binary_Files;
 with Checkpoints;
 with Qemu_Traces;  use Qemu_Traces;
 with Traces_Dbase; use Traces_Dbase;
@@ -128,6 +129,12 @@ package Traces_Files is
    procedure Close_Trace_File
      (Desc : in out Trace_File_Descriptor);
    --  Close DESC
+
+   function Get_Signature
+     (File : Trace_File_Type)
+      return Binary_File_Signature;
+   --  Return the signature of the executable that was used to produce the File
+   --  trace file.
 
    procedure Write_Trace_File
      (Filename   : String;
