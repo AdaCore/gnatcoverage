@@ -23,12 +23,14 @@
 --  found for a file, the entry is created and the newly created entry
 --  is returned (cf Open_Entry).
 
+with Ada.Containers.Hashed_Maps;
+
 with GNAT.Strings; use GNAT.Strings;
 
-with Strings; use Strings;
-with Ada.Containers.Hashed_Maps;
-with Traces_Elf; use Traces_Elf;
-with Traces; use Traces;
+with Binary_Files; use Binary_Files;
+with Strings;      use Strings;
+with Traces;       use Traces;
+with Traces_Elf;   use Traces_Elf;
 
 package Execs_Dbase is
 
@@ -45,6 +47,16 @@ package Execs_Dbase is
    --
    --  Target is used to find the actual filename on target which have, for
    --  instance, implicit suffixes (like ".exe" on Windows).
+
+   procedure Open_Exec_For_Trace
+     (Filename       : String;
+      Text_Start     : Pc_Type;
+      Trace_Filename : String;
+      Signature      : Binary_File_Signature;
+      Exec           : out Exe_File_Acc);
+   --  Do as Open_Exec, but also check that the signature for the resulting
+   --  Exe_File matches Signature (which comes from the Trace_Filename trace
+   --  file).
 
    procedure Close_Exec (File_Name : String);
    --  Remove the File_Name entry from the Exec database, closing the resources

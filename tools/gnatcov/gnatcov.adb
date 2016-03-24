@@ -1495,25 +1495,10 @@ begin
 
             begin
                return Exe_File : Exe_File_Acc do
-                  Open_Exec (Exe_Name, Text_Start, Exe_File);
-                  declare
-                     use Binary_Files;
-
-                     Exec_Sig        : constant Binary_File_Signature :=
-                        Get_Signature (Exe_File.all);
-                     Trace_Sig       : constant Binary_File_Signature :=
-                        Get_Signature (Trace_File);
-                     Mismatch_Reason : constant String :=
-                        Match_Signatures (Exec_Sig, Trace_Sig);
-
-                  begin
-                     if Mismatch_Reason /= "" then
-                        Warn
-                          ("ELF file " & Exe_Name
-                           & " does not seem to match trace file "
-                           & Trace_File_Name & ": " & Mismatch_Reason);
-                     end if;
-                  end;
+                  Execs_Dbase.Open_Exec_For_Trace
+                    (Exe_Name, Text_Start,
+                     Trace_File_Name, Get_Signature (Trace_File),
+                     Exe_File);
                end return;
             exception
                when E : Binary_Files.Error =>

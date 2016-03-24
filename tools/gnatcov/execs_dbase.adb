@@ -18,6 +18,8 @@
 
 with Ada.Containers; use Ada.Containers;
 
+with Outputs;      use Outputs;
+
 package body Execs_Dbase is
 
    Exec_Base : Execs_Maps.Map;
@@ -57,6 +59,34 @@ package body Execs_Dbase is
          Build_Symbols (Exec.all);
       end if;
    end Open_Exec;
+
+   -------------------------
+   -- Open_Exec_For_Trace --
+   -------------------------
+
+   procedure Open_Exec_For_Trace
+     (Filename       : String;
+      Text_Start     : Pc_Type;
+      Trace_Filename : String;
+      Signature      : Binary_File_Signature;
+      Exec           : out Exe_File_Acc)
+   is
+   begin
+      Open_Exec (Filename, Text_Start, Exec);
+      declare
+         Exec_Sig        : constant Binary_File_Signature :=
+            Get_Signature (Exec.all);
+         Mismatch_Reason : constant String :=
+            Match_Signatures (Exec_Sig, Signature);
+      begin
+         if Mismatch_Reason'Length > 0 then
+            Warn
+              ("executable file " & Filename
+               & " does not seem to match trace file " & Trace_Filename
+               & ": " & Mismatch_Reason);
+         end if;
+      end;
+   end Open_Exec_For_Trace;
 
    ----------------
    -- Close_Exec --
