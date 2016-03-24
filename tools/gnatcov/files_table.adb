@@ -62,18 +62,9 @@ package body Files_Table is
       Equivalent_Keys => "=",
       "="             => "=");
 
-   type Simple_Name_Info is record
-      Matches : Positive;
-      --  Number of files that have this base name
-
-      File    : Source_File_Index;
-      --  The registered file, if any
-   end record;
-   --  Information about a source file base name registered in Simple_Name_Map
-
    package Simple_Name_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => Virtual_File,
-      Element_Type    => Simple_Name_Info,
+      Element_Type    => Source_File_Index,
       Hash            => Full_Name_Hash,
       Equivalent_Keys => "=",
       "="             => "=");
@@ -581,10 +572,9 @@ package body Files_Table is
             Simple_Name_Map.Find (Simple_Path);
       begin
 
-         if Simple_Cur /= Simple_Name_Maps.No_Element
-           and then Element (Simple_Cur).File /= No_Source_File
-         then
-            Res := Element (Simple_Cur).File;
+         if Simple_Cur /= Simple_Name_Maps.No_Element then
+            Res := Element (Simple_Cur);
+            pragma Assert (Res /= No_Source_File);
 
             --  If we are not allowed to insert something, do not modify
             --  existing entries.
@@ -636,33 +626,17 @@ package body Files_Table is
          Res := Files_Table.Last_Index;
 
          --  If needed, add an entry into the simple name map. It will help
-         --  aliasing computation. Do not register the file itself if not
-         --  told to.
+         --  aliasing computation.
 
-         if Simple_Cur = Simple_Name_Maps.No_Element then
+         if Index_Simple_Name
+           and then Simple_Cur = Simple_Name_Maps.No_Element
+         then
             declare
                Inserted : Boolean;
-               File_Index : constant Source_File_Index :=
-                 (if Index_Simple_Name then Res else No_Source_File);
+
             begin
-               Simple_Name_Map.Insert
-                 (Simple_Path,
-                  (Matches => 1, File => File_Index),
-                  Simple_Cur,
-                  Inserted);
+               Simple_Name_Map.Insert (Simple_Path, Res, Simple_Cur, Inserted);
                pragma Assert (Inserted);
-            end;
-            --  The alias number already contains the correct value
-
-         else
-            --  The entry already exists: just update its Match count and set
-            --  the correct value to the alias number to the current file.
-
-            declare
-               Simple_Entry : Simple_Name_Info := Element (Simple_Cur);
-            begin
-               Simple_Entry.Matches := Simple_Entry.Matches + 1;
-               Simple_Name_Map.Replace_Element (Simple_Cur, Simple_Entry);
             end;
          end if;
 
@@ -690,7 +664,7 @@ package body Files_Table is
       Info : File_Info_Access;
    begin
       if Cur /= Simple_Name_Maps.No_Element then
-         return Element (Cur).File;
+         return Element (Cur);
       end if;
 
       if not Insert then
@@ -714,8 +688,7 @@ package body Files_Table is
 
       Files_Table.Append (Info);
       Res := Files_Table.Last_Index;
-      Simple_Name_Map.Insert (Simple_Path, (Matches => 1, File => Res));
-
+      Simple_Name_Map.Insert (Simple_Path, Res);
       return Res;
    end Get_Index_From_Simple_Name;
 
@@ -1004,7 +977,7 @@ package body Files_Table is
       Alias_Map : Alias_Maps.Map;
       --  Mapping: simple name to set of files that have this simple name
 
-      --  Start of processing for Build_Unique_Names
+   --  Start of processing for Build_Unique_Names
 
    begin
       --  First, build the alias map: conflicting files will get grouped under
