@@ -53,7 +53,7 @@ with Outputs;           use Outputs;
 with Perf_Counters;
 with Project;           use Project;
 with Qemu_Traces;
-with Rundrv;
+with Rundrv;            use Rundrv;
 with SC_Obligations;    use SC_Obligations;
 with Slocs;             use Slocs;
 with Strings;           use Strings;
@@ -105,6 +105,7 @@ procedure GNATcov is
    CFG_Output_Format    : CFG_Dump.Output_Format := CFG_Dump.None;
    Keep_Edges           : Boolean := False;
    Pretty_Print         : Boolean := False;
+   SO_Inputs            : SO_Set_Type;
 
    function Command_Name return String
    is
@@ -692,6 +693,104 @@ procedure GNATcov is
                end if;
             end;
          end loop;
+      end loop;
+
+      for Arg of Args.String_List_Args (Opt_Shared_Object) loop
+         declare
+
+            procedure SO_Error (Msg : String);
+            --  Raise a fatal error for a bad usage of the Opt_Shared_Object
+            --  option.
+
+            procedure None_And_All_Error;
+            --  Raise a fatal error for using both "none" and "all" options
+
+            procedure Set_Mode (SO_Set : SO_Set_Type)
+               with Pre => SO_Set.Kind /= Some_SO;
+            --  Switch to the given SO_Set mode. Raise a fatal error if there
+            --  is already a non-default mode or if there are already
+            --  explicitly listed shared objects.
+
+            procedure Invalid_SO_With (Mode : SO_Set_Kind)
+               with Pre => Mode /= Some_SO;
+            --  Raise a fatal error for trying to switch to the non-default
+            --  "mode" whereas there are already explicitly listed shared
+            --  objects.
+
+            --------------
+            -- SO_Error --
+            --------------
+
+            procedure SO_Error (Msg : String) is
+               Opt_Name : constant String := Option_Name
+                 (Arg_Parser, (String_List_Opt, Opt_Shared_Object));
+            begin
+               Fatal_Error (Opt_Name & ": " & Msg);
+            end SO_Error;
+
+            ------------------------
+            -- None_And_All_Error --
+            ------------------------
+
+            procedure None_And_All_Error is
+            begin
+               SO_Error
+                 ("""none"" and ""all"" cannot be used at the same time");
+            end None_And_All_Error;
+
+            --------------
+            -- Set_Mode --
+            --------------
+
+            procedure Set_Mode (SO_Set : SO_Set_Type) is
+            begin
+               if Length (SO_Inputs.Set) /= 0 then
+                  Invalid_SO_With (SO_Set.Kind);
+               end if;
+               SO_Inputs := SO_Set;
+            end Set_Mode;
+
+            ---------------------
+            -- Invalid_SO_With --
+            ---------------------
+
+            procedure Invalid_SO_With (Mode : SO_Set_Kind) is
+               Name : constant String :=
+                 (case Mode is
+                  when None => "none",
+                  when Some_SO => raise Program_Error,
+                  when All_SO => "all");
+            begin
+               SO_Error
+                 ("cannot provide shared objects with """ & Name & """");
+            end Invalid_SO_With;
+
+         begin
+            --  If they are provided, "none" or "all" must be the first value
+            --  we get. Besides, if we have one of them, we must not have
+            --  anything else.
+
+            if +Arg = "none" then
+               case SO_Inputs.Kind is
+                  when None    => null;
+                  when Some_SO => Set_Mode ((Kind => None));
+                  when All_SO  => None_And_All_Error;
+               end case;
+
+            elsif +Arg = "all" then
+               case SO_Inputs.Kind is
+                  when None    => None_And_All_Error;
+                  when Some_SO => Set_Mode ((Kind => All_SO));
+                  when All_SO  => null;
+               end case;
+
+            else
+               case SO_Inputs.Kind is
+                  when None | All_SO => Invalid_SO_With (SO_Inputs.Kind);
+                  when Some_SO       => Add_Input (SO_Inputs.Set, +Arg);
+               end case;
+            end if;
+         end;
       end loop;
 
       --  ... then, handle remaning arguments, which have subcommand-specific
@@ -1828,7 +1927,8 @@ begin
                end if;
 
                Rundrv.Driver (Exe_File, Target_Family, Target_Board, Tag,
-                              Output, Histmap, Kernel, Vector_To_List (Eargs));
+                              Output, Histmap, Kernel, Vector_To_List (Eargs),
+                              SO_Inputs);
             end Run;
          begin
             Inputs.Iterate (Exe_Inputs, Run'Access);

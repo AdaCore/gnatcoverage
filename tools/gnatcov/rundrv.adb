@@ -59,14 +59,21 @@ package body Rundrv is
       Output        : String_Access;
       Histmap       : String_Access;
       Kernel        : String_Access;
-      Eargs         : String_List_Access)
+      Eargs         : String_List_Access;
+      SO_Set        : SO_Set_Type)
    is
+      pragma Unreferenced (SO_Set);
+      --  TODO??? Handle shared objects
+
       Context : Context_Type :=
         (Kernel   => Kernel,
          Histmap  => Histmap,
          Eargs    => Eargs,
          others   => <>);
       Run_Cmd : Command_Access;
+
+   --  Start of processing for Driver
+
    begin
 
       declare

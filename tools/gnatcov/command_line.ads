@@ -108,7 +108,8 @@ package Command_Line is
       Opt_Source_Search,
       Opt_Trace,
       Opt_Checkpoint,
-      Opt_Ignore_Source_Files);
+      Opt_Ignore_Source_Files,
+      Opt_Shared_Object);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -650,7 +651,28 @@ package Command_Line is
          Help      => "Specify a list of source files to ignore for coverage",
          Commands  => (Cmd_Coverage | Cmd_Map_Routines => True,
                        others => False),
-         Internal  => False));
+         Internal  => False),
+
+      Opt_Shared_Object => Create
+        (Long_Name   => "--shared-object",
+         Short_Name  => "-L",
+         Pattern     => "[none|all|SHARED_OBJECT|@LISTFILE]",
+         Help        => ("Specify the set of shared object files that will"
+                         & " contribute to the code coverage assessment. The"
+                         & " following special values are supported:"
+                         & ASCII.LF & ASCII.LF
+                         & "  * ""none"" (the default), which prevents all"
+                         & " shared objects from contributing to coverage;"
+                         & ASCII.LF & ASCII.LF
+                         & "  * ""all"", which makes all shared objects"
+                         & " contribute to coverage."
+                         & ASCII.LF & ASCII.LF
+                         & "Note that if one such special value is passed,"
+                         & " it must be the only value passed to this"
+                         & " option."),
+         Commands    => (Cmd_Run => True,
+                         others => False),
+         Internal    => False));
 
    procedure Bool_Callback
      (Result : in out Parsed_Arguments;

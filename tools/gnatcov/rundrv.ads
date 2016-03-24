@@ -18,7 +18,19 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Inputs;
+
 package Rundrv is
+
+   type SO_Set_Kind is (None, Some_SO, All_SO);
+   type SO_Set_Type (Kind : SO_Set_Kind := Some_SO) is record
+      case Kind is
+         when None    => null;
+         when Some_SO => Set : Inputs.Inputs_Type;
+         when All_SO  => null;
+      end case;
+   end record;
+   --  Holder for a set of selected shared objects to include in trace files
 
    procedure Driver
      (Exe_File      : String;
@@ -28,7 +40,8 @@ package Rundrv is
       Output        : String_Access;
       Histmap       : String_Access;
       Kernel        : String_Access;
-      Eargs         : String_List_Access);
+      Eargs         : String_List_Access;
+      SO_Set        : SO_Set_Type);
    --  Run Exe_File on an instrumented execution environment (depending on
    --  Target: GNATemulator, Valgrind, DynamoRIO, etc). Pass Eargs as
    --  command-line arguments for Exe_File. Write traces in the Output trace
