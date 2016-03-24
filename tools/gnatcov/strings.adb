@@ -106,4 +106,49 @@ package body Strings is
       return Result;
    end Vector_To_List;
 
+   ----------
+   -- Read --
+   ----------
+
+   overriding procedure Read
+     (Stream : in out Unbounded_String_Stream;
+      Item   : out Ada.Streams.Stream_Element_Array;
+      Last   : out Ada.Streams.Stream_Element_Offset)
+   is
+      use Ada.Streams;
+      use Ada.Strings.Unbounded;
+
+      Last_Index : constant Natural :=
+        Natural'Min (Length (Stream.S.all),
+                     Stream.Read_Index + Item'Length - 1);
+      Read_Length : constant Natural := Last_Index - Stream.Read_Index + 1;
+      Item_S : String (1 .. Read_Length);
+      for Item_S'Address use Item'Address;
+      pragma Import (Ada, Item_S);
+   begin
+      Item_S := Slice
+        (Stream.S.all,
+         Low  => Stream.Read_Index,
+         High => Last_Index);
+      Stream.Read_Index := Last_Index + 1;
+      Last := Item'First + Stream_Element_Offset (Read_Length) - 1;
+   end Read;
+
+   -----------
+   -- Write --
+   -----------
+
+   overriding procedure Write
+     (Stream : in out Unbounded_String_Stream;
+      Item   : Ada.Streams.Stream_Element_Array)
+   is
+      use Ada.Strings.Unbounded;
+
+      Item_S : String (1 .. Item'Length);
+      for Item_S'Address use Item'Address;
+      pragma Import (Ada, Item_S);
+   begin
+      Append (Stream.S.all, Item_S);
+   end Write;
+
 end Strings;

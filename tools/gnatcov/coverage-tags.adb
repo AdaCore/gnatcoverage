@@ -66,6 +66,20 @@ package body Coverage.Tags is
       end return;
    end Get_Slocs_With_Tag;
 
+   -------------
+   -- Map_Tag --
+   -------------
+
+   overriding function Map_Tag
+     (TP     : access Default_Tag_Provider_Type;
+      CS     : Checkpoints.Checkpoint_State;
+      CP_Tag : SC_Tag) return SC_Tag
+   is
+      pragma Unreferenced (TP, CS, CP_Tag);
+   begin
+      return No_SC_Tag;
+   end Map_Tag;
+
    --------------
    -- Tag_Name --
    --------------

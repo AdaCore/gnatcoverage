@@ -16,13 +16,15 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Coverage;
+
 package Annotations.Dynamic_Html is
 
    function Installed return Boolean;
    --  Return TRUE if the Dynamic HTML plugin is installed, i.e. the required
    --  resource files are installed in lib/gnatcoverage/.
 
-   procedure Generate_Report;
+   procedure Generate_Report (Context : Coverage.Context_Access);
    --  Generate the Dynamic HTML report providing the plugin is correctly
    --  installed.
 

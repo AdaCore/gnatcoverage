@@ -32,6 +32,7 @@ with Swaps;
 with Traces;     use Traces;
 
 package body Traces_Files is
+
    procedure Dump_Infos (Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Info (Fd : File_Descriptor;
                                     Trace_File : Trace_File_Type);
@@ -728,6 +729,55 @@ package body Traces_Files is
       end if;
       File.Last_Infos := Info;
    end Append_Info;
+
+   ---------------------
+   -- Checkpoint_Save --
+   ---------------------
+
+   procedure Checkpoint_Save
+     (S          : access Root_Stream_Type'Class;
+      Trace_File : Trace_File_Type)
+   is
+      Info : Trace_File_Info_Acc := Trace_File.First_Infos;
+
+   begin
+      --  Note: we identify the last info record using a null string, so
+      --  omit any empty info record when saving.
+
+      while Info /= null loop
+         if Info.Raw_Length > 0 then
+            String'Output (S, Info.Data);
+            Info_Kind_Type'Write (S, Info.Kind);
+         end if;
+         Info := Info.Next;
+      end loop;
+
+      String'Output (S, "");
+   end Checkpoint_Save;
+
+   ---------------------
+   -- Checkpoint_Load --
+   ---------------------
+
+   procedure Checkpoint_Load
+     (S          : access Root_Stream_Type'Class;
+      CS         : access Checkpoints.Checkpoint_State;
+      Trace_File : in out Trace_File_Type)
+   is
+      pragma Unreferenced (CS);
+
+      Kind : Info_Kind_Type;
+   begin
+      loop
+         declare
+            Data : constant String := String'Input (S);
+         begin
+            exit when Data = "";
+            Info_Kind_Type'Read (S, Kind);
+            Append_Info (Trace_File, Kind, Data);
+         end;
+      end loop;
+   end Checkpoint_Load;
 
    --------------
    -- Get_Info --

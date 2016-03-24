@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2016, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -15,9 +15,12 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
+with Ada.Streams; use Ada.Streams;
 with Interfaces; use Interfaces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
+with Checkpoints;
 with Qemu_Traces;  use Qemu_Traces;
 with Traces_Dbase; use Traces_Dbase;
 with Traces;
@@ -121,6 +124,17 @@ package Traces_Files is
      (Kind       : Trace_Kind;
       Trace_File : out Trace_File_Type);
    --  Create an empty Trace_File object of the given kind
+
+   procedure Checkpoint_Save
+     (S          : access Root_Stream_Type'Class;
+      Trace_File : Trace_File_Type);
+   --  Save Trace_File's infos to S
+
+   procedure Checkpoint_Load
+     (S          : access Root_Stream_Type'Class;
+      CS         : access Checkpoints.Checkpoint_State;
+      Trace_File : in out Trace_File_Type);
+   --  Load Trace_File's infos from S
 
 private
    type Trace_File_Info (Raw_Length : Natural);

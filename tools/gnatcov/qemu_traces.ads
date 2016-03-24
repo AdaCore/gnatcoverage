@@ -123,6 +123,12 @@ package Qemu_Traces is
    --  entry Kind found in the item header.  We expect an Info_End kind of
    --  entry to finish the sequence.
 
+   --  Info_Kind_Type identifies the various information items that can be
+   --  stored in a trace file. This section is private to gnatcov. Note that
+   --  'Pos values are stored in the trace file, so the ordering of the
+   --  literals must be preserved (and any new value must be added at the
+   --  end), or all existing traces will become invalid.
+
    type Info_Kind_Type is
      (Info_End,
       --  Special entry: indicates the end of a sequence of trace info entries
@@ -151,9 +157,13 @@ package Qemu_Traces is
       Exec_File_Time_Stamp,
       --  Human-readable date/time for the executable file modification time
 
-      Exec_File_CRC32
+      Exec_File_CRC32,
       --  ASCII representation of CRC32 checksum for the executable file, as a
       --  32-bit unsigned number.
+
+      Coverage_Context
+      --  Streams-encoded coverage assessment context information (only set
+      --  in checkpointed infos).
      );
 
    type Trace_Info_Header is record

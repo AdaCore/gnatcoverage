@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Checkpoints;
+
 with Factory_Registry;
 with Slocs;            use Slocs;
 with Traces;           use Traces;
@@ -69,6 +71,15 @@ package Coverage.Tags is
    --  Record Subp_Info as the subprogram information for the routine being
    --  analyzed (sets TP.Current_Routine).
 
+   function Map_Tag
+     (TP     : access Tag_Provider_Type;
+      CS     : Checkpoints.Checkpoint_State;
+      CP_Tag : SC_Tag) return SC_Tag is abstract;
+   --  Convert a tag from a checkpoint to the corresponding one in the
+   --  current context. Note: caller must ensure that TP is either a
+   --  Default_Tag_Provider_Type, or the same tag provider type as when
+   --  the checkpoint was produced.
+
    package Tag_Providers is
      new Factory_Registry (Tag_Provider_Type);
 
@@ -91,6 +102,12 @@ package Coverage.Tags is
      (TP  : access Default_Tag_Provider_Type;
       Tag : SC_Tag) return String;
    --  Return the empty string
+
+   overriding function Map_Tag
+     (TP     : access Default_Tag_Provider_Type;
+      CS     : Checkpoints.Checkpoint_State;
+      CP_Tag : SC_Tag) return SC_Tag;
+   --  Return No_SC_Tag
 
    Tag_Provider : Tag_Provider_Access;
    Default_Tag_Provider_Name : constant String := "default";

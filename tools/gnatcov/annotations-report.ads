@@ -16,9 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Coverage;
+
 package Annotations.Report is
 
-   procedure Generate_Report (Final_Report_Name : String_Access);
+   procedure Generate_Report
+     (Context           : Coverage.Context_Access;
+      Final_Report_Name : String_Access);
    --  Generate the final report, source-wise. If Final_Report_Name is
    --  null, dump it on stdout.
 

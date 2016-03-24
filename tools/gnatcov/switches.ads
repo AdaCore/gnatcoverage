@@ -81,4 +81,8 @@ package Switches is
    --  -di
    --  Exemption pragmas have no effect.
 
+   Debug_File_Table : Boolean := False;
+   --  -df
+   --  Show debugging output for files table management
+
 end Switches;

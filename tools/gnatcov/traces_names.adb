@@ -26,13 +26,14 @@ with Interfaces;
 
 with GNAT.Strings;  use GNAT.Strings;
 
-with Coverage.Object;  use Coverage.Object;
-with Coverage.Tags;    use Coverage.Tags;
+with Checkpoints;
+with Coverage.Object;   use Coverage.Object;
+with Coverage.Tags;     use Coverage.Tags;
 with Elf_Disassemblers; use Elf_Disassemblers;
-with Inputs;           use Inputs;
-with Outputs;          use Outputs;
-with Switches;         use Switches;
-with Symbols;          use Symbols;
+with Inputs;            use Inputs;
+with Outputs;           use Outputs;
+with Switches;          use Switches;
+with Symbols;           use Symbols;
 
 package body Traces_Names is
 
@@ -63,6 +64,11 @@ package body Traces_Names is
    overriding function Tag_Name
      (TP  : access Routine_Tag_Provider_Type;
       Tag : SC_Tag) return String;
+
+   overriding function Map_Tag
+     (TP     : access Routine_Tag_Provider_Type;
+      CS     : Checkpoints.Checkpoint_State;
+      CP_Tag : SC_Tag) return SC_Tag;
 
    package R is new Tag_Providers.Register_Factory
      (Name => "routine", T => Routine_Tag_Provider_Type);
@@ -595,6 +601,23 @@ package body Traces_Names is
    begin
       return TP.Routine_Tags.Element (Tag).all;
    end Tag_Name;
+
+   -------------
+   -- Map_Tag --
+   -------------
+
+   overriding function Map_Tag
+     (TP     : access Routine_Tag_Provider_Type;
+      CS     : Checkpoints.Checkpoint_State;
+      CP_Tag : SC_Tag) return SC_Tag
+   is
+      pragma Unreferenced (TP, CS, CP_Tag);
+   begin
+      raise Program_Error
+        with "cannot perform incremental coverage with "
+        & "routines-based separation";
+      return No_SC_Tag;
+   end Map_Tag;
 
    ----------------------------------
    -- Read_Routine_Names_From_Text --

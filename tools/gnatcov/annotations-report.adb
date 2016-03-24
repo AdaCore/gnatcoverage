@@ -16,25 +16,21 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Calendar.Formatting;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Command_Line;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
-
-with GNAT.Time_Stamp;
 
 with ALI_Files;
 with Coverage.Tags; use Coverage.Tags;
 with Qemu_Traces;
 with Switches;
-with Traces_Files;
 with Traces_Files_List;
 
 with Coverage.Source;
 use Coverage, Coverage.Source;
 
-with Version;  use Version;
 with Strings;  use Strings;
 
 package body Annotations.Report is
@@ -228,14 +224,17 @@ package body Annotations.Report is
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report (Final_Report_Name : String_Access) is
-      Report_PP : Report_Pretty_Printer;
+   procedure Generate_Report
+     (Context           : Coverage.Context_Access;
+      Final_Report_Name : String_Access)
+   is
+      Pp : Report_Pretty_Printer := (Context => Context, others => <>);
    begin
       if Final_Report_Name /= null then
          Open_Report_File (Final_Report_Name.all);
       end if;
 
-      Annotations.Generate_Report (Report_PP, True);
+      Annotations.Generate_Report (Pp, True);
       Close_Report_File;
    end Generate_Report;
 
@@ -645,9 +644,10 @@ package body Annotations.Report is
    ------------------------
 
    procedure Pretty_Print_Start (Pp : in out Report_Pretty_Printer) is
-      use Ada.Command_Line;
+      use Ada.Calendar.Formatting;
+      use Ada.Strings.Unbounded;
+
       use Qemu_Traces;
-      use Traces_Files;
       use Traces_Files_List;
       use Traces_Files_Lists;
 
@@ -662,13 +662,25 @@ package body Annotations.Report is
 
       procedure Display_Trace_File_Info (Position : Cursor) is
          E : constant Trace_File_Element_Acc := Element (Position);
+         Orig_Context : constant String :=
+           Original_Processing_Context (E.Trace);
+
       begin
+         New_Line (Output.all);
          Put_Line (Output.all, E.Filename.all);
-         Put_Line (Output.all, "  program: "
+         Put_Line (Output.all, "  program  : "
                    & Get_Info (E.Trace, Exec_File_Name));
-         Put_Line (Output.all, "  date   : "
+         Put_Line (Output.all, "  date     : "
                    & Format_Date_Info (Get_Info (E.Trace, Date_Time)));
-         Put_Line (Output.all, "  tag    : " & Get_Info (E.Trace, User_Data));
+         Put_Line (Output.all, "  tag      : "
+                   & Get_Info (E.Trace, User_Data));
+
+         --  For a trace that has been processed in an earlier run, provide
+         --  information on original coverage assessment context.
+
+         if Orig_Context /= "" then
+            Put_Line (Output.all, "  processed: " & Orig_Context);
+         end if;
       end Display_Trace_File_Info;
 
    --  Start of processing for Pretty_Print_Start
@@ -680,23 +692,20 @@ package body Annotations.Report is
 
       New_Line (Output.all);
       Put_Line (Output.all, "Date and time of execution: "
-                & GNAT.Time_Stamp.Current_Time);
-      Put_Line (Output.all, "Tool version: XCOV " & Xcov_Version);
+                & Image (Pp.Context.Timestamp, Include_Time_Fraction => True));
+      Put_Line (Output.all, "Tool version: XCOV "
+                & To_String (Pp.Context.Version));
       New_Line (Output.all);
 
       Put_Line (Output.all, "Command line:");
+      Put_Line (Output.all, To_String (Pp.Context.Command));
       New_Line (Output.all);
-      Put (Output.all, Command_Name);
-      for J in 1 .. Argument_Count loop
-         Put (Output.all, ' ' & Argument (J));
-      end loop;
-      New_Line (Output.all, 2);
 
-      Put_Line (Output.all, "Coverage level: " & Coverage_Option_Value);
+      Put_Line (Output.all, "Coverage level: "
+                & To_String (Pp.Context.Levels));
       New_Line (Output.all);
 
       Put_Line (Output.all, "Trace files:");
-      New_Line (Output.all);
       Files.Iterate (Display_Trace_File_Info'Access);
    end Pretty_Print_Start;
 

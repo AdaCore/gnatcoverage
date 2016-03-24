@@ -33,6 +33,7 @@ with GNATCOLL.VFS; use GNATCOLL.VFS;
 with Outputs;
 with Perf_Counters; use Perf_Counters;
 with Project;
+with Switches;
 
 package body Files_Table is
 
@@ -563,9 +564,9 @@ package body Files_Table is
    ------------------------------
 
    function Get_Index_From_Full_Name
-     (Full_Name         : String;
-      Insert            : Boolean := True;
-      Index_Simple_Name : Boolean := True) return Source_File_Index
+     (Full_Name           : String;
+      Insert              : Boolean := True;
+      Indexed_Simple_Name : Boolean := False) return Source_File_Index
    is
       use Filename_Maps;
       use Simple_Name_Maps;
@@ -578,20 +579,27 @@ package body Files_Table is
       Info_Simple : File_Info_Access;
 
    begin
+      if Switches.Debug_File_Table then
+         Put ("GIFN: <<" & Full_Name & ">> ISN=" & Indexed_Simple_Name'Img
+                   & " Insert=" & Insert'Img);
+      end if;
+
       Cur := Full_Name_Map.Find (Full_Path);
 
       if Cur /= Filename_Maps.No_Element then
          Res := Element (Cur);
-         return Res;
+         goto Do_Return;
       end if;
 
-      --  Here if full name not found, try again with simple name
+      --  Here if full name not found
 
       declare
          Simple_Path : constant Virtual_File := Create (Base_Name (Full_Path));
          Simple_Cur  : Simple_Name_Maps.Cursor :=
-            Simple_Name_Map.Find (Simple_Path);
+           Simple_Name_Map.Find (Simple_Path);
+
       begin
+         --  Look for registered occurrence of simple name
 
          if Simple_Cur /= Simple_Name_Maps.No_Element then
             Res := Element (Simple_Cur);
@@ -601,7 +609,7 @@ package body Files_Table is
             --  existing entries.
 
             if not Insert then
-               return Res;
+               goto Do_Return;
             end if;
 
             Info_Simple := Files_Table.Element (Res);
@@ -610,7 +618,8 @@ package body Files_Table is
                Info_Simple.Full_Name :=
                   new String'(+GNATCOLL.VFS.Full_Name (Full_Path));
                Full_Name_Map.Insert (Full_Path, Res);
-               return Res;
+               goto Do_Return;
+
             else
                if Create (+Info_Simple.Full_Name.all) /= Full_Path then
                   Put_Line ("Warning: same base name for files:");
@@ -619,10 +628,11 @@ package body Files_Table is
                end if;
             end if;
 
-         --  Here if not found by simple name, either
+         --  Here if not found by simple name either
 
          elsif not Insert then
-            return No_Source_File;
+            Res := No_Source_File;
+            goto Do_Return;
          end if;
 
          --  If we reach this point, we are inserting a new file into the table
@@ -634,6 +644,7 @@ package body Files_Table is
                new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
             Simple_Name              =>
                new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
+            Indexed_Simple_Name      => Indexed_Simple_Name,
             Unique_Name              => null,
             Has_Source               => True,
             Lines                    => (Source_Line_Vectors.Empty_Vector
@@ -649,7 +660,7 @@ package body Files_Table is
          --  If needed, add an entry into the simple name map. It will help
          --  aliasing computation.
 
-         if Index_Simple_Name
+         if Indexed_Simple_Name
            and then Simple_Cur = Simple_Name_Maps.No_Element
          then
             declare
@@ -662,8 +673,13 @@ package body Files_Table is
          end if;
 
          Full_Name_Map.Insert (Full_Path, Res);
-         return Res;
       end;
+
+   <<Do_Return>>
+      if Switches.Debug_File_Table then
+         Put_Line (" ->" & Res'Img);
+      end if;
+      return Res;
    end Get_Index_From_Full_Name;
 
    --------------------------------
@@ -683,33 +699,44 @@ package body Files_Table is
         Simple_Name_Map.Find (Simple_Path);
       Res  : Source_File_Index;
       Info : File_Info_Access;
+
    begin
+      if Switches.Debug_File_Table then
+         Put ("GISN: <<" & Simple_Name & ">> Insert=" & Insert'Img);
+      end if;
+
       if Cur /= Simple_Name_Maps.No_Element then
-         return Element (Cur);
+         Res := Element (Cur);
+
+      elsif not Insert then
+         Res := No_Source_File;
+
+      else
+         pragma Assert (not Unique_Names_Computed);
+
+         Info := new File_Info'(Simple_Name              =>
+                                   new String'(+Full_Name (Simple_Path)),
+                                Full_Name                => null,
+                                Unique_Name              => null,
+                                Indexed_Simple_Name      => True,
+                                Has_Source               => True,
+                                Lines                    =>
+                                  (Source_Line_Vectors.Empty_Vector
+                                   with null record),
+                                Stats                    => (others => 0),
+                                Sloc_To_SCO_Maps         => null,
+                                Has_Source_Coverage_Info => False,
+                                Has_Object_Coverage_Info => False);
+
+         Files_Table.Append (Info);
+         Res := Files_Table.Last_Index;
+         Simple_Name_Map.Insert (Simple_Path, Res);
       end if;
 
-      if not Insert then
-         return No_Source_File;
+      if Switches.Debug_File_Table then
+         Put_Line (" ->" & Res'Img);
       end if;
 
-      pragma Assert (not Unique_Names_Computed);
-
-      Info := new File_Info'(Simple_Name              =>
-                                new String'(+Full_Name (Simple_Path)),
-                             Full_Name                => null,
-                             Unique_Name              => null,
-                             Has_Source               => True,
-                             Lines                    =>
-                                (Source_Line_Vectors.Empty_Vector
-                                    with null record),
-                             Stats                    => (others => 0),
-                             Sloc_To_SCO_Maps         => null,
-                             Has_Source_Coverage_Info => False,
-                             Has_Object_Coverage_Info => False);
-
-      Files_Table.Append (Info);
-      Res := Files_Table.Last_Index;
-      Simple_Name_Map.Insert (Simple_Path, Res);
       return Res;
    end Get_Index_From_Simple_Name;
 
@@ -718,22 +745,25 @@ package body Files_Table is
    ---------------------------------
 
    function Get_Index_From_Generic_Name
-     (Name : String) return Source_File_Index
+     (Name                : String;
+      Indexed_Simple_Name : Boolean := False) return Source_File_Index
    is
       File_Name : constant Virtual_File := Create (+Name);
+      Result : Source_File_Index;
+
    begin
-      if Is_Absolute_Path (File_Name) then
-
-         --  Library files are the only source of file names that may
-         --  contain base names (as opposed to absolute file names). Thus,
-         --  if we find an absolute path here, do not bother index its base
-         --  name, since it will potentially introduce base name clashes for
-         --  no benefit.
-
-         return Get_Index_From_Full_Name (Name, Index_Simple_Name => False);
-      else
-         return Get_Index_From_Simple_Name (Name);
+      if Switches.Debug_File_Table then
+         Put ("GIGN: <<" & Name
+              & ">> ISN=" & Indexed_Simple_Name'Img & " -> ");
       end if;
+
+      if Is_Absolute_Path (File_Name) then
+         Result := Get_Index_From_Full_Name
+           (Name, Indexed_Simple_Name => Indexed_Simple_Name);
+      else
+         Result := Get_Index_From_Simple_Name (Name);
+      end if;
+      return Result;
    end Get_Index_From_Generic_Name;
 
    --------------
@@ -970,6 +1000,9 @@ package body Files_Table is
            (if File.Unique_Name = null
             then Full'Last
             else Full'Last - File.Unique_Name.all'Length + 1);
+
+      --  Start of processing for Grow_Unique_Name
+
       begin
          --  Get the substring in Full that will make the next Unique_Name
 
@@ -1332,5 +1365,91 @@ package body Files_Table is
                        & " in source path");
       end if;
    end Warn_File_Missing;
+
+   ---------------------
+   -- Checkpoint_Save --
+   ---------------------
+
+   procedure Checkpoint_Save (S : access Root_Stream_Type'Class) is
+   begin
+      --  Output first and last SFIs
+
+      Source_File_Index'Write (S, Files_Table.First_Index);
+      Source_File_Index'Write (S, Files_Table.Last_Index);
+
+      --  Output file table info for each file
+      --  Note that we need LI files there, not just source files with
+      --  coverage info.
+
+      for FI_C in Files_Table.Iterate loop
+         declare
+            FI : File_Info renames File_Vectors.Element (FI_C).all;
+         begin
+            Source_File_Index'Write (S, File_Vectors.To_Index (FI_C));
+            String'Output (S,
+                           (if FI.Full_Name /= null
+                            then FI.Full_Name.all
+                            else FI.Simple_Name.all));
+            Boolean'Write (S, FI.Indexed_Simple_Name);
+         end;
+      end loop;
+
+      --  No_Source_File marks end of file table info
+
+      Source_File_Index'Write (S, No_Source_File);
+   end Checkpoint_Save;
+
+   ---------------------
+   -- Checkpoint_Load --
+   ---------------------
+
+   procedure Checkpoint_Load
+     (S  : access Root_Stream_Type'Class;
+      CS : access Checkpoint_State)
+   is
+      CP_First_SFI, CP_Last_SFI, Old_SFI : Source_File_Index;
+
+      pragma Warnings (Off, Old_SFI);
+      --  Kill bogus infinite loop warning (P324-050)
+
+   begin
+      Source_File_Index'Read (S, CP_First_SFI);
+      Source_File_Index'Read (S, CP_Last_SFI);
+      CS.SFI_Map :=
+        new SFI_Map_Array'(CP_First_SFI
+                        .. CP_Last_SFI => No_Source_File);
+
+      loop
+         Source_File_Index'Read (S, Old_SFI);
+         exit when Old_SFI = No_Source_File;
+
+         declare
+            Source_Name         : constant String := String'Input (S);
+            Indexed_Simple_Name : Boolean;
+         begin
+            Boolean'Read (S, Indexed_Simple_Name);
+
+            --  Delicate circuitry here: if in the original run, a simple
+            --  name was passed to Get_Index_From_Full_Name, then it must
+            --  not be indexed as a simple name here (which is what
+            --  Get_Index_From_Generic_Name would do). This can happen when
+            --  a relative ALI file path is passed to --scos=.
+
+            if Indexed_Simple_Name then
+               CS.SFI_Map (Old_SFI) :=
+                 Get_Index_From_Generic_Name
+                   (Source_Name, Indexed_Simple_Name => True);
+            else
+               CS.SFI_Map (Old_SFI) := Get_Index_From_Full_Name
+                 (Source_Name, Indexed_Simple_Name => False);
+            end if;
+
+            if Switches.Verbose then
+               Put_Line ("Remap " & Source_Name & ":" & Old_SFI'Img
+                         & " ->" & CS.SFI_Map (Old_SFI)'Img);
+            end if;
+         end;
+      end loop;
+   end Checkpoint_Load;
 
 end Files_Table;

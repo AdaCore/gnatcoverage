@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2013, AdaCore                     --
+--                     Copyright (C) 2009-2016, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -20,9 +20,12 @@
 
 with Ada.Containers.Ordered_Maps;
 
-with Slocs;  use Slocs;
-with Traces; use Traces;
-with Types; use Types;
+with Ada.Streams; use Ada.Streams;
+
+limited with Checkpoints;
+with Slocs;       use Slocs;
+with Traces;      use Traces;
+with Types;       use Types;
 
 package SC_Obligations is
 
@@ -44,6 +47,14 @@ package SC_Obligations is
    procedure Report_Units_Without_Code;
    --  Emit an error message for any unit of interest for which no object code
    --  has been seen.
+
+   ---------------
+   -- Instances --
+   ---------------
+
+   type Inst_Id is new Natural;
+   No_Inst_Id : constant Inst_Id := 0;
+   subtype Valid_Inst_Id is Inst_Id range No_Inst_Id + 1 .. Inst_Id'Last;
 
    ---------------------------------
    -- Source Coverage Obligations --
@@ -91,6 +102,9 @@ package SC_Obligations is
    procedure Iterate (P : access procedure (SCO : SCO_Id));
    --  Execute P for each SCO
 
+   function Last_SCO return SCO_Id;
+   --  Return highest allocated SCO Id
+
    pragma Warnings (Off);
    --  Redefinition of entity names from Standard
    type Tristate is (False, True, Unknown);
@@ -111,6 +125,11 @@ package SC_Obligations is
      Any_Condition_Index range 0 .. Any_Condition_Index'Last;
 
    type Operand_Position is (Left, Right);
+
+   --  Expose BDD node id type for the benefit of checkoints
+
+   type BDD_Node_Id is new Natural;
+   No_BDD_Node_Id : constant BDD_Node_Id := 0;
 
    ----------------------------
    -- Accessors for SCO info --
@@ -274,5 +293,17 @@ package SC_Obligations is
      array (SCO_Kind) of aliased Sloc_To_SCO_Maps.Map;
    type Sloc_To_SCO_Map_Array_Acc is access all Sloc_To_SCO_Map_Array;
    --  Maps for statement, decision, condition, and operator SCOs
+
+   -----------------
+   -- Checkpoints --
+   -----------------
+
+   procedure Checkpoint_Save (S : access Root_Stream_Type'Class);
+   --  Save the current SCOs to S
+
+   procedure Checkpoint_Load
+     (S  : access Root_Stream_Type'Class;
+      CS : access Checkpoints.Checkpoint_State);
+   --  Load checkpointed SCOs from S and merge them in current state
 
 end SC_Obligations;

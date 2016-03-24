@@ -92,25 +92,33 @@ package body ALI_Files is
    procedure Load_ALI (ALI_Filename : String) is
       Discard_ALI  : Source_File_Index;
       Discard_Units, Discard_Deps : SFI_Vector;
+      Discard_Fingerprint : SCOs_Hash;
 
       pragma Unreferenced (Discard_ALI);
       pragma Warnings (Off, Discard_Units);
       pragma Warnings (Off, Discard_Deps);
+      pragma Warnings (Off, Discard_Fingerprint);
 
    begin
       Discard_ALI :=
-        Load_ALI (ALI_Filename, Discard_Units, Discard_Deps,
+        Load_ALI (ALI_Filename, No_CU_Id,
+                  Discard_Units, Discard_Deps, Discard_Fingerprint,
                   With_SCOs => False);
    end Load_ALI;
 
    function Load_ALI
      (ALI_Filename : String;
+      CU           : CU_Id;
       Units        : out SFI_Vector;
       Deps         : out SFI_Vector;
+      Fingerprint  : out SCOs_Hash;
       With_SCOs    : Boolean) return Source_File_Index
    is
-      ALI_File  : File_Type;
-      ALI_Index : Source_File_Index;
+      use GNAT.SHA1;
+
+      ALI_File        : File_Type;
+      ALI_Index       : Source_File_Index;
+      C_Lines_Ctx     : GNAT.SHA1.Context;
 
       Line  : String_Access;
       Index : Natural;
@@ -179,6 +187,13 @@ package body ALI_Files is
                      Free (Line);
                      Line := new String'(Next_Line);
                      Index := 1;
+
+                     --  If this is a C line, enter it into the SCOs hash
+
+                     if Line'Length > 0 and then Line (Line'First) = 'C' then
+                        Update (C_Lines_Ctx, Next_Line);
+                     end if;
+
                      exit;
                   end if;
                end;
@@ -273,14 +288,16 @@ package body ALI_Files is
       --  First check whether this ALI has been already loaded. We identify
       --  this by the fact that it already has an assigned Source_File_Index.
 
-      ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => False);
+      ALI_Index := Get_Index_From_Full_Name
+        (ALI_Filename, Insert => False);
       if ALI_Index /= No_Source_File then
          Report
            ("ignoring duplicate ALI file " & ALI_Filename, Kind => Warning);
          return No_Source_File;
       end if;
 
-      ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => True);
+      ALI_Index := Get_Index_From_Full_Name
+        (ALI_Filename, Insert => True);
       Log_File_Open (ALI_Filename);
       Open (ALI_File, In_File, ALI_Filename);
 
@@ -419,7 +436,8 @@ package body ALI_Files is
 
                      begin
                         Annotation :=
-                          (Kind    => ALI_Annotation_Kind'Value (Match (4)),
+                          (CU      => CU,
+                           Kind    => ALI_Annotation_Kind'Value (Match (4)),
                            Message => new String'(Match (6)),
                            others  => <>);
                      exception
@@ -522,11 +540,39 @@ package body ALI_Files is
          else
             Index := 1;
             Get_SCOs_From_ALI;
+            Fingerprint :=
+              SCOs_Hash (Binary_Message_Digest'(Digest (C_Lines_Ctx)));
          end if;
       end if;
 
       Close (ALI_File);
       return ALI_Index;
    end Load_ALI;
+
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read
+     (S : access Root_Stream_Type'Class;
+      V : out ALI_Annotation)
+   is
+   begin
+      CU_Id'Read (S, V.CU);
+      ALI_Annotation_Kind'Read (S, V.Kind);
+      V.Message := new String'(String'Input (S));
+      V.Count := 0;
+   end Read;
+
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (S : access Root_Stream_Type'Class; V : ALI_Annotation) is
+   begin
+      CU_Id'Write (S, V.CU);
+      ALI_Annotation_Kind'Write (S, V.Kind);
+      String'Output (S, V.Message.all);
+   end Write;
 
 end ALI_Files;

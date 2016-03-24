@@ -20,9 +20,14 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 
 package body Factory_Registry is
 
+   type Factory_Record is record
+      Factory : Create_Function;
+      Tag     : Ada.Tags.Tag;
+   end record;
+
    package Registry_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
-      Element_Type => Create_Function);
+      Element_Type => Factory_Record);
 
    Registry_Map : Registry_Maps.Map;
 
@@ -44,7 +49,7 @@ package body Factory_Registry is
    --  Start of processing for Register_Factory
 
    begin
-      Registry_Map.Insert (Name, Create_T_Acc);
+      Registry_Map.Insert (Name, (Factory => Create_T_Acc, Tag => T'Tag));
    end Register_Factory;
 
    ------------
@@ -53,7 +58,26 @@ package body Factory_Registry is
 
    function Create (Name : String) return RT_Access is
    begin
-      return Registry_Map.Element (Name).all;
+      return Registry_Map.Element (Name).Factory.all;
    end Create;
+
+   ----------
+   -- Name --
+   ----------
+
+   function Name (Tag : Ada.Tags.Tag) return String is
+      use type Ada.Tags.Tag;
+      use Registry_Maps;
+
+   begin
+      for Cur in Registry_Map.Iterate loop
+         if Element (Cur).Tag = Tag then
+            return Key (Cur);
+         end if;
+      end loop;
+
+      raise Constraint_Error with
+        "no factory for " & Ada.Tags.External_Tag (Tag);
+   end Name;
 
 end Factory_Registry;

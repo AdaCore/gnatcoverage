@@ -23,6 +23,9 @@
 --  for one run; this Level will be unique and will not change after
 --  it has been initialized.
 
+with Ada.Calendar; use Ada.Calendar;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+
 with Traces_Dbase; use Traces_Dbase;
 
 package Coverage is
@@ -81,5 +84,34 @@ package Coverage is
    --  Several separated source coverage analyses may be simultaneously
    --  performed on a given source construct, in which case each analysis is
    --  identified by a different SC_Tag.
+
+   ----------------------
+   -- Coverage context --
+   ----------------------
+
+   --  This type captures all information related to one execution of
+   --  GNATCOV COVERAGE.
+
+   type Context is record
+      Timestamp : Time;
+      --  Timestamp of report generation
+
+      Version   : Unbounded_String;
+      --  Gnatcov version
+
+      Command   : Unbounded_String;
+      --  Gnatcov command line
+
+      Levels    : Unbounded_String;
+      --  Coverage option for enabled coverage levels
+   end record;
+   type Context_Access is access all Context;
+
+   function Get_Context return Context;
+   --  Return the description of the current coverage assessment context
+
+   function To_String (C : Context) return String;
+   function From_String (S : String) return Context;
+   --  Convert between contexts and string for storage purposes
 
 end Coverage;

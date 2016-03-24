@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2016, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,9 +17,12 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Streams; use Ada.Streams;
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Checkpoints;
+with Coverage;
 with Traces_Files; use Traces_Files;
 
 --  The list of all processed trace files
@@ -27,8 +30,9 @@ with Traces_Files; use Traces_Files;
 package Traces_Files_List is
 
    type Trace_File_Element is record
-      Trace    : Trace_File_Type;
-      Filename : String_Access;
+      From_Checkpoint : Boolean;
+      Filename        : String_Access;
+      Trace           : Trace_File_Type;
    end record;
 
    type Trace_File_Element_Acc is access Trace_File_Element;
@@ -37,5 +41,15 @@ package Traces_Files_List is
       new Ada.Containers.Doubly_Linked_Lists (Trace_File_Element_Acc);
 
    Files : Traces_Files_Lists.List;
+
+   procedure Checkpoint_Save
+     (S       : access Root_Stream_Type'Class;
+      Context : access Coverage.Context);
+   --  Save the current list of trace files to S
+
+   procedure Checkpoint_Load
+     (S  : access Root_Stream_Type'Class;
+      CS : access Checkpoints.Checkpoint_State);
+   --  Load list of trace files from S
 
 end Traces_Files_List;

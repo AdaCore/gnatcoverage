@@ -19,6 +19,7 @@
 with GNAT.Strings; use GNAT.Strings;
 
 with Binary_Files;   use Binary_Files;
+with Coverage;
 with Diagnostics;    use Diagnostics;
 with Disa_Symbolize; use Disa_Symbolize;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -28,6 +29,7 @@ with Slocs;          use Slocs;
 with Traces;         use Traces;
 with Traces_Dbase;   use Traces_Dbase;
 with Traces_Elf;     use Traces_Elf;
+with Traces_Files;   use Traces_Files;
 with Traces_Lines;   use Traces_Lines;
 with Traces_Stats;   use Traces_Stats;
 with Types;          use Types;
@@ -78,6 +80,7 @@ private
    type Pretty_Printer is abstract tagged limited record
       Need_Sources : Boolean;
       Show_Details : Boolean;
+      Context      : Coverage.Context_Access;
    end record;
 
    procedure Pretty_Print_Start
@@ -171,6 +174,12 @@ private
 
    function Aggregated_State (Info : Line_Info) return Any_Line_State;
    --  Return synthetic indication of coverage state for all computed criteria
+
+   function Original_Processing_Context (TF : Trace_File_Type) return String;
+   --  If TF was processed in a previous Gnatcov execution whose coverage
+   --  information was then reloadad through a checkpoint, provide information
+   --  about the original processing context. Empty string for traces processed
+   --  in the current Gnatcov execution.
 
    function Get_Exemption (Sloc : Source_Location) return Source_Location;
    --  If the given sloc is covered by an exemption, return the source location

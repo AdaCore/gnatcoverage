@@ -33,7 +33,6 @@ with GNATCOLL.JSON;                    use GNATCOLL.JSON;
 
 with Annotations.Xml;
 
-with Coverage;
 with Hex_Images;
 with Interfaces;
 with Project;
@@ -42,7 +41,6 @@ with Qemu_Traces;
 with Strings;
 with Switches;
 with Traces_Disa;
-with Traces_Files;
 with Traces_Files_List;
 
 --  This package generates a dynamic HTML report, i.e. an HTML document heavily
@@ -246,8 +244,8 @@ package body Annotations.Dynamic_Html is
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report is
-      Pp : Dynamic_Html;
+   procedure Generate_Report (Context : Coverage.Context_Access) is
+      Pp : Dynamic_Html := (Context => Context, others => <>);
    begin
       Annotations.Generate_Report (Pp, Show_Details => True);
    end Generate_Report;
@@ -283,7 +281,6 @@ package body Annotations.Dynamic_Html is
 
       procedure Append_Traces_List is
          use Qemu_Traces;
-         use Traces_Files;
          use Traces_Files_List;
          use Traces_Files_Lists;
 
@@ -296,14 +293,26 @@ package body Annotations.Dynamic_Html is
          -------------------
 
          procedure Process_Trace (Position : Cursor) is
-            TF    : constant Trace_File_Element_Acc := Element (Position);
+            TF           : constant Trace_File_Element_Acc :=
+              Element (Position);
+            Orig_Context : constant String :=
+              Original_Processing_Context (TF.Trace);
+
             Trace : constant JSON_Value := Create_Object;
+
          begin
             Trace.Set_Field ("filename", TF.Filename.all);
             Trace.Set_Field ("program", Get_Info (TF.Trace, Exec_File_Name));
             Trace.Set_Field
               ("date", Format_Date_Info (Get_Info (TF.Trace, Date_Time)));
             Trace.Set_Field ("tag", Get_Info (TF.Trace, User_Data));
+
+            --  For a trace that has been processed in an earlier run, provide
+            --  information on original coverage assessment context.
+
+            if Orig_Context /= "" then
+               Trace.Set_Field ("processed", Orig_Context);
+            end if;
 
             Append (Traces, Trace);
          end Process_Trace;
@@ -322,8 +331,7 @@ package body Annotations.Dynamic_Html is
    -- Pretty_Print_End --
    ----------------------
 
-   procedure Pretty_Print_End (Pp : in out Dynamic_Html)
-   is
+   procedure Pretty_Print_End (Pp : in out Dynamic_Html) is
       Sources : JSON_Array;
    begin
       for Source of Pp.Source_List loop

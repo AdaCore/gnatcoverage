@@ -26,7 +26,6 @@ with Hex_Images;  use Hex_Images;
 with Outputs;     use Outputs;
 with Strings;     use Strings;
 with Traces_Disa; use Traces_Disa;
-with Traces_Files;
 with Traces_Files_List;
 with Qemu_Traces;
 
@@ -242,8 +241,8 @@ package body Annotations.Xml is
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report is
-      Pp : Xml_Pretty_Printer;
+   procedure Generate_Report (Context : Coverage.Context_Access) is
+      Pp : Xml_Pretty_Printer := (Context => Context, others => <>);
    begin
       Annotations.Generate_Report (Pp, True);
    end Generate_Report;
@@ -550,7 +549,6 @@ package body Annotations.Xml is
 
    procedure Print_Trace_Info (Pp : in out Xml_Pretty_Printer'Class) is
       use Qemu_Traces;
-      use Traces_Files;
       use Traces_Files_List;
       use Traces_Files_Lists;
 

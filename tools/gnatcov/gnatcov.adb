@@ -36,6 +36,7 @@ with Annotations.Xml;
 with Annotations.Report;
 with CFG_Dump;
 with Check_SCOs;
+with Checkpoints;
 with Command_Line;      use Command_Line;
 use Command_Line.Parser;
 with Convert;
@@ -88,11 +89,13 @@ procedure GNATcov is
    Routines_Inputs     : Inputs.Inputs_Type;
    Units_Inputs        : Inputs.Inputs_Type;
    Projects_Inputs     : Inputs.Inputs_Type;
+   Checkpoints_Inputs  : Inputs.Inputs_Type;
    Text_Start          : Pc_Type := 0;
    Target              : String_Access := null;
    Output              : String_Access := null;
    Tag                 : String_Access := null;
    Kernel              : String_Access := null;
+   Save_Checkpoint     : String_Access := null;
    Eargs               : String_Vectors.Vector;
    Executable_Path     : String_Access := null;
    Locations_Inputs    : Object_Locations.User_Locations;
@@ -274,7 +277,7 @@ procedure GNATcov is
 
    procedure Load_All_SCOs (Check_SCOs : Boolean) is
    begin
-      if Check_SCOs then
+      if Check_SCOs and then Inputs.Length (Checkpoints_Inputs) = 0 then
          Check_Argument_Available
            (ALIs_Inputs,
             "SCOs",
@@ -498,12 +501,14 @@ procedure GNATcov is
       Copy_Arg (Opt_Kernel, Kernel);
       Copy_Arg (Opt_HW_Trigger_Traces, Convert.HW_Trigger_Arg);
       Copy_Arg (Opt_Input, Convert.Input_Arg);
+      Copy_Arg (Opt_Save_Checkpoint, Save_Checkpoint);
 
       Copy_Arg_List (Opt_Projects, Projects_Inputs);
       Copy_Arg_List (Opt_Scos, ALIs_Inputs);
       Copy_Arg_List (Opt_Units, Units_Inputs);
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
+      Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
 
       if Args.String_Args (Opt_Coverage_Level).Present then
          declare
@@ -1174,6 +1179,15 @@ begin
               ("Dynamic HTML report format support is not installed.");
          end if;
 
+         --  Validate checkpoint related arguments and coverage level
+
+         if (Inputs.Length (Checkpoints_Inputs) > 0
+             or else Save_Checkpoint /= null)
+           and then not Source_Coverage_Enabled
+         then
+            Fatal_Error ("Incremental object coverage not supported");
+         end if;
+
          --  Load ALI files
 
          if Source_Coverage_Enabled then
@@ -1213,6 +1227,11 @@ begin
                Fatal_Error ("Routine list not allowed for source coverage.");
             end if;
          end if;
+
+         --  Read checkpointed coverage data from previous executions
+
+         Inputs.Iterate
+           (Checkpoints_Inputs, Checkpoints.Checkpoint_Load'Access);
 
          --  Read and process traces
 
@@ -1336,8 +1355,9 @@ begin
             begin
                if Trace_File_Name /= "" then
                   Trace_File := new Trace_File_Element'
-                    (Filename => new String'(Trace_File_Name),
-                     others   => <>);
+                    (From_Checkpoint => False,
+                     Filename        => new String'(Trace_File_Name),
+                     others          => <>);
 
                   Traces_Files_List.Files.Append (Trace_File);
                else
@@ -1509,7 +1529,9 @@ begin
             end Process_Trace_For_Src_Coverage;
 
          begin
-            Check_Argument_Available (Trace_Inputs, "TRACE_FILEs");
+            if Inputs.Length (Checkpoints_Inputs) = 0 then
+               Check_Argument_Available (Trace_Inputs, "TRACE_FILEs");
+            end if;
             Inputs.Iterate (Exe_Inputs,  Process_Exec'Access);
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
          end;
@@ -1530,9 +1552,12 @@ begin
             SC_Obligations.Report_Units_Without_Code;
          end if;
 
-         --  Generate annotated reports
+         declare
+            Context : aliased Coverage.Context := Get_Context;
+         begin
+            --  Generate annotated reports
 
-         case Annotation is
+            case Annotation is
             when Annotate_Asm =>
                if Source_Coverage_Enabled then
                   Fatal_Error
@@ -1542,30 +1567,43 @@ begin
                Traces_Dump.Dump_Routines_Traces (Output);
 
             when Annotate_Xml =>
-               Annotations.Xml.Generate_Report;
+               Annotations.Xml.Generate_Report
+                 (Context'Unchecked_Access);
 
             when Annotate_Xcov      |
                  Annotate_Xcov_Plus =>
                Annotations.Xcov.Generate_Report
-                 (Show_Details => Annotation = Annotate_Xcov_Plus);
+                 (Context'Unchecked_Access,
+                  Show_Details => Annotation = Annotate_Xcov_Plus);
 
             when Annotate_Html      |
                  Annotate_Html_Plus =>
                Annotations.Html.Generate_Report
-                 (Show_Details => Annotation = Annotate_Html_Plus);
+                 (Context'Unchecked_Access,
+                  Show_Details => Annotation = Annotate_Html_Plus);
 
             when Annotate_Dynamic_Html =>
-               Annotations.Dynamic_Html.Generate_Report;
+               Annotations.Dynamic_Html.Generate_Report
+                 (Context'Unchecked_Access);
 
             when Annotate_Report =>
-               Annotations.Report.Generate_Report (Output);
+               Annotations.Report.Generate_Report
+                 (Context'Unchecked_Access, Output);
 
             when Annotate_Unknown =>
                --  This should be unreachable: we are supposed to check that
                --  the user provided a format earlier.
 
-               raise Program_Error;
-         end case;
+               raise Program_Error with "unknown annotation format";
+            end case;
+
+            --  Generate checkpoint, if requested
+
+            if Save_Checkpoint /= null then
+               Checkpoints.Checkpoint_Save
+                 (Save_Checkpoint.all, Context'Access);
+            end if;
+         end;
 
       when Cmd_Run =>
          Check_Argument_Available (Exe_Inputs, "EXE");

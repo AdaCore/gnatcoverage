@@ -75,11 +75,13 @@ package body Annotations.Xcov is
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report (Show_Details : Boolean)
+   procedure Generate_Report
+     (Context      : Coverage.Context_Access;
+      Show_Details : Boolean)
    is
-      Xcov : Xcov_Pretty_Printer;
+      Pp : Xcov_Pretty_Printer := (Context => Context, others => <>);
    begin
-      Annotations.Generate_Report (Xcov, Show_Details);
+      Annotations.Generate_Report (Pp, Show_Details);
    end Generate_Report;
 
    ---------------------------

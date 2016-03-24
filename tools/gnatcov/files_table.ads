@@ -17,10 +17,12 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
+with Ada.Streams;  use Ada.Streams;
 with Ada.Text_IO;  use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Checkpoints;    use Checkpoints;
 with Coverage;       use Coverage;
 with Diagnostics;    use Diagnostics;
 with SC_Obligations; use SC_Obligations;
@@ -55,20 +57,26 @@ package Files_Table is
    --  Global directory of all source files
 
    function Get_Index_From_Full_Name
-     (Full_Name         : String;
-      Insert            : Boolean := True;
-      Index_Simple_Name : Boolean := True) return Source_File_Index;
+     (Full_Name           : String;
+      Insert              : Boolean := True;
+      Indexed_Simple_Name : Boolean := False) return Source_File_Index;
    function Get_Index_From_Simple_Name
      (Simple_Name : String;
       Insert      : Boolean := True) return Source_File_Index;
+   --  Register a full or simple name in the files table
+   --  Indexed_Simple_Name can be set to True only when loading a checkpoint.
+
    function Get_Full_Name (Index : Source_File_Index) return String;
    function Get_Simple_Name (Index : Source_File_Index) return String;
-   --  Comments needed???
+   --  Return the full/simple name for the given index
 
    function Get_Index_From_Generic_Name
-     (Name : String) return Source_File_Index;
+     (Name                : String;
+      Indexed_Simple_Name : Boolean := False) return Source_File_Index;
    --  Call Get_Index_From_Simple_Name or Get_Index_From_Full_Name depending
    --  on whether Name is an absolute path. Return the result of this call.
+   --  Indexed_Simple_Name is meaningful only in the case of passing a full
+   --  name, and can be set True only when loading a checkpoint.
 
    function Get_Unique_Name (Index : Source_File_Index) return String;
    --  Return the shortest unambiguous file name. It is the smallest suffix for
@@ -237,6 +245,17 @@ package Files_Table is
       Simple_Name : String_Access;
       --  File name of the source file, without the path
 
+      Indexed_Simple_Name : Boolean;
+      --  True if simple name has been entered in the Simple_Name_Map (i.e.
+      --  if Get_Index_From_Simple_Name was called for that name). This needs
+      --  to be preserved across checkpointing, because full names of some
+      --  source files must have their simple name indexed (dependent on the
+      --  language), and full names of LI files must not (we never look up LI
+      --  files by simple name, and we need to allow different LI files with
+      --  the same base name to coexist: this can occur for C units, and this
+      --  can also happen when consolidating checkpoints with different object
+      --  directories for the same unit).
+
       Unique_Name : String_Access;
       --  Shortest unambiguous file name. It is the smallest Full_Name suffix
       --  that is unique to this file (multiple files can have the same base
@@ -334,6 +353,18 @@ package Files_Table is
    function Is_Multistatement_Line (Sloc : Source_Location) return Boolean;
    function Is_Multistatement_Line (LI : in out Line_Info) return Boolean;
    --  True if there is more than one Statement SCO for the line of Sloc/LI
+
+   -----------------
+   -- Checkpoints --
+   -----------------
+
+   procedure Checkpoint_Save (S : access Root_Stream_Type'Class);
+   --  Save the current files table to S
+
+   procedure Checkpoint_Load
+     (S  : access Root_Stream_Type'Class;
+      CS : access Checkpoint_State);
+   --  Load checkpointed files table from S and merge in current state
 
 private
    --  Describe a source file - one element per line

@@ -22,7 +22,6 @@ with Ada.Text_IO; use Ada.Text_IO;
 
 with Hex_Images;  use Hex_Images;
 with Traces_Disa; use Traces_Disa;
-with Traces_Files;
 with Traces_Files_List;
 with Qemu_Traces;
 with Coverage;    use Coverage;
@@ -202,11 +201,17 @@ package body Annotations.Html is
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report (Show_Details : Boolean) is
-      Html : Html_Pretty_Printer;
+   procedure Generate_Report
+     (Context      : Coverage.Context_Access;
+      Show_Details : Boolean)
+   is
+      Pp : Html_Pretty_Printer :=
+        (Context      => Context,
+         Show_Details => Show_Details,
+         others       => <>);
    begin
-      Html.Show_Details := Show_Details;
-      Annotations.Generate_Report (Html, Show_Details);
+      Pp.Show_Details := Show_Details;
+      Annotations.Generate_Report (Pp, Show_Details);
    end Generate_Report;
 
    ---------
@@ -410,7 +415,6 @@ package body Annotations.Html is
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer) is
       use Qemu_Traces;
-      use Traces_Files;
       use Traces_Files_List;
       use Traces_Files_Lists;
 

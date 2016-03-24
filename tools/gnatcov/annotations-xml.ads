@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Coverage;
+
 package Annotations.Xml is
 
    --  This package provides support to output coverage results in XML format.
@@ -532,6 +534,6 @@ package Annotations.Xml is
    function To_Xml_String (S : String) return String;
    --  Return the string S with '>', '<' and '&' replaced by XML entities
 
-   procedure Generate_Report;
+   procedure Generate_Report (Context : Coverage.Context_Access);
 
 end Annotations.Xml;

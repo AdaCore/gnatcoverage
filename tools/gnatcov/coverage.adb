@@ -17,12 +17,13 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Command_Line;
 with Ada.Containers.Ordered_Maps;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 
 with GNAT.Strings; use GNAT.Strings;
 
 with Strings; use Strings;
+with Version; use Version;
 
 package body Coverage is
 
@@ -215,6 +216,50 @@ package body Coverage is
       Coverage_Option_Map.Iterate (Put_Option'Access);
       return To_String (Options);
    end Valid_Coverage_Options;
+
+   -----------------
+   -- Get_Context --
+   -----------------
+
+   function Get_Context return Context is
+      use Ada.Command_Line;
+
+      Command : Unbounded_String := To_Unbounded_String (Command_Name);
+
+   begin
+      for J in 1 .. Argument_Count loop
+         Append (Command, ' ' & Argument (J));
+      end loop;
+
+      return Context'
+        (Timestamp => Clock,
+         Version   => To_Unbounded_String (Xcov_Version),
+         Command   => Command,
+         Levels    => To_Unbounded_String (Coverage_Option_Value));
+   end Get_Context;
+
+   ---------------
+   -- To_String --
+   ---------------
+
+   function To_String (C : Context) return String is
+      US  : aliased Unbounded_String;
+      USS : aliased Unbounded_String_Stream (US'Access);
+   begin
+      Context'Output (USS'Access, C);
+      return To_String (US);
+   end To_String;
+
+   -----------------
+   -- From_String --
+   -----------------
+
+   function From_String (S : String) return Context is
+      US  : aliased Unbounded_String := To_Unbounded_String (S);
+      USS : aliased Unbounded_String_Stream (US'Access);
+   begin
+      return Context'Input (USS'Access);
+   end From_String;
 
 begin
    --  Register command line options for valid combinations of coverage levels

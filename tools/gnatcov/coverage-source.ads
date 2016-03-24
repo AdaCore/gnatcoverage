@@ -16,6 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Streams;    use Ada.Streams;
+
+with Checkpoints;    use Checkpoints;
 with Files_Table;    use Files_Table;
 with Traces;         use Traces;
 with Traces_Names;   use Traces_Names;
@@ -26,6 +29,8 @@ package Coverage.Source is
 
    procedure Initialize_SCI;
    --  Initialize source coverage information vector once SCOs have been loaded
+   --  This can be called multiple times if SCO information is loaded in chunks
+   --  (case of loading checkpointed coverage information).
 
    procedure Compute_Source_Coverage
      (Subp_Key  : Subprogram_Key;
@@ -56,5 +61,17 @@ package Coverage.Source is
    procedure Set_Basic_Block_Has_Code (SCO : SCO_Id; Tag : SC_Tag);
    --  Set Basic_Block_Has_Code for SCO (a Statement SCO) as well as all
    --  previous SCOs in its basic block, for the given tag.
+
+   -----------------
+   -- Checkpoints --
+   -----------------
+
+   procedure Checkpoint_Save (S : access Root_Stream_Type'Class);
+   --  Save the current coverage state to S
+
+   procedure Checkpoint_Load
+     (S  : access Root_Stream_Type'Class;
+      CS : access Checkpoint_State);
+   --  Load checkpointed coverage state from S and merge into current state
 
 end Coverage.Source;

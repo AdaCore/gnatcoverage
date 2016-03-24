@@ -18,6 +18,7 @@
 
 with Ada.Containers;
 with Ada.Containers.Vectors;
+with Ada.Streams;
 with Ada.Strings.Unbounded;
 
 with GNAT.Strings; use GNAT.Strings;
@@ -65,6 +66,23 @@ package Strings is
    function Vector_To_List
      (V : String_Vectors.Vector)
       return String_List_Access;
+
+   type Unbounded_String_Stream
+     (S : access Ada.Strings.Unbounded.Unbounded_String)
+   is new Ada.Streams.Root_Stream_Type with record
+      Read_Index : Positive := 1;
+   end record;
+
+   overriding procedure Read
+     (Stream : in out Unbounded_String_Stream;
+      Item   : out Ada.Streams.Stream_Element_Array;
+      Last   : out Ada.Streams.Stream_Element_Offset);
+   --  Read from position Read_Index in string
+
+   overriding procedure Write
+     (Stream : in out Unbounded_String_Stream;
+      Item   : Ada.Streams.Stream_Element_Array);
+   --  Append to string
 
 private
    pragma Inline (Hash);

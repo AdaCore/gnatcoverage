@@ -86,7 +86,8 @@ package Command_Line is
       Opt_Input,
       Opt_Separate,
       Opt_Output_Format,
-      Opt_Trace_Source);
+      Opt_Trace_Source,
+      Opt_Save_Checkpoint);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -101,7 +102,8 @@ package Command_Line is
       Opt_Exec,
       Opt_Source_Rebase,
       Opt_Source_Search,
-      Opt_Trace);
+      Opt_Trace,
+      Opt_Checkpoint);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -386,8 +388,8 @@ package Command_Line is
       Opt_Output_Directory => Create
         (Long_Name    => "--output-dir",
          Pattern      => "[SUBDIR]",
-         Help         => ("Subdirectory where XCOV or HTML report files should"
-                          & " be produced"),
+         Help         => ("Subdirectory where XCOV or HTMLÂ report files"
+                          & " should be produced"),
          Commands     => (Cmd_Coverage => True,
                           others => False),
          At_Most_Once => False,
@@ -423,8 +425,8 @@ package Command_Line is
       Opt_Text_Start => Create
         (Long_Name    => "--text-start",
          Pattern      => "[HEX_ADDR]",
-         Help         => ("??? This option was likely introduced for a feature"
-                          & " that is not completely implemented."),
+         Help         => ("??? This option was likely introduced for a"
+                          & " feature that is not completely implemented."),
          At_Most_Once => False,
          Internal     => True),
       Opt_Exec_Prefix => Create
@@ -494,12 +496,20 @@ package Command_Line is
          Commands     => (Cmd_Convert => True,
                         others => False),
          At_Most_Once => False,
+         Internal     => False),
+      Opt_Save_Checkpoint => Create
+        (Long_Name    => "--save-checkpoint",
+         Pattern      => "CHECKPOINT",
+         Help         => "Save source coverage checkpoint to named file",
+         Commands     => (Cmd_Coverage => True,
+                          others       => False),
+         At_Most_Once => True,
          Internal     => False));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Debug => Create
         (Short_Name => "-d",
-         Pattern    => "b|h|i",
+         Pattern    => "b|h|i|f",
          Help       => ("Debug switch: change various behaviors."
                           & ASCII.LF & ASCII.LF
                           & "  -db: Break long instructions in disassemblies,"
@@ -509,7 +519,10 @@ package Command_Line is
                           & " for decisions that do not require it (decisions"
                           & " without diamond paths)."
                           & ASCII.LF & ASCII.LF
-                          & "  -di: Exemption pragmas have no effect."),
+                          & "  -di: Exemption pragmas have no effect."
+                          & ASCII.LF & ASCII.LF
+                          & "  -df: Print debugging messages for files table"
+                          & " management."),
          Internal   => True),
       Opt_Projects => Create
         (Long_Name  => "--projects",
@@ -613,6 +626,15 @@ package Command_Line is
                              | Cmd_Dump_Trace_Base | Cmd_Dump_Trace_Asm
                                | Cmd_Dump_CFG => True,
                          others => False),
+         Internal    => False),
+
+      Opt_Checkpoint => Create
+        (Long_Name   => "--checkpoint",
+         Short_Name  => "-C",
+         Pattern     => "CHECKPOINT",
+         Help        => "Specify checkpointed coverage information to load",
+         Commands    => (Cmd_Coverage => True,
+                         others       => False),
          Internal    => False));
 
    procedure Bool_Callback

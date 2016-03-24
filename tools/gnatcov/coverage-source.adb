@@ -18,6 +18,9 @@
 
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
+with Ada.Tags;
+with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
@@ -57,7 +60,7 @@ package body Coverage.Source is
 
    type Line_States is array (Coverage_Level) of Line_State;
 
-   type Source_Coverage_Info (Kind  : SCO_Kind := Statement) is limited record
+   type Source_Coverage_Info (Kind  : SCO_Kind := Statement) is record
       Tag : SC_Tag := No_SC_Tag;
       --  Tag identifying one among multiple coverage analyses being performed
       --  for a given SCO.
@@ -101,6 +104,22 @@ package body Coverage.Source is
    end record;
    type Source_Coverage_Info_Access is access constant Source_Coverage_Info;
    type RW_Source_Coverage_Info_Access is access Source_Coverage_Info;
+   procedure Read_SCI
+     (S   : access Root_Stream_Type'Class;
+      SCI : out RW_Source_Coverage_Info_Access);
+   --  Allocate a new SCI initialized from S
+
+   procedure Write_SCI
+     (S   : access Root_Stream_Type'Class;
+      SCI : RW_Source_Coverage_Info_Access);
+   --  Output SCI.all to S
+
+   for RW_Source_Coverage_Info_Access'Read use Read_SCI;
+   for RW_Source_Coverage_Info_Access'Write use Write_SCI;
+
+   procedure Free is
+     new Ada.Unchecked_Deallocation
+       (Source_Coverage_Info, RW_Source_Coverage_Info_Access);
 
    package SCI_Vectors is new Ada.Containers.Vectors
        (Index_Type   => Natural,
@@ -168,6 +187,13 @@ package body Coverage.Source is
    --  Merge State into Line's state for Level, and update SCO's state for
    --  the same level so that Source_Coverage_Info.State's invariant holds.
 
+   procedure Merge_Checkpoint_SCI
+     (SCO    : SCO_Id;
+      Tag    : SC_Tag;
+      CP_SCI : Source_Coverage_Info);
+   --  Merge the given checkpointed coverage information with current coverage
+   --  info for SCO.
+
    --------------------------
    -- Basic_Block_Has_Code --
    --------------------------
@@ -176,6 +202,91 @@ package body Coverage.Source is
    begin
       return Get_SCI (SCO, Tag).Basic_Block_Has_Code;
    end Basic_Block_Has_Code;
+
+   ---------------------
+   -- Checkpoint_Save --
+   ---------------------
+
+   procedure Checkpoint_Save (S : access Root_Stream_Type'Class) is
+   begin
+      Ada.Tags.Tag'Write (S, Tag_Provider'Tag);
+      SCI_Vector_Vectors.Vector'Write (S, SCI_Vector);
+   end Checkpoint_Save;
+
+   ---------------------
+   -- Checkpoint_Load --
+   ---------------------
+
+   procedure Checkpoint_Load
+     (S  : access Root_Stream_Type'Class;
+      CS : access Checkpoint_State)
+   is
+      use type Ada.Tags.Tag;
+      use SCI_Vector_Vectors;
+
+      CP_Tag_Provider : Ada.Tags.Tag;
+      CP_SCI_Vector   : SCI_Vector_Vectors.Vector;
+
+   begin
+      --  Checkpointed coverage information can only be loaded if the current
+      --  tag provider is the default (i.e. no coverage separation), or same
+      --  as checkpoint.
+
+      Ada.Tags.Tag'Read (S, CP_Tag_Provider);
+      if Tag_Provider.all not in Default_Tag_Provider_Type
+        and then Tag_Provider'Tag /= CP_Tag_Provider
+      then
+         Put_Line ("warning: cannot merge coverage information separated by "
+                   & Tag_Providers.Name (CP_Tag_Provider));
+         return;
+      end if;
+
+      --  Extend SCI vector to accomodate any supplementary SCOs loaded from
+      --  the checkpoint.
+
+      Initialize_SCI;
+
+      SCI_Vector_Vectors.Vector'Read (S, CP_SCI_Vector);
+      for SCO_Cur in CP_SCI_Vector.Iterate loop
+         Process_One_SCO : declare
+            CP_SCO : constant SCO_Id := To_Index (SCO_Cur);
+            SCO    : constant SCO_Id := CS.SCO_Map (CP_SCO);
+
+            procedure Free_SCIs (SCIV : in out SCI_Vectors.Vector);
+            --  Deallocate all elements in SCIV
+
+            ---------------
+            -- Free_SCIs --
+            ---------------
+
+            procedure Free_SCIs (SCIV : in out SCI_Vectors.Vector) is
+            begin
+               for CP_SCI of SCIV loop
+                  Free (CP_SCI);
+               end loop;
+            end Free_SCIs;
+
+         --  Start of processing for Process_One_SCO
+
+         begin
+            if SCO /= No_SCO_Id then
+               for CP_SCI of Element (SCO_Cur) loop
+                  if CP_SCI /= null then
+                     Merge_Checkpoint_SCI
+                       (SCO,
+                        Tag_Provider.Map_Tag (CS.all, CP_SCI.Tag),
+                        CP_SCI.all);
+                  end if;
+               end loop;
+            end if;
+
+            --  Deallocate checkpoint SCIs for this SCO once they have been
+            --  merged into the main SCI vector.
+
+            CP_SCI_Vector.Update_Element (SCO_Cur, Free_SCIs'Access);
+         end Process_One_SCO;
+      end loop;
+   end Checkpoint_Load;
 
    ------------------------
    -- Compute_Line_State --
@@ -1190,6 +1301,19 @@ package body Coverage.Source is
         (Evaluation_Stack.Last_Index, Update_Current_Evaluation'Access);
    end Condition_Evaluated;
 
+   --------------------------------
+   -- Decision_Requires_Coverage --
+   --------------------------------
+
+   function Decision_Requires_Coverage (SCO : SCO_Id) return Boolean is
+   begin
+      pragma Assert (Kind (SCO) = Decision);
+
+      return Switches.All_Decisions
+        or else not Is_Expression (SCO)
+        or else (MCDC_Coverage_Enabled and then Last_Cond_Index (SCO) > 0);
+   end Decision_Requires_Coverage;
+
    --------------------
    -- Get_Line_State --
    --------------------
@@ -1263,46 +1387,104 @@ package body Coverage.Source is
    -- Initialize_SCI --
    --------------------
 
+   Default_SCIs_Initialized : Boolean := False;
+
    procedure Initialize_SCI is
-
-      procedure Add_SCI (SCO : SCO_Id);
-      --  Add SCI for SCO
-
-      -------------
-      -- Add_SCI --
-      -------------
-
-      procedure Add_SCI (SCO : SCO_Id) is
-      begin
-         pragma Assert (SCO = SCI_Vector.Last_Index + 1);
-         SCI_Vector.Append (SCI_Vectors.Empty_Vector);
-      end Add_SCI;
-
-   --  Start of processing for Initialize_SCI
-
+      Last_SCO : constant SCO_Id := SC_Obligations.Last_SCO;
    begin
-      SC_Obligations.Iterate (Add_SCI'Access);
+      if Last_SCO > SCI_Vector.Last_Index then
+         SCI_Vector.Set_Length (Ada.Containers.Count_Type (Last_SCO));
+         pragma Assert (SCI_Vector.Last_Index = Last_SCO);
+      end if;
 
-      for K in Default_SCIs'Range loop
-         Default_SCIs (K) :=
-           Source_Coverage_Info_Access
-             (RW_Source_Coverage_Info_Access'
-                (new Source_Coverage_Info (Kind => K)));
-      end loop;
+      if not Default_SCIs_Initialized then
+         for K in Default_SCIs'Range loop
+            Default_SCIs (K) :=
+              Source_Coverage_Info_Access
+                (RW_Source_Coverage_Info_Access'
+                   (new Source_Coverage_Info (Kind => K)));
+         end loop;
+         Default_SCIs_Initialized := True;
+      end if;
    end Initialize_SCI;
 
-   --------------------------------
-   -- Decision_Requires_Coverage --
-   --------------------------------
+   --------------------------
+   -- Merge_Checkpoint_SCI --
+   --------------------------
 
-   function Decision_Requires_Coverage (SCO : SCO_Id) return Boolean is
+   procedure Merge_Checkpoint_SCI
+     (SCO    : SCO_Id;
+      Tag    : SC_Tag;
+      CP_SCI : Source_Coverage_Info)
+   is
+      procedure Merge_SCI (SCI : in out Source_Coverage_Info);
+      --  Merge coverage information from checkpointed CP_SCI into SCI
+
+      ---------------
+      -- Merge_SCI --
+      ---------------
+
+      procedure Merge_SCI (SCI : in out Source_Coverage_Info) is
+      begin
+         pragma Assert (SCI.Kind = CP_SCI.Kind);
+
+         --  Merge raw coverage information from checkpoint. SCI.Line_State
+         --  will be recomputed later on, once traces for this increment have
+         --  been processed.
+
+         case SCI.Kind is
+            when Statement =>
+               SCI.Basic_Block_Has_Code :=
+                 SCI.Basic_Block_Has_Code or CP_SCI.Basic_Block_Has_Code;
+               SCI.Executed      := SCI.Executed or CP_SCI.Executed;
+               SCI.Line_Executed := SCI.Line_Executed or CP_SCI.Line_Executed;
+
+            when Decision =>
+               SCI.Known_Outcome_Taken :=
+                 SCI.Known_Outcome_Taken or CP_SCI.Known_Outcome_Taken;
+
+               --  Note: if checkpoint has only one Outcome_Taken, and the SCO
+               --  has degraded origins, then we can't take advantage of it,
+               --  because it might be negated compared to the current context.
+
+               if not Degraded_Origins (SCO)
+                    or else
+                  CP_SCI.Outcome_Taken (False) = CP_SCI.Outcome_Taken (True)
+               then
+                  SCI.Outcome_Taken :=
+                    SCI.Outcome_Taken or CP_SCI.Outcome_Taken;
+               end if;
+
+               SCI.Evaluations.Union (CP_SCI.Evaluations);
+
+            when others =>
+               null;
+         end case;
+      end Merge_SCI;
+
+   --  Start of processing for Merge_Checkpoint_SCI
+
    begin
-      pragma Assert (Kind (SCO) = Decision);
+      Update_SCI (SCO, Tag, Merge_SCI'Access);
+   end Merge_Checkpoint_SCI;
 
-      return Switches.All_Decisions
-        or else not Is_Expression (SCO)
-        or else (MCDC_Coverage_Enabled and then Last_Cond_Index (SCO) > 0);
-   end Decision_Requires_Coverage;
+   --------------
+   -- Read_SCI --
+   --------------
+
+   procedure Read_SCI
+     (S   : access Root_Stream_Type'Class;
+      SCI : out RW_Source_Coverage_Info_Access)
+   is
+      CP_SCI : constant Source_Coverage_Info :=
+        Source_Coverage_Info'Input (S);
+   begin
+      if CP_SCI = Default_SCIs (CP_SCI.Kind).all then
+         SCI := null;
+      else
+         SCI := new Source_Coverage_Info'(CP_SCI);
+      end if;
+   end Read_SCI;
 
    ------------------------
    -- Report_If_Excluded --
@@ -1475,5 +1657,17 @@ package body Coverage.Source is
       Update_SCI (SCO, Tag, Update_SCO_Line_State'Access);
       Prev_State := Prev_State * State;
    end Update_State;
+
+   ---------------
+   -- Write_SCI --
+   ---------------
+
+   procedure Write_SCI
+     (S   : access Root_Stream_Type'Class;
+      SCI : RW_Source_Coverage_Info_Access)
+   is
+   begin
+      Source_Coverage_Info'Output (S, SCI.all);
+   end Write_SCI;
 
 end Coverage.Source;

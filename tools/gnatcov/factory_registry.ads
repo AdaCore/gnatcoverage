@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Tags;
+
 generic
    type RT is abstract tagged limited private;
    --  Root abstract type of the factory
@@ -48,5 +50,9 @@ package Factory_Registry is
    function Create (Name : String) return RT_Access;
    --  Return an object of the derived type of RT registered with the given
    --  Name.
+
+   function Name (Tag : Ada.Tags.Tag) return String;
+   --  Return the name of the object factory associated with the given tag.
+   --  Raises Constraint_Error if not found.
 
 end Factory_Registry;
