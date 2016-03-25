@@ -33,6 +33,10 @@ typedef struct disassemble_handle
 {
     disassembler_ftype disass_func[N_BFD_ENDIAN_VALUES];
     disassemble_info  dinfo;
+    /* Libopcode sets dinfo.disassembler_options to NULL after parsing once.
+       This is erroneous when we want e.g. to switch between ARM and Thumb
+       multiple times.  So we need to keep our disassembler options.  */
+    char *disassembler_options;
 } disassemble_handle;
 
 /* Type stored in dhandle->dinfo->application_data.  */
@@ -41,6 +45,9 @@ typedef struct symbolizer_data
     print_symbol_cb addr_cb; /* Function that performs the symbol lookup.  */
     void *symbolizer; /* Object containing the symbol informations.  */
 } symbolizer_data;
+
+char *const dis_thumb_option = "force-thumb";
+char *const dis_arm_option = "no-force-thumb";
 
 /* This is a callback for disassemble_info->print_address_func.  */
 static void
@@ -94,7 +101,9 @@ _create_arm_arch_disassembler (unsigned char for_thumb)
     dh->dinfo.application_data = calloc (1, sizeof (symbolizer_data));
 
     if (for_thumb)
-      dh->dinfo.disassembler_options = strdup ("force-thumb");
+      dh->disassembler_options = dis_thumb_option;
+    else
+      dh->disassembler_options = dis_arm_option;
 
     disassemble_init_for_target (&(dh->dinfo));
 
@@ -142,8 +151,7 @@ delete_disassembler (disassemble_handle *const dh)
   free (dh->dinfo.application_data);
   dh->dinfo.application_data = NULL;
 
-  free (dh->dinfo.disassembler_options);
-  dh->dinfo.disassembler_options = NULL;
+  dh->disassembler_options = NULL;
 
   free (dh);
 }
@@ -172,6 +180,10 @@ disassemble_to_text (disassemble_handle *const dh, bfd_vma pc,
   dh->dinfo.endian_code = endian;
 
   set_stream_buffer (dh->dinfo.stream, dest, dest_size);
+
+  /* Make sure disassembler options are maintained to disassemble each
+     instruction.  */
+  dh->dinfo.disassembler_options = dh->disassembler_options;
 
   size = dh->disass_func[endian] (pc, &(dh->dinfo));
 
