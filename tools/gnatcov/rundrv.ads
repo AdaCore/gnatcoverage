@@ -39,7 +39,4 @@ package Rundrv is
    --  for trace output file; if Tag is not null, append it to the trace
    --  header. Add Eargs to QEMU's options.
 
-   procedure Help (Indent : String := "");
-   --  Display the help for command run.
-
 end Rundrv;
