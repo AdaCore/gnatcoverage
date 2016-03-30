@@ -216,8 +216,6 @@ package body Rundrv is
 
          return new Driver_Target'
            (Target        => Target_Family,
-            Setup_Command => null,
-            Setup_Options => null,
             Run_Command   => Gnatemu,
             Run_Options   => Gnatemu_Options);
       end;
@@ -410,22 +408,9 @@ package body Rundrv is
          Free (Trace_File);
       end;
 
-      --  Execute whatever we need to prepare the execution
-
       --  Some setup operations work out of mere side effect of macro
       --  expansions, e.g.  setting environment variables. The expansion is
       --  required, but there's no real command to execute afterwards
-
-      declare
-         Expanded_Setup_Command : constant String_Access
-           := Expand_Command (Control.Setup_Command);
-      begin
-         if Expanded_Setup_Command /= null then
-            Run_Command (Expanded_Setup_Command, Control.Setup_Options.all);
-         end if;
-      end;
-
-      --  Now proceed with the execution per se. Same logic.
 
       declare
          Expanded_Run_Command : constant String_Access

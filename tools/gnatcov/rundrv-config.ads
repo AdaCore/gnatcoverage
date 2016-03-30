@@ -30,16 +30,8 @@ private package Rundrv.Config is
    --
    --  * A table of <target-alias> -> <target> pairs, the Aliases array below
 
-   --  For each target, two commands might get to execute:
-   --
-   --  * A Setup command, performing whatever is necessary to prepare the
-   --    actual execution command. For example, on old targets a .elf to .bin
-   --    executable file format conversion was required prior to execution by
-   --    qemu. In some other cases, environment variables need to be set for
-   --    the duration of the run.
-   --
-   --  * A Run command, performing the actual execution, expected to produce
-   --    the execution trace.
+   --  Each target has a Run command, performing the actual execution, expected
+   --  to produce the execution trace.
    --
    --  Each command is allowed to be passed a sequence of arguments, described
    --  in the tables as well.
@@ -60,11 +52,6 @@ private package Rundrv.Config is
 
       Target        : String_Access;
 
-      --  Post-build, Pre-run, setup command and option list (may be null)
-
-      Setup_Command : String_Access;
-      Setup_Options : String_List_Access;
-
       --  Run command and option list
 
       Run_Command   : String_Access;
@@ -76,8 +63,6 @@ private package Rundrv.Config is
 
    Drivers : constant Driver_Target_Array :=
      ((Target => new String'("qemu-prep"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("qemu-system-ppc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -95,8 +80,6 @@ private package Rundrv.Config is
                                        new String'("%trace"))
        ),
       (Target => new String'("qemu-8641d"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("qemu-system-ppc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -110,8 +93,6 @@ private package Rundrv.Config is
                                        new String'("%trace"))
       ),
       (Target => new String'("qemu-sbc834x"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("qemu-system-ppc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -123,8 +104,6 @@ private package Rundrv.Config is
                                        new String'("%trace"))
       ),
       (Target => new String'("leon-elf"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("qemu-system-sparc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -136,8 +115,6 @@ private package Rundrv.Config is
 
       ),
       (Target => new String'("erc32-elf"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("qemu-system-sparc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -149,8 +126,6 @@ private package Rundrv.Config is
 
       ),
       (Target => new String'("i386-pok"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("qemu"),
        Run_Options => new String_List'(new String'("-fda"),
                                        new String'(GNAT.OS_Lib.Getenv
@@ -166,16 +141,12 @@ private package Rundrv.Config is
                                        new String'("%trace"))
       ),
       (Target => new String'("i386-linux"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("qemu-i386"),
        Run_Options => new String_List'(new String'("-exec-trace"),
                                        new String'("%trace"),
                                        new String'("%exe"))
       ),
       (Target => new String'("(i686|x86_64).*linux"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("%valgrind"),
        Run_Options => new String_List'(new String'("%set_valgrind_env"),
                                        new String'("--quiet"),
@@ -184,8 +155,6 @@ private package Rundrv.Config is
                                        new String'("%exe"))
       ),
       (Target => new String'("(i686|x86_64).*mingw"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("%drrun"),
        Run_Options => new String_List'(new String'("-quiet"),
                                        new String'("-no_follow_children"),
@@ -200,14 +169,10 @@ private package Rundrv.Config is
        --  that it is invoked from an official release install tree.
       ),
       (Target => new String'("prepare"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => null,
        Run_Options => null
       ),
       (Target => new String'("iSystem-5554"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
        Run_Options => new String_List'(
          new String'("5554"),
@@ -216,8 +181,6 @@ private package Rundrv.Config is
         )
        ),
       (Target => new String'("iSystem-5634"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
        Run_Options => new String_List'(
          new String'("5634"),
@@ -226,16 +189,12 @@ private package Rundrv.Config is
        )
       ),
       (Target => new String'("lmp-elf"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("lmp-elf-run"),
        Run_Options => new String_List'(new String'("-a"),
                                        new String'("--trace=%tracefile"),
                                        new String'("%exe"))
       ),
       (Target => new String'("visium-elf"),
-       Setup_Command => null,
-       Setup_Options => null,
        Run_Command => new String'("visium-elf-run"),
        Run_Options => new String_List'(new String'("--trace=%tracefile"),
                                        new String'("%exe"))
