@@ -16,93 +16,101 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-private package Rundrv.Config is
+with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
+with Ada.Unchecked_Deallocation;
 
-   --  Configuration tables for Rundrv. This controls what gnatcov run does
-   --  for a given --target argument when there is no <target>-gnatemulator in
-   --  sight.
+--  Driver selection configuration for Rundrv.
+--
+--  This package provides primitives to determine what gnatcov run executes for
+--  a given target and what "built-in" targets (i.e. non GNATemulator-based)
+--  are supported.
 
-   --  There are two major tables exposed:
-   --
-   --  * A table of <target> -> commands associations, the Drivers array below
-   --
-   --  * A table of <target-alias> -> <target> pairs, the Aliases array below
+package Rundrv.Config is
 
-   --  Each target has a Run command, performing the actual execution, expected
-   --  to produce the execution trace.
-   --
-   --  Each command is allowed to be passed a sequence of arguments, described
-   --  in the tables as well.
+   type Context_Type is record
+      Exe_File      : String_Access;
+      --  Filename for the executable to run. Must not be null.
 
-   --  A few builtin macros are available for Commands or Arguments. At most
-   --  one reference per command or argument entry is allowed. For arguments,
-   --  this at most one per item in the argument list for a configuration.
-   --
-   --  See the Rundrv.Expander unit spec for a description of the available
-   --  macros.
+      Target_Family : String_Access;
+      --  Target triplet for the execution environment. Computed from the
+      --  --target command-line argument, or from the native target otherwise.
+      --  Must not be null.
 
-   ----------------------------------
-   -- Driver Target Configurations --
-   ----------------------------------
+      Target_Board  : String_Access;
+      --  Board name, or null if irrelevant. Computed from the --target
+      --  command-line argument.
 
-   type Driver_Target is record
-      --  Name of the target (triplet)
+      Kernel        : String_Access;
+      --  Filename for the kernel to use, or null if irrevelant. Computed from
+      --  the --kernel command-line argument.
 
-      Target        : String_Access;
+      Histmap       : String_Access;
+      --  Filename for history map description (useful for MC/DC), or null if
+      --  irrelevant.
 
-      --  Run command and option list
+      Trace_File    : String_Access;
+      --  Filename for the output trace file. Must not be null.
 
-      Run_Command   : String_Access;
-      Run_Options   : String_List_Access;
+      Eargs         : String_List_Access;
+      --  List of additional arguments to pass to the executable to run
    end record;
+   --  Holder for various information used to instantiate a command to run
 
-   type Driver_Target_Array is
-     array (Natural range <>) of aliased Driver_Target;
+   function "+" (S : String) return Ada.Strings.Unbounded.Unbounded_String
+      renames Ada.Strings.Unbounded.To_Unbounded_String;
+   function "+" (US : Ada.Strings.Unbounded.Unbounded_String) return String
+      renames Ada.Strings.Unbounded.To_String;
+   --  Unbounded strings conversion shortcuts
 
-   Drivers : constant Driver_Target_Array :=
-     ((Target => new String'("(i686|x86_64).*linux"),
-       Run_Command => new String'("%valgrind"),
-       Run_Options => new String_List'(new String'("%set_valgrind_env"),
-                                       new String'("--quiet"),
-                                       new String'("--tool=coverage"),
-                                       new String'("--cov-exec-file=%trace"),
-                                       new String'("%exe"))
-      ),
-      (Target => new String'("(i686|x86_64).*mingw"),
-       Run_Command => new String'("%drrun"),
-       Run_Options => new String_List'(new String'("-quiet"),
-                                       new String'("-no_follow_children"),
-                                       new String'("-c"),
-                                       new String'("%drclient"),
-                                       new String'("-o"),
-                                       new String'("%trace"),
-                                       new String'("--"),
-                                       new String'("%exe"))
+   package String_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Ada.Strings.Unbounded.Unbounded_String,
+      "="          => Ada.Strings.Unbounded."=");
 
-       --  -quiet silences the warnings emitted by DynamoRIO on the assumption
-       --  that it is invoked from an official release install tree.
-      ),
-      (Target => new String'("iSystem-5554"),
-       Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
-       Run_Options => new String_List'(
-         new String'("5554"),
-         new String'("%exe"),
-         new String'("%trace")
-        )
-       ),
-      (Target => new String'("iSystem-5634"),
-       Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
-       Run_Options => new String_List'(
-         new String'("5634"),
-         new String'("%exe"),
-         new String'("%trace")
-       )
-      ),
-      (Target => new String'("visium-elf"),
-       Run_Command => new String'("visium-elf-run"),
-       Run_Options => new String_List'(new String'("--trace=%tracefile"),
-                                       new String'("%exe"))
-      )
-     );
+   package String_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
+      Element_Type    => Ada.Strings.Unbounded.Unbounded_String,
+      Hash            => Ada.Strings.Unbounded.Hash,
+      "="             => Ada.Strings.Unbounded."=",
+      Equivalent_Keys => Ada.Strings.Unbounded."=");
+
+   type Command_Type is record
+      Command     : Ada.Strings.Unbounded.Unbounded_String;
+      --  Command to run or empty string if there is no command to run
+
+      Arguments   : String_Vectors.Vector;
+      --  Arguments to pass to this command
+
+      Environment : String_Maps.Map;
+      --  Environment variables to set for this command
+   end record;
+   --  Simple holder for a command to run
+
+   type Command_Access is access all Command_Type;
+
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Command_Type, Command_Access);
+
+   function Lookup_Driver (Context : Context_Type) return Command_Access;
+   --  Create a command to run in order to produce a trace for Context.
+   --  Return null if we cannot figure out what command to run.
+   --
+   --  KERNEL is the command line --kernel argument, if any. TARGET is the
+   --  command line --target value, which may feature an optional board
+   --  specification (e.g. --target=powerpc-elf,prep).
+   --
+   --  This will be a <target>-gnatemu block if GNATemulator is
+   --  available on PATH, or a low-level emulator block from our static
+   --  configuration table otherwise.
+   --
+   --  The computation is split across the two helpers below.  TARGET_FAMILY
+   --  and TARGET_BOARD are set to the base target and board extension of the
+   --  original TARGET input.
+
+   function Available_Targets return String;
+   --  Return a list of available targets
 
 end Rundrv.Config;

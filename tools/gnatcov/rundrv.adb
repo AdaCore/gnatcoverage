@@ -16,26 +16,21 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line;      use Ada.Command_Line;
-with Ada.Directories;       use Ada.Directories;
-with Ada.Strings.Unbounded;
-with Ada.Text_IO;           use Ada.Text_IO;
+with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Directories;  use Ada.Directories;
+with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
-with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
 with GNAT.OS_Lib;
-with GNAT.Regpat; use GNAT.Regpat;
 
 with Execs_Dbase;
 with Qemu_Traces;
-with Rundrv.Config;   use Rundrv.Config;
-with Rundrv.Expander; use Rundrv.Expander;
-with Rundrv.State;    use Rundrv.State;
-with Switches;        use Switches;
+with Rundrv.Config; use Rundrv.Config;
+with Switches;      use Switches;
 with Traces_Elf;
-with Traces_Files;    use Traces_Files;
+with Traces_Files;  use Traces_Files;
 
 package body Rundrv is
 
@@ -51,249 +46,51 @@ package body Rundrv is
    procedure Error (Msg : String);
    --  Display the message on the error output and set exit status
 
-   procedure Run_Command (Command : String_Access; Options : String_List);
-   --  Spawn command with options
+   procedure Run_Command (Command : Command_Type);
+   --  Spawn a command
 
-   type Driver_Target_Access is access constant Driver_Target;
+   procedure Split_Target
+     (Target        : String_Access;
+      Target_Family : out String_Access;
+      Target_Board  : out String_Access);
+   --  Split a target into its family name and the board name, if any.
+   --
+   --  If Target is null, use Target_Default.  Target has the following format:
+   --  FAMILY[,BOARD]. So the returned Target_Family is never null and the
+   --  returned Target_Board may be null.
 
-   function Driver_Control_For
-     (Target, Kernel : String_Access) return Driver_Target_Access;
-   --  Return an access to the Driver_Target control block to use for
-   --  TARGET/KERNEL. This will be a <target>-gnatemu block if GNATemulator is
-   --  available on PATH, or a low-level emulator block from our static
-   --  configuration table otherwise. Return null if we can't figure out any
-   --  sensible control block for the provided target name. KERNEL is the
-   --  command line --kernel argument, if any. TARGET is the command line
-   --  --target value, which may feature an optional board specification
-   --  (e.g. --target=powerpc-elf,prep).
+   ------------------
+   -- Split_Target --
+   ------------------
 
-   --  The computation is split across the two helpers below.  TARGET_FAMILY
-   --  and TARGET_BOARD are set to the base target and board extension of the
-   --  original TARGET input.
-
-   function Gnatemu_Driver_Control_For
-     (Target_Family : String_Access;
-      Target_Board  : String_Access;
-      Kernel        : String_Access) return Driver_Target_Access;
-   --  Implement the GNATemulator case of Driver_Control_For
-
-   function Internal_Driver_Control_For
-     (Target_Family : String_Access;
-      Target_Board  : String_Access;
-      Kernel        : String_Access) return Driver_Target_Access;
-   --  Implement the internal tables case of Driver_Control_For
-
-   -----------------
-   -- Real_Target --
-   -----------------
-
-   function Real_Target (Target : String_Access) return String_Access
+   procedure Split_Target
+     (Target        : String_Access;
+      Target_Family : out String_Access;
+      Target_Board  : out String_Access)
    is
+      Real_Target : constant String :=
+        (if Target = null
+         then Target_Default.all
+         else Target.all);
    begin
-      return (if Target = null
-              then Target_Default
-              else Target);
-   end Real_Target;
+      --  If we find a comma, then we have both a target family and a board
+      --  name.
 
-   --------------------------------
-   -- Gnatemu_Driver_Control_For --
-   --------------------------------
-
-   function Gnatemu_Driver_Control_For
-     (Target_Family : String_Access;
-      Target_Board  : String_Access;
-      Kernel        : String_Access) return Driver_Target_Access
-   is
-      Gnatemu : constant String_Access :=
-        GNAT.OS_Lib.Locate_Exec_On_Path (Target_Family.all & "-gnatemu");
-
-      Common_Options, Kernel_Options, Board_Options : String_List_Access;
-      P_Options, X_Options : String_List_Access;
-
-      function X_Switches return String_List_Access;
-      --  Compute a string list of -X switches to pass to gnatemu from the set
-      --  of -X switches we have received on our own command line.
-
-      function X_Switches return String_List_Access is
-         use Key_Element_Maps;
-
-         Switches : constant String_List_Access :=
-           new String_List (1 .. Integer (Length (S_Variables)));
-         Switch_Index : Natural;
-      begin
-         Switch_Index := Switches'First;
-         for Scv_C in S_Variables.Iterate loop
-            Switches (Switch_Index) :=
-              new String'("-X" & Key (Scv_C) & "=" & Element (Scv_C));
-            Switch_Index := Switch_Index + 1;
-         end loop;
-         return Switches;
-      end X_Switches;
-
-   begin
-
-      if Gnatemu = null then
-         return null;
-      end if;
-
-      --  Compute the subsets of options we need to pass.  As common options,
-      --  we always need to pass the executable name to Gnatemu (last), and
-      --  request the production of traces straight to the underlying emulator
-      --  in addition to our own -eargs. Then we have the possible --kernel
-      --  and --board extensions, and the project file related options.
-
-      Common_Options := new String_List'
-        ((new String'("--eargs"),
-          new String'("-exec-trace"),
-          new String'("%trace"),
-          new String'("%eargs"),
-          new String'("--eargs-end"),
-          new String'("%exe")));
-
-      if Kernel = null then
-         Kernel_Options := new String_List'(1 .. 0 => <>);
-      else
-         Kernel_Options := new String_List'
-           (1 => new String'("--kernel=" & Kernel.all));
-      end if;
-
-      if Target_Board = null then
-         Board_Options := new String_List'(1 .. 0 => <>);
-      else
-         Board_Options := new String_List'
-           (1 => new String'("--board=" & Target_Board.all));
-      end if;
-
-      if Root_Project = null then
-         P_Options := new String_List'(1 .. 0 => <>);
-         X_Options := new String_List'(1 .. 0 => <>);
-      else
-         P_Options := new String_List'
-           ((new String'("-P"), new String'(Root_Project.all)));
-         X_Options := X_Switches;
-      end if;
-
-      --  Now construct the global set of options and the control
-      --  record to return.
-
-      declare
-         N_Options : constant Natural :=
-           Common_Options'Length
-           + Kernel_Options'Length
-           + Board_Options'Length
-           + P_Options'Length
-           + X_Options'Length;
-
-         Gnatemu_Options : constant String_List_Access :=
-           new String_List (1 .. N_Options);
-
-         --  To help accumulate options subsets within Gnatemu_Options:
-
-         Next_Gnatemu_Option : Natural := Gnatemu_Options'First;
-         procedure Add_And_Release (Options : in out String_List_Access);
-
-         --  Once the options are latched in Gnatemu_Options, we
-         --  don't need the subset containers any more.
-
-         procedure Free_Array is new Ada.Unchecked_Deallocation
-           (Object => String_List, Name => String_List_Access);
-
-         procedure Add_And_Release (Options : in out String_List_Access) is
-         begin
-            for I in Options'Range loop
-               Gnatemu_Options (Next_Gnatemu_Option) := Options (I);
-               Next_Gnatemu_Option := Next_Gnatemu_Option + 1;
-            end loop;
-            Free_Array (Options);
-         end Add_And_Release;
-
-      begin
-         Add_And_Release (Kernel_Options);
-         Add_And_Release (Board_Options);
-         Add_And_Release (P_Options);
-         Add_And_Release (X_Options);
-         Add_And_Release (Common_Options);
-
-         return new Driver_Target'
-           (Target        => Target_Family,
-            Run_Command   => Gnatemu,
-            Run_Options   => Gnatemu_Options);
-      end;
-   end Gnatemu_Driver_Control_For;
-
-   ---------------------------------
-   -- Internal_Driver_Control_For --
-   ---------------------------------
-
-   function Internal_Driver_Control_For
-     (Target_Family : String_Access;
-      Target_Board  : String_Access;
-      Kernel        : String_Access) return Driver_Target_Access
-   is
-      pragma Unreferenced (Target_Board);
-      pragma Unreferenced (Kernel);
-   begin
-      for I in Drivers'Range loop
-         if Match (Expression => Drivers (I).Target.all,
-                   Data => Target_Family.all)
-         then
-            return Drivers (I)'Access;
+      for I in Real_Target'Range loop
+         if Real_Target (I) = ',' then
+            Target_Family := new String'
+              (Real_Target (Real_Target'First .. I - 1));
+            Target_Board  := new String'
+              (Real_Target (I + 1 .. Real_Target'Last));
+            return;
          end if;
       end loop;
 
-      return null;
-   end Internal_Driver_Control_For;
+      --  Otherwise, it's just a family
 
-   ------------------------
-   -- Driver_Control_For --
-   ------------------------
-
-   function Driver_Control_For
-     (Target, Kernel : String_Access) return Driver_Target_Access
-   is
-      Control : Driver_Target_Access;
-
-      --  We need to extract a possible <board> extension from the target
-      --  specification first. The input value is expected to be like
-      --  <target-family>,<target-board> where the ",<target-board>" extension
-      --  is optional. We use a simple regular expression matcher for this.
-
-      Target_Family, Target_Board : String_Access := null;
-
-      Matches : Match_Array (1 .. 2);
-      Family_Part : Match_Location renames Matches (1);
-      Board_Part  : Match_Location renames Matches (2);
-   begin
-      Match (Expression => "^([^,]*)(,.*)?", Data => Target.all,
-             Matches => Matches);
-
-      Target_Family := new String'
-        (Target (Family_Part.First .. Family_Part.Last));
-
-      if Board_Part /= No_Match then
-         Target_Board := new String'
-           (Target (Board_Part.First + 1 .. Board_Part.Last));
-      end if;
-
-      --  If we have GNATemulator for Target on PATH, use that.  --target
-      --  values provided by users are expected to match the GNATemulator
-      --  target names in such cases.
-
-      --  Otherwise, see if we have a bare internal emulator entry for Target.
-      --  The target name might be a generic alias for a low-level board name
-      --  in this case.
-
-      Control := Gnatemu_Driver_Control_For (Target_Family,
-                                             Target_Board,
-                                             Kernel);
-      if Control /= null then
-         return Control;
-      end if;
-
-      return Internal_Driver_Control_For (Target_Family,
-                                          Target_Board,
-                                          Kernel);
-   end Driver_Control_For;
+      Target_Family := new String'(Real_Target);
+      Target_Board := null;
+   end Split_Target;
 
    ------------
    -- Driver --
@@ -308,22 +105,13 @@ package body Rundrv is
       Kernel   : String_Access;
       Eargs    : String_List_Access)
    is
-      Control : Driver_Target_Access;
-      --  The corresponding Driver_Target control block
-
-   --  Start of processing for Driver
-
+      Context : Context_Type :=
+        (Kernel   => Kernel,
+         Histmap  => Histmap,
+         Eargs    => Eargs,
+         others   => <>);
+      Run_Cmd : Command_Access;
    begin
-      --  Setup our basic internal control parameters
-
-      Control :=
-        Driver_Control_For (Target => Real_Target (Target), Kernel => Kernel);
-
-      if Control = null then
-         Error ("Unknown target " & Real_Target (Target).all
-                & " (use --help to get target list).");
-         return;
-      end if;
 
       declare
          use GNAT.OS_Lib;
@@ -345,20 +133,20 @@ package body Rundrv is
       begin
          Open_Exec (Exe_File, 0, Exec);
 
-         --  Setup global state: we had to wait for opening the executable file
-         --  since the trace file path depends on the precise executable file
-         --  name.
+         Context.Exe_File := new String'(Get_Filename (Exec.all));
+         Context.Trace_File :=
+           (if GNAT.Strings."/=" (Output, null)
+            then Output
+            else new String'(Simple_Name (Context.Exe_File.all & ".trace")));
+         Split_Target (Target, Context.Target_Family, Context.Target_Board);
 
-         Executable := new String'(Get_Filename (Exec.all));
+         Run_Cmd := Lookup_Driver (Context);
 
-         if GNAT.Strings."/=" (Output, null) then
-            Trace_Output := Output;
-         else
-            Trace_Output :=
-               new String'(Simple_Name (Executable.all & ".trace"));
+         if Run_Cmd = null then
+            Error ("Unknown target " & Context.Target_Family.all
+                   & " (use --help to get target list).");
+            return;
          end if;
-
-         Histmap_Filename := Histmap;
 
          --  And now create the trace file itself.
 
@@ -371,7 +159,7 @@ package body Rundrv is
                                        Sec   => Unsigned_8 (GM_Second (Date)),
                                        Pad   => 0);
          Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
-         Append_Info (Trace_File, Exec_File_Name, Executable.all);
+         Append_Info (Trace_File, Exec_File_Name, Context.Exe_File.all);
 
          Append_Info
            (Trace_File,
@@ -393,7 +181,7 @@ package body Rundrv is
             Append_Info (Trace_File, Kernel_File_Name, Kernel.all);
          end if;
 
-         Write_Trace_File (Trace_Output.all, Trace_File);
+         Write_Trace_File (Context.Trace_File.all, Trace_File);
          Free (Trace_File);
       end;
 
@@ -401,22 +189,8 @@ package body Rundrv is
       --  expansions, e.g.  setting environment variables. The expansion is
       --  required, but there's no real command to execute afterwards
 
-      declare
-         Expanded_Run_Command : constant String_Access
-           := Expand_Command (Control.Run_Command);
-      begin
-         if Expanded_Run_Command /= null then
-
-            Run_Command
-              (Expanded_Run_Command,
-               Expand_Arguments (Control.Run_Options,
-                                 Eargs => Eargs));
-
-            if Verbose then
-               Put (Control.Run_Command.all & " finished");
-            end if;
-         end if;
-      end;
+      Run_Command (Run_Cmd.all);
+      Free (Run_Cmd);
 
    exception
       when Exec_Error =>
@@ -433,66 +207,63 @@ package body Rundrv is
       Set_Exit_Status (Failure);
    end Error;
 
-   -----------------------
-   -- Available_Targets --
-   -----------------------
-
-   function Available_Targets return String
-   is
-      use Ada.Strings.Unbounded;
-
-      Result : Unbounded_String;
-      First  : Boolean := True;
-   begin
-      for Driver of Drivers loop
-         if not First then
-            Append (Result, ", ");
-         end if;
-         First := False;
-
-         Append (Result, Driver.Target.all);
-      end loop;
-      return To_String (Result);
-   end Available_Targets;
-
    -----------------
    -- Run_Command --
    -----------------
 
-   procedure Run_Command
-     (Command : String_Access; Options : String_List)
-   is
+   procedure Run_Command (Command : Command_Type) is
+      use String_Maps;
       Success : Boolean;
       Prg     : String_Access;
+      Args    : String_List (1 .. Natural (Command.Arguments.Length));
+
+      Cmd : constant String := +Command.Command;
    begin
       --  Find executable
 
-      Prg := GNAT.OS_Lib.Locate_Exec_On_Path (Command.all);
+      Prg := GNAT.OS_Lib.Locate_Exec_On_Path (Cmd);
       if Prg = null then
-         Error ("gnatcov run: cannot find "
-                  & Command.all
-                  & " on your path");
+         Error ("gnatcov run: cannot find " & Cmd & " on your path");
          raise Exec_Error;
       end if;
+
+      --  Instantiate the argument list
+
+      declare
+         I : Positive := 1;
+      begin
+         for S of Command.Arguments loop
+            Args (I) := new String'(+S);
+            I := I + 1;
+         end loop;
+      end;
+
+      --  Run
+
+      for Env_Var in Command.Environment.Iterate loop
+         GNAT.OS_Lib.Setenv (+Key (Env_Var), +Element (Env_Var));
+      end loop;
 
       if Verbose then
          Put ("exec: ");
          Put (Prg.all);
-         for I in Options'Range loop
+         for S of Command.Arguments loop
             Put (' ');
-            Put (Options (I).all);
+            Put (+S);
          end loop;
          New_Line;
       end if;
 
-      --  Run
-
-      GNAT.OS_Lib.Spawn (Prg.all, Options, Success);
+      GNAT.OS_Lib.Spawn (Prg.all, Args, Success);
       if not Success then
          if Verbose then
             Error ("gnatcov run failed");
          end if;
          raise Exec_Error;
+      end if;
+
+      if Verbose then
+         Put_Line (Cmd & " finished");
       end if;
    end Run_Command;
 

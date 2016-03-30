@@ -18,7 +18,7 @@
 
 with Argparse;
 with Coverage;
-with Rundrv;
+with Rundrv.Config;
 
 package Command_Line is
 
@@ -367,7 +367,7 @@ package Command_Line is
                           & " selection with cross targets."
                           & ASCII.LF & ASCII.LF
                           & "Target must match one of:" & ASCII.LF
-                          & "  " & Rundrv.Available_Targets),
+                          & "  " & Rundrv.Config.Available_Targets),
          At_Most_Once => True,
          Internal     => False),
       Opt_Output => Create
