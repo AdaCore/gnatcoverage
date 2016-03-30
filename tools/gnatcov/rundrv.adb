@@ -241,6 +241,10 @@ package body Rundrv is
       --  Run
 
       for Env_Var in Command.Environment.Iterate loop
+         if Verbose then
+            Put_Line ("env: " & (+Key (Env_Var))
+                      & "=" & (+Element (Env_Var)));
+         end if;
          GNAT.OS_Lib.Setenv (+Key (Env_Var), +Element (Env_Var));
       end loop;
 
