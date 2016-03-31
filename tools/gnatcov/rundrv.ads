@@ -35,8 +35,9 @@ package Rundrv is
       Histmap  : String_Access;
       Kernel   : String_Access;
       Eargs    : String_List_Access);
-   --  Run Exe_File on QEMU for Target (e.g. "powerpc-elf") with Output
-   --  for trace output file; if Tag is not null, append it to the trace
-   --  header. Add Eargs to QEMU's options.
+   --  Run Exe_File on an instrumented execution environment (depending on
+   --  Target: GNATemulator, Valgrind, DynamoRIO, etc). Pass Eargs as
+   --  command-line arguments for Exe_File. Write traces in the Output trace
+   --  file. If Tag is not null, append it to the trace header.
 
 end Rundrv;
