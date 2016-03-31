@@ -232,21 +232,10 @@ package body Rundrv is
    is
       pragma Unreferenced (Target_Board);
       pragma Unreferenced (Kernel);
-
-      Resolved_Target : String_Access := Target_Family;
    begin
-      --  Resolve against our target board Aliases table first,
-      --  then seek a matching Driver entry.
-
-      for I in Aliases'Range loop
-         if Resolved_Target.all = Aliases (I).Alias.all then
-            Resolved_Target := Aliases (I).Target;
-         end if;
-      end loop;
-
       for I in Drivers'Range loop
          if Match (Expression => Drivers (I).Target.all,
-                   Data => Resolved_Target.all)
+                   Data => Target_Family.all)
          then
             return Drivers (I)'Access;
          end if;

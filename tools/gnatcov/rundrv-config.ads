@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.OS_Lib;
-
 private package Rundrv.Config is
 
    --  Configuration tables for Rundrv. This controls what gnatcov run does
@@ -62,91 +60,7 @@ private package Rundrv.Config is
      array (Natural range <>) of aliased Driver_Target;
 
    Drivers : constant Driver_Target_Array :=
-     ((Target => new String'("qemu-prep"),
-       Run_Command => new String'("qemu-system-ppc"),
-       Run_Options => new String_List'(new String'("-nographic"),
-                                       new String'("-M"),
-                                       new String'("prep"),
-                                       new String'("-boot"),
-                                       new String'("n"),
-                                       new String'("-no-reboot"),
-                                       new String'("-L"),
-                                       new String'("%exe_dir"),
-                                       new String'("-bios"),
-                                       new String'("-"),
-                                       new String'("-kernel"),
-                                       new String'("%exe"),
-                                       new String'("-exec-trace"),
-                                       new String'("%trace"))
-       ),
-      (Target => new String'("qemu-8641d"),
-       Run_Command => new String'("qemu-system-ppc"),
-       Run_Options => new String_List'(new String'("-nographic"),
-                                       new String'("-M"),
-                                       new String'("wrsbc8641d_vxworks"),
-                                       new String'("-no-reboot"),
-                                       new String'("-bios"),
-                                       new String'("-"),
-                                       new String'("-kernel"),
-                                       new String'("%exe"),
-                                       new String'("-exec-trace"),
-                                       new String'("%trace"))
-      ),
-      (Target => new String'("qemu-sbc834x"),
-       Run_Command => new String'("qemu-system-ppc"),
-       Run_Options => new String_List'(new String'("-nographic"),
-                                       new String'("-M"),
-                                       new String'("SBC834x"),
-                                       new String'("-no-reboot"),
-                                       new String'("-kernel"),
-                                       new String'("%exe"),
-                                       new String'("-exec-trace"),
-                                       new String'("%trace"))
-      ),
-      (Target => new String'("leon-elf"),
-       Run_Command => new String'("qemu-system-sparc"),
-       Run_Options => new String_List'(new String'("-nographic"),
-                                       new String'("-M"),
-                                       new String'("at697"),
-                                       new String'("-kernel"),
-                                       new String'("%exe"),
-                                       new String'("-exec-trace"),
-                                       new String'("%trace"))
-
-      ),
-      (Target => new String'("erc32-elf"),
-       Run_Command => new String'("qemu-system-sparc"),
-       Run_Options => new String_List'(new String'("-nographic"),
-                                       new String'("-M"),
-                                       new String'("tsc695"),
-                                       new String'("-kernel"),
-                                       new String'("%exe"),
-                                       new String'("-exec-trace"),
-                                       new String'("%trace"))
-
-      ),
-      (Target => new String'("i386-pok"),
-       Run_Command => new String'("qemu"),
-       Run_Options => new String_List'(new String'("-fda"),
-                                       new String'(GNAT.OS_Lib.Getenv
-                                                     ("POK_PATH").all
-                                                     & "/misc"
-                                                     & "/grub-boot-only.img"),
-                                       new String'("-hda"),
-                                       new String'("fat:."),
-                                       new String'("-boot"),
-                                       new String'("a"),
-                                       new String'("-nographic"),
-                                       new String'("-exec-trace"),
-                                       new String'("%trace"))
-      ),
-      (Target => new String'("i386-linux"),
-       Run_Command => new String'("qemu-i386"),
-       Run_Options => new String_List'(new String'("-exec-trace"),
-                                       new String'("%trace"),
-                                       new String'("%exe"))
-      ),
-      (Target => new String'("(i686|x86_64).*linux"),
+     ((Target => new String'("(i686|x86_64).*linux"),
        Run_Command => new String'("%valgrind"),
        Run_Options => new String_List'(new String'("%set_valgrind_env"),
                                        new String'("--quiet"),
@@ -168,10 +82,6 @@ private package Rundrv.Config is
        --  -quiet silences the warnings emitted by DynamoRIO on the assumption
        --  that it is invoked from an official release install tree.
       ),
-      (Target => new String'("prepare"),
-       Run_Command => null,
-       Run_Options => null
-      ),
       (Target => new String'("iSystem-5554"),
        Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
        Run_Options => new String_List'(
@@ -188,42 +98,11 @@ private package Rundrv.Config is
          new String'("%trace")
        )
       ),
-      (Target => new String'("lmp-elf"),
-       Run_Command => new String'("lmp-elf-run"),
-       Run_Options => new String_List'(new String'("-a"),
-                                       new String'("--trace=%tracefile"),
-                                       new String'("%exe"))
-      ),
       (Target => new String'("visium-elf"),
        Run_Command => new String'("visium-elf-run"),
        Run_Options => new String_List'(new String'("--trace=%tracefile"),
                                        new String'("%exe"))
       )
-     );
-
-   ---------------------------
-   -- Driver Target Aliases --
-   ---------------------------
-
-   --  Target aliases: names users may feed to --target and that resolve
-   --  to one of the target definitions above
-
-   type Target_Alias is record
-
-      Alias  : String_Access;
-      --  The name users may feed to --target, as an alias to designate ...
-
-      Target : String_Access;
-      --  The name of a real target definition
-
-   end record;
-
-   type Target_Aliases_Array is array (Natural range <>) of Target_Alias;
-
-   Aliases : constant Target_Aliases_Array :=
-     (1 => (Alias => new String'("powerpc-elf"),
-            Target => new String'("qemu-8641d")
-           )
      );
 
 end Rundrv.Config;
