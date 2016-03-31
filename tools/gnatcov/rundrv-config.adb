@@ -185,7 +185,9 @@ package body Rundrv.Config is
       Result : constant Command_Access := new Command_Type'
         (Command => +Cmd, others => <>);
    begin
-      Append_Arg (Result, "--quiet");
+      if not Verbose then
+         Append_Arg (Result, "--quiet");
+      end if;
       Append_Arg (Result, "--tool=coverage");
       Append_Arg (Result, "--cov-exec-file=" & Trace_Input (Context));
       Append_Arg (Result, Context.Exe_File.all);
@@ -219,7 +221,9 @@ package body Rundrv.Config is
       --  -quiet silences the warnings emitted by DynamoRIO on the assumption
       --  that it is invoked from an official release install tree.
 
-      Append_Arg (Result, "-quiet");
+      if not Verbose then
+         Append_Arg (Result, "-quiet");
+      end if;
       Append_Arg (Result, "-no_follow_children");
       Append_Arg (Result, "-c", Drclient);
       Append_Arg (Result, "-o", Trace_Input (Context));
