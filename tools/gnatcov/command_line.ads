@@ -366,8 +366,11 @@ package Command_Line is
                           & " files processing and correct execution target"
                           & " selection with cross targets."
                           & ASCII.LF & ASCII.LF
-                          & "Target must match one of:" & ASCII.LF
-                          & "  " & Rundrv.Config.Available_Targets),
+                          & "Target must either match one of:" & ASCII.LF
+                          & "  " & Rundrv.Config.Available_Targets
+                          & ASCII.LF
+                          & "or there must be a TARGET-gnatemu program"
+                          & " available."),
          At_Most_Once => True,
          Internal     => False),
       Opt_Output => Create

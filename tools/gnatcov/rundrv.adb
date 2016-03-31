@@ -143,8 +143,8 @@ package body Rundrv is
          Run_Cmd := Lookup_Driver (Context);
 
          if Run_Cmd = null then
-            Error ("Unknown target " & Context.Target_Family.all
-                   & " (use --help to get target list).");
+            Error ("No builtin or GNATemulator execution driver found for"
+                   & " target: " & Context.Target_Family.all);
             return;
          end if;
 
