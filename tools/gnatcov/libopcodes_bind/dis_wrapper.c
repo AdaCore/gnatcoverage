@@ -179,6 +179,22 @@ create_x86_disassembler (void)
   return dh;
 }
 
+/* Sets up disassembler for Visium.  */
+disassemble_handle *
+create_visium_disassembler (void)
+{
+  disassemble_handle *dh = _create_base_disassembler (bfd_arch_visium);
+
+  if (!dh)
+    return NULL;
+
+  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_visium;
+  dh->disass_func[BFD_ENDIAN_LITTLE] = NULL;
+  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
+
+  return dh;
+}
+
 /* Frees the memory allocated for the disassembler represented by DH.  */
 void
 delete_disassembler (disassemble_handle *const dh)

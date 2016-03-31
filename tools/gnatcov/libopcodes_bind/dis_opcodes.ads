@@ -64,6 +64,12 @@ package Dis_Opcodes is
           External_Name => "create_x86_disassembler";
    --  Returns a handle to disassemble x86 binary code
 
+   function Create_Visium_Disassembler return Disassemble_Handle
+     with Import        => True,
+          Convention    => C,
+          External_Name => "create_visium_disassembler";
+   --  Returns a handle to disassemble Visium binary code
+
    procedure Delete_Disassembler (DH : Disassemble_Handle)
      with Import        => True,
           Convention    => C,
