@@ -9,5 +9,6 @@ GNATcoverage User's Guide  [|release|]
    run
    coverage
    convert
+   gps
    appendix
    glossary

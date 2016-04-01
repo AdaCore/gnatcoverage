@@ -53,10 +53,12 @@ rst_epilog = """
 .. |gcvdsp| replace:: :command:`gnatcov` :command:`disp-routines`
 .. |gcvmap| replace:: :command:`gnatcov` :command:`map-routines`
 
-.. |gcp|  replace:: GNATcoverage
-.. |gem|  replace:: GNATemulator
-.. |gnat| replace:: GNAT
-.. |gpro| replace:: GNAT Pro
+.. |gcp|   replace:: GNATcoverage
+.. |gem|   replace:: GNATemulator
+.. |gnat|  replace:: GNAT
+.. |gpro|  replace:: GNAT Pro
+.. |gps|   replace:: GPS
+.. |gtest| replace:: GNATtest
 
 .. |marg| replace:: *(mandatory)*
 .. |rarg| replace:: possibly repeated and accepting :term:`@listfile arguments`
