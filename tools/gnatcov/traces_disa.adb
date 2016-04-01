@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Text_IO;    use Ada.Text_IO;
 
 with Disassemblers;     use Disassemblers;
@@ -24,7 +23,6 @@ with Arch;              use Arch;
 with Interfaces;        use Interfaces;
 with Hex_Images;        use Hex_Images;
 with Highlighting;      use Highlighting;
-with Outputs;
 with Switches;
 with Traces_Files;
 
@@ -64,7 +62,7 @@ package body Traces_Disa is
       Insn_Len : Natural;
    begin
       Disa_For_Machine (Machine, Insn_Set).
-        Disassemble_Insn_Or_Abort (Insn, Pc, Buffer, Insn_Len, Sym);
+        Disassemble_Insn (Insn, Pc, Buffer, Insn_Len, Sym);
 
       if Arch.Arch_Addr (Insn_Len) /= Length (Insn) then
          raise Constraint_Error;
@@ -165,8 +163,7 @@ package body Traces_Disa is
       Pc := Insns.First;
       while Iterate_Over_Insns (I_Ranges, Cache, Insns.Last, Pc, Insn_Set) loop
          Insn_Len := Disa_For_Machine (Machine, Insn_Set).
-           Get_Insn_Length_Or_Abort
-             (Slice (Insns, Pc, Insns.Last));
+           Get_Insn_Length (Slice (Insns, Pc, Insns.Last));
 
          Cb.all
            (Pc,
@@ -179,17 +176,6 @@ package body Traces_Disa is
          --  Handle wrap around.
          exit when Pc = 0;
       end loop;
-   exception
-      --  Catch everything except Xcov_Exit_Exc errors, since
-      --  Get_Insn_Length_Or_Abort may have already caught a disassembly error:
-      --  if an Xcov_Exit_Exc is raised, an error message has already been
-      --  printed.
-
-      when Outputs.Xcov_Exit_Exc =>
-         raise;
-      when Exn : others =>
-         Abort_Disassembler_Error
-           (Pc, Slice (Insns, Pc, Insns.Last), Exception_Information (Exn));
    end For_Each_Insn;
 
    -------------------------

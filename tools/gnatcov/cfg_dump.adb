@@ -498,32 +498,6 @@ package body CFG_Dump is
                   Branch_Dest => Insn_Branch_Dest,
                   FT_Dest     => Insn_FT_Dest);
             end if;
-
-         exception
-            when Exn : Disassemblers.Invalid_Insn
-               | Disassemblers.Unhandled_Insn =>
-
-               --  Keep in mind that we may end up here because of an error
-               --  while computing the instruction's length. Thus, we cannot
-               --  rely on the length (Insn_len) nor on the address of the
-               --  last byte (Insn.Last).
-
-               if Symbol = null
-                 or else not (PC in Symbol.First .. Symbol.Last)
-               then
-                  --  We came across an invalid instruction and we are not
-                  --  inside a symbol: we probably met padding bytes.
-
-                  State := Skip_Padding;
-
-               else
-                  --  There is an invalid instruction inside a symbol: the code
-                  --  generator looks buggy.
-
-                  State := Invalid_Insn;
-                  Disas_Error := To_Unbounded_String
-                    (Exception_Information (Exn));
-               end if;
          end;
 
          case State is
@@ -1329,7 +1303,7 @@ package body CFG_Dump is
             end if;
 
             Buffer.Reset;
-            Disas.Disassemble_Insn_Or_Abort
+            Disas.Disassemble_Insn
               (Insn.Bytes, Address (Insn),
                Buffer,
                Insn_Len,

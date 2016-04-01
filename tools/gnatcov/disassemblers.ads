@@ -27,10 +27,6 @@ package Disassemblers is
 
    type Disassembler is limited interface;
 
-   Invalid_Insn, Unhandled_Insn : exception;
-   --  Get_Insn_Length, Disassemble_Insn and Get_Insn_Properties can raise one
-   --  of these when they fail to disassemble an instruction.
-
    function Get_Insn_Length
      (Self     : Disassembler;
       Insn_Bin : Binary_Content) return Positive is abstract;
@@ -91,22 +87,6 @@ package Disassemblers is
       Exn_Info : String);
    --  Print an error message suitable for disassembler error reports, giving
    --  enough context information to investigate and debug disassembly issues.
-
-   function Get_Insn_Length_Or_Abort
-     (Self     : Disassembler'Class;
-      Insn_Bin : Binary_Content) return Positive;
-   --  Lik Get_Insn_Length, but aborts in case the disassembler fails with
-   --  Invalid_Insn or Unhandled_Insn.
-
-   procedure Disassemble_Insn_Or_Abort
-     (Self     : Disassembler'Class;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type;
-      Insn_Len : out Natural;
-      Sym      : Symbolizer'Class);
-   --  Like Disassemble_Insn_Or_Abort, but aborts in case the disassembler
-   --  fails with Invalid_Insn or Unhandled_Insn.
 
    function Get_Mnemonic_Kind
      (Branch    : Branch_Kind;

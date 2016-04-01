@@ -1501,7 +1501,7 @@ package body Decision_Map is
                Buffer   : Highlighting.Buffer_Type (1);
                Line_Len : Natural;
             begin
-               Disa_For_Machine (Machine, Default).Disassemble_Insn_Or_Abort
+               Disa_For_Machine (Machine, Default).Disassemble_Insn
                  (Slice (Sec.Section_Content, BB.From, BB.To),
                   BB.From,
                   Buffer,
@@ -2289,8 +2289,7 @@ package body Decision_Map is
         (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
       loop
          Disas := Disa_For_Machine (Machine, Insn_Set);
-         Insn_Len := Disas.Get_Insn_Length_Or_Abort
-           (Slice (Insns, PC, Insns.Last));
+         Insn_Len := Disas.Get_Insn_Length (Slice (Insns, PC, Insns.Last));
 
          declare
             LI   : Line_Info_Access;

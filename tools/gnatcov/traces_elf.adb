@@ -3086,8 +3086,7 @@ package body Traces_Elf is
          loop
             Disa := Disa_For_Machine (Machine, I_Ranges, Cache, Last_Pc_2);
             Last_Insn_2_Len := Pc_Type
-              (Disa.Get_Insn_Length_Or_Abort
-                 (Slice (Section, Last_Pc_2, Trace.Last)));
+              (Disa.Get_Insn_Length (Slice (Section, Last_Pc_2, Trace.Last)));
             Next_Pc := Last_Pc_2 + Last_Insn_2_Len;
             exit when Next_Pc = Trace.Last + 1;
 
@@ -3907,7 +3906,7 @@ package body Traces_Elf is
 
             Buffer.Reset;
             Disa_For_Machine (Machine, I_Ranges, Cache, Pc).
-              Disassemble_Insn_Or_Abort
+              Disassemble_Insn
                 (Slice (Insns, Pc, Insns.Last), Pc,
                  Buffer, Insn_Len, File);
 
@@ -4745,7 +4744,7 @@ package body Traces_Elf is
       loop
          Disas := Disa_For_Machine (Machine, Insn_Set);
          Insns_Slice := Slice (Insns, PC, Insns.Last);
-         Insn_Len := Pc_Type (Disas.Get_Insn_Length_Or_Abort (Insns_Slice));
+         Insn_Len := Pc_Type (Disas.Get_Insn_Length (Insns_Slice));
 
          --  Invalid code may get us past the last byte available in Insns,
          --  without the above function to raise an error. Do complain if it's

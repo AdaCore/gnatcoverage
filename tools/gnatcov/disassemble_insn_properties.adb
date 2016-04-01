@@ -123,8 +123,7 @@ package body Disassemble_Insn_Properties is
       begin
          --  Get disassembly tokens and instruction properties
 
-         Disassembler.Disassemble_Insn_Or_Abort
-           (Insn, PC, Buffer, Insn_Len, Exec);
+         Disassembler.Disassemble_Insn (Insn, PC, Buffer, Insn_Len, Exec);
          Disassembler.Get_Insn_Properties
            (Insn, PC,
             Branch,
@@ -215,8 +214,7 @@ package body Disassemble_Insn_Properties is
             Disassembler := Elf_Disassemblers.Disa_For_Machine
               (Machine, Insn_Set);
             Insn_Len := Disassembler.
-              Get_Insn_Length_Or_Abort
-                (Slice (Insns, PC, Insns.Last));
+              Get_Insn_Length (Slice (Insns, PC, Insns.Last));
 
             if Matches_Locations (Exec_Acc, Proc_Locs, PC) then
                Append (JSON_Insns, Create_Instruction (PC));

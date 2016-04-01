@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Exceptions;        use Ada.Exceptions;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
@@ -95,45 +94,5 @@ package body Disassemblers is
       Outputs.Error ("Aborting.");
       raise Outputs.Xcov_Exit_Exc;
    end Abort_Disassembler_Error;
-
-   ------------------------------
-   -- Get_Insn_Length_Or_Abort --
-   ------------------------------
-
-   function Get_Insn_Length_Or_Abort
-     (Self     : Disassembler'Class;
-      Insn_Bin : Binary_Content) return Positive
-   is
-   begin
-      return Get_Insn_Length (Self, Insn_Bin);
-   exception
-      when Exn : Invalid_Insn | Unhandled_Insn =>
-         Abort_Disassembler_Error
-           (Insn_Bin.First, Insn_Bin, Exception_Information (Exn));
-
-         --  The following statement is unreachable: Abort_Disassembler_Error
-         --  raises an exception.
-
-         return 1;
-   end Get_Insn_Length_Or_Abort;
-
-   -------------------------------
-   -- Disassemble_Insn_Or_Abort --
-   -------------------------------
-
-   procedure Disassemble_Insn_Or_Abort
-     (Self     : Disassembler'Class;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type;
-      Insn_Len : out Natural;
-      Sym      : Symbolizer'Class)
-   is
-   begin
-      Disassemble_Insn (Self, Insn_Bin, Pc, Buffer, Insn_Len, Sym);
-   exception
-      when Exn : Invalid_Insn | Unhandled_Insn =>
-         Abort_Disassembler_Error (Pc, Insn_Bin, Exception_Information (Exn));
-   end Disassemble_Insn_Or_Abort;
 
 end Disassemblers;

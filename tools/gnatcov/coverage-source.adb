@@ -1012,8 +1012,7 @@ package body Coverage.Source is
         (I_Ranges, Cache, T.Last + Subp_Info.Offset, PC, Insn_Set)
       loop
          Insn_Len := Disa_For_Machine (Machine, Insn_Set).
-           Get_Insn_Length_Or_Abort
-             (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
+           Get_Insn_Length (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
 
          --  Discharge each SCO for source locations associated with this
          --  instruction.

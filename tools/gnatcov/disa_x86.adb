@@ -34,7 +34,7 @@ package body Disa_X86 is
    type Bit_Field_2 is mod 2 ** 2;
    type Bit_Field_3 is mod 2 ** 3;
 
-   type Width_Type is (W_None, W_8, W_16, W_32, W_64, W_128);
+   type Width_Type is (W_8, W_16, W_32, W_64);
    --  Width for operands, addresses and registers
 
    --  Bits extraction from byte functions
@@ -160,12 +160,6 @@ package body Disa_X86 is
               or Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
               or Shift_Left (Unsigned_64 (Mem (Off + 0)), 0);
             Is_Negative := Sign_Extend and then V >= 16#8000_0000_0000_0000#;
-
-         when W_128 =>
-            raise Invalid_Insn with "invalid 128-bit immediate decoding";
-
-         when W_None =>
-            raise Invalid_Insn;
       end case;
 
       if Is_Negative then
