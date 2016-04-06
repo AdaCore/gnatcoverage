@@ -50,6 +50,8 @@ char *const dis_thumb_option = "force-thumb";
 char *const dis_arm_option = "no-force-thumb";
 char *const dis_x86_option = "i386";
 char *const dis_x86_64_option = "x86-64";
+char *const dis_ppc_32_option = "32";
+char *const dis_ppc_64_option = "64";
 
 /* This is a callback for disassemble_info->print_address_func.  */
 static void
@@ -174,6 +176,29 @@ create_x86_disassembler (void)
 
   dh->disass_func[BFD_ENDIAN_BIG] = NULL;
   dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_i386;
+  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
+
+  return dh;
+}
+
+disassemble_handle *
+create_ppc_disassembler (void)
+{
+  disassemble_handle *dh = _create_base_disassembler (bfd_arch_powerpc);
+
+  if (!dh)
+    return NULL;
+
+#if TARGET_BITS == 32
+  dh->disassembler_options = dis_ppc_32_option;
+#elif TARGET_BITS == 64
+  dh->disassembler_options = dis_ppc_64_option;
+#else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
+#error "Target arch is neither 32 or 64bits, not supported."
+#endif
+
+  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_powerpc;
+  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_powerpc;
   dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
 
   return dh;

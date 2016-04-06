@@ -70,6 +70,12 @@ package Dis_Opcodes is
           External_Name => "create_visium_disassembler";
    --  Returns a handle to disassemble Visium binary code
 
+   function Create_Ppc_Disassembler return Disassemble_Handle
+     with Import        => True,
+          Convention    => C,
+          External_Name => "create_ppc_disassembler";
+   --  Returns a handle to disassemble PowerPC binary code
+
    procedure Delete_Disassembler (DH : Disassemble_Handle)
      with Import        => True,
           Convention    => C,

@@ -23,8 +23,6 @@ project Gnatcov is
 
    package Compiler is
 
-      for Switches ("ppc_genopc.adb") use ("-g", "-gnat12");
-
       common_switches :=
         ("-gnat12", "-gnatwae", "-gnatyg");
 
@@ -74,6 +72,6 @@ project Gnatcov is
    for Source_Dirs use (".", "libopcodes_bind");
    for Object_Dir use "obj" & Bits;
    for Languages use ("Ada", "C");
-   for Main use ("gnatcov.adb", "ppc_genopc.adb");
+   for Main use ("gnatcov.adb");
 
 end Gnatcov;

@@ -19,15 +19,18 @@
 --  PowerPC disassembler
 
 with Binary_Files;   use Binary_Files;
+private with Dis_Opcodes;
 with Disa_Symbolize; use Disa_Symbolize;
 with Disassemblers;  use Disassemblers;
 with Highlighting;
 with Traces;         use Traces;
-with Traces_Elf;     use Traces_Elf;
+
+with Ada.Finalization;
 
 package Disa_Ppc is
 
-   type PPC_Disassembler is new Disassembler with private;
+   type PPC_Disassembler is
+     new Ada.Finalization.Limited_Controlled and Disassembler with private;
 
    overriding function Get_Insn_Length
      (Self     : PPC_Disassembler;
@@ -65,6 +68,19 @@ package Disa_Ppc is
       Pc       : Pc_Type) return Boolean;
    --  See disassemblers.ads
 
+   overriding procedure Initialize
+     (Object : in out PPC_Disassembler);
+   --  Override of controlled object primitive
+
+   overriding procedure Finalize
+     (Object : in out PPC_Disassembler);
+   --  Override of controlled object primitive
+
 private
-   type PPC_Disassembler is new Disassembler with null record;
+
+   type PPC_Disassembler is
+     new Ada.Finalization.Limited_Controlled and Disassembler with record
+      Handle : Dis_Opcodes.Disassemble_Handle;
+   end record;
+
 end Disa_Ppc;

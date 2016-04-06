@@ -19,6 +19,7 @@
 with Ada.Unchecked_Conversion;
 
 with Arch;     use Arch;
+with Dis_Opcodes; use Dis_Opcodes;
 with Swaps;    use Swaps;
 with Traces;   use Traces;
 
@@ -95,7 +96,7 @@ package body Disa_Common is
    -----------------------
 
    function Print_Symbol_Func
-     (Addr           : Dis_Opcodes.BFD_VMA;
+     (Addr           : BFD_VMA;
       Symbol_Manager : System.Address;
       Buff_Addr      : System.Address;
       Buff_Size      : int) return int is
@@ -109,7 +110,14 @@ package body Disa_Common is
       for SBuff'Address use Buff_Addr;
       Symb       : Symbolizer_Access renames
         Symbolizer_Cast (Symbol_Manager);
-      Symbol     : constant String := Symb.Symbolize (Pc_Type (Addr));
+      Symbol     : constant String :=
+        Symb.Symbolize (Pc_Type'Mod (Addr));
+      --  When Libopcode is built in 64bits mode, BFD_VMA is 64bits wide
+      --  regardless of the target arch for the disassembled code.
+      --  The disassembler does not take care of wrapping addresses to 32bits
+      --  when computing them so we need to do it whenever the disassembler
+      --  provides us with and address.
+
       Copy_Size  : constant Natural :=
         Natural'Min (Symbol'Length, Natural (Buff_Size));
    begin
