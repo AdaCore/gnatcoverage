@@ -56,6 +56,19 @@ def to_list(blob):
         else []
         )
 
+# ------------
+# -- indent --
+# ------------
+def indent(blob, indent='  '):
+    """Prefix each line in BLOB's with INDENT. BLOB can be either a single
+    string or a list of strings. The result is a single string anyway.
+    """
+    lines = list(blob) if isinstance(blob, list) else blob.splitlines()
+    return '\n'.join(
+        '{}{}'.format(indent, line)
+        for line in lines
+    )
+
 # ------------------
 # -- text_to_file --
 # ------------------
