@@ -12,7 +12,7 @@ This front-end exposes two major classes of services:
 
 Instrumented execution environments are provided as part of the GNATemulator
 separate product line for cross configurations. For native x86 or x86_64-linux
-configurations, we rely on a valgrind plugin to produce execution traces.
+configurations, we rely on a Valgrind plugin to produce execution traces.
 
 Documentation, including a getting started guide, is available from the
 "GNATcoverage User's Guide" in the share/doc/gnatcoverage sub-directory of
@@ -47,14 +47,13 @@ Prerequisite: GNU make, a recent Ada2012 capable GNAT compiler
    gnatcoll-src $ make 
    gnatcoll-src $ make install
 
-2) Build & install a base valgrind:
+2) Build & install a base Valgrind:
 
    valgrind-3.10.1 $ ./configure --prefix=$prefix
    valgrind-3.10.1 $ make install
 
-3) Build & install the gnatcov front-end per se, plus the valgrind trace plugin:
+3) Build & install the gnatcov front-end per se, plus the Valgrind trace plugin:
 
    couverture.git/tools/gnatcov $ make bin adapters
 
    couverture.git/tools/gnatcov $ make install-bin install-examples install-adapters PREFIX=$prefix VALGRIND_PREFIX=$prefix
-
