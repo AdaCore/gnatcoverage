@@ -49,14 +49,31 @@ Prerequisite: GNU make, a recent Ada2012 capable GNAT compiler
    gnatcoll-src $ make 
    gnatcoll-src $ make install
 
-2) Build & install a base Valgrind:
+2) Build various libraries from Binutils/GDB
+
+   To support object code disassembling on all platforms, gnatcov relies on
+   Binutils's libopcodes, libbfd and libiberty. In order to build these
+   libraries, run:
+
+   binutils-gdb-src $ ./configure --enable-targets=all \
+                        --disable-werror --without-zlib --disable-gdb \
+                        --disable-sim --disable-ld --disable-libquadmath \
+                        --disable-readline
+   binutils-gdb-src $ make
+
+   These libraries are statically linked, so installation is not required: the
+   gnatcov build process only needs access to the source+build directory (no
+   need to run `make install`).
+
+3) Build & install a base Valgrind:
 
    valgrind-3.10.1 $ ./configure --prefix=$prefix
    valgrind-3.10.1 $ make install
 
-3) Build & install the gnatcov front-end per se, plus the Valgrind trace plugin:
+4) Build & install the gnatcov front-end per se, plus the Valgrind trace plugin:
 
-   couverture.git/tools/gnatcov $ make bin adapters
+   couverture.git/tools/gnatcov $ make bin adapters \
+                                       BINUTILS_BUILD_DIR=$binutils-gdb-src
 
    couverture.git/tools/gnatcov $ make PREFIX=$prefix VALGRIND_PREFIX=$prefix \
                                        install-bin install-examples \
