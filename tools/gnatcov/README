@@ -40,8 +40,8 @@ Prerequisite: GNU make, a recent Ada2012 capable GNAT compiler
    gnatcov relies on the "GNAT project file" support" of GNATcoll, so
    at least this needs to be enabled:
 
-   gnatcoll-src $ ./configure  --disable-shared --prefix=$prefix
-                    --without-python --without-iconv --enable-projects
+   gnatcoll-src $ ./configure  --disable-shared --prefix=$prefix \
+                    --without-python --without-iconv --enable-projects \
                     --without-sqlite --disable-syslog --without-gmp
 
    gnatcoll-src $ make 
@@ -56,4 +56,6 @@ Prerequisite: GNU make, a recent Ada2012 capable GNAT compiler
 
    couverture.git/tools/gnatcov $ make bin adapters
 
-   couverture.git/tools/gnatcov $ make install-bin install-examples install-adapters PREFIX=$prefix VALGRIND_PREFIX=$prefix
+   couverture.git/tools/gnatcov $ make PREFIX=$prefix VALGRIND_PREFIX=$prefix \
+                                       install-bin install-examples \
+                                       install-adapters
