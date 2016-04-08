@@ -16,9 +16,8 @@
 
 import re, os.path
 
-from SUITE.tutils import thistest, frame
+from SUITE.tutils import XCOV, thistest, frame
 from SUITE.cutils import FatalError, no_ext
-from SUITE.control import XCOV
 
 from SCOV.internals.cnotes import xNoteKinds
 

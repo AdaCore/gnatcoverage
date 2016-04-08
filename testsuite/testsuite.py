@@ -43,7 +43,7 @@ from SUITE.qdata import QSTRBOX_DIR, CTXDATA_FILE
 from SUITE.qdata import SUITE_context, TC_status, TOOL_info, OPT_info_from
 
 from SUITE import control
-from SUITE.control import BUILDER, XCOV
+from SUITE.control import BUILDER, xcov_pgm
 from SUITE.control import altrun_opt_for, altrun_attr_for
 from SUITE.control import cargs_opt_for, cargs_attr_for
 from SUITE.vtree import Dir, DirTree
@@ -965,7 +965,8 @@ class TestSuite:
             with open(self.trace_dir + '/trace.list', 'w') as file:
                 file.write("\n".join(trace_list))
 
-            Run(['time', which(XCOV), 'coverage', '--level=stmt',
+            pgm = xcov_pgm(self.options.auto_arch, for_target=False)
+            Run(['time', which(pgm), 'coverage', '--level=stmt',
                  '--scos=@' + self.options.bootstrap_scos, '--annotate=html',
                  '@' + self.trace_dir + '/trace.list',
                  '--output-dir=' + self.trace_dir],
@@ -1053,6 +1054,9 @@ class TestSuite:
             testcase_cmd.append('--largs=%s' % mopt.largs.strip())
 
         testcase_cmd.append('--tags=@%s' % self.__discriminants_log())
+
+        if mopt.auto_arch:
+            testcase_cmd.append('--auto-arch')
 
         # --gnatcov_<cmd> family
 

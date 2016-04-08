@@ -12,11 +12,11 @@ import re
 
 from SUITE.cutils import match, to_list, list_to_file
 from SUITE.tutils import (
-    thistest,
+    XCOV, thistest,
     gprfor, gprbuild, exename_for,
     do, maybe_valgrind)
 
-from SUITE.control import BUILDER, XCOV
+from SUITE.control import BUILDER
 
 # ==================
 # ==  MapChecker  ==

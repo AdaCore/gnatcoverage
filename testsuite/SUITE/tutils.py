@@ -12,7 +12,7 @@
 
 from SUITE import control
 from SUITE.control import LANGINFO, language_info, KNOWN_LANGUAGES
-from SUITE.control import BUILDER, XCOV, need_libsupport
+from SUITE.control import BUILDER, need_libsupport, xcov_pgm
 from SUITE.context import *
 
 # Then mind our own buisness
@@ -20,7 +20,9 @@ from SUITE.context import *
 from SUITE.cutils import *
 from gnatpython.fileutils import unixpath
 
-VALGRIND  = 'valgrind' + env.host.os.exeext
+
+XCOV     = xcov_pgm(thistest.options.auto_arch)
+VALGRIND = 'valgrind' + env.host.os.exeext
 
 MEMCHECK_LOG = 'memcheck.log'
 CALLGRIND_LOG = 'callgrind-{}.log'

@@ -11,12 +11,26 @@ from SUITE.cutils import no_ext
 
 env = Env()
 
+def xcov_pgm(auto_arch, for_target=True):
+    """Return the name of the "gnatcov" program to run.
+
+    :param bool auto_arch: If True, autodetect which "gnatcov" run depending on
+        FOR_TARGET.
+
+    :param for_target: If True, consider that we run "gnatcov" for the target
+        architecture. Otherwise, consider that we run it for the build
+        architecture instead.
+    """
+    arch = env.target if for_target else env.build
+    return 'gnatcov{bits}{ext}'.format(
+        bits=str(arch.cpu.bits) if auto_arch else '',
+        ext=env.host.os.exeext
+    )
+
 # Append .exe on windows for native tools
 GPRBUILD  = 'gprbuild' + env.host.os.exeext
 GPRCONFIG = 'gprconfig' + env.host.os.exeext
 GPRCLEAN  = 'gprclean' + env.host.os.exeext
-
-XCOV      = 'gnatcov' + env.host.os.exeext
 
 class LangInfo:
     """A class that provides some info about a given language.
@@ -345,3 +359,9 @@ def add_shared_options_to (o, toplevel):
             )
      for lang in [None] + KNOWN_LANGUAGES]
 
+    # --auto-arch
+
+    o.add_option(
+        '--auto-arch', action='store_true',
+        help='Autodetect which "gnatcov" to use (32-bit or 64-bit one)'
+    )
