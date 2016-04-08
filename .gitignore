@@ -8,6 +8,7 @@ test.py.*
 *.pkl
 *.dump
 *.qm
+/extra
 /tools/gnatcov/obj32/
 /tools/gnatcov/obj64/
 /tools/gnatcov/examples/support/lib
