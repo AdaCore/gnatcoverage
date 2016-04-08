@@ -875,7 +875,7 @@ class TestSuite:
         if os.path.isdir(self.tc_filter):
             roots = (self.tc_filter, )
         else:
-            roots = ("Qualif/", "tests/")
+            roots = ("Qualif/", "../extra/tests/")
 
         return (
             tc for root in roots
@@ -897,9 +897,18 @@ class TestSuite:
         self.dead_list = []
         self.tally = {}
 
+        # Setup the regular expression used to filter the testcases to run. If
+        # it is a path for an existing directory, we'll start the testcase
+        # seach from this subdirectory only.
+        #
+        # If we have an explicit request on the command line, use that.
+        # Otherwise, pick a default which matches anything of relevance for our
+        # execution mode. Note that '.' for the !qualif case would be
+        # incorrect, as it happens to also be a directory name and could
+        # restrict our search inappropriately.
         self.tc_filter = (
             self.options.run_test if self.options.run_test
-            else "." if not self.options.qualif_level
+            else ".*" if not self.options.qualif_level
             else "(%s)|Z999" % (
                 QLEVEL_INFO[self.options.qualif_level].subtrees)
             )

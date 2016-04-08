@@ -7,11 +7,11 @@ This is a python driven testsuite for GNATcoverage.
 Most tests use gprbuild to build programs for run/analysis by gnatcov/gnatemu.
 
 The testsuite driver is <topdir>/testsuite.py.
-It scans the subdirectories for "test.py" instances and runs every one
-it finds after switching to where it was found.
+It scans the following subdirectories for "test.py" instances and runs every
+one it finds after switching to where it was found:
 
-Down the "Qualif" subdirectory reside our current set of do178
-"qualification" tests.
+ * Qualif/          # do178 qualification testsuite
+ * ../extra/tests/  # Other testcases
 
 -------------------
 -- Prerequisites --
