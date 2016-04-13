@@ -12,6 +12,13 @@ import re, tempfile, sys
 from gnatpython.fileutils import diff, os, cd, mkdir, which
 from gnatpython.ex import Run
 
+def strip_prefix(prefix, string):
+    """
+    If STRING starts with PREFIX, return STRING without the PREFIX part.
+    Return the string unchanged otherwise.
+    """
+    return string[len(prefix):] if string.startswith(prefix) else string
+
 # ------------
 # -- no_ext --
 # ------------

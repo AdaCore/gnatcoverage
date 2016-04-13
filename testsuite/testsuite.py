@@ -30,7 +30,7 @@ import logging, os, re, sys
 import optparse
 
 from SUITE import cutils
-from SUITE.cutils import contents_of, FatalError, exit_if
+from SUITE.cutils import strip_prefix, contents_of, FatalError, exit_if
 from SUITE.cutils import version, list_to_tmp
 
 from SUITE.dutils import pdump_to, pload_from
@@ -1698,8 +1698,12 @@ class TestCase(object):
         # "./" prefix or a "/" suffix", and replace slashes which would
         # introduce problematic articial layers in URLs eventually. Note that
         # we expect the paths to have been unixified here.
+        result = self.rtestdir.strip('./').replace('/', '-')
 
-        return self.rtestdir.strip('./').replace('/', '-')
+        # Tests from the internal testsuite used to be located in the "tests"
+        # subdirectory. They are now in "../extra/tests", but we want the GAIA
+        # name to remain the same.
+        return strip_prefix('extra-', result)
 
     def qualif_levels(self):
         """List of qualification levels to which SELF applies"""
