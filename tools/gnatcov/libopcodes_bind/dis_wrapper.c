@@ -220,6 +220,22 @@ create_visium_disassembler (void)
   return dh;
 }
 
+disassemble_handle *
+create_sparc_disassembler (void)
+{
+  disassemble_handle *dh = _create_base_disassembler (bfd_arch_sparc);
+
+  if (!dh)
+    return NULL;
+
+  /* print_insn_sparc handles both big and little endian.  */
+  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_sparc;
+  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_sparc;
+  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
+
+  return dh;
+}
+
 /* Frees the memory allocated for the disassembler represented by DH.  */
 void
 delete_disassembler (disassemble_handle *const dh)
