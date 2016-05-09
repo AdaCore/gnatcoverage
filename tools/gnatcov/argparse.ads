@@ -113,7 +113,7 @@ package Argparse is
    type Command_Info_Array is
      array (Valid_Commands) of aliased Command_Info;
 
-   type Command_Set is array (Valid_Commands) of Boolean with Pack => True;
+   type Command_Set is array (Valid_Commands) of Boolean with Pack;
 
    All_Commands : Command_Set := (others => True);
 
