@@ -219,6 +219,16 @@ at_cache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
   tce->op |= taken ? TRACE_OP_BR0 : TRACE_OP_BR1;
 }
 
+static void
+flush_cb (int id)
+{
+  int i;
+
+  for (i = 0; i < cache_entries_idx; i++)
+    write_trace_cache_entry (&cache_entries[i]);
+  cache_entries_idx = 0;
+}
+
 static dr_emit_flags_t
 event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
                   bool for_trace, bool translating)
@@ -250,7 +260,7 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 
 	  br_len = instr_length (drcontext, instr);
 
-	  /* Insert a call to at_cbr to generate a trace.  */
+	  /* Insert a call to at_cbr to always generate a trace.  */
 	  if (tracefile_history_search ((pctype)br_pc))
 	    {
 	      void *at_fun;
@@ -273,18 +283,32 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 	    }
 	  else
 	    {
+	      /* Allocate an entry.  */
 	      struct trace_cache_entry *tce =
 		&cache_entries[cache_entries_idx++];
 
+	      /* Near end of cache.  */
+	      if (cache_entries_idx >= NBR_CACHE_ENTRIES - 16)
+		{
+		  /* Request for a flush.  */
+		  if (cache_entries_idx == NBR_CACHE_ENTRIES - 16)
+		    {
+		      if (!dr_delay_flush_region (0, (size_t)-1, 0, flush_cb))
+			dr_abort ();
+		    }
+		  else if (cache_entries_idx == NBR_CACHE_ENTRIES)
+		    {
+		      /* No more entries -> abort.  */
+		      dr_abort ();
+		    }
+		}
+
+	      /* Initialize it.  */
 	      tce->addr = br_pc;
 	      tce->op = 0;
 	      tce->blen = br_pc - bb_pc;
 	      tce->alen = br_len;
 
-	      if (cache_entries_idx == NBR_CACHE_ENTRIES)
-		{
-		  dr_abort ();
-		}
 	      dr_insert_cbr_instrumentation_ex
 		(drcontext, bb, instr, at_cache, OPND_CREATE_INTPTR(tce));
 	    }
@@ -455,6 +479,10 @@ void dr_init(client_id_t id)
   char arg[MAXIMUM_PATH + 8];
   const char *p;
 
+#ifdef WINDOWS
+  dr_enable_console_printing();
+#endif /* WINDOWS */
+
   dr_set_client_name("DynamoRIO Sample Client 'cbrtrace'",
 		     "http://dynamorio.org/issues");
   dr_log(NULL, LOG_ALL, 1, "Client 'cbrtrace' initializing");
@@ -498,10 +526,6 @@ void dr_init(client_id_t id)
   dr_register_bb_event(event_basic_block);
 
   dr_register_exit_event(event_exit);
-
-#ifdef WINDOWS
-  dr_enable_console_printing();
-#endif /* WINDOWS */
 
   if (histmap[0])
     read_map_file (histmap);
