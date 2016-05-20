@@ -472,12 +472,10 @@ create_trace_file (const char *filename)
 }
 
 DR_EXPORT
-void dr_init(client_id_t id)
+void dr_client_main(client_id_t id, int argc, const char *argv[])
 {
-  char filename[MAXIMUM_PATH];
-  char histmap[MAXIMUM_PATH];
-  char arg[MAXIMUM_PATH + 8];
-  const char *p;
+  char filename[MAXIMUM_PATH] = "dynamorio.trace";
+  char histmap[MAXIMUM_PATH] = "";
 
 #ifdef WINDOWS
   dr_enable_console_printing();
@@ -488,38 +486,54 @@ void dr_init(client_id_t id)
   dr_log(NULL, LOG_ALL, 1, "Client 'cbrtrace' initializing");
   client_id = id;
 
-  strcpy_s (filename, sizeof (filename), "dynamorio.trace");
-  histmap[0] = 0;
-
   /* Decode options.  */
-  p = dr_get_options (id);
-  while ((p = dr_get_token (p, arg, sizeof (arg))) != NULL)
+  for (int i = 1; i < argc; ++i)
     {
-      if (strcmp (arg, "-o") == 0)
+      if (strcmp (argv[i], "-o") == 0)
 	{
-	  int l;
-
-	  p = dr_get_token (p, filename, sizeof (filename));
-	  DR_ASSERT_MSG (p != NULL, "missing -o filename");
+	  i++;
+	  if (i >= argc)
+	    {
+	      dr_fprintf (STDERR, "error: missing trace output filename\n");
+	      dr_exit_process (1);
+	    }
 
 	  /* Strip 'history,' and 'histmap='.  */
-	  l = strlen (filename);
-	  if (memcmp (filename, "history,", 8) == 0)
-	    memmove (filename, filename + 8, l + 1 - 8);
-	  if (memcmp (filename, "histmap=", 8) == 0)
-	    {
-	      char *s = filename + 8;
+	  const char *arg = argv[i];
 
-	      while (*s && *s != ',')
-		s++;
-	      memcpy (histmap, filename + 8, s - (filename + 8));
-	      histmap[s - (filename + 8)] = 0;
-	      if (*s)
-		memmove (filename, s + 1, l - (s - filename));
+	  if (memcmp (arg, "history,", 8) == 0)
+	    arg = arg + 8;
+
+	  if (memcmp (arg, "histmap=", 8) == 0)
+	    {
+	      const char *histmap_start = arg + 8;
+	      const char *histmap_end = histmap_start;
+
+	      while (*histmap_end && *histmap_end != ',')
+		++histmap_end;
+	      const unsigned histmap_len = histmap_end - histmap_start;
+
+	      memcpy (histmap, histmap_start, histmap_len);
+	      histmap[histmap_len] = 0;
+
+	      if (*histmap_end == 0)
+		{
+		  dr_fprintf (STDERR,
+			      "error: missing trace output filename\n");
+		  dr_exit_process (1);
+		}
+	      arg = histmap_end + 1;
 	    }
+	  else
+	    histmap[0] = 0;
+
+	  strcpy_s (filename, sizeof (filename), arg);
 	}
       else
-	DR_ASSERT_MSG (false, "invalid option");
+	{
+	  dr_fprintf (STDERR, "error: invalid option: %s\n", argv[i]);
+	  dr_exit_process (1);
+	}
     }
 
   /* Intercept all BB translation.  */
