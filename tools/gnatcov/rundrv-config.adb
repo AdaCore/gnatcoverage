@@ -26,6 +26,7 @@ with GNAT.OS_Lib;
 
 with Arch;
 with Coverage; use Coverage;
+with Files_Table;
 with Switches; use Switches;
 
 package body Rundrv.Config is
@@ -97,8 +98,7 @@ package body Rundrv.Config is
    Gnatcov_Prefix : constant String
      := Containing_Directory (Gnatcov_Dir);
 
-   Libexec_Dir : constant String
-     := Gnatcov_Prefix & "/libexec/gnatcoverage/";
+   Libexec_Dir : constant String := Gnatcov_Prefix & "/libexec/gnatcoverage";
 
    procedure Append_Arg (Cmd : Command_Access; Arg : String);
    procedure Append_Arg (Cmd : Command_Access; Opt, Arg : String);
@@ -148,7 +148,10 @@ package body Rundrv.Config is
    ----------------------
 
    function Bundled_Or_Plain (What, Where : String) return String is
-      Bundled : constant String := Libexec_Dir & "/" & Where & "/" & What;
+      Dir     : constant String :=
+         Files_Table.Build_Filename (Libexec_Dir, Where);
+      Bundled : constant String :=
+         Files_Table.Build_Filename (Dir, What);
    begin
       return (if Exists (Bundled) then Bundled else What);
    end Bundled_Or_Plain;
@@ -197,7 +200,7 @@ package body Rundrv.Config is
 
       if Cmd /= "valgrind" then
          Result.Environment.Insert (+"VALGRIND_LIB",
-                                    +(Libexec_Dir & "lib/valgrind/"));
+                                    +(Libexec_Dir & "/lib/valgrind/"));
       end if;
       return Result;
    end Native_Linux;

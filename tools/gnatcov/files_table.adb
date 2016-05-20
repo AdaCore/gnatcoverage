@@ -292,7 +292,7 @@ package body Files_Table is
    -- Canonicalize_Filename --
    ---------------------------
 
-   function Canonicalize_Filename (Filename : String) return String_Access
+   function Canonicalize_Filename (Filename : String) return String
    is
       use Ada.Characters.Handling;
       Res : String := Filename;
@@ -314,8 +314,29 @@ package body Files_Table is
             end if;
          end loop;
       end if;
-      return new String'(Res);
+      return Res;
    end Canonicalize_Filename;
+
+   ---------------------------
+   -- Canonicalize_Filename --
+   ---------------------------
+
+   function Canonicalize_Filename (Filename : String) return String_Access is
+   begin
+      return new String'(Canonicalize_Filename (Filename));
+   end Canonicalize_Filename;
+
+   --------------------
+   -- Build_Filename --
+   --------------------
+
+   function Build_Filename
+     (Dir      : String;
+      Filename : String) return String
+   is
+   begin
+      return Canonicalize_Filename (Dir & '/' & Filename);
+   end Build_Filename;
 
    --------------------
    -- Build_Filename --
@@ -326,7 +347,7 @@ package body Files_Table is
       Filename : String) return String_Access
    is
    begin
-      return Canonicalize_Filename (Dir & '/' & Filename);
+      return new String'(Build_Filename (Dir, Filename));
    end Build_Filename;
 
    ---------------------

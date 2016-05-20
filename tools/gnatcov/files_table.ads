@@ -37,10 +37,14 @@ package Files_Table is
    --  its source lines. Coverage information can be associated with each
    --  file/line. Only object coverage is supported.
 
+   function Canonicalize_Filename (Filename : String) return String;
    function Canonicalize_Filename (Filename : String) return String_Access;
    --  If the filename looks like a Windows filename, it is canonicalized: the
    --  drive letter is uppercased and the other characters are lowercased.
 
+   function Build_Filename
+     (Dir      : String;
+      Filename : String) return String;
    function Build_Filename
      (Dir      : String;
       Filename : String) return String_Access;
