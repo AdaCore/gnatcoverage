@@ -1,9 +1,12 @@
 include ../../architecture.mk
 include ../../host.mk
 
-VALGRIND_DIR=$(shell dirname `which valgrind`)
-VALGRIND_INCLUDE=$(VALGRIND_DIR)/../include/valgrind
-VALGRIND_LIBS=$(VALGRIND_DIR)/../lib/valgrind
+#########
+# Build #
+#########
+
+VALGRIND_INCLUDE=$(VALGRIND_PREFIX)/include/valgrind
+VALGRIND_LIBS=$(VALGRIND_PREFIX)/lib/valgrind
 
 CPP_FLAGS=-I. -I$(VALGRIND_INCLUDE) \
           -DVGA_$(VALGRIND_ARCH)=1 -DVGO_linux=1 \
@@ -44,26 +47,11 @@ $(COVERAGE_TOOL): $(COVERAGE_OBJECTS)
 # Installation #
 ################
 
-# Install within a provided VALGRIND_PREFIX if one is provided, within PREFIX
-# otherwise. In both cases, take this as the root of a place where a regular
-# valgrind install is expected to be.
+.PHONY: install
 
-ifeq (,$(VALGRIND_PREFIX))
-VALGRIND_PREFIX=$(PREFIX)
-endif
-
-TOOL_INSTALL_DIR=$(VALGRIND_PREFIX)/lib/valgrind
-
-.PHONY: install check-prefix
-
-check-prefix:
-	@if [ ! -e $(VALGRIND_PREFIX)/bin/valgrind ]; then \
-	  echo "warning: valgrind missing from prefix where adapter is installed."; \
-	fi
-
-install: check-prefix
-	$(MKDIR) $(TOOL_INSTALL_DIR)
-	cp -p $(COVERAGE_TOOL) $(TOOL_INSTALL_DIR)
+install:
+	$(MKDIR) $(VALGRIND_TOOL_INSTALL_DIR)
+	cp -p $(COVERAGE_TOOL) $(VALGRIND_TOOL_INSTALL_DIR)
 
 ###########
 # Cleanup #

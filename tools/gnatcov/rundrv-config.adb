@@ -217,7 +217,7 @@ package body Rundrv.Config is
       Drrun    : constant String :=
          Bundled_Or_Plain (What => "drrun.exe", Where => "bin" & Bits);
       Drclient : constant String :=
-         Bundled_Or_Plain (What => "qtrace.dll", Where => "");
+         Bundled_Or_Plain (What => "qtrace.dll", Where => "lib" & Bits);
       Result : constant Command_Access := new Command_Type'
         (Command => +Drrun, others => <>);
    begin

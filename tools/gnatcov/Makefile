@@ -33,19 +33,33 @@
 #
 # All working with the PREFIX variable, that users may specify:
 
-# Base installation dir. Should be absolute pathname.
-PREFIX=$(PWD)/install
+# Base installation dir. Should be absolute pathname. Beware of
+# possible conflicts with the INSTALL text file of our distribution,
+# on possibly case-insensitive filesystems.
+PREFIX=$(PWD)/local
 
-# Note for the valgrind adapter on linux:
-# ---------------------------------------
-# By default, install-adapters installs the valgrind coverage plugin in
-# the bundled-in valgrind tree (in <PREFIX>/libexec/gnatcoverage), populated
-# within binary packages only.
-#
-# When there is no such tree available (e.g. building gnatcov entirely from
-# sources), gnatcov will rely on PATH to find a suitable valgrind and the
-# adapter must be installed in the corresponding lib subdir. This is requested
-# by providing an explicit VALGRIND_PREFIX value.
+# Note for the trace adapters:
+# ----------------------------
+
+# When *building* adapters for native configurations, we usually need to know
+# the execution engine "prefix" to get access to e.g. header files (valgrind)
+# or cmake artifacts (dynamoRIO).
+
+# By default, we infer that prefix from the location of "valgrind" or "drrun"
+# on the PATH, and users may specify an alternate location by setting the
+# VALGRIND_PREFIX or DYNRIO_PREFIX Makefile variable.
+
+# When *installing* adapters, we need the location of the valgrind install
+# tree where the valgrind adapter needs to go. By default, we infer that from
+# the location of "valgrind" on the PATH.  Users may alter that choice by
+# setting the VALGRIND_PREFIX variable.
+
+# dynamorio doesn't need the client to be installed within it's own tree, so
+# we install within the bundled install tree, rooted at PREFIX and gnatcov
+# passes the complete client path to dynamorio.
+
+# Alternatively, users may specify a final location by setting the
+# VALGRIND_TOOL_INSTALL_DIR or DYNRIO_CLIENT_INSTALL_DIR variable.
 
 # ----------------
 # -- To cleanup --
@@ -99,19 +113,15 @@ include host.mk
 #   builds both the core tools and the adapters of
 #   relevance for the host
 
-# Determine the set of ADAPTER_SUBDIRS of relevance on our host OS
+# Determine the set of ADAPTERS of relevance on our host OS (subdir
+# names within trace_adapters)
 
-NEXUS_SUBDIR = trace_adapters/nexus
-VALGRIND_SUBDIR = trace_adapters/valgrind
-
-ALL_ADAPTER_SUBDIRS = $(VALGRIND_SUBDIR) $(NEXUS_SUBDIR)
-
-HOST_ADAPTER_SUBDIRS =
+HOST_ADAPTERS =
 ifeq ($(HOST_OS), windows)
-HOST_ADAPTER_SUBDIRS = $(NEXUS_SUBDIR)
+HOST_ADAPTERS = nexus dynamorio
 endif
 ifeq ($(HOST_OS), linux)
-HOST_ADAPTER_SUBDIRS = $(VALGRIND_SUBDIR)
+HOST_ADAPTERS = valgrind
 endif
 
 include architecture.mk
@@ -119,13 +129,37 @@ include architecture.mk
 PARALLEL_BUILD=0
 BUILD_MODE=dev
 
-.PHONY: default all adapters bin $(PGMPATH) $(ALL_ADAPTER_SUBDIRS)
+# ================================================================
+# == Variables to pass down to sub-makefiles for trace adapters ==
+# ================================================================
+
+# For valgrind, we need a prefix indication at build time to find header
+# files, and at install time to place the "tool" within the valgrind install
+# tree.
+
+VALGRIND_PREFIX?=$(shell dirname `which valgrind`)/..
+
+valgrind_ADAPTER_BUILD_VARS=\
+  VALGRIND_PREFIX?=$(VALGRIND_PREFIX)
+
+valgrind_ADAPTER_INSTALL_VARS=\
+  VALGRIND_TOOL_INSTALL_DIR?=$(VALGRIND_PREFIX)/lib/valgrind
+
+# For dynamorio, we need a prefix indication at build time to find header
+# files and cmake artifacts, and can always install within the gnatcov install
+# tree.
+
+DYNRIO_PREFIX?=$(shell dirname `which drrun`)/..
+
+dynamorio_ADAPTER_BUILD_VARS=\
+  DYNRIO_PREFIX?=$(DYNRIO_PREFIX)
+
+dynamorio_ADAPTER_INSTALL_VARS=\
+  DYNRIO_CLIENT_INSTALL_DIR?=$(PREFIX)/libexec/gnatcoverage/lib$(BITS_ARCH)
+
+.PHONY: default all adapters bin $(PGMPATH)
 
 default: bin
-
-adapters: $(HOST_ADAPTER_SUBDIRS)
-
-all-adapters: $(ALL_ADAPTER_SUBDIRS)
 
 bin: $(PGMPATH)
 
@@ -136,9 +170,13 @@ $(PGMPATH):
 	-XARCH=$(BITS_ARCH) -XBUILD_MODE=$(BUILD_MODE) \
 	$(EXTRA_ADAFLAGS) $(PGMNAME)
 
-$(ALL_ADAPTER_SUBDIRS):
-	$(MAKE) -C $@
+ADAPTER_TARGETS=$(foreach a, $(HOST_ADAPTERS), adapter-$(a))
+.PHONY: $(ADAPTERS_TARGETS)
 
+$(ADAPTER_TARGETS): adapter-%:
+	$(MAKE) -C trace_adapters/$* $($*_ADAPTER_BUILD_VARS)
+
+adapters: $(ADAPTER_TARGETS)
 
 #######################
 # Internal facilities #
@@ -201,14 +239,17 @@ clean-doc-copy: $(foreach fmt, $(DOCFORMATS), clean-doc-copy.$(fmt))
 clean-doc-build:
 	make -C $(UMAN_DOCDIR) clean
 
-clean-adapters:
-	for dir in $(ALL_ADAPTER_SUBDIRS); do \
-	  $(MAKE) -C $$dir clean; \
-	done
-
 clean-doc: clean-doc-build clean-doc-copy
 
 clean: clean-bin clean-doc clean-adapters
+
+CLEAN_ADAPTER_TARGETS=$(foreach a, $(HOST_ADAPTERS), clean-adapter-$(a))
+.PHONY: $(CLEAN_ADAPTER_TARGETS)
+
+$(CLEAN_ADAPTER_TARGETS): clean-adapter-%:
+	$(MAKE) -C trace_adapters/$* clean
+
+clean-adapters: $(CLEAN_ADAPTER_TARGETS)
 
 ################
 # Installation #
@@ -236,19 +277,14 @@ install-without-doc: install-common
 install-with-doc: install-common install-doc
 install: install-with-doc
 
-install-adapters:
-	for dir in $(HOST_ADAPTER_SUBDIRS); do \
-	  $(MAKE) -C $$dir \
-               PREFIX=$(PREFIX) \
-               $(INSTALL_ADAPTERS_VARS_$(HOST_OS)) \
-               install || exit 1; \
-	done
+INSTALL_ADAPTER_TARGETS=$(foreach a, $(HOST_ADAPTERS), install-adapter-$(a))
+.PHONY: $(INSTALL_ADAPTER_TARGETS)
 
-# For linux adapters, provide a default VALGRIND_PREFIX to the valgrind
-# plugin installer, designating our local libexec subdir:
+$(INSTALL_ADAPTER_TARGETS): install-adapter-%:
+	$(MAKE) -C trace_adapters/$* $($*_ADAPTER_INSTALL_VARS) install
 
-INSTALL_ADAPTERS_VARS_linux = VALGRIND_PREFIX?=$(PREFIX)/libexec/gnatcoverage
-INSTALL_ADAPTERS_VARS_windows = 
+install-adapters: $(INSTALL_ADAPTER_TARGETS)
+
 
 #############
 # Packaging #
