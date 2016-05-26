@@ -159,7 +159,7 @@ tracefile_history_search (pctype pc)
 static void
 flush_traces (void)
 {
-  size_t len = nbr_entries * sizeof (trace_entry);
+  ssize_t len = nbr_entries * sizeof (trace_entry);
 
   if (nbr_entries == 0)
     return;
@@ -198,6 +198,8 @@ static void
 at_cbr2_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
 		int taken, void *bb_addr)
 {
+  (void) targ_addr;
+  (void) fall_addr;
   write_trace ((app_pc)bb_addr, inst_addr + 2 - (app_pc)bb_addr,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
 }
@@ -206,6 +208,8 @@ static void
 at_cbr6_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
 		int taken, void *bb_addr)
 {
+  (void) targ_addr;
+  (void) fall_addr;
   write_trace ((app_pc)bb_addr, inst_addr + 6 - (app_pc)bb_addr,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
 }
@@ -216,6 +220,9 @@ at_cache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
 {
   struct trace_cache_entry *tce = (struct trace_cache_entry *)arg;
 
+  (void) inst_addr;
+  (void) targ_addr;
+  (void) fall_addr;
   tce->op |= taken ? TRACE_OP_BR0 : TRACE_OP_BR1;
 }
 
@@ -224,6 +231,7 @@ flush_cb (int id)
 {
   int i;
 
+  (void) id;
   for (i = 0; i < cache_entries_idx; i++)
     write_trace_cache_entry (&cache_entries[i]);
   cache_entries_idx = 0;
@@ -235,6 +243,9 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 {
   instr_t *instr;
   app_pc bb_pc = dr_fragment_app_pc(tag);
+
+  (void) for_trace;
+  (void) translating;
 
   /* No instrumentation if not part of the main module.  */
   if (bb_pc < main_module->start || bb_pc > main_module->end)
@@ -446,7 +457,7 @@ read_map_file(const char *filename)
 static void
 create_trace_file (const char *filename)
 {
-  struct trace_header hdr = { QEMU_TRACE_MAGIC };
+  struct trace_header hdr;
 
   tracefile = dr_open_file (filename,
 			     DR_FILE_CLOSE_ON_FORK | DR_FILE_WRITE_APPEND);
@@ -457,6 +468,7 @@ create_trace_file (const char *filename)
       dr_exit_process (127);
     }
 
+  memcpy (hdr.magic, QEMU_TRACE_MAGIC, strlen (QEMU_TRACE_MAGIC));
   hdr.version = QEMU_TRACE_VERSION;
   hdr.sizeof_target_pc = sizeof (void *);
   hdr.kind = QEMU_TRACE_KIND_RAW;
