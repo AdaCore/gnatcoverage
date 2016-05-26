@@ -15,3 +15,8 @@ endif(NOT DynamoRIO_FOUND)
 use_DynamoRIO_extension(qtrace drx) 
 
 configure_DynamoRIO_client(qtrace)
+
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra")
+endif(CMAKE_COMPILER_IS_GNUCC)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall")

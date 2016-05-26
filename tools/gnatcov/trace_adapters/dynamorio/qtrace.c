@@ -19,6 +19,14 @@
    The GNU General Public License is contained in the file COPYING.
 */
 
+#include <string.h>
+
+#ifdef LINUX
+   /* For pid_t, used in dr_defines.h.  */
+#  include <unistd.h>
+#  include <sys/types.h>
+#endif
+
 #include "dr_api.h"
 #include "dr_tools.h"
 
@@ -128,6 +136,18 @@ struct trace_cache_entry
 #define NBR_CACHE_ENTRIES 102400
 static struct trace_cache_entry cache_entries[NBR_CACHE_ENTRIES];
 static int cache_entries_idx = 0;
+
+static void
+copy_string (char *destination, const char *source, size_t size)
+{
+  size_t source_size = strlen (source);
+
+  if (source_size > size)
+    source_size = size - 1;
+
+  memcpy (destination, source, source_size);
+  destination[source_size] = 0;
+}
 
 static int
 tracefile_history_search (pctype pc)
@@ -539,7 +559,7 @@ void dr_client_main(client_id_t id, int argc, const char *argv[])
 	  else
 	    histmap[0] = 0;
 
-	  strcpy_s (filename, sizeof (filename), arg);
+	  copy_string (filename, arg, sizeof (filename));
 	}
       else
 	{
