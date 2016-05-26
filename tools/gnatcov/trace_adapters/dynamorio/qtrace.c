@@ -481,9 +481,9 @@ void dr_client_main(client_id_t id, int argc, const char *argv[])
   dr_enable_console_printing();
 #endif /* WINDOWS */
 
-  dr_set_client_name("DynamoRIO Sample Client 'cbrtrace'",
+  dr_set_client_name("DynamoRIO Sample Client 'qtrace'",
 		     "http://dynamorio.org/issues");
-  dr_log(NULL, LOG_ALL, 1, "Client 'cbrtrace' initializing");
+  dr_log(NULL, LOG_ALL, 1, "Client 'qtrace' initializing");
   client_id = id;
 
   /* Decode options.  */
