@@ -733,10 +733,21 @@ procedure GNATcov is
 
       if Root_Project /= null then
          --  If a root project has been specified but no project is being
-         --  considered for coverage analysis, consider the root by default.
+         --  considered for coverage analysis, then:
+         --
+         --  * If it has an Origin_Project attribute, consider the project it
+         --    references. GNATtest uses this attribute in the generated
+         --    harness project to reference the user project that is tested, so
+         --    this behavior is helpful.
+         --
+         --  * Otherwise just consider the root project.
 
          if Length (Projects_Inputs) = 0 then
-            Inputs.Add_Input (Projects_Inputs, Root_Project.all);
+            if Origin_Project'Length /= 0 then
+               Inputs.Add_Input (Projects_Inputs, Origin_Project);
+            else
+               Inputs.Add_Input (Projects_Inputs, Root_Project.all);
+            end if;
          end if;
          Inputs.Iterate (Projects_Inputs, Project.Add_Project'Access);
 

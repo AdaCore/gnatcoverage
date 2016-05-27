@@ -36,6 +36,10 @@ package Project is
    --  desired. This must be a project in the closure of the previously loaded
    --  root project. Prj_Name may optionally have a Project_File_Extension.
 
+   function Origin_Project return String;
+   --  If the loaded root project has an Origin_Project attribute, return its
+   --  value. Return an empty string otherwise.
+
    procedure Compute_Project_View;
    --  Recompute the view of the loaded project within the current scenario
 

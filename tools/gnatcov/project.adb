@@ -128,6 +128,21 @@ package body Project is
       return Build (Coverage_Package, A'Img);
    end "+";
 
+   --------------------
+   -- Origin_Project --
+   --------------------
+
+   function Origin_Project return String is
+      Root_Prj : Project_Type;
+   begin
+      if Prj_Tree = null then
+         return "";
+      end if;
+
+      Root_Prj := GNATCOLL.Projects.Root_Project (Prj_Tree.all);
+      return Attribute_Value (Root_Prj, Origin_Project_Attribute);
+   end Origin_Project;
+
    -----------------
    -- Add_Project --
    -----------------
