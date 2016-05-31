@@ -27,24 +27,25 @@ with System.Storage_Elements; use System.Storage_Elements;
 with GNATCOLL.VFS;
 
 with Coff;
-with Coverage.Object;   use Coverage.Object;
+with Coverage;        use Coverage;
+with Coverage.Object; use Coverage.Object;
 with Coverage.Source;
-with Coverage.Tags;     use Coverage.Tags;
+with Coverage.Tags;   use Coverage.Tags;
 with Diagnostics;
-with Disassemblers;     use Disassemblers;
+with Disassemblers;   use Disassemblers;
 with Dwarf;
-with Dwarf_Handling;    use Dwarf_Handling;
-with Execs_Dbase;       use Execs_Dbase;
-with Files_Table;       use Files_Table;
-with Hex_Images;        use Hex_Images;
+with Dwarf_Handling;  use Dwarf_Handling;
+with Execs_Dbase;     use Execs_Dbase;
+with Files_Table;     use Files_Table;
+with Hex_Images;      use Hex_Images;
 with Inputs;
 with Outputs;
-with Perf_Counters;     use Perf_Counters;
+with Perf_Counters;   use Perf_Counters;
 with Qemu_Traces;
 with Traces_Disa;
-with Traces_Lines;      use Traces_Lines;
+with Traces_Lines;    use Traces_Lines;
 with Traces_Names;
-with Types;             use Types;
+with Types;           use Types;
 
 package body Traces_Elf is
 
@@ -65,7 +66,7 @@ package body Traces_Elf is
       Insn_Set : Insn_Set_Type;
    end record;
    --  Temporary data structure created when reading mapping symbols (in ARM
-   --  ELF, these tell us whether code is ARM or Thumb). We use these symbols
+   --  ELF, these tell us whether code is ARM or Thumb). We use these symbols
    --  to fill Insn_Set_Ranges data structures.
 
    function "<" (L, R : Mapping_Symbol) return Boolean is
@@ -2853,7 +2854,7 @@ package body Traces_Elf is
 
             Traces_Names.Key_From_Symbol (Exec, Sym, Subp_Key);
             Traces_Names.Add_Routine
-              (Subp_Key, Exec, Sec.Section_Sec_Idx, Sym.Symbol_Tag);
+              (Subp_Key, Exec, Sec.Section_Sec_Idx);
 
             begin
                Traces_Names.Add_Code_And_Traces
@@ -4669,8 +4670,7 @@ package body Traces_Elf is
                      if not Is_In (Subp_Key) then
                         Add_Routine
                           (Subp_Key,
-                           Exec, Symbol.Parent.Section_Sec_Idx,
-                           Symbol.Symbol_Tag);
+                           Exec, Symbol.Parent.Section_Sec_Idx);
                         Symbol.Symbol_Origin := Subp_Key.Origin;
                      end if;
 

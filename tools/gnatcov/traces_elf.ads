@@ -31,7 +31,6 @@ with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 
 with Arch;           use Arch;
 with Binary_Files;   use Binary_Files;
-with Coverage;       use Coverage;
 with Disa_Symbolize; use Disa_Symbolize;
 with Elf_Common;     use Elf_Common;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -248,7 +247,6 @@ package Traces_Elf is
 
          when Symbol_Addresses =>
             Symbol_Name   : String_Access;
-            Symbol_Tag    : SC_Tag  := No_SC_Tag;
             Symbol_Origin : Natural := 0;
 
          when Line_Addresses =>

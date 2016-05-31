@@ -162,12 +162,13 @@ package body Traces_Names is
    procedure Add_Routine
      (Key     : in out Subprogram_Key;
       Exec    : Exe_File_Acc;
-      Section : Section_Index;
-      Tag     : out SC_Tag)
+      Section : Section_Index)
    is
       use Routines_Maps;
       TP  : Tag_Provider_Access renames Tag_Provider;
       Cur : Cursor;
+      Tag : SC_Tag;
+
    begin
       --  If the routine has no compile unit, it must not be consolidated, so
       --  it is made unique using its Origin member.

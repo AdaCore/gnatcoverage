@@ -95,11 +95,10 @@ package Traces_Names is
    procedure Add_Routine
      (Key     : in out Subprogram_Key;
       Exec    : Exe_File_Acc;
-      Section : Section_Index;
-      Tag     : out SC_Tag);
+      Section : Section_Index);
    --  Create a Subprogram_Info entry for the given Subprogram_Key in the
    --  routines database if it doesn't exist. Key.Origin member is updated if
-   --  there is no associated Compile_Unit. Returns the assigned routine tag.
+   --  there is no associated Compile_Unit.
 
    function Is_In (Key : Subprogram_Key) return Boolean;
    --  Return True iff Key has been included into the routine database
