@@ -280,15 +280,21 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 		 || instr_is_ubr(instr)
 		 || instr_is_mbr(instr))
 	  {
-	    /* This is an unconditional branch.  */
-	    app_pc next_pc = instr_get_app_pc (instr)
-	      + instr_length (drcontext, instr);
 	    if (next_instr != NULL)
 	      {
 		/* Must be the last instruction of the basic block.  */
 		instrlist_disassemble(drcontext, tag, bb, STDOUT);
 		dr_exit_process (126);
 	      }
+
+	    /* This is an unconditional branch.  No need to create yet another
+	       trace entry if this block was already executed.  */
+	    if (for_trace || translating)
+	      return DR_EMIT_DEFAULT;
+
+	    app_pc next_pc = instr_get_app_pc (instr)
+	      + instr_length (drcontext, instr);
+
 	    /* Generate the trace now, assuming the basic block will be
 	       fully executed.  */
 	    write_trace (bb_pc, next_pc - bb_pc, TRACE_OP_BLOCK);
