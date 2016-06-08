@@ -61,9 +61,31 @@ struct trace_cache_entry
   unsigned char op;
 };
 
+/* Buffer for traces caches, they are referenced in the translated code.  */
 #define NBR_CACHE_ENTRIES 102400
 static struct trace_cache_entry cache_entries[NBR_CACHE_ENTRIES];
 static int cache_entries_idx = 0;
+
+/* LRU hash table for trace caches, to reuse them when retranslating code.  The
+   key is the address of the first byte in the basic block and the value is the
+   index of a trace cache entry in CACHE_ENTRIES.
+
+   This hash table has NBR_LRU_BUCKETS rows and each row has room for at most
+   NBR_LRU_ENTRIES collision. In one bucket, free cells are always last.
+
+   Each cell contains either 0 (for no entry present) or N + 1 where N is the
+   index for the trace cache entry in CACHE_ENTRIES.  */
+#define NBR_LRU_BUCKETS (0xffff + 1)
+#define NBR_LRU_ENTRIES 4
+static int trace_lru_entries[NBR_LRU_BUCKETS][NBR_LRU_ENTRIES];
+
+/* Compute the bucket index in TRACE_LRU_ENTRIES corresponding to the BB_ADDR
+   basic block address.
+
+   Discard the address least significant bit as most basic block addresses are
+   aligned with 2 bytes.  */
+#define LRU_BUCKET(BB_ADDR) \
+  ((((intptr_t) BB_ADDR) >> 1) & (NBR_LRU_BUCKETS - 1))
 
 static void
 copy_string (char *destination, const char *source, size_t size)
@@ -140,6 +162,95 @@ write_trace_cache_entry (struct trace_cache_entry *tce)
   write_trace (tce->addr, tce->size, tce->op);
 }
 
+/* Callback invoked when a region has been flushed.  Flush CACHE_ENTRIES.  */
+static void
+flush_cb (int id)
+{
+  int i;
+
+  (void) id;
+  for (i = 0; i < cache_entries_idx; i++)
+    write_trace_cache_entry (&cache_entries[i]);
+  cache_entries_idx = 0;
+}
+
+/* Return through TCE_P a pointer to a trace entry for the code block that
+   starts at ADDR and that is SIZE bytes long.  This returns whether a new
+   entry was created for this purpose otherwise, a previously cached one is
+   returned.
+
+   If we are soon running out of available trace entries, this requests a trace
+   entry flush and translated code flush: both will happen at DynamoRIO's
+   earliest convenience, so prepare this before there is no entry left at
+   all.  */
+static bool
+get_trace_cache_entry (app_pc addr, uint16_t size,
+		       struct trace_cache_entry **tce_p)
+{
+  struct trace_cache_entry *tce;
+  int *cell = NULL;
+  int *first_free_cell = NULL;
+  int i;
+
+  /* First look for an existing entry for ADDR.  */
+  const int row = LRU_BUCKET (addr);
+  for (i = 0; i < NBR_LRU_ENTRIES; ++i)
+    {
+      cell = &trace_lru_entries[row][i];
+
+      /* This cell is free.  */
+      if (*cell == 0)
+	{
+	  first_free_cell = cell;
+	  break;
+	}
+
+      /* This cell references a trace cache entry: if this is a collision, go
+	 on, otherwise we found an existing entry for ADDR.  */
+      tce = &cache_entries[*cell - 1];
+      if (tce->addr == addr && tce->size == size)
+	{
+	  *tce_p = tce;
+	  return false;
+	}
+    }
+
+  /* If we reach this point, there is no trace entry for ADDR: allocate a new
+     one.  */
+  tce = &cache_entries[cache_entries_idx++];
+
+  /* Near end of cache.  */
+  if (cache_entries_idx >= NBR_CACHE_ENTRIES - 16)
+    {
+      /* Request for a flush.  */
+      if (cache_entries_idx == NBR_CACHE_ENTRIES - 16)
+	{
+	  if (!dr_delay_flush_region (0, (size_t)-1, 0, flush_cb))
+	    dr_abort ();
+	}
+      else if (cache_entries_idx == NBR_CACHE_ENTRIES)
+	{
+	  /* No more entries -> abort.  */
+	  dr_abort ();
+	}
+    }
+
+  /* Last thing to do is to register this trace cache entry in the LRU
+     cache.  If there is no free cell left, pop the first one to make the last
+     one free.  */
+  if (first_free_cell == NULL)
+    {
+      int *row_ptr = &trace_lru_entries[row][0];
+      for (i = 0; i < NBR_LRU_ENTRIES - 1; ++i)
+	row_ptr[i] = row_ptr[i + 1];
+      first_free_cell = &row_ptr[NBR_LRU_ENTRIES - 1];
+    }
+  *first_free_cell = cache_entries_idx - 1;
+
+  *tce_p = tce;
+  return true;
+}
+
 /* Clean call for the cbr */
 static void
 at_cbr2_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
@@ -171,17 +282,6 @@ at_cache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
   (void) targ_addr;
   (void) fall_addr;
   tce->op |= taken ? TRACE_OP_BR0 : TRACE_OP_BR1;
-}
-
-static void
-flush_cb (int id)
-{
-  int i;
-
-  (void) id;
-  for (i = 0; i < cache_entries_idx; i++)
-    write_trace_cache_entry (&cache_entries[i]);
-  cache_entries_idx = 0;
 }
 
 static dr_emit_flags_t
@@ -241,33 +341,18 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 	    }
 	  else
 	    {
-	      /* Allocate an entry.  */
-	      struct trace_cache_entry *tce =
-		&cache_entries[cache_entries_idx++];
+	      struct trace_cache_entry *tce;
+	      uint16_t size = (br_pc + br_len) - bb_pc;
 
-	      /* Near end of cache.  */
-	      if (cache_entries_idx >= NBR_CACHE_ENTRIES - 16)
+	      if (get_trace_cache_entry (bb_pc, size, &tce))
 		{
-		  /* Request for a flush.  */
-		  if (cache_entries_idx == NBR_CACHE_ENTRIES - 16)
-		    {
-		      if (!dr_delay_flush_region (0, (size_t)-1, 0, flush_cb))
-			dr_abort ();
-		    }
-		  else if (cache_entries_idx == NBR_CACHE_ENTRIES)
-		    {
-		      /* No more entries -> abort.  */
-		      dr_abort ();
-		    }
+		  tce->addr = bb_pc;
+		  tce->size = size;
+		  tce->op = TRACE_OP_BLOCK;
 		}
 
-	      /* Initialize it.  */
-	      tce->addr = bb_pc;
-	      tce->size = (br_pc + br_len) - bb_pc;
-	      tce->op = TRACE_OP_BLOCK;
-
 	      dr_insert_cbr_instrumentation_ex
-		(drcontext, bb, instr, at_cache, OPND_CREATE_INTPTR(tce));
+		(drcontext, bb, instr, at_cache, OPND_CREATE_INTPTR (tce));
 	    }
         }
         else if (instr_is_call_direct(instr)
