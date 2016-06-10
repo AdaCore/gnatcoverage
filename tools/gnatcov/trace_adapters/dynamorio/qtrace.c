@@ -298,6 +298,21 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
     return DR_EMIT_DEFAULT;
 }
 
+#ifdef LINUX
+/* Disable all client features/effects for child processes.  */
+static void
+event_fork_init (void *drcontext)
+{
+  (void) drcontext;
+
+  /* Invalidate all translated blocks so that all instrumentation is gone.  */
+  if (!dr_delay_flush_region (0, (size_t)-1, 0, NULL))
+    dr_abort ();
+
+  dr_unregister_bb_event (event_basic_block);
+}
+#endif
+
 static void
 event_exit(void)
 {
@@ -501,6 +516,9 @@ void dr_client_main(client_id_t id, int argc, const char *argv[])
   /* Intercept all BB translation.  */
   dr_register_bb_event(event_basic_block);
 
+#ifdef LINUX
+  dr_register_fork_init_event(event_fork_init);
+#endif
   dr_register_exit_event(event_exit);
 
   if (histmap[0])
