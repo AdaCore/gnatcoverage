@@ -133,11 +133,14 @@ flush_traces (void)
 
   if (nbr_entries == 0)
     return;
-  if (dr_write_file (tracefile, trace_buffer, len) != len)
+
+  ssize_t ret = dr_write_file (tracefile, trace_buffer, len);
+  if (ret != len)
     {
-      dr_fprintf (STDERR, "cannot write trace\n");
+      dr_fprintf (STDERR, "error: cannot write trace (ret=%ld)\n", ret);
       dr_exit_process (127);
     }
+
   nbr_entries = 0;
 }
 
