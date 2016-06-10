@@ -19,6 +19,7 @@
    The GNU General Public License is contained in the file COPYING.
 */
 
+#include <stdint.h>
 #include <string.h>
 
 #ifdef LINUX
@@ -50,17 +51,14 @@ static int nbr_entries = 0;
 /* Cache for traces, to coallesce flags.  */
 struct trace_cache_entry
 {
-  /* Address of the branch instruction.  Must be checked (for equality)
-     before using the entry.  */
+  /* Address of the first instruction for the trace entry.  */
   app_pc addr;
+
+  /* Size of the code for the trace entry.  */
+  uint16_t size;
 
   /* Branch flags.  Same as a trace entry.  */
   unsigned char op;
-
-  /* Number of bytes in the BB before and after the instruction.  Used to
-     reconstruct the trace.  */
-  unsigned int blen : 20;
-  unsigned int alen : 4;
 };
 
 #define NBR_CACHE_ENTRIES 102400
@@ -139,8 +137,7 @@ write_trace (app_pc pc, unsigned int size, unsigned char op)
 static void
 write_trace_cache_entry (struct trace_cache_entry *tce)
 {
-  write_trace
-    (tce->addr - tce->blen, tce->blen + tce->alen, TRACE_OP_BLOCK | tce->op);
+  write_trace (tce->addr, tce->size, tce->op);
 }
 
 /* Clean call for the cbr */
@@ -265,10 +262,9 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 		}
 
 	      /* Initialize it.  */
-	      tce->addr = br_pc;
-	      tce->op = 0;
-	      tce->blen = br_pc - bb_pc;
-	      tce->alen = br_len;
+	      tce->addr = bb_pc;
+	      tce->size = (br_pc + br_len) - bb_pc;
+	      tce->op = TRACE_OP_BLOCK;
 
 	      dr_insert_cbr_instrumentation_ex
 		(drcontext, bb, instr, at_cache, OPND_CREATE_INTPTR(tce));
