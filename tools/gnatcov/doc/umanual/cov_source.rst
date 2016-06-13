@@ -1169,15 +1169,16 @@ if needed.
 
 For starters, a single :dfn:`root project` must be specified using the
 :option:`-P` option, then projects of interest within the tree rooted at the
-given root may be specified with :option:`--projects` options.  If
-:option:`-P` is used alone, without any :option:`--projects` option, then the
-root project itself is considered of interest.  With :option:`--projects`
-options, the projects listed by these options are considered of interest. The
-root project designated by :option:`-P` needs to be listed in the
-:option:`--projects` set to be considered of interest as well. With a lone
-:option:`-P` or with :option:`--projects` in addition, projects imported by
-the listed ones are also considered recursively if :option:`--recursive` is
-used.
+given root may be specified with :option:`--projects` options.  If :option:`-P`
+is used alone, without any :option:`--projects` option, then the root project
+itself is considered of interest, unless this root project defines a
+``Origin_Project`` attribute, in which case the project of interest will be the
+one this attribute designates.  With :option:`--projects` options, the projects
+listed by these options are considered of interest. The root project designated
+by :option:`-P` needs to be listed in the :option:`--projects` set to be
+considered of interest as well. With a lone :option:`-P` or with
+:option:`--projects` in addition, projects imported by the listed ones are also
+considered recursively if :option:`--recursive` is used.
 
 We will illustrate the effect of various combinations, assuming an example
 project tree depicted below:

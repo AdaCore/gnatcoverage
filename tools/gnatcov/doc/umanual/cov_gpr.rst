@@ -37,6 +37,11 @@ A common set of rules apply in all cases:
   processed includes the transitive closure of all the projects designated by
   :option:`-P` and :option:`--projects` if any.
 
+If only the root project file is specified using :option:`-P` and if this
+project has an ``Origin_Project`` attribute, the project that is actually
+considered for coverage assessment is the one designated by this attribute.
+``Origin_Project`` is ignored in all other cases.
+
 A ``Coverage`` package is allowed in every project file to provide attributes
 guiding the analysis in different possible ways. Two families of attributes
 are available today:
