@@ -20,12 +20,12 @@
 --  A.1 and chapter 2 ("Instruction format") in volume 2A.
 --  These manuals can be found at http://www.intel.com/product/manuals/
 
-with Disa_Common;
-with Elf_Common;
 with Interfaces;   use Interfaces;
-with Outputs;      use Outputs;
+
+with Disa_Common;
 with Hex_Images;   use Hex_Images;
 with Highlighting; use Highlighting;
+with Outputs;      use Outputs;
 
 package body Disa_X86 is
 
@@ -236,7 +236,7 @@ package body Disa_X86 is
       Branch_Dest : out Dest;
       FT_Dest     : out Dest)
    is
-      Is_64bit   : constant Boolean := Machine = Elf_Common.EM_X86_64;
+      Is_64bit   : constant Boolean := Machine = X86_64;
 
       Opcode_Off : Pc_Type := 0;
       B, B1      : Byte;

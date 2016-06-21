@@ -18,7 +18,6 @@
 
 with Ada.Containers.Ordered_Sets;
 
-with Elf_Common;    use Elf_Common;
 with Disassemblers; use Disassemblers;
 with Traces;        use Traces;
 
@@ -31,7 +30,7 @@ package Elf_Disassemblers is
    --  to disassemble.
 
    function Disa_For_Machine
-     (Machine  : Elf_Half;
+     (Machine  : Machine_Type;
       Insn_Set : Insn_Set_Type) return access Disassembler'Class;
    pragma Inline (Disa_For_Machine);
 
@@ -82,7 +81,7 @@ package Elf_Disassemblers is
    --  instruction.
 
    function Disa_For_Machine
-     (Machine : Elf_Half;
+     (Machine : Machine_Type;
       Ranges  : Insn_Set_Ranges;
       Cache   : in out Insn_Set_Cache;
       PC      : Pc_Type) return access Disassembler'Class

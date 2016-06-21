@@ -33,24 +33,26 @@ package body Elf_Disassemblers is
 
    use type Ada.Containers.Count_Type;
 
-   Disa_For_ARM   : aliased Disa_ARM.ARM_Disassembler;
-   Disa_For_LMP   : aliased Disa_Lmp.LMP_Disassembler;
-   Disa_For_Ppc   : aliased Disa_Ppc.PPC_Disassembler;
-   Disa_For_Sparc : aliased Disa_Sparc.SPARC_Disassembler;
-   Disa_For_Thumb : aliased Disa_Thumb.Thumb_Disassembler;
-   Disa_For_X86   : aliased Disa_X86.X86_Disassembler;
+   Disa_For_ARM    : aliased Disa_ARM.ARM_Disassembler;
+   Disa_For_Ppc    : aliased Disa_Ppc.PPC_Disassembler;
+   Disa_For_Sparc  : aliased Disa_Sparc.SPARC_Disassembler;
+   Disa_For_Thumb  : aliased Disa_Thumb.Thumb_Disassembler;
+   Disa_For_Visium : aliased Disa_Lmp.LMP_Disassembler;
+   Disa_For_X86    : aliased Disa_X86.X86_Disassembler;
 
    ----------------------
    -- Disa_For_Machine --
    ----------------------
 
    function Disa_For_Machine
-     (Machine  : Elf_Half;
+     (Machine  : Machine_Type;
       Insn_Set : Insn_Set_Type) return access Disassembler'Class
    is
    begin
       case Machine is
-         when EM_ARM =>
+         when Unknown =>
+            return null;
+         when ARM =>
             case Insn_Set is
                when Default =>
                   raise Program_Error with
@@ -63,18 +65,14 @@ package body Elf_Disassemblers is
                when Thumb =>
                   return Disa_For_Thumb'Access;
             end case;
-         when EM_PPC =>
+         when E500 | PPC =>
             return Disa_For_Ppc'Access;
-         when EM_SPARC =>
+         when SPARC =>
             return Disa_For_Sparc'Access;
-         when EM_386 =>
+         when Visium =>
+            return Disa_For_Visium'Access;
+         when X86 | X86_64 =>
             return Disa_For_X86'Access;
-         when EM_X86_64 =>
-            return Disa_For_X86'Access;
-         when EM_LMP | EM_VISIUM =>
-            return Disa_For_LMP'Access;
-         when others =>
-            return null;
       end case;
    end Disa_For_Machine;
 

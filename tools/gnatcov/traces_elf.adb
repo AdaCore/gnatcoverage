@@ -430,13 +430,14 @@ package body Traces_Elf is
          Is_Big_Endian : Boolean)
       is
       begin
-         if Machine = 0 then
-            Machine := Arch;
+         if ELF_Machine = 0 then
+            ELF_Machine := Arch;
+            Machine := Decode_EM (Arch);
             Big_Endian_ELF := Is_Big_Endian;
             Big_Endian_ELF_Initialized := True;
             return;
 
-         elsif Machine /= Arch then
+         elsif ELF_Machine /= Arch then
             --  Mixing different architectures.
 
             Outputs.Fatal_Error ("unexpected architecture for " & Filename);
@@ -3362,7 +3363,7 @@ package body Traces_Elf is
             end;
          end if;
 
-         if Machine = EM_ARM
+         if ELF_Machine = EM_ARM
            and then Sym_Type = STT_NOTYPE
            and then Elf_St_Bind (ESym.St_Info) = STB_LOCAL
          then

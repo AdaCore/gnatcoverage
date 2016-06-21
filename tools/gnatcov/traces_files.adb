@@ -113,8 +113,9 @@ package body Traces_Files is
       Trace_File.Machine := Unsigned_16 (Hdr.Machine_Hi) * 256
         + Unsigned_16 (Hdr.Machine_Lo);
 
-      if Machine = 0 or else Machine = Trace_File.Machine then
-         Machine := Trace_File.Machine;
+      if ELF_Machine = 0 or else ELF_Machine = Trace_File.Machine then
+         ELF_Machine := Trace_File.Machine;
+         Machine := Decode_EM (ELF_Machine);
       else
          raise Bad_File_Format
            with "target machine doesn't match previous one";
@@ -542,8 +543,8 @@ package body Traces_Files is
          Kind             => Kind,
          Sizeof_Target_Pc => Pc_Type_Size,
          Big_Endian       => Big_Endian_Host,
-         Machine_Hi       => Unsigned_8 (Shift_Right (Machine, 8)),
-         Machine_Lo       => Unsigned_8 (Machine and 16#Ff#),
+         Machine_Hi       => Unsigned_8 (Shift_Right (ELF_Machine, 8)),
+         Machine_Lo       => Unsigned_8 (ELF_Machine and 16#Ff#),
          Padding          => 0);
    end Make_Trace_Header;
 
