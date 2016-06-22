@@ -79,30 +79,34 @@ _print_address_cb (bfd_vma addr, disassemble_info *dinfo)
 
 /* Allocates and sets up data common to all disassemblers.  */
 static disassemble_handle *
-_create_base_disassembler (enum bfd_architecture arch)
+_create_base_disassembler (enum bfd_architecture arch, const char *options)
 {
   disassemble_handle *dh = malloc (sizeof (disassemble_handle));
+  disassembler_stream *ds;
 
   if (!dh)
     return NULL;
 
-  {
-    disassembler_stream *ds = create_stream ();
+  ds = create_stream ();
 
-    if (!ds)
-      {
-        free (dh);
-        return NULL;
-      }
+  if (!ds)
+    {
+      free (dh);
+      return NULL;
+    }
 
-    init_disassemble_info (&(dh->dinfo), ds, (fprintf_ftype) stream_printf);
+  init_disassemble_info (&(dh->dinfo), ds, (fprintf_ftype) stream_printf);
+  dh->dinfo.arch = arch;
+  if (options)
+    {
+      const size_t options_len = strlen (options);
 
-    dh->dinfo.arch = arch;
+      dh->dinfo.disassembler_options = malloc (options_len + 1);
+      strncpy (dh->dinfo.disassembler_options, options, options_len + 1);
+    }
+  dh->dinfo.application_data = calloc (1, sizeof (symbolizer_data));
 
-    disassemble_init_for_target (&(dh->dinfo));
-
-    dh->dinfo.application_data = calloc (1, sizeof (symbolizer_data));
-  }
+  disassemble_init_for_target (&(dh->dinfo));
 
   return dh;
 }
@@ -113,15 +117,11 @@ _create_base_disassembler (enum bfd_architecture arch)
 static disassemble_handle *
 _create_arm_arch_disassembler (unsigned char for_thumb)
 {
-  disassemble_handle *dh = _create_base_disassembler (bfd_arch_arm);
+  const char *options = (for_thumb) ? dis_thumb_option : dis_arm_option;
+  disassemble_handle *dh = _create_base_disassembler (bfd_arch_arm, options);
 
   if (!dh)
     return NULL;
-
-  if (for_thumb)
-    dh->disassembler_options = dis_thumb_option;
-  else
-    dh->disassembler_options = dis_arm_option;
 
   dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_arm;
   dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_arm;
@@ -161,18 +161,21 @@ create_thumb_disassembler (void)
 disassemble_handle *
 create_x86_disassembler (void)
 {
-  disassemble_handle *dh = _create_base_disassembler (bfd_arch_i386);
-
-  if (!dh)
-    return NULL;
+  const char *options;
+  disassemble_handle *dh;
 
 #if TARGET_BITS == 32
-  dh->disassembler_options = dis_x86_option;
+  options = dis_x86_option;
 #elif TARGET_BITS == 64
-  dh->disassembler_options = dis_x86_64_option;
+  options = dis_x86_64_option;
 #else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
 #error "Target arch is neither 32 or 64bits, not supported."
 #endif
+
+  dh = _create_base_disassembler (bfd_arch_i386, options);
+
+  if (!dh)
+    return NULL;
 
   dh->disass_func[BFD_ENDIAN_BIG] = NULL;
   dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_i386;
@@ -184,18 +187,21 @@ create_x86_disassembler (void)
 disassemble_handle *
 create_ppc_disassembler (void)
 {
-  disassemble_handle *dh = _create_base_disassembler (bfd_arch_powerpc);
-
-  if (!dh)
-    return NULL;
+  const char *options;
+  disassemble_handle *dh;
 
 #if TARGET_BITS == 32
-  dh->disassembler_options = dis_ppc_32_option;
+  options = dis_ppc_32_option;
 #elif TARGET_BITS == 64
-  dh->disassembler_options = dis_ppc_64_option;
+  options = dis_ppc_64_option;
 #else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
 #error "Target arch is neither 32 or 64bits, not supported."
 #endif
+
+  dh = _create_base_disassembler (bfd_arch_powerpc, options);
+
+  if (!dh)
+    return NULL;
 
   dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_powerpc;
   dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_powerpc;
@@ -208,7 +214,7 @@ create_ppc_disassembler (void)
 disassemble_handle *
 create_visium_disassembler (void)
 {
-  disassemble_handle *dh = _create_base_disassembler (bfd_arch_visium);
+  disassemble_handle *dh = _create_base_disassembler (bfd_arch_visium, NULL);
 
   if (!dh)
     return NULL;
@@ -223,7 +229,7 @@ create_visium_disassembler (void)
 disassemble_handle *
 create_sparc_disassembler (void)
 {
-  disassemble_handle *dh = _create_base_disassembler (bfd_arch_sparc);
+  disassemble_handle *dh = _create_base_disassembler (bfd_arch_sparc, NULL);
 
   if (!dh)
     return NULL;
@@ -245,7 +251,11 @@ delete_disassembler (disassemble_handle *const dh)
   free (dh->dinfo.application_data);
   dh->dinfo.application_data = NULL;
 
-  dh->disassembler_options = NULL;
+  if (dh->disassembler_options)
+    {
+      free (dh->disassembler_options);
+      dh->disassembler_options = NULL;
+    }
 
   free (dh);
 }
