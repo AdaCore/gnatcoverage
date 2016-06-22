@@ -32,6 +32,7 @@ with Coverage.Object; use Coverage.Object;
 with Coverage.Source;
 with Coverage.Tags;   use Coverage.Tags;
 with Diagnostics;
+with Disa_Ppc;
 with Disassemblers;   use Disassemblers;
 with Dwarf;
 with Dwarf_Handling;  use Dwarf_Handling;
@@ -527,6 +528,22 @@ package body Traces_Elf is
                begin
                   if Name = ".symtab" then
                      Exec.Sec_Symtab := I;
+
+                  elsif Exec.Exe_Machine = EM_PPC
+                        and then Name = ".PPC.EMB.apuinfo"
+                  then
+                     declare
+                        Len : Elf_Addr;
+                        Content : Binary_Content;
+                        Region : Mapped_Region;
+                     begin
+                        Alloc_And_Load_Section
+                          (Exec, Section_Index (I), Len, Content, Region);
+                        Machine := Disa_Ppc.Extract_APU_Info
+                          (Filename, Big_Endian_ELF, Content);
+                        Free (Region);
+                     end;
+
                   else
                      Set_Debug_Section (Exec, Section_Index (I), Name);
                   end if;

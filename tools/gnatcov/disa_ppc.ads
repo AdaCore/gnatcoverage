@@ -29,6 +29,16 @@ with Ada.Finalization;
 
 package Disa_Ppc is
 
+   function Extract_APU_Info
+     (Filename         : String;
+      Is_Big_Endian    : Boolean;
+      APU_Info_Section : Binary_Content)
+      return Traces.Machine_Type;
+   --  The PowerPC ABI defines an ELF section ".PPC.EMB.apuinfo" section to
+   --  provide information to properly interpret opcodes. This attempts to
+   --  extract a specific machine type out of it. Filename must be the name of
+   --  the executable this section comes from; it is used to emit diagnostics.
+
    type PPC_Disassembler is
      new Ada.Finalization.Limited_Controlled and Disassembler with private;
 
