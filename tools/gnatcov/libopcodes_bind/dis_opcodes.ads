@@ -76,6 +76,12 @@ package Dis_Opcodes is
           External_Name => "create_ppc_disassembler";
    --  Returns a handle to disassemble PowerPC binary code
 
+   function Create_E500_Disassembler return Disassemble_Handle
+      with Import        => True,
+           Convention    => C,
+           External_Name => "create_e500_disassembler";
+   --  Return a handle to disassemble e500 binary code
+
    function Create_Sparc_Disassembler return Disassemble_Handle
      with Import        => True,
           Convention    => C,

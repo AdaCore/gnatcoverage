@@ -34,6 +34,7 @@ package body Elf_Disassemblers is
    use type Ada.Containers.Count_Type;
 
    Disa_For_ARM    : aliased Disa_ARM.ARM_Disassembler;
+   Disa_For_E500   : aliased Disa_Ppc.E500_Disassembler;
    Disa_For_Ppc    : aliased Disa_Ppc.PPC_Disassembler;
    Disa_For_Sparc  : aliased Disa_Sparc.SPARC_Disassembler;
    Disa_For_Thumb  : aliased Disa_Thumb.Thumb_Disassembler;
@@ -65,7 +66,9 @@ package body Elf_Disassemblers is
                when Thumb =>
                   return Disa_For_Thumb'Access;
             end case;
-         when E500 | PPC =>
+         when E500 =>
+            return Disa_For_E500'Access;
+         when PPC =>
             return Disa_For_Ppc'Access;
          when SPARC =>
             return Disa_For_Sparc'Access;

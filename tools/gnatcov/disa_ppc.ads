@@ -86,11 +86,19 @@ package Disa_Ppc is
      (Object : in out PPC_Disassembler);
    --  Override of controlled object primitive
 
+   type E500_Disassembler is new PPC_Disassembler with private;
+
+   overriding procedure Initialize
+     (Object : in out E500_Disassembler);
+   --  Override of controlled object primitive
+
 private
 
    type PPC_Disassembler is
      new Ada.Finalization.Limited_Controlled and Disassembler with record
       Handle : Dis_Opcodes.Disassemble_Handle;
    end record;
+
+   type E500_Disassembler is new PPC_Disassembler with null record;
 
 end Disa_Ppc;

@@ -48,6 +48,7 @@ typedef struct symbolizer_data
 
 char *const dis_thumb_option = "force-thumb";
 char *const dis_arm_option = "no-force-thumb";
+char *const dis_e500_option = "e500";
 char *const dis_x86_option = "i386";
 char *const dis_x86_64_option = "x86-64";
 char *const dis_ppc_32_option = "32";
@@ -199,6 +200,22 @@ create_ppc_disassembler (void)
 #endif
 
   dh = _create_base_disassembler (bfd_arch_powerpc, options);
+
+  if (!dh)
+    return NULL;
+
+  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_powerpc;
+  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_powerpc;
+  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
+
+  return dh;
+}
+
+disassemble_handle *
+create_e500_disassembler (void)
+{
+  disassemble_handle *dh =
+    _create_base_disassembler (bfd_arch_powerpc, dis_e500_option);
 
   if (!dh)
     return NULL;

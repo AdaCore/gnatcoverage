@@ -280,4 +280,14 @@ package body Disa_Ppc is
       return False;
    end Is_Padding;
 
+   ----------------
+   -- Initialize --
+   ----------------
+
+   overriding procedure Initialize
+     (Object : in out E500_Disassembler) is
+   begin
+      Object.Handle := Dis_Opcodes.Create_E500_Disassembler;
+   end Initialize;
+
 end Disa_Ppc;
