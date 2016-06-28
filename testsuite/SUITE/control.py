@@ -365,3 +365,11 @@ def add_shared_options_to (o, toplevel):
         '--auto-arch', action='store_true',
         help='Autodetect which "gnatcov" to use (32-bit or 64-bit one)'
     )
+
+    # --consolidate
+
+    o.add_option(
+        '--consolidate', dest='consolidate', default="traces",
+        help=("artefacts to be used for consolidation specs"),
+        choices=('traces', 'checkpoints')
+        )

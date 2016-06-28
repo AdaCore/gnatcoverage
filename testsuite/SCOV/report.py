@@ -207,7 +207,7 @@ class ReportChecker:
         cmdLine1 = Piece (
             pattern="Command line:", pre=verNumber)
         cmdLine2 = Piece (
-            pattern="%s(\.exe)? coverage" % XCOV, pre=cmdLine1)
+            pattern="^%s(\.exe)? coverage" % XCOV, pre=cmdLine1)
 
         covLevel = Piece (
             pattern="Coverage level: stmt(\+(decision|mcdc))?", pre=cmdLine2)

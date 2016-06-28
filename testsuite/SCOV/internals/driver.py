@@ -30,7 +30,7 @@ from SUITE.control import language_info
 from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 from SUITE.tutils import gprbuild_cargs_with
-from SUITE.tutils import exename_for, tracename_for
+from SUITE.tutils import exename_for, tracename_for, ckptname_for
 
 from gnatpython.fileutils import cd, mkdir, ls
 
@@ -452,7 +452,8 @@ class SCOV_helper:
             xfile=xfile, xcov_level=xcovlevel,
             ctl_cov   = self.covoptions,
             ctl_cargs = gprbuild_cargs_with (thiscargs=self.extracargs),
-            ctl_tags  = thistest.options.tags
+            ctl_tags  = thistest.options.tags,
+            ctl_cons  = [thistest.options.consolidate]
             )
         self.xlnotes = xnotes.xlnotes
         self.xrnotes = xnotes.xrnotes
@@ -720,10 +721,10 @@ class SCOV_helper:
     # -------------------------
     # -- gen_one_xcov_report --
     # -------------------------
-    def gen_one_xcov_report(self, traces, format, options=""):
+    def gen_one_xcov_report(self, inputs, format, options=""):
         """Helper for gen_xcov_reports, to produce one specific report for a
-        particulat FORMAT, from a provided list of TRACES over a provided list
-        of ALIS. The command output is saved in a file named FORMAT.out."""
+        particulat FORMAT, from provided INPUTS. The command output is saved
+        in a file named FORMAT.out."""
 
         # Compute the set of arguments we are to pass to gnatcov coverage.
 
@@ -735,8 +736,8 @@ class SCOV_helper:
         # descriptions.
 
         covargs = [
-            '--annotate='+format, "@"+traces
-            ] + (self.scoptions + self.covoptions + to_list(options))
+            '--annotate='+format, inputs
+            ] + (self.covoptions + to_list(options))
 
         if self.gproptions:
             covargs.append ('--output-dir=.')
@@ -778,16 +779,59 @@ class SCOV_helper:
         specs. Request the report format, saved as test.rep, and the xcov
         format (.ad?.xcov outputs) if we're not in qualification mode"""
 
-        traces = list_to_file(
-            [self.awdir_for(no_ext(main))+tracename_for(no_ext(main))
+        # Determine what options we are going to provide as the
+        # assessement's inputs.
+
+        # For a single driver, we always rely on a trace as input and we
+        # produce a checkpoint for possible future consolidation if the
+        # current execution mode calls for it:
+
+        checkpoints = thistest.options.consolidate == 'checkpoints'
+
+        single_driver = no_ext(self.drivers[0]) if self.singletest() else None
+
+        use_checkpoint_inputs = checkpoints and not single_driver
+
+        # We request traces as input with "@inputs.list", where the file
+        # contains the list of traces to use, derived from the set of drivers.
+        # We request checkpoints as inputs with "--checkpoint=@inputs.list",
+        # where the file contains the list of checkpoints to use, derived
+        # from the set of drivers as well:
+
+        (input_opt, input_fn) = \
+            ("--checkpoint=", ckptname_for) if use_checkpoint_inputs \
+            else ("", tracename_for)
+
+        inputs = "%s@" % input_opt + list_to_file(
+            [self.awdir_for(no_ext(main))+input_fn(no_ext(main))
              for main in self.drivers],
-            "traces.list")
+            "inputs.list")
+
+        # We don't need and don't want to pass SCO options when using
+        # checkpoints as inputs:
+
+        report_options = self.scoptions if not use_checkpoint_inputs else []
+
+        report_options.extend (['-o', 'test.rep'])
+
+        if single_driver and checkpoints:
+            report_options.append (
+                "--save-checkpoint=%s" % ckptname_for (single_driver))
 
         self.gen_one_xcov_report(
-            traces, format="report", options="-o test.rep")
+            inputs, format="report", options=report_options)
 
-        if not thistest.options.qualif_level:
-            self.gen_one_xcov_report(traces, format="xcov")
+        # Now produce an alternate .xcov output format, unless we are
+        # performing a qualification run, for which that format isn't
+        # appropriate.
+
+        if thistest.options.qualif_level:
+            return
+
+        xcov_options = self.scoptions if not use_checkpoint_inputs else []
+
+        self.gen_one_xcov_report(
+            inputs, format="xcov", options=xcov_options)
 
     # ------------------------------
     # -- check_unexpected_reports --

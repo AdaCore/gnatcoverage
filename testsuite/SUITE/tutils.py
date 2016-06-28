@@ -249,9 +249,9 @@ def gprfor(
 
     return text_to_file (text = gprtext, filename = prjid + ".gpr")
 
-# ----------------------------------------------
-# -- exename_for, tracename_for, dmapname_for --
-# ----------------------------------------------
+# ------------------------------------------------------------
+# -- exename_for, tracename_for, dmapname_for, ckptname_for --
+# ------------------------------------------------------------
 
 # Abstract away the possible presence of extensions at the end of executable
 # names depending on the target, e.g. ".out" for vxworks.
@@ -259,14 +259,25 @@ def gprfor(
 # PGNNAME is a program name, in the main subprogram name sense. An empty
 # PGMNAME is allowed, in which case the functions return only the extensions.
 
+# Executable name
+
 def exename_for (pgmname):
     return (pgmname + thistest.tinfo.exeext) if thistest.tinfo else pgmname
+
+# Tracefile name
 
 def tracename_for (pgmname):
     return exename_for (pgmname) + ".trace"
 
+# Decision map name
+
 def dmapname_for (pgmname):
     return exename_for (pgmname) + ".dmap"
+
+# Coverage checkpoint name
+
+def ckptname_for (pgmname):
+    return exename_for (pgmname) + ".ckpt"
 
 # -----------------------------
 # -- exepath_to, unixpath_to --

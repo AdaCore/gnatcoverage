@@ -1058,6 +1058,9 @@ class TestSuite:
         if mopt.auto_arch:
             testcase_cmd.append('--auto-arch')
 
+        if mopt.consolidate:
+            testcase_cmd.append('--consolidate=%s' % mopt.consolidate)
+
         # --gnatcov_<cmd> family
 
         [testcase_cmd.append \

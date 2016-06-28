@@ -271,6 +271,18 @@ from SUITE.cutils import Identifier
 #
 #   %cov: -S routine  %cargs: -gnatn  %cancel:
 
+# "%cons:" allows filtering on possible alternative consolidation modes,
+# with "traces" or "checkpoints like:
+#
+#   drivers=_overlap|_no_overlap
+#
+#   --# ranges.adb
+#   --  %cons: traces
+#   --  /check/  l+ ## 0
+#
+#   --  %cons: checkpoints
+#   --  /check/  l! ## dT-
+
 # We use three intermediate abstractions to build the dictionaries from
 # the expectations text:
 #
@@ -666,7 +678,7 @@ class XnotesExpander:
 
     def __init__(
         self, xfile, xcov_level,
-        ctl_cov, ctl_cargs, ctl_tags
+        ctl_cov, ctl_cargs, ctl_tags, ctl_cons
         ):
 
         # XFILE is the name of the file from which coverage expectations
@@ -680,15 +692,17 @@ class XnotesExpander:
 
         self.xcov_level = xcov_level
 
-        # CTL_CARGS, CTL_COV, and CTL_TAGS are the reference controls for CTL
-        # lines - compilation options and specific options to gnatcov coverage
-        # that we are going to use, plus the relevant set of discriminants for
-        # the current run:
+        # CTL_CARGS, CTL_COV, CTL_TAGS and CTL_CONS are the reference controls
+        # for CTL lines - compilation options and specific options to gnatcov
+        # coverage that we are going to use, relevant set of discriminants for
+        # the current run, and the kind of artifacts we are requested to use
+        # for consolidation:
 
         self.ctls = {
             "%cargs": ' '.join (ctl_cargs),
             "%cov"  : ' '.join (ctl_cov),
-            "%tags" : ' '.join (ctl_tags)
+            "%tags" : ' '.join (ctl_tags),
+            "%cons" : ' '.join (ctl_cons)
             }
 
         # And these are the dictionaries we expose:
