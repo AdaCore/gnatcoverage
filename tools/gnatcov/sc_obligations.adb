@@ -1085,6 +1085,9 @@ package body SC_Obligations is
       end Q;
 
       Current_Condition_Index : Any_Condition_Index := No_Condition_Index;
+
+   --  Start of processing for Condition
+
    begin
       --  Find J'th (0-based) condition in decision by scanning the BDD vector
 
