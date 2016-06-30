@@ -102,7 +102,8 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
     {
       const size_t options_len = strlen (options);
 
-      dh->dinfo.disassembler_options = malloc (options_len + 1);
+      dh->disassembler_options = malloc (options_len + 1);
+      dh->dinfo.disassembler_options = dh->disassembler_options;
       strncpy (dh->dinfo.disassembler_options, options, options_len + 1);
     }
   dh->dinfo.application_data = calloc (1, sizeof (symbolizer_data));
