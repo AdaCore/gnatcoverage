@@ -47,15 +47,15 @@ package Traces is
    --  Type of a branch instruction.
 
    ELF_Machine : Unsigned_16 := 0;
-   --  Target machine. The value is the EM field defined by ELF. Set to 0 when
-   --  unknown.
+   --  Target machine as conveyed by the EM field in the ELF file. Set to 0
+   --  when unknown.
 
    type Machine_Type is (Unknown, ARM, E500, PPC, SPARC, Visium, X86, X86_64);
    Machine : Machine_Type := Unknown;
-   --  Target machine.  Value is computed from ELF_Machine and, when possible,
-   --  adjusted from additional ELF information. This is the case for processor
-   --  variants such as e500 (variant of PowerPC), for which we find out it's a
-   --  variant thanks to an ELF section.
+   --  Refined target machine, computed from ELF_Machine and refined using
+   --  other sources of information. This is the case for processor variants
+   --  such as e500 (variant of PowerPC), for which we find out it's a variant
+   --  thanks to an ELF section.
 
    function Decode_EM (EM : Unsigned_16) return Machine_Type is
      (case EM is
