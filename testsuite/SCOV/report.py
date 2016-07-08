@@ -207,7 +207,10 @@ class ReportChecker:
         cmdLine1 = Piece (
             pattern="Command line:", pre=verNumber)
         cmdLine2 = Piece (
-            pattern="^%s(\.exe)? coverage" % XCOV, pre=cmdLine1)
+            pattern="^[^ ].*%s(\.exe)? coverage" % XCOV, pre=cmdLine1)
+        # Note: we match "gnatcov" on a line that does not start with
+        # a space, because we do not want to match "  processed: ..."
+        # lines for trace files from checkpoints.
 
         covLevel = Piece (
             pattern="Coverage level: stmt(\+(decision|mcdc))?", pre=cmdLine2)
