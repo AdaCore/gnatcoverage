@@ -207,10 +207,18 @@ class ReportChecker:
         cmdLine1 = Piece (
             pattern="Command line:", pre=verNumber)
         cmdLine2 = Piece (
-            pattern="^[^ ].*%s(\.exe)? coverage" % XCOV, pre=cmdLine1)
-        # Note: we match "gnatcov" on a line that does not start with
-        # a space, because we do not want to match "  processed: ..."
-        # lines for trace files from checkpoints.
+            pattern="^([^ ].*)?%s coverage" % XCOV, pre=cmdLine1)
+        # Note: we do not want to match " processed: ..."  lines for trace
+        # files from checkpoints, which have the particularity of starting
+        # with a space. So we need to match:
+        #
+        # gnatcov coverage ...
+        # /path/to/gnatcov coverage
+        # C:/path maybe with a space/to/gnatcov.exe coverage ...
+        #
+        # But not:
+        #
+        # <blank><checkpoint-related-tag>: gnatcov coverage
 
         covLevel = Piece (
             pattern="Coverage level: stmt(\+(decision|mcdc))?", pre=cmdLine2)
