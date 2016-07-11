@@ -106,6 +106,11 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
       dh->dinfo.disassembler_options = dh->disassembler_options;
       strncpy (dh->dinfo.disassembler_options, options, options_len + 1);
     }
+  else
+    {
+      dh->disassembler_options = NULL;
+      dh->dinfo.disassembler_options = NULL;
+    }
   dh->dinfo.application_data = calloc (1, sizeof (symbolizer_data));
 
   disassemble_init_for_target (&(dh->dinfo));
