@@ -116,15 +116,19 @@ include host.mk
 # Determine the set of ADAPTERS of relevance on our host OS (subdir
 # names within trace_adapters)
 
+include architecture.mk
+
 HOST_ADAPTERS =
 ifeq ($(HOST_OS), windows)
+ifeq ($(BITS_ARCH), 32)
 HOST_ADAPTERS = nexus dynamorio
+else
+HOST_ADAPTERS = dynamorio
+endif
 endif
 ifeq ($(HOST_OS), linux)
 HOST_ADAPTERS = valgrind
 endif
-
-include architecture.mk
 
 PARALLEL_BUILD=0
 BUILD_MODE=dev
