@@ -32,7 +32,8 @@ package Coff is
 
    Filehdr_Size : constant Natural := Filehdr'Size / Storage_Unit;
 
-   I386magic : constant Unsigned_16 := 16#014c#;
+   I386magic  : constant Unsigned_16 := 16#014c#;
+   AMD64magic : constant Unsigned_16 := 16#8664#;
 
    F_Relflg : constant Unsigned_16 := 16#0001#;
 

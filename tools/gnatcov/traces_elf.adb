@@ -563,12 +563,15 @@ package body Traces_Elf is
             Exec.Exe_Text_Start := Text_Start;
             --  Ehdr := Get_Ehdr (Exec.Elf_File);
             Exec.Is_Big_Endian := False;
-            if Get_Hdr (Exec.PE_File).F_Magic = Coff.I386magic then
-               Exec.Exe_Machine := EM_386;
-            else
-               Outputs.Fatal_Error
-                 ("unhandled PE architecture for " & Filename);
-            end if;
+            case Get_Hdr (Exec.PE_File).F_Magic is
+               when Coff.I386magic =>
+                  Exec.Exe_Machine := EM_386;
+               when Coff.AMD64magic =>
+                  Exec.Exe_Machine := EM_X86_64;
+               when others =>
+                  Outputs.Fatal_Error
+                    ("unhandled PE architecture for " & Filename);
+            end case;
 
             Merge_Architecture (Exec.Exe_Machine, Exec.Is_Big_Endian);
 
