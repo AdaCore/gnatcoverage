@@ -19,3 +19,10 @@ NF-17-P526-035 Origin_Project project file attribute handling (2016-06-13)
   of interest which overrides the project passed with the -P command line
   argument. This will help integration with other tools such as GNATtest and
   GPS.
+
+NF-17-P107-039 Improve internal disassemblers (2016-06-06)
+
+   GNATcoverage now leverages a subcomponent of the binutils toolsuite to
+   disassemble instructions for object coverage reports. This replaces the
+   so far handwritten implementation for various targets by a widely used
+   and more complete component.
