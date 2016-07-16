@@ -1,6 +1,6 @@
-==================================
-GNATcoverage 1.7 NEW FEATURES LIST
-==================================
+=================================
+GNATcoverage 17 NEW FEATURES LIST
+=================================
 
 Copyright (C) 2012-2016, AdaCore
 
@@ -12,7 +12,7 @@ This date shows the implementation date of the feature. Any 1.7.0w wavefront
 subsequent to this date will contain the indicated feature, as will any
 release issued after this one.
 
-NF-14-P526-035 Origin_Project project file attribute handling (2016-06-13)
+NF-17-P526-035 Origin_Project project file attribute handling (2016-06-13)
 
   Project files handling has been enhanced to account for the new
   Origin_Project project attribute. When present, it provides a default project
