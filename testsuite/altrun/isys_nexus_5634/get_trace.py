@@ -101,7 +101,8 @@ traceDoc.start ()
 print 'Start execution...'
 
 executer.runUntilAddress (0, isyminfo.getAddress () )
-executer.waitUntilStopped ()
+if not executer.waitUntilStopped (pollingInterval=1000, timeout=500000):
+   print '!!! iSystem timeout !!!'
 
 print '... execution stoped.'
 
