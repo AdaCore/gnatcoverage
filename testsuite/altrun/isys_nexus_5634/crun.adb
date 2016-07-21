@@ -49,6 +49,11 @@ procedure crun is
    Temp_Name : String (1 .. 80);
 
    procedure Empty_Temps_Dir;
+   procedure Put_Error (Error_Str : String);
+
+   ---------------------
+   -- Empty_Temps_Dir --
+   ---------------------
 
    procedure Empty_Temps_Dir is
    begin
@@ -61,6 +66,16 @@ procedure crun is
       end loop;
       Close (Temp_Dir);
    end Empty_Temps_Dir;
+
+   ---------------
+   -- Put_Error --
+   ---------------
+
+   procedure Put_Error (Error_Str : String) is
+      Prefix : constant String := Command_Name & " error:";
+   begin
+      Put_Line (Standard_Error, Prefix & Error_Str);
+   end Put_Error;
 
    type Poss_Arg is record
      Arg_Name : String_Access;
@@ -100,7 +115,7 @@ begin
       Make_Dir (Wspace_Dir_Name);
    exception
       when Directory_Error =>
-         Put_Line (Standard_Error, "Error creating workspace.");
+         Put_Error ("Directory_Error creating workspace.");
          OS_Exit (1);
    end;
    declare
@@ -127,7 +142,7 @@ begin
 
    Python_P := Locate_Exec_On_Path ("python");
    if Python_P = null then
-      Put_Line (Standard_Error, "python not found.");
+      Put_Error ("python not found.");
       OS_Exit (1);
    end if;
    Python_Args (1) :=
@@ -146,14 +161,14 @@ begin
    Setenv ("ISYSTEM_TEMP", Itmp_Dir_Name);
    Spawn (Python_P.all, Python_Args, Success);
    if not Success then
-      Put_Line (Standard_Error, "winIDEA python script failed.");
+      Put_Error ("winIDEA python script failed.");
       Empty_Temps_Dir;
       OS_Exit (1);
    end if;
 
    Gnatcov_P := Locate_Exec_On_Path ("gnatcov");
    if Gnatcov_P = null then
-      Put_Line (Standard_Error, "gnatcov not found.");
+      Put_Error ("gnatcov not found.");
       OS_Exit (1);
    end if;
    Gnatcov_Args (1) := new String'("convert");
@@ -161,7 +176,7 @@ begin
    for J in 1 .. Argument_Count loop
       if Argument (J) (1) /= '-' then
          if Target_Exec_Seen then
-            Put_Line (Standard_Error, "Multiple exec args seen.");
+            Put_Error ("Multiple exec args seen.");
             OS_Exit (1);
          else
             Gnatcov_Args (Next_Arg_Idx) :=
@@ -176,7 +191,14 @@ begin
 
             Target_Exec_Seen := True;
          end if;
-      else
+      elsif Argument (J)'Length > 2 and then Argument (J) (1 .. 2) = "-P" then
+         Gnatcov_Args (Next_Arg_Idx) := new String'(Argument (J));
+         Next_Arg_Idx := Next_Arg_Idx + 1;
+      elsif Argument (J)'Length = 2 and then Argument (J) = "-P" then
+	     Put_Error ("Project switch format ('-P', '<project_file>')" &
+		   " is not supported. Only ('-P<procedure>') works.");
+         OS_Exit (1);
+	  else
          for K in Poss_Args'Range loop
             if Argument (J)'Length > Poss_Args (K).Arg_Name'Length + 1
               and then Argument (J) (1 .. Poss_Args (K).Arg_Name'Length)
@@ -211,7 +233,7 @@ begin
    end loop;
    for K in Poss_Args'Range loop
       if Poss_Args (k).Required and then not Poss_Args (K).Seen then
-         Put_Line (Standard_Error, Poss_Args (K).Arg_Name.all & " missing.");
+         Put_Error (Poss_Args (K).Arg_Name.all & " missing.");
          OS_Exit (1);
       end if;
    end loop;
@@ -231,7 +253,7 @@ begin
 
    Spawn (Gnatcov_P.all, Gnatcov_Args (1 .. Next_Arg_Idx), Success);
    if not Success then
-      Put_Line (Standard_Error, "gnatcov convert failed.");
+      Put_Error ("gnatcov convert failed.");
       OS_Exit (1);
    end if;
 
