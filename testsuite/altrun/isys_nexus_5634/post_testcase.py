@@ -10,8 +10,12 @@ ws_file = altrun_dir + '\ws\j.xjrf'
 
 import isystem.connect as ic
 
+# Switch to dummy workspace after test to allow cleanup
+
+
 cmgr = ic.ConnectionMgr()
 cmgr.connectMRU()
+
 wspaceControl = ic.CWorkspaceController (cmgr)
 wspaceControl.open(os.path.abspath(ws_file))
 
