@@ -10,6 +10,8 @@ cmgr.connectMRU()
 wspaceControl = ic.CWorkspaceController (cmgr)
 wspaceControl.open(os.path.abspath('.\isyswspace\justrun.xjrf'))
 
+print 'WinIDEA workspace is now open'
+
 traceDoc = ic.CTraceController (cmgr, 'new_trigger.trd',  'w')
 triggerIdx = traceDoc.createTrigger ('new_trigger')
 traceDoc.select (triggerIdx)
@@ -50,13 +52,22 @@ executer = ic.CExecutionController (cmgr)
 debug    = ic.CDebugFacade(cmgr)
 status   = debug.getCPUStatus()
 
+print 'Trying to connect to the probe/board...'
+
 for try_nb in range(10):
     debug = ic.CDebugFacade(cmgr)
     status = debug.getCPUStatus()
     isConnected = (not status.isMustInit())
     print 'is connected: ' + str(isConnected)
+    print status.toString()
+
     if isConnected:
         break
+
+    try:
+        debug.reset()
+    except:
+        print 'exception in debug.reset()'
 
     executer = ic.CExecutionController (cmgr)
     try:
@@ -66,7 +77,7 @@ for try_nb in range(10):
     try:
         executer.stop()
     except:
-        print 'exception in executer.reset()'
+        print 'exception in executer.stop()'
 
     time.sleep (1)
 
@@ -101,8 +112,8 @@ traceDoc.start ()
 print 'Start execution...'
 
 executer.runUntilAddress (0, isyminfo.getAddress () )
-if not executer.waitUntilStopped (pollingInterval=1000, timeout=500000):
-   print '!!! iSystem timeout !!!'
+if not executer.waitUntilStopped (pollingInterval=5000, timeout=400000):
+   print '!!! EXECUTION TIMEOUT !!!'
 
 print '... execution stoped.'
 
