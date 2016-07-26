@@ -1,0 +1,7 @@
+Code-Review+2: Olivier Hainque <hainque@adacore.com>
+Code-Review+2: Tristan Gingold <gingold@adacore.com>
+Submitted-by: Pierre-Marie de Rodat <derodat@adacore.com>
+Submitted-at: Tue, 26 Jul 2016 12:37:51 +0200
+Reviewed-on: https://git.adacore.com/14029
+Project: gnatcoverage
+Branch: refs/heads/opendo
