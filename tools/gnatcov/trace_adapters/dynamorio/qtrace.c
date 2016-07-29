@@ -269,10 +269,12 @@ static void
 at_cbr2_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
 		int taken, void *bb_addr)
 {
+  uintptr_t bb_size = inst_addr + 2 - (app_pc) bb_addr;
+
   (void) targ_addr;
   (void) fall_addr;
   dr_mutex_lock (trace_buffer_lock);
-  write_trace ((app_pc)bb_addr, inst_addr + 2 - (app_pc)bb_addr,
+  write_trace ((app_pc)bb_addr, (unsigned) bb_size,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
   dr_mutex_unlock (trace_buffer_lock);
 }
@@ -281,10 +283,12 @@ static void
 at_cbr6_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
 		int taken, void *bb_addr)
 {
+  uintptr_t bb_size = inst_addr + 6 - (app_pc) bb_addr;
+
   (void) targ_addr;
   (void) fall_addr;
   dr_mutex_lock (trace_buffer_lock);
-  write_trace ((app_pc)bb_addr, inst_addr + 6 - (app_pc)bb_addr,
+  write_trace ((app_pc)bb_addr, (unsigned) bb_size,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
   dr_mutex_unlock (trace_buffer_lock);
 }
@@ -359,7 +363,7 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 	  else
 	    {
 	      struct trace_cache_entry *tce;
-	      uint16_t size = (br_pc + br_len) - bb_pc;
+	      uint16_t size = (uint16_t) ((br_pc + br_len) - bb_pc);
 
 	      if (get_trace_cache_entry (bb_pc, size, &tce))
 		{
@@ -396,7 +400,7 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 	    /* Generate the trace now, assuming the basic block will be
 	       fully executed.  */
 	    dr_mutex_lock (trace_buffer_lock);
-	    write_trace (bb_pc, next_pc - bb_pc, TRACE_OP_BLOCK);
+	    write_trace (bb_pc, (unsigned) (next_pc - bb_pc), TRACE_OP_BLOCK);
 	    dr_mutex_unlock (trace_buffer_lock);
 	}
 	instr = next_instr;
@@ -608,7 +612,8 @@ void dr_client_main(client_id_t id, int argc, const char *argv[])
 
 	      while (*histmap_end && *histmap_end != ',')
 		++histmap_end;
-	      const unsigned histmap_len = histmap_end - histmap_start;
+	      const unsigned histmap_len
+		= (unsigned) (histmap_end - histmap_start);
 
 	      memcpy (histmap, histmap_start, histmap_len);
 	      histmap[histmap_len] = 0;
