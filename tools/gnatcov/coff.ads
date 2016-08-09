@@ -32,6 +32,9 @@ package Coff is
 
    Filehdr_Size : constant Natural := Filehdr'Size / Storage_Unit;
 
+   PE32_Magic     : constant Unsigned_16 := 16#10b#;
+   PE32Plus_Magic : constant Unsigned_16 := 16#20b#;
+
    I386magic  : constant Unsigned_16 := 16#014c#;
    AMD64magic : constant Unsigned_16 := 16#8664#;
 
@@ -43,25 +46,33 @@ package Coff is
 
    F_Lsyms : constant Unsigned_16 := 16#0008#;
 
-   type Opthdr32 is record
-      Magic                          : Unsigned_16;
-      Major_Linker_Version           : Unsigned_8;
-      Minor_Linker_Version           : Unsigned_8;
-      Size_Of_Code                   : Unsigned_32;
-      Size_Of_Initialized_Data       : Unsigned_32;
-      Size_Of_Uninitialized_Data     : Unsigned_32;
-      Address_Of_Entry_Point         : Unsigned_32;
-      Base_Of_Code                   : Unsigned_32;
-      Base_Of_Data                   : Unsigned_32;
-      Image_Base                     : Unsigned_32;
-      Section_Alignment              : Unsigned_32;
-      File_Alignment                 : Unsigned_32;
-      Major_Operating_System_Version : Unsigned_16;
-      Minor_Operating_System_Version : Unsigned_16;
-      --  ...
+   --  Layout for the Optional Header (PE32 only). Note that we only map the
+   --  fields we are truly interested in.
+
+   Opt_Hdr_PE32_Size : constant Natural := 28 + 68;
+   --  Minimal size for PE32 optional headers, assuming there are at least
+   --  standard fields and Windows-specific fields.
+
+   type Opt_Hdr_PE32 is record
+      Magic      : Unsigned_16;
+      Pad1       : String (2 .. 27);
+      Image_Base : Unsigned_32;
+      Pad2       : String (4 .. 67);
    end record;
 
-   Opt_Hdr32_Size : constant Natural := Opthdr32'Size / Storage_Unit;
+   --  Layout for the Optional Header (PE32+ only). Note that we only map the
+   --  fields we are truly interested in.
+
+   Opt_Hdr_PE32_Plus_Size : constant Natural := 24 + 88;
+   --  Minimal size for PE32+ optional headers, assuming there are at least
+   --  standard fields and Windows-specific fields.
+
+   type Opt_Hdr_PE32_Plus is record
+      Magic      : Unsigned_16;
+      Pad1       : String (2 .. 23);
+      Image_Base : Unsigned_64;
+      Pad2       : String (8 .. 87);
+   end record;
 
    type Scnhdr is record
       S_Name    : String (1 .. 8);

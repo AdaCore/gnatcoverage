@@ -17,7 +17,9 @@
 ------------------------------------------------------------------------------
 
 with System.Storage_Elements;
+
 with Dwarf_Handling;
+with Outputs;
 
 package body PECoff_Files is
 
@@ -72,7 +74,7 @@ package body PECoff_Files is
             return False;
          end if;
 
-         return Coff_Sig = I386magic;
+         return Coff_Sig in I386magic | AMD64magic;
       else
          Lseek (Fd, Off, Seek_Set);
 
@@ -115,8 +117,10 @@ package body PECoff_Files is
       function To_Address is new Ada.Unchecked_Conversion
         (Str_Access, System.Address);
 
-      Hdr_Off : Long_Integer;
-      Opt_Hdr32 : Opthdr32;
+      Hdr_Off     : Long_Integer;
+      Opt_Hdr_Off : Long_Integer;
+      Opt_Hdr32   : Opt_Hdr_PE32;
+      Opt_Hdr64   : Opt_Hdr_PE32_Plus;
 
    --  Start of processing for Create_File
 
@@ -139,15 +143,53 @@ package body PECoff_Files is
               (File, Status_Read_Error, "failed to read COFF header");
          end if;
 
-         if File.Hdr.F_Opthdr > Unsigned_16 (Opt_Hdr32_Size)
-           and then File.Hdr.F_Machine = I386magic
-         then
-            if Read (Fd, Opt_Hdr32'Address, Opt_Hdr32_Size) /= Opt_Hdr32_Size
+         Opt_Hdr_Off := Hdr_Off + Long_Integer (Filehdr_Size);
+         if File.Hdr.F_Opthdr >= Unsigned_16 (Opt_Hdr_PE32_Size) then
+
+            --  At this point, we don't know yet if the optional header is a
+            --  PE32 one or a PE32+ one. Read a PE32 one and check the magic
+            --  number.
+
+            if Read (Fd, Opt_Hdr32'Address, Opt_Hdr_PE32_Size)
+                 /= Opt_Hdr_PE32_Size
             then
-               Exit_With_Error
-                 (File, Status_Read_Error, "failed to read COFF opt header");
+               Exit_With_Error (File, Status_Read_Error,
+                                "failed to read COFF optional header (PE32)");
             end if;
-            File.Image_Base := Arch.Arch_Addr (Opt_Hdr32.Image_Base);
+
+            case Opt_Hdr32.Magic is
+               when PE32_Magic =>
+                  if File.Hdr.F_Machine /= I386magic then
+                     Outputs.Fatal_Error
+                       ("Unhandled CPU for PE32:" & File.Hdr.F_Machine'Img);
+                  end if;
+
+                  --  We already have the header properly decoded
+
+                  File.Image_Base := Arch.Arch_Addr (Opt_Hdr32.Image_Base);
+
+               when PE32Plus_Magic =>
+                  if File.Hdr.F_Machine /= AMD64magic then
+                     Outputs.Fatal_Error
+                       ("Unhandled CPU for PE32+:" & File.Hdr.F_Machine'Img);
+                  end if;
+
+                  --  Re-read the optional header as a PE32+ one
+
+                  Lseek (Fd, Opt_Hdr_Off, Seek_Set);
+                  if Read (Fd, Opt_Hdr64'Address, Opt_Hdr_PE32_Plus_Size)
+                       /= Opt_Hdr_PE32_Plus_Size
+                  then
+                     Exit_With_Error
+                       (File, Status_Read_Error,
+                        "failed to read COFF optional header (PE32+)");
+                  end if;
+                  File.Image_Base := Arch.Arch_Addr (Opt_Hdr64.Image_Base);
+
+               when others =>
+                  Outputs.Fatal_Error
+                     ("Invalid optional header magic: " & Opt_Hdr32.Magic'Img);
+            end case;
          else
             File.Image_Base := 0;
          end if;
