@@ -69,13 +69,13 @@ private
      (System.Address, PE_Scn_Arr_Acc);
 
    type PE_File is new Binary_File with record
-      Hdr : Filehdr;
+      Hdr        : Filehdr;
 
       Image_Base : Arch.Arch_Addr;
 
-      Data : System.Address;
-      Scn     : PE_Scn_Arr_Acc;
-      Str_Off : Unsigned_32;
+      Data       : System.Address;
+      Scn        : PE_Scn_Arr_Acc;
+      Str_Off    : Unsigned_32;
    end record;
 
 end PECoff_Files;

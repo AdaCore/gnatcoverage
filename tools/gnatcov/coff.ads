@@ -44,20 +44,20 @@ package Coff is
    F_Lsyms : constant Unsigned_16 := 16#0008#;
 
    type Opthdr32 is record
-      magic                          : Unsigned_16;
-      major_linker_version           : Unsigned_8;
-      minor_linker_version           : Unsigned_8;
-      size_of_code                   : Unsigned_32;
-      size_of_initialized_data       : Unsigned_32;
-      size_of_uninitialized_data     : Unsigned_32;
-      address_of_entry_point         : Unsigned_32;
-      base_of_code                   : Unsigned_32;
-      base_of_data                   : Unsigned_32;
-      image_base                     : Unsigned_32;
-      section_alignment              : Unsigned_32;
-      file_alignment                 : Unsigned_32;
-      major_operating_system_version : Unsigned_16;
-      minor_operating_system_version : Unsigned_16;
+      Magic                          : Unsigned_16;
+      Major_Linker_Version           : Unsigned_8;
+      Minor_Linker_Version           : Unsigned_8;
+      Size_Of_Code                   : Unsigned_32;
+      Size_Of_Initialized_Data       : Unsigned_32;
+      Size_Of_Uninitialized_Data     : Unsigned_32;
+      Address_Of_Entry_Point         : Unsigned_32;
+      Base_Of_Code                   : Unsigned_32;
+      Base_Of_Data                   : Unsigned_32;
+      Image_Base                     : Unsigned_32;
+      Section_Alignment              : Unsigned_32;
+      File_Alignment                 : Unsigned_32;
+      Major_Operating_System_Version : Unsigned_16;
+      Minor_Operating_System_Version : Unsigned_16;
       --  ...
    end record;
 
@@ -98,10 +98,10 @@ package Coff is
    for Sym_Name'Size use 64;
 
    type Syment is record
-      E : Sym_Name;
-      E_Value : Unsigned_32;
-      E_Scnum : Unsigned_16;
-      E_Type : Unsigned_16;
+      E        : Sym_Name;
+      E_Value  : Unsigned_32;
+      E_Scnum  : Unsigned_16;
+      E_Type   : Unsigned_16;
       E_Sclass : Unsigned_8;
       E_Numaux : Unsigned_8;
    end record;
@@ -160,9 +160,9 @@ package Coff is
    end record;
 
    type Reloc is record
-      R_Vaddr : Unsigned_32;
+      R_Vaddr  : Unsigned_32;
       R_Symndx : Unsigned_32;
-      R_Type : Unsigned_16;
+      R_Type   : Unsigned_16;
    end record;
    Relsz : constant Natural := Reloc'Size / Storage_Unit;
 

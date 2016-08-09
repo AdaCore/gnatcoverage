@@ -84,8 +84,17 @@ package body PECoff_Files is
       end if;
    end Is_PE_File;
 
+   -----------------
+   -- Create_File --
+   -----------------
+
    function Create_File
-     (Fd : File_Descriptor; Filename : String_Access) return PE_File is
+     (Fd       : File_Descriptor;
+      Filename : String_Access)
+      return PE_File
+   is
+      use System.Storage_Elements;
+
       procedure Exit_With_Error
         (File : in out PE_File; Status : Binary_File_Status; Msg : String);
       --  Assign Status to File, close the file if needed and raise Error with
@@ -103,20 +112,27 @@ package body PECoff_Files is
          raise Error with File.Filename & ": " & Msg;
       end Exit_With_Error;
 
-      use System.Storage_Elements;
-
       function To_Address is new Ada.Unchecked_Conversion
         (Str_Access, System.Address);
 
       Hdr_Off : Long_Integer;
       Opt_Hdr32 : Opthdr32;
+
+   --  Start of processing for Create_File
+
    begin
       Hdr_Off := Read_Coff_Header_Offset (Fd);
+
+      --  The PE header has three parts: the signature, the file header and the
+      --  optional header. Skip the signature, which is assumed to be "PE\0\0".
+
       if Hdr_Off /= 0 then
          Hdr_Off := Hdr_Off + 4;
       end if;
+
       return File : PE_File := (Binary_File'(Create_File (Fd, Filename))
-                                with others => <>) do
+                                with others => <>)
+      do
          Lseek (Fd, Hdr_Off, Seek_Set);
          if Read (Fd, File.Hdr'Address, Filehdr_Size) /= Filehdr_Size then
             Exit_With_Error
@@ -131,7 +147,7 @@ package body PECoff_Files is
                Exit_With_Error
                  (File, Status_Read_Error, "failed to read COFF opt header");
             end if;
-            File.Image_Base := Arch.Arch_Addr (Opt_Hdr32.image_base);
+            File.Image_Base := Arch.Arch_Addr (Opt_Hdr32.Image_Base);
          else
             File.Image_Base := 0;
          end if;
