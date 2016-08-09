@@ -47,6 +47,7 @@ static file_t tracefile;
 #define NBR_ENTRIES 1024
 static trace_entry trace_buffer[NBR_ENTRIES];
 static int nbr_entries = 0;
+static void *trace_buffer_lock;
 
 /* Cache for traces, to coallesce flags.  */
 struct trace_cache_entry
@@ -78,6 +79,7 @@ static int cache_entries_idx = 0;
 #define NBR_LRU_BUCKETS (0xffff + 1)
 #define NBR_LRU_ENTRIES 4
 static int trace_lru_entries[NBR_LRU_BUCKETS][NBR_LRU_ENTRIES];
+static void *trace_lru_entries_lock;
 
 /* Compute the bucket index in TRACE_LRU_ENTRIES corresponding to the BB_ADDR
    basic block address.
@@ -172,9 +174,13 @@ flush_cb (int id)
   int i;
 
   (void) id;
+  dr_mutex_lock (trace_buffer_lock);
+  dr_mutex_lock (trace_lru_entries_lock);
   for (i = 0; i < cache_entries_idx; i++)
     write_trace_cache_entry (&cache_entries[i]);
   cache_entries_idx = 0;
+  dr_mutex_unlock (trace_lru_entries_lock);
+  dr_mutex_unlock (trace_buffer_lock);
 }
 
 /* Return through TCE_P a pointer to a trace entry for the code block that
@@ -195,6 +201,8 @@ get_trace_cache_entry (app_pc addr, uint16_t size,
   int *first_free_cell = NULL;
   int i;
 
+  dr_mutex_lock (trace_lru_entries_lock);
+
   /* First look for an existing entry for ADDR.  */
   const int row = LRU_BUCKET (addr);
   for (i = 0; i < NBR_LRU_ENTRIES; ++i)
@@ -214,6 +222,7 @@ get_trace_cache_entry (app_pc addr, uint16_t size,
       if (tce->addr == addr && tce->size == size)
 	{
 	  *tce_p = tce;
+	  dr_mutex_unlock (trace_lru_entries_lock);
 	  return false;
 	}
     }
@@ -251,6 +260,7 @@ get_trace_cache_entry (app_pc addr, uint16_t size,
   *first_free_cell = cache_entries_idx - 1;
 
   *tce_p = tce;
+  dr_mutex_unlock (trace_lru_entries_lock);
   return true;
 }
 
@@ -261,8 +271,10 @@ at_cbr2_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
 {
   (void) targ_addr;
   (void) fall_addr;
+  dr_mutex_lock (trace_buffer_lock);
   write_trace ((app_pc)bb_addr, inst_addr + 2 - (app_pc)bb_addr,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
+  dr_mutex_unlock (trace_buffer_lock);
 }
 
 static void
@@ -271,8 +283,10 @@ at_cbr6_nocache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
 {
   (void) targ_addr;
   (void) fall_addr;
+  dr_mutex_lock (trace_buffer_lock);
   write_trace ((app_pc)bb_addr, inst_addr + 6 - (app_pc)bb_addr,
 	       TRACE_OP_BLOCK | (taken ? TRACE_OP_BR0 : TRACE_OP_BR1));
+  dr_mutex_unlock (trace_buffer_lock);
 }
 
 static void
@@ -381,7 +395,9 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 
 	    /* Generate the trace now, assuming the basic block will be
 	       fully executed.  */
+	    dr_mutex_lock (trace_buffer_lock);
 	    write_trace (bb_pc, next_pc - bb_pc, TRACE_OP_BLOCK);
+	    dr_mutex_unlock (trace_buffer_lock);
 	}
 	instr = next_instr;
     }
@@ -408,6 +424,9 @@ event_exit(void)
 {
   int i;
 
+  /* No need for locking, here: the event exit should not run in parallel with
+     other trace manipulating code.  */
+
 #if 0
   dr_fprintf (STDERR, "flushing caches\n");
   write_trace (0, 0, 0);
@@ -416,7 +435,10 @@ event_exit(void)
   for (i = 0; i < cache_entries_idx; i++)
     write_trace_cache_entry (&cache_entries[i]);
   flush_traces ();
+
   dr_close_file (tracefile);
+  dr_mutex_destroy (trace_buffer_lock);
+  dr_mutex_destroy (trace_lru_entries);
   tracefile = INVALID_FILE;
 }
 
@@ -552,6 +574,14 @@ void dr_client_main(client_id_t id, int argc, const char *argv[])
 		     "http://dynamorio.org/issues");
   dr_log(NULL, LOG_ALL, 1, "Client 'qtrace' initializing");
   client_id = id;
+
+  trace_buffer_lock = dr_mutex_create ();
+  trace_lru_entries_lock = dr_mutex_create ();
+  if (trace_buffer_lock == NULL || trace_lru_entries_lock == NULL)
+    {
+      dr_fprintf (STDERR, "error: could not create mutexes\n");
+      dr_exit_process (1);
+    }
 
   /* Decode options.  */
   for (int i = 1; i < argc; ++i)
