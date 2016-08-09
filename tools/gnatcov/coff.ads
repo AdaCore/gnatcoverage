@@ -21,13 +21,13 @@ with System; use System;
 
 package Coff is
    type Filehdr is record
-      F_Magic  : Unsigned_16;
-      F_Nscns  : Unsigned_16;
-      F_Timdat : Unsigned_32;
-      F_Symptr : Unsigned_32;
-      F_Nsyms  : Unsigned_32;
-      F_Opthdr : Unsigned_16;
-      F_Flags  : Unsigned_16;
+      F_Machine : Unsigned_16;
+      F_Nscns   : Unsigned_16;
+      F_Timdat  : Unsigned_32;
+      F_Symptr  : Unsigned_32;
+      F_Nsyms   : Unsigned_32;
+      F_Opthdr  : Unsigned_16;
+      F_Flags   : Unsigned_16;
    end record;
 
    Filehdr_Size : constant Natural := Filehdr'Size / Storage_Unit;

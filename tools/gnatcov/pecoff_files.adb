@@ -140,7 +140,7 @@ package body PECoff_Files is
          end if;
 
          if File.Hdr.F_Opthdr > Unsigned_16 (Opt_Hdr32_Size)
-           and then File.Hdr.F_Magic = I386magic
+           and then File.Hdr.F_Machine = I386magic
          then
             if Read (Fd, Opt_Hdr32'Address, Opt_Hdr32_Size) /= Opt_Hdr32_Size
             then

@@ -563,7 +563,7 @@ package body Traces_Elf is
             Exec.Exe_Text_Start := Text_Start;
             --  Ehdr := Get_Ehdr (Exec.Elf_File);
             Exec.Is_Big_Endian := False;
-            case Get_Hdr (Exec.PE_File).F_Magic is
+            case Get_Hdr (Exec.PE_File).F_Machine is
                when Coff.I386magic =>
                   Exec.Exe_Machine := EM_386;
                when Coff.AMD64magic =>
