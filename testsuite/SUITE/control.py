@@ -227,8 +227,7 @@ TARGETINFO = {
         to_platform_specific_symbol=lambda x: '_{}'.format(x)
         ),
     "x86_64-pc-mingw32": TargetInfo (
-        exeext = ".exe", partiallinks=False,
-        to_platform_specific_symbol=lambda x: '_{}'.format(x)
+        exeext = ".exe", partiallinks=False
         ),
     "default": TargetInfo (
         exeext = "", partiallinks=False
