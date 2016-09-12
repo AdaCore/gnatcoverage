@@ -391,6 +391,7 @@ package body Annotations.Dynamic_Html is
       Stats.Set_Field ("covered", Info.Stats (Covered));
       Stats.Set_Field ("partially_covered", Info.Stats (Partially_Covered));
       Stats.Set_Field ("not_covered", Info.Stats (Not_Covered));
+      Stats.Set_Field ("not_coverable", Info.Stats (Not_Coverable));
       Stats.Set_Field
         ("exempted_no_violation", Info.Stats (Exempted_No_Violation));
       Stats.Set_Field
