@@ -1111,18 +1111,24 @@ package body SC_Obligations is
       CP_BDD_Vector      : BDD.BDD_Vectors.Vector;
       CP_SCO_Vector      : SCO_Vectors.Vector;
 
-      procedure Remap_SFI (CP_SFI : in out Source_File_Index);
+      procedure Remap_SFI
+        (CP_SFI             : in out Source_File_Index;
+         Require_Valid_File : Boolean := True);
       --  Remap one source file index
 
       ---------------
       -- Remap_SFI --
       ---------------
 
-      procedure Remap_SFI (CP_SFI : in out Source_File_Index) is
+      procedure Remap_SFI
+        (CP_SFI             : in out Source_File_Index;
+         Require_Valid_File : Boolean := True)
+      is
       begin
          if CP_SFI /= No_Source_File then
             CP_SFI := CS.SFI_Map (CP_SFI);
-            pragma Assert (CP_SFI /= No_Source_File);
+            pragma Assert
+              (not Require_Valid_File or else CP_SFI /= No_Source_File);
          end if;
       end Remap_SFI;
 
@@ -1180,7 +1186,13 @@ package body SC_Obligations is
                Remap_SFI (CP_CU.LI);
                Remap_SFI (CP_CU.Main_Source);
                for Dep_SFI of CP_CU.Deps loop
-                  Remap_SFI (Dep_SFI);
+                  --  Units of interest can depend on units outside of the
+                  --  scope of code coverage analysis. Keeping track of these
+                  --  introduces clashes between stubbed units and the real
+                  --  one, so they are excluded from checkpoints. Hence, allow
+                  --  them to be missing here.
+
+                  Remap_SFI (Dep_SFI, Require_Valid_File => False);
                end loop;
 
                New_CU_Id := Comp_Unit (CP_CU.Main_Source);

@@ -1425,15 +1425,23 @@ package body Files_Table is
 
       for FI_C in Files_Table.Iterate loop
          declare
-            FI : File_Info renames File_Vectors.Element (FI_C).all;
+            FI : File_Info_Access renames File_Vectors.Element (FI_C);
          begin
-            Source_File_Index'Write (S, File_Vectors.To_Index (FI_C));
-            String'Output (S,
-                           (if FI.Full_Name /= null
-                            then FI.Full_Name.all
-                            else FI.Simple_Name.all));
-            File_Kind'Write (S, FI.Kind);
-            Boolean'Write (S, FI.Indexed_Simple_Name);
+            if FI.Kind /= Source_File or else To_Display (FI) then
+
+               --  Omit source files that have no coverage information, as they
+               --  might be stubbed units that are purposedly ignored in this
+               --  run and must not interfere with the coverage analysis of the
+               --  real units in further consolidated runs.
+
+               Source_File_Index'Write (S, File_Vectors.To_Index (FI_C));
+               String'Output (S,
+                              (if FI.Full_Name /= null
+                               then FI.Full_Name.all
+                               else FI.Simple_Name.all));
+               File_Kind'Write (S, FI.Kind);
+               Boolean'Write (S, FI.Indexed_Simple_Name);
+            end if;
          end;
       end loop;
 
