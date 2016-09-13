@@ -2560,7 +2560,7 @@ package body SC_Obligations is
                   --  proper deps table.
 
                   Cur_Source_File := Get_Index_From_Simple_Name
-                    (SCOUE.File_Name.all);
+                    (SCOUE.File_Name.all, Source_File);
                end if;
             end;
          end if;

@@ -1752,8 +1752,8 @@ package body Traces_Elf is
                   Unit_Filename :=
                     Canonicalize_Filename (Read_String (At_Name));
                   Current_CU := Comp_Unit
-                    (Get_Index_From_Generic_Name
-                       (Unit_Filename.all));
+                    (Get_Index_From_Generic_Name (Unit_Filename.all,
+                                                  Source_File));
 
                   --  Mark unit as having code in the executable, to silence
                   --  warning about unit of interest not present in test cases.
@@ -2411,8 +2411,9 @@ package body Traces_Elf is
             --  don't have statement SCOs.
 
             File_Index := Get_Index_From_Full_Name
-              (Full_Name         => Filenames.Last_Element.all,
-               Insert            => not Filter_Lines);
+              (Full_Name => Filenames.Last_Element.all,
+               Kind      => Source_File,
+               Insert    => not Filter_Lines);
 
             if Filter_Lines
               and then File_Index /= No_Source_File
@@ -2429,8 +2430,7 @@ package body Traces_Elf is
                No_File_Of_Interest := False;
                if Filter_Lines then
                   File_Index := Get_Index_From_Full_Name
-                    (Filenames.Last_Element.all,
-                     Insert => True);
+                    (Filenames.Last_Element.all, Source_File, Insert => True);
                end if;
             end if;
             File_Indices.Append (File_Index);

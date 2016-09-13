@@ -69,7 +69,7 @@ package body Object_Locations is
       Match (Sloc_Range_RE, S, Matches);
       if Matches (0) /= No_Match then
          File_Index := Files_Table.Get_Index_From_Simple_Name
-           (Match (1), Insert => True);
+           (Match (1), Files_Table.Source_File, Insert => True);
          return
            (Kind       => Sloc_Range,
             Sloc_Range => To_Range

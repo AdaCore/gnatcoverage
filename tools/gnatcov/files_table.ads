@@ -39,6 +39,11 @@ package Files_Table is
    --  its source lines. Coverage information can be associated with each
    --  file/line. Only object coverage is supported.
 
+   type File_Kind is (Source_File, Library_File);
+   --  Specify a kind of file this package handles. Although they are
+   --  logically distinct, both source files and library files are handled
+   --  here.
+
    function Canonicalize_Filename (Filename : String) return String;
    function Canonicalize_Filename (Filename : String) return String_Access;
    --  If the filename looks like a Windows filename, it is canonicalized: the
@@ -58,10 +63,12 @@ package Files_Table is
 
    function Get_Index_From_Full_Name
      (Full_Name           : String;
+      Kind                : File_Kind;
       Insert              : Boolean := True;
       Indexed_Simple_Name : Boolean := False) return Source_File_Index;
    function Get_Index_From_Simple_Name
      (Simple_Name : String;
+      Kind        : File_Kind;
       Insert      : Boolean := True) return Source_File_Index;
    --  Register a full or simple name in the files table
    --  Indexed_Simple_Name can be set to True only when loading a checkpoint.
@@ -72,6 +79,7 @@ package Files_Table is
 
    function Get_Index_From_Generic_Name
      (Name                : String;
+      Kind                : File_Kind;
       Indexed_Simple_Name : Boolean := False) return Source_File_Index;
    --  Call Get_Index_From_Simple_Name or Get_Index_From_Full_Name depending
    --  on whether Name is an absolute path. Return the result of this call.
@@ -236,7 +244,7 @@ package Files_Table is
 
    type Source_Lines is private;
 
-   type File_Info is record
+   type File_Info (Kind : File_Kind := Source_File) is record
       --  Source file information.
 
       Full_Name : String_Access;

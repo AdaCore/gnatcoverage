@@ -289,7 +289,7 @@ package body ALI_Files is
       --  this by the fact that it already has an assigned Source_File_Index.
 
       ALI_Index := Get_Index_From_Full_Name
-        (ALI_Filename, Insert => False);
+        (ALI_Filename, Library_File, Insert => False);
       if ALI_Index /= No_Source_File then
          Report
            ("ignoring duplicate ALI file " & ALI_Filename, Kind => Warning);
@@ -297,7 +297,7 @@ package body ALI_Files is
       end if;
 
       ALI_Index := Get_Index_From_Full_Name
-        (ALI_Filename, Insert => True);
+        (ALI_Filename, Library_File, Insert => True);
       Log_File_Open (ALI_Filename);
       Open (ALI_File, In_File, ALI_Filename);
 
@@ -390,14 +390,15 @@ package body ALI_Files is
             when 'U' =>
                Match (U_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
-                  Units.Append (Get_Index_From_Generic_Name (Match (1)));
+                  Units.Append (Get_Index_From_Generic_Name (Match (1),
+                                                             Source_File));
                end if;
 
             when 'D' =>
                Match (D_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
                   Deps.Append (Get_Index_From_Generic_Name
-                    (Unquote (Match (1))));
+                    (Unquote (Match (1)), Source_File));
                end if;
 
             when 'N' =>
@@ -421,7 +422,8 @@ package body ALI_Files is
 
                            Note_SFI := Get_Index_From_Generic_Name
                                          (Note_SFN (Note_SFN'First + 1
-                                                 .. Note_SFN'Last));
+                                                 .. Note_SFN'Last),
+                                          Source_File);
                         end if;
 
                         Sloc :=

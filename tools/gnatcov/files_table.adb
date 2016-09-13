@@ -54,6 +54,18 @@ package body Files_Table is
    --  Compute unique names for all files in the table. Also take care of
    --  setting Unique_Names_Computed.
 
+   function Kind_Name (Kind : File_Kind) return String is
+     (case Kind is
+      when Source_File  => "source file",
+      when Library_File => "library file");
+
+   procedure Check_File_Kind
+     (Index : Valid_Source_File_Index;
+      Kind  : File_Kind);
+   --  Helper for Get_Index_From_* functions. Raise a fatal error if the Kind
+   --  for Index isn't Kind. This is used to raise a fatal error if we try to
+   --  access the same file as different kinds.
+
    procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive);
 
    package Filename_Maps is new Ada.Containers.Hashed_Maps
@@ -565,6 +577,7 @@ package body Files_Table is
 
    function Get_Index_From_Full_Name
      (Full_Name           : String;
+      Kind                : File_Kind;
       Insert              : Boolean := True;
       Indexed_Simple_Name : Boolean := False) return Source_File_Index
    is
@@ -603,6 +616,7 @@ package body Files_Table is
 
          if Simple_Cur /= Simple_Name_Maps.No_Element then
             Res := Element (Simple_Cur);
+            Check_File_Kind (Res, Kind);
             pragma Assert (Res /= No_Source_File);
 
             --  If we are not allowed to insert something, do not modify
@@ -640,7 +654,8 @@ package body Files_Table is
          pragma Assert (not Unique_Names_Computed);
 
          Info := new File_Info'
-           (Full_Name                =>
+           (Kind                     => Kind,
+            Full_Name                =>
                new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
             Simple_Name              =>
                new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
@@ -679,6 +694,9 @@ package body Files_Table is
       if Switches.Debug_File_Table then
          Put_Line (" ->" & Res'Img);
       end if;
+      if Res in Valid_Source_File_Index then
+         Check_File_Kind (Res, Kind);
+      end if;
       return Res;
    end Get_Index_From_Full_Name;
 
@@ -688,6 +706,7 @@ package body Files_Table is
 
    function Get_Index_From_Simple_Name
      (Simple_Name : String;
+      Kind        : File_Kind;
       Insert      : Boolean := True) return Source_File_Index
    is
       use Filename_Maps;
@@ -714,7 +733,8 @@ package body Files_Table is
       else
          pragma Assert (not Unique_Names_Computed);
 
-         Info := new File_Info'(Simple_Name              =>
+         Info := new File_Info'(Kind                     => Kind,
+                                Simple_Name              =>
                                    new String'(+Full_Name (Simple_Path)),
                                 Full_Name                => null,
                                 Unique_Name              => null,
@@ -737,6 +757,9 @@ package body Files_Table is
          Put_Line (" ->" & Res'Img);
       end if;
 
+      if Res in Valid_Source_File_Index then
+         Check_File_Kind (Res, Kind);
+      end if;
       return Res;
    end Get_Index_From_Simple_Name;
 
@@ -746,6 +769,7 @@ package body Files_Table is
 
    function Get_Index_From_Generic_Name
      (Name                : String;
+      Kind                : File_Kind;
       Indexed_Simple_Name : Boolean := False) return Source_File_Index
    is
       File_Name : constant Virtual_File := Create (+Name);
@@ -759,9 +783,9 @@ package body Files_Table is
 
       if Is_Absolute_Path (File_Name) then
          Result := Get_Index_From_Full_Name
-           (Name, Indexed_Simple_Name => Indexed_Simple_Name);
+           (Name, Kind => Kind, Indexed_Simple_Name => Indexed_Simple_Name);
       else
-         Result := Get_Index_From_Simple_Name (Name);
+         Result := Get_Index_From_Simple_Name (Name, Kind => Kind);
       end if;
       return Result;
    end Get_Index_From_Generic_Name;
@@ -1109,6 +1133,24 @@ package body Files_Table is
       return File.Unique_Name.all;
    end Get_Unique_Name;
 
+   ---------------------
+   -- Check_File_Kind --
+   ---------------------
+
+   procedure Check_File_Kind
+     (Index : Valid_Source_File_Index;
+      Kind  : File_Kind)
+   is
+      FI : constant File_Info_Access := Get_File (Index);
+   begin
+      if FI.Kind /= Kind then
+         Outputs.Fatal_Error
+           ("Trying to use " & FI.Simple_Name.all & " both as a "
+            & Kind_Name (FI.Kind) & " and as a "
+            & Kind_Name (Kind));
+      end if;
+   end Check_File_Kind;
+
    ---------------------------
    -- Invalidate_Line_Cache --
    ---------------------------
@@ -1390,6 +1432,7 @@ package body Files_Table is
                            (if FI.Full_Name /= null
                             then FI.Full_Name.all
                             else FI.Simple_Name.all));
+            File_Kind'Write (S, FI.Kind);
             Boolean'Write (S, FI.Indexed_Simple_Name);
          end;
       end loop;
@@ -1425,10 +1468,9 @@ package body Files_Table is
 
          declare
             Source_Name         : constant String := String'Input (S);
-            Indexed_Simple_Name : Boolean;
+            Kind                : constant File_Kind := File_Kind'Input (S);
+            Indexed_Simple_Name : constant Boolean := Boolean'Input (S);
          begin
-            Boolean'Read (S, Indexed_Simple_Name);
-
             --  Delicate circuitry here: if in the original run, a simple
             --  name was passed to Get_Index_From_Full_Name, then it must
             --  not be indexed as a simple name here (which is what
@@ -1438,10 +1480,10 @@ package body Files_Table is
             if Indexed_Simple_Name then
                CS.SFI_Map (Old_SFI) :=
                  Get_Index_From_Generic_Name
-                   (Source_Name, Indexed_Simple_Name => True);
+                   (Source_Name, Kind, Indexed_Simple_Name => True);
             else
                CS.SFI_Map (Old_SFI) := Get_Index_From_Full_Name
-                 (Source_Name, Indexed_Simple_Name => False);
+                 (Source_Name, Kind, Indexed_Simple_Name => False);
             end if;
 
             if Switches.Verbose then
