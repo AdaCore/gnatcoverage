@@ -273,23 +273,29 @@ package Files_Table is
       Has_Source : Boolean := True;
       --  False if no source file is found that corresponds to this file name
 
-      Lines : Source_Lines;
-      --  Source file to display in the reports
+      case Kind is
+         when Source_File =>
+            Lines : Source_Lines;
+            --  Source file to display in the reports
 
-      Sloc_To_SCO_Maps : Sloc_To_SCO_Map_Array_Acc;
-      --  Sloc -> SCO_Id indices for this file
+            Sloc_To_SCO_Maps : Sloc_To_SCO_Map_Array_Acc;
+            --  Sloc -> SCO_Id indices for this file
 
-      Stats : Stat_Array := (others => 0);
-      --  Counters associated with the file (e.g total number of lines, number
-      --  of lines that are covered).
+            Stats : Stat_Array := (others => 0);
+            --  Counters associated with the file (e.g total number of lines,
+            --  number of lines that are covered).
 
-      Has_Source_Coverage_Info : Boolean := False;
-      --  True if source coverage information has been registered for this
-      --  source file.
+            Has_Source_Coverage_Info : Boolean := False;
+            --  True if source coverage information has been registered for
+            --  this source file.
 
-      Has_Object_Coverage_Info : Boolean := False;
-      --  True if object coverage information has been registered for this
-      --  source file.
+            Has_Object_Coverage_Info : Boolean := False;
+            --  True if object coverage information has been registered for
+            --  this source file.
+
+         when Library_File =>
+            null;
+      end case;
    end record;
 
    type File_Info_Access is access File_Info;
@@ -308,17 +314,20 @@ package Files_Table is
 
    procedure Iterate_On_Lines
      (File    : File_Info_Access;
-      Process : not null access procedure (Index : Positive));
+      Process : not null access procedure (Index : Positive))
+     with Pre => File.Kind = Source_File;
 
    function Get_Line
      (File  : File_Info_Access;
-      Index : Positive) return Line_Info_Access;
+      Index : Positive) return Line_Info_Access
+     with Pre => File.Kind = Source_File;
 
    function Get_Line (Sloc : Source_Location) return Line_Info_Access;
 
    function Get_Line
      (File  : File_Info_Access;
-      Index : Positive) return String;
+      Index : Positive) return String
+     with Pre => File.Kind = Source_File;
 
    function Get_Line (Sloc : Source_Location) return String;
 
@@ -326,7 +335,8 @@ package Files_Table is
 
    function Sloc_To_SCO_Map
      (Index : Source_File_Index;
-      Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map;
+      Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map
+     with Pre => Get_File (Index).Kind = Source_File;
    --  Return (allocating, if necessary) the requested map
 
    function End_Lex_Element (Sloc : Source_Location) return Source_Location;
@@ -345,16 +355,19 @@ package Files_Table is
    --  using the rebase/search information. If one found, Success is True;
    --  False otherwise.
 
-   procedure Fill_Line_Cache (FI : File_Info_Access);
+   procedure Fill_Line_Cache (FI : File_Info_Access)
+     with Pre => FI.Kind = Source_File;
    --  Try to open FI and populate its line cache
 
-   procedure Invalidate_Line_Cache (FI : File_Info_Access);
+   procedure Invalidate_Line_Cache (FI : File_Info_Access)
+     with Pre => FI.Kind = Source_File;
    --  Free FI's line cache
 
    procedure Warn_File_Missing (File : File_Info);
    --  Report that File cannot be found in source path
 
-   function To_Display (File : File_Info_Access) return Boolean;
+   function To_Display (File : File_Info_Access) return Boolean
+     with Pre => File.Kind = Source_File;
    --  Return True if there is some relevant coverage information to display
    --  for this file and for the current coverage criteria.
 

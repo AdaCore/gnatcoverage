@@ -474,6 +474,10 @@ package body Annotations is
       --  Start of processing for Compute_File_State
 
       begin
+         if FI.Kind = Library_File then
+            return;
+         end if;
+
          FI.Stats := (others => 0);
          Iterate_On_Lines (FI, Compute_Line_State'Access);
          Iterate_On_Lines (FI, Compute_Stats'Access);
@@ -490,7 +494,7 @@ package body Annotations is
       procedure Process_One_File (File_Index : Source_File_Index) is
          FI : constant File_Info_Access := Get_File (File_Index);
       begin
-         if To_Display (FI) then
+         if FI.Kind = Source_File and then To_Display (FI) then
             Disp_File_Line_State (Pp, File_Index, FI);
          end if;
       end Process_One_File;

@@ -653,21 +653,24 @@ package body Files_Table is
 
          pragma Assert (not Unique_Names_Computed);
 
-         Info := new File_Info'
-           (Kind                     => Kind,
-            Full_Name                =>
-               new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
-            Simple_Name              =>
-               new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
-            Indexed_Simple_Name      => Indexed_Simple_Name,
-            Unique_Name              => null,
-            Has_Source               => True,
-            Lines                    => (Source_Line_Vectors.Empty_Vector
-                                           with null record),
-            Stats                    => (others => 0),
-            Sloc_To_SCO_Maps         => null,
-            Has_Source_Coverage_Info => False,
-            Has_Object_Coverage_Info => False);
+         Info := new File_Info (Kind);
+         Info.Full_Name := new String'(+GNATCOLL.VFS.Full_Name (Full_Path));
+         Info.Simple_Name :=
+            new String'(+GNATCOLL.VFS.Full_Name (Simple_Path));
+         Info.Indexed_Simple_Name := Indexed_Simple_Name;
+         Info.Unique_Name := null;
+         Info.Has_Source := True;
+         case Kind is
+            when Source_File =>
+               Info.Lines := (Source_Line_Vectors.Empty_Vector
+                              with null record);
+               Info.Stats := (others => 0);
+               Info.Sloc_To_SCO_Maps := null;
+               Info.Has_Source_Coverage_Info := False;
+               Info.Has_Object_Coverage_Info := False;
+            when Library_File =>
+               null;
+         end case;
 
          Files_Table.Append (Info);
          Res := Files_Table.Last_Index;
@@ -733,20 +736,23 @@ package body Files_Table is
       else
          pragma Assert (not Unique_Names_Computed);
 
-         Info := new File_Info'(Kind                     => Kind,
-                                Simple_Name              =>
-                                   new String'(+Full_Name (Simple_Path)),
-                                Full_Name                => null,
-                                Unique_Name              => null,
-                                Indexed_Simple_Name      => True,
-                                Has_Source               => True,
-                                Lines                    =>
-                                  (Source_Line_Vectors.Empty_Vector
-                                   with null record),
-                                Stats                    => (others => 0),
-                                Sloc_To_SCO_Maps         => null,
-                                Has_Source_Coverage_Info => False,
-                                Has_Object_Coverage_Info => False);
+         Info := new File_Info (Kind);
+         Info.Simple_Name := new String'(+Full_Name (Simple_Path));
+         Info.Full_Name := null;
+         Info.Unique_Name := null;
+         Info.Indexed_Simple_Name := True;
+         Info.Has_Source := True;
+         case Kind is
+            when Source_File =>
+               Info.Lines := (Source_Line_Vectors.Empty_Vector
+                              with null record);
+               Info.Stats := (others => 0);
+               Info.Sloc_To_SCO_Maps := null;
+               Info.Has_Source_Coverage_Info := False;
+               Info.Has_Object_Coverage_Info := False;
+            when Library_File =>
+               null;
+         end case;
 
          Files_Table.Append (Info);
          Res := Files_Table.Last_Index;
