@@ -80,6 +80,7 @@ package Files_Table is
    function Get_Index_From_Generic_Name
      (Name                : String;
       Kind                : File_Kind;
+      Insert              : Boolean := True;
       Indexed_Simple_Name : Boolean := False) return Source_File_Index;
    --  Call Get_Index_From_Simple_Name or Get_Index_From_Full_Name depending
    --  on whether Name is an absolute path. Return the result of this call.

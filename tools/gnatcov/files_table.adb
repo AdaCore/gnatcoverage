@@ -776,6 +776,7 @@ package body Files_Table is
    function Get_Index_From_Generic_Name
      (Name                : String;
       Kind                : File_Kind;
+      Insert              : Boolean := True;
       Indexed_Simple_Name : Boolean := False) return Source_File_Index
    is
       File_Name : constant Virtual_File := Create (+Name);
@@ -789,9 +790,9 @@ package body Files_Table is
 
       if Is_Absolute_Path (File_Name) then
          Result := Get_Index_From_Full_Name
-           (Name, Kind => Kind, Indexed_Simple_Name => Indexed_Simple_Name);
+           (Name, Kind, Insert, Indexed_Simple_Name);
       else
-         Result := Get_Index_From_Simple_Name (Name, Kind => Kind);
+         Result := Get_Index_From_Simple_Name (Name, Kind, Insert);
       end if;
       return Result;
    end Get_Index_From_Generic_Name;
