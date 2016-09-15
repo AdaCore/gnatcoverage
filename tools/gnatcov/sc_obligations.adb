@@ -1483,7 +1483,8 @@ package body SC_Obligations is
                   = CU_Vector.Element (New_CU_Id).Fingerprint
                then
                   Remap_Existing_CU : declare
-                     Real_CU : CU_Info renames CU_Vector.Element (New_CU_Id);
+                     Real_CU : CU_Info renames
+                        CU_Vector.Reference (New_CU_Id).Element.all;
                   begin
                      --  SCOs
 
@@ -1513,6 +1514,9 @@ package body SC_Obligations is
                             + Real_CU.First_Instance
                             - CP_CU.First_Instance;
                      end loop;
+
+                     Real_CU.Has_Code :=
+                        Real_CU.Has_Code or else CP_CU.Has_Code;
                   end Remap_Existing_CU;
 
                --  Case 3: Checkpointed CU is not consistent with existing
