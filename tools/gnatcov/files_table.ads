@@ -276,6 +276,9 @@ package Files_Table is
 
       case Kind is
          when Source_File =>
+            LI : Source_File_Index := No_Source_File;
+            --  Name of the library file corresponding to this source file
+
             Lines : Source_Lines;
             --  Source file to display in the reports
 
@@ -295,7 +298,10 @@ package Files_Table is
             --  this source file.
 
          when Library_File =>
-            null;
+            Main_Source : Source_File_Index := No_Source_File;
+            --  Main source file. For Ada, this is a simple C name; for C this
+            --  is either a simple name or a full name, depending on whether
+            --  the information is available.
       end case;
    end record;
 

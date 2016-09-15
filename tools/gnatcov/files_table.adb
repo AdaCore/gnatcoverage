@@ -1415,18 +1415,43 @@ package body Files_Table is
       end if;
    end Warn_File_Missing;
 
+   ---------------------------------
+   -- Checkpoint streaming format --
+   ---------------------------------
+
+   --  1) Header:
+   --
+   --     * [First : Source_File_Index], index of the first file entry;
+   --     * [Last : Source_File_Index], index of the last file entry;
+   --
+   --     Note that, for instance, First => 1, Last => 10 does not mean that 10
+   --     file entries are streamed: some may be skipped because they don't
+   --     contribute to the source coverage analysis.
+   --
+   --  2) File table: one group of the following fields times the number of
+   --     streamed entries
+   --
+   --     * [SFI : Source_File_Index], the index of the file entry or
+   --       No_Source_File if this marks the end of the sequence (in this case,
+   --       there is no further content to parse);
+   --     * [Name : String], the name of the file;
+   --     * [Kind : File_Kind], the kind of the file;
+   --     * [Indexed_Simple_Name : Boolean], whether the simple name for this
+   --       file was indexed in the simple name map.
+   --     * if Kind = Library_File, [Main_Source : Source_File_Index]
+
    ---------------------
    -- Checkpoint_Save --
    ---------------------
 
    procedure Checkpoint_Save (S : access Root_Stream_Type'Class) is
    begin
-      --  Output first and last SFIs
+      --  1) Output first and last SFIs
 
       Source_File_Index'Write (S, Files_Table.First_Index);
       Source_File_Index'Write (S, Files_Table.Last_Index);
 
-      --  Output file table info for each file
+      --  2) Output file table info for each file
       --  Note that we need LI files there, not just source files with
       --  coverage info.
 
@@ -1434,20 +1459,21 @@ package body Files_Table is
          declare
             FI : File_Info_Access renames File_Vectors.Element (FI_C);
          begin
+            --  Omit source files that have no coverage information, as they
+            --  might be stubbed units that are purposedly ignored in this run
+            --  and must not interfere with the coverage analysis of the real
+            --  units in further consolidated runs.
+
             if FI.Kind /= Source_File or else To_Display (FI) then
-
-               --  Omit source files that have no coverage information, as they
-               --  might be stubbed units that are purposedly ignored in this
-               --  run and must not interfere with the coverage analysis of the
-               --  real units in further consolidated runs.
-
                Source_File_Index'Write (S, File_Vectors.To_Index (FI_C));
-               String'Output (S,
-                              (if FI.Full_Name /= null
-                               then FI.Full_Name.all
-                               else FI.Simple_Name.all));
+               String'Output (S, (if FI.Full_Name /= null
+                                  then FI.Full_Name.all
+                                  else FI.Simple_Name.all));
                File_Kind'Write (S, FI.Kind);
                Boolean'Write (S, FI.Indexed_Simple_Name);
+               if FI.Kind = Library_File then
+                  Source_File_Index'Write (S, FI.Main_Source);
+               end if;
             end if;
          end;
       end loop;
@@ -1465,47 +1491,127 @@ package body Files_Table is
      (S  : access Root_Stream_Type'Class;
       CS : access Checkpoint_State)
    is
-      CP_First_SFI, CP_Last_SFI, Old_SFI : Source_File_Index;
+      --  1) Read header
 
-      pragma Warnings (Off, Old_SFI);
+      CP_First_SFI : constant Source_File_Index := Source_File_Index'Input (S);
+      CP_Last_SFI  : constant Source_File_Index := Source_File_Index'Input (S);
+      CP_SFI       : Source_File_Index;
+
+      --  2) Read file table entries
+
+      type File_Entry (Kind : File_Kind := Source_File) is record
+         Name                : String_Access;
+         Indexed_Simple_Name : Boolean;
+         case Kind is
+            when Source_File =>
+               null;
+            when Library_File =>
+               Main_Source : Source_File_Index;
+         end case;
+      end record;
+
+      CP_Entries : array (CP_First_SFI .. CP_Last_SFI) of File_Entry;
+      --  File_Entries read from checkpoint, with their original (checkpoint)
+      --  indices.
+
+      pragma Warnings (Off, CP_SFI);
       --  Kill bogus infinite loop warning (P324-050)
 
    begin
-      Source_File_Index'Read (S, CP_First_SFI);
-      Source_File_Index'Read (S, CP_Last_SFI);
       CS.SFI_Map :=
-        new SFI_Map_Array'(CP_First_SFI
-                        .. CP_Last_SFI => No_Source_File);
+        new SFI_Map_Array'(CP_First_SFI .. CP_Last_SFI => No_Source_File);
+
+      --  We first load all file entries, and then import them into the
+      --  current context. The reason for this two pass design is that
+      --  whether or not we import a given LI file entry depends on info
+      --  from the entry for its main source.
+
+      --  Pass 1: load all file entries from checkpoint
 
       loop
-         Source_File_Index'Read (S, Old_SFI);
-         exit when Old_SFI = No_Source_File;
+         Source_File_Index'Read (S, CP_SFI);
+         exit when CP_SFI = No_Source_File;
 
          declare
-            Source_Name         : constant String := String'Input (S);
+            FE                  : File_Entry renames CP_Entries (CP_SFI);
+            Name                : constant String := String'Input (S);
             Kind                : constant File_Kind := File_Kind'Input (S);
             Indexed_Simple_Name : constant Boolean := Boolean'Input (S);
          begin
-            --  Delicate circuitry here: if in the original run, a simple
-            --  name was passed to Get_Index_From_Full_Name, then it must
-            --  not be indexed as a simple name here (which is what
-            --  Get_Index_From_Generic_Name would do). This can happen when
-            --  a relative ALI file path is passed to --scos=.
+            case Kind is
+               when Source_File =>
+                  FE := (Kind => Source_File, others => <>);
+                  null;
+               when Library_File =>
+                  FE := (Kind => Library_File, others => <>);
+                  FE.Main_Source := Source_File_Index'Input (S);
+                  pragma Assert (FE.Main_Source /= No_Source_File);
+            end case;
+            FE.Name := new String'(Name);
+            FE.Indexed_Simple_Name := Indexed_Simple_Name;
+         end;
+      end loop;
 
-            if Indexed_Simple_Name then
-               CS.SFI_Map (Old_SFI) :=
-                 Get_Index_From_Generic_Name
-                   (Source_Name, Kind, Indexed_Simple_Name => True);
-            else
-               CS.SFI_Map (Old_SFI) := Get_Index_From_Full_Name
-                 (Source_Name, Kind, Indexed_Simple_Name => False);
-            end if;
+      --  Pass 2: process entries, importing them as appropriate
 
-            if Switches.Verbose then
-               Put_Line ("Remap " & Source_Name & ":" & Old_SFI'Img
-                         & " ->" & CS.SFI_Map (Old_SFI)'Img);
+      for CP_SFI in CP_Entries'Range loop
+         declare
+            FE  : File_Entry renames CP_Entries (CP_SFI);
+            SFI : Source_File_Index := No_Source_File;
+         begin
+            if FE.Name /= null then
+               if FE.Kind = Library_File then
+                  --  Optimization:  If we can find a source file that matches
+                  --  the main unit for the library file to import, consider
+                  --  they are the same source file and consolidate this
+                  --  library with with the one already loaded. This eliminates
+                  --  duplicate file entries for library files and thus avoids
+                  --  checkpoint files bloat.
+
+                  declare
+                     Main_Entry : File_Entry renames
+                        CP_Entries (FE.Main_Source);
+                     Main_SFI         : constant Source_File_Index :=
+                        Get_Index_From_Generic_Name
+                          (Name   => Main_Entry.Name.all,
+                           Kind   => Source_File,
+                           Insert => False);
+                  begin
+                     if Main_SFI /= No_Source_File then
+                        SFI := Get_File (Main_SFI).LI;
+                     end if;
+                  end;
+               end if;
+
+               if SFI = No_Source_File then
+                  --  Delicate circuitry here: if in the original run, a simple
+                  --  name was passed to Get_Index_From_Full_Name, then it must
+                  --  not be indexed as a simple name here (which is what
+                  --  Get_Index_From_Generic_Name would do). This can happen
+                  --  when a relative ALI file path is passed to --scos=.
+
+                  if FE.Indexed_Simple_Name then
+                     SFI := Get_Index_From_Generic_Name
+                       (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);
+                  else
+                     SFI := Get_Index_From_Full_Name
+                       (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
+                  end if;
+               end if;
+
+               CS.SFI_Map (CP_SFI) := SFI;
+               if Switches.Verbose then
+                  Put_Line ("Remap " & FE.Name.all & ":" & CP_SFI'Img
+                            & " ->" & CS.SFI_Map (CP_SFI)'Img);
+               end if;
             end if;
          end;
+      end loop;
+
+      --  Release the names table
+
+      for FE of CP_Entries loop
+         Free (FE.Name);
       end loop;
    end Checkpoint_Load;
 

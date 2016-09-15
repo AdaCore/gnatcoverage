@@ -2517,6 +2517,9 @@ package body SC_Obligations is
          end loop;
       end;
 
+      Get_File (ALI_Index).Main_Source := Main_Source;
+      Get_File (Main_Source).LI := ALI_Index;
+
       --  Record compilation unit
 
       CU_Vector.Append
