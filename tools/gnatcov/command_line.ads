@@ -510,6 +510,8 @@ package Command_Line is
      (Opt_Debug => Create
         (Short_Name => "-d",
          Pattern    => "b|h|i|f",
+
+         --  Please keep this synchronized with debug switches in switches.ads
          Help       => ("Debug switch: change various behaviors."
                           & ASCII.LF & ASCII.LF
                           & "  -db: Break long instructions in disassemblies,"
@@ -524,6 +526,7 @@ package Command_Line is
                           & "  -df: Print debugging messages for files table"
                           & " management."),
          Internal   => True),
+
       Opt_Projects => Create
         (Long_Name  => "--projects",
          Pattern    => "[GPR|@LISTFILE]",

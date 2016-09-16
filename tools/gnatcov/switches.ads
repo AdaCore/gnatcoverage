@@ -68,21 +68,50 @@ package Switches is
    -- Debugging switches (-d?) --
    ------------------------------
 
-   Debug_Break_Long_Instructions : Boolean := False;
-   --  -db
-   --  Break long instructions in disassemblies, a la objdump.
+   type Debug_Type is
+     (None,
 
-   Debug_Full_History : Boolean := False;
-   --  -dh
-   --  Keep full historical traces for MC/DC even for decisions that do not
-   --  require it (decisions without diamond paths).
+      --  Break long instructions in disassemblies, a la objdump.
+      Break_Long_Instructions,
 
-   Debug_Ignore_Exemptions : Boolean := False;
-   --  -di
-   --  Exemption pragmas have no effect.
+      --  Keep full historical traces for MC/DC even for decisions that do not
+      --  require it (decisions without diamond paths).
+      Full_History,
 
-   Debug_File_Table : Boolean := False;
-   --  -df
-   --  Show debugging output for files table management
+      --  Exemption pragmas have no effect.
+      Ignore_Exemptions,
+
+      --  Show debugging output for files table management
+      File_Table);
+   --  Set of debug switches to expose on command-line
+
+   subtype Valid_Debug_Type is Debug_Type range
+      Break_Long_Instructions .. File_Table;
+
+   Debug_Switches : array (Valid_Debug_Type) of Boolean := (others => False);
+   --  For each debug switches, tell whether it's enabled
+
+   Debug_Switches_Map : array (Character) of Debug_Type :=
+     ('b'    => Break_Long_Instructions,
+      'h'    => Full_History,
+      'i'    => Ignore_Exemptions,
+      'f'    => File_Table,
+      others => None);
+   --  Map characters to switches. Update this map to make a debug flags
+   --  available through the -d command-line argument (see command_line.ads).
+
+   --  Convenience shortcuts:
+
+   Debug_Break_Long_Instructions : Boolean renames
+      Debug_Switches (Break_Long_Instructions);
+
+   Debug_Full_History : Boolean renames
+      Debug_Switches (Full_History);
+
+   Debug_Ignore_Exemptions : Boolean renames
+      Debug_Switches (Ignore_Exemptions);
+
+   Debug_File_Table : Boolean renames
+      Debug_Switches (File_Table);
 
 end Switches;

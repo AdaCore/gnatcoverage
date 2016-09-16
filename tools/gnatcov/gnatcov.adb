@@ -20,6 +20,7 @@ with Ada.Command_Line;
 with Ada.Containers;        use Ada.Containers;
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
 with Interfaces;
@@ -615,6 +616,21 @@ procedure GNATcov is
                Fatal_Error ("Invalid output format: " & Arg);
          end;
       end if;
+
+      for Arg of Args.String_List_Args (Opt_Debug) loop
+         for Char of Ada.Strings.Unbounded.To_String (Arg) loop
+            declare
+               Switch : constant Switches.Debug_Type :=
+                  Debug_Switches_Map (Char);
+            begin
+               if Switch = Switches.None then
+                  Fatal_Error ("Invalid debug switch: -d" & Char);
+               else
+                  Switches.Debug_Switches (Switch) := True;
+               end if;
+            end;
+         end loop;
+      end loop;
 
       --  ... then, handle remaning arguments, which have subcommand-specific
       --  meanings.
