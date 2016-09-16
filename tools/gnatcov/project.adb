@@ -562,12 +562,17 @@ package body Project is
       pragma Assert (Env /= null);
 
       Prj_Tree := new Project_Tree;
-      Prj_Tree.Load
-        (Root_Project_Path => Create (+Prj_Name),
-         Env               => Env,
-         Packages_To_Check => Coverage_Package_List'Access,
-         Recompute_View    => False,
-         Errors            => Outputs.Warning_Or_Error'Access);
+      begin
+         Prj_Tree.Load
+           (Root_Project_Path => Create (+Prj_Name),
+            Env               => Env,
+            Packages_To_Check => Coverage_Package_List'Access,
+            Recompute_View    => False,
+            Errors            => Outputs.Warning_Or_Error'Access);
+      exception
+         when Invalid_Project =>
+            Fatal_Error ("Could not load the project file, aborting.");
+      end;
 
       if Obj_Subdir /= Null_Unbounded_String then
          Env.Set_Object_Subdir (+To_String (Obj_Subdir));
