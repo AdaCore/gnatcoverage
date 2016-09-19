@@ -32,6 +32,7 @@ with Diagnostics;   use Diagnostics;
 with Files_Table;   use Files_Table;
 with Interfaces;
 with Namet;         use Namet;
+with Outputs;       use Outputs;
 with SCOs;
 with Snames;        use Snames;
 with Strings;       use Strings;
@@ -469,6 +470,48 @@ package body SC_Obligations is
    package R is new Tag_Providers.Register_Factory
      (Name => "instance", T => Instance_Tag_Provider_Type);
    pragma Unreferenced (R);
+
+   -----------------------------------------
+   -- Helper routines for Checkpoint_Load --
+   -----------------------------------------
+
+   --  CP_SCO_Vectors holds all SCO-related data loaded from a checkpoint
+
+   type CP_SCO_Vectors is record
+      CU_Vector       : CU_Info_Vectors.Vector;
+      ALI_Annotations : ALI_Annotation_Maps.Map;
+      Inst_Vector     : Inst_Info_Vectors.Vector;
+      BDD_Vector      : BDD.BDD_Vectors.Vector;
+      SCO_Vector      : SCO_Vectors.Vector;
+   end record;
+
+   procedure Checkpoint_Load_Merge_Unit
+     (CS         : access Checkpoint_State;
+      CP_CU      : CU_Info;
+      Real_CU_Id : CU_Id);
+   --  Load CU from checkpoint that corresponds to a current unit of interest
+   --  whose ID is Real_CU_Id.
+
+   procedure Checkpoint_Load_New_Unit
+     (CS        : access Checkpoint_State;
+      CP_SCOV   : CP_SCO_Vectors;
+      CP_CU     : in out CU_Info;
+      CP_CU_Id  : CU_Id;
+      New_CU_Id : out CU_Id);
+   --  Load CU from checkpoint that does not correspond to a current unit of
+   --  interest. The newly assigned CU_Id is returned in New_CU_Id.
+
+   procedure Checkpoint_Load_Unit
+     (CS        : access Checkpoint_State;
+      CP_SCOV   : CP_SCO_Vectors;
+      CP_CU     : in out CU_Info;
+      CP_CU_Id  : CU_Id;
+      New_CU_Id : out CU_Id);
+   --  Process one compilation unit from a checkpoint.
+   --  CP_CU_Id is the CU_Id in the checkpoint.
+   --  New_CU_Id is the corresponding CU_Id in the current context, and is
+   --  either an already existing CU_Id (if the unit was already known),
+   --  or a newly assigned one (if not).
 
    ---------
    -- BDD --
@@ -1083,6 +1126,497 @@ package body SC_Obligations is
       end loop;
    end Add_SCO_To_Lines;
 
+   --------------------------------
+   -- Checkpoint_Load_Merge_Unit --
+   --------------------------------
+
+   procedure Checkpoint_Load_Merge_Unit
+     (CS         : access Checkpoint_State;
+      CP_CU      : CU_Info;
+      Real_CU_Id : CU_Id)
+   is
+      Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
+
+   begin
+      --  Here we already have loaded full SCO information for this CU, so
+      --  all we need to do is to populate the tables mapping the SCO and
+      --  instance IDs for this unit in the checkpoint to their counterparts
+      --  in the current context.
+
+      --  SCOs
+
+      pragma Assert (CP_CU.Last_SCO - CP_CU.First_SCO
+                       =
+                     Real_CU.Last_SCO - Real_CU.First_SCO);
+
+      for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
+         CS.SCO_Map (Old_SCO_Id) :=
+           Old_SCO_Id
+             + Real_CU.First_SCO
+           - CP_CU.First_SCO;
+      end loop;
+
+      --  Instances
+
+      pragma Assert
+        (CP_CU.Last_Instance - CP_CU.First_Instance
+         =
+           Real_CU.Last_Instance - Real_CU.First_Instance);
+
+      for Old_Inst_Id in CP_CU.First_Instance
+        .. CP_CU.Last_Instance
+      loop
+         CS.Inst_Map (Old_Inst_Id) :=
+           Old_Inst_Id
+             + Real_CU.First_Instance
+           - CP_CU.First_Instance;
+      end loop;
+
+      --  Has_Code indication
+
+      Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
+   end Checkpoint_Load_Merge_Unit;
+
+   ------------------------------
+   -- Checkpoint_Load_New_Unit --
+   ------------------------------
+
+   procedure Checkpoint_Load_New_Unit
+     (CS        : access Checkpoint_State;
+      CP_SCOV   : CP_SCO_Vectors;
+      CP_CU     : in out CU_Info;
+      CP_CU_Id  : CU_Id;
+      New_CU_Id : out CU_Id)
+
+   is
+      New_First_Instance : Inst_Id;
+      New_First_BDD_Node : BDD_Node_Id;
+      New_First_SCO      : SCO_Id;
+
+      Cur_Source_File    : Source_File_Index := No_Source_File;
+      Last_Line          : Natural := 0;
+
+   begin
+      New_CU_Id := CU_Vector.Last_Index + 1;
+
+      CU_Map.Insert (CP_CU.Main_Source, New_CU_Id);
+
+      --  Remap instance ids
+
+      New_First_Instance := Inst_Vector.Last_Index + 1;
+      for Old_Inst_Id
+        in CP_CU.First_Instance .. CP_CU.Last_Instance
+      loop
+         Remap_Inst : declare
+            New_Inst : Inst_Info :=
+              CP_SCOV.Inst_Vector.Element (Old_Inst_Id);
+
+            procedure Remap_Inst_Id (S : in out Inst_Id);
+            --  Remap an Inst_Id. Note: this assumes possible
+            --  forward references, and does not rely on Inst_Map.
+
+            -------------------
+            -- Remap_Inst_Id --
+            -------------------
+
+            procedure Remap_Inst_Id (S : in out Inst_Id) is
+            begin
+               if S /= No_Inst_Id then
+                  S := New_First_Instance
+                    + S
+                    - CP_CU.First_Instance;
+               end if;
+            end Remap_Inst_Id;
+
+         --  Start of processing for Remap_Inst
+
+         begin
+            Remap_SFI (CS, New_Inst.Sloc.Source_File);
+            Remap_Inst_Id (New_Inst.Enclosing_Instance);
+            pragma Assert (New_Inst.Comp_Unit = CP_CU_Id);
+            New_Inst.Comp_Unit := New_CU_Id;
+
+            Inst_Vector.Append (New_Inst);
+            CS.Inst_Map (Old_Inst_Id) := Inst_Vector.Last_Index;
+         end Remap_Inst;
+      end loop;
+
+      --  Remap BDD node ids
+
+      New_First_BDD_Node := BDD.BDD_Vector.Last_Index + 1;
+      CS.BDD_Map :=
+        new BDD_Node_Id_Map_Array (CP_SCOV.BDD_Vector.First_Index
+                                   .. CP_SCOV.BDD_Vector.Last_Index);
+      for Old_BDD_Node_Id in CS.BDD_Map'Range loop
+         Remap_BDD_Node : declare
+            New_BDD_Node : BDD.BDD_Node :=
+              CP_SCOV.BDD_Vector.Element (Old_BDD_Node_Id);
+
+            procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id);
+            --  Remap a BDD node id
+
+            -----------------------
+            -- Remap_BDD_Node_Id --
+            -----------------------
+
+            procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id) is
+            begin
+               if S /= No_BDD_Node_Id then
+                  S := New_First_BDD_Node
+                    + S
+                    - CP_SCOV.BDD_Vector.First_Index;
+               end if;
+            end Remap_BDD_Node_Id;
+
+         --  Start of processing for Remap_BDD_Node
+
+         begin
+            case New_BDD_Node.Kind is
+               when BDD.Condition =>
+                  Remap_BDD_Node_Id (New_BDD_Node.Parent);
+                  for Valuation in New_BDD_Node.Dests'Range loop
+                     Remap_BDD_Node_Id
+                       (New_BDD_Node.Dests (Valuation));
+                  end loop;
+
+               when BDD.Jump =>
+                  Remap_BDD_Node_Id (New_BDD_Node.Dest);
+
+               when others =>
+                  null;
+            end case;
+
+            BDD.BDD_Vector.Append (New_BDD_Node);
+            CS.BDD_Map (Old_BDD_Node_Id) :=
+              BDD.BDD_Vector.Last_Index;
+         end Remap_BDD_Node;
+      end loop;
+
+      --  Remap SCO ids
+
+      New_First_SCO := SCO_Vector.Last_Index + 1;
+      for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
+         Remap_SCOD : declare
+            New_SCOD : SCO_Descriptor :=
+              CP_SCOV.SCO_Vector.Element (Old_SCO_Id);
+
+            procedure Remap_BDD_Node (B : in out BDD_Node_Id);
+            --  Remap a BDD node id
+
+            procedure Remap_SCO_Id (S : in out SCO_Id);
+            --  Remap a SCO_Id. Note: this assumes possible forward
+            --  references, and does not rely on SCO_Map.
+
+            --------------------
+            -- Remap_BDD_Node --
+            --------------------
+
+            procedure Remap_BDD_Node (B : in out BDD_Node_Id) is
+            begin
+               if B /= No_BDD_Node_Id then
+                  B := CS.BDD_Map (B);
+               end if;
+            end Remap_BDD_Node;
+
+            ------------------
+            -- Remap_SCO_Id --
+            ------------------
+
+            procedure Remap_SCO_Id (S : in out SCO_Id) is
+            begin
+               if S /= No_SCO_Id then
+                  S := New_First_SCO + S - CP_CU.First_SCO;
+                  pragma Assert (S /= No_SCO_Id);
+               end if;
+            end Remap_SCO_Id;
+
+         --  Start of processing for Remap_SCOD
+
+         begin
+            New_SCOD.Origin := New_CU_Id;
+
+            --  Remap SFIs in all source locations
+
+            Remap_SFI (CS, New_SCOD.Sloc_Range.Source_File);
+
+            --  Preallocate line table entries for previous unit
+
+            if New_SCOD.Sloc_Range.Source_File
+              /= Cur_Source_File
+            then
+               Prealloc_Lines (Cur_Source_File, Last_Line);
+               Cur_Source_File := New_SCOD.Sloc_Range.Source_File;
+               CU_Map.Include (Cur_Source_File, New_CU_Id);
+            end if;
+
+            Last_Line := Natural'Max
+              (Last_Line,
+               New_SCOD.Sloc_Range.L.Last_Sloc.Line);
+
+            --  Remap SCO_Ids
+
+            Remap_SCO_Id (New_SCOD.Parent);
+
+            --  Make further adjustments based on SCO kind
+            --  In particular reset all components that reference
+            --  data that is not saved to checkpoint files (such as
+            --  BDD information).
+
+            case New_SCOD.Kind is
+               when Statement =>
+                  Remap_SFI (CS, New_SCOD.Dominant_Sloc.Source_File);
+                  Remap_SFI (CS, New_SCOD.Handler_Range.Source_File);
+
+                  Remap_SCO_Id (New_SCOD.Dominant);
+
+               when Operator | Decision =>
+                  for Op_SCO in New_SCOD.Operands'Range loop
+                     Remap_SCO_Id (New_SCOD.Operands (Op_SCO));
+                  end loop;
+
+                  if New_SCOD.Kind = Decision then
+                     Remap_SFI
+                       (CS, New_SCOD.Control_Location.Source_File);
+
+                     --  Decision BDD
+
+                     Remap_SCO_Id (New_SCOD.Decision_BDD.Decision);
+
+                     Remap_BDD_Node
+                       (New_SCOD.Decision_BDD.Root_Condition);
+                     Remap_BDD_Node
+                       (New_SCOD.Decision_BDD.First_Node);
+                     Remap_BDD_Node
+                       (New_SCOD.Decision_BDD.Last_Node);
+                     Remap_BDD_Node
+                       (New_SCOD.Decision_BDD.Diamond_Base);
+                  end if;
+
+               when Condition =>
+                  Remap_BDD_Node (New_SCOD.BDD_Node);
+                  Remap_Condition_SCO : declare
+                     procedure Remap_C_SCO
+                       (BDDN : in out BDD.BDD_Node);
+                     --  For a Condition BDD node, remap Condition
+                     --  SCO pointer
+
+                     -----------------
+                     -- Remap_C_SCO --
+                     -----------------
+
+                     procedure Remap_C_SCO
+                       (BDDN : in out BDD.BDD_Node)
+                     is
+                     begin
+                        Remap_SCO_Id (BDDN.C_SCO);
+                     end Remap_C_SCO;
+
+                     --  Start of processing for Remap_Condition_SCO
+
+                  begin
+                     BDD.BDD_Vector.Update_Element
+                       (New_SCOD.BDD_Node, Remap_C_SCO'Access);
+                  end Remap_Condition_SCO;
+
+                  New_SCOD.PC_Set.Clear;
+
+            end case;
+
+            --  Append new SCOD and record mapping
+
+            SCO_Vector.Append (New_SCOD);
+            CS.SCO_Map (Old_SCO_Id) := SCO_Vector.Last_Index;
+            if Verbose then
+               Put_Line
+                 ("Loaded from checkpoint: "
+                  & Image (SCO_Vector.Last_Index));
+            end if;
+         end Remap_SCOD;
+      end loop;
+
+      --  Preallocate line table entries for last file
+
+      Prealloc_Lines (Cur_Source_File, Last_Line);
+
+      --  Link new SCOs to source line tables
+
+      for SCO in New_First_SCO .. SCO_Vector.Last_Index loop
+         declare
+            SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+         begin
+            if SCOD.Kind in Statement | Decision then
+               Add_SCO_To_Lines (SCO, SCOD);
+            end if;
+         end;
+      end loop;
+
+      --  Perform final fixups and insert CU
+
+      CP_CU.Last_Instance :=
+        New_First_Instance
+          + CP_CU.Last_Instance
+        - CP_CU.First_Instance;
+      CP_CU.First_Instance := New_First_Instance;
+
+      CP_CU.Last_SCO :=
+        New_First_SCO
+          + CP_CU.Last_SCO
+        - CP_CU.First_SCO;
+      CP_CU.First_SCO := New_First_SCO;
+
+      CU_Vector.Append (CP_CU);
+   end Checkpoint_Load_New_Unit;
+
+   --------------------------
+   -- Checkpoint_Load_Unit --
+   --------------------------
+
+   procedure Checkpoint_Load_Unit
+     (CS        : access Checkpoint_State;
+      CP_SCOV   : CP_SCO_Vectors;
+      CP_CU     : in out CU_Info;
+      CP_CU_Id  : CU_Id;
+      New_CU_Id : out CU_Id)
+   is
+   begin
+      --  Remap source file indices
+
+      Remap_SFI (CS, CP_CU.LI);
+      Remap_SFI (CS, CP_CU.Main_Source);
+      for Dep_SFI of CP_CU.Deps loop
+
+         --  Units of interest can depend on units outside of the
+         --  scope of code coverage analysis. Keeping track of these
+         --  introduces clashes between stubbed units and the real
+         --  one, so they are excluded from checkpoints. Hence, allow
+         --  them to be missing here.
+
+         Remap_SFI (CS, Dep_SFI, Require_Valid_File => False);
+      end loop;
+
+      --  Next check whether this unit is already known
+
+      New_CU_Id := Comp_Unit (CP_CU.Main_Source);
+
+      if Verbose then
+         Put_Line ("Remapped CU: id " & New_CU_Id'Img
+                   & ", main source" & CP_CU.Main_Source'Img
+                   & " " & Get_Full_Name (CP_CU.Main_Source));
+      end if;
+
+      --  Case 1: CU not already present. Load all SCO information
+      --  from checkpoint.
+
+      if New_CU_Id = No_CU_Id then
+         Checkpoint_Load_New_Unit
+           (CS,
+            CP_SCOV,
+            CP_CU,
+            CP_CU_Id  => CP_CU_Id,
+            New_CU_Id => New_CU_Id);
+
+      --  Case 2: CU already loaded from LI info. Record mapping of checkpoint
+      --  identifiers (SCOs and instances).
+
+      elsif CP_CU.Fingerprint
+        = CU_Vector.Element (New_CU_Id).Fingerprint
+      then
+         Checkpoint_Load_Merge_Unit
+           (CS,
+            CP_CU      => CP_CU,
+            Real_CU_Id => New_CU_Id);
+
+      --  Case 3: Checkpointed CU is not consistent with existing info from LI
+      --  files. Skip checkpointed unit altogether (and display a warning).
+
+      else
+         Warn ("cannot merge coverage information "
+               & "from " & To_String (CS.Filename)
+               & " for " & Get_Simple_Name (CP_CU.LI));
+      end if;
+   end Checkpoint_Load_Unit;
+
+   ---------------------
+   -- Checkpoint_Load --
+   ---------------------
+
+   procedure Checkpoint_Load
+     (S  : access Root_Stream_Type'Class;
+      CS : access Checkpoint_State)
+   is
+      CP_SCOV : CP_SCO_Vectors;
+
+   begin
+      --  Load data from stream
+      --  This part must be kept consistent with Checkpoint_Save
+
+      CU_Info_Vectors.Vector'Read   (S, CP_SCOV.CU_Vector);
+      ALI_Annotation_Maps.Map'Read  (S, CP_SCOV.ALI_Annotations);
+      Inst_Info_Vectors.Vector'Read (S, CP_SCOV.Inst_Vector);
+      BDD.BDD_Vectors.Vector'Read   (S, CP_SCOV.BDD_Vector);
+      SCO_Vectors.Vector'Read       (S, CP_SCOV.SCO_Vector);
+
+      --  Allocate mapping tables for SCOs and instance identifiers
+
+      CS.SCO_Map :=
+        new SCO_Id_Map_Array'(CP_SCOV.SCO_Vector.First_Index
+                           .. CP_SCOV.SCO_Vector.Last_Index => No_SCO_Id);
+      CS.Inst_Map :=
+        new Inst_Id_Map_Array'(CP_SCOV.Inst_Vector.First_Index
+                            .. CP_SCOV.Inst_Vector.Last_Index => No_Inst_Id);
+
+      declare
+         CU_Id_Map : array (CP_SCOV.CU_Vector.First_Index
+                            .. CP_SCOV.CU_Vector.Last_Index) of CU_Id :=
+           (others => No_CU_Id);
+
+         Last_Existing_CU_Id : constant CU_Id := CU_Vector.Last_Index;
+
+      begin
+         --  Remap and merge into current tables
+
+         for Cur in CP_SCOV.CU_Vector.Iterate loop
+            declare
+               use CU_Info_Vectors;
+
+               CP_CU_Id : constant CU_Id := To_Index (Cur);
+               CP_CU    : CU_Info := Element (Cur);
+            begin
+               Checkpoint_Load_Unit
+                 (CS,
+                  CP_SCOV,
+                  CP_CU,
+                  CP_CU_Id  => CP_CU_Id,
+                  New_CU_Id => CU_Id_Map (CP_CU_Id));
+            end;
+         end loop;
+
+         --  Remap annotations
+
+         for Cur in CP_SCOV.ALI_Annotations.Iterate loop
+            declare
+               use ALI_Annotation_Maps;
+               Annotation_Sloc : Source_Location := Key (Cur);
+               Annotation      : ALI_Annotation  := Element (Cur);
+
+            begin
+               --  If this annotation comes from a compilation unit whose data
+               --  is being imported from this checkpoint (i.e. whose CU id
+               --  is higher than the last existing one upon entry), add it
+               --  now (else it is assumed to be already present in the
+               --  ALI_Annotation map).
+
+               pragma Assert (CU_Id_Map (Annotation.CU) /= No_CU_Id);
+               Annotation.CU := CU_Id_Map (Annotation.CU);
+               if Annotation.CU > Last_Existing_CU_Id then
+                  Remap_SFI (CS, Annotation_Sloc.Source_File);
+                  ALI_Annotations.Insert (Annotation_Sloc, Element (Cur));
+               end if;
+            end;
+         end loop;
+      end;
+   end Checkpoint_Load;
+
    ---------------------
    -- Checkpoint_Save --
    ---------------------
@@ -1095,467 +1629,6 @@ package body SC_Obligations is
       BDD.BDD_Vectors.Vector'Write   (S, BDD.BDD_Vector);
       SCO_Vectors.Vector'Write       (S, SCO_Vector);
    end Checkpoint_Save;
-
-   ---------------------
-   -- Checkpoint_Load --
-   ---------------------
-
-   procedure Checkpoint_Load
-     (S  : access Root_Stream_Type'Class;
-      CS : access Checkpoint_State)
-   is
-      CP_CU_Vector       : CU_Info_Vectors.Vector;
-      CP_ALI_Annotations : ALI_Annotation_Maps.Map;
-      CP_Inst_Vector     : Inst_Info_Vectors.Vector;
-      CP_BDD_Vector      : BDD.BDD_Vectors.Vector;
-      CP_SCO_Vector      : SCO_Vectors.Vector;
-
-      procedure Remap_SFI
-        (CP_SFI             : in out Source_File_Index;
-         Require_Valid_File : Boolean := True);
-      --  Remap one source file index
-
-      ---------------
-      -- Remap_SFI --
-      ---------------
-
-      procedure Remap_SFI
-        (CP_SFI             : in out Source_File_Index;
-         Require_Valid_File : Boolean := True)
-      is
-      begin
-         if CP_SFI /= No_Source_File then
-            CP_SFI := CS.SFI_Map (CP_SFI);
-            pragma Assert
-              (not Require_Valid_File or else CP_SFI /= No_Source_File);
-         end if;
-      end Remap_SFI;
-
-   --  Start of processing for Checkpoint_Load
-
-   begin
-      --  Load data from stream
-      --  This part must be kept consistent with Checkpoint_Save
-
-      CU_Info_Vectors.Vector'Read   (S, CP_CU_Vector);
-      ALI_Annotation_Maps.Map'Read  (S, CP_ALI_Annotations);
-      Inst_Info_Vectors.Vector'Read (S, CP_Inst_Vector);
-      BDD.BDD_Vectors.Vector'Read   (S, CP_BDD_Vector);
-      SCO_Vectors.Vector'Read       (S, CP_SCO_Vector);
-
-      --  Allocate mapping tables for SCOs and instance identifiers
-
-      CS.SCO_Map :=
-        new SCO_Id_Map_Array'(CP_SCO_Vector.First_Index
-                           .. CP_SCO_Vector.Last_Index => No_SCO_Id);
-      CS.Inst_Map :=
-        new Inst_Id_Map_Array'(CP_Inst_Vector.First_Index
-                            .. CP_Inst_Vector.Last_Index => No_Inst_Id);
-
-      --  Remap and merge into current tables
-
-      declare
-         use CU_Info_Vectors;
-
-         CU_Id_Map : array (CP_CU_Vector.First_Index
-                         .. CP_CU_Vector.Last_Index) of CU_Id :=
-           (others => No_CU_Id);
-
-         Last_Existing_CU_Id : constant CU_Id := CU_Vector.Last_Index;
-         New_CU_Id : CU_Id;
-
-      begin
-         --  Remap and insert compilation unit information
-
-         for Cur in CP_CU_Vector.Iterate loop
-            declare
-               CP_CU_Id : constant CU_Id := To_Index (Cur);
-               CP_CU    : CU_Info := Element (Cur);
-
-               New_First_Instance : Inst_Id;
-               New_First_BDD_Node : BDD_Node_Id;
-               New_First_SCO      : SCO_Id;
-
-               Cur_Source_File    : Source_File_Index := No_Source_File;
-               Last_Line          : Natural := 0;
-
-            begin
-               --  Remap source file indices
-
-               Remap_SFI (CP_CU.LI);
-               Remap_SFI (CP_CU.Main_Source);
-               for Dep_SFI of CP_CU.Deps loop
-                  --  Units of interest can depend on units outside of the
-                  --  scope of code coverage analysis. Keeping track of these
-                  --  introduces clashes between stubbed units and the real
-                  --  one, so they are excluded from checkpoints. Hence, allow
-                  --  them to be missing here.
-
-                  Remap_SFI (Dep_SFI, Require_Valid_File => False);
-               end loop;
-
-               New_CU_Id := Comp_Unit (CP_CU.Main_Source);
-
-               if Verbose then
-                  Put_Line ("Remapped CU: id " & New_CU_Id'Img
-                            & ", main source" & CP_CU.Main_Source'Img
-                            & " " & Get_Full_Name (CP_CU.Main_Source));
-               end if;
-
-               --  Case 1: CU not already present. Load all SCO information
-               --  from checkpoint.
-
-               if New_CU_Id = No_CU_Id then
-                  New_CU_Id := CU_Vector.Last_Index + 1;
-
-                  CU_Map.Insert (CP_CU.Main_Source, New_CU_Id);
-
-                  --  Remap instance ids
-
-                  New_First_Instance := Inst_Vector.Last_Index + 1;
-                  for Old_Inst_Id
-                    in CP_CU.First_Instance .. CP_CU.Last_Instance
-                  loop
-                     Remap_Inst : declare
-                        New_Inst : Inst_Info :=
-                          CP_Inst_Vector.Element (Old_Inst_Id);
-
-                        procedure Remap_Inst_Id (S : in out Inst_Id);
-                        --  Remap an Inst_Id. Note: this assumes possible
-                        --  forward references, and does not rely on Inst_Map.
-
-                        -------------------
-                        -- Remap_Inst_Id --
-                        -------------------
-
-                        procedure Remap_Inst_Id (S : in out Inst_Id) is
-                        begin
-                           if S /= No_Inst_Id then
-                              S := New_First_Instance
-                                + S
-                                - CP_CU.First_Instance;
-                           end if;
-                        end Remap_Inst_Id;
-
-                     --  Start of processing for Remap_Inst
-
-                     begin
-                        Remap_SFI (New_Inst.Sloc.Source_File);
-                        Remap_Inst_Id (New_Inst.Enclosing_Instance);
-                        pragma Assert (New_Inst.Comp_Unit = CP_CU_Id);
-                        New_Inst.Comp_Unit := New_CU_Id;
-
-                        Inst_Vector.Append (New_Inst);
-                        CS.Inst_Map (Old_Inst_Id) := Inst_Vector.Last_Index;
-                     end Remap_Inst;
-                  end loop;
-
-                  --  Remap BDD node ids
-
-                  New_First_BDD_Node := BDD.BDD_Vector.Last_Index + 1;
-                  CS.BDD_Map :=
-                    new BDD_Node_Id_Map_Array (CP_BDD_Vector.First_Index
-                                            .. CP_BDD_Vector.Last_Index);
-                  for Old_BDD_Node_Id in CS.BDD_Map'Range loop
-                     Remap_BDD_Node : declare
-                        New_BDD_Node : BDD.BDD_Node :=
-                          CP_BDD_Vector.Element (Old_BDD_Node_Id);
-
-                        procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id);
-                        --  Remap a BDD node id
-
-                        -------------------
-                        -- Remap_Inst_Id --
-                        -------------------
-
-                        procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id) is
-                        begin
-                           if S /= No_BDD_Node_Id then
-                              S := New_First_BDD_Node
-                                + S
-                                - CP_BDD_Vector.First_Index;
-                           end if;
-                        end Remap_BDD_Node_Id;
-
-                     --  Start of processing for Remap_BDD_Node
-
-                     begin
-                        case New_BDD_Node.Kind is
-                           when BDD.Condition =>
-                              Remap_BDD_Node_Id (New_BDD_Node.Parent);
-                              for Valuation in New_BDD_Node.Dests'Range loop
-                                 Remap_BDD_Node_Id
-                                   (New_BDD_Node.Dests (Valuation));
-                              end loop;
-
-                           when BDD.Jump =>
-                              Remap_BDD_Node_Id (New_BDD_Node.Dest);
-
-                           when others =>
-                              null;
-                        end case;
-
-                        BDD.BDD_Vector.Append (New_BDD_Node);
-                        CS.BDD_Map (Old_BDD_Node_Id) :=
-                          BDD.BDD_Vector.Last_Index;
-                     end Remap_BDD_Node;
-                  end loop;
-
-                  --  Remap SCO ids
-
-                  New_First_SCO := SCO_Vector.Last_Index + 1;
-                  for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
-                     Remap_SCOD : declare
-                        New_SCOD : SCO_Descriptor :=
-                          CP_SCO_Vector.Element (Old_SCO_Id);
-
-                        procedure Remap_BDD_Node (B : in out BDD_Node_Id);
-                        --  Remap a BDD node id
-
-                        procedure Remap_SCO_Id (S : in out SCO_Id);
-                        --  Remap a SCO_Id. Note: this assumes possible forward
-                        --  references, and does not rely on SCO_Map.
-
-                        --------------------
-                        -- Remap_BDD_Node --
-                        --------------------
-
-                        procedure Remap_BDD_Node (B : in out BDD_Node_Id) is
-                        begin
-                           if B /= No_BDD_Node_Id then
-                              B := CS.BDD_Map (B);
-                           end if;
-                        end Remap_BDD_Node;
-
-                        ------------------
-                        -- Remap_SCO_Id --
-                        ------------------
-
-                        procedure Remap_SCO_Id (S : in out SCO_Id) is
-                        begin
-                           if S /= No_SCO_Id then
-                              S := New_First_SCO + S - CP_CU.First_SCO;
-                              pragma Assert (S /= No_SCO_Id);
-                           end if;
-                        end Remap_SCO_Id;
-
-                     --  Start of processing for Remap_SCOD
-
-                     begin
-                        New_SCOD.Origin := New_CU_Id;
-
-                        --  Remap SFIs in all source locations
-
-                        Remap_SFI (New_SCOD.Sloc_Range.Source_File);
-
-                        --  Preallocate line table entries for previous unit
-
-                        if New_SCOD.Sloc_Range.Source_File
-                          /= Cur_Source_File
-                        then
-                           Prealloc_Lines (Cur_Source_File, Last_Line);
-                           Cur_Source_File := New_SCOD.Sloc_Range.Source_File;
-                           CU_Map.Include (Cur_Source_File, New_CU_Id);
-                        end if;
-
-                        Last_Line := Natural'Max
-                          (Last_Line,
-                           New_SCOD.Sloc_Range.L.Last_Sloc.Line);
-
-                        --  Remap SCO_Ids
-
-                        Remap_SCO_Id (New_SCOD.Parent);
-
-                        --  Make further adjustments based on SCO kind
-                        --  In particular reset all components that reference
-                        --  data that is not saved to checkpoint files (such as
-                        --  BDD information).
-
-                        case New_SCOD.Kind is
-                           when Statement =>
-                              Remap_SFI (New_SCOD.Dominant_Sloc.Source_File);
-                              Remap_SFI (New_SCOD.Handler_Range.Source_File);
-
-                              Remap_SCO_Id (New_SCOD.Dominant);
-
-                           when Operator | Decision =>
-                              for Op_SCO in New_SCOD.Operands'Range loop
-                                 Remap_SCO_Id (New_SCOD.Operands (Op_SCO));
-                              end loop;
-
-                              if New_SCOD.Kind = Decision then
-                                 Remap_SFI
-                                   (New_SCOD.Control_Location.Source_File);
-
-                                 --  Decision BDD
-
-                                 Remap_SCO_Id (New_SCOD.Decision_BDD.Decision);
-
-                                 Remap_BDD_Node
-                                   (New_SCOD.Decision_BDD.Root_Condition);
-                                 Remap_BDD_Node
-                                   (New_SCOD.Decision_BDD.First_Node);
-                                 Remap_BDD_Node
-                                   (New_SCOD.Decision_BDD.Last_Node);
-                                 Remap_BDD_Node
-                                   (New_SCOD.Decision_BDD.Diamond_Base);
-                              end if;
-
-                           when Condition =>
-                              Remap_BDD_Node (New_SCOD.BDD_Node);
-                              Remap_Condition_SCO : declare
-                                 procedure Remap_C_SCO
-                                   (BDDN : in out BDD.BDD_Node);
-                                 --  For a Condition BDD node, remap Condition
-                                 --  SCO pointer
-
-                                 -----------------
-                                 -- Remap_C_SCO --
-                                 -----------------
-
-                                 procedure Remap_C_SCO
-                                   (BDDN : in out BDD.BDD_Node)
-                                 is
-                                 begin
-                                    Remap_SCO_Id (BDDN.C_SCO);
-                                 end Remap_C_SCO;
-
-                              --  Start of processing for Remap_Condition_SCO
-
-                              begin
-                                 BDD.BDD_Vector.Update_Element
-                                   (New_SCOD.BDD_Node, Remap_C_SCO'Access);
-                              end Remap_Condition_SCO;
-
-                              New_SCOD.PC_Set.Clear;
-
-                        end case;
-
-                        --  Append new SCOD and record mapping
-
-                        SCO_Vector.Append (New_SCOD);
-                        CS.SCO_Map (Old_SCO_Id) := SCO_Vector.Last_Index;
-                        if Verbose then
-                           Put_Line
-                             ("Loaded from checkpoint: "
-                              & Image (SCO_Vector.Last_Index));
-                        end if;
-                     end Remap_SCOD;
-                  end loop;
-
-                  --  Preallocate line table entries for last file
-
-                  Prealloc_Lines (Cur_Source_File, Last_Line);
-
-                  --  Link new SCOs to source line tables
-
-                  for SCO in New_First_SCO .. SCO_Vector.Last_Index loop
-                     declare
-                        SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
-                     begin
-                        if SCOD.Kind in Statement | Decision then
-                           Add_SCO_To_Lines (SCO, SCOD);
-                        end if;
-                     end;
-                  end loop;
-
-                  --  Perform final fixups and insert CU
-
-                  CP_CU.Last_Instance :=
-                    New_First_Instance
-                      + CP_CU.Last_Instance
-                      - CP_CU.First_Instance;
-                  CP_CU.First_Instance := New_First_Instance;
-
-                  CP_CU.Last_SCO :=
-                    New_First_SCO
-                      + CP_CU.Last_SCO
-                      - CP_CU.First_SCO;
-                  CP_CU.First_SCO := New_First_SCO;
-
-                  CU_Vector.Append (CP_CU);
-
-               --  Case 2: CU already loaded from LI info. Record mapping of
-               --  checkpoint identifiers (SCOs and instances).
-
-               elsif CP_CU.Fingerprint
-                  = CU_Vector.Element (New_CU_Id).Fingerprint
-               then
-                  Remap_Existing_CU : declare
-                     Real_CU : CU_Info renames
-                        CU_Vector.Reference (New_CU_Id).Element.all;
-                  begin
-                     --  SCOs
-
-                     pragma Assert (CP_CU.Last_SCO - CP_CU.First_SCO
-                                    =
-                                    Real_CU.Last_SCO - Real_CU.First_SCO);
-
-                     for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
-                        CS.SCO_Map (Old_SCO_Id) :=
-                          Old_SCO_Id
-                            + Real_CU.First_SCO
-                            - CP_CU.First_SCO;
-                     end loop;
-
-                     --  Instances
-
-                     pragma Assert
-                       (CP_CU.Last_Instance - CP_CU.First_Instance
-                        =
-                        Real_CU.Last_Instance - Real_CU.First_Instance);
-
-                     for Old_Inst_Id in CP_CU.First_Instance
-                                     .. CP_CU.Last_Instance
-                     loop
-                        CS.Inst_Map (Old_Inst_Id) :=
-                          Old_Inst_Id
-                            + Real_CU.First_Instance
-                            - CP_CU.First_Instance;
-                     end loop;
-
-                     Real_CU.Has_Code :=
-                        Real_CU.Has_Code or else CP_CU.Has_Code;
-                  end Remap_Existing_CU;
-
-               --  Case 3: Checkpointed CU is not consistent with existing
-               --  info from LI files. Skip checkpointed unit altogether
-               --  (and display a warning).
-
-               else
-                  Put_Line ("warning: cannot merge coverage information "
-                            & "from " & To_String (CS.Filename)
-                            & " for " & Get_Simple_Name (CP_CU.LI));
-
-                  New_CU_Id := No_CU_Id;
-               end if;
-
-               CU_Id_Map (CP_CU_Id) := New_CU_Id;
-            end;
-         end loop;
-
-         --  Remap annotations
-
-         for Cur in CP_ALI_Annotations.Iterate loop
-            declare
-               use ALI_Annotation_Maps;
-
-               Annotation_Sloc : Source_Location := Key (Cur);
-               Annotation      : ALI_Annotation  := Element (Cur);
-            begin
-               --  If this annotation comes from a compilation unit whose data
-               --  is being from this checkpoint, enter it now (else it is
-               --  assumed to be already present in the ALI_Annotation map).
-
-               Annotation.CU := CU_Id_Map (Annotation.CU);
-               if Annotation.CU > Last_Existing_CU_Id then
-                  Remap_SFI (Annotation_Sloc.Source_File);
-                  ALI_Annotations.Insert (Annotation_Sloc, Element (Cur));
-               end if;
-            end;
-         end loop;
-      end;
-   end Checkpoint_Load;
 
    ---------------
    -- Comp_Unit --

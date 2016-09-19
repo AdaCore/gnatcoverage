@@ -107,4 +107,21 @@ package body Checkpoints is
       Close (SF);
    end Checkpoint_Load;
 
+   ---------------
+   -- Remap_SFI --
+   ---------------
+
+   procedure Remap_SFI
+     (CS                 : access Checkpoint_State;
+      CP_SFI             : in out Source_File_Index;
+      Require_Valid_File : Boolean := True)
+   is
+   begin
+      if CP_SFI /= No_Source_File then
+         CP_SFI := CS.SFI_Map (CP_SFI);
+         pragma Assert
+           (not Require_Valid_File or else CP_SFI /= No_Source_File);
+      end if;
+   end Remap_SFI;
+
 end Checkpoints;

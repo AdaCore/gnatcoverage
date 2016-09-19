@@ -57,4 +57,14 @@ package Checkpoints is
       Context  : access Coverage.Context);
    procedure Checkpoint_Load (Filename : String);
 
+   procedure Remap_SFI
+     (CS                 : access Checkpoint_State;
+      CP_SFI             : in out Source_File_Index;
+      Require_Valid_File : Boolean := True);
+   --  Remap one source file index.
+   --  If CP_SFI is No_Source_File then it's returned unchanged. If it is
+   --  any other value, then it is remapped to the corresponding value in
+   --  the current run. If Require_Valid_File is True, then a check is made
+   --  that the remapped value is not No_Source_File.
+
 end Checkpoints;
