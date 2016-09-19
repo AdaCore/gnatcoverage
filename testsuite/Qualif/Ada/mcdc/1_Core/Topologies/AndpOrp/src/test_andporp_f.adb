@@ -7,7 +7,7 @@ begin
    Assert (F (True, False, False) = False);
 end;
 
---# andporp.adb
+--# andporp.adb andporp.ads
 --  /eval(Stmt|Other)/      l! ## oT-
 --  /decisionTrue/  l- ## s-
 --  /decisionFalse/ l+ ## 0

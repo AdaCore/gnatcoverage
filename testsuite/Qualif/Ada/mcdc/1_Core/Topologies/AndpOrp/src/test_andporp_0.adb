@@ -6,7 +6,8 @@ begin
    Assert (True);
 end;
 
---# andporp.adb
+--# andporp.adb andporp.ads
+--  /xf-profile/    l- ## s-
 --  /evalStmt/      l- ## s-
 --  /evalOther/     l- ## 0c
 --  /decisionTrue/  l- ## s-
