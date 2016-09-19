@@ -70,12 +70,15 @@ package Files_Table is
      (Simple_Name : String;
       Kind        : File_Kind;
       Insert      : Boolean := True) return Source_File_Index;
-   --  Register a full or simple name in the files table
+   --  Register a full or simple name in the files table.
+   --
+   --  If Insert is False and the file is not registered yet, return
+   --  No_Source_File.
+   --
+   --  If the file is already registered, check that it was registered with
+   --  Kind and raise a fatal error if it was not.
+   --
    --  Indexed_Simple_Name can be set to True only when loading a checkpoint.
-
-   function Get_Full_Name (Index : Source_File_Index) return String;
-   function Get_Simple_Name (Index : Source_File_Index) return String;
-   --  Return the full/simple name for the given index
 
    function Get_Index_From_Generic_Name
      (Name                : String;
@@ -84,8 +87,13 @@ package Files_Table is
       Indexed_Simple_Name : Boolean := False) return Source_File_Index;
    --  Call Get_Index_From_Simple_Name or Get_Index_From_Full_Name depending
    --  on whether Name is an absolute path. Return the result of this call.
-   --  Indexed_Simple_Name is meaningful only in the case of passing a full
-   --  name, and can be set True only when loading a checkpoint.
+   --
+   --  Indexed_Simple_Name is passed when calling Get_Index_From_Full_Name and
+   --  is ignored otherwise. It can be set True only when loading a checkpoint.
+
+   function Get_Full_Name (Index : Source_File_Index) return String;
+   function Get_Simple_Name (Index : Source_File_Index) return String;
+   --  Return the full/simple name for the given index
 
    function Get_Unique_Name (Index : Source_File_Index) return String;
    --  Return the shortest unambiguous file name. It is the smallest suffix for
