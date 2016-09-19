@@ -126,7 +126,7 @@ package SC_Obligations is
 
    type Operand_Position is (Left, Right);
 
-   --  Expose BDD node id type for the benefit of checkoints
+   --  Expose BDD node id type for the benefit of checkpoints
 
    type BDD_Node_Id is new Natural;
    No_BDD_Node_Id : constant BDD_Node_Id := 0;

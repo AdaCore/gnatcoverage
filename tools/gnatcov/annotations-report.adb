@@ -661,7 +661,7 @@ package body Annotations.Report is
       -----------------------------
 
       procedure Display_Trace_File_Info (Position : Cursor) is
-         E : constant Trace_File_Element_Acc := Element (Position);
+         E            : constant Trace_File_Element_Acc := Element (Position);
          Orig_Context : constant String :=
            Original_Processing_Context (E.Trace);
 

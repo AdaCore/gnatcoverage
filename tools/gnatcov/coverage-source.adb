@@ -19,7 +19,6 @@
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Ada.Tags;
-with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
@@ -30,6 +29,7 @@ with Decision_Map;      use Decision_Map;
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with MC_DC;             use MC_DC;
+with Outputs;           use Outputs;
 with Slocs;             use Slocs;
 with Strings;           use Strings;
 with Switches;          use Switches;
@@ -236,8 +236,8 @@ package body Coverage.Source is
       if Tag_Provider.all not in Default_Tag_Provider_Type
         and then Tag_Provider'Tag /= CP_Tag_Provider
       then
-         Put_Line ("warning: cannot merge coverage information separated by "
-                   & Tag_Providers.Name (CP_Tag_Provider));
+         Warn ("cannot merge coverage information separated by "
+               & Tag_Providers.Name (CP_Tag_Provider));
          return;
       end if;
 

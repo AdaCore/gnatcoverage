@@ -500,7 +500,7 @@ package Command_Line is
       Opt_Save_Checkpoint => Create
         (Long_Name    => "--save-checkpoint",
          Pattern      => "CHECKPOINT",
-         Help         => "Save source coverage checkpoint to named file",
+         Help         => "Save source coverage checkpoint to named file.",
          Commands     => (Cmd_Coverage => True,
                           others       => False),
          At_Most_Once => True,
@@ -634,8 +634,8 @@ package Command_Line is
       Opt_Checkpoint => Create
         (Long_Name   => "--checkpoint",
          Short_Name  => "-C",
-         Pattern     => "CHECKPOINT",
-         Help        => "Specify checkpointed coverage information to load",
+         Pattern     => "[CHECKPOINT|@LISTFILE]",
+         Help        => "Specify checkpointed coverage information to load.",
          Commands    => (Cmd_Coverage => True,
                          others       => False),
          Internal    => False));

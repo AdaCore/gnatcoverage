@@ -67,6 +67,9 @@ package Strings is
      (V : String_Vectors.Vector)
       return String_List_Access;
 
+   --  The stream type below allows arbitrary objects to be streamed
+   --  from/to an unbounded string, which is used as a buffer of bytes.
+
    type Unbounded_String_Stream
      (S : access Ada.Strings.Unbounded.Unbounded_String)
    is new Ada.Streams.Root_Stream_Type with record

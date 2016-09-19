@@ -60,7 +60,7 @@ package body Traces_Files_List is
    begin
       loop
          declare
-            Name : constant String := String'Input (S);
+            Name    : constant String := String'Input (S);
             CP_File : Trace_File_Element_Acc;
          begin
             exit when Name = "";

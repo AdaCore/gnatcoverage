@@ -17,18 +17,18 @@
 ------------------------------------------------------------------------------
 
 with Ada.Streams.Stream_IO; use Ada.Streams, Ada.Streams.Stream_IO;
-with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
 with Coverage.Source;
 with Files_Table;
+with Outputs;           use Outputs;
 with Traces_Files_List;
 
 package body Checkpoints is
 
-   Checkpoint_Magic   : constant String := "GNATcov" & ASCII.NUL;
+   Checkpoint_Magic   : constant String := "GNATcov checkpoint" & ASCII.NUL;
    Checkpoint_Version : constant := 0;
 
    type Checkpoint_Header is record
@@ -86,10 +86,10 @@ package body Checkpoints is
 
       Checkpoint_Header'Read (S, CP_Header);
       if CP_Header.Magic /= Expected_Header.Magic then
-         Put_Line ("invalid checkpoint file " & Filename);
+         Fatal_Error ("invalid checkpoint file " & Filename);
 
       elsif CP_Header.Version /= Expected_Header.Version then
-         Put_Line
+         Fatal_Error
            ("incompatible checkpoint version "
             & "(expected" & Expected_Header.Version'Img
             & ", found"   & CP_Header.Version'Img & ")");

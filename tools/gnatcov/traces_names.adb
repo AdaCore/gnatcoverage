@@ -613,9 +613,8 @@ package body Traces_Names is
    is
       pragma Unreferenced (TP, CS, CP_Tag);
    begin
-      raise Program_Error
-        with "cannot perform incremental coverage with "
-        & "routines-based separation";
+      Fatal_Error ("cannot perform incremental coverage with "
+                   & "routines-based separation");
       return No_SC_Tag;
    end Map_Tag;
 
