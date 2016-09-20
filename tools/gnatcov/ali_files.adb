@@ -21,6 +21,8 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Regpat; use GNAT.Regpat;
+with Namet;
+with SCOs;
 
 with Diagnostics; use Diagnostics;
 with Files_Table; use Files_Table;
@@ -51,6 +53,9 @@ package body ALI_Files is
    function Unquote (Filename : String) return String;
    --  If needed, unquote a filename, such as the ones that can be found on D
    --  lines.
+
+   function SCO_Tables_Fingerprint return SCOs_Hash;
+   --  Return a fingerprint for all SCO tables in SCOs
 
    -------------
    -- Unquote --
@@ -85,6 +90,80 @@ package body ALI_Files is
       end if;
    end Unquote;
 
+   ----------------------------
+   -- SCO_Tables_Fingerprint --
+   ----------------------------
+
+   function SCO_Tables_Fingerprint return SCOs_Hash is
+      use GNAT.SHA1;
+      use Namet;
+      use SCOs;
+
+      procedure Update (S : String);
+      --  Shortcut for Update (Hash_Ctx, S)
+
+      procedure Update (Sloc : SCOs.Source_Location);
+      --  Update Hash_Ctx with Sloc
+
+      Hash_Ctx  : GNAT.SHA1.Context;
+
+      ------------
+      -- Update --
+      ------------
+
+      procedure Update (S : String) is
+      begin
+         Update (Hash_Ctx, S);
+      end Update;
+
+      ------------
+      -- Update --
+      ------------
+
+      procedure Update (Sloc : SCOs.Source_Location) is
+      begin
+         Update (Hash_Ctx, ":" & Logical_Line_Number'Image (Sloc.Line)
+                           & ":" & Column_Number'Image (Sloc.Col));
+      end Update;
+
+   begin
+      --  The aim is to include in the hash all information for which
+      --  inconsistency during consolidation would make coverage analysis
+      --  nonsensical.
+
+      for I in SCO_Unit_Table.First + 1 .. SCO_Unit_Table.Last loop
+         declare
+            U : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (I);
+         begin
+            --  Directly streaming U to the hash stream would make the
+            --  fingerprint computation depend on compiler internals (here,
+            --  pragma representation values). Instead, use human-readable
+            --  and compiler-independant values.
+
+            Update (U.File_Name.all);
+            Update (Nat'Image (U.Dep_Num));
+
+            for S in U.From .. U.To loop
+               declare
+                  E : SCO_Table_Entry renames SCO_Table.Table (S);
+               begin
+                  Update (E.From);
+                  Update (E.To);
+                  Update (String'((E.C1, E.C2)));
+                  if E.Last then
+                     Update ("Last");
+                  end if;
+                  if E.Pragma_Aspect_Name /= No_Name then
+                     Update (Get_Name_String (E.Pragma_Aspect_Name));
+                  end if;
+               end;
+            end loop;
+         end;
+      end loop;
+
+      return SCOs_Hash (Binary_Message_Digest'(Digest (Hash_Ctx)));
+   end SCO_Tables_Fingerprint;
+
    --------------
    -- Load_ALI --
    --------------
@@ -114,11 +193,8 @@ package body ALI_Files is
       Fingerprint  : out SCOs_Hash;
       With_SCOs    : Boolean) return Source_File_Index
    is
-      use GNAT.SHA1;
-
-      ALI_File        : File_Type;
-      ALI_Index       : Source_File_Index;
-      C_Lines_Ctx     : GNAT.SHA1.Context;
+      ALI_File  : File_Type;
+      ALI_Index : Source_File_Index;
 
       Line  : String_Access;
       Index : Natural;
@@ -187,12 +263,6 @@ package body ALI_Files is
                      Free (Line);
                      Line := new String'(Next_Line);
                      Index := 1;
-
-                     --  If this is a C line, enter it into the SCOs hash
-
-                     if Line'Length > 0 and then Line (Line'First) = 'C' then
-                        Update (C_Lines_Ctx, Next_Line);
-                     end if;
 
                      exit;
                   end if;
@@ -542,8 +612,7 @@ package body ALI_Files is
          else
             Index := 1;
             Get_SCOs_From_ALI;
-            Fingerprint :=
-              SCOs_Hash (Binary_Message_Digest'(Digest (C_Lines_Ctx)));
+            Fingerprint := SCO_Tables_Fingerprint;
          end if;
       end if;
 
