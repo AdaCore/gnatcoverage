@@ -19,6 +19,7 @@
 with Argparse;
 with Coverage;
 with Rundrv.Config;
+with Switches;
 
 package Command_Line is
 
@@ -509,24 +510,9 @@ package Command_Line is
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Debug => Create
         (Short_Name => "-d",
-         Pattern    => "b|h|i|f",
-
-         --  Please keep this synchronized with debug switches in switches.ads
-         Help       => ("Debug switch: change various behaviors."
-                          & ASCII.LF & ASCII.LF
-                          & "  -db: Break long instructions in disassemblies,"
-                          & " a la objdump"
-                          & ASCII.LF & ASCII.LF
-                          & "  -dh: Keep full historical traces for MC/DC even"
-                          & " for decisions that do not require it (decisions"
-                          & " without diamond paths)."
-                          & ASCII.LF & ASCII.LF
-                          & "  -di: Exemption pragmas have no effect."
-                          & ASCII.LF & ASCII.LF
-                          & "  -df: Print debugging messages for files table"
-                          & " management."),
+         Pattern    => Switches.Debug_Command_Line_Pattern,
+         Help       => Switches.Debug_Command_Line_Help,
          Internal   => True),
-
       Opt_Projects => Create
         (Long_Name  => "--projects",
          Pattern    => "[GPR|@LISTFILE]",

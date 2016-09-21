@@ -16,8 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Strings; use GNAT.Strings;
 with Ada.Containers.Indefinite_Ordered_Maps;
+
+with GNAT.Strings; use GNAT.Strings;
 
 package Switches is
 
@@ -91,7 +92,7 @@ package Switches is
    Debug_Switches : array (Valid_Debug_Type) of Boolean := (others => False);
    --  For each debug switches, tell whether it's enabled
 
-   Debug_Switches_Map : array (Character) of Debug_Type :=
+   Debug_Switches_Map : constant array (Character) of Debug_Type :=
      ('b'    => Break_Long_Instructions,
       'h'    => Full_History,
       'i'    => Ignore_Exemptions,
@@ -99,6 +100,12 @@ package Switches is
       others => None);
    --  Map characters to switches. Update this map to make a debug flags
    --  available through the -d command-line argument (see command_line.ads).
+
+   function Debug_Command_Line_Pattern return String;
+   --  Return a pattern string for the usage of the command-line -d option
+
+   function Debug_Command_Line_Help return String;
+   --  Return a help string for the usage of the command-line -d option
 
    --  Convenience shortcuts:
 
