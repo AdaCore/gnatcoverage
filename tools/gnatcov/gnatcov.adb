@@ -601,8 +601,16 @@ procedure GNATcov is
       end if;
 
       if Args.String_Args (Opt_Separate).Present then
-         Tag_Provider := Tag_Providers.Create
-           (+Args.String_Args (Opt_Separate).Value);
+         declare
+            Name : constant String := +Args.String_Args (Opt_Separate).Value;
+         begin
+            Tag_Provider := Tag_Providers.Create (Name);
+         exception
+            when Constraint_Error =>
+               Fatal_Error ("Invalid separated coverage analysis mode: "
+                            & Name & " (available: "
+                            & Tag_Providers.Registered_Names (", ") & ")");
+         end;
       end if;
 
       if Args.String_Args (Opt_Output_Format).Present then

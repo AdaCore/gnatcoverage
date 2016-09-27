@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2016, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Containers.Indefinite_Ordered_Maps;
 
 package body Factory_Registry is
@@ -57,8 +58,15 @@ package body Factory_Registry is
    ------------
 
    function Create (Name : String) return RT_Access is
+      use Registry_Maps;
+
+      Cur : constant Cursor := Registry_Map.Find (Name);
    begin
-      return Registry_Map.Element (Name).Factory.all;
+      if Cur = No_Element then
+         raise Constraint_Error with "invalid name: " & Name;
+      else
+         return Element (Cur).Factory.all;
+      end if;
    end Create;
 
    ----------
@@ -79,5 +87,26 @@ package body Factory_Registry is
       raise Constraint_Error with
         "no factory for " & Ada.Tags.External_Tag (Tag);
    end Name;
+
+   ----------------------
+   -- Registered_Names --
+   ----------------------
+
+   function Registered_Names (Separator : String) return String is
+      use Registry_Maps;
+
+      Result : Unbounded_String;
+      First  : Boolean := True;
+   begin
+      for Cur in Registry_Map.Iterate loop
+         if not First then
+            Append (Result, Separator);
+         end if;
+         First := False;
+
+         Append (Result, Key (Cur));
+      end loop;
+      return To_String (Result);
+   end Registered_Names;
 
 end Factory_Registry;

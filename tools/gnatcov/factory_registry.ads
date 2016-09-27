@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2016, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -49,10 +49,14 @@ package Factory_Registry is
 
    function Create (Name : String) return RT_Access;
    --  Return an object of the derived type of RT registered with the given
-   --  Name.
+   --  Name. Raises Constraint_Error if no such RT was found.
 
    function Name (Tag : Ada.Tags.Tag) return String;
    --  Return the name of the object factory associated with the given tag.
    --  Raises Constraint_Error if not found.
+
+   function Registered_Names (Separator : String) return String;
+   --  Return a list of names for registered derived types, separated using
+   --  Separator.
 
 end Factory_Registry;

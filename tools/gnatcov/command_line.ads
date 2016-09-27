@@ -18,6 +18,7 @@
 
 with Argparse;
 with Coverage;
+with Coverage.Tags;
 with Rundrv.Config;
 with Switches;
 
@@ -475,7 +476,7 @@ package Command_Line is
          Internal     => False),
       Opt_Separate => Create
         (Short_Name   => "-S",
-         Pattern      => "routine|instance",
+         Pattern      => Coverage.Tags.Tag_Providers.Registered_Names ("|"),
          Help         => ("Perform separate source coverage (EXPERIMENTAL)."),
          Commands     => (Cmd_Coverage => True,
                           others => False),
