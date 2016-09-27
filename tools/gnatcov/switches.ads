@@ -83,11 +83,15 @@ package Switches is
       Ignore_Exemptions,
 
       --  Show debugging output for files table management
-      File_Table);
+      File_Table,
+
+      --  Enable saving/loading of instances information to/from checkpoints.
+      --  See P927-034.
+      Checkpoint_Instances);
    --  Set of debug switches to expose on command-line
 
    subtype Valid_Debug_Type is Debug_Type range
-      Break_Long_Instructions .. File_Table;
+      Break_Long_Instructions .. Debug_Type'Last;
 
    Debug_Switches : array (Valid_Debug_Type) of Boolean := (others => False);
    --  For each debug switches, tell whether it's enabled
@@ -97,6 +101,7 @@ package Switches is
       'h'    => Full_History,
       'i'    => Ignore_Exemptions,
       'f'    => File_Table,
+      'I'    => Checkpoint_Instances,
       others => None);
    --  Map characters to switches. Update this map to make a debug flags
    --  available through the -d command-line argument (see command_line.ads).
@@ -120,5 +125,8 @@ package Switches is
 
    Debug_File_Table : Boolean renames
       Debug_Switches (File_Table);
+
+   Debug_Checkpoint_Instances : Boolean renames
+      Debug_Switches (Checkpoint_Instances);
 
 end Switches;

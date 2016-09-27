@@ -32,6 +32,7 @@ with Diagnostics;   use Diagnostics;
 with Files_Table;   use Files_Table;
 with Interfaces;
 with Namet;         use Namet;
+with Outputs;
 with SCOs;
 with Snames;        use Snames;
 with Strings;       use Strings;
@@ -1180,6 +1181,15 @@ package body SC_Obligations is
                Last_Line          : Natural := 0;
 
             begin
+               if CP_CU.Last_Instance >= CP_CU.First_Instance
+                 and then not Debug_Checkpoint_Instances
+               then
+                  Outputs.Fatal_Error
+                    (To_String (CS.Filename)
+                     & " was produced with instance info for separated"
+                     & " coverage, but that is not supported.");
+               end if;
+
                --  Remap source file indices
 
                Remap_SFI (CP_CU.LI);
@@ -2435,6 +2445,9 @@ package body SC_Obligations is
    is
       use SCOs;
 
+      Instances_Supported : constant Boolean :=
+         Debug_Checkpoint_Instances or else not Save_Checkpoint_Requested;
+
       Cur_Source_File        : Source_File_Index := No_Source_File;
       Cur_SCO_Unit           : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
@@ -2530,22 +2543,30 @@ package body SC_Obligations is
       Get_File (ALI_Index).Main_Source := Main_Source;
       Get_File (Main_Source).LI := ALI_Index;
 
-      --  Record compilation unit
+      --  Record compilation unit. Unless asked not to, discard instance
+      --  information when processing checkpoints.
 
-      CU_Vector.Append
-        (CU_Info'
-           (LI             => ALI_Index,
-            Main_Source    => Main_Source,
-            First_SCO      => No_SCO_Id,
-            Last_SCO       => No_SCO_Id,
-            First_Instance => Last_Instance_Upon_Entry + 1,
-            Last_Instance  => Last_Instance_Upon_Entry + 1
-            + Inst_Id (SCO_Instance_Table.Last)
-            - Inst_Id (SCO_Instance_Table.First),
-            Deps           => Deps,
-            Fingerprint    => Fingerprint,
-            others         => <>));
-      pragma Assert (CU_Index = CU_Vector.Last_Index);
+      declare
+         Last_Instance : constant Inst_Id :=
+           (if Instances_Supported
+            then Last_Instance_Upon_Entry + 1
+               + Inst_Id (SCO_Instance_Table.Last)
+               - Inst_Id (SCO_Instance_Table.First)
+            else Last_Instance_Upon_Entry);
+      begin
+         CU_Vector.Append
+           (CU_Info'
+              (LI             => ALI_Index,
+               Main_Source    => Main_Source,
+               First_SCO      => No_SCO_Id,
+               Last_SCO       => No_SCO_Id,
+               First_Instance => Last_Instance_Upon_Entry + 1,
+               Last_Instance  => Last_Instance,
+               Deps           => Deps,
+               Fingerprint    => Fingerprint,
+               others         => <>));
+         pragma Assert (CU_Index = CU_Vector.Last_Index);
+      end;
 
       --  Make sure we have a CU_Map entry for the main source file, even if no
       --  SCOs are present, as it is used for checkpoint consolidation.
@@ -2882,24 +2903,26 @@ package body SC_Obligations is
 
       --  Import unit instance table into global table
 
-      for J in SCO_Instance_Table.First .. SCO_Instance_Table.Last loop
-         declare
-            SIE : SCO_Instance_Table_Entry
-                    renames SCO_Instance_Table.Table (J);
-         begin
-            Inst_Vector.Append
-              ((Sloc                =>
-                  (Source_File => Deps.Element (SIE.Inst_Dep_Num),
-                   L           => (Line   => Natural (SIE.Inst_Loc.Line),
-                                   Column => Natural (SIE.Inst_Loc.Col))),
-                Enclosing_Instance =>
-                  (if SIE.Enclosing_Instance = 0
-                   then No_Inst_Id
-                   else Last_Instance_Upon_Entry
-                      + Inst_Id (SIE.Enclosing_Instance)),
-                Comp_Unit          => CU_Vector.Last_Index));
-         end;
-      end loop;
+      if Instances_Supported then
+         for J in SCO_Instance_Table.First .. SCO_Instance_Table.Last loop
+            declare
+               SIE : SCO_Instance_Table_Entry
+                       renames SCO_Instance_Table.Table (J);
+            begin
+               Inst_Vector.Append
+                 ((Sloc                =>
+                     (Source_File => Deps.Element (SIE.Inst_Dep_Num),
+                      L           => (Line   => Natural (SIE.Inst_Loc.Line),
+                                      Column => Natural (SIE.Inst_Loc.Col))),
+                   Enclosing_Instance =>
+                     (if SIE.Enclosing_Instance = 0
+                      then No_Inst_Id
+                      else Last_Instance_Upon_Entry
+                         + Inst_Id (SIE.Enclosing_Instance)),
+                   Comp_Unit          => CU_Vector.Last_Index));
+            end;
+         end loop;
+      end if;
 
       --  Prealloc line table entries for last unit
 

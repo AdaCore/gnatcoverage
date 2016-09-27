@@ -57,4 +57,7 @@ package Checkpoints is
       Context  : access Coverage.Context);
    procedure Checkpoint_Load (Filename : String);
 
+   Save_Checkpoint_Requested : Boolean := False;
+   --  Whether we are asked to generate a checkpoint
+
 end Checkpoints;
