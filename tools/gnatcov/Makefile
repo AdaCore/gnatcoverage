@@ -9,7 +9,7 @@
 #
 # all
 #   bin        <- default
-#   adapters
+#   adapters [ADAPTERS_LIST=dynamorio|valgrind|...]
 
 # --------------------------------
 # -- To build the documentation --
@@ -29,7 +29,7 @@
 #   install-examples
 #   install-doc
 #
-# install-adapters
+# install-adapters [ADAPTERS_LIST=dynamorio|valgrind|...]
 #
 # All working with the PREFIX variable, that users may specify:
 
@@ -113,22 +113,23 @@ include host.mk
 #   builds both the core tools and the adapters of
 #   relevance for the host
 
-# Determine the set of ADAPTERS of relevance on our host OS (subdir
-# names within trace_adapters)
+# The set of trace adapters to consider.  Users may pass an explicit
+# list (whitespace separated list of subdirs within trace_adapters/).
 
 include architecture.mk
 
-HOST_ADAPTERS =
 ifeq ($(HOST_OS), windows)
 ifeq ($(BITS_ARCH), 32)
-HOST_ADAPTERS = nexus dynamorio
+DEFAULT_ADAPTERS = nexus dynamorio
 else
-HOST_ADAPTERS = dynamorio
+DEFAULT_ADAPTERS = dynamorio
 endif
 endif
 ifeq ($(HOST_OS), linux)
-HOST_ADAPTERS = valgrind
+DEFAULT_ADAPTERS = valgrind
 endif
+
+ADAPTERS_LIST=$(DEFAULT_ADAPTERS)
 
 PARALLEL_BUILD=0
 BUILD_MODE=dev
@@ -174,7 +175,7 @@ $(PGMPATH):
 	-XARCH=$(BITS_ARCH) -XBUILD_MODE=$(BUILD_MODE) \
 	$(EXTRA_ADAFLAGS) $(PGMNAME)
 
-ADAPTER_TARGETS=$(foreach a, $(HOST_ADAPTERS), adapter-$(a))
+ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
 .PHONY: $(ADAPTERS_TARGETS)
 
 $(ADAPTER_TARGETS): adapter-%:
@@ -247,7 +248,7 @@ clean-doc: clean-doc-build clean-doc-copy
 
 clean: clean-bin clean-doc clean-adapters
 
-CLEAN_ADAPTER_TARGETS=$(foreach a, $(HOST_ADAPTERS), clean-adapter-$(a))
+CLEAN_ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), clean-adapter-$(a))
 .PHONY: $(CLEAN_ADAPTER_TARGETS)
 
 $(CLEAN_ADAPTER_TARGETS): clean-adapter-%:
@@ -281,14 +282,16 @@ install-without-doc: install-common
 install-with-doc: install-common install-doc
 install: install-with-doc
 
-INSTALL_ADAPTER_TARGETS=$(foreach a, $(HOST_ADAPTERS), install-adapter-$(a))
+INSTALL_ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), install-adapter-$(a))
 .PHONY: $(INSTALL_ADAPTER_TARGETS)
 
 $(INSTALL_ADAPTER_TARGETS): install-adapter-%:
 	$(MAKE) -C trace_adapters/$* $($*_ADAPTER_INSTALL_VARS) install
 
 install-adapters: $(INSTALL_ADAPTER_TARGETS)
-
+	# Make sure we have the standard libexec subdir, even if
+	# the list of adapters is empty
+	$(MKDIR) $(PREFIX)/libexec
 
 #############
 # Packaging #
