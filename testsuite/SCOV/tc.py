@@ -312,7 +312,6 @@ class TestCase:
                      wdir=os.path.normpath(drvo.awdir())
                      )
             )
-        return drvo
 
     # Base prefix for Working directories, per --level. Shared across
     # runs for multiples levels:
@@ -338,13 +337,13 @@ class TestCase:
             wdbase = this_wdbase, bdbase = self._available_bdbase,
             subdirhint = subdirhint)
 
-        [self.__register_qde_for (
-                SCOV_helper(self, drivers=[driver],
-                            xfile=driver,
-                            xcovlevel=covlevel, covctl=covcontrol,
-                            wdctl=wdctl)
-                ).run()
-         for driver in self.all_drivers]
+        for driver in self.all_drivers:
+            drvo = SCOV_helper (self, drivers=[driver],
+                                xfile=driver,
+                                xcovlevel=covlevel, covctl=covcontrol,
+                                wdctl=wdctl)
+            self.__register_qde_for (drvo)
+            drvo.run()
 
         # Now we have a common binary dir prefix to reuse
 
@@ -357,13 +356,13 @@ class TestCase:
             wdbase = this_wdbase, bdbase = self._available_bdbase,
             subdirhint = subdirhint)
 
-        [self.__register_qde_for (
-                SCOV_helper(self, drivers=self.__drivers_from(cspec),
-                            xfile=cspec,
-                            xcovlevel=covlevel, covctl=covcontrol,
-                            wdctl=wdctl)
-                ).run()
-         for cspec in self.all_cspecs]
+        for cspec in self.all_cspecs:
+            drvo = SCOV_helper (self, drivers=self.__drivers_from(cspec),
+                                xfile=cspec,
+                                xcovlevel=covlevel, covctl=covcontrol,
+                                wdctl=wdctl)
+            self.__register_qde_for (drvo)
+            drvo.run()
 
     # =========
     # == run ==
