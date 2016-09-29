@@ -1751,9 +1751,17 @@ package body Traces_Elf is
 
                   Unit_Filename :=
                     Canonicalize_Filename (Read_String (At_Name));
+
+                  --  Do not insert anything in the files table at this stage,
+                  --  as this could trigger consolidation issues later on, if
+                  --  Unit_Filename is a stubbing unit for instance.  If the
+                  --  filename for this unit is not present in the files table,
+                  --  then we don't have any SCOs for it anyway.
+
                   Current_CU := Comp_Unit
-                    (Get_Index_From_Generic_Name (Unit_Filename.all,
-                                                  Source_File));
+                    (Get_Index_From_Generic_Name (Name   => Unit_Filename.all,
+                                                  Kind   => Source_File,
+                                                  Insert => False));
 
                   --  Mark unit as having code in the executable, to silence
                   --  warning about unit of interest not present in test cases.
