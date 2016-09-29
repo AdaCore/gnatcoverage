@@ -13,6 +13,7 @@ import os
 import re
 import optparse
 import collections
+from gnatpython.fileutils import find
 
 # The testsuite dir corresponding to this local "qualification" dir. This is
 # where we fetch common python source dirs. This might be different from where
@@ -31,7 +32,10 @@ from SUITE.control import BUILDER
 
 from SUITE import dutils
 
-from SCOV.internals.cnotes import *
+from SCOV.internals.cnotes import (
+    r0, r0c, xBlock0, sNoCov, sPartCov,
+    dtNoCov, dfNoCov, dPartCov, dNoCov, etNoCov, efNoCov, ePartCov,
+    eNoCov, cPartCov, xBlock1, FatalError)
 from REST import rest
 
 # =============================
@@ -75,27 +79,39 @@ def exit_if(p, msg):
 # }
 
 
-class QDregistry_from(object):
+class QualificationDataRepository(object):
 
     def __init__(self, testsuite_dir):
+        """Initialize a Qualification Data repository.
 
+        :param testsuite_dir: root directory of the testsuite
+        :type testsuite_dir: str
+        """
         # The full qualification data for this report; sequence of testcase
         # Qdata instances:
         self.qdl = []
 
-        self.__fetch_qdinstances_from(root=testsuite_dir)
+        self.load_all(root=testsuite_dir)
 
-    def __fetch_qdinstances_from(self, root):
+    def load_all(self, root):
+        """Load all data generate by a testsuite run.
 
+        :param root: testsuite root directory
+        :type root: str
+        """
         print "== Registering test execution dumps from %s ..." % root
 
-        [self.__fetch_one_qdinstance_from(dirname)
-         for (dirname, subdirs, files) in os.walk(
-                top=root, topdown=True, followlinks=True)
-         if QUALDATA_FILE in files]
+        # all directories containing a tc.dump file are containing
+        # test results/dumps
+        for p in find(root, QUALDATA_FILE, follow_symlinks=True):
+            self.load_test(os.path.dirname(p))
 
-    def __fetch_one_qdinstance_from(self, dirname):
+    def load_test(self, dirname):
+        """Load dump data associated with one testcase.
 
+        :param dirname: directory of the testcase
+        :type dirname: str
+        """
         print "loading from %s" % dirname
 
         qda = dutils.pload_from(qdaf_in(dirname))
@@ -602,7 +618,7 @@ class QDreport(object):
 
         # Fetch the test results:
 
-        qdreg = QDregistry_from(testsuite_dir=self.o.testsuite_dir)
+        qdreg = QualificationDataRepository(testsuite_dir=self.o.testsuite_dir)
         self.qdl = sorted(qdreg.qdl, key=lambda qd: qd.tcid)
 
         self.rstf = None
