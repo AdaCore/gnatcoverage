@@ -1069,7 +1069,9 @@ package body Files_Table is
       --  a single alias set.
 
       for File of Files_Table loop
-         Add_File (File.Simple_Name, File, Alias_Map);
+         if File.Kind = Source_File then
+            Add_File (File.Simple_Name, File, Alias_Map);
+         end if;
       end loop;
 
       --  Then, for each set of aliased files, find the shortest unique suffix.

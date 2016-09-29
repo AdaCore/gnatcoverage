@@ -95,12 +95,13 @@ package Files_Table is
    function Get_Simple_Name (Index : Source_File_Index) return String;
    --  Return the full/simple name for the given index
 
-   function Get_Unique_Name (Index : Source_File_Index) return String;
+   function Get_Unique_Name (Index : Source_File_Index) return String
+      with Get_Info (Index).Kind = Source_File;
    --  Return the shortest unambiguous file name. It is the smallest suffix for
    --  full name that is unique to this file (multiple files can have the same
-   --  base name). Since unicity changes when new files are registered in the
-   --  table, it is invalid to register file once Get_Unique_Name has been
-   --  invoked once.
+   --  base name). This is availble only for source files. Since unicity
+   --  changes when new files are registered in the table, it is invalid to
+   --  register file once Get_Unique_Name has been invoked once.
 
    --  Utilities to open files from the source file table. Source files will be
    --  searched on the local filesystem, in the following order:
@@ -273,17 +274,17 @@ package Files_Table is
       --  can also happen when consolidating checkpoints with different object
       --  directories for the same unit).
 
-      Unique_Name : String_Access;
-      --  Shortest unambiguous file name. It is the smallest Full_Name suffix
-      --  that is unique to this file (multiple files can have the same base
-      --  name). Computed by Get_Unique_Name once all files are registered in
-      --  the table.
-
       Has_Source : Boolean := True;
       --  False if no source file is found that corresponds to this file name
 
       case Kind is
          when Source_File =>
+            Unique_Name : String_Access;
+            --  Shortest unambiguous file name. It is the smallest Full_Name
+            --  suffix that is unique to this file (multiple files can have the
+            --  same base name). Computed by Get_Unique_Name once all files are
+            --  registered in the table.
+
             LI : Source_File_Index := No_Source_File;
             --  Name of the library file corresponding to this source file
 
