@@ -35,7 +35,8 @@ from SUITE import dutils
 from SCOV.internals.cnotes import (
     r0, r0c, xBlock0, sNoCov, sPartCov,
     dtNoCov, dfNoCov, dPartCov, dNoCov, etNoCov, efNoCov, ePartCov,
-    eNoCov, cPartCov, xBlock1, FatalError)
+    eNoCov, cPartCov, xBlock1)
+from SUITE.cutils import FatalError
 from REST import rest
 
 # =============================
