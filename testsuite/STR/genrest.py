@@ -13,12 +13,6 @@ import os
 import re
 import optparse
 import collections
-import time
-import datetime
-import platform
-import socket
-from gnatpython.env import Env
-from gnatpython.ex import Run
 
 # The testsuite dir corresponding to this local "qualification" dir. This is
 # where we fetch common python source dirs. This might be different from where
@@ -33,8 +27,7 @@ sys.path.append(LOCAL_TESTSUITE_DIR)
 from SUITE.qdata import qdaf_in, stdf_in
 from SUITE.qdata import QUALDATA_FILE, QLANGUAGES, QROOTDIR
 from SUITE.qdata import CTXDATA_FILE
-from SUITE.cutils import to_list, version
-from SUITE.control import LANGINFO, BUILDER
+from SUITE.control import BUILDER
 
 from SUITE import dutils
 
