@@ -841,19 +841,7 @@ procedure GNATcov is
          if Tag_Provider = null then
             Tag_Provider := Tag_Providers.Create (Default_Tag_Provider_Name);
          end if;
-
-         if not Debug_Checkpoint_Instances
-           and then (Inputs.Length (Checkpoints_Inputs) > 0
-                     or else Save_Checkpoint /= null)
-           and then Tag_Provider.all not in Default_Tag_Provider_Type'Class
-         then
-            Fatal_Error
-              ("The combined use of separated coverage analysis and"
-               & " checkpoints is not supported yet.");
-         end if;
       end;
-
-      Checkpoints.Save_Checkpoint_Requested := Save_Checkpoint /= null;
    end Process_Arguments;
 
    ------------------------------

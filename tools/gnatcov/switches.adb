@@ -32,10 +32,7 @@ package body Switches is
       Ignore_Exemptions =>
          +"Exemption pragmas have no effect.",
       File_Table =>
-         +"Print debugging messages for files table management.",
-      Checkpoint_Instances =>
-         +("Enable saving/loading of instances information to/from"
-           & " checkpoints."));
+         +"Print debugging messages for files table management.");
 
    --------------------------------
    -- Debug_Command_Line_Pattern --
