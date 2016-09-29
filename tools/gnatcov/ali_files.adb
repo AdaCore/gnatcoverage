@@ -508,8 +508,15 @@ package body ALI_Files is
             when 'D' =>
                Match (D_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
+
+                  --  Dependency files are source files. However, in order to
+                  --  avoid unnecessary conflicts at consolidation time, we
+                  --  don't want to consider them for coverage analysis unless
+                  --  they are in the units of interest. So consider them as
+                  --  stubs at this stage.
+
                   Deps.Append (Get_Index_From_Generic_Name
-                    (Unquote (Match (1)), Source_File));
+                    (Unquote (Match (1)), Stub_File));
                end if;
 
             when 'N' =>

@@ -2589,6 +2589,11 @@ package body SC_Obligations is
                      Cur_Source_File := Get_Index_From_Simple_Name
                        (SCOUE.File_Name.all, Source_File);
                   end if;
+
+                  --  We are going to add coverage obligations for this file,
+                  --  so mark it as a Source_File in the file table.
+
+                  Consolidate_File_Kind (Cur_Source_File, Source_File);
                end if;
             end;
          end if;

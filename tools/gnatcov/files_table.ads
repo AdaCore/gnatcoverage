@@ -39,10 +39,24 @@ package Files_Table is
    --  its source lines. Coverage information can be associated with each
    --  file/line. Only object coverage is supported.
 
-   type File_Kind is (Source_File, Library_File);
-   --  Specify a kind of file this package handles. Although they are
-   --  logically distinct, both source files and library files are handled
-   --  here.
+   subtype Valid_Source_File_Index is
+     Source_File_Index range First_Source_File .. Source_File_Index'Last;
+
+   type File_Kind is
+   --  Specify a kind of file this package handles. Different kinds imply
+   --  different consolidation behaviors.
+
+     (Stub_File,
+      --  Stub files can be consolidated with any other kind of file. Also,
+      --  they are excluded from coverage reports.
+
+      Source_File,
+      --  Source files can be consolidated with other source files only. They
+      --  can be included in coverage reports.
+
+      Library_File);
+      --  Library files can be consolidated with library files only. They are
+      --  excluded from coverage reports.
 
    function Canonicalize_Filename (Filename : String) return String;
    function Canonicalize_Filename (Filename : String) return String_Access;
@@ -76,7 +90,7 @@ package Files_Table is
    --  No_Source_File.
    --
    --  If the file is already registered, check that it was registered with
-   --  Kind and raise a fatal error if it was not.
+   --  Kind (or Stub_File) and raise a fatal error if it was not.
    --
    --  Indexed_Simple_Name can be set to True only when loading a checkpoint.
 
@@ -91,12 +105,21 @@ package Files_Table is
    --  Indexed_Simple_Name is passed when calling Get_Index_From_Full_Name and
    --  is ignored otherwise. It can be set True only when loading a checkpoint.
 
+   procedure Consolidate_File_Kind
+     (Index : Valid_Source_File_Index;
+      Kind  : File_Kind);
+   --  If Index designates a Stub_File and Kind is not Stub_File, change its
+   --  kind to Kind. Raise a fatal error if the Kind for Index isn't Kind
+   --  *and* neither are stub files.
+   --
+   --  This is used make sure all accesses to a file expect a consistent kind.
+
    function Get_Full_Name (Index : Source_File_Index) return String;
    function Get_Simple_Name (Index : Source_File_Index) return String;
    --  Return the full/simple name for the given index
 
    function Get_Unique_Name (Index : Source_File_Index) return String
-      with Get_Info (Index).Kind = Source_File;
+      with Pre => Get_File (Index).Kind = Source_File;
    --  Return the shortest unambiguous file name. It is the smallest suffix for
    --  full name that is unique to this file (multiple files can have the same
    --  base name). This is availble only for source files. Since unicity
@@ -278,6 +301,9 @@ package Files_Table is
       --  False if no source file is found that corresponds to this file name
 
       case Kind is
+         when Stub_File =>
+            null;
+
          when Source_File =>
             Unique_Name : String_Access;
             --  Shortest unambiguous file name. It is the smallest Full_Name

@@ -474,7 +474,7 @@ package body Annotations is
       --  Start of processing for Compute_File_State
 
       begin
-         if FI.Kind = Library_File then
+         if FI.Kind /= Source_File then
             return;
          end if;
 

@@ -37,8 +37,9 @@ with Switches;
 
 package body Files_Table is
 
-   subtype Valid_Source_File_Index is
-     Source_File_Index range First_Source_File .. Source_File_Index'Last;
+   procedure Free is new Ada.Unchecked_Deallocation
+     (File_Info, File_Info_Access);
+
    package File_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Valid_Source_File_Index,
       Element_Type => File_Info_Access);
@@ -54,17 +55,19 @@ package body Files_Table is
    --  Compute unique names for all files in the table. Also take care of
    --  setting Unique_Names_Computed.
 
+   function Create_File_Info
+     (Kind                   : File_Kind;
+      Full_Name, Simple_Name : String_Access;
+      Indexed_Simple_Name    : Boolean)
+      return File_Info_Access;
+   --  Allocate a new File_Info record of type Kind and for the given file
+   --  names. This does not modify Files_Table nor full/simple name maps.
+
    function Kind_Name (Kind : File_Kind) return String is
      (case Kind is
+      when Stub_File    => "stub file",
       when Source_File  => "source file",
       when Library_File => "library file");
-
-   procedure Check_File_Kind
-     (Index : Valid_Source_File_Index;
-      Kind  : File_Kind);
-   --  Helper for Get_Index_From_* functions. Raise a fatal error if the Kind
-   --  for Index isn't Kind. This is used to raise a fatal error if we try to
-   --  access the same file as different kinds.
 
    procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive);
 
@@ -588,12 +591,11 @@ package body Files_Table is
 
       Cur         : Filename_Maps.Cursor;
       Res         : Source_File_Index;
-      Info        : File_Info_Access;
       Info_Simple : File_Info_Access;
 
    begin
       if Switches.Debug_File_Table then
-         Put ("GIFN: <<" & Full_Name & ">> ISN=" & Indexed_Simple_Name'Img
+         Put_Line ("GIFN: <<" & Full_Name & ">> ISN=" & Indexed_Simple_Name'Img
                    & " Insert=" & Insert'Img);
       end if;
 
@@ -616,8 +618,8 @@ package body Files_Table is
 
          if Simple_Cur /= Simple_Name_Maps.No_Element then
             Res := Element (Simple_Cur);
-            Check_File_Kind (Res, Kind);
             pragma Assert (Res /= No_Source_File);
+            Consolidate_File_Kind (Res, Kind);
 
             --  If we are not allowed to insert something, do not modify
             --  existing entries.
@@ -653,26 +655,11 @@ package body Files_Table is
 
          pragma Assert (not Unique_Names_Computed);
 
-         Info := new File_Info (Kind);
-         Info.Full_Name := new String'(+GNATCOLL.VFS.Full_Name (Full_Path));
-         Info.Simple_Name :=
-            new String'(+GNATCOLL.VFS.Full_Name (Simple_Path));
-         Info.Indexed_Simple_Name := Indexed_Simple_Name;
-         Info.Unique_Name := null;
-         Info.Has_Source := True;
-         case Kind is
-            when Source_File =>
-               Info.Lines := (Source_Line_Vectors.Empty_Vector
-                              with null record);
-               Info.Stats := (others => 0);
-               Info.Sloc_To_SCO_Maps := null;
-               Info.Has_Source_Coverage_Info := False;
-               Info.Has_Object_Coverage_Info := False;
-            when Library_File =>
-               null;
-         end case;
-
-         Files_Table.Append (Info);
+         Files_Table.Append (Create_File_Info
+           (Kind,
+            new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
+            new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
+            Indexed_Simple_Name));
          Res := Files_Table.Last_Index;
 
          --  If needed, add an entry into the simple name map. It will help
@@ -698,7 +685,7 @@ package body Files_Table is
          Put_Line (" ->" & Res'Img);
       end if;
       if Res in Valid_Source_File_Index then
-         Check_File_Kind (Res, Kind);
+         Consolidate_File_Kind (Res, Kind);
       end if;
       return Res;
    end Get_Index_From_Full_Name;
@@ -720,8 +707,6 @@ package body Files_Table is
       Cur  : constant Simple_Name_Maps.Cursor :=
         Simple_Name_Map.Find (Simple_Path);
       Res  : Source_File_Index;
-      Info : File_Info_Access;
-
    begin
       if Switches.Debug_File_Table then
          Put ("GISN: <<" & Simple_Name & ">> Insert=" & Insert'Img);
@@ -736,25 +721,11 @@ package body Files_Table is
       else
          pragma Assert (not Unique_Names_Computed);
 
-         Info := new File_Info (Kind);
-         Info.Simple_Name := new String'(+Full_Name (Simple_Path));
-         Info.Full_Name := null;
-         Info.Unique_Name := null;
-         Info.Indexed_Simple_Name := True;
-         Info.Has_Source := True;
-         case Kind is
-            when Source_File =>
-               Info.Lines := (Source_Line_Vectors.Empty_Vector
-                              with null record);
-               Info.Stats := (others => 0);
-               Info.Sloc_To_SCO_Maps := null;
-               Info.Has_Source_Coverage_Info := False;
-               Info.Has_Object_Coverage_Info := False;
-            when Library_File =>
-               null;
-         end case;
-
-         Files_Table.Append (Info);
+         Files_Table.Append (Create_File_Info
+           (Kind                => Kind,
+            Full_Name           => null,
+            Simple_Name         => new String'(+Full_Name (Simple_Path)),
+            Indexed_Simple_Name => True));
          Res := Files_Table.Last_Index;
          Simple_Name_Map.Insert (Simple_Path, Res);
       end if;
@@ -764,7 +735,7 @@ package body Files_Table is
       end if;
 
       if Res in Valid_Source_File_Index then
-         Check_File_Kind (Res, Kind);
+         Consolidate_File_Kind (Res, Kind);
       end if;
       return Res;
    end Get_Index_From_Simple_Name;
@@ -1142,23 +1113,79 @@ package body Files_Table is
       return File.Unique_Name.all;
    end Get_Unique_Name;
 
-   ---------------------
-   -- Check_File_Kind --
-   ---------------------
+   ----------------------
+   -- Create_File_Info --
+   ----------------------
 
-   procedure Check_File_Kind
+   function Create_File_Info
+     (Kind                   : File_Kind;
+      Full_Name, Simple_Name : String_Access;
+      Indexed_Simple_Name    : Boolean)
+      return File_Info_Access
+   is
+      Result : constant File_Info_Access := new File_Info (Kind);
+   begin
+      Result.Full_Name := Full_Name;
+      Result.Simple_Name := Simple_Name;
+      Result.Indexed_Simple_Name := Indexed_Simple_Name;
+      if Result.Kind = Source_File then
+         Result.Lines := (Source_Line_Vectors.Empty_Vector with null record);
+      end if;
+      return Result;
+   end Create_File_Info;
+
+   ---------------------------
+   -- Consolidate_File_Kind --
+   ---------------------------
+
+   procedure Consolidate_File_Kind
      (Index : Valid_Source_File_Index;
       Kind  : File_Kind)
    is
-      FI : constant File_Info_Access := Get_File (Index);
+      FI : File_Info_Access := Get_File (Index);
    begin
-      if FI.Kind /= Kind then
+      if Kind = Stub_File then
+
+         --  Kind does not bring anything new to what we know about FI and
+         --  there is no possible inconsistency: do nothing.
+
+         null;
+
+      elsif FI.Kind = Stub_File then
+
+         --  We have a more specific kind of file: change the kind of FI
+
+         pragma Assert (not Unique_Names_Computed);
+
+         if Switches.Debug_File_Table then
+            declare
+               Name : constant String_Access :=
+                 (if FI.Full_Name = null
+                  then FI.Simple_Name
+                  else FI.Full_Name);
+            begin
+               Put_Line
+                 ("Promoting " & Name.all & " from stub to source file");
+            end;
+         end if;
+
+         declare
+            New_FI : constant File_Info_Access :=
+              Create_File_Info
+                (Kind, FI.Full_Name, FI.Simple_Name, FI.Indexed_Simple_Name);
+         begin
+            New_FI.Has_Source := FI.Has_Source;
+            Free (FI);
+            Files_Table.Replace_Element (Index, New_FI);
+         end;
+
+      elsif FI.Kind /= Kind then
          Outputs.Fatal_Error
            ("Trying to use " & FI.Simple_Name.all & " both as a "
             & Kind_Name (FI.Kind) & " and as a "
             & Kind_Name (Kind));
       end if;
-   end Check_File_Kind;
+   end Consolidate_File_Kind;
 
    ---------------------------
    -- Invalidate_Line_Cache --
@@ -1461,21 +1488,14 @@ package body Files_Table is
          declare
             FI : File_Info_Access renames File_Vectors.Element (FI_C);
          begin
-            --  Omit source files that have no coverage information, as they
-            --  might be stubbed units that are purposedly ignored in this run
-            --  and must not interfere with the coverage analysis of the real
-            --  units in further consolidated runs.
-
-            if FI.Kind /= Source_File or else To_Display (FI) then
-               Source_File_Index'Write (S, File_Vectors.To_Index (FI_C));
-               String'Output (S, (if FI.Full_Name /= null
-                                  then FI.Full_Name.all
-                                  else FI.Simple_Name.all));
-               File_Kind'Write (S, FI.Kind);
-               Boolean'Write (S, FI.Indexed_Simple_Name);
-               if FI.Kind = Library_File then
-                  Source_File_Index'Write (S, FI.Main_Source);
-               end if;
+            Source_File_Index'Write (S, File_Vectors.To_Index (FI_C));
+            String'Output (S, (if FI.Full_Name /= null
+                               then FI.Full_Name.all
+                               else FI.Simple_Name.all));
+            File_Kind'Write (S, FI.Kind);
+            Boolean'Write (S, FI.Indexed_Simple_Name);
+            if FI.Kind = Library_File then
+               Source_File_Index'Write (S, FI.Main_Source);
             end if;
          end;
       end loop;
@@ -1505,7 +1525,7 @@ package body Files_Table is
          Name                : String_Access;
          Indexed_Simple_Name : Boolean;
          case Kind is
-            when Source_File =>
+            when Stub_File | Source_File =>
                null;
             when Library_File =>
                Main_Source : Source_File_Index;
@@ -1541,9 +1561,10 @@ package body Files_Table is
             Indexed_Simple_Name : constant Boolean := Boolean'Input (S);
          begin
             case Kind is
+               when Stub_File =>
+                  FE := (Kind => Stub_File, others => <>);
                when Source_File =>
                   FE := (Kind => Source_File, others => <>);
-                  null;
                when Library_File =>
                   FE := (Kind => Library_File, others => <>);
                   FE.Main_Source := Source_File_Index'Input (S);

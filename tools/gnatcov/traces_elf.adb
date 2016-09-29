@@ -1760,7 +1760,7 @@ package body Traces_Elf is
 
                   Current_CU := Comp_Unit
                     (Get_Index_From_Generic_Name (Name   => Unit_Filename.all,
-                                                  Kind   => Source_File,
+                                                  Kind   => Stub_File,
                                                   Insert => False));
 
                   --  Mark unit as having code in the executable, to silence
@@ -2395,6 +2395,15 @@ package body Traces_Elf is
             File_Index        : Source_File_Index;
             Filter_Lines      : constant Boolean := Source_Coverage_Enabled;
 
+            Kind              : constant Files_Table.File_Kind :=
+              (if Source_Coverage_Enabled
+               then Stub_File
+               else Source_File);
+            --  For source coverage, it's the coverage obligations that
+            --  determine which source files are relevant for coverage
+            --  analysis. In this case, consider that other source files are
+            --  stubs to reduce simple name collisions.
+
          begin
             if File_Dir /= 0
               and then File_Dir <= Nbr_Dirnames
@@ -2420,14 +2429,20 @@ package body Traces_Elf is
 
             File_Index := Get_Index_From_Full_Name
               (Full_Name => Filenames.Last_Element.all,
-               Kind      => Source_File,
+               Kind      => Kind,
                Insert    => not Filter_Lines);
 
-            if Filter_Lines
-              and then File_Index /= No_Source_File
-              and then not Get_File (File_Index).Has_Source_Coverage_Info
-            then
-               File_Index := No_Source_File;
+            if Filter_Lines and then File_Index /= No_Source_File then
+               declare
+                  FI : constant File_Info_Access := Get_File (File_Index);
+               begin
+                  if FI.Kind /= Source_File
+                    or else
+                     not FI.Has_Source_Coverage_Info
+                  then
+                     File_Index := No_Source_File;
+                  end if;
+               end;
             end if;
 
             if File_Index /= No_Source_File then
@@ -2438,7 +2453,7 @@ package body Traces_Elf is
                No_File_Of_Interest := False;
                if Filter_Lines then
                   File_Index := Get_Index_From_Full_Name
-                    (Filenames.Last_Element.all, Source_File, Insert => True);
+                    (Filenames.Last_Element.all, Kind, Insert => True);
                end if;
             end if;
             File_Indices.Append (File_Index);
