@@ -1454,7 +1454,7 @@ class TestCase(object):
         self.diro = diro
 
         self.rtestdir = self.diro.fspath
-        self.atestdir = os.path.join(os.getcwd(), self.rtestdir)
+        self.atestdir = os.path.abspath(self.rtestdir)
         self.filename = os.path.basename(filename)
 
         self.expected_out = None
