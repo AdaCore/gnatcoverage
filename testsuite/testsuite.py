@@ -330,8 +330,6 @@ class TestSuite(object):
         """Dump the testsuite context data file for use by the STR report
         producers."""
 
-        tprefix = self.__target_prefix()
-
         if self.options.other_tool_info:
             (toolname, version_info) = Run(
                 [sys.executable, self.options.other_tool_info], timeout=20
@@ -350,8 +348,8 @@ class TestSuite(object):
                 treeref=treeref_at("."),
                 cmdline=" ".join(sys.argv),
                 options=OPT_info_from(options=self.options),
-                gnatpro=TOOL_info(tprefix+"gcc"),
-                gnatemu=TOOL_info(tprefix+"gnatemu"),
+                gnatpro=TOOL_info(self.tool("gcc")),
+                gnatemu=TOOL_info(self.tool("gnatemu")),
                 gnatcov=TOOL_info("gnatcov"),
                 other=other_tool_info
                 )
@@ -361,8 +359,18 @@ class TestSuite(object):
     # -- Common facilities --
     # -----------------------
 
-    def __target_prefix(self):
-        return self.env.target.triplet+'-' if self.options.target else ""
+    def tool(self, name):
+        """Return tool name prefixed by target when in cross env.
+
+        :param name: the tool name
+        :type name: str
+        :return: the final tool name
+        :rtype: str
+        """
+        if self.env.is_cross:
+            return self.env.target.triplet + '-' + name
+        else:
+            return name
 
     def __check_consistency_with_previous_runs(self, ctxdata_file):
         """Check consistency between this run and the previous ones.
@@ -379,9 +387,8 @@ class TestSuite(object):
             return ('  * Missing testsuite data file (%s)' % ctxdata_file,)
 
         ref_ctx = jload_from(ctxdata_file)
-        tprefix = self.__target_prefix()
-        gnatpro = TOOL_info(tprefix+"gcc")
-        gnatemu = TOOL_info(tprefix+"gnatemu")
+        gnatpro = TOOL_info(self.tool("gcc"))
+        gnatemu = TOOL_info(self.tool("gnatemu"))
         gnatcov = TOOL_info("gnatcov")
 
         errors = []
@@ -601,13 +608,12 @@ class TestSuite(object):
 
     def __versions_comment(self):
 
-        prefix = self.__target_prefix()
         all_versions = [
-            version("gnatcov") + ", " + version(prefix+"gnatls")
+            version("gnatcov") + ", " + version(self.tool("gnatls"))
             ]
 
         if self.env.main_options.target:
-            all_versions.append(version(prefix+"gnatemu", nlines=2))
+            all_versions.append(version(self.tool("gnatemu"), nlines=2))
 
         return '\n'.join(
             ["Running versions:"] + all_versions) + '\n'
