@@ -102,6 +102,19 @@ package body Project is
      (Prj            : Project_Type;
       List_Attr      : Attribute_Pkg_List;
       List_File_Attr : Attribute_Pkg_String;
+      Process_Item   : access procedure (Item : String);
+      Defined        : out Boolean);
+   --  If List_Attr, an attribute that can contain a list of strings, is
+   --  defined in Prj, call Process_Item on each of the strings and set
+   --  Defined. If List_File_Attr, an attribute that can contain a file name,
+   --  is defined in Prj, read each line from the file and call Process_Item on
+   --  each line, then set Defined. Just reset Defined if no attribute is
+   --  defined.
+
+   procedure List_From_Project
+     (Prj            : Project_Type;
+      List_Attr      : Attribute_Pkg_List;
+      List_File_Attr : Attribute_Pkg_String;
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean);
    --  Return a vector containing each value of List_Attr (a list attribute),
@@ -516,6 +529,52 @@ package body Project is
      (Prj            : Project_Type;
       List_Attr      : Attribute_Pkg_List;
       List_File_Attr : Attribute_Pkg_String;
+      Process_Item   : access procedure (Item : String);
+      Defined        : out Boolean) is
+   begin
+      --  We check each attribute in sequence and the set we're filling
+      --  is "defined" as soon as one is set explicitly.
+
+      Defined := False;
+
+      if Has_Attribute (Prj, List_Attr) then
+         Defined := True;
+         declare
+            List_Attr_Value : String_List_Access :=
+              Attribute_Value (Prj, List_Attr);
+         begin
+            for J in List_Attr_Value'Range loop
+               Process_Item (List_Attr_Value (J).all);
+               Free (List_Attr_Value (J));
+            end loop;
+            Free (List_Attr_Value);
+         end;
+      end if;
+
+      if Has_Attribute (Prj, List_File_Attr) then
+         Defined := True;
+         declare
+            List_File_Attr_Value : constant String :=
+              Attribute_Value (Prj, List_File_Attr);
+         begin
+            Read_List_From_File
+              (+Full_Name
+                 (Create_From_Base
+                    (Base_Name => +List_File_Attr_Value,
+                     Base_Dir  => Dir_Name (Project_Path (Prj)))),
+               Process_Item);
+         end;
+      end if;
+   end List_From_Project;
+
+   -----------------------
+   -- List_From_Project --
+   -----------------------
+
+   procedure List_From_Project
+     (Prj            : Project_Type;
+      List_Attr      : Attribute_Pkg_List;
+      List_File_Attr : Attribute_Pkg_String;
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
@@ -536,40 +595,8 @@ package body Project is
    --  Start of processing for List_From_Project
 
    begin
-
-      --  We check each attribute in sequence and the set we're filling
-      --  is "defined" as soon as one is set explicitly.
-
-      Defined := False;
-
-      if Has_Attribute (Prj, List_Attr) then
-         Defined := True;
-         declare
-            List_Attr_Value : String_List_Access :=
-              Attribute_Value (Prj, List_Attr);
-         begin
-            for J in List_Attr_Value'Range loop
-               Add_Line (List_Attr_Value (J).all);
-               Free (List_Attr_Value (J));
-            end loop;
-            Free (List_Attr_Value);
-         end;
-      end if;
-
-      if Has_Attribute (Prj, List_File_Attr) then
-         Defined := True;
-         declare
-            List_File_Attr_Value : constant String :=
-              Attribute_Value (Prj, List_File_Attr);
-         begin
-            Read_List_From_File
-              (+Full_Name
-                 (Create_From_Base
-                    (Base_Name => +List_File_Attr_Value,
-                     Base_Dir  => Dir_Name (Project_Path (Prj)))),
-               Add_Line'Access);
-         end;
-      end if;
+      List_From_Project
+        (Prj, List_Attr, List_File_Attr, Add_Line'Access, Defined);
    end List_From_Project;
 
    -----------------------
