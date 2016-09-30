@@ -833,6 +833,24 @@ procedure GNATcov is
          Fatal_Error ("--projects requires -P");
       end if;
 
+      if Inputs.Length (Ignored_Source_Files) = 0 then
+         declare
+            procedure Add_Source_File (S : String);
+            --  Add S to the list of ignored source files
+
+            ---------------------
+            -- Add_Source_File --
+            ---------------------
+
+            procedure Add_Source_File (S : String) is
+            begin
+               Inputs.Add_Input (Ignored_Source_Files, S);
+            end Add_Source_File;
+         begin
+            Enumerate_Ignored_Source_Files (Add_Source_File'Access);
+         end;
+      end if;
+
       --  Set defaults for options not specified so far
 
       declare

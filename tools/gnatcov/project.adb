@@ -43,17 +43,19 @@ package body Project is
       Excluded_Units,
       Routines,
       Excluded_Routines,
+      Ignored_Source_Files,
       Switches,
 
       Units_List,
       Excluded_Units_List,
       Routines_List,
-      Excluded_Routines_List);
+      Excluded_Routines_List,
+      Ignored_Source_Files_List);
 
    subtype List_Attribute is
      Attribute range Units .. Switches;
    subtype String_Attribute is
-     Attribute range Units_List .. Excluded_Routines_List;
+     Attribute range Units_List .. Ignored_Source_Files_List;
 
    function "+" (A : String_Attribute) return Attribute_Pkg_String;
    function "+" (A : List_Attribute) return Attribute_Pkg_List;
@@ -713,5 +715,43 @@ package body Project is
    begin
       return Get_Target (Prj_Tree.Root_Project);
    end Target;
+
+   ------------------------------------
+   -- Enumerate_Ignored_Source_Files --
+   ------------------------------------
+
+   procedure Enumerate_Ignored_Source_Files
+     (Process : access procedure (Source_File : String))
+   is
+      procedure Enumerate (Prj : Project_Type);
+      --  Call Process on all ignored source files referenced by the
+      --  Ignored_Source_Files(_List) project attributes.
+
+      Dummy : Boolean;
+
+      ---------------
+      -- Enumerate --
+      ---------------
+
+      procedure Enumerate (Prj : Project_Type) is
+      begin
+         List_From_Project
+           (Prj,
+            +Ignored_Source_Files,
+            +Ignored_Source_Files_List,
+            Process,
+            Dummy);
+      end Enumerate;
+
+   --  Start of processing for Enumerate_Ignored_Source_Files
+
+   begin
+      for Prj of Prj_Map loop
+         Iterate_Projects
+           (Root_Project => Prj,
+            Process      => Enumerate'Access,
+            Recursive    => Standard.Switches.Recursive_Projects);
+      end loop;
+   end Enumerate_Ignored_Source_Files;
 
 end Project;

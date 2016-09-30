@@ -81,4 +81,8 @@ package Project is
    --  Return the runtime in the root project, if any, and the empty string
    --  otherwise. This concerns only the runtime for Ada.
 
+   procedure Enumerate_Ignored_Source_Files
+     (Process : access procedure (Source_File : String));
+   --  Call Process on each name in the Coverage'Ignored_Source_File attribute
+
 end Project;
