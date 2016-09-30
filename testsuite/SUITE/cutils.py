@@ -8,7 +8,12 @@
 
 # ***************************************************************************
 
-import re, tempfile, sys
+import os.path
+import re
+import shutil
+import sys
+import tempfile
+
 from gnatpython.fileutils import diff, os, cd, mkdir, which
 from gnatpython.ex import Run
 
@@ -206,9 +211,11 @@ def output_of(cmd, dir=None):
 
 class Wdir:
 
-    def __init__(self, subdir=None):
+    def __init__(self, subdir=None, clean=False):
         self.homedir = os.getcwd()
         if subdir:
+            if clean and os.path.exists(subdir):
+                shutil.rmtree(subdir)
             self.to_subdir (subdir)
 
     def to_subdir (self, dir):
