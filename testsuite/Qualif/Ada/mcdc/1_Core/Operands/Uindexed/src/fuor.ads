@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 package FUOR is
    
    type Op_Name is (A, B);   

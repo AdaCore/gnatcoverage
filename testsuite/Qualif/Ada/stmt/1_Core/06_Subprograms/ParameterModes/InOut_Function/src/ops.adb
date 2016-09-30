@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 package body Ops is
    
    type T_Point is record

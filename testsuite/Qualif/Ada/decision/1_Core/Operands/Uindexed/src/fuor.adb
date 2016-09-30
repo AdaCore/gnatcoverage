@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 package body FUOR is
 
    function Orelse (Ops : Operands) return Boolean is

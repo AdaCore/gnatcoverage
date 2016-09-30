@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 with Support; use Support;
 
 package body Ops is

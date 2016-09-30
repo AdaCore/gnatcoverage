@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 package body FUAND is
 
    function Andthen (Ops : Operands) return Boolean is
