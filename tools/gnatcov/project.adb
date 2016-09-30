@@ -59,6 +59,13 @@ package body Project is
    function "+" (A : List_Attribute) return Attribute_Pkg_List;
    --  Build identifiers for attributes in package Coverage
 
+   procedure Iterate_Projects
+     (Root_Project : Project_Type;
+      Process      : access procedure (Prj : Project_Type);
+      Recursive    : Boolean);
+   --  Call Process on Root_Project if Recursive is False, or on the whole
+   --  project tree otherwise.
+
    type Unit_Info is record
       Original_Name : Unbounded_String;
       --  Units are referenced in unit maps under their lowercased name.
@@ -127,6 +134,34 @@ package body Project is
    begin
       return Build (Coverage_Package, A'Img);
    end "+";
+
+   ----------------------
+   -- Iterate_Projects --
+   ----------------------
+
+   procedure Iterate_Projects
+     (Root_Project : Project_Type;
+      Process      : access procedure (Prj : Project_Type);
+      Recursive    : Boolean)
+   is
+      Iter    : Project_Iterator := Start
+        (Root_Project     => Root_Project,
+         Recursive        => Recursive,
+         Include_Extended => False);
+      Project : Project_Type;
+   begin
+      loop
+         Project := Current (Iter);
+         exit when Project = No_Project;
+
+         --  If project is extended, go to the ultimate extending project,
+         --  which might override the Coverage package.
+
+         Project := Extending_Project (Project, Recurse => True);
+         Process (Project);
+         Next (Iter);
+      end loop;
+   end Iterate_Projects;
 
    --------------------
    -- Origin_Project --
@@ -197,143 +232,141 @@ package body Project is
       Override_Units_Map : in out Unit_Maps.Map;
       Recursive          : Boolean)
    is
-      Iter    : Project_Iterator :=
-                  Start
-                     (Root_Project     => Root_Project,
-                      Recursive        => Recursive,
-                      Include_Extended => False);
+      procedure Enumerate_Project (Project : Project_Type);
+      --  Enumerate LI files for Project only
 
-      Project : Project_Type;
+      procedure Set_LI_Seen (U : String; UI : in out Unit_Info);
+      --  Helper for Enumerate_Project. Record that the LI file for U was
+      --  found.
+
+      procedure Filter_Lib_Info
+        (Lib_Info          : Library_Info_List;
+         Inc_Units         : in out Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         Exc_Units         : Unit_Maps.Map);
+      --  Helper for Enumaret_Project. Call LI_Cb for any LI file of the
+      --  project that is in Inc_Units and not in Exc_Units.
+
+      -----------------------
+      -- Enumerate_Project --
+      -----------------------
+
+      procedure Enumerate_Project (Project : Project_Type) is
+         Lib_Info          : Library_Info_List;
+
+         Inc_Units         : Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         --  Units to be included, as specified in project
+
+         Exc_Units         : Unit_Maps.Map;
+         Exc_Units_Defined : Boolean;
+         --  Units to be excluded, as specified in project
+
+      --  Start of processing for Enumerate_Project
+
+      begin
+         Project.Library_Files
+           (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
+
+         if Override_Units_Map.Is_Empty then
+            List_From_Project
+              (Project,
+               List_Attr      => +Units,
+               List_File_Attr => +Units_List,
+               Units          => Inc_Units,
+               Defined        => Inc_Units_Defined);
+
+            List_From_Project
+              (Project,
+               List_Attr       => +Excluded_Units,
+               List_File_Attr  => +Excluded_Units_List,
+               Units           => Exc_Units,
+               Defined         => Exc_Units_Defined);
+
+            Filter_Lib_Info
+              (Lib_Info, Inc_Units, Inc_Units_Defined, Exc_Units);
+            Report_Units_Without_LI
+              (Inc_Units,
+               Origin => +Full_Name (Project.Project_Path));
+
+         else
+
+            --  Note: Exc_Units is intentionally left uninitialized (empty) in
+            --  this call.
+
+            Inc_Units_Defined := True;
+            Filter_Lib_Info
+              (Lib_Info, Override_Units_Map, Inc_Units_Defined, Exc_Units);
+         end if;
+      end Enumerate_Project;
+
+      ---------------------
+      -- Filter_Lib_Info --
+      ---------------------
+
+      procedure Filter_Lib_Info
+        (Lib_Info          : Library_Info_List;
+         Inc_Units         : in out Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         Exc_Units         : Unit_Maps.Map)
+      is
+      begin
+         for LI of Lib_Info loop
+            Process_LI : declare
+               use Library_Info_Lists;
+               use Unit_Maps;
+
+               LI_Source_Unit : constant String :=
+                                  Unit_Name (LI.Source.all);
+               LI_Source_File : constant String :=
+                                  +Base_Name (File (LI.Source.all));
+
+               U  : constant String :=
+                      (if LI_Source_Unit'Length >  0
+                       then LI_Source_Unit
+                       else LI_Source_File);
+               --  For unit-based languages (Ada), retrieve unit name from LI
+               --  file. For file-based languages (C), fall back to translation
+               --  unit source file name instead.
+
+               UC : constant Unit_Maps.Cursor := Inc_Units.Find (U);
+
+            --  Start of processing for Process_LI
+
+            begin
+               if (UC /= Unit_Maps.No_Element
+                   or else not Inc_Units_Defined)
+                 and then not Exc_Units.Contains (U)
+               then
+                  LI_Cb (+Full_Name (LI.Library_File));
+               end if;
+
+               --  Mark unit seen even if it is excluded
+
+               if UC /= Unit_Maps.No_Element then
+                  Inc_Units.Update_Element (UC, Set_LI_Seen'Access);
+               end if;
+            end Process_LI;
+         end loop;
+      end Filter_Lib_Info;
+
+      -----------------
+      -- Set_LI_Seen --
+      -----------------
+
+      procedure Set_LI_Seen
+        (U  : String;
+         UI : in out Unit_Info)
+      is
+         pragma Unreferenced (U);
+      begin
+         UI.LI_Seen := True;
+      end Set_LI_Seen;
+
+   --  Start of processing for Enumerate_LIs;
 
    begin
-      loop
-         Project := Current (Iter);
-         exit when Project = No_Project;
-
-         --  If project is extended, go to the ultimate extending project,
-         --  which might override the Coverage package.
-
-         Project := Extending_Project (Project, Recurse => True);
-
-         Enumerate_Project : declare
-            Lib_Info : Library_Info_List;
-
-            Inc_Units         : Unit_Maps.Map;
-            Inc_Units_Defined : Boolean;
-            --  Units to be included, as specified in project
-
-            Exc_Units         : Unit_Maps.Map;
-            Exc_Units_Defined : Boolean;
-            --  Units to be excluded, as specified in project
-
-            procedure Filter_Lib_Info
-              (Inc_Units : in out Unit_Maps.Map;
-               Exc_Units : Unit_Maps.Map);
-            --  Call LI_Cb for any LI file of the project that is in Inc_Units
-            --  and not in Exc_Units.
-
-            ---------------------
-            -- Filter_Lib_Info --
-            ---------------------
-
-            procedure Filter_Lib_Info
-              (Inc_Units : in out Unit_Maps.Map;
-               Exc_Units : Unit_Maps.Map)
-            is
-            begin
-               for LI of Lib_Info loop
-                  Process_LI : declare
-                     use Library_Info_Lists;
-                     use Unit_Maps;
-
-                     procedure Set_LI_Seen (U : String; UI : in out Unit_Info);
-                     --  Record that the LI file for U was found
-
-                     -----------------
-                     -- Set_LI_Seen --
-                     -----------------
-
-                     procedure Set_LI_Seen
-                       (U  : String;
-                        UI : in out Unit_Info)
-                     is
-                        pragma Unreferenced (U);
-                     begin
-                        UI.LI_Seen := True;
-                     end Set_LI_Seen;
-
-                     LI_Source_Unit : constant String :=
-                                        Unit_Name (LI.Source.all);
-                     LI_Source_File : constant String :=
-                                        +Base_Name (File (LI.Source.all));
-
-                     U  : constant String :=
-                            (if LI_Source_Unit'Length >  0
-                             then LI_Source_Unit
-                             else LI_Source_File);
-                     --  For unit-based languages (Ada), retrieve unit name
-                     --  from LI file. For file-based languages (C), fall back
-                     --  to translation unit source file name instead.
-
-                     UC : constant Unit_Maps.Cursor := Inc_Units.Find (U);
-
-                  --  Start of processing for Process_LI
-
-                  begin
-                     if (UC /= Unit_Maps.No_Element
-                         or else not Inc_Units_Defined)
-                       and then not Exc_Units.Contains (U)
-                     then
-                        LI_Cb (+Full_Name (LI.Library_File));
-                     end if;
-
-                     --  Mark unit seen even if it is excluded
-
-                     if UC /= Unit_Maps.No_Element then
-                        Inc_Units.Update_Element (UC, Set_LI_Seen'Access);
-                     end if;
-                  end Process_LI;
-               end loop;
-            end Filter_Lib_Info;
-
-         --  Start of processing for Enumerate_Project
-
-         begin
-            Project.Library_Files
-              (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
-
-            if Override_Units_Map.Is_Empty then
-               List_From_Project
-                 (Project,
-                  List_Attr      => +Units,
-                  List_File_Attr => +Units_List,
-                  Units          => Inc_Units,
-                  Defined        => Inc_Units_Defined);
-
-               List_From_Project
-                 (Project,
-                  List_Attr       => +Excluded_Units,
-                  List_File_Attr  => +Excluded_Units_List,
-                  Units           => Exc_Units,
-                  Defined         => Exc_Units_Defined);
-
-               Filter_Lib_Info (Inc_Units, Exc_Units);
-               Report_Units_Without_LI
-                 (Inc_Units,
-                  Origin => +Full_Name (Project.Project_Path));
-
-            else
-
-               --  Note: Exc_Units is intentionally left uninitialized (empty)
-               --  in this call.
-
-               Inc_Units_Defined := True;
-               Filter_Lib_Info (Override_Units_Map, Exc_Units);
-            end if;
-         end Enumerate_Project;
-
-         Next (Iter);
-      end loop;
+      Iterate_Projects (Root_Project, Enumerate_Project'Access, Recursive);
    end Enumerate_LIs;
 
    procedure Enumerate_LIs
