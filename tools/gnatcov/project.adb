@@ -164,6 +164,7 @@ package body Project is
          Recursive        => Recursive,
          Include_Extended => False);
       Project : Project_Type;
+
    begin
       loop
          Project := Current (Iter);
@@ -378,7 +379,7 @@ package body Project is
          UI.LI_Seen := True;
       end Set_LI_Seen;
 
-   --  Start of processing for Enumerate_LIs;
+   --  Start of processing for Enumerate_LIs
 
    begin
       Iterate_Projects (Root_Project, Enumerate_Project'Access, Recursive);
