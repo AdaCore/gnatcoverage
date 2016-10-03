@@ -178,7 +178,12 @@ $(PGMPATH):
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
 .PHONY: $(ADAPTERS_TARGETS)
 
-$(ADAPTER_TARGETS): adapter-%:
+# Some adapters reuse part of the gnatcov sources and we need to prevent
+# concurrent builds of the gnatcov part from "all", via "bin" and via
+# "adapters". Simplest is to make sure that "bin" is done before any of
+# the "adapters" targets may start:
+
+$(ADAPTER_TARGETS): adapter-%: bin
 	$(MAKE) -C trace_adapters/$* $($*_ADAPTER_BUILD_VARS)
 
 adapters: $(ADAPTER_TARGETS)
