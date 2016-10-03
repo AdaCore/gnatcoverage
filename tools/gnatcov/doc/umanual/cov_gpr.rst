@@ -131,3 +131,33 @@ processing of project files and to run the appropriate execution environment in
 When the root project provides a ``Target`` attribute and |gcv| is passed a
 :option:`--target` option on the command line, the option takes precedence over
 the attribute.
+
+Specifying source files to ignore from project files
+====================================================
+
+Two attributes in the ``Coverage`` package make it possible to specify source
+files to ignore. The first one, ``Ignored_Source_Files``, expects the list of
+source files to ignore::
+
+    package Coverage is
+        for Ignored_Source_Files use ("ops-test.adb", "logger-test.adb");
+    end Coverage;
+
+The above is equivalent to ``--ignore-source-files=ops-test.adb
+--ignore-source-files=logger-test.adb``.
+
+The second one, ``Ignored_Source_Files_List``, corresponds to the use of
+:term:`@listfile argument`. In the following example, the ``ignore.list`` text
+file is expected to contain a list of names for the source files to ignore,
+each separated by line breaks::
+
+    pacakage Coverage is
+        for Ignored_Source_Files_List use "ignore.list";
+    end Coverage;
+
+The above is equivalent to ``--ignore-source-files=@ignore.list``.
+
+Note that the command-line arguments have precedence over the project files
+attributes. In other words, as soon as the ``--ignore-source-files`` argument
+is present on the command-line, both of the attributes described above are
+ignored.

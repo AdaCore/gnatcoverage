@@ -1310,12 +1310,6 @@ above, the analysis with, for example, :option:`--annotate=xcov` of a program
 built in Debug mode would yield a ``debug-logger.adb.xcov`` annotated source
 result.
 
-Subunits, declared with a ``separate`` keyword and implemented in a separate
-source file, are compiled as part of their parent and are not considered as
-units on their own. Only the parent name has an effect in the coverage
-analysis scope specifications and it denotes the set of sources involved
-in the entire unit implementation, subunit sources included.
-
 For C, the notion of *translation unit* resolves to the set of tokens that the
 compiler gets to work on, after the pre-processing expansion of macros,
 #include directives and the like. This doesn't have an explicit name and
@@ -1344,6 +1338,35 @@ analysis scope can be achieved with::
      for Excluded_Units use ("foo.c"); /* source file name here  */
   end Coverage;
 
+.. _ada_subunits:
+
+Ada subunits ("separates")
+--------------------------
+
+Subunits, declared with a ``separate`` keyword and implemented in a separate
+source file, are compiled as part of their parent and are not considered as
+units on their own. Only the parent name has an effect in the coverage
+analysis scope specifications and it denotes the set of sources involved
+in the entire unit implementation, subunit sources included.
+
+However it is quite common to use subunits as a mean to do unit testing: a
+subunit is physically separated from other sources and can have access to
+implementation internals. Such subunits vary from one test to another and thus
+interfer with the consolidation process. For this specific use case, the
+:option:`--ignore-source-files` command-line argument for |gcvcov| makes it
+possible for the coverage analysis and the report production to ignore source
+files even though they belong to units of interest.
+
+This option can appear multiple times on the command line. Each occurrence
+expects a single arguments which is either the name of a source file to ignore,
+or a :term:`@listfile argument` that cotains a list of such file names.
+
+For instance, consider the spec and body for the ``Ops`` unit (``ops.ads`` an
+``ops.adb``) with the body containing a subunit subprogram ``Ops.Test``
+(``ops-test.adb``). In order to perform a coverage analysis on the ``Ops`` unit
+excluding the ``Ops.Test`` subunit, one must run::
+
+  gnatcov coverage [regular options] --units=ops --ignore-source-files=ops-test.adb [trace files]
 
 Inlining & Ada Generic Units
 ============================

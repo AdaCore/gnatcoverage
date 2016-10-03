@@ -121,6 +121,11 @@ The available options are as follows:
     items and don't require Source Coverage Obligations, in particular
     for gathering exemption regions applicable to object level criteria.
 
+:option:`--ignore-source-files`, |rarg|:
+    For source coverage analysis specifically, provide a list of source files
+    to exclude from the analysis, and from the output report. See the
+    :ref:`ada_subunits` section for more information.
+
 A lot of options are available to control the set of units for which coverage
 is to be assessed. They may be combined in multiple ways and attributed within
 the project files are available to refine the set of units to include or
