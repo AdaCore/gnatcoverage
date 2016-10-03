@@ -25,7 +25,7 @@ DOCFORMATS=pdf html
 all: $(EXENAMES)
 
 $(EXENAMES): force
-	$(GPRBUILD) -Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
+	$(GPRBUILD) -p -Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
 
 
 ###################
