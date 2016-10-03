@@ -17,10 +17,6 @@ project Gnatcov is
          use"qemu_traces_entries__" & Bits & ".ads";
    end Naming;
 
-   package Builder is
-      for Global_Configuration_Pragmas use "gnat.adc";
-   end Builder;
-
    package Compiler is
 
       common_switches :=
@@ -53,6 +49,8 @@ project Gnatcov is
 
        for Default_Switches ("C")
          use  c_common_switches & mode_switches & c_mode_switches;
+
+      for Local_Configuration_Pragmas use "gnat.adc";
 
    end Compiler;
 
