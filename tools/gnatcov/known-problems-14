@@ -1,0 +1,29 @@
+==========================================
+Known problems in GNATcoverage version 1.4
+==========================================
+
+Copyright (C) 2016, AdaCore
+
+The following is a listing of known problems in releases 1.4.1 and 1.4.2.
+Each entry contains a status line stating when the problem was fixed, and on
+which release(s). In addition, any wavefront issued subsequent to the date
+specified (in ISO format YYYY-MM-DD) also contains the fix. This can be used
+to determine if a given release or wavefront has the fix identified in the
+entry.
+
+Note that older releases might or might not be affected by the problems listed
+in this document.
+
+Known problems fixed in 17.0 and above
+---------------------------------------
+
+KP-14-P909-023 DHTML report fails on non-coverable statements
+
+  Problem:     GNATcoverage's DHTML report fails to properly handle the
+               status reported for non-coverable statements. The HTML page
+               containing the annotated source doesn't load.
+
+  Status:      This was fixed by a GNATquilt adjustment in 17w on 2016-09-29
+
+  Workaround:  Do not use the --non-coverable switch or generate the report in
+               a different format.
