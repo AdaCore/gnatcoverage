@@ -22,7 +22,7 @@ KP-13-OB26-040 Spurious coverage violations on deactivated Type_Invariant
   Problem:     GNATcoverage reports "decision never evaluated" on
                Type_Invariant expressions instructed to be ignored by
                an explicit Assertion_Policy pragma.
-               
+
   Status:      This was fixed by a compiler adjustment in 17w on 2015-12-01
                This was fixed by a compiler adjustment in 7.4.1 on 2015-12-18
 
@@ -37,7 +37,7 @@ KP-13-O911-032 Spurious coverage violations on types from unit in library
                is included by way of a library project, the static elaboration
                model is used and no variable or subprogram entity of the unit
                is referenced y the program.
-               
+
   Status:      This was fixed by a compiler adjustment in 17w on 2015-12-01
                This was fixed by a compiler adjustment in 7.4.1 on 2015-12-18
 
