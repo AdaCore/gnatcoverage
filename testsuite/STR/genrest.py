@@ -21,8 +21,8 @@ from gnatpython.fileutils import find
 # --testsuite-dir, though the two should be consistent wrt the python script
 # sources (e.g. the CTXdata structure must match)
 
-LOCAL_TESTSUITE_DIR = os.path.abspath(
-    os.path.dirname(os.path.dirname(__file__)))
+LOCAL_TESTSUITE_DIR = \
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(LOCAL_TESTSUITE_DIR)
 
 from SUITE.qdata import qdaf_in, stdf_in
