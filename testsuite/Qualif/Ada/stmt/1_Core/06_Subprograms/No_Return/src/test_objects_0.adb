@@ -9,3 +9,10 @@ end;
 --# objects.adb
 --  /test/ l- ## s-
 --  /pos/  l- ## s-
+--  /pragma/ l- ## s-
+
+-- Old compilers are less precise in tracking
+-- dominance 
+
+-- %tags:(7.0.2|7.2.2)
+-- =/pragma/ ~l- ## ~s-

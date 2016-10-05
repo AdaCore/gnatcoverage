@@ -8,7 +8,7 @@ package body Objects is
    procedure Proxy_Characterize (X : Integer) is
       
       procedure Characterize (X : Integer);
-      pragma No_Return (Characterize); -- # test
+      pragma No_Return (Characterize); -- # pragma
       
       procedure Characterize (X : Integer) is
       begin
