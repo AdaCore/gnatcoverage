@@ -7,8 +7,8 @@ package Ops is
      with Type_Invariant'Class => Valid(T_Pair) or else Unchecked(T_Pair);
    
    procedure Set (P : in out T_Pair'Class; X, Y : Integer);
-   function Valid (P : T_Pair) return Boolean is (True);
-   function Unchecked (P : T_Pair) return Boolean is (not P.Checked);
+   function Valid (P : T_Pair) return Boolean is (True); -- # fn
+   function Unchecked (P : T_Pair) return Boolean is (not P.Checked); -- # fn
    
    type T_Double is new T_Pair with private;
    

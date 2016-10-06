@@ -10,6 +10,7 @@ begin
 end;
 
 --# ops.ads
+--  /fn/ l- ## s-
 
 --# ops.adb
 --  /stmt/ l+ ## 0
