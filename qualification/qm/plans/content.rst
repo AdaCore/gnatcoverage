@@ -1,6 +1,6 @@
-=========================================================
-GNATcoverage DO-178B/ED-12B Qualification Material: Plans
-=========================================================
+=======================================================================
+GNATcoverage DO-178C/ED-12C Qualification Material: Qualification Plans
+=======================================================================
 
 .. rubric:: Authors
 
@@ -8,16 +8,15 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Plans
    :delim: |
    :header: "Name", "Company", "Email"
 
-   Matteo Bordin|AdaCore|bordin@adacore.com
    Olivier Hainque|AdaCore|hainque@adacore.com
 
 .. rubric::  Revision History
 
 .. csv-table::
    :delim: |
-   :header: "Version #", "Comment"
+   :header: "Version #", "Date", "Comment"
 
-   0.0 | To be filled-in
+   0.1 DRAFT | October 6, 2016 | Initial revision
 
 .. qmlink::
 
