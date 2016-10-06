@@ -3,37 +3,42 @@
 Qualification Data Overview
 ===========================
 
-The qualification data that comes with the tool, which we will refer to
-collectively as the tool's "qualification kit", consists of the following
-three PDF documents:
+GNATcoverage is qualified as a COTS accoring to guidance of section 11.3 of
+[DO-330/ED-215].
 
-* The **PLANS** document, *PLANS.pdf*, which is this document.
-* The **TOR** (*Tool Operational Requirements*) document, *TOR.pdf*, which
-  contains the description of the tool operational requirements and
-  the associated testcases.
-* The **STR** (*Software Test Results*) report, *STR.pdf*, which contains a
-  synthetic summary of the testsuite run performed to assess the tool
-  behavioral correctness with respect to its intended use.
+The qualification data that comes with the tool, composing the tool
+*qualification kit*, consists in the two main packages:
 
-The TOR document, core of the qualification data set, is elaborated from a
-hierarchically organized set of *artifacts* (requirements, testcases, test
-sources, ...) stored within a filesystem tree. The *Document Purpose and
-Organization* section of the TOR document includes a high level description of
-our overall testing strategy.
+* A **Documents package**, containing the following three documents:
 
-Testcase subdirectories hold all the necessary items allowing automated
-execution of the tests; execution scripts in addition to the test sources in
-particular. The artifacts filesystem used to construct the TOR document is
-thus also used to drive entire *testsuite* runs and produce the STR report for
-a given software level. The *Overview of the test procedures organization*
-appendix of the TOR document explains how expectations on coverage results are
-stated for this purpose. An archive of the testsuite directory where the
-qualification run takes place is provided together with the corresponding
-kit delivery.
+  * The |plans_doc| document, |plans_pdf|, which is this document.
 
-The test sources aren't included in the PDF version of the TOR document, out
-of size considerations.  They are included in an HTML version of the document,
-also provided together with the PDF delivery and where they are easily
-accessible thanks to the HTML navigation capabilities.  Except for the test
-sources, the HTML version mirrors the PDF contents, just presented
-differently.
+  * The |tor_doc| document, |tor_pdf|, which contains the description of the
+    tool operational requirements together with the associated testing
+    strategy and test cases.
+
+    The *Document Purpose and Organization* section of this document includes
+    a high level description of our overall testing strategy. The *Overview of
+    the test procedures organization* appendix of this document explains how
+    expectations on coverage results for each test are stated and used to to
+    produce a verification report out of a testsuite run.
+
+    The test sources aren't included in this document. They are included in an
+    HTML version of the document, part of the Testsuite package presented
+    below.
+
+  * The |str_doc| report, |str_pdf|, which contains a synthetic summary of the
+    testsuite run performed to assess the tool behavioral correctness with
+    respect to its intended use.
+
+* A **Testsuite package**, composed of:
+
+  * An HTML version of the TOR document, including the test sources, organized
+    in a very hierarchical manner so much easier to present and browse in this
+    format than in PDF.
+
+  * An archive of the testsuite directory where the qualification testsuite
+    run took place, including all the execution artifacts (actual reports
+    produced by the tool for each test, intermediate object files, execution
+    traces produced by the instrumented execution environment, ...).
+
