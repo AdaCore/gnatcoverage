@@ -1,29 +1,24 @@
 Compliance With Guidance
 ========================
-This section contains compliance matrices with the guidance contained in section 12.2 of DO-178B. 
 
-**Note:** in the following, we always use the term “verification tool” to
-indicate the category of the tool following the DO-178B taxonomy. This term is
-equivalent to TQL5 for DO-178C.
+This section contains the compliance matrices with the guidance contained in
+section 12.2 of [|standard|] and section 11.3.2 of [|tool_standard|] from a
+Tool Developer's perspective.
 
-.. csv-table:: **Section 12.2**
+.. csv-table:: Compliance with Section 12.2 of |standard|
    :delim: |
    :header: "Section", "Achieved", "Notes"
 
-   12.2a    |Yes|Verification tool, see :ref:`software-level`
-   12.2b    |Not applicable |GNATcoverage is a Verification tool
-   12.2c    |Yes|See compliance matrix for table A-8 in :qmref:`/PLANS/Software_Configuration_Management_Plan`
-   12.2c    |Yes|See compliance matrix for table A-9 in :qmref:`/PLANS/Software_Quality_Assurance_Plan`
-   12.2.1   |Not applicable |GNATcoverage is a Verification tool
-   12.2.2   |Yes|See Tool Operational Requirement document (*TOR.pdf*) and Software Tests Results report (*STR.pdf*)
-   12.2.2   |Yes|See :ref:`qualified-interface` 
-   12.2.3a  |Up to the applicant|PSAC to be provided by the applicant, see :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`
-   12.2.3b  |Yes|CC2 because GNATcoverage is qualified as a verification tool
-   12.2.3c  |Not applicable |GNATcoverage is a Verification tool
-   12.2.3.1 |Yes|This document
-   12.2.3.2a|Yes|Tool Operational Requirements document  (*TOR.pdf*)
-   12.2.3.2b|Yes|GNATcoverage User's Guide
-   12.2.3.2c|Yes|See :qmref:`/PLANS/Tool_Qualification_Plan/Environment_Equivalence`
-   12.2.3.2d|Not applicable|GNATcoverage is a Verification tool
-   12.2.4   |Up to the applicant | The Tool Qualification Agreement is to be provided by the applicant (see :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`)
-   
+   12.2.1   |Yes|GNATcoverage qualification is needed. See :qmref:`/PLANS/Tool_Qualification_Plan/Certification_Credit`.
+   12.2.2   |Yes|GNATcoverage qualification level is **TQL-5** for all software levels. See :qmref:`/PLANS/Tool_Qualification_Plan/Software_Level`.
+
+.. csv-table:: Compliance with Table 11-1 of |standard|
+   :delim: |
+   :header: "Section", "Achieved", "Notes"
+
+   T-0, Objective 2 | Yes | See the requirement description items in our |tor_doc| document.
+   T-0, Objective 4 | Not Applicable | Not required for TQL-5. See :qmref:`/PLANS/Tool_Quality_Assurance_Plan` for our QA procedures nevertheless.
+   T-0, Objective 5 | Yes | See the test and test-cases description items in our |tor_doc| document.
+   T-1 to T-7 | Not Applicable | Not required for TQL-5.
+   T-8 | Up to the applicant | See :qmref:`/PLANS/Tool_Quality_Assurance_Plan` for our QA procedures nevertheless.
+   T-9 | Yes | See the |tqa_doc| document accompanying this qualification package.
