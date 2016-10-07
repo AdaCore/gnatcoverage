@@ -6,7 +6,6 @@ begin
 end;
 
 --# andthen.ads andthen.adb
---  /xf-profile/    l- ## s-
 --  /evalStmt/      l- ## s-
 --  /evalOther/     l- ## 0c
 --  /decisionTrue/  l- ## s-
