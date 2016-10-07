@@ -1,8 +1,8 @@
 with Support, Expr; use Support, Expr;
 
-procedure Test_1 is
+procedure Test_2 is
 begin
-   Assert (Plus (3, 9, Delegate => True) = 12);
+   Assert (Plus (3, 9, Delegate => False) = 12);
 end;
 
 
@@ -10,6 +10,6 @@ end;
 --  /decl/ l+ ## 0
 --  /stmt/ l+ ## 0
 --  /test/ l+ ## 0
---  /delegate/ l+ ## 0
---  /compute/ l- ## s-
+--  /delegate/ l- ## s-
+--  /compute/ l+ ## 0
 

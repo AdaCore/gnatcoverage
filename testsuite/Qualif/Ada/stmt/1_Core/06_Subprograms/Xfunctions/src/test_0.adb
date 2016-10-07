@@ -6,6 +6,5 @@ begin
 end;
 
 --# expr.ads
---  /fnstmt/ l- ## s-
---  /cont/ l- ## 0c
+--  /stmt/ l- ## s-
 --  /decl/ l+ ## 0
