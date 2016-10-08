@@ -1,8 +1,12 @@
 package body Objects is
-   procedure Local_Probe (O : T_Object) is null; -- # test
+   procedure Local_Probe (O : T_Object) is null; -- # local
    
-   procedure Process (O : T_Object) is
+   procedure Process (O : T_Object; Local : Boolean) is
    begin
-      A_Probe := Local_Probe'Address; -- # test
+      if Local then -- # test
+         Local_Probe (O); -- # local
+      else 
+         Probe (O); -- # global
+      end if;
    end;
 end;

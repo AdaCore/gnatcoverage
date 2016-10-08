@@ -1,1 +1,1 @@
-ALL XFAIL SCOs for null subprograms still inaccurate (P911-006)
+7.0.2 XFAIL SCOs for null subprograms inaccurate in 7.0.2 (P911-006)
