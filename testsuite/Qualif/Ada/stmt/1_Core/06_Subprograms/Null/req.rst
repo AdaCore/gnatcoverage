@@ -3,10 +3,12 @@ SC requirements for Null subprograms
 
 %REQ_ID%
 
-The null statement attached to a null procedure, be it a completion or a
-definition in a declarative part, shall be treated as a regular statement,
-diagnosed uncovered if and only if the procedure is not called.
+Null procedures, completion or a definition in a declarative part, shall be
+treated as regular statements, diagnosed uncovered if the procedure is not
+called.
 
+Calls to null suprobgrams shall be treated as regular call statements, diagnosed
+uncovered if not executed.
 
 .. rubric:: Testing Strategy
 
