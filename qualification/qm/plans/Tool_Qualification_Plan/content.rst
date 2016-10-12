@@ -7,6 +7,7 @@ Tool Qualification Plan
    Qualification_Data_Overview
    Compliance_Matrices
    Tool_Overview
+   Certification_Credit
    Qualified_Interface
    Environment_Equivalence
    User_Activities
