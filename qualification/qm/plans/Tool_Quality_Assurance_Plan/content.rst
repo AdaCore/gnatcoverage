@@ -1,6 +1,8 @@
-===============================
-Software Quality Assurance Plan
-===============================
+.. _tqap:
+
+===========================
+Tool Quality Assurance Plan
+===========================
 
 Compliance With Guidance
 ========================

@@ -23,4 +23,4 @@ GNATcoverage DO-178C/ED-12C Qualification Material: Qualification Plans
    Introduction
    Tool_Qualification_Plan
    Software_Configuration_Management_Plan
-   Software_Quality_Assurance_Plan
+   Tool_Quality_Assurance_Plan
