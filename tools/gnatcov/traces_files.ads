@@ -66,6 +66,14 @@ package Traces_Files is
    --  Open a trace file, without reading the traces.  In case of failure,
    --  an exception is raised and the file is considered as not open.
 
+   procedure Open_Output_Flat_Trace_File
+     (Filename   : String;
+      Desc       : out Trace_File_Descriptor;
+      Trace_File : out Trace_File_Type);
+   --  Open a trace file for output and write a flat (raw) trace second header.
+   --  In case of failure, an exception is raised and the file is considered
+   --  as not open.
+
    procedure Read_Loadaddr_Trace_Entry
      (Desc       : Trace_File_Descriptor;
       Trace_File : Trace_File_Type;
@@ -84,6 +92,12 @@ package Traces_Files is
    --  this case E isn't set), otherwise EOF is set to False and E is
    --  valid. In case of failure, an exception is raised and the file is
    --  closed.
+
+   procedure Write_Trace_Entry
+     (Desc       : Trace_File_Descriptor;
+      E          : Traces.Trace_Entry);
+   --  Write a trace to DESC. In case of failure, an exception is raised and
+   --  the file is closed.
 
    procedure Close_Trace_File
      (Desc : in out Trace_File_Descriptor);

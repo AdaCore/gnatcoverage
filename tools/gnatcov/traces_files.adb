@@ -55,12 +55,23 @@ package body Traces_Files is
    Trace_Entry_Size : constant Natural :=
       Qemu_Traces_Entries.Trace_Entry'Size / System.Storage_Unit;
 
+   Truncated_File : exception;
+
    procedure Check_Header (Desc : in out Trace_File_Descriptor;
-                           Hdr  : Trace_Header);
-   --  Perform basic validation on Hdr: make sure it has the proper magic
-   --  header, format version and that the endianity is valid. Raise a
+                           Hdr  : out Trace_Header);
+   --  Read and perform basic validation on Hdr: make sure it has the proper
+   --  magic header, format version and that the endianity is valid. Raise a
    --  Bad_File_Format if something is invalid. Update the endianity
    --  information in Desc otherwise.
+
+   procedure Check_Trace_File_Headers
+     (Desc             : in out Trace_File_Descriptor;
+      Trace_File       : in out Trace_File_Type;
+      Check_2nd_Header : Boolean);
+   --  Perform validation of trace file headers:
+   --    - a first header whose kind is Info
+   --    - trace info entries
+   --    - an optional second header whose kind is anything but Info
 
    procedure Read_Trace_File_Infos (Trace_File : out Trace_File_Type;
                                     Desc : Trace_File_Descriptor);
@@ -74,9 +85,15 @@ package body Traces_Files is
 
    procedure Check_Header
      (Desc : in out Trace_File_Descriptor;
-      Hdr  : Trace_Header)
+      Hdr  : out Trace_Header)
    is
    begin
+      if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
+        /= Trace_Header_Size
+      then
+         raise Truncated_File with "cannot read header";
+      end if;
+
       if Hdr.Magic /= Qemu_Trace_Magic then
          raise Bad_File_Format with "invalid header (bad magic)";
       end if;
@@ -91,6 +108,51 @@ package body Traces_Files is
 
       Desc.Big_Endian := Hdr.Big_Endian;
    end Check_Header;
+
+   ------------------------------
+   -- Check_Trace_File_Headers --
+   ------------------------------
+
+   procedure Check_Trace_File_Headers
+     (Desc             : in out Trace_File_Descriptor;
+      Trace_File       : in out Trace_File_Type;
+      Check_2nd_Header : Boolean)
+   is
+      Hdr : Trace_Header;
+   begin
+      --  We expect the following:
+      --    (1) a first header whose kind is Info;
+      --    (2) trace info entries;
+      --    (3) optional second header whose kind is anything but Info.
+      --  We raise a Bad_File_Format for anything else.
+
+      --  (1) Read the first header
+
+      Check_Header (Desc, Hdr);
+
+      if Hdr.Kind /= Info then
+         raise Bad_File_Format with
+            "first header must describe an information section";
+      end if;
+
+      --  (2) Read trace info entries
+
+      Read_Trace_File_Infos (Trace_File, Desc);
+
+      if Check_2nd_Header then
+
+         --  (3) Read the second header
+
+         Check_Header (Desc, Hdr);
+
+         if Hdr.Kind = Info then
+            raise Bad_File_Format with
+              "second header must not describe an information section";
+         end if;
+
+         Decode_Trace_Header (Hdr, Trace_File, Desc);
+      end if;
+   end Check_Trace_File_Headers;
 
    -------------------------
    -- Decode_Trace_Header --
@@ -190,12 +252,8 @@ package body Traces_Files is
       Desc       : out Trace_File_Descriptor;
       Trace_File : out Trace_File_Type)
    is
-      Truncated_File : exception;
-
-      Hdr : Trace_Header;
-      Res : Integer;
    begin
-      --  Open file
+      --  Open file (Read only)
 
       Log_File_Open (Filename);
       Desc.Fd := Open_Read (Filename, Binary);
@@ -203,42 +261,9 @@ package body Traces_Files is
          raise Bad_File_Format with "cannot open file " & Filename;
       end if;
 
-      --  We expect at least the following:
-      --    (1) a first header whose kind is Info;
-      --    (2) trace info entries;
-      --    (3) a second header whose kind is anything but Info.
-      --  We raise a Bad_File_Format for anything else.
-
-      --  (1) Read the first header
-
-      if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
-        /= Trace_Header_Size
-      then
-         raise Truncated_File with "cannot read first header";
-      end if;
-      Check_Header (Desc, Hdr);
-
-      if Hdr.Kind /= Info then
-         raise Bad_File_Format with
-            "first header must describe an information section";
-      end if;
-
-      --  (2) Read trace info entries
-
-      Read_Trace_File_Infos (Trace_File, Desc);
-
-      --  (3) Read the second header
-
-      Res := Read (Desc.Fd, Hdr'Address, Trace_Header_Size);
-      if Res /= Trace_Header_Size then
-         raise Truncated_File with "cannot read second header";
-      elsif Hdr.Kind = Info then
-         raise Bad_File_Format with
-            "second header must not describe an information section";
-      end if;
-
-      Check_Header (Desc, Hdr);
-      Decode_Trace_Header (Hdr, Trace_File, Desc);
+      Check_Trace_File_Headers (Desc,
+                                Trace_File,
+                                Check_2nd_Header => True);
 
    exception
       when E : others =>
@@ -250,6 +275,55 @@ package body Traces_Files is
                then " (truncated file?)"
                else ""));
    end Open_Trace_File;
+
+   ---------------------------------
+   -- Open_Output_Flat_Trace_File --
+   ---------------------------------
+
+   procedure Open_Output_Flat_Trace_File
+     (Filename   : String;
+      Desc       : out Trace_File_Descriptor;
+      Trace_File : out Trace_File_Type)
+   is
+
+      Flat_Hdr : constant Trace_Header := Make_Trace_Header (Flat);
+   begin
+      --  Open file (Read and Write)
+
+      Log_File_Open (Filename);
+      Desc.Fd := Open_Read_Write (Filename, Binary);
+      if Desc.Fd = Invalid_FD then
+         raise Bad_File_Format with "cannot open file " & Filename;
+      end if;
+
+      Check_Trace_File_Headers (Desc,
+                                Trace_File,
+                                Check_2nd_Header => False);
+
+      --  Write flat (raw) trace header
+
+      if Write (Desc.Fd, Flat_Hdr'Address, Trace_Header_Size) /=
+        Trace_Header_Size
+      then
+         raise Write_Error with "failed to write Flat trace header";
+      end if;
+
+      --  Set traces info in the Trace_File_Descriptor
+
+      Desc.Kind := Flat_Hdr.Kind;
+      Desc.Sizeof_Target_Pc := Flat_Hdr.Sizeof_Target_Pc;
+      Desc.Big_Endian := Flat_Hdr.Big_Endian;
+
+   exception
+      when E : others =>
+         Close (Desc.Fd);
+         Fatal_Error
+           ("processing of trace file " & Filename
+            & " failed: " & Exception_Message (E)
+            & (if Exception_Identity (E) = Truncated_File'Identity
+               then " (truncated file?)"
+               else ""));
+   end Open_Output_Flat_Trace_File;
 
    ----------------------
    -- Read_Trace_Entry --
@@ -299,6 +373,45 @@ package body Traces_Files is
                         Op     => Ent.Op,
                         State  => Unknown);
    end Read_Trace_Entry;
+
+   -----------------------
+   -- Write_Trace_Entry --
+   -----------------------
+
+   procedure Write_Trace_Entry
+     (Desc       : Trace_File_Descriptor;
+      E          : Trace_Entry)
+   is
+      Ent : Qemu_Traces_Entries.Trace_Entry;
+      Res : Integer;
+   begin
+
+      if Desc.Sizeof_Target_Pc /= Pc_Type_Size then
+         raise Bad_File_Format with
+            "only" & Unsigned_8'Image (Pc_Type_Size)
+            & " bytes pc are handled";
+      end if;
+
+      Ent.Pc   := E.First;
+      Ent.Size := Unsigned_16 (E.Last - E.First + 1);
+      Ent.Op   := E.Op;
+
+      if Desc.Big_Endian /= Big_Endian_Host then
+         Qemu_Traces.Swap_Pc (Ent.Pc);
+         Swaps.Swap_16 (Ent.Size);
+      end if;
+
+      --  Write an entry
+
+      Res := Write (Desc.Fd, Ent'Address, Trace_Entry_Size);
+
+      --  Check result
+
+      if Res /= Trace_Entry_Size then
+         raise Bad_File_Format with "file truncated";
+      end if;
+
+   end Write_Trace_Entry;
 
    -------------------------------
    -- Read_Loadaddr_Trace_Entry --
