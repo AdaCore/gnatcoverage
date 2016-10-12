@@ -1,18 +1,3 @@
-.. _software-level:
-
-Software Level
-==============
-
-For level C, GNATcoverage produces statement coverage data when using the
-option :literal:`--level=stmt`.
-
-For level B, GNATcoverage produces statement coverage data *and* decision
-coverage data when using option :literal:`--level=stmt+decision`.
-
-For level A, GNATcoverage produces statement coverage data *and* decision
-coverage data *and* mcdc coverage data when using option
-:literal:`--level=stmt+mcdc`.
-
 .. _qualified-interface:
 
 GNATcoverage Qualified Interface
@@ -48,7 +33,16 @@ To obtain reports suitable for use as certification evidence, applicants shall u
 In the sample commands above:
 
 * <APPn> is a test executable
-* <LVL> designates the coverage criteria to assess. See :qmref:`/PLANS/Tool_Qualification_Plan/Tool_Overview` Software Level
+* <LVL> designates the coverage criteria to assess, depending on the software level.
+
+  * For level C, statement coverage data is obtained with :literal:`--level=stmt`
+
+  * For level B, statement *and* decision coverage data is obtained with
+    :literal:`--level=stmt+decision`
+
+  * For level A, statement *and* decision *and* mcdc coverage data is obtained
+    with :literal:`--level=stmt+mcdc`
+
 * <REPORT> is the output file containing the GNATcoverage report
 * <TARGET> identifies the target platform (as in the GNAT Pro toolchain prefixes, e.g.  powerpc-elf);
 * <TRACE> is the output file containing the execution trace
