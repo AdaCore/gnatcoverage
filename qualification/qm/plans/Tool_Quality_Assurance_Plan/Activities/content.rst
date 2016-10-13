@@ -1,3 +1,5 @@
+.. _qa-activities:
+
 |QA| Activities
 ===============
 
