@@ -10,7 +10,7 @@ Tool Developer's perspective.
    :header: "Section", "Achieved", "Notes"
 
    12.2.1   #Yes#GNATcoverage qualification is needed. See :ref:`/PLANS/Tool_Qualification_Plan/Certification_Credit`.
-   12.2.2   #Yes#GNATcoverage qualification level is **TQL-5** for all software levels. See :qmref:`/PLANS/Tool_Qualification_Plan/Software_Level`.
+   12.2.2   #Yes#GNATcoverage qualification level is **TQL-5** for all software levels. See :qmref:`/PLANS/Tool_Qualification_Plan/Tool_Qualification_Level`.
 
 .. csv-table:: Compliance with Table 11-1 of |standard|
    :delim: #
