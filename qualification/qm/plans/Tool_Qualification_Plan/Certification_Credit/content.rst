@@ -1,4 +1,4 @@
-.. _certification_credit:
+.. _certification-credit:
 
 Sought Certification Credit
 ===========================
