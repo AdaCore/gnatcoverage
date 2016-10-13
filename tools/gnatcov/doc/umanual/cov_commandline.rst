@@ -126,12 +126,28 @@ The available options are as follows:
     to exclude from the analysis, and from the output report. See the
     :ref:`ada_subunits` section for more information.
 
+:option:`--save-checkpoint`:
+    For source coverage analysis specifically, save the resulting coverage
+    analysis to the named checkpoint file. It can then be consolidated in
+    subsequent runs of the `coverage` using :option:`--checkpoint`.
+
+:option:`--checkpoint`, |rarg|:
+    Load previously saved coverage analysis checkpoint(s), and continue coverage
+    analysis from that initial state.
+
 A lot of options are available to control the set of units for which coverage
 is to be assessed. They may be combined in multiple ways and attributed within
 the project files are available to refine the set of units to include or
 exclude from each designated project. See :ref:`using-gpr` for a general
 overview of how the project file facilities operate and :ref:`sunits` for
 extra details and examples of use.
+
+Saving coverage analysis state checkpoints allows the production of
+consolidated results from successive runs of the `coverage` command.
+In particular this allows coverage results to be computed incrementally,
+and allows consolidation with different sets of units of interest,
+in order to avoid incidental coverage. See :ref:`checkpoints` for a
+discussion of these use cases.
 
 Elements on the command line that are not tied to a particular option are
 considered as trace file arguments. At least one trace file is required for

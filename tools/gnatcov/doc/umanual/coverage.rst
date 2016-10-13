@@ -14,5 +14,6 @@ possible criteria, producing reports in a variety of possible formats.
    cov_object
    cov_metrics
    cov_consolidation
+   cov_checkpoints
    cov_exemptions
    cov_gpr
