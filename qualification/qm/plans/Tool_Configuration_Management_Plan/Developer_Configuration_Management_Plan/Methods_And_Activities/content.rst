@@ -1,4 +1,4 @@
-.. _adacore-cm:
+.. _adacore-conf-methods:
 
 Configuration Management Methods and Activities
 ***********************************************
@@ -15,11 +15,6 @@ repositories which track the life cycle of each artifact automatically.
 E-mail-based discussions about each artifact are also tracked, using the
 AdaCore ticket system deployed within the whole company for more than fifteen
 years now.
-
-The GNATcoverage tool sources and Qualification Kit artifacts
-are hosted in distinct subdirectories on a single repository:
-
-**git+ssh://git.eu.adacore.com/scmrepos/git/gnatcoverage**
 
 .. _adacore-change-control:
 
