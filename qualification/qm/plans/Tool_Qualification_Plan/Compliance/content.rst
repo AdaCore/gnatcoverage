@@ -5,12 +5,17 @@ This section contains the compliance matrices with the guidance contained in
 section 12.2 of [|standard|] and section 11.3.2 of [|tool_standard|] from a
 Tool Developer's perspective.
 
+.. tabularcolumns:: |p{0.15\linewidth}|p{0.10\linewidth}|p{0.65\linewidth}|
+
 .. csv-table:: Compliance with Section 12.2 of |standard|
    :delim: #
    :header: "Section", "Achieved", "Notes"
 
    12.2.1   #Yes#GNATcoverage qualification is needed. See :ref:`certification-credit`.
    12.2.2   #Yes#GNATcoverage qualification level is **TQL-5** for all software levels. See :ref:`tql`.
+
+
+.. tabularcolumns:: |p{0.15\linewidth}|p{0.18\linewidth}|p{0.60\linewidth}|
 
 .. csv-table:: Compliance with Table 11-1 of |standard|
    :delim: #
