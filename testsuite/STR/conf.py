@@ -41,7 +41,7 @@ master_doc = 'content'
 
 # General information about the project.
 project = u'GNATcoverage'
-copyright = u'2013, AdaCore'
+copyright = u'2016, AdaCore'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -178,7 +178,7 @@ htmlhelp_basename = 'GNATcoveragedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('content', 'STR.tex', u'GNATcoverage DO178B/ED-12B Qualification Material: Software Test Results',
+  ('content', 'STR.tex', u'GNATcoverage DO-178C/ED-12C Qualification Material: Tool Operational Verification and Validation Results',
    u'AdaCore', 'manual'),
 ]
 
