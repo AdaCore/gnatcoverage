@@ -3,7 +3,7 @@ Environment Equivalence
 =======================
 
 Qualified use of the tool requires equivalence of the Operational Environment
-and the Qualification Environment, based on the following values:
+and the Qualification Environment, based on the following criteria:
 
 #. The GNAT Pro compiler executable name and version number
 #. The list of GNAT Pro compilation switches
