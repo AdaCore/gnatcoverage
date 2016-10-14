@@ -1,5 +1,5 @@
 
-What follows is a set of hints for configuration management for the
+What follows is a set of configuration management suggestions for the
 items up to the applicant as per the compliance matrix above.
 
  * **Activity 7.2.1:** The suggested configuration items are:

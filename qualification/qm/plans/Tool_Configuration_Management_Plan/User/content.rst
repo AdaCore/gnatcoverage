@@ -1,7 +1,7 @@
 .. _user-conf-management:
 
-Tool User Configuration Management, Suggested Items
-===================================================
+Tool User Configuration Management Suggestions
+==============================================
 
 .. qmlink::
 
