@@ -1,5 +1,5 @@
-GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirements
-#################################################################################
+GNATcoverage DO-178C/ED-12C Qualification Material: Tool Operational Requirements, V&V Cases and Procedures
+###########################################################################################################
 
 .. rubric:: Authors
 
@@ -20,7 +20,8 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
    :widths: 20, 80
    :header: "Identifier", "Referenced document"
 
-   Ada 2005 LRM|Ada 2005 Reference Manual. Language and Standard Libraries.  International Standard ISO/IEC 8652/1995(E) with Technical Corrigendum 1 and Amendment 1. Taft, S.T.; Duff, R.A.; Brukardt, R.L.; Ploedereder, E.; Leroy, P. (Eds.)
+   Ada 2012 LRM|Ada 2012 Reference Manual. Language and Standard Libraries, ISO/IEC 8652:2012(E)
+   Ada 2005 LRM|Ada 2005 Reference Manual. Language and Standard Libraries. International Standard ISO/IEC 8652/1995(E) with Technical Corrigendum 1 and Amendment 1.
    Ada 1995 LRM|Ada 1995 Reference Manual. Language and Standard Libraries. International Standard ISO/IEC 8652:1995 Technical Corrigendum 1 (ISO/IEC 8652:1995:TC1:2000)
 
 .. rubric:: Revision history
