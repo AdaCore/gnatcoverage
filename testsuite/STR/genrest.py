@@ -783,7 +783,7 @@ class QDreport(object):
                 "\n\n"
                 "*Expectations* there refers to expected coverage assessment "
                 "diagnostics stated as embedded comments within the test "
-                "sources. Violations* in this context refer to "
+                "sources. *Violations* refer to "
                 "deviations with respect to a given coverage criterion, "
                 "that tests trigger on purpose and which we *expect* the "
                 "tool to detect. For example, a test arranging not to execute "

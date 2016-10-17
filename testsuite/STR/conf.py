@@ -13,6 +13,10 @@
 
 import sys, os
 
+doc_standard_name = "Tool Operational Verification and Validation Results"
+
+rst_prolog = ".. |str_doc| replace:: *%s*" % doc_standard_name
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -178,7 +182,7 @@ htmlhelp_basename = 'GNATcoveragedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('content', 'STR.tex', u'GNATcoverage DO-178C/ED-12C Qualification Material: Tool Operational Verification and Validation Results',
+  ('content', 'STR.tex', u'GNATcoverage DO-178C/ED-12C Qualification Material: %s' % doc_standard_name,
    u'AdaCore', 'manual'),
 ]
 

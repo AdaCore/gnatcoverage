@@ -1,7 +1,7 @@
 Introduction
 ************
 
-This the GNATcoverage Software Test Results report produced by an automated
+This the GNATcoverage |str_doc| report produced by an automated
 execution of the GNATcoverage testsuite in a specific operational environment.
 This report features the following sections:
 
