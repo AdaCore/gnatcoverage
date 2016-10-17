@@ -14,15 +14,13 @@ controlled in our configuration management system, in particular:
 * The GNATcoverage tool source code,
 * The build/test infrastructure (framework to build the tool, run
   testsuites, monitor results ...),
-* Framework to generate documentation (Qualifying Machine, kit construction
-  scripts...).
 
 Plans and documentation
 -----------------------
 
-All the documentation material is also under Configuration Management Control,
-with distinct files for different sections or chapters of each document to
-permit fine grain automatic tracking.
+All the documentation artefacts and the framework to generate documents are
+also under Configuration Management Control, with distinct files for different
+sections or chapters of each document to permit fine grain automatic tracking.
 
 Quality Assurance Reports
 -------------------------
