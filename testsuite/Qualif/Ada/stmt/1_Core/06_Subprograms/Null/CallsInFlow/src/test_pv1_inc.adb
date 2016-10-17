@@ -31,12 +31,7 @@ end;
 --  /do_nop2/ l- ## s-
 --  /do_nop3/ l- ## s-
 
---  %cargs: -O1
---  =/do_nop3/ ~l- ## ~s-
-
 --# ops.ads
 --  /do_nop1/ l- ## s-
 
---  %cargs: -O1
---  =/do_nop1/ ~l- ## ~s-
 

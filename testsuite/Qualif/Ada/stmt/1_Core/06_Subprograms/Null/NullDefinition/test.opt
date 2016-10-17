@@ -1,2 +1,1 @@
 7.0.2 XFAIL SCOs for null subprograms inaccurate in 7.0.2 (P911-006)
-CARGS_O1 XFAIL null subprograms or calls easily eliminated at -O1 (PA09-008)
