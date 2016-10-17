@@ -10,7 +10,7 @@ Compliance With Guidance
    :header: "Item", "Ref.", "Achieved", "Notes"
 
    1,3,4 & 8.1.a,b,c & Not applicable & Not required for TQL-5 tools
-   2     & 8.1.b & Yes & See :ref:`reading-plans` and :ref:`inspecting-other-data`
+   2     & 8.1.b & Yes & See :ref:`qa-activities`
    5     & 8.1.d, 8.3.a,b,c,d,e,f & Yes & See :ref:`tool-conformity-review`
    5     & 8.3.g & Not applicable & No credit is sought for the use of previously developed tools
 

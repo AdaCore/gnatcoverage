@@ -1,3 +1,5 @@
+.. _tool-conformity-review:
+
 Tool Conformity Review
 ======================
 

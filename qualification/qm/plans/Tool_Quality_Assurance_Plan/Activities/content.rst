@@ -13,8 +13,6 @@ described here are performed on the PDF version of the documents. Only those
 steps requiring access to test sources are performed with the help of the HTML
 contents.
 
-.. _reading-plans:
-
 Reading the PLANS document
 **************************
 
@@ -22,13 +20,8 @@ Reading the PLANS document
 
   * Assess the compliance with qualification objectives.
 
-.. _inspecting-other-data:
-
-Inspection of other qualification data
-**************************************
-
 Inspection of Tool Operational Requirements (by sampling)
----------------------------------------------------------
+*********************************************************
 
 **objectives:** 
 
@@ -37,7 +30,7 @@ Inspection of Tool Operational Requirements (by sampling)
 
 
 Inspection of Test Cases (by sampling)
---------------------------------------
+**************************************
 
 **objectives:** 
 
@@ -46,7 +39,7 @@ Inspection of Test Cases (by sampling)
 
 
 Inspection of test execution results
-------------------------------------
+************************************
 
 **objectives:** 
 
