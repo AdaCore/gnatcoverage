@@ -21,28 +21,31 @@ package body Ops is
    --
    
    procedure Div
-     (X, Y : Integer; T : out Integer; Fault : out Boolean) is
+     (X, Y : Integer; T : out Integer; Fault : out Boolean)
+   is
+      CE_Fault, DE_Fault : Boolean;      
    begin
       begin
          Div_CE (X, Y, T); -- # stmt
-         Fault := False; -- # no_fault
+         CE_Fault := False; -- # no_fault
       exception
          when Constraint_Error =>
-            Fault := True;  -- # fault
+            CE_Fault := True;  -- # fault
          when others =>
             null;  -- # bad_handler
       end;
       
       begin
          Div_DE (X, Y, T); -- # stmt
-         Fault := False; -- # no_fault
+         DE_Fault := False; -- # no_fault
       exception
          when Div_Error =>
-            Fault := True;  -- # fault
+            DE_Fault := True;  -- # fault
          when others =>
             null;  -- # bad_handler
       end;
-   end;
    
+      Fault := CE_Fault or else DE_Fault; -- # stmt
+   end;
    
 end;
