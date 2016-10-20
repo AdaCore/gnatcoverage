@@ -12,7 +12,9 @@ This front-end exposes two major classes of services:
 
 Instrumented execution environments are provided as part of the GNATemulator
 separate product line for cross configurations. For native x86 or x86_64-linux
-configurations, we rely on a Valgrind plugin to produce execution traces.
+configurations, we rely on a Valgrind plugin to produce execution traces. For
+native x86 or x86_64-windows configurations, we rely on a DynamoRIO plugin
+instead.
 
 Documentation, including a getting started guide, is available from the
 "GNATcoverage User's Guide" in the share/doc/gnatcoverage sub-directory of
