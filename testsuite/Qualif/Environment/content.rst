@@ -1,3 +1,5 @@
+.. _operational-conditions:
+
 Operational conditions of use
 =============================
 

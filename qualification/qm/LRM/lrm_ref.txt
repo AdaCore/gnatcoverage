@@ -98,7 +98,7 @@
 4.9.1      # 95,05,12 # Statically Matching Constraints and Subtypes             # no          # Not relevant to SCA
 
 5          # 95,05,12 # Statements                                               # no          # General overview material
-5.1        # 95,05,12 # Simple and Compound Statements - Sequences of Statements # partial     # This is a general syntax section; the null statement is the only one specifically addressed here, since all others are either covered elsewhere or are outside the ZFP profile
+5.1        # 95,05,12 # Simple and Compound Statements - Sequences of Statements # partial     # This is a general syntax section; the null statement is specifically addressed here, all others covered elsewhere.
 5.2        # 95,05,12 # Assignment Statements                                    # yes         #
 5.3        # 95,05,12 # If Statements                                            # yes         #
 5.4        # 95,05,12 # Case Statements                                          # yes         #
@@ -133,9 +133,9 @@
 7.3.2      #       12 # Type Invariants                                          # no          # Ada 2012 feature
 7.4        # 95,05,12 # Deferred Constants                                       # yes         #
 7.5        # 95,05,12 # Limited Types                                            # no          # Not relevant to SCA
-7.6        # 95,05    # User-Defined Assignment and Finalization                 # no          # User-defined assignment and finalization are only relevant for controlled types, which are outside the ZFP profile
+7.6        # 95,05    # User-Defined Assignment and Finalization                 # no          # GNATcoverage is not qualified for controlled types
 7.6        #       12 # Assignment and Finalization                              # no          # Ada 2012 feature
-7.6.1      # 95,05,12 # Completion and Finalization                              # no          # Completion and finalization only have SCA-related obligations for task types, protected types, and controlled types, and all of these are outside the ZFP profile
+7.6.1      # 95,05,12 # Completion and Finalization                              # no          # Only relevant to task types, protected types and controlled types, for which GNATcoverage is not qualified
 
 8          # 95,05,12 # Visibility Rules                                         # no          # General overview material
 8.1        # 95,05,12 # Declarative Region                                       # no          # Not relevant to SCA
@@ -151,27 +151,27 @@
 8.5.5      # 95,05,12 # Generic Renaming Declarations                            # no          # Not relevant to SCA
 8.6        # 95,05,12 # The Context of Overload Resolution                       # no          # Not relevant to SCA
 
-9          # 95,05,12 # Tasks and Synchronization                                # no          # Not in ZFP profile
-9.1        # 95,05,12 # Task Units and Task Objects                              # no          # Not in ZFP profile
-9.2        # 95,05,12 # Task Execution - Task Activation                         # no          # Not in ZFP profile
-9.3        # 95,05,12 # Task Dependence - Termination of Tasks                   # no          # Not in ZFP profile
-9.4        # 95,05,12 # Protected Units and Protected Objects                    # no          # Not in ZFP profile
-9.5        # 95,05,12 # Intertask Communication                                  # no          # Not in ZFP profile
-9.5.1      # 95,05,12 # Protected Subprograms and Protected Actions              # no          # Not in ZFP profile
-9.5.2      # 95,05,12 # Entries and Accept Statements                            # no          # Not in ZFP profile
-9.5.3      # 95,05,12 # Entry Calls                                              # no          # Not in ZFP profile
-9.5.4      # 95,05,12 # Requeue Statements                                       # no          # Not in ZFP profile
-9.6        # 95,05,12 # Delay Statements, Duration, and Time                     # no          # Not in ZFP profile
-9.6.1      #    05,12 # Formatting, Time Zones, and other operations for Time    # no          # Not in ZFP profile
-9.7        # 95,05,12 # Select Statements                                        # no          # Not in ZFP profile
-9.7.1      # 95,05,12 # Selective Accept                                         # no          # Not in ZFP profile
-9.7.2      # 95,05,12 # Timed Entry Calls                                        # no          # Not in ZFP profile
-9.7.3      # 95,05,12 # Conditional Entry Calls                                  # no          # Not in ZFP profile
-9.7.4      # 95,05,12 # Asynchronous Transfer of Control                         # no          # Not in ZFP profile
-9.8        # 95,05,12 # Abort of a Task - Abort of a Sequence of Statements      # no          # Not in ZFP profile
-9.9        # 95,05,12 # Task and Entry Attributes                                # no          # Not in ZFP profile
-9.10       # 95,05,12 # Shared Variables                                         # no          # Not in ZFP profile
-9.11       # 95,05,12 # Example of Tasking and Synchronization                   # no          # Not in ZFP profile
+9          # 95,05,12 # Tasks and Synchronization                                # no          # GNATcoverage is not qualified for tasking constructs
+9.1        # 95,05,12 # Task Units and Task Objects                              # no          # GNATcoverage is not qualified for tasking constructs
+9.2        # 95,05,12 # Task Execution - Task Activation                         # no          # GNATcoverage is not qualified for tasking constructs
+9.3        # 95,05,12 # Task Dependence - Termination of Tasks                   # no          # GNATcoverage is not qualified for tasking constructs
+9.4        # 95,05,12 # Protected Units and Protected Objects                    # no          # GNATcoverage is not qualified for tasking constructs
+9.5        # 95,05,12 # Intertask Communication                                  # no          # GNATcoverage is not qualified for tasking constructs
+9.5.1      # 95,05,12 # Protected Subprograms and Protected Actions              # no          # GNATcoverage is not qualified for tasking constructs
+9.5.2      # 95,05,12 # Entries and Accept Statements                            # no          # GNATcoverage is not qualified for tasking constructs
+9.5.3      # 95,05,12 # Entry Calls                                              # no          # GNATcoverage is not qualified for tasking constructs
+9.5.4      # 95,05,12 # Requeue Statements                                       # no          # GNATcoverage is not qualified for tasking constructs
+9.6        # 95,05,12 # Delay Statements, Duration, and Time                     # no          # GNATcoverage is not qualified for tasking constructs
+9.6.1      #    05,12 # Formatting, Time Zones, and other operations for Time    # no          # GNATcoverage is not qualified for tasking constructs
+9.7        # 95,05,12 # Select Statements                                        # no          # GNATcoverage is not qualified for tasking constructs
+9.7.1      # 95,05,12 # Selective Accept                                         # no          # GNATcoverage is not qualified for tasking constructs
+9.7.2      # 95,05,12 # Timed Entry Calls                                        # no          # GNATcoverage is not qualified for tasking constructs
+9.7.3      # 95,05,12 # Conditional Entry Calls                                  # no          # GNATcoverage is not qualified for tasking constructs
+9.7.4      # 95,05,12 # Asynchronous Transfer of Control                         # no          # GNATcoverage is not qualified for tasking constructs
+9.8        # 95,05,12 # Abort of a Task - Abort of a Sequence of Statements      # no          # GNATcoverage is not qualified for tasking constructs
+9.9        # 95,05,12 # Task and Entry Attributes                                # no          # GNATcoverage is not qualified for tasking constructs
+9.10       # 95,05,12 # Shared Variables                                         # no          # GNATcoverage is not qualified for tasking constructs
+9.11       # 95,05,12 # Example of Tasking and Synchronization                   # no          # GNATcoverage is not qualified for tasking constructs
 
 10         # 95,05,12 # Program Structure and Compilation Issues                 # no          # General overview material
 10.1       # 95,05,12 # Separate Compilation                                     # no          # Not relevant to SCA
@@ -188,7 +188,7 @@
 11.1       # 95,05,12 # Exception Declarations                                   # no          # Not relevant to SCA
 11.2       # 95,05,12 # Exception Handlers                                       # yes         #
 11.3       # 95,05,12 # Raise Statements                                         # yes         #
-11.4       # 95,05,12 # Exception Handling                                       # no          # The semantics for control transferring to a local handler are described in 11.2.  The more general propagation described in 11.4 is not supported by the ZFP profile.
+11.4       # 95,05,12 # Exception Handling                                       # partial     # The semantics for control transferring to a local handler are described in 11.2.  The more general propagation described in 11.4 is only partially supported, see :ref:`operational-conditions`.
 11.4.1     # 95,05,12 # The Package Exceptions                                   # no          # The only subprogram defined in Ada.Exceptions that has SCA obligations is Raise_Exception, and this has the same treatment as the raise statement (11.3)
 11.4.2     # 95       # Example of Exception Handling                            # no          # Not relevant to SCA
 11.4.2     #    05,12 # Pragmas Assert and Assertion_Policy                      # no          # Ada 2005 feature
