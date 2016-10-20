@@ -5,6 +5,9 @@ project Gnatcov is
    type Bits_Type is ("32", "64");
    Bits : Bits_Type := external("ARCH", "32");
 
+   Binutils_Src_Dir := external ("BINUTILS_SRC_DIR");
+   Binutils_Build_Dir := external ("BINUTILS_BUILD_DIR");
+
    --  Build mode. Default to "dev" to make it shorter for developers.
    --  The other modes are for nightly scripts and are better made explicit
    --- anyway:
@@ -23,7 +26,10 @@ project Gnatcov is
         ("-gnat12", "-gnatwae", "-gnatyg");
 
       c_common_switches :=
-        ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-Werror", "-std=c99");
+        ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-Werror", "-std=c99",
+         "-I" & Binutils_Build_Dir & "/bfd",
+         "-I" & Binutils_Src_Dir & "/include",
+         "-I" & Binutils_Src_Dir & "/bfd");
 
       mode_switches := ();
       ada_mode_switches := ();
@@ -55,7 +61,11 @@ project Gnatcov is
    end Compiler;
 
    package Linker is
-      for Required_Switches use ("-lopcodes", "-lbfd", "-liberty", "-lz");
+      for Required_Switches use
+        (Binutils_Build_Dir & "/opcodes/libopcodes.a",
+         Binutils_Build_Dir & "/bfd/libbfd.a",
+         Binutils_Build_Dir & "/libiberty/libiberty.a",
+         "-lz");
    end Linker;
 
    package Binder is

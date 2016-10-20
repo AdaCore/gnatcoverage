@@ -38,6 +38,9 @@
 # on possibly case-insensitive filesystems.
 PREFIX=$(PWD)/local
 
+# By default, assume that the binutils dependency was built in the source tree.
+BINUTILS_BUILD_DIR=$(BINUTILS_SRC_DIR)
+
 # Note for the trace adapters:
 # ----------------------------
 
@@ -171,8 +174,18 @@ bin: $(PGMPATH)
 all: bin adapters
 
 $(PGMPATH):
+	# Shortcut for developpers: if there is no BUILD_DIR, assume it's the
+	# same as SRC_DIR.
+	if [ -z "$(BINUTILS_SRC_DIR)" ]; then \
+		echo "Please define the BINUTILS_SRC_DIR and" \
+		     " BINUTILS_BUILD_DIR variables to point to the binutils" \
+		     " source and build directories."; \
+		exit 1; \
+	fi
 	$(GPRBUILD) -Pgnatcov -p -j$(PARALLEL_BUILD) \
 	-XARCH=$(BITS_ARCH) -XBUILD_MODE=$(BUILD_MODE) \
+	-XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
+	-XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
 	$(EXTRA_ADAFLAGS) $(PGMNAME)
 
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
