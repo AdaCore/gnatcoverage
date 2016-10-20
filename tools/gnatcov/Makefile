@@ -328,7 +328,7 @@ install-adapters: $(INSTALL_ADAPTER_TARGETS)
 .PHONY: distrib-linux-extra distrib-windows-extra distrib
 
 distrib-linux-extra:
-	$(CP) README INSTALL LICENSE $(PREFIX)
+	$(CP) README.md INSTALL LICENSE $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
