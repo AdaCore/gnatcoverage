@@ -10,5 +10,5 @@ Tool Qualification Plan
    Certification_Credit
    Tool_Qualification_Level
    Qualified_Interface
-   Environment_Equivalence
+   Operational_Conditions
    User_Activities
