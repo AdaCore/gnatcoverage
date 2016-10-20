@@ -4,7 +4,7 @@ Core SC requirements
 All the other SC-related sections rely on this group.
 
 To ensure coverage of all the relevant language constructs, we decompose the
-material further based on the organization of the Ada 2005 Reference Manual:
+material further based on the organization of the Language Reference Manual:
 
 
 .. qmlink:: SubsetIndexTable
@@ -25,9 +25,7 @@ Several chapters are not included for the following reasons:
    ARM chap. 4 : Names and Expressions | "The described constructs are not
    considered on their own for coverage analysis purposes. The coverage
    information is computed for enclosing statement or declaration constructs."
-   ARM chap. 9 : Tasks and Synchronization | "The execution profile being
-   qualified is based on Zero Foot Print run-time, which does not support any
-   construct described in this chapter"
+   ARM chap. 9 : Tasks and Synchronization | "GNATcoverage is not qualified for the analysis of such constructs."
 
 
 .. qmlink:: SubsetIndexTocTree
