@@ -1,7 +1,5 @@
-author='AdaCore'
-version='dev'
-copyright='AdaCore, 2016'
-project_name='GNATCoverage'
+version='(version -1.0)'
+
 latex_show_pagerefs=True
 
 common_file = os.path.join(
