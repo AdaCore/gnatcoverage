@@ -17,19 +17,19 @@ of relevance to the requested analysis.
 Organization Guidelines
 =======================
 
-Beyond this introduction and the Operational Environment description, most of
-the document describes the Tool Operational Requirements and the associated
-Testcases along the following guidelines:
+Beyond this introduction and the :ref:`operational-conditions` description,
+most of the document describes the Tool Operational Requirements and the
+associated Testcases along the following guidelines:
 
 A **Tool Operational Requirement** (abbreviated as **TOR** or **Requirement**)
 describes the proper behavior of the GNATcoverage tool for a specific language
 construct with regards to a given coverage criterion. For example, how shall
 the tool behave on Ada `if` statements when performing Decision Coverage
-assessments.
-To organize the material in a structured manner, related requirements are
-bundled together as named **Requirement Groups**. For example, the Statement
-Coverage requirements for Ada `if`, `case`, `block` and `loop` statements are
-bundled together as the `CompoundStatements` group.
+assessments.  To organize the material in a structured manner, related
+requirements are bundled together as named **Requirement Groups**. For
+example, the requirements for Ada `if`, `case`, `block` and `loop` statements
+are bundled together as the `CompoundStatements` group, itself part of a more
+general group of `Core` Statement Coverage requirements for Ada.
 
 The tool conformance to each requirement is validated by a set of
 **Testcases**, organized according to a **Testing Strategy** dedicated to this
@@ -81,13 +81,20 @@ implicitly validated by the execution of all the coverage checking testcases
 in other chapters, where specific sections of the report are scanned by the
 testsuite harness to search for criteria violation messages.
 
-Each Testcase is assigned a unique **Testcase Identifier**, computed
-from its local name (chosen to be representative of its purpose) and position
-in the chapter/groups hierarchy. This identifier is denoted as a path with
-slashes between each intermediate level, for example
-`/TOR/Ada/stmt/Core/CompoudStatements/Loop/Incomplete_Iteration`. These
-identifiers are used to denote individual testcases in the Software Test
-Results (STR) report produced out of testuite runs for qualification.
+Every requirement is assigned a unique **Requirement Identifier** computed
+from its local name and position in the hierarchy of chapters and groups.
+This identifier is denoted as a path with slashes between each intermediate
+level, for example `/TOR/Ada/stmt/Core/CompoudStatements/Loop`.
+
+Likewise, each Testcase is assigned a unique **Testcase Identifier**, computed
+from its local name and position in the hierarchy of requirements and
+testcases.  Each testcase or group is always attached to a single requirement,
+so testcase identifiers are continuations of the parent requirement's
+identifier, for example
+`/TOR/Ada/stmt/Core/CompoudStatements/Loop/Incomplete_Iteration`.
+
+These identifiers are used to denote individual testcases in the |str_doc|
+report produced out of testuite runs for qualification.
 
 For a more detailed description of how testscase sources are organized and how
 expected results are stated, please refer to the :ref:`testsuite-overview`
