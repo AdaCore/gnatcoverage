@@ -9,15 +9,13 @@ Reference Manual (LRM).
 
 Each row in the table identifies an LRM section, indicates whether the
 features defined in that section are applicable to Structural Coverage
-Analysis (SCA) (possible answers are "yes", "no", or "partial"),
-provides a comment explaining the rationale for "no" or "partial", and
-specifies a TOR testcase that exercises the features for "yes" or
-"partial".
+Analysis (SCA) (possible answers are "yes", "no", or "partial"), provides a
+comment explaining the rationale for "no" or "partial", and which TORs and
+test cases exercise the features for "yes" or "partial".
 
-A feature is considered to be applicable to SCA if it is permitted by
-the ZFP profile, and if it is applicable to one or both of the forms of
-coverage that are reported by GNATcoverage: statement coverage, and
-decision coverage:
+A feature is considered to be applicable to SCA if it is permitted by the
+runtime library profile and if it introduces items of relevance to statement
+or decision coverage, according to the following criteria:
 
 * A feature is applicable to statement coverage if it is either a statement, a
   declaration that results in initialization code, or a pragma or
@@ -26,10 +24,10 @@ decision coverage:
 
 * A feature is applicable to decision coverage if it corresponds to a decision
   or condition, i.e., it is a language construct delivering a result of a
-  boolean type. The relevant features are thus logical operators, short
+  Boolean type. The relevant features are thus logical operators, short
   circuit control forms, relational operators, membership tests,
   boolean-valued attributes, boolean-valued array elements and selected
-  components, functions delivering a boolean result, and simple boolean
+  components, functions delivering a boolean result, and simple Boolean
   variables.
 
 Because of the structure of the LRM, the description of the semantics of
