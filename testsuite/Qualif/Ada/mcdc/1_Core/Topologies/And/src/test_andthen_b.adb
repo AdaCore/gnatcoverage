@@ -6,7 +6,7 @@ begin
    Assert (And_Then (True, False) = False);
 end;
 
---# andthen.adb
+--# andthen.ads andthen.adb
 --  /eval(Stmt|Other)/  l! ## c!:"A"
 --  /decisionTrue/  l+ ## 0
 --  /decisionFalse/ l+ ## 0
