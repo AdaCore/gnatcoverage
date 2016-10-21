@@ -306,10 +306,10 @@ install-adapters: $(INSTALL_ADAPTER_TARGETS)
 
 # Unix distribs are tar or zip versions of the three main items (bin, doc
 # and examples), unpacked by users then installed with a doinstall script.
-# We need to add this script, a README and an INSTALL file in this case.
+# We need to add this script, README, INSTALL and LICENSE files in this case.
 
 # Windows distribs are packaged and installed by an nsis installer or alike,
-# which has it's own extra info embedded and eventually installs just all what
+# which has its own extra info embedded and eventually installs just all what
 # the distrib tree contains. We don't want any toplevel item there.
 
 .PHONY: distrib-linux-extra distrib-windows-extra distrib
