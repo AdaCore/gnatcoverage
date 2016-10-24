@@ -181,8 +181,8 @@
 10.1.4     # 95,05,12 # The Compilation Process                                  # no          # Not relevant to SCA
 10.1.5     # 95,05,12 # Pragmas and Program Units                                # no          # Not relevant to SCA
 10.1.6     # 95,05,12 # Environment-Level Visibility Rules                       # no          # Not relevant to SCA
-10.2       # 95,05,12 # Program Execution                                        # no          # SCA obligations are associated with the constitents of the units comprising the program's partitions
-10.2.1     # 95,05,12 # Elaboration Control                                      # no          # SCA obligations are associated with the constitents of the units whose elaboration is controlled by the pragmas defined in this section
+10.2       # 95,05,12 # Program Execution                                        # no          # SCA obligations are associated with the constituents of the units comprising the program's partitions
+10.2.1     # 95,05,12 # Elaboration Control                                      # no          # SCA obligations are associated with the constituents of the units whose elaboration is controlled by the pragmas defined in this section
 
 11         # 95,05,12 # Exceptions                                               # no          # General overview material
 11.1       # 95,05,12 # Exception Declarations                                   # no          # Not relevant to SCA
