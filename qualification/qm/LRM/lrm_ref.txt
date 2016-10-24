@@ -61,7 +61,7 @@
 3.9.1      # 95,05,12 # Type Extensions                                          # no          # Not relevant to SCA
 3.9.2      # 95,05,12 # Dispatching Operations of Tagged Types                   # yes         #
 3.9.3      # 95,05,12 # Abstract Types and Subprograms                           # no          # Not relevant to SCA
-3.9.4      #    05,12 # Interface Types                                          # no          # Ada 2005 feature
+3.9.4      #    05,12 # Interface Types                                          # yes         #
 3.10       # 95,05,12 # Access Types                                             # partial     # SCA obligations are associated with default initializations for access values
 3.10.1     # 95,05,12 # Incomplete Type Declarations                             # no          # Not relevant to SCA
 3.10.2     # 95,05,12 # Operations of Access Types                               # no          # Not relevant to SCA
@@ -119,10 +119,10 @@
 6.4        # 95,05,12 # Subprogram Calls                                         # yes         #
 6.4.1      # 95,05,12 # Parameter Associations                                   # no          # Covered by 6.4
 6.5        # 95,05,12 # Return Statements                                        # yes         #
-6.5.1      #    05    # Pragma No_Return                                         # no          # Ada 2005 feature
+6.5.1      #    05    # Pragma No_Return                                         # yes         #
 6.5.1      #       12 # Nonreturning Procedures                                  # no          # Ada 2012 feature
 6.6        # 95,05,12 # Overloading of Operators                                 # no          # Not relevant to SCA
-6.7        #    05,12 # Null Procedures                                          # no          # Ada 2005 feature
+6.7        #    05,12 # Null Procedures                                          # yes         #
 6.8        #       12 # Expression Functions                                     # no          # Ada 2012 feature
 
 7          # 95,05,12 # Packages                                                 # no          # General overview material
@@ -141,7 +141,7 @@
 8.1        # 95,05,12 # Declarative Region                                       # no          # Not relevant to SCA
 8.2        # 95,05,12 # Scope of Declarations                                    # no          # Not relevant to SCA
 8.3        # 95,05,12 # Visibility                                               # no          # Not relevant to SCA
-8.3.1      #    05,12 # Overriding Indicators                                    # no          # Ada 2005 feature
+8.3.1      #    05,12 # Overriding Indicators                                    # yes         #
 8.4        # 95,05,12 # Use Clauses                                              # no          # Not relevant to SCA
 8.5        # 95,05,12 # Renaming Declarations                                    # no          # Not relevant to SCA
 8.5.1      # 95,05,12 # Object Renaming Declarations                             # no          # Not relevant to SCA
@@ -191,7 +191,7 @@
 11.4       # 95,05,12 # Exception Handling                                       # partial     # The semantics for control transferring to a local handler are described in 11.2.  The more general propagation described in 11.4 is only partially supported, see :ref:`operational-conditions`.
 11.4.1     # 95,05,12 # The Package Exceptions                                   # no          # The only subprogram defined in Ada.Exceptions that has SCA obligations is Raise_Exception, and this has the same treatment as the raise statement (11.3)
 11.4.2     # 95       # Example of Exception Handling                            # no          # Not relevant to SCA
-11.4.2     #    05,12 # Pragmas Assert and Assertion_Policy                      # no          # Ada 2005 feature
+11.4.2     #    05,12 # Pragmas Assert and Assertion_Policy                      # yes         #
 11.4.3     #    05,12 # Example of Exception Handling                            # no          # Not relevant to SCA
 11.5       # 95,05,12 # Suppressing Checks                                       # no          # Not relevant to SCA
 11.6       # 95,05,12 # Exceptions and Optimization                              # no          # Not relevant to SCA
@@ -218,12 +218,12 @@
 13.2       # 95,05    # Pragma Pack                                              # no          # Not relevant to SCA
 13.2       #       12 # Packed Types                                             # no          # Ada 2012 feature
 13.3       # 95       # Representation Attributes                                # partial     # The only construct relevant to SCA is the address attribute definition
-13.3       #    05,12 # Operational and Representation Attributes                # no          # Ada 2005 feature
+13.3       #    05,12 # Operational and Representation Attributes                # partial     #
 13.4       # 95,05,12 # Enumeration Representation Clauses                       # no          # Not relevant to SCA
 13.5       # 95,05,12 # Record Layout                                            # no          # General overview material
-13.5.1     # 95,05,12 # Record Representation Clauses                            # no          # Not relevant to SCA
+13.5.1     # 95,05,12 # Record Representation Clauses                            # yes         #
 13.5.2     # 95,05,12 # Storage Place Attributes                                 # no          # Not relevant to SCA
-13.5.3     # 95,05,12 # Bit Ordering                                             # no          # Not relevant to SCA
+13.5.3     # 95,05,12 # Bit Ordering                                             # yes         #
 13.6       # 95,05,12 # Change of Representation                                 # no          # Not relevant to SCA
 13.7       # 95,05,12 # The Package System                                       # partial     # The only consitutents of package System that are relevant to SCA are the relational operators for type Address
 13.7.1     # 95,05,12 # The Package System.Storage_Elements                      # no          # Not relevant to SCA
@@ -243,9 +243,9 @@
 13.11.5    #       12 # Subpool Reclamation                                      # no          # Ada 2012 feature
 13.11.6    #       12 # Storage Subpool Example                                  # no          # Ada 2012 feature
 13.12      # 95,05    # Pragma Restrictions                                      # no          # Not relevant to SCA
-13.12      #       12 # Pragma Restrictions and Pragma Profile                   # no          # Ada 2005 feature
-13.12.1    #    05    # Language-Defined Restrictions                            # no          # Ada 2005 feature
-13.12.1    #       12 # Language-Defined Restrictions and Profiles               # no          # Ada 2012 feature
+13.12      #       12 # Pragma Restrictions and Pragma Profile                   # no          # Ada 2012 section
+13.12.1    #    05    # Language-Defined Restrictions                            # no          # Addressed by the :ref:`operational-conditions` section.
+13.12.1    #       12 # Language-Defined Restrictions and Profiles               # no          # Ada 2012 section
 13.13      # 95,05,12 # Streams                                                  # no          # General overview material
 13.13.1    # 95,05,12 # The Package Streams                                      # no          # Not relevant to SCA
 13.13.2    # 95,05,12 # Stream-Oriented Attributes                               # no          # Not relevant to SCA
