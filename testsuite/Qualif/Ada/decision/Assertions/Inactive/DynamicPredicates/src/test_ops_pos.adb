@@ -7,7 +7,7 @@ begin
 end;
 
 --# ops.ads
---  /check/ l! ## dF-
+--  /check/ l. ## 0
 
 --# ops.adb
 --  /test_pos/ l! ## dF-

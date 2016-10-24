@@ -3,4 +3,4 @@
 Exercise both Type_Invariant and Type_Invariant'Class with multi-operand
 Boolean expressions.
 
-LRMREF: 7.3.2
+LRMREF: 11.4.2, 7.3.2

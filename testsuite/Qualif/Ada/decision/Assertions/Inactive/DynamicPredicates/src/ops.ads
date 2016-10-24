@@ -2,7 +2,7 @@ pragma Ada_12;
 
 package Ops is
    
-   pragma Assertion_Policy (Dynamic_Predicate => check);
+   pragma Assertion_Policy (Dynamic_Predicate => Disable);
    
    type T_Pair is record
       X, Y : Integer;
