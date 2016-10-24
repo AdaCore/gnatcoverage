@@ -38,15 +38,15 @@
 3.4        # 95,05,12 # Derived Types and Classes                                # no          # Covered by 3.2.2
 3.4.1      # 95,05,12 # Derivation Classes                                       # no          # Not relevant to SCA
 3.5        # 95,05,12 # Scalar Types                                             # no          # Not relevant to SCA
-3.5.1      # 95,05,12 # Enumeration Types                                        # no          # Not relevant to SCA
+3.5.1      # 95,05,12 # Enumeration Types                                        # yes          #
 3.5.2      # 95,05,12 # Character Types                                          # no          # Not relevant to SCA
 3.5.3      # 95,05,12 # Boolean Types                                            # yes         #
 3.5.4      # 95,05,12 # Integer Types                                            # no          # Not relevant to SCA
 3.5.5      # 95,05,12 # Operations of Discrete Types                             # no          # Not relevant to SCA
-3.5.6      # 95,05,12 # Real Types                                               # no          # Not relevant to SCA
-3.5.7      # 95,05,12 # Floating Point Types                                     # no          # Not relevant to SCA
+3.5.6      # 95,05,12 # Real Types                                               # no          # Deferred to 3.5.7 and 3.5.9
+3.5.7      # 95,05,12 # Floating Point Types                                     # yes          #
 3.5.8      # 95,05,12 # Operations of Floating Point Types                       # no          # Not relevant to SCA
-3.5.9      # 95,05,12 # Fixed Point Types                                        # no          # Not relevant to SCA
+3.5.9      # 95,05,12 # Fixed Point Types                                        # yes          #
 3.5.10     # 95,05,12 # Operations of Fixed Point Types                          # no          # Not relevant to SCA
 3.6        # 95,05,12 # Array Types                                              # yes         #
 3.6.1      # 95,05,12 # Index Constraints and Discrete Ranges                    # yes         #

@@ -1,6 +1,6 @@
-**MCDC on simple decisions involving operations on Floating Point entities**
+**MCDC on simple decisions involving operands of Enumerated type**
 
-Exercise expression operands which involve floating point operations,
-possibly subject to overflow checks.
+Exercise expression operands which involve operands of enumared types,
+possibly subject to a value representation clause.
 
-LRMREF: 3.5.7
+LRMREF: 3.5.1
