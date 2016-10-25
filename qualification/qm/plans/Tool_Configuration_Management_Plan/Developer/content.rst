@@ -3,10 +3,9 @@
 Tool Developer Configuration Management Plan
 ============================================
 
-This section illustrates the Tool Configuration Management process in place
-at AdaCore, the Tool Developer.
-
-GNATcoverage is a TQL-5 tool so its configuration items are managed at CC2.
+This section illustrates the Tool Configuration Management process in place at
+AdaCore, the Tool Developer. GNATcoverage is a TQL-5 tool so its configuration
+items are managed at CC2.
 
 .. qmlink::
 

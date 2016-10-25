@@ -2,8 +2,8 @@
 User Activities
 ===============
 
-In order to finalize the qualification of |project_name|, the user needs to
-perform a set of activities, described hereafer:
+To finalize the qualification of |project_name|, the Tool User needs to
+perform a set of activities, described hereafter:
 
 .. qmlink::
 
