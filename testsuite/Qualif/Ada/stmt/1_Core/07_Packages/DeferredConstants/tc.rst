@@ -1,4 +1,4 @@
-** Exercise SC on package with deferred constant definition**
+**Exercise SC on package with deferred constant definition**
 
 Check that neither the deferred constant declaration (without the intializer)
 nor the definition (with the initializer) is reported uncovered when the
