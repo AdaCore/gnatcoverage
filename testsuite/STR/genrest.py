@@ -246,7 +246,7 @@ column_for = {
     # to column.
 
     'OK': colid.passed,
-    'XFAIL': colid.passed,
+    'XFAIL': colid.xfail,
     'UOK': colid.passed,
     'FAILED': colid.failed
 }
@@ -263,7 +263,7 @@ viocnt_columns_for = {
 }
 
 # Status counters
-stacnt_columns = (colid.passed, colid.failed)
+stacnt_columns = (colid.passed, colid.xfail, colid.failed)
 
 # ----------------------------------
 # -- Column contents abstractions --
