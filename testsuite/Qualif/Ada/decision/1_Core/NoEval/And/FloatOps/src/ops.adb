@@ -1,7 +1,8 @@
 
-package body Ops is
+pragma Unsuppress (All_Checks);
+pragma Check_Float_Overflow;
    
-   pragma Unsuppress (All_Checks);
+package body Ops is
    
    function Both_Ok (A, B : Capsum) return Boolean is
    begin
