@@ -1,5 +1,3 @@
-version='(version -1.0)'
-
 latex_show_pagerefs=True
 
 common_file = os.path.join(
@@ -12,6 +10,9 @@ common_file = os.path.join(
 
 if os.path.isfile(common_file):
     execfile(common_file)
+    execfile(os.path.join(
+        os.path.dirname(common_file),
+        "qm_prolog.py"))
 else:
     print "Couldn't find common configuration file"
     print common_file
