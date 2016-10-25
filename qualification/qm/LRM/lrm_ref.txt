@@ -188,7 +188,7 @@
 11.1       # 95,05,12 # Exception Declarations                                   # no          # Not relevant to SCA
 11.2       # 95,05,12 # Exception Handlers                                       # yes         #
 11.3       # 95,05,12 # Raise Statements                                         # yes         #
-11.4       # 95,05,12 # Exception Handling                                       # partial     # The semantics for control transferring to a local handler are described in 11.2.  The more general propagation described in 11.4 is only partially supported, see :ref:`operational-conditions`.
+11.4       # 95,05,12 # Exception Handling                                       # partial     # The semantics for control transferring to a local handler are described in 11.2.  The more general propagation described in 11.4 is only partially supported, see the :ref:`operational-conditions` section of this document.
 11.4.1     # 95,05,12 # The Package Exceptions                                   # no          # The only subprogram defined in Ada.Exceptions that has SCA obligations is Raise_Exception, and this has the same treatment as the raise statement (11.3)
 11.4.2     # 95       # Example of Exception Handling                            # no          # Not relevant to SCA
 11.4.2     #    05,12 # Pragmas Assert and Assertion_Policy                      # yes         #
@@ -218,7 +218,7 @@
 13.2       # 95,05    # Pragma Pack                                              # no          # Not relevant to SCA
 13.2       #       12 # Packed Types                                             # no          # Ada 2012 feature
 13.3       # 95       # Representation Attributes                                # partial     # The only construct relevant to SCA is the address attribute definition
-13.3       #    05,12 # Operational and Representation Attributes                # partial     #
+13.3       #    05,12 # Operational and Representation Attributes                # partial     # The only construct relevant to SCA is the address attribute definition
 13.4       # 95,05,12 # Enumeration Representation Clauses                       # no          # Not relevant to SCA
 13.5       # 95,05,12 # Record Layout                                            # no          # General overview material
 13.5.1     # 95,05,12 # Record Representation Clauses                            # yes         #
@@ -244,7 +244,7 @@
 13.11.6    #       12 # Storage Subpool Example                                  # no          # Ada 2012 feature
 13.12      # 95,05    # Pragma Restrictions                                      # no          # Not relevant to SCA
 13.12      #       12 # Pragma Restrictions and Pragma Profile                   # no          # Ada 2012 section
-13.12.1    #    05    # Language-Defined Restrictions                            # no          # Addressed by the :ref:`operational-conditions` section.
+13.12.1    #    05    # Language-Defined Restrictions                            # no          # Addressed by the :ref:`operational-conditions` section of this document.
 13.12.1    #       12 # Language-Defined Restrictions and Profiles               # no          # Ada 2012 section
 13.13      # 95,05,12 # Streams                                                  # no          # General overview material
 13.13.1    # 95,05,12 # The Package Streams                                      # no          # Not relevant to SCA
