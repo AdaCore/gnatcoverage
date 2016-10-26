@@ -45,8 +45,8 @@ For cross configurations only:
 For the GNAT Pro compilation switches, additional options which do
 not influence code generation, e.g. controlling warnings, are allowed.
 
-Language revision and Runtime library profile
----------------------------------------------
+Runtime library profile
+-----------------------
 
 The general contents of this document is not tailored for a particular runtime
 library. You may for instance find the description of requirements and
@@ -59,18 +59,23 @@ through a :literal:`--RTS` compilation option, if any.
 
 The important points regarding qualification are:
 
-* If there is no :literal:`--RTS` option passed for the qualification testuite
-  run, users shall not pass any :literal:`--RTS` option either;
+* If no :literal:`--RTS` option was passed for the qualification testuite
+  run, users shall not pass an :literal:`--RTS` option either;
 
-* If there is a :literal:`--RTS` option passed for the qualification testsuite
+* If a :literal:`--RTS` option was passed for the qualification testsuite
   run, typically designating a runtime delivered with the GNAT Pro toolchain,
   users shall pass a :literal:`--RTS` option as well, designating a runtime
   with a ``system.ads`` identical to the qualification one.
 
-Similarly, the general contents of this document is not tailored for a
-particular version of the Ada language, so may include requirements and
-testcases for up to Ada 2012 even if the intended qualified use is for an Ada
-95 or Ada 2005 project.
+
+Language perimeter
+------------------
+
+As for the runtime libray profile, the general contents of this document is
+not tailored for a particular version of the Ada language, except for the
+:ref:`lrm-traceability` chapter. Otherwise, the requirements and testcases
+sections might contain items matching up to Ada 2012 even if the intended
+qualified use is for an Ada 95 or Ada 2005 project.
 
 Nevertheless, to make sure there is no ambiguity on the intended use of the
 tool for a given project:
@@ -79,27 +84,26 @@ tool for a given project:
   way of a :literal:`-gnat95` :literal:`-gnat05` or :literal:`-gnat12`
   compilation option in the :ref:`operational-context` section.
 
-And the :ref:`lrm-traceability` chapter is tailored for this particular
-version.
-
-Coding standard requirements
-----------------------------
+In addition:
 
 * The tool is not qualified to analyze programs featuring tasking constructs,
-  controlled objects, or pointers to nested subprograms.  Unless a
-  ``system.ads`` corresponding to that of a Zero Footprint runtime is used,
-  users shall ensure that the code to analyse compiles free of warnings out of
-  the following configuration pragmas::
+  controlled objects, or pointers to nested subprograms.
+
+  Unless a ``system.ads`` corresponding to that of a Zero Footprint runtime is
+  used, users shall ensure that the code to analyse compiles free of warnings
+  out of the following configuration pragmas::
 
    pragma Restriction_Warnings (No_Tasking);
    pragma Restriction_Warnings (No_Implicit_Dynamic_Code);
    pragma Restriction_Warnings (No_Finalization);
    pragma Restriction_Warnings (No_Exception_Registration);
-   
+
 * The tool is only partially qualified for exceptions which propagate across
-  subprograms. Unless a ``system.ads`` corresponding to that of a Zero
-  Footprint runtime is used, users shall ensure that the code to analyse
-  compiles free of warnings out of the following configuration pragma::
+  subprograms, when the runtime library profile supports this at all.
+
+  Unless a ``system.ads`` corresponding to that of a Zero Footprint runtime is
+  used, users shall ensure that the code to analyse compiles free of warnings
+  out of the following configuration pragma::
 
    pragma Restriction_Warnings (No_Exception_Handlers);
 
@@ -111,16 +115,21 @@ Coding standard requirements
   ``and then`` or ``or else`` in Ada, as enforced by the
   ``No_Direct_Boolean_Operator`` Restrictions pragma.
 
-* For decision or mcdc assessments, the tool is not qualified to evaluate
-  expressions used in assertion constructs such as Assert pragmas or their
+* For decision or mcdc analysis, the tool is not qualified to assess coverage
+  of expressions used in assertion constructs such as Assert pragmas or their
   contract programming model extensions in Ada 2012 (Pre/Post pragmas or
   aspects, their 'Class variants, static/dynamic subtype predicates or type
-  invariants). This material is then designed with the assumption that such
-  constructs, if present in the source programs at all, are disabled, for
-  instance thanks to an Assertion_Policy pragma.
+  invariants).
 
-* For stmt, decision or mcdc assessments, the tool is also not qualified to
-  evaluate *conditional expressions* (if-expressions and case-expressions)
-  introduced by Ada 2012. From a source point of view, these are only allowed
-  in assertion/contracts contexts, disabled for coverage analysis purposes as
-  previously described in this section.
+  This material is designed with the assumption that such constructs, if
+  present in the source programs at all, are disabled, for instance thanks to
+  an Assertion_Policy pragma.
+
+* For statementt, decision or mcdc analysis on Ada 2012, the tool is not
+  qualified to assess coverage of the new forms of expression introduced in
+  the language, in particular: *conditional expressions*, *generalized
+  membership tests* with more than one alternative, and *quantified
+  expressions*.
+
+  Such expressions are only allowed in assertion/contracts contexts, disabled
+  for coverage analysis purposes as previously described in this section.
