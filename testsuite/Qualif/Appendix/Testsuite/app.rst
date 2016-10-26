@@ -178,7 +178,7 @@ that we expect a ``--annotate=xcov`` output with::
 The ``<expected report notes>`` (3rd) column indicates what we're expecting
 from the qualified output out of ``gnatcov --annotate=report`` :
 
-* ``statement not covered`` diagnostics for lines 4 and 8, stated by the
+* ``statement not executed`` diagnostics for lines 4 and 8, stated by the
   ``s-`` expectations, and
 
 * No violation diagnostic for lines 3, 5, and 6, per the ``0``
@@ -186,8 +186,11 @@ from the qualified output out of ``gnatcov --annotate=report`` :
 
 This will yield an expected section of the report output such as::
 
-      2.1. NON-EXEMPTED VIOLATIONS
+      2. NON-EXEMPTED VIOLATIONS
 
+      2.1. STMT COVERAGE
+      ------------------
+  
       in_range.adb:4:7: statement not executed
       in_range.adb:8:7: statement not executed
       2 violations

@@ -22,7 +22,7 @@ most of the document describes the Tool Operational Requirements and the
 associated Testcases along the following guidelines:
 
 A **Tool Operational Requirement** (abbreviated as **TOR** or **Requirement**)
-describes the proper behavior of the GNATcoverage tool for a specific language
+describes the proper behavior of the tool for a specific language
 construct with regards to a given coverage criterion. For example, how shall
 the tool behave on Ada `if` statements when performing Decision Coverage
 assessments.  To organize the material in a structured manner, related

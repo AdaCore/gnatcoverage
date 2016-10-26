@@ -13,7 +13,7 @@ Operational Environment
 
 The Operational Environment in which the tool is used shall match the
 Qualification Environment in which the tool was qualified, as characterized by
-the items presented in the following tables. The *Expectation* column here
+the items presented in the following tables. The *Expected value* column here
 states the intended value for qualification, which should match what
 eventually gets logged within the |str_doc| report.
 
@@ -59,8 +59,8 @@ through a :literal:`--RTS` compilation option, if any.
 
 The important points regarding qualification are:
 
-* If no :literal:`--RTS` option was passed for the qualification testuite
-  run, users shall not pass an :literal:`--RTS` option either;
+* If no :literal:`--RTS` option is passed for the qualification testuite
+  run, users shall not pass a :literal:`--RTS` option either;
 
 * If a :literal:`--RTS` option was passed for the qualification testsuite
   run, typically designating a runtime delivered with the GNAT Pro toolchain,
@@ -125,9 +125,9 @@ In addition:
   present in the source programs at all, are disabled, for instance thanks to
   an Assertion_Policy pragma.
 
-* For statementt, decision or mcdc analysis on Ada 2012, the tool is not
+* For statement, decision or mcdc analysis on Ada 2012, the tool is not
   qualified to assess coverage of the new forms of expression introduced in
-  the language, in particular: *conditional expressions*, *generalized
+  the language, in particular *conditional expressions*, *generalized
   membership tests* with more than one alternative, and *quantified
   expressions*.
 

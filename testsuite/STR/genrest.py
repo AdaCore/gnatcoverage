@@ -204,7 +204,7 @@ class colid(object):
         htext="uok", legend="Test ran OK despite expected to fail")
 
     xfail = Column(
-        htext="xfail", legend="Test failed as expected")
+        htext="xfail", legend="Number of tests failed as expected")
 
     # Columns for legend sub-tables
 
