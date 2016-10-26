@@ -1,7 +1,7 @@
+pragma Unsuppress (All_Checks);
+pragma Check_Float_Overflow;
 
 package body Ops is
-   
-   pragma Unsuppress (All_Checks);
    
    function One_Ok (A, B : Capsum) return Boolean is
    begin
