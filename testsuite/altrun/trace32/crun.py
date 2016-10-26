@@ -203,9 +203,8 @@ class Runner:
         t32api.run_until("_exit", timeout_sec=500)
         t32api.export_trace(os.path.abspath(self.get_t32_trace_filename()))
 
-        # TODO: Check if the execution ended in __gnat_last_chance_handler and
-        # give that info to the testsuite.
-        # Qualif/Appendix/Testsuite/Selftest/assert-failure
+        if t32api.CPU_stopped_at_symbol("__gnat_last_chance_handler"):
+            print "!!! EXCEPTION RAISED !!!"
 
         if os.path.isfile(self.get_t32_trace_filename()):
             log("A trace file was produced...")

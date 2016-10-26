@@ -191,7 +191,7 @@ def run_until(symbol, timeout_sec):
     if get_cpu_state() == "running":
         # Stop the CPU
         cmd_wrapper(b"Brake.direct")
-        print "Timeout!!!"
+        print "!!! TIMEOUT !!!"
 
 
 # --------------------
@@ -199,7 +199,48 @@ def run_until(symbol, timeout_sec):
 # --------------------
 
 def set_breakpoint(symbol):
-    cmd_wrapper(b"Brake.direct %s" % symbol)
+    T32_MEMORY_ACCESS_PROGRAM = 0x1
+    T32_BPCONFIG_PROGRAM = 0x001
+    addr = ctypes.c_uint32(get_symbol_address(symbol))
+    return t32.T32_WriteBreakpoint(addr, T32_MEMORY_ACCESS_PROGRAM,
+                                   T32_BPCONFIG_PROGRAM, 8)
+
+
+# ------------------------
+# -- get_symbol_address --
+# ------------------------
+
+def get_symbol_address(symbol_name):
+
+    addr = ctypes.c_uint32(0)
+    size = ctypes.c_uint32(0)
+    access = ctypes.c_uint32(0)
+
+    ret = t32.T32_GetSymbol(symbol_name,
+                            ctypes.byref(addr),
+                            ctypes.byref(size),
+                            ctypes.byref(access))
+
+    if ret == T32_OK:
+        return addr.value
+    else:
+        return -1
+
+
+# ---------------------------
+# -- read_register_by_name --
+# ---------------------------
+
+def read_register_by_name(name):
+    upper = ctypes.c_uint32(0)
+    lower = ctypes.c_uint32(0)
+    ret = t32.T32_ReadRegisterByName(name,
+                                     ctypes.byref(lower),
+                                     ctypes.byref(upper))
+    if ret == T32_OK:
+        return upper.value * 2**32 + lower.value
+    else:
+        return -1
 
 
 # ------------------
@@ -210,6 +251,14 @@ def export_trace(path):
     cmd_wrapper(b"Trace.FLOWPROCESS", wait_for_completion=True)
     cmd_wrapper(b"Trace.export.BranchFlow %s /NOSYMBOL /CALLER" % path,
                 wait_for_completion=True)
+
+
+# ---------------------------
+# -- CPU_stopped_at_symbol --
+# ---------------------------
+
+def CPU_stopped_at_symbol(symbol):
+    return read_register_by_name("PC") == get_symbol_address(symbol) + 4
 
 
 # ------------------
