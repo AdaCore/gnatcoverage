@@ -10,4 +10,4 @@ end;
 --  /eval1/ l- ## 0c
 --  /true/  l- ## s-
 --  /false/ l- ## s-
-
+--  /decl/  l- ## s-
