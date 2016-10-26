@@ -33,6 +33,8 @@ with Traces;     use Traces;
 
 package body Traces_Files is
 
+   type File_Open_Mode is (Read_Only, Read_Write);
+
    procedure Dump_Infos (Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Info (Fd : File_Descriptor;
                                     Trace_File : Trace_File_Type);
@@ -78,6 +80,11 @@ package body Traces_Files is
    procedure Decode_Trace_Header (Hdr : Trace_Header;
                                   Trace_File : in out Trace_File_Type;
                                   Desc : in out Trace_File_Descriptor);
+
+   function Open_File (Filename : String;
+                       Mode     : File_Open_Mode) return File_Descriptor;
+   --  Open a file, without reading or writing to it. In case of failure, an
+   --  exception is raised and the file is considered as not open.
 
    ------------------
    -- Check_Header --
@@ -185,6 +192,30 @@ package body Traces_Files is
       end if;
    end Decode_Trace_Header;
 
+   ---------------
+   -- Open_File --
+   ---------------
+
+   function Open_File (Filename : String;
+                       Mode     : File_Open_Mode)
+                       return File_Descriptor
+   is
+      Fd : File_Descriptor;
+   begin
+      Log_File_Open (Filename);
+      case Mode is
+         when Read_Only =>
+            Fd := Open_Read (Filename, Binary);
+         when Read_Write =>
+            Fd := Open_Read_Write (Filename, Binary);
+      end case;
+
+      if Fd = Invalid_FD then
+         raise Bad_File_Format with "cannot open file " & Filename;
+      end if;
+      return Fd;
+   end Open_File;
+
    ---------------------------
    -- Read_Trace_File_Infos --
    ---------------------------
@@ -253,13 +284,8 @@ package body Traces_Files is
       Trace_File : out Trace_File_Type)
    is
    begin
-      --  Open file (Read only)
 
-      Log_File_Open (Filename);
-      Desc.Fd := Open_Read (Filename, Binary);
-      if Desc.Fd = Invalid_FD then
-         raise Bad_File_Format with "cannot open file " & Filename;
-      end if;
+      Desc.Fd := Open_File (Filename, Read_Only);
 
       Check_Trace_File_Headers (Desc,
                                 Trace_File,
@@ -288,13 +314,8 @@ package body Traces_Files is
 
       Flat_Hdr : constant Trace_Header := Make_Trace_Header (Flat);
    begin
-      --  Open file (Read and Write)
 
-      Log_File_Open (Filename);
-      Desc.Fd := Open_Read_Write (Filename, Binary);
-      if Desc.Fd = Invalid_FD then
-         raise Bad_File_Format with "cannot open file " & Filename;
-      end if;
+      Desc.Fd := Open_File (Filename, Read_Write);
 
       Check_Trace_File_Headers (Desc,
                                 Trace_File,
@@ -324,6 +345,32 @@ package body Traces_Files is
                then " (truncated file?)"
                else ""));
    end Open_Output_Flat_Trace_File;
+
+   ----------------------------
+   -- Open_Decision_Map_File --
+   ----------------------------
+
+   procedure Open_Decision_Map_File
+     (Filename   : String;
+      Desc       : out Trace_File_Descriptor)
+   is
+      Hdr : Trace_Header;
+   begin
+
+      Desc.Fd := Open_File (Filename, Read_Only);
+
+      --  Read the first header
+
+      Check_Header (Desc, Hdr);
+      if Hdr.Kind /= Decision_Map then
+         raise Bad_File_Format with
+           "first header must describe an history section, is " & Hdr.Kind'Img;
+      end if;
+
+      Desc.Kind := Hdr.Kind;
+      Desc.Sizeof_Target_Pc := Hdr.Sizeof_Target_Pc;
+      Desc.Big_Endian := Hdr.Big_Endian;
+   end Open_Decision_Map_File;
 
    ----------------------
    -- Read_Trace_Entry --

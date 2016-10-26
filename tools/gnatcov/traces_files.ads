@@ -74,6 +74,12 @@ package Traces_Files is
    --  In case of failure, an exception is raised and the file is considered
    --  as not open.
 
+   procedure Open_Decision_Map_File
+     (Filename   : String;
+      Desc       : out Trace_File_Descriptor);
+   --  Open a decision map file, without reading the traces. In case of
+   --  failure, an exception is raised and the file is considered as not open.
+
    procedure Read_Loadaddr_Trace_Entry
      (Desc       : Trace_File_Descriptor;
       Trace_File : Trace_File_Type;
