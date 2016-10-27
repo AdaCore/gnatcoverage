@@ -49,6 +49,10 @@ package Traces_Dbase is
    --  What does this comment apply to? There is no mention of "ADDR" anywhere
    --  in sight??
 
+   procedure Iterate (Base    : Traces_Base;
+                      Process : not null access procedure (E : Trace_Entry));
+   --  Call Process for each entry in the Traces_Base
+
    type Entry_Iterator is limited private;
 
    procedure Init

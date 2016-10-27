@@ -204,6 +204,28 @@ package body Traces_Dbase is
       Base.Entries.Iterate (Dump_Entry'Access);
    end Dump_Traces;
 
+   -------------
+   -- Iterate --
+   -------------
+
+   procedure Iterate (Base    : Traces_Base;
+                      Process : not null access procedure (E : Trace_Entry))
+   is
+      procedure Entry_Callback (Cur : Cursor);
+
+      --------------------
+      -- Entry_Callback --
+      --------------------
+
+      procedure Entry_Callback (Cur : Cursor) is
+      begin
+         Process (Element (Cur));
+      end Entry_Callback;
+
+   begin
+      Base.Entries.Iterate (Entry_Callback'Access);
+   end Iterate;
+
    --------------------
    -- Get_Next_Trace --
    --------------------
