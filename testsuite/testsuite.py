@@ -481,12 +481,6 @@ class TestSuite(object):
             None if self.options.bootstrap_scos else
             self.options.enable_valgrind)
 
-        # Setup profile hooks, if any, then resolve path argument values as
-        # needed while we have visibility on where relative paths lead:
-
-        self.__setup_altrun_hooks()
-        self.__resolve_paths()
-
         # Add current directory in PYTHONPATH, allowing TestCases to find the
         # SUITE and SCOV packages:
 
@@ -522,6 +516,9 @@ class TestSuite(object):
             textlist=[" ".join(self.discriminants)],
             filename=self.__discriminants_log())
 
+        # Setup the alternate run hooks, if any
+        self.__setup_altrun_hooks()
+
         # Setup the STR box and dump the suite data file, for qualification
         # runs. Note that we must be in a revision controlled tree in this
         # case, so we can fetch a local reference for consistency comparisons.
@@ -540,6 +537,13 @@ class TestSuite(object):
         # Dump useful comments about this run for starters
 
         self.__push_comments(self.__early_comments())
+
+        # Resolve path argument values as needed while we have visibility on
+        # where relative paths lead. Note that we're doing this after dumping
+        # context data for STR purposes so this data leaves full paths
+        # unexposed.
+
+        self.__resolve_paths()
 
         # Run the builder configuration for the testsuite as a whole. Doing
         # it here once both factorizes the work for all testcases and prevents
@@ -1311,15 +1315,43 @@ class TestSuite(object):
         as relative from where the testsuite was launched, resolve
         to absolute paths."""
 
+        # First deal with options accepting filenames per se:
+
         attributes_to_resolve = (
             ["kernel", "altrun"] +
             [altrun_attr_for(p0, p1) for (p0, p1) in
              control.ALTRUN_HOOK_PAIRS + control.ALTRUN_GNATCOV_PAIRS])
 
-        [setattr(self.options, attr,
-                 os.path.abspath(getattr(self.options, attr)))
-         for attr in attributes_to_resolve
-         if getattr(self.options, attr) is not None]
+        for attr in attributes_to_resolve:
+            current_value = getattr(self.options, attr)
+            if current_value is not None:
+                setattr(self.options, attr, os.path.abspath(current_value))
+
+        # Then deal with compilation flags: turn -opt=possibly-relative-path
+        # into -opt=absolute-path for relevant options.
+
+        prefixes_to_resolve = ["-gnatec="]
+
+        def resolve(carg):
+            """CARG is one of the requested compilation flags. If it is meant
+            to designate a file with a possibly relative path (e.g. -gnatec=),
+            return the option modified to have an absolute path. Return the
+            option unmodified otherwise."""
+
+            carg_needs_resolution = any(
+                carg.startswith(prefix) for prefix in prefixes_to_resolve)
+
+            if carg_needs_resolution:
+                (opt, path) = carg.split('=')
+                return '='.join((opt, os.path.abspath(path)))
+            else:
+                return carg
+
+        for lang in [None] + control.KNOWN_LANGUAGES:
+            cargs_attr = cargs_attr_for(lang)
+            current_cargs = getattr(self.options, cargs_attr).split()
+            new_cargs = [resolve(carg) for carg in current_cargs]
+            setattr(self.options, cargs_attr, ' '.join(new_cargs))
 
     # -----------------------------
     # -- altrun hooks & friends --
