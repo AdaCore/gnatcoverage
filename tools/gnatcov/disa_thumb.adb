@@ -155,7 +155,7 @@ package body Disa_Thumb is
 
                   --  LDM/LDMIA/LDMFD (T2)
 
-                  if (Insn32 and 2**15) = 1 then
+                  if (Insn32 and 2**15) = 2**15 then
 
                      --  This instruction writes in PC, so it's a control-flow
                      --  instruction.
