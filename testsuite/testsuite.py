@@ -82,8 +82,9 @@ DEFAULT_TIMEOUT = 600
 #   * For criteria with variants (e.g. unique-cause and masking mcdc),
 #     exercise only the default one.
 #
-#   * A level-specific set of GNAT configuration pragmas applies to all
-#     compilations.
+#   * Even if empty, an explicit set of GNAT configuration pragmas shall be
+#     provided by way of a -gnatec= compilation switch, typically enforcing
+#     what the Operational Conditions of Use mandate.
 #
 #   * Tests only are only run with --annotate=report, not --annotate=xcov,
 #     as only the former is claimed to be qualified.
@@ -92,7 +93,7 @@ DEFAULT_TIMEOUT = 600
 
 
 class QlevelInfo(object):
-    def __init__(self, levelid, subtrees, xcovlevel, pragmas):
+    def __init__(self, levelid, subtrees, xcovlevel):
         self.levelid = levelid   # string identifier
 
         # regexp of directory subtrees: testdirs that match this
@@ -102,9 +103,6 @@ class QlevelInfo(object):
         # --level argument to pass to xcov when running such tests when in
         # qualification mode
         self.xcovlevel = xcovlevel
-
-        # Configuration pragmas (e.g. restrictions) to apply at this level
-        self.pragmas = pragmas
 
 RE_QCOMMON = "(Common|Appendix)"
 RE_QLANG = "(%s)" % '|'.join(QLANGUAGES)
@@ -127,26 +125,19 @@ QLEVEL_INFO = {
     "doA": QlevelInfo(
         levelid="doA",
         subtrees=RE_SUBTREE(re_crit="stmt|decision|mcdc"),
-        xcovlevel="stmt+mcdc",
-
-        # At level A, the need to perform MCDC and to process decisions in
-        # expression relies on the use of short-circuit operators only:
-        pragmas=[
-            "pragma Restrictions (No_Direct_Boolean_Operators);"]
+        xcovlevel="stmt+mcdc"
         ),
 
     "doB": QlevelInfo(
         levelid="doB",
         subtrees=RE_SUBTREE(re_crit="stmt|decision"),
-        xcovlevel="stmt+decision",
-        pragmas=[]
+        xcovlevel="stmt+decision"
         ),
 
     "doC": QlevelInfo(
         levelid="doC",
         subtrees=RE_SUBTREE(re_crit="stmt"),
-        xcovlevel="stmt",
-        pragmas=[]
+        xcovlevel="stmt"
         )
     }
 
@@ -571,37 +562,10 @@ class TestSuite(object):
                      logfile) +
                     contents_of(logfile))
 
-        # Setup configuration files for Restrictions control
-
-        self.__setup_control_pragmas()
-
         # Initialize counter of consecutive failures, to stop the run
         # when it is visibly useless to keep going
 
         self.n_consecutive_failures = 0
-
-    # ---------------------
-    # -- control pragmas --
-    # ---------------------
-
-    def __setup_control_pragmas(self):
-        """Dump the configuration files that tests expect to
-           find depending on our execution mode."""
-
-        # At this stage, tests expect a gnat.<dolevel> file for any
-        # qualification run.
-
-        dolevel = self.options.qualif_level
-
-        if not dolevel:
-            return
-
-        f = open("gnat.%s" % dolevel, 'w')
-        f.write(
-            '\n'.join(
-                ["--  pragmas for a gnatcov %s qualification run" % dolevel] +
-                QLEVEL_INFO[dolevel].pragmas) + '\n')
-        f.close()
 
     # -----------------------------------
     # -- Early comments about this run --
@@ -1295,6 +1259,12 @@ class TestSuite(object):
                     "Missing -gnat<95|05|12> in cargs:Ada for qualification")
             else:
                 setattr(m.options, attr_cargs_ada, cargs_ada + " -gnat05")
+
+        # Expect an explicit -gnatec if we're running for qualification
+
+        if m.options.qualif_level and "-gnatec" not in cargs_ada:
+            raise FatalError(
+                "Missing -gnatec in cargs:Ada for qualification")
 
         # On some targets, we need to link with -lgnat for any executable
         # to run and the toolchain doesn't do it automatically in some cases
