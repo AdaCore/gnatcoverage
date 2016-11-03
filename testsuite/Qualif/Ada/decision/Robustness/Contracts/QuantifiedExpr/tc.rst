@@ -6,6 +6,5 @@ occur. Check different kinds of quantifier expressions (for all, for some)
 in different contract contexts (Pre and Post conditions), featuring what would
 be nested decisions if the contracts were activated.
 
-
 LRMREF: 4.5.8
 
