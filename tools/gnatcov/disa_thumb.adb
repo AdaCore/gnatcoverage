@@ -288,6 +288,13 @@ package body Disa_Thumb is
                        Pc_Type (Get_Target (Immediate, 0, PC32));
                   end;
 
+               elsif (Shift_Right (Insn16, 8) and 16#f#) = 2#1101# then
+
+                  --  POP (P is set: write to PC = branch)
+
+                  Branch := Br_Jmp;
+                  Flag_Indir := True;
+
                end if;
             when 2#110100# .. 2#110111# =>
 
