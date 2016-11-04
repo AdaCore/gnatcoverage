@@ -47,7 +47,7 @@ For cross configurations only:
 For the GNAT Pro compilation switches, additional options which do
 not influence code generation, e.g. controlling warnings, are allowed.
 
-Runtime library profile
+Runtime Library Profile
 -----------------------
 
 The general contents of this document is not tailored for a particular runtime
@@ -70,7 +70,7 @@ The important points regarding qualification are:
   with a ``system.ads`` identical to the qualification one.
 
 
-Language perimeter
+Language Perimeter
 ------------------
 
 As for the runtime libray profile, the general contents of this document is
@@ -114,8 +114,9 @@ In addition:
 
 * For mcdc assessements, the tool requires the use of short-circuit variants
   for the Boolean binary operators composing decisions: ``&&`` or ``||`` in C,
-  ``and then`` or ``or else`` in Ada, as enforced by the
-  ``No_Direct_Boolean_Operator`` Restrictions pragma.
+  ``and then`` or ``or else`` in Ada, as enforced by a::
+
+   pragma Restrictions (No_Direct_Boolean_Operator);
 
 * For decision or mcdc analysis, the tool is not qualified to assess coverage
   of expressions used in assertion constructs such as Assert pragmas or their
