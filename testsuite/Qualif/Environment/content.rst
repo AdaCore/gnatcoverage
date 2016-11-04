@@ -109,8 +109,8 @@ In addition:
 
    pragma Restriction_Warnings (No_Exception_Handlers);
 
-  or verify that all the handlers only feature simple assignment statements
-  that never raise an exception.
+  or verify that all such warnings designate situations which conform
+  to what our Operational Requirements prescribe (:ref:`exceptions`).
 
 * For mcdc assessements, the tool requires the use of short-circuit variants
   for the Boolean binary operators composing decisions: ``&&`` or ``||`` in C,

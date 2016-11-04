@@ -1,14 +1,14 @@
+.. _exceptions:
+
 SC requirements for ARM chap. 11 : Exceptions
 =============================================
 
 
 %REQ_ID%
 
-
-
+For local exceptions, handled in the same subprogram as where it was raised,
 Statement Coverage shall be assessed for Ada's exceptions mechanism as
-described in Chapter 11 of the Ada Reference Manual. In
-particular:
+described in Chapter 11 of the Ada Reference Manual. In particular:
 
 * ``raise`` statements shall be reported uncovered when unreached,
 
@@ -27,15 +27,18 @@ particular:
 * The full set of core SC requirements apply to all the statements within
   exception handlers.
 
-
+The tool shall also produce correct Statement Coverage assessments for
+subprogram bodies consisting of a call to subprogram which may raise followed
+by simple scalar assignments which never raise, all protected by handlers
+which only performs scalar assignments that never raise. Statements never
+reached either because the outer subprogram isn't called or because the inner
+subprogram raised, shall be reported uncovered.
 
 .. rubric:: Testing Strategy
 
-
-
-We validate the requirements through a set of testcases that exercise
-implicit or explicit exceptions for purposes of control flow transfer.
-All the tescases follow a common pattern, involving:
+For local exceptions, we validate the requirements through a set of testcases
+that exercise implicit or explicit exceptions for purposes of control flow
+transfer. All the tescases follow a common pattern, involving:
 
 * Explicit ``raise`` statements, executed or not, followed by other statements
   or not
@@ -47,6 +50,17 @@ All the tescases follow a common pattern, involving:
 * With one or more candidate handlers at different levels of nesting,
   within a single body.
  
+For exceptions that may propagate from a called subprogram as in the
+conditions stated in the requirement, we exercise situations where:
+
+* The outer subprogram isn't called at all,
+
+* The inner subprogram is called only in conditions so it raises,
+
+* The inner subprogram is called only in conditions so it does not raise,
+
+* The inner subprogram is called in conditions so it raises and in conditions
+  so it does not raise.
 
 .. qmlink:: TCIndexImporter
 
