@@ -15,7 +15,9 @@ The Operational Environment in which the tool is used shall match the
 Qualification Environment in which the tool was qualified, as characterized by
 the items presented in the following tables. The *Expected value* column here
 states the intended value for qualification, which should match what
-eventually gets logged within the |str_doc| report.
+eventually gets logged within the |str_doc| report. The *Item #* column
+provides item identifiers that are produced in this report to facilitate the
+matching process.
 
 For cross or native configurations:
 
@@ -26,10 +28,10 @@ For cross or native configurations:
    :widths: 5, 30, 60
    :delim:  |
 
-   1 | Host Operating System name and version | Windows XP
-   2 | GNATcoverage executable name and version | gnatcov p.q.r
-   3 | GNAT Pro compiler executable name and version | powerpc-elf-gcc a.b.c (stamp)
-   4 | GNAT Pro compilation switches | -g -fpreserve-control-flow -fdump-scos -gnat05
+   e1 | Host Operating System name and version | Windows XP
+   e2 | GNATcoverage executable name and version | gnatcov p.q.r
+   e3 | GNAT Pro compiler executable name and version | powerpc-elf-gcc a.b.c (stamp)
+   s1 | GNAT Pro compilation switches | -g -fpreserve-control-flow -fdump-scos -gnat05
 
 For cross configurations only:
 

@@ -947,7 +947,9 @@ class QDreport(object):
         def literal(text):
             return ":literal:`" + text.strip() + "`"
 
-        item = Column(htext="Suite control items", legend=None)
+        itemno = Column(htext="Item #", legend=None)
+
+        item = Column(htext="Description", legend=None)
 
         value = Column(htext="", legend=None)
 
@@ -968,12 +970,14 @@ class QDreport(object):
         csv_contents = []
 
         csv_contents.append(
-            {item: "testsuite execution command line",
+            {itemno: "N/A",
+             item: "testsuite execution command line",
              value: literal(self.suitedata['cmdline'])
              })
 
         csv_contents.append(
-            {item: "compiler switches - language-independent",
+            {itemno: "s1",
+             item: "compiler switches - language independent",
              value: literal(' '.join(
                     BUILDER.COMMON_CARGS() + [suite_options['cargs']]))
              })
@@ -983,13 +987,14 @@ class QDreport(object):
 
             if lang_cargs:
                 csv_contents.append(
-                    {item: "compiler switches - %s specific" % lang,
+                    {itemno: "s1",
+                     item: "compiler switches - %s specific" % lang,
                      value: literal(lang_cargs)})
 
         CSVtable(
             title=None, text=None,
-            columns=(item, value),
-            controls=[":widths: 30, 65"],
+            columns=(itemno, item, value),
+            controls=[":widths: 7, 30, 60"],
             contents=csv_contents
             ).dump_to(self.rstf)
 
@@ -1003,7 +1008,9 @@ class QDreport(object):
         # & version        |                    |
         # ...
 
-        item = Column(htext="Environment items", legend=None)
+        itemno = Column(htext="Item #", legend=None)
+
+        item = Column(htext="Description", legend=None)
 
         v1 = Column(htext="", legend=None)
 
@@ -1017,18 +1024,21 @@ class QDreport(object):
         # Base table entries, always there:
 
         table_entries = [
-            {item: "testsuite execution timestamp & host system",
+            {itemno: "e1",
+             item: "testsuite execution timestamp & host system",
              v1: self.suitedata['runstamp'],
              v2: self.suitedata['host']
              },
-            {item: "GNAT Pro executable & version",
+            {itemno: "e2",
+             item: "GNATcov executable & version",
+             v1: suite_gnatcov['exename'],
+             v2: suite_gnatcov['version']
+             },
+            {itemno: "e3",
+             item: "GNAT Pro executable & version",
              v1: suite_gnatpro['exename'],
              v2: suite_gnatpro['version']
              },
-            {item: "GNATcov executable & version",
-             v1: suite_gnatcov['exename'],
-             v2: suite_gnatcov['version']
-             }
             ]
 
         # Add a gnatemu version, unless known to be irrelevant (native,
@@ -1037,7 +1047,8 @@ class QDreport(object):
         suite_options = self.suitedata['options']
         if suite_options['target'] and not suite_options['board']:
             table_entries.append(
-                {item: "GNATemu executable & version",
+                {itemno: "e4",
+                 item: "GNATemu executable & version",
                  v1: suite_gnatemu['exename'],
                  v2: suite_gnatemu['version']})
 
@@ -1045,14 +1056,15 @@ class QDreport(object):
 
         if suite_other:
             table_entries.append(
-                {item: "Other toolset executable & version",
+                {itemno: "e5",
+                 item: "Other toolset executable & version",
                  v1: suite_other['exename'],
                  v2: suite_other['version']})
 
         CSVtable(
             title=None, text=None,
-            columns=(item, v1, v2),
-            controls=[":widths: 25, 20, 55"],
+            columns=(itemno, item, v1, v2),
+            controls=[":widths: 7, 25, 20, 48"],
             delim='|',
             contents=table_entries
             ).dump_to(self.rstf)
@@ -1066,9 +1078,9 @@ class QDreport(object):
 
         self.rstf.write(rest.chapter("Qualification Environment"))
 
-        self.gen_suite_options()
-        self.rstf.write("~\n")
         self.gen_suite_environ()
+        self.rstf.write("~\n")
+        self.gen_suite_options()
 
         if sepfile:
             self.rstf.close()
