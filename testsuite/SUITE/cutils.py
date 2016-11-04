@@ -152,7 +152,9 @@ def empty(f):
 def version(tool, nlines=1):
     """Return version information as reported by the execution of TOOL
     --version, expected on the first NLINES of output. If TOOL is not
-    available from PATH, return a version text indicating unavailability."""
+    available from PATH, return a version text indicating unavailability.
+    If TOOL is 'gcc', append the target for which it was configured to the
+    base version info."""
 
     # If TOOL is not on PATH, return a version text indicating unavailability.
     # This situation is legitimate here for gnatemu when running through a
@@ -170,10 +172,15 @@ def version(tool, nlines=1):
         cprpos = text.find (",")
         return text [0:cprpos] if cprpos != -1 else text
 
-    return '\n'.join (
-        [version_on_line (l) for l in
-         Run([tool, "--version"]).out.split('\n')[0:nlines]]
-        )
+    tool_version_output = Run([tool, "--version"]).out.split('\n')
+    version_info = '\n'.join (
+        [version_on_line (l) for l in tool_version_output[0:nlines]])
+
+    if tool == 'gcc':
+        gcc_target = Run([tool, "-dumpmachine"]).out.strip()
+        version_info += " [%s]" % gcc_target
+
+    return version_info
 
 # --------------
 # -- ndirs_in --
