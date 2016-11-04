@@ -25,7 +25,7 @@ def pload_from(filename):
 # -- json oriented facilities --
 # ------------------------------
 
-import json, time
+import json, time, re
 
 def jdump_to(filename, o):
     with open (filename, 'w') as f:
@@ -38,9 +38,17 @@ def jload_from(filename):
 def host_string_from(host):
     """Return a textual version of the relevant info in HOST,
     a Env().host kind of object."""
-    return '-'.join (
-        (host.os.name, host.os.kernel_version+'/'+host.os.version))
-        
+
+    os_name = host.os.name.capitalize()
+    os_version = host.os.version
+
+    # 2008[R2] or 2012[R2] for Windows conveys Server editions
+
+    if os_name == 'Windows' and re.match(os_version, "2008|2012"):
+        os_version = "Server " + os_version
+
+    return ' '.join ((os_name, os_version))
+
 def time_string_from(stamp):
     """Return a textual version of the timestamp in STAMP,
     a time.localtime() kind of object."""
