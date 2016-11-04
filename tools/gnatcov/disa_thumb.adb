@@ -241,7 +241,19 @@ package body Disa_Thumb is
                end;
 
             when others => --  2#11#
-               null;
+               if (Insn32 and 16#ffff_0fff#) = 16#f85d_0b04# then
+
+                  --  POP (T3)
+
+                  if (Insn32 and 16#0000_f000#) = 16#0000_f000# then
+
+                     --  This instruction writes in PC, so it's a control-flow
+                     --  instruction.
+
+                     Branch := Br_Jmp;
+                     Flag_Indir := True;
+                  end if;
+               end if;
             end case;
          end;
 
