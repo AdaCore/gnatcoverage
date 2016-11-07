@@ -1,5 +1,3 @@
-version='(version -1.0)'
-
 # This file gets copied by sphinx as something like:
 #    .../qualification/qm/.qm/PLANS/_sphinx/conf.py
 #
