@@ -20,6 +20,8 @@ else:
 
 rst_prolog += writer.define_role('raw-html(raw)', {'format': 'html'})
 
+doc_id = "TEC.????-???"
+
 html_sidebars = {
    '**': ['localtoc.html', 'sourcelink.html', 'searchbox.html']
 }
