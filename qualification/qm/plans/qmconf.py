@@ -20,3 +20,5 @@ else:
     print "Couldn't find common configuration file"
     print common_file
     print "from: %s" % __file__
+
+doc_id="TEC.????-???"
