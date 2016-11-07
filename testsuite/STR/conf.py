@@ -202,8 +202,54 @@ latex_documents = [
 # If true, show URL addresses after external links.
 #latex_show_urls = False
 
-# Additional stuff for the LaTeX preamble.
-#latex_preamble = ''
+# Additional stuff for the LaTeX preamble, in the QM fashion
+
+def project_settings():
+    full_document_name = project_name
+    if doc_id is not None and len(doc_id) > 0:
+        full_document_name = '%s - %s' % (project_name, doc_id)
+
+    return '\n'.join([
+        r'\newcommand*{\QMFullDocumentName}[0]{' + full_document_name + r'}',
+        r'\newcommand*{\QMProjectName}[0]{' + project_name + r'}',
+        r'\newcommand*{\QMDocID}[0]{' + doc_id + r'}',
+        r'\newcommand*{\QMVersion}[0]{' + version + r'}'])
+
+latex_preamble = project_settings() + r"""
+\RequirePackage{lastpage}
+
+\makeatletter
+% Redefine the "normal" header/footer style when using "fancyhdr" package:
+\@ifundefined{fancyhf}{}{
+  % Use \pagestyle{normal} as the primary pagestyle for text.
+  \fancypagestyle{normal}{
+    \fancyhf{}
+    \fancyfoot[LE,RO]{{\py@HeaderFamily\thepage\ of \pageref*{LastPage}}}
+    \fancyfoot[LO]{{\py@HeaderFamily\nouppercase{\rightmark}}}
+    \fancyfoot[RE]{{\py@HeaderFamily\nouppercase{\leftmark}}}
+    \fancyhead[LE,RO]{{\py@HeaderFamily \@title, \py@release}}
+    \renewcommand{\headrulewidth}{0.4pt}
+    \renewcommand{\footrulewidth}{0.4pt}
+    % define chaptermark with \@chappos when \@chappos is available for Japanese
+    \ifx\@chappos\undefined\else
+      \def\chaptermark##1{\markboth{\@chapapp\space\thechapter\space\@chappos\space ##1}{}}
+    \fi
+  }
+  % Update the plain style so we get the page number & footer line,
+  % but not a chapter or section title.  This is to keep the first
+  % page of a chapter and the blank page between chapters clean.
+  \fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[LE,RO]{{\py@HeaderFamily\thepage\ of \pageref*{LastPage}}}
+    \fancyfoot[LO,RE]{{\py@HeaderFamily \QMFullDocumentName}}
+    \fancyhead[LE,RO]{{\py@HeaderFamily \@title\ \QMVersion}}
+    \renewcommand{\headrulewidth}{0.0pt}
+    \renewcommand{\footrulewidth}{0.4pt}
+  }
+}
+\makeatother
+"""
+
 
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []

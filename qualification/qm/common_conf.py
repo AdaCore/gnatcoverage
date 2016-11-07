@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from datetime import date
 
 project_name = 'GNATcoverage'
