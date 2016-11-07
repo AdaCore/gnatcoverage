@@ -1,0 +1,1 @@
+pragma Restrictions (No_Direct_Boolean_Operators);
