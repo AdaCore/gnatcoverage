@@ -204,6 +204,8 @@ latex_documents = [
 
 # Additional stuff for the LaTeX preamble, in the QM fashion
 
+doc_id = "TEC.????-???"
+
 def project_settings():
     full_document_name = project_name
     if doc_id is not None and len(doc_id) > 0:
