@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Command_Line;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
@@ -1612,6 +1613,12 @@ package body CFG_Dump is
    --  Start of processing for Output_CFG
 
    begin
+      Put_Line (F, "// This CFG was generated with the following command:");
+      Put (F, "// " & Ada.Command_Line.Command_Name);
+      for I in 1 .. Ada.Command_Line.Argument_Count loop
+         Put (F, " " & Ada.Command_Line.Argument (I));
+      end loop;
+      Put_Line (F, "");
       Put_Line (F, "digraph cfg {");
 
       if Context.Group_By_Condition then
