@@ -1,16 +1,6 @@
 GNATcoverage DO-178C/ED-12C Qualification Material: Tool Operational Requirements, V&V Cases and Procedures
 ###########################################################################################################
 
-.. rubric:: Authors
-
-.. csv-table::
-   :delim: |
-   :widths: 40, 20, 40
-   :header: "Name", "Company", "Email"
-
-   Matteo Bordin|AdaCore|bordin@adacore.com
-   Olivier Hainque|AdaCore|hainque@adacore.com
-
 .. rubric:: List of referenced documents
 
 .. tabularcolumns:: |p{0.20\textwidth}|p{0.80\textwidth}|

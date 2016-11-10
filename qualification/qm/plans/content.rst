@@ -2,14 +2,6 @@
 GNATcoverage DO-178C/ED-12C Qualification Material: Qualification Plans
 =======================================================================
 
-.. rubric:: Authors
-
-.. csv-table::
-   :delim: |
-   :header: "Name", "Company", "Email"
-
-   Olivier Hainque|AdaCore|hainque@adacore.com
-
 .. rubric::  Revision History
 
 .. csv-table::

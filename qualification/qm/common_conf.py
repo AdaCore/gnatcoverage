@@ -21,10 +21,14 @@ users = {
                 'email': 'fofanov@adacore.com',
                 'team': 'Qualification'}}
 
+roles = OrderedDict(
+    [('authors', {'description': 'the authors of the document'}),
+     ('reviewers', {'description': 'the reviewers of the document'})])
+
 assignments = {
     'authors'   : ['hainque'],
-    'reviewers' : ['guitton', 'fofanov'],
-    'approvers' : ['fofanov']}
+    'reviewers' : ['guitton']
+}
 
 release='DRAFT 0.0'
 version='(%s)' % release
@@ -32,3 +36,4 @@ version='(%s)' % release
 copyright = '%s, %d' % (owner, date.today().year)
 
 extensions = ['sphinx.ext.ifconfig']
+
