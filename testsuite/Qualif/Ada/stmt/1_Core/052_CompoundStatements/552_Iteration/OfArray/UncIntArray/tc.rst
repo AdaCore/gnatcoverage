@@ -1,4 +1,3 @@
-**SC on a For Of iteration on an unconstrained array of Integers**
-==================================================================
+**SC on a For Of iteration over an unconstrained array of Integers**
 
 LMREF: 5.5.2
