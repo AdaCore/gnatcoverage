@@ -17,7 +17,7 @@ Tool Developer's perspective.
 
 .. tabularcolumns:: |p{0.15\linewidth}|p{0.18\linewidth}|p{0.60\linewidth}|
 
-.. csv-table:: Compliance with Table 11-1 of |standard|
+.. csv-table:: Compliance with Table 11-1 of |tool_standard|
    :delim: #
    :header: "Section", "Achieved", "Notes"
 
