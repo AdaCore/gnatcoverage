@@ -1,1 +1,2 @@
 p55-elf XFAIL Machine_Overflows True, no raise on overflow
+RTS_ZFP XFAIL investigation on PB15-008, no urgent need for support
