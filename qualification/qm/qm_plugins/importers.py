@@ -863,7 +863,7 @@ class TestCaseImporter(ArtifactImporter):
 
         result += writer.only(html_content, "html")
 
-        result += writer.only(latex_content, "latex")
+        # result += writer.only(latex_content, "latex")
 
         output = '\n\n' + writer.minipage(result, r'\linewidth') + "|\n\n"
 
