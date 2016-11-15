@@ -91,32 +91,15 @@ In addition:
 * The tool is not qualified to analyze programs featuring tasking constructs,
   controlled objects, or pointers to nested subprograms.
 
-  Unless a ``system.ads`` corresponding to that of a Zero Footprint runtime is
-  used, users shall ensure that the code to analyse compiles free of warnings
-  out of the following configuration pragmas::
-
-   pragma Restriction_Warnings (No_Tasking);
-   pragma Restriction_Warnings (No_Implicit_Dynamic_Code);
-   pragma Restriction_Warnings (No_Finalization);
-   pragma Restriction_Warnings (No_Exception_Registration);
-
 * The tool is only partially qualified for exceptions which propagate across
-  subprograms, when the runtime library profile supports this at all.
-
-  Unless a ``system.ads`` corresponding to that of a Zero Footprint runtime is
-  used, users shall ensure that the code to analyse compiles free of warnings
-  out of the following configuration pragma::
-
-   pragma Restriction_Warnings (No_Exception_Handlers);
-
-  or verify that all such warnings designate situations which conform
-  to what our Operational Requirements prescribe (:ref:`exceptions`).
+  subprograms, when the runtime library profile supports this at all. In such
+  configurations, users shall verify that all uses of handlers for exceptions
+  not raised by the subprogram itself conform to what our Operational Requirements
+  prescribe (:ref:`exceptions`).
 
 * For mcdc assessements, the tool requires the use of short-circuit variants
   for the Boolean binary operators composing decisions: ``&&`` or ``||`` in C,
-  ``and then`` or ``or else`` in Ada, as enforced by a::
-
-   pragma Restrictions (No_Direct_Boolean_Operator);
+  ``and then`` or ``or else`` in Ada.
 
 * For decision or mcdc analysis, the tool is not qualified to assess coverage
   of expressions used in assertion constructs such as Assert pragmas or their
