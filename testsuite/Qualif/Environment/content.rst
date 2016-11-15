@@ -89,7 +89,7 @@ tool for a given project:
 In addition:
 
 * The tool is not qualified to analyze programs featuring tasking constructs,
-  controlled objects, or pointers to nested subprograms.
+  controlled type definitions or pointers to nested subprograms.
 
 * The tool is only partially qualified for analysis in presence of exceptions
   which propagate across subprograms, when the runtime library profile
