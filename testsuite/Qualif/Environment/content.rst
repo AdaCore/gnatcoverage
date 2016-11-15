@@ -91,11 +91,14 @@ In addition:
 * The tool is not qualified to analyze programs featuring tasking constructs,
   controlled objects, or pointers to nested subprograms.
 
-* The tool is only partially qualified for exceptions which propagate across
-  subprograms, when the runtime library profile supports this at all. In such
-  configurations, users shall verify that all uses of handlers for exceptions
-  not raised by the subprogram itself conform to what our Operational Requirements
-  prescribe (:ref:`exceptions`).
+* The tool is only partially qualified for analysis in presence of exceptions
+  which propagate across subprograms, when the runtime library profile
+  supports this at all.
+
+  For all uses, in subprograms subject to the analysis, of handlers for
+  exceptions not raised by the subprogram itself, users shall verify
+  conformance to what our Operational Requirements specifically prescribe
+  for such cases (:ref:`exceptions`).
 
 * For mcdc assessements, the tool requires the use of short-circuit variants
   for the Boolean binary operators composing decisions: ``&&`` or ``||`` in C,
