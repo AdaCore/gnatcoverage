@@ -4,7 +4,8 @@ Core SC requirements
 All the other SC-related sections rely on this group.
 
 To ensure coverage of all the relevant language constructs, we decompose the
-material further based on the organization of the Language Reference Manual:
+material further based on the organization of the Ada Language Reference
+Manual (Ada LRM), commonly designated as the Ada Reference Manual, or *ARM*:
 
 
 .. qmlink:: SubsetIndexTable
@@ -12,8 +13,8 @@ material further based on the organization of the Language Reference Manual:
    *
 
 
-Several chapters are not included for the following reasons:
-
+Several chapters aren't included for reasons listed in the following table:
+   
 .. tabularcolumns:: |p{0.3\textwidth}|p{0.65\textwidth}|
 
 .. csv-table::

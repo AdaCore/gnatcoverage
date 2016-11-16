@@ -113,6 +113,7 @@ The following abbreviations are used throughout this document:
    :widths: 30, 40
    :header: "Abbreviation", "Meaning"
 
+   ARM|Ada Reference Manual
    DC|Decision Coverage
    MCDC|Modified Condition/Decision Coverage
    SC|Statement Coverage
