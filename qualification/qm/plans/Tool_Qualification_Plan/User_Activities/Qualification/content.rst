@@ -27,6 +27,7 @@
 #. **Update the Software Accomplishment Summary (SAS).** The SAS needs to be
    updated:
 
-   * For Table A-5: achievement of the objective 4.
+   * For Table A-7: achievement of the objectives 5, 6 and 7, depending on the
+     software level.
 
    * For qualification status of |project_name|: refer to |str_doc| report.
