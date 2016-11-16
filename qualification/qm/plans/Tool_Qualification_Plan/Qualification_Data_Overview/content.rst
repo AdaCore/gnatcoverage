@@ -7,7 +7,7 @@ GNATcoverage is qualified as a COTS accoring to guidance of section 11.3 of
 [DO-330/ED-215].
 
 The qualification data that comes with the tool, composing the tool
-*qualification kit*, consists in the two main packages:
+*qualification kit*, consists in the following main packages:
 
 * A **PDF documents package**, containing the following three documents:
 
@@ -20,7 +20,7 @@ The qualification data that comes with the tool, composing the tool
     The *Document Purpose and Organization* section of the TORs document
     includes a high level description of our overall testing strategy. The
     *Overview of the test procedures organization* appendix explains how
-    expectations on coverage results for each test are stated and used to to
+    expectations on coverage results for each test are stated and used to
     produce a verification report out of a testsuite run.
 
     The test sources aren't included in this version of the document. They are
