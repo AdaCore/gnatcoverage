@@ -70,10 +70,10 @@ The important points regarding qualification are:
   with a ``system.ads`` identical to the qualification one.
 
 
-Language Perimeter
-------------------
+Language Version and Scope
+--------------------------
 
-As for the runtime libray profile, the general contents of this document is
+As for the runtime library profile, the general contents of this document is
 not tailored for a particular version of the Ada language, except for the
 :ref:`lrm-traceability` chapter. Otherwise, the requirements and testcases
 sections might contain items matching up to Ada 2012 even if the intended
