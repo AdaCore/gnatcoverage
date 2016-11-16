@@ -7,7 +7,7 @@ Development and Verification artifacts
 --------------------------------------
 
 All the GNATcoverage development and verification artifacts are version
-controlled in our configuration management system, in particular:
+controlled in AdaCore's configuration management system, in particular:
 
 * All the TOR related artifacts (requirements, testcases, test sources, ...),
   each materialized as a distinct file to permit atomic tracking,
@@ -34,7 +34,7 @@ Open problems
 -------------
 
 Open problems are tracked via emails. Each email is associated with a unique
-problem identifier, assigned by our tracking system when the first message
+problem identifier, assigned by AdaCore's tracking system when the first message
 about an issue is received. At any given point in time, each issue is assigned
 to a single member of the Development or Qualification team who is then
 responsible for the problem management: launching investigations, developing

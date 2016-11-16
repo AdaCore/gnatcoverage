@@ -21,9 +21,9 @@ Tool Developer's perspective.
    :delim: #
    :header: "Section", "Achieved", "Notes"
 
-   T-0, Objective 2 # Yes # See the requirement description items in our |tor_doc| document.
-   T-0, Objective 4 # Not Applicable # Not required for TQL-5. See :ref:`tqap` for our QA procedures nevertheless.
-   T-0, Objective 5 # Yes # See the test and test-cases description items in our |tor_doc| document.
+   T-0, Objective 2 # Yes # See the requirement description items in the |tor_doc| document.
+   T-0, Objective 4 # Not Applicable # Not required for TQL-5. See :ref:`tqap` for AdaCore's QA procedures nevertheless.
+   T-0, Objective 5 # Yes # See the test and test-cases description items in the |tor_doc| document.
    T-1 to T-7 # Not Applicable # Not required for TQL-5.
    T-8 # Up to the applicant # See :ref:`user-conf-management` for suggested configuration items.
    T-9 # Yes # See the |tqa_doc| document accompanying this qualification package.

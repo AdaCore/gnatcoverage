@@ -25,7 +25,7 @@ Change control
 repositories where all configuration items are located. Only authorized
 engineers can modify configuration items and all modifications are
 recorded. In addition, all repositories and mail servers are mirrored with
-machines physically located in Paris (France) and New York. This increases our
+machines physically located in Paris (France) and New York. This increases
 confidence in the durability of qualification data.
 
 **Item 7.2.4b:** Each change to a configuration item is associated to a unique
@@ -51,13 +51,13 @@ Customer/Project specific tracking
 
 For each specific customer/project qualification we assign an internal *kit
 identifier*, referenced for example in QA reports. All the corresponding
-verification related artifacts are managed on a dedicated *branch* within our
-version control systems. Releases of qualification kits for the specific
-customer/project are produced off that branch, which also tracks the QA cycles
-performed on the kit items (QA reports, corresponding corrections, ...). A
-typical kind of early change incorporated on the branch is the adjustment of
-the targeted operational environment parameters, to be accounted for when
-setting up the qualification environment for kit production cycles.
+verification related artifacts are managed on a dedicated *branch* within
+AdaCore's version control systems. Releases of qualification kits for the
+specific customer/project are produced off that branch, which also tracks the
+QA cycles performed on the kit items (QA reports, corresponding corrections,
+...). A typical kind of early change incorporated on the branch is the
+adjustment of the targeted operational environment parameters, to be accounted
+for when setting up the qualification environment for kit production cycles.
 
 
 Official baseline production
