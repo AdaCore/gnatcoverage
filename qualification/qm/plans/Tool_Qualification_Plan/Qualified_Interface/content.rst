@@ -19,11 +19,7 @@ use GNATcoverage as follows:
 * Obtain as many execution trace files (<TRACE>) as needed, by running the
   test executables (<APPn>) within the instrumented execution environment,
   specifying the target architecture (<TARGET>) *and* the criterion level to
-  be assessed (<LVL>), as in the following example.
-
-  IO redirections, sometimes necessary for proper operation of the programs
-  within the execution environment, are allowed in these sequences of
-  commands.
+  be assessed (<LVL>), as in the following example:
 
 .. code-block:: text 
  
@@ -63,3 +59,6 @@ In the sample commands above:
   associated with the units for which coverage is assessed
 * <traces.list> is a text file containing the list of execution traces to
   operate on.
+
+IO redirections, sometimes necessary for proper operation of the programs
+within the execution environment, are allowed.
