@@ -11,13 +11,14 @@ The qualification data that comes with the tool, composing the tool
 
 * A **PDF documents package**, containing the following three documents:
 
-  * The |plans_doc| document, |plans_pdf|, which is this document.
+  * The |plans_doc_title| document, |plans_pdf|, which is this document
+    and which we'll refer to as the |plans_doc| document.
+ 
+  * The |tor_doc_title| document, |tor_pdf|, which contains the description of
+    the tool operational requirements together with the associated testing
+    strategy and test cases, and which we'll refer to as the |tor_doc| document.
 
-  * The |tor_doc| document, |tor_pdf|, which contains the description of the
-    tool operational requirements together with the associated testing
-    strategy and test cases.
-
-    The *Document Purpose and Organization* section of the TORs document
+    The *Document Purpose and Organization* section of the |tor_doc| document
     includes a high level description of our overall testing strategy. The
     *Overview of the test procedures organization* appendix explains how
     expectations on coverage results for each test are stated and used to
@@ -26,14 +27,15 @@ The qualification data that comes with the tool, composing the tool
     The test sources aren't included in this version of the document. They are
     included in an HTML version, presented below.
 
-  * The |str_doc| report, |str_pdf|, which contains a synthetic summary of the
-    testsuite run performed to assess the tool behavioral correctness with
-    respect to its intended use.
+  * The |str_doc_title| report, |str_pdf|, which contains a synthetic summary
+    of the testsuite run performed to assess the tool behavioral correctness
+    with respect to its intended use, and which we'll refer to as the |str_doc|
+    report.
 
 * A **HTML documents package**, containing HTML versions of the PDF documents
   described above, presented differently and including test sources for the
-  |tor_doc| item. The tests are organized in a very hierarchical manner so
-  much easier to present and browse in this format than in PDF. See the
+  |tor_doc_title| item. The tests are organized in a very hierarchical manner
+  so much easier to present and browse in this format than in PDF. See the
   :ref:`qa-activities` section of this document for a description of which
   |QA| activities are performed on which document variant.
 

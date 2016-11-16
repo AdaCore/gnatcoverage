@@ -22,10 +22,14 @@ rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.macro('str_pdf', r'``STR.pdf``') \
     + writer.macro('tqa_file', r'``qa.doc``') \
     + writer.macro('tors', r'Tool Operational Requirements') \
-    + writer.macro('plans_doc', r'*Qualification Plans*') \
-    + writer.macro('tor_doc', r'*Tool Operational Requirements and V&V Cases and Procedures*') \
-    + writer.macro('str_doc', r'*Tool Operational Verification and Validation Results*') \
-    + writer.macro('tqa_doc', r'*Tool Quality Assurance Records*') \
+    + writer.macro('plans_doc_title', r'*Qualification Plans*') \
+    + writer.macro('tor_doc_title', r'*Tool Operational Requirements and V&V Cases and Procedures*') \
+    + writer.macro('str_doc_title', r'*Tool Operational Verification and Validation Results*') \
+    + writer.macro('tqa_doc_title', r'*Tool Quality Assurance Records*') \
+    + writer.macro('plans_doc', r'*PLANS*') \
+    + writer.macro('tor_doc', r'*TOR*') \
+    + writer.macro('str_doc', r'*STR*') \
+    + writer.macro('tqa_doc', '|tqa_doc_title|') \
     + writer.macro('DAL', 'Design Assurance Level') \
     + writer.macro('PSAC', 'Plan for Software Aspects of Certification') \
     + writer.macro('PSAC_bold',
