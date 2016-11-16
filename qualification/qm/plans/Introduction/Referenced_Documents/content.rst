@@ -18,7 +18,7 @@ RTCA DO-178B/EUROCAE ED-12C:
 *Software Considerations in Airborne Systems and Equipment Certification*;
 December 13, 2011
 
-.. rubric:: DO-330/ED-215
+.. rubric:: |tool_standard|
 
 RTCA DO-330/EUROCAE ED-215:
 *Software Tool Qualification Considerations*;
@@ -41,15 +41,17 @@ distribution (file *share/doc/gnatcoverage/pdf/gnatcov.pdf*).
 
 .. rubric:: |plans_doc|
 
-AdaCore: |project_name_it| - |plans_doc|, this document.
+AdaCore: |project_name_it| - |plans_doc|, *TEC.????-???*, this document.
 
 .. rubric:: |tor_doc|
 
-AdaCore: |project_name_it| - |tor_doc|, included in this qualification package.
+AdaCore: |project_name_it| - |tor_doc|, *TEC.????-???*, included in this
+qualification package.
 
 .. rubric:: |str_doc|
 
-AdaCore: |project_name_it| - |str_doc|, included in this qualification package.
+AdaCore: |project_name_it| - |str_doc|, *TEC.????-???*, included in this
+qualification package.
 
 .. rubric:: |tqa_doc|
 
