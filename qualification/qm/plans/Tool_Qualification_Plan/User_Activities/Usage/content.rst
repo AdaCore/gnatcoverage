@@ -5,5 +5,5 @@
    install the tool in the Operational Environment.
 
 #. **Check correct usage of the tool .** For the tool results to be used in a
-   certification context, the interface used must comply with the tool
-   qualified interface presented in this document.
+   certification context, users must comply with the interface presented in the
+   :ref:`qualified-interface` section of this document.
