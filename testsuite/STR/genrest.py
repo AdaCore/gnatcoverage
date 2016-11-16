@@ -155,8 +155,8 @@ class colid(object):
 
     sta = Column(
         htext="status",
-        legend="Execution status, "
-        "*passed* when all the expectations were satisfied")
+        legend="Execution status"
+    )
 
     cat = Column(
         htext="category", legend="Test category")
@@ -190,10 +190,10 @@ class colid(object):
     # Status counters and overall status, for status summary
 
     failed = Column(
-        htext="failed", legend="Number of tests failed")
+        htext="failed", legend="Number of tests with status *failed*")
 
     passed = Column(
-        htext="passed", legend="Number of tests passed")
+        htext="passed", legend="Number of tests with status *passed*")
 
     ovsta = Column(
         htext="overall", legend="Testsuite overall status")
@@ -204,7 +204,7 @@ class colid(object):
         htext="uok", legend="Test ran OK despite expected to fail")
 
     xfail = Column(
-        htext="xfail", legend="Number of tests failed as expected")
+        htext="xfail", legend="Number of tests with status *xfail*")
 
     # Columns for legend sub-tables
 
@@ -791,8 +791,15 @@ class QDreport(object):
                 "on purpose, which the tool must report for the test to pass. "
                 "The `scv` counter for a testcase is then the number of "
                 "such statement coverage violations, triggered by the tests "
-                "executed for this testcase and that our testsuite harness "
+                "executed for this testcase and that the testsuite harness "
                 "has verified the tool did detect."
+                "\n\n"
+                "The possible test execution statuses are: "
+                "*passed* when all the expectations were satisfied and no "
+                "other violation was reported, *xfail* (expected failure) "
+                "when the results reported by the tool don't conform to "
+                "requirements for an understood and acknowledged reason, and "
+                "*failed* otherwise."
                 "\n\n"
                 "The set of tables is partitioned according to "
                 "language/coverage-criterion associations described by "
