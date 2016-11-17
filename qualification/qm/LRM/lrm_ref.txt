@@ -133,9 +133,9 @@
 7.3.2      #       12 # Type Invariants                                          # no          # Ada 2012 feature
 7.4        # 95,05,12 # Deferred Constants                                       # yes         #
 7.5        # 95,05,12 # Limited Types                                            # no          # Not relevant to SCA
-7.6        # 95,05    # User-Defined Assignment and Finalization                 # no          # GNATcoverage is not qualified for controlled types
+7.6        # 95,05    # User-Defined Assignment and Finalization                 # no          # GNATcoverage is not qualified for controlled type definitions
 7.6        #       12 # Assignment and Finalization                              # no          # Ada 2012 feature
-7.6.1      # 95,05,12 # Completion and Finalization                              # no          # Only relevant to task types, protected types and controlled types, for which GNATcoverage is not qualified
+7.6.1      # 95,05,12 # Completion and Finalization                              # no          # Only relevant to task types, protected types and controlled type definitions, for which GNATcoverage is not qualified
 
 8          # 95,05,12 # Visibility Rules                                         # no          # General overview material
 8.1        # 95,05,12 # Declarative Region                                       # no          # Not relevant to SCA
