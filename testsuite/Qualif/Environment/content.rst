@@ -44,8 +44,9 @@ For cross configurations only:
 
    5 | GNATemulator executable name and version | powerpc-elf-gnatemu x.y.t
 
-For the GNAT Pro compilation switches, additional options which do
-not influence code generation, e.g. controlling warnings, are allowed.
+For the GNAT Pro compilation switches, additional options which do not
+influence code generation, e.g. controlling warnings or confirming compiler
+defaults, are allowed.
 
 Runtime Library Profile
 -----------------------
