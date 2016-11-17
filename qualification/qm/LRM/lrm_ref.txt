@@ -89,8 +89,8 @@
 4.5.4      # 95,05,12 # Unary Adding Operators                                   # no          # Not relevant to SCA
 4.5.5      # 95,05,12 # Multiplying Operators                                    # no          # Not relevant to SCA
 4.5.6      # 95,05,12 # Highest Precedence Operators                             # partial     # The "not" operator is the only highest_precedence_operator relevant to SCA
-4.5.7      #       12 # Conditional Expressions                                  # no          # Ada 2012 feature
-4.5.8      #       12 # Quantified Expressions                                   # no          # Ada 2012 feature
+4.5.7      #       12 # Conditional Expressions                                  # yes         #
+4.5.8      #       12 # Quantified Expressions                                   # yes         #
 4.6        # 95,05,12 # Type Conversions                                         # partial     # This section applies when the type conversion is to type Boolean and is used as a condition
 4.7        # 95,05,12 # Qualified Expressions                                    # partial     # This section applies when the type qualification is to type Boolean and is used as a condition
 4.8        # 95,05,12 # Allocators                                               # no          # Not relevant to SCA
@@ -103,15 +103,15 @@
 5.3        # 95,05,12 # If Statements                                            # yes         #
 5.4        # 95,05,12 # Case Statements                                          # yes         #
 5.5        # 95,05,12 # Loop Statements                                          # yes         #
-5.5.1      #       12 # User-Defined Iterator Types                              # no          # Ada 2012 feature
-5.5.2      #       12 # Generalized Loop Iteration                               # no          # Ada 2012 feature
+5.5.1      #       12 # User-Defined Iterator Types                              # yes         #
+5.5.2      #       12 # Generalized Loop Iteration                               # yes         #
 5.6        # 95,05,12 # Block Statements                                         # yes         #
 5.7        # 95,05,12 # Exit Statements                                          # yes         #
 5.8        # 95,05,12 # Goto Statements                                          # yes         #
 
 6          # 95,05,12 # Subprograms                                              # no          # General overview material
 6.1        # 95,05,12 # Subprogram Declarations                                  # no          # Not relevant to SCA
-6.1.1      #       12 # Preconditions and Postconditions                         # no          # Ada 2012 feature
+6.1.1      #       12 # Preconditions and Postconditions                         # yes         #
 6.2        # 95,05,12 # Formal Parameter Modes                                   # no          # Not relevant to SCA
 6.3        # 95,05,12 # Subprogram Bodies                                        # no          # SCA obligations are associated with the constituents of the subprogram body
 6.3.1      # 95,05,12 # Conformance Rules                                        # no          # Not relevant to SCA
@@ -120,21 +120,21 @@
 6.4.1      # 95,05,12 # Parameter Associations                                   # no          # Covered by 6.4
 6.5        # 95,05,12 # Return Statements                                        # yes         #
 6.5.1      #    05    # Pragma No_Return                                         # yes         #
-6.5.1      #       12 # Nonreturning Procedures                                  # no          # Ada 2012 feature
+6.5.1      #       12 # Nonreturning Procedures                                  # yes         #
 6.6        # 95,05,12 # Overloading of Operators                                 # no          # Not relevant to SCA
 6.7        #    05,12 # Null Procedures                                          # yes         #
-6.8        #       12 # Expression Functions                                     # no          # Ada 2012 feature
+6.8        #       12 # Expression Functions                                     # yes         #
 
 7          # 95,05,12 # Packages                                                 # no          # General overview material
 7.1        # 95,05,12 # Package Specifications and Declarations                  # no          # SCA obligations are associated with the constituent basic_declarative_items in the package_specification
 7.2        # 95,05,12 # Package Bodies                                           # no          # SCA obligations are associated with the constituent declarations and statements in the package_body
 7.3        # 95,05,12 # Private Types and Private Extensions                     # no          # Not relevant to SCA
 7.3.1      # 95,05,12 # Private Operations                                       # no          # Not relevant to SCA
-7.3.2      #       12 # Type Invariants                                          # no          # Ada 2012 feature
+7.3.2      #       12 # Type Invariants                                          # yes         #
 7.4        # 95,05,12 # Deferred Constants                                       # yes         #
 7.5        # 95,05,12 # Limited Types                                            # no          # Not relevant to SCA
 7.6        # 95,05    # User-Defined Assignment and Finalization                 # no          # GNATcoverage is not qualified for controlled type definitions
-7.6        #       12 # Assignment and Finalization                              # no          # Ada 2012 feature
+7.6        #       12 # Assignment and Finalization                              # no          # Only relevant to task types, protected types and controlled type definitions, for which GNATcoverage is not qualified
 7.6.1      # 95,05,12 # Completion and Finalization                              # no          # Only relevant to task types, protected types and controlled type definitions, for which GNATcoverage is not qualified
 
 8          # 95,05,12 # Visibility Rules                                         # no          # General overview material
@@ -213,10 +213,10 @@
 
 13         # 95,05,12 # Representation Issues                                    # no          # General overview material
 13.1       # 95,05    # Operational and Representation Items                     # no          # This is a general syntax section; TOR references are supplied for the relevant specific sections
-13.1       #       12 # Operational and Representation Aspects                   # no          # Ada 2012 feature
-13.1.1     #       12 # Aspect Specifications                                    # no          # Ada 2012 feature
-13.2       # 95,05    # Pragma Pack                                              # no          # Not relevant to SCA
-13.2       #       12 # Packed Types                                             # no          # Ada 2012 feature
+13.1       #       12 # Operational and Representation Aspects                   # no          # This is a general syntax section; TOR references are supplied for the relevant specific sections
+13.1.1     #       12 # Aspect Specifications                                    # no          # Not relevant to SCA. Particular aspects are, e.g. Precondition, and these are handled as part of their specific section.
+13.2       # 95,05    # Pragma Pack                                              # partial     # Use of packed component in decisions
+13.2       #       12 # Packed Types                                             # partial     # Use of packed component in decisions
 13.3       # 95       # Representation Attributes                                # partial     # The only construct relevant to SCA is the address attribute definition
 13.3       #    05,12 # Operational and Representation Attributes                # partial     # The only construct relevant to SCA is the address attribute definition
 13.4       # 95,05,12 # Enumeration Representation Clauses                       # no          # Not relevant to SCA
@@ -235,17 +235,17 @@
 13.10      # 95,05,12 # Unchecked Access Value Creation                          # no          # Not relevant to SCA
 13.11      # 95,05,12 # Storage Management                                       # no          # Not relevant to SCA
 13.11.1    # 95,05    # The Max_Size_In_Storage_Elements Attribute               # no          # Not relevant to SCA
-13.11.1    #       12 # Storage Allocation Attributes                            # no          # Ada 2012 feature
+13.11.1    #       12 # Storage Allocation Attributes                            # no          # Not relevant to SCA
 13.11.2    # 95,05,12 # Unchecked Storage Deallocation                           # no          # Not relevant to SCA
 13.11.3    # 95,05    # Pragma Controlled                                        # no          # Not relevant to SCA
-13.11.3    #       12 # Default Storage Pools                                    # no          # Ada 2012 feature
-13.11.4    #       12 # Storage Subpools                                         # no          # Ada 2012 feature
-13.11.5    #       12 # Subpool Reclamation                                      # no          # Ada 2012 feature
-13.11.6    #       12 # Storage Subpool Example                                  # no          # Ada 2012 feature
+13.11.3    #       12 # Default Storage Pools                                    # no          # Storage Pools imply controlled type definitions, for which GNATcoverage is not qualified
+13.11.4    #       12 # Storage Subpools                                         # no          # Storage Pools imply controlled type definitions, for which GNATcoverage is not qualified
+13.11.5    #       12 # Subpool Reclamation                                      # no          # Storage Pools imply controlled type definitions, for which GNATcoverage is not qualified
+13.11.6    #       12 # Storage Subpool Example                                  # no          # Storage Pools imply controlled type definitions, for which GNATcoverage is not qualified
 13.12      # 95,05    # Pragma Restrictions                                      # no          # Not relevant to SCA
-13.12      #       12 # Pragma Restrictions and Pragma Profile                   # no          # Ada 2012 section
-13.12.1    #    05    # Language-Defined Restrictions                            # no          # Addressed by the :ref:`operational-conditions` section of this document.
-13.12.1    #       12 # Language-Defined Restrictions and Profiles               # no          # Ada 2012 section
+13.12      #       12 # Pragma Restrictions and Pragma Profile                   # no          # Not relevant to SCA
+13.12.1    #    05    # Language-Defined Restrictions                            # no          # Not relevant to applicable SCA
+13.12.1    #       12 # Language-Defined Restrictions and Profiles               # no          # Not relevant to applicable SCA
 13.13      # 95,05,12 # Streams                                                  # no          # General overview material
 13.13.1    # 95,05,12 # The Package Streams                                      # no          # Not relevant to SCA
 13.13.2    # 95,05,12 # Stream-Oriented Attributes                               # no          # Not relevant to SCA
