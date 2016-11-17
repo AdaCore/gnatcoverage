@@ -13,7 +13,7 @@ Operational Environment
 
 The Operational Environment in which the tool is used shall match the
 Qualification Environment in which the tool was qualified, as characterized by
-the items presented in the following tables. The *Expected value* column here
+the items presented in the following table. The *Expected value* column here
 states the intended value for qualification, which should match what
 eventually gets logged within the |str_doc| report. The *Item #* column
 provides item identifiers that are produced in this report to facilitate the
