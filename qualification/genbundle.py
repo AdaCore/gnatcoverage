@@ -742,17 +742,27 @@ class QMAT:
         self.local_testsuite_dir = \
             hashlib.sha1(self.o.testsuite_dir).hexdigest()
 
-        # Exclude non qualification tests and internal intermediate
-        # reports aimed at our intranet from the transfer. All pointless
-        # and potentially confusing.
+        # Exclude non qualification tests and internal reports aimed at our
+        # intranet from the transfer. All useless and potentially confusing.
+        # Also get rid of binaries, including executables without extensions.
+
+        # First rsync rule to hit wins, so the idea is to exclude patterns we
+        # know we want out, then include every file with a '.' (.out, .adb,
+        # ...), then every directory, then exclude everything.
 
         run ("rsync -arz --delete --delete-excluded %s/ %s %s" % (
                 self.o.testsuite_dir, self.local_testsuite_dir,
-                ' '.join (
-                    ('--exclude=%s' % xpattern
-                     for xpattern in ('/tests', '/output', '/rep_gnatcov*'))
-                    ))
-             )
+                ' '.join (("--exclude=/tests", 
+                           "--exclude=/output",
+                           "--exclude=/rep_gnatcov*",
+                           "--exclude=*.o",
+                           "--exclude=*.obj",
+                           "--exclude=*.exe",
+                           "--exclude=*.trace",
+                           "--exclude=*.dmap",
+                           "--include=*.*",
+                           "--include=*/",
+                           "--exclude=*"))))
 
         self.log (
             "testsuite-dir %s fetched as %s" % (
