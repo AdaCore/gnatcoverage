@@ -73,10 +73,11 @@ qualification |plans_doc| document.
 Runtime Library Profile
 -----------------------
 
-The general contents of this document is not tailored for a particular runtime
-library. You may for instance find the description of requirements and
-testcases for features supported only by a Ravenscar or full native profile
-even if the tool is used with a Zero-Footprint (ZFP) runtime.
+The general contents of this document is not tailored for input source code
+resorting to a particular language runtime library. You may for instance find
+the description of requirements and testcases for features supported only by a
+Ravenscar or full native profile even if the tool is used for code relying on
+a Zero-Footprint (ZFP) runtime.
 
 The set of tests executed as part of a testsuite run is selected according
 to the actual runtime used, nevertheless, based on the runtime name provided
