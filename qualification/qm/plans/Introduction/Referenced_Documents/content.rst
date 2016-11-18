@@ -41,16 +41,16 @@ distribution (file *share/doc/gnatcoverage/pdf/gnatcov.pdf*).
 
 .. rubric:: |plans_doc_title|
 
-AdaCore: |project_name_it| - |plans_doc_title|, *TEC.????-???*, this document.
+AdaCore: |project_name_it| - |plans_doc_title|, |plans_doc_id|, this document.
 
 .. rubric:: |tor_doc_title|
 
-AdaCore: |project_name_it| - |tor_doc_title|, *TEC.????-???*, included in this
+AdaCore: |project_name_it| - |tor_doc_title|, |tor_doc_id|, included in this
 qualification package.
 
 .. rubric:: |str_doc_title|
 
-AdaCore: |project_name_it| - |str_doc_title|, *TEC.????-???*, included in this
+AdaCore: |project_name_it| - |str_doc_title|, |str_doc_id|, included in this
 qualification package.
 
 .. rubric:: |tqa_doc_title|

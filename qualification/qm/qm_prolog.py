@@ -30,6 +30,9 @@ rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.macro('tor_doc', r'*TOR*') \
     + writer.macro('str_doc', r'*STR*') \
     + writer.macro('tqa_doc', '|tqa_doc_title|') \
+    + writer.macro('plans_doc_id', r'*TEC.PB07-002*') \
+    + writer.macro('tor_doc_id', r'*TEC.PB12-004*') \
+    + writer.macro('str_doc_id', r'*TEC.PB12-005*') \
     + writer.macro('DAL', 'Design Assurance Level') \
     + writer.macro('PSAC', 'Plan for Software Aspects of Certification') \
     + writer.macro('PSAC_bold',

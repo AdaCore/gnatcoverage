@@ -6,13 +6,15 @@ GNATcoverage DO-178C/ED-12C Qualification Material: Tool Operational Requirement
 .. tabularcolumns:: |p{0.20\textwidth}|p{0.80\textwidth}|
 
 .. csv-table::
-   :delim: |
-   :widths: 20, 80
-   :header: "Identifier", "Referenced document"
+   :delim: ;
+   :widths: 10, 90
+   :header: "Designation", "Referenced document"
 
-   Ada 2012 LRM|Ada 2012 Reference Manual. Language and Standard Libraries, ISO/IEC 8652:2012(E)
-   Ada 2005 LRM|Ada 2005 Reference Manual. Language and Standard Libraries. International Standard ISO/IEC 8652/1995(E) with Technical Corrigendum 1 and Amendment 1.
-   Ada 1995 LRM|Ada 1995 Reference Manual. Language and Standard Libraries. International Standard ISO/IEC 8652:1995 Technical Corrigendum 1 (ISO/IEC 8652:1995:TC1:2000)
+   |plans_doc| ; |project_name_it| - |plans_doc_title| (|plans_doc_id|)
+   Ada 2012 LRM ; Ada 2012 Reference Manual. Language and Standard Libraries, ISO/IEC 8652:2012(E)
+   Ada 2005 LRM ; Ada 2005 Reference Manual. Language and Standard Libraries. International Standard ISO/IEC 8652/1995(E) with Technical Corrigendum 1 and Amendment 1.
+   Ada 95 LRM ; Ada 1995 Reference Manual. Language and Standard Libraries. International Standard ISO/IEC 8652:1995 Technical Corrigendum 1 (ISO/IEC 8652:1995:TC1:2000)
+   Tool User's Guide ; *GNATcoverage User's Guide*
 
 .. rubric:: Revision history
 

@@ -48,6 +48,28 @@ For the GNAT Pro compilation switches, additional options which do not
 influence code generation, e.g. controlling warnings or confirming compiler
 defaults, are allowed.
 
+Installation, Documentation and Qualified Interface
+---------------------------------------------------
+
+All AdaCore tool packages use a common installation procedure, that depends on
+the host platform.
+
+* On Windows hosts, the tool packages are provided in the form of
+  self-installing executables. The Tool User should run the executable
+  corresponding to the tool he wants to install, then follow the instructions
+  on screen.
+  
+* On non-Windows hosts, the tool packages are provided in the form of .tar.gz
+  archives. The Tool User should unpack the archive corresponding to the tool
+  he wants to install, then run the script doinstall located at the root of
+  the archive directory structure, and follow the instructions on screen.
+
+General use of the tool is described in the Tool User's Guide document, which
+can be found in the subdirectory :literal:`share/doc` of the tool
+installation.  For qualified use more specifically, the Tool User shall also
+conform to the rules described in the *Qualified Interface* section of the
+qualification |plans_doc| document.
+
 Runtime Library Profile
 -----------------------
 
