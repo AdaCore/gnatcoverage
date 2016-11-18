@@ -13,8 +13,8 @@ described here are performed on the PDF version of the documents. Only those
 steps requiring access to test sources are performed with the help of the HTML
 contents.
 
-Reading the PLANS document
-**************************
+Reading the |plans_doc| document
+********************************
 
 **objectives:** 
 
