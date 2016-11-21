@@ -54,12 +54,12 @@ Installation, Documentation and Qualified Interface
 All AdaCore tool packages use a common installation procedure, that depends on
 the host platform.
 
-* On Windows hosts, the tool packages are provided in the form of
+* On Windows hosts, the tool packages are provided as
   self-installing executables. The Tool User should run the executable
   corresponding to the tool he wants to install, then follow the instructions
   on screen.
   
-* On non-Windows hosts, the tool packages are provided in the form of .tar.gz
+* On non-Windows hosts, the tool packages are provided as .tar.gz
   archives. The Tool User should unpack the archive corresponding to the tool
   he wants to install, then run the script doinstall located at the root of
   the archive directory structure, and follow the instructions on screen.
