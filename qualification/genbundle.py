@@ -748,7 +748,9 @@ class QMAT:
 
         # First rsync rule to hit wins, so the idea is to exclude patterns we
         # know we want out, then include every file with a '.' (.out, .adb,
-        # ...), then every directory, then exclude everything.
+        # ...), then every directory, then exclude everything. Preserve the
+        # STR subdir contents entirely. There's no binary there, and artifacts
+        # we all need to produce the STR after the copy (e.g. Makefile).
 
         run ("rsync -arz --delete --delete-excluded %s/ %s %s" % (
                 self.o.testsuite_dir, self.local_testsuite_dir,
@@ -762,6 +764,7 @@ class QMAT:
                            "--exclude=*.dmap",
                            "--include=*.*",
                            "--include=*/",
+                           "--include=/STR/**",
                            "--exclude=*"))))
 
         self.log (
