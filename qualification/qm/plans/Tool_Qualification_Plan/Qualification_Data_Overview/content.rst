@@ -40,8 +40,10 @@ The qualification data that comes with the tool, composing the tool
   |QA| activities are performed on which document variant.
 
 * A **Testsuite package**, archive of the testsuite directory where the
-  qualification testsuite run took place, including all the execution
-  artifacts (actual reports produced by the tool for each test, intermediate
-  object files, execution traces produced by the instrumented execution
-  environment, ...).
+  qualification testsuite run took place, filtered to include artifacts
+  of possible use for inspection (execution logs, coverage reports, ...),
+  not binary artifacts such as object and executable files, as they take
+  a huge amount of space, aren't so useful for inspection, and can easily
+  be re-generated on demand if really needed.
+  
 
