@@ -3,7 +3,7 @@
 Traceability
 ************
 
-**Item 7.2.2f:** The following traceability relations are established:
+The following traceability relations are established (activity 7.2.2.f):
 
  * **From TOR to Testcases:**
 
@@ -20,8 +20,8 @@ Traceability
    under Git or Subversion configuration management control, with the
    hierarchy of artifacts mapped to filsystem folders.
 
- * **Other elements of traceability** are not required for verification tools.
+ * **Other elements of traceability** are not required for TQL-5 tools.
 
-**Item 7.2.2g:** all configuration items are traceable to the GNATcoverage
-  (pre-)qualification process.
+All configuration items are traceable to the GNATcoverage (pre-)qualification
+process (activity 7.2.2.g).
 

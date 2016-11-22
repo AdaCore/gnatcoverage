@@ -21,27 +21,27 @@ years now.
 Change control
 --------------
 
-**Item 7.2.4a:** Integrity of configuration items is guaranteed by the Git
+Integrity of configuration items is guaranteed by the Git
 repositories where all configuration items are located. Only authorized
 engineers can modify configuration items and all modifications are
 recorded. In addition, all repositories and mail servers are mirrored with
 machines physically located in Paris (France) and New York. This increases
-confidence in the durability of qualification data.
+confidence in the durability of qualification data (activity 7.2.4.a).
 
-**Item 7.2.4b:** Each change to a configuration item is associated to a unique
+Each change to a configuration item is associated to a unique
 ID, which unambiguously identifies the version of a configuration item over
-its history.
+its history (activity 7.2.4.b).
 
 .. _adacore-archive:
 
 Archive, Retrieval and Release
 ------------------------------
 
-**Item 7.2.7a:** Repositories are available for audit if necessary.
+Repositories are available for audit if necessary (activity 7.2.7.a).
 
-**Item 7.2.7b(1):** Only authorized engineers can change the configuration
+Only authorized engineers can change the configuration
 items, thanks to the security mechanisms embedded in the Git
-repositories.
+repositories (activity 7.2.7.b.1).
 
 
 Detailed procedures are as follows.
