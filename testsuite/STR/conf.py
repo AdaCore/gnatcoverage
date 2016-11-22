@@ -227,7 +227,6 @@ latex_preamble = project_settings() + r"""
     \let\footnoterule\relax
     \rule{\textwidth}{1pt}%
     \begin{flushright}%
-      \sphinxlogo%
       {\rm\Huge \@title \par}%
       {\em\LARGE\py@HeaderFamily \py@release\releaseinfo \par}
       \vfill
@@ -259,15 +258,10 @@ latex_preamble = project_settings() + r"""
   \fancypagestyle{normal}{
     \fancyhf{}
     \fancyfoot[LE,RO]{{\py@HeaderFamily\thepage\ of \pageref*{LastPage}}}
-    \fancyfoot[LO]{{\py@HeaderFamily\nouppercase{\rightmark}}}
-    \fancyfoot[RE]{{\py@HeaderFamily\nouppercase{\leftmark}}}
-    \fancyhead[LE,RO]{{\py@HeaderFamily \@title, \py@release}}
-    \renewcommand{\headrulewidth}{0.4pt}
+    \fancyfoot[LO,RE]{{\py@HeaderFamily \QMFullDocumentName}}
+    \fancyhead[LE,RO]{{\py@HeaderFamily \@title\ \QMVersion}}
+    \renewcommand{\headrulewidth}{0.0pt}
     \renewcommand{\footrulewidth}{0.4pt}
-    % define chaptermark with \@chappos when \@chappos is available for Japanese
-    \ifx\@chappos\undefined\else
-      \def\chaptermark##1{\markboth{\@chapapp\space\thechapter\space\@chappos\space ##1}{}}
-    \fi
   }
   % Update the plain style so we get the page number & footer line,
   % but not a chapter or section title.  This is to keep the first
