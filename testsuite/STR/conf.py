@@ -221,6 +221,38 @@ latex_preamble = project_settings() + r"""
 \RequirePackage{lastpage}
 
 \makeatletter
+\renewcommand{\maketitle}{%
+  \begin{titlepage}%
+    \let\footnotesize\small
+    \let\footnoterule\relax
+    \rule{\textwidth}{1pt}%
+    \begin{flushright}%
+      \sphinxlogo%
+      {\rm\Huge \@title \par}%
+      {\em\LARGE\py@HeaderFamily \py@release\releaseinfo \par}
+      \vfill
+      {\LARGE\py@HeaderFamily
+        \begin{tabular}[t]{c}
+          \@author \\
+          \QMDocID
+        \end{tabular}
+        \par}
+      \vfill\vfill
+      {\large
+       \@date \par
+       \vfill
+       \py@authoraddress \par
+      }%
+    \end{flushright}%\par
+    \@thanks
+  \end{titlepage}%
+  \cleardoublepage%
+  \setcounter{footnote}{0}%
+  \let\thanks\relax\let\maketitle\relax
+}
+\makeatother
+
+\makeatletter
 % Redefine the "normal" header/footer style when using "fancyhdr" package:
 \@ifundefined{fancyhf}{}{
   % Use \pagestyle{normal} as the primary pagestyle for text.
