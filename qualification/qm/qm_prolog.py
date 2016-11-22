@@ -33,6 +33,7 @@ rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.macro('plans_doc_id', r'*TEC.PB07-002*') \
     + writer.macro('tor_doc_id', r'*TEC.PB12-004*') \
     + writer.macro('str_doc_id', r'*TEC.PB12-005*') \
+    + writer.macro('opcond_section_title', r'Operational Conditions of Use') \
     + writer.macro('DAL', 'Design Assurance Level') \
     + writer.macro('PSAC', 'Plan for Software Aspects of Certification') \
     + writer.macro('PSAC_bold',

@@ -1,7 +1,7 @@
 .. _operational-conditions:
 
-Operational conditions of use
-=============================
+|opcond_section_title|
+======================
 
 This chapter describes rules on which the correctness of the source coverage
 assessments performed by GNATcoverage depends.
