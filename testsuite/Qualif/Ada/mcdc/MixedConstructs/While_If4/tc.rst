@@ -1,4 +1,4 @@
-**Exercise a three way IF statement within a WHILE loop.**
+**Exercise MCDC over a three way IF statement within a WHILE loop**
 
 Check cases where
 
