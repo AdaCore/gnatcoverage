@@ -159,7 +159,7 @@ class colid(object):
     )
 
     cat = Column(
-        htext="category", legend="Test category")
+        htext="Test category", legend="Test category")
 
     # Expectation counters, for testcase table and counters summary
 
@@ -190,21 +190,26 @@ class colid(object):
     # Status counters and overall status, for status summary
 
     failed = Column(
-        htext="failed", legend="Number of tests with status *failed*")
+        htext="failed",
+        legend="Number of tests with status *failed* in category")
 
     passed = Column(
-        htext="passed", legend="Number of tests with status *passed*")
+        htext="passed",
+        legend="Number of tests with status *passed* in category")
+
+    xfail = Column(
+        htext="xfail",
+        legend="Number of tests with status *xfail* in category")
 
     ovsta = Column(
-        htext="overall", legend="Testsuite overall status")
+        htext="testsuite status",
+        legend="Testsuite overall status, *passed* if all tests were "
+        "*passed* or *xfail*")
 
     # Other status counters
 
     uok = Column(
         htext="uok", legend="Test ran OK despite expected to fail")
-
-    xfail = Column(
-        htext="xfail", legend="Number of tests with status *xfail*")
 
     # Columns for legend sub-tables
 
@@ -834,17 +839,21 @@ class QDreport(object):
 
     # Compute and write out an overall summary like
     #
-    # =========  ======= ======= ======= === === ...
-    # category   #passed #failed overall nov scv ...
-    # =========  ======= ======= ======= === === ...
-    # Statement  3       1       NOK
-    # ...
-    # Total      ...
-    # =========  ======= ======= ======= === === ...
+    # =========  ======= ======= ====== === === ... ==========
+    # category   passed  failed  xfail  nov scv ... testsuite
+    #                                               status
+    # =========  ======= ======= ====== === === ... ==========
+    # Statement  3       0        1                 passed
+    # ...                                           passed
+    # Total      ...                                ALL PASSED
+    # =========  ======= ======= ====== === === ... ==========
 
     def sumcolumns(self):
-        return (colid.cat,) + stacnt_columns + (colid.ovsta,) + \
-            self.viocnt_columns
+        return (
+            (colid.cat,)            # category
+            + stacnt_columns        # #passed, #failed, #xfail
+            + self.viocnt_columns   # nov, scv, ...
+            + (colid.ovsta,))       # testsuite status
 
     def init_data_for(self, catid):
 
@@ -881,7 +890,8 @@ class QDreport(object):
 
         thissum.__setitem__(
             colid.ovsta, TextCell(
-                "%s" % "OK" if thissum[colid.failed].value == 0 else "NOT OK"))
+                "%s" % "passed" if thissum[colid.failed].value == 0
+                else "failed"))
 
         [self.do_sum(qd=qd, catsum=totsum) for qd in cat.qdl]
 
@@ -910,7 +920,8 @@ class QDreport(object):
 
         totsum.__setitem__(
             colid.ovsta, TextCell(
-                "%s" % "OK" if totsum[colid.failed].value == 0 else "NOT OK"))
+                "%s" % "PASSED" if totsum[colid.failed].value == 0
+                else "FAILED"))
 
         return catsums + [totsum]
 
