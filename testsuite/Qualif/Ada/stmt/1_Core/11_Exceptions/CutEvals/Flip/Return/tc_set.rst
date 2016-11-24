@@ -1,8 +1,5 @@
-Check SC for "return not A", where operand evaluations might raise an exception
-===============================================================================
-
-SC testcases for "return not A" where operand evaluations might raise
-an exception.
+**SC on "return not A" where operand might raise an exception**
+  
 
 .. qmlink:: TCIndexImporter
 

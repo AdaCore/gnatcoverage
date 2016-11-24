@@ -1,8 +1,11 @@
-Check SC with evals of "A or else B" where operands might raise an exception
-============================================================================
+SC on statements evaluating "A or else B" where operands might raise
+====================================================================
 
-SC testcases for statements evaluating "A or else B" where each operand
-might raise an exception.
+This group gathers Statement Coverage testcases for statements evaluating 
+an expression of the form "A or else B" in various contexts (controlling 
+an IF, right hand side of an assignment, ...) and where each operand might 
+raise an exception in different circumstances (language check, subprogram 
+call, ..).
 
 .. qmlink:: TCIndexImporter
 

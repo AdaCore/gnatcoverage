@@ -1,4 +1,4 @@
-Check SC with expressions that can fail to evaluate because of exceptions
+Check SC on expressions that can fail to evaluate because of exceptions
 =========================================================================
 
 Check the effects of an expression evaluation interrupted by an exception
