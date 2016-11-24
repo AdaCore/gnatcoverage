@@ -1,5 +1,5 @@
-**MCDC on a 4 operands decision with two of them strongly coupled such that**
+**MCDC on a 4 operands decision, two strongly coupled**
 
-MCDC on a 4 operands decision with two of them strongly coupled such that
-masking mcdc remains achievable.
+Exercise MCDC on a 4 operands decision with two of them strongly coupled such
+that masking mcdc remains achievable.
 
