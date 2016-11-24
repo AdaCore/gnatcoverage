@@ -1,7 +1,1 @@
-pragma Restriction_Warnings (No_Tasking);
-pragma Restriction_Warnings (No_Exception_Registration);
-pragma Restriction_Warnings (No_Implicit_Dynamic_Code);
-pragma Restriction_Warnings (No_Finalization);
-pragma Restriction_Warnings (No_Exception_Handlers);
-
 pragma Restrictions (No_Direct_Boolean_Operators);
