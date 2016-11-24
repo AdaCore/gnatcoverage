@@ -947,7 +947,7 @@ class QDreport(object):
             title=None,
             text="This table summarizes status and expectation counters "
             "for each test category across the entire testsuite.  Please "
-            "refer to the :ref:`tctable` section of ths report for an "
+            "refer to the :ref:`tctable` section of this report for an "
             "explanation of the legend. ",
             columns=self.sumcolumns(),
             contents=self.sumcontents()
