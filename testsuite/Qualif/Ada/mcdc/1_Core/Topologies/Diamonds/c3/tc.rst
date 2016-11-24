@@ -1,9 +1,7 @@
-**MCDC on a decision of the form "(A and then B) or else C", known to feature a**
+**MCDC on a decision of the form "(A and then B) or else C"**
 
-MCDC on a decision of the form "(A and then B) or else C", known to feature a
-BDD diamond, with all the meaningful combination of inputs.
-
-Check outcome expectations with
+Exercise MCDC on a decision of the form "(A and then B) or else C", known
+to feature a BDD multi-path node. Check outcome expectations with
 
 * Every possible invocation vector alone (5 relevant, considering
   shortcircuits),
