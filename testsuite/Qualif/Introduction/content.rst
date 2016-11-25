@@ -1,5 +1,5 @@
-Document purpose and organization
-*********************************
+|torintro_section_title|
+************************
 
 Document Purpose
 ================

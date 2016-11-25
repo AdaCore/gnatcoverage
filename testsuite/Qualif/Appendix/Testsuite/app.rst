@@ -1,7 +1,7 @@
 .. _testsuite-overview:
 
-Overview of the test procedures organization
-********************************************
+|testproc_section_title|
+************************
 
 The GNATcoverage *testsuite* consists of the set of executable *tests* that
 implement *Testcases*, driven by an execution and control harness to validate
