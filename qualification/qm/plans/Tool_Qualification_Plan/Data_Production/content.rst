@@ -11,9 +11,8 @@ As the Tool Developer, we first discuss with the Tool User to define the use
 that will be made of the tool, agreeing on items such as the tool interface,
 the source language version, the runtime profile and language features, the
 software level.
-
 This eventually translates as specific indications in the
-|opcond_section_title| section of the |tor_doc| document and in the
+|opcond_section_title_ref| section of the |tor_doc| document and in the
 :ref:`qualified-interface` section of the |plans_doc| document, then |tors|
 and their Tests derivatives are refined to accommodate changes in the
 scope for which the tool had been qualified so far.
@@ -32,8 +31,8 @@ major lines:
 * General coverage analysis facilities, such as the abiliy to perform coverage
   consolidation.
 
-The general organization is described in the |torintro_section_title| of the
-|tor_doc| document.
+The general organization is described in the
+|torintro_section_title_ref| of the |tor_doc| document.
 
 A TOR always comes with a Testing Strategy, to be implemented by Test Cases
 and eventually Tests. The TOR expresses expected behavior of the tool and the
@@ -59,9 +58,9 @@ specific coverage objective purpose, for instance evaluating a decision both
 True and False but demonstrating independent influence of only the first
 condition.
 
-Section |testproc_section_title| of the |tor_doc| document provides more
-details on how Tests are composed, and in particular on how expected results
-are stated.
+Section |testproc_section_title_ref| of the |tor_doc| document
+provides more details on how Tests are composed, and in particular on how
+expected results are stated.
 
 Completeness of the TORs with respect to language features of relevance for
 the project is tracked through an LRM-to-TORs-and-Test-Cases traceability

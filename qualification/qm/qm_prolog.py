@@ -1,4 +1,8 @@
 
+opcond_section_title = "Operational Conditions of Use"
+torintro_section_title = "Document Purpose and Organization"
+testproc_section_title = "Overview of the Test Procedures Organization"
+
 rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.role('raw-latex',
                   r'\renewcommand{\labelitemi}{$\bullet$}') + '\n\n' \
@@ -33,9 +37,12 @@ rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.macro('plans_doc_id', r'*TEC.PB07-002*') \
     + writer.macro('tor_doc_id', r'*TEC.PB12-004*') \
     + writer.macro('str_doc_id', r'*TEC.PB12-005*') \
-    + writer.macro('opcond_section_title', r'Operational Conditions of Use') \
-    + writer.macro('torintro_section_title', r'Document Purpose and Organization') \
-    + writer.macro('testproc_section_title', r'Overview of the Test Procedures Organization') \
+    + writer.macro('opcond_section_title', r'%s' % opcond_section_title) \
+    + writer.macro('opcond_section_title_ref', r'*%s*' % opcond_section_title) \
+    + writer.macro('torintro_section_title', r'%s' % torintro_section_title) \
+    + writer.macro('torintro_section_title_ref', r'*%s*' % torintro_section_title) \
+    + writer.macro('testproc_section_title', r'%s' % testproc_section_title) \
+    + writer.macro('testproc_section_title_ref', r'*%s*' % testproc_section_title) \
     + writer.macro('DAL', 'Design Assurance Level') \
     + writer.macro('PSAC', 'Plan for Software Aspects of Certification') \
     + writer.macro('PSAC_bold',
