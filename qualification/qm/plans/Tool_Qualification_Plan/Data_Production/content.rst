@@ -8,13 +8,15 @@ Settle on the |opcond_section_title|
 ************************************
 
 As the Tool Developer, we first discuss with the Tool User to define the use
-that will be made of the tool (interface, language version, runtime profile
-and language features, coverage analysis features and software level, ...),
-which eventually gets written down as specific indications in the
-|opcond_section_title| section of the |tor_doc| document and in the
-:ref:`qualified-interface` section of this document.
+that will be made of the tool, agreeing on items such as the tool interface,
+the source language version, the runtime profile and language features, the
+software level.
 
-On this basis, the |tors| and their Tests derivatives are refined.
+This eventually translates as specific indications in the
+|opcond_section_title| section of the |tor_doc| document and in the
+:ref:`qualified-interface` section of the |plans_doc| document, then |tors|
+and their Tests derivatives are refined to accommodate changes in the
+scope for which the tool had been qualified so far.
 
 Produce TORs, Test Cases and Tests Artifacts
 ********************************************
@@ -61,6 +63,10 @@ Section |testproc_section_title| of the |tor_doc| document provides more
 details on how Tests are composed, and in particular on how expected results
 are stated.
 
+Completeness of the TORs with respect to language features of relevance for
+the project is tracked through an LRM-to-TORs-and-Test-Cases traceability
+matrix provided as part of the |tor_doc| document.
+
 Additional TORs are introduced or existing TORs are adjusted on a case by case
 basis when the scope of possible uses of the tool widens somehow, most
 commonly when the set of source language constructs for which the tool needs
@@ -80,7 +86,9 @@ and runs them with provided control parameters. The tests are taken from a
 branch dedicated to the kit construction in AdaCore's repositories.
 
 This produces execution logs and data files that are later on gathered to
-elaborate the |str_doc| report.
+elaborate the |str_doc| report. The Qualification Team verifies at this point
+that test results conform to expectations, making sure that the only failures,
+if any, are understood and registered in AdaCore's tracking system.
 
 Produce the Qualification Kit
 *****************************
@@ -91,4 +99,8 @@ where the kit is maintained and the (possibly remote) location of the
 directory where the testsuite execution took place.
 
 The script collects the artifacts, builds the PDF and HTML versions of the
-documents and bundles everything together to constitute the kit per se.
+documents and bundles everything together to constitute the kit per se. It
+also performs consistency and tracebility checks, producing a log of what
+those checks find out. The Qualification Team reviews this log and verifies
+the general consistency of the documents before handing them to the Quality
+Assurance team.
