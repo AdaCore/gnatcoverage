@@ -28,7 +28,7 @@ major lines:
 * The constructs allowed by the source language, influenced by the established
   conditions of use, and
 
-* General coverage analysis facilities, such as the abiliy to perform coverage
+* General coverage analysis facilities, such as the ability to perform coverage
   consolidation.
 
 The general organization is described in the
@@ -51,7 +51,7 @@ expression operands.
 Then for a given Test Case (say, an *A and then B* Ada expression controlling
 an *if* statement, with *A* and *B* both simple Boolean variables), several
 tests verify the tool behavior across a set of execution scenarii. Each test
-checks results for a specific sequence of calls into the code to analyse,
+checks results for a specific sequence of calls into the code to analyze,
 providing particular values for variables involved in a decision for
 example. A single such valuation or several of them are performed with a
 specific coverage objective purpose, for instance evaluating a decision both
@@ -93,13 +93,13 @@ Produce the Qualification Kit
 *****************************
 
 This is also achieved automatically by a collection of tools coordinated by a
-toplevel script provided with the name of a branch in AdaCore's repositories
+top level script provided with the name of a branch in AdaCore's repositories
 where the kit is maintained and the (possibly remote) location of the
 directory where the testsuite execution took place.
 
 The script collects the artifacts, builds the PDF and HTML versions of the
 documents and bundles everything together to constitute the kit per se. It
-also performs consistency and tracebility checks, producing a log of what
+also performs consistency and traceability checks, producing a log of what
 those checks find out. The Qualification Team reviews this log and verifies
 the general consistency of the documents before handing them to the Quality
 Assurance team.
