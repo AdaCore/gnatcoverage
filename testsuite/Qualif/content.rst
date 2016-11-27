@@ -47,8 +47,8 @@ GNATcoverage DO-178C/ED-12C Qualification Material: Tool Operational Requirement
 
 .. qmlink:: TestCasesImporter
 
-      Ada
-      Common
+   Ada
+   Common
 
 
 .. only:: html

@@ -903,22 +903,73 @@ class SourceCodeImporter(ArtifactImporter):
 
 class IndexImporter(ArtifactImporter):
 
+    def append_to_items(self, art, depth):
+
+        if is_req(art):
+            self.current_req = art
+            kind_text = writer.strong("(%s)" % class_to_string(art))
+            id_text = writer.strong(
+                "%s" % art.full_name.replace("/TOR", ""))
+            
+        elif is_tc(art):
+            kind_text = "(%s)" % class_to_string(art)
+
+            common_prefix_parent_req = os.path.commonprefix(
+                (art.full_name,
+                 self.current_req.full_name))
+
+            id_text = \
+                "[...]" + art.full_name.replace(common_prefix_parent_req, "")
+
+        self.items.append (
+            [kind_text, id_text,
+             write_artifact_ref(art.full_name, get_short_description(art))])
+            
+        
+    def handle(self, art, depth):
+
+        if is_req(art) or is_tc(art):
+            self.append_to_items(art, depth)
+
+        for child in art.relatives:
+            self.handle(art=child, depth=depth+1)
+    
     def qmlink_to_rest(self, parent, artifacts):
 
-        indexes = []
+        self.items = []
+
+        def sortkey_for(art):
+            
+            # Arrange for stmt requirements to come first, before decision and
+            # mcdc. Work from locations, which contain the explicit ordering
+            # requests in the names (numeric prefixes like 1_).
+            
+            return str(art.location).replace("/stmt", "/a")
+            
+        artifacts.sort(key=sortkey_for)
+        
+        for art in artifacts:
+            self.handle(art=art, depth=0)
+
+        pdf_table = writer.csv_table(
+            self.items,
+            headers=["Kind", "Identification", "Description"],
+            latex_format=\
+            '|p{0.05\linewidth}|p{0.47\linewidth}||p{0.37\linewidth}|')
+
+        html_table = writer.csv_table(
+            self.items,
+            headers=["Kind", "Ref"],
+            widths=[5, 47, 37])
+
         output = ""
-        artifacts.sort(key=lambda a: a.full_name)
+        output += writer.only(pdf_table, "latex")
+        output += writer.only(html_table, "html")
 
-        if artifacts:
-            for art in artifacts:
-                if is_tc(art):
-                    output += '%s %s\n\n' % (art.full_name,
-                                             write_artifact_ref(art.full_name,
-                                                                'refers to'))
+        output += "\n\n"
 
-        return output, indexes
-
-
+        return output, []
+            
 class TestCasesImporter(ArtifactImporter):
 
     def short_descs_of_main_ancestors(self, artifact, head):
