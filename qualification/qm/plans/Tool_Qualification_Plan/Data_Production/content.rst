@@ -7,7 +7,8 @@ steps described hereafter:
 Settle on the |opcond_section_title|
 ************************************
 
-As the Tool Developer, we first discuss with the Tool User to define the use
+As the Tool Developer, AdaCore first discusses with the Tool User to define
+the use
 that will be made of the tool, agreeing on items such as the tool interface,
 the source language version, the runtime profile and language features, the
 software level.

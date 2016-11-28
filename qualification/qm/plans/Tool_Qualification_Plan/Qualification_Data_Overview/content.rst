@@ -3,7 +3,7 @@
 Qualification Data Overview
 ===========================
 
-GNATcoverage is qualified as a COTS accoring to guidance of section 11.3 of
+GNATcoverage is qualified as a COTS according to guidance of section 11.3 of
 [DO-330/ED-215].
 
 The qualification data that comes with the tool, composing the tool
