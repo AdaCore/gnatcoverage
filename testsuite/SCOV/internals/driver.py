@@ -461,6 +461,15 @@ class SCOV_helper:
         # Even though we remember them here, we won't be looking at the
         # xlnotes if we're running for qualification.
 
+        # Empty expectation sets here mean we have not a single source on
+        # which anything will be checked. This can only be a mistake and would
+        # just pass if we let the processing continue.
+
+        thistest.fail_if (
+            not self.xlnotes, "empty xlnotes from %s !!" % xfile)
+        thistest.fail_if (
+            not self.xrnotes, "empty xrnotes from %s !!" % xfile)
+
     # --------------------------
     # -- xcov_translation_for --
     # --------------------------
