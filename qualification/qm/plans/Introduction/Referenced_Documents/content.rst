@@ -6,12 +6,6 @@ Referenced Documents
 Bordin et al.: *Couverture: An Innovative Open Framework for Coverage Analysis
 of Safety Critical Applications* - Ada User Journal, December 2009.
 
-.. rubric:: DO-178B/ED-12B
-
-RTCA DO-178B/EUROCAE ED-12B:
-*Software Considerations in Airborne Systems and Equipment Certification*;
-December 1992
-
 .. rubric:: |standard|
 
 RTCA DO-178B/EUROCAE ED-12C:
