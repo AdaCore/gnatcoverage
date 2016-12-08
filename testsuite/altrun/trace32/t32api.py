@@ -150,6 +150,11 @@ def init_trace_stm32f7():
 # ---------------------
 
 def load_executable(path):
+
+    # The old breakpoints don't make sense with a new executable so we remove
+    # them all.
+    clear_breakpoints()
+
     cmd_wrapper(b"Data.Load.auto \"%s\"" % path, wait_for_completion=True)
 
 
@@ -203,7 +208,7 @@ def set_breakpoint(symbol):
     T32_BPCONFIG_PROGRAM = 0x001
     addr = ctypes.c_uint32(get_symbol_address(symbol))
     return t32.T32_WriteBreakpoint(addr, T32_MEMORY_ACCESS_PROGRAM,
-                                   T32_BPCONFIG_PROGRAM, 8)
+                                   T32_BPCONFIG_PROGRAM, 1)
 
 
 # ------------------------
@@ -258,7 +263,18 @@ def export_trace(path):
 # ---------------------------
 
 def CPU_stopped_at_symbol(symbol):
-    return read_register_by_name("PC") == get_symbol_address(symbol) + 4
+    sym_addr = get_symbol_address(symbol)
+    pc_addr = read_register_by_name("PC")
+
+    return pc_addr == sym_addr
+
+
+# -----------------------
+# -- clear_breakpoints --
+# -----------------------
+
+def clear_breakpoints():
+    cmd_wrapper(b"Break.Reset")
 
 
 # ------------------
