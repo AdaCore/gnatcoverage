@@ -5,12 +5,11 @@ SC requirements for ARM chap. 12 : Generic Units
 %REQ_ID%
 
 
-
-The code of a generic unit shall be reported as covered only if the generic is
-instantiated, and the instance is either called (a generic subprogram
-instantiation or a subprogram declared in an instance of a generic package)
-or elaborated (a declaration or elaboration code in a generic package).
-In all other cases the code from a generic unit shall be reported as uncovered.
+For coverage assessments of generic subprograms or packages, the tool combines
+the coverage achieved by different instantiations of the generic
+entities. Statements or declarations within generic source code shall be
+reported uncovered when they are never executed at all, regardless of the
+instantiations from which the execution might originate.
 
 
 .. rubric:: Testing Strategy
