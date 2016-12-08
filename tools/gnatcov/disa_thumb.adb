@@ -241,9 +241,25 @@ package body Disa_Thumb is
                end;
 
             when others => --  2#11#
-               if (Insn32 and 16#ffff_0fff#) = 16#f85d_0b04# then
+               if (Insn32 and 16#ffff_2000#) = 16#e8bd_0000# then
 
-                  --  POP (T3)
+                  --  POP (T2)
+
+                  if (Insn32 and 16#0000_8000#) = 16#0000_8000# then
+
+                     --  This instruction writes in PC, so it's a control-flow
+                     --  instruction.
+
+                     Branch := Br_Jmp;
+                     Flag_Indir := True;
+                  end if;
+
+               elsif (Insn32 and 16#ffff_0fff#) in
+                     16#f85d_0b04#
+                   | 16#f8d0_0000#
+               then
+
+                  --  POP (T3), LDR (immediate, T3)
 
                   if (Insn32 and 16#0000_f000#) = 16#0000_f000# then
 
@@ -302,7 +318,7 @@ package body Disa_Thumb is
 
                elsif (Shift_Right (Insn16, 8) and 16#f#) = 2#1101# then
 
-                  --  POP (P is set: write to PC = branch)
+                  --  POP (T1, P is set: write to PC = branch)
 
                   Branch := Br_Jmp;
                   Flag_Indir := True;
