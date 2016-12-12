@@ -9,7 +9,7 @@ We exercise a few subprograms featuring various forms of assertions and
 contracts, all disabled, and verify that statement and decision coverage
 results on the regular code are those we would expect without the assertions.
 
-.. qmlink:: SubsetIndexImporter
+.. qmlink:: TCIndexImporter
 
    *
 
