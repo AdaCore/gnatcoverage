@@ -28,3 +28,4 @@ Tool Developer's perspective.
    T-1 to T-7 # Not Applicable # Not required for TQL-5.
    T-8 # Up to the applicant # See :ref:`user-conf-management` for suggested configuration items.
    T-9 # Yes # See the |tqa_doc| document accompanying this qualification package.
+   T-10 # Up to the applicant # 
