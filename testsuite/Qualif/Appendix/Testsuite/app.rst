@@ -84,8 +84,10 @@ In the optional sequence at the end of driver sources:
 * ``/regexp/`` selects all the source lines matching ``-- # <regexp>``
 
 * ``<expected .xcov note>`` denotes the synthesis sign we expect on the
-  selected lines in the ``--annotate=xcov`` output, to be stated even though
-  that output is not qualified (see :ref:`rationale <harness-rationale>`):
+  selected lines in the ``--annotate=xcov`` output, with the meaning of signs
+  defined in the Tool User's Guide. This expectation is stated even though
+  that output format is not qualified, see :ref:`rationale
+  <harness-rationale>`:
 
   =========================  =======================
   Text                       Denotes an expected ...
