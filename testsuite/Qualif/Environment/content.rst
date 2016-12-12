@@ -124,7 +124,7 @@ In addition:
   conformance to what the Operational Requirements specifically prescribe
   for such cases (:ref:`exceptions`).
 
-* For mcdc assessements, the tool requires the use of short-circuit variants
+* For mcdc assessments, the tool requires the use of short-circuit variants
   for the Boolean binary operators composing decisions: ``&&`` or ``||`` in C,
   ``and then`` or ``or else`` in Ada.
 
