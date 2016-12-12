@@ -43,7 +43,7 @@ transfer. All the tescases follow a common pattern, involving:
 * Explicit ``raise`` statements, executed or not, followed by other statements
   or not
 
-* Variations of these in subprograsm or package bodies,
+* Variations of these in subprograms or package bodies,
   directly within the top-level sequence of statements, and within nested
   block, conditional or loop statements,
 
