@@ -26,7 +26,7 @@ pragmas or aspects apply, disabled by the appropriate Assertion_Policy
 directive.
 
 We also verify that no decision coverage violation is emitted for the disabled
-assertions which the program doesn't violate.
+assertions.
 
 .. qmlink:: TCIndexImporter
 
