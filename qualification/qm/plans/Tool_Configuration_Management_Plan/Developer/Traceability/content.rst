@@ -18,7 +18,7 @@ The following traceability relations are established (activity 7.2.2.f):
  
    Operationally, TOR and Testcase artifacts are stored within filesystems
    under Git or Subversion configuration management control, with the
-   hierarchy of artifacts mapped to filsystem folders.
+   hierarchy of artifacts mapped to filesystem folders.
 
  * **Other elements of traceability** are not required for TQL-5 tools.
 
