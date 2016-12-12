@@ -1,4 +1,4 @@
-**Exercise a three way IF statement within a WHILE loop**
+**Exercise an IF/ELSIF/ELSE construct within a WHILE loop**
 
 Check cases where
 
