@@ -121,7 +121,7 @@ In addition:
 
   For all uses, in subprograms subject to the analysis, of handlers for
   exceptions not raised by the subprogram itself, users shall verify
-  conformance to what our Operational Requirements specifically prescribe
+  conformance to what the Operational Requirements specifically prescribe
   for such cases (:ref:`exceptions`).
 
 * For mcdc assessements, the tool requires the use of short-circuit variants
