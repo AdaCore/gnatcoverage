@@ -965,6 +965,14 @@ class QDreport(object):
         def literal(text):
             return ":literal:`" + text.strip() + "`"
 
+        def switches_with_eq_from(switches_string):
+            """Return a <switch>: <value> dictionary of all the switches
+            of the form <switch>=<value> in SWITCHES_STRING."""
+
+            return dict(
+                [sw.split('=') for
+                 sw in switches_string.split() if '=' in sw])
+
         itemno = Column(htext="Item #", legend=None)
 
         item = Column(htext="Description", legend=None)
@@ -1008,6 +1016,18 @@ class QDreport(object):
                     {itemno: "s1",
                      item: "compiler switches - %s specific" % lang,
                      value: literal(lang_cargs)})
+
+        # If we have a --RTS=bla on the command line, display it as the
+        # qualification "runtime profile".
+
+        opts_with_eq = switches_with_eq_from(suite_cmdline)
+        rts = opts_with_eq.get('--RTS', None)
+
+        if rts:
+            csv_contents.append(
+                {itemno: "s2",
+                 item: "runtime profile",
+                 value: literal("--RTS=%s" % rts)})
 
         CSVtable(
             title=None, text=None,

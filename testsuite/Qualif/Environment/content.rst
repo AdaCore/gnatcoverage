@@ -32,6 +32,7 @@ For cross or native configurations:
    e2 | GNATcoverage executable name and version | gnatcov p.q.r
    e3 | GNAT Pro compiler executable name and version | powerpc-elf-gcc a.b.c (stamp)
    s1 | GNAT Pro compilation switches | -g -fpreserve-control-flow -fdump-scos -gnat05
+   s2 | GNAT Pro Runtime Library Profile | --RTS=<qualification-rts-name>
 
 For cross configurations only:
 
@@ -47,6 +48,12 @@ For cross configurations only:
 For the GNAT Pro compilation switches, additional options which do not
 influence code generation, e.g. controlling warnings or confirming compiler
 defaults, are allowed.
+
+The Runtime Library Profile indication conveys the --RTS switch for which the
+Qualification Environment should be setup, designating a runtime library
+delivered with the GNAT Pro toolchain. Tool Users shall have their toolchain
+setup to compile programs with a :literal:`--RTS` switch as well, designating
+a runtime with a ``system.ads`` identical to the qualification one.
 
 Installation, Documentation and Qualified Interface
 ---------------------------------------------------
@@ -69,29 +76,6 @@ can be found in the subdirectory :literal:`share/doc` of the tool
 installation.  For qualified use more specifically, the Tool User shall also
 conform to the rules described in the *Qualified Interface* section of the
 qualification |plans_doc| document.
-
-Runtime Library Profile
------------------------
-
-The general contents of this document is not tailored for input source code
-resorting to a particular language runtime library. You may for instance find
-the description of requirements and testcases for features supported only by a
-Ravenscar or full native profile even if the tool is used for code relying on
-a Zero-Footprint (ZFP) runtime.
-
-The set of tests executed as part of a testsuite run is selected according
-to the actual runtime used, nevertheless, based on the runtime name provided
-through a :literal:`--RTS` compilation option, if any.
-
-The important points regarding qualification are:
-
-* If no :literal:`--RTS` option is passed for the qualification testuite
-  run, users shall not pass a :literal:`--RTS` option either;
-
-* If a :literal:`--RTS` option was passed for the qualification testsuite
-  run, typically designating a runtime delivered with the GNAT Pro toolchain,
-  users shall pass a :literal:`--RTS` option as well, designating a runtime
-  with a ``system.ads`` identical to the qualification one.
 
 
 Language Version and Scope
