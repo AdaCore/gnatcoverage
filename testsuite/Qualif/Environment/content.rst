@@ -46,8 +46,11 @@ For cross configurations only:
    5 | GNATemulator executable name and version | powerpc-elf-gnatemu x.y.t
 
 For the GNAT Pro compilation switches, additional options which do not
-influence code generation, e.g. controlling warnings or confirming compiler
-defaults, are allowed.
+influence code generation are allowed. This may, for example, include options
+controlling warnings, confirming compiler defaults, or designating a
+configuration pragma file which contains only pragmas not influencing code
+generation (``Restriction_Warnings`` pragmas or specific ``Restrictions`` such
+as ``No_Direct_Boolean_Operators`` for instance).
 
 The Runtime Library Profile indication conveys the --RTS switch for which the
 Qualification Environment should be setup, designating a runtime library
