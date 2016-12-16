@@ -642,6 +642,15 @@ package body Project is
       end if;
    end Load_Root_Project;
 
+   -----------------------
+   -- Is_Project_Loaded --
+   -----------------------
+
+   function Is_Project_Loaded return Boolean is
+   begin
+      return Prj_Tree /= null;
+   end Is_Project_Loaded;
+
    ----------------
    -- Output_Dir --
    ----------------

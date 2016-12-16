@@ -783,7 +783,7 @@ procedure GNATcov is
             null;
       end case;
 
-      if Root_Project /= null then
+      if Is_Project_Loaded then
          --  If a root project has been specified but no project is being
          --  considered for coverage analysis, then:
          --

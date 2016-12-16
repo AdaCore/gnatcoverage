@@ -31,6 +31,9 @@ package Project is
 
    --  All the following routines may only be called after Load_Root_Project.
 
+   function Is_Project_Loaded return Boolean;
+   --  Return whether Load_Root_Project was called and returned successfully
+
    procedure Add_Project (Prj_Name : String);
    --  Add Prj_Name to the list of projects for which coverage analysis is
    --  desired. This must be a project in the closure of the previously loaded
