@@ -29,10 +29,16 @@ package Project is
    --  Project_File_Extension). Target is the target prefix, or NULL in the
    --  native case.
 
-   --  All the following routines may only be called after Load_Root_Project.
+   --  All the following routines, except Is_Project_Loaded, may only be called
+   --  after Load_Root_Project.
 
    function Is_Project_Loaded return Boolean;
    --  Return whether Load_Root_Project was called and returned successfully
+
+   function Get_Single_Main_Executable return String;
+   --  If there is only one main source in the loaded project, return the full
+   --  path of its main executable (including its suffix, for instance ".exe").
+   --  Otherwise, return an empty string.
 
    procedure Add_Project (Prj_Name : String);
    --  Add Prj_Name to the list of projects for which coverage analysis is

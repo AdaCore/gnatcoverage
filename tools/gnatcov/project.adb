@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Containers.Vectors;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
@@ -135,6 +136,22 @@ package body Project is
       Recursive          : Boolean);
    --  Enumerate LI files for Root_Project. If Recursive is True, do so for
    --  the whole subtree rooted at Root_Project.
+
+   type Main_Source_File is record
+      File    : Virtual_File;
+      --  Base name for the source file
+
+      Project : Project_Type;
+      --  The project this source files comes from
+   end record;
+
+   type Main_Source_File_Array is
+      array (Positive range <>) of Main_Source_File;
+
+   function Enumerate_Mains
+     (Root_Project : Project_Type) return Main_Source_File_Array;
+   --  Helper for Get_Single_Main_Executable. Return the list of all main
+   --  source files recursively found in the Root_Project.
 
    ---------
    -- "+" --
@@ -650,6 +667,79 @@ package body Project is
    begin
       return Prj_Tree /= null;
    end Is_Project_Loaded;
+
+   --------------------------------
+   -- Get_Single_Main_Executable --
+   --------------------------------
+
+   function Get_Single_Main_Executable return String is
+      Mains : constant Main_Source_File_Array :=
+         Enumerate_Mains (GNATCOLL.Projects.Root_Project (Prj_Tree.all));
+   begin
+      if Mains'Length /= 1 then
+         return "";
+      end if;
+
+      declare
+         M         : Main_Source_File renames Mains (Mains'First);
+         Exec_Name : constant Filesystem_String :=
+            M.Project.Executable_Name (M.File.Base_Name);
+         Exec_Dir  : constant Virtual_File :=
+            M.Project.Executables_Directory;
+         Result    : constant Virtual_File :=
+            Create_From_Dir (Exec_Dir, Exec_Name);
+      begin
+         return +Full_Name (Result);
+      end;
+   end Get_Single_Main_Executable;
+
+   ---------------------
+   -- Enumerate_Mains --
+   ---------------------
+
+   function Enumerate_Mains
+     (Root_Project : Project_Type) return Main_Source_File_Array is
+
+      package Main_Source_File_Vectors is new Ada.Containers.Vectors
+        (Positive, Main_Source_File);
+      Mains : Main_Source_File_Vectors.Vector;
+
+      procedure Enumerate_Mains (Project : Project_Type);
+      --  Append to Mains the list of main source files found in Project
+
+      ---------------------
+      -- Enumerate_Mains --
+      ---------------------
+
+      procedure Enumerate_Mains (Project : Project_Type) is
+         Src_Files : File_Array_Access := Project.Source_Files;
+      begin
+         for F of Src_Files.all loop
+            declare
+               Name : constant Filesystem_String := Base_Name (F);
+            begin
+               if Project.Is_Main_File (Name) then
+                  Mains.Append ((File => F, Project => Project));
+               end if;
+            end;
+         end loop;
+         Unchecked_Free (Src_Files);
+      end Enumerate_Mains;
+
+   --  Start of processing for Enumerate_Mains
+
+   begin
+      Iterate_Projects (Root_Project, Enumerate_Mains'Access, True);
+      declare
+         Result : Main_Source_File_Array
+           (Mains.First_Index ..  Mains.Last_Index);
+      begin
+         for I in Result'Range loop
+            Result (I) := Mains.Element (I);
+         end loop;
+         return Result;
+      end;
+   end Enumerate_Mains;
 
    ----------------
    -- Output_Dir --

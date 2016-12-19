@@ -737,6 +737,8 @@ procedure GNATcov is
          when Cmd_Run =>
             --  If we don't yet have an executable specified, pick the first
             --  EARG. Forward the remaining EARGS from Args to the Eargs local.
+            --  If we don't even have one argument, try to get a single main
+            --  executable from the project tree.
 
             case Args.Remaining_Args.Length is
                when 0 =>
@@ -745,17 +747,30 @@ procedure GNATcov is
                      renames Args.String_List_Args (Opt_Eargs);
                   begin
                      if Eargs_Arg.Length = 0 then
-                        Report_Missing_Argument
-                          ("an executable to run (EXE)");
+                        declare
+                           Main : constant String :=
+                             (if Is_Project_Loaded
+                              then Get_Single_Main_Executable
+                              else "");
+                        begin
+                           if not Is_Project_Loaded or else Main = "" then
+                              Report_Missing_Argument
+                                ("an executable to run (EXE)");
+                           end if;
+
+                           Inputs.Add_Input (Exe_Inputs, Main);
+                        end;
+
+                     else
+                        for Arg of Eargs_Arg loop
+                           if Inputs.Length (Exe_Inputs) = 0 then
+                              Inputs.Add_Input
+                                (Exe_Inputs, +Eargs_Arg.First_Element);
+                           else
+                              Eargs.Append (Arg);
+                           end if;
+                        end loop;
                      end if;
-                     for Arg of Eargs_Arg loop
-                        if Inputs.Length (Exe_Inputs) = 0 then
-                           Inputs.Add_Input
-                             (Exe_Inputs, +Eargs_Arg.First_Element);
-                        else
-                           Eargs.Append (Arg);
-                        end if;
-                     end loop;
                   end;
 
                when 1 =>
