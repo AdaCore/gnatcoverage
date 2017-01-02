@@ -511,7 +511,6 @@ procedure GNATcov is
       Verbose                     := Args.Bool_Args (Opt_Verbose);
       Switches.All_Decisions      := Args.Bool_Args (Opt_All_Decisions);
       Switches.All_Messages       := Args.Bool_Args (Opt_All_Messages);
-      Flag_Show_Missing           := Args.Bool_Args (Opt_Missing_Files);
       Branch_Stats                := Args.Bool_Args (Opt_Branch_Stats);
       Excluded_SCOs               := Args.Bool_Args (Opt_Excluded_SCOs);
       Keep_Edges                  := Args.Bool_Args (Opt_Keep_Edges);

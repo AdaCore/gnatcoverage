@@ -64,7 +64,6 @@ package Command_Line is
       Opt_All_Messages,
       Opt_Include,
       Opt_Exclude,
-      Opt_Missing_Files,
       Opt_Branch_Stats,
       Opt_Excluded_SCOs,
       Opt_Keep_Edges,
@@ -310,12 +309,6 @@ package Command_Line is
          Commands       => (Cmd_Disp_Routines => True,
                             others            => False),
          Internal       => False),
-      Opt_Missing_Files => Create
-        (Long_Name => "--missing-files",
-         Help      => "Display information for files that are not found.",
-         Commands  => (Cmd_Coverage => True,
-                       others => False),
-         Internal  => True),
       Opt_Branch_Stats => Create
         (Long_Name => "--stats",
          Help      => ("Dump statistics about branch instructions after the"

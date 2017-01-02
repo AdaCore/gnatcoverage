@@ -388,7 +388,7 @@ package body Annotations.Dynamic_Html is
       Clear (Pp.Current_Decisions);
       Clear (Pp.Current_Conditions);
 
-      if not (Info.Has_Source or Flag_Show_Missing) then
+      if not Info.Has_Source then
          Skip := True;
          return;
       end if;
