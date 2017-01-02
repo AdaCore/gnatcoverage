@@ -147,6 +147,10 @@ package body Annotations is
    begin
       Files_Table.Fill_Line_Cache (FI);
 
+      if not FI.Has_Source and then Pp.Need_Sources then
+         Warn_File_Missing (FI.all);
+      end if;
+
       --  If there is no coverage information to display in the annotated
       --  sources (i.e. if the total number of line with a Line_State is null),
       --  then there is no useful information to add (case in particular of

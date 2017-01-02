@@ -167,7 +167,6 @@ package body Annotations.Xcov is
       --  Do not try to process files whose source is not available
 
       if not Flag_Show_Missing and then not Info.Has_Source then
-         Warn_File_Missing (Info.all);
          return;
       end if;
 

@@ -389,7 +389,6 @@ package body Annotations.Dynamic_Html is
       Clear (Pp.Current_Conditions);
 
       if not (Info.Has_Source or Flag_Show_Missing) then
-         Warn_File_Missing (Info.all);
          Skip := True;
          return;
       end if;
