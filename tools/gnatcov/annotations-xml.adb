@@ -242,7 +242,10 @@ package body Annotations.Xml is
    ---------------------
 
    procedure Generate_Report (Context : Coverage.Context_Access) is
-      Pp : Xml_Pretty_Printer := (Context => Context, others => <>);
+      Pp : Xml_Pretty_Printer :=
+        (Need_Sources => True,
+         Context      => Context,
+         others       => <>);
    begin
       Annotations.Generate_Report (Pp, True);
    end Generate_Report;

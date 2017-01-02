@@ -245,7 +245,10 @@ package body Annotations.Dynamic_Html is
    ---------------------
 
    procedure Generate_Report (Context : Coverage.Context_Access) is
-      Pp : Dynamic_Html := (Context => Context, others => <>);
+      Pp : Dynamic_Html :=
+        (Need_Sources => True,
+         Context      => Context,
+         others       => <>);
    begin
       Annotations.Generate_Report (Pp, Show_Details => True);
    end Generate_Report;
