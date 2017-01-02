@@ -79,7 +79,11 @@ package body Annotations.Xcov is
      (Context      : Coverage.Context_Access;
       Show_Details : Boolean)
    is
-      Pp : Xcov_Pretty_Printer := (Context => Context, others => <>);
+      Pp : Xcov_Pretty_Printer :=
+        (Need_Sources => True,
+         Show_Details => Show_Details,
+         Context      => Context,
+         others       => <>);
    begin
       Annotations.Generate_Report (Pp, Show_Details);
    end Generate_Report;

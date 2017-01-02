@@ -206,8 +206,9 @@ package body Annotations.Html is
       Show_Details : Boolean)
    is
       Pp : Html_Pretty_Printer :=
-        (Context      => Context,
+        (Need_Sources => True,
          Show_Details => Show_Details,
+         Context      => Context,
          others       => <>);
    begin
       Pp.Show_Details := Show_Details;
