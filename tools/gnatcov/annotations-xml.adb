@@ -455,7 +455,7 @@ package body Annotations.Xml is
       Xml_File_Name          : constant String :=
         Get_Unique_Filename (File, "xml");
    begin
-      if not (Info.Has_Source or Flag_Show_Missing) then
+      if not Info.Has_Source then
          Skip := True;
          return;
       end if;

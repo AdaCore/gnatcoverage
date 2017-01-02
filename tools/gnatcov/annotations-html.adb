@@ -564,7 +564,7 @@ package body Annotations.Html is
          Pi ("      <td title=""" & Simple_Source_Filename & '"');
       end if;
 
-      if Info.Has_Source or Flag_Show_Missing then
+      if Info.Has_Source then
          Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"
                & Simple_Source_Filename & "</a>");
       else
@@ -577,7 +577,7 @@ package body Annotations.Html is
       Pi ("    </tr>"); Ni;
 
       --  Do not try to process files whose source is not available.
-      if not (Info.Has_Source or Flag_Show_Missing) then
+      if not Info.Has_Source then
          return;
       end if;
 

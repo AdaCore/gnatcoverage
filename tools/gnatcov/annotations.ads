@@ -50,10 +50,6 @@ package Annotations is
    function To_Annotation_Format (Option : String) return Annotation_Format;
    --  Convert annotation format option to Annotation_Format value
 
-   Flag_Show_Missing : Boolean := False;
-   --  If True, Disp_Line_State displays info for files that are not found
-   --  Why isn't this a parameter of Disp_Line_State???
-
    Annotation : Annotation_Format := Annotate_Unknown;
    --  The kind of output being generated
 
