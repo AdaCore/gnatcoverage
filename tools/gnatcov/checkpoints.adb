@@ -29,7 +29,7 @@ with Traces_Files_List;
 package body Checkpoints is
 
    Checkpoint_Magic   : constant String := "GNATcov checkpoint" & ASCII.NUL;
-   Checkpoint_Version : constant := 0;
+   Checkpoint_Version : constant := 1;
 
    type Checkpoint_Header is record
       Magic   : String (1 .. Checkpoint_Magic'Length) := Checkpoint_Magic;
@@ -58,6 +58,7 @@ package body Checkpoints is
       Create (SF, Out_File, Filename);
       S := Stream (SF);
       Checkpoint_Header'Write (S, (others => <>));
+      Coverage.Levels_Type'Write (S, Coverage.Current_Levels);
       Files_Table.Checkpoint_Save (S);
       SC_Obligations.Checkpoint_Save (S);
       Coverage.Source.Checkpoint_Save (S);
@@ -72,9 +73,10 @@ package body Checkpoints is
    procedure Checkpoint_Load (Filename : String) is
       use type Interfaces.Unsigned_32;
 
-      SF : Ada.Streams.Stream_IO.File_Type;
-      S  : Stream_Access;
-      CS : aliased Checkpoint_State;
+      SF     : Ada.Streams.Stream_IO.File_Type;
+      S      : Stream_Access;
+      CS     : aliased Checkpoint_State;
+      Levels : Coverage.Levels_Type;
 
       Expected_Header, CP_Header : Checkpoint_Header;
 
@@ -95,6 +97,16 @@ package body Checkpoints is
             & ", found"   & CP_Header.Version'Img & ")");
 
       else
+         Coverage.Levels_Type'Read (S, Levels);
+         declare
+            Error_Msg : constant String :=
+               Coverage.Is_Load_Allowed (Filename, Levels);
+         begin
+            if Error_Msg'Length > 0 then
+               Fatal_Error (Error_Msg);
+            end if;
+         end;
+
          Files_Table.Checkpoint_Load (S, CS'Access);
          SC_Obligations.Checkpoint_Load (S, CS'Access);
          Coverage.Source.Checkpoint_Load (S, CS'Access);

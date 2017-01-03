@@ -49,6 +49,9 @@ package Coverage is
    subtype Source_Coverage_Level is Coverage_Level range Stmt .. UC_MCDC;
    subtype MCDC_Coverage_Level   is Coverage_Level range MCDC .. UC_MCDC;
 
+   type Levels_Type is private;
+   --  Set of Coverage_Level
+
    procedure Set_Coverage_Levels (Opt : String);
    --  Set the coverage levels to be assessed by xcov
 
@@ -77,6 +80,18 @@ package Coverage is
 
    function Coverage_Option_Value return String;
    --  Return the coverage option value for the currently enabled levels
+
+   function Current_Levels return Levels_Type;
+   --  Return the set of coverage levels currently enabled
+
+   function Is_Load_Allowed
+     (Filename : String; Checkpoint_Levels : Levels_Type) return String;
+   --  If loading a checkpoint state (from Filename) with the given coverage
+   --  levels for the current enabled levels is allowed, return an empty
+   --  string. Otherwise, return an error message.
+
+   function Coverage_Option_Value (L : Levels_Type) return String;
+   --  Return the coverage option value corresponding to L
 
    type SC_Tag is new Natural;
    No_SC_Tag : constant SC_Tag := 0;
@@ -113,5 +128,9 @@ package Coverage is
    function To_String (C : Context) return String;
    function From_String (S : String) return Context;
    --  Convert between contexts and string for storage purposes
+
+private
+
+   type Levels_Type is array (Coverage_Level) of Boolean;
 
 end Coverage;

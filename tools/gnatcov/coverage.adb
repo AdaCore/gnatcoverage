@@ -27,11 +27,6 @@ with Version; use Version;
 
 package body Coverage is
 
-   type Levels_Type is array (Coverage_Level) of Boolean;
-
-   function To_Option (L : Levels_Type) return String;
-   --  Option string for the combination of levels L
-
    package Coverage_Option_Maps is
      new Ada.Containers.Ordered_Maps
        (Key_Type     => GNAT.Strings.String_Access,
@@ -63,7 +58,7 @@ package body Coverage is
 
    procedure Add_Coverage_Option (L : Levels_Type) is
    begin
-      Coverage_Option_Map.Insert (new String'(To_Option (L)), L);
+      Coverage_Option_Map.Insert (new String'(Coverage_Option_Value (L)), L);
    end Add_Coverage_Option;
 
    ---------------------------
@@ -72,7 +67,7 @@ package body Coverage is
 
    function Coverage_Option_Value return String is
    begin
-      return To_Option (Levels);
+      return Coverage_Option_Value (Levels);
    end Coverage_Option_Value;
 
    -------------
@@ -168,11 +163,51 @@ package body Coverage is
         ((MCDC_Coverage_Level => True, others => False));
    end Set_Coverage_Levels;
 
-   ---------------
-   -- To_Option --
-   ---------------
+   --------------------
+   -- Current_Levels --
+   --------------------
 
-   function To_Option (L : Levels_Type) return String is
+   function Current_Levels return Levels_Type is
+   begin
+      return Levels;
+   end Current_Levels;
+
+   ---------------------
+   -- Is_Load_Allowed --
+   ---------------------
+
+   function Is_Load_Allowed
+     (Filename : String; Checkpoint_Levels : Levels_Type) return String is
+   begin
+      --  Be defensive with object coverage, which is not supported with
+      --  checkpoints.
+
+      if (for some L in Object_Coverage_Level => Checkpoint_Levels (L)) then
+         return ("object coverage in checkpoint is not supported. Corrupted"
+                 & " checkpoint file?");
+      end if;
+
+      --  We allow loading iff the current levels are a subset of
+      --  Checkpoint_Levels.
+
+      if (for some L in Source_Coverage_Level =>
+             not Checkpoint_Levels (L) and then Levels (L))
+      then
+         return ("incompatible coverage level: " & Filename
+                 & " was produced with """
+                 & Coverage.Coverage_Option_Value (Checkpoint_Levels)
+                 & """ but we expect at least """
+                 & Coverage.Coverage_Option_Value & """");
+      end if;
+
+      return "";
+   end Is_Load_Allowed;
+
+   ---------------------------
+   -- Coverage_Option_Value --
+   ---------------------------
+
+   function Coverage_Option_Value (L : Levels_Type) return String is
       Option : Unbounded_String;
    begin
       for J in L'Range loop
@@ -184,7 +219,7 @@ package body Coverage is
          end if;
       end loop;
       return To_String (Option);
-   end To_Option;
+   end Coverage_Option_Value;
 
    ----------------------------
    -- Valid_Coverage_Options --
