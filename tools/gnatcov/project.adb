@@ -490,6 +490,12 @@ package body Project is
    begin
       Initialize (Env);
 
+      --  Automatically generate a configuration project file so that we
+      --  extract the same information from user project files as GPRbuild
+      --  does, like precise executable names.
+
+      Env.Set_Automatic_Config_File;
+
       --  Prepare for C units handling (by default, only Ada units are handled
       --  in projects).
 
@@ -516,6 +522,12 @@ package body Project is
             end if;
          end;
       end loop;
+
+      --  If provided, override the project target
+
+      if Target /= null then
+         Env.Set_Target_And_Runtime (Target.all);
+      end if;
 
       --  Set project search path for target
 
@@ -682,8 +694,8 @@ package body Project is
 
       declare
          M         : Main_Source_File renames Mains (Mains'First);
-         Exec_Name : constant Filesystem_String :=
-            M.Project.Executable_Name (M.File.Base_Name);
+         Exec_Name : constant Filesystem_String := M.Project.Executable_Name
+           (File => M.File.Base_Name, Include_Suffix => True);
          Exec_Dir  : constant Virtual_File :=
             M.Project.Executables_Directory;
          Result    : constant Virtual_File :=
