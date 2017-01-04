@@ -73,7 +73,7 @@ commonly when the set of source language constructs for which the tool needs
 to be qualified expands.
 
 The adjustment of an existing TOR might incur a change in the TOR expression
-itself and/or a refinement of it's testing strategy to encompass what the
+itself and/or a refinement of its testing strategy to encompass what the
 new scope requires.
 
 

@@ -114,6 +114,7 @@ The following abbreviations are used throughout this document:
    :header: "Abbreviation", "Meaning"
 
    ARM|Ada Reference Manual
+   LRM|(Ada) Language Reference Manual
    DC|Decision Coverage
    MCDC|Modified Condition/Decision Coverage
    SC|Statement Coverage

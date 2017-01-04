@@ -1,4 +1,4 @@
-**Exercise a three way IF statement with three different drivers**
+**Exercise an IF/ELSIF/ELSE construct with three different drivers**
 
 Verify that
 

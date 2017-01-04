@@ -1,0 +1,10 @@
+library project mylib is
+  for source_dirs use (".");
+  for object_dir use "obj";
+  for library_kind use "static";
+  for library_name use project'name;
+  for library_dir use "lib";
+  package compiler is
+    for switches("ada") use ("-fpreserve-control-flow", "-fdump-scos", "-g");
+  end compiler;
+end mylib;

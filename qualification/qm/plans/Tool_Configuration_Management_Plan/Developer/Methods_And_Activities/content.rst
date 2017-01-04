@@ -13,8 +13,7 @@ Base technical support
 Configuration Management of artifacts is technically implemented via Git
 repositories which track the life cycle of each artifact automatically.
 E-mail-based discussions about each artifact are also tracked, using the
-AdaCore ticket system deployed within the whole company for more than fifteen
-years now.
+AdaCore ticket system deployed within the whole company since 1998.
 
 .. _adacore-change-control:
 

@@ -965,6 +965,14 @@ class QDreport(object):
         def literal(text):
             return ":literal:`" + text.strip() + "`"
 
+        def switches_with_eq_from(switches_string):
+            """Return a <switch>: <value> dictionary of all the switches
+            of the form <switch>=<value> in SWITCHES_STRING."""
+
+            return dict(
+                [sw.split('=') for
+                 sw in switches_string.split() if '=' in sw])
+
         itemno = Column(htext="Item #", legend=None)
 
         item = Column(htext="Description", legend=None)
@@ -984,13 +992,13 @@ class QDreport(object):
         # - --cargs family
 
         suite_options = self.suitedata['options']
-
+        suite_cmdline = self.suitedata['cmdline']
         csv_contents = []
 
         csv_contents.append(
             {itemno: "N/A",
              item: "testsuite execution command line",
-             value: literal(self.suitedata['cmdline'])
+             value: literal(suite_cmdline)
              })
 
         csv_contents.append(
@@ -1008,6 +1016,38 @@ class QDreport(object):
                     {itemno: "s1",
                      item: "compiler switches - %s specific" % lang,
                      value: literal(lang_cargs)})
+
+            # If we have a -gnatec=bla.adc in the languages cargs,
+            # arrange to dump the contents of bla.adc within a separate
+            # entry:
+
+            cargs_with_eq = switches_with_eq_from(lang_cargs)
+            adc = cargs_with_eq.get("-gnatec", None)
+
+            if adc:
+                # We expect that the adc file filename provided on the
+                # command line is relative to the testsuite/ subdirectory.
+                # We're call within the STR subdir so ...
+
+                with open("../%s" % adc, 'r') as f:
+                    adc_contents = f.read()
+
+                csv_contents.append(
+                    {itemno: "s1",
+                     item: "contents of %s, designated by -gnatec" % adc,
+                     value: literal(adc_contents)})
+
+        # If we have a --RTS=bla on the command line, display it as the
+        # qualification "runtime profile".
+
+        opts_with_eq = switches_with_eq_from(suite_cmdline)
+        rts = opts_with_eq.get('--RTS', None)
+
+        if rts:
+            csv_contents.append(
+                {itemno: "s2",
+                 item: "runtime profile",
+                 value: literal("--RTS=%s" % rts)})
 
         CSVtable(
             title=None, text=None,

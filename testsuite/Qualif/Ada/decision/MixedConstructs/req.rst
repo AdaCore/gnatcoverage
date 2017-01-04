@@ -10,7 +10,7 @@ representative of application code.
 
 Correct coverage is reported for programs that use a combination of
 Ada constructs, with arbitrary levels of syntactic nesting
-(such as loops within tests within subprograms).
+(such as loops within IFs within subprograms).
 
 
 .. rubric:: Testing Strategy
@@ -18,7 +18,7 @@ Ada constructs, with arbitrary levels of syntactic nesting
 
 
 We exercise multiple cases with a variety of
-constructs nested within each other (For, While, Case, If), and for each case
+constructs nested within each other (FOR, WHILE, CASE, IF), and for each case
 verify the behavior in a wide range of contexts:
 
 * Loops, entered or not,

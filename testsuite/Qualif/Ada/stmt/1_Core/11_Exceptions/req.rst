@@ -28,11 +28,11 @@ described in Chapter 11 of the Ada Reference Manual. In particular:
   exception handlers.
 
 The tool shall also produce correct Statement Coverage assessments for
-subprogram bodies consisting of a call to subprogram which may raise followed
-by simple scalar assignments, all (call and assignments) protected by a
-handler which only performs scalar assignments that never raise. Statements
-never reached either because the outer subprogram isn't called or because the
-inner subprogram raised, shall be reported uncovered.
+subprogram bodies consisting of a call to subprogram which may raise an
+exception followed by simple scalar assignments, all (call and assignments)
+protected by a handler which only performs scalar assignments that never
+raise. Statements never reached either because the outer subprogram isn't
+called or because the inner subprogram raised, shall be reported uncovered.
 
 .. rubric:: Testing Strategy
 
@@ -43,7 +43,7 @@ transfer. All the tescases follow a common pattern, involving:
 * Explicit ``raise`` statements, executed or not, followed by other statements
   or not
 
-* Variations of these in subprograsm or package bodies,
+* Variations of these in subprograms or package bodies,
   directly within the top-level sequence of statements, and within nested
   block, conditional or loop statements,
 

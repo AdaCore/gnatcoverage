@@ -17,4 +17,6 @@ This report features the following sections:
    grouped by language/criterion category"
    :doc:`tssummary` | "Testsuite global status, with synthetic counters
    accumulated over the full set of Testcases/categories."
+   :doc:`trv` | "Testsuite Results Verification, summarizing the test results
+   analysis performed by the Qualification Team."
 
