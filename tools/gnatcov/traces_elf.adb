@@ -1752,16 +1752,33 @@ package body Traces_Elf is
                   Unit_Filename :=
                     Canonicalize_Filename (Read_String (At_Name));
 
-                  --  Do not insert anything in the files table at this stage,
-                  --  as this could trigger consolidation issues later on, if
-                  --  Unit_Filename is a stubbing unit for instance.  If the
-                  --  filename for this unit is not present in the files table,
-                  --  then we don't have any SCOs for it anyway.
+                  --  If we have an entry for the unit in the files table at
+                  --  this point, we know it is for an unit of interest and it
+                  --  might be that only the file simple name is registered.
+                  --  Update the tables with the possibly full path name we
+                  --  have at hand from DW_AT_name.
+                  --
+                  --  Don't touch the tables otherwise. The path we have might
+                  --  then be for an unit not of interest and trigger
+                  --  consolidation conflicts later on.
 
-                  Current_CU := Comp_Unit
-                    (Get_Index_From_Generic_Name (Name   => Unit_Filename.all,
-                                                  Kind   => Stub_File,
-                                                  Insert => False));
+                  declare
+                     Unit_File : Source_File_Index :=
+                        Get_Index_From_Generic_Name
+                          (Name   => Unit_Filename.all,
+                           Kind   => Source_File,
+                           Insert => False);
+                  begin
+                     if Unit_File /= No_Source_File then
+                        Unit_File := Get_Index_From_Generic_Name
+                          (Name   => Unit_Filename.all,
+                           Kind   => Source_File,
+                           Insert => True);
+                        Current_CU := Comp_Unit (Unit_File);
+                     else
+                        Current_CU := No_CU_Id;
+                     end if;
+                  end;
 
                   --  Mark unit as having code in the executable, to silence
                   --  warning about unit of interest not present in test cases.
