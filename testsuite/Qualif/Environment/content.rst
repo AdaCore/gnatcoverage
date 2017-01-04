@@ -31,19 +31,9 @@ For cross or native configurations:
    e1 | Host Operating System name and version | Windows XP
    e2 | GNATcoverage executable name and version | gnatcov p.q.r
    e3 | GNAT Pro compiler executable name and version | powerpc-elf-gcc a.b.c (stamp)
+   e4 | GNATemulator executable name and version | powerpc-elf-gnatemu x.y.t
    s1 | GNAT Pro compilation switches | -g -fpreserve-control-flow -fdump-scos -gnat05
    s2 | GNAT Pro Runtime Library Profile | --RTS=<qualification-rts-name>
-
-For cross configurations only:
-
-.. tabularcolumns:: |p{0.06\textwidth}|p{0.30\textwidth}|p{0.60\textwidth}|
-
-.. csv-table::
-   :header: "Item #", "Description", "Expected value"
-   :widths: 5, 30, 60
-   :delim:  |
-
-   5 | GNATemulator executable name and version | powerpc-elf-gnatemu x.y.t
 
 For the GNAT Pro compilation switches, additional options which do not
 influence code generation are allowed. This may, for example, include options
