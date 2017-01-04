@@ -174,9 +174,9 @@ bin: $(PGMPATH)
 all: bin adapters
 
 $(PGMPATH):
-	# Shortcut for developpers: if there is no BUILD_DIR, assume it's the
-	# same as SRC_DIR.
-	if [ -z "$(BINUTILS_SRC_DIR)" ]; then \
+# Unlike BINUTILS_BUILD_DIR for which we have a default fallback,
+# BINUTILS_SRC_DIR must be defined explicitely.
+	@if [ -z "$(BINUTILS_SRC_DIR)" ]; then \
 		echo "Please define the BINUTILS_SRC_DIR and" \
 		     " BINUTILS_BUILD_DIR variables to point to the binutils" \
 		     " source and build directories."; \
