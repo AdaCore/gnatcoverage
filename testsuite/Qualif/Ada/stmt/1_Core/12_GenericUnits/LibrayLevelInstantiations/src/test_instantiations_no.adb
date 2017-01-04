@@ -1,7 +1,7 @@
 --  Test driver for library-level generic instantiations. It only "with's" the
 --  code with generic units, but does not with's any instantiation, and does
 --  not instantiate anything itself. Code from generic units is expected
---  to be reported as no-code.
+--  to be reported as no-code, which requires a compiler version > 17.
 
 with Pack;
 with Stacks_G, Update_G;
@@ -21,6 +21,11 @@ end Test_Instantiations_No;
 -- /elab/          l. ## 0
 -- /line-elab/     l. ## 0c
 
+-- %tags:(7.0.2|7.2.2)
+-- =/decl/         l- ## s-
+-- =/elab/         l- ## s-
+-- =/line-elab/    l- ## 0c
+
 --#  stacks_g.adb
 -- /push/          l. ## 0
 -- /pop/           l. ## 0
@@ -28,5 +33,16 @@ end Test_Instantiations_No;
 -- /default_stack/ l. ## 0
 -- /elab/          l. ## 0
 
+-- %tags:(7.0.2|7.2.2)
+
+-- =/push/          l- ## s-
+-- =/pop/           l- ## s-
+-- =/n_values/      l- ## s-
+-- =/default_stack/ l- ## s-
+-- =/elab/          l- ## s-
+
 --# update_g.adb
 -- /stmt/          l. ## 0
+
+-- %tags:(7.0.2|7.2.2)
+-- =/stmt/         l- ## s-
