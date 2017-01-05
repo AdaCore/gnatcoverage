@@ -39,7 +39,7 @@
 PREFIX=$(PWD)/local
 
 # By default, assume that the binutils dependency was built in the source tree.
-BINUTILS_BUILD_DIR=$(BINUTILS_SRC_DIR)
+BINUTILS_BUILD_DIR?=$(BINUTILS_SRC_DIR)
 
 # Note for the trace adapters:
 # ----------------------------
