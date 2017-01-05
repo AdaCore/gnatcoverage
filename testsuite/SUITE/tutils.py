@@ -336,11 +336,15 @@ def platform_specific_symbols(symbols):
 # ----------
 # -- xcov --
 # ----------
-def xcov(args, out=None, err=None, inp=None, register_failure=True):
+def xcov(args, out=None, err=None, inp=None, register_failure=True,
+        auto_target_arg=True):
     """Run xcov with arguments ARGS, timeout control, valgrind control if
     available and enabled, output directed to OUT and failure registration
     if register_failure is True. Return the process status descriptor. ARGS
-    may be a list or a whitespace separated string."""
+    may be a list or a whitespace separated string.
+
+    If AUTO_TARGET_ARG, automatically add a "--target" argument in cross
+    configurations."""
 
     # Make ARGS a list from whatever it is, to allow unified processing.
     # Then fetch the requested command, always first:
@@ -359,6 +363,44 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
                                        str(thistest.current_test_index)
                                        + '.trace'),
                     which(XCOV), '-eargs'] + args
+
+    # Handle --target and --board
+
+    # We must pass a --target argument if we are in a cross configuration *and*
+    # if either 1) this is the "run" command (so that the proper GNATemulator
+    # is run), or 2) we pass a project file (proper GPR loading can require the
+    # target).
+    #
+    # If we have a specific target board specified with --board, use that:
+    #
+    # --target=p55-elf --board=iSystem-5554
+    # --> gnatcov run --target=iSystem-5554
+    #
+    # (Such board indications are intended for probe based targets)
+    #
+    # Otherwise, pass the target triplet indication, completed by a board
+    # extension if we also have a target "machine":
+    #
+    # --target=p55-elf,,p5566
+    # --> gnatcov run --target=powerpc-eabispe,p5566
+    #
+    # (Such board extensions are intended to request the selection of a
+    #  specific board emulation by gnatemu)
+
+    if auto_target_arg and (
+        covcmd == 'run' or any(arg.startswith('-P') for arg in covargs)
+    ):
+        if thistest.options.board:
+            targetarg = thistest.options.board
+        elif thistest.options.target:
+            targetarg = env.target.triplet
+            if env.target.machine and env.target.machine != "unknown":
+                targetarg += ",%s" % env.target.machine
+        else:
+            targetarg = None
+
+        if targetarg:
+            covargs.insert(0, '--target=' + targetarg)
 
     # Determine which program we are actually going launch. This is
     # "gnatcov <cmd>" unless we are to execute some designated program
@@ -411,56 +453,21 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
 # ---------------------
 def xrun_suite_args():
     """Arguments we should pass to gnatcov run to obey what we received on the
-    testsuite command line, in particular --target, --board and --kernel."""
-
-    args = []
-
-    # --target & --board translate as --target to gnatcov run.
-
-    # If we have a specific target board specified with --board, use that:
-    #
-    # --target=p55-elf --board=iSystem-5554
-    # --> gnatcov run --target=iSystem-5554
-    #
-    # (Such board indications are intended for probe based targets)
-    #
-    # Otherwise, pass the target triplet indication, completed by a board
-    # extension if we also have a target "machine":
-    #
-    # --target=p55-elf,,p5566
-    # --> gnatcov run --target=powerpc-eabispe,p5566
-    #
-    # (Such board extensions are intended to request the selection of a
-    #  specific board emulation by gnatemu)
-
-    if thistest.options.board:
-        targetarg = thistest.options.board
-    elif thistest.options.target:
-        targetarg = env.target.triplet
-        if env.target.machine and env.target.machine != "unknown":
-            targetarg += ",%s" % env.target.machine
-    else:
-        targetarg = None
-
-    if targetarg:
-        args.append ('--target=' + targetarg)
+    testsuite command line, in particular --kernel."""
 
     # --kernel translates as --kernel to gnatcov run.
-
-    if thistest.options.kernel:
-        args.append ('--kernel=' + thistest.options.kernel)
-
-    return args
+    return (['--kernel=' + thistest.options.kernel]
+            if thistest.options.kernel else [])
 
 # ----------
 # -- xrun --
 # ----------
-def xrun(args, out=None, register_failure=True):
+def xrun(args, out=None, register_failure=True, auto_target_arg=True):
     """Run <xcov run> with arguments ARGS for the current target."""
 
-    # We special case xcov --run to pass the extra options corresponding to
-    # --target and --kernel requests on our command line, and to force a dummy
-    # input to prevent mysterious qemu misbehavior when input is a terminal.
+    # We special case xcov run to pass the extra option corresponding to the
+    # --kernel request on our command line, and to force a dummy input to
+    # prevent mysterious qemu misbehavior when input is a terminal.
 
     nulinput = "devnul"
     touch(nulinput)
@@ -470,7 +477,8 @@ def xrun(args, out=None, register_failure=True):
 
     return xcov (
         ['run'] + runargs, inp=nulinput, out=out,
-        register_failure=register_failure)
+        register_failure=register_failure,
+        auto_target_arg=auto_target_arg)
 
 # --------
 # -- do --
