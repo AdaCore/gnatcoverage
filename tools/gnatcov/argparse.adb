@@ -179,6 +179,24 @@ package body Argparse is
    end Option_Name;
 
    ----------------
+   -- Is_Present --
+   ----------------
+
+   function Is_Present
+     (Args : Parsed_Arguments;
+      Ref  : Option_Reference) return Boolean is
+   begin
+      case Ref.Kind is
+         when Bool_Opt =>
+            return Args.Bool_Args (Ref.Bool_Option);
+         when String_Opt =>
+            return Args.String_Args (Ref.String_Option).Present;
+         when String_List_Opt =>
+            return not Args.String_List_Args (Ref.String_List_Option).Is_Empty;
+      end case;
+   end Is_Present;
+
+   ----------------
    -- Get_Option --
    ----------------
 
@@ -784,6 +802,15 @@ package body Argparse is
                               else +Consume_Next_Arg (Option, I).all);
                         begin
                            if Opt.Kind = String_Opt then
+                              if Parser.String_Info
+                                   (Opt.String_Option).At_Most_Once
+                                 and then Is_Present (Result, Opt)
+                              then
+                                 return Error
+                                   (Option_Name (Parser, Opt)
+                                    & " cannot appear multiple times.");
+                              end if;
+
                               if Parser.String_Callback /= null then
                                  Parser.String_Callback
                                    (Result, Opt.String_Option, +Str);

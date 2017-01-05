@@ -357,6 +357,11 @@ package Argparse is
    --  Return the name for Ref according to Parser. It's a |-separated list of
    --  name as they appear on the command-lines.
 
+   function Is_Present
+     (Args : Parsed_Arguments;
+      Ref  : Option_Reference) return Boolean;
+   --  Return whether the Ref option is present in Args
+
 private
 
    type Command_Info is record
