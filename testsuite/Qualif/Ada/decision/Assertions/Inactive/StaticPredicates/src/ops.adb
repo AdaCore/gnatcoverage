@@ -8,7 +8,10 @@ package body Ops is
 
    function Wpos (D : T_Day) return T_Wpos is
    begin
-      if D in Early_Day then  -- # test_early
+      -- We can't use membership tests to assess, as
+      -- they are moot with assertions disabled.
+
+      if D <= Wednesday then  -- # test_early
          return Early; -- # early
       elsif D > Thursday then -- # test_late
          return Late; -- # late
