@@ -333,39 +333,24 @@ def platform_specific_symbols(symbols):
     """
     return [thistest.tinfo.to_platform_specific_symbol(sym) for sym in symbols]
 
-# ----------
-# -- xcov --
-# ----------
-def xcov(args, out=None, err=None, inp=None, register_failure=True,
-        auto_target_arg=True):
-    """Run xcov with arguments ARGS, timeout control, valgrind control if
-    available and enabled, output directed to OUT and failure registration
-    if register_failure is True. Return the process status descriptor. ARGS
-    may be a list or a whitespace separated string.
 
-    If AUTO_TARGET_ARG, automatically add a "--target" argument in cross
-    configurations."""
+# ---------------------
+# -- xcov_suite_args --
+# ---------------------
+def xcov_suite_args(covcmd, covargs, auto_target_args=True):
+    """
+    Arguments we should pass to gnatcov to obey what we received on the command
+    line, in particular --target and --RTS.
+    """
 
-    # Make ARGS a list from whatever it is, to allow unified processing.
-    # Then fetch the requested command, always first:
+    if not auto_target_args:
+        return []
 
-    args = to_list (args)
-    covcmd = args[0]
-    covargs = args[1:]
-
-    if thistest.options.trace_dir is not None:
-        # Bootstrap - run xcov under xcov
-
-        if covcmd == 'coverage':
-            thistest.current_test_index += 1
-            args = ['run', '-t', 'i686-pc-linux-gnu',
-                    '-o', os.path.join(thistest.options.trace_dir,
-                                       str(thistest.current_test_index)
-                                       + '.trace'),
-                    which(XCOV), '-eargs'] + args
+    result = []
+    project_handling_enabled = any(arg.startswith('-P') for arg in covargs)
 
     # Handle --target and --board
-
+    #
     # We must pass a --target argument if we are in a cross configuration *and*
     # if either 1) this is the "run" command (so that the proper GNATemulator
     # is run), or 2) we pass a project file (proper GPR loading can require the
@@ -387,9 +372,7 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
     # (Such board extensions are intended to request the selection of a
     #  specific board emulation by gnatemu)
 
-    if auto_target_arg and (
-        covcmd == 'run' or any(arg.startswith('-P') for arg in covargs)
-    ):
+    if covcmd == 'run' or project_handling_enabled:
         if thistest.options.board:
             targetarg = thistest.options.board
         elif thistest.options.target:
@@ -400,7 +383,52 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
             targetarg = None
 
         if targetarg:
-            covargs.insert(0, '--target=' + targetarg)
+            result.append('--target=' + targetarg)
+
+    # Handle --RTS
+    #
+    # We must pass a --RTS argument as soon as we use a non-default runtime
+    # *and* we pass a project file (proper GPR loading can require the
+    # runtime information).
+
+    if project_handling_enabled and thistest.options.RTS:
+        result.append('--RTS=' + thistest.options.RTS)
+
+    return result
+
+
+# ----------
+# -- xcov --
+# ----------
+def xcov(args, out=None, err=None, inp=None, register_failure=True,
+        auto_target_args=True):
+    """Run xcov with arguments ARGS, timeout control, valgrind control if
+    available and enabled, output directed to OUT and failure registration
+    if register_failure is True. Return the process status descriptor. ARGS
+    may be a list or a whitespace separated string.
+
+    If AUTO_TARGET_ARGS, automatically add --target/--RTS arguments if required
+    for proper project handling in gnatcov."""
+
+    # Make ARGS a list from whatever it is, to allow unified processing.
+    # Then fetch the requested command, always first:
+
+    args = to_list (args)
+    covcmd = args[0]
+    covargs = args[1:]
+
+    if thistest.options.trace_dir is not None:
+        # Bootstrap - run xcov under xcov
+
+        if covcmd == 'coverage':
+            thistest.current_test_index += 1
+            args = ['run', '-t', 'i686-pc-linux-gnu',
+                    '-o', os.path.join(thistest.options.trace_dir,
+                                       str(thistest.current_test_index)
+                                       + '.trace'),
+                    which(XCOV), '-eargs'] + args
+
+    covargs = xcov_suite_args(covcmd, covargs, auto_target_args) + covargs
 
     # Determine which program we are actually going launch. This is
     # "gnatcov <cmd>" unless we are to execute some designated program
@@ -462,7 +490,7 @@ def xrun_suite_args():
 # ----------
 # -- xrun --
 # ----------
-def xrun(args, out=None, register_failure=True, auto_target_arg=True):
+def xrun(args, out=None, register_failure=True, auto_target_args=True):
     """Run <xcov run> with arguments ARGS for the current target."""
 
     # We special case xcov run to pass the extra option corresponding to the
@@ -478,7 +506,7 @@ def xrun(args, out=None, register_failure=True, auto_target_arg=True):
     return xcov (
         ['run'] + runargs, inp=nulinput, out=out,
         register_failure=register_failure,
-        auto_target_arg=auto_target_arg)
+        auto_target_args=auto_target_args)
 
 # --------
 # -- do --
