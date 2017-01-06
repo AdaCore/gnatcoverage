@@ -74,6 +74,7 @@ package Command_Line is
      (Opt_Project,
       Opt_Subdirs,
       Opt_Target,
+      Opt_Runtime,
       Opt_Output,
       Opt_Output_Directory,
       Opt_Tag,
@@ -369,6 +370,15 @@ package Command_Line is
                           & ASCII.LF
                           & "or there must be a TARGET-gnatemu program"
                           & " available."),
+         At_Most_Once => True,
+         Internal     => False),
+      Opt_Runtime => Create
+        (Long_Name    => "--RTS",
+         Pattern      => "[RUNTIME]",
+         Help         => ("When using projects files, state the runtime"
+                          & " used to build the analyzed programs. If project"
+                          & " files don't already set the runtime, this is"
+                          & " required for correct project files processing."),
          At_Most_Once => True,
          Internal     => False),
       Opt_Output => Create

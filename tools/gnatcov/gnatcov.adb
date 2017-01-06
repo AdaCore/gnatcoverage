@@ -333,7 +333,7 @@ procedure GNATcov is
          case Ref.Kind is
             when String_Opt =>
                Complain := Ref.String_Option in
-                 Opt_Project | Opt_Target | Opt_Subdirs;
+                 Opt_Project | Opt_Target | Opt_Runtime | Opt_Subdirs;
             when others =>
                null;
          end case;
