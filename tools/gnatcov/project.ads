@@ -24,10 +24,12 @@ with Inputs;
 
 package Project is
 
-   procedure Load_Root_Project (Prj_Name : String; Target : String_Access);
+   procedure Load_Root_Project
+     (Prj_Name : String; Target, Runtime : String_Access);
    --  Load the project tree rooted at Prj_Name (with optional
    --  Project_File_Extension). Target is the target prefix, or NULL in the
-   --  native case.
+   --  native case. Runtime is the Ada runtime to use, or NULL in the default
+   --  runtime case.
 
    --  All the following routines, except Is_Project_Loaded, may only be called
    --  after Load_Root_Project.
@@ -87,6 +89,10 @@ package Project is
    --  name. This can happen for sources that belong eg. to the runtime.
 
    function Target return String;
+   --  Return the target in the root project, if any, and the empty string
+   --  otherwise.
+
+   function Runtime return String;
    --  Return the runtime in the root project, if any, and the empty string
    --  otherwise. This concerns only the runtime for Ada.
 

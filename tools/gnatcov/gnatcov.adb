@@ -94,6 +94,7 @@ procedure GNATcov is
    Ignored_Source_Files : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
    Target               : String_Access := null;
+   Runtime              : String_Access := null;
    Output               : String_Access := null;
    Tag                  : String_Access := null;
    Kernel               : String_Access := null;
@@ -355,7 +356,8 @@ procedure GNATcov is
       --  In order to load the project file we need to set:
       --    * scenario variables;
       --    * the object subdir;
-      --    * the target architecture.
+      --    * the target architecture;
+      --    * the runtime system (RTS).
 
       Root_Project := new String'(+Args.String_Args (Opt_Project).Value);
 
@@ -386,14 +388,15 @@ procedure GNATcov is
       end if;
 
       --  If the project file does not define a target, loading it needs the
-      --  target information: load it here.
+      --  target information: load it here. Likewise for the runtime system.
 
       Copy_Arg (Opt_Target, Target);
+      Copy_Arg (Opt_Runtime, Runtime);
 
       --  All -X command line switches have now been processed: initialize the
       --  project subsystem and load the root project.
 
-      Load_Root_Project (Root_Project.all, Target);
+      Load_Root_Project (Root_Project.all, Target, Runtime);
       Compute_Project_View;
 
       --  Get common and command-specific switches, decode them (if any) and
@@ -428,7 +431,7 @@ procedure GNATcov is
          Args := Project_Args;
       end;
 
-      --  Set default output directory and target from the project
+      --  Set default output directory, target and runtime from the project
 
       if not Args.String_Args (Opt_Output_Directory).Present then
          Args.String_Args (Opt_Output_Directory) :=
@@ -440,6 +443,13 @@ procedure GNATcov is
       then
          Args.String_Args (Opt_Target) :=
            (Present => True, Value => +Project.Target);
+      end if;
+
+      if not Args.String_Args (Opt_Runtime).Present
+         and then Project.Runtime /= ""
+      then
+         Args.String_Args (Opt_Runtime) :=
+           (Present => True, Value => +Project.Runtime);
       end if;
    end Load_Project_Arguments;
 
@@ -517,6 +527,7 @@ procedure GNATcov is
       Pretty_Print                := Args.Bool_Args (Opt_Pretty_Print);
 
       Copy_Arg (Opt_Target, Target);
+      Copy_Arg (Opt_Runtime, Runtime);
       Copy_Arg (Opt_Output, Output);
       Copy_Arg (Opt_Final_Report, Output);
       Copy_Arg (Opt_Tag, Tag);

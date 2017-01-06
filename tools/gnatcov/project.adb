@@ -97,9 +97,10 @@ package body Project is
         Element_Type => Project_Type);
    Prj_Map : Project_Maps.Map;
 
-   procedure Initialize (Target : GNAT.Strings.String_Access);
+   procedure Initialize (Target, Runtime : GNAT.Strings.String_Access);
    --  Initialize project environment. Target is the target prefix, or NULL
-   --  for the native case.
+   --  for the native case. Runtime is the Ada runtime to use, or NULL in the
+   --  default runtime case.
 
    procedure List_From_Project
      (Prj            : Project_Type;
@@ -485,7 +486,7 @@ package body Project is
    -- Initialize --
    ----------------
 
-   procedure Initialize (Target : GNAT.Strings.String_Access) is
+   procedure Initialize (Target, Runtime : GNAT.Strings.String_Access) is
       use Key_Element_Maps;
    begin
       Initialize (Env);
@@ -525,8 +526,10 @@ package body Project is
 
       --  If provided, override the project target
 
-      if Target /= null then
-         Env.Set_Target_And_Runtime (Target.all);
+      if Target /= null or else Runtime /= null then
+         Env.Set_Target_And_Runtime
+           (Target  => (if Target = null then "" else Target.all),
+            Runtime => (if Runtime = null then "" else Runtime.all));
       end if;
 
       --  Set project search path for target
@@ -636,8 +639,7 @@ package body Project is
    -----------------------
 
    procedure Load_Root_Project
-     (Prj_Name : String;
-      Target   : GNAT.Strings.String_Access)
+     (Prj_Name : String; Target, Runtime : GNAT.Strings.String_Access)
    is
    begin
       if Prj_Tree /= null then
@@ -650,7 +652,7 @@ package body Project is
       GNATCOLL.Traces.Parse_Config_File (Filename => No_File);
 
       pragma Assert (Env = null);
-      Initialize (Target);
+      Initialize (Target, Runtime);
       pragma Assert (Env /= null);
 
       Prj_Tree := new Project_Tree;
@@ -827,6 +829,15 @@ package body Project is
    begin
       return Get_Target (Prj_Tree.Root_Project);
    end Target;
+
+   -------------
+   -- Runtime --
+   -------------
+
+   function Runtime return String is
+   begin
+      return Get_Runtime (Prj_Tree.Root_Project);
+   end Runtime;
 
    ------------------------------------
    -- Enumerate_Ignored_Source_Files --
