@@ -228,7 +228,10 @@ package body Annotations.Report is
      (Context           : Coverage.Context_Access;
       Final_Report_Name : String_Access)
    is
-      Pp : Report_Pretty_Printer := (Context => Context, others => <>);
+      Pp : Report_Pretty_Printer :=
+        (Need_Sources => False,
+         Context      => Context,
+         others       => <>);
    begin
       if Final_Report_Name /= null then
          Open_Report_File (Final_Report_Name.all);
