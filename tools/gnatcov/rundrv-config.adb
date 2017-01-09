@@ -82,6 +82,7 @@ package body Rundrv.Config is
    Builtin_Targets : constant Builtin_Targets_Type :=
      ((+"(i686|x86_64).*linux", Native_Linux'Access),
       (+"(i686|x86_64).*mingw", Native_Windows'Access),
+      (+"(x86|x86_64)-linux",   Native_Linux'Access),
       (+"(x86|x86_64)-windows", Native_Windows'Access),
       (+"iSystem-(5554|5634)",  ISystem'Access),
       (+"visium-elf",           Visium_ELF'Access));
