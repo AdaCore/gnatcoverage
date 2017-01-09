@@ -1839,13 +1839,16 @@ begin
       Perf_Counters.Display;
    end if;
 
+   Project.Finalize;
+
 exception
    when Error : Binary_Files.Error
       | Ada.IO_Exceptions.Name_Error =>
       Outputs.Error (Ada.Exceptions.Exception_Message (Error));
+      Project.Finalize;
 
    when Xcov_Exit_Exc =>
       --  An error message has already been displayed
 
-      null;
+      Project.Finalize;
 end GNATcov;

@@ -26,6 +26,7 @@ with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNATCOLL.Traces;   use GNATCOLL.Traces;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
+with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with Diagnostics; use Diagnostics;
@@ -665,6 +666,7 @@ package body Project is
             Errors            => Outputs.Warning_Or_Error'Access);
       exception
          when Invalid_Project =>
+            Free (Prj_Tree);
             Fatal_Error ("Could not load the project file, aborting.");
       end;
 
@@ -876,5 +878,16 @@ package body Project is
             Recursive    => Standard.Switches.Recursive_Projects);
       end loop;
    end Enumerate_Ignored_Source_Files;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   procedure Finalize is
+   begin
+      if Prj_Tree /= null then
+         GNATCOLL.Projects.Aux.Delete_All_Temp_Files (Prj_Tree.Root_Project);
+      end if;
+   end Finalize;
 
 end Project;

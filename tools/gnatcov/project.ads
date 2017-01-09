@@ -24,6 +24,10 @@ with Inputs;
 
 package Project is
 
+   procedure Finalize;
+   --  Release all resources allocated by project handling. Must be called
+   --  before leaving gnatcov.
+
    procedure Load_Root_Project
      (Prj_Name : String; Target, Runtime : String_Access);
    --  Load the project tree rooted at Prj_Name (with optional
