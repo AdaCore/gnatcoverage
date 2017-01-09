@@ -34,9 +34,6 @@ with Traces_Files;  use Traces_Files;
 
 package body Rundrv is
 
-   Target_Default : constant String_Access :=
-                      new String'(Standard'Target_Name);
-
    --  Variables set by the command line.
 
    Exec_Error : exception;
@@ -49,61 +46,19 @@ package body Rundrv is
    procedure Run_Command (Command : Command_Type);
    --  Spawn a command
 
-   procedure Split_Target
-     (Target        : String_Access;
-      Target_Family : out String_Access;
-      Target_Board  : out String_Access);
-   --  Split a target into its family name and the board name, if any.
-   --
-   --  If Target is null, use Target_Default.  Target has the following format:
-   --  FAMILY[,BOARD]. So the returned Target_Family is never null and the
-   --  returned Target_Board may be null.
-
-   ------------------
-   -- Split_Target --
-   ------------------
-
-   procedure Split_Target
-     (Target        : String_Access;
-      Target_Family : out String_Access;
-      Target_Board  : out String_Access)
-   is
-      Real_Target : constant String :=
-        (if Target = null
-         then Target_Default.all
-         else Target.all);
-   begin
-      --  If we find a comma, then we have both a target family and a board
-      --  name.
-
-      for I in Real_Target'Range loop
-         if Real_Target (I) = ',' then
-            Target_Family := new String'
-              (Real_Target (Real_Target'First .. I - 1));
-            Target_Board  := new String'
-              (Real_Target (I + 1 .. Real_Target'Last));
-            return;
-         end if;
-      end loop;
-
-      --  Otherwise, it's just a family
-
-      Target_Family := new String'(Real_Target);
-      Target_Board := null;
-   end Split_Target;
-
    ------------
    -- Driver --
    ------------
 
    procedure Driver
-     (Exe_File : String;
-      Target   : String_Access;
-      Tag      : String_Access;
-      Output   : String_Access;
-      Histmap  : String_Access;
-      Kernel   : String_Access;
-      Eargs    : String_List_Access)
+     (Exe_File      : String;
+      Target_Family : String_Access;
+      Target_Board  : String_Access;
+      Tag           : String_Access;
+      Output        : String_Access;
+      Histmap       : String_Access;
+      Kernel        : String_Access;
+      Eargs         : String_List_Access)
    is
       Context : Context_Type :=
         (Kernel   => Kernel,
@@ -138,7 +93,8 @@ package body Rundrv is
            (if GNAT.Strings."/=" (Output, null)
             then Output
             else new String'(Simple_Name (Context.Exe_File.all & ".trace")));
-         Split_Target (Target, Context.Target_Family, Context.Target_Board);
+         Context.Target_Family := Target_Family;
+         Context.Target_Board := Target_Board;
 
          Run_Cmd := Lookup_Driver (Context);
 

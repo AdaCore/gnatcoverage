@@ -21,13 +21,14 @@ with GNAT.Strings; use GNAT.Strings;
 package Rundrv is
 
    procedure Driver
-     (Exe_File : String;
-      Target   : String_Access;
-      Tag      : String_Access;
-      Output   : String_Access;
-      Histmap  : String_Access;
-      Kernel   : String_Access;
-      Eargs    : String_List_Access);
+     (Exe_File      : String;
+      Target_Family : String_Access;
+      Target_Board  : String_Access;
+      Tag           : String_Access;
+      Output        : String_Access;
+      Histmap       : String_Access;
+      Kernel        : String_Access;
+      Eargs         : String_List_Access);
    --  Run Exe_File on an instrumented execution environment (depending on
    --  Target: GNATemulator, Valgrind, DynamoRIO, etc). Pass Eargs as
    --  command-line arguments for Exe_File. Write traces in the Output trace

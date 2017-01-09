@@ -93,7 +93,8 @@ procedure GNATcov is
    Checkpoints_Inputs   : Inputs.Inputs_Type;
    Ignored_Source_Files : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
-   Target               : String_Access := null;
+   Target_Family        : String_Access := null;
+   Target_Board         : String_Access := null;
    Runtime              : String_Access := null;
    Output               : String_Access := null;
    Tag                  : String_Access := null;
@@ -170,6 +171,17 @@ procedure GNATcov is
 
    function Ignored_Source_Files_Set return String_Sets.Set;
    --  Create a string set out of Ignored_Source_File and return it
+
+   procedure Load_Target_Option (Default_Target : Boolean);
+   --  Split the --target option into its family name (Target_Family) and the
+   --  board name (Target_Board), if any.
+   --
+   --  If Default_Target is True and the target option is not present or empty,
+   --  use the native target. The target has the following format:
+   --  FAMILY[,BOARD]. In this case, the returned Target_Family is never null.
+   --  Otherwise, leave it unmodified.
+   --
+   --  In any case, the returned Target_Board may be null.
 
    ----------------------------
    -- Fatal_Error_With_Usage --
@@ -390,13 +402,13 @@ procedure GNATcov is
       --  If the project file does not define a target, loading it needs the
       --  target information: load it here. Likewise for the runtime system.
 
-      Copy_Arg (Opt_Target, Target);
+      Load_Target_Option (Default_Target => False);
       Copy_Arg (Opt_Runtime, Runtime);
 
       --  All -X command line switches have now been processed: initialize the
       --  project subsystem and load the root project.
 
-      Load_Root_Project (Root_Project.all, Target, Runtime);
+      Load_Root_Project (Root_Project.all, Target_Family, Runtime);
       Compute_Project_View;
 
       --  Get common and command-specific switches, decode them (if any) and
@@ -526,7 +538,7 @@ procedure GNATcov is
       Keep_Edges                  := Args.Bool_Args (Opt_Keep_Edges);
       Pretty_Print                := Args.Bool_Args (Opt_Pretty_Print);
 
-      Copy_Arg (Opt_Target, Target);
+      Load_Target_Option (Default_Target => True);
       Copy_Arg (Opt_Runtime, Runtime);
       Copy_Arg (Opt_Output, Output);
       Copy_Arg (Opt_Final_Report, Output);
@@ -912,6 +924,47 @@ procedure GNATcov is
       Inputs.Iterate (Ignored_Source_Files, Process'Access);
       return Result;
    end Ignored_Source_Files_Set;
+
+   ------------------------
+   -- Load_Target_Option --
+   ------------------------
+
+   procedure Load_Target_Option (Default_Target : Boolean) is
+      Target_Arg  : String_Option renames Args.String_Args (Opt_Target);
+   begin
+      if not Default_Target and then not Target_Arg.Present then
+
+         --  We have no target information and we are asked not to use a
+         --  default one: do nothing.
+
+         return;
+      end if;
+
+      declare
+         Real_Target : constant String :=
+           (if Target_Arg.Present
+            then +Target_Arg.Value
+            else Standard'Target_Name);
+      begin
+         --  If we find a comma, then we have both a target family and a board
+         --  name.
+
+         for I in Real_Target'Range loop
+            if Real_Target (I) = ',' then
+               Target_Family := new String'
+                 (Real_Target (Real_Target'First .. I - 1));
+               Target_Board  := new String'
+                 (Real_Target (I + 1 .. Real_Target'Last));
+               return;
+            end if;
+         end loop;
+
+         --  Otherwise, it's just a family
+
+         Target_Family := new String'(Real_Target);
+         Target_Board := null;
+      end;
+   end Load_Target_Option;
 
    ------------------
    -- Show_Version --
@@ -1746,8 +1799,8 @@ begin
                   end if;
                end if;
 
-               Rundrv.Driver (Exe_File, Target, Tag, Output, Histmap,
-                              Kernel, Vector_To_List (Eargs));
+               Rundrv.Driver (Exe_File, Target_Family, Target_Board, Tag,
+                              Output, Histmap, Kernel, Vector_To_List (Eargs));
             end Run;
          begin
             Inputs.Iterate (Exe_Inputs, Run'Access);
