@@ -2,6 +2,7 @@ import os
 from collections import namedtuple
 
 from SUITE.cutils import contents_of
+from SUITE.tutils import gpr_emulator_package
 
 # ----------------
 # -- gprdep_for --
@@ -44,7 +45,8 @@ def gprdep_for (reldir, wd):
         gprfile.write (
             contents_of (os.path.join (wd.homedir, "../template.gpr")) % {
                 "prjname" : prjname,
-                "objdir" : "obj_" + testid
+                "objdir" : "obj_" + testid,
+                "pkg_emulator": gpr_emulator_package(),
                 }
             )
 

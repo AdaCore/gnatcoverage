@@ -146,6 +146,19 @@ def gprbuild(
     thistest.stop_if (
         p.status != 0, FatalError("gprbuild exit in error", ofile))
 
+def gpr_emulator_package():
+    """
+    If there is a board name, return a package Emulator to be included in a GPR
+    file to provide this information to GNATemulator.
+    """
+    return (
+        'package Emulator is\n'
+        '   for Board use "{}";\n'
+        'end Emulator;'.format(env.target.machine)
+        if env.target.machine else
+        ''
+    )
+
 # ------------
 # -- gprfor --
 # ------------
@@ -245,6 +258,7 @@ def gprfor(
         'gprmains': gprmains,
         'deps': deps,
         'compiler_extra': compiler_extra,
+        'pkg_emulator': gpr_emulator_package(),
         'extra': extra}
 
     return text_to_file (text = gprtext, filename = prjid + ".gpr")
@@ -337,24 +351,42 @@ def platform_specific_symbols(symbols):
 # ---------------------
 # -- xcov_suite_args --
 # ---------------------
-def xcov_suite_args(covcmd, covargs, auto_target_args=True):
+def xcov_suite_args(covcmd, covargs,
+                    auto_config_args=True,
+                    auto_target_args=True):
     """
     Arguments we should pass to gnatcov to obey what we received on the command
-    line, in particular --target and --RTS.
+    line, in particular --config and --target/--RTS.
+
+    If AUTO_CONFIG_ARGS, automatically add a --config argument if required for
+    proper project handling in GNATcov.
+
+    If AUTO_TARGET_ARGS, automatically add --target/--RTS arguments if required
+    for proper project handling in gnatcov or to get "gnatcov run" work for the
+    current target.
+
+    There is a subtlety: if project handling is enabled and if both
+    AUTO_CONFIG_ARGS and AUTO_TARGET_ARGS are enabled, this will only add a
+    --config argument, as --target would conflict in this case.
     """
-
-    if not auto_target_args:
-        return []
-
-    result = []
     project_handling_enabled = any(arg.startswith('-P') for arg in covargs)
 
-    # Handle --target and --board
+    # There is no need for target configuration options if this is not
+    # "gnatcov run" or if we don't involve project handling.
+    if covcmd != 'run' and not project_handling_enabled:
+        return []
+
+    # If --config is asked and project handling is involved, pass it and stop
+    # there. If there is a board, it must be described in the project file
+    # (gnatcov's -P argument).
+    if auto_config_args and project_handling_enabled:
+        return ['--config={}'.format(
+            os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR)
+        )]
+
+    # Otherwise, handle --target and --board.
     #
-    # We must pass a --target argument if we are in a cross configuration *and*
-    # if either 1) this is the "run" command (so that the proper GNATemulator
-    # is run), or 2) we pass a project file (proper GPR loading can require the
-    # target).
+    # We must pass a --target argument if we are in a cross configuration.
     #
     # If we have a specific target board specified with --board, use that:
     #
@@ -372,18 +404,21 @@ def xcov_suite_args(covcmd, covargs, auto_target_args=True):
     # (Such board extensions are intended to request the selection of a
     #  specific board emulation by gnatemu)
 
-    if covcmd == 'run' or project_handling_enabled:
-        if thistest.options.board:
-            targetarg = thistest.options.board
-        elif thistest.options.target:
-            targetarg = env.target.triplet
-            if env.target.machine and env.target.machine != "unknown":
-                targetarg += ",%s" % env.target.machine
-        else:
-            targetarg = None
+    if not auto_target_args:
+        return []
 
-        if targetarg:
-            result.append('--target=' + targetarg)
+    result = []
+    if thistest.options.board:
+        targetarg = thistest.options.board
+    elif thistest.options.target:
+        targetarg = env.target.triplet
+        if env.target.machine and env.target.machine != "unknown":
+            targetarg += ",%s" % env.target.machine
+    else:
+        targetarg = None
+
+    if targetarg:
+        result.append('--target=' + targetarg)
 
     # Handle --RTS
     #
@@ -401,14 +436,14 @@ def xcov_suite_args(covcmd, covargs, auto_target_args=True):
 # -- xcov --
 # ----------
 def xcov(args, out=None, err=None, inp=None, register_failure=True,
-        auto_target_args=True):
+        auto_config_args=True, auto_target_args=True):
     """Run xcov with arguments ARGS, timeout control, valgrind control if
     available and enabled, output directed to OUT and failure registration
     if register_failure is True. Return the process status descriptor. ARGS
     may be a list or a whitespace separated string.
 
-    If AUTO_TARGET_ARGS, automatically add --target/--RTS arguments if required
-    for proper project handling in gnatcov."""
+    See xcov_suite_args for the meaning of AUTO_*_ARGS arguments.
+    """
 
     # Make ARGS a list from whatever it is, to allow unified processing.
     # Then fetch the requested command, always first:
@@ -428,7 +463,9 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
                                        + '.trace'),
                     which(XCOV), '-eargs'] + args
 
-    covargs = xcov_suite_args(covcmd, covargs, auto_target_args) + covargs
+    covargs = xcov_suite_args(
+        covcmd, covargs, auto_config_args, auto_target_args
+    ) + covargs
 
     # Determine which program we are actually going launch. This is
     # "gnatcov <cmd>" unless we are to execute some designated program
@@ -490,7 +527,8 @@ def xrun_suite_args():
 # ----------
 # -- xrun --
 # ----------
-def xrun(args, out=None, register_failure=True, auto_target_args=True):
+def xrun(args, out=None, register_failure=True, auto_config_args=True,
+         auto_target_args=True):
     """Run <xcov run> with arguments ARGS for the current target."""
 
     # We special case xcov run to pass the extra option corresponding to the
@@ -506,7 +544,9 @@ def xrun(args, out=None, register_failure=True, auto_target_args=True):
     return xcov (
         ['run'] + runargs, inp=nulinput, out=out,
         register_failure=register_failure,
-        auto_target_args=auto_target_args)
+        auto_config_args=auto_config_args,
+        auto_target_args=auto_target_args
+    )
 
 # --------
 # -- do --

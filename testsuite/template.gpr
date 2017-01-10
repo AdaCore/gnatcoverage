@@ -20,6 +20,8 @@ end Compiler;
 
 for Main use (%(gprmains)s);
 
+%(pkg_emulator)s
+
 %(extra)s
 
 end %(prjname)s;
