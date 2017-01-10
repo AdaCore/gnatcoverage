@@ -96,6 +96,7 @@ procedure GNATcov is
    Target_Family        : String_Access := null;
    Target_Board         : String_Access := null;
    Runtime              : String_Access := null;
+   CGPR_File            : String_Access := null;
    Output               : String_Access := null;
    Tag                  : String_Access := null;
    Kernel               : String_Access := null;
@@ -405,10 +406,19 @@ procedure GNATcov is
       Load_Target_Option (Default_Target => False);
       Copy_Arg (Opt_Runtime, Runtime);
 
+      if Args.String_Args (Opt_Config).Present
+           and then
+         (Args.String_Args (Opt_Target).Present
+          or else Args.String_Args (Opt_Runtime).Present)
+      then
+         Fatal_Error ("--config cannot be used with --target and --RTS");
+      end if;
+      Copy_Arg (Opt_Config, CGPR_File);
+
       --  All -X command line switches have now been processed: initialize the
       --  project subsystem and load the root project.
 
-      Load_Root_Project (Root_Project.all, Target_Family, Runtime);
+      Load_Root_Project (Root_Project.all, Target_Family, Runtime, CGPR_File);
       Compute_Project_View;
 
       --  Get common and command-specific switches, decode them (if any) and
@@ -540,6 +550,7 @@ procedure GNATcov is
 
       Load_Target_Option (Default_Target => True);
       Copy_Arg (Opt_Runtime, Runtime);
+      Copy_Arg (Opt_Config, CGPR_File);
       Copy_Arg (Opt_Output, Output);
       Copy_Arg (Opt_Final_Report, Output);
       Copy_Arg (Opt_Tag, Tag);

@@ -29,11 +29,17 @@ package Project is
    --  before leaving gnatcov.
 
    procedure Load_Root_Project
-     (Prj_Name : String; Target, Runtime : String_Access);
+     (Prj_Name : String; Target, Runtime, CGPR_File : String_Access)
+      with Pre => (Target = null and then Runtime = null)
+                  or else CGPR_File = null;
    --  Load the project tree rooted at Prj_Name (with optional
    --  Project_File_Extension). Target is the target prefix, or NULL in the
    --  native case. Runtime is the Ada runtime to use, or NULL in the default
-   --  runtime case.
+   --  runtime case. CGPR_File is the path to the configuration project file,
+   --  if any.
+   --
+   --  Note that Target/Runtime must not be provided if a configuration project
+   --  file is provided, and conversely.
 
    --  All the following routines, except Is_Project_Loaded, may only be called
    --  after Load_Root_Project.

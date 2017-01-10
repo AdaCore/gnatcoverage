@@ -75,6 +75,7 @@ package Command_Line is
       Opt_Subdirs,
       Opt_Target,
       Opt_Runtime,
+      Opt_Config,
       Opt_Output,
       Opt_Output_Directory,
       Opt_Tag,
@@ -379,6 +380,14 @@ package Command_Line is
                           & " used to build the analyzed programs. If project"
                           & " files don't already set the runtime, this is"
                           & " required for correct project files processing."),
+         At_Most_Once => True,
+         Internal     => False),
+      Opt_Config => Create
+        (Long_Name    => "--config",
+         Pattern      => "[CONFIG-FILE]",
+         Help         => ("Specify a configuration project file name. If"
+                          & " passed, this file must exist and neither"
+                          & " --target nor --RTS must be present."),
          At_Most_Once => True,
          Internal     => False),
       Opt_Output => Create

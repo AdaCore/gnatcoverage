@@ -98,10 +98,12 @@ package body Project is
         Element_Type => Project_Type);
    Prj_Map : Project_Maps.Map;
 
-   procedure Initialize (Target, Runtime : GNAT.Strings.String_Access);
-   --  Initialize project environment. Target is the target prefix, or NULL
-   --  for the native case. Runtime is the Ada runtime to use, or NULL in the
-   --  default runtime case.
+   procedure Initialize
+     (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
+      with Pre => (Target = null and then Runtime = null)
+                  or else CGPR_File = null;
+   --  Initialize project environment. Formals have the same semantics as in
+   --  Load_Root_Project.
 
    procedure List_From_Project
      (Prj            : Project_Type;
@@ -487,16 +489,22 @@ package body Project is
    -- Initialize --
    ----------------
 
-   procedure Initialize (Target, Runtime : GNAT.Strings.String_Access) is
+   procedure Initialize
+     (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
+   is
       use Key_Element_Maps;
    begin
       Initialize (Env);
 
-      --  Automatically generate a configuration project file so that we
-      --  extract the same information from user project files as GPRbuild
-      --  does, like precise executable names.
+      --  If no configuration project file is passed, automatically generate
+      --  one so that we extract the same information from user project files
+      --  as GPRbuild does, like precise executable names.
 
-      Env.Set_Automatic_Config_File;
+      if CGPR_File = null then
+         Env.Set_Automatic_Config_File;
+      else
+         Env.Set_Config_File (Create (+CGPR_File.all));
+      end if;
 
       --  Prepare for C units handling (by default, only Ada units are handled
       --  in projects).
@@ -640,8 +648,8 @@ package body Project is
    -----------------------
 
    procedure Load_Root_Project
-     (Prj_Name : String; Target, Runtime : GNAT.Strings.String_Access)
-   is
+     (Prj_Name                   : String;
+      Target, Runtime, CGPR_File : GNAT.Strings.String_Access) is
    begin
       if Prj_Tree /= null then
          Fatal_Error ("only one root project can be specified");
@@ -653,7 +661,7 @@ package body Project is
       GNATCOLL.Traces.Parse_Config_File (Filename => No_File);
 
       pragma Assert (Env = null);
-      Initialize (Target, Runtime);
+      Initialize (Target, Runtime, CGPR_File);
       pragma Assert (Env /= null);
 
       Prj_Tree := new Project_Tree;
