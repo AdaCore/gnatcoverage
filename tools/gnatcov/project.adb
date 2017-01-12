@@ -22,7 +22,6 @@ with Ada.Containers.Vectors;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
-with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNATCOLL.Traces;   use GNATCOLL.Traces;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
@@ -540,23 +539,6 @@ package body Project is
            (Target  => (if Target = null then "" else Target.all),
             Runtime => (if Runtime = null then "" else Runtime.all));
       end if;
-
-      --  Set project search path for target
-
-      declare
-         Gnatls_Version : GNAT.Strings.String_Access;
-      begin
-         Env.Set_Path_From_Gnatls
-           (Gnatls       => (if Target = null then "" else Target.all & '-')
-                              & "gnatls",
-            GNAT_Version => Gnatls_Version,
-            Errors       => null);
-         if Verbose and then Gnatls_Version /= null then
-            Put_Line
-              ("default paths set from GNATLS " & Gnatls_Version.all);
-            Free (Gnatls_Version);
-         end if;
-      end;
 
       --  Set scenario variables
 
