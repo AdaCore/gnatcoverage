@@ -1,8 +1,7 @@
 pragma Ada_12;
+pragma Assertion_Policy (Static_Predicate => Disable);
 
 package Ops is
-   
-   pragma Assertion_Policy (Static_Predicate => Disable);
    
    type T_Day is
      (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday);
