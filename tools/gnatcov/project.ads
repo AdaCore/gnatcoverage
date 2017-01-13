@@ -39,7 +39,7 @@ package Project is
    --  if any.
    --
    --  Note that Target/Runtime must not be provided if a configuration project
-   --  file is provided, and conversely.
+   --  file is provided, and reciprocally.
 
    --  All the following routines, except Is_Project_Loaded, may only be called
    --  after Load_Root_Project.
