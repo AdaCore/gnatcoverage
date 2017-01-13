@@ -113,7 +113,7 @@ package body Outputs is
          Fatal_Error
            ("output path "
             & Output_Dir
-            & " does not exists or is not a directory");
+            & " does not exist or is not a directory");
       end if;
 
       Report_Output_Dir := new String'(Output_Dir);
