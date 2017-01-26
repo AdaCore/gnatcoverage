@@ -11,7 +11,7 @@
 # Expose a few other items as a test util-facilities as well
 
 from SUITE import control
-from SUITE.control import LANGINFO, language_info, KNOWN_LANGUAGES
+from SUITE.control import language_info, KNOWN_LANGUAGES
 from SUITE.control import BUILDER, need_libsupport, xcov_pgm
 from SUITE.context import *
 
@@ -20,6 +20,9 @@ from SUITE.context import *
 from SUITE.cutils import *
 from gnatpython.fileutils import unixpath
 
+# Precompute some values we might be using repeatedly
+
+TARGET_INFO = control.target_info()
 
 XCOV     = xcov_pgm(thistest.options.auto_arch)
 VALGRIND = 'valgrind' + env.host.os.exeext
@@ -276,7 +279,7 @@ def gprfor(
 # Executable name
 
 def exename_for (pgmname):
-    return (pgmname + thistest.tinfo.exeext) if thistest.tinfo else pgmname
+    return pgmname + TARGET_INFO.exeext
 
 # Tracefile name
 
@@ -345,7 +348,7 @@ def platform_specific_symbols(symbols):
 
     For instance for Windows, this prepends an underscore to every symbol name.
     """
-    return [thistest.tinfo.to_platform_specific_symbol(sym) for sym in symbols]
+    return [TARGET_INFO.to_platform_specific_symbol(sym) for sym in symbols]
 
 
 # ---------------------

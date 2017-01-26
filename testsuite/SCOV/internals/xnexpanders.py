@@ -16,7 +16,7 @@ from . tfiles import *
 from . segments import *
 from . stags import Stag_from
 
-from SUITE.control import LANGINFO, language_info
+from SUITE.control import language_info
 from SUITE.cutils import Identifier
 
 # We refer to the expressed user expectations as SCOV data, and parse it

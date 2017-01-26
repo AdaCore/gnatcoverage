@@ -19,8 +19,11 @@
 from . segments import Sloc, Sloc_from
 import itertools
 
-from SUITE.context import thistest
+import SUITE.control
 
+# Cache some values we need repeatedly
+
+TARGET_INFO = SUITE.control.target_info()
 
 # ==========
 # == Stag ==
@@ -46,7 +49,7 @@ def Stag_from (text, from_report):
         # however need platform-specific transformations to match symbols from
         # binary files.
         if not from_report:
-            text = thistest.tinfo.to_platform_specific_symbol (text)
+            text = TARGET_INFO.to_platform_specific_symbol (text)
         stag = Rtag (text)
     return stag
 

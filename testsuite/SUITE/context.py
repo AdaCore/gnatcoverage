@@ -19,7 +19,7 @@ from gnatpython.fileutils import cd, rm, which, diff, touch, mkdir, ls, find
 import os, re, sys
 
 from SUITE import control
-from SUITE.control import GPRCLEAN, BUILDER, LANGINFO, target_info
+from SUITE.control import GPRCLEAN, BUILDER, LANGINFO
 
 from SUITE.cutils import ndirs_in, lines_of
 
@@ -183,8 +183,6 @@ class Test (object):
         # of this kludge one day adapting GNATemulator.
         if self.options.RTS and self.options.RTS.endswith('-tms570'):
             self.gprvaroptions.append ('-XLOADER=LORAM')
-
-        self.tinfo = target_info ()
 
         # Whether this test will be using project files to locate SCOs when
         # running gnatcov.  This is decided on a per gnatcov invocation basis.

@@ -5,9 +5,15 @@ import os
 import os.path
 import re
 
+import SUITE.control
+
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.tutils import *
+
+# Cache some values we need repeatedly
+
+TARGET_INFO = SUITE.control.target_info()
 
 
 class TestCase(object):
@@ -31,7 +37,7 @@ class TestCase(object):
     ):
         self.test_drivers = test_drivers
         self.coverage_expectations = {
-            thistest.tinfo.to_platform_specific_symbol(symbol): data
+            TARGET_INFO.to_platform_specific_symbol(symbol): data
             for symbol, data in coverage_expectations.iteritems()
         }
         self.extra_sourcedirs = extra_sourcedirs
