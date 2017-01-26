@@ -8,7 +8,7 @@ of Safety Critical Applications* - Ada User Journal, December 2009.
 
 .. rubric:: |standard|
 
-RTCA DO-178B/EUROCAE ED-12C:
+RTCA DO-178C/EUROCAE ED-12C:
 *Software Considerations in Airborne Systems and Equipment Certification*;
 December 13, 2011
 
