@@ -1,2 +1,1 @@
 7.0.2 DEAD relies on compiler change introduced post 7.4 
-ALL XFAIL relies on compiler change introduced post 7.4
