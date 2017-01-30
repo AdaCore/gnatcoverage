@@ -4,18 +4,18 @@ package body FUAND_Helper is
 
    procedure Eval_FX_F is
    begin
-      Assert (not Andthen ((A => False, B => False)));
-      Assert (not Andthen ((A => False, B => True)));
+      Assert (not Andthen (Ops_FF_F));
+      Assert (not Andthen (Ops_FT_F));
    end;
 
    procedure Eval_TF_F is
    begin
-      Assert (not Andthen ((A => True, B => False)));
+      Assert (not Andthen (Ops_TF_F));
    end;
 
    procedure Eval_TT_T is
    begin
-      Assert (Andthen ((A => True, B => True)));
+      Assert (Andthen (Ops_TT_T));
    end;
 
 end;
