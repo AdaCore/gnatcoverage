@@ -54,28 +54,32 @@ char *const dis_x86_64_option = "x86-64";
 char *const dis_ppc_32_option = "32";
 char *const dis_ppc_64_option = "64";
 
+#if TARGET_BITS == 32
+#  define TARGET_ADDR_FMT "0x%08lx"
+#elif TARGET_BITS == 64
+#  define TARGET_ADDR_FMT "0x%016lx"
+#else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
+#  error "Target arch is neither 32 or 64bits, not supported."
+#endif
+
 /* This is a callback for disassemble_info->print_address_func.  */
 static void
 _print_address_cb (bfd_vma addr, disassemble_info *dinfo)
 {
   symbolizer_data *sym_data = dinfo->application_data;
-  char buff[128];
-  int printed = sym_data->addr_cb (addr, sym_data->symbolizer, buff, 127);
+  char buff[256];
+  const int buff_size = sizeof (buff);
+  int buff_cur;
 
-  if (printed > 0)
-    {
-      buff[printed] = '\0';
-      stream_printf (dinfo->stream, "%s", buff);
-    }
-  else
-    /* No symbol found at addr.  */
-#if TARGET_BITS == 32
-    stream_printf (dinfo->stream, "0x%08lx", addr);
-#elif TARGET_BITS == 64
-    stream_printf (dinfo->stream, "0x%016lx", addr);
-#else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
-#error "Target arch is neither 32 or 64bits, not supported."
-#endif
+  /* First print the address itself.  */
+  stream_printf (dinfo->stream, TARGET_ADDR_FMT, addr);
+
+  /* Then, print the symbolized address, if possible.  First dump it to BUFF,
+     then if symbolization worked, move it to the output stream.  */
+  buff_cur
+    = sym_data->addr_cb (addr, sym_data->symbolizer, buff, buff_size - 1);
+  buff[buff_cur++] = '\0';
+  stream_printf (dinfo->stream, "%s", buff);
 }
 
 /* Allocates and sets up data common to all disassemblers.  */
