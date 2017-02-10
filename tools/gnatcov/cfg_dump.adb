@@ -277,6 +277,10 @@ package body CFG_Dump is
    procedure Output_CFG (Context : Context_Access);
    --  Actually output the CFG in the dot format to the output
 
+   function Expand_Tabs (S : String; Start : Positive) return String;
+   --  Expand ASCII.HT characters in S as 8-cols wide alignments. Consider
+   --  that S (S'First) is the Start'th character on the line.
+
    ------------
    -- Colors --
    ------------
@@ -1348,6 +1352,7 @@ package body CFG_Dump is
 
                      when others => Mnemonic);
                Kind          : Token_Kind;
+               Column        : Positive := 1;
 
             begin
                while Cur /= Highlighting.No_Element loop
@@ -1355,10 +1360,19 @@ package body CFG_Dump is
                   if Kind = Mnemonic then
                      Kind := Mnemonic_Kind;
                   end if;
-                  Append
-                    (Result,
-                     Styled (HTML_Escape (Text (Cur)), Style_Default (Kind)));
-                  Next (Cur);
+                  declare
+                     Token_Text        : constant String := Text (Cur);
+                     Tab_Expanded_Text : constant String :=
+                        Expand_Tabs (Token_Text, Column);
+                     HTML_Escaped_Text : constant String :=
+                        HTML_Escape (Tab_Expanded_Text);
+                     Styled_Text       : constant String :=
+                        Styled (HTML_Escaped_Text, Style_Default (Kind));
+                  begin
+                     Append (Result, Styled_Text);
+                     Column := Column + Tab_Expanded_Text'Length;
+                     Next (Cur);
+                  end;
                end loop;
             end;
             Append (Result, "<BR ALIGN=""left""/>");
@@ -1953,5 +1967,32 @@ package body CFG_Dump is
       SC_Obligations.Load_SCOs
         (ALI_Filename, SC_Obligations.String_Sets.Empty_Set);
    end Load_SCOs;
+
+   -----------------
+   -- Expand_Tabs --
+   -----------------
+
+   function Expand_Tabs (S : String; Start : Positive) return String is
+      use Ada.Strings.Unbounded;
+
+      Column : Positive := Start;
+      Result : Unbounded_String;
+   begin
+      for C of S loop
+         if C = ASCII.HT then
+            declare
+               Expansion_Length : constant Positive :=
+                  8 - ((Column - 1) mod 8);
+            begin
+               Append (Result, (1 .. Expansion_Length => ' '));
+               Column := Column + Expansion_Length;
+            end;
+         else
+            Append (Result, C);
+            Column := Column + 1;
+         end if;
+      end loop;
+      return To_String (Result);
+   end Expand_Tabs;
 
 end CFG_Dump;
