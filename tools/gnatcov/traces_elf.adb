@@ -3724,18 +3724,6 @@ package body Traces_Elf is
    -- Symbolize --
    ---------------
 
-   overriding function Symbolize
-     (Sym : Exe_File_Type;
-      Pc  : Pc_Type) return String is
-      Info : constant Address_Info_Acc := Get_Symbol (Sym, Pc);
-   begin
-      if Info = null or else Info.Symbol_Name = null then
-         return "";
-      else
-         return Info.Symbol_Name.all;
-      end if;
-   end Symbolize;
-
    procedure Symbolize
      (Sym      : Exe_File_Type;
       Pc       : Traces.Pc_Type;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2017, AdaCore                          --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,37 +16,20 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Highlighting;
-with Traces;
+package body Disa_Symbolize is
 
-package Disa_Symbolize is
-
-   --  Call-back used to find a relocation symbol
-
-   type Symbolizer is limited interface;
-   procedure Symbolize
-     (Sym      : Symbolizer;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type) is abstract;
-   --  If Pc belongs to a known symbol, but in Buffer the symbol name + offset
-   --  (if any). Otherwise, leave Buffer empty.
+   ---------------
+   -- Symbolize --
+   ---------------
 
    function Symbolize
      (Sym : Symbolizer'Class;
-      Pc  : Traces.Pc_Type) return String;
-   --  Wrapper around the highlighting Symbolize procedure above. Return a raw
-   --  string instead.
+      Pc  : Traces.Pc_Type) return String
+   is
+      Buffer : Highlighting.Buffer_Type (256);
+   begin
+      Sym.Symbolize (Pc, Buffer);
+      return Highlighting.Get_Raw (Buffer);
+   end Symbolize;
 
-   type Nul_Symbolizer_Type is new Symbolizer with private;
-
-   overriding procedure Symbolize
-     (Sym      : Nul_Symbolizer_Type;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type) is null;
-
-   Nul_Symbolizer : constant Nul_Symbolizer_Type;
-
-private
-   type Nul_Symbolizer_Type is new Symbolizer with null record;
-   Nul_Symbolizer : constant Nul_Symbolizer_Type := (null record);
 end Disa_Symbolize;
