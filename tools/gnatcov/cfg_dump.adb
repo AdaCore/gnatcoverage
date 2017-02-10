@@ -281,7 +281,7 @@ package body CFG_Dump is
    -- Colors --
    ------------
 
-   Hex_Color      : constant Highlighting.Color_Type := "808080";
+   Hex_Color             : constant Highlighting.Color_Type := "808080";
 
    Edge_Unselected_Color : constant Highlighting.Color_Type := "808080";
    Edge_Default_Color    : constant Highlighting.Color_Type := "800000";
@@ -290,9 +290,9 @@ package body CFG_Dump is
    Executed_Insn_Color   : constant Highlighting.Color_Type := "008000";
    Sloc_Color            : constant Highlighting.Color_Type := "004080";
 
-   Unknown_Color : constant Highlighting.Color_Type := "a0a0a0";
-   True_Color    : constant Highlighting.Color_Type := "008000";
-   False_Color   : constant Highlighting.Color_Type := "800000";
+   Unknown_Color         : constant Highlighting.Color_Type := "a0a0a0";
+   True_Color            : constant Highlighting.Color_Type := "008000";
+   False_Color           : constant Highlighting.Color_Type := "800000";
 
    ---------------------
    -- Get_Instruction --
@@ -1048,7 +1048,7 @@ package body CFG_Dump is
       --  Return markup code for Text to be displayed with Color
 
       function Styled
-        (Text  : String; Style : Highlighting.Token_Style_Type) return String;
+        (Text : String; Style : Highlighting.Token_Style_Type) return String;
       --  Return markup code for Text to be displayed according so Style
 
       function Hex_Colored_Image
@@ -1139,7 +1139,7 @@ package body CFG_Dump is
       ------------
 
       function Styled
-        (Text  : String; Style : Highlighting.Token_Style_Type) return String
+        (Text : String; Style : Highlighting.Token_Style_Type) return String
       is
          Prefix, Suffix : Unbounded_String;
       begin
@@ -1333,7 +1333,7 @@ package body CFG_Dump is
             declare
                use Highlighting;
 
-               Cur : Highlighting.Cursor := Buffer.First;
+               Cur           : Highlighting.Cursor := Buffer.First;
                Mnemonic_Kind : constant Token_Kind :=
                  (case Branch is
                      when Br_Call | Br_Ret =>
@@ -1347,7 +1347,7 @@ package body CFG_Dump is
                      else Mnemonic_Call),
 
                      when others => Mnemonic);
-               Kind : Token_Kind;
+               Kind          : Token_Kind;
 
             begin
                while Cur /= Highlighting.No_Element loop
