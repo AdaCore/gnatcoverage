@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -93,12 +93,7 @@ package Disassemblers is
       Flag_Cond : Boolean) return Highlighting.Some_Token_Kind
    is
      (case Branch is
-         when Br_Call | Br_Ret =>
-        (if Flag_Cond
-         then Highlighting.Mnemonic_Branch
-         else Highlighting.Mnemonic_Call),
-
-         when Br_Jmp =>
+         when Br_Call | Br_Ret | Br_Jmp =>
         (if Flag_Cond
          then Highlighting.Mnemonic_Branch
          else Highlighting.Mnemonic_Call),

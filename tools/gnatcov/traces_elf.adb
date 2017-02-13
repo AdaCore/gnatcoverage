@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -1028,15 +1028,7 @@ package body Traces_Elf is
                Res := Unsigned_64 (V);
             end;
 
-         when DW_FORM_flag =>
-            declare
-               V : Unsigned_8;
-            begin
-               Read_Byte (Base, Off, V);
-               Res := Unsigned_64 (V);
-            end;
-
-         when DW_FORM_data1 =>
+         when DW_FORM_flag | DW_FORM_data1 =>
             declare
                V : Unsigned_8;
             begin
