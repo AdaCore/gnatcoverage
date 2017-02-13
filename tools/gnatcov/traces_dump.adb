@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2014, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,15 +17,14 @@
 ------------------------------------------------------------------------------
 
 with Coverage;
-with Binary_Files; use Binary_Files;
-with Disa_Symbolize;
+with Binary_Files;      use Binary_Files;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;
-with Traces_Names; use Traces_Names;
-with Traces_Dbase; use Traces_Dbase;
+with Traces_Names;      use Traces_Names;
+with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
-with Traces_Lines; use Traces_Lines;
-with Traces_Elf; use Traces_Elf;
+with Traces_Lines;      use Traces_Lines;
+with Traces_Elf;        use Traces_Elf;
 
 package body Traces_Dump is
 
@@ -74,20 +73,11 @@ package body Traces_Dump is
 
          if Info.Traces /= null then
             if Flag_Show_Asm then
-               if Info.Exec = null then
-                  Disp_Assembly_Lines
-                    (Info.Insns, I_Ranges,
-                     Info.Traces.all,
-                     Textio_Disassemble_Cb'Access,
-                     Disa_Symbolize.Nul_Symbolizer);
-
-               else
-                  Disp_Assembly_Lines
-                    (Info.Insns, I_Ranges,
-                     Info.Traces.all,
-                     Textio_Disassemble_Cb'Access,
-                     Info.Exec.all);
-               end if;
+               Disp_Assembly_Lines
+                 (Info.Insns, I_Ranges,
+                  Info.Traces.all,
+                  Textio_Disassemble_Cb'Access,
+                  Info.Exec.all);
             end if;
          end if;
       end Process_One;
