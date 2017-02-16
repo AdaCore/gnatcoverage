@@ -21,7 +21,7 @@ end Test_Instantiations_No;
 -- /elab/          l. ## 0
 -- /line-elab/     l. ## 0c
 
--- %tags:(7.0.2|7.2.2)
+-- %tags:(7.0.2|7.2.2|7.4.3)
 -- =/decl/         l- ## s-
 -- =/elab/         l- ## s-
 -- =/line-elab/    l- ## 0c
@@ -33,7 +33,7 @@ end Test_Instantiations_No;
 -- /default_stack/ l. ## 0
 -- /elab/          l. ## 0
 
--- %tags:(7.0.2|7.2.2)
+-- %tags:(7.0.2|7.2.2|7.4.3)
 
 -- =/push/          l- ## s-
 -- =/pop/           l- ## s-
@@ -44,5 +44,5 @@ end Test_Instantiations_No;
 --# update_g.adb
 -- /stmt/          l. ## 0
 
--- %tags:(7.0.2|7.2.2)
+-- %tags:(7.0.2|7.2.2|7.4.3)
 -- =/stmt/         l- ## s-
