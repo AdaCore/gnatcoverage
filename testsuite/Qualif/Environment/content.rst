@@ -120,6 +120,12 @@ In addition:
   for the Boolean binary operators composing decisions: ``&&`` or ``||`` in C,
   ``and then`` or ``or else`` in Ada.
 
+  One possible way to ensure this for Ada is to verify that the code subject
+  to analysis compiles without error under control of the following
+  configuration pragma::
+
+     pragma Restrictions (No_Direct_Boolean_Operator);
+
 * For decision or mcdc analysis, the tool is not qualified to assess coverage
   of expressions used in assertion constructs such as Assert pragmas or their
   contract programming model extensions in Ada 2012 (Pre/Post pragmas or
