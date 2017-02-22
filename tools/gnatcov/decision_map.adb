@@ -2140,7 +2140,10 @@ package body Decision_Map is
                --  only if D_Occ.Decision ends up not covered???
 
                Report (First_Sloc (Condition (D_Occ.Decision, J)),
-                       Msg  => "condition lacks edge for " & Val'Img,
+                       Msg  => "condition lacks edge for "
+                       & Val'Img
+                       & " in decision occurrence starting @"
+                       & Hex_Image (D_Occ.Conditional_Branches.First_Element),
                        Kind => Warning);
             end if;
          end loop;
