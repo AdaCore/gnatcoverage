@@ -905,14 +905,13 @@ package body Traces_Files is
       --  omit any empty info record when saving.
 
       while Info /= null loop
-         if Info.Raw_Length > 0 then
-            String'Output (S, Info.Data);
-            Info_Kind_Type'Write (S, Info.Kind);
-         end if;
+         pragma Assert (Info.Kind /= Info_End);
+         Info_Kind_Type'Write (S, Info.Kind);
+         String'Output (S, Info.Data);
          Info := Info.Next;
       end loop;
 
-      String'Output (S, "");
+      Info_Kind_Type'Write (S, Info_End);
    end Checkpoint_Save;
 
    ---------------------
@@ -929,13 +928,9 @@ package body Traces_Files is
       Kind : Info_Kind_Type;
    begin
       loop
-         declare
-            Data : constant String := String'Input (S);
-         begin
-            exit when Data = "";
-            Info_Kind_Type'Read (S, Kind);
-            Append_Info (Trace_File, Kind, Data);
-         end;
+         Info_Kind_Type'Read (S, Kind);
+         exit when Kind = Info_End;
+         Append_Info (Trace_File, Kind, String'Input (S));
       end loop;
    end Checkpoint_Load;
 
