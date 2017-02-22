@@ -1478,12 +1478,11 @@ package body CFG_Dump is
          end loop;
       end Group_BB_By_Condition;
 
-      --------------
+      -----------------
       -- Output_Edge --
-      --------------
+      -----------------
 
-      procedure Output_Edge (Edge : Edge_Descriptor)
-      is
+      procedure Output_Edge (Edge : Edge_Descriptor) is
          Color : constant Highlighting.Color_Type :=
            (if Edge.Selected
             then
@@ -1491,6 +1490,7 @@ package body CFG_Dump is
                then Edge_Executed_Color
                else Edge_Default_Color)
             else Edge_Unselected_Color);
+
       begin
          Put (F, To_String (Edge.From_Id));
          Put (F, " -> ");
