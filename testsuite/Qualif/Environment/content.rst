@@ -91,7 +91,7 @@ In addition:
   controlled type definitions or pointers to nested subprograms.
 
   One possible way to ensure that the code subject to analysis conforms to
-  what this qualification material encompasses is to verfy that it compiles
+  what this qualification material encompasses is to verify that it compiles
   without error under control of a Zero Footprint Runtime Library Profile, or
   free of warnings out of the following set of configuration pragmas::
 
@@ -104,7 +104,7 @@ In addition:
   supports this at all.
 
   One possible way to ensure that the code subject to analysis conforms to
-  what this qualification material encompasses is to verfy that it compiles
+  what this qualification material encompasses is to verify that it compiles
   without error under control of a Zero Footprint Runtime Library Profile, or
   free of warnings out of the following set of configuration pragmas::
 
