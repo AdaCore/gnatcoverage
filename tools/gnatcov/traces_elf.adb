@@ -1808,9 +1808,6 @@ package body Traces_Elf is
                            DIE_CU => Current_DIE_CU));
                   end if;
 
-                  At_Lang := 0;
-                  At_Stmt_List := No_Stmt_List;
-
                when DW_TAG_subprogram =>
                   if At_High_Pc > At_Low_Pc then
                      --  It looks like this subprogram is present in this
@@ -1915,14 +1912,17 @@ package body Traces_Elf is
                when others =>
                   null;
             end case;
+
+            At_Sib := 0;
+            At_Stmt_List := No_Stmt_List;
+            At_Ranges := No_Ranges;
             At_Low_Pc := 0;
             At_High_Pc := 0;
-            At_Ranges := No_Ranges;
-            At_Abstract_Origin := 0;
-
+            At_Lang := 0;
             At_Name := Null_Address;
             At_Comp_Dir := Null_Address;
             At_Linkage_Name := Null_Address;
+            At_Abstract_Origin := 0;
 
             Is_High_Pc_Offset := False;
          end loop;
