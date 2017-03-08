@@ -1547,16 +1547,16 @@ package body Traces_Elf is
 
       Level : Unsigned_8;
 
-      At_Sib             : Unsigned_64 := 0;
-      At_Stmt_List       : Unsigned_32 := No_Stmt_List;
-      At_Ranges          : Unsigned_32 := No_Ranges;
-      At_Low_Pc          : Unsigned_64 := 0;
-      At_High_Pc         : Unsigned_64 := 0;
-      At_Lang            : Unsigned_64 := 0;
-      At_Name            : Address := Null_Address;
-      At_Comp_Dir        : Address := Null_Address;
-      At_Linkage_Name    : Address := Null_Address;
-      At_Abstract_Origin : Unsigned_64 := 0;
+      At_Sib             : Unsigned_64;
+      At_Stmt_List       : Unsigned_32;
+      At_Ranges          : Unsigned_32;
+      At_Low_Pc          : Unsigned_64;
+      At_High_Pc         : Unsigned_64;
+      At_Lang            : Unsigned_64;
+      At_Name            : Address;
+      At_Comp_Dir        : Address;
+      At_Linkage_Name    : Address;
+      At_Abstract_Origin : Unsigned_64;
 
       Current_Sec       : Address_Info_Acc;
       Current_Subprg    : Address_Info_Acc;
@@ -1628,7 +1628,7 @@ package body Traces_Elf is
       Apply_Relocations (Exec, Exec.Sec_Debug_Info, Infos_Region, Infos);
 
       Off := 0;
-      while Off < Storage_Offset (Info_Len) loop
+      CU_Loop : while Off < Storage_Offset (Info_Len) loop
          --  Read .debug_info header:
          --    Length, version, offset in .debug_abbrev, pointer size.
 
@@ -1657,9 +1657,9 @@ package body Traces_Elf is
 
          --  Read DIEs
 
-         loop
+         DIE_Loop : loop
          <<Again>>
-            exit when Off >= Last;
+            exit DIE_Loop when Off >= Last;
             Tag_Off := Off;
             Read_ULEB128 (Base, Off, Num);
             if Num = 0 then
@@ -1692,10 +1692,23 @@ package body Traces_Elf is
 
             --  Read attributes
 
-            loop
+            At_Sib := 0;
+            At_Stmt_List := No_Stmt_List;
+            At_Ranges := No_Ranges;
+            At_Low_Pc := 0;
+            At_High_Pc := 0;
+            At_Lang := 0;
+            At_Name := Null_Address;
+            At_Comp_Dir := Null_Address;
+            At_Linkage_Name := Null_Address;
+            At_Abstract_Origin := 0;
+
+            Is_High_Pc_Offset := False;
+
+            Attr_Loop : loop
                Read_ULEB128 (Abbrev, Aoff, Name);
                Read_ULEB128 (Abbrev, Aoff, Form);
-               exit when Name = 0 and Form = 0;
+               exit Attr_Loop when Name = 0 and Form = 0;
 
                case Name is
                   when DW_AT_sibling =>
@@ -1731,7 +1744,7 @@ package body Traces_Elf is
                   when others =>
                      Skip_Dwarf_Form (Exec, Base, Off, Form);
                end case;
-            end loop;
+            end loop Attr_Loop;
 
             --  Patch the high PC only now, since it may need the value for the
             --  DW_AT_low_pc attribute and we cannot assume that DW_AT_low_pc
@@ -1743,6 +1756,20 @@ package body Traces_Elf is
 
             case Tag is
                when DW_TAG_compile_unit =>
+
+                  --  If we know that this compilation unit is for a language
+                  --  we do not support, just skip it. This is an optimization,
+                  --  but also removes the need for us from having to support
+                  --  foreign constructs.
+
+                  if At_Lang not in DW_LANG_C89 | DW_LANG_C | DW_LANG_C99
+                                  | DW_LANG_Ada83 | DW_LANG_Ada95
+                                  | DW_LANG_MIPS_Assembler
+                  then
+                     Off := Last;
+                     exit DIE_Loop;
+                  end if;
+
                   if At_Comp_Dir /= Null_Address then
                      Compilation_Dir := new String'(Read_String (At_Comp_Dir));
                   else
@@ -1913,21 +1940,9 @@ package body Traces_Elf is
                   null;
             end case;
 
-            At_Sib := 0;
-            At_Stmt_List := No_Stmt_List;
-            At_Ranges := No_Ranges;
-            At_Low_Pc := 0;
-            At_High_Pc := 0;
-            At_Lang := 0;
-            At_Name := Null_Address;
-            At_Comp_Dir := Null_Address;
-            At_Linkage_Name := Null_Address;
-            At_Abstract_Origin := 0;
-
-            Is_High_Pc_Offset := False;
-         end loop;
+         end loop DIE_Loop;
          Free (Map);
-      end loop;
+      end loop CU_Loop;
 
       --  If there is no debug information in this binary, the following
       --  sections may not have been loaded.
