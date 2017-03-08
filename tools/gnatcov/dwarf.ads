@@ -381,6 +381,10 @@ package Dwarf is
    DW_LANG_Assembler      : constant := 16#8001#;
    DW_LANG_Hi_User        : constant := 16#ffff#;
 
+   DW_LANG_MIPS_Assembler : constant := 32769;
+   --  This is what binutils seems to use when assembling an ASM source with -g
+   --  (even on non-MIPS architectures).
+
    DW_ID_case_sensitive   : constant := 0;
    DW_ID_up_case          : constant := 1;
    DW_ID_down_case        : constant := 2;
