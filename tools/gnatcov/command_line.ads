@@ -48,6 +48,7 @@ package Command_Line is
       Cmd_Dump_Symbols,
       Cmd_Dump_Compile_Units,
       Cmd_Dump_Subprograms,
+      Cmd_Dump_Inlined_Subprograms,
       Cmd_Dump_Lines,
       Cmd_Dump_CFG,
 
@@ -216,6 +217,10 @@ package Command_Line is
       Cmd_Dump_Subprograms => Create
         (Name        => "dump-subprograms",
          Description => "Dump subprograms from executable files.",
+         Internal    => True),
+      Cmd_Dump_Inlined_Subprograms => Create
+        (Name        => "dump-inlined-subprograms",
+         Description => "Dump inlined subprograms from executable files.",
          Internal    => True),
       Cmd_Dump_Lines => Create
         (Name        => "dump-lines",

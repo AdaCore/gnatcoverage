@@ -156,6 +156,7 @@ package Traces_Elf is
      (Compilation_Unit_Addresses,
       Section_Addresses,
       Subprogram_Addresses,
+      Inlined_Subprogram_Addresses,
       Symbol_Addresses,
       Line_Addresses);
 
@@ -213,6 +214,7 @@ package Traces_Elf is
       --    Parent of a symbol is a section.
       --    Parent of a CU is a section.
       --    Parent of a subprogram is a section as well
+      --    Parent of an inlined subprogram is a section as well
       --    Parent of a line is a subprogram or a CU.
 
       case Kind is
@@ -239,6 +241,9 @@ package Traces_Elf is
 
             Lines             : aliased Address_Info_Sets.Set;
             --  Line_Addresses info for this subprogram
+
+         when Inlined_Subprogram_Addresses =>
+            Call_Sloc : Source_Location := No_Location;
 
          when Symbol_Addresses =>
             Symbol_Name   : String_Access;
@@ -442,6 +447,31 @@ private
      (Index_Type   => Valid_DIE_CU_Id,
       Element_Type => Compile_Unit_Desc);
 
+   type Inlined_Subprogram_Raw is record
+      First, Last        : Traces.Pc_Type;
+      --  Range of addresses of the inlined subprogram
+
+      Stmt_List_Offset   : Unsigned_32;
+      --  Offset into the .debug_line section for the corresponding compile
+      --  unit.
+
+      Section            : Address_Info_Acc;
+      --  "Parent" section of the corresponding Inlined_Subprogram_Addresses
+
+      File, Line, Column : Natural;
+      --  File is an offset in the filenames table for the line information
+      --  table at Stmt_List_offset. Line and Colum do not need to be decoded.
+   end record;
+   --  Data structure to temporarily hold information about inlined
+   --  subprograms as described in DWARF. Information here comes from the
+   --  .debug_info section, in Build_Debug_Compile_Unit. Thanks to .debug_line,
+   --  it is later (in Read_Debug_Lines) refined in order to produce an
+   --  Adddress_Info (Inlined_Subprogram_Addresses) record.
+
+   package Inlined_Subprogram_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Inlined_Subprogram_Raw);
+
    package Call_Site_To_Target_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Pc_Type,
       Element_Type => Pc_Type);
@@ -511,6 +541,11 @@ private
       Insn_Set_Ranges     : Insn_Set_Ranges_Per_Section.Map;
       --  For each section, a set of associations: address range -> instruction
       --  set; see Elf_Disassemblers.
+
+      Inlined_Subprograms : Inlined_Subprogram_Vectors.Vector;
+      --  Temporary holders for inlined subprograms read from .debug_info,
+      --  waiting for their associated slocs to be completely decoded using
+      --  .debug_line info. See the documentation for Inline_Subprogram_Raw.
    end record;
 
    procedure Close_Exe_File (Exec : in out Exe_File_Type);
