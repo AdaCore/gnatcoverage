@@ -70,6 +70,11 @@ LANGINFO = {
         name="C", src_ext=[".h", ".c"],  comment='//',
         scofile_for=lambda source: (source+'.gli')),
 
+    "C++": LangInfo(
+        name="C++", src_ext=[".hpp", ".cpp", ".cc", ".hh", ".hxx"],
+        comment='//',
+        scofile_for=lambda source: '{}.gli'.format(source)),
+
     "Asm": LangInfo(
         name="Asm", src_ext=[".s"], comment='#',
         scofile_for=None),
@@ -145,7 +150,7 @@ class BUILDER:
 
         tempgpr.write ('\n'.join (
                 ('project %(prjname)s is',
-                 '  for Languages use ("Asm", "C", "Ada");',
+                 '  for Languages use ("Asm", "C", "Ada", "C++");',
                  'end %(prjname)s;')
                 ) % {'prjname': os.path.basename(tempgpr.name).split('.')[0]}
             )
