@@ -641,7 +641,10 @@ class TestSuite(object):
             self.__toolchain_discriminants())
 
     def __base_discriminants(self):
-        return ['ALL'] + self.env.discriminants
+        result = ['ALL'] + self.env.discriminants
+        if which(self.tool('g++')):
+            result.append('C++')
+        return result
 
     def __board_discriminants(self):
         """Compute a list of string discriminants that convey a
