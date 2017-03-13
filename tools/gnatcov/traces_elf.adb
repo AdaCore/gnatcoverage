@@ -51,6 +51,9 @@ package body Traces_Elf is
    procedure Free is new Ada.Unchecked_Deallocation
      (Exe_File_Type'Class, Exe_File_Acc);
 
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Address_Info, Address_Info_Acc);
+
    function Convert is new Ada.Unchecked_Conversion
      (Str_Access, System.Address);
 
@@ -2645,19 +2648,39 @@ package body Traces_Elf is
 
       for Inlined_Subp of Exec.Inlined_Subprograms loop
          if Inlined_Subp.Stmt_List_Offset = Stmt_List_Offset then
-            Exec.Desc_Sets (Inlined_Subprogram_Addresses).Insert
-              (new Address_Info'
-                 (Kind      => Inlined_Subprogram_Addresses,
-                  First     => Inlined_Subp.First,
-                  Last      => Inlined_Subp.Last,
-                  Parent    => Inlined_Subp.Section,
-                  Call_Sloc =>
-                    (Source_File => Get_Index_From_Full_Name
-                       (Full_Name => Filenames.Element (Inlined_Subp.File).all,
-                        Kind      => Stub_File,
-                        Insert    => False),
-                     L           => (Line   => Inlined_Subp.Line,
-                                     Column => Inlined_Subp.Column))));
+            declare
+               File : constant Source_File_Index :=
+                 (if Inlined_Subp.File = 0
+                  then No_Source_File
+                  else Get_Index_From_Full_Name
+                    (Full_Name => Filenames.Element (Inlined_Subp.File).all,
+                     Kind      => Stub_File,
+                     Insert    => False));
+               Info : Address_Info_Acc :=
+                  new Address_Info'
+                    (Kind      => Inlined_Subprogram_Addresses,
+                     First     => Inlined_Subp.First,
+                     Last      => Inlined_Subp.Last,
+                     Parent    => Inlined_Subp.Section,
+                     Call_Sloc =>
+                       (Source_File => File,
+                        L           => (Line   => Inlined_Subp.Line,
+                                        Column => Inlined_Subp.Column)));
+
+               Position : Address_Info_Sets.Cursor;
+               Inserted : Boolean;
+            begin
+               --  Sometimes, the compiler generates two inline subprogram
+               --  calls with the exact same address ranges. We don't want to
+               --  crash in this case, so just do best effort and ignore such
+               --  "duplicates".
+
+               Exec.Desc_Sets (Inlined_Subprogram_Addresses).Insert
+                 (Info, Position, Inserted);
+               if not Inserted then
+                  Free (Info);
+               end if;
+            end;
          end if;
       end loop;
 
@@ -4261,9 +4284,6 @@ package body Traces_Elf is
       Shdr_Sets : Set_Acc_Array := (others => null);
       --  Addresses container for each relevant sections
 
-      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Address_Info, Address_Info_Acc);
-
       Shdr           : Elf_Shdr_Acc;
       Last           : Pc_Type;
       Addr           : Pc_Type;
@@ -4441,7 +4461,7 @@ package body Traces_Elf is
                   & " [" & Unsigned_16'Image (I) & " ]");
 
                Free (Sym.Symbol_Name);
-               Unchecked_Deallocation (Sym);
+               Free (Sym);
 
                Next (Cur_Sym);
                Sym := (if Has_Element (Cur_Sym)
@@ -4475,7 +4495,7 @@ package body Traces_Elf is
                Addr := Addr + 1;
 
                Free (Sym.Symbol_Name);
-               Unchecked_Deallocation (Sym);
+               Free (Sym);
 
                Next (Cur_Sym);
                Sym := (if Has_Element (Cur_Sym)
