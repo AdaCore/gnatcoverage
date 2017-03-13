@@ -4546,7 +4546,7 @@ package body Traces_Elf is
             --  In this specific situation (when reading the list of symbols
             --  from the executable), we *have to* avoid adding the same symbol
             --  name twice.
-            --
+
             if not Traces_Names.Is_Routine_Of_Interest
                (Sym.Symbol_Name.all)
             then
@@ -4555,7 +4555,7 @@ package body Traces_Elf is
 
             --  Scan_Symbols_From is going to free this instance of Sym, so
             --  take the ownership of the Symbol_Name string.
-            --
+
             Sym.Symbol_Name := null;
          end if;
       end Add_Symbol;
