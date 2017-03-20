@@ -196,8 +196,8 @@ package body PECoff_Files is
 
          Set_Nbr_Sections (File, Section_Index (File.Hdr.F_Nscns));
 
-         Read (File.File);
-         File.Data := To_Address (Data (File.File));
+         File.Set_File_Region (Read (File.File));
+         File.Data := To_Address (Data (File.File_Region));
 
          --  Map sections.
          File.Scn := To_PE_Scn_Arr_Acc

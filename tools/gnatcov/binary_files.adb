@@ -47,6 +47,24 @@ package body Binary_Files is
       return F.File;
    end File;
 
+   -----------------
+   -- File_Region --
+   -----------------
+
+   function File_Region (F : Binary_File) return Mapped_Region is
+   begin
+      return F.Region;
+   end File_Region;
+
+   ---------------------
+   -- Set_File_Region --
+   ---------------------
+
+   procedure Set_File_Region (F : in out Binary_File; R : Mapped_Region) is
+   begin
+      F.Region := R;
+   end Set_File_Region;
+
    --------------
    -- Filename --
    --------------
@@ -127,6 +145,7 @@ package body Binary_Files is
       return Res : Binary_File := (Fd         => Fd,
                                    Filename   => Filename,
                                    File       => Invalid_Mapped_File,
+                                   Region     => Invalid_Mapped_Region,
                                    Status     => Status_Ok,
                                    Size       => File_Length (Fd),
                                    Nbr_Sections => 0,
@@ -144,6 +163,7 @@ package body Binary_Files is
 
    procedure Close_File (File : in out Binary_File) is
    begin
+      Free (File.Region);
       Close (File.File);
       File.Fd := Invalid_FD;
 

@@ -48,10 +48,13 @@ package Binary_Files is
    --  Direct accessors
    function Fd (F : Binary_File) return File_Descriptor;
    function File (F : Binary_File) return Mapped_File;
+   function File_Region (F : Binary_File) return Mapped_Region;
    function Filename (F : Binary_File) return String;
 
    function Get_Status (File : Binary_File) return Binary_File_Status;
    --  Return status of previous operation.
+
+   procedure Set_File_Region (F : in out Binary_File; R : Mapped_Region);
 
    procedure Set_Status
      (File : in out Binary_File; Status : Binary_File_Status);
@@ -156,7 +159,9 @@ private
 
       Fd               : File_Descriptor;
       File             : Mapped_File;
-      --  Access the ELF content. FD is open first, then File is open using FD.
+      Region           : Mapped_Region;
+      --  Access the ELF content. FD is open first, then File is open using FD,
+      --  and Region maps the whole content of File.
 
       Status           : Binary_File_Status;
       --  Status, used to report errors.
