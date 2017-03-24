@@ -1,9 +1,9 @@
 with V5, V8; use V5, V8;
 with Support; use Support;
 
--- Call mult only on the v5 instance and inc only on the v8 instance.
+-- Call inc only on the v5 instance and mult only on the v8 instance.
 
-procedure Test_5mult_8inc is
+procedure Test_5i_8m is
    V5o : V5.Vector_Type := (others => 1);
    V8o : V8.Vector_Type := (others => 2);
 begin

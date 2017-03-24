@@ -1,4 +1,4 @@
-**Exercise SC on multiple generic instances, triggering different paths**
+**Exercise SC on multiple generic instances, triggering different subprograms**
 
 Exercise aggregated and per-instance Statement Coverage on multiple instances
 of generic packages provided either as independant compilation units or as
