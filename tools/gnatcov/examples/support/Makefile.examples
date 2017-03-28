@@ -1,6 +1,6 @@
-# This support Makefile is a helper for examples packaged together with the
-# xcov/qemu bundle for coverage analysis.  The intent is to have this Makefile
-# invoked from the example dedicated directories.
+# This support Makefile is a helper for examples packaged together with
+# GNATcoverage.  The intent is to have this Makefile invoked from the example
+# dedicated directories.
 
 # It is useful both to factorize the work for different examples and to
 # illustrate a typical coverage data generation sequence for a program
@@ -9,7 +9,7 @@
 # The basic idea is
 #  1/ Build the program binary executable from the sources
 #  2/ Run it through qemu to get execution traces
-#  3/ Use xcov to produce user level coverage data from the traces
+#  3/ Use gnatcov to produce user level coverage data from the traces
 
 # Set of main target programs for which we want to produce coverage info,
 # to be defined from the command line or by includers:
@@ -86,7 +86,7 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
 endif
 endif
 
-# Argument we will pass to the builder eventually, with 
+# Argument we will pass to the builder eventually
 BUILDERFLAGS=$(INTERNALBUILDFLAGS) $(BUILDFLAGS)
 
 .PRECIOUS: %.trace
@@ -124,7 +124,7 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 
 %.trace: % force
 # Generate the filtering list here, as we might need to pass it to
-# xcov run and always need to pass it to xcov coverage.
+# gnatcov run and always need to pass it to gnatcov coverage.
 
 	$(GENXCOVLIST)
 
