@@ -68,7 +68,7 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
     $(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) > $*.routines
   XCOVFILTER=--routines=@$*.routines
   XCOVRUN=$(XCOV) run \
-    $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$<
+    $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$< -o $<.trace
 
 else
 ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
@@ -82,7 +82,7 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
     ls $(wildcard $(BINDIR)/*.ali) > $*.alis
   XCOVFILTER=--scos=@$*.alis
   XCOVRUN=$(XCOV) run \
-    $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$<
+    $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$< -o $<.trace
 endif
 endif
 
