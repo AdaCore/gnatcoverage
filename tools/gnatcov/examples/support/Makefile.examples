@@ -26,21 +26,6 @@ BUILDFLAGS=
 # Kind of coverage analysis to be performed (--level argument)
 XCOVLEVEL?=stmt+decision
 
-# ---------------------------------------------------------------------------
-# Pick a default RTS from TARGET, if not provided already
-# ---------------------------------------------------------------------------
-
-RTS = 
-ifeq ($(TARGET), powerpc-elf)
-RTS = ravenscar-sfp-prep
-endif
-ifeq ($(TARGET), powerpc-eabispe)
-RTS = ravenscar-sfp-p2020
-endif
-ifeq ($(TARGET), leon-elf)
-RTS = ravenscar
-endif
-
 include ../support/Makefile.common
 
 # ----------------------------------------------------------------------------
