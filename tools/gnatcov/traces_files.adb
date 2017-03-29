@@ -62,9 +62,9 @@ package body Traces_Files is
    --  Calls Read_Trace_File_Entries to add all file info entries to Trace_File
 
    procedure Read_Trace_Entry
-     (Desc       : Trace_File_Descriptor;
-      Eof        : out Boolean;
-      E          : out Qemu_Trace_Entry);
+     (Desc : Trace_File_Descriptor;
+      Eof  : out Boolean;
+      E    : out Qemu_Trace_Entry);
    --  Read a trace from DESC. Set EOF to True in case of end-of-file (in
    --  this case E isn't set), otherwise EOF is set to False and E is
    --  valid. In case of failure, an exception is raised and the file is
@@ -110,9 +110,9 @@ package body Traces_Files is
    --    - trace info entries
    --    - an optional second header whose kind is anything but Info
 
-   procedure Decode_Trace_Header (Hdr : Trace_Header;
+   procedure Decode_Trace_Header (Hdr        : Trace_Header;
                                   Trace_File : in out Trace_File_Type;
-                                  Desc : in out Trace_File_Descriptor);
+                                  Desc       : in out Trace_File_Descriptor);
 
    function Open_File (Filename : String;
                        Mode     : File_Open_Mode) return File_Descriptor;
@@ -215,9 +215,9 @@ package body Traces_Files is
    -- Decode_Trace_Header --
    -------------------------
 
-   procedure Decode_Trace_Header (Hdr : Trace_Header;
+   procedure Decode_Trace_Header (Hdr        : Trace_Header;
                                   Trace_File : in out Trace_File_Type;
-                                  Desc : in out Trace_File_Descriptor)
+                                  Desc       : in out Trace_File_Descriptor)
    is
    begin
       if not Hdr.Kind'Valid then
@@ -727,9 +727,9 @@ package body Traces_Files is
    ----------------------
 
    procedure Read_Trace_Entry
-     (Desc       : Trace_File_Descriptor;
-      Eof        : out Boolean;
-      E          : out Qemu_Trace_Entry)
+     (Desc : Trace_File_Descriptor;
+      Eof  : out Boolean;
+      E    : out Qemu_Trace_Entry)
    is
       Res : Integer;
    begin
@@ -763,8 +763,8 @@ package body Traces_Files is
    -----------------------
 
    procedure Write_Trace_Entry
-     (Desc       : Trace_File_Descriptor;
-      E          : Trace_Entry)
+     (Desc : Trace_File_Descriptor;
+      E    : Trace_Entry)
    is
       Ent : Qemu_Traces_Entries.Trace_Entry;
       Res : Integer;
@@ -1190,8 +1190,7 @@ package body Traces_Files is
    -- Write_Trace_File --
    ----------------------
 
-   procedure Write_Trace_File (Filename : String;
-                               Trace_File : Trace_File_Type)
+   procedure Write_Trace_File (Filename : String; Trace_File : Trace_File_Type)
    is
       Fd : File_Descriptor;
    begin

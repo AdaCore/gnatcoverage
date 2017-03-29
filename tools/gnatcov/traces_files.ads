@@ -143,14 +143,14 @@ package Traces_Files is
    --  as not open.
 
    procedure Open_Decision_Map_File
-     (Filename   : String;
-      Desc       : out Trace_File_Descriptor);
+     (Filename : String;
+      Desc     : out Trace_File_Descriptor);
    --  Open a decision map file, without reading the traces. In case of
    --  failure, an exception is raised and the file is considered as not open.
 
    procedure Write_Trace_Entry
-     (Desc       : Trace_File_Descriptor;
-      E          : Traces.Trace_Entry);
+     (Desc : Trace_File_Descriptor;
+      E    : Traces.Trace_Entry);
    --  Write a trace to DESC. In case of failure, an exception is raised and
    --  the file is closed.
 
@@ -171,8 +171,7 @@ package Traces_Files is
    --  Write traces to a file, including trace entries from Base
 
    procedure Write_Trace_File
-     (Filename   : String;
-      Trace_File : Trace_File_Type);
+     (Filename : String; Trace_File : Trace_File_Type);
    --  Write a trace file of kind Info (no traces base needed)
 
    procedure Dump_Trace_File (Filename : String);
