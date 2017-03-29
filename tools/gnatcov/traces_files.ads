@@ -16,8 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Strings.Unbounded;
 with Ada.Streams; use Ada.Streams;
-with Interfaces; use Interfaces;
+with Interfaces;  use Interfaces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Binary_Files; use Binary_Files;
@@ -221,7 +222,8 @@ private
    end record;
 
    type Trace_File_Descriptor is record
-      Fd : File_Descriptor;
+      Fd       : File_Descriptor;
+      Filename : Ada.Strings.Unbounded.Unbounded_String;
 
       --  Parameter from header
       Kind             : Trace_Kind;

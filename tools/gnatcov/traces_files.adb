@@ -18,9 +18,8 @@
 
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
-with Ada.Exceptions;          use Ada.Exceptions;
-with Ada.Strings.Unbounded;
-with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Exceptions; use Ada.Exceptions;
+with Ada.Text_IO;    use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
@@ -356,6 +355,7 @@ package body Traces_Files is
       Trace_File : out Trace_File_Type) is
    begin
       Desc.Fd := Open_File (Filename, Read_Only);
+      Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
       Check_Trace_File_Headers (Desc, Trace_File, Check_2nd_Header => True);
    exception
       when E : others =>
@@ -381,6 +381,7 @@ package body Traces_Files is
       Flat_Hdr : constant Trace_Header := Make_Trace_Header (Flat);
    begin
       Desc.Fd := Open_File (Filename, Read_Write);
+      Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
 
       Check_Trace_File_Headers (Desc,
                                 Trace_File,
@@ -421,8 +422,8 @@ package body Traces_Files is
    is
       Hdr : Trace_Header;
    begin
-
       Desc.Fd := Open_File (Filename, Read_Only);
+      Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
 
       --  Read the first header
 
@@ -806,6 +807,7 @@ package body Traces_Files is
    begin
       Close (Desc.Fd);
       Desc.Fd := Invalid_FD;
+      Desc.Filename := Ada.Strings.Unbounded.Null_Unbounded_String;
    end Close_Trace_File;
 
    ---------------------
