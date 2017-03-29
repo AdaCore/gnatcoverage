@@ -36,9 +36,6 @@ package Traces_Files is
    type Trace_File_Descriptor is limited private;
    --  Descriptor to open/read a trace file
 
-   Bad_File_Format : exception;
-   --  Exception is raised if an input trace file is invalid or corrupted
-
    Write_Error : exception;
    --  Exception is raised in case of OS error during write
 
@@ -103,10 +100,7 @@ package Traces_Files is
       Trace_File : out Trace_File_Type);
    --  Open a trace file and read its content. The file is expected to contain
    --  an Info section and a traces section (either flat or with history). Put
-   --  the result in Trace_File.
-   --
-   --  In case of failure, an exception is raised and the file is considered as
-   --  not open.
+   --  the result in Trace_File. In case of failure, a fatal error is raised.
 
    procedure Read_Trace_File
      (Filename   : String;
@@ -140,14 +134,13 @@ package Traces_Files is
       Desc       : out Trace_File_Descriptor;
       Trace_File : out Trace_File_Type);
    --  Open a trace file for output and write a flat (raw) trace second header.
-   --  In case of failure, an exception is raised and the file is considered
-   --  as not open.
+   --  In case of failure, a fatal error is raised.
 
    procedure Open_Decision_Map_File
      (Filename : String;
       Desc     : out Trace_File_Descriptor);
    --  Open a decision map file, without reading the traces. In case of
-   --  failure, an exception is raised and the file is considered as not open.
+   --  failure, a fatal error is raised.
 
    procedure Write_Trace_Entry
      (Desc : Trace_File_Descriptor;

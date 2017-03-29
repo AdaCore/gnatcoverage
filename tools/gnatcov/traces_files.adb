@@ -52,8 +52,7 @@ package body Traces_Files is
 
    procedure Read_Trace_File_Entries (Desc : Trace_File_Descriptor);
    --  Read all trace file info entries from Desc and call Process_Info for
-   --  each of them. Close Desc and raise a Bad_File_Format if one entry is
-   --  invalid.
+   --  each of them. Raise a fatal error if one entry is invalid.
 
    procedure Append_Info_Entries_From_Descriptor
      (Desc       : Trace_File_Descriptor;
@@ -97,8 +96,8 @@ package body Traces_Files is
                            Hdr  : out Trace_Header);
    --  Read and perform basic validation on Hdr: make sure it has the proper
    --  magic header, format version and that the endianity is valid. Raise a
-   --  Bad_File_Format if something is invalid. Update the endianity
-   --  information in Desc otherwise.
+   --  fatal error if something is invalid. Update the endianity information in
+   --  Desc otherwise.
 
    procedure Check_Trace_File_Headers
      (Desc             : in out Trace_File_Descriptor;
@@ -124,7 +123,7 @@ package body Traces_Files is
       Signature : out Binary_File_Signature;
       Code_Size : out Traces.Pc_Type);
    --  Read the trace info entries related to a shared object load event. This
-   --  raises a Bad_File_Format exception if any information is missing.
+   --  raises a fatal error if any information is missing.
 
    function Decode_Trace_Entry
      (E      : Qemu_Trace_Entry;
@@ -134,6 +133,9 @@ package body Traces_Files is
    --  that fits our internal data structures. Offset is used to relocate the
    --  entry. It is 0 for statically linked code and non-null for dynamically
    --  linked code.
+
+   procedure Fatal_Error (Desc : Trace_File_Descriptor; Msg : String);
+   --  Raise a fatal error with message Msg, providing some context from Desc
 
    ------------------
    -- Check_Header --
@@ -147,19 +149,19 @@ package body Traces_Files is
       if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
         /= Trace_Header_Size
       then
-         raise Truncated_File with "cannot read header";
+         Fatal_Error (Desc, "cannot read header");
       end if;
 
       if Hdr.Magic /= Qemu_Trace_Magic then
-         raise Bad_File_Format with "invalid header (bad magic)";
+         Fatal_Error (Desc, "invalid header (bad magic)");
       end if;
 
       if Hdr.Version /= Qemu_Trace_Version then
-         raise Bad_File_Format with "invalid header (bad version)";
+         Fatal_Error (Desc, "invalid header (bad version)");
       end if;
 
       if not Hdr.Big_Endian'Valid then
-         raise Bad_File_Format with "invalid header (bad endianness)";
+         Fatal_Error (Desc, "invalid header (bad endianness)");
       end if;
 
       Desc.Big_Endian := Hdr.Big_Endian;
@@ -180,15 +182,15 @@ package body Traces_Files is
       --    (1) a first header whose kind is Info;
       --    (2) trace info entries;
       --    (3) optional second header whose kind is anything but Info.
-      --  We raise a Bad_File_Format for anything else.
+      --  We raise a fatal error for anything else.
 
       --  (1) Read the first header
 
       Check_Header (Desc, Hdr);
 
       if Hdr.Kind /= Info then
-         raise Bad_File_Format with
-            "first header must describe an information section";
+         Fatal_Error
+           (Desc, "first header must describe an information section");
       end if;
 
       --  (2) Read trace info entries
@@ -202,8 +204,8 @@ package body Traces_Files is
          Check_Header (Desc, Hdr);
 
          if Hdr.Kind = Info then
-            raise Bad_File_Format with
-              "second header must not describe an information section";
+            Fatal_Error
+              (Desc, "second header must not describe an information section");
          end if;
 
          Decode_Trace_Header (Hdr, Trace_File, Desc);
@@ -220,13 +222,13 @@ package body Traces_Files is
    is
    begin
       if not Hdr.Kind'Valid then
-         raise Bad_File_Format with "invalid header (bad kind)";
+         Fatal_Error (Desc, "invalid header (bad kind)");
       end if;
       Desc.Kind := Hdr.Kind;
 
       Desc.Sizeof_Target_Pc := Hdr.Sizeof_Target_Pc;
       if Desc.Sizeof_Target_Pc /= 4 and then Desc.Sizeof_Target_Pc /= 8 then
-         raise Bad_File_Format with "invalid header (bad pc size)";
+         Fatal_Error (Desc, "invalid header (bad pc size)");
       end if;
 
       Trace_File.Machine := Unsigned_16 (Hdr.Machine_Hi) * 256
@@ -236,8 +238,7 @@ package body Traces_Files is
          ELF_Machine := Trace_File.Machine;
          Machine := Decode_EM (ELF_Machine);
       else
-         raise Bad_File_Format
-           with "target machine doesn't match previous one";
+         Fatal_Error (Desc, "target machine doesn't match previous one");
       end if;
    end Decode_Trace_Header;
 
@@ -260,7 +261,7 @@ package body Traces_Files is
       end case;
 
       if Fd = Invalid_FD then
-         raise Bad_File_Format with "cannot open file " & Filename;
+         Fatal_Error (Filename & ": cannot open file");
       end if;
       return Fd;
    end Open_File;
@@ -319,7 +320,7 @@ package body Traces_Files is
          or else Sig.CRC32 = 0
          or else CS = 0
       then
-         raise Bad_File_Format with "incomplete shared object load event";
+         Fatal_Error (Desc, "incomplete shared object load event");
       end if;
 
       Filename := Fname;
@@ -429,8 +430,10 @@ package body Traces_Files is
 
       Check_Header (Desc, Hdr);
       if Hdr.Kind /= Decision_Map then
-         raise Bad_File_Format with
-           "first header must describe an history section, is " & Hdr.Kind'Img;
+         Fatal_Error
+           (Desc,
+            "first header must describe an history section, is "
+            & Hdr.Kind'Img);
       end if;
 
       Desc.Kind := Hdr.Kind;
@@ -454,7 +457,7 @@ package body Traces_Files is
          if Read (Desc.Fd, Ihdr'Address, Trace_Info_Header_Size)
                /= Trace_Info_Header_Size
          then
-            raise Bad_File_Format with "cannot read info header";
+            Fatal_Error (Desc, "cannot read info header");
          end if;
 
          if Desc.Big_Endian /= Big_Endian_Host then
@@ -469,7 +472,7 @@ package body Traces_Files is
 
             if Read (Desc.Fd, Data'Address, Data'Length) /= Data'Length
             then
-               raise Bad_File_Format with "cannot read info data";
+               Fatal_Error (Desc, "cannot read info data");
             end if;
 
             --  Discard padding. Still check that it's only null bytes.
@@ -478,11 +481,11 @@ package body Traces_Files is
             if Pad_Len /= 0 then
                Pad_Len := Trace_Info_Alignment - Pad_Len;
                if Read (Desc.Fd, Pad'Address, Pad_Len) /= Pad_Len then
-                  raise Bad_File_Format with "cannot read info pad";
+                  Fatal_Error (Desc, "cannot read info pad");
                end if;
                if Pad (1 .. Pad_Len) /= (1 .. Pad_Len => Character'Val (0))
                then
-                  raise Bad_File_Format with "bad padding content";
+                  Fatal_Error (Desc, "bad padding content");
                end if;
             end if;
 
@@ -490,16 +493,17 @@ package body Traces_Files is
                Kind := Info_Kind_Type'Val (Ihdr.Info_Kind);
             exception
                when Constraint_Error =>
-                  raise Bad_File_Format with
-                    ("unknown trace info kind: 0x"
-                     & Hex_Image (Ihdr.Info_Kind));
+                  Fatal_Error
+                    (Desc,
+                     "unknown trace info kind: 0x"
+                      & Hex_Image (Ihdr.Info_Kind));
             end;
 
             --  If it's an "end" trace info entry, just stop
 
             if Kind = Info_End then
                if Data'Length /= 0 then
-                  raise Bad_File_Format with "bad end info length";
+                  Fatal_Error (Desc, "bad end info length");
                end if;
                exit;
             else
@@ -597,19 +601,21 @@ package body Traces_Files is
          loop
             Read_Trace_Entry (Desc, EOF, Raw_Entry);
             if EOF then
-               raise Bad_File_Format with "No 'loadaddr' special trace entry";
+               Fatal_Error (Desc, "No 'loadaddr' special trace entry");
             end if;
 
             if Raw_Entry.Op = Qemu_Traces.Trace_Op_Special then
                if Raw_Entry.Size /= Qemu_Traces.Trace_Special_Loadaddr then
-                  raise Bad_File_Format with
-                    ("'loadaddr' special trace entry expected but got instead"
+                  Fatal_Error
+                    (Desc,
+                     "'loadaddr' special trace entry expected but got instead"
                      & " a 0x" & Hex_Image (Raw_Entry.Size)
                      & " special entry");
                elsif Raw_Entry.Pc = 0 then
-                  raise Bad_File_Format with
-                     ("Invalid 'loadaddr' special trace entry: offset must not"
-                      & " be 0");
+                  Fatal_Error
+                    (Desc,
+                     "Invalid 'loadaddr' special trace entry: offset must not"
+                     & " be 0");
                end if;
 
                Process_Loadaddr (Trace_File, Raw_Entry.Pc);
@@ -644,7 +650,7 @@ package body Traces_Files is
                --  loop, above.
 
                Fatal_Error
-                 ("Unexpected 'loadaddr' special trace entry.");
+                 (Desc, "Unexpected 'loadaddr' special trace entry.");
 
             when Trace_Special_Load_Shared_Object =>
                declare
@@ -671,7 +677,8 @@ package body Traces_Files is
 
             when others =>
                Fatal_Error
-                 ("Unknown special trace entry: 0x"
+                 (Desc,
+                  "Unknown special trace entry: 0x"
                   & Hex_Image (Raw_Entry.Size));
             end case;
             goto Skip;
@@ -735,9 +742,10 @@ package body Traces_Files is
       Res : Integer;
    begin
       if Desc.Sizeof_Target_Pc /= Pc_Type_Size then
-         raise Bad_File_Format with
+         Fatal_Error
+           (Desc,
             "only" & Unsigned_8'Image (Pc_Type_Size)
-            & " bytes pc are handled";
+            & " bytes pc are handled");
       end if;
 
       --  Read an entry, making sure the read operation could get a whole one
@@ -748,7 +756,7 @@ package body Traces_Files is
          return;
       elsif Res /= Trace_Entry_Size then
          Close (Desc.Fd);
-         raise Bad_File_Format with "file truncated";
+         Fatal_Error (Desc, "file truncated");
       end if;
 
       Eof := False;
@@ -772,9 +780,10 @@ package body Traces_Files is
    begin
 
       if Desc.Sizeof_Target_Pc /= Pc_Type_Size then
-         raise Bad_File_Format with
+         Fatal_Error
+           (Desc,
             "only" & Unsigned_8'Image (Pc_Type_Size)
-            & " bytes pc are handled";
+            & " bytes pc are handled");
       end if;
 
       Ent.Pc   := E.First;
@@ -793,7 +802,7 @@ package body Traces_Files is
       --  Check result
 
       if Res /= Trace_Entry_Size then
-         raise Bad_File_Format with "file truncated";
+         Fatal_Error (Desc, "file truncated");
       end if;
 
    end Write_Trace_Entry;
@@ -1394,4 +1403,15 @@ package body Traces_Files is
                                      First_Infos      => null,
                                      Last_Infos       => null);
    end Create_Trace_File;
+
+   -----------------
+   -- Fatal_Error --
+   -----------------
+
+   procedure Fatal_Error (Desc : Trace_File_Descriptor; Msg : String) is
+   begin
+      Fatal_Error
+        (Ada.Strings.Unbounded.To_String (Desc.Filename) & ": " & Msg);
+   end Fatal_Error;
+
 end Traces_Files;
