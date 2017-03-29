@@ -546,7 +546,6 @@ package body Traces_Files is
       Trace_File : out Trace_File_Type)
    is
       Desc   : Trace_File_Descriptor;
-      F      : Trace_File_Type;
       Offset : Pc_Type := 0;
 
       type Shared_Object_Desc is record
@@ -582,12 +581,12 @@ package body Traces_Files is
       EOF       : Boolean;
       Raw_Entry : Qemu_Trace_Entry;
    begin
-      Open_Trace_File (Filename, Desc, F);
-      Process_Info_Entries (F);
+      Open_Trace_File (Filename, Desc, Trace_File);
+      Process_Info_Entries (Trace_File);
 
       --  Look for a Loadaddr special trace entry, if expected
 
-      if Get_Info (F, Qemu_Traces.Kernel_File_Name)'Length /= 0 then
+      if Get_Info (Trace_File, Qemu_Traces.Kernel_File_Name)'Length /= 0 then
 
          --  If execution reaches this point, we know there is a kernel and
          --  therefore a load address. As a consequence, we also know that the
@@ -612,7 +611,7 @@ package body Traces_Files is
                       & " be 0");
                end if;
 
-               Process_Loadaddr (F, Raw_Entry.Pc);
+               Process_Loadaddr (Trace_File, Raw_Entry.Pc);
 
                if Handle_Relocations then
                   Offset := Raw_Entry.Pc;
@@ -623,7 +622,8 @@ package body Traces_Files is
 
             if not Handle_Relocations then
                Process_Trace_Entry
-                 (F, No_Shared_Object, Decode_Trace_Entry (Raw_Entry));
+                 (Trace_File, No_Shared_Object,
+                  Decode_Trace_Entry (Raw_Entry));
             end if;
          end loop;
       end if;
@@ -660,7 +660,8 @@ package body Traces_Files is
                     ((First => First,
                       Last  => Last,
                       SO    => Load_Shared_Object
-                                 (F, Filename.all, Sig, First, Last)));
+                                 (Trace_File, Filename.all, Sig, First,
+                                  Last)));
                   Free (Filename);
                end;
 
@@ -712,14 +713,13 @@ package body Traces_Files is
             end if;
 
             Process_Trace_Entry
-              (F, SO, Decode_Trace_Entry (Raw_Entry, Trace_Offset));
+              (Trace_File, SO, Decode_Trace_Entry (Raw_Entry, Trace_Offset));
          end;
 
          << Skip >> null;
       end loop;
 
       Close_Trace_File (Desc);
-      Trace_File := F;
    end Read_Trace_File_Gen;
 
    ----------------------
