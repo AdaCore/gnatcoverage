@@ -92,6 +92,10 @@ XCOV=gnatcov
 # don't really care about. 
 
 BUILDER=gprbuild -aP ../support $(GPRBUILD_TARGETARGS)
+# The common way to invoke gprbuild, providing direct access to the
+# support subdir so example projects can just do 'with "common.gpr";'
+# and 'extends "base"'.
+
 MKDIR=mkdir -p
 RM=rm
 CP=cp
