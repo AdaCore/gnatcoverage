@@ -14,11 +14,6 @@
 # Set of main target programs for which we want to produce coverage info,
 # to be defined from the command line or by includers:
 # TESTS=
-#
-# ??? More than one entry in this list is not completely supported yet.
-# Everything is done to have the correct sequence of operations for
-# each, but final results for one are likely to be intermixed or partially
-# clobbered by those for another.
 
 # User arguments to pass to the builder
 BUILDFLAGS=
@@ -43,6 +38,7 @@ OBJECT_LEVELS=branch insn
 SOURCE_LEVELS=stmt stmt+decision stmt+mcdc
 
 BINDIR = obj/$(TARGET)
+BASEDIR = $(notdir $(CURDIR))
 
 ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
 
@@ -64,7 +60,7 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
 
   INTERNALBUILDFLAGS = -cargs -g -fdump-scos -fpreserve-control-flow
   GENXCOVLIST=\
-    ls $(wildcard $(BINDIR)/*.ali) > $*.alis
+    ls $(wildcard $(BINDIR)/*.ali) | grep -v test_ > $*.alis
   XCOVFILTER=--scos=@$*.alis
   XCOVRUN=$(XCOV) run \
     $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$< -o $<.trace
@@ -83,22 +79,22 @@ all: build trace analyze
 #          the corresponding executable
 # -----------------------------------------------------------------------
 
-analyze: $(TESTS:%=index-%.html) $(UNIT_TESTS:%=index-%.html)
+analyze: $(TESTS:%=out-%/index.html) $(UNIT_TESTS:%=out-%/index.html)
 
-index-%.html: %.trace
+out-%/index.html: %.trace
+	@mkdir -p $(dir $@)
 	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=html+ $< 
-	cp index.html $@
+	 --level=$(XCOVLEVEL) --annotate=dhtml $< --output-dir $(dir $@)
 
-index-%.xml: %.trace
+out-%/index.xml: %.trace
+	@mkdir -p $(dir $@)
 	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=xml $< 
-	cp index.xml $@
+	 --level=$(XCOVLEVEL) --annotate=xml $< --output-dir $(dir $@)
 
-report-%.txt: %.trace
+out-%/report.txt: %.trace
+	@mkdir -p $(dir $@)
 	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=report $< \
-	 -o $@
+	 --level=$(XCOVLEVEL) --annotate=report $< -o $@
 
 # -----------------------------------------------------------------------
 # trace: produce execution trace from executable program execution
@@ -128,7 +124,7 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 build: $(TESTS) $(UNIT_TESTS)
 
 $(TESTS): libsupport force
-	$(BUILDER) -f -p -P$@ $(BUILDERFLAGS)
+	$(BUILDER) -f -p $@.adb -P$(BASEDIR).gpr $(BUILDERFLAGS)
 
 $(UNIT_TESTS): libsupport force
 	$(BUILDER) -f -p -Pharness $(BUILDERFLAGS)\
@@ -145,7 +141,7 @@ libsupport:
 
 clean:
 	$(MKSUPPORT) clean
-	$(RM) -rf obj lib
+	$(RM) -rf obj lib out-*
 	$(RM) -f *.bin *.dmap *.cgpr *.trace.* *.trace *~ \
                  *.xcov *.html *.css *.xml $(TESTS) *.alis *.routines
 
