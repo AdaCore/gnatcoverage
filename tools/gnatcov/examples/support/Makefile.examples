@@ -70,6 +70,8 @@ endif
 # Argument we will pass to the builder eventually
 BUILDERFLAGS=$(INTERNALBUILDFLAGS) $(BUILDFLAGS)
 
+ALL_TESTS=$(TESTS) $(UNIT_TESTS)
+
 .PRECIOUS: %.trace
 
 all: build trace analyze
@@ -79,7 +81,7 @@ all: build trace analyze
 #          the corresponding executable
 # -----------------------------------------------------------------------
 
-analyze: $(TESTS:%=out-%/index.html) $(UNIT_TESTS:%=out-%/index.html)
+analyze: $(ALL_TESTS:%=out-%/index.html)
 
 out-%/index.html: %.trace
 	@mkdir -p $(dir $@)
@@ -101,7 +103,7 @@ out-%/report.txt: %.trace
 #        within instrumented target emulation environment
 # -----------------------------------------------------------------------
 
-trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
+trace: $(ALL_TESTS:%=%.trace)
 
 %.trace: % force
 # Generate the filtering list here, as we might need to pass it to
@@ -121,7 +123,7 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 # build: produce executable program from sources + target bsp
 # -----------------------------------------------------------------------
 
-build: $(TESTS) $(UNIT_TESTS)
+build: $(ALL_TESTS)
 
 $(TESTS): libsupport force
 	$(BUILDER) -f -p $@.adb -P$(BASEDIR).gpr $(BUILDERFLAGS)
