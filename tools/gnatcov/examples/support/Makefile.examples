@@ -82,20 +82,21 @@ all: build trace analyze
 #          the corresponding executable
 # -----------------------------------------------------------------------
 
-analyze: $(ALL_TESTS:%=out-%/index.html)
+analyze: $(ALL_TESTS:%=out-%) $(ALL_TESTS:%=out-%/index.html)
+
+out-%: force
+	$(RM) -rf $@
+	$(MKDIR) $@
 
 out-%/index.html: %.trace
-	@mkdir -p $(dir $@)
 	$(XCOV) coverage $(XCOVFILTER) \
 	 --level=$(XCOVLEVEL) --annotate=dhtml $< --output-dir $(dir $@)
 
 out-%/index.xml: %.trace
-	@mkdir -p $(dir $@)
 	$(XCOV) coverage $(XCOVFILTER) \
 	 --level=$(XCOVLEVEL) --annotate=xml $< --output-dir $(dir $@)
 
 out-%/report.txt: %.trace
-	@mkdir -p $(dir $@)
 	$(XCOV) coverage $(XCOVFILTER) \
 	 --level=$(XCOVLEVEL) --annotate=report $< -o $@
 
