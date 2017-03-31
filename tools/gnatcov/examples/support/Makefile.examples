@@ -42,11 +42,12 @@ BASEDIR = $(notdir $(CURDIR))
 
 ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
 
-  # Object coverage: use --routines to filter. No extra build option.
+  # Object coverage: use --routines to filter. Compile with -g to
+  # allow annotated-source report formats.
 
-  INTERNALBUILDFLAGS =
+  INTERNALBUILDFLAGS = -g
   GENXCOVLIST=\
-    $(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) > $*.routines
+    $(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) | grep -v test_ > $*.routines
   XCOVFILTER=--routines=@$*.routines
   XCOVRUN=$(XCOV) run \
     $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$< -o $<.trace
