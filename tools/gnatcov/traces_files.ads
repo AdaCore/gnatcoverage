@@ -83,9 +83,9 @@ package Traces_Files is
       --  Whether trace entries are relocated using Loadaddr and shared object
       --  load/unload events.
       --
-      --  Most use need relocations, hence the default value. The only use case
-      --  for disabling relocation is to be able to dump the trace file as it
-      --  is encoded on the disk, so only for debug purposes.
+      --  Most uses need relocations, hence the default value. The only use
+      --  case for disabling relocation is to be able to dump the trace file as
+      --  it is encoded on the disk, so only for debug purposes.
       --
       --  Note that when this is True, in the case of Loadaddr handling, trace
       --  entries:
