@@ -803,9 +803,14 @@ procedure GNATcov is
             | Cmd_Dump_Trace_Base
             | Cmd_Dump_Trace_Asm =>
 
+            --  For "coverage", require an annotation format unless we must
+            --  save a checkpoint. In this case, we'll just skip report
+            --  production.
+
             if Args.Command = Cmd_Coverage
               and then
-                not Args.String_Args (Opt_Annotation_Format).Present
+                (not Args.String_Args (Opt_Annotation_Format).Present
+                 and Save_Checkpoint = null)
             then
                Report_Missing_Argument ("an annotation format");
             end if;
@@ -1887,10 +1892,7 @@ begin
                  (Context'Unchecked_Access, Output);
 
             when Annotate_Unknown =>
-               --  This should be unreachable: we are supposed to check that
-               --  the user provided a format earlier.
-
-               raise Program_Error with "unknown annotation format";
+               pragma Assert (Save_Checkpoint /= null);
             end case;
 
             --  Generate checkpoint, if requested
