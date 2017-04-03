@@ -77,12 +77,13 @@ This "incidental coverage" may be undesirable, as testsuite A is meant
 to exercise the requirements of unit A only (not unit B) and so should
 not contribute to the coverage of unit B.
 
-This can be resolved using checkpointed coverage state, because each separate run
-of |gcvcov| can consider a different set of units of interest -- traces
+This can be resolved using checkpointed coverage state, because each separate
+run of |gcvcov| can consider a different set of units of interest -- traces
 processed in each run will only contribute to the coverage of the units of
 interest for that run.
 
-A consolidated coverage report can thus be constructed using a two pass analysis::
+A consolidated coverage report can thus be constructed using a two pass
+analysis::
 
   gnatcov coverage --level=stmt --scos=a.ali \
                    --trace=testA1.traces ... --trace=testAN.trace \
@@ -97,8 +98,7 @@ A consolidated coverage report can thus be constructed using a two pass analysis
   # trace files from testsuite B, and consolidate with previous results
   # from testsuite A.
 
-In a consolidated report produced following this procedure, each set of trace files contributes
-only to the coverage of the units of interest specified for the execution of |gcvcov| in which
-it is processed, and the information of which run each trace was processed in is included in the
-report.
-
+In a consolidated report produced following this procedure, each set of trace
+files contributes only to the coverage of the units of interest specified for
+the execution of |gcvcov| in which it is processed, and the information of
+which run each trace was processed in is included in the report.
