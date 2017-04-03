@@ -35,15 +35,15 @@ In this case, cumulative coverage achieved by the complete test
 suite can be computed using checkpoints to carry over intermediate
 coverage results::
 
-  gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=test1.trace \
+  gnatcov coverage --level=stmt --scos=@alis --trace=test1.trace \
                    --save-checkpoint=testsuite.ckpt
   # Process test1.trace, saving resulting coverage state in a newly created
   # checkpoint testsuite.ckpt
 
-  gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=test2.trace \
+  gnatcov coverage --level=stmt --scos=@alis --trace=test2.trace \
                    --checkpoint=testsuite.ckpt --save-checkpoint=testsuite.ckpt
   ...
-  gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=testN.trace \
+  gnatcov coverage --level=stmt --scos=@alis --trace=testN.trace \
                    --checkpoint=testsuite.ckpt --save-checkpoint=testsuite.ckpt
   # Process subsequent test traces test2.trace .. testN.trace, each time
   # starting with the coverage state reached at the previous iteration,
@@ -84,7 +84,7 @@ interest for that run.
 
 A consolidated coverage report can thus be constructed using a two pass analysis::
 
-  gnatcov coverage --level=stmt --scos=a.ali --annotate=report \
+  gnatcov coverage --level=stmt --scos=a.ali \
                    --trace=testA1.traces ... --trace=testAN.trace \
                    --save-checkpoint=testsuiteA.ckpt
   # Discharge the coverage obligations for unit A (unit of interest) using
