@@ -1,5 +1,5 @@
 GNATcoverage as a whole is licensed under the terms of the General Public
-License version 3 (see COPYING3). 
+License version 3 (see LICENSE).
 
 However, the gnatcov-dhtml.min.js file used in dynamic html reports
 incorporates code from the Google Closure library
