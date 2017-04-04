@@ -22,6 +22,7 @@ with Ada.Containers.Vectors;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;     use ALI_Files;
@@ -2504,7 +2505,7 @@ package body SC_Obligations is
 
    procedure Load_SCOs
      (ALI_Filename         : String;
-      Ignored_Source_Files : String_Sets.Set)
+      Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
       use SCOs;
 

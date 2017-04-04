@@ -23,6 +23,7 @@ with Ada.Containers.Vectors;
 with Ada.Streams; use Ada.Streams;
 
 private with GNAT.SHA1;
+with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
 with SC_Obligations; use SC_Obligations;
@@ -44,7 +45,7 @@ package ALI_Files is
    function Load_ALI
      (ALI_Filename         : String;
       CU                   : CU_Id;
-      Ignored_Source_Files : String_Sets.Set;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Units                : out SFI_Vector;
       Deps                 : out SFI_Vector;
       Fingerprint          : out SCOs_Hash;
@@ -55,8 +56,8 @@ package ALI_Files is
    --  file will return No_Source_File immediately, without reloading the file.
    --  Units are the units contained in this compilation.
    --
-   --  Ignored_Source_Files is a set of base file names for which SCOs must be
-   --  ignored.
+   --  Ignore all source obligations according to Ignored_Source_Files (see
+   --  SC_Obligations.Load_SCOs' documentation).
    --
    --  Deps are the dependencies of the compilation.
    --

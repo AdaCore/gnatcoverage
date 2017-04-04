@@ -122,9 +122,10 @@ The available options are as follows:
     for gathering exemption regions applicable to object level criteria.
 
 :option:`--ignore-source-files`, |rarg|:
-    For source coverage analysis specifically, provide a list of source files
-    to exclude from the analysis, and from the output report. See the
-    :ref:`ada_subunits` section for more information.
+    For source coverage analysis specifically, provide a list of globbing
+    patterns (as in Unix or DOS shells). All source files whose name matches
+    one pattern are excluded from the analysis, and from the output report. See
+    the :ref:`ada_subunits` section for more information.
 
 :option:`--save-checkpoint`:
     For source coverage analysis specifically, save the resulting coverage
