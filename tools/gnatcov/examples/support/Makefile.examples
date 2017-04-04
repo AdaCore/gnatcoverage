@@ -77,11 +77,15 @@ ALL_TESTS=$(TESTS) $(UNIT_TESTS)
 
 all: build trace analyze
 
+announce-%: force
+	@echo "--------------" $* "--------------"
+
 # -----------------------------------------------------------------------
 # analyze: produce annotated sources or html from a trace file and
 #          the corresponding executable
 # -----------------------------------------------------------------------
 
+analyze: announce-analyze
 analyze: $(ALL_TESTS:%=out-%) $(ALL_TESTS:%=out-%/index.html)
 
 out-%: force
@@ -105,6 +109,7 @@ out-%/report.txt: %.trace
 #        within instrumented target emulation environment
 # -----------------------------------------------------------------------
 
+trace: announce-trace
 trace: $(ALL_TESTS:%=%.trace)
 
 %.trace: % force
@@ -125,6 +130,7 @@ trace: $(ALL_TESTS:%=%.trace)
 # build: produce executable program from sources + target bsp
 # -----------------------------------------------------------------------
 
+build: announce-build
 build: $(ALL_TESTS)
 
 $(TESTS): libsupport force
