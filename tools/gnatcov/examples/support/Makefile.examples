@@ -6,14 +6,36 @@
 # illustrate a typical coverage data generation sequence for a program
 # starting from sources.
 
-# The basic idea is
+# Each individual example is expected to provide
+#
+# - Some source code subject to coverage analysis, exercised by one or several
+#   test drivers (main subprograms) calling into the code.  Test drivers
+#   should be named test_<something> and the set of drivers of relevance for
+#   a given exmple should be listed in the TESTS Makefile variable.
+#
+# - A general project file named after the example subdirectory (foo.gpr for
+#   an example located in subdirectory foo), used to build, without a Main
+#   attribute (providing a Source_Dirs at least, Object_Dir possibly, ...)
+
+# The basic idea is, first for each test driver, to:
+#
 #  1/ Build the program binary executable from the sources
-#  2/ Run it through qemu to get execution traces
-#  3/ Use gnatcov to produce user level coverage data from the traces
+#  2/ Run it through "gnatcov run" to get an execution trace
+#  3/ Use "gnatcov coverage" to produce a report out of the trace
+#
+# Then, optionally, as determined by the CONSOLIDATE variable value
+# for the example as a whole:
+#
+#  4/ Use gnatcov coverage to produce a consolidated report, from all the test
+#     traces or from checkpoints.
 
 # Set of main target programs for which we want to produce coverage info,
 # to be defined from the command line or by includers:
 # TESTS=
+
+# To produce a consolidated report combining the effects of all the test
+# drivers, set to 'traces' or 'checkpoints' from includers or command line:
+# CONSOLIDATE=
 
 # User arguments to pass to the builder
 BUILDFLAGS=
