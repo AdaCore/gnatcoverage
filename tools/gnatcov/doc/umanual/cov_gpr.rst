@@ -136,20 +136,23 @@ Specifying source files to ignore from project files
 ====================================================
 
 Two attributes in the ``Coverage`` package make it possible to specify source
-files to ignore. The first one, ``Ignored_Source_Files``, expects the list of
-source files to ignore::
+files to ignore. They both gather a list of globbing patterns (as in Unix or
+DOS shells). All source files whose name matches one pattern are excluded from
+the analysis, and from the output report.
+
+The first attribute, ``Ignored_Source_Files``, expects the list of patterns::
 
     package Coverage is
-        for Ignored_Source_Files use ("ops-test.adb", "logger-test.adb");
+        for Ignored_Source_Files use ("*-test.adb", "logger-*.adb");
     end Coverage;
 
-The above is equivalent to ``--ignore-source-files=ops-test.adb
---ignore-source-files=logger-test.adb``.
+The above is equivalent to ``--ignore-source-files=*-test.adb
+--ignore-source-files=logger-*.adb``.
 
 The second one, ``Ignored_Source_Files_List``, corresponds to the use of
 :term:`@listfile argument`. In the following example, the ``ignore.list`` text
-file is expected to contain a list of names for the source files to ignore,
-each separated by line breaks::
+file is expected to contain a list of globbing patterns, each separated by line
+breaks::
 
     pacakage Coverage is
         for Ignored_Source_Files_List use "ignore.list";

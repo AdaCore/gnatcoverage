@@ -55,7 +55,7 @@ package body ALI_Files is
    --  lines.
 
    procedure Mark_Ignored_Units
-     (Ignored_Source_Files : String_Sets.Set;
+     (Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Deps                 : SFI_Vector);
    --  Mark SCOs.SCO_Unit_Table entries to be ignored by setting their Dep_Num
    --  to Missing_Dep_Num.
@@ -101,13 +101,16 @@ package body ALI_Files is
    ------------------------
 
    procedure Mark_Ignored_Units
-     (Ignored_Source_Files : String_Sets.Set;
+     (Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Deps                 : SFI_Vector)
    is
-      use Ada.Strings.Unbounded;
       use SCOs;
       Deps_Present : constant Boolean := not Deps.Is_Empty;
    begin
+      if Ignored_Source_Files = null then
+         return;
+      end if;
+
       for J in SCO_Unit_Table.First + 1 .. SCO_Unit_Table.Last loop
          declare
             U    : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (J);
@@ -116,7 +119,7 @@ package body ALI_Files is
                then Get_Simple_Name (Deps.Element (U.Dep_Num))
                else U.File_Name.all);
          begin
-            if Ignored_Source_Files.Contains (To_Unbounded_String (Name)) then
+            if GNAT.Regexp.Match (Name, Ignored_Source_Files.all) then
                U.Dep_Num := Missing_Dep_Num;
             end if;
          end;
@@ -216,9 +219,13 @@ package body ALI_Files is
 
    begin
       Discard_ALI :=
-        Load_ALI (ALI_Filename, No_CU_Id, SC_Obligations.String_Sets.Empty_Set,
-                  Discard_Units, Discard_Deps, Discard_Fingerprint,
-                  With_SCOs => False);
+        Load_ALI (ALI_Filename         => ALI_Filename,
+                  CU                   => No_CU_Id,
+                  Ignored_Source_Files => null,
+                  Units                => Discard_Units,
+                  Deps                 => Discard_Deps,
+                  Fingerprint          => Discard_Fingerprint,
+                  With_SCOs            => False);
    end Load_ALI;
 
    --------------
@@ -228,7 +235,7 @@ package body ALI_Files is
    function Load_ALI
      (ALI_Filename         : String;
       CU                   : CU_Id;
-      Ignored_Source_Files : String_Sets.Set;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Units                : out SFI_Vector;
       Deps                 : out SFI_Vector;
       Fingerprint          : out SCOs_Hash;

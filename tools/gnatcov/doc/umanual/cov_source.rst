@@ -1358,8 +1358,9 @@ possible for the coverage analysis and the report production to ignore source
 files even though they belong to units of interest.
 
 This option can appear multiple times on the command line. Each occurrence
-expects a single arguments which is either the name of a source file to ignore,
-or a :term:`@listfile argument` that cotains a list of such file names.
+expects a single argument which is either a globbing pattern for the name of
+source file to ignore, or a :term:`@listfile argument` that contains a list of
+such patterns.
 
 For instance, consider the spec and body for the ``Ops`` unit (``ops.ads`` an
 ``ops.adb``) with the body containing a subunit subprogram ``Ops.Test``
@@ -1367,6 +1368,10 @@ For instance, consider the spec and body for the ``Ops`` unit (``ops.ads`` an
 excluding the ``Ops.Test`` subunit, one must run::
 
   gnatcov coverage [regular options] --units=ops --ignore-source-files=ops-test.adb [trace files]
+
+In order to ignore all files whose name match ``*-test.adb``, you can also run::
+
+  gnatcov coverage [regular options] --units=ops --ignore-source-files=*-test.adb [trace files]
 
 Inlining & Ada Generic Units
 ============================

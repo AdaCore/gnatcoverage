@@ -24,6 +24,7 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
 with GNAT.OS_Lib;
+with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
 with ALI_Files;         use ALI_Files;
@@ -169,8 +170,12 @@ procedure GNATcov is
    --  Load all listed SCO files and initialize source coverage data structure.
    --  If Check_SCOs is True, report an error if no SCOs are provided.
 
-   function Ignored_Source_Files_Set return String_Sets.Set;
-   --  Create a string set out of Ignored_Source_File and return it
+   procedure Create_Ignored_Source_Files_Matcher
+     (Matcher     : out GNAT.Regexp.Regexp;
+      Has_Matcher : out Boolean);
+   --  If Ignored_Source_Files is empty, leave Matcher uninitialized and set
+   --  Has_Matcher to False. Otherwise, set it to True and put in Matcher a
+   --  pattern for the names of source files to ignore.
 
    procedure Load_Target_Option (Default_Target : Boolean);
    --  Split the --target option into its family name (Target_Family) and the
@@ -294,8 +299,8 @@ procedure GNATcov is
    -------------------
 
    procedure Load_All_SCOs (Check_SCOs : Boolean) is
-      Ignored : constant String_Sets.Set :=
-        Ignored_Source_Files_Set;
+      Matcher     : aliased GNAT.Regexp.Regexp;
+      Has_Matcher : Boolean;
 
       procedure Load_SCOs_Wrapper (ALI_Filename : String);
       --  Wrapper for SC_Obligations.Load_SCOs that uses Ignored to ignore
@@ -307,7 +312,9 @@ procedure GNATcov is
 
       procedure Load_SCOs_Wrapper (ALI_Filename : String) is
       begin
-         Load_SCOs (ALI_Filename, Ignored);
+         Load_SCOs (ALI_Filename, (if Has_Matcher
+                                   then Matcher'Access
+                                   else null));
       end Load_SCOs_Wrapper;
 
    --  Start of processing for Load_All_SCOs
@@ -319,6 +326,8 @@ procedure GNATcov is
             "SCOs",
             ", specifying Units in project or using --units/--scos");
       end if;
+
+      Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
       Inputs.Iterate (ALIs_Inputs, Load_SCOs_Wrapper'Access);
       Coverage.Source.Initialize_SCI;
    end Load_All_SCOs;
@@ -1013,12 +1022,17 @@ procedure GNATcov is
       end;
    end Process_Arguments;
 
-   ------------------------------
-   -- Ignored_Source_Files_Set --
-   ------------------------------
+   -----------------------------------------
+   -- Create_Ignored_Source_Files_Matcher --
+   -----------------------------------------
 
-   function Ignored_Source_Files_Set return String_Sets.Set is
-      Result : String_Sets.Set;
+   procedure Create_Ignored_Source_Files_Matcher
+     (Matcher     : out GNAT.Regexp.Regexp;
+      Has_Matcher : out Boolean)
+   is
+      use Ada.Strings.Unbounded;
+      Pattern : Unbounded_String;
+      First   : Boolean := True;
 
       procedure Process (File : String);
       --  Include File in Result
@@ -1029,15 +1043,32 @@ procedure GNATcov is
 
       procedure Process (File : String) is
       begin
-         Result.Include (Ada.Strings.Unbounded.To_Unbounded_String (File));
+         --  Ignore blank lines
+
+         if File'Length = 0 then
+            return;
+         end if;
+
+         if First then
+            First := False;
+         else
+            Append (Pattern, ",");
+         end if;
+         Append (Pattern, File);
       end Process;
 
-   --  Start of processing for Ignored_Source_Files_Set
+   --  Start of processing for Create_Ignored_Source_Files_Matcher
 
    begin
+      Append (Pattern, "{");
       Inputs.Iterate (Ignored_Source_Files, Process'Access);
-      return Result;
-   end Ignored_Source_Files_Set;
+      Append (Pattern, "}");
+      Has_Matcher := not First;
+      if Has_Matcher then
+         Matcher := GNAT.Regexp.Compile (Pattern => To_String (Pattern),
+                                         Glob    => True);
+      end if;
+   end Create_Ignored_Source_Files_Matcher;
 
    ------------------------
    -- Load_Target_Option --
