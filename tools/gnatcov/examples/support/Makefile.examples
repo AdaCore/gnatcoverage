@@ -75,10 +75,44 @@ ALL_TESTS=$(TESTS) $(UNIT_TESTS)
 
 .PRECIOUS: %.trace
 
-all: build trace analyze
+all: build trace analyze consolidate-$(CONSOLIDATE)
 
 announce-%: force
 	@echo "--------------" $* "--------------"
+
+# -------------------------------------------------------------------------
+# consolidation targets
+# -------------------------------------------------------------------------
+
+ALL_CHECKPOINTS=$(ALL_TESTS:%=%.ckpt)
+ALL_TRACES=$(ALL_TESTS:%=%.trace)
+
+consolidate-:
+
+consolidate-checkpoints: announce-consolidate-checkpoints
+consolidate-checkpoints: out-all-checkpoints out-all-checkpoints/index.html
+
+ckpt.list: force
+	$(RM) -f $@ && touch $@
+	for ckpt in $(ALL_CHECKPOINTS); do echo $$ckpt >> $@; done
+
+out-all-checkpoints/index.html: $(ALL_CHECKPOINTS) ckpt.list
+	$(XCOV) coverage --level=$(XCOVLEVEL) \
+	 --checkpoint=@ckpt.list \
+	 --annotate=dhtml --output-dir=$(dir $@)
+
+%.ckpt: out-temp %.trace
+	$(XCOV) coverage $(XCOVFILTER) --level=$(XCOVLEVEL) \
+	 --save-checkpoint=$@ $*.trace \
+	 --annotate=xcov --output-dir=out-temp
+
+consolidate-traces: announce-consolidate-traces
+consolidate-traces: out-all-traces out-all-traces/index.html
+
+out-all-traces/index.html: $(ALL_TRACES)
+	$(XCOV) coverage $(XCOVFILTER) --level=$(XCOVLEVEL) \
+	 --annotate=dhtml $(ALL_TRACES) \
+	 --output-dir $(dir $@)
 
 # -----------------------------------------------------------------------
 # analyze: produce annotated sources or html from a trace file and
