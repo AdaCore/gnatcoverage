@@ -47,8 +47,8 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
 
   INTERNALBUILDFLAGS = -g
   GENXCOVLIST=\
-    $(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) | grep -v test_ > $*.routines
-  XCOVFILTER=--routines=@$*.routines
+    $(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) | grep -v test_ > $*-routines.list
+  XCOVFILTER=--routines=@$*-routines.list
   XCOVRUN=$(XCOV) run \
     $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$< -o $<.trace
 
@@ -61,8 +61,8 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
 
   INTERNALBUILDFLAGS = -cargs -g -fdump-scos -fpreserve-control-flow
   GENXCOVLIST=\
-    ls $(wildcard $(BINDIR)/*.ali) | grep -v test_ > $*.alis
-  XCOVFILTER=--scos=@$*.alis
+    ls $(wildcard $(BINDIR)/*.ali) | grep -v test_ > $*-alis.list
+  XCOVFILTER=--scos=@$*-alis.list
   XCOVRUN=$(XCOV) run \
     $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$< -o $<.trace
 endif
@@ -147,6 +147,6 @@ clean:
 	$(MKSUPPORT) clean
 	$(RM) -rf obj lib out-*
 	$(RM) -f *.bin *.dmap *.cgpr *.trace.* *.trace *~ \
-                 *.xcov *.html *.css *.xml $(TESTS) *.alis *.routines
+                 *.xcov *.html *.css *.xml $(TESTS) *.list
 
 .PHONY: force clean
