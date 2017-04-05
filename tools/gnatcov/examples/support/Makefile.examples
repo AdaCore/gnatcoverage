@@ -123,10 +123,9 @@ out-all-checkpoints/index.html: out-all-checkpoints $(ALL_CHECKPOINTS) ckpt.list
 	 --checkpoint=@ckpt.list \
 	 --annotate=dhtml --output-dir=$(dir $@)
 
-%.ckpt: out-temp %.trace
+%.ckpt: %.trace
 	$(XCOV) coverage $(XCOVFILTER) --level=$(XCOVLEVEL) \
-	 --save-checkpoint=$@ $*.trace \
-	 --annotate=xcov --output-dir=out-temp
+	 --save-checkpoint=$@ $*.trace
 
 consolidate-traces: announce-consolidate-traces
 consolidate-traces: out-all-traces/index.html
@@ -186,8 +185,9 @@ trace: $(ALL_TESTS:%=%.trace)
 # build: produce executable program from sources + target bsp
 # -----------------------------------------------------------------------
 
-build: announce-build
 build: $(ALL_TESTS)
+
+$(ALL_TESTS): announce-build-tests
 
 $(TESTS): libsupport force
 	$(BUILDER) -q -f -p $@.adb -P$(BASEDIR).gpr $(BUILDERFLAGS)
@@ -198,7 +198,7 @@ $(UNIT_TESTS): libsupport force
 
 MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) -f Makefile.libsupport
 
-libsupport:
+libsupport: announce-build-libsupport
 	$(MKSUPPORT) all
 
 # -----------------------------------------------------------------------
