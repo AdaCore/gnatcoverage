@@ -319,7 +319,8 @@ install-adapters: $(INSTALL_ADAPTER_TARGETS)
 
 # Unix distribs are tar or zip versions of the three main items (bin, doc
 # and examples), unpacked by users then installed with a doinstall script.
-# We need to add this script, README, INSTALL and LICENSE files in this case.
+# We need to add this script, README, INSTALL and COPYING3/LICENSE.dhtml files
+# in this case.
 
 # Windows distribs are packaged and installed by an nsis installer or alike,
 # which has its own extra info embedded and eventually installs just all what
@@ -328,7 +329,8 @@ install-adapters: $(INSTALL_ADAPTER_TARGETS)
 .PHONY: distrib-linux-extra distrib-windows-extra distrib
 
 distrib-linux-extra:
-	$(CP) README.md INSTALL LICENSE $(PREFIX)
+	[ -f COPYING3 ] || cp ../../COPYING3 .
+	$(CP) README.md INSTALL COPYING3 LICENSE.dhtml $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
