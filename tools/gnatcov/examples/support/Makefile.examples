@@ -72,7 +72,7 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
     $(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) | grep -v test_ > $*-routines.list
   XCOVFILTER=--routines=@$*-routines.list
   XCOVRUN=$(XCOV) run \
-    $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$< -o $<.trace
+    $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$* -o $*.trace
 
 else
 ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
@@ -86,7 +86,7 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
     ls $(wildcard $(BINDIR)/*.ali) | grep -v test_ > $*-alis.list
   XCOVFILTER=--scos=@$*-alis.list
   XCOVRUN=$(XCOV) run \
-    $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$< -o $<.trace
+    $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$* -o $*.trace
 endif
 endif
 
@@ -112,13 +112,13 @@ ALL_TRACES=$(ALL_TESTS:%=%.trace)
 consolidate-:
 
 consolidate-checkpoints: announce-consolidate-checkpoints
-consolidate-checkpoints: out-all-checkpoints out-all-checkpoints/index.html
+consolidate-checkpoints: out-all-checkpoints/index.html
 
 ckpt.list: force
 	$(RM) -f $@ && touch $@
 	for ckpt in $(ALL_CHECKPOINTS); do echo $$ckpt >> $@; done
 
-out-all-checkpoints/index.html: $(ALL_CHECKPOINTS) ckpt.list
+out-all-checkpoints/index.html: out-all-checkpoints $(ALL_CHECKPOINTS) ckpt.list
 	$(XCOV) coverage --level=$(XCOVLEVEL) \
 	 --checkpoint=@ckpt.list \
 	 --annotate=dhtml --output-dir=$(dir $@)
@@ -129,9 +129,9 @@ out-all-checkpoints/index.html: $(ALL_CHECKPOINTS) ckpt.list
 	 --annotate=xcov --output-dir=out-temp
 
 consolidate-traces: announce-consolidate-traces
-consolidate-traces: out-all-traces out-all-traces/index.html
+consolidate-traces: out-all-traces/index.html
 
-out-all-traces/index.html: $(ALL_TRACES)
+out-all-traces/index.html: out-all-traces $(ALL_TRACES)
 	$(XCOV) coverage $(XCOVFILTER) --level=$(XCOVLEVEL) \
 	 --annotate=dhtml $(ALL_TRACES) \
 	 --output-dir $(dir $@)
@@ -142,23 +142,23 @@ out-all-traces/index.html: $(ALL_TRACES)
 # -----------------------------------------------------------------------
 
 analyze: announce-analyze
-analyze: $(ALL_TESTS:%=out-%) $(ALL_TESTS:%=out-%/index.html)
+analyze: $(ALL_TESTS:%=out-%/index.html)
 
 out-%: force
 	$(RM) -rf $@
 	$(MKDIR) $@
 
-out-%/index.html: %.trace
+out-%/index.html: out-% %.trace
 	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=dhtml $< --output-dir $(dir $@)
+	 --level=$(XCOVLEVEL) --annotate=dhtml $*.trace --output-dir $(dir $@)
 
-out-%/index.xml: %.trace
+out-%/index.xml: out-% %.trace
 	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=xml $< --output-dir $(dir $@)
+	 --level=$(XCOVLEVEL) --annotate=xml $*.trace --output-dir $(dir $@)
 
-out-%/report.txt: %.trace
+out-%/report.txt: out-% %.trace
 	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=report $< -o $@
+	 --level=$(XCOVLEVEL) --annotate=report $*.trace -o $@
 
 # -----------------------------------------------------------------------
 # trace: produce execution trace from executable program execution
