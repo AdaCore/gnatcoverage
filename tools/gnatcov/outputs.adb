@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Directories;
 with Ada.Exceptions;
 
 with GNAT.OS_Lib;      use GNAT.OS_Lib;
@@ -110,10 +111,16 @@ package body Outputs is
       Free (Report_Output_Dir);
 
       if not Is_Directory (Output_Dir) then
-         Fatal_Error
-           ("output path "
-            & Output_Dir
-            & " does not exist or is not a directory");
+         Put_Line (Standard_Error, "info: creating output path " & Output_Dir);
+         begin
+            Ada.Directories.Create_Path (Output_Dir);
+         exception
+            when Exc : Name_Error | Use_Error =>
+               Fatal_Error
+                 ("cannot create output path "
+                  & Output_Dir
+                  & ": " & Ada.Exceptions.Exception_Message (Exc));
+         end;
       end if;
 
       Report_Output_Dir := new String'(Output_Dir);
