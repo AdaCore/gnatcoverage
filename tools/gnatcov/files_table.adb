@@ -51,6 +51,9 @@ package body Files_Table is
    --  computed. It is invalid to add files to the table after this is set
    --  to True.
 
+   Empty_Sloc_To_SCO_Map : aliased constant Sloc_To_SCO_Maps.Map :=
+      Sloc_To_SCO_Maps.Empty_Map;
+
    procedure Build_Unique_Names;
    --  Compute unique names for all files in the table. Also take care of
    --  setting Unique_Names_Computed.
@@ -1416,6 +1419,21 @@ package body Files_Table is
       end if;
       return FI.Sloc_To_SCO_Maps (Kind)'Access;
    end Writeable_Sloc_To_SCO_Map;
+
+   ---------------------
+   -- Sloc_To_SCO_Map --
+   ---------------------
+
+   function Sloc_To_SCO_Map
+     (Index : Source_File_Index;
+      Kind  : SCO_Kind) return access constant Sloc_To_SCO_Maps.Map is
+   begin
+      if Get_File (Index).Kind = Source_File then
+         return Writeable_Sloc_To_SCO_Map (Index, Kind);
+      else
+         return Empty_Sloc_To_SCO_Map'Access;
+      end if;
+   end Sloc_To_SCO_Map;
 
    ----------------
    -- To_Display --

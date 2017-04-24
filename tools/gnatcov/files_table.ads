@@ -386,9 +386,7 @@ package Files_Table is
    function Sloc_To_SCO_Map
      (Index : Source_File_Index;
       Kind  : SCO_Kind) return access constant Sloc_To_SCO_Maps.Map
-      is (Writeable_Sloc_To_SCO_Map (Index, Kind))
-     with Pre => Get_File (Index).Kind = Source_File,
-          Post => Sloc_To_SCO_Map'Result /= null;
+     with Post => Sloc_To_SCO_Map'Result /= null;
    --  Return the requested map, in a read-only state
 
    function End_Lex_Element (Sloc : Source_Location) return Source_Location;
