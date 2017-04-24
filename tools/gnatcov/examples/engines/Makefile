@@ -1,9 +1,10 @@
-# This is a example of code with an and-then decision.
+# This example illustrates the achivement of mcdc coverage thanks to
+# checkpoints consolidation.
 
-# 3 individual tests exercise variants of True/False on the conditions, all
-# leading to incomplete decision coverage.  Consolidation yields mcdc
-# coverage. Request consolidation with checkpoints, just to illustrate how the
-# process goes.
+# The code features an and-then expression used in a return statement,
+# considered a decision for the mcdc critierion. 3 individual tests exercise
+# variants of True/False on the conditions, each leading to incomplete
+# decision coverage while consolidation yields mcdc coverage.
 
 TESTS=test_stable test_unstable_p test_unstable_t
 XCOVLEVEL=stmt+mcdc
