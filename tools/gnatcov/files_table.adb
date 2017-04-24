@@ -1401,11 +1401,11 @@ package body Files_Table is
       FI.Has_Source := Success;
    end Open;
 
-   ---------------------
-   -- Sloc_To_SCO_Map --
-   ---------------------
+   -------------------------------
+   -- Writeable_Sloc_To_SCO_Map --
+   -------------------------------
 
-   function Sloc_To_SCO_Map
+   function Writeable_Sloc_To_SCO_Map
      (Index : Source_File_Index;
       Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map
    is
@@ -1415,7 +1415,7 @@ package body Files_Table is
          FI.Sloc_To_SCO_Maps := new Sloc_To_SCO_Map_Array;
       end if;
       return FI.Sloc_To_SCO_Maps (Kind)'Access;
-   end Sloc_To_SCO_Map;
+   end Writeable_Sloc_To_SCO_Map;
 
    ----------------
    -- To_Display --

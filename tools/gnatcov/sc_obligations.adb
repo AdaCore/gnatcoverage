@@ -3105,7 +3105,8 @@ package body SC_Obligations is
                   use Sloc_To_SCO_Maps;
 
                   Map      : constant access Sloc_To_SCO_Maps.Map :=
-                    Sloc_To_SCO_Map (Sloc_Range.Source_File, SCOD.Kind);
+                    Writeable_Sloc_To_SCO_Map
+                       (Sloc_Range.Source_File, SCOD.Kind);
                   Cur      : Sloc_To_SCO_Maps.Cursor;
                   Inserted : Boolean;
                begin

@@ -375,11 +375,21 @@ package Files_Table is
 
    --  Get line info (or text) at File:Index (or at Sloc)
 
-   function Sloc_To_SCO_Map
+   function Writeable_Sloc_To_SCO_Map
      (Index : Source_File_Index;
       Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map
-     with Pre => Get_File (Index).Kind = Source_File;
-   --  Return (allocating, if necessary) the requested map
+     with Pre => Get_File (Index).Kind = Source_File,
+          Post => Writeable_Sloc_To_SCO_Map'Result /= null;
+   --  Return (allocating, if necessary) the requested map, in a writeable
+   --  state.
+
+   function Sloc_To_SCO_Map
+     (Index : Source_File_Index;
+      Kind  : SCO_Kind) return access constant Sloc_To_SCO_Maps.Map
+      is (Writeable_Sloc_To_SCO_Map (Index, Kind))
+     with Pre => Get_File (Index).Kind = Source_File,
+          Post => Sloc_To_SCO_Map'Result /= null;
+   --  Return the requested map, in a read-only state
 
    function End_Lex_Element (Sloc : Source_Location) return Source_Location;
    --  Assuming that Sloc points to the beginning of an Ada lexical element,
