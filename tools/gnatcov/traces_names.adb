@@ -82,11 +82,12 @@ package body Traces_Names is
 
    procedure Match_Routine_Insns
      (Exec      : Exe_File_Acc;
-      Subp_Info : in out Subprogram_Info;
+      Section   : Section_Index;
       Content   : Binary_Content;
+      Subp_Info : in out Subprogram_Info;
       Success   : out Boolean);
-   --  Match the machine instructions in Subp_Info.Insn and Content: set
-   --  Success to whether they indeed match.
+   --  Match the machine instructions in Subp_Info.Insn and the (Exec, Section,
+   --  Content) tuple: set Success to whether they indeed match.
    --
    --  In the case where they have inconsistent padding instruction, this tries
    --  to determine which instructions are padding and does the matching
@@ -273,6 +274,7 @@ package body Traces_Names is
    procedure Add_Code
      (Subp_Key     : Subprogram_Key;
       Exec         : Exe_File_Acc;
+      Section      : Section_Index;
       Content      : Binary_Content;
       First_Code   : out Boolean;
       Subp_Info    : out Subprogram_Info)
@@ -305,6 +307,7 @@ package body Traces_Names is
             --  TODO??? Is a copy really needed?
             Subp_Info.Insns := Content;
             Subp_Info.Exec := Exec;
+            Subp_Info.Section := Section;
             Subp_Info.Offset := 0;
             First_Code := True;
 
@@ -314,7 +317,7 @@ package body Traces_Names is
             --  (e.g. came from two executables compiled with different
             --  compilation options), the consolidation would not make sense.
 
-            Match_Routine_Insns (Exec, Subp_Info, Content, Success);
+            Match_Routine_Insns (Exec, Section, Content, Subp_Info, Success);
             if not Success then
                Put_Line (Standard_Error,
                          "error: different function size for "
@@ -349,6 +352,7 @@ package body Traces_Names is
    procedure Add_Code_And_Traces
      (Subp_Key     : Subprogram_Key;
       Exec         : Exe_File_Acc;
+      Section      : Section_Index;
       Content      : Binary_Content;
       Base         : access Traces_Base)
    is
@@ -436,7 +440,7 @@ package body Traces_Names is
    --  Start of processing for Add_Code_And_Traces
 
    begin
-      Add_Code (Subp_Key, Exec, Content, First_Code, Subp_Info);
+      Add_Code (Subp_Key, Exec, Section, Content, First_Code, Subp_Info);
       Cur := Routines.Find (Subp_Key);
       if Has_Element (Cur) then
          Routines.Update_Element (Cur, Update'Access);
@@ -636,8 +640,9 @@ package body Traces_Names is
 
    procedure Match_Routine_Insns
      (Exec      : Exe_File_Acc;
-      Subp_Info : in out Subprogram_Info;
+      Section   : Section_Index;
       Content   : Binary_Content;
+      Subp_Info : in out Subprogram_Info;
       Success   : out Boolean)
    is
       use type Pc_Type;
@@ -666,9 +671,10 @@ package body Traces_Names is
       Ref_Padding_First :=
         (if Subp_Info.Padding_Stripped
          then Subp_Info.Insns.Last + 1
-         else Find_Padding_First (Exec, Subp_Info.Section, Subp_Info.Insns));
-      New_Padding_First := Find_Padding_First
-        (Exec, Subp_Info.Section, Content);
+         else Find_Padding_First (Subp_Info.Exec,
+                                  Subp_Info.Section,
+                                  Subp_Info.Insns));
+      New_Padding_First := Find_Padding_First (Exec, Section, Content);
 
       declare
          Ref_Padding_Offset : constant Pc_Type :=

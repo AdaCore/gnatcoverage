@@ -297,6 +297,7 @@ package body Decision_Map is
             Add_Code
               (Subp_Key,
                Exe_File,
+               Sec.Section_Sec_Idx,
                Slice (Sec.Section_Content, Sym.First, Sym.Last),
                First_Symbol_Occurrence,
                Subp_Info);

@@ -2914,6 +2914,7 @@ package body Traces_Elf is
                Traces_Names.Add_Code_And_Traces
                  (Subp_Key,
                   Exec,
+                  Sec.Section_Sec_Idx,
                   Slice (Sec.Section_Content, Sym.First, Sym.Last),
                   Base);
             exception
