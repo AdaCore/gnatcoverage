@@ -133,19 +133,23 @@ package Traces_Names is
    procedure Add_Code
      (Subp_Key     : Subprogram_Key;
       Exec         : Exe_File_Acc;
+      Section      : Section_Index;
       Content      : Binary_Content;
       First_Code   : out Boolean;
       Subp_Info    : out Subprogram_Info);
-   --  Add code for Subp_Key from Exec with the given contents. Updates the
-   --  offset to be added to traces relative to Exec for this routine to rebase
-   --  them for the recorded code chunk stored in the routines database.  If
-   --  this was the first time code was seen for this routine, First_Code is
-   --  set true. The entry from the routine names table (Subp_Info) is
-   --  returned.
+   --  Add code for Subp_Key from Exec with the given contents.  Content must
+   --  be a view of the instructions from the given Section in Exec.
+   --
+   --  This updates the offset to be added to traces relative to Exec for this
+   --  routine to rebase them for the recorded code chunk stored in the
+   --  routines database.  If this was the first time code was seen for this
+   --  routine, First_Code is set true. The entry from the routine names table
+   --  (Subp_Info) is returned.
 
    procedure Add_Code_And_Traces
      (Subp_Key     : Subprogram_Key;
       Exec         : Exe_File_Acc;
+      Section      : Section_Index;
       Content      : Binary_Content;
       Base         : access Traces_Base);
    --  Add code for the Subp_Key routine to its record
