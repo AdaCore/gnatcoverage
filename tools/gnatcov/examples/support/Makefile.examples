@@ -1,10 +1,12 @@
 # This support Makefile is a helper for examples packaged together with
-# GNATcoverage.  The intent is to have this Makefile invoked from the example
-# dedicated directories.
+# GNATcoverage.
 
 # It is useful both to factorize the work for different examples and to
 # illustrate a typical coverage data generation sequence for a program
 # starting from sources.
+
+# The intent is to have this Makefile invoked from the example dedicated
+# directories, with users just running "make" to see the sequences.
 
 # Each individual example is expected to provide
 #
@@ -49,9 +51,13 @@ include ../support/Makefile.common
 # Object vs source coverage action variants for common rules
 # ----------------------------------------------------------------------------
 
-# In e.g. the Aunit case, we're only interested in results for our applicative
-# objects so query for the specific list of relevant symbols, which implicitly
-# excludes (hence doesn't list) results for the test-harness code.
+# We're only interested in results for our applicative units, not for test
+# drivers or for the test-harness code in the Aunit case. We expect the list
+# of units of interest to remain the same across all the tests participating
+# in a given example.
+
+ALIS_LIST=alis.list
+ROUTINES_LIST=routines.list
 
 # Beware that these actions may be involved in different rules, so some
 # automatic variables like $< don't expand the same across actions.
@@ -68,9 +74,8 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
   # allow annotated-source report formats.
 
   INTERNALBUILDFLAGS = -g
-  GENXCOVLIST=\
-    $(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) | grep -v test_ > $*-routines.list
-  XCOVFILTER=--routines=@$*-routines.list
+  XCOVFILTER_LIST=$(ROUTINES_LIST)
+  XCOVFILTER=--routines=@$(XCOVFILTER_LIST)
   XCOVRUN=$(XCOV) run \
     $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$* -o $*.trace
 
@@ -82,9 +87,8 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
   # decision locations
 
   INTERNALBUILDFLAGS = -cargs -g -fdump-scos -fpreserve-control-flow
-  GENXCOVLIST=\
-    ls $(wildcard $(BINDIR)/*.ali) | grep -v test_ > $*-alis.list
-  XCOVFILTER=--scos=@$*-alis.list
+  XCOVFILTER_LIST=$(ALIS_LIST)
+  XCOVFILTER=--scos=@$(XCOVFILTER_LIST)
   XCOVRUN=$(XCOV) run \
     $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$* -o $*.trace
 endif
@@ -97,10 +101,23 @@ ALL_TESTS=$(TESTS) $(UNIT_TESTS)
 
 .PRECIOUS: %.trace
 
-all: build trace analyze consolidate-$(CONSOLIDATE)
+all: build $(XCOVFILTER_LIST) trace analyze consolidate-$(CONSOLIDATE)
 
 announce-%: force
 	@echo "--------------" $* "--------------"
+
+# -------------------------------------------------------------------------
+# routines or alis list construction targets
+# -------------------------------------------------------------------------
+
+# This is part of the early "all" prerequisites, built once for all the
+# tests attached to a given example.
+
+$(ALIS_LIST): announce-alis-list force
+	ls $(wildcard $(BINDIR)/*.ali) | grep -v test_ > $@
+
+$(ROUTINES_LIST): announce-routines-list force
+	$(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) | grep -v test_ > $@
 
 # -------------------------------------------------------------------------
 # consolidation targets
@@ -168,12 +185,7 @@ trace: announce-trace
 trace: $(ALL_TESTS:%=%.trace)
 
 %.trace: % force
-# Generate the filtering list here, as we might need to pass it to
-# gnatcov run and always need to pass it to gnatcov coverage.
-
-	$(GENXCOVLIST)
-
-# Then echo the command we're planning to run while our term is functional,
+# Echo the command we're planning to run while our term is functional,
 # and run silently in between the possibly required stty adjustments. Make
 # sure the latter executes in sequence entirely so that tty gets restored
 # even if XCOVRUN fails for whatever reason.
@@ -209,6 +221,7 @@ clean:
 	$(MKSUPPORT) clean
 	$(RM) -rf obj lib out-*
 	$(RM) -f *.bin *.dmap *.cgpr *.trace.* *.trace *~ \
-                 *.xcov *.html *.css *.xml $(TESTS) *.list
+                 *.xcov *.html *.css *.xml $(TESTS) \
+                 *.list
 
 .PHONY: force clean
