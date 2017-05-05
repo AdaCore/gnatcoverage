@@ -1,2 +1,2 @@
 7.0.2 XFAIL SCOs for null subprograms inaccurate in 7.0.2 (P911-006)
-
+leon3,CARGS_O1 XFAIL compiler change needed for -O1/leon (Q504-045, PA19-015)
