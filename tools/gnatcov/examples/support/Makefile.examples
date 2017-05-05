@@ -160,6 +160,8 @@ out-all-traces/index.html: out-all-traces $(ALL_TRACES)
 analyze: announce-analyze
 analyze: $(ALL_TESTS:%=out-%/index.html)
 
+.PRECIOUS: out-%
+
 out-%: force
 	$(RM) -rf $@
 	$(MKDIR) $@
