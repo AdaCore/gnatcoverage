@@ -97,7 +97,7 @@ endif
 # Argument we will pass to the builder eventually
 BUILDERFLAGS=$(INTERNALBUILDFLAGS) $(BUILDFLAGS)
 
-ALL_TESTS=$(TESTS) $(UNIT_TESTS)
+ALL_TESTS=$(TESTS) $(AUNIT_TESTS)
 
 .PRECIOUS: %.trace
 
@@ -206,7 +206,7 @@ $(ALL_TESTS): announce-build-tests
 $(TESTS): libsupport force
 	$(BUILDER) -q -f -p $@.adb -P$(BASEDIR).gpr $(BUILDERFLAGS)
 
-$(UNIT_TESTS): libsupport force
+$(AUNIT_TESTS): libsupport force
 	$(BUILDER) -q -f -p $@.adb -Pharness.gpr $(BUILDERFLAGS)\
 	 -XUNITTEST=yes -XPLATFORM=$(TARGET)
 

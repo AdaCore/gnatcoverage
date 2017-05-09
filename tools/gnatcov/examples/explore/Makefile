@@ -3,7 +3,7 @@
 # variant to exercise:
 
 # make TESTS=explore            runs the interactive program
-# make UNIT_TESTS=test_explore  runs the AUnit based tests
+# make AUNIT_TESTS=test_explore  runs the AUnit based tests
 
 # The interactive version of this test will only run in specially
 # equipped configurations:

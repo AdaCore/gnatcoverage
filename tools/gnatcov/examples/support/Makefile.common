@@ -75,7 +75,7 @@ STTY_ADJUST=
 STTY_RESTORE=
 
 ifneq ($(TERM),)
-ifeq ($(UNIT_TESTS),)
+ifeq ($(AUNIT_TESTS),)
   STTY_ADJUST = stty raw;
   STTY_RESTORE = stty $(shell stty -g);
 endif
