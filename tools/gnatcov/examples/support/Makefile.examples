@@ -208,7 +208,7 @@ $(TESTS): libsupport force
 
 $(UNIT_TESTS): libsupport force
 	$(BUILDER) -q -f -p $@.adb -Pharness.gpr $(BUILDERFLAGS)\
-	-XRUNTIME=zfp -XUNITTEST=yes -XPLATFORM=$(TARGET)
+	 -XUNITTEST=yes -XPLATFORM=$(TARGET)
 
 MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) -f Makefile.libsupport
 
