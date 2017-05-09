@@ -201,8 +201,8 @@ $(TESTS): libsupport force
 	$(BUILDER) -q -f -p $@.adb -P$(BASEDIR).gpr $(BUILDERFLAGS)
 
 $(AUNIT_TESTS): libsupport force
-	$(BUILDER) -q -f -p $@.adb -Pharness.gpr $(BUILDERFLAGS)\
-	 -XUNITTEST=yes -XPLATFORM=$(TARGET)
+	$(BUILDER) -q -f -p $@.adb -Pharness.gpr \
+	 -XUNITTEST=yes -XPLATFORM=$(TARGET) $(BUILDERFLAGS)
 
 MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) -f Makefile.libsupport
 
