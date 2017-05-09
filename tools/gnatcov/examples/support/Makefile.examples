@@ -187,13 +187,7 @@ trace: announce-trace
 trace: $(ALL_TESTS:%=%.trace)
 
 %.trace: % force
-# Echo the command we're planning to run while our term is functional,
-# and run silently in between the possibly required stty adjustments. Make
-# sure the latter executes in sequence entirely so that tty gets restored
-# even if XCOVRUN fails for whatever reason.
-
-	@echo $(XCOVRUN)
-	@$(STTY_ADJUST) $(XCOVRUN); $(STTY_RESTORE) echo
+	$(XCOVRUN)
 
 # -----------------------------------------------------------------------
 # build: produce executable program from sources + target bsp

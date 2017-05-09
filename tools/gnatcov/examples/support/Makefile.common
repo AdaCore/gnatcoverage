@@ -64,23 +64,6 @@ ifneq ($(BOARD),)
   GPRBUILD_TARGETARGS += -XBOARD=$(BOARD)
 endif
 
-# ===========================================
-# tty adjustments commands around  XCOV run:
-# ===========================================
-
-# Default to NOPs, force "stty raw" on Unix terminals, except
-# for Aunit tests which have their own setup.
-
-STTY_ADJUST=
-STTY_RESTORE=
-
-ifneq ($(TERM),)
-ifeq ($(AUNIT_TESTS),)
-  STTY_ADJUST = stty raw;
-  STTY_RESTORE = stty $(shell stty -g);
-endif
-endif
-
 # =========
 # Commands:
 # =========
