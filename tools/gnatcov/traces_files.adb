@@ -1173,7 +1173,7 @@ package body Traces_Files is
    begin
       Fd := Create_File (Filename, Binary);
       if Fd = Invalid_FD then
-         raise Write_Error with "failed to create the file";
+         Fatal_Error ("Cannot create the trace file " & Filename);
       end if;
 
       if Trace_File.First_Infos /= null
@@ -1208,7 +1208,7 @@ package body Traces_Files is
       pragma Assert (Trace_File.Kind = Info);
       Fd := Create_File (Filename, Binary);
       if Fd = Invalid_FD then
-         raise Write_Error with "failed to create the file";
+         Fatal_Error ("Cannot create the trace file " & Filename);
       end if;
 
       Write_Trace_File_Info (Fd, Trace_File);
