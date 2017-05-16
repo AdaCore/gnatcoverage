@@ -409,7 +409,7 @@ package Command_Line is
       Opt_Output_Directory => Create
         (Long_Name    => "--output-dir",
          Pattern      => "[SUBDIR]",
-         Help         => ("Subdirectory where XCOV or HTML report files"
+         Help         => ("Subdirectory where XCOV or HTML report files"
                           & " should be produced"),
          Commands     => (Cmd_Coverage => True,
                           others => False),
