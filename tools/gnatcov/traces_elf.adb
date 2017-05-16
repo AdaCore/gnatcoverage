@@ -3761,7 +3761,8 @@ package body Traces_Elf is
          Buffer.Start_Token (Punctuation);
          Buffer.Put ('+');
          Buffer.Start_Token (Literal);
-         Buffer.Put (Hex_Image (Pc - Symbol.First));
+         Buffer.Put
+           ("0x" & Strip_Zero_Padding (Hex_Image (Pc - Symbol.First)));
       end if;
       Buffer.Start_Token (Punctuation);
       Buffer.Put ('>');

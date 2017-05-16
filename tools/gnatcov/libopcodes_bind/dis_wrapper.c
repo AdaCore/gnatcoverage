@@ -55,9 +55,9 @@ char *const dis_ppc_32_option = "32";
 char *const dis_ppc_64_option = "64";
 
 #if TARGET_BITS == 32
-#  define TARGET_ADDR_FMT "0x%08lx"
+#  define TARGET_ADDR_FMT "0x%lx"
 #elif TARGET_BITS == 64
-#  define TARGET_ADDR_FMT "0x%016lx"
+#  define TARGET_ADDR_FMT "0x%lx"
 #else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
 #  error "Target arch is neither 32 or 64bits, not supported."
 #endif

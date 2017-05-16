@@ -68,4 +68,28 @@ package body Hex_Images is
    begin
       return Hex_Image (Conv (W));
    end Hex_Image;
+
+   ------------------------
+   -- Strip_Zero_Padding --
+   ------------------------
+
+   function Strip_Zero_Padding (Image : String) return String is
+      First_Meaningful_Digit : Natural := Image'First;
+   begin
+      if Image'Length = 0 then
+         return Image;
+      end if;
+
+      loop
+         if First_Meaningful_Digit >= Image'Last then
+            return (1 => Image (Image'Last));
+
+         elsif Image (First_Meaningful_Digit) /= '0' then
+            return Image (First_Meaningful_Digit .. Image'Last);
+         end if;
+
+         First_Meaningful_Digit := First_Meaningful_Digit + 1;
+      end loop;
+   end Strip_Zero_Padding;
+
 end Hex_Images;
