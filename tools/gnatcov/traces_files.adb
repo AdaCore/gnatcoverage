@@ -542,9 +542,9 @@ package body Traces_Files is
       Read_Info_Entries (Desc);
    end Append_Info_Entries_From_Descriptor;
 
-   ---------------------
-   -- Read_Trace_File --
-   ---------------------
+   -------------------------
+   -- Read_Trace_File_Gen --
+   -------------------------
 
    procedure Read_Trace_File_Gen
      (Filename   : String;
