@@ -99,14 +99,19 @@ package body Traces_Files is
    --  fatal error if something is invalid. Update the endianity information in
    --  Desc otherwise.
 
-   procedure Check_Trace_File_Headers
-     (Desc             : in out Trace_File_Descriptor;
-      Trace_File       : in out Trace_File_Type;
-      Check_2nd_Header : Boolean);
-   --  Perform validation of trace file headers:
-   --    - a first header whose kind is Info
-   --    - trace info entries
-   --    - an optional second header whose kind is anything but Info
+   procedure Read_Trace_File_Headers
+     (Desc       : in out Trace_File_Descriptor;
+      Trace_File : in out Trace_File_Type);
+   --  Read headers in Desc, update Trace_File with the information we get.
+   --  According to Qemu_Traces:
+   --
+   --    * read one header;
+   --
+   --    * if the first header has an Info kind, try to read the second header
+   --      and check that its kind is either Flat or History.
+   --
+   --  If one header has an invalid format, or if the sequence of headers is
+   --  invalid, raise a fatal error.
 
    procedure Decode_Trace_Header (Hdr        : Trace_Header;
                                   Trace_File : in out Trace_File_Type;
@@ -164,53 +169,57 @@ package body Traces_Files is
          Fatal_Error (Desc, "invalid header (bad endianness)");
       end if;
 
+      if not Hdr.Kind'Valid then
+         Fatal_Error (Desc, "invalid header (bad kind)");
+      end if;
+
       Desc.Big_Endian := Hdr.Big_Endian;
    end Check_Header;
 
-   ------------------------------
-   -- Check_Trace_File_Headers --
-   ------------------------------
+   -----------------------------
+   -- Read_Trace_File_Headers --
+   -----------------------------
 
-   procedure Check_Trace_File_Headers
-     (Desc             : in out Trace_File_Descriptor;
-      Trace_File       : in out Trace_File_Type;
-      Check_2nd_Header : Boolean)
+   procedure Read_Trace_File_Headers
+     (Desc       : in out Trace_File_Descriptor;
+      Trace_File : in out Trace_File_Type)
    is
       Hdr : Trace_Header;
    begin
-      --  We expect the following:
-      --    (1) a first header whose kind is Info;
-      --    (2) trace info entries;
-      --    (3) optional second header whose kind is anything but Info.
-      --  We raise a fatal error for anything else.
-
-      --  (1) Read the first header
+      --  Read the first header, making sure it has a valid kind as a first
+      --  header. If it is supposed to be the only header (Decision_Map), stop
+      --  there.
 
       Check_Header (Desc, Hdr);
 
-      if Hdr.Kind /= Info then
-         Fatal_Error
-           (Desc, "first header must describe an information section");
-      end if;
+      case Hdr.Kind is
+         when Flat | History =>
+            Fatal_Error (Desc,
+                         "invalid first header: "
+                         & Trace_Kind'Image (Hdr.Kind));
 
-      --  (2) Read trace info entries
+         when Decision_Map =>
+            Decode_Trace_Header (Hdr, Trace_File, Desc);
+            return;
+
+         when Info =>
+            null;
+      end case;
+
+      --  If we reach this point, we know Hdr.Kind = Info: read the info
+      --  entries. Then read the second header, also checking it has a valid
+      --  kind as a second header.
 
       Append_Info_Entries_From_Descriptor (Desc, Trace_File);
+      Check_Header (Desc, Hdr);
 
-      if Check_2nd_Header then
-
-         --  (3) Read the second header
-
-         Check_Header (Desc, Hdr);
-
-         if Hdr.Kind = Info then
-            Fatal_Error
-              (Desc, "second header must not describe an information section");
-         end if;
-
-         Decode_Trace_Header (Hdr, Trace_File, Desc);
+      if Hdr.Kind not in Flat | History then
+         Fatal_Error
+           (Desc, "invalid second header: " & Trace_Kind'Image (Hdr.Kind));
       end if;
-   end Check_Trace_File_Headers;
+
+      Decode_Trace_Header (Hdr, Trace_File, Desc);
+   end Read_Trace_File_Headers;
 
    -------------------------
    -- Decode_Trace_Header --
@@ -221,9 +230,6 @@ package body Traces_Files is
                                   Desc       : in out Trace_File_Descriptor)
    is
    begin
-      if not Hdr.Kind'Valid then
-         Fatal_Error (Desc, "invalid header (bad kind)");
-      end if;
       Desc.Kind := Hdr.Kind;
       Trace_File.Kind := Desc.Kind;
 
@@ -358,7 +364,7 @@ package body Traces_Files is
    begin
       Desc.Fd := Open_File (Filename, Read_Only);
       Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
-      Check_Trace_File_Headers (Desc, Trace_File, Check_2nd_Header => True);
+      Read_Trace_File_Headers (Desc, Trace_File);
    exception
       when E : others =>
          Close (Desc.Fd);
@@ -385,9 +391,12 @@ package body Traces_Files is
       Desc.Fd := Open_File (Filename, Read_Write);
       Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
 
-      Check_Trace_File_Headers (Desc,
-                                Trace_File,
-                                Check_2nd_Header => False);
+      Read_Trace_File_Headers (Desc, Trace_File);
+      if Desc.Kind /= Flat then
+         Fatal_Error
+           (Desc,
+            "flat trace file expected, got " & Trace_Kind'Image (Desc.Kind));
+      end if;
 
       --  Write flat (raw) trace header
 
