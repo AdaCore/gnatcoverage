@@ -148,12 +148,6 @@ package Traces_Files is
    --  Open a trace file for output and write a flat (raw) trace second header.
    --  In case of failure, a fatal error is raised.
 
-   procedure Open_Decision_Map_File
-     (Filename : String;
-      Desc     : out Trace_File_Descriptor);
-   --  Open a decision map file, without reading the traces. In case of
-   --  failure, a fatal error is raised.
-
    procedure Write_Trace_Entry
      (Desc : Trace_File_Descriptor;
       E    : Traces.Trace_Entry);

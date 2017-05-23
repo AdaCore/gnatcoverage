@@ -423,34 +423,6 @@ package body Traces_Files is
                else ""));
    end Open_Output_Flat_Trace_File;
 
-   ----------------------------
-   -- Open_Decision_Map_File --
-   ----------------------------
-
-   procedure Open_Decision_Map_File
-     (Filename   : String;
-      Desc       : out Trace_File_Descriptor)
-   is
-      Hdr : Trace_Header;
-   begin
-      Desc.Fd := Open_File (Filename, Read_Only);
-      Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
-
-      --  Read the first header
-
-      Check_Header (Desc, Hdr);
-      if Hdr.Kind /= Decision_Map then
-         Fatal_Error
-           (Desc,
-            "first header must describe an history section, is "
-            & Hdr.Kind'Img);
-      end if;
-
-      Desc.Kind := Hdr.Kind;
-      Desc.Sizeof_Target_Pc := Hdr.Sizeof_Target_Pc;
-      Desc.Big_Endian := Hdr.Big_Endian;
-   end Open_Decision_Map_File;
-
    -----------------------------
    -- Read_Trace_File_Entries --
    -----------------------------
