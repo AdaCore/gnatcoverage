@@ -47,6 +47,10 @@ package Traces_Files is
    function Kind (Trace_File : Trace_File_Type) return Trace_Kind;
    --  Return Trace_File's kind
 
+   function Filename (Trace_File : Trace_File_Type) return String;
+   --  Return Traces_File's filename, or an empty string if it was not read
+   --  from a file.
+
    generic
       type Shared_Object_Type is private;
       --  Type to use to represent shared objects
@@ -215,6 +219,8 @@ private
 
       First_Infos : Trace_File_Info_Acc;
       Last_Infos  : Trace_File_Info_Acc;
+
+      Filename : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
    type Trace_File_Descriptor is record
@@ -230,5 +236,8 @@ private
 
    function Kind (Trace_File : Trace_File_Type) return Trace_Kind is
      (Trace_File.Kind);
+
+   function Filename (Trace_File : Trace_File_Type) return String is
+     (Ada.Strings.Unbounded.To_String (Trace_File.Filename));
 
 end Traces_Files;

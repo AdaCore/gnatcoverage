@@ -588,6 +588,8 @@ package body Traces_Files is
       Raw_Entry : Qemu_Trace_Entry;
    begin
       Open_Trace_File (Filename, Desc, Trace_File);
+      Trace_File.Filename :=
+         Ada.Strings.Unbounded.To_Unbounded_String (Filename);
       Process_Info_Entries (Trace_File);
 
       --  Look for a Loadaddr special trace entry, if expected
@@ -1402,7 +1404,8 @@ package body Traces_Files is
                                      Big_Endian       => Big_Endian_Host,
                                      Machine          => 0,
                                      First_Infos      => null,
-                                     Last_Infos       => null);
+                                     Last_Infos       => null,
+                                     Filename         => <>);
    end Create_Trace_File;
 
    -----------------
