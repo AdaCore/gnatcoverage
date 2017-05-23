@@ -258,10 +258,11 @@ package body Traces_Disa is
       --  Comment needed???
 
       procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Shared_Object_Type  => Exe_File_Acc,
-         No_Shared_Object    => Exe'Unrestricted_Access,
-         Load_Shared_Object  => Load_Shared_Object,
-         Process_Trace_Entry => Disp_Entry);
+        (Shared_Object_Type   => Exe_File_Acc,
+         No_Shared_Object     => Exe'Unrestricted_Access,
+         Process_Info_Entries => Check_Trace_File_From_Exec,
+         Load_Shared_Object   => Load_Shared_Object,
+         Process_Trace_Entry  => Disp_Entry);
 
       ------------------------
       -- Load_Shared_Object --

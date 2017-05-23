@@ -109,6 +109,10 @@ package Traces_Files is
    --  an Info section and a traces section (either flat or with history). Put
    --  the result in Trace_File. In case of failure, a fatal error is raised.
 
+   procedure Check_Trace_File_From_Exec (Trace_File : Trace_File_Type);
+   --  Raise a fatal error if Trace_File is not a trace file that is the result
+   --  of a program execution.
+
    procedure Read_Trace_File
      (Filename   : String;
       Trace_File : out Trace_File_Type;

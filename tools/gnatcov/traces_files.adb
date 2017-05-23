@@ -822,6 +822,31 @@ package body Traces_Files is
       Desc.Filename := Ada.Strings.Unbounded.Null_Unbounded_String;
    end Close_Trace_File;
 
+   --------------------------------
+   -- Check_Trace_File_From_Exec --
+   --------------------------------
+
+   procedure Check_Trace_File_From_Exec (Trace_File : Trace_File_Type) is
+   begin
+      case Trace_File.Kind is
+         when Flat | History =>
+            null;
+
+         when Decision_Map =>
+            Fatal_Error
+              (Filename (Trace_File)
+               & ": execution trace expected, but this is a decision map");
+
+         when Info =>
+            --  If Trace_File's first header has an Info kind, then it is
+            --  supposed to have a second header, and Trace_File's kind must
+            --  come from this second header. Header reading must have already
+            --  ensured that.
+
+            raise Program_Error;
+      end case;
+   end Check_Trace_File_From_Exec;
+
    ---------------------
    -- Read_Trace_File --
    ---------------------
@@ -844,10 +869,11 @@ package body Traces_Files is
          E          : Trace_Entry);
 
       procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Shared_Object_Type  => Boolean,
-         No_Shared_Object    => False,
-         Load_Shared_Object  => Load_Shared_Object,
-         Process_Trace_Entry => Process_Trace_Entry);
+        (Shared_Object_Type   => Boolean,
+         No_Shared_Object     => False,
+         Process_Info_Entries => Check_Trace_File_From_Exec,
+         Load_Shared_Object   => Load_Shared_Object,
+         Process_Trace_Entry  => Process_Trace_Entry);
 
       -------------------------
       -- Process_Trace_Entry --
@@ -956,13 +982,13 @@ package body Traces_Files is
          return Unbounded_String;
 
       procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Shared_Object_Type  => Unbounded_String,
-         No_Shared_Object    => Null_Unbounded_String,
+        (Shared_Object_Type   => Unbounded_String,
+         No_Shared_Object     => Null_Unbounded_String,
          Process_Info_Entries => Process_Info_Entries,
-         Process_Loadaddr    => Process_Loadaddr,
-         Load_Shared_Object  => Load_Shared_Object,
-         Process_Trace_Entry => Process_Trace_Entry,
-         Handle_Relocations  => not Raw);
+         Process_Loadaddr     => Process_Loadaddr,
+         Load_Shared_Object   => Load_Shared_Object,
+         Process_Trace_Entry  => Process_Trace_Entry,
+         Handle_Relocations   => not Raw);
 
       --------------------------
       -- Process_Info_Entries --
@@ -970,6 +996,8 @@ package body Traces_Files is
 
       procedure Process_Info_Entries (Trace_File : Trace_File_Type) is
       begin
+         Put_Line ("Kind: " & Trace_Kind'Image (Kind (Trace_File)));
+         New_Line;
          Dump_Infos (Trace_File);
       end Process_Info_Entries;
 

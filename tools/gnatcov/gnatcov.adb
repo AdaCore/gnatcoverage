@@ -1768,6 +1768,7 @@ begin
 
                procedure Process_Info_Entries (TF : Trace_File_Type) is
                begin
+                  Check_Trace_File_From_Exec (TF);
                   Exe_File := Open_Exec_For_Trace
                                 (Trace_File.Filename.all,
                                  TF,
