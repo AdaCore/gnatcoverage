@@ -225,6 +225,7 @@ package body Traces_Files is
          Fatal_Error (Desc, "invalid header (bad kind)");
       end if;
       Desc.Kind := Hdr.Kind;
+      Trace_File.Kind := Desc.Kind;
 
       Desc.Sizeof_Target_Pc := Hdr.Sizeof_Target_Pc;
       if Desc.Sizeof_Target_Pc /= 4 and then Desc.Sizeof_Target_Pc /= 8 then

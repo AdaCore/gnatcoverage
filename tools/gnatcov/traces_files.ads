@@ -44,6 +44,9 @@ package Traces_Files is
       Trace_File : out Trace_File_Type);
    --  Create an empty Trace_File object of the given kind
 
+   function Kind (Trace_File : Trace_File_Type) return Trace_Kind;
+   --  Return Trace_File's kind
+
    generic
       type Shared_Object_Type is private;
       --  Type to use to represent shared objects
@@ -224,5 +227,8 @@ private
       Big_Endian       : Boolean;
    end record;
    --  Descriptor to open/read a trace file
+
+   function Kind (Trace_File : Trace_File_Type) return Trace_Kind is
+     (Trace_File.Kind);
 
 end Traces_Files;
