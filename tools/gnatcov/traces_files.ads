@@ -40,7 +40,8 @@ package Traces_Files is
    --  Exception is raised in case of OS error during write
 
    procedure Create_Trace_File
-     (Kind       : Trace_Kind;
+     (Filename   : String;
+      Kind       : Trace_Kind;
       Trace_File : out Trace_File_Type);
    --  Create an empty Trace_File object of the given kind
 
@@ -170,13 +171,12 @@ package Traces_Files is
    --  trace file.
 
    procedure Write_Trace_File
-     (Filename   : String;
-      Trace_File : Trace_File_Type;
+     (Trace_File : Trace_File_Type;
       Base       : Traces_Base);
    --  Write traces to a file, including trace entries from Base
 
-   procedure Write_Trace_File
-     (Filename : String; Trace_File : Trace_File_Type);
+   procedure Write_Trace_File (Trace_File : Trace_File_Type)
+      with Pre => Kind (Trace_File) = Info;
    --  Write a trace file of kind Info (no traces base needed)
 
    procedure Dump_Trace_File (Filename : String);

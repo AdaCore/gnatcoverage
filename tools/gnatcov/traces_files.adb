@@ -1205,11 +1205,11 @@ package body Traces_Files is
    ----------------------
 
    procedure Write_Trace_File
-     (Filename   : String;
-      Trace_File : Trace_File_Type;
+     (Trace_File : Trace_File_Type;
       Base       : Traces_Base)
    is
-      Fd : File_Descriptor;
+      Filename : constant String := Traces_Files.Filename (Trace_File);
+      Fd       : File_Descriptor;
    begin
       Fd := Create_File (Filename, Binary);
       if Fd = Invalid_FD then
@@ -1241,11 +1241,11 @@ package body Traces_Files is
    -- Write_Trace_File --
    ----------------------
 
-   procedure Write_Trace_File (Filename : String; Trace_File : Trace_File_Type)
+   procedure Write_Trace_File (Trace_File : Trace_File_Type)
    is
-      Fd : File_Descriptor;
+      Filename : constant String := Traces_Files.Filename (Trace_File);
+      Fd       : File_Descriptor;
    begin
-      pragma Assert (Trace_File.Kind = Info);
       Fd := Create_File (Filename, Binary);
       if Fd = Invalid_FD then
          Fatal_Error ("Cannot create the trace file " & Filename);
@@ -1433,16 +1433,19 @@ package body Traces_Files is
    -----------------------
 
    procedure Create_Trace_File
-     (Kind       : Trace_Kind;
+     (Filename   : String;
+      Kind       : Trace_Kind;
       Trace_File : out Trace_File_Type) is
    begin
-      Trace_File := Trace_File_Type'(Kind             => Kind,
-                                     Sizeof_Target_Pc => Pc_Type_Size,
-                                     Big_Endian       => Big_Endian_Host,
-                                     Machine          => 0,
-                                     First_Infos      => null,
-                                     Last_Infos       => null,
-                                     Filename         => <>);
+      Trace_File := Trace_File_Type'
+        (Kind             => Kind,
+         Sizeof_Target_Pc => Pc_Type_Size,
+         Big_Endian       => Big_Endian_Host,
+         Machine          => 0,
+         First_Infos      => null,
+         Last_Infos       => null,
+         Filename         =>
+            Ada.Strings.Unbounded.To_Unbounded_String (Filename));
    end Create_Trace_File;
 
    -----------------

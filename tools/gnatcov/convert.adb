@@ -124,7 +124,7 @@ package body Convert is
             function Date_Info_To_Str is new Ada.Unchecked_Conversion
               (Trace_Info_Date, String_8);
          begin
-            Create_Trace_File (Info, Trace_File);
+            Create_Trace_File (Trace_Output.all, Info, Trace_File);
             Date_Info :=
               Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
                                Month => Unsigned_8  (GM_Month (Date)),
@@ -140,7 +140,7 @@ package body Convert is
                Append_Info (Trace_File, User_Data, Tag.all);
             end if;
 
-            Write_Trace_File (Trace_Output.all, Trace_File);
+            Write_Trace_File (Trace_File);
             Free (Trace_File);
          end;
 

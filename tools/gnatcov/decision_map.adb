@@ -2795,8 +2795,8 @@ package body Decision_Map is
    procedure Write_Map (Filename : String) is
       Trace_File : Trace_File_Type;
    begin
-      Create_Trace_File (Qemu_Traces.Decision_Map, Trace_File);
-      Write_Trace_File (Filename, Trace_File, Decision_Map_Base);
+      Create_Trace_File (Filename, Qemu_Traces.Decision_Map, Trace_File);
+      Write_Trace_File (Trace_File, Decision_Map_Base);
    end Write_Map;
 
 end Decision_Map;

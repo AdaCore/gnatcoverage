@@ -114,7 +114,7 @@ package body Rundrv is
 
          --  And now create the trace file itself.
 
-         Create_Trace_File (Info, Trace_File);
+         Create_Trace_File (Context.Trace_File.all, Info, Trace_File);
          Date_Info := Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
                                        Month => Unsigned_8 (GM_Month (Date)),
                                        Day   => Unsigned_8 (GM_Day (Date)),
@@ -145,7 +145,7 @@ package body Rundrv is
             Append_Info (Trace_File, Kernel_File_Name, Kernel.all);
          end if;
 
-         Write_Trace_File (Context.Trace_File.all, Trace_File);
+         Write_Trace_File (Trace_File);
          Free (Trace_File);
       end;
 
