@@ -105,10 +105,11 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
   if (options)
     {
       const size_t options_len = strlen (options);
+      char *dh_options = malloc (options_len + 1);
 
-      dh->disassembler_options = malloc (options_len + 1);
+      strncpy (dh_options, options, options_len + 1);
+      dh->disassembler_options = dh_options;
       dh->dinfo.disassembler_options = dh->disassembler_options;
-      strncpy (dh->dinfo.disassembler_options, options, options_len + 1);
     }
   else
     {
@@ -119,6 +120,10 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
 
   disassemble_init_for_target (&(dh->dinfo));
 
+  dh->disass_func[BFD_ENDIAN_BIG] = disassembler (arch, 1, 0, NULL);
+  dh->disass_func[BFD_ENDIAN_LITTLE] = disassembler (arch, 0, 0, NULL);
+  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
+
   return dh;
 }
 
@@ -128,17 +133,8 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
 static disassemble_handle *
 _create_arm_arch_disassembler (unsigned char for_thumb)
 {
-  const char *options = (for_thumb) ? dis_thumb_option : dis_arm_option;
-  disassemble_handle *dh = _create_base_disassembler (bfd_arch_arm, options);
-
-  if (!dh)
-    return NULL;
-
-  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_arm;
-  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_arm;
-  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
-
-  return dh;
+  return _create_base_disassembler
+    (bfd_arch_arm, (for_thumb) ? dis_thumb_option : dis_arm_option);
 }
 
 /* Set necessary information for symbol resolution for the disassembler
@@ -173,7 +169,6 @@ disassemble_handle *
 create_x86_disassembler (void)
 {
   const char *options;
-  disassemble_handle *dh;
 
 #if TARGET_BITS == 32
   options = dis_x86_option;
@@ -183,23 +178,13 @@ create_x86_disassembler (void)
 #error "Target arch is neither 32 or 64bits, not supported."
 #endif
 
-  dh = _create_base_disassembler (bfd_arch_i386, options);
-
-  if (!dh)
-    return NULL;
-
-  dh->disass_func[BFD_ENDIAN_BIG] = NULL;
-  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_i386;
-  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
-
-  return dh;
+  return _create_base_disassembler (bfd_arch_i386, options);
 }
 
 disassemble_handle *
 create_ppc_disassembler (void)
 {
   const char *options;
-  disassemble_handle *dh;
 
 #if TARGET_BITS == 32
   options = dis_ppc_32_option;
@@ -209,64 +194,26 @@ create_ppc_disassembler (void)
 #error "Target arch is neither 32 or 64bits, not supported."
 #endif
 
-  dh = _create_base_disassembler (bfd_arch_powerpc, options);
-
-  if (!dh)
-    return NULL;
-
-  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_powerpc;
-  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_powerpc;
-  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
-
-  return dh;
+  return _create_base_disassembler (bfd_arch_powerpc, options);
 }
 
 disassemble_handle *
 create_e500_disassembler (void)
 {
-  disassemble_handle *dh =
-    _create_base_disassembler (bfd_arch_powerpc, dis_e500_option);
-
-  if (!dh)
-    return NULL;
-
-  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_big_powerpc;
-  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_little_powerpc;
-  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
-
-  return dh;
+  return _create_base_disassembler (bfd_arch_powerpc, dis_e500_option);
 }
 
 /* Sets up disassembler for Visium.  */
 disassemble_handle *
 create_visium_disassembler (void)
 {
-  disassemble_handle *dh = _create_base_disassembler (bfd_arch_visium, NULL);
-
-  if (!dh)
-    return NULL;
-
-  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_visium;
-  dh->disass_func[BFD_ENDIAN_LITTLE] = NULL;
-  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
-
-  return dh;
+  return _create_base_disassembler (bfd_arch_visium, NULL);
 }
 
 disassemble_handle *
 create_sparc_disassembler (void)
 {
-  disassemble_handle *dh = _create_base_disassembler (bfd_arch_sparc, NULL);
-
-  if (!dh)
-    return NULL;
-
-  /* print_insn_sparc handles both big and little endian.  */
-  dh->disass_func[BFD_ENDIAN_BIG] = print_insn_sparc;
-  dh->disass_func[BFD_ENDIAN_LITTLE] = print_insn_sparc;
-  dh->disass_func[BFD_ENDIAN_UNKNOWN] = NULL;
-
-  return dh;
+  return _create_base_disassembler (bfd_arch_sparc, NULL);
 }
 
 /* Frees the memory allocated for the disassembler represented by DH.  */
