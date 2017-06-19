@@ -278,6 +278,9 @@ package body SC_Obligations is
       --  Hash of SCO info in ALI, for incremental coverage consistency check
    end record;
 
+   function Has_SCOs (CUI : CU_Info) return Boolean is
+     (CUI.First_SCO <= CUI.Last_SCO);
+
    package CU_Info_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Valid_CU_Id,
       Element_Type => CU_Info);
@@ -3543,7 +3546,7 @@ package body SC_Obligations is
       procedure Check_Unit (Cur : Cursor) is
          CUI : CU_Info renames Element (Cur);
       begin
-         if not CUI.Has_Code then
+         if not CUI.Has_Code and then Has_SCOs (CUI) then
             Report
               (Msg  => "no object code for " & Get_Simple_Name (CUI.LI),
                Kind => Diagnostics.Error);
