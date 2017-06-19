@@ -656,20 +656,15 @@ package body ALI_Files is
             end if;
          end if;
 
-         if End_Of_File (ALI_File)
-           or else not Dump_SCOs_Seen
-           or else No_Object
+         if not End_Of_File (ALI_File)
+           and then Dump_SCOs_Seen
+           and then not No_Object
          then
-            --  No SCOs in this ALI
-
-            ALI_Index := No_Source_File;
-
-         else
             Index := 1;
             Get_SCOs_From_ALI;
             Mark_Ignored_Units (Ignored_Source_Files, Deps);
-            Fingerprint := SCO_Tables_Fingerprint;
          end if;
+         Fingerprint := SCO_Tables_Fingerprint;
       end if;
 
       Close (ALI_File);
