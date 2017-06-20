@@ -15,6 +15,11 @@ library project Libsupport is
    --  Whether we are building/using for an Aunit context or not, with
    --  influence on the last_chance handler inclusion.
 
+   Use_Target_Source_Dirs : Common.Yes_No_Type
+     := external ("USE_TARGET_SOURCE_DIRS", "no");
+   --  Whether we are building/using for an Aunit context or not, with
+   --  influence on the last_chance handler inclusion.
+
    Source_Dirs := ("src");
    --  Variable where we compute the Source_Dirs attribute to use,
    --  depending on the target, the board, and on the use of Aunit.
@@ -44,10 +49,10 @@ library project Libsupport is
       when "yes" => for Externally_Built use "false";
    end case;
 
-   case Common.Target is
-      when "" => null;
+   case Use_Target_Source_Dirs is
+      when "no" => null;
 
-      when others =>
+      when "yes" =>
          --  Now compute the set of source directories to use. A common one,
          --  always, then an additional Target specific one. FOR SELDOM USES
          --  ONLY. We don't wan't yet another zfp support approx here:

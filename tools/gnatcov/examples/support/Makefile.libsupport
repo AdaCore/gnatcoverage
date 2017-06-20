@@ -6,6 +6,13 @@ include Makefile.common
 # coverage analysis by default, useful for testsuite at least:
 LIBSUPPORT_CFLAGS=-fdump-scos -fpreserve-control-flow -g
 
+# Whether we want to have visibility on extra source directories for cross
+# configurations. No way to achieve this from the project file by looking just
+# at the value of "Target" in a manner compatible with old versions of
+# gprbuild (typically for our 7.0.2 based runs):
+
+USE_TARGET_SOURCE_DIRS = $(strip $(if $(TARGET), yes, no))
+
 LIBSUPPORT_ARCHIVE = $(LIBSUPPORT_DIR)/libsupport.a
 
 all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) $(LIBSUPPORT_ARCHIVE)
@@ -20,8 +27,10 @@ $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR):
 
 $(LIBSUPPORT_ARCHIVE): force
 	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport -f \
+                   -XUSE_TARGET_SOURCE_DIRS=$(USE_TARGET_SOURCE_DIRS) \
                    -cargs $(LIBSUPPORT_CFLAGS)
 	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport -XUNITTEST=yes \
+                   -XUSE_TARGET_SOURCE_DIRS=$(USE_TARGET_SOURCE_DIRS) \
                    -cargs $(LIBSUPPORT_CFLAGS)
 
 clean:
