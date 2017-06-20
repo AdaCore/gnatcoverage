@@ -56,7 +56,7 @@ library project Libsupport is
          Source_Dirs := Source_Dirs & ("src/" & Common.Target);
 
          --  Add whatever we need to find our Last Chance Handler, to
-         --  force  termination even in ravenscar configurations, and to
+         --  force termination even in ravenscar configurations, and to
          --  produce consistent output on unhandled exceptions.
 
          --  Aunit has its own handler that we must not override though.
@@ -68,15 +68,7 @@ library project Libsupport is
               --  that the target RTS might not support. Allow board specific
               --  overrides of the last chance handler:
 
-              case Common.Board is
-                when "" => 
-                   Source_Dirs :=
-                     Source_Dirs & ("src/last_chance");
-
-                when others =>
-                   Source_Dirs :=
-                     Source_Dirs & ("src/last_chance_" & Common.Board);
-              end case;
+              Source_Dirs := Source_Dirs & ("src/last_chance_" & Common.Board);
          end case;
 
     end case;
