@@ -663,6 +663,12 @@ package body ALI_Files is
             Index := 1;
             Get_SCOs_From_ALI;
             Mark_Ignored_Units (Ignored_Source_Files, Deps);
+
+         else
+            --  In this case, we will not parse SCOs: reset parsing tables so
+            --  that further processing don't start using stale SCO entries.
+
+            SCOs.Initialize;
          end if;
          Fingerprint := SCO_Tables_Fingerprint;
       end if;
