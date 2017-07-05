@@ -73,7 +73,12 @@ class Runner:
         log("============== CRUN FOR TRACE32 ===================")
         self.parse_command_line()
         self.run_with_trace32()
-        self.run_gnatcov_convert()
+        if os.path.isfile(self.get_t32_trace_filename()):
+            log("A trace file was produced...")
+            self.run_gnatcov_convert()
+        else:
+            log("Trace32 crun: Not trace file produced...")
+            sys.exit(1)
 
     def parse_command_line(self):
         """Parse this script's command line."""
@@ -87,6 +92,12 @@ class Runner:
             )
         op.add_option(
             "--target", dest="target", default=None
+            )
+        op.add_option(
+            "--RTS", dest="RTS", default=None
+            )
+        op.add_option(
+            "--config", dest="config", default=None
             )
 
         # For source coverage tests not using project files:
@@ -109,6 +120,16 @@ class Runner:
         op.add_option(
             "--units", dest="units", default=None
             )
+        op.add_option(
+            "--subdirs", dest="subdirs", default=None
+            )
+        op.add_option(
+            "-v", "--verbose", dest="verbose", default=None
+            )
+
+        op.add_option(
+            "--exec-prefix", dest="execprefix", default=None
+            )
 
         # Then a few optional items
 
@@ -124,17 +145,24 @@ class Runner:
 
         args = ["--level=%s" % self.options.covlevel]
 
+        if self.options.verbose:
+            args.append("--verbose")
+
         if self.options.target:
             args.append("--target=%s" % self.options.target)
+        if self.options.config:
+            args.append("--config=%s" % self.options.config)
+        if self.options.RTS:
+            args.append("--RTS=%s" % self.options.RTS)
 
         if self.options.scos:
             args.append("--scos=%s" % self.options.scos)
 
         if self.options.gpr:
             args.append("-P=%s" % self.options.gpr)
-        if self.options.gpr:
+        if self.options.projects:
             args.append("--projects=%s" % self.options.projects)
-        if self.options.gpr:
+        if self.options.units:
             args.append("--units=%s" % self.options.units)
         if self.options.recurse:
             args.append("--recursive")
@@ -148,7 +176,10 @@ class Runner:
         """Compute a list of command line arguments to pass to
         gnatcov run from what we have received."""
 
-        args = ["--level=%s" % self.options.covlevel]
+        args = []
+
+        if self.options.covlevel:
+            args.append("--level=%s" % self.options.covlevel)
 
         args.append("--exec=%s" % self.get_executable_filename())
 
@@ -156,27 +187,37 @@ class Runner:
 
         args.append("--trace-source=Trace32-Branchflow")
 
+        if self.options.verbose:
+            args.append("--verbose")
+
+        if self.options.config:
+            args.append("--config=%s" % self.options.config)
         if self.options.target:
             args.append("--target=%s" % self.options.target)
+        if self.options.RTS:
+            args.append("--RTS=%s" % self.options.RTS)
 
         if self.options.scos:
             args.append("--scos=%s" % self.options.scos)
 
         if self.options.gpr:
             args.append("-P=%s" % self.options.gpr)
-        if self.options.gpr:
+        if self.options.projects:
             args.append("--projects=%s" % self.options.projects)
-        if self.options.gpr:
+        if self.options.units:
             args.append("--units=%s" % self.options.units)
-        if self.options.recurse:
-            args.append("--recursive")
+        if self.options.execprefix:
+            args.append("--exec-prefix=%s" % self.options.execprefix)
 
         args.append("-o %s" % self.get_gnatcov_trace_filename())
 
         return args
 
     def get_executable_filename(self):
-        return self.args[0]
+        if self.options.execprefix:
+            return os.path.join(self.options.execprefix, self.args[0])
+        else:
+            return self.args[0]
 
     def get_gnatcov_trace_filename(self):
         if self.options.ofile:
@@ -206,12 +247,6 @@ class Runner:
         if t32api.CPU_stopped_at_symbol("__gnat_last_chance_handler"):
             print "!!! EXCEPTION RAISED !!!"
 
-        if os.path.isfile(self.get_t32_trace_filename()):
-            log("A trace file was produced...")
-            self.run_gnatcov_convert()
-        else:
-            log("Trace32 crun: Not trace file produced...")
-            sys.exit(1)
         print "=================================================="
 
     def run_gnatcov_convert(self):
