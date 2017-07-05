@@ -100,15 +100,22 @@ package body Traces_Files is
    --  Desc otherwise.
 
    procedure Read_Trace_File_Headers
-     (Desc       : in out Trace_File_Descriptor;
-      Trace_File : in out Trace_File_Type);
+     (Desc             : in out Trace_File_Descriptor;
+      Trace_File       : in out Trace_File_Type;
+      For_Trace_Output : Boolean := False);
    --  Read headers in Desc, update Trace_File with the information we get.
    --  According to Qemu_Traces:
+   --
+   --  If For_Trace_Output is False:
    --
    --    * read one header;
    --
    --    * if the first header has an Info kind, try to read the second header
    --      and check that its kind is either Flat or History.
+   --
+   --  If For_Trace_Output is True:
+   --
+   --    * read one header and check that its kind is Info
    --
    --  If one header has an invalid format, or if the sequence of headers is
    --  invalid, raise a fatal error.
@@ -181,8 +188,9 @@ package body Traces_Files is
    -----------------------------
 
    procedure Read_Trace_File_Headers
-     (Desc       : in out Trace_File_Descriptor;
-      Trace_File : in out Trace_File_Type)
+     (Desc             : in out Trace_File_Descriptor;
+      Trace_File       : in out Trace_File_Type;
+      For_Trace_Output : Boolean := False)
    is
       Hdr : Trace_Header;
    begin
@@ -199,7 +207,15 @@ package body Traces_Files is
                          & Trace_Kind'Image (Hdr.Kind));
 
          when Decision_Map =>
-            Decode_Trace_Header (Hdr, Trace_File, Desc);
+
+            if For_Trace_Output then
+               Fatal_Error (Desc,
+                            "invalid first header for trace output: "
+                            & Trace_Kind'Image (Hdr.Kind));
+            else
+               Decode_Trace_Header (Hdr, Trace_File, Desc);
+            end if;
+
             return;
 
          when Info =>
@@ -211,6 +227,11 @@ package body Traces_Files is
       --  kind as a second header.
 
       Append_Info_Entries_From_Descriptor (Desc, Trace_File);
+
+      if For_Trace_Output then
+         return;
+      end if;
+
       Check_Header (Desc, Hdr);
 
       if Hdr.Kind not in Flat | History then
@@ -391,12 +412,8 @@ package body Traces_Files is
       Desc.Fd := Open_File (Filename, Read_Write);
       Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
 
-      Read_Trace_File_Headers (Desc, Trace_File);
-      if Desc.Kind /= Flat then
-         Fatal_Error
-           (Desc,
-            "flat trace file expected, got " & Trace_Kind'Image (Desc.Kind));
-      end if;
+      Read_Trace_File_Headers (Desc, Trace_File,
+                               For_Trace_Output => True);
 
       --  Write flat (raw) trace header
 
