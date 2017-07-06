@@ -35,6 +35,9 @@ package Perf_Counters is
    subtype Counter_Type is Any_Counter_Type
      range Any_Counter_Type'First .. Line_Table_Alloc_Size;
 
+   procedure Enable (Enable : Boolean := True);
+   --  Enable/disable performance counters
+
    procedure Bump (C : Counter_Type; How_Many : Natural := 1);
    pragma Inline (Bump);
    --  Increment counter C by the specified amount

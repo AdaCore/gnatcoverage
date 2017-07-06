@@ -21,7 +21,17 @@ with Ada.Text_IO;       use Ada.Text_IO;
 
 package body Perf_Counters is
 
+   Enabled  : Boolean := False;
    Counters : array (Any_Counter_Type) of Natural := (others => 0);
+
+   ------------
+   -- Enable --
+   ------------
+
+   procedure Enable (Enable : Boolean := True) is
+   begin
+      Enabled := Enable;
+   end Enable;
 
    ----------
    -- Bump --
@@ -29,7 +39,9 @@ package body Perf_Counters is
 
    procedure Bump (C : Counter_Type; How_Many : Natural := 1) is
    begin
-      Counters (C) := Counters (C) + How_Many;
+      if Enabled then
+         Counters (C) := Counters (C) + How_Many;
+      end if;
    end Bump;
 
    -------------

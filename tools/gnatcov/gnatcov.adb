@@ -1151,6 +1151,7 @@ begin
    if Verbose then
       Show_Version;
       Show_CWD;
+      Perf_Counters.Enable;
    end if;
 
    --  Now execute the specified command
