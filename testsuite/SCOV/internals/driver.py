@@ -592,7 +592,10 @@ class SCOV_helper:
         # the set of scos to operate upon.  Note that we need these for
         # both gnatcov run and gnatcov coverage.
 
-        thistest.gprmode = thistest.options.gprmode or self.covctl
+        thistest.gprmode = (
+            thistest.options.gprmode
+            or (self.covctl
+                and self.covctl.requires_gpr()))
 
         self.scoptions = (
             to_list (self.covctl.scoptions) if (

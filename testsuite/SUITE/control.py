@@ -167,8 +167,14 @@ class BUILDER:
         if toplev_options.RTS:
             extraopts.append ('--RTS=%s' % toplev_options.RTS)
 
+        # Request a specific target only if one is explicitly called
+        # for. On native configurations, note that we may be running 32bit
+        # tools on a 64bit host.
+
+        if toplev_options.target:
+            extraopts.append ('--target=%s' % env.target.triplet)
+
         Run ([GPRBUILD, '-P', tempgpr.name,
-              '--target=%s' % env.target.triplet,
               '--autoconf=%s' % BUILDER.SUITE_CGPR
               ] + extraopts)
 

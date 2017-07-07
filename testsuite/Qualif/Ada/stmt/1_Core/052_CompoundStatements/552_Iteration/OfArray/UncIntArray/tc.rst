@@ -1,3 +1,3 @@
 **SC on a For Of iteration over an unconstrained array of Integers**
 
-LMREF: 5.5.2
+LRMREF: 5.5.2

@@ -693,13 +693,11 @@ class TestSuite(object):
 
     def __toolchain_discriminants(self):
         """Compute the list of discriminants that reflects the version of the
-        particular toolchain in use, if any. There's at most a single value in
-        this list at this stage, e.g. ["7.0.2"] for /path/to/gnatpro-7.0.2.
-        The match is on the sequence of three single digits separated by dots,
-        possibly followed by "rc", then by maybe a '/' prior to the end of
-        string."""
+        particular toolchain in use. The match is on the sequence of three single
+        digits separated by dots after GNAT Pro."""
 
-        m = re.search("(\d\.\d\.\d(?:rc)?)/?$", self.options.toolchain)
+        gcc_version = version(self.tool("gcc"))
+        m = re.search("GNAT Pro (\d\.\d\.\d)", gcc_version)
         return [m.group(1)] if m else []
 
     def __generate_group(self, dirname, group_py):

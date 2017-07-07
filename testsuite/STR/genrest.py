@@ -1030,12 +1030,13 @@ class QDreport(object):
                 # We're call within the STR subdir so ...
 
                 with open("../%s" % adc, 'r') as f:
-                    adc_contents = f.read()
+                    adc_contents = f.read().strip()
 
                 csv_contents.append(
                     {itemno: "s1",
                      item: "contents of %s, designated by -gnatec" % adc,
-                     value: literal(adc_contents)})
+                     value: (literal(adc_contents) if adc_contents
+                             else rest.emph("empty"))})
 
         # If we have a --RTS=bla on the command line, display it as the
         # qualification "runtime profile".

@@ -7,6 +7,8 @@
 
 # ***************************************************************************
 
+from cutils import contents_of
+
 # --------------------------------
 # -- pickle oriented facilities --
 # --------------------------------
@@ -47,7 +49,13 @@ def host_string_from(host):
     if os_name == 'Windows' and re.match(os_version, "2008|2012"):
         os_version = "Server " + os_version
 
-    return ' '.join ((os_name, os_version))
+    # Fetch precise Redhat version
+
+    if os_name == 'Linux' and os_version.startswith("rhES"):
+        os_name = ''
+        os_version = contents_of("/etc/redhat-release")
+
+    return ' '.join ((os_name, os_version)).strip()
 
 def time_string_from(stamp):
     """Return a textual version of the timestamp in STAMP,

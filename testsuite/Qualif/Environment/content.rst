@@ -19,8 +19,6 @@ eventually gets logged within the |str_doc| report. The *Item #* column
 provides item identifiers that are produced in this report to facilitate the
 matching process.
 
-For cross or native configurations:
-
 .. tabularcolumns:: |p{0.06\textwidth}|p{0.30\textwidth}|p{0.60\textwidth}|
 
 .. csv-table::
@@ -74,11 +72,11 @@ qualification |plans_doc| document.
 Language Version and Scope
 --------------------------
 
-As for the runtime library profile, the general contents of this document is
-not tailored for a particular version of the Ada language, except for the
-:ref:`lrm-traceability` chapter. Otherwise, the requirements and testcases
-sections might contain items matching up to Ada 2012 even if the intended
-qualified use is for an Ada 95 or Ada 2005 project.
+Except for the :ref:`lrm-traceability` chapter, the general contents
+of this document is not tailored for a particular version of the Ada
+language. The requirements and testcases sections might contain items
+matching up to Ada 2012 even if the intended qualified use is for an
+Ada 95 or Ada 2005 project.
 
 Nevertheless, to make sure there is no ambiguity on the intended use of the
 tool for a given project:
@@ -92,18 +90,41 @@ In addition:
 * The tool is not qualified to analyze programs featuring tasking constructs,
   controlled type definitions or pointers to nested subprograms.
 
+  One possible way to ensure that the code subject to analysis conforms to
+  what this qualification material encompasses is to verify that it compiles
+  without error under control of a Zero Footprint Runtime Library Profile, or
+  free of warnings out of the following set of configuration pragmas::
+
+    pragma Restriction_Warnings (No_Tasking);
+    pragma Restriction_Warnings (No_Finalization);
+    pragma Restriction_Warnings (No_Implicit_Dynamic_Code);
+
 * The tool is only partially qualified for analysis in presence of exceptions
   which propagate across subprograms, when the runtime library profile
   supports this at all.
 
-  For all uses, in subprograms subject to the analysis, of handlers for
-  exceptions not raised by the subprogram itself, users shall verify
-  conformance to what the Operational Requirements specifically prescribe
-  for such cases (:ref:`exceptions`).
+  One possible way to ensure that the code subject to analysis conforms to
+  what this qualification material encompasses is to verify that it compiles
+  without error under control of a Zero Footprint Runtime Library Profile, or
+  free of warnings out of the following set of configuration pragmas::
+
+    pragma Restriction_Warnings (No_Exception_Registration);
+    pragma Restriction_Warnings (No_Exception_Handlers);
+
+  Otherwise, for all uses (in subprograms subject to the analysis) of handlers
+  for exceptions not raised by the subprogram itself, users shall verify
+  conformance to what the Operational Requirements specifically prescribe for
+  such cases (:ref:`exceptions`).
 
 * For mcdc assessments, the tool requires the use of short-circuit variants
   for the Boolean binary operators composing decisions: ``&&`` or ``||`` in C,
   ``and then`` or ``or else`` in Ada.
+
+  One possible way to ensure this for Ada is to verify that the code subject
+  to analysis compiles without error under control of the following
+  configuration pragma::
+
+     pragma Restrictions (No_Direct_Boolean_Operator);
 
 * For decision or mcdc analysis, the tool is not qualified to assess coverage
   of expressions used in assertion constructs such as Assert pragmas or their

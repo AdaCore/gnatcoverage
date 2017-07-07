@@ -45,20 +45,26 @@ from SCOV.tctl import CAT
 # == User Level Coverage Control ==
 # =================================
 
-# Facility to allow GPR level control. An instance of this might be
-# passed to the TestCase run() invocation below, essentially to
+# Facility to allow GPR level control and general options control for
+# "gnatcov coverage". An instance of this might be passed to the
+# TestCase run() invocation below, to
 #
 #   - Influence the project file constructed to build the testcase binaries,
 #     with dependencies to other projects or directives pertaining to the
-#     Coverage package within the project.
+#     Coverage package within the project (deps).
 #
 #   - State the set of units for which we expect reports as result. The
 #     testsuite driver will then check that we do get the expected reports and
 #     only those. For those that are expected, the testsuite performs the
-#     standard checks of matching outcome with expectations stated in drivers.
+#     standard checks of matching outcome with expectations stated in drivers
+#     (units_in, units_out, ulist_in, ulist_out).
 #
 #   - Influence the GPR related command line options to gnatcov, controlling
-#     which projects are to be considered part of the analysis closure.
+#     which projects are to be considered part of the analysis closure
+#     (scooptions).
+#
+#   - Influence the non-GPR related command line options to gnatcov coverage
+#     (covoptions).
 
 class CovControl:
 
@@ -113,6 +119,21 @@ class CovControl:
     def expected (self, source):
         return not self.unexpected (source)
 
+    # ------------------
+    # -- requires_gpr --
+    # ------------------
+
+    def requires_gpr (self):
+        """Whether honoring this control object implictly requires the use of
+        a project file."""
+
+        return (self.deps
+                or self.scoptions
+                or self.units_in
+                or self.units_out
+                or self.ulist_in
+                or self.ulist_out)
+                
     # ---------
     # -- gpr --
     # ---------
