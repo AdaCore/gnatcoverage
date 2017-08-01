@@ -123,13 +123,18 @@ include architecture.mk
 
 ifeq ($(HOST_OS), windows)
 ifeq ($(BITS_ARCH), 32)
-DEFAULT_ADAPTERS = nexus dynamorio
+DEFAULT_ADAPTERS = nexus dynamorio trace32
 else
 DEFAULT_ADAPTERS = dynamorio
 endif
 endif
+
 ifeq ($(HOST_OS), linux)
+ifeq ($(BITS_ARCH), 32)
+DEFAULT_ADAPTERS = valgrind trace32
+else
 DEFAULT_ADAPTERS = valgrind
+endif
 endif
 
 ADAPTERS_LIST=$(DEFAULT_ADAPTERS)
@@ -164,6 +169,10 @@ dynamorio_ADAPTER_BUILD_VARS=\
 
 dynamorio_ADAPTER_INSTALL_VARS=\
   DYNRIO_CLIENT_INSTALL_DIR?=$(PREFIX)/libexec/gnatcoverage/lib$(BITS_ARCH)
+
+# Trace32 and Nexus (iSystem) adapters use the same prefix as GNATcov
+trace32_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
+nexus_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 
 .PHONY: default all adapters bin $(PGMPATH)
 

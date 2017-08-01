@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2013-2017, AdaCore                     --
+--                        Copyright (C) 2017, AdaCore                       --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,26 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  This package provides data and routines to support the "convert"
---  command of gnatcov.
+package Trace32.Conversion is
 
-with GNAT.OS_Lib; use GNAT.OS_Lib;
+   procedure Convert_Branchflow_Trace
+     (Elf_File          : String;
+      Branchflow_File   : String;
+      Qemu_Trace_File   : String;
+      Decision_Map_File : String);
+   --  Convert a Trace32 branchflow file into a GNATcov exec trace file
 
-package Convert is
-
-   type Trace_Source_Type is (Unspecified, Isystem_5634, Trace32_Branchflow);
-
-   Trace_Source : Trace_Source_Type := Unspecified;
-
-   procedure Set_Trace_Source (Arg : String);
-   --  Set the trace source from the command line arg.
-
-   HW_Trigger_Arg : String_Access;
-   Input_Arg      : String_Access;
-
-   procedure Run_Convert (Exe_Name : String_Access;
-                          Output   : String_Access;
-                          Histmap  : String_Access;
-                          Tag      : String_Access);
-
-end Convert;
+end Trace32.Conversion;

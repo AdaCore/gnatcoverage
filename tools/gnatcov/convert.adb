@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2013-2014, AdaCore                     --
+--                     Copyright (C) 2013-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -32,6 +32,8 @@ package body Convert is
    begin
       if Arg = "iSystem-5634" then
          Trace_Source := Isystem_5634;
+      elsif Arg = "Trace32-Branchflow" then
+         Trace_Source := Trace32_Branchflow;
       else
          Fatal_Error (Arg & " is not a known Trace Source.");
       end if;
@@ -105,68 +107,82 @@ package body Convert is
          if Trigger_Stop_ID'Length = 0 then
             Fatal_Error ("Missing STOP_ID in hw-trigger-traces.");
          end if;
+      end if;
 
-         if Output = null then
-            Trace_Output := new String'(Exe_Name.all & ".trace");
-         else
-            Trace_Output := Output;
+      if Output = null then
+         Trace_Output := new String'(Exe_Name.all & ".trace");
+      else
+         Trace_Output := Output;
+      end if;
+
+      --  Create the trace file
+
+      declare
+         use Qemu_Traces;
+         use Interfaces;
+         Trace_File : Trace_File_Type;
+         Date_Info  : Trace_Info_Date;
+         Date       : constant OS_Time := Current_Time;
+         subtype String_8 is String (1 .. 8);
+         function Date_Info_To_Str is new Ada.Unchecked_Conversion
+           (Trace_Info_Date, String_8);
+      begin
+         Create_Trace_File (Trace_Output.all, Info, Trace_File);
+         Date_Info :=
+           Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
+                            Month => Unsigned_8  (GM_Month (Date)),
+                            Day   => Unsigned_8  (GM_Day (Date)),
+                            Hour  => Unsigned_8  (GM_Hour (Date)),
+                            Min   => Unsigned_8  (GM_Minute (Date)),
+                            Sec   => Unsigned_8  (GM_Second (Date)),
+                            Pad   => 0);
+         Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
+         Append_Info (Trace_File, Exec_File_Name, Exe_Name.all);
+
+         if GNAT.Strings."/=" (Tag, null) then
+            Append_Info (Trace_File, User_Data, Tag.all);
          end if;
 
-         --  Create the trace file
+         Write_Trace_File (Trace_File);
+         Free (Trace_File);
+      end;
 
-         declare
-            use Qemu_Traces;
-            use Interfaces;
-            Trace_File : Trace_File_Type;
-            Date_Info  : Trace_Info_Date;
-            Date       : constant OS_Time := Current_Time;
-            subtype String_8 is String (1 .. 8);
-            function Date_Info_To_Str is new Ada.Unchecked_Conversion
-              (Trace_Info_Date, String_8);
-         begin
-            Create_Trace_File (Trace_Output.all, Info, Trace_File);
-            Date_Info :=
-              Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
-                               Month => Unsigned_8  (GM_Month (Date)),
-                               Day   => Unsigned_8  (GM_Day (Date)),
-                               Hour  => Unsigned_8  (GM_Hour (Date)),
-                               Min   => Unsigned_8  (GM_Minute (Date)),
-                               Sec   => Unsigned_8  (GM_Second (Date)),
-                               Pad   => 0);
-            Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
-            Append_Info (Trace_File, Exec_File_Name, Exe_Name.all);
+      if Histmap = null then
+         Trace_Arg := Trace_Output;
+      else
+         Trace_Arg :=
+           new String'("histmap=" & Histmap.all & ',' & Trace_Output.all);
+      end if;
 
-            if GNAT.Strings."/=" (Tag, null) then
-               Append_Info (Trace_File, User_Data, Tag.all);
-            end if;
+      case Trace_Source is
+         when Isystem_5634 =>
+            Prg := Locate_Exec_On_Path ("../libexec/gnatcoverage/isys_drv");
+            Opts := new String_List'(1 => new String'("5634"),
+                                     2 => Exe_Name,
+                                     3 => Trace_Arg,
+                                     4 => Input_Arg,
+                                     5 => Trigger_Start_ID,
+                                     6 => Trigger_Start_Addr,
+                                     7 => Trigger_Stop_ID
+                                    );
+         when Trace32_Branchflow =>
+            Prg := Locate_Exec_On_Path ("../libexec/gnatcoverage/trace32_drv");
+            Opts := new String_List'(1 => new String'("stm32f7"),
+                                     2 => Exe_Name,
+                                     3 => Trace_Arg,
+                                     4 => Input_Arg
+                                    );
+         when Unspecified =>
+            Prg := null;
+      end case;
 
-            Write_Trace_File (Trace_File);
-            Free (Trace_File);
-         end;
+      if Prg = null then
+         Fatal_Error ("Could not find convert program.");
+      end if;
 
-         if Histmap = null then
-            Trace_Arg := Trace_Output;
-         else
-            Trace_Arg :=
-              new String'("histmap=" & Histmap.all & ',' & Trace_Output.all);
-         end if;
-
-         Prg := Locate_Exec_On_Path ("../libexec/gnatcoverage/isys_drv");
-         if Prg = null then
-            Fatal_Error ("Could not find convert program.");
-         end if;
-         Opts := new String_List'(1 => new String'("5634"),
-                                  2 => Exe_Name,
-                                  3 => Trace_Arg,
-                                  4 => Input_Arg,
-                                  5 => Trigger_Start_ID,
-                                  6 => Trigger_Start_Addr,
-                                  7 => Trigger_Stop_ID
-                                 );
-         Spawn (Prg.all, Opts.all, Success);
-         if not Success then
-            Error ("Error from isys_drv during conversion");
-         end if;
+      Spawn (Prg.all, Opts.all, Success);
+      if not Success then
+         Error ("Error from driver during conversion");
       end if;
    end Run_Convert;
 
