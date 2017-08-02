@@ -26,8 +26,6 @@
 with Ada.Calendar; use Ada.Calendar;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-with Traces_Dbase; use Traces_Dbase;
-
 package Coverage is
 
    type Coverage_Level is (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC);

@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Traces;       use Traces;
+with Traces_Dbase; use Traces_Dbase;
 with Traces_Lines; use Traces_Lines;
 with Files_Table;  use Files_Table;
 

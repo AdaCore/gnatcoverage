@@ -27,7 +27,6 @@ with Files_Table;    use Files_Table;
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
 with Traces;         use Traces;
-with Traces_Dbase;   use Traces_Dbase;
 with Traces_Elf;     use Traces_Elf;
 with Traces_Files;   use Traces_Files;
 with Traces_Lines;   use Traces_Lines;
