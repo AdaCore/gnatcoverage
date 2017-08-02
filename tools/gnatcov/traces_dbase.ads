@@ -93,11 +93,19 @@ private
 
    --  Operations for Ordered_Sets
 
-   function "=" (L, R : Trace_Entry) return Boolean;
-   function "<" (L, R : Trace_Entry) return Boolean;
+   function Is_Equal (L, R : Trace_Entry) return Boolean is
+     (L.First <= R.Last and then L.Last >= R.First);
+   --  Return whether L and R overlap.  This relation is reflexive and
+   --  symmetric.
 
-   package Entry_Set is
-     new Ada.Containers.Ordered_Sets (Element_Type => Trace_Entry);
+   function Is_Smaller (L, R : Trace_Entry) return Boolean is
+     (L.Last < R.First);
+   --  Return whether L and R are disjoint and L is inferior to R
+
+   package Entry_Set is new Ada.Containers.Ordered_Sets
+     (Element_Type => Trace_Entry,
+      "="          => Is_Equal,
+      "<"          => Is_Smaller);
 
    type Traces_Base is record
       Entries : Entry_Set.Set;
