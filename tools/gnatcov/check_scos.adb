@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2013, AdaCore                     --
+--                     Copyright (C) 2006-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -21,7 +21,7 @@ with Put_SCOs;
 
 with Opt;   use Opt;
 with Namet; use Namet;
-with SCOs;  use SCOs;
+with SCOs;
 with Types; use Types;
 
 with Ada.Streams;           use Ada.Streams;

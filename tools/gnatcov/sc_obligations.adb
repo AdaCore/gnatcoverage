@@ -1975,7 +1975,6 @@ package body SC_Obligations is
      (TP : access Instance_Tag_Provider_Type;
       PC : Pc_Type) return Tagged_Slocs
    is
-      use SCOs;
       use type Pc_Type;
       use type Interfaces.Unsigned_32;
 
@@ -2072,7 +2071,6 @@ package body SC_Obligations is
       -------
 
       procedure Q (SCOD : SCO_Descriptor) is
-         use BDD;
       begin
          Result := SCOD.Decision_BDD.Diamond_Base /= No_BDD_Node_Id;
       end Q;
@@ -2247,9 +2245,6 @@ package body SC_Obligations is
 
    function Instance_Loc (Inst_Index : Inst_Id) return String
    is
-      use SCOs;
-      use Ada.Strings;
-
       II : Inst_Info renames Inst_Vector.Element (Inst_Index);
    begin
       return

@@ -117,7 +117,6 @@ package body Traces_Dump is
    -----------------------------
 
    procedure Dump_Uncovered_Routines (Report : File_Access) is
-      use Traces_Disa;
 
       procedure Process_One
         (Key  : Subprogram_Key;

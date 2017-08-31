@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2015, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -19,7 +19,6 @@
 with Interfaces; use Interfaces;
 
 with Disa_Common;
-with Highlighting; use Highlighting;
 
 package body Disa_Thumb is
 

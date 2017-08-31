@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -85,7 +85,6 @@ package body Annotations is
    ----------------------
 
    function Aggregated_State (Info : Line_Info) return Any_Line_State is
-      use Coverage.Source;
       Result : Line_State := No_Code;
    begin
       --  Exempted case

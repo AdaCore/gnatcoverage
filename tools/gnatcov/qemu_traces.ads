@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Interfaces; use Interfaces;
-with Swaps;      use Swaps;
+with Swaps;
 
 package Qemu_Traces is
 

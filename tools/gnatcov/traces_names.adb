@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -29,7 +29,6 @@ with GNAT.Strings;  use GNAT.Strings;
 with Checkpoints;
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Tags;     use Coverage.Tags;
-with Elf_Disassemblers; use Elf_Disassemblers;
 with Inputs;            use Inputs;
 with Outputs;           use Outputs;
 with Switches;          use Switches;
@@ -469,7 +468,6 @@ package body Traces_Names is
      (Insns  : Binary_Content;
       Traces : Traces_Base_Acc) return Line_State
    is
-      use type Interfaces.Unsigned_32;
       use type Interfaces.Unsigned_64;
 
       State : Line_State := No_Code;

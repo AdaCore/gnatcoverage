@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -20,7 +20,7 @@ with Ada.Text_IO;    use Ada.Text_IO;
 
 with Interfaces;        use Interfaces;
 
-with Arch;              use Arch;
+with Arch;
 with Disassemblers;     use Disassemblers;
 with Execs_Dbase;
 with Hex_Images;        use Hex_Images;
@@ -295,7 +295,6 @@ package body Traces_Disa is
          E          : Trace_Entry)
       is
          pragma Unreferenced (Trace_File);
-         use Traces_Disa;
          SO     : Exe_File_Type'Class renames Shared_Obj.all;
          Sec    : Address_Info_Acc;
          Buffer : Highlighting.Buffer_Type (128);

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -23,7 +23,6 @@ package body MC_DC is
    ---------
 
    function "<" (L, R : Evaluation) return Boolean is
-      use type Ada.Containers.Count_Type;
    begin
       if L.Decision /= R.Decision then
          return L.Decision < R.Decision;

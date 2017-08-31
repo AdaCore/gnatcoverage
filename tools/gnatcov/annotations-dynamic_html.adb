@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2013, AdaCore                       --
+--                     Copyright (C) 2013-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -662,7 +662,6 @@ package body Annotations.Dynamic_Html is
 
       use Hex_Images;
       use Interfaces;
-      use Strings;
 
       Message : constant JSON_Value := Create_Object;
 

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -23,7 +23,6 @@ with System.Storage_Elements;
 with Arch;         use Arch;
 with Disa_Common;
 with Dwarf_Handling;
-with Highlighting; use Highlighting;
 with Ppc_Descs;    use Ppc_Descs;
 with Outputs;
 

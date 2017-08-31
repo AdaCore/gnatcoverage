@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -71,7 +71,6 @@ package body Decision_Map is
    --  source decision (identified by its SCO_Id).
 
    package SCO_Sets is new Ada.Containers.Ordered_Sets (SCO_Id);
-   use type SCO_Sets.Set;
 
    type Call_Kind is (Normal, Raise_Exception, Finalizer);
    --  Classification of calls:

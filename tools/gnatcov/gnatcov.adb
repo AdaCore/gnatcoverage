@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -49,14 +49,13 @@ with Binary_Files;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Inputs;            use Inputs;
-with Object_Locations;  use Object_Locations;
+with Object_Locations;
 with Outputs;           use Outputs;
 with Perf_Counters;
 with Project;           use Project;
 with Qemu_Traces;
 with Rundrv;            use Rundrv;
 with SC_Obligations;    use SC_Obligations;
-with Slocs;             use Slocs;
 with Strings;           use Strings;
 with Switches;          use Switches;
 with Traces;            use Traces;

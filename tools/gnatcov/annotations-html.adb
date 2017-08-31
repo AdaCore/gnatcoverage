@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -515,7 +515,6 @@ package body Annotations.Html is
       File : Source_File_Index;
       Skip : out Boolean)
    is
-      use Ada.Integer_Text_IO;
 
       Info : constant File_Info_Access := Get_File (File);
 

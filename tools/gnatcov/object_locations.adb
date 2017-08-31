@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2014, AdaCore                       --
+--                     Copyright (C) 2014-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -30,8 +30,6 @@ with Symbols;
 with Types;       use Types;
 
 package body Object_Locations is
-
-   use type Pc_Type;
 
    -----------------------------------------------------
    --  Regular expressions for user locations parsing --

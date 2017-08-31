@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2012-2013, AdaCore                     --
+--                     Copyright (C) 2012-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -350,7 +350,6 @@ package body Project is
       begin
          for LI of Lib_Info loop
             Process_LI : declare
-               use Library_Info_Lists;
                use Unit_Maps;
 
                LI_Source_Unit : constant String :=

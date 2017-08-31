@@ -2761,8 +2761,6 @@ package body Traces_Elf is
       PC             : Pc_Type;
       Non_Empty_Only : Boolean := False) return Source_Locations
    is
-      use Address_Info_Sets;
-
       Line_Infos : constant Address_Info_Arr :=
                            Get_Address_Infos (Set, Line_Addresses, PC);
       Result     : Source_Locations (1 .. Natural (Line_Infos'Length));
@@ -3062,8 +3060,6 @@ package body Traces_Elf is
       I_Ranges      : Insn_Set_Ranges;
       Last_Executed : out Pc_Type)
    is
-      use Address_Info_Sets;
-
       function Coverage_State (State : Insn_State) return Insn_State;
       --  Given the branch coverage state of an instruction, return the state
       --  that corresponds to the actual coverage action xcov is performing.

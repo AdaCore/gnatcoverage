@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2017, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -702,7 +702,6 @@ package body Files_Table is
       Kind        : File_Kind;
       Insert      : Boolean := True) return Source_File_Index
    is
-      use Filename_Maps;
       use Simple_Name_Maps;
 
       Simple_Path : constant Virtual_File := Create (+Simple_Name);
