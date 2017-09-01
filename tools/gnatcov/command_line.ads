@@ -91,7 +91,8 @@ package Command_Line is
       Opt_Separate,
       Opt_Output_Format,
       Opt_Trace_Source,
-      Opt_Save_Checkpoint);
+      Opt_Save_Checkpoint,
+      Opt_Report_Title);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -525,6 +526,14 @@ package Command_Line is
          Commands     => (Cmd_Coverage => True,
                           others       => False),
          At_Most_Once => True,
+         Internal     => False),
+      Opt_Report_Title => Create
+        (Long_Name    => "--report-title",
+         Pattern      => "TITLE LABEL",
+         Help         => ("Override the default title for HTML coverage"
+                          & " reports"),
+         Commands     => (Cmd_Coverage => True, others => False),
+         At_Most_Once => False,
          Internal     => False));
 
    String_List_Infos : constant String_List_Option_Info_Array :=

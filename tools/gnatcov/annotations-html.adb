@@ -18,7 +18,7 @@
 
 with Ada.Characters.Handling;
 with Ada.Integer_Text_IO;
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Text_IO;           use Ada.Text_IO;
 
 with Hex_Images;  use Hex_Images;
 with Traces_Disa; use Traces_Disa;
@@ -26,7 +26,6 @@ with Traces_Files_List;
 with Qemu_Traces;
 with Coverage;    use Coverage;
 with Outputs;     use Outputs;
-with Annotations.Xml; use Annotations.Xml;
 
 package body Annotations.Html is
    type String_Cst_Acc is access constant String;
@@ -60,6 +59,9 @@ package body Annotations.Html is
       --  When going through the line table of a source file, this
       --  records whether justifications of the current line state
       --  should be shown
+
+      Title_Prefix : Unbounded_String;
+      --  Prefix to use for titles in generated HTML documents
    end record;
 
    ------------------------------------------------
@@ -203,11 +205,13 @@ package body Annotations.Html is
 
    procedure Generate_Report
      (Context      : Coverage.Context_Access;
-      Show_Details : Boolean)
+      Show_Details : Boolean;
+      Report_Title : Command_Line.Parser.String_Option)
    is
       Pp : Html_Pretty_Printer :=
         (Need_Sources => True,
          Show_Details => Show_Details,
+         Title_Prefix => Title_Prefix (Report_Title),
          Context      => Context,
          others       => <>);
    begin
@@ -452,7 +456,8 @@ package body Annotations.Html is
 
       Pi ("<html lang=""en"">");
       Pi ("<head>");
-      Pi ("  <title>Coverage results</title>");
+      Pi ("  <title>" & To_String (Pp.Title_Prefix)
+          & "Coverage results</title>");
       Pi ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
       Pi ("</head>");
       Pi ("<body>");
@@ -593,7 +598,7 @@ package body Annotations.Html is
 
       Plh (Pp, "<html lang=""en"">");
       Plh (Pp, "<head>");
-      Plh (Pp, "  <title>Coverage of "
+      Plh (Pp, "  <title>" & To_String (Pp.Title_Prefix) & "Coverage of "
                 & To_Xml_String (Simple_Source_Filename) & "</title>");
       Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
              & "href=""xcov.css"">");

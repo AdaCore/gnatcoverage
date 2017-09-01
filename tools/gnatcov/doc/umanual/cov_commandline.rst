@@ -42,6 +42,14 @@ The available options are as follows:
    directory if using projects, and the current directory if not. The
    directory must exist prior to invoking |gcv|.
 
+:option:`--report-title` :
+   Request that generated HTML documents (index and annotated sources for the
+   ``html`` and ``dhtml`` output formats) are assigned a customized title. For
+   instance, passing ``--report-title="Project ABC"`` will yield titles such
+   as: ``Project ABC - GNATcoverage Report``. If passed multiple times, passing
+   an empty string last will restore the default behavior. This option is
+   ignored is the selected output format does not support titles.
+
 :option:`-t`, :option:`--target` :
   State the target architecture/board/abi for which the analyzed program was
   built.  This corresponds to the target prefix of your compilation toolchain,

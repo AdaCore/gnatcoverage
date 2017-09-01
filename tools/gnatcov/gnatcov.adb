@@ -1913,11 +1913,13 @@ begin
                  Annotate_Html_Plus =>
                Annotations.Html.Generate_Report
                  (Context'Unchecked_Access,
-                  Show_Details => Annotation = Annotate_Html_Plus);
+                  Show_Details => Annotation = Annotate_Html_Plus,
+                  Report_Title => Args.String_Args (Opt_Report_Title));
 
             when Annotate_Dynamic_Html =>
                Annotations.Dynamic_Html.Generate_Report
-                 (Context'Unchecked_Access);
+                 (Context'Unchecked_Access,
+                  Report_Title => Args.String_Args (Opt_Report_Title));
 
             when Annotate_Report =>
                Annotations.Report.Generate_Report

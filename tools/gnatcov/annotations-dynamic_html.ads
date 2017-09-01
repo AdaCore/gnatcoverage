@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Command_Line;
 with Coverage;
 
 package Annotations.Dynamic_Html is
@@ -24,7 +25,9 @@ package Annotations.Dynamic_Html is
    --  Return TRUE if the Dynamic HTML plugin is installed, i.e. the required
    --  resource files are installed in lib/gnatcoverage/.
 
-   procedure Generate_Report (Context : Coverage.Context_Access);
+   procedure Generate_Report
+     (Context      : Coverage.Context_Access;
+      Report_Title : Command_Line.Parser.String_Option);
    --  Generate the Dynamic HTML report providing the plugin is correctly
    --  installed.
 

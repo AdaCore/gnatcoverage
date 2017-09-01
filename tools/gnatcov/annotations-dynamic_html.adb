@@ -31,6 +31,7 @@ pragma Warnings (On, "* is an internal GNAT unit");
 with GNAT.OS_Lib;
 with GNATCOLL.JSON;                    use GNATCOLL.JSON;
 
+with Annotations.Html;
 with Annotations.Xml;
 
 with Hex_Images;
@@ -135,6 +136,9 @@ package body Annotations.Dynamic_Html is
 
       Source_List         : Source_Vectors.Vector;
       --  The sources array, containing all source mappings
+
+      Title_Prefix        : Ada.Strings.Unbounded.Unbounded_String;
+      --  Prefix to use for titles in generated HTML documents
    end record;
 
    -----------------------------------------
@@ -226,8 +230,9 @@ package body Annotations.Dynamic_Html is
    --  given source file.
 
    procedure Write_Full_Report
-     (Report   : JSON_Value;
-      Hunks    : Source_Vectors.Vector);
+     (Pp     : Dynamic_Html'Class;
+      Report : JSON_Value;
+      Hunks  : Source_Vectors.Vector);
    --  Dump the HTML file into Filename, inlining both JS and CSS resources
    --  (see JS_Source and CSS_Source) and embedding the JSON object as well.
 
@@ -244,10 +249,14 @@ package body Annotations.Dynamic_Html is
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report (Context : Coverage.Context_Access) is
+   procedure Generate_Report
+     (Context      : Coverage.Context_Access;
+      Report_Title : Command_Line.Parser.String_Option)
+   is
       Pp : Dynamic_Html :=
         (Need_Sources => True,
          Context      => Context,
+         Title_Prefix => Annotations.Html.Title_Prefix (Report_Title),
          others       => <>);
    begin
       Annotations.Generate_Report (Pp, Show_Details => True);
@@ -362,7 +371,7 @@ package body Annotations.Dynamic_Html is
       end loop;
 
       Pp.JSON.Set_Field ("sources", Sources);
-      Write_Full_Report (Pp.JSON, Pp.Source_List);
+      Write_Full_Report (Pp, Pp.JSON, Pp.Source_List);
    end Pretty_Print_End;
 
    -----------------------------
@@ -739,8 +748,9 @@ package body Annotations.Dynamic_Html is
    -----------------------
 
    procedure Write_Full_Report
-     (Report          : JSON_Value;
-      Hunks           : Source_Vectors.Vector)
+     (Pp     : Dynamic_Html'Class;
+      Report : JSON_Value;
+      Hunks  : Source_Vectors.Vector)
    is
       use Ada.Exceptions;
       use Ada.Strings.Unbounded;
@@ -913,7 +923,8 @@ package body Annotations.Dynamic_Html is
          W ("  <meta http-equiv=""content-type"" content=""text/html;");
          W ("        charset=UTF-8"">");
          NL;
-         W ("  <title>GNATcoverage Report</title>");
+         W ("  <title>" & To_String (Pp.Title_Prefix)
+            & "GNATcoverage Report</title>");
          NL;
          W ("  <style>");
          I (DHTML_CSS_Filename, Indent => 3);
