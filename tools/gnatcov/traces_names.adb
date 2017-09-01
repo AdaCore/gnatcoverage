@@ -468,7 +468,7 @@ package body Traces_Names is
      (Insns  : Binary_Content;
       Traces : Traces_Base_Acc) return Line_State
    is
-      use type Interfaces.Unsigned_64;
+      use type Pc_Type;
 
       State : Line_State := No_Code;
       Addr  : Pc_Type;

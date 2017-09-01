@@ -694,7 +694,7 @@ package body Coverage.Source is
    is
       pragma Unreferenced (Subp_Key);
 
-      use type Interfaces.Unsigned_64;
+      use type Pc_Type;
 
       Exe      : Exe_File_Acc renames Subp_Info.Exec;
       PC       : Pc_Type;
