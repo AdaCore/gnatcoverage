@@ -515,7 +515,7 @@ package Command_Line is
          Pattern      => "[SOURCE]",
          Help         => "Specify a trace source.",
          Commands     => (Cmd_Convert => True,
-                        others => False),
+                          others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Save_Checkpoint => Create
