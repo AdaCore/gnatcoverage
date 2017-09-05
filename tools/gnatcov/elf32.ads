@@ -64,6 +64,15 @@ package Elf32 is
 
    procedure Elf32_Shdr_Swap (Shdr : in out Elf32_Shdr);
 
+   type Elf32_Chdr is record
+      Ch_Type      : Elf32_Word;
+      Ch_Size      : Elf32_Word;
+      Ch_Addralign : Elf32_Word;
+   end record;
+   --  Compressed section header
+
+   procedure Elf32_Chdr_Swap (Chdr : in out Elf32_Chdr);
+
    --  Symbol table.
    type Elf32_Sym is record
       St_Name  : Elf32_Word;

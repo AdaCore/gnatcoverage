@@ -24,6 +24,7 @@ package Arch is
 
    subtype Elf_Ehdr is Elf32_Ehdr;
    subtype Elf_Shdr is Elf32_Shdr;
+   subtype Elf_Chdr is Elf32_Chdr;
    subtype Elf_Sym is Elf32_Sym;
    subtype Elf_Rel is Elf32_Rel;
    subtype Elf_Rela is Elf32_Rela;

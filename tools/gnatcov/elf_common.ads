@@ -128,10 +128,17 @@ package Elf_Common is
    SHT_LOUSER        : constant Elf_Word := 16#80000000#;
    SHT_HIUSER        : constant Elf_Word := 16#ffffffff#;
 
-   SHF_WRITE     : constant := 16#1#;
-   SHF_ALLOC     : constant := 16#2#;
-   SHF_EXECINSTR : constant := 16#4#;
-   SHF_MASKPROC  : constant := 16#F0000000#;
+   SHF_WRITE      : constant := 16#1#;
+   SHF_ALLOC      : constant := 16#2#;
+   SHF_EXECINSTR  : constant := 16#4#;
+   SHF_COMPRESSED : constant := 16#800#;
+   SHF_MASKPROC   : constant := 16#F0000000#;
+
+   ELFCOMPRESS_ZLIB   : constant := 16#1#;
+   ELFCOMPRESS_LOOS   : constant := 16#60000000#;
+   ELFCOMPRESS_HIOS   : constant := 16#6fffffff#;
+   ELFCOMPRESS_LOPROC : constant := 16#70000000#;
+   ELFCOMPRESS_HIPROC : constant := 16#7fffffff#;
 
    function Elf_St_Bind (Info : Elf_Uchar) return Elf_Uchar;
    function Elf_St_Type (Info : Elf_Uchar) return Elf_Uchar;

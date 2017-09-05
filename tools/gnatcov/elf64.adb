@@ -50,6 +50,14 @@ package body Elf64 is
                Sh_Entsize => Swap (Shdr.Sh_Entsize));
    end Elf64_Shdr_Swap;
 
+   procedure Elf64_Chdr_Swap (Chdr : in out Elf64_Chdr) is
+   begin
+      Chdr := (Ch_Type      => Swap (Chdr.Ch_Type),
+               Ch_Reserved  => <>,
+               Ch_Size      => Swap (Chdr.Ch_Size),
+               Ch_Addralign => Swap (Chdr.Ch_Addralign));
+   end Elf64_Chdr_Swap;
+
    procedure Elf64_Sym_Swap (Sym : in out Elf64_Sym) is
    begin
       Sym := (St_Name => Swap (Sym.St_Name),

@@ -18,6 +18,7 @@
 with Swaps; use Swaps;
 
 package body Elf32 is
+
    procedure Elf32_Ehdr_Swap (Ehdr : in out Elf32_Ehdr) is
    begin
       Ehdr := (E_Ident => Ehdr.E_Ident,
@@ -49,6 +50,13 @@ package body Elf32 is
                Sh_Addralign => Swap (Shdr.Sh_Addralign),
                Sh_Entsize => Swap (Shdr.Sh_Entsize));
    end Elf32_Shdr_Swap;
+
+   procedure Elf32_Chdr_Swap (Chdr : in out Elf32_Chdr) is
+   begin
+      Chdr := (Ch_Type      => Swap (Chdr.Ch_Type),
+               Ch_Size      => Swap (Chdr.Ch_Size),
+               Ch_Addralign => Swap (Chdr.Ch_Addralign));
+   end Elf32_Chdr_Swap;
 
    procedure Elf32_Sym_Swap (Sym : in out Elf32_Sym) is
    begin

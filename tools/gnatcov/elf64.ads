@@ -66,6 +66,16 @@ package Elf64 is
 
    procedure Elf64_Shdr_Swap (Shdr : in out Elf64_Shdr);
 
+   type Elf64_Chdr is record
+      Ch_Type      : Elf64_Word;
+      Ch_Reserved  : Elf64_Word;
+      Ch_Size      : Elf64_Xword;
+      Ch_Addralign : Elf64_Xword;
+   end record;
+   --  Compressed section header
+
+   procedure Elf64_Chdr_Swap (Chdr : in out Elf64_Chdr);
+
    --  Symbol table.
    type Elf64_Sym is record
       St_Name  : Elf64_Word;
