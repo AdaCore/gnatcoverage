@@ -17,6 +17,8 @@
 ------------------------------------------------------------------------------
 
 with Interfaces; use Interfaces;
+with Interfaces.C;
+with System.Storage_Elements; use System.Storage_Elements;
 
 with GNATCOLL.Mmap; use GNATCOLL.Mmap;
 
@@ -225,12 +227,54 @@ package body Elf_Files is
      (File : Elf_File; Index : Section_Index) return Loaded_Section
    is
       Shdr   : constant Elf_Shdr_Acc := Get_Shdr (File, Elf_Half (Index));
-      Result : constant Loaded_Section := +Read
+      Result : Loaded_Section := +Read
         (File.File, File_Size (Shdr.Sh_Offset), File_Size (Shdr.Sh_Size));
    begin
       if File_Size (Size (Result)) /= File_Size (Shdr.Sh_Size) then
          raise Error;
       end if;
+
+      --  If this section is compressed, decompress it
+
+      if (Shdr.Sh_Flags and SHF_COMPRESSED) /= 0 then
+         declare
+            use type Interfaces.C.int;
+
+            Compressed : Loaded_Section := Result;
+            Chdr       : Elf_Chdr
+              with Address => Address_Of (Compressed);
+            Chdr_Size  : constant Arch_Addr :=
+              Elf_Chdr'Size / System.Storage_Unit;
+
+            function Uncompress
+              (In_Buffer : System.Address;
+               In_Size   : Unsigned_64;
+               Out_Buffer : System.Address;
+               Out_Size  : Unsigned_64) return Interfaces.C.int with
+              Import => True,
+              Convention => C,
+              External_Name => "gnatcov_zlib_uncompress";
+
+         begin
+            if Size (Compressed) <= Chdr_Size then
+               raise Error with "compressed ELF section is too small";
+            elsif Chdr.Ch_Type /= ELFCOMPRESS_ZLIB then
+               raise Error with "unhandled ELF section compression algorithm";
+            end if;
+
+            Result := Allocate (Arch_Addr (Chdr.Ch_Size));
+            if Uncompress
+              (Address_Of (Compressed) + Storage_Offset (Chdr_Size),
+               Unsigned_64 (Size (Compressed) - Chdr_Size),
+               Address_Of (Result),
+               Unsigned_64 (Size (Result))) /= 0
+            then
+               raise Error with "error while uncompressing ELF section";
+            end if;
+            Free (Compressed);
+         end;
+      end if;
+
       return Result;
    end Load_Section;
 
