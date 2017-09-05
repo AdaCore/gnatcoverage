@@ -18,6 +18,8 @@
 
 with System.Storage_Elements;
 
+with GNATCOLL.Mmap; use GNATCOLL.Mmap;
+
 with Dwarf_Handling;
 with Outputs;
 
@@ -296,12 +298,13 @@ package body PECoff_Files is
    ------------------
 
    function Load_Section
-     (File : PE_File; Index : Section_Index) return Mapped_Region is
-      Scn : constant Scnhdr := Get_Scnhdr (File, Index);
-      Result : constant Mapped_Region := Read
+     (File : PE_File; Index : Section_Index) return Loaded_Section
+   is
+      Scn    : constant Scnhdr := Get_Scnhdr (File, Index);
+      Result : constant Loaded_Section := +Read
         (File.File, File_Size (Scn.S_Scnptr), File_Size (Scn.S_Size));
    begin
-      if File_Size (Last (Result)) /= File_Size (Scn.S_Size) then
+      if File_Size (Size (Result)) /= File_Size (Scn.S_Size) then
          raise Error;
       end if;
       return Result;
@@ -320,10 +323,10 @@ package body PECoff_Files is
    -- Get_Symbols --
    -----------------
 
-   function Get_Symbols (File : PE_File) return Mapped_Region is
+   function Get_Symbols (File : PE_File) return Loaded_Section is
    begin
-      return Read (File.File, File_Size (File.Hdr.F_Symptr),
-                   File_Size (File.Hdr.F_Nsyms * Symesz));
+      return +Read (File.File, File_Size (File.Hdr.F_Symptr),
+                    File_Size (File.Hdr.F_Nsyms * Symesz));
    end Get_Symbols;
 
    ----------------

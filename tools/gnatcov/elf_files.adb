@@ -18,6 +18,8 @@
 
 with Interfaces; use Interfaces;
 
+with GNATCOLL.Mmap; use GNATCOLL.Mmap;
+
 with Strings; use Strings;
 
 package body Elf_Files is
@@ -94,30 +96,29 @@ package body Elf_Files is
       return File : Elf_File := (Binary_File'(Create_File (Fd, Filename))
                                  with
                                  Need_Swap        => False,
-                                 Ehdr_Map         => Invalid_Mapped_Region,
-                                 Shdr_Map         => Invalid_Mapped_Region,
-                                 Sh_Strtab_Map    => Invalid_Mapped_Region,
+                                 Ehdr_Map         => No_Loaded_Section,
+                                 Shdr_Map         => No_Loaded_Section,
+                                 Sh_Strtab_Map    => No_Loaded_Section,
                                  Ehdr             => null,
                                  Shdr             => null,
                                  Sh_Strtab        => null)
       do
          --  Read the Ehdr
-         File.Ehdr_Map := Read
+         File.Ehdr_Map := +Read
            (File.File, 0, File_Size (Elf_Ehdr_Size));
-         if Natural (GNATCOLL.Mmap.Last (File.Ehdr_Map)) /= Elf_Ehdr_Size then
+         if Natural (Size (File.Ehdr_Map)) /= Elf_Ehdr_Size then
             Exit_With_Error
               (File, Status_Read_Error, "failed to read ELF header");
          end if;
 
          --  Make it mutable if byte-swapping is needed
 
-         File.Ehdr := To_Elf_Ehdr_Var_Acc (Data (File.Ehdr_Map).all'Address);
+         File.Ehdr := To_Elf_Ehdr_Var_Acc (Address_Of (File.Ehdr_Map));
          File.Need_Swap := File.Ehdr.E_Ident (EI_DATA) /= My_Data;
 
          if File.Need_Swap then
             Make_Mutable (File, File.Ehdr_Map);
-            File.Ehdr :=
-              To_Elf_Ehdr_Var_Acc (Data (File.Ehdr_Map).all'Address);
+            File.Ehdr := To_Elf_Ehdr_Var_Acc (Address_Of (File.Ehdr_Map));
          end if;
 
          if File.Need_Swap then
@@ -182,14 +183,14 @@ package body Elf_Files is
       end if;
 
       Size := File_Size (Length) * File_Size (Elf_Shdr_Size);
-      File.Shdr_Map := Read
+      File.Shdr_Map := +Read
         (File    => File.File,
          Offset  => File_Size (File.Ehdr.E_Shoff),
          Length  => Size,
          Mutable => File.Need_Swap);
-      File.Shdr := To_Elf_Shdr_Arr_Acc (Data (File.Shdr_Map).all'Address);
+      File.Shdr := To_Elf_Shdr_Arr_Acc (Address_Of (File.Shdr_Map));
 
-      if File_Size (GNATCOLL.Mmap.Last (File.Shdr_Map)) /= Size then
+      if File_Size (Binary_Files.Size (File.Shdr_Map)) /= Size then
          raise Error;
       end if;
 
@@ -201,8 +202,7 @@ package body Elf_Files is
 
       File.Sh_Strtab_Map := Load_Section
         (File, Section_Index (File.Ehdr.E_Shstrndx));
-      File.Sh_Strtab :=
-        To_Elf_Strtab_Acc (Data (File.Sh_Strtab_Map).all'Address);
+      File.Sh_Strtab := To_Elf_Strtab_Acc (Address_Of (File.Sh_Strtab_Map));
    end Load_Shdr;
 
    -------------------------------
@@ -214,7 +214,7 @@ package body Elf_Files is
       pragma Assert (File.Shdr /= null);
 
       Make_Mutable (File, File.Shdr_Map);
-      File.Shdr := To_Elf_Shdr_Arr_Acc (Data (File.Shdr_Map).all'Address);
+      File.Shdr := To_Elf_Shdr_Arr_Acc (Address_Of (File.Shdr_Map));
    end Enable_Section_Relocation;
 
    ------------------
@@ -222,12 +222,13 @@ package body Elf_Files is
    ------------------
 
    function Load_Section
-     (File : Elf_File; Index : Section_Index) return Mapped_Region is
-      Shdr : constant Elf_Shdr_Acc := Get_Shdr (File, Elf_Half (Index));
-      Result : constant Mapped_Region := Read
+     (File : Elf_File; Index : Section_Index) return Loaded_Section
+   is
+      Shdr   : constant Elf_Shdr_Acc := Get_Shdr (File, Elf_Half (Index));
+      Result : constant Loaded_Section := +Read
         (File.File, File_Size (Shdr.Sh_Offset), File_Size (Shdr.Sh_Size));
    begin
-      if File_Size (Last (Result)) /= File_Size (Shdr.Sh_Size) then
+      if File_Size (Size (Result)) /= File_Size (Shdr.Sh_Size) then
          raise Error;
       end if;
       return Result;

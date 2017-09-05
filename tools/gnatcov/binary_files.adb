@@ -29,6 +29,9 @@ package body Binary_Files is
    function Convert is new Ada.Unchecked_Conversion
      (System.Address, Binary_Content_Bytes_Acc);
 
+   function Convert is new Ada.Unchecked_Conversion
+     (Str_Access, System.Address);
+
    function Compute_CRC32 (File : Binary_File) return Unsigned_32;
    --  Compute and return the CRC32 of File
 
@@ -36,6 +39,96 @@ package body Binary_Files is
       "([0-9]+)-([0-9]+)-([0-9]+) ([0-9]+):([0-9]+):([0-9]+)";
    Time_Stamp_Matcher : constant Pattern_Matcher :=
       Compile (Time_Stamp_Regexp);
+
+   --------------
+   -- Allocate --
+   --------------
+
+   function Allocate (Size : Arch.Arch_Addr) return Loaded_Section is
+   begin
+      return (Kind => Allocated, Buffer => new String (1 .. Natural (Size)));
+   end Allocate;
+
+   ---------
+   -- "+" --
+   ---------
+
+   function "+" (Region : Mapped_Region) return Loaded_Section is
+   begin
+      return (Kind => Mapped, Region => Region);
+   end "+";
+
+   ----------
+   -- Size --
+   ----------
+
+   function Size (LS : Loaded_Section) return Arch.Arch_Addr is
+   begin
+      case LS.Kind is
+         when None =>
+            raise Program_Error;
+         when Mapped =>
+            return Arch.Arch_Addr (Data_Size (LS.Region));
+         when Allocated =>
+            return LS.Buffer.all'Length;
+      end case;
+   end Size;
+
+   -------------
+   -- Content --
+   -------------
+
+   function Content (LS : Loaded_Section) return Binary_Content is
+      Addr : System.Address;
+      Size : Arch.Arch_Addr;
+   begin
+      case LS.Kind is
+         when None =>
+            raise Program_Error;
+
+         when Mapped =>
+            Addr := Convert (Data (LS.Region));
+            Size := Arch.Arch_Addr (Data_Size (LS.Region));
+
+         when Allocated =>
+            Addr := LS.Buffer.all'Address;
+            Size := LS.Buffer.all'Length;
+      end case;
+
+      return (if Size > 0
+              then Wrap (Addr, 0, Size)
+              else Wrap (Addr, 1, 0));
+   end Content;
+
+   ----------------
+   -- Address_Of --
+   ----------------
+
+   function Address_Of
+     (LS     : Loaded_Section;
+      Offset : Arch.Arch_Addr := 0) return System.Address is
+   begin
+      return Address_Of (Content (LS), Offset);
+   end Address_Of;
+
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (LS : in out Loaded_Section) is
+   begin
+      case LS.Kind is
+         when None =>
+            null;
+
+         when Mapped =>
+            Free (LS.Region);
+
+         when Allocated =>
+            Free (LS.Buffer);
+      end case;
+      LS := No_Loaded_Section;
+   end Free;
 
    --------
    -- Fd --
@@ -199,19 +292,28 @@ package body Binary_Files is
    ------------------
 
    procedure Make_Mutable
-     (File : Binary_File; Region : in out Mapped_Region) is
+     (File : Binary_File; LS : in out Loaded_Section) is
    begin
       --  If the region is already mutable (this can happen, for instance, if
       --  it was byte-swapped), do not risk losing changes remapping it.
 
-      if not Is_Mutable (Region) then
-         Read
-           (File    => File.File,
-            Region  => Region,
-            Offset  => Offset (Region),
-            Length  => File_Size (Last (Region)),
-            Mutable => True);
-      end if;
+      case LS.Kind is
+         when None =>
+            raise Program_Error;
+
+         when Mapped =>
+            if not Is_Mutable (LS.Region) then
+               Read
+                 (File    => File.File,
+                  Region  => LS.Region,
+                  Offset  => Offset (LS.Region),
+                  Length  => File_Size (Last (LS.Region)),
+                  Mutable => True);
+            end if;
+
+         when Allocated =>
+            null;
+      end case;
    end Make_Mutable;
 
    ------------------------
@@ -231,11 +333,11 @@ package body Binary_Files is
    ------------------
 
    function Load_Section
-     (File : Binary_File; Index : Section_Index) return Mapped_Region is
-      Res : Mapped_Region;
+     (File : Binary_File; Index : Section_Index) return Loaded_Section
+   is
+      pragma Unreferenced (File, Index);
    begin
-      raise Program_Error;
-      return Res;
+      return raise Program_Error;
    end Load_Section;
 
    ----------
@@ -326,7 +428,7 @@ package body Binary_Files is
 
    function Address_Of
      (Bin_Cont : Binary_Content;
-      Offset   : Arch.Arch_Addr) return System.Address is
+      Offset   : Arch.Arch_Addr := 0) return System.Address is
    begin
       if Bin_Cont.Content = null then
          return System.Null_Address;

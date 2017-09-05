@@ -20,7 +20,6 @@ with System;
 with Interfaces; use Interfaces;
 with Ada.Unchecked_Conversion;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
-with GNATCOLL.Mmap; use GNATCOLL.Mmap;
 
 with Arch;
 with Coff; use Coff;
@@ -42,8 +41,9 @@ package PECoff_Files is
    function Get_Section_Length
      (File : PE_File; Index : Section_Index) return Arch.Arch_Addr;
 
+   overriding
    function Load_Section
-     (File : PE_File; Index : Section_Index) return Mapped_Region;
+     (File : PE_File; Index : Section_Index) return Loaded_Section;
 
    function Get_Section_Name (File : PE_File; Sec : Section_Index)
                              return String;
@@ -52,7 +52,7 @@ package PECoff_Files is
    function Get_Scnhdr (File : PE_File; Sec : Section_Index) return Scnhdr;
    --  Get section header for SEC
 
-   function Get_Symbols (File : PE_File) return Mapped_Region;
+   function Get_Symbols (File : PE_File) return Loaded_Section;
    --  Get the table of symbols
 
    function Get_String (File : PE_File; Off : Unsigned_32) return String;

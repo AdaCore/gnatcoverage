@@ -26,6 +26,109 @@ with GNATCOLL.Mmap; use GNATCOLL.Mmap;
 with Arch;
 
 package Binary_Files is
+
+   --------------------
+   -- Binary content --
+   --------------------
+
+   type Binary_Content_Bytes is
+     array (Arch.Arch_Addr) of Interfaces.Unsigned_8;
+
+   type Binary_Content_Bytes_Acc is access Binary_Content_Bytes;
+   pragma No_Strict_Aliasing (Binary_Content_Bytes_Acc);
+
+   type Binary_Content is record
+      Content     : Binary_Content_Bytes_Acc;
+      First, Last : Arch.Arch_Addr;
+      --  Content is an unconstrained array, so we can set it to some memory
+      --  mapped content. Thus, we have to store bounds ourselves.
+   end record;
+   --  An array of byte, used to store ELF sections
+
+   Invalid_Binary_Content : constant Binary_Content :=
+     (null, 0, 0);
+
+   function Wrap
+     (Content     : System.Address;
+      First, Last : Arch.Arch_Addr) return Binary_Content
+     with Inline;
+   --  Constructor for Binary_Content
+
+   procedure Relocate
+     (Bin_Cont  : in out Binary_Content;
+      New_First : Arch.Arch_Addr)
+     with Inline;
+   --  Update First and Last in Bin_Cont so that First is New_First
+
+   function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr
+     with Inline;
+   --  Return the number of bytes in Bin_Cont
+
+   function Is_Loaded (Bin_Cont : Binary_Content) return Boolean
+     with Inline;
+   --  Return whether Bin_Cont actually contains something
+
+   function Get
+     (Bin_Cont : Binary_Content;
+      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8
+     with Inline;
+   --  Return the byte in Bin_Cont at Offset
+
+   function Slice
+     (Bin_Cont    : Binary_Content;
+      First, Last : Arch.Arch_Addr) return Binary_Content
+     with Inline;
+   --  Return a new Binary_Content value referencing the slice of bytes in
+   --  Bin_Cont from First to Last (no copy is done).
+
+   function Address_Of
+     (Bin_Cont : Binary_Content;
+      Offset   : Arch.Arch_Addr := 0) return System.Address
+     with Inline;
+   --  Return the address of the Offset'th item in the binary content
+
+   ---------------------
+   -- Loaded Sections --
+   ---------------------
+
+   type Loaded_Section is private;
+   --  Holder for a loaded section. Once created, it must be released with the
+   --  corresponding Free function.
+
+   No_Loaded_Section : constant Loaded_Section;
+
+   function Allocate (Size : Arch.Arch_Addr) return Loaded_Section
+     with Inline;
+   --  Allocate a new section content for the given size
+
+   function "+" (Region : Mapped_Region) return Loaded_Section
+     with Inline;
+   --  Wrap a memory mapped file region into a loaded section
+
+   function Size (LS : Loaded_Section) return Arch.Arch_Addr with
+     Inline,
+     Pre => LS /= No_Loaded_Section;
+   --  Return the size of the section in LS
+
+   function Content (LS : Loaded_Section) return Binary_Content with
+     Inline,
+     Pre => LS /= No_Loaded_Section;
+   --  Return the content of the given loaded section
+
+   function Address_Of
+     (LS     : Loaded_Section;
+      Offset : Arch.Arch_Addr := 0) return System.Address with
+     Inline,
+     Pre => LS /= No_Loaded_Section;
+   --  Return the address of the Offset'th item in the binary content
+
+   procedure Free (LS : in out Loaded_Section);
+   --  Release resources allocated to LS and set it to No_Leaded_Section
+
+   -------------------
+   --  Binary Files --
+   -------------------
+
    Error : exception;
 
    type Binary_File_Status is
@@ -76,9 +179,10 @@ package Binary_Files is
 
    procedure Close_File (File : in out Binary_File);
 
-   procedure Make_Mutable
-     (File : Binary_File; Region : in out Mapped_Region);
-   --  Make some previously-mapped region mutable
+   procedure Make_Mutable (File : Binary_File; LS : in out Loaded_Section)
+     with Pre => LS /= No_Loaded_Section;
+   --  If Loaded_Section is a read-only mapped region, reload it as a mutable
+   --  one.
 
    type Section_Index is new Natural;
    No_Section : constant Section_Index := Section_Index'Last;
@@ -90,67 +194,11 @@ package Binary_Files is
      (File : Binary_File; Index : Section_Index) return Arch.Arch_Addr;
 
    function Load_Section
-     (File : Binary_File; Index : Section_Index) return Mapped_Region;
+     (File : Binary_File; Index : Section_Index) return Loaded_Section;
 
    --  We wish we could expose memory mapped files as unconstrained arrays,
    --  but it's not possible in Ada. So instead we use the following types
    --  and primitives to emulate this.
-
-   type Binary_Content_Bytes is
-     array (Arch.Arch_Addr) of Interfaces.Unsigned_8;
-
-   type Binary_Content_Bytes_Acc is access Binary_Content_Bytes;
-   pragma No_Strict_Aliasing (Binary_Content_Bytes_Acc);
-
-   type Binary_Content is record
-      Content     : Binary_Content_Bytes_Acc;
-      First, Last : Arch.Arch_Addr;
-      --  Content is an unconstrained array, so we can set it to some memory
-      --  mapped content. Thus, we have to store bounds ourselves.
-   end record;
-   --  An array of byte, used to store ELF sections
-
-   Invalid_Binary_Content : constant Binary_Content :=
-     (null, 0, 0);
-
-   function Wrap
-     (Content     : System.Address;
-      First, Last : Arch.Arch_Addr) return Binary_Content;
-   --  Constructor for Binary_Content
-
-   procedure Relocate
-     (Bin_Cont  : in out Binary_Content;
-      New_First : Arch.Arch_Addr);
-   --  Update First and Last in Bin_Cont so that Fisrt is New_First
-
-   function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr;
-   --  Return the number of bytes in Bin_Cont
-
-   function Is_Loaded (Bin_Cont : Binary_Content) return Boolean;
-   --  Return whether Bin_Cont actually contains something
-
-   function Get
-     (Bin_Cont : Binary_Content;
-      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8;
-   --  Return the byte in Bin_Cont at Offset
-
-   function Slice
-     (Bin_Cont    : Binary_Content;
-      First, Last : Arch.Arch_Addr) return Binary_Content;
-   --  Return a new Binary_Content value referencing the slice of bytes in
-   --  Bin_Cont from First to Last (no copy is done).
-
-   function Address_Of
-     (Bin_Cont : Binary_Content;
-      Offset   : Arch.Arch_Addr) return System.Address;
-   --  Return the address of the Offset'th item in the binary content
-
-   pragma Inline (Relocate);
-   pragma Inline (Length);
-   pragma Inline (Is_Loaded);
-   pragma Inline (Get);
-   pragma Inline (Slice);
-   pragma Inline (Address_Of);
 
    type Binary_File_Signature is record
       Size       : Long_Integer := 0;
@@ -216,4 +264,20 @@ private
       Time_Stamp       : GNAT.OS_Lib.OS_Time;
       CRC32            : Interfaces.Unsigned_32;
    end record;
+
+   type Loaded_Section_Kind is (None, Mapped, Allocated);
+
+   type Loaded_Section (Kind : Loaded_Section_Kind := None) is record
+      case Kind is
+         when None =>
+            null;
+         when Mapped =>
+            Region : Mapped_Region;
+         when Allocated =>
+            Buffer : String_Access;
+      end case;
+   end record;
+
+   No_Loaded_Section : constant Loaded_Section := (Kind => None);
+
 end Binary_Files;

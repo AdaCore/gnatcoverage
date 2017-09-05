@@ -22,7 +22,6 @@ with System; use System;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
-with GNATCOLL.Mmap; use GNATCOLL.Mmap;
 with Binary_Files;  use Binary_Files;
 
 with Elf_Common; use Elf_Common;
@@ -73,8 +72,9 @@ package Elf_Files is
    --  Extract and swap bytes (if necessary) a symbol entry.
    function Get_Sym (File : Elf_File; Addr : Address) return Elf_Sym;
 
+   overriding
    function Load_Section
-     (File : Elf_File; Index : Section_Index) return Mapped_Region;
+     (File : Elf_File; Index : Section_Index) return Loaded_Section;
    --  Load a section in memory. Only the file length bytes are loaded
 
    type Elf_Rela_Acc is access Elf_Rela;
@@ -126,16 +126,16 @@ private
      (Address, Elf_Sym_Acc);
 
    type Elf_File is new Binary_File with record
-      Need_Swap        : Boolean;
+      Need_Swap : Boolean;
       --  Whether the endianess of the ELF is the same as the one on this
       --  machine.
 
-      Ehdr_Map         : Mapped_Region;
-      Shdr_Map         : Mapped_Region;
-      Sh_Strtab_Map    : Mapped_Region;
+      Ehdr_Map      : Loaded_Section;
+      Shdr_Map      : Loaded_Section;
+      Sh_Strtab_Map : Loaded_Section;
 
-      Ehdr             : Elf_Ehdr_Var_Acc;
-      Shdr             : Elf_Shdr_Arr_Acc;
-      Sh_Strtab        : Elf_Strtab_Acc;
+      Ehdr      : Elf_Ehdr_Var_Acc;
+      Shdr      : Elf_Shdr_Arr_Acc;
+      Sh_Strtab : Elf_Strtab_Acc;
    end record;
 end Elf_Files;

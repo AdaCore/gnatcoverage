@@ -53,9 +53,6 @@ package body Traces_Elf is
    procedure Free is new Ada.Unchecked_Deallocation
      (Address_Info, Address_Info_Acc);
 
-   function Convert is new Ada.Unchecked_Conversion
-     (Str_Access, System.Address);
-
    No_Stmt_List : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_stmt_list
 
@@ -164,7 +161,7 @@ package body Traces_Elf is
       Sec     : Section_Index;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
-      Region  : out Mapped_Region);
+      LS      : in out Loaded_Section);
    --  Allocate memory for section SEC of EXEC and read it. LEN is the length
    --  of the section. Loaded bytes will be stored in CONTENT, and the mapped
    --  region it comes from is stored in REGION. It is up to the caller to free
@@ -544,15 +541,15 @@ package body Traces_Elf is
                         and then Name = ".PPC.EMB.apuinfo"
                   then
                      declare
-                        Len : Elf_Addr;
+                        Len     : Elf_Addr;
                         Content : Binary_Content;
-                        Region : Mapped_Region;
+                        LS      : Loaded_Section;
                      begin
                         Alloc_And_Load_Section
-                          (Exec, Section_Index (I), Len, Content, Region);
+                          (Exec, Section_Index (I), Len, Content, LS);
                         Machine := Disa_Ppc.Extract_APU_Info
                           (Filename, Big_Endian_ELF, Content);
-                        Free (Region);
+                        Free (LS);
                      end;
 
                   else
@@ -612,18 +609,18 @@ package body Traces_Elf is
 
    procedure Close_Exe_File (Exec : in out Exe_File_Type) is
    begin
-      if Exec.Lines_Region /= Invalid_Mapped_Region then
-         Free (Exec.Lines_Region);
+      if Exec.Lines_Section /= No_Loaded_Section then
+         Free (Exec.Lines_Section);
       end if;
       Exec.Lines_Len := 0;
 
-      if Exec.Symtab_Region /= Invalid_Mapped_Region then
-         Free (Exec.Symtab_Region);
+      if Exec.Symtab_Section /= No_Loaded_Section then
+         Free (Exec.Symtab_Section);
       end if;
       Exec.Nbr_Symbols := 0;
 
-      if Exec.Debug_Strs_Region /= Invalid_Mapped_Region then
-         Free (Exec.Debug_Strs_Region);
+      if Exec.Debug_Strs_Section /= No_Loaded_Section then
+         Free (Exec.Debug_Strs_Section);
       end if;
 
       Exec.Sec_Debug_Abbrev   := No_Section;
@@ -1056,7 +1053,7 @@ package body Traces_Elf is
                   Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Str,
                                           Exec.Debug_Str_Len,
                                           Exec.Debug_Strs,
-                                          Exec.Debug_Strs_Region);
+                                          Exec.Debug_Strs_Section);
                   Exec.Debug_Str_Base := Address_Of (Exec.Debug_Strs, 0);
                end if;
                Res := Exec.Debug_Str_Base + Storage_Offset (V);
@@ -1188,22 +1185,22 @@ package body Traces_Elf is
    procedure Apply_Relocations
      (Exec    : in out Elf_Exe_File_Type;
       Sec_Idx : Section_Index;
-      Region  : in out Mapped_Region;
+      LS      : in out Loaded_Section;
       Data    : in out Binary_Content)
    is
-      Sec_Rel       : Elf_Half;
-      Relocs_Len    : Elf_Addr;
-      Relocs        : Binary_Content;
-      Relocs_Region : Mapped_Region;
+      Sec_Rel        : Elf_Half;
+      Relocs_Len     : Elf_Addr;
+      Relocs         : Binary_Content;
+      Relocs_Section : Loaded_Section;
 
-      Sym_Num       : Unsigned_32;
-      Sym           : Elf_Sym;
+      Sym_Num : Unsigned_32;
+      Sym     : Elf_Sym;
 
-      Shdr          : Elf_Shdr_Acc;
-      Off           : Storage_Offset;
+      Shdr : Elf_Shdr_Acc;
+      Off  : Storage_Offset;
 
-      Offset        : Elf_Addr;
-      R             : Elf_Rela;
+      Offset : Elf_Addr;
+      R      : Elf_Rela;
 
    begin
       --  The only sections on which we have to apply relocations are the
@@ -1247,10 +1244,10 @@ package body Traces_Elf is
          raise Program_Error;
       end if;
 
-      Make_Mutable (Exec.Elf_File, Region);
+      Make_Mutable (Exec.Elf_File, LS);
 
       Alloc_And_Load_Section
-        (Exec, Section_Index (Sec_Rel), Relocs_Len, Relocs, Relocs_Region);
+        (Exec, Section_Index (Sec_Rel), Relocs_Len, Relocs, Relocs_Section);
       if Relocs_Len /= Shdr.Sh_Size then
          raise Program_Error;
       end if;
@@ -1363,13 +1360,13 @@ package body Traces_Elf is
          end case;
 
       end loop;
-      Free (Relocs_Region);
+      Free (Relocs_Section);
    end Apply_Relocations;
 
    procedure Apply_Relocations
      (Exec    : in out PE_Exe_File_Type;
       Sec_Idx : Section_Index;
-      Region  : in out Mapped_Region;
+      LS      : in out Loaded_Section;
       Data    : in out Binary_Content) is
    begin
       --  Not handled for PE Coff
@@ -1385,7 +1382,7 @@ package body Traces_Elf is
       Sec     : Section_Index;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
-      Region  : out Mapped_Region)
+      LS      : in out Loaded_Section)
    is
       Sec_Len : Arch_Addr;
    begin
@@ -1394,10 +1391,8 @@ package body Traces_Elf is
          pragma Assert (Sec_Len > 0);
 
          Len := Sec_Len;
-         Region := Load_Section (Exec.File.all, Sec);
-         Content := (if Sec_Len > 0
-                     then Wrap (Convert (Data (Region)), 0, Sec_Len - 1)
-                     else Wrap (Convert (Data (Region)), 1, 0));
+         LS := Load_Section (Exec.File.all, Sec);
+         Content := Binary_Files.Content (LS);
       else
          Content := Invalid_Binary_Content;
          Len := 0;
@@ -1442,16 +1437,16 @@ package body Traces_Elf is
          end;
       end Symbol_Exists;
 
-      Abbrev_Len     : Elf_Addr;
-      Abbrevs        : Binary_Content;
-      Abbrevs_Region : Mapped_Region;
-      Abbrev_Base    : Address;
-      Map            : Abbrev_Map_Acc;
-      Abbrev         : Address;
+      Abbrev_Len      : Elf_Addr;
+      Abbrevs         : Binary_Content;
+      Abbrevs_Section : Loaded_Section;
+      Abbrev_Base     : Address;
+      Map             : Abbrev_Map_Acc;
+      Abbrev          : Address;
 
       Info_Len              : Elf_Addr;
       Infos                 : Binary_Content;
-      Infos_Region          : Mapped_Region;
+      Infos_Section         : Loaded_Section;
       Base                  : Address;
       Off, Sec_Off, Tag_Off : Storage_Offset;
       Aoff                  : Storage_Offset;
@@ -1536,7 +1531,7 @@ package body Traces_Elf is
       --  Load .debug_abbrev
 
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Abbrev,
-                              Abbrev_Len, Abbrevs, Abbrevs_Region);
+                              Abbrev_Len, Abbrevs, Abbrevs_Section);
       Abbrev_Base := Address_Of (Abbrevs, 0);
 
       Map := null;
@@ -1544,14 +1539,14 @@ package body Traces_Elf is
       --  Load .debug_info
 
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info,
-                              Info_Len, Infos, Infos_Region);
+                              Info_Len, Infos, Infos_Section);
       Base := Address_Of (Infos, 0);
 
       --  Load symbols
 
       Build_Symbols (Exec);
 
-      Apply_Relocations (Exec, Exec.Sec_Debug_Info, Infos_Region, Infos);
+      Apply_Relocations (Exec, Exec.Sec_Debug_Info, Infos_Section, Infos);
 
       Off := 0;
       CU_Loop : while Off < Storage_Offset (Info_Len) loop
@@ -1901,11 +1896,11 @@ package body Traces_Elf is
       --  If there is no debug information in this binary, the following
       --  sections may not have been loaded.
 
-      if Infos_Region /= Invalid_Mapped_Region then
-         Free (Infos_Region);
+      if Infos_Section /= No_Loaded_Section then
+         Free (Infos_Section);
       end if;
-      if Abbrevs_Region /= Invalid_Mapped_Region then
-         Free (Abbrevs_Region);
+      if Abbrevs_Section /= No_Loaded_Section then
+         Free (Abbrevs_Section);
       end if;
 
       --  Fill the map: call site -> target function, using accumulated
@@ -1943,7 +1938,7 @@ package body Traces_Elf is
       end if;
 
       Alloc_And_Load_Section (Exec, Section_Index (Exec.Sec_Symtab),
-                              Symtab_Len, Exec.Symtab, Exec.Symtab_Region);
+                              Symtab_Len, Exec.Symtab, Exec.Symtab_Section);
       Symtab_Shdr := Get_Shdr (Exec.Elf_File, Exec.Sec_Symtab);
       if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
         or else Symtab_Shdr.Sh_Link = 0
@@ -2310,10 +2305,10 @@ package body Traces_Elf is
       if not Is_Loaded (Exec.Lines) then
          Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
                                  Exec.Lines_Len, Exec.Lines,
-                                 Exec.Lines_Region);
+                                 Exec.Lines_Section);
          Base := Address_Of (Exec.Lines, 0);
          Apply_Relocations
-           (Exec, Exec.Sec_Debug_Line, Exec.Lines_Region, Exec.Lines);
+           (Exec, Exec.Sec_Debug_Line, Exec.Lines_Section, Exec.Lines);
       end if;
 
       Off := Storage_Offset (Stmt_List_Offset);
@@ -2611,7 +2606,7 @@ package body Traces_Elf is
    begin
       --  Return now if already loaded
 
-      if Exec.Lines_Region /= Invalid_Mapped_Region then
+      if Exec.Lines_Section /= No_Loaded_Section then
          return;
       end if;
 
@@ -2687,7 +2682,7 @@ package body Traces_Elf is
                                           Get_Shdr_Name (Exec.Elf_File, Idx)),
                      Section_Sec_Idx => Section_Index (Idx),
                      Section_Content => Invalid_Binary_Content,
-                     Section_Region  => Invalid_Mapped_Region));
+                     Section_LS      => No_Loaded_Section));
          end if;
       end loop;
    end Build_Sections;
@@ -2728,7 +2723,7 @@ package body Traces_Elf is
                                       Get_Section_Name (Exec.PE_File, Idx)),
                 Section_Sec_Idx => Section_Index (Idx),
                 Section_Content => Invalid_Binary_Content,
-                Section_Region  => Invalid_Mapped_Region));
+                Section_LS      => No_Loaded_Section));
          end if;
       end loop;
    end Build_Sections;
@@ -2861,7 +2856,7 @@ package body Traces_Elf is
       if not Is_Loaded (Sec.Section_Content) then
          Alloc_And_Load_Section
            (Exec, Sec.Section_Sec_Idx,
-            Len, Sec.Section_Content, Sec.Section_Region);
+            Len, Sec.Section_Content, Sec.Section_LS);
          Relocate (Sec.Section_Content, Sec.First);
       end if;
    end Load_Section_Content;
@@ -3292,12 +3287,12 @@ package body Traces_Elf is
       Symtab_Base : Address;
       Do_Reloc : Boolean;
 
-      Strtab_Idx     : Elf_Half;
-      Strtab_Len     : Elf_Addr;
-      Strtabs        : Binary_Content;
-      Strtabs_Region : Mapped_Region;
-      ESym           : Elf_Sym;
-      Offset         : Pc_Type;
+      Strtab_Idx      : Elf_Half;
+      Strtab_Len      : Elf_Addr;
+      Strtabs         : Binary_Content;
+      Strtabs_Section : Loaded_Section;
+      ESym            : Elf_Sym;
+      Offset          : Pc_Type;
 
       Sym_Type : Unsigned_8;
       Sym      : Address_Info_Acc;
@@ -3340,7 +3335,7 @@ package body Traces_Elf is
          return;
       end if;
       Alloc_And_Load_Section (Exec, Section_Index (Strtab_Idx),
-                              Strtab_Len, Strtabs, Strtabs_Region);
+                              Strtab_Len, Strtabs, Strtabs_Section);
 
       Do_Reloc := Get_Ehdr (Exec.Elf_File).E_Type = ET_REL;
       Offset := Exec.Exe_Text_Start;
@@ -3477,7 +3472,7 @@ package body Traces_Elf is
          end if;
       end loop;
 
-      Free (Strtabs_Region);
+      Free (Strtabs_Section);
    end Build_Symbols;
 
    -------------------
@@ -3517,13 +3512,11 @@ package body Traces_Elf is
       end loop;
 
       declare
-         function To_Address is new Ada.Unchecked_Conversion
-           (Str_Access, Address);
-         Syms : constant Mapped_Region := Get_Symbols (Exec.PE_File);
-         Syms_Base : constant Address := To_Address (Data (Syms));
-         Nbr_Syms : constant Unsigned_32 :=
+         Syms      : constant Loaded_Section := Get_Symbols (Exec.PE_File);
+         Syms_Base : constant Address := Address_Of (Syms);
+         Nbr_Syms  : constant Unsigned_32 :=
            Get_Hdr (Exec.PE_File).F_Nsyms;
-         I : Unsigned_32;
+         I         : Unsigned_32;
       begin
          I := 0;
          while I < Nbr_Syms loop
@@ -4198,31 +4191,31 @@ package body Traces_Elf is
       Shdr_Sets : Set_Acc_Array := (others => null);
       --  Addresses container for each relevant sections
 
-      Shdr           : Elf_Shdr_Acc;
-      Last           : Pc_Type;
-      Addr           : Pc_Type;
-      Offset         : Pc_Type;
+      Shdr   : Elf_Shdr_Acc;
+      Last   : Pc_Type;
+      Addr   : Pc_Type;
+      Offset : Pc_Type;
 
-      Sym            : Address_Info_Acc;
-      Cur_Sym        : Address_Info_Sets.Cursor;
+      Sym     : Address_Info_Acc;
+      Cur_Sym : Address_Info_Sets.Cursor;
 
-      Symtab_Len     : Elf_Addr;
-      Symtabs        : Binary_Content;
-      Symtabs_Region : Mapped_Region;
-      Symtab_Base    : Address;
+      Symtab_Len      : Elf_Addr;
+      Symtabs         : Binary_Content;
+      Symtabs_Section : Loaded_Section;
+      Symtab_Base     : Address;
 
-      Strtab_Idx     : Elf_Half;
-      Strtab_Len     : Elf_Addr;
-      Strtabs        : Binary_Content;
-      Strtabs_Region : Mapped_Region;
+      Strtab_Idx      : Elf_Half;
+      Strtab_Len      : Elf_Addr;
+      Strtabs         : Binary_Content;
+      Strtabs_Section : Loaded_Section;
 
-      A_Sym          : Elf_Sym;
-      Sym_Name       : String_Access;
+      A_Sym    : Elf_Sym;
+      Sym_Name : String_Access;
 
-      Sym_Type       : Unsigned_8;
-      Cur            : Address_Info_Sets.Cursor;
-      Ok             : Boolean;
-      Do_Reloc       : Boolean;
+      Sym_Type : Unsigned_8;
+      Cur      : Address_Info_Sets.Cursor;
+      Ok       : Boolean;
+      Do_Reloc : Boolean;
    begin
       --  Search symtab and strtab, exit in case of failure
 
@@ -4256,10 +4249,10 @@ package body Traces_Elf is
       --  Load symtab and strtab
 
       Alloc_And_Load_Section (File, Section_Index (File.Sec_Symtab),
-                              Symtab_Len, Symtabs, Symtabs_Region);
+                              Symtab_Len, Symtabs, Symtabs_Section);
       Symtab_Base := Address_Of (Symtabs, 0);
       Alloc_And_Load_Section (File, Section_Index (Strtab_Idx),
-                              Strtab_Len, Strtabs, Strtabs_Region);
+                              Strtab_Len, Strtabs, Strtabs_Section);
 
       --  Walk the symtab and put interesting symbols into the containers.
       --  Except for warnings in strict mode, leave empty symbols alone. We'd
@@ -4338,8 +4331,8 @@ package body Traces_Elf is
          end if;
       end loop;
 
-      Free (Strtabs_Region);
-      Free (Symtabs_Region);
+      Free (Strtabs_Section);
+      Free (Symtabs_Section);
 
       --  Walk the sections, invoking callback or warning for symbols of
       --  interest as we go along.

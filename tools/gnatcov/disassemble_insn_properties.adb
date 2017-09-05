@@ -22,7 +22,6 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;  use Interfaces;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
-with GNATCOLL.Mmap;
 
 with Binary_Files;      use Binary_Files;
 with Disassemblers;
@@ -231,7 +230,7 @@ package body Disassemble_Insn_Properties is
             end;
          end loop;
 
-         GNATCOLL.Mmap.Free (Section.Section_Region);
+         Free (Section.Section_LS);
          Section.Section_Content := Invalid_Binary_Content;
 
          if not Is_Empty (JSON_Insns) then

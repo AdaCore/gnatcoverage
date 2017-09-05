@@ -26,7 +26,6 @@ with System; use System;
 
 with GNAT.OS_Lib;
 with GNAT.Strings;     use GNAT.Strings;
-with GNATCOLL.Mmap;    use GNATCOLL.Mmap;
 with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 
 with Arch;           use Arch;
@@ -70,7 +69,7 @@ package Traces_Elf is
    procedure Apply_Relocations
      (Exec    : in out Exe_File_Type;
       Sec_Idx : Section_Index;
-      Region  : in out Mapped_Region;
+      LS      : in out Loaded_Section;
       Data    : in out Binary_Content) is abstract;
    --  Apply relocations from SEC_REL to DATA.
    --  This procedure should only be called to relocate dwarf debug sections,
@@ -219,7 +218,7 @@ package Traces_Elf is
             Section_Name    : String_Access;
             Section_Sec_Idx : Section_Index;
             Section_Content : Binary_Content;
-            Section_Region  : Mapped_Region;
+            Section_LS      : Loaded_Section;
 
          when Subprogram_Addresses =>
             Subprogram_Name   : String_Access;
@@ -507,18 +506,18 @@ private
       Debug_Str_Base      : Address := Null_Address;
       Debug_Str_Len       : Elf_Addr;
       Debug_Strs          : Binary_Content := Invalid_Binary_Content;
-      Debug_Strs_Region   : Mapped_Region := Invalid_Mapped_Region;
+      Debug_Strs_Section  : Loaded_Section := No_Loaded_Section;
 
       --  .debug_lines contents
 
       Lines_Len           : Elf_Addr := 0;
       Lines               : Binary_Content := Invalid_Binary_Content;
-      Lines_Region        : Mapped_Region := Invalid_Mapped_Region;
+      Lines_Section       : Loaded_Section := No_Loaded_Section;
 
       --  Symbol table
 
       Symtab              : Binary_Content := Invalid_Binary_Content;
-      Symtab_Region       : Mapped_Region := Invalid_Mapped_Region;
+      Symtab_Section      : Loaded_Section := No_Loaded_Section;
       Nbr_Symbols         : Natural := 0;
       Symbol_To_PC        : Symbol_To_PC_Maps.Map;
 
@@ -563,7 +562,7 @@ private
    procedure Apply_Relocations
      (Exec    : in out Elf_Exe_File_Type;
       Sec_Idx : Section_Index;
-      Region  : in out Mapped_Region;
+      LS      : in out Loaded_Section;
       Data    : in out Binary_Content);
    procedure Scan_Symbols_From
      (File   : in out Elf_Exe_File_Type;
@@ -580,7 +579,7 @@ private
    procedure Apply_Relocations
      (Exec    : in out PE_Exe_File_Type;
       Sec_Idx : Section_Index;
-      Region  : in out Mapped_Region;
+      LS      : in out Loaded_Section;
       Data    : in out Binary_Content);
 
    type Addresses_Iterator is limited record
