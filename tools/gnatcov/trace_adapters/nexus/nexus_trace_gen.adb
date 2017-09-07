@@ -225,16 +225,19 @@ procedure Nexus_Trace_Gen is
       Shdr : Elf_Half;
       Addr : System.Address)
    is
-      Region : Mapped_Region := Load_Section (File, Section_Index (Shdr));
+      Section      : Loaded_Section :=
+         Load_Section (File, Section_Index (Shdr));
+      Section_Size : constant Natural := Natural (Size (Section));
 
       function Convert is new Ada.Unchecked_Conversion
         (System.Address, Str_Access);
 
-      Source : constant Str_Access := Data (Region);
+      Source : constant String (1 .. Section_Size)
+         with Import => True, Address => Address_Of (Section);
       Dest   : constant Str_Access := Convert (Addr);
    begin
-      Dest (1 .. Last (Region)) := Source (1 .. Last (Region));
-      Free (Region);
+      Dest (1 .. Section_Size) := Source (1 .. Section_Size);
+      Free (Section);
    end Load_Section;
 
    function Exe_Address_From_Arg
