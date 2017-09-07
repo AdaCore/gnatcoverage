@@ -96,7 +96,7 @@ package body Binary_Files is
       end case;
 
       return (if Size > 0
-              then Wrap (Addr, 0, Size)
+              then Wrap (Addr, 0, Size - 1)
               else Wrap (Addr, 1, 0));
    end Content;
 
