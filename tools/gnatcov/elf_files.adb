@@ -240,10 +240,11 @@ package body Elf_Files is
          declare
             use type Interfaces.C.int;
 
-            Compressed : Loaded_Section := Result;
-            Chdr       : Elf_Chdr
+            Compressed     : Loaded_Section := Result;
+            Chdr           : Elf_Chdr;
+            Chdr_Unswapped : Elf_Chdr
               with Address => Address_Of (Compressed);
-            Chdr_Size  : constant Arch_Addr :=
+            Chdr_Size      : constant Arch_Addr :=
               Elf_Chdr'Size / System.Storage_Unit;
 
             function Uncompress
@@ -258,7 +259,14 @@ package body Elf_Files is
          begin
             if Size (Compressed) <= Chdr_Size then
                raise Error with "compressed ELF section is too small";
-            elsif Chdr.Ch_Type /= ELFCOMPRESS_ZLIB then
+            end if;
+
+            Chdr := Chdr_Unswapped;
+            if File.Need_Swap then
+               Elf_Chdr_Swap (Chdr);
+            end if;
+
+            if Chdr.Ch_Type /= ELFCOMPRESS_ZLIB then
                raise Error with "unhandled ELF section compression algorithm";
             end if;
 

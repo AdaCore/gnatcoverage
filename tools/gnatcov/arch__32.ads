@@ -44,6 +44,8 @@ package Arch is
      renames Elf32_Ehdr_Swap;
    procedure Elf_Shdr_Swap (Shdr : in out Elf_Shdr)
      renames Elf32_Shdr_Swap;
+   procedure Elf_Chdr_Swap (Chdr : in out Elf_Chdr)
+     renames Elf32_Chdr_Swap;
    procedure Elf_Rela_Swap (Rela : in out Elf_Rela)
      renames Elf32_Rela_Swap;
    procedure Elf_Sym_Swap (Sym : in out Elf_Sym)
