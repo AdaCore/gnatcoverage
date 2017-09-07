@@ -31,6 +31,10 @@ package body Disa_Ppc is
    APU_E500_SPE      : constant := 16#0100#;
    APU_E500_SPFP_EFS : constant := 16#0101#;
 
+   ----------------------
+   -- Extract_APU_Info --
+   ----------------------
+
    function Extract_APU_Info
      (Filename         : String;
       Is_Big_Endian    : Boolean;
