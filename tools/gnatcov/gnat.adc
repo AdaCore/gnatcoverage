@@ -4,4 +4,4 @@ pragma Warnings
   (Off, "redundant conversion, * is of type ""Unsigned_64""");
 pragma Warnings
   (Off,
-   """Unsigned_32"" is already use-visible through previous use type clause");
+   """Unsigned_32"" is already use-visible through previous use_type_clause");
