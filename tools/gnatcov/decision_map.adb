@@ -73,7 +73,7 @@ package body Decision_Map is
    package SCO_Sets is new Ada.Containers.Ordered_Sets (SCO_Id);
 
    type Call_Kind is (Normal, Raise_Exception, Finalizer);
-   --  Classification of calls:
+   --  Classification of calls within a decision:
    --    - normal calls to subprograms
    --    - calls that are known to raise an exception
    --    - calls to generated block finalizers / cleanup code
@@ -391,7 +391,40 @@ package body Decision_Map is
 
       D_SCO : constant SCO_Id := Enclosing_Decision (C_SCO);
 
+      function Is_Begin_Handler_Call (D : Dest) return Boolean;
+      --  True if Dest branches to a basic block ending in a
+      --  __gnat_begin_handler call.
+
+      ---------------------------
+      -- Is_Begin_Handler_Call --
+      ---------------------------
+
+      function Is_Begin_Handler_Call (D : Dest) return Boolean is
+         BB : constant Basic_Block :=
+           Find_Basic_Block (Ctx.Basic_Blocks, D.Target);
+      begin
+         return BB /= No_Basic_Block
+           and then BB.Branch = Br_Call
+           and then BB.Called_Sym /= null
+           and then BB.Called_Sym.all = "__gnat_begin_handler";
+      end Is_Begin_Handler_Call;
+
+   --  Start of processing for Analyze_Conditional_Branch
+
    begin
+      --  If one of the edges branches to a __gnat_begin_handler
+      --  call, then this conditional branch is an exception
+      --  dispatch test, and does not contribute to any decision.
+
+      if Is_Begin_Handler_Call (Branch_Dest)
+           or else
+         Is_Begin_Handler_Call (FT_Dest)
+      then
+         Report
+           (Exec, Insn.First, "exception dispatch", Kind => Notice);
+         return;
+      end if;
+
       --  Record address in SCO descriptor
 
       Add_Address (C_SCO, Insn.First);
