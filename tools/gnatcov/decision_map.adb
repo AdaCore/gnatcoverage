@@ -406,7 +406,8 @@ package body Decision_Map is
          return BB /= No_Basic_Block
            and then BB.Branch = Br_Call
            and then BB.Called_Sym /= null
-           and then BB.Called_Sym.all = "__gnat_begin_handler";
+           and then Platform_Independent_Symbol (BB.Called_Sym.all, Exec.all)
+                      = "__gnat_begin_handler";
       end Is_Begin_Handler_Call;
 
    --  Start of processing for Analyze_Conditional_Branch
