@@ -421,8 +421,8 @@ package Traces_Elf is
      (Name : String;
       File : Exe_File_Type) return String;
    --  Return a platform-independant symbol name for Name. This is used to hide
-   --  differences between symbol names from PE on Windows (all prefixed with
-   --  an underscore) and symbol names on other platforms.
+   --  differences between symbol names from 32-bit PE on Windows (all prefixed
+   --  with an underscore) and symbol names on other platforms.
 
 private
 

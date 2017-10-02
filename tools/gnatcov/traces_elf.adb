@@ -4828,11 +4828,11 @@ package body Traces_Elf is
      (Name : String;
       File : Exe_File_Type) return String
    is
+      Is_PE    : constant Boolean := File.File.all in PE_File'Class;
+      Is_32bit : constant Boolean := Pc_Type_Size = 4;
    begin
-      if File.File.all in PE_File'Class
-         and then Name'Length > 0
-         and then Name (Name'First) = '_'
-      then
+      if Is_PE and then Is_32bit then
+         pragma Assert (Name'Length > 0 and then Name (Name'First) = '_');
          return Name (Name'First + 1 .. Name'Last);
       else
          return Name;
