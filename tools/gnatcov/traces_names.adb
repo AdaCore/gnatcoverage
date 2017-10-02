@@ -655,12 +655,7 @@ package body Traces_Names is
       --  executables the same symbol may be located in a different location.
       --  So far, we just make sure that the function has the same size in the
       --  two executables.
-
-      if Length (Subp_Info.Insns) = Length (Content) then
-         Success := True;
-         return;
-      end if;
-
+      --
       --  For some executables such as Windows', the size of routines is an
       --  approximation that includes padding instructions.  See how long the
       --  input routines really are when stripping trailing padding
