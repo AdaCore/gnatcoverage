@@ -21,7 +21,7 @@ Tool Developer's perspective.
    :delim: #
    :header: "Section", "Achieved", "Notes"
 
-   T-0, Objectives 1, 3, 6 # Not applicable # Apply to Tool User, not to Tool Developer per section 11.3 of |tool_standard|.
+   T-0, Objectives 1, 3, 6, 7 # Not applicable # Apply to Tool User, not to Tool Developer per section 11.3 of |tool_standard|.
    T-0, Objective 2 # Yes # See the requirement description items in the |tor_doc| document.
    T-0, Objective 4 # Not Applicable # Not required for TQL-5. See :ref:`tqap` for AdaCore's QA procedures nevertheless.
    T-0, Objective 5 # Yes # See the test and test-cases description items in the |tor_doc| document.

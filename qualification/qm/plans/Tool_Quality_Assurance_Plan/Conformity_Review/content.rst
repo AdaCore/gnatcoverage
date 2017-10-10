@@ -21,3 +21,6 @@ These objectives are achieved in the scope of the tool conformity review:
    from the tool source code.
  * **8.3.f**: Check that problems from a previous Tool Conformity Review are
    re-evaluated.
+ * **8.3.g**: Not applicable since no credit is sought for the use of
+   previously developed tools.
+
