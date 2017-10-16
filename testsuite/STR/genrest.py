@@ -1135,7 +1135,7 @@ class QDreport(object):
         if sepfile:
             self.rstf = RSTfile(sepfile)
 
-        self.rstf.write(rest.chapter("Qualification Environment"))
+        self.rstf.write(rest.chapter("Verification Environment"))
 
         self.gen_suite_environ()
         self.rstf.write("~\n")

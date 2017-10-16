@@ -43,7 +43,7 @@ Inspection of test execution results
 
 **objectives:** 
 
-  * Check that the Qualification Environment reported in the |str_doc| report
+  * Check that the Verification Environment reported in the |str_doc| report
     is equivalent to the Operational Environment described in the |tor_doc|
     document.
 

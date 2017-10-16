@@ -80,7 +80,7 @@ new scope requires.
 Execute Tests to Produce Test-Results Artifacts
 ***********************************************
 
-This is achieved in the Qualification Environment by launching a script which
+This is achieved in the Verification Environment by launching a script which
 automatically selects the relevant set of tests for the target software level
 and runs them with provided control parameters. The tests are taken from a
 branch dedicated to the kit construction in AdaCore's repositories.

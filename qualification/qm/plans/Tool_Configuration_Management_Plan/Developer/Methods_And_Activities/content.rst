@@ -56,7 +56,7 @@ specific customer/project are produced off that branch, which also tracks the
 QA cycles performed on the kit items (QA reports, corresponding corrections,
 ...). A typical kind of early change incorporated on the branch is the
 adjustment of the targeted operational environment parameters, to be accounted
-for when setting up the qualification environment for kit production cycles.
+for when setting up the verification environment for kit production cycles.
 
 
 Official baseline production
@@ -65,7 +65,7 @@ Official baseline production
 Official baselines are generated for customer-specific deliveries aimed at a
 precise operational environment and software level. Once the configuration
 management branch dedicated to such deliveries is set up, a complete testsuite
-run is performed in the corresponding qualification environment. A kit version
+run is performed in the corresponding verification environment. A kit version
 number is then assigned and the qualification data documents are produced.
 The resulting set of documents is packaged as a zip file which materializes
 the kit as a whole. This kit then goes through QA as needed and all or part of

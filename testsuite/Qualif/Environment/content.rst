@@ -12,7 +12,7 @@ Operational Environment
 -----------------------
 
 The Operational Environment in which the tool is used shall match the
-Qualification Environment in which the tool was qualified, as characterized by
+Verification Environment in which the tool was qualified, as characterized by
 the items presented in the following table. The *Expected value* column here
 states the intended value for qualification, which should match what
 eventually gets logged within the |str_doc| report. The *Item #* column
@@ -41,7 +41,7 @@ generation (``Restriction_Warnings`` pragmas or specific ``Restrictions`` such
 as ``No_Direct_Boolean_Operators`` for instance).
 
 The Runtime Library Profile indication conveys the --RTS switch for which the
-Qualification Environment should be setup, designating a runtime library
+Verification Environment should be setup, designating a runtime library
 delivered with the GNAT Pro toolchain. Tool Users shall have their toolchain
 setup to compile programs with a :literal:`--RTS` switch as well, designating
 a runtime with a ``system.ads`` identical to the qualification one.
