@@ -183,6 +183,14 @@ package body Rundrv is
 
       Cmd : constant String := +Command.Command;
    begin
+
+      --  Honor a possible empty command text, meaning no actual
+      --  command to run.
+
+      if Cmd'Length = 0 then
+         return;
+      end if;
+
       --  Find executable
 
       Prg := GNAT.OS_Lib.Locate_Exec_On_Path (Cmd);

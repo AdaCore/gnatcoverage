@@ -64,6 +64,8 @@ package body Rundrv.Config is
      (Context : Context_Type; Matches : Match_Array) return Command_Access;
    function ISystem
      (Context : Context_Type; Matches : Match_Array) return Command_Access;
+   function Prepare
+     (Context : Context_Type; Matches : Match_Array) return Command_Access;
    function Visium_ELF
      (Context : Context_Type; Matches : Match_Array) return Command_Access;
 
@@ -85,6 +87,7 @@ package body Rundrv.Config is
       (+"(x86|x86_64)-linux",   Native_Linux'Access),
       (+"(x86|x86_64)-windows", Native_Windows'Access),
       (+"iSystem-(5554|5634)",  ISystem'Access),
+      (+"prepare",              Prepare'Access),
       (+"visium-elf",           Visium_ELF'Access));
    --  For each target category, this table provides a target triples
    --  (without board name) pattern and a function to create the corresponding
@@ -253,6 +256,22 @@ package body Rundrv.Config is
       Append_Arg (Result, Trace_Input (Context));
       return Result;
    end ISystem;
+
+   -------------
+   -- Prepare --
+   -------------
+
+   function Prepare
+     (Context : Context_Type; Matches : Match_Array) return Command_Access
+   is
+      pragma Unreferenced (Matches);
+      pragma Unreferenced (Context);
+
+      Result : constant Command_Access := new Command_Type'
+        (Command => +"", others => <>);
+   begin
+      return Result;
+   end Prepare;
 
    ----------------
    -- Visium_ELF --
