@@ -338,7 +338,7 @@ install-adapters: $(INSTALL_ADAPTER_TARGETS)
 .PHONY: distrib-linux-extra distrib-windows-extra distrib
 
 distrib-linux-extra:
-	[ -f COPYING3 ] || cp ../../COPYING3 .
+	[ -f COPYING3 ] || $(CP) ../../COPYING3 .
 	$(CP) README.md INSTALL COPYING3 LICENSE.dhtml $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
