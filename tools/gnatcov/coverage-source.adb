@@ -370,11 +370,12 @@ package body Coverage.Source is
                      --  to be marked as covered. However, if no code at all
                      --  has been seen for the entire unit, this means that
                      --  the user probably omitted required tests for that
-                     --  unit, so in that case we conservatively mark all
-                     --  statements in the unit as not covered (on the basis
-                     --  that they might end up having code, and be marked
-                     --  as not covered, when the code for the unit is actually
-                     --  loaded).
+                     --  unit, so in that case we do not enter this branch
+                     --  (because Unit_Had_Code is False), and so we end up
+                     --  conservatively marking all statements in the unit as
+                     --  not covered (on the basis that they might end up
+                     --  having code, and be marked  as not covered, when the
+                     --  code for the unit is actually loaded).
 
                      --  The distinction of the two cases of no code being
                      --  present for a SCO is that in the first case, the
