@@ -343,17 +343,11 @@ package body Coverage.Source is
                   --  Statement coverage: line is covered if any associated
                   --  statement is executed.
 
-                  if Is_Pragma_Annotate (SCO)
-                    or else Is_Disabled_Statement (SCO)
-                  then
-                     --  A disabled statement (i.e. a pragma Assert/Debug/PPC
-                     --  that is not enabled) or a pragma Annotate are known
-                     --  and intended to not generate any executable code. They
-                     --  are treated as documentation items in source, and are
-                     --  not subject to coverage discussion: they are neither
-                     --  covered nor not-covered, and need not be reported as
-                     --  bona fide statements excluded from coverage analysis
-                     --  either (see below case).
+                  if Ignore_SCO (SCO) then
+
+                     --  They are neither covered nor not-covered, and need
+                     --  not be reported as bona fide statements excluded from
+                     --  coverage analysis either (see below case).
 
                      null;
 
