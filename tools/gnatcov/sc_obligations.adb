@@ -35,7 +35,6 @@ with Interfaces;
 with Namet;         use Namet;
 with Outputs;       use Outputs;
 with SCOs;
-with Snames;        use Snames;
 with Strings;       use Strings;
 with Switches;      use Switches;
 with Traces_Elf;    use Traces_Elf;
@@ -2158,6 +2157,54 @@ package body SC_Obligations is
       return Has_SCO (Statement) or else Has_SCO (Condition);
    end Has_SCO;
 
+   ----------------
+   -- Ignore_SCO --
+   ----------------
+
+   function Ignore_SCO (SCO : SCO_Id) return Boolean is
+
+      Result : Boolean;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result from the given SCO descriptor, accessed in-place
+      --  from SCO_Vector.
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         --  We ignore remnants of internal processing phases which leave
+         --  dummy SCO entries in SCO_Vector, as well as SCOs for pragmas
+         --  known not to generate code, as they are not really statements in
+         --  the Ada sense and need not be assessed for coverage.
+
+         Result :=
+           --  Not a real SCO any more ?
+
+           SCOD.Origin = No_CU_Id
+
+           or else
+
+           --  Pragma not generating code ?
+
+           (SCOD.S_Kind = Pragma_Statement
+              and then not Pragma_Might_Generate_Code (SCOD.Pragma_Name))
+
+           or else
+
+           --  Disabled pragma ?
+
+           SCOD.S_Kind = Disabled_Pragma_Statement;
+
+      end Q;
+
+   --  Start of processing for Ignore_SCO
+
+   begin
+      pragma Assert (Kind (SCO) = Statement);
+
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
+   end Ignore_SCO;
+
    -----------
    -- Image --
    -----------
@@ -2281,18 +2328,6 @@ package body SC_Obligations is
       end case;
    end Is_Assertion;
 
-   ---------------------------
-   -- Is_Disabled_Statement --
-   ---------------------------
-
-   function Is_Disabled_Statement (SCO : SCO_Id) return Boolean is
-      SCOD  : SCO_Descriptor renames SCO_Vector (SCO);
-   begin
-      pragma Assert (SCOD.Kind = Statement);
-      return SCOD.S_Kind = Disabled_Pragma_Statement
-               or else SCOD.Origin = No_CU_Id;
-   end Is_Disabled_Statement;
-
    -------------------
    -- Is_Expression --
    -------------------
@@ -2362,30 +2397,6 @@ package body SC_Obligations is
          return Result;
       end;
    end Is_Expression;
-
-   ------------------------
-   -- Is_Pragma_Annotate --
-   ------------------------
-
-   function Is_Pragma_Annotate (SCO : SCO_Id) return Boolean is
-      Result : Boolean;
-
-      procedure Q (SCOD : SCO_Descriptor);
-      --  Set Result
-
-      procedure Q (SCOD : SCO_Descriptor) is
-      begin
-         Result := SCOD.S_Kind = Pragma_Statement
-           and then SCOD.Pragma_Name = Pragma_Annotate;
-      end Q;
-
-   --  Start of processing for Is_Pragma_Annotate
-
-   begin
-      pragma Assert (Kind (SCO) = Statement);
-      SCO_Vector.Query_Element (SCO, Q'Access);
-      return Result;
-   end Is_Pragma_Annotate;
 
    ----------------------------------
    -- Is_Pragma_Pre_Post_Condition --
