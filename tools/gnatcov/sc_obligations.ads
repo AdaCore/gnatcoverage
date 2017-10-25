@@ -312,9 +312,9 @@ package SC_Obligations is
 
 private
 
-   --  For each pragma we know of, weather an occurrence of the pragma in the
-   --  source might generated code of its own, e.g. pragma Precondition.
-
+   --  For each pragma we know of, whether an occurrence of the pragma in the
+   --  source might generate code of its own, e.g. pragma Precondition.
+   --
    --  This table is used to determine if a statement SCO attached to such a
    --  pragma may be ignored for coverage analysis purposes. Note that
    --  activation or deactivation (e.g. for assert-like pragmas controlled by
@@ -560,7 +560,7 @@ private
           --  instead of a mere "others" fallback to make sure we notice when
           --  new pragmas get in the daily compiler from which we build, which
           --  we expect to be reflected through Snames.
-
+          --
           --  The Unknown case is there to handle situations at run time when
           --  reading ali files produced by a version of the compiler more
           --  recent than gnatcov. True is a conservative choice in this case,
