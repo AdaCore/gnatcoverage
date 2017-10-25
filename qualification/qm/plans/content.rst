@@ -1,6 +1,6 @@
-=======================================================================
-GNATcoverage DO-178C/ED-12C Qualification Material: Qualification Plans
-=======================================================================
+===================================================================
+GNATcoverage - |standard| Qualification Material: |plans_doc_title|
+===================================================================
 
 .. rubric::  Revision History
 
@@ -8,7 +8,7 @@ GNATcoverage DO-178C/ED-12C Qualification Material: Qualification Plans
    :delim: |
    :header: "Version #", "Date", "Comment"
 
-   0.1 DRAFT | October 6, 2016 | Initial revision
+   |release| & |today| & Initial version
 
 .. qmlink::
 

@@ -1,5 +1,5 @@
-GNATcoverage DO-178C/ED-12C Qualification Material: Tool Operational Requirements, V&V Cases and Procedures
-###########################################################################################################
+GNATcoverage - |standard| Qualification Material: |tor_doc_title|
+#################################################################
 
 .. rubric:: List of referenced documents
 
