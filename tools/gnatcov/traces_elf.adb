@@ -2392,7 +2392,7 @@ package body Traces_Elf is
                Dir := Filenames_Vectors.Element (Dirnames, Integer (File_Dir));
 
             elsif Compilation_Directory /= null
-              and then not GNAT.OS_Lib.Is_Absolute_Path (Filename)
+              and then not Is_Absolute_Path (Filename)
             then
                Dir := Compilation_Directory;
 
