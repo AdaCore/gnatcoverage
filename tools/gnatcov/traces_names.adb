@@ -29,6 +29,7 @@ with GNAT.Strings;  use GNAT.Strings;
 with Checkpoints;
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Tags;     use Coverage.Tags;
+with Files_Table;
 with Inputs;            use Inputs;
 with Outputs;           use Outputs;
 with Switches;          use Switches;
@@ -149,15 +150,16 @@ package body Traces_Names is
    ---------------
 
    function Format_CU
-     (CU_Filename, CU_Directory : String_Access) return Symbol
-   is
+     (CU_Filename, CU_Directory : String_Access) return Symbol is
    begin
       if CU_Filename = null then
          return No_Symbol;
-      elsif CU_Directory = null then
+      elsif CU_Directory = null
+         or else Files_Table.Is_Absolute_Path (CU_Filename.all)
+      then
          return To_Symbol (CU_Filename.all);
       else
-         return To_Symbol (CU_Filename.all & "/" & CU_Directory.all);
+         return To_Symbol (CU_Directory.all & "/" & CU_Filename.all);
       end if;
    end Format_CU;
 

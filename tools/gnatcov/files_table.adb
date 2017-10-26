@@ -345,6 +345,32 @@ package body Files_Table is
       return new String'(Canonicalize_Filename (Filename));
    end Canonicalize_Filename;
 
+   ----------------------
+   -- Is_Absolute_Path --
+   ----------------------
+
+   function Is_Absolute_Path (Path : String) return Boolean is
+   begin
+      if Path'Length >= 3
+         and then Path (Path'First) in 'A' .. 'Z' | 'a' ..  'z'
+         and then Path (Path'First + 1) = ':'
+         and then Path (Path'First + 2) = '\'
+      then
+         --  Windows flavor absolute path
+
+         return True;
+
+      elsif Path'Length >= 1 and then Path (Path'First) = '/' then
+
+         --  Linux flavor absolute pah
+
+         return True;
+
+      else
+         return False;
+      end if;
+   end Is_Absolute_Path;
+
    --------------------
    -- Build_Filename --
    --------------------

@@ -63,6 +63,10 @@ package Files_Table is
    --  If the filename looks like a Windows filename, it is canonicalized: the
    --  drive letter is uppercased and the other characters are lowercased.
 
+   function Is_Absolute_Path (Path : String) return Boolean;
+   --  Return whether Path is an absolute path. This matches both Windows or
+   --  Unix file path flavors.
+
    function Build_Filename
      (Dir      : String;
       Filename : String) return String;
