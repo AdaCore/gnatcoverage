@@ -778,16 +778,14 @@ package body Files_Table is
       Insert              : Boolean := True;
       Indexed_Simple_Name : Boolean := False) return Source_File_Index
    is
-      File_Name : constant Virtual_File := Create (+Name);
       Result : Source_File_Index;
-
    begin
       if Switches.Debug_File_Table then
          Put ("GIGN: <<" & Name
               & ">> ISN=" & Indexed_Simple_Name'Img & " -> ");
       end if;
 
-      if Is_Absolute_Path (File_Name) then
+      if Is_Absolute_Path (Name) then
          Result := Get_Index_From_Full_Name
            (Name, Kind, Insert, Indexed_Simple_Name);
       else
