@@ -486,10 +486,14 @@ package body Files_Table is
          return;
       end if;
 
-      New_Lines :=
-        new Source_Line_Array'
-          (FI.Lines.Last_Index + 1 .. Line =>
-             (State => (others => No_Code), others => <>));
+      --  Allocate the array first and then initialize it. Don't do it in one
+      --  single statement as this would create a big aggregate on the stack,
+      --  triggering a stack overflow when the number of line is too high.
+
+      New_Lines := new Source_Line_Array (FI.Lines.Last_Index + 1 .. Line);
+      for Line of New_Lines.all loop
+         Line := (State => (others => No_Code), others => <>);
+      end loop;
 
       Bump (Line_Table_Alloc);
       Bump (Line_Table_Alloc_Size, How_Many => New_Lines'Length);
