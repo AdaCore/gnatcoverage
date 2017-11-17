@@ -6,7 +6,7 @@ project Gnatcov is
    Bits : Bits_Type := external("ARCH", "32");
 
    Binutils_Src_Dir := external ("BINUTILS_SRC_DIR");
-   Binutils_Build_Dir := external ("BINUTILS_BUILD_DIR");
+   Binutils_Build_Dir := external ("BINUTILS_BUILD_DIR", Binutils_Src_Dir);
 
    --  Build mode. Default to "dev" to make it shorter for developers.
    --  The other modes are for nightly scripts and are better made explicit
