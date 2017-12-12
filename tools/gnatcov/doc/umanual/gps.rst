@@ -20,17 +20,18 @@ will apply to all the other projects you work with in GPS.
 
 The next step is to tell |gps| to build your project for |gcp|, with the
 appropriate compilation options. In order to do this, open the Scenario view
-(:menuselection:`Tools --> Views --> Scenario`).
+(:menuselection:`View --> Scenario`).
 
 .. image:: gps_screenshots/1-build-mode.png
 
-Then, change the Build mode from ``default`` to ``gnatcov``.
+Change the Build mode from ``default`` to ``gnatcov`` and validate by clicking
+the round *tick* icon on the upper left corner of the view window.
 
 .. image:: gps_screenshots/2-build-mode.png
 
 GNATcoverage supports multiple coverage criteria. In order to select which one
-to use, go to the project properties (:menuselection:`Project -->
-Properties...`).
+to use, go to the project properties (:menuselection:`Edit -->
+Project Properties...`).
 
 .. image:: gps_screenshots/3-cov-level.png
 
@@ -39,15 +40,15 @@ and |gcvcov| in the corresponding *Coverage level* combo boxes. Change both to
 ``stmt+decision``.
 
 This is all for the setup part. The |gcvrun| and |gcvcov| steps are available
-for each main unit in the :menuselection:`Tools --> GNATcov` menu. First build
-your program (:menuselection:`Build --> Project --> Build All`), then execute
-the ``GNATcov run`` and the ``GNATcov coverage`` commands.
+for each main unit in the :menuselection:`Analyze --> Coverage --> GNATcov`
+menu. First build your program (:menuselection:`Build --> Project --> Build
+All`), then execute the ``GNATcov run`` and the ``GNATcov coverage`` commands.
 
 .. image:: gps_screenshots/4-run.png
 
 .. image:: gps_screenshots/5-coverage.png
 
-Each entry in the :menuselection:`Tools --> GNATcov --> GNATcov coverage`
+Each entry in the :menuselection:`Analyze --> Coverage --> GNATcov --> GNATcov coverage`
 submenu opens a Coverage Report tab which displays the ratio of source lines
 that are covered.
 
@@ -71,16 +72,16 @@ GNATtest scenario
 
 Using |gcp| |gtest|-based testsuite in |gps| comes naturally as the combination
 of both. Open the project you want to test and then generate the unit test
-setup for it. Using the menu: :menuselection:`Tools --> GNATtest --> Generate
+setup for it. Using the menu: :menuselection:`Analyze --> GNATtest --> Generate
 Unit Test Setup`.
 
 Write your testcases, and when you are ready to run your testsuite, switch to
 the ``gnatcov`` build mode, select the desired coverage criteria in the project
 properties. Now, build your program (:menuselection:`Build --> Project` menu),
-run it and launch a coverage analysis for it (:menuselection:`Tools -->
-GNATcov`).
+run it and launch a coverage analysis for it (:menuselection:`Analyze -->
+Coverage --> GNATcov`).
 
-Logs from |gcp| (in the Messages view) will include warnings which mention the
-various helper projects generated and used by the |gtest| setup, for instance
-AUnit. While this is not a problem for the coverage analysis, we plan to fix
-this so that this report includes only the project you are working on.
+Depending on your version of |gcp|, logs in the Messages view might include
+warnings which mention the various helper projects generated and used by the
+|gtest| setup, for instance AUnit. These should not influence coverage
+analysis results for the units of your project.
