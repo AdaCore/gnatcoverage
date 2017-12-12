@@ -122,15 +122,17 @@ def unpack_from_file(fp, struct):
 
 class TraceFile(object):
     def __init__(self, first_header, infos, second_header, entries):
-        self.bits = self.bits(second_header)
-
         self.first_header = first_header
         assert self.first_header
 
+        self.bits = TraceFile.bits(first_header)
         self.infos = infos
 
         self.second_header = second_header
-        assert self.second_header
+
+        if not second_header:
+            assert not entries
+            return
 
         self.entries = entries
         for entry in entries:
