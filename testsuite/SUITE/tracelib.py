@@ -10,15 +10,32 @@ from struct import Struct
 
 
 class Enum(object):
+    """
+    Base class to declare enumerations.
+    """
+
     RANGE = None
+    """
+    Tuple that contains the first and the last enumerated values. We consider
+    that all integers between these bounds (included) are valid enumerated
+    values.
+
+    :type: (int, int)
+    """
 
     @classmethod
     def in_range(cls, value):
+        """
+        Return whether `value` is in `cls`'s range.
+        """
         low, high = cls.RANGE
         return low <= value <= high
 
     @classmethod
     def check(cls, value):
+        """
+        Assert that `value` is in `cls`'s range.
+        """
         assert cls.in_range(value), 'Invalid {}: {} not in {} .. {}'.format(
             cls.__name__,
             value,
@@ -27,6 +44,9 @@ class Enum(object):
 
 
 class TraceKind(Enum):
+    """
+    Kind of trace file. See Trace_Kind in qemu_traces.ads.
+    """
     Flat = 0
     History = 1
     Info = 2
@@ -36,6 +56,9 @@ class TraceKind(Enum):
 
 
 class InfoKind(Enum):
+    """
+    Kind of trace information record. See Info_Kind_Type in qemu_traces.ads.
+    """
     InfoEnd = 0
     ExecFileName = 1
     CoverageOptions = 2
@@ -52,6 +75,9 @@ class InfoKind(Enum):
 
 
 class TraceOp(Enum):
+    """
+    Trace operation bitmasks. See Trace_Op_* in qemu_traces.ads.
+    """
     Block   = 0x10
     Fault   = 0x20
     Br0     = 0x01
@@ -60,6 +86,9 @@ class TraceOp(Enum):
 
 
 class TraceSpecial(Enum):
+    """
+    Special trace operations. See Trace_Special_* in qemu_traces.ads.
+    """
     Loadaddr = 1
     LoadSharedObject = 2
     UnloadSharedObject = 3
@@ -68,7 +97,21 @@ class TraceSpecial(Enum):
 
 
 TRACE_MAGIC = '#QEMU-Traces'
+"""
+Exepected value of the Magic header field. See Qemu_Trace_Magic in
+qemu_traces.ads.
+"""
+
 def create_trace_header(kind, pc_size, big_endian, machine):
+    """
+    Return a tuple to represent a trace header. See Trace_Header in
+    qemu_traces.ads.
+
+    :param int kind: Trace file kind. See TraceKind.
+    :param int pc_size: Size of Program Counter on tagret, in bytes.
+    :param bool big_endian: Whether the target is big-endian.
+    :param int machine: Target ELF machine ID.
+    """
     return (
         TRACE_MAGIC,
         1,
@@ -113,6 +156,13 @@ TraceEntry64Struct = Struct(
 
 
 def unpack_from_file(fp, struct):
+    """
+    Read all the bytes necessary to decode `struct` from the `fp` file and
+    return the decoded structure as a tuple.
+
+    :param file fp: File from which to read bytes.
+    :param Struct struct: Struct instance to decode data.
+    """
     buf = fp.read(struct.size)
     if not buf:
         return None
@@ -121,7 +171,22 @@ def unpack_from_file(fp, struct):
 
 
 class TraceFile(object):
+    """
+    In-memory representation of a trace file.
+    """
+
     def __init__(self, first_header, infos, second_header, entries):
+        """
+        Create a trace file.
+
+        If this instance must represent a partial trace file, `second_header`
+        must be None and `entries` must be empty.
+
+        :param first_header: Tuple for a TraceHeaderStruct structure.
+        :param TraceInfoList infos: Information for the traced program.
+        :param second_header: Tuple for a TraceHeaderStruct structure.
+        :param TraceInfoList entries: Trace entries.
+        """
         self.first_header = first_header
         assert self.first_header
 
@@ -130,6 +195,7 @@ class TraceFile(object):
 
         self.second_header = second_header
 
+        # If there is no second header, make sure we have no entry
         if not second_header:
             assert not entries
             return
@@ -140,11 +206,17 @@ class TraceFile(object):
 
     @staticmethod
     def bits(header):
+        """
+        Return size of PC on target, in bits.
+        """
         assert header[3] in (4, 8)
         return header[3] * 8
 
     @classmethod
     def read(cls, fp):
+        """
+        Read a trace file from the `fp` file. Return a TraceFile instance.
+        """
         first_header = unpack_from_file(fp, TraceHeaderStruct)
         infos = TraceInfoList.read(fp)
 
@@ -161,6 +233,9 @@ class TraceFile(object):
         return cls(first_header, infos, second_header, entries)
 
     def write(self, fp):
+        """
+        Write this trace file to the `fp` file.
+        """
         assert self.bits
 
         fp.write(TraceHeaderStruct.pack(*self.first_header))
@@ -171,21 +246,41 @@ class TraceFile(object):
 
 
 class TraceInfo(object):
+    """
+    In-memory representation for a trace info entry.
+    """
+
     def __init__(self, kind, data):
+        """
+        Create a trace info entry.
+
+        :param int kind: Trace info entry kind. See InfoKind.
+        :param str data: Raw data (bytes) for this entry.
+        """
         InfoKind.check(kind)
         self.kind = kind
         self.data = data
 
     @staticmethod
     def padding_size(data_size):
+        """
+        Number of padding bytes at the end of the Trace_Info record.
+        """
         return 0 if data_size % 4 == 0 else (4 - (data_size % 4))
 
     @property
     def is_end(self):
+        """
+        Whether this trace info entry is the trace info list end marker.
+        """
         return self.kind == InfoKind.InfoEnd
 
     @classmethod
     def read(cls, fp):
+        """
+        Read a trace info entry from the `fp` file. Return a TraceInfo
+        instance.
+        """
         hdr = unpack_from_file(fp, TraceInfoHeaderStruct)
         assert hdr
         kind, length = hdr
@@ -208,17 +303,35 @@ class TraceInfo(object):
         return cls(kind, data)
 
     def write(self, fp):
+        """
+        Write this trace info to the `fp` file.
+        """
         fp.write(TraceInfoHeaderStruct.pack(self.kind, len(self.data)))
         fp.write(self.data)
         fp.write('\x00' * self.padding_size(len(self.data)))
 
 
 class TraceInfoList(object):
+    """
+    In-memory representation of a list of list of trace info entries.
+    """
+
     def __init__(self, infos=None):
+        """
+        Create a list of trace info entries.
+
+        :param dict[int, TraceInfo]|None infos: None for an empty list.
+            Otherwise, mapping from trace info kind (see InfoKind) to TraceInfo
+            instance.
+        """
         self.infos = infos or {}
 
     @classmethod
     def read(cls, fp):
+        """
+        Read a trace info entry list from the `fp` file. Return a TraceInfoList
+        instance.
+        """
         result = cls()
         while True:
             info = TraceInfo.read(fp)
@@ -228,13 +341,28 @@ class TraceInfoList(object):
         return result
 
     def write(self, fp):
+        """
+        Write this trace info list to the `fp` file.
+        """
         for _, info in sorted(self.infos.items()):
             info.write(fp)
         fp.write(TraceInfoHeaderStruct.pack(InfoKind.InfoEnd, 0))
 
 
 class TraceEntry(object):
+    """
+    In-memory representation of a trace entry.
+    """
+
     def __init__(self, bits, pc, size, op, infos=None):
+        """
+        :param int bits: Number of bits in the target PC.
+        :param int pc: PC for the trace entry (i.e. first address to be
+            executed, or address of the event).
+        :param int size: Size in bytes for the trace entry.
+        :param None|TraceInfoList infos: Informations associated to this trace
+            entry.
+        """
         self.bits = bits
         self.pc = pc
         self.size = size
@@ -243,10 +371,18 @@ class TraceEntry(object):
 
     @property
     def is_special(self):
+        """
+        Whether this is a special trace entry. See Trace_Op_Special in
+        qemu_traces.ads.
+        """
         return bool(self.op & TraceOp.Special)
 
     @staticmethod
     def struct(bits):
+        """
+        Struct instance to decode a trace entry given the number of bits in PC
+        PC on a target.
+        """
         return {
             32: TraceEntry32Struct,
             64: TraceEntry64Struct,
@@ -254,6 +390,9 @@ class TraceEntry(object):
 
     @classmethod
     def read(cls, fp, bits):
+        """
+        Read a trace entry from the `fp` file. Return a TraceEntry instance.
+        """
         fields = unpack_from_file(fp, cls.struct(bits))
         if not fields:
             return None
@@ -264,6 +403,9 @@ class TraceEntry(object):
         return result
 
     def write(self, fp):
+        """
+        Write this trace entry to the `fp` file.
+        """
         fp.write(self.struct(self.bits).pack(
             self.pc, self.size, self.op
         ))
@@ -272,6 +414,15 @@ class TraceEntry(object):
 
 
 def create_exec_infos(filename, code_size=None):
+    """
+    Create a TraceInfoList object to describe the given executable.
+
+    :param str filename: Path to the executable file.
+    :param int|None code_size: If provided, size of the executable code section
+        in `filename`. Used to create the Exec_Code_Size trace information
+        entry.
+    :rtype: TraceInfoList
+    """
     stat = os.stat(filename)
     with open(filename, 'rb') as f:
         f_contents = f.read()
