@@ -108,7 +108,7 @@ def create_trace_header(kind, pc_size, big_endian, machine):
     qemu_traces.ads.
 
     :param int kind: Trace file kind. See TraceKind.
-    :param int pc_size: Size of Program Counter on tagret, in bytes.
+    :param int pc_size: Size of Program Counter on target, in bytes.
     :param bool big_endian: Whether the target is big-endian.
     :param int machine: Target ELF machine ID.
     """
