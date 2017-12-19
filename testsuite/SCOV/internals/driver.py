@@ -724,10 +724,10 @@ class SCOV_helper:
              out=ofile, register_failure=not self.testcase.expect_failures)
 
         thistest.fail_if (
-            match (
-                "(!!! EXCEPTION RAISED !!!"
-                "|raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)",
-                ofile),
+            match("(!!! EXCEPTION RAISED !!!"
+                  "|raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)"
+                  "|Predefined exception raised at [-._a-zA-Z]+:[0-9]+",
+                  ofile),
             "exception raised while running '%s'." % main)
 
     # -------------------------
