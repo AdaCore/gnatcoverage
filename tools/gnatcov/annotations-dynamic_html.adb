@@ -358,6 +358,8 @@ package body Annotations.Dynamic_Html is
               ("coverage_level", String'(Source.Get ("coverage_level")));
             Simplified.Set_Field
               ("hunk_filename", String'(Source.Get ("hunk_filename")));
+            Simplified.Set_Field
+              ("missing_source", Boolean'(Source.Get ("missing_source")));
 
             if Source.Has_Field ("project") then
                --  Project name is optional. Add it only when relevant
@@ -397,15 +399,10 @@ package body Annotations.Dynamic_Html is
       Clear (Pp.Current_Decisions);
       Clear (Pp.Current_Conditions);
 
-      if not Info.Has_Source then
-         Skip := True;
-         return;
-      end if;
-
       Skip := False;
 
+      Source.Set_Field ("missing_source", not Info.Has_Source);
       --  Compute the coverage stats and store them into a JSON dictionary
-
       Stats.Set_Field ("no_code", Info.Stats (No_Code));
       Stats.Set_Field ("covered", Info.Stats (Covered));
       Stats.Set_Field ("partially_covered", Info.Stats (Partially_Covered));
