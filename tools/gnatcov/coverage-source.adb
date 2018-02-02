@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2017, AdaCore                     --
+--                     Copyright (C) 2009-2018, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -811,9 +811,9 @@ package body Coverage.Source is
                --  Mark S_SCO as executed
 
                Report
-                 (Msg  => (if Line_Executed then "line " else "")
-                            & "executed" & Tag_Suffix
-                            & (if Propagating then " (propagating)" else ""),
+                 ((if Line_Executed then "line " else "")
+                  & "executed" & Tag_Suffix
+                  & (if Propagating then " (propagating)" else ""),
                   SCO  => S_SCO,
                   Exe  => Exe,
                   PC   => PC,
@@ -835,8 +835,8 @@ package body Coverage.Source is
               and then not Get_SCI (Dom_SCO, Tag).Known_Outcome_Taken (Dom_Val)
             then
                Report
-                 (Msg  => "outcome " & Dom_Val'Img & " taken" & Tag_Suffix
-                            & " (propagating)",
+                 ("outcome " & Dom_Val'Img & " taken" & Tag_Suffix
+                  & " (propagating)",
                   SCO  => Dom_SCO,
                   Exe  => Exe,
                   PC   => PC,
@@ -931,11 +931,11 @@ package body Coverage.Source is
                   SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
 
                   Report
-                    (Msg  => "outcome " & CBE.Outcome'Img
-                             & (if Degraded_Origins (D_SCO)
-                                then " (degraded)"
-                                else "")
-                             & " taken by " & E'Img,
+                    ("outcome " & CBE.Outcome'Img
+                     & (if Degraded_Origins (D_SCO)
+                       then " (degraded)"
+                       else "")
+                     & " taken by " & E'Img,
                      SCO  => D_SCO,
                      Exe  => Exe,
                      PC   => PC,

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2017, AdaCore                     --
+--                     Copyright (C) 2009-2018, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -172,6 +172,7 @@ package body Diagnostics is
      (Exe  : Exe_File_Acc;
       PC   : Pc_Type;
       Msg  : String;
+      SCO  : SCO_Id := No_SCO_Id;
       Kind : Report_Kind := Error)
    is
       Subprg : constant Address_Info_Acc :=
@@ -186,6 +187,7 @@ package body Diagnostics is
          Exe  => Exe,
          PC   => PC,
          Sloc => Sloc,
+         SCO  => SCO,
          Kind => Kind);
    end Report;
 

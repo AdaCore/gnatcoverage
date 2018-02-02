@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2017, AdaCore                     --
+--                     Copyright (C) 2008-2018, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -2261,7 +2261,7 @@ package body Traces_Elf is
                      Diagnostics.Report
                        (Exec'Unrestricted_Access, PC,
                         "code has debug line information, but no symbol",
-                        Diagnostics.Warning);
+                        Kind => Diagnostics.Warning);
 
                      --  If the code maps to source code targetted by SCOs,
                      --  tag the SCOs as having code so that we will emit a

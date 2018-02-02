@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2018, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -133,6 +133,10 @@ package Decision_Map is
    is limited record
       Decision             : SCO_Id;
       --  The decision being evaluated
+
+      Inlined_Body         : Address_Info_Acc;
+      --  If the decision is in an inlined body, pointer to its descriptor
+      --  (an Address_Info record with Kind = Inlined_Subprogram_Addresses).
 
       Conditional_Branches : PC_Vectors.Vector;
       --  Conditional branch instructions testing this decision's conditions
