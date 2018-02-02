@@ -2037,7 +2037,7 @@ package body Traces_Elf is
       --  Sloc. Create a subprogram and append it to the database if there
       --  is none.
 
-      Last_Line     : Address_Info_Acc := null;
+      Last_Line : Address_Info_Acc := null;
 
       procedure Reset_Lines;
       procedure New_Source_Line;
@@ -2137,9 +2137,13 @@ package body Traces_Elf is
                end if;
             end if;
 
-         else
-            --  If this line is filtered out, restore the previous Last_Line
+         --  If this entry was ignored, but it was for the same PC as the
+         --  last processed entry (case of an instruction bearing multiple
+         --  slocs, one of which is ignored), then restore Last_Line.
 
+         elsif Saved_Line /= null
+           and then Saved_Line.First = Exec.Exe_Text_Start + Pc
+         then
             Last_Line := Saved_Line;
          end if;
          Disc := 0;
