@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2018, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -179,10 +179,11 @@ package Traces_Elf is
 
    function "<" (L, R : Address_Info_Acc) return Boolean;
    --  Compare L and R by start address order in designated Address_Info
-   --  record. For records with the same start address, compare names (for
-   --  sections, subprograms or symbols) or slocs (for sloc info), with unset
-   --  (null / No_Location) values sorting higher than any specific set value.
-   --  Note that the end address is not part of the comparison key.
+   --  record. For records with the same start address, shorter ranges sort
+   --  higher (so that nested entries sort outermost first). For entries
+   --  with the same start address and length, compare names (for sections,
+   --  subprograms or symbols) or slocs (for sloc info), with unset (null /
+   --  No_Location) values sorting higher than any specific set value.
 
    package Address_Info_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Address_Info_Acc);
@@ -272,27 +273,25 @@ package Traces_Elf is
      (Exec : Exe_File_Type;
       Kind : Address_Info_Kind;
       PC   : Pc_Type) return Address_Info_Acc;
-   --  Retrieve the descriptor of the given Kind whose range contains address
-   --  PC in Exec.
-
-   function Get_Address_Infos
-     (Exec : Exe_File_Type;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Arr;
-   --  Same as Get_Address_Info, but return an array of matches
-
    function Get_Address_Info
      (Set  : Address_Info_Sets.Set;
       Kind : Address_Info_Kind;
       PC   : Pc_Type) return Address_Info_Acc;
-   --  Retrieve the descriptor from the given Set whose range contains address
-   --  PC in Exec.
+   --  Retrieve the innermost descriptor of the given Kind whose range contains
+   --  address PC in Exec/Set.
 
    function Get_Address_Infos
-     (Set  : Address_Info_Sets.Set;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Arr;
-   --  Same as Get_Address_Info, but return an array of matches
+     (Exec           : Exe_File_Type;
+      Kind           : Address_Info_Kind;
+      PC             : Pc_Type;
+      Innermost_Only : Boolean := False) return Address_Info_Arr;
+   function Get_Address_Infos
+     (Set            : Address_Info_Sets.Set;
+      Kind           : Address_Info_Kind;
+      PC             : Pc_Type;
+      Innermost_Only : Boolean := False) return Address_Info_Arr;
+   --  Same as Get_Address_Info, but if Innermost_Only is False, return all
+   --  enclosing matches, from outermost to innermost.
 
    function Get_Symbol
      (Exec : Exe_File_Type;

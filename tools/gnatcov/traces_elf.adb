@@ -3604,7 +3604,7 @@ package body Traces_Elf is
       PC   : Pc_Type) return Address_Info_Acc
    is
       Addr_Infos : constant Address_Info_Arr :=
-                     Get_Address_Infos (Set, Kind, PC);
+                     Get_Address_Infos (Set, Kind, PC, Innermost_Only => True);
    begin
       if Addr_Infos'Length = 0 then
          return null;
@@ -3632,9 +3632,10 @@ package body Traces_Elf is
    AI_Cache : array (Address_Info_Kind) of AI_Cache_Entry;
 
    function Get_Address_Infos
-     (Set  : Address_Info_Sets.Set;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Arr
+     (Set            : Address_Info_Sets.Set;
+      Kind           : Address_Info_Kind;
+      PC             : Pc_Type;
+      Innermost_Only : Boolean := False) return Address_Info_Arr
    is
       use Address_Info_Sets;
 
@@ -3653,9 +3654,40 @@ package body Traces_Elf is
          (PC in Cache.Last_Info.First .. Cache.Last_Info.Last
           or else PC = Cache.Last_Info.First)
       then
-         --  Cache hit
+         --  We have a candidate match, whose range contains the PC we're
+         --  looking for. Now move from there to make sure that we return
+         --  the innermost match. At any given point in time, Cache.Last
+         --  is our best candidate so far.
+
+         declare
+            Candidate : Cursor := Cache.Last;
+         begin
+            loop
+               Next (Candidate);
+               exit when Candidate = No_Element;
+               declare
+                  Candidate_Info : constant Address_Info_Acc :=
+                    Element (Candidate);
+               begin
+                  if PC in Candidate_Info.First .. Candidate_Info.Last
+                       or else
+                     PC = Candidate_Info.First
+                  then
+                     Cache.Last      := Candidate;
+                     Cache.Last_Info := Candidate_Info;
+                  end if;
+
+                  exit when PC < Candidate_Info.First;
+               end;
+            end loop;
+         end;
 
          Bump (Addr_Map_Cache_Hit);
+
+         --  The following assertion does the full costly lookup to double
+         --  check that the cache is returning the correct information: it
+         --  should not be enabled for production use, as it nullifies the
+         --  entire benefit of the cache.
 
          pragma Assert (Cache.Last = Find_Address_Info (Set, Kind, PC));
 
@@ -3682,9 +3714,7 @@ package body Traces_Elf is
       Last := Cache.Last;
       Prev := Last;
 
-      loop
-         exit when Prev = No_Element;
-
+      while Prev /= No_Element loop
          declare
             Prev_Info : constant Address_Info_Acc := Element (Prev);
          begin
@@ -3694,6 +3724,8 @@ package body Traces_Elf is
          end;
 
          Count := Count + 1;
+         exit when Innermost_Only;
+
          Previous (Prev);
       end loop;
 
@@ -3707,10 +3739,13 @@ package body Traces_Elf is
    end Get_Address_Infos;
 
    function Get_Address_Infos
-     (Exec : Exe_File_Type;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Arr is
-     (Get_Address_Infos (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC));
+     (Exec           : Exe_File_Type;
+      Kind           : Address_Info_Kind;
+      PC             : Pc_Type;
+      Innermost_Only : Boolean := False) return Address_Info_Arr
+   is
+     (Get_Address_Infos
+        (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC, Innermost_Only));
 
    ----------------
    -- Get_Symbol --
