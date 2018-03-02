@@ -24,7 +24,7 @@ with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with GNATCOLL.Traces;   use GNATCOLL.Traces;
+with GNATCOLL.Traces;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
