@@ -1011,8 +1011,10 @@ package body CFG_Dump is
       F : Output_Type renames Context.Output;
       Unknown_Address_Counter : Natural := 0;
 
-      function "=" (Left, Right : Basic_Block_Maps.Map) return Boolean is
-        (False);
+      function "=" (Ignored_Left, Ignored_Right : Basic_Block_Maps.Map)
+        return Boolean
+      is (False);
+
       package Grouped_Basic_Blocks_Maps is new Ada.Containers.Ordered_Maps
         (Key_Type     => SCO_Id,
          Element_Type => Basic_Block_Maps.Map);

@@ -32,8 +32,8 @@ package body Disa_ARM is
    function Get_Cond (Insn : Unsigned_32) return Cond_Type is
      (Cond_Type (Shift_Right (Insn, 28)));
 
-   function Get_Imm24 (Insn        : Unsigned_32;
-                       Sign_Extend : Boolean) return Unsigned_32
+   function Get_Imm24 (Insn                : Unsigned_32;
+                       Ignored_Sign_Extend : Boolean) return Unsigned_32
    is (Shift_Right_Arithmetic (Shift_Left (Insn, 8), 8));
 
    function Get_Target24 (Insn : Unsigned_32;
