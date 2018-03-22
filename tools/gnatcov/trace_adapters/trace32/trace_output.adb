@@ -122,10 +122,11 @@ package body Trace_Output is
    is
 
       function Load_Shared_Object
-        (Trace_File  : Trace_File_Type;
-         Filename    : String;
-         Signature   : Binary_File_Signature;
-         First, Last : Traces.Pc_Type) return Boolean
+        (Ignored_Trace_File : Trace_File_Type;
+         Ignored_Filename   : String;
+         Ignored_Signature  : Binary_File_Signature;
+         Ignored_First,
+         Ignored_Last       : Traces.Pc_Type) return Boolean
       is (True);
 
       procedure Process_Info_Entries
