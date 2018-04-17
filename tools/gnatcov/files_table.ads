@@ -118,9 +118,14 @@ package Files_Table is
    --
    --  This is used make sure all accesses to a file expect a consistent kind.
 
-   function Get_Full_Name (Index : Source_File_Index) return String;
+   function Get_Full_Name
+     (Index : Source_File_Index; Or_Simple : Boolean := False) return String;
+   --  Return the full name for the given index. If there is no full name and
+   --  Or_Simple is true, return the simple name instead. Otherwise, abort with
+   --  an error message.
+
    function Get_Simple_Name (Index : Source_File_Index) return String;
-   --  Return the full/simple name for the given index
+   --  Return the simple name for the given index
 
    function Get_Unique_Name (Index : Source_File_Index) return String
       with Pre => Get_File (Index).Kind = Source_File;

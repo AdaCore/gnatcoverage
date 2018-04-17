@@ -594,16 +594,17 @@ package body Files_Table is
    -- Get_Full_Name --
    -------------------
 
-   function Get_Full_Name (Index : Source_File_Index) return String is
-      Full_Name : constant String_Access :=
-        Files_Table.Element (Index).Full_Name;
+   function Get_Full_Name
+     (Index : Source_File_Index; Or_Simple : Boolean := False) return String
+   is
+      File : File_Info renames Files_Table.Element (Index).all;
    begin
-      if Full_Name /= null then
-         return Full_Name.all;
+      if File.Full_Name /= null then
+         return File.Full_Name.all;
+      elsif Or_Simple then
+         return File.Simple_Name.all;
       else
-         Outputs.Fatal_Error ("No full path name for "
-                              & Files_Table.Element (Index).Simple_Name.all);
-         return "";
+         Outputs.Fatal_Error ("No full path name for " & File.Simple_Name.all);
       end if;
    end Get_Full_Name;
 
