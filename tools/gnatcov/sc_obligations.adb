@@ -2610,8 +2610,21 @@ package body SC_Obligations is
          end loop;
       end;
 
-      Get_File (ALI_Index).Main_Source := Main_Source;
+      --  Make sure that Main_Source is the main source of only one LI file
+
+      if Get_File (Main_Source).LI /= No_Source_File then
+         Outputs.Fatal_Error
+           ("error: the following source file:"
+            & ASCII.LF & "  " & Get_Full_Name (Main_Source, True)
+            & ASCII.LF & "appears as the main source file in:"
+            & ASCII.LF & "  " & ALI_Filename
+            & ASCII.LF & "  "
+            & Get_Full_Name (Get_File (Main_Source).LI, True)
+            & ASCII.LF & "Is the same ALI file provided twice?");
+      end if;
+
       Get_File (Main_Source).LI := ALI_Index;
+      Get_File (ALI_Index).Main_Source := Main_Source;
 
       --  Record compilation unit
 
