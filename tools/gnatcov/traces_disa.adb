@@ -208,18 +208,27 @@ package body Traces_Disa is
       loop
          Next_Addr := Insns.Last;
 
-         --  Find matching trace
-         --  Note: object coverage data is piggy-backed in the traces database
+         --  Find the first trace entry E that contains Addr or that follows
+         --  it. Note: object coverage data is piggy-backed in the traces
+         --  database.
 
          while E /= Bad_Trace and then Addr > E.Last loop
             Get_Next_Trace (E, It);
          end loop;
+
+         --  If we found a trace entry that contains Addr, then use its state
+         --  to compute coverage, and make the next loop iteration work on the
+         --  instruction that follows this trace entry.
 
          if E /= Bad_Trace and then Addr in E.First .. E.Last then
             State := E.State;
             if E.Last < Next_Addr then
                Next_Addr := E.Last;
             end if;
+
+         --  Otherwise, consider the whole block of code until the next trace
+         --  entry (or all remaining instructions if there is no next trace
+         --  entry) as not covered.
 
          else
             State := Not_Covered;

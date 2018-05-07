@@ -30,7 +30,7 @@ package Traces_Disa is
 
    function Get_Label
      (Sym : Symbolizer'Class; Info : Address_Info_Acc) return String;
-   --  Return the symbol that corresponding to Info, if any, or return an empty
+   --  Return the symbol corresponding to Info, if any, or return an empty
    --  string.
 
    type Disassemble_Cb is access procedure (Addr     : Pc_Type;
@@ -53,7 +53,7 @@ package Traces_Disa is
       Insn_Set : Insn_Set_Type;
       Sym      : Symbolizer'Class)
       return String;
-   --  Generate the disassembly for Insn. Insn is assumed to be contain exactly
+   --  Generate the disassembly for Insn. Insn is expected to contain exactly
    --  one instruction: a Constraint_Error is raised otherwise. Pc is the
    --  target address of Insn, used to display branch targets.
 
