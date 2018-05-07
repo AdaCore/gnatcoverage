@@ -24,13 +24,14 @@ with Traces_Dbase;      use Traces_Dbase;
 with Traces_Elf;        use Traces_Elf;
 
 package Traces_Disa is
-   --  If True, Disp_Line_State will also display assembly code.
-   Flag_Show_Asm : Boolean := False;
 
-   --  Return the symbol for Addr followed by a colon (':').
-   --  Return an empty string if none.
-   function Get_Label (Sym : Symbolizer'Class; Info : Address_Info_Acc)
-                      return String;
+   Flag_Show_Asm : Boolean := False;
+   --  If True, Disp_Line_State will also display assembly code
+
+   function Get_Label
+     (Sym : Symbolizer'Class; Info : Address_Info_Acc) return String;
+   --  Return the symbol that corresponding to Info, if any, or return an empty
+   --  string.
 
    type Disassemble_Cb is access procedure (Addr     : Pc_Type;
                                             State    : Insn_State;
@@ -38,26 +39,24 @@ package Traces_Disa is
                                             Insn_Set : Insn_Set_Type;
                                             Sym      : Symbolizer'Class);
 
-   --  Call CB for each instruction of INSNS.
-   --  (State and Sym are parameters of CB).
    procedure For_Each_Insn (Insns    : Binary_Content;
                             I_Ranges : Insn_Set_Ranges;
                             State    : Insn_State;
                             Cb       : Disassemble_Cb;
                             Sym      : Symbolizer'Class);
+   --  Call Cb for each instruction in Insns (State and Sym are parameters to
+   --  pass to Cb).
 
-   --  Generate the disassembly for INSN.
-   --  INSN is exactly one instruction.
-   --  PC is the target address of INSN (used to display branch targets).
    function Disassemble
      (Insn     : Binary_Content;
       Pc       : Pc_Type;
       Insn_Set : Insn_Set_Type;
       Sym      : Symbolizer'Class)
       return String;
+   --  Generate the disassembly for Insn. Insn is assumed to be contain exactly
+   --  one instruction: a Constraint_Error is raised otherwise. Pc is the
+   --  target address of Insn, used to display branch targets.
 
-   --  Call CB for each insn in INSNS.
-   --  The state of the insn is computed.
    procedure Disp_Assembly_Lines
      (Insns    : Binary_Content;
       I_Ranges : Insn_Set_Ranges;
@@ -68,15 +67,19 @@ package Traces_Disa is
                                    Insn_Set : Insn_Set_Type;
                                    Sym      : Symbolizer'Class);
       Sym      : Symbolizer'Class);
+   --  Call Cb for each instruction in Insns, computing instruction state from
+   --  the Base set of traces.
 
-   --  Simple callback from the previous subprogram.
    procedure Textio_Disassemble_Cb (Addr     : Pc_Type;
                                     State    : Insn_State;
                                     Insn     : Binary_Content;
                                     Insn_Set : Insn_Set_Type;
                                     Sym      : Symbolizer'Class);
+   --  Simple callback for Disp_Assembly_Lines: emit state-annotated
+   --  disassembly to the standard output.
 
-   --  Debug procedure: dump a trace file and the disassembly for each entry.
    procedure Dump_Traces_With_Asm (Exe            : Exe_File_Type'Class;
                                    Trace_Filename : String);
+   --  Debug procedure: dump a trace file and the disassembly for each entry
+
 end Traces_Disa;
