@@ -232,7 +232,7 @@ package body Traces_Disa is
 
          else
             State := Not_Covered;
-            if E /= Bad_Trace and then E.First < Next_Addr then
+            if E /= Bad_Trace and then E.First <= Next_Addr then
                Next_Addr := E.First - 1;
             end if;
          end if;
