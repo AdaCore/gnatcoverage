@@ -63,7 +63,7 @@ def to_list(blob):
        and whitespace separated strings. Return empty list otherwise."""
 
     return (
-        blob if isinstance (blob, list)
+        list(blob) if isinstance (blob, (list, tuple))
         else blob.split() if isinstance (blob, str)
         else []
         )
