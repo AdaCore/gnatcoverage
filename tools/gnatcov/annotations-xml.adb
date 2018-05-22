@@ -189,6 +189,10 @@ package body Annotations.Xml is
       SCO   : SCO_Id;
       State : Line_State);
 
+   procedure Print_Coverage_Stats
+     (Pp : in out Xml_Pretty_Printer'Class; Stats : Stat_Array);
+   --  Emit a series of <metric> tags to Pp to describe the given statistics
+
    -----------------------------
    -- Shortcut for Put_Line's --
    -----------------------------
@@ -414,6 +418,31 @@ package body Annotations.Xml is
       Pp.T ("xi:include", A ("parse", "xml") & A ("href", Trace_File_Name),
             Dest_Index);
       Pp.ET ("coverage_info", Dest_Index);
+
+      declare
+
+         procedure Process_One_File (File_Index : Source_File_Index);
+
+         ----------------------
+         -- Process_One_File --
+         ----------------------
+
+         procedure Process_One_File (File_Index : Source_File_Index) is
+            FI : constant File_Info_Access := Get_File (File_Index);
+         begin
+            if FI.Kind = Source_File and then To_Display (FI) then
+               Pp.ST ("file", A ("name", FI.Simple_Name.all), Dest_Index);
+               Print_Coverage_Stats (Pp, FI.Stats);
+               Pp.ET ("file", Dest_Index);
+            end if;
+         end Process_One_File;
+
+      begin
+         Pp.ST ("coverage_summary", Dest_Index);
+         Print_Coverage_Stats (Pp, Global_Stats);
+         Files_Table_Iterate (Process_One_File'Access);
+         Pp.ET ("coverage_summary", Dest_Index);
+      end;
 
       Pp.ST ("sources", Dest_Index);
    end Pretty_Print_Start;
@@ -766,5 +795,42 @@ package body Annotations.Xml is
       pragma Assert (Idx = Res'Last + 1);
       return Res;
    end To_Xml_String;
+
+   --------------------------
+   -- Print_Coverage_Stats --
+   --------------------------
+
+   procedure Print_Coverage_Stats
+     (Pp : in out Xml_Pretty_Printer'Class; Stats : Stat_Array)
+   is
+
+      Total : constant Natural := Get_Total (Stats);
+
+      procedure Print_Metric_Ratio (Name : String; Amount : Natural);
+      --  Emit a <metric> tag to represent the given metric, including a ratio
+
+      ------------------------
+      -- Print_Metric_Ratio --
+      ------------------------
+
+      procedure Print_Metric_Ratio (Name : String; Amount : Natural) is
+         Attributes : constant String :=
+            A ("kind", Name)
+            & A ("count", Img (Amount))
+            & A ("ratio", Img (Ratio (Amount, Total)));
+      begin
+         Pp.T ("metric", Attributes, Dest_Index);
+      end Print_Metric_Ratio;
+
+   begin
+      Pp.T ("metric", A ("kind", "total_lines_of_relevance")
+                      & A ("count", Img (Total)), Dest_Index);
+      Print_Metric_Ratio ("fully_covered", Stats (Covered));
+      Print_Metric_Ratio ("partially_covered", Stats (Partially_Covered));
+      Print_Metric_Ratio ("not_covered", Stats (Not_Covered));
+      Print_Metric_Ratio ("exempted_no_violation",
+                          Stats (Exempted_No_Violation));
+      Print_Metric_Ratio ("exempted", Stats (Exempted_With_Violation));
+   end Print_Coverage_Stats;
 
 end Annotations.Xml;
