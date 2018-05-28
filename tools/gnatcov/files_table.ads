@@ -133,7 +133,7 @@ package Files_Table is
    --  full name that is unique to this file (multiple files can have the same
    --  base name). This is availble only for source files. Since unicity
    --  changes when new files are registered in the table, it is invalid to
-   --  register file once Get_Unique_Name has been invoked once.
+   --  register a new file once Get_Unique_Name has been invoked once.
 
    --  Utilities to open files from the source file table. Source files will be
    --  searched on the local filesystem, in the following order:
