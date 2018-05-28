@@ -354,6 +354,9 @@ package Files_Table is
 
    procedure Files_Table_Iterate
      (Process : not null access procedure (Index : Source_File_Index));
+   --  Call Process for all file info entries in the files table, in sorted
+   --  simple names order. Note that it is invalid to register a new file past
+   --  the first files table iteration.
 
    function First_File return Source_File_Index;
    --  Return the first valid source file index

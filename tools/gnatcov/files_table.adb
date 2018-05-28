@@ -48,11 +48,22 @@ package body Files_Table is
 
    Files_Table_Frozen : Boolean := False;
    --  Whether Files_Table is frozen. When it's frozen, we can compute
-   --  Unique_Name fields for its elements. It is invalid to add files to the
-   --  table after this is set to True.
+   --  Unique_Name fields for its elements and we can build Sorted_Files_Table.
+   --  It is invalid to add files to the table after this is set to True.
 
    Empty_Sloc_To_SCO_Map : aliased constant Sloc_To_SCO_Maps.Map :=
       Sloc_To_SCO_Maps.Empty_Map;
+
+   type Sorted_File_Index is new Valid_Source_File_Index;
+
+   package File_Index_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Sorted_File_Index,
+      Element_Type => Valid_Source_File_Index);
+
+   Sorted_Files_Table : File_Index_Vectors.Vector;
+   --  Sorted list of indexes corresponding to Files_Table entries. Files are
+   --  sorted by simple name first, then by full name. Computed when freezing
+   --  Files_Table.
 
    procedure Freeze_Files_Table;
    --  Freeze the files table and compute Unique_Name fields for file entries
@@ -516,7 +527,8 @@ package body Files_Table is
    procedure Files_Table_Iterate
      (Process : not null access procedure (Index : Source_File_Index)) is
    begin
-      for Index in Files_Table.First_Index .. Files_Table.Last_Index loop
+      Freeze_Files_Table;
+      for Index of Sorted_Files_Table loop
          Process (Index);
       end loop;
    end Files_Table_Iterate;
@@ -1127,6 +1139,46 @@ package body Files_Table is
             end;
          end loop;
       end loop;
+
+      --  Fill Sorted_Files_Table with all indexes from the files table, and
+      --  then sort these indexes according to the referenced file names.
+
+      declare
+
+         function Appears_Before
+           (Left, Right : Valid_Source_File_Index) return Boolean;
+         --  Return whether Left should appear before Right in
+         --  Sorted_Files_Table.
+
+         --------------------
+         -- Appears_Before --
+         --------------------
+
+         function Appears_Before
+           (Left, Right : Valid_Source_File_Index) return Boolean
+         is
+            L : File_Info renames Files_Table.Element (Left).all;
+            R : File_Info renames Files_Table.Element (Right).all;
+         begin
+            if L.Simple_Name.all = R.Simple_Name.all then
+               return L.Full_Name /= null
+                      and then R.Full_Name /= null
+                      and then L.Full_Name.all < R.Full_Name.all;
+            else
+               return L.Simple_Name.all < R.Simple_Name.all;
+            end if;
+         end Appears_Before;
+
+         package Sorting is new File_Index_Vectors.Generic_Sorting
+           ("<" => Appears_Before);
+
+      begin
+         Sorted_Files_Table.Reserve_Capacity (Files_Table.Length);
+         for Index in Files_Table.First_Index .. Files_Table.Last_Index loop
+            Sorted_Files_Table.Append (Index);
+         end loop;
+         Sorting.Sort (Sorted_Files_Table);
+      end;
 
       Clear (Alias_Map);
       Files_Table_Frozen := True;
