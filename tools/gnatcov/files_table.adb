@@ -44,19 +44,18 @@ package body Files_Table is
      (Index_Type   => Valid_Source_File_Index,
       Element_Type => File_Info_Access);
 
-   Files_Table           : File_Vectors.Vector;
+   Files_Table : File_Vectors.Vector;
 
-   Unique_Names_Computed : Boolean := False;
-   --  Whether Unique_Name fields for element of Files_Table have been
-   --  computed. It is invalid to add files to the table after this is set
-   --  to True.
+   Files_Table_Frozen : Boolean := False;
+   --  Whether Files_Table is frozen. When it's frozen, we can compute
+   --  Unique_Name fields for its elements. It is invalid to add files to the
+   --  table after this is set to True.
 
    Empty_Sloc_To_SCO_Map : aliased constant Sloc_To_SCO_Maps.Map :=
       Sloc_To_SCO_Maps.Empty_Map;
 
-   procedure Build_Unique_Names;
-   --  Compute unique names for all files in the table. Also take care of
-   --  setting Unique_Names_Computed.
+   procedure Freeze_Files_Table;
+   --  Freeze the files table and compute Unique_Name fields for file entries
 
    function Create_File_Info
      (Kind                   : File_Kind;
@@ -687,7 +686,7 @@ package body Files_Table is
 
          --  If we reach this point, we are inserting a new file into the table
 
-         pragma Assert (not Unique_Names_Computed);
+         pragma Assert (not Files_Table_Frozen);
 
          Files_Table.Append (Create_File_Info
            (Kind,
@@ -752,7 +751,7 @@ package body Files_Table is
          Res := No_Source_File;
 
       else
-         pragma Assert (not Unique_Names_Computed);
+         pragma Assert (not Files_Table_Frozen);
 
          Files_Table.Append (Create_File_Info
            (Kind                => Kind,
@@ -874,10 +873,10 @@ package body Files_Table is
    end Get_Simple_Name;
 
    ------------------------
-   -- Build_Unique_Names --
+   -- Freeze_Files_Table --
    ------------------------
 
-   procedure Build_Unique_Names is
+   procedure Freeze_Files_Table is
 
       package Conversions is new System.Address_To_Access_Conversions
         (Object => File_Info);
@@ -1064,9 +1063,13 @@ package body Files_Table is
       Alias_Map : Alias_Maps.Map;
       --  Mapping: simple name to set of files that have this simple name
 
-   --  Start of processing for Build_Unique_Names
+   --  Start of processing for Freeze_Files_Table
 
    begin
+      if Files_Table_Frozen then
+         return;
+      end if;
+
       --  First, build the alias map: conflicting files will get grouped under
       --  a single alias set.
 
@@ -1126,8 +1129,8 @@ package body Files_Table is
       end loop;
 
       Clear (Alias_Map);
-      Unique_Names_Computed := True;
-   end Build_Unique_Names;
+      Files_Table_Frozen := True;
+   end Freeze_Files_Table;
 
    ---------------------
    -- Get_Unique_Name --
@@ -1135,12 +1138,8 @@ package body Files_Table is
 
    function Get_Unique_Name (Index : Source_File_Index) return String is
       File : File_Info renames Get_File (Index).all;
-
    begin
-      if not Unique_Names_Computed then
-         Build_Unique_Names;
-      end if;
-
+      Freeze_Files_Table;
       return File.Unique_Name.all;
    end Get_Unique_Name;
 
@@ -1186,7 +1185,7 @@ package body Files_Table is
 
          --  We have a more specific kind of file: change the kind of FI
 
-         pragma Assert (not Unique_Names_Computed);
+         pragma Assert (not Files_Table_Frozen);
 
          if Switches.Debug_File_Table then
             declare
