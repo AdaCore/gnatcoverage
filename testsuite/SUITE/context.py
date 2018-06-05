@@ -184,6 +184,13 @@ class Test (object):
         if self.options.RTS and self.options.RTS.endswith('-tms570'):
             self.gprvaroptions.append ('-XLOADER=LORAM')
 
+        # For trace32 runs where the test is executed on a real board, we
+        # choose to have both the code and data in RAM. The default is to run
+        # from flash which would take more time for the probe to program. It
+        # would also wear out the flash memory.
+        if self.options.gnatcov_run and 'trace32' in self.options.gnatcov_run:
+            self.gprvaroptions.append ('-XLOADER=RAM')
+
         # Whether this test will be using project files to locate SCOs when
         # running gnatcov.  This is decided on a per gnatcov invocation basis.
         # self.options.gnatcov states whether we're queried to do this for
