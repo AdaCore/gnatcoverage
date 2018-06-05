@@ -391,6 +391,9 @@ package body ALI_Files is
       Debug_Seen                 : Boolean := False;
       --  Set True if unit has been compiled with -g
 
+      Profile_Arcs_Seen          : Boolean := False;
+      --  Set True if unit has been compiled with -fprofile-arcs
+
       Expected_Annotation_Kind : ALI_Annotation_Kind;
       Expected_Annotation_Msg  : String_Access;
       --  Variables for checking of annotation validity: annotations must
@@ -477,6 +480,9 @@ package body ALI_Files is
 
                elsif Line.all = "A -g" then
                   Debug_Seen := True;
+
+               elsif Line.all = "A -fprofile-arcs" then
+                  Profile_Arcs_Seen := True;
                end if;
 
             when 'P' =>
@@ -653,6 +659,12 @@ package body ALI_Files is
                Put_Line
                  ("warning: " & ALI_Filename
                   & ": unit compiled without debug information (-g)");
+            end if;
+
+            if Profile_Arcs_Seen then
+               Put_Line
+                 ("warning: " & ALI_Filename
+                  & ": unit compiled with instrumentation (-fprofile-arcs)");
             end if;
          end if;
 
