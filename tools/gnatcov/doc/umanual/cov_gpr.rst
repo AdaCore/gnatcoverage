@@ -30,7 +30,7 @@ A common set of rules apply in all cases:
 
 * :option:`--projects` options might be added to designate specific projects
   to operate on within the root dependency closure. As soon as one such option
-  is used, the root project itself needs to be listed explicitely as well to
+  is used, the root project itself needs to be listed explicitly as well to
   be considered.
 
 * With :option:`--recursive` anywhere in addition, the set of projects to be
