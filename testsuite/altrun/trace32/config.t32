@@ -23,6 +23,20 @@
 ;concerning USB driver installation
 PBI=
 USB
+CONNECTIONMODE=AUTOCONNECT
+; ^
+; Force reconnect when the probe is already connected
+;
+; This can happen when the testsuite crashes, for instance with an rlimit. The
+; probe is still trying to talk with the previous Trace32 instance that was
+; killed by rlimit.
+;
+; When we start the testsuite again, Trace32 will ask for reset confirmation on
+; the GUI. We cannot have that in the automated test run, so the AUTOCONNECT
+; option tells Trace32 to reset the probe without asking for a user
+; interaction.
+
+
 
 ;uncomment the following 3 lines if you use an ICE or PodbusEthernetController
 ;with standard hostdriver executable (t32cde) via ethernet interface
