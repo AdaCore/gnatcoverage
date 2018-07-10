@@ -258,6 +258,17 @@ package body Decision_Map is
    procedure Write_Map (Filename : String);
    --  Write the contents of the decision map to the named file
 
+   function Check_Possible_Successor
+     (D_SCO          : SCO_Id;
+      This_Condition : Any_Condition_Index;
+      Next_Condition : Condition_Index) return Tristate;
+   --  Determine whether Next_Condition is a valid successor of This_Condition
+   --  in the given decision, and if so, return the associated origin (i.e.
+   --  the associated valuation of This_Condition). If not, return Unknown.
+   --  This_Condition may be No_Condition_Index, in which case we check
+   --  whether Next_Condition is a valid first condition to be tested
+   --  (and return Unknown iff it's not).
+
    ---------
    -- "<" --
    ---------
@@ -491,27 +502,24 @@ package body Decision_Map is
             Report_If_Unexpected : Boolean := False) return Boolean
          is
             Current_CI  : Condition_Index renames DS_Top.Seen_Condition;
-            Last_CI     : Condition_Index renames DS_Top.Last_Cond_Index;
 
-            Next_Runtime_Cond   : SCO_Id;
-            Expected_Conditions : aliased SCO_Sets.Set;
-            Outcome             : Tristate;
          begin
+            if
+              --  Case of remaining in the current evaluation, or starting a
+              --  new one if there's none in progress.
 
-            --  Look for the next CI that is evaluated at runtime and skipped
-            --  conditions.
+              CI = Condition_Index'Max (Current_CI, 0)
 
-            Next_Runtime_Cond := Condition
-              (DS_Top.Decision,
-               Condition_Index'Min (Current_CI + 1, Last_CI));
-            Skip_Constant_Conditions
-              (Next_Runtime_Cond, Outcome, Expected_Conditions'Access);
+              --  Else the next condition is reachable through the fallthrough
+              --  edge of the current condition, so it must be a possible
+              --  successor.
 
-            if CI = Condition_Index'Max (Current_CI, 0)
-                  or else
-               CI = Index (Next_Runtime_Cond)
-                  or else
-               Expected_Conditions.Contains (Condition (DS_Top.Decision, CI))
+                or else
+              Check_Possible_Successor
+                (DS_Top.Decision,
+                 This_Condition => Current_CI,
+                 Next_Condition => CI) /= Unknown
+
             then
                return True;
             end if;
@@ -519,32 +527,11 @@ package body Decision_Map is
             if Report_If_Unexpected then
                declare
                   use Ada.Strings.Unbounded;
-                  use SCO_Sets;
-
                   Msg : Unbounded_String;
-                  Cur : SCO_Sets.Cursor;
                begin
                   Msg := To_Unbounded_String
-                    ("unexpected condition" & CI'Img & " (expected");
-
-                  if Current_CI >= 0 then
-                     Expected_Conditions.Include
-                       (Condition (DS_Top.Decision, Current_CI));
-                  end if;
-                  Expected_Conditions.Include (Next_Runtime_Cond);
-
-                  Cur := Expected_Conditions.First;
-                  while Cur /= No_Element loop
-                     Append
-                       (Msg,
-                        Condition_Index'Image (Index (Element (Cur))));
-                     Cur := Next (Cur);
-                     if Cur /= No_Element then
-                        Append (Msg, " or");
-                     end if;
-                  end loop;
-
-                  Append (Msg, ") in decision " & Image (DS_Top.Decision));
+                    ("unexpected condition" & CI'Img
+                     & " in decision " & Image (DS_Top.Decision));
 
                   if Tag /= No_SC_Tag then
                      Append (Msg, ", tag=" & Tag_Provider.Tag_Name (Tag));
@@ -1048,58 +1035,6 @@ package body Decision_Map is
          Edge_Name : constant String := Edge'Img;
          Edge_Info : Cond_Edge_Info renames CBI.Edges (Edge);
 
-         function Check_Possible_Successor
-           (Next_Condition : Condition_Index) return Tristate;
-         --  Determine whether Next_Condition is a valid successor for the
-         --  currently tested condition (CBI.Condition), and if so, return
-         --  the associated origin.
-
-         ------------------------------
-         -- Check_Possible_Successor --
-         ------------------------------
-
-         function Check_Possible_Successor
-           (Next_Condition : Condition_Index) return Tristate
-         is
-         begin
-            for J in Boolean'Range loop
-               declare
-                  use SCO_Sets;
-
-                  Next_Condition_SCO  : constant SCO_Id := Condition
-                    (D_Occ.Decision, Next_Condition);
-
-                  Next_C              : SCO_Id;
-                  Outcome             : Tristate;
-                  Possible_Successors : aliased SCO_Sets.Set;
-               begin
-                  --  Go to the next condition with the J valuation for the
-                  --  current condition, and skip constant conditions if any.
-
-                  Next_C := SC_Obligations.Next_Condition (CBI.Condition, J);
-                  Skip_Constant_Conditions
-                    (Next_C, Outcome, Possible_Successors'Access);
-
-                  --  If there is a match between the resulting condition and
-                  --  the given Next_Condition, return the tried valuation.
-
-                  if (Next_C /= No_SCO_Id
-                        and then Index (Next_C) = Next_Condition)
-                     or else Possible_Successors.Contains (Next_Condition_SCO)
-                  then
-                     return To_Tristate (J);
-                  end if;
-               end;
-            end loop;
-
-            --  If we end up here, no valuation enabled us to reach
-            --  Next_Condition.
-
-            return Unknown;
-         end Check_Possible_Successor;
-
-      --  Start of processing for Label_Destination
-
       begin
          --  Check for known edge with this destination. Destination info will
          --  be set upon return if destination is known.
@@ -1256,8 +1191,10 @@ package body Decision_Map is
 
             declare
                Condition_Origin : constant Tristate :=
-                                    Check_Possible_Successor
-                                      (Edge_Info.Next_Condition);
+                 Check_Possible_Successor
+                   (D_Occ.Decision,
+                    This_Condition => Index (CBI.Condition),
+                    Next_Condition => Edge_Info.Next_Condition);
             begin
                if Condition_Origin /= Unknown then
                   Set_Known_Origin
@@ -2920,6 +2857,63 @@ package body Decision_Map is
       Analyze (Exec);
       Decision_Map.Write_Map (Map_Filename);
    end Build_Decision_Map;
+
+   ------------------------------
+   -- Check_Possible_Successor --
+   ------------------------------
+
+   function Check_Possible_Successor
+     (D_SCO          : SCO_Id;
+      This_Condition : Any_Condition_Index;
+      Next_Condition : Condition_Index) return Tristate
+   is
+   begin
+      --  If This_Condition is No_Condition_Index, iterate just once with an
+      --  arbitrary for J, else check both valuations of the current condition.
+
+      for J in False .. (This_Condition /= No_Condition_Index) loop
+         declare
+            use SCO_Sets;
+
+            Next_Condition_SCO  : constant SCO_Id :=
+              Condition (D_SCO, Next_Condition);
+
+            Next_C              : SCO_Id;
+            Outcome             : Tristate;
+            Possible_Successors : aliased SCO_Sets.Set;
+         begin
+            if This_Condition = No_Condition_Index then
+               --  Initial condition
+
+               Next_C := Condition (D_SCO, 0);
+            else
+               --  Go to the next condition with the J valuation for the
+               --  current condition, and skip constant conditions if any.
+
+               Next_C := SC_Obligations.Next_Condition
+                           (Condition (D_SCO, This_Condition), J);
+            end if;
+
+            Skip_Constant_Conditions
+              (Next_C, Outcome, Possible_Successors'Access);
+
+            --  If there is a match between the resulting condition and
+            --  the given Next_Condition, return the tried valuation.
+
+            if (Next_C /= No_SCO_Id
+                and then Index (Next_C) = Next_Condition)
+              or else Possible_Successors.Contains (Next_Condition_SCO)
+            then
+               return To_Tristate (J);
+            end if;
+         end;
+      end loop;
+
+      --  If we end up here, no valuation enabled us to reach
+      --  Next_Condition.
+
+      return Unknown;
+   end Check_Possible_Successor;
 
    ----------------------
    -- Find_Basic_Block --

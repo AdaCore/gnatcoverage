@@ -3356,19 +3356,35 @@ package body SC_Obligations is
 
    function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate is
       use BDD;
-      BDDN : constant BDD_Node :=
-               BDD_Vector.Element (Next_BDD_Node (SCO, Value));
+      Cond_SCO   : SCO_Id := SCO;
+      Cond_Value : Boolean := Value;
    begin
-      case BDDN.Kind is
-         when Outcome =>
-            return To_Tristate (BDDN.Decision_Outcome);
+      loop
+         declare
+            BDDN : constant BDD_Node :=
+              BDD_Vector.Element (Next_BDD_Node (Cond_SCO, Cond_Value));
+         begin
+            case BDDN.Kind is
+               when Outcome =>
+                  return To_Tristate (BDDN.Decision_Outcome);
 
-         when Condition =>
-            return Unknown;
+               when Condition =>
+                  declare
+                     Next_Value : constant Tristate :=
+                       SC_Obligations.Value (BDDN.C_SCO);
+                  begin
+                     if Next_Value = Unknown then
+                        return Unknown;
+                     end if;
+                     Cond_SCO := BDDN.C_SCO;
+                     Cond_Value := To_Boolean (Next_Value);
+                  end;
 
-         when others =>
-            raise Program_Error;
-      end case;
+               when others =>
+                  raise Program_Error;
+            end case;
+         end;
+      end loop;
    end Outcome;
 
    -----------

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2016, AdaCore                     --
+--                     Copyright (C) 2009-2018, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -233,7 +233,8 @@ package SC_Obligations is
 
    function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate;
    --  Outcome of decision if this condition has the given value, or Unknown
-   --  if the value does not determine the decision outcome.
+   --  if the value does not determine the decision outcome. (Follows through
+   --  constant conditions).
 
    function Value (SCO : SCO_Id) return Tristate;
    --  Value of the condition (True or False) if compile-time known. Unknown
