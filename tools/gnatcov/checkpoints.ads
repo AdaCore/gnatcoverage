@@ -19,7 +19,9 @@
 --  This unit controls the generation and processing of coverage state
 --  checkpoint files for incremental coverage.
 
+with Ada.Streams.Stream_IO; use Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Interfaces;
 
 with Types; use Types;
 
@@ -27,6 +29,14 @@ with Coverage;
 with SC_Obligations; use SC_Obligations;
 
 package Checkpoints is
+
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 2;
+   Default_Checkpoint_Version : constant Checkpoint_Version := 1;
+   --  For compatibility with previous Gnatcov versions, the checkpoint
+   --  file format is versioned.
+
+   --  1 -- initial version of checkpoint support
+   --  2 -- support for source instrumentation (WIP, subject to change)
 
    type SFI_Map_Array is
      array (Source_File_Index range <>) of Source_File_Index;
@@ -41,10 +51,28 @@ package Checkpoints is
    type SCO_Id_Map_Array is array (SCO_Id range <>) of SCO_Id;
    type SCO_Id_Map_Acc is access all SCO_Id_Map_Array;
 
-   --  Object use to convey state between the various phases of a checkpoint
-   --  load (to support remapping checkpointed identifiers to current ones).
+   --  Global state shared across phases of a checkpoint load or save
 
-   type Checkpoint_State is limited record
+   type Checkpoint_State is abstract tagged limited record
+      Stream  : Stream_Access;
+      Version : Checkpoint_Version;
+   end record;
+
+   use type Interfaces.Unsigned_32;
+   function Version_Less
+     (CS : Checkpoint_State'Class; Than : Checkpoint_Version)
+      return Boolean is (CS.Version < Than)
+     with Inline;
+   --  This is provided as a function to prevent the compiler from generating
+   --  "can never be greater than" warnings.
+
+   --  Global state shared across phases of a checkpoint save
+
+   type Checkpoint_Save_State is new Checkpoint_State with null record;
+
+   --  Global state shared across phases of a checkpoint load
+
+   type Checkpoint_Load_State is new Checkpoint_State with record
       Filename : Unbounded_String;
       SFI_Map  : SFI_Map_Acc;
       Inst_Map : Inst_Id_Map_Acc;
@@ -54,11 +82,12 @@ package Checkpoints is
 
    procedure Checkpoint_Save
      (Filename : String;
-      Context  : access Coverage.Context);
+      Context  : access Coverage.Context;
+      Version  : Checkpoint_Version := Default_Checkpoint_Version);
    procedure Checkpoint_Load (Filename : String);
 
    procedure Remap_SFI
-     (CS                 : access Checkpoint_State;
+     (CLS                : Checkpoint_Load_State'Class;
       CP_SFI             : in out Source_File_Index;
       Require_Valid_File : Boolean := True);
    --  Remap one source file index.

@@ -19,11 +19,11 @@
 --  Source Coverage Obligations
 
 with Ada.Containers.Ordered_Maps;
-with Ada.Streams; use Ada.Streams;
-
+with Ada.Containers.Vectors;
 with GNAT.Regexp;
 
 limited with Checkpoints;
+with Instrument;  use Instrument;
 with Slocs;       use Slocs;
 with Traces;      use Traces;
 with Types;       use Types;
@@ -31,13 +31,33 @@ with Snames;      use Snames;
 
 package SC_Obligations is
 
+   ------------------
+   -- Source files --
+   ------------------
+
+   package SFI_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Pos,
+      Element_Type => Source_File_Index);
+   --  Vector of source file indices, used to map dependency indices in an
+   --  ALI file to our source file indices.
+
+   subtype SFI_Vector is SFI_Vectors.Vector;
+
    -----------------------
    -- Compilation units --
    -----------------------
 
+   type SCO_Provider is (Compiler, Instrumenter);
+
    type CU_Id is new Natural;
    No_CU_Id : constant CU_Id := 0;
    subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
+
+   function Allocate_CU
+     (Provider : SCO_Provider;
+      Origin   : Source_File_Index := No_Source_File) return CU_Id;
+   --  Allocate a new element in the compilation units table, optionally
+   --  setting the CU's origin information.
 
    function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
    --  Return the identifier for the compilation unit containing the given
@@ -92,6 +112,16 @@ package SC_Obligations is
    --  Return True if there is at least one Statement or Condition SCO whose
    --  range has a non-null intersection with Sloc_Begin .. Sloc_End.
 
+   procedure Process_Low_Level_SCOs
+     (CU_Index     : CU_Id;
+      Main_Source  : Source_File_Index;
+      Deps         : SFI_Vector := SFI_Vectors.Empty_Vector;
+      LL_Unit_Bits : LL_Unit_Bit_Maps := No_LL_Unit_Bit_Maps);
+   --  Populate high level SCO tables from low level ones, which have been
+   --  populated either from an LI file, or directly by the instrumenter.
+   --  Low-level SCOs come from global tables in package SCOs. Bit maps are
+   --  provided in the case of source instrumentation.
+
    procedure Load_SCOs
      (ALI_Filename         : String;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
@@ -104,6 +134,9 @@ package SC_Obligations is
 
    procedure Report_Multipath_Decisions;
    --  Output a list of decisions containing multiple paths
+
+   procedure Dump_All_SCOs;
+   --  Output all SCOs
 
    procedure Iterate (P : access procedure (SCO : SCO_Id));
    --  Execute P for each SCO
@@ -303,12 +336,10 @@ package SC_Obligations is
    -- Checkpoints --
    -----------------
 
-   procedure Checkpoint_Save (S : access Root_Stream_Type'Class);
+   procedure Checkpoint_Save (CSS : in out Checkpoints.Checkpoint_Save_State);
    --  Save the current SCOs to S
 
-   procedure Checkpoint_Load
-     (S  : access Root_Stream_Type'Class;
-      CS : access Checkpoints.Checkpoint_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed SCOs from S and merge them in current state
 
 private

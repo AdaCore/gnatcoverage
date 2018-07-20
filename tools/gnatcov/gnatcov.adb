@@ -49,6 +49,7 @@ with Binary_Files;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Inputs;            use Inputs;
+with Instrument;
 with Object_Locations;
 with Outputs;           use Outputs;
 with Perf_Counters;
@@ -85,6 +86,7 @@ procedure GNATcov is
    Exe_Inputs           : Inputs.Inputs_Type;
    Obj_Inputs           : Inputs.Inputs_Type;
    ALIs_Inputs          : Inputs.Inputs_Type;
+   Src_Inputs           : Inputs.Inputs_Type; --  For instrumentation
    Routines_Inputs      : Inputs.Inputs_Type;
    Units_Inputs         : Inputs.Inputs_Type;
    Projects_Inputs      : Inputs.Inputs_Type;
@@ -108,8 +110,7 @@ procedure GNATcov is
    SO_Inputs            : SO_Set_Type;
    Keep_Reading_Traces  : Boolean := False;
 
-   function Command_Name return String
-   is
+   function Command_Name return String is
      (Command_Line.Parser.Command_Name (Arg_Parser, Args.Command));
 
    procedure Fatal_Error_With_Usage (Msg : String);
@@ -975,6 +976,11 @@ procedure GNATcov is
                   & " is missing (required for ""convert"")");
             end if;
 
+         when Cmd_Instrument_Test =>
+            for Arg of Args.Remaining_Args loop
+               Inputs.Add_Input (Src_Inputs, +Arg);
+            end loop;
+
          when others =>
             null;
       end case;
@@ -1261,6 +1267,26 @@ begin
             Check_Argument_Available (Obj_Inputs, "FILEs");
             Inputs.Iterate (Obj_Inputs, Read_Routine_Name'Access);
             Traces_Names.Disp_All_Routines_Of_Interest;
+         end;
+
+      when Cmd_Instrument_Test =>
+         declare
+            procedure Instrument_One_Unit (Src_File_Name : String);
+            --  Extract SCOs from given source file
+
+            -------------------------
+            -- Instrument_One_Unit --
+            -------------------------
+
+            procedure Instrument_One_Unit (Src_File_Name : String) is
+            begin
+               Instrument.Instrument_Unit (Src_File_Name);
+            end Instrument_One_Unit;
+
+         begin
+            Check_Argument_Available (Src_Inputs, "SRC_FILEs");
+            Inputs.Iterate (Src_Inputs, Instrument_One_Unit'Access);
+            Dump_All_SCOs;
          end;
 
       when Cmd_Scan_Objects =>

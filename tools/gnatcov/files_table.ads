@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
-with Ada.Streams;  use Ada.Streams;
 with Ada.Text_IO;  use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
@@ -442,12 +441,10 @@ package Files_Table is
    -- Checkpoints --
    -----------------
 
-   procedure Checkpoint_Save (S : access Root_Stream_Type'Class);
+   procedure Checkpoint_Save (CSS : in out Checkpoint_Save_State);
    --  Save the current files table to S
 
-   procedure Checkpoint_Load
-     (S  : access Root_Stream_Type'Class;
-      CS : access Checkpoint_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State);
    --  Load checkpointed files table from S and merge in current state
 
 private

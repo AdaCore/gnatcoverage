@@ -21,7 +21,6 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Regpat; use GNAT.Regpat;
-with Namet;
 with SCOs;
 
 with Diagnostics; use Diagnostics;
@@ -59,9 +58,6 @@ package body ALI_Files is
       Deps                 : SFI_Vector);
    --  Mark SCOs.SCO_Unit_Table entries to be ignored by setting their Dep_Num
    --  to Missing_Dep_Num.
-
-   function SCO_Tables_Fingerprint return SCOs_Hash;
-   --  Return a fingerprint for all SCO tables in SCOs
 
    -------------
    -- Unquote --
@@ -126,83 +122,6 @@ package body ALI_Files is
       end loop;
    end Mark_Ignored_Units;
 
-   ----------------------------
-   -- SCO_Tables_Fingerprint --
-   ----------------------------
-
-   function SCO_Tables_Fingerprint return SCOs_Hash is
-      use GNAT.SHA1;
-      use Namet;
-      use SCOs;
-
-      procedure Update (S : String);
-      --  Shortcut for Update (Hash_Ctx, S)
-
-      procedure Update (Sloc : SCOs.Source_Location);
-      --  Update Hash_Ctx with Sloc
-
-      Hash_Ctx  : GNAT.SHA1.Context;
-
-      ------------
-      -- Update --
-      ------------
-
-      procedure Update (S : String) is
-      begin
-         Update (Hash_Ctx, S);
-      end Update;
-
-      ------------
-      -- Update --
-      ------------
-
-      procedure Update (Sloc : SCOs.Source_Location) is
-      begin
-         Update (Hash_Ctx, ":" & Logical_Line_Number'Image (Sloc.Line)
-                           & ":" & Column_Number'Image (Sloc.Col));
-      end Update;
-
-   begin
-      --  The aim is to include in the hash all information for which
-      --  inconsistency during consolidation would make coverage analysis
-      --  nonsensical.
-
-      for I in SCO_Unit_Table.First + 1 .. SCO_Unit_Table.Last loop
-         declare
-            U : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (I);
-         begin
-            if U.Dep_Num /= Missing_Dep_Num then
-               --
-               --  Directly streaming U to the hash stream would make the
-               --  fingerprint computation depend on compiler internals (here,
-               --  pragma representation values). Instead, use human-readable
-               --  and compiler-independant values.
-
-               Update (U.File_Name.all);
-               Update (Nat'Image (U.Dep_Num));
-
-               for S in U.From .. U.To loop
-                  declare
-                     E : SCO_Table_Entry renames SCO_Table.Table (S);
-                  begin
-                     Update (E.From);
-                     Update (E.To);
-                     Update (String'((E.C1, E.C2)));
-                     if E.Last then
-                        Update ("Last");
-                     end if;
-                     if E.Pragma_Aspect_Name /= No_Name then
-                        Update (Get_Name_String (E.Pragma_Aspect_Name));
-                     end if;
-                  end;
-               end loop;
-            end if;
-         end;
-      end loop;
-
-      return SCOs_Hash (Binary_Message_Digest'(Digest (Hash_Ctx)));
-   end SCO_Tables_Fingerprint;
-
    --------------
    -- Load_ALI --
    --------------
@@ -210,12 +129,10 @@ package body ALI_Files is
    procedure Load_ALI (ALI_Filename : String) is
       Discard_ALI  : Source_File_Index;
       Discard_Units, Discard_Deps : SFI_Vector;
-      Discard_Fingerprint : SCOs_Hash;
 
       pragma Unreferenced (Discard_ALI);
       pragma Warnings (Off, Discard_Units);
       pragma Warnings (Off, Discard_Deps);
-      pragma Warnings (Off, Discard_Fingerprint);
 
    begin
       Discard_ALI :=
@@ -224,7 +141,6 @@ package body ALI_Files is
                   Ignored_Source_Files => null,
                   Units                => Discard_Units,
                   Deps                 => Discard_Deps,
-                  Fingerprint          => Discard_Fingerprint,
                   With_SCOs            => False);
    end Load_ALI;
 
@@ -238,7 +154,6 @@ package body ALI_Files is
       Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Units                : out SFI_Vector;
       Deps                 : out SFI_Vector;
-      Fingerprint          : out SCOs_Hash;
       With_SCOs            : Boolean) return Source_File_Index
    is
       ALI_File  : File_Type;
@@ -682,7 +597,6 @@ package body ALI_Files is
 
             SCOs.Initialize;
          end if;
-         Fingerprint := SCO_Tables_Fingerprint;
       end if;
 
       Close (ALI_File);

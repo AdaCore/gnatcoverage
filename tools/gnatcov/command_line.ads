@@ -55,7 +55,9 @@ package Command_Line is
       Cmd_Disassemble_Insn_Properties,
       Cmd_Disassemble_Raw,
       Cmd_Disassemble,
-      Cmd_Scan_Objects);
+      Cmd_Scan_Objects,
+
+      Cmd_Instrument_Test);
    --  Set of commands we support. More complete descriptions below.
 
    type Bool_Options is
@@ -278,6 +280,11 @@ package Command_Line is
          Pattern     => "[FILEs]",
          Description => ("Scan object FILEs for empty symbols or orphan"
                          & " regions."),
+         Internal    => True),
+      Cmd_Instrument_Test => Create
+        (Name        => "instrument-test",
+         Pattern     => "[SRC_FILEs]",
+         Description => ("Test run instrumenter on given source files."),
          Internal    => True));
 
    Bool_Infos : constant Bool_Option_Info_Array :=

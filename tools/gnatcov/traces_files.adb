@@ -19,6 +19,7 @@
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Exceptions; use Ada.Exceptions;
+with Ada.Streams.Stream_IO; use Ada.Streams, Ada.Streams.Stream_IO;
 with Ada.Text_IO;    use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
@@ -1359,9 +1360,10 @@ package body Traces_Files is
    ---------------------
 
    procedure Checkpoint_Save
-     (S          : access Root_Stream_Type'Class;
+     (CSS        : in out Checkpoints.Checkpoint_Save_State;
       Trace_File : Trace_File_Type)
    is
+      S    : Stream_Access renames CSS.Stream;
       Info : Trace_File_Info_Acc := Trace_File.First_Infos;
 
    begin
@@ -1383,12 +1385,10 @@ package body Traces_Files is
    ---------------------
 
    procedure Checkpoint_Load
-     (S          : access Root_Stream_Type'Class;
-      CS         : access Checkpoints.Checkpoint_State;
+     (CLS        : in out Checkpoints.Checkpoint_Load_State;
       Trace_File : in out Trace_File_Type)
    is
-      pragma Unreferenced (CS);
-
+      S    : Stream_Access renames CLS.Stream;
       Kind : Info_Kind_Type;
    begin
       loop

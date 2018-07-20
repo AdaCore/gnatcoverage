@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Streams;    use Ada.Streams;
-
 with Checkpoints;    use Checkpoints;
 with Files_Table;    use Files_Table;
 with Traces;         use Traces;
@@ -66,12 +64,10 @@ package Coverage.Source is
    -- Checkpoints --
    -----------------
 
-   procedure Checkpoint_Save (S : access Root_Stream_Type'Class);
+   procedure Checkpoint_Save (CSS : in out Checkpoint_Save_State);
    --  Save the current coverage state to S
 
-   procedure Checkpoint_Load
-     (S  : access Root_Stream_Type'Class;
-      CS : access Checkpoint_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State);
    --  Load checkpointed coverage state from S and merge into current state
 
 end Coverage.Source;
