@@ -7,7 +7,7 @@ with CASE_Statements;         use CASE_Statements;
 with CASE_Statements_Support; use CASE_Statements_Support;
 with More_CASE_Statements;    use More_CASE_Statements;
 with Support;                 use Support;
-procedure Test_Several_Alternatives_No_Others is
+procedure Test_No_Others is
    procedure My_Adjust_Int is new Adjust_Int_P (Integer, 10, 20);
    function My_Adjust_Int is new Adjust_Int_F (100, 200);
 
@@ -46,8 +46,7 @@ begin
    --  Results of package body statements (elaboration sequence)
    Assert (Global_Int = 1);
    Assert (Global_Color = Red);
-end Test_Several_Alternatives_No_Others;
-
+end;
 --# case_statements.adb
 -- /colorcase/       l+ ## 0
 -- /white/           l- ## s-

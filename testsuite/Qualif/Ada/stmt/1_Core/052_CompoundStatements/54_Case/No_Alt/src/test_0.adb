@@ -4,12 +4,11 @@
 
 with CASE_Statements; use CASE_Statements;
 with Support;         use Support;
-procedure Test_No_Execution is
+procedure Test_0 is
    procedure My_Adjust_Int is new Adjust_Int_P (Integer, 1, 2);
 begin
    Assert (True);
-end Test_No_Execution;
-
+end;
 --# case_statements.adb
 -- /colorcase/ l- ## s-
 -- /white/     l- ## s-
