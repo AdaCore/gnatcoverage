@@ -3,7 +3,7 @@
 
 with GOTO_Statements_Case; use GOTO_Statements_Case;
 with Support;              use Support;
-procedure Test_GOTO_Statements_Case_Full is
+procedure Test_Case_Full is
    Arg  : Integer;
    Par1 : Integer;
    Par2 : Integer;
@@ -74,8 +74,7 @@ begin
    Update (Arg, Par1, Par2, 10, 15);
    Assert (Par1 = 10);
 
-end Test_GOTO_Statements_Case_Full;
-
+end;
 --# goto_statements_case.adb
 -- /case/         l+ ## 0
 -- /1if/          l+ ## 0

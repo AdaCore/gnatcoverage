@@ -4,11 +4,10 @@
 
 with GOTO_Statements_If; use GOTO_Statements_If;
 with Support;            use Support;
-procedure Test_GOTO_Statements_If_No is
+procedure Test_If_No is
 begin
    Assert (True);
-end Test_GOTO_Statements_If_No;
-
+end;
 --# goto_statements_if.adb
 -- /if/         l- ## s-
 -- /1if/        l- ## s-

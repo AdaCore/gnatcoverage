@@ -4,7 +4,7 @@
 
 with GOTO_Statements_loop; use GOTO_Statements_loop;
 with Support;              use Support;
-procedure Test_GOTO_Statements_Loop_No_Iteration is
+procedure Test_Loop_No_Iteration is
    Null_Test_Sample : Sample (Identity (1) .. Identity (0)) :=
      (others => Identity (2));
 
@@ -25,8 +25,7 @@ begin
    Par2 := 1;
    Update_Sample (Null_Test_Sample, Par1, Par2);
    Assert (Par1 = 0 and then Par2 = 0);
-end Test_GOTO_Statements_loop_No_Iteration;
-
+end;
 --# goto_statements_loop.adb
 -- /1loop/          l+ ## 0
 -- /11if/           l- ## s-

@@ -6,7 +6,7 @@
 
 with GOTO_Statements_Block; use GOTO_Statements_Block;
 with Support;               use Support;
-procedure Test_GOTO_Statements_Block_2 is
+procedure Test_Block_2 is
    Par1 : Integer;
    Par2 : Integer;
    Par3 : Integer;
@@ -22,8 +22,7 @@ begin
    Result := Compute (Par1, Par2, Par3, Par4);
 
    Assert (Result = 0);
-end Test_GOTO_Statements_Block_2;
-
+end;
 --# goto_statements_block.adb
 -- /1inblock/   l+ ## 0
 -- /1if/        l+ ## 0

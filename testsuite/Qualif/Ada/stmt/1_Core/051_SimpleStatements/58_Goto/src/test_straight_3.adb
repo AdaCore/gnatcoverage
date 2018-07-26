@@ -4,11 +4,10 @@
 
 with GOTO_Statements_Straight; use GOTO_Statements_Straight;
 with Support;                  use Support;
-procedure Test_GOTO_Statements_Straight_3 is
+procedure Test_Straight_3 is
 begin
    Assert (Map (Identity (-1)) = 1);
-end Test_GOTO_Statements_Straight_3;
-
+end;
 --# goto_statements_straight.adb
 -- /1if/         l+ ## 0
 -- /1goto/       l- ## s-

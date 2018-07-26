@@ -4,11 +4,10 @@
 
 with GOTO_Statements_Case; use GOTO_Statements_Case;
 with Support;              use Support;
-procedure Test_GOTO_Statements_Case_No is
+procedure Test_Case_No is
 begin
    Assert (True);
-end Test_GOTO_Statements_Case_No;
-
+end;
 --# goto_statements_case.adb
 -- /case/         l- ## s-
 -- /1if/          l- ## s-

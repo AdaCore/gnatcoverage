@@ -4,11 +4,10 @@
 
 with GOTO_Statements_Block; use GOTO_Statements_Block;
 with Support;               use Support;
-procedure Test_GOTO_Statements_Block_No is
+procedure Test_Block_No is
 begin
    Assert (True);
-end Test_GOTO_Statements_Block_No;
-
+end;
 --# goto_statements_block.adb
 -- /decl/      ~l- ## ~s-
 -- /1inblock/   l- ## s-

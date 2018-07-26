@@ -3,7 +3,7 @@
 
 with GOTO_Statements_Loop; use GOTO_Statements_Loop;
 with Support;              use Support;
-procedure Test_GOTO_Statements_Loop_Full is
+procedure Test_Loop_Full is
 
    Test_Sample_1 : Sample :=
      (1 => Identity (1),
@@ -87,8 +87,7 @@ begin
            Test_Sample_3 (2) = 2 and then
            Test_Sample_3 (3) = 3);
 
-end Test_GOTO_Statements_Loop_Full;
-
+end;
 --# goto_statements_loop.adb
 -- /1loop/          l+ ## 0
 -- /11if/           l+ ## 0

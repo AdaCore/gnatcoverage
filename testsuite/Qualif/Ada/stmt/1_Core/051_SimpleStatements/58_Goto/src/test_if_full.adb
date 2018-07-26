@@ -3,7 +3,7 @@
 
 with GOTO_Statements_If; use GOTO_Statements_If;
 with Support;            use Support;
-procedure Test_GOTO_Statements_If_Full is
+procedure Test_If_Full is
    Arg  : Integer;
    Par1 : Integer;
    Par2 : Integer;
@@ -62,8 +62,7 @@ begin
    Update (Arg, Par1, Par2,  1, 1);
    Assert (Par1 = 1);
 
-end Test_GOTO_Statements_If_Full;
-
+end;
 --# goto_statements_if.adb
 -- /if/         l+ ## 0
 -- /1if/        l+ ## 0

@@ -1,33 +1,32 @@
---  Test driver for GOTO statements. It causes execution of the second GOTO
---  statement in IF path in the functional code.
+--  Test driver for GOTO statements. It causes execution of the GOTO statement
+--  in ELSIF path in the functional code.
 
 with GOTO_Statements_If; use GOTO_Statements_If;
 with Support;            use Support;
-procedure Test_GOTO_Statements_If_If2 is
+procedure Test_If_Elsif is
    Arg  : Integer;
    Par1 : Integer;
    Par2 : Integer;
 begin
    Arg  := 10;
-   Par1 := 10;
-   Par2 := 10;
+   Par1 := 9;
+   Par2 := 9;
 
    Update (Arg, Par1, Par2,  5, 5);
-   Assert (Arg = 10  and then
-           Par1 = 10 and then
-           Par2 = 10);
-end Test_GOTO_Statements_If_If2;
-
+   Assert (Arg =  10 and then
+           Par1 = 9 and then
+           Par2 = 9);
+end;
 --# goto_statements_if.adb
 -- /if/         l+ ## 0
--- /1if/        l+ ## 0
+-- /1if/        l- ## s-
 -- /1goto/      l- ## s-
--- /2if/        l+ ## 0
--- /2goto/      l+ ## 0
+-- /2if/        l- ## s-
+-- /2goto/      l- ## s-
 -- /inif/       l- ## s-
--- /elsif/      l- ## s-
--- /3if/        l- ## s-
--- /3goto/      l- ## s-
+-- /elsif/      l+ ## 0
+-- /3if/        l+ ## 0
+-- /3goto/      l+ ## 0
 -- /inelsif/    l- ## s-
 -- /4if/        l- ## s-
 -- /4goto/      l- ## s-

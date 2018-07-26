@@ -3,7 +3,7 @@
 
 with GOTO_Statements_Case; use GOTO_Statements_Case;
 with Support;              use Support;
-procedure Test_GOTO_Statements_Case_2 is
+procedure Test_Case_2 is
    Arg  : Integer;
    Par1 : Integer;
    Par2 : Integer;
@@ -16,8 +16,7 @@ begin
    Assert (Arg  = 4   and then
            Par1 = 100 and then
            Par2 = 200);
-end Test_GOTO_Statements_Case_2;
-
+end;
 --# goto_statements_case.adb
 -- /case/         l+ ## 0
 -- /1if/          l- ## s-

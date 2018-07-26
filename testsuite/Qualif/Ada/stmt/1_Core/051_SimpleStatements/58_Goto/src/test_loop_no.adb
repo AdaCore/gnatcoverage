@@ -4,11 +4,10 @@
 
 with GOTO_Statements_Loop; use GOTO_Statements_Loop;
 with Support;              use Support;
-procedure Test_GOTO_Statements_Loop_No is
+procedure Test_Loop_No is
 begin
    Assert (True);
-end Test_GOTO_Statements_Loop_No;
-
+end;
 --# goto_statements_loop.adb
 -- /1loop/          l- ## s-
 -- /11if/           l- ## s-

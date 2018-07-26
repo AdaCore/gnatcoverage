@@ -4,11 +4,10 @@
 
 with GOTO_Statements_Straight; use GOTO_Statements_Straight;
 
-procedure Test_GOTO_Statements_Straight_No is
+procedure Test_Straight_No is
 begin
    null;
-end Test_GOTO_Statements_Straight_No;
-
+end;
 --# goto_statements_straight.adb
 -- /decl/       ~l- ## ~s-
 -- /1if/         l- ## s-
