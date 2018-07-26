@@ -7,7 +7,7 @@
 
 with Pack;    use Pack;
 with Support; use Support;
-procedure Test_Exceptions_User_Exception_Raise is
+procedure Test_Raise_User is
    Int : My_Int := 100;
 begin
    Proc1 (Int);
@@ -32,8 +32,7 @@ begin
 
    Assert (Fun4 (0) = 0);
 
-end Test_Exceptions_User_Exception_Raise;
-
+end;
 --#  pack.adb
 -- /proc1/                          l+ ## 0
 -- /raise_proc1/                    l+ ## 0

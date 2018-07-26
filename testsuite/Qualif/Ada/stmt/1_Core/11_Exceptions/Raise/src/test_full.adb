@@ -5,7 +5,7 @@
 
 with Pack;    use Pack;
 with Support; use Support;
-procedure Test_Exceptions_Full is
+procedure Test_Full is
    Int : My_Int := 100;
 begin
    Proc1 (Int);
@@ -60,8 +60,7 @@ begin
    Assert (Fun4 (100) = 2);
    Assert (Fun4 (3) = 6);
 
-end Test_Exceptions_Full;
-
+end;
 --#  pack.adb
 -- /proc1/                          l+ ## 0
 -- /raise_proc1/                    l+ ## 0

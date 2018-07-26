@@ -4,11 +4,10 @@
 
 with Pack;    use Pack;
 with Support; use Support;
-procedure Test_Exceptions_No is
+procedure Test_0 is
 begin
    Assert (True);
-end Test_Exceptions_No;
-
+end;
 --#  pack.adb
 -- /proc1/                          l- ## s-
 -- /raise_proc1/                    l- ## s-

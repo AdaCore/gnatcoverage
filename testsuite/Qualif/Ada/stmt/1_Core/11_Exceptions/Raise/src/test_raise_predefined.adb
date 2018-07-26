@@ -9,7 +9,7 @@
 
 with Pack;    use Pack;
 with Support; use Support;
-procedure Test_Exceptions_Predefined_Exception_Raise is
+procedure Test_Raise_Predefined is
    Int : My_Int := 0;
 begin
    Proc1 (Int);
@@ -35,8 +35,7 @@ begin
 
    Assert (Fun4 (-100) = 1);
 
-end Test_Exceptions_Predefined_Exception_Raise;
-
+end;
 --#  pack.adb
 -- /proc1/                          l+ ## 0
 -- /raise_proc1/                    l- ## s-
