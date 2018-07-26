@@ -3,11 +3,10 @@
 
 with Nested_Block_Statements;
 with Support; use Support;
-procedure Test_Nested_Block_Statements_No is
+procedure Test_0 is
 begin
    Assert (True);
-end Test_Nested_Block_Statements_No;
-
+end;
 --# nested_block_statements.adb
 
 -- /outer_block/  l- ## s-

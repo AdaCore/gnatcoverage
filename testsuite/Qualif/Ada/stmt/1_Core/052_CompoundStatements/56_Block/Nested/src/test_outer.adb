@@ -4,15 +4,14 @@
 
 with Nested_Block_Statements;
 with Support; use Support;
-procedure Test_Nested_Block_Statements_Outer is
+procedure Test_Outer is
    I, J : Integer;
 begin
    I := 0;
    J := -1;
    Nested_Block_Statements (I, J);
    Assert (I = -1 and then J = 1);
-end Test_Nested_Block_Statements_Outer;
-
+end;
 --# nested_block_statements.adb
 
 -- /outer_block/  l+ ## 0
