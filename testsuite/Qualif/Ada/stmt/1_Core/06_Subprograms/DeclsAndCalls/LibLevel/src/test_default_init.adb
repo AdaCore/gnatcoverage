@@ -8,7 +8,7 @@
 
 with Subprogram_Pack; use Subprogram_Pack;
 with Support;         use Support;
-procedure Test_Subprogram_Decls_Default_Init is
+procedure Test_Default_Init is
    R : Rec;    --  implicit call to Fun1
    I : Integer;
 begin
@@ -18,7 +18,6 @@ begin
    Assert (I = 7);
 
 end;
-
 --# subprogram_pack.adb
 -- /fun1/       l+ ## 0
 -- /fun2/       l+ ## 0
