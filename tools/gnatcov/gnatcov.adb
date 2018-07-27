@@ -68,6 +68,9 @@ with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
 with Version;
 
+with Instrument;
+pragma Unreferenced (Instrument);
+
 procedure GNATcov is
 
    Arg_Parser   : Parser_Type := Command_Line.Create;

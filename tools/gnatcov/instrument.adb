@@ -18,41 +18,100 @@
 
 --  Source instrumentation
 
-with Libadalang.Analysis; use Libadalang.Analysis;
---  with Project;
---  with SCOs;
+with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
+with Langkit_Support.Symbols; use Langkit_Support.Symbols;
+with Libadalang.Analysis;     use Libadalang.Analysis;
+with Libadalang.Common;       use Libadalang.Common;
+with Libadalang.Lexer;        use Libadalang.Lexer;
+with Libadalang.Sources;      use Libadalang.Sources;
+
 with Types; use Types;
 with Table;
 
 package body Instrument is
 
-   subtype List_Id is Ada_Node_List;
-   subtype Node_Id is Ada_Node;
-   Empty   : constant Node_Id := No_Ada_Node;
-   No_List : constant List_Id := No_Ada_Node_List;
+   Symbols : Symbol_Table := Create;
+   --  Holder for name singletons
+
+   Aspect_Dynamic_Predicate : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Dynamic_Predicate").Symbol);
+   Aspect_Invariant         : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Invariant").Symbol);
+   Aspect_Post              : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Post").Symbol);
+   Aspect_Postcondition     : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Postcondition").Symbol);
+   Aspect_Pre               : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Pre").Symbol);
+   Aspect_Precondition      : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Precondition").Symbol);
+   Aspect_Predicate         : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Predicate").Symbol);
+   Aspect_Static_Predicate  : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Static_Predicate").Symbol);
+   Aspect_Type_Invariant    : constant Symbol_Type := Find
+     (Symbols, Canonicalize ("Type_Invariant").Symbol);
+
+   function Pragma_Name (P : Pragma_Node) return Symbol_Type;
+   --  Return a symbol from Symbols corresponding to the name of the given
+   --  P pragma.
+
+   function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type;
+   --  Return a symbol from Symbols corresponding to the name of the given
+   --  A aspect association.
+
+   procedure Append_SCO
+     (C1, C2             : Character;
+      From, To           : Source_Location;
+      Last               : Boolean;
+      Pragma_Aspect_Name : Symbol_Type := null) is null;
+   --  ???
+
+   Current_Pragma_Sloc : Source_Location := No_Source_Location;
+   --  Start location for the currently enclosing pragma, if any
 
    type Dominant_Info is record
       K : Character;
       --  F/T/S/E for a valid dominance marker, or ' ' for no dominant
 
-      N : Node_Id;
+      N : Ada_Node;
       --  Node providing the Sloc(s) for the dominance marker
    end record;
-   No_Dominant : constant Dominant_Info := (' ', Empty);
+   No_Dominant : constant Dominant_Info := (' ', No_Ada_Node);
 
    procedure Traverse_Declarations_Or_Statements
-     (L : List_Id;
+     (L : Ada_Node;
       D : Dominant_Info := No_Dominant;
-      P : Node_Id       := Empty);
+      P : Ada_Node      := No_Ada_Node);
    --  Process L, a list of statements or declarations dominated by D. If P is
    --  present, it is processed as though it had been prepended to L.
 
    function Traverse_Declarations_Or_Statements
-     (L : List_Id;
+     (L : Ada_Node;
       D : Dominant_Info := No_Dominant;
-      P : Node_Id       := Empty) return Dominant_Info;
+      P : Ada_Node      := No_Ada_Node) return Dominant_Info;
    --  Same as above, and returns dominant information corresponding to the
    --  last node with SCO in L.
+
+   procedure Process_Decisions
+     (N           : Ada_Node;
+      T           : Character;
+      Pragma_Sloc : Source_Location);
+   --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
+   --  to output any decisions it contains. T is one of IEGPWX (for context of
+   --  expression: if/exit when/entry guard/pragma/while/expression). If T is
+   --  other than X, the node N is the if expression involved, and a decision
+   --  is always present (at the very least a simple decision is present at the
+   --  top level).
+
+   --------------------------
+   -- Internal Subprograms --
+   --------------------------
+
+   function Has_Decision (E : Expr) return Boolean;
+   --  E is the node for a subexpression. Returns True if the subexpression
+   --  contains a nested decision (i.e. either is a logical operator, or
+   --  contains a logical operator in its subtree).
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -63,9 +122,9 @@ package body Instrument is
    --  since they are shared by recursive calls to this procedure.
 
    type SC_Entry is record
-      N    : Node_Id;
-      From : Source_Ptr;
-      To   : Source_Ptr;
+      N    : Ada_Node;
+      From : Source_Location;
+      To   : Source_Location;
       Typ  : Character;
    end record;
    --  Used to store a single entry in the following table, From:To represents
@@ -93,17 +152,16 @@ package body Instrument is
    --  output intermediate entries such as decision entries.
 
    type SD_Entry is record
-      Nod : Node_Id;
-      Lst : List_Id;
+      Nod : Ada_Node;
       Typ : Character;
-      Plo : Source_Ptr;
+      Plo : Source_Location;
    end record;
    --  Used to store a single entry in the following table. Nod is the node to
    --  be searched for decisions for the case of Process_Decisions_Defer with a
-   --  node argument (with Lst set to No_List. Lst is the list to be searched
-   --  for decisions for the case of Process_Decisions_Defer with a List
-   --  argument (in which case Nod is set to Empty). Plo is the sloc of the
-   --  enclosing pragma, if any.
+   --  node argument (with Lst set to No_Ada_Node. Lst is the list to be
+   --  searched for decisions for the case of Process_Decisions_Defer with a
+   --  List argument (in which case Nod is set to No_Ada_Node). Plo is the sloc
+   --  of the enclosing pragma, if any.
 
    package SD is new Table.Table
      (Table_Component_Type => SD_Entry,
@@ -122,9 +180,9 @@ package body Instrument is
    --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
-     (L : List_Id;
+     (L : Ada_Node;
       D : Dominant_Info := No_Dominant;
-      P : Node_Id       := Empty)
+      P : Ada_Node      := No_Ada_Node)
    is
       Discard_Dom : Dominant_Info;
       pragma Warnings (Off, Discard_Dom);
@@ -133,28 +191,28 @@ package body Instrument is
    end Traverse_Declarations_Or_Statements;
 
    function Traverse_Declarations_Or_Statements
-     (L : List_Id;
+     (L : Ada_Node;
       D : Dominant_Info := No_Dominant;
-      P : Node_Id       := Empty) return Dominant_Info
+      P : Ada_Node      := No_Ada_Node) return Dominant_Info
    is
       Current_Dominant : Dominant_Info := D;
       --  Dominance information for the current basic block
 
-      Current_Test : Node_Id;
+      Current_Test : Ada_Node;
       --  Conditional node (N_If_Statement or N_Elsiif being processed
 
-      N : Node_Id;
+      N : Ada_Node;
 
       SC_First : constant Nat := SC.Last + 1;
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
 
-      procedure Extend_Statement_Sequence (N : Node_Id; Typ : Character);
+      procedure Extend_Statement_Sequence (N : Ada_Node; Typ : Character);
       --  Extend the current statement sequence to encompass the node N. Typ is
       --  the letter that identifies the type of statement/declaration that is
       --  being added to the sequence.
 
-      procedure Process_Decisions_Defer (N : Node_Id; T : Character);
+      procedure Process_Decisions_Defer (N : Ada_Node; T : Character);
       pragma Inline (Process_Decisions_Defer);
       --  This routine is logically the same as Process_Decisions, except that
       --  the arguments are saved in the SD table for later processing when
@@ -164,22 +222,18 @@ package body Instrument is
       --  statement sequence, so that nested decisions are properly
       --  identified as such.
 
-      procedure Process_Decisions_Defer (L : List_Id; T : Character);
-      pragma Inline (Process_Decisions_Defer);
-      --  Same case for list arguments, deferred call to Process_Decisions
-
       procedure Set_Statement_Entry;
       --  Output CS entries for all statements saved in table SC, and end the
       --  current CS sequence. Then output entries for all decisions nested in
       --  these statements, which have been deferred so far.
 
-      procedure Traverse_One (N : Node_Id);
+      procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
 
-      procedure Traverse_Aspects (N : Node_Id);
+      procedure Traverse_Aspects (N : Aspect_Spec);
       --  Helper for Traverse_One: traverse N's aspect specifications
 
-      procedure Traverse_Degenerate_Subprogram (N : Node_Id);
+      procedure Traverse_Degenerate_Subprogram (N : Ada_Node);
       --  Common code to handle null procedures and expression functions. Emit
       --  a SCO of the given Kind and N outside of the dominance flow.
 
@@ -187,72 +241,91 @@ package body Instrument is
       -- Extend_Statement_Sequence --
       -------------------------------
 
-      procedure Extend_Statement_Sequence (N : Node_Id; Typ : Character) is
-         Dummy   : Source_Ptr;
-         F       : Source_Ptr;
-         T       : Source_Ptr;
-         To_Node : Node_Id := Empty;
+      procedure Extend_Statement_Sequence (N : Ada_Node; Typ : Character) is
+         SR      : constant Source_Location_Range := N.Sloc_Range;
+
+         F       : constant Source_Location := Start_Sloc (SR);
+         T       : Source_Location := End_Sloc (SR);
+         --  Source location bounds used to produre a SCO statement. By
+         --  default, this should cover the same source location range as N,
+         --  however for nodes that can contain themselves other statements
+         --  (for instance IN statements), we select an end bound that appear
+         --  before the first nested statement (see To_Node below).
+
+         To_Node : Ada_Node := No_Ada_Node;
+         --  In the case of simple statements, set to No_Ada_Node and unused.
+         --  Othewrise, use F and this node's end sloc for the emitted
+         --  statement source location ranage.
 
       begin
-         Sloc_Range (N, F, T);
-
          case Kind (N) is
             when Ada_Accept_Stmt =>
-               if Present (F_Params (N)) then
-                  To_Node := Last (F_Params (N));
+               --  Make the SCO statement span until the parameters closing
+               --  parent (if present). If there is no parameter, then use the
+               --  entry index. If there is no entry index, fallback to the
+               --  entry name.
+               declare
+                  Stmt : constant Accept_Stmt := N.As_Accept_Stmt;
+               begin
+                  if not Stmt.F_Params.Is_Null then
+                     To_Node := Stmt.F_Params.As_Ada_Node;
 
-               elsif Present (Entry_Index (N)) then
-                  To_Node := Entry_Index (N);
+                  elsif not Stmt.F_Entry_Index_Expr.Is_Null then
+                     To_Node := Stmt.F_Entry_Index_Expr.As_Ada_Node;
 
-               else
-                  To_Node := Entry_Direct_Name (N);
-               end if;
+                  else
+                     To_Node := Stmt.F_Name.As_Ada_Node;
+                  end if;
+               end;
 
-            when Ada_Case_Statement =>
-               To_Node := Expression (N);
+            when Ada_Case_Stmt =>
+               To_Node := N.As_Case_Stmt.F_Expr.As_Ada_Node;
 
-            when Ada_Elsif_Part
-               | Ada_If_Statement
-            =>
-               To_Node := Condition (N);
+            when Ada_Elsif_Stmt_Part =>
+               To_Node := N.As_Elsif_Stmt_Part.F_Cond_Expr.As_Ada_Node;
 
-            when Ada_Extended_Return_Statement =>
-               To_Node := Last (Return_Object_Declarations (N));
+            when Ada_If_Stmt =>
+               To_Node := N.As_If_Stmt.F_Cond_Expr.As_Ada_Node;
 
-            when Ada_Loop_Statement =>
-               To_Node := Iteration_Scheme (N);
+            when Ada_Extended_Return_Stmt =>
+               To_Node := N.As_Extended_Return_Stmt.F_Decl.As_Ada_Node;
 
-            when Ada_Asynchronous_Select
-               | Ada_Conditional_Entry_Call
-               | Ada_Selective_Accept
-               | Ada_Single_Protected_Declaration
-               | Ada_Single_Task_Declaration
-               | Ada_Timed_Entry_Call
+            when Ada_Base_Loop_Stmt =>
+               To_Node := N.As_Base_Loop_Stmt.F_Spec.As_Ada_Node;
+
+            when Ada_Select_Stmt
+               | Ada_Single_Protected_Decl
+               | Ada_Single_Task_Decl
             =>
                T := F;
 
-            when Ada_Protected_Type_Declaration
-               | Ada_Task_Type_Declaration
+            when Ada_Protected_Type_Decl
+               | Ada_Task_Type_Decl
             =>
-               if Has_Aspects (N) then
-                  To_Node := Last (Aspect_Specifications (N));
+               declare
+                  Decl : constant Protected_Type_Decl :=
+                     N.As_Protected_Type_Decl;
+               begin
+                  if not Decl.F_Aspects.Is_Null then
+                     To_Node := Decl.F_Aspects.As_Ada_Node;
 
-               elsif Present (Discriminant_Specifications (N)) then
-                  To_Node := Last (Discriminant_Specifications (N));
+                  elsif not Decl.F_Discriminants.Is_Null then
+                     To_Node := Decl.F_Discriminants.As_Ada_Node;
 
-               else
-                  To_Node := Defining_Identifier (N);
-               end if;
+                  else
+                     To_Node := Decl.F_Name.As_Ada_Node;
+                  end if;
+               end;
 
-            when Ada_Subexpr =>
+            when Ada_Expr =>
                To_Node := N;
 
             when others =>
                null;
          end case;
 
-         if Present (To_Node) then
-            Sloc_Range (To_Node, Dummy, T);
+         if not To_Node.Is_Null then
+            T := End_Sloc (To_Node.Sloc_Range);
          end if;
 
          SC.Append ((N, F, T, Typ));
@@ -262,14 +335,9 @@ package body Instrument is
       -- Process_Decisions_Defer --
       -----------------------------
 
-      procedure Process_Decisions_Defer (N : Node_Id; T : Character) is
+      procedure Process_Decisions_Defer (N : Ada_Node; T : Character) is
       begin
-         SD.Append ((N, No_List, T, Current_Pragma_Sloc));
-      end Process_Decisions_Defer;
-
-      procedure Process_Decisions_Defer (L : List_Id; T : Character) is
-      begin
-         SD.Append ((Empty, L, T, Current_Pragma_Sloc));
+         SD.Append ((N, T, Current_Pragma_Sloc));
       end Process_Decisions_Defer;
 
       -------------------------
@@ -284,62 +352,47 @@ package body Instrument is
          --  Output statement entries from saved entries in SC table
 
          for J in SC_First .. SC_Last loop
-            if J = SC_First then
 
-               if Current_Dominant /= No_Dominant then
-                  declare
-                     From : Source_Ptr;
-                     To   : Source_Ptr;
+            --  If there is a pending dominant for this statement sequence,
+            --  emit a SCO for it.
 
-                  begin
-                     Sloc_Range (Current_Dominant.N, From, To);
+            if J = SC_First and then Current_Dominant /= No_Dominant then
+               declare
+                  SR   : constant Source_Location_Range :=
+                     Current_Dominant.N.Sloc_Range;
+                  From : constant Source_Location := Start_Sloc (SR);
+                  To   : Source_Location := End_Sloc (SR);
 
-                     if Current_Dominant.K /= 'E' then
-                        To := No_Location;
-                     end if;
+               begin
+                  if Current_Dominant.K /= 'E' then
+                     To := No_Source_Location;
+                  end if;
 
-                     Set_Raw_Table_Entry
-                       (C1                 => '>',
-                        C2                 => Current_Dominant.K,
-                        From               => From,
-                        To                 => To,
-                        Last               => False,
-                        Pragma_Sloc        => No_Location,
-                        Pragma_Aspect_Name => No_Name);
-                  end;
-               end if;
+                  Append_SCO
+                    (C1                 => '>',
+                     C2                 => Current_Dominant.K,
+                     From               => From,
+                     To                 => To,
+                     Last               => False,
+                     Pragma_Aspect_Name => null);
+               end;
             end if;
 
             declare
                SCE                : SC_Entry renames SC.Table (J);
-               Pragma_Sloc        : Source_Ptr := No_Location;
-               Pragma_Aspect_Name : Name_Id    := No_Name;
+               Pragma_Aspect_Name : Symbol_Type := null;
 
             begin
-               --  For the case of a statement SCO for a pragma controlled by
-               --  Set_SCO_Pragma_Enabled, set Pragma_Sloc so that the SCO (and
-               --  those of any nested decision) is emitted only if the pragma
-               --  is enabled.
-
-               if SCE.Typ = 'p' then
-                  Pragma_Sloc := SCE.From;
-                  SCO_Raw_Hash_Table.Set
-                    (Pragma_Sloc, SCO_Raw_Table.Last + 1);
-                  Pragma_Aspect_Name := Pragma_Name_Unmapped (SCE.N);
-                  pragma Assert (Pragma_Aspect_Name /= No_Name);
-
-               elsif SCE.Typ = 'P' then
-                  Pragma_Aspect_Name := Pragma_Name_Unmapped (SCE.N);
-                  pragma Assert (Pragma_Aspect_Name /= No_Name);
+               if SCE.Typ = 'P' then
+                  Pragma_Aspect_Name := Pragma_Name (SCE.N.As_Pragma_Node);
                end if;
 
-               Set_Raw_Table_Entry
+               Append_SCO
                  (C1                 => 'S',
                   C2                 => SCE.Typ,
                   From               => SCE.From,
                   To                 => SCE.To,
                   Last               => (J = SC_Last),
-                  Pragma_Sloc        => Pragma_Sloc,
                   Pragma_Aspect_Name => Pragma_Aspect_Name);
             end;
          end loop;
@@ -362,11 +415,7 @@ package body Instrument is
                SDE : SD_Entry renames SD.Table (J);
 
             begin
-               if Present (SDE.Nod) then
-                  Process_Decisions (SDE.Nod, SDE.Typ, SDE.Plo);
-               else
-                  Process_Decisions (SDE.Lst, SDE.Typ, SDE.Plo);
-               end if;
+               Process_Decisions (SDE.Nod, SDE.Typ, SDE.Plo);
             end;
          end loop;
 
@@ -379,72 +428,51 @@ package body Instrument is
       -- Traverse_Aspects --
       ----------------------
 
-      procedure Traverse_Aspects (N : Node_Id) is
-         AE : Node_Id;
-         AN : Node_Id;
+      procedure Traverse_Aspects (N : Aspect_Spec) is
+         AL : constant Aspect_Assoc_List := N.F_Aspect_Assocs;
+         AN : Aspect_Assoc;
+         AE : Expr;
          C1 : Character;
 
       begin
-         AN := First (Aspect_Specifications (N));
-         while Present (AN) loop
-            AE := Expression (AN);
-
-            --  SCOs are generated before semantic analysis/expansion:
-            --  PPCs are not split yet.
-
-            pragma Assert (not Split_PPC (AN));
+         for I in 1 .. AL.Children_Count loop
+            AN := AL.Child (I).As_Aspect_Assoc;
+            AE := AN.F_Expr;
 
             C1 := ASCII.NUL;
 
-            case Get_Aspect_Id (AN) is
+            if Aspect_Assoc_Name (AN) in Aspect_Dynamic_Predicate
+                                       | Aspect_Invariant
+                                       | Aspect_Post
+                                       | Aspect_Postcondition
+                                       | Aspect_Pre
+                                       | Aspect_Precondition
+                                       | Aspect_Predicate
+                                       | Aspect_Static_Predicate
+                                       | Aspect_Type_Invariant
+            then
+               C1 := 'A';
 
-               --  Aspects rewritten into pragmas controlled by a Check_Policy:
-               --  Current_Pragma_Sloc must be set to the sloc of the aspect
-               --  specification. The corresponding pragma will have the same
-               --  sloc. Note that Invariant, Pre, and Post will be enabled if
-               --  the policy is Check; on the other hand, predicate aspects
-               --  will be enabled for Check and Ignore (when Add_Predicate
-               --  is called) because the actual checks occur in client units.
-               --  When the assertion policy for Predicate is Disable, the
-               --  SCO remains disabled, because Add_Predicate is never called.
-
-               --  Pre/post can have checks in client units too because of
-               --  inheritance, so should they receive the same treatment???
-
-               when Aspect_Dynamic_Predicate
-                  | Aspect_Invariant
-                  | Aspect_Post
-                  | Aspect_Postcondition
-                  | Aspect_Pre
-                  | Aspect_Precondition
-                  | Aspect_Predicate
-                  | Aspect_Static_Predicate
-                  | Aspect_Type_Invariant
-               =>
-                  C1 := 'a';
-
+            else
                --  Other aspects: just process any decision nested in the
                --  aspect expression.
 
-               when others =>
-                  if Has_Decision (AE) then
-                     C1 := 'X';
-                  end if;
-            end case;
-
-            if C1 /= ASCII.NUL then
-               pragma Assert (Current_Pragma_Sloc = No_Location);
-
-               if C1 = 'a' or else C1 = 'A' then
-                  Current_Pragma_Sloc := Sloc (AN);
+               if Has_Decision (AE) then
+                  C1 := 'X';
                end if;
-
-               Process_Decisions_Defer (AE, C1);
-
-               Current_Pragma_Sloc := No_Location;
             end if;
 
-            Next (AN);
+            if C1 /= ASCII.NUL then
+               pragma Assert (Current_Pragma_Sloc = No_Source_Location);
+
+               if C1 = 'A' then
+                  Current_Pragma_Sloc := Start_Sloc (AN.Sloc_Range);
+               end if;
+
+               Process_Decisions_Defer (AE.As_Ada_Node, C1);
+
+               Current_Pragma_Sloc := No_Source_Location;
+            end if;
          end loop;
       end Traverse_Aspects;
 
@@ -452,7 +480,7 @@ package body Instrument is
       -- Traverse_Degenerate_Subprogram --
       ------------------------------------
 
-      procedure Traverse_Degenerate_Subprogram (N : Node_Id) is
+      procedure Traverse_Degenerate_Subprogram (N : Ada_Node) is
       begin
          --  Complete current sequence of statements
 
@@ -473,7 +501,7 @@ package body Instrument is
             --  For the case of an expression-function, collect decisions
             --  embedded in the expression now.
 
-            if Nkind (N) in Ada_Subexpr then
+            if N.Kind in Ada_Expr then
                Process_Decisions_Defer (N, 'X');
             end if;
 
@@ -491,14 +519,14 @@ package body Instrument is
       -- Traverse_One --
       ------------------
 
-      procedure Traverse_One (N : Node_Id) is
+      procedure Traverse_One (N : Ada_Node) is
       begin
          --  Initialize or extend current statement sequence. Note that for
          --  special cases such as IF and Case statements we will modify
          --  the range to exclude internal statements that should not be
          --  counted as part of the current statement sequence.
 
-         case Nkind (N) is
+         case N.Kind is
 
             --  Package declaration
 
@@ -525,7 +553,7 @@ package body Instrument is
                | Ada_Subprogram_Declaration
             =>
                declare
-                  Spec : constant Node_Id := Specification (N);
+                  Spec : constant Ada_Node := Specification (N);
                begin
                   Process_Decisions_Defer
                     (Parameter_Specifications (Spec), 'X');
@@ -574,7 +602,7 @@ package body Instrument is
 
             when Ada_Entry_Body =>
                declare
-                  Cond : constant Node_Id :=
+                  Cond : constant Ada_Node :=
                            Condition (Entry_Body_Formal_Part (N));
 
                   Inner_Dominant : Dominant_Info := No_Dominant;
@@ -665,7 +693,7 @@ package body Instrument is
                      Saved_Dominant : constant Dominant_Info :=
                                         Current_Dominant;
 
-                     Elif : Node_Id := First (Elsif_Parts (N));
+                     Elif : Ada_Node := First (Elsif_Parts (N));
 
                   begin
                      while Present (Elif) loop
@@ -721,7 +749,7 @@ package body Instrument is
                --  CASE statement.
 
                declare
-                  Alt : Node_Id;
+                  Alt : Ada_Node;
                begin
                   Alt := First_Non_Pragma (Alternatives (N));
                   while Present (Alt) loop
@@ -754,8 +782,8 @@ package body Instrument is
                --  Process alternatives
 
                declare
-                  Alt   : Node_Id;
-                  Guard : Node_Id;
+                  Alt   : Ada_Node;
+                  Guard : Ada_Node;
                   S_Dom : Dominant_Info;
 
                begin
@@ -884,8 +912,8 @@ package body Instrument is
 
             when Ada_Loop_Statement =>
                declare
-                  ISC            : constant Node_Id := Iteration_Scheme (N);
-                  Inner_Dominant : Dominant_Info    := No_Dominant;
+                  ISC            : constant Ada_Node := Iteration_Scheme (N);
+                  Inner_Dominant : Dominant_Info     := No_Dominant;
 
                begin
                   if Present (ISC) then
@@ -939,7 +967,7 @@ package body Instrument is
 
                declare
                   Nam : constant Name_Id := Pragma_Name_Unmapped (N);
-                  Arg : Node_Id          :=
+                  Arg : Ada_Node         :=
                           First (Pragma_Argument_Associations (N));
                   Typ : Character;
 
@@ -1141,15 +1169,457 @@ package body Instrument is
       return Current_Dominant;
    end Traverse_Declarations_Or_Statements;
 
+   -----------------------
+   -- Process_Decisions --
+   -----------------------
+
+   procedure Process_Decisions
+     (N           : Ada_Node;
+      T           : Character;
+      Pragma_Sloc : Source_Location)
+   is
+      Mark : Nat;
+      --  This is used to mark the location of a decision sequence in the SCO
+      --  table. We use it for backing out a simple decision in an expression
+      --  context that contains only NOT operators.
+
+      Mark_Hash : Nat;
+      --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
+
+      type Hash_Entry is record
+         Sloc      : Source_Ptr;
+         SCO_Index : Nat;
+      end record;
+      --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
+      --  However we cannot register them in the same time we are adding the
+      --  corresponding SCO entries to the raw table since we may discard them
+      --  later on. So instead we put all putative conditions into Hash_Entries
+      --  (see below) and register them once we are sure we keep them.
+      --
+      --  This data structure holds the conditions/pragmas to register in
+      --  SCO_Raw_Hash_Table.
+
+      package Hash_Entries is new Table.Table
+        (Table_Component_Type => Hash_Entry,
+         Table_Index_Type     => Nat,
+         Table_Low_Bound      => 1,
+         Table_Initial        => 10,
+         Table_Increment      => 10,
+         Table_Name           => "Hash_Entries");
+      --  Hold temporarily (i.e. free'd before returning) the Hash_Entry before
+      --  they are registered in SCO_Raw_Hash_Table.
+
+      X_Not_Decision : Boolean;
+      --  This flag keeps track of whether a decision sequence in the SCO table
+      --  contains only NOT operators, and is for an expression context (T=X).
+      --  The flag will be set False if T is other than X, or if an operator
+      --  other than NOT is in the sequence.
+
+      procedure Output_Decision_Operand (N : Node_Id);
+      --  The node N is the top level logical operator of a decision, or it is
+      --  one of the operands of a logical operator belonging to a single
+      --  complex decision. This routine outputs the sequence of table entries
+      --  corresponding to the node. Note that we do not process the sub-
+      --  operands to look for further decisions, that processing is done in
+      --  Process_Decision_Operand, because we can't get decisions mixed up in
+      --  the global table. Call has no effect if N is Empty.
+
+      procedure Output_Element (N : Node_Id);
+      --  Node N is an operand of a logical operator that is not itself a
+      --  logical operator, or it is a simple decision. This routine outputs
+      --  the table entry for the element, with C1 set to ' '. Last is set
+      --  False, and an entry is made in the condition hash table.
+
+      procedure Output_Header (T : Character);
+      --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT WHEN/
+      --  PRAGMA, and 'X' for the expression case.
+
+      procedure Process_Decision_Operand (N : Node_Id);
+      --  This is called on node N, the top level node of a decision, or on one
+      --  of its operands or suboperands after generating the full output for
+      --  the complex decision. It process the suboperands of the decision
+      --  looking for nested decisions.
+
+      function Process_Node (N : Node_Id) return Traverse_Result;
+      --  Processes one node in the traversal, looking for logical operators,
+      --  and if one is found, outputs the appropriate table entries.
+
+      -----------------------------
+      -- Output_Decision_Operand --
+      -----------------------------
+
+      procedure Output_Decision_Operand (N : Node_Id) is
+         C1 : Character;
+         C2 : Character;
+         --  C1 holds a character that identifies the operation while C2
+         --  indicates whether we are sure (' ') or not ('?') this operation
+         --  belongs to the decision. '?' entries will be filtered out in the
+         --  second (SCO_Record_Filtered) pass.
+
+         L : Node_Id;
+         T : Tristate;
+
+      begin
+         if No (N) then
+            return;
+         end if;
+
+         T := Is_Logical_Operator (N);
+
+         --  Logical operator
+
+         if T /= False then
+            if Nkind (N) = N_Op_Not then
+               C1 := '!';
+               L := Empty;
+
+            else
+               L := Left_Opnd (N);
+
+               if Nkind_In (N, N_Op_Or, N_Or_Else) then
+                  C1 := '|';
+               else pragma Assert (Nkind_In (N, N_Op_And, N_And_Then));
+                  C1 := '&';
+               end if;
+            end if;
+
+            if T = True then
+               C2 := ' ';
+            else
+               C2 := '?';
+            end if;
+
+            Append_SCO
+              (C1   => C1,
+               C2   => C2,
+               From => Sloc (N),
+               To   => No_Location,
+               Last => False);
+
+            Hash_Entries.Append ((Sloc (N), SCO_Raw_Table.Last));
+
+            Output_Decision_Operand (L);
+            Output_Decision_Operand (Right_Opnd (N));
+
+         --  Not a logical operator
+
+         else
+            Output_Element (N);
+         end if;
+      end Output_Decision_Operand;
+
+      --------------------
+      -- Output_Element --
+      --------------------
+
+      procedure Output_Element (N : Node_Id) is
+         FSloc : Source_Ptr;
+         LSloc : Source_Ptr;
+      begin
+         Sloc_Range (N, FSloc, LSloc);
+         Append_SCO
+           (C1   => ' ',
+            C2   => 'c',
+            From => FSloc,
+            To   => LSloc,
+            Last => False);
+         Hash_Entries.Append ((FSloc, SCO_Raw_Table.Last));
+      end Output_Element;
+
+      -------------------
+      -- Output_Header --
+      -------------------
+
+      procedure Output_Header (T : Character) is
+         Loc : Source_Ptr := No_Location;
+         --  Node whose Sloc is used for the decision
+
+         Nam : Name_Id := No_Name;
+         --  For the case of an aspect, aspect name
+
+      begin
+         case T is
+            when 'I' | 'E' | 'W' | 'a' | 'A' =>
+
+               --  For IF, EXIT, WHILE, or aspects, the token SLOC is that of
+               --  the parent of the expression.
+
+               Loc := Sloc (Parent (N));
+
+               if T = 'a' or else T = 'A' then
+                  Nam := Chars (Identifier (Parent (N)));
+               end if;
+
+            when 'G' | 'P' =>
+
+               --  For entry guard, the token sloc is from the N_Entry_Body.
+               --  For PRAGMA, we must get the location from the pragma node.
+               --  Argument N is the pragma argument, and we have to go up
+               --  two levels (through the pragma argument association) to
+               --  get to the pragma node itself. For the guard on a select
+               --  alternative, we do not have access to the token location for
+               --  the WHEN, so we use the first sloc of the condition itself
+               --  (note: we use First_Sloc, not Sloc, because this is what is
+               --  referenced by dominance markers).
+
+               --  Doesn't this requirement of using First_Sloc need to be
+               --  documented in the spec ???
+
+               if Nkind_In (Parent (N), N_Accept_Alternative,
+                                        N_Delay_Alternative,
+                                        N_Terminate_Alternative)
+               then
+                  Loc := First_Sloc (N);
+               else
+                  Loc := Sloc (Parent (Parent (N)));
+               end if;
+
+            when 'X' =>
+
+               --  For an expression, no Sloc
+
+               null;
+
+            --  No other possibilities
+
+            when others =>
+               raise Program_Error;
+         end case;
+
+         Append_SCO
+           (C1                 => T,
+            C2                 => ' ',
+            From               => Loc,
+            To                 => No_Location,
+            Last               => False,
+            Pragma_Aspect_Name => Nam);
+
+         --  For an aspect specification, which will be rewritten into a
+         --  pragma, enter a hash table entry now.
+
+         if T = 'a' then
+            Hash_Entries.Append ((Loc, SCO_Raw_Table.Last));
+         end if;
+      end Output_Header;
+
+      ------------------------------
+      -- Process_Decision_Operand --
+      ------------------------------
+
+      procedure Process_Decision_Operand (N : Node_Id) is
+      begin
+         if Is_Logical_Operator (N) /= False then
+            if Nkind (N) /= N_Op_Not then
+               Process_Decision_Operand (Left_Opnd (N));
+               X_Not_Decision := False;
+            end if;
+
+            Process_Decision_Operand (Right_Opnd (N));
+
+         else
+            Process_Decisions (N, 'X', Pragma_Sloc);
+         end if;
+      end Process_Decision_Operand;
+
+      ------------------
+      -- Process_Node --
+      ------------------
+
+      function Process_Node (N : Node_Id) return Traverse_Result is
+      begin
+         case Nkind (N) is
+
+            --  Logical operators, output table entries and then process
+            --  operands recursively to deal with nested conditions.
+
+            when N_And_Then
+               | N_Op_And
+               | N_Op_Not
+               | N_Op_Or
+               | N_Or_Else
+            =>
+               declare
+                  T : Character;
+
+               begin
+                  --  If outer level, then type comes from call, otherwise it
+                  --  is more deeply nested and counts as X for expression.
+
+                  if N = Process_Decisions.N then
+                     T := Process_Decisions.T;
+                  else
+                     T := 'X';
+                  end if;
+
+                  --  Output header for sequence
+
+                  X_Not_Decision := T = 'X' and then Nkind (N) = N_Op_Not;
+                  Mark      := SCO_Raw_Table.Last;
+                  Mark_Hash := Hash_Entries.Last;
+                  Output_Header (T);
+
+                  --  Output the decision
+
+                  Output_Decision_Operand (N);
+
+                  --  If the decision was in an expression context (T = 'X')
+                  --  and contained only NOT operators, then we don't output
+                  --  it, so delete it.
+
+                  if X_Not_Decision then
+                     SCO_Raw_Table.Set_Last (Mark);
+                     Hash_Entries.Set_Last (Mark_Hash);
+
+                  --  Otherwise, set Last in last table entry to mark end
+
+                  else
+                     SCO_Raw_Table.Table (SCO_Raw_Table.Last).Last := True;
+                  end if;
+
+                  --  Process any embedded decisions
+
+                  Process_Decision_Operand (N);
+                  return Skip;
+               end;
+
+            --  Case expression
+
+            --  Really hard to believe this is correct given the special
+            --  handling for if expressions below ???
+
+            when N_Case_Expression =>
+               return OK; -- ???
+
+            --  If expression, processed like an if statement
+
+            when N_If_Expression =>
+               declare
+                  Cond : constant Node_Id := First (Expressions (N));
+                  Thnx : constant Node_Id := Next (Cond);
+                  Elsx : constant Node_Id := Next (Thnx);
+
+               begin
+                  Process_Decisions (Cond, 'I', Pragma_Sloc);
+                  Process_Decisions (Thnx, 'X', Pragma_Sloc);
+                  Process_Decisions (Elsx, 'X', Pragma_Sloc);
+                  return Skip;
+               end;
+
+            --  All other cases, continue scan
+
+            when others =>
+               return OK;
+         end case;
+      end Process_Node;
+
+      procedure Traverse is new Traverse_Proc (Process_Node);
+
+   --  Start of processing for Process_Decisions
+
+   begin
+      if No (N) then
+         return;
+      end if;
+
+      Hash_Entries.Init;
+
+      --  See if we have simple decision at outer level and if so then
+      --  generate the decision entry for this simple decision. A simple
+      --  decision is a boolean expression (which is not a logical operator
+      --  or short circuit form) appearing as the operand of an IF, WHILE,
+      --  EXIT WHEN, or special PRAGMA construct.
+
+      if T /= 'X' and then Is_Logical_Operator (N) = False then
+         Output_Header (T);
+         Output_Element (N);
+
+         --  Change Last in last table entry to True to mark end of
+         --  sequence, which is this case is only one element long.
+
+         SCO_Raw_Table.Table (SCO_Raw_Table.Last).Last := True;
+      end if;
+
+      Traverse (N);
+
+      --  Now we have the definitive set of SCO entries, register them in the
+      --  corresponding hash table.
+
+      for J in 1 .. Hash_Entries.Last loop
+         SCO_Raw_Hash_Table.Set
+           (Hash_Entries.Table (J).Sloc,
+            Hash_Entries.Table (J).SCO_Index);
+      end loop;
+
+      Hash_Entries.Free;
+   end Process_Decisions;
+
    ---------------------
    -- Instrument_Unit --
    ---------------------
 
    procedure Instrument_Unit (Unit_Name : String) is
-      Ctx : Analysis_Context := Create;
+      Ctx  : Analysis_Context := Create;
       Unit : Analysis_Unit := Get_From_File (Ctx, Unit_Name);
    begin
-      Traverse (Unit);
+      Traverse_Declarations_Or_Statements (Root (Unit));
+      Destroy (Ctx);
    end Instrument_Unit;
+
+   ------------------
+   -- Has_Decision --
+   ------------------
+
+   function Has_Decision (E : Expr) return Boolean is
+      function Visit (N : Ada_Node) return Visit_Status;
+      --  If N's kind indicates the presence of a decision, return Stop,
+      --  otherwise return Into.
+      --
+      --  We know have a decision as soon as we have a logical operator (by
+      --  definition) or an IF-expression (its condition is a decision).
+
+      -----------
+      -- Visit --
+      -----------
+
+      function Visit (N : Ada_Node) return Visit_Status is
+      begin
+         if Is_Logical_Operator (N) /= False
+           or else Nkind (N) = N_If_Expression
+         then
+            return Stop;
+         else
+            return Into;
+         end if;
+      end Visit;
+
+   --  Start of processing for Has_Decision
+
+   begin
+      return E.Traverse (Visit'Access) = Stop;
+   end Has_Decision;
+
+   -----------------
+   -- Pragma_Name --
+   -----------------
+
+   function Pragma_Name (P : Pragma_Node) return Symbol_Type is
+      Raw_Name   : constant Text_Type := P.F_Id.Text;
+      Canon_Name : constant Canonicalization_Result := Canonicalize (Raw_Name);
+   begin
+      pragma Assert (Canon_Name.Success);
+      return Find (Symbols, Canon_Name.Symbol);
+   end Pragma_Name;
+
+   -----------------------
+   -- Aspect_Assoc_Name --
+   -----------------------
+
+   function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type is
+      Raw_Name   : constant Text_Type := A.F_Id.Text;
+      Canon_Name : constant Canonicalization_Result := Canonicalize (Raw_Name);
+   begin
+      pragma Assert (Canon_Name.Success);
+      return Find (Symbols, Canon_Name.Symbol);
+   end Aspect_Assoc_Name;
 
 end Instrument;
