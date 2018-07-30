@@ -5,23 +5,23 @@
 --  and local bodies ae expected to be reported as covered, and other
 --  declarations are expected to be reported as uncovered.
 
-with Discrete_Subtype_Defs; use Discrete_Subtype_Defs;
+with Defs; use Defs;
 with Support;                      use Support;
 
-procedure Test_Discrete_Subtype_Defs_Part_2 is
+procedure Test_Part_2 is
    package P2 is new P2_G (20);
 begin
    Assert (P2.Arr'Length = 20);
 
    Assert (not Some_Fun_2 (1, 2, 3, 100));
-end Test_Discrete_Subtype_Defs_Part_2;
+end;
 
---# discrete_subtype_defs.ads
+--# defs.ads
 -- /dcl/    l+ ## 0
 -- /g1_dcl/ ~l- ## ~s-
 -- /g2_dcl/ l+ ## 0
 
---# discrete_subtype_defs.adb
+--# defs.adb
 -- /1_local_dcl/ l- ## s-
 -- /1_stmt/      l- ## s-
 -- /1_1_loop/    l- ## s-
