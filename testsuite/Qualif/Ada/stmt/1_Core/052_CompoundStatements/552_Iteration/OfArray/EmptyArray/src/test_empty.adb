@@ -1,10 +1,9 @@
 with Values.Arg, Support; use Values, Support;
 
-procedure Test_Values_ARG_EMPTY is
+procedure Test_Empty is
 begin
    Arg.Do_Loop_Over (EA, Early_Return => False, Max_Iterations => EA'Length);
-end;
- 
+end; 
 --# values-arg.adb
 --  /decl/    l+ ## 0
 --  /test-return/ l+ ## 0
