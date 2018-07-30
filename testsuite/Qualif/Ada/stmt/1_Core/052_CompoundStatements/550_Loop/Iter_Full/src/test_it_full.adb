@@ -6,7 +6,7 @@ with More_LOOP_Statements;    use More_LOOP_Statements;
 with LOOP_Statements_Support; use LOOP_Statements_Support;
 with Instances, Support;      use Instances, Support;
 
-procedure Test_Full_Iteration is
+procedure Test_It_Full is
 
    My_Sample : Sample :=
      (Level (Identity (1)),
@@ -38,8 +38,7 @@ begin
 
    Change_Char (My_String, 'a', 'b');
    Assert (My_String = "bbcd");
-end Test_Full_Iteration;
-
+end;
 --# loop_statements.adb
 -- /preLoop1/              l+ ## 0
 -- /loop1/                 l+ ## 0

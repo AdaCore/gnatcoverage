@@ -7,7 +7,7 @@ with LOOP_Statements;         use LOOP_Statements;
 with LOOP_Statements_Support; use LOOP_Statements_Support;
 with Instances,Support;       use Instances, Support;
 
-procedure Test_Incomplete_Iteration is
+procedure Test_It_Partial is
    My_Sample : Sample (Identity (1) .. Identity (10)) :=
      (others => Level (Identity (13)));
 
@@ -25,8 +25,7 @@ begin
    My_Sum_First_Under_Limit (Res, My_Big_Sample);
    Assert (Res = 0);
 
-end Test_Incomplete_Iteration;
-
+end;
 --# loop_statements.adb
 -- /preLoop1/              l+ ## 0
 -- /loop1/                 l+ ## 0

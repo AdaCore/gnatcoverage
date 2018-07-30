@@ -6,11 +6,10 @@ with LOOP_Statements;      use LOOP_Statements;
 with More_LOOP_Statements; use More_LOOP_Statements;
 with Instances, Support;   use Instances, Support;
 
-procedure Test_No_Execution is
+procedure Test_No_Exec is
 begin
    Assert (True);
-end Test_No_Execution;
-
+end;
 --# loop_statements.adb
 -- /declLoop1/            ~l- ## ~s-
 -- /preLoop1/              l- ## s-

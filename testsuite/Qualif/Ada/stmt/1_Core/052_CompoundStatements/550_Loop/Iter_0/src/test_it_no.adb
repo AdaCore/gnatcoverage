@@ -6,7 +6,7 @@ with More_LOOP_Statements;    use More_LOOP_Statements;
 with LOOP_Statements_Support; use LOOP_Statements_Support;
 with Instances, Support;      use Instances, Support;
 
-procedure Test_No_Iteration is
+procedure Test_It_No is
 
    Null_Sample : Sample (Identity (1) .. Identity (0));
 
@@ -29,8 +29,7 @@ begin
 
    Change_Char (Null_String, 'a', 'b');
    Assert (Null_String'Length = 0);
-end Test_No_Iteration;
-
+end;
 --# loop_statements.adb
 -- /preLoop1/              l+ ## 0
 -- /loop1/                 l+ ## 0
