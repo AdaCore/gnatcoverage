@@ -453,13 +453,47 @@ package body Traces_Names is
    -------------
 
    procedure Iterate
-     (Proc : access procedure (Subp_Key  : Subprogram_Key;
-                               Subp_Info : in out Subprogram_Info))
+     (Proc    : access procedure (Subp_Key  : Subprogram_Key;
+                                  Subp_Info : in out Subprogram_Info);
+      Sorted  : Boolean := False)
    is
    begin
-      for Cur in Routines.Iterate loop
-         Routines.Update_Element (Cur, Proc);
-      end loop;
+      if Sorted then
+         declare
+            type Subp_Entry is record
+               Name   : Symbol;
+               Cursor : Routines_Maps.Cursor;
+            end record;
+
+            function "<" (Left, Right : Subp_Entry) return Boolean is
+              (Get (Left.Name).all < Get (Right.Name).all);
+
+            package Subp_Vectors is new Ada.Containers.Vectors
+              (Index_Type   => Positive,
+               Element_Type => Subp_Entry);
+            package Subp_Sorting is new Subp_Vectors.Generic_Sorting;
+
+            Subps : Subp_Vectors.Vector;
+            --  Sorted list for iteration
+
+         begin
+            Subps.Reserve_Capacity (Routines.Length);
+            for Cur in Routines.Iterate loop
+               Subps.Append ((Name   => Routines_Maps.Key (Cur).Name,
+                              Cursor => Cur));
+            end loop;
+            Subp_Sorting.Sort (Subps);
+
+            for Subp_Entry of Subps loop
+               Routines.Update_Element (Subp_Entry.Cursor, Proc);
+            end loop;
+         end;
+
+      else
+         for Cur in Routines.Iterate loop
+            Routines.Update_Element (Cur, Proc);
+         end loop;
+      end if;
    end Iterate;
 
    ---------------------------

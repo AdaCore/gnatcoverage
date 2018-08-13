@@ -103,7 +103,7 @@ package body Traces_Dump is
       end if;
 
       Put_Line ("Coverage level: " & Coverage.Coverage_Option_Value);
-      Iterate (Process_One'Access);
+      Iterate (Proc => Process_One'Access, Sorted => True);
 
       if not Routine_Seen then
          Put_Line ("*** No routine of interest");

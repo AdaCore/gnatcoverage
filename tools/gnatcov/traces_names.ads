@@ -113,9 +113,11 @@ package Traces_Names is
    --  Format a "Key" for the "Sym" symbol in the "Exec" binary file.
 
    procedure Iterate
-     (Proc : access procedure (Subp_Key  : Subprogram_Key;
-                               Subp_Info : in out Subprogram_Info));
-   --  Execute Proc for each routine in the database
+     (Proc    : access procedure (Subp_Key  : Subprogram_Key;
+                                  Subp_Info : in out Subprogram_Info);
+      Sorted  : Boolean := False);
+   --  Execute Proc for each routine in the database. If Sorted is true, go
+   --  through routines sorted by name.
 
    procedure Read_Routine_Names_From_Text (Filename : String);
    --  Read a list of routines name from a text file in the following format:
