@@ -10,7 +10,7 @@
 import os
 import re
 
-from SUITE.cutils import match, to_list, list_to_file
+from SUITE.cutils import Wdir, match, to_list, list_to_file
 from SUITE.tutils import (
     XCOV, thistest,
     gprfor, gprbuild, exename_for,
@@ -48,6 +48,7 @@ class MapChecker:
                          for source in self.sources]
 
     def run(self):
+        tmp = Wdir('tmp_')
 
         # Compile all the sources.  This method will not work if there are
         # sources that are not in the "." directory, but since executabes are
@@ -55,7 +56,7 @@ class MapChecker:
         # compiled.
 
         project = gprfor(
-            self.sources, srcdirs=["."], main_cargs=self.options)
+            self.sources, srcdirs=[".."], main_cargs=self.options)
         gprbuild(project, gargs=["-bargs", "-z"])
 
         # If requested, check at least one non statement SCO in alis
@@ -80,4 +81,6 @@ class MapChecker:
         thistest.fail_if(
             maperrors,
             "expect no map-routines error for %s" % ", ".join(self.sources))
+
+        tmp.to_homedir()
 
