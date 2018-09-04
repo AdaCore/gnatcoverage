@@ -558,6 +558,16 @@ private
           Pragma_Storage_Size => False,
           Pragma_Storage_Unit => False,
 
+          --  OpenACC support: as of today, GNATcoverage is not ready to assess
+          --  the coverage of code that is offloaded to external devices. This
+          --  means we support only compiling with OpenACC pragmas disabled, so
+          --  we can safely assume they don't generate code.
+
+          Pragma_Acc_Data => False,
+          Pragma_Acc_Kernels => False,
+          Pragma_Acc_Loop => False,
+          Pragma_Acc_Parallel => False,
+
           --  Now pragmas which might generate code. This is an explicit list
           --  instead of a mere "others" fallback to make sure we notice when
           --  new pragmas get in the daily compiler from which we build, which
