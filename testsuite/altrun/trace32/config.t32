@@ -49,10 +49,10 @@ CONNECTIONMODE=AUTOCONNECT
 ;LINK=SCSI
 
 ;uncomment the following 3 lines if you want to use TRACE32 fonts
-SCREEN=
-VICON
-FONT=DEC
-FONT=SMALL
+;SCREEN=
+;VICON
+;FONT=DEC
+;FONT=SMALL
 
 ;uncomment the following 2 lines if you want to use TRACE32 bitmap fonts
 ;SCREEN=
@@ -71,3 +71,8 @@ FONT=SMALL
 RCL=NETASSIST
 PACKLEN=1024
 PORT=20000
+
+SCREEN=OFF
+; ^
+; Completely disable the GUI. This does not remove the binary dependencies on
+; libraries such as Qt, X, etc...
