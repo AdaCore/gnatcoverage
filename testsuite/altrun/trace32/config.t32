@@ -35,7 +35,11 @@ CONNECTIONMODE=AUTOCONNECT
 ; the GUI. We cannot have that in the automated test run, so the AUTOCONNECT
 ; option tells Trace32 to reset the probe without asking for a user
 ; interaction.
-
+;
+; Note that on Linux (at least), this option doesn't work well with SCREEN=OFF
+; mode (see below). The workaround is to use the t32usbchecker program that
+; will effectively reset the probe to do a USB communication check with the
+; probe.
 
 
 ;uncomment the following 3 lines if you use an ICE or PodbusEthernetController
