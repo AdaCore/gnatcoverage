@@ -1160,12 +1160,17 @@ Using project files (:option:`-P`, :option:`--projects`, :option:`--units`)
 ---------------------------------------------------------------------------
 
 As an alternative to manually providing the complete list of Library
-Information files to consider, you can use GNAT project files to specify units
-of interest directly. As an application often incurs a tree of (sub-)projects,
-the units of interest designation incurs two levels of selection: first,
-specify the set of :dfn:`projects of interest` where the units of interest
-reside, then for each project of interest, specify units of interest therein
-if needed.
+Information files to consider with :option:`--scos`, you can use GNAT project
+files to specify units of interest directly. When both :option:`--scos` and
+project file options are on the command line, :option:`--scos` prevails and
+the project files are just ignored with respect to the units of interest
+computation.
+
+As an application often incurs a tree of (sub-)projects, the units of interest
+designation with project files incurs two levels of selection: first, specify
+the set of :dfn:`projects of interest` where the units of interest reside,
+then for each project of interest, specify units of interest therein if
+needed.
 
 For starters, a single :dfn:`root project` must be specified using the
 :option:`-P` option, then projects of interest within the tree rooted at the
