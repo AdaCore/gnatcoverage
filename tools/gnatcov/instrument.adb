@@ -30,7 +30,7 @@ with Table;
 
 package body Instrument is
 
-   Symbols : Symbol_Table := Create;
+   Symbols : Symbol_Table := Create_Symbol_Table;
    --  Holder for name singletons
 
    Aspect_Dynamic_Predicate : constant Symbol_Type := Find
@@ -92,6 +92,40 @@ package body Instrument is
       P : Ada_Node      := No_Ada_Node) return Dominant_Info;
    --  Same as above, and returns dominant information corresponding to the
    --  last node with SCO in L.
+
+   --  The following Traverse_* routines perform appropriate calls to
+   --  Traverse_Declarations_Or_Statements to traverse specific node kinds.
+   --  Parameter D, when present, indicates the dominant of the first
+   --  declaration or statement within N.
+
+   --  Why is Traverse_Sync_Definition commented specifically, whereas
+   --  the others are not???
+
+   procedure Traverse_Generic_Package_Declaration (N : Ada_Node);
+
+   procedure Traverse_Handled_Statement_Sequence
+     (N : Ada_Node;
+      D : Dominant_Info := No_Dominant);
+
+   procedure Traverse_Package_Body (N : Ada_Node);
+
+   procedure Traverse_Package_Declaration
+     (N : Ada_Node;
+      D : Dominant_Info := No_Dominant);
+
+   procedure Traverse_Subprogram_Or_Task_Body
+     (N : Ada_Node;
+      D : Dominant_Info := No_Dominant);
+
+   procedure Traverse_Sync_Definition (N : Ada_Node);
+   --  Traverse a protected definition or task definition
+
+   --  Note regarding traversals: In a few cases where an Alternatives list is
+   --  involved, pragmas such as "pragma Page" may show up before the first
+   --  alternative. We skip them because we're out of statement or declaration
+   --  context, so these can't be pragmas of interest for SCO purposes, and
+   --  the regular alternative processing typically involves attribute queries
+   --  which aren't valid for a pragma.
 
    procedure Process_Decisions
      (N           : Ada_Node;
@@ -530,13 +564,13 @@ package body Instrument is
 
             --  Package declaration
 
-            when Ada_Package_Declaration =>
+            when Ada_Package_Decl =>
                Set_Statement_Entry;
                Traverse_Package_Declaration (N, Current_Dominant);
 
             --  Generic package declaration
 
-            when Ada_Generic_Package_Declaration =>
+            when Ada_Generic_Package_Decl =>
                Set_Statement_Entry;
                Traverse_Generic_Package_Declaration (N);
 
@@ -548,32 +582,43 @@ package body Instrument is
 
             --  Subprogram declaration or subprogram body stub
 
-            when Ada_Expression_Function
-               | Ada_Subprogram_Body_Stub
-               | Ada_Subprogram_Declaration
+            when Ada_Expr_Function
+               | Ada_Subp_Body_Stub
+               | Ada_Subp_Decl
             =>
                declare
-                  Spec : constant Ada_Node := Specification (N);
+                  Spec : constant Subp_Spec :=
+                    (case N.Kind is
+                        when Ada_Expr_Function  =>
+                          As_Expr_Function (N).F_Subp_Spec,
+                        when Ada_Subp_Body_Stub =>
+                           As_Subp_Body_Stub (N).F_Subp_Spec,
+                        when Ada_Subp_Decl | Ada_Null_Subp_Decl =>
+                          As_Classic_Subp_Decl (N).F_Subp_Spec,
+                        when others             => raise Program_Error);
                begin
-                  Process_Decisions_Defer
-                    (Parameter_Specifications (Spec), 'X');
+                  Process_Decisions_Defer (Ada_Node (Spec.F_Subp_Params), 'X');
 
                   --  Case of a null procedure: generate SCO for fictitious
                   --  NULL statement located at the NULL keyword in the
                   --  procedure specification.
 
-                  if Nkind (N) = Ada_Subprogram_Declaration
-                    and then Nkind (Spec) = Ada_Procedure_Specification
-                    and then Null_Present (Spec)
+                  if N.Kind = Ada_Null_Subp_Decl
+                    and then Spec.F_Subp_Kind.Kind = Ada_Subp_Kind_Procedure
                   then
-                     Traverse_Degenerate_Subprogram (Null_Statement (Spec));
+                     --  Traverse_Degenerate_Subprogram
+                     --    (Null_Statement (Spec));
+                     --  LAL??? No such fictitious node. But it doesn't really
+                     --  matter, just pass Spec to provide the sloc.
+                     Traverse_Degenerate_Subprogram (Ada_Node (Spec));
 
                   --  Case of an expression function: generate a statement SCO
                   --  for the expression (and then decision SCOs for any nested
                   --  decisions).
 
-                  elsif Nkind (N) = Ada_Expression_Function then
-                     Traverse_Degenerate_Subprogram (Expression (N));
+                  elsif N.Kind = Ada_Expr_Function then
+                     Traverse_Degenerate_Subprogram
+                       (Ada_Node (N.As_Expr_Function.F_Expr));
                   end if;
                end;
 
@@ -1169,6 +1214,160 @@ package body Instrument is
       return Current_Dominant;
    end Traverse_Declarations_Or_Statements;
 
+   ------------------------------------------
+   -- Traverse_Generic_Package_Declaration --
+   ------------------------------------------
+
+   procedure Traverse_Generic_Package_Declaration (N : Ada_Node) is
+   begin
+      Process_Decisions (Generic_Formal_Declarations (N), 'X', No_Location);
+      Traverse_Package_Declaration (N);
+   end Traverse_Generic_Package_Declaration;
+
+   -----------------------------------------
+   -- Traverse_Handled_Statement_Sequence --
+   -----------------------------------------
+
+   procedure Traverse_Handled_Statement_Sequence
+     (N : Ada_Node;
+      D : Dominant_Info := No_Dominant)
+   is
+      Handler : Ada_Node;
+
+   begin
+      --  For package bodies without a statement part, the parser adds an empty
+      --  one, to normalize the representation. The null statement therein,
+      --  which does not come from source, does not get a SCO.
+
+      if Present (N) and then Comes_From_Source (N) then
+         Traverse_Declarations_Or_Statements (Statements (N), D);
+
+         if Present (Exception_Handlers (N)) then
+            Handler := First_Non_Pragma (Exception_Handlers (N));
+            while Present (Handler) loop
+               Traverse_Declarations_Or_Statements
+                 (L => Statements (Handler),
+                  D => ('E', Handler));
+               Next (Handler);
+            end loop;
+         end if;
+      end if;
+   end Traverse_Handled_Statement_Sequence;
+
+   ---------------------------
+   -- Traverse_Package_Body --
+   ---------------------------
+
+   procedure Traverse_Package_Body (N : Ada_Node) is
+      Dom : Dominant_Info;
+   begin
+      --  The first statement in the handled sequence of statements is
+      --  dominated by the elaboration of the last declaration.
+
+      Dom := Traverse_Declarations_Or_Statements (Declarations (N));
+
+      Traverse_Handled_Statement_Sequence
+        (Handled_Statement_Sequence (N), Dom);
+   end Traverse_Package_Body;
+
+   ----------------------------------
+   -- Traverse_Package_Declaration --
+   ----------------------------------
+
+   procedure Traverse_Package_Declaration
+     (N : Ada_Node;
+      D : Dominant_Info := No_Dominant)
+   is
+      Spec : constant Ada_Node := Specification (N);
+      Dom  : Dominant_Info;
+
+   begin
+      Dom :=
+        Traverse_Declarations_Or_Statements (Visible_Declarations (Spec), D);
+
+      --  First private declaration is dominated by last visible declaration
+
+      Traverse_Declarations_Or_Statements (Private_Declarations (Spec), Dom);
+   end Traverse_Package_Declaration;
+
+   ------------------------------
+   -- Traverse_Sync_Definition --
+   ------------------------------
+
+   procedure Traverse_Sync_Definition (N : Ada_Node) is
+      Dom_Info : Dominant_Info := ('S', N);
+      --  The first declaration is dominated by the protected or task [type]
+      --  declaration.
+
+      Sync_Def : Ada_Node;
+      --  N's protected or task definition
+
+      Priv_Decl : List_Id;
+      Vis_Decl  : List_Id;
+      --  Sync_Def's Visible_Declarations and Private_Declarations
+
+   begin
+      case Nkind (N) is
+         when N_Protected_Type_Declaration
+            | N_Single_Protected_Declaration
+         =>
+            Sync_Def := Protected_Definition (N);
+
+         when N_Single_Task_Declaration
+            | N_Task_Type_Declaration
+         =>
+            Sync_Def := Task_Definition (N);
+
+         when others =>
+            raise Program_Error;
+      end case;
+
+      --  Sync_Def may be Empty at least for empty Task_Type_Declarations.
+      --  Querying Visible or Private_Declarations is invalid in this case.
+
+      if Present (Sync_Def) then
+         Vis_Decl  := Visible_Declarations (Sync_Def);
+         Priv_Decl := Private_Declarations (Sync_Def);
+      else
+         Vis_Decl  := No_List;
+         Priv_Decl := No_List;
+      end if;
+
+      Dom_Info := Traverse_Declarations_Or_Statements
+                    (L => Vis_Decl,
+                     D => Dom_Info);
+
+      --  If visible declarations are present, the first private declaration
+      --  is dominated by the last visible declaration.
+
+      Traverse_Declarations_Or_Statements
+        (L => Priv_Decl,
+         D => Dom_Info);
+   end Traverse_Sync_Definition;
+
+   --------------------------------------
+   -- Traverse_Subprogram_Or_Task_Body --
+   --------------------------------------
+
+   procedure Traverse_Subprogram_Or_Task_Body
+     (N : Ada_Node;
+      D : Dominant_Info := No_Dominant)
+   is
+      Decls    : constant List_Id := Declarations (N);
+      Dom_Info : Dominant_Info    := D;
+
+   begin
+      --  If declarations are present, the first statement is dominated by the
+      --  last declaration.
+
+      Dom_Info := Traverse_Declarations_Or_Statements
+                    (L => Decls, D => Dom_Info);
+
+      Traverse_Handled_Statement_Sequence
+        (N => Handled_Statement_Sequence (N),
+         D => Dom_Info);
+   end Traverse_Subprogram_Or_Task_Body;
+
    -----------------------
    -- Process_Decisions --
    -----------------------
@@ -1215,7 +1414,7 @@ package body Instrument is
       --  The flag will be set False if T is other than X, or if an operator
       --  other than NOT is in the sequence.
 
-      procedure Output_Decision_Operand (N : Node_Id);
+      procedure Output_Decision_Operand (N : Ada_Node);
       --  The node N is the top level logical operator of a decision, or it is
       --  one of the operands of a logical operator belonging to a single
       --  complex decision. This routine outputs the sequence of table entries
@@ -1224,7 +1423,7 @@ package body Instrument is
       --  Process_Decision_Operand, because we can't get decisions mixed up in
       --  the global table. Call has no effect if N is Empty.
 
-      procedure Output_Element (N : Node_Id);
+      procedure Output_Element (N : Ada_Node);
       --  Node N is an operand of a logical operator that is not itself a
       --  logical operator, or it is a simple decision. This routine outputs
       --  the table entry for the element, with C1 set to ' '. Last is set
@@ -1234,13 +1433,13 @@ package body Instrument is
       --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT WHEN/
       --  PRAGMA, and 'X' for the expression case.
 
-      procedure Process_Decision_Operand (N : Node_Id);
+      procedure Process_Decision_Operand (N : Ada_Node);
       --  This is called on node N, the top level node of a decision, or on one
       --  of its operands or suboperands after generating the full output for
       --  the complex decision. It process the suboperands of the decision
       --  looking for nested decisions.
 
-      function Process_Node (N : Node_Id) return Traverse_Result;
+      function Process_Node (N : Ada_Node) return Traverse_Result;
       --  Processes one node in the traversal, looking for logical operators,
       --  and if one is found, outputs the appropriate table entries.
 
@@ -1248,7 +1447,7 @@ package body Instrument is
       -- Output_Decision_Operand --
       -----------------------------
 
-      procedure Output_Decision_Operand (N : Node_Id) is
+      procedure Output_Decision_Operand (N : Ada_Node) is
          C1 : Character;
          C2 : Character;
          --  C1 holds a character that identifies the operation while C2
@@ -1256,7 +1455,7 @@ package body Instrument is
          --  belongs to the decision. '?' entries will be filtered out in the
          --  second (SCO_Record_Filtered) pass.
 
-         L : Node_Id;
+         L : Ada_Node;
          T : Tristate;
 
       begin
@@ -1312,7 +1511,7 @@ package body Instrument is
       -- Output_Element --
       --------------------
 
-      procedure Output_Element (N : Node_Id) is
+      procedure Output_Element (N : Ada_Node) is
          FSloc : Source_Ptr;
          LSloc : Source_Ptr;
       begin
@@ -1406,7 +1605,7 @@ package body Instrument is
       -- Process_Decision_Operand --
       ------------------------------
 
-      procedure Process_Decision_Operand (N : Node_Id) is
+      procedure Process_Decision_Operand (N : Ada_Node) is
       begin
          if Is_Logical_Operator (N) /= False then
             if Nkind (N) /= N_Op_Not then
@@ -1425,7 +1624,7 @@ package body Instrument is
       -- Process_Node --
       ------------------
 
-      function Process_Node (N : Node_Id) return Traverse_Result is
+      function Process_Node (N : Ada_Node) return Traverse_Result is
       begin
          case Nkind (N) is
 
@@ -1494,9 +1693,9 @@ package body Instrument is
 
             when N_If_Expression =>
                declare
-                  Cond : constant Node_Id := First (Expressions (N));
-                  Thnx : constant Node_Id := Next (Cond);
-                  Elsx : constant Node_Id := Next (Thnx);
+                  Cond : constant Ada_Node := First (Expressions (N));
+                  Thnx : constant Ada_Node := Next (Cond);
+                  Elsx : constant Ada_Node := Next (Thnx);
 
                begin
                   Process_Decisions (Cond, 'I', Pragma_Sloc);
