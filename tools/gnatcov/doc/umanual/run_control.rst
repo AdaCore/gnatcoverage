@@ -26,7 +26,20 @@ detect it from the ``Target`` attribute from the project file (see
 
 The :option:`-eargs` command line options that |gcvrun| receives are passed
 straight to the low-level emulation engine in both cases.  They are not
-interpreted by |gem| when it is used.
+interpreted by |gem| when it is used. Passing arguments to |gem| via |gcvrun|
+can be achieved by way of a GNAT project file, with a Switches attribute
+in the Emulator package. For example::
+
+  -- covemu.gpr
+  project Covemu is
+    package Emulator is
+      for Switches use ("--gnatbus=bridge.bar.com:1800");
+    end Emulator;
+  end Covemu;
+
+Then::
+
+  gnatcov run --target=<target> -Pcovemu.gpr
 
 In native configurations, when no :option:`--target` is passed, the program
 executes in the host environment and the :option:`-eargs` that |gcv| receives
@@ -71,4 +84,3 @@ arguments for cross environments::
   # Where supported, run "myprog" in the native environment through an
   # instrumentation layer to produce the execution trace. Pass arg1 and arg2
   # as command line arguments to "myprog".
-
