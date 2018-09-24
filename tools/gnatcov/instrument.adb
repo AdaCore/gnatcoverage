@@ -22,9 +22,11 @@ with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
 with Langkit_Support.Symbols; use Langkit_Support.Symbols;
 with Libadalang.Analysis;     use Libadalang.Analysis;
 with Libadalang.Common;       use Libadalang.Common;
-with Libadalang.Lexer;        use Libadalang.Lexer;
+--  with Libadalang.Lexer;        --  use Libadalang.Lexer;
 with Libadalang.Sources;      use Libadalang.Sources;
 
+with Namet; use Namet;
+with Snames; use Snames;
 with Types; use Types;
 with Table;
 
@@ -79,15 +81,18 @@ package body Instrument is
    end record;
    No_Dominant : constant Dominant_Info := (' ', No_Ada_Node);
 
+   function Sloc (N : Ada_Node'Class) return Source_Location is
+     (Start_Sloc (N.Sloc_Range));
+
    procedure Traverse_Declarations_Or_Statements
-     (L : Ada_Node;
+     (L : Ada_Node_List;
       D : Dominant_Info := No_Dominant;
       P : Ada_Node      := No_Ada_Node);
    --  Process L, a list of statements or declarations dominated by D. If P is
    --  present, it is processed as though it had been prepended to L.
 
    function Traverse_Declarations_Or_Statements
-     (L : Ada_Node;
+     (L : Ada_Node_List;
       D : Dominant_Info := No_Dominant;
       P : Ada_Node      := No_Ada_Node) return Dominant_Info;
    --  Same as above, and returns dominant information corresponding to the
@@ -104,7 +109,7 @@ package body Instrument is
    procedure Traverse_Generic_Package_Declaration (N : Ada_Node);
 
    procedure Traverse_Handled_Statement_Sequence
-     (N : Ada_Node;
+     (N : Handled_Stmts;
       D : Dominant_Info := No_Dominant);
 
    procedure Traverse_Package_Body (N : Ada_Node);
@@ -128,7 +133,7 @@ package body Instrument is
    --  which aren't valid for a pragma.
 
    procedure Process_Decisions
-     (N           : Ada_Node;
+     (N           : Ada_Node'Class;
       T           : Character;
       Pragma_Sloc : Source_Location);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
@@ -142,8 +147,8 @@ package body Instrument is
    -- Internal Subprograms --
    --------------------------
 
-   function Has_Decision (E : Expr) return Boolean;
-   --  E is the node for a subexpression. Returns True if the subexpression
+   function Has_Decision (T : Ada_Node'Class) return Boolean;
+   --  T is the node for a subtree. Returns True if any (sub)expression in T
    --  contains a nested decision (i.e. either is a logical operator, or
    --  contains a logical operator in its subtree).
 
@@ -214,7 +219,7 @@ package body Instrument is
    --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
-     (L : Ada_Node;
+     (L : Ada_Node_List;
       D : Dominant_Info := No_Dominant;
       P : Ada_Node      := No_Ada_Node)
    is
@@ -225,7 +230,7 @@ package body Instrument is
    end Traverse_Declarations_Or_Statements;
 
    function Traverse_Declarations_Or_Statements
-     (L : Ada_Node;
+     (L : Ada_Node_List;
       D : Dominant_Info := No_Dominant;
       P : Ada_Node      := No_Ada_Node) return Dominant_Info
    is
@@ -241,12 +246,13 @@ package body Instrument is
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
 
-      procedure Extend_Statement_Sequence (N : Ada_Node; Typ : Character);
+      procedure Extend_Statement_Sequence
+        (N : Ada_Node'Class; Typ : Character);
       --  Extend the current statement sequence to encompass the node N. Typ is
       --  the letter that identifies the type of statement/declaration that is
       --  being added to the sequence.
 
-      procedure Process_Decisions_Defer (N : Ada_Node; T : Character);
+      procedure Process_Decisions_Defer (N : Ada_Node'Class; T : Character);
       pragma Inline (Process_Decisions_Defer);
       --  This routine is logically the same as Process_Decisions, except that
       --  the arguments are saved in the SD table for later processing when
@@ -264,10 +270,10 @@ package body Instrument is
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
 
-      procedure Traverse_Aspects (N : Aspect_Spec);
+      procedure Traverse_Aspects (N : Ada_Node'Class);
       --  Helper for Traverse_One: traverse N's aspect specifications
 
-      procedure Traverse_Degenerate_Subprogram (N : Ada_Node);
+      procedure Traverse_Degenerate_Subprogram (N : Ada_Node'Class);
       --  Common code to handle null procedures and expression functions. Emit
       --  a SCO of the given Kind and N outside of the dominance flow.
 
@@ -275,7 +281,9 @@ package body Instrument is
       -- Extend_Statement_Sequence --
       -------------------------------
 
-      procedure Extend_Statement_Sequence (N : Ada_Node; Typ : Character) is
+      procedure Extend_Statement_Sequence
+        (N : Ada_Node'Class; Typ : Character)
+      is
          SR      : constant Source_Location_Range := N.Sloc_Range;
 
          F       : constant Source_Location := Start_Sloc (SR);
@@ -352,7 +360,7 @@ package body Instrument is
                end;
 
             when Ada_Expr =>
-               To_Node := N;
+               To_Node := N.As_Ada_Node;
 
             when others =>
                null;
@@ -362,16 +370,16 @@ package body Instrument is
             T := End_Sloc (To_Node.Sloc_Range);
          end if;
 
-         SC.Append ((N, F, T, Typ));
+         SC.Append ((Ada_Node (N), F, T, Typ));
       end Extend_Statement_Sequence;
 
       -----------------------------
       -- Process_Decisions_Defer --
       -----------------------------
 
-      procedure Process_Decisions_Defer (N : Ada_Node; T : Character) is
+      procedure Process_Decisions_Defer (N : Ada_Node'Class; T : Character) is
       begin
-         SD.Append ((N, T, Current_Pragma_Sloc));
+         SD.Append ((N.As_Ada_Node, T, Current_Pragma_Sloc));
       end Process_Decisions_Defer;
 
       -------------------------
@@ -462,8 +470,53 @@ package body Instrument is
       -- Traverse_Aspects --
       ----------------------
 
-      procedure Traverse_Aspects (N : Aspect_Spec) is
-         AL : constant Aspect_Assoc_List := N.F_Aspect_Assocs;
+      procedure Traverse_Aspects (N : Ada_Node'Class) is
+         AS : constant Aspect_Spec :=
+           (case N.Kind is
+               when Ada_Component_Decl    => N.As_Component_Decl.F_Aspects,
+               when Ada_Type_Decl         => N.As_Type_Decl.F_Aspects,
+               when Ada_Subtype_Decl      => N.As_Subtype_Decl.F_Aspects,
+               when Ada_Task_Type_Decl    => N.As_Task_Type_Decl.F_Aspects,
+               when Ada_Protected_Type_Decl =>
+                 N.As_Protected_Type_Decl.F_Aspects,
+               when Ada_Subp_Decl         => N.As_Subp_Decl.F_Aspects,
+               when Ada_Null_Subp_Decl    => N.As_Null_Subp_Decl.F_Aspects,
+               when Ada_Abstract_Subp_Decl =>
+                 N.As_Abstract_Subp_Decl.F_Aspects,
+               when Ada_Subp_Renaming_Decl =>
+                 N.As_Subp_Renaming_Decl.F_Aspects,
+               when Ada_Single_Protected_Decl =>
+                 N.As_Single_Protected_Decl.F_Aspects,
+               when Ada_Object_Decl       => N.As_Object_Decl.F_Aspects,
+               when Ada_Base_Package_Decl => N.As_Base_Package_Decl.F_Aspects,
+               when Ada_Exception_Decl    => N.As_Exception_Decl.F_Aspects,
+               when Ada_Generic_Subp_Instantiation =>
+                 N.As_Generic_Subp_Instantiation.F_Aspects,
+               when Ada_Generic_Package_Instantiation =>
+                 N.As_Generic_Package_Instantiation.F_Aspects,
+               when Ada_Package_Renaming_Decl =>
+                 N.As_Package_Renaming_Decl.F_Aspects,
+               when Ada_Generic_Package_Renaming_Decl =>
+                 N.As_Generic_Package_Renaming_Decl.F_Aspects,
+               when Ada_Generic_Subp_Renaming_Decl =>
+                 N.As_Generic_Subp_Renaming_Decl.F_Aspects,
+               when Ada_Formal_Subp_Decl => N.As_Formal_Subp_Decl.F_Aspects,
+               when Ada_Generic_Subp_Internal         =>
+                 N.As_Generic_Subp_Internal.F_Aspects,
+               when Ada_Entry_Decl => N.As_Entry_Decl.F_Aspects,
+               when Ada_Expr_Function => N.As_Expr_Function.F_Aspects,
+               when Ada_Subp_Body => N.As_Subp_Body.F_Aspects,
+               when Ada_Package_Body => N.As_Package_Body.F_Aspects,
+               when Ada_Task_Body => N.As_Task_Body.F_Aspects,
+               when Ada_Protected_Body => N.As_Protected_Body.F_Aspects,
+               when Ada_Protected_Body_Stub           =>
+                 N.As_Protected_Body_Stub.F_Aspects,
+               when Ada_Subp_Body_Stub => N.As_Subp_Body_Stub.F_Aspects,
+               when Ada_Package_Body_Stub => N.As_Package_Body_Stub.F_Aspects,
+               when Ada_Task_Body_Stub => N.As_Task_Body_Stub.F_Aspects,
+               when others => raise Program_Error);
+
+         AL : constant Aspect_Assoc_List := AS.F_Aspect_Assocs;
          AN : Aspect_Assoc;
          AE : Expr;
          C1 : Character;
@@ -503,7 +556,7 @@ package body Instrument is
                   Current_Pragma_Sloc := Start_Sloc (AN.Sloc_Range);
                end if;
 
-               Process_Decisions_Defer (AE.As_Ada_Node, C1);
+               Process_Decisions_Defer (AE, C1);
 
                Current_Pragma_Sloc := No_Source_Location;
             end if;
@@ -514,7 +567,7 @@ package body Instrument is
       -- Traverse_Degenerate_Subprogram --
       ------------------------------------
 
-      procedure Traverse_Degenerate_Subprogram (N : Ada_Node) is
+      procedure Traverse_Degenerate_Subprogram (N : Ada_Node'Class) is
       begin
          --  Complete current sequence of statements
 
@@ -588,16 +641,9 @@ package body Instrument is
             =>
                declare
                   Spec : constant Subp_Spec :=
-                    (case N.Kind is
-                        when Ada_Expr_Function  =>
-                          As_Expr_Function (N).F_Subp_Spec,
-                        when Ada_Subp_Body_Stub =>
-                           As_Subp_Body_Stub (N).F_Subp_Spec,
-                        when Ada_Subp_Decl | Ada_Null_Subp_Decl =>
-                          As_Classic_Subp_Decl (N).F_Subp_Spec,
-                        when others             => raise Program_Error);
+                    As_Subp_Spec (As_Basic_Decl (N).P_Subp_Spec_Or_Null);
                begin
-                  Process_Decisions_Defer (Ada_Node (Spec.F_Subp_Params), 'X');
+                  Process_Decisions_Defer (Spec.F_Subp_Params, 'X');
 
                   --  Case of a null procedure: generate SCO for fictitious
                   --  NULL statement located at the NULL keyword in the
@@ -610,7 +656,7 @@ package body Instrument is
                      --    (Null_Statement (Spec));
                      --  LAL??? No such fictitious node. But it doesn't really
                      --  matter, just pass Spec to provide the sloc.
-                     Traverse_Degenerate_Subprogram (Ada_Node (Spec));
+                     Traverse_Degenerate_Subprogram (Spec);
 
                   --  Case of an expression function: generate a statement SCO
                   --  for the expression (and then decision SCOs for any nested
@@ -618,26 +664,31 @@ package body Instrument is
 
                   elsif N.Kind = Ada_Expr_Function then
                      Traverse_Degenerate_Subprogram
-                       (Ada_Node (N.As_Expr_Function.F_Expr));
+                       (N.As_Expr_Function.F_Expr);
                   end if;
                end;
 
             --  Entry declaration
 
-            when Ada_Entry_Declaration =>
-               Process_Decisions_Defer (Parameter_Specifications (N), 'X');
+            when Ada_Entry_Decl =>
+               Process_Decisions_Defer
+                 (As_Entry_Decl (N).F_Spec.F_Entry_Params, 'X');
 
             --  Generic subprogram declaration
 
-            when Ada_Generic_Subprogram_Declaration =>
-               Process_Decisions_Defer
-                 (Generic_Formal_Declarations (N), 'X');
-               Process_Decisions_Defer
-                 (Parameter_Specifications (Specification (N)), 'X');
+            when Ada_Generic_Subp_Decl =>
+               declare
+                  GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
+               begin
+                  Process_Decisions_Defer
+                    (GSD.F_Formal_Part.F_Decls, 'X');
+                  Process_Decisions_Defer
+                    (GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
+               end;
 
             --  Task or subprogram body
 
-            when Ada_Subprogram_Body
+            when Ada_Subp_Body
                | Ada_Task_Body
             =>
                Set_Statement_Entry;
@@ -647,15 +698,14 @@ package body Instrument is
 
             when Ada_Entry_Body =>
                declare
-                  Cond : constant Ada_Node :=
-                           Condition (Entry_Body_Formal_Part (N));
+                  Cond : constant Expr := As_Entry_Body (N).F_Barrier;
 
                   Inner_Dominant : Dominant_Info := No_Dominant;
 
                begin
                   Set_Statement_Entry;
 
-                  if Present (Cond) then
+                  if not Cond.Is_Null then
                      Process_Decisions_Defer (Cond, 'G');
 
                      --  For an entry body with a barrier, the entry body
@@ -671,26 +721,31 @@ package body Instrument is
 
             when Ada_Protected_Body =>
                Set_Statement_Entry;
-               Traverse_Declarations_Or_Statements (Declarations (N));
+               Traverse_Declarations_Or_Statements
+                 (As_Protected_Body (N).F_Decls.F_Decls);
 
             --  Exit statement, which is an exit statement in the SCO sense,
             --  so it is included in the current statement sequence, but
             --  then it terminates this sequence. We also have to process
             --  any decisions in the exit statement expression.
 
-            when Ada_Exit_Statement =>
+            when Ada_Exit_Stmt =>
                Extend_Statement_Sequence (N, 'E');
-               Process_Decisions_Defer (Condition (N), 'E');
-               Set_Statement_Entry;
+               declare
+                  Cond : constant Expr := As_Exit_Stmt (N).F_Cond_Expr;
+               begin
+                  Process_Decisions_Defer (Cond, 'E');
+                  Set_Statement_Entry;
 
-               --  If condition is present, then following statement is
-               --  only executed if the condition evaluates to False.
+                  --  If condition is present, then following statement is
+                  --  only executed if the condition evaluates to False.
 
-               if Present (Condition (N)) then
-                  Current_Dominant := ('F', N);
-               else
-                  Current_Dominant := No_Dominant;
-               end if;
+                  if not Cond.Is_Null then
+                     Current_Dominant := ('F', Ada_Node (Cond));
+                  else
+                     Current_Dominant := No_Dominant;
+                  end if;
+               end;
 
             --  Label, which breaks the current statement sequence, but the
             --  label itself is not included in the next statement sequence,
@@ -702,210 +757,183 @@ package body Instrument is
 
             --  Block statement, which breaks the current statement sequence
 
-            when Ada_Block_Statement =>
+            when Ada_Decl_Block | Ada_Begin_Block =>
                Set_Statement_Entry;
 
-               --  The first statement in the handled sequence of statements
-               --  is dominated by the elaboration of the last declaration.
+               if N.Kind = Ada_Decl_Block then
+                  --  The first statement in the handled sequence of statements
+                  --  is dominated by the elaboration of the last declaration.
 
-               Current_Dominant := Traverse_Declarations_Or_Statements
-                                     (L => Declarations (N),
-                                      D => Current_Dominant);
+                  Current_Dominant := Traverse_Declarations_Or_Statements
+                    (L => As_Decl_Block (N).F_Decls.F_Decls,
+                     D => Current_Dominant);
+               end if;
 
                Traverse_Handled_Statement_Sequence
-                 (N => Handled_Statement_Sequence (N),
+                 (N => (case N.Kind is
+                           when Ada_Decl_Block  => As_Decl_Block (N).F_Stmts,
+                           when Ada_Begin_Block => As_Begin_Block (N).F_Stmts,
+                           when others          => raise Program_Error),
                   D => Current_Dominant);
 
             --  If statement, which breaks the current statement sequence,
             --  but we include the condition in the current sequence.
 
-            when Ada_If_Statement =>
+            when Ada_If_Stmt =>
                Current_Test := N;
                Extend_Statement_Sequence (N, 'I');
-               Process_Decisions_Defer (Condition (N), 'I');
-               Set_Statement_Entry;
 
-               --  Now we traverse the statements in the THEN part
+               declare
+                  If_N : constant If_Stmt := N.As_If_Stmt;
+               begin
+                  Process_Decisions_Defer (If_N.F_Cond_Expr, 'I');
+                  Set_Statement_Entry;
 
-               Traverse_Declarations_Or_Statements
-                 (L => Then_Statements (N),
-                  D => ('T', N));
+                  --  Now we traverse the statements in the THEN part
 
-               --  Loop through ELSIF parts if present
+                  Traverse_Declarations_Or_Statements
+                    (L => If_N.F_Then_Stmts.As_Ada_Node_List,
+                     D => ('T', N));
 
-               if Present (Elsif_Parts (N)) then
+                  --  Loop through ELSIF parts if present
+
                   declare
                      Saved_Dominant : constant Dominant_Info :=
-                                        Current_Dominant;
-
-                     Elif : Ada_Node := First (Elsif_Parts (N));
+                       Current_Dominant;
 
                   begin
-                     while Present (Elif) loop
+                     for J in 1 .. If_N.F_Alternatives.Children_Count loop
+                        declare
+                           Elif : constant Elsif_Stmt_Part :=
+                             If_N.F_Alternatives
+                               .Child (J).As_Elsif_Stmt_Part;
+                        begin
 
-                        --  An Elsif is executed only if the previous test
-                        --  got a FALSE outcome.
+                           --  An Elsif is executed only if the previous test
+                           --  got a FALSE outcome.
 
-                        Current_Dominant := ('F', Current_Test);
+                           Current_Dominant := ('F', Current_Test);
 
-                        --  Now update current test information
+                           --  Now update current test information
 
-                        Current_Test := Elif;
+                           Current_Test := Ada_Node (Elif);
 
-                        --  We generate a statement sequence for the
-                        --  construct "ELSIF condition", so that we have
-                        --  a statement for the resulting decisions.
+                           --  We generate a statement sequence for the
+                           --  construct "ELSIF condition", so that we have
+                           --  a statement for the resulting decisions.
 
-                        Extend_Statement_Sequence (Elif, 'I');
-                        Process_Decisions_Defer (Condition (Elif), 'I');
-                        Set_Statement_Entry;
+                           Extend_Statement_Sequence (Ada_Node (Elif), 'I');
+                           Process_Decisions_Defer (Elif.F_Cond_Expr, 'I');
+                           Set_Statement_Entry;
 
-                        --  An ELSIF part is never guaranteed to have
-                        --  been executed, following statements are only
-                        --  dominated by the initial IF statement.
+                           --  An ELSIF part is never guaranteed to have
+                           --  been executed, following statements are only
+                           --  dominated by the initial IF statement.
 
-                        Current_Dominant := Saved_Dominant;
+                           Current_Dominant := Saved_Dominant;
 
-                        --  Traverse the statements in the ELSIF
+                           --  Traverse the statements in the ELSIF
 
-                        Traverse_Declarations_Or_Statements
-                          (L => Then_Statements (Elif),
-                           D => ('T', Elif));
-                        Next (Elif);
+                           Traverse_Declarations_Or_Statements
+                             (L => Elif.F_Stmts.As_Ada_Node_List,
+                              D => ('T', Ada_Node (Elif)));
+                        end;
                      end loop;
                   end;
-               end if;
 
-               --  Finally traverse the ELSE statements if present
+                  --  Finally traverse the ELSE statements if present
 
-               Traverse_Declarations_Or_Statements
-                 (L => Else_Statements (N),
-                  D => ('F', Current_Test));
+                  Traverse_Declarations_Or_Statements
+                    (L => If_N.F_Else_Stmts.As_Ada_Node_List,
+                     D => ('F', Current_Test));
+               end;
 
             --  CASE statement, which breaks the current statement sequence,
             --  but we include the expression in the current sequence.
 
-            when Ada_Case_Statement =>
+            when Ada_Case_Stmt =>
                Extend_Statement_Sequence (N, 'C');
-               Process_Decisions_Defer (Expression (N), 'X');
-               Set_Statement_Entry;
-
-               --  Process case branches, all of which are dominated by the
-               --  CASE statement.
-
                declare
-                  Alt : Ada_Node;
+                  Case_N : constant Case_Stmt := N.As_Case_Stmt;
                begin
-                  Alt := First_Non_Pragma (Alternatives (N));
-                  while Present (Alt) loop
-                     Traverse_Declarations_Or_Statements
-                       (L => Statements (Alt),
-                        D => Current_Dominant);
-                     Next (Alt);
+                  Process_Decisions_Defer (Case_N.F_Expr, 'X');
+                  Set_Statement_Entry;
+
+                  --  Process case branches, all of which are dominated by the
+                  --  CASE statement.
+
+                  for J in 1 .. Case_N.F_Alternatives.Children_Count loop
+                     declare
+                        Alt : constant Case_Stmt_Alternative :=
+                          Case_N.Child (J).As_Case_Stmt_Alternative;
+                     begin
+                        Traverse_Declarations_Or_Statements
+                          (L => Alt.F_Stmts.As_Ada_Node_List,
+                           D => Current_Dominant);
+                     end;
                   end loop;
                end;
 
             --  ACCEPT statement
 
-            when Ada_Accept_Statement =>
+            when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
                Extend_Statement_Sequence (N, 'A');
                Set_Statement_Entry;
 
-               --  Process sequence of statements, dominant is the ACCEPT
-               --  statement.
+               if N.Kind = Ada_Accept_Stmt_With_Stmts then
+                  --  Process sequence of statements, dominant is the ACCEPT
+                  --  statement.
 
-               Traverse_Handled_Statement_Sequence
-                 (N => Handled_Statement_Sequence (N),
-                  D => Current_Dominant);
-
-            --  SELECT
-
-            when Ada_Selective_Accept =>
-               Extend_Statement_Sequence (N, 'S');
-               Set_Statement_Entry;
-
-               --  Process alternatives
-
-               declare
-                  Alt   : Ada_Node;
-                  Guard : Ada_Node;
-                  S_Dom : Dominant_Info;
-
-               begin
-                  Alt := First (Select_Alternatives (N));
-                  while Present (Alt) loop
-                     S_Dom := Current_Dominant;
-                     Guard := Condition (Alt);
-
-                     if Present (Guard) then
-                        Process_Decisions
-                          (Guard,
-                           'G',
-                           Pragma_Sloc => No_Location);
-                        Current_Dominant := ('T', Guard);
-                     end if;
-
-                     Traverse_One (Alt);
-
-                     Current_Dominant := S_Dom;
-                     Next (Alt);
-                  end loop;
-               end;
-
-               Traverse_Declarations_Or_Statements
-                 (L => Else_Statements (N),
-                  D => Current_Dominant);
-
-            when Ada_Conditional_Entry_Call
-               | Ada_Timed_Entry_Call
-            =>
-               Extend_Statement_Sequence (N, 'S');
-               Set_Statement_Entry;
-
-               --  Process alternatives
-
-               Traverse_One (Entry_Call_Alternative (N));
-
-               if Nkind (N) = Ada_Timed_Entry_Call then
-                  Traverse_One (Delay_Alternative (N));
-               else
-                  Traverse_Declarations_Or_Statements
-                    (L => Else_Statements (N),
+                  Traverse_Handled_Statement_Sequence
+                    (N => N.As_Accept_Stmt_With_Stmts.F_Stmts,
                      D => Current_Dominant);
                end if;
 
-            when Ada_Asynchronous_Select =>
+               --  SELECT statement
+
+            --  (all 4 non-terminals: selective_accept, timed_entry_call,
+            --  conditional_entry_call, and asynchronous_select).
+
+            when Ada_Select_Stmt =>
                Extend_Statement_Sequence (N, 'S');
                Set_Statement_Entry;
 
-               Traverse_One (Triggering_Alternative (N));
-               Traverse_Declarations_Or_Statements
-                 (L => Statements (Abortable_Part (N)),
-                  D => Current_Dominant);
+               declare
+                  Sel_N : constant Select_Stmt := As_Select_Stmt (N);
+                  S_Dom : Dominant_Info;
+               begin
+                  for J in 1 .. Sel_N.F_Guards.Children_Count loop
+                     declare
+                        Alt : constant Select_When_Part :=
+                          Sel_N.F_Guards.Child (J).As_Select_When_Part;
+                        Guard : Expr;
+                     begin
+                        S_Dom := Current_Dominant;
+                        Guard := Alt.F_Cond_Expr;
 
-            when Ada_Accept_Alternative =>
-               Traverse_Declarations_Or_Statements
-                 (L => Statements (N),
-                  D => Current_Dominant,
-                  P => Accept_Statement (N));
+                        if not Guard.Is_Null then
+                           Process_Decisions
+                             (Guard,
+                              'G',
+                              Pragma_Sloc => No_Source_Location);
+                           Current_Dominant := ('T', Ada_Node (Guard));
+                        end if;
 
-            when Ada_Entry_Call_Alternative =>
-               Traverse_Declarations_Or_Statements
-                 (L => Statements (N),
-                  D => Current_Dominant,
-                  P => Entry_Call_Statement (N));
+                        Traverse_Declarations_Or_Statements
+                          (L => Alt.F_Stmts.As_Ada_Node_List,
+                           D => Current_Dominant);
 
-            when Ada_Delay_Alternative =>
-               Traverse_Declarations_Or_Statements
-                 (L => Statements (N),
-                  D => Current_Dominant,
-                  P => Delay_Statement (N));
+                        Current_Dominant := S_Dom;
+                     end;
+                  end loop;
 
-            when Ada_Triggering_Alternative =>
-               Traverse_Declarations_Or_Statements
-                 (L => Statements (N),
-                  D => Current_Dominant,
-                  P => Triggering_Statement (N));
+                  Traverse_Declarations_Or_Statements
+                    (L => Sel_N.F_Else_Stmts.As_Ada_Node_List,
+                     D => Current_Dominant);
+                  Traverse_Declarations_Or_Statements
+                    (L => Sel_N.F_Abort_Stmts.As_Ada_Node_List,
+                     D => Current_Dominant);
+               end;
 
             when Ada_Terminate_Alternative =>
 
@@ -920,9 +948,9 @@ package body Instrument is
             --  Unconditional exit points, which are included in the current
             --  statement sequence, but then terminate it
 
-            when Ada_Goto_Statement
-               | Ada_Raise_Statement
-               | Ada_Requeue_Statement
+            when Ada_Goto_Stmt
+               | Ada_Raise_Stmt
+               | Ada_Requeue_Stmt
             =>
                Extend_Statement_Sequence (N, ' ');
                Set_Statement_Entry;
@@ -931,23 +959,28 @@ package body Instrument is
             --  Simple return statement. which is an exit point, but we
             --  have to process the return expression for decisions.
 
-            when Ada_Simple_Return_Statement =>
+            when Ada_Return_Stmt =>
                Extend_Statement_Sequence (N, ' ');
-               Process_Decisions_Defer (Expression (N), 'X');
+               Process_Decisions_Defer
+                 (N.As_Return_Stmt.F_Return_Expr, 'X');
                Set_Statement_Entry;
                Current_Dominant := No_Dominant;
 
             --  Extended return statement
 
-            when Ada_Extended_Return_Statement =>
+            when Ada_Extended_Return_Stmt =>
                Extend_Statement_Sequence (N, 'R');
-               Process_Decisions_Defer (Return_Object_Declarations (N), 'X');
-               Set_Statement_Entry;
+               declare
+                  ER_N : constant Extended_Return_Stmt :=
+                    N.As_Extended_Return_Stmt;
+               begin
+                  Process_Decisions_Defer (ER_N.F_Decl, 'X');
+                  Set_Statement_Entry;
 
-               Traverse_Handled_Statement_Sequence
-                 (N => Handled_Statement_Sequence (N),
-                  D => Current_Dominant);
-
+                  Traverse_Handled_Statement_Sequence
+                    (N => ER_N.F_Stmts,
+                     D => Current_Dominant);
+               end;
                Current_Dominant := No_Dominant;
 
             --  Loop ends the current statement sequence, but we include
@@ -955,36 +988,59 @@ package body Instrument is
             --  But the body of the loop starts a new sequence, since it
             --  may not be executed as part of the current sequence.
 
-            when Ada_Loop_Statement =>
+            when Ada_Base_Loop_Stmt =>
                declare
-                  ISC            : constant Ada_Node := Iteration_Scheme (N);
+                  Loop_S         : constant Base_Loop_Stmt :=
+                    N.As_Base_Loop_Stmt;
+                  ISC            : constant Loop_Spec := Loop_S.F_Spec;
                   Inner_Dominant : Dominant_Info     := No_Dominant;
 
                begin
-                  if Present (ISC) then
+                  if not ISC.Is_Null then
 
                      --  If iteration scheme present, extend the current
                      --  statement sequence to include the iteration scheme
                      --  and process any decisions it contains.
 
-                     --  While loop
+                     --  WHILE loop
 
-                     if Present (Condition (ISC)) then
+                     if ISC.Kind = Ada_While_Loop_Spec then
                         Extend_Statement_Sequence (N, 'W');
-                        Process_Decisions_Defer (Condition (ISC), 'W');
+                        Process_Decisions_Defer
+                          (ISC.As_While_Loop_Spec.F_Expr, 'W');
 
                         --  Set more specific dominant for inner statements
                         --  (the control sloc for the decision is that of
                         --  the WHILE token).
 
-                        Inner_Dominant := ('T', ISC);
+                        Inner_Dominant := ('T', Ada_Node (ISC));
 
-                     --  For loop
+                     --  FOR loop
 
                      else
                         Extend_Statement_Sequence (N, 'F');
-                        Process_Decisions_Defer
-                          (Loop_Parameter_Specification (ISC), 'X');
+
+                        declare
+                           ISC_For : constant For_Loop_Spec :=
+                             ISC.As_For_Loop_Spec;
+                           For_Param : constant For_Loop_Var_Decl :=
+                             ISC_For.F_Var_Decl;
+                        begin
+                           --  loop_parameter_specification case
+
+                           if not For_Param.Is_Null then
+                              Process_Decisions_Defer
+                                (Ada_Node (For_Param), 'X');
+
+                           --  iterator_specification case
+
+                           else
+                              Process_Decisions_Defer
+                                (ISC_For.F_Loop_Type, 'X');
+                              Process_Decisions_Defer
+                                (ISC_For.F_Iter_Expr, 'X');
+                           end if;
+                        end;
                      end if;
                   end if;
 
@@ -995,26 +1051,27 @@ package body Instrument is
                   end if;
 
                   Traverse_Declarations_Or_Statements
-                    (L => Statements (N),
+                    (L => Loop_S.F_Stmts.As_Ada_Node_List,
                      D => Inner_Dominant);
                end;
 
             --  Pragma
 
-            when Ada_Pragma =>
+            when Ada_Pragma_Node =>
 
                --  Record sloc of pragma (pragmas don't nest)
 
-               pragma Assert (Current_Pragma_Sloc = No_Location);
+               pragma Assert (Current_Pragma_Sloc = No_Source_Location);
                Current_Pragma_Sloc := Sloc (N);
 
                --  Processing depends on the kind of pragma
 
                declare
-                  Nam : constant Name_Id := Pragma_Name_Unmapped (N);
-                  Arg : Ada_Node         :=
-                          First (Pragma_Argument_Associations (N));
-                  Typ : Character;
+                  Prag_N    : constant Pragma_Node := N.As_Pragma_Node;
+                  Prag_Args : constant Base_Assoc_List := Prag_N.F_Args;
+                  Nam       : constant Name_Id := Name_Find (Prag_N.F_Id.Text);
+                  Arg       : Positive := 1;
+                  Typ       : Character;
 
                begin
                   case Nam is
@@ -1034,27 +1091,32 @@ package body Instrument is
                         --  depending on setting by Set_SCO_Pragma_Enabled.
 
                         if Nam = Name_Check then
-                           Next (Arg);
+
+                           --  Skip check name
+
+                           Arg := 2;
                         end if;
 
-                        Process_Decisions_Defer (Expression (Arg), 'P');
+                        Process_Decisions_Defer
+                          (Prag_Args.Child (Arg), 'P');
                         Typ := 'p';
 
                         --  Pre/postconditions can be inherited so SCO should
                         --  never be deactivated???
 
                      when Name_Debug =>
-                        if Present (Arg) and then Present (Next (Arg)) then
+                        if Prag_Args.Children_Count = 2 then
 
                            --  Case of a dyadic pragma Debug: first argument
                            --  is a P decision, any nested decision in the
                            --  second argument is an X decision.
 
-                           Process_Decisions_Defer (Expression (Arg), 'P');
-                           Next (Arg);
+                           Process_Decisions_Defer
+                             (Prag_Args.Child (Arg), 'P');
+                           Arg := 2;
                         end if;
 
-                        Process_Decisions_Defer (Expression (Arg), 'X');
+                        Process_Decisions_Defer (Prag_Args.Child (Arg), 'X');
                         Typ := 'p';
 
                      --  For all other pragmas, we generate decision entries
@@ -1074,40 +1136,47 @@ package body Instrument is
 
                   Extend_Statement_Sequence (N, Typ);
 
-                  Current_Pragma_Sloc := No_Location;
+                  Current_Pragma_Sloc := No_Source_Location;
                end;
 
-            --  Object declaration. Ignored if Prev_Ids is set, since the
-            --  parser generates multiple instances of the whole declaration
-            --  if there is more than one identifier declared, and we only
-            --  want one entry in the SCOs, so we take the first, for which
-            --  Prev_Ids is False.
+            --  Object or named number declaration
+            --  Generate a single SCO even if multiple defining identifiers
+            --  are present.
 
-            when Ada_Number_Declaration
-               | Ada_Object_Declaration
+            when Ada_Number_Decl
+               | Ada_Object_Decl
             =>
-               if not Prev_Ids (N) then
-                  Extend_Statement_Sequence (N, 'o');
+               Extend_Statement_Sequence (N, 'o');
 
-                  if Has_Decision (N) then
-                     Process_Decisions_Defer (N, 'X');
-                  end if;
+               if Has_Decision (N) then
+                  Process_Decisions_Defer (N, 'X');
                end if;
 
             --  All other cases, which extend the current statement sequence
             --  but do not terminate it, even if they have nested decisions.
 
-            when Ada_Protected_Type_Declaration
-               | Ada_Task_Type_Declaration
+            when Ada_Protected_Type_Decl
+               | Ada_Task_Type_Decl
             =>
                Extend_Statement_Sequence (N, 't');
-               Process_Decisions_Defer (Discriminant_Specifications (N), 'X');
+               declare
+                  Disc_N : constant Discriminant_Part :=
+                    (case N.Kind is
+                        when Ada_Protected_Type_Decl =>
+                          N.As_Protected_Type_Decl.F_Discriminants,
+                        when Ada_Task_Type_Decl      =>
+                          N.As_Task_Type_Decl.F_Discriminants,
+                        when others                  =>
+                           raise Program_Error);
+               begin
+                  Process_Decisions_Defer (Disc_N, 'X');
+               end;
                Set_Statement_Entry;
 
                Traverse_Sync_Definition (N);
 
-            when Ada_Single_Protected_Declaration
-               | Ada_Single_Task_Declaration
+            when Ada_Single_Protected_Decl
+               | Ada_Single_Task_Decl
             =>
                Extend_Statement_Sequence (N, 'o');
                Set_Statement_Entry;
@@ -1120,22 +1189,41 @@ package body Instrument is
                --  no SCO should be generated for this node.
 
                declare
-                  NK  : constant Node_Kind := Nkind (N);
                   Typ : Character;
 
                begin
-                  case NK is
-                     when Ada_Full_Type_Declaration
-                        | Ada_Incomplete_Type_Declaration
-                        | Ada_Private_Extension_Declaration
-                        | Ada_Private_Type_Declaration
-                     =>
-                        Typ := 't';
+                  case N.Kind is
+                     when Ada_Base_Type_Decl =>
+                        if N.Kind = Ada_Subtype_Decl then
+                           Typ := 's';
+                        else
+                           Typ := 't';
+                        end if;
 
-                     when Ada_Subtype_Declaration =>
-                        Typ := 's';
+                     --  Entity declaration nodes that may also be used
+                     --  for entity renamings.
 
-                     when Ada_Renaming_Declaration =>
+                     when Ada_Object_Decl | Ada_Exception_Decl =>
+                        declare
+                           Ren_N : constant Renaming_Clause :=
+                             (case N.Kind is
+                                 when Ada_Object_Decl    =>
+                                   N.As_Object_Decl.F_Renaming_Clause,
+                                 when Ada_Exception_Decl =>
+                                   N.As_Exception_Decl.F_Renames,
+                                 when others             =>
+                                    raise Program_Error);
+                        begin
+                           if not Ren_N.Is_Null then
+                              Typ := 'r';
+                           else
+                              Typ := 'd';
+                           end if;
+                        end;
+
+                     when Ada_Package_Renaming_Decl   |
+                          Ada_Subp_Renaming_Decl      |
+                          Ada_Generic_Renaming_Decl   =>
                         Typ := 'r';
 
                      when Ada_Generic_Instantiation =>
@@ -1143,18 +1231,18 @@ package body Instrument is
 
                      when Ada_Package_Body_Stub
                         | Ada_Protected_Body_Stub
-                        | Ada_Representation_Clause
+                        | Ada_Aspect_Clause
                         | Ada_Task_Body_Stub
                         | Ada_Use_Package_Clause
                         | Ada_Use_Type_Clause
                      =>
                         Typ := ASCII.NUL;
 
-                     when Ada_Procedure_Call_Statement =>
+                     when Ada_Call_Stmt =>
                         Typ := ' ';
 
                      when others =>
-                        if NK in Ada_Statement_Other_Than_Procedure_Call then
+                        if N.Kind in Ada_Stmt then
                            Typ := ' ';
                         else
                            Typ := 'd';
@@ -1229,7 +1317,7 @@ package body Instrument is
    -----------------------------------------
 
    procedure Traverse_Handled_Statement_Sequence
-     (N : Ada_Node;
+     (N : Handled_Stmts;
       D : Dominant_Info := No_Dominant)
    is
       Handler : Ada_Node;
@@ -1373,7 +1461,7 @@ package body Instrument is
    -----------------------
 
    procedure Process_Decisions
-     (N           : Ada_Node;
+     (N           : Ada_Node'Class;
       T           : Character;
       Pragma_Sloc : Source_Location)
    is
@@ -1768,7 +1856,7 @@ package body Instrument is
    -- Has_Decision --
    ------------------
 
-   function Has_Decision (E : Expr) return Boolean is
+   function Has_Decision (T : Ada_Node'Class) return Boolean is
       function Visit (N : Ada_Node) return Visit_Status;
       --  If N's kind indicates the presence of a decision, return Stop,
       --  otherwise return Into.
@@ -1794,7 +1882,7 @@ package body Instrument is
    --  Start of processing for Has_Decision
 
    begin
-      return E.Traverse (Visit'Access) = Stop;
+      return T.Traverse (Visit'Access) = Stop;
    end Has_Decision;
 
    -----------------
