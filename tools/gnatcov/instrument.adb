@@ -472,49 +472,11 @@ package body Instrument is
 
       procedure Traverse_Aspects (N : Ada_Node'Class) is
          AS : constant Aspect_Spec :=
-           (case N.Kind is
-               when Ada_Component_Decl    => N.As_Component_Decl.F_Aspects,
-               when Ada_Type_Decl         => N.As_Type_Decl.F_Aspects,
-               when Ada_Subtype_Decl      => N.As_Subtype_Decl.F_Aspects,
-               when Ada_Task_Type_Decl    => N.As_Task_Type_Decl.F_Aspects,
-               when Ada_Protected_Type_Decl =>
-                 N.As_Protected_Type_Decl.F_Aspects,
-               when Ada_Subp_Decl         => N.As_Subp_Decl.F_Aspects,
-               when Ada_Null_Subp_Decl    => N.As_Null_Subp_Decl.F_Aspects,
-               when Ada_Abstract_Subp_Decl =>
-                 N.As_Abstract_Subp_Decl.F_Aspects,
-               when Ada_Subp_Renaming_Decl =>
-                 N.As_Subp_Renaming_Decl.F_Aspects,
-               when Ada_Single_Protected_Decl =>
-                 N.As_Single_Protected_Decl.F_Aspects,
-               when Ada_Object_Decl       => N.As_Object_Decl.F_Aspects,
-               when Ada_Base_Package_Decl => N.As_Base_Package_Decl.F_Aspects,
-               when Ada_Exception_Decl    => N.As_Exception_Decl.F_Aspects,
-               when Ada_Generic_Subp_Instantiation =>
-                 N.As_Generic_Subp_Instantiation.F_Aspects,
-               when Ada_Generic_Package_Instantiation =>
-                 N.As_Generic_Package_Instantiation.F_Aspects,
-               when Ada_Package_Renaming_Decl =>
-                 N.As_Package_Renaming_Decl.F_Aspects,
-               when Ada_Generic_Package_Renaming_Decl =>
-                 N.As_Generic_Package_Renaming_Decl.F_Aspects,
-               when Ada_Generic_Subp_Renaming_Decl =>
-                 N.As_Generic_Subp_Renaming_Decl.F_Aspects,
-               when Ada_Formal_Subp_Decl => N.As_Formal_Subp_Decl.F_Aspects,
-               when Ada_Generic_Subp_Internal         =>
-                 N.As_Generic_Subp_Internal.F_Aspects,
-               when Ada_Entry_Decl => N.As_Entry_Decl.F_Aspects,
-               when Ada_Expr_Function => N.As_Expr_Function.F_Aspects,
-               when Ada_Subp_Body => N.As_Subp_Body.F_Aspects,
-               when Ada_Package_Body => N.As_Package_Body.F_Aspects,
-               when Ada_Task_Body => N.As_Task_Body.F_Aspects,
-               when Ada_Protected_Body => N.As_Protected_Body.F_Aspects,
-               when Ada_Protected_Body_Stub           =>
-                 N.As_Protected_Body_Stub.F_Aspects,
-               when Ada_Subp_Body_Stub => N.As_Subp_Body_Stub.F_Aspects,
-               when Ada_Package_Body_Stub => N.As_Package_Body_Stub.F_Aspects,
-               when Ada_Task_Body_Stub => N.As_Task_Body_Stub.F_Aspects,
-               when others => raise Program_Error);
+           (if N.Kind in Ada_Basic_Decl
+            then N.As_Basic_Decl.P_Node_Aspects
+            else No_Aspect_Spec);
+         --  If there are any nodes other that Base_Decl that may have aspects
+         --  then this will need to be adjusted???
 
          AL : constant Aspect_Assoc_List := AS.F_Aspect_Assocs;
          AN : Aspect_Assoc;
