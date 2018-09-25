@@ -62,6 +62,7 @@ def do(command):
     if p.status != 0:
         log("command '%s' failed" % command)
         log("Output was:\n" + contents_of(ofile))
+        sys.exit(1)
 
     return contents_of(ofile)
 
