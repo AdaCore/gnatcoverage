@@ -253,12 +253,9 @@ package body Disa_Thumb is
                      Flag_Indir := True;
                   end if;
 
-               elsif (Insn32 and 16#ffff_0fff#) in
-                     16#f85d_0b04#
-                   | 16#f8d0_0000#
-               then
+               elsif (Insn32 and 16#fef0_0000#) = 16#f850_0000# then
 
-                  --  POP (T3), LDR (immediate, T3)
+                  --  POP (T3), LDR (immediate, T3 or T4)
 
                   if (Insn32 and 16#0000_f000#) = 16#0000_f000# then
 
