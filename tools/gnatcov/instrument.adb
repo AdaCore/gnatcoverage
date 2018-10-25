@@ -18,8 +18,11 @@
 
 --  Source instrumentation
 
+with Ada.Characters.Conversions; use Ada.Characters.Conversions;
+
 with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
 with Langkit_Support.Symbols; use Langkit_Support.Symbols;
+with Langkit_Support.Text;
 with Libadalang.Analysis;     use Libadalang.Analysis;
 with Libadalang.Common;       use Libadalang.Common;
 --  with Libadalang.Lexer;        --  use Libadalang.Lexer;
@@ -29,6 +32,8 @@ with Namet; use Namet;
 with Snames; use Snames;
 with Types; use Types;
 with Table;
+
+with SC_Obligations; use SC_Obligations;
 
 package body Instrument is
 
@@ -54,6 +59,10 @@ package body Instrument is
    Aspect_Type_Invariant    : constant Symbol_Type := Find
      (Symbols, Canonicalize ("Type_Invariant").Symbol);
 
+   function As_Name (Id : Identifier) return Name_Id;
+   function As_Symbol (Id : Identifier) return Symbol_Type;
+   --  Canonicalize Id and return a corresponding Name_Id/Symbol_Type
+
    function Pragma_Name (P : Pragma_Node) return Symbol_Type;
    --  Return a symbol from Symbols corresponding to the name of the given
    --  P pragma.
@@ -61,6 +70,61 @@ package body Instrument is
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type;
    --  Return a symbol from Symbols corresponding to the name of the given
    --  A aspect association.
+
+   --------------------------
+   -- First-pass SCO table --
+   --------------------------
+
+   --  The Short_Circuit_And_Or pragma enables one to use AND and OR operators
+   --  in source code while the ones used with booleans will be interpreted as
+   --  their short circuit alternatives (AND THEN and OR ELSE). Thus, the true
+   --  meaning of these operators is known only after the semantic analysis.
+
+   --  However, decision SCOs include short circuit operators only. The SCO
+   --  information generation pass must be done before expansion, hence before
+   --  the semantic analysis. Because of this, the SCO information generation
+   --  is done in two passes.
+
+   --  The first one (SCO_Record_Raw, before semantic analysis) completes the
+   --  SCO_Raw_Table assuming all AND/OR operators are short circuit ones.
+   --  Then, the semantic analysis determines which operators are promoted to
+   --  short circuit ones. Finally, the second pass (SCO_Record_Filtered)
+   --  translates the SCO_Raw_Table to SCO_Table, taking care of removing the
+   --  remaining AND/OR operators and of adjusting decisions accordingly
+   --  (splitting decisions, removing empty ones, etc.).
+
+   type SCO_Generation_State_Type is (None, Raw, Filtered);
+   SCO_Generation_State : SCO_Generation_State_Type := None;
+   --  Keep track of the SCO generation state: this will prevent us from
+   --  running some steps multiple times (the second pass has to be started
+   --  from multiple places).
+
+   type SCO_Table_Entry is record
+      From : Source_Location := No_Source_Location;
+      To   : Source_Location := No_Source_Location;
+      C1   : Character       := ' ';
+      C2   : Character       := ' ';
+      Last : Boolean         := False;
+
+      Pragma_Sloc : Source_Location := No_Source_Location;
+      --  For the decision SCO of a pragma, or for the decision SCO of any
+      --  expression nested in a pragma Debug/Assert/PPC, location of PRAGMA
+      --  token (used for control of SCO output, value not recorded in ALI
+      --  file). Similarly, for the decision SCO of an aspect, or for the
+      --  decision SCO of any expression nested in an aspect, location of
+      --  aspect identifier token.
+
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name;
+      --  For the SCO for a pragma/aspect, gives the pragma/apsect name
+   end record;
+
+   package SCO_Raw_Table is new Table.Table
+     (Table_Component_Type => SCO_Table_Entry,
+      Table_Index_Type     => Nat,
+      Table_Low_Bound      => 1,
+      Table_Initial        => 500,
+      Table_Increment      => 300,
+      Table_Name           => "Raw_Table");
 
    procedure Append_SCO
      (C1, C2             : Character;
@@ -106,16 +170,16 @@ package body Instrument is
    --  Why is Traverse_Sync_Definition commented specifically, whereas
    --  the others are not???
 
-   procedure Traverse_Generic_Package_Declaration (N : Ada_Node);
+   procedure Traverse_Generic_Package_Declaration (N : Generic_Package_Decl);
 
    procedure Traverse_Handled_Statement_Sequence
      (N : Handled_Stmts;
       D : Dominant_Info := No_Dominant);
 
-   procedure Traverse_Package_Body (N : Ada_Node);
+   procedure Traverse_Package_Body (N : Package_Body);
 
    procedure Traverse_Package_Declaration
-     (N : Ada_Node;
+     (N : Base_Package_Decl;
       D : Dominant_Info := No_Dominant);
 
    procedure Traverse_Subprogram_Or_Task_Body
@@ -151,6 +215,17 @@ package body Instrument is
    --  T is the node for a subtree. Returns True if any (sub)expression in T
    --  contains a nested decision (i.e. either is a logical operator, or
    --  contains a logical operator in its subtree).
+
+   function Operator (N : Expr) return Op;
+   --  Return the operator node of an unary or binary expression, or No_Op if
+   --  not an operator.
+
+   function Is_Logical_Operator (N : Ada_Node'Class) return Tristate;
+   --  N is the node for a subexpression. This procedure determines whether N
+   --  is a logical operator: True for short circuit conditions, Unknown for OR
+   --  and AND (the Short_Circuit_And_Or pragma may be used) and False
+   --  otherwise. Note that in cases where True is returned, callers assume
+   --  Nkind (N) in N_Op.
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -239,8 +314,6 @@ package body Instrument is
 
       Current_Test : Ada_Node;
       --  Conditional node (N_If_Statement or N_Elsiif being processed
-
-      N : Ada_Node;
 
       SC_First : constant Nat := SC.Last + 1;
       SD_First : constant Nat := SD.Last + 1;
@@ -581,19 +654,21 @@ package body Instrument is
 
             when Ada_Package_Decl =>
                Set_Statement_Entry;
-               Traverse_Package_Declaration (N, Current_Dominant);
+               Traverse_Package_Declaration
+                 (N.As_Base_Package_Decl, Current_Dominant);
 
             --  Generic package declaration
 
             when Ada_Generic_Package_Decl =>
                Set_Statement_Entry;
-               Traverse_Generic_Package_Declaration (N);
+               Traverse_Generic_Package_Declaration
+                 (N.As_Generic_Package_Decl);
 
             --  Package body
 
             when Ada_Package_Body =>
                Set_Statement_Entry;
-               Traverse_Package_Body (N);
+               Traverse_Package_Body (N.As_Package_Body);
 
             --  Subprogram declaration or subprogram body stub
 
@@ -1233,31 +1308,23 @@ package body Instrument is
    begin
       --  Process single prefixed node
 
-      if Present (P) then
+      if not P.Is_Null then
          Traverse_One (P);
       end if;
 
       --  Loop through statements or declarations
 
-      if Is_Non_Empty_List (L) then
-         N := First (L);
-         while Present (N) loop
-
-            --  Note: For separate bodies, we see the tree after Par.Labl has
-            --  introduced implicit labels, so we need to ignore those nodes.
-
-            if Nkind (N) /= Ada_Implicit_Label_Declaration then
-               Traverse_One (N);
-            end if;
-
-            Next (N);
-         end loop;
-
-      end if;
+      for J in 1 .. L.Children_Count loop
+         declare
+            N : constant Ada_Node := L.Child (J);
+         begin
+            Traverse_One (N);
+         end;
+      end loop;
 
       --  End sequence of statements and flush deferred decisions
 
-      if Present (P) or else Is_Non_Empty_List (L) then
+      if not P.Is_Null or else L.Children_Count > 0 then
          Set_Statement_Entry;
       end if;
 
@@ -1268,10 +1335,10 @@ package body Instrument is
    -- Traverse_Generic_Package_Declaration --
    ------------------------------------------
 
-   procedure Traverse_Generic_Package_Declaration (N : Ada_Node) is
+   procedure Traverse_Generic_Package_Declaration (N : Generic_Package_Decl) is
    begin
-      Process_Decisions (Generic_Formal_Declarations (N), 'X', No_Location);
-      Traverse_Package_Declaration (N);
+      Process_Decisions (N.F_Formal_Part, 'X', No_Source_Location);
+      Traverse_Package_Declaration (N.F_Package_Decl.As_Base_Package_Decl);
    end Traverse_Generic_Package_Declaration;
 
    -----------------------------------------
@@ -1282,42 +1349,36 @@ package body Instrument is
      (N : Handled_Stmts;
       D : Dominant_Info := No_Dominant)
    is
-      Handler : Ada_Node;
-
    begin
-      --  For package bodies without a statement part, the parser adds an empty
-      --  one, to normalize the representation. The null statement therein,
-      --  which does not come from source, does not get a SCO.
+      Traverse_Declarations_Or_Statements (N.F_Stmts.As_Ada_Node_List, D);
 
-      if Present (N) and then Comes_From_Source (N) then
-         Traverse_Declarations_Or_Statements (Statements (N), D);
+      for J in 1 .. N.F_Exceptions.Children_Count loop
+         declare
+            Handler : constant Ada_Node := N.F_Exceptions.Child (J);
+         begin
+            --  Note: the exceptions list can also contain pragmas
 
-         if Present (Exception_Handlers (N)) then
-            Handler := First_Non_Pragma (Exception_Handlers (N));
-            while Present (Handler) loop
+            if Handler.Kind = Ada_Exception_Handler then
                Traverse_Declarations_Or_Statements
-                 (L => Statements (Handler),
+                 (L => Handler.As_Exception_Handler.F_Stmts.As_Ada_Node_List,
                   D => ('E', Handler));
-               Next (Handler);
-            end loop;
-         end if;
-      end if;
+            end if;
+         end;
+      end loop;
    end Traverse_Handled_Statement_Sequence;
 
    ---------------------------
    -- Traverse_Package_Body --
    ---------------------------
 
-   procedure Traverse_Package_Body (N : Ada_Node) is
-      Dom : Dominant_Info;
+   procedure Traverse_Package_Body (N : Package_Body) is
    begin
       --  The first statement in the handled sequence of statements is
       --  dominated by the elaboration of the last declaration.
 
-      Dom := Traverse_Declarations_Or_Statements (Declarations (N));
-
       Traverse_Handled_Statement_Sequence
-        (Handled_Statement_Sequence (N), Dom);
+        (N => N.F_Stmts,
+         D => Traverse_Declarations_Or_Statements (N.F_Decls.F_Decls));
    end Traverse_Package_Body;
 
    ----------------------------------
@@ -1325,19 +1386,16 @@ package body Instrument is
    ----------------------------------
 
    procedure Traverse_Package_Declaration
-     (N : Ada_Node;
+     (N : Base_Package_Decl;
       D : Dominant_Info := No_Dominant)
    is
-      Spec : constant Ada_Node := Specification (N);
-      Dom  : Dominant_Info;
-
    begin
-      Dom :=
-        Traverse_Declarations_Or_Statements (Visible_Declarations (Spec), D);
-
       --  First private declaration is dominated by last visible declaration
 
-      Traverse_Declarations_Or_Statements (Private_Declarations (Spec), Dom);
+      Traverse_Declarations_Or_Statements
+        (L => N.F_Private_Part.F_Decls,
+         D => Traverse_Declarations_Or_Statements
+                (N.F_Public_Part.F_Decls, D));
    end Traverse_Package_Declaration;
 
    ------------------------------
@@ -1349,50 +1407,69 @@ package body Instrument is
       --  The first declaration is dominated by the protected or task [type]
       --  declaration.
 
-      Sync_Def : Ada_Node;
-      --  N's protected or task definition
-
-      Priv_Decl : List_Id;
-      Vis_Decl  : List_Id;
-      --  Sync_Def's Visible_Declarations and Private_Declarations
+      Vis_Decl  : Public_Part;
+      Priv_Decl : Private_Part;
+      --  Visible and private declarations of the protected or task definition
 
    begin
-      case Nkind (N) is
-         when N_Protected_Type_Declaration
-            | N_Single_Protected_Declaration
-         =>
-            Sync_Def := Protected_Definition (N);
+      case N.Kind is
+         when Ada_Protected_Type_Decl =>
+            declare
+               Prot_Def : constant Protected_Def :=
+                 N.As_Protected_Type_Decl.F_Definition;
+            begin
+               Vis_Decl := Prot_Def.F_Public_Part;
+               Priv_Decl := Prot_Def.F_Private_Part;
+            end;
 
-         when N_Single_Task_Declaration
-            | N_Task_Type_Declaration
-         =>
-            Sync_Def := Task_Definition (N);
+         when Ada_Single_Protected_Decl =>
+            declare
+               Prot_Def : constant Protected_Def :=
+                 N.As_Single_Protected_Decl.F_Definition;
+            begin
+               Vis_Decl := Prot_Def.F_Public_Part;
+               Priv_Decl := Prot_Def.F_Private_Part;
+            end;
+
+         when Ada_Single_Task_Decl =>
+            declare
+               T_Def : constant Task_Def :=
+                 N.As_Single_Task_Decl.F_Task_Type.F_Definition;
+            begin
+               Vis_Decl := T_Def.F_Public_Part;
+               Priv_Decl := T_Def.F_Private_Part;
+            end;
+
+         when Ada_Task_Type_Decl =>
+            declare
+               T_Def : constant Task_Def :=
+                 N.As_Task_Type_Decl.F_Definition;
+            begin
+               Vis_Decl := T_Def.F_Public_Part;
+               Priv_Decl := T_Def.F_Private_Part;
+            end;
 
          when others =>
             raise Program_Error;
       end case;
 
-      --  Sync_Def may be Empty at least for empty Task_Type_Declarations.
-      --  Querying Visible or Private_Declarations is invalid in this case.
+      --  Vis_Decl and Priv_Decl may be Empty at least for empty task type
+      --  declarations. Querying F_Decls is invalid in this case.
 
-      if Present (Sync_Def) then
-         Vis_Decl  := Visible_Declarations (Sync_Def);
-         Priv_Decl := Private_Declarations (Sync_Def);
-      else
-         Vis_Decl  := No_List;
-         Priv_Decl := No_List;
+      if not Vis_Decl.Is_Null then
+         Dom_Info := Traverse_Declarations_Or_Statements
+           (L => Vis_Decl.F_Decls,
+            D => Dom_Info);
       end if;
 
-      Dom_Info := Traverse_Declarations_Or_Statements
-                    (L => Vis_Decl,
-                     D => Dom_Info);
+      if not Priv_Decl.Is_Null then
+         --  If visible declarations are present, the first private declaration
+         --  is dominated by the last visible declaration.
 
-      --  If visible declarations are present, the first private declaration
-      --  is dominated by the last visible declaration.
-
-      Traverse_Declarations_Or_Statements
-        (L => Priv_Decl,
-         D => Dom_Info);
+         Traverse_Declarations_Or_Statements
+           (L => Priv_Decl.F_Decls,
+            D => Dom_Info);
+      end if;
    end Traverse_Sync_Definition;
 
    --------------------------------------
@@ -1403,18 +1480,40 @@ package body Instrument is
      (N : Ada_Node;
       D : Dominant_Info := No_Dominant)
    is
-      Decls    : constant List_Id := Declarations (N);
+      Decls    : Declarative_Part;
+      HSS      : Handled_Stmts;
       Dom_Info : Dominant_Info    := D;
 
    begin
+      case Kind (N) is
+         when Ada_Subp_Body =>
+            declare
+               SBN : constant Subp_Body := N.As_Subp_Body;
+            begin
+               Decls := SBN.F_Decls;
+               HSS   := SBN.F_Stmts;
+            end;
+
+         when Ada_Task_Body =>
+            declare
+               TBN : constant Task_Body := N.As_Task_Body;
+            begin
+               Decls := TBN.F_Decls;
+               HSS   := TBN.F_Stmts;
+            end;
+
+         when others =>
+            raise Program_Error;
+      end case;
+
       --  If declarations are present, the first statement is dominated by the
       --  last declaration.
 
       Dom_Info := Traverse_Declarations_Or_Statements
-                    (L => Decls, D => Dom_Info);
+                    (L => Decls.F_Decls, D => Dom_Info);
 
       Traverse_Handled_Statement_Sequence
-        (N => Handled_Statement_Sequence (N),
+        (N => HSS,
          D => Dom_Info);
    end Traverse_Subprogram_Or_Task_Body;
 
@@ -1436,7 +1535,7 @@ package body Instrument is
       --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
 
       type Hash_Entry is record
-         Sloc      : Source_Ptr;
+         Sloc      : Source_Location;
          SCO_Index : Nat;
       end record;
       --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
@@ -1464,7 +1563,7 @@ package body Instrument is
       --  The flag will be set False if T is other than X, or if an operator
       --  other than NOT is in the sequence.
 
-      procedure Output_Decision_Operand (N : Ada_Node);
+      procedure Output_Decision_Operand (N : Expr);
       --  The node N is the top level logical operator of a decision, or it is
       --  one of the operands of a logical operator belonging to a single
       --  complex decision. This routine outputs the sequence of table entries
@@ -1489,7 +1588,7 @@ package body Instrument is
       --  the complex decision. It process the suboperands of the decision
       --  looking for nested decisions.
 
-      function Process_Node (N : Ada_Node) return Traverse_Result;
+      function Process_Node (N : Ada_Node'Class) return Visit_Status;
       --  Processes one node in the traversal, looking for logical operators,
       --  and if one is found, outputs the appropriate table entries.
 
@@ -1497,7 +1596,7 @@ package body Instrument is
       -- Output_Decision_Operand --
       -----------------------------
 
-      procedure Output_Decision_Operand (N : Ada_Node) is
+      procedure Output_Decision_Operand (N : Expr) is
          C1 : Character;
          C2 : Character;
          --  C1 holds a character that identifies the operation while C2
@@ -1505,11 +1604,12 @@ package body Instrument is
          --  belongs to the decision. '?' entries will be filtered out in the
          --  second (SCO_Record_Filtered) pass.
 
-         L : Ada_Node;
-         T : Tristate;
+         L, R : Expr;
+         T    : Tristate;
 
+         N_Op_Kind : constant Ada_Node_Kind_Type := Operator (N).Kind;
       begin
-         if No (N) then
+         if N.Is_Null then
             return;
          end if;
 
@@ -1518,18 +1618,24 @@ package body Instrument is
          --  Logical operator
 
          if T /= False then
-            if Nkind (N) = N_Op_Not then
+            if N_Op_Kind = Ada_Op_Not then
                C1 := '!';
-               L := Empty;
+               L := No_Expr;
+               R := N.As_Un_Op.F_Expr;
 
             else
-               L := Left_Opnd (N);
-
-               if Nkind_In (N, N_Op_Or, N_Or_Else) then
-                  C1 := '|';
-               else pragma Assert (Nkind_In (N, N_Op_And, N_And_Then));
-                  C1 := '&';
-               end if;
+               declare
+                  BN : constant Bin_Op := N.As_Bin_Op;
+               begin
+                  L := BN.F_Left;
+                  R := BN.F_Right;
+                  if N_Op_Kind in Ada_Op_Or | Ada_Op_Or_Else then
+                     C1 := '|';
+                  else pragma Assert (N_Op_Kind
+                                      in Ada_Op_And | Ada_Op_And_Then);
+                     C1 := '&';
+                  end if;
+               end;
             end if;
 
             if T = True then
@@ -1542,18 +1648,18 @@ package body Instrument is
               (C1   => C1,
                C2   => C2,
                From => Sloc (N),
-               To   => No_Location,
+               To   => No_Source_Location,
                Last => False);
 
             Hash_Entries.Append ((Sloc (N), SCO_Raw_Table.Last));
 
             Output_Decision_Operand (L);
-            Output_Decision_Operand (Right_Opnd (N));
+            Output_Decision_Operand (R);
 
          --  Not a logical operator
 
          else
-            Output_Element (N);
+            Output_Element (N.As_Ada_Node);
          end if;
       end Output_Decision_Operand;
 
@@ -1562,17 +1668,15 @@ package body Instrument is
       --------------------
 
       procedure Output_Element (N : Ada_Node) is
-         FSloc : Source_Ptr;
-         LSloc : Source_Ptr;
+         N_SR : constant Source_Location_Range := N.Sloc_Range;
       begin
-         Sloc_Range (N, FSloc, LSloc);
          Append_SCO
            (C1   => ' ',
             C2   => 'c',
-            From => FSloc,
-            To   => LSloc,
+            From => Start_Sloc (N_SR),
+            To   => End_Sloc (N_SR),
             Last => False);
-         Hash_Entries.Append ((FSloc, SCO_Raw_Table.Last));
+         Hash_Entries.Append ((Start_Sloc (N_SR), SCO_Raw_Table.Last));
       end Output_Element;
 
       -------------------
@@ -1580,10 +1684,10 @@ package body Instrument is
       -------------------
 
       procedure Output_Header (T : Character) is
-         Loc : Source_Ptr := No_Location;
+         Loc : Source_Location := No_Source_Location;
          --  Node whose Sloc is used for the decision
 
-         Nam : Name_Id := No_Name;
+         Nam : Name_Id := Namet.No_Name;
          --  For the case of an aspect, aspect name
 
       begin
@@ -1596,7 +1700,7 @@ package body Instrument is
                Loc := Sloc (Parent (N));
 
                if T = 'a' or else T = 'A' then
-                  Nam := Chars (Identifier (Parent (N)));
+                  Nam := As_Name (N.Parent.Parent.As_Pragma_Node.F_Id);
                end if;
 
             when 'G' | 'P' =>
@@ -1658,12 +1762,14 @@ package body Instrument is
       procedure Process_Decision_Operand (N : Ada_Node) is
       begin
          if Is_Logical_Operator (N) /= False then
-            if Nkind (N) /= N_Op_Not then
-               Process_Decision_Operand (Left_Opnd (N));
+            if N.Kind = Ada_Un_Op then
+               Process_Decision_Operand (N.As_Un_Op.F_Expr);
+
+            else
+               Process_Decision_Operand (N.As_Bin_Op.F_Left);
+               Process_Decision_Operand (N.As_Bin_Op.F_Right);
                X_Not_Decision := False;
             end if;
-
-            Process_Decision_Operand (Right_Opnd (N));
 
          else
             Process_Decisions (N, 'X', Pragma_Sloc);
@@ -1674,74 +1780,71 @@ package body Instrument is
       -- Process_Node --
       ------------------
 
-      function Process_Node (N : Ada_Node) return Traverse_Result is
+      function Process_Node (N : Ada_Node'Class) return Visit_Status is
       begin
-         case Nkind (N) is
-
+         if Is_Logical_Operator (N) /= False then
             --  Logical operators, output table entries and then process
             --  operands recursively to deal with nested conditions.
 
-            when N_And_Then
-               | N_Op_And
-               | N_Op_Not
-               | N_Op_Or
-               | N_Or_Else
-            =>
-               declare
-                  T : Character;
+            declare
+               T : Character;
 
-               begin
-                  --  If outer level, then type comes from call, otherwise it
-                  --  is more deeply nested and counts as X for expression.
+            begin
+               --  If outer level, then type comes from call, otherwise it
+               --  is more deeply nested and counts as X for expression.
 
-                  if N = Process_Decisions.N then
-                     T := Process_Decisions.T;
-                  else
-                     T := 'X';
-                  end if;
+               if N = Process_Decisions.N then
+                  T := Process_Decisions.T;
+               else
+                  T := 'X';
+               end if;
 
-                  --  Output header for sequence
+               --  Output header for sequence
 
-                  X_Not_Decision := T = 'X' and then Nkind (N) = N_Op_Not;
-                  Mark      := SCO_Raw_Table.Last;
-                  Mark_Hash := Hash_Entries.Last;
-                  Output_Header (T);
+               X_Not_Decision := T = 'X' and then Nkind (N) = Ada_Op_Not;
+               Mark      := SCO_Raw_Table.Last;
+               Mark_Hash := Hash_Entries.Last;
+               Output_Header (T);
 
-                  --  Output the decision
+               --  Output the decision
 
-                  Output_Decision_Operand (N);
+               Output_Decision_Operand (N);
 
-                  --  If the decision was in an expression context (T = 'X')
-                  --  and contained only NOT operators, then we don't output
-                  --  it, so delete it.
+               --  If the decision was in an expression context (T = 'X')
+               --  and contained only NOT operators, then we don't output
+               --  it, so delete it.
 
-                  if X_Not_Decision then
-                     SCO_Raw_Table.Set_Last (Mark);
-                     Hash_Entries.Set_Last (Mark_Hash);
+               if X_Not_Decision then
+                  SCO_Raw_Table.Set_Last (Mark);
+                  Hash_Entries.Set_Last (Mark_Hash);
 
                   --  Otherwise, set Last in last table entry to mark end
 
-                  else
-                     SCO_Raw_Table.Table (SCO_Raw_Table.Last).Last := True;
-                  end if;
+               else
+                  SCO_Raw_Table.Table (SCO_Raw_Table.Last).Last := True;
+               end if;
 
-                  --  Process any embedded decisions
+               --  Process any embedded decisions
 
-                  Process_Decision_Operand (N);
-                  return Skip;
-               end;
+               Process_Decision_Operand (N);
+               return Over;
+            end;
+         end if;
 
+         --  Here for cases that are known to not be logical operators
+
+         case N.Kind is
             --  Case expression
 
             --  Really hard to believe this is correct given the special
             --  handling for if expressions below ???
 
-            when N_Case_Expression =>
-               return OK; -- ???
+            when Ada_Case_Expression =>
+               return Into; -- ???
 
             --  If expression, processed like an if statement
 
-            when N_If_Expression =>
+            when Ada_If_Expression =>
                declare
                   Cond : constant Ada_Node := First (Expressions (N));
                   Thnx : constant Ada_Node := Next (Cond);
@@ -1751,13 +1854,13 @@ package body Instrument is
                   Process_Decisions (Cond, 'I', Pragma_Sloc);
                   Process_Decisions (Thnx, 'X', Pragma_Sloc);
                   Process_Decisions (Elsx, 'X', Pragma_Sloc);
-                  return Skip;
+                  return Over;
                end;
 
             --  All other cases, continue scan
 
             when others =>
-               return OK;
+               return Into;
          end case;
       end Process_Node;
 
@@ -1766,7 +1869,7 @@ package body Instrument is
    --  Start of processing for Process_Decisions
 
    begin
-      if No (N) then
+      if N.Is_Null then
          return;
       end if;
 
@@ -1819,7 +1922,7 @@ package body Instrument is
    ------------------
 
    function Has_Decision (T : Ada_Node'Class) return Boolean is
-      function Visit (N : Ada_Node) return Visit_Status;
+      function Visit (N : Ada_Node'Class) return Visit_Status;
       --  If N's kind indicates the presence of a decision, return Stop,
       --  otherwise return Into.
       --
@@ -1830,10 +1933,10 @@ package body Instrument is
       -- Visit --
       -----------
 
-      function Visit (N : Ada_Node) return Visit_Status is
+      function Visit (N : Ada_Node'Class) return Visit_Status is
       begin
          if Is_Logical_Operator (N) /= False
-           or else Nkind (N) = N_If_Expression
+           or else Nkind (N) = Ada_If_Expression
          then
             return Stop;
          else
@@ -1847,28 +1950,90 @@ package body Instrument is
       return T.Traverse (Visit'Access) = Stop;
    end Has_Decision;
 
+   -------------------------
+   -- Is_Logical_Operator --
+   -------------------------
+
+   function Is_Logical_Operator (N : Ada_Node'Class) return Tristate is
+   begin
+      case Operator (N.As_Expr).Kind is
+         when Ada_Op_Not =>
+            return True;
+            --  Ada_Op_Not should be Unkwown???
+
+         when Ada_Op_And_Then | Ada_Op_Or_Else =>
+            return True;
+
+         when Ada_Op_And | Ada_Op_Or =>
+            return Unknown;
+
+         when others =>
+            return False;
+      end case;
+   end Is_Logical_Operator;
+
+   --------------
+   -- Operator --
+   --------------
+
+   function Operator (N : Expr) return Op is
+   begin
+      case N.Kind is
+         when Ada_Un_Op =>
+            return N.As_Un_Op.F_Op;
+         when Ada_Bin_Op =>
+            return N.As_Bin_Op.F_Op;
+         when others =>
+            return No_Op;
+      end case;
+   end Operator;
+
+   -------------
+   -- As_Name --
+   -------------
+
+   function As_Name (Id : Identifier) return Name_Id is
+   begin
+      --  Note: we really care only about Name_Ids for identifiers of pragmas
+      --  and aspects, which we assume never contain wide-wide characters.
+
+      return Name_Find (To_String (Canonicalize (Id.Text).Symbol));
+   end As_Name;
+
+   -------------
+   -- As_Name --
+   -------------
+
+   function As_Symbol (Id : Identifier) return Symbol_Type is
+     (Find (Symbols, Canonicalize (Id.Text).Symbol));
+
    -----------------
    -- Pragma_Name --
    -----------------
 
    function Pragma_Name (P : Pragma_Node) return Symbol_Type is
-      Raw_Name   : constant Text_Type := P.F_Id.Text;
-      Canon_Name : constant Canonicalization_Result := Canonicalize (Raw_Name);
-   begin
-      pragma Assert (Canon_Name.Success);
-      return Find (Symbols, Canon_Name.Symbol);
-   end Pragma_Name;
+     (As_Symbol (P.F_Id));
 
    -----------------------
    -- Aspect_Assoc_Name --
    -----------------------
 
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type is
-      Raw_Name   : constant Text_Type := A.F_Id.Text;
-      Canon_Name : constant Canonicalization_Result := Canonicalize (Raw_Name);
+      AM : constant Name := A.F_Id;
+      --  aspect_mark of A
+
+      AI : Identifier;
    begin
-      pragma Assert (Canon_Name.Success);
-      return Find (Symbols, Canon_Name.Symbol);
+      --  Note: we just ignore a possible 'Class (we treat [Pre|Post]'Class
+      --  just like Pre/Post).
+
+      if AM.Kind = Ada_Attribute_Ref then
+         AI := AM.As_Attribute_Ref.F_Prefix.As_Identifier;
+      else
+         AI := AM.As_Identifier;
+      end if;
+
+      return As_Symbol (AI);
    end Aspect_Assoc_Name;
 
 end Instrument;
