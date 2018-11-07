@@ -104,10 +104,10 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
   dh->dinfo.arch = arch;
   if (options)
     {
-      const size_t options_len = strlen (options);
-      char *dh_options = malloc (options_len + 1);
+      const size_t options_len = strlen (options) + 1;
+      char *dh_options = malloc (options_len);
 
-      strncpy (dh_options, options, options_len + 1);
+      memcpy (dh_options, options, options_len);
       dh->disassembler_options = dh_options;
       dh->dinfo.disassembler_options = dh->disassembler_options;
     }
