@@ -18,11 +18,12 @@
 
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Vectors;
-
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
+
+with GNAT.OS_Lib;
 
 with GNATCOLL.Traces;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
@@ -562,6 +563,30 @@ package body Project is
       for Scv_C in S_Variables.Iterate loop
          Change_Environment (Env.all, Key (Scv_C), Element (Scv_C));
       end loop;
+
+      --  Make sure GPR_TOOL is initalized. There are several ways to
+      --  initialize it: by decreasing order of precedence:
+      --
+      --    * explicitly set through a -X option;
+      --    * set through an environment variable;
+      --    * implicitly initialized by GNATcoverage.
+
+      if S_Variables.Contains ("GPR_TOOL") then
+         null;
+
+      else
+         declare
+            GPR_Tool_Env_Var : GNAT.Strings.String_Access :=
+               GNAT.OS_Lib.Getenv ("GPR_TOOL");
+            GPR_Tool_Value   : constant String :=
+              (if GPR_Tool_Env_Var.all = ""
+               then "gnatcoverage"
+               else GPR_Tool_Env_Var.all);
+         begin
+            Change_Environment (Env.all, "GPR_TOOL", GPR_Tool_Value);
+            Free (GPR_Tool_Env_Var);
+         end;
+      end if;
    end Initialize;
 
    -----------------------
