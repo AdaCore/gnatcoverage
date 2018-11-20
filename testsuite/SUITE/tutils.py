@@ -489,13 +489,11 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
     # If input(inp)/output(out)/error(err) are not given, we want to use Run
     # defaults values: do not add them to kwargs if they are None.
 
-    kwargs = {}
-    [kwargs.__setitem__(key, value)
-     for (key, value) in  (
-            ('input', inp),
-            ('output', out),
-            ('error', err))
-     if value]
+    kwargs = {
+        key: value
+        for key, value in [('input', inp), ('output', out), ('error', err)]
+        if value
+    }
 
     p = Run(covpgm + covargs, timeout=thistest.options.timeout, **kwargs)
 

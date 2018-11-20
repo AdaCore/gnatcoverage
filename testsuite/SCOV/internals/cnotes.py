@@ -350,7 +350,7 @@ class Enote(Cnote):
 
 class KnoteDict(dict):
     def __init__(self, possible_keys):
-        [self.__setitem__(key, []) for key in possible_keys]
+        self.update((key, []) for key in possible_keys)
 
     def register(self, note):
         self[note.kind].append (note)
