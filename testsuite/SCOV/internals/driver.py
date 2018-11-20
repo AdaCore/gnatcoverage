@@ -21,6 +21,7 @@ __all__ = ["SCOV_helper"]
 
 # ****************************************************************************
 
+from collections import defaultdict
 import os
 
 from SCOV.tctl import CAT
@@ -133,18 +134,6 @@ class WdirControl:
 # ======================================
 # == SCOV_helper and internal helpers ==
 # ======================================
-
-# Dictionary of lists with default on read:
-
-class ListDict(dict):
-    def __init__(self):
-        dict.__init__(self)
-
-    def __getitem__(self, key):
-        if not dict.has_key(self, key):
-            dict.__setitem__(self, key, [])
-        return dict.__getitem__(self, key)
-
 
 # Relevant expectations and emitted Line and Report notes for each test
 # CATEGORY:
@@ -328,11 +317,11 @@ class _Xchecker:
 
         xnotes = self.xdict[xkind]
 
-        self.sat = ListDict()
+        self.sat = defaultdict(lambda: [])
         [self.try_sat_over(ekind, xn)
          for xn in xnotes for ekind in ekinds if not xn.discharger]
 
-        self.unsat = ListDict()
+        self.unsat = defaultdict(lambda: [])
         [self.register_unsat(xn) for xn in xnotes if not xn.discharger]
 
         [self.process_unsat(block) for block in self.unsat]
