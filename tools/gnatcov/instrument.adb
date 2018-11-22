@@ -22,9 +22,9 @@ with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 
 with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
 with Langkit_Support.Symbols; use Langkit_Support.Symbols;
+with Langkit_Support.Text;    use Langkit_Support.Text;
 with Libadalang.Analysis;     use Libadalang.Analysis;
 with Libadalang.Common;       use Libadalang.Common;
---  with Libadalang.Lexer;        --  use Libadalang.Lexer;
 with Libadalang.Sources;      use Libadalang.Sources;
 
 with Namet; use Namet;
@@ -32,6 +32,7 @@ with Snames; use Snames;
 with Types; use Types;
 with Table;
 
+with ALI_Files;
 with SC_Obligations; use SC_Obligations;
 
 package body Instrument is
@@ -650,8 +651,26 @@ package body Instrument is
                begin
                   Traverse_Declarations_Or_Statements
                     (L => CUN.F_Prelude);
-                  Traverse_Declarations_Or_Statements
-                    (P => CUN.F_Body, L => No_Ada_Node_List);
+
+                  case CUN.F_Body.Kind is
+                     when Ada_Generic_Instantiation
+                        | Ada_Generic_Package_Decl
+                        | Ada_Package_Body
+                        | Ada_Package_Decl
+                        | Ada_Protected_Body
+                        | Ada_Subp_Body
+                        | Ada_Subp_Decl
+                        | Ada_Task_Body
+                     =>
+                        Traverse_Declarations_Or_Statements
+                          (P => CUN.F_Body, L => No_Ada_Node_List);
+
+                     --  All other cases of compilation units (e.g. renamings),
+                     --  generate no SCO information.
+
+                     when others =>
+                        null;
+                  end case;
                end;
 
             --  Package declaration
@@ -1153,9 +1172,51 @@ package body Instrument is
                         Typ := 'p';
 
                      when Name_Annotate =>
-                        null;
+                        --  If this is a coverage exemption, record it
 
-                        --  XXX record annotation if it is a coverage exemption
+                        if Prag_Args.Children_Count >= 2
+                          and then Image (As_Symbol (Prag_Args.Child (1)
+                                                     .As_Identifier))
+                                     = Text_Type'("xcov")
+                        then
+                           declare
+                              use ALI_Files;
+
+                              Ann_Sloc : constant Source_Location := Sloc (N);
+                              Ann_Kind : constant Symbol_Type :=
+                                As_Symbol (Prag_Args.Child (2).As_Identifier);
+                              Ann : ALI_Annotation;
+                           begin
+                              Ann.Kind :=
+                                ALI_Annotation_Kind'Value (Image (Ann_Kind));
+
+                              if Ann.Kind = Exempt_On
+                                and then Prag_Args.Children_Count >= 3
+                                and then Prag_Args.Children (3).Kind
+                                           = Ada_String_Literal
+                              then
+                                 Ann.Message :=
+                                   new String'
+                                     (To_String (Prag_Args.Child (3)
+                                                 .As_String_Literal.Text));
+                              end if;
+
+                              Ann.CU := No_CU_Id; -- ???
+                              ALI_Annotations.Insert
+                                (Key => (Source_File => No_Source_File, -- ???
+                                         L => (Line   =>
+                                                 Positive (Ann_Sloc.Line),
+                                               Column =>
+                                                 Positive (Ann_Sloc.Column))),
+                                 New_Item => Ann);
+
+                           exception
+                              when Constraint_Error =>
+                                 --  Invalid annotation kind for Xcov: ignore
+
+                                 null;
+                           end;
+                        end if;
 
                      --  For all other pragmas, we generate decision entries
                      --  for any embedded expressions, and the pragma is
