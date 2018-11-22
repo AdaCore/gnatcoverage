@@ -27,9 +27,10 @@ with Libadalang.Analysis;     use Libadalang.Analysis;
 with Libadalang.Common;       use Libadalang.Common;
 with Libadalang.Sources;      use Libadalang.Sources;
 
-with Namet; use Namet;
+with Namet;  use Namet;
+with SCOs;
 with Snames; use Snames;
-with Types; use Types;
+with Types;  use Types;
 with Table;
 
 with ALI_Files;
@@ -74,53 +75,6 @@ package body Instrument is
    --  Return a symbol from Symbols corresponding to the name of the given
    --  A aspect association.
 
-   --------------------------
-   -- First-pass SCO table --
-   --------------------------
-
-   --  The Short_Circuit_And_Or pragma enables one to use AND and OR operators
-   --  in source code while the ones used with booleans will be interpreted as
-   --  their short circuit alternatives (AND THEN and OR ELSE). Thus, the true
-   --  meaning of these operators is known only after the semantic analysis.
-
-   --  However, decision SCOs include short circuit operators only. The SCO
-   --  information generation pass must be done before expansion, hence before
-   --  the semantic analysis. Because of this, the SCO information generation
-   --  is done in two passes.
-
-   --  The first one (SCO_Record_Raw, before semantic analysis) completes the
-   --  SCO_Raw_Table assuming all AND/OR operators are short circuit ones.
-   --  Then, the semantic analysis determines which operators are promoted to
-   --  short circuit ones. Finally, the second pass (SCO_Record_Filtered)
-   --  translates the SCO_Raw_Table to SCO_Table, taking care of removing the
-   --  remaining AND/OR operators and of adjusting decisions accordingly
-   --  (splitting decisions, removing empty ones, etc.).
-
-   --  type SCO_Generation_State_Type is (None, Raw, Filtered);
-   --  SCO_Generation_State : SCO_Generation_State_Type := None;
-   --  Keep track of the SCO generation state: this will prevent us from
-   --  running some steps multiple times (the second pass has to be started
-   --  from multiple places).
-
-   type SCO_Table_Entry is record
-      From : Source_Location := No_Source_Location;
-      To   : Source_Location := No_Source_Location;
-      C1   : Character       := ' ';
-      C2   : Character       := ' ';
-      Last : Boolean         := False;
-
-      Pragma_Aspect_Name : Name_Id := Namet.No_Name;
-      --  For the SCO for a pragma/aspect, gives the pragma/apsect name
-   end record;
-
-   package SCO_Raw_Table is new Table.Table
-     (Table_Component_Type => SCO_Table_Entry,
-      Table_Index_Type     => Nat,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 500,
-      Table_Increment      => 300,
-      Table_Name           => "Raw_Table");
-
    procedure Append_SCO
      (C1, C2             : Character;
       From, To           : Source_Location;
@@ -135,10 +89,16 @@ package body Instrument is
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
    begin
-      SCO_Raw_Table.Append
-        ((From => From, To => To,
+      SCOs.SCO_Table.Append
+        ((From =>
+              (Line => Logical_Line_Number (From.Line),
+               Col  => Types.Column_Number (From.Column)),
+          To   =>
+              (Line => Logical_Line_Number (To.Line),
+               Col  => Types.Column_Number (To.Column)),
           C1   => C1,   C2 => C2,
           Last => Last,
+          Pragma_Sloc        => No_Location,
           Pragma_Aspect_Name => Pragma_Aspect_Name));
    end Append_SCO;
 
@@ -1710,7 +1670,7 @@ package body Instrument is
                To   => No_Source_Location,
                Last => False);
 
-            Hash_Entries.Append ((Sloc (N), SCO_Raw_Table.Last));
+            Hash_Entries.Append ((Sloc (N), SCOs.SCO_Table.Last));
 
             Output_Decision_Operand (L);
             Output_Decision_Operand (R);
@@ -1735,7 +1695,7 @@ package body Instrument is
             From => Start_Sloc (N_SR),
             To   => End_Sloc (N_SR),
             Last => False);
-         Hash_Entries.Append ((Start_Sloc (N_SR), SCO_Raw_Table.Last));
+         Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
       end Output_Element;
 
       -------------------
@@ -1812,7 +1772,7 @@ package body Instrument is
          --  pragma, enter a hash table entry now.
 
          if T = 'a' then
-            Hash_Entries.Append ((Loc, SCO_Raw_Table.Last));
+            Hash_Entries.Append ((Loc, SCOs.SCO_Table.Last));
          end if;
       end Output_Header;
 
@@ -1864,7 +1824,7 @@ package body Instrument is
                --  Output header for sequence
 
                X_Not_Decision := T = 'X' and then N.Kind = Ada_Op_Not;
-               Mark      := SCO_Raw_Table.Last;
+               Mark      := SCOs.SCO_Table.Last;
                Mark_Hash := Hash_Entries.Last;
                Output_Header (T);
 
@@ -1877,13 +1837,13 @@ package body Instrument is
                --  it, so delete it.
 
                if X_Not_Decision then
-                  SCO_Raw_Table.Set_Last (Mark);
+                  SCOs.SCO_Table.Set_Last (Mark);
                   Hash_Entries.Set_Last (Mark_Hash);
 
                   --  Otherwise, set Last in last table entry to mark end
 
                else
-                  SCO_Raw_Table.Table (SCO_Raw_Table.Last).Last := True;
+                  SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
                end if;
 
                --  Process any embedded decisions
@@ -1958,7 +1918,7 @@ package body Instrument is
          --  Change Last in last table entry to True to mark end of
          --  sequence, which is this case is only one element long.
 
-         SCO_Raw_Table.Table (SCO_Raw_Table.Last).Last := True;
+         SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
       end if;
 
       N.Traverse (Process_Node'Access);
