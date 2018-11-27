@@ -27,7 +27,7 @@ with Interfaces; use Interfaces;
 
 with System.Storage_Elements;
 
-with Binary_Files;   use Binary_Files;
+with Binary_Files;      use Binary_Files;
 with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
 with Diagnostics;       use Diagnostics;
@@ -2202,6 +2202,17 @@ package body Decision_Map is
               "analyzing occurrence",
               SCO  => D_Occ.Decision,
               Kind => Notice);
+
+      --  Ignore empty occurrence. This can happen when there is an
+      --  inlined body before the first conditional branch.
+
+      if D_Occ.Seen_Condition = 0 then
+         Report (Exe, First_CBI_PC (D_Occ),
+                 "occurrence is empty, ignored",
+                 SCO  => D_Occ.Decision,
+                 Kind => Notice);
+         return;
+      end if;
 
       --  Detect and report incomplete occurrences (i.e. occurrence where the
       --  last seen condition is not the last run-time-evaluated condition of
