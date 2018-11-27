@@ -763,9 +763,7 @@ package body Annotations.Report is
 
    function Section_Of_Message (M : Message) return Report_Section is
    begin
-      if M.SCO /= No_SCO_Id then
-         pragma Assert (M.Kind in Coverage_Kind);
-
+      if M.SCO /= No_SCO_Id and then M.Kind in Coverage_Kind then
          if M.Kind = Exclusion then
             return Coverage_Exclusions;
          else
