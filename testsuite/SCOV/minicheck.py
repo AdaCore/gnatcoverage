@@ -95,16 +95,15 @@ def check_xcov_reports(xcov_filename_pattern, expected_cov):
         return '\n'.join('  {}'.format(s) for s in sorted(items))
 
     xcov_files = {f for f in glob.glob(xcov_filename_pattern)}
-    thistest.stop_if(
+    thistest.fail_if(
         xcov_files != set(expected_cov),
-        FatalError(
-            'Unexpected XCOV files. Expected:\n'
-            '{}\n'
-            'But got instead:\n'
-            '{}\n'.format(fmt_sorted_indented_list(expected_cov),
-                          fmt_sorted_indented_list(xcov_files))
-        )
+        'Unexpected XCOV files. Expected:\n'
+        '{}\n'
+        'But got instead:\n'
+        '{}\n'.format(fmt_sorted_indented_list(expected_cov),
+                      fmt_sorted_indented_list(xcov_files))
     )
 
     for filename, cov_data in expected_cov.items():
-        check_xcov_content(filename, cov_data)
+        if filename in xcov_files:
+            check_xcov_content(filename, cov_data)
