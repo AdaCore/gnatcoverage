@@ -1,3 +1,4 @@
+
 ------------------------------------------------------------------------------
 --                                                                          --
 --                               GNATcoverage                               --
@@ -34,6 +35,7 @@ with Types;  use Types;
 with Table;
 
 with ALI_Files;
+with Files_Table; use Files_Table;
 with SC_Obligations; use SC_Obligations;
 
 package body Instrument is
@@ -1932,8 +1934,20 @@ package body Instrument is
       Ctx  : constant Analysis_Context := Create_Context;
       Unit : constant Analysis_Unit := Get_From_File (Ctx, Unit_Name);
    begin
+      SCOs.Initialize;
       Traverse_Declarations_Or_Statements
         (P => Root (Unit), L => No_Ada_Node_List);
+
+      declare
+         SFI : constant Source_File_Index :=
+           Get_Index_From_Generic_Name (Unit_Name, Kind => Source_File);
+         CU  : constant CU_Id := Allocate_CU (Origin => SFI);
+         --  In the instrumentation case, the origin of SCO information is
+         --  the original source file.
+
+      begin
+         Process_Low_Level_SCOs (CU, SFI);
+      end;
    end Instrument_Unit;
 
    ------------------
@@ -1954,8 +1968,9 @@ package body Instrument is
 
       function Visit (N : Ada_Node'Class) return Visit_Status is
       begin
-         if Is_Logical_Operator (N) /= False
-           or else N.Kind = Ada_If_Expr
+         if N.Kind in Ada_Expr
+           and then (Is_Logical_Operator (N) /= False
+                     or else N.Kind = Ada_If_Expr)
          then
             return Stop;
          else

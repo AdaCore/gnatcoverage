@@ -18,12 +18,12 @@
 
 --  Source Coverage Obligations
 
-with Ada.Containers.Vectors;
-
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
+
+with GNAT.SHA1;
 
 with ALI_Files;     use ALI_Files;
 with Aspects;       use Aspects;
@@ -44,6 +44,15 @@ package body SC_Obligations is
    subtype Source_Location is Slocs.Source_Location;
    No_Location : Source_Location renames Slocs.No_Location;
    --  (not SCOs.Source_Location)
+
+   -------------------------------------
+   -- Low-level SCO tables management --
+   -------------------------------------
+
+   type SCOs_Hash is new GNAT.SHA1.Binary_Message_Digest;
+
+   function SCO_Tables_Fingerprint return SCOs_Hash;
+   --  Return a fingerprint for all low-level SCO tables
 
    --------------------------------------------
    -- Management of binary decision diagrams --
@@ -253,18 +262,20 @@ package body SC_Obligations is
    ------------------------
 
    type CU_Info is record
-      LI            : Source_File_Index;
-      --  Simple name of LI file
+      Origin        : Source_File_Index;
+      --  File from which this unit's SCO info comes from.
+      --  For compiler-based analysis, this is the LI file; for instrumented
+      --  sources, this is the original source file.
 
       Main_Source   : Source_File_Index;
       --  Name of main source file.
       --  For Ada this is a simple name; for C this is either a simple name
       --  or full name, depending on whether the information is available.
 
-      First_SCO, Last_SCO : SCO_Id;
+      First_SCO, Last_SCO : SCO_Id := No_SCO_Id;
       --  First and last SCO ids for this unit
 
-      First_Instance, Last_Instance : Inst_Id;
+      First_Instance, Last_Instance : Inst_Id := No_Inst_Id;
       --  First and last index of Inst_Vector entries for this unit
 
       Deps          : SFI_Vector;
@@ -1484,7 +1495,7 @@ package body SC_Obligations is
    begin
       --  Remap source file indices
 
-      Remap_SFI (CS, CP_CU.LI);
+      Remap_SFI (CS, CP_CU.Origin);
       Remap_SFI (CS, CP_CU.Main_Source);
       for Dep_SFI of CP_CU.Deps loop
 
@@ -1535,7 +1546,7 @@ package body SC_Obligations is
       else
          Warn ("cannot merge coverage information "
                & "from " & To_String (CS.Filename)
-               & " for " & Get_Simple_Name (CP_CU.LI));
+               & " for " & Get_Simple_Name (CP_CU.Origin));
       end if;
    end Checkpoint_Load_Unit;
 
@@ -2508,6 +2519,18 @@ package body SC_Obligations is
       return Result;
    end Last_Sloc;
 
+   -----------------
+   -- Allocate_CU --
+   -----------------
+
+   function Allocate_CU
+     (Origin : Source_File_Index := No_Source_File) return CU_Id
+   is
+   begin
+      CU_Vector.Append (CU_Info'(Origin => Origin, others => <>));
+      return CU_Vector.Last_Index;
+   end Allocate_CU;
+
    ---------------
    -- Load_SCOs --
    ---------------
@@ -2516,82 +2539,35 @@ package body SC_Obligations is
      (ALI_Filename         : String;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
-      use SCOs;
-
-      Cur_Source_File        : Source_File_Index := No_Source_File;
-      Cur_SCO_Unit           : SCO_Unit_Index;
-      Last_Entry_In_Cur_Unit : Int;
-      Last_Entry_Last_Line   : Natural := 0;
-      --  Line number of high bound of sloc range of last processed entry
-
-      Skip_Current_File : Boolean := False;
-      --  Whether the SCOs referring to the current source file should be
-      --  ignored.
-
-      Dom_SCO  : SCO_Id          := No_SCO_Id;
-      Dom_Sloc : Source_Location := No_Location;
-      Dom_Val  : Tristate        := Unknown;
-      Current_Handler_Range : Source_Location_Range := No_Range;
-      --  Dominant information for basic block chaining
-
-      Current_Decision : SCO_Id := No_SCO_Id;
-      --  Decision whose conditions are being processed
-
-      Current_Condition_Index : Any_Condition_Index;
-      --  Index of current condition within the current decision (0-based, set
-      --  to No_Condition_Index, i.e. -1, before the first condition of the
-      --  decision is seen).
-
-      Current_BDD : BDD.BDD_Type;
-      --  BDD of current decision
-
-      --  Record last SCO and instance identifiers prior to loading SCOs
-
-      Last_SCO_Upon_Entry      : constant SCO_Id  := SCO_Vector.Last_Index;
-      Last_Instance_Upon_Entry : constant Inst_Id := Inst_Vector.Last_Index;
-
       Units, Deps : SFI_Vector;
       --  Units and dependencies of this compilation
 
-      Fingerprint : SCOs_Hash;
-      --  Unique hash of SCO info in ALI
-
-      CU_Index  : constant CU_Id := CU_Vector.Last_Index + 1;
+      CU_Index  : constant CU_Id := Allocate_CU;
       --  Compilation unit for this ALI
 
       ALI_Index : constant Source_File_Index :=
         Load_ALI (ALI_Filename, CU_Index, Ignored_Source_Files,
-                  Units, Deps, Fingerprint, With_SCOs => True);
+                  Units, Deps, With_SCOs => True);
       --  Load ALI file and update the last SCO and instance indices
 
-      Deps_Present : constant Boolean := not Deps.Is_Empty;
       Main_Source  : Source_File_Index;
 
-      procedure Fixup_First_Last_SCO (CUI : in out CU_Info);
-      --  Record first and last SCO in compilation unit info
+      procedure Set_Origin (CUI : in out CU_Info);
+      --  Set CUI's origin to ALI_Index (in the compiler-based scenario case,
+      --  the origin of SCO information is the ALI file).
 
-      --------------------------
-      -- Fixup_First_Last_SCO --
-      --------------------------
-
-      procedure Fixup_First_Last_SCO (CUI : in out CU_Info) is
+      procedure Set_Origin (CUI : in out CU_Info) is
       begin
-         CUI.First_SCO := Last_SCO_Upon_Entry + 1;
-         CUI.Last_SCO := SCO_Vector.Last_Index;
-      end Fixup_First_Last_SCO;
+         CUI.Origin := ALI_Index;
+      end Set_Origin;
 
-   --  Start of processing for Load_SCOs
+   --  Start of porocessing for Load_SCOs
 
    begin
       if ALI_Index = No_Source_File then
          return;
       end if;
-
-      --  Walk low-level SCO table for this unit and populate high-level tables
-
-      Cur_SCO_Unit := SCO_Unit_Table.First;
-      Last_Entry_In_Cur_Unit := SCOs.SCO_Table.First - 1;
-      --  Note, the first entry in the SCO_Unit_Table is unused
+      CU_Vector.Update_Element (CU_Index, Set_Origin'Access);
 
       --  Determine main source name. This is the name for the file denoted
       --  by the first U line. For Ada we keep the simple name. For C we try
@@ -2626,29 +2602,89 @@ package body SC_Obligations is
       Get_File (Main_Source).LI := ALI_Index;
       Get_File (ALI_Index).Main_Source := Main_Source;
 
-      --  Record compilation unit
+      Process_Low_Level_SCOs
+        (CU_Index, Main_Source, Deps);
+   end Load_SCOs;
 
-      CU_Vector.Append
-        (CU_Info'
-           (LI             => ALI_Index,
-            Main_Source    => Main_Source,
-            First_SCO      => No_SCO_Id,
-            Last_SCO       => No_SCO_Id,
-            First_Instance => Last_Instance_Upon_Entry + 1,
-            Last_Instance  => Last_Instance_Upon_Entry + 1
-            + Inst_Id (SCO_Instance_Table.Last)
-            - Inst_Id (SCO_Instance_Table.First),
-            Deps           => Deps,
-            Fingerprint    => Fingerprint,
-            others         => <>));
-      pragma Assert (CU_Index = CU_Vector.Last_Index);
+   ----------------------------
+   -- Process_Low_Level_SCOs --
+   ----------------------------
 
+   procedure Process_Low_Level_SCOs
+     (CU_Index    : CU_Id;
+      Main_Source : Source_File_Index;
+      Deps        : SFI_Vector := SFI_Vectors.Empty_Vector)
+   is
+      use SCOs;
+
+      --  Record entry high water mark in high level SCO tables
+
+      Last_Instance_Upon_Entry : constant Inst_Id := Inst_Vector.Last_Index;
+      Last_SCO_Upon_Entry      : constant SCO_Id  := SCO_Vector.Last_Index;
+
+      Cur_Source_File        : Source_File_Index := No_Source_File;
+      Cur_SCO_Unit           : SCO_Unit_Index;
+      Last_Entry_In_Cur_Unit : Int;
+      Last_Entry_Last_Line   : Natural := 0;
+      --  Line number of high bound of sloc range of last processed entry
+
+      Skip_Current_File : Boolean := False;
+      --  Whether the SCOs referring to the current source file should be
+      --  ignored.
+
+      Dom_SCO  : SCO_Id          := No_SCO_Id;
+      Dom_Sloc : Source_Location := No_Location;
+      Dom_Val  : Tristate        := Unknown;
+      Current_Handler_Range : Source_Location_Range := No_Range;
+      --  Dominant information for basic block chaining
+
+      Current_Decision : SCO_Id := No_SCO_Id;
+      --  Decision whose conditions are being processed
+
+      Current_Condition_Index : Any_Condition_Index;
+      --  Index of current condition within the current decision (0-based, set
+      --  to No_Condition_Index, i.e. -1, before the first condition of the
+      --  decision is seen).
+
+      Current_BDD : BDD.BDD_Type;
+      --  BDD of current decision
+
+      procedure Fixup_CU (CUI : in out CU_Info);
+      --  Update CU entry with information gathered from the tables
+
+      --------------
+      -- Fixup_CU --
+      --------------
+
+      procedure Fixup_CU (CUI : in out CU_Info) is
+      begin
+         CUI.Main_Source    := Main_Source;
+         CUI.Deps           := Deps;
+
+         CUI.First_SCO      := Last_SCO_Upon_Entry + 1;
+         CUI.Last_SCO       := SCO_Vector.Last_Index;
+
+         CUI.First_Instance := Last_Instance_Upon_Entry + 1;
+         CUI.Last_Instance  := Inst_Vector.Last_Index;
+
+         CUI.Fingerprint    := SCO_Tables_Fingerprint;
+      end Fixup_CU;
+
+      Deps_Present : constant Boolean := not Deps.Is_Empty;
+
+   --  Start of processing for Process_Low_Level_SCOs
+
+   begin
       --  Make sure we have a CU_Map entry for the main source file, even if no
       --  SCOs are present, as it is used for checkpoint consolidation.
 
       CU_Map.Insert (Main_Source, CU_Index);
 
-      --  Load SCOs for this compilation units
+      --  Walk low-level SCO table for this unit and populate high-level tables
+
+      Cur_SCO_Unit := SCO_Unit_Table.First;
+      Last_Entry_In_Cur_Unit := SCOs.SCO_Table.First - 1;
+      --  Note, the first entry in the SCO_Unit_Table is unused
 
       for Cur_SCO_Entry in
         SCOs.SCO_Table.First .. SCOs.SCO_Table.Last
@@ -2878,19 +2914,18 @@ package body SC_Obligations is
                   end if;
 
                   SCO_Vector.Append
-                    (SCO_Descriptor'(Kind                 => Statement,
-                                     Origin               => CU_Index,
-                                     Sloc_Range           => SCO_Range,
-                                     S_Kind               =>
-                                       To_Statement_Kind (SCOE.C2),
-                                     Dominant             => Dom_SCO,
-                                     Dominant_Sloc        => Dom_Sloc,
-                                     Dominant_Value       => Dom_Val,
-                                     Handler_Range        =>
-                                       Current_Handler_Range,
-                                     Pragma_Name          =>
-                                       Get_Pragma_Id (Pragma_Aspect_Name),
-                                     others               => <>));
+                    (SCO_Descriptor'(Kind           => Statement,
+                                     Origin         => CU_Index,
+                                     Sloc_Range     => SCO_Range,
+                                     S_Kind         =>
+                                        To_Statement_Kind (SCOE.C2),
+                                     Dominant       => Dom_SCO,
+                                     Dominant_Sloc  => Dom_Sloc,
+                                     Dominant_Value => Dom_Val,
+                                     Handler_Range  => Current_Handler_Range,
+                                     Pragma_Name    =>
+                                        Get_Pragma_Id (Pragma_Aspect_Name),
+                                     others         => <>));
 
                   Current_Handler_Range := No_Range;
                   Dom_Val  := Unknown;
@@ -3230,10 +3265,10 @@ package body SC_Obligations is
          end;
       end loop;
 
-      --  Finally record this unit's first and last SCO_Id
+      --  Finally update entry in CU vector
 
-      CU_Vector.Update_Element (CU_Vector.Last, Fixup_First_Last_SCO'Access);
-   end Load_SCOs;
+      CU_Vector.Update_Element (CU_Vector.Last, Fixup_CU'Access);
+   end Process_Low_Level_SCOs;
 
    -------------
    -- Map_Tag --
@@ -3583,7 +3618,7 @@ package body SC_Obligations is
       begin
          if not CUI.Has_Code and then Has_SCOs (CUI) then
             Report
-              (Msg  => "no object code for " & Get_Simple_Name (CUI.LI),
+              (Msg  => "no object code for " & Get_Simple_Name (CUI.Origin),
                Kind => Diagnostics.Error);
          end if;
       end Check_Unit;
@@ -3946,6 +3981,96 @@ package body SC_Obligations is
       SCO_Vector.Query_Element (SCO, QS'Access);
       return Result;
    end Unit_Has_Code;
+
+   ----------------------------
+   -- SCO_Tables_Fingerprint --
+   ----------------------------
+
+   function SCO_Tables_Fingerprint return SCOs_Hash is
+      use GNAT.SHA1;
+      use SCOs;
+
+      procedure Update (S : String);
+      --  Shortcut for Update (Hash_Ctx, S)
+
+      procedure Update (Sloc : SCOs.Source_Location);
+      --  Update Hash_Ctx with Sloc
+
+      Hash_Ctx  : GNAT.SHA1.Context;
+
+      ------------
+      -- Update --
+      ------------
+
+      procedure Update (S : String) is
+      begin
+         Update (Hash_Ctx, S);
+      end Update;
+
+      ------------
+      -- Update --
+      ------------
+
+      procedure Update (Sloc : SCOs.Source_Location) is
+      begin
+         Update (Hash_Ctx, ":" & Logical_Line_Number'Image (Sloc.Line)
+                           & ":" & Column_Number'Image (Sloc.Col));
+      end Update;
+
+   --  Start of processing for SCO_Tables_Fingerprint
+
+   begin
+      --  The aim is to include in the hash all information for which
+      --  inconsistency during consolidation would make coverage analysis
+      --  nonsensical.
+
+      for I in SCO_Unit_Table.First + 1 .. SCO_Unit_Table.Last loop
+         declare
+            U : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (I);
+         begin
+            if U.Dep_Num /= Missing_Dep_Num then
+               --
+               --  Directly streaming U to the hash stream would make the
+               --  fingerprint computation depend on compiler internals (here,
+               --  pragma representation values). Instead, use human-readable
+               --  and compiler-independant values.
+
+               Update (U.File_Name.all);
+               Update (Nat'Image (U.Dep_Num));
+
+               for S in U.From .. U.To loop
+                  declare
+                     E : SCO_Table_Entry renames SCO_Table.Table (S);
+                  begin
+                     Update (E.From);
+                     Update (E.To);
+                     Update (String'((E.C1, E.C2)));
+                     if E.Last then
+                        Update ("Last");
+                     end if;
+                     if E.Pragma_Aspect_Name /= No_Name then
+                        Update (Get_Name_String (E.Pragma_Aspect_Name));
+                     end if;
+                  end;
+               end loop;
+            end if;
+         end;
+      end loop;
+
+      return SCOs_Hash (Binary_Message_Digest'(Digest (Hash_Ctx)));
+   end SCO_Tables_Fingerprint;
+
+   -------------------
+   -- Dump_All_SCOs --
+   -------------------
+
+   procedure Dump_All_SCOs is
+   begin
+      for SCO in Valid_SCO_Id'First .. Last_SCO loop
+         Put_Line (Image (SCO));
+         New_Line;
+      end loop;
+   end Dump_All_SCOs;
 
 begin
    Snames.Initialize;

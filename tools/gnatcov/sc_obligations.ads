@@ -19,6 +19,7 @@
 --  Source Coverage Obligations
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
 with Ada.Streams; use Ada.Streams;
 
 with GNAT.Regexp;
@@ -31,6 +32,18 @@ with Snames;      use Snames;
 
 package SC_Obligations is
 
+   ------------------
+   -- Source files --
+   ------------------
+
+   package SFI_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Pos,
+      Element_Type => Source_File_Index);
+   --  Vector of source file indices, used to map dependency indices in an
+   --  ALI file to our source file indices.
+
+   subtype SFI_Vector is SFI_Vectors.Vector;
+
    -----------------------
    -- Compilation units --
    -----------------------
@@ -38,6 +51,11 @@ package SC_Obligations is
    type CU_Id is new Natural;
    No_CU_Id : constant CU_Id := 0;
    subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
+
+   function Allocate_CU
+     (Origin : Source_File_Index := No_Source_File) return CU_Id;
+   --  Allocate a new element in the compilation units table, optionally
+   --  setting the CU's origin information.
 
    function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
    --  Return the identifier for the compilation unit containing the given
@@ -92,6 +110,13 @@ package SC_Obligations is
    --  Return True if there is at least one Statement or Condition SCO whose
    --  range has a non-null intersection with Sloc_Begin .. Sloc_End.
 
+   procedure Process_Low_Level_SCOs
+     (CU_Index    : CU_Id;
+      Main_Source : Source_File_Index;
+      Deps        : SFI_Vector := SFI_Vectors.Empty_Vector);
+   --  Populate high level SCO tables from low level ones, which have been
+   --  populated either from an LI file, or directly by the instrumenter.
+
    procedure Load_SCOs
      (ALI_Filename         : String;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
@@ -104,6 +129,9 @@ package SC_Obligations is
 
    procedure Report_Multipath_Decisions;
    --  Output a list of decisions containing multiple paths
+
+   procedure Dump_All_SCOs;
+   --  Output all SCOs
 
    procedure Iterate (P : access procedure (SCO : SCO_Id));
    --  Execute P for each SCO
