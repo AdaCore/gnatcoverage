@@ -188,11 +188,10 @@ package body Instrument is
    --  not an operator.
 
    function Is_Logical_Operator (N : Ada_Node'Class) return Tristate;
-   --  N is the node for a subexpression. This procedure determines whether N
+   --  False for any node that isn't an Expr. For an Expr, determines whether N
    --  is a logical operator: True for short circuit conditions, Unknown for OR
    --  and AND (the Short_Circuit_And_Or pragma may be used) and False
-   --  otherwise. Note that in cases where True is returned, callers assume
-   --  Nkind (N) in N_Op.
+   --  otherwise.
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -515,12 +514,16 @@ package body Instrument is
          --  If there are any nodes other that Base_Decl that may have aspects
          --  then this will need to be adjusted???
 
-         AL : constant Aspect_Assoc_List := AS.F_Aspect_Assocs;
+         AL : Aspect_Assoc_List;
          AN : Aspect_Assoc;
          AE : Expr;
          C1 : Character;
 
       begin
+         if AS.Is_Null then
+            return;
+         end if;
+         AL := AS.F_Aspect_Assocs;
          for I in 1 .. AL.Children_Count loop
             AN := AL.Child (I).As_Aspect_Assoc;
             AE := AN.F_Expr;
@@ -610,11 +613,13 @@ package body Instrument is
             when Ada_Compilation_Unit =>
                declare
                   CUN : constant Compilation_Unit := N.As_Compilation_Unit;
+                  Item_N : constant Basic_Decl :=
+                    CUN.F_Body.As_Library_Item.F_Item;
                begin
                   Traverse_Declarations_Or_Statements
                     (L => CUN.F_Prelude);
 
-                  case CUN.F_Body.Kind is
+                  case Item_N.Kind is
                      when Ada_Generic_Instantiation
                         | Ada_Generic_Package_Decl
                         | Ada_Package_Body
@@ -625,7 +630,7 @@ package body Instrument is
                         | Ada_Task_Body
                      =>
                         Traverse_Declarations_Or_Statements
-                          (P => CUN.F_Body, L => No_Ada_Node_List);
+                          (P => Item_N.As_Ada_Node, L => No_Ada_Node_List);
 
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
@@ -877,6 +882,8 @@ package body Instrument is
                Extend_Statement_Sequence (N, 'C');
                declare
                   Case_N : constant Case_Stmt := N.As_Case_Stmt;
+                  Alt_L  : constant Case_Stmt_Alternative_List :=
+                    Case_N.F_Alternatives;
                begin
                   Process_Decisions_Defer (Case_N.F_Expr, 'X');
                   Set_Statement_Entry;
@@ -884,10 +891,10 @@ package body Instrument is
                   --  Process case branches, all of which are dominated by the
                   --  CASE statement.
 
-                  for J in 1 .. Case_N.F_Alternatives.Children_Count loop
+                  for J in 1 .. Alt_L.Children_Count loop
                      declare
                         Alt : constant Case_Stmt_Alternative :=
-                          Case_N.Child (J).As_Case_Stmt_Alternative;
+                          Alt_L.Child (J).As_Case_Stmt_Alternative;
                      begin
                         Traverse_Declarations_Or_Statements
                           (L => Alt.F_Stmts.As_Ada_Node_List,
@@ -1325,6 +1332,9 @@ package body Instrument is
          Traverse_Aspects (N);
       end Traverse_One;
 
+      Items_Count : constant Natural :=
+        (if L.Is_Null then 0 else L.Children_Count);
+
    --  Start of processing for Traverse_Declarations_Or_Statements
 
    begin
@@ -1336,7 +1346,7 @@ package body Instrument is
 
       --  Loop through statements or declarations
 
-      for J in 1 .. L.Children_Count loop
+      for J in 1 .. Items_Count loop
          declare
             N : constant Ada_Node := L.Child (J);
          begin
@@ -1346,7 +1356,7 @@ package body Instrument is
 
       --  End sequence of statements and flush deferred decisions
 
-      if not P.Is_Null or else L.Children_Count > 0 then
+      if not P.Is_Null or else Items_Count > 0 then
          Set_Statement_Entry;
       end if;
 
@@ -1372,6 +1382,10 @@ package body Instrument is
       D : Dominant_Info := No_Dominant)
    is
    begin
+      if N.Is_Null then
+         return;
+      end if;
+
       Traverse_Declarations_Or_Statements (N.F_Stmts.As_Ada_Node_List, D);
 
       for J in 1 .. N.F_Exceptions.Children_Count loop
@@ -1544,8 +1558,8 @@ package body Instrument is
    -----------------------
 
    procedure Process_Decisions
-     (N           : Ada_Node'Class;
-      T           : Character)
+     (N : Ada_Node'Class;
+      T : Character)
    is
       Mark : Nat;
       --  This is used to mark the location of a decision sequence in the SCO
@@ -1628,7 +1642,8 @@ package body Instrument is
          L, R : Expr;
          T    : Tristate;
 
-         N_Op_Kind : constant Ada_Node_Kind_Type := Operator (N).Kind;
+         Op_N  : Op;
+         Op_NK : Ada_Node_Kind_Type;
       begin
          if N.Is_Null then
             return;
@@ -1639,7 +1654,10 @@ package body Instrument is
          --  Logical operator
 
          if T /= False then
-            if N_Op_Kind = Ada_Op_Not then
+            Op_N := Operator (N);
+            Op_NK := Op_N.Kind;
+
+            if Op_NK = Ada_Op_Not then
                C1 := '!';
                L := No_Expr;
                R := N.As_Un_Op.F_Expr;
@@ -1650,10 +1668,9 @@ package body Instrument is
                begin
                   L := BN.F_Left;
                   R := BN.F_Right;
-                  if N_Op_Kind in Ada_Op_Or | Ada_Op_Or_Else then
+                  if Op_NK in Ada_Op_Or | Ada_Op_Or_Else then
                      C1 := '|';
-                  else pragma Assert (N_Op_Kind
-                                      in Ada_Op_And | Ada_Op_And_Then);
+                  else pragma Assert (Op_NK in Ada_Op_And | Ada_Op_And_Then);
                      C1 := '&';
                   end if;
                end;
@@ -1668,7 +1685,7 @@ package body Instrument is
             Append_SCO
               (C1   => C1,
                C2   => C2,
-               From => Sloc (N),
+               From => Sloc (Op_N),
                To   => No_Source_Location,
                Last => False);
 
@@ -1805,7 +1822,9 @@ package body Instrument is
 
       function Process_Node (N : Ada_Node'Class) return Visit_Status is
       begin
-         if Is_Logical_Operator (N) /= False then
+         if N.Kind in Ada_Expr
+           and then Is_Logical_Operator (N.As_Expr) /= False
+         then
             --  Logical operators, output table entries and then process
             --  operands recursively to deal with nested conditions.
 
@@ -1946,6 +1965,12 @@ package body Instrument is
          --  the original source file.
 
       begin
+         SCOs.SCO_Unit_Table.Append
+           ((File_Name  => new String'(Unit_Name),
+             File_Index => SFI,
+             Dep_Num    => 1,
+             From       => SCOs.SCO_Table.First,
+             To         => SCOs.SCO_Table.Last));
          Process_Low_Level_SCOs (CU, SFI);
       end;
    end Instrument_Unit;
@@ -1990,20 +2015,32 @@ package body Instrument is
 
    function Is_Logical_Operator (N : Ada_Node'Class) return Tristate is
    begin
-      case Operator (N.As_Expr).Kind is
-         when Ada_Op_Not =>
-            return True;
-            --  Ada_Op_Not should be Unkwown???
+      if N.Kind not in Ada_Expr then
+         return False;
+      end if;
 
-         when Ada_Op_And_Then | Ada_Op_Or_Else =>
-            return True;
-
-         when Ada_Op_And | Ada_Op_Or =>
-            return Unknown;
-
-         when others =>
+      declare
+         Op_N : constant Op := Operator (N.As_Expr);
+      begin
+         if Op_N.Is_Null then
             return False;
-      end case;
+         end if;
+
+         case Op_N.Kind is
+            when Ada_Op_Not =>
+               return True;
+               --  Ada_Op_Not should be Unkwown???
+
+            when Ada_Op_And_Then | Ada_Op_Or_Else =>
+               return True;
+
+            when Ada_Op_And | Ada_Op_Or =>
+               return Unknown;
+
+            when others =>
+               return False;
+         end case;
+      end;
    end Is_Logical_Operator;
 
    --------------
