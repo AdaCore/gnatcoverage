@@ -2032,6 +2032,8 @@ package body Traces_Elf is
       Sec        : Address_Info_Acc;
       --  Current subprogram and section
 
+      Cache : Insn_Set_Cache := Empty_Cache;
+
       procedure Set_Parents (PC : Pc_Type; Sloc : Source_Location);
       --  Set the current subprogram and section for PC, which is mapped to
       --  Sloc. Create a subprogram and append it to the database if there
@@ -2043,6 +2045,10 @@ package body Traces_Elf is
       procedure New_Source_Line;
       procedure Close_Source_Line;
       --  Need comments???
+
+      function Last_For_Insn (First : Pc_Type) return Pc_Type;
+      --  Assuming that an instruction starts at First, return the last byte
+      --  that is part of that instruction.
 
       -----------------------
       -- Close_Source_Line --
@@ -2064,20 +2070,103 @@ package body Traces_Elf is
          --  (see Traces_Elf.Empty_Range/Traces.Empty_Range).
 
          --  If this entry has a non-empty range, mark it as such using the
-         --  Is_Non_Empty flag, and propagate the range to all entries with
-         --  the same start address and an empty range.
+         --  Is_Non_Empty flag. If this entry spans over multiple instructions
+         --  and there are entries with empty ranges at the same start address,
+         --  split this entry in two: one entry to cover the first instruction
+         --  (propagate this range to entries with empty ranges) and another to
+         --  cover the other instructions.
+         --
+         --  This is required to handle the semantics of instructions with
+         --  several associated slocs, as in:
+         --
+         --     foo.adb:1:1
+         --     foo.adb:2:1
+         --     foo.adb:3:1
+         --       insn_1
+         --       insn_...
+         --       insn_n
+         --
+         --  From the compiler's standpoint, this kind of pattern conveys that
+         --  insn_1 pertains to the three slocs while the following
+         --  instructions only bind to the last sloc of the sequence.
+         --
+         --  Later on, two Address_Info entries which start at the same address
+         --  are ordered so that the one with the shorter range appears last
+         --  (see "<" for Address_Info_Acc), so, overall, we need:
+         --
+         --    * foo.adb:1:1 and foo.adb:2:1 to appear before foo.adb:3:1,
+         --
+         --    * foo.adb:1:1 and foo.adb:2:1 to span over only one instruction.
+         --
+         --  In order to achieve this, we need to split the debug info pattern
+         --  above as the following line entries in our internal tables:
+         --
+         --     foo.adb:1:1
+         --     foo.adb:2:1
+         --     foo.adb:3:1
+         --       insn_1
+         --     foo.adb:3:1
+         --       insn_...
+         --       insn_n
 
          if not Empty_Range (Last_Line.all) then
             Last_Line.Is_Non_Empty := True;
 
-            for Info of Get_Address_Infos
-              (Subprg.Lines, Line_Addresses, Last_Line.First)
-            loop
-               if Empty_Range (Info.all) then
-                  pragma Assert (not Info.Is_Non_Empty);
-                  Info.Last := Last_Line.Last;
+            declare
+               Insn_N_Last_PC : constant Pc_Type := Last_Line.Last;
+               --  In the example above, corresponds to the address of the last
+               --  byte in the insn_n instruction.
+
+               Other_Lines : constant Address_Info_Arr :=
+                  Get_Address_Infos
+                    (Subprg.Lines, Line_Addresses, Last_Line.First);
+               --  In the example above, all entries which start at the same
+               --  address as insn_1.
+
+               Has_Empty_Ranges : Boolean := False;
+               --  Whether Other_Lines contains entries with empty ranges
+
+               Insn_1_Last_PC : Pc_Type;
+               --  In the example above, corresponds to the address of the last
+               --  byte in the insn_1 instruction. Computed only if we find an
+               --  empty range entry.
+
+               New_Line : Address_Info_Acc;
+            begin
+               for Info of Other_Lines loop
+                  if Empty_Range (Info.all) then
+                     pragma Assert (not Info.Is_Non_Empty);
+
+                     if not Has_Empty_Ranges then
+                        Insn_1_Last_PC := Last_For_Insn (Last_Line.First);
+                     end if;
+                     Has_Empty_Ranges := True;
+
+                     Info.Last := Insn_1_Last_PC;
+                  end if;
+               end loop;
+
+               --  If the original entry covered multiple instructions and had
+               --  associated empty ranged entries, we must split it.
+
+               if Has_Empty_Ranges and then Insn_1_Last_PC /= Insn_N_Last_PC
+               then
+
+                  --  Shorten the range of the existing entry to cover only one
+                  --  instruction.
+
+                  Last_Line.Last := Insn_1_Last_PC;
+
+                  --  Create a new entry with the same information, except that
+                  --  it will cover remaining instructions.
+
+                  New_Line := new Address_Info'(Last_Line.all);
+                  New_Line.First := Insn_1_Last_PC + 1;
+                  New_Line.Last := Insn_N_Last_PC;
+                  New_Line.Is_Non_Empty := True;
+                  Subprg.Lines.Insert (New_Line);
                end if;
-            end loop;
+            end;
          end if;
 
          Last_Line := null;
@@ -2299,6 +2388,33 @@ package body Traces_Elf is
             end;
          end if;
       end Set_Parents;
+
+      -------------------
+      -- Last_For_Insn --
+      -------------------
+
+      function Last_For_Insn (First : Pc_Type) return Pc_Type is
+         Code_Section : constant Address_Info_Acc :=
+            Exec.Get_Address_Info (Section_Addresses, First);
+      begin
+         Exec.Load_Section_Content (Code_Section);
+         declare
+            Ranges       : constant Insn_Set_Ranges :=
+               Exec.Get_Insn_Set_Ranges
+                 (Code_Section.Section_Sec_Idx).all;
+            Insn_Set     : constant Insn_Set_Type :=
+               Get_Insn_Set (Ranges, Cache, Last_Line.First);
+            Code         : constant Binary_Content :=
+               Slice (Code_Section.Section_Content,
+                      Last_Line.First,
+                      Code_Section.Section_Content.Last);
+
+            Insn_Length : constant Positive :=
+               Disa_For_Machine (Machine, Insn_Set).Get_Insn_Length (Code);
+         begin
+            return First + Pc_Type (Insn_Length) - 1;
+         end;
+      end Last_For_Insn;
 
       No_File_Of_Interest : Boolean := True;
 
