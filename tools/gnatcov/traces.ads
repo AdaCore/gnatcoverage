@@ -35,9 +35,12 @@ package Traces is
 
    function Empty_Range (First, Last : Pc_Type) return Boolean is
       (Last - First >= 2 ** (Pc_Type'Size - 1));
-   --  True if First .. Last denotes an empty range. Note that Pc_Type is a
-   --  modular type, so this cannot be defined as (Last - First < 0).
+   --  True if First .. Last denotes an empty range.
    --
+   --  As a special case, 0 .. Pc_Type'Last is considered as an empty range.
+   --  Note that Pc_Type is a modular type, so this cannot be defined as
+   --  (Last - First < 0).
+
    package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    Pc_Type_Size : constant Unsigned_8 := Pc_Type'Size / System.Storage_Unit;

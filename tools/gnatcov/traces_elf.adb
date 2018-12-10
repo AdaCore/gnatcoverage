@@ -2060,7 +2060,8 @@ package body Traces_Elf is
 
          --  Note: if previous entry is at offset 0 and has an empty range,
          --  this will set its Last to PC_Type'Last, so care must be taken
-         --  downstream to not interpret it as covering the whole executable.
+         --  downstream to not interpret it as covering the whole executable
+         --  (see Traces_Elf.Empty_Range/Traces.Empty_Range).
 
          --  If this entry has a non-empty range, mark it as such using the
          --  Is_Non_Empty flag, and propagate the range to all entries with
