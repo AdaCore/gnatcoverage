@@ -1212,13 +1212,11 @@ package body Traces_Files is
          Write_Trace_File_Info (Fd, Trace_File);
       end if;
 
-      --  Stop now if we only dump infos
+      --  Nothing else to do if we only dump infos
 
-      if Trace_File.Kind = Info then
-         return;
+      if Trace_File.Kind /= Info then
+         Write_Trace_File_Traces (Fd, Trace_File.Kind, Base);
       end if;
-
-      Write_Trace_File_Traces (Fd, Trace_File.Kind, Base);
 
       Close (Fd);
    exception
