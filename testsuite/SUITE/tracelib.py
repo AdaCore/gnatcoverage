@@ -264,6 +264,39 @@ class TraceFile(object):
         for entry in self.entries:
             entry.write(fp)
 
+    def iter_entries(self, raw=False):
+        """
+        Yield all trace entries in this trace file.
+
+        Unless `raw` is true, this interprets special trace entries, such as
+        loadaddr (module loaded at PC). In this case, other trace entries are
+        returned (and potentially skipped) accordingly.
+        """
+        entries = iter(self.entries)
+        offset = 0
+
+        # If there is a kernel, skip all trace entries until we get a loadaddr
+        # special one.
+        if not raw and InfoKind.Kernel_File_Name in self.infos.infos:
+            while True:
+                loadaddr = next(entries)
+                if (loadaddr.is_special and
+                    loadaddr.size == TraceSpecial.Loadaddr):
+                    offset = loadaddr.pc
+                    break
+
+        # Now go through the remaining list of trace entries
+        for e in entries:
+            # TODO: handle special trace entries that can show up here
+            # (load_shared_object, ...)
+            assert not e.is_special
+
+            # Discard trace entries for code below the module of interest
+            if not raw and e.pc < offset:
+                continue
+
+            yield TraceEntry(e.bits, e.pc - offset, e.size, e.op, e.infos)
+
 
 class TraceInfo(object):
     """
