@@ -84,6 +84,26 @@ class TraceOp(Enum):
     Br1     = 0x02
     Special = 0x80
 
+    # Helper for the format_flags method, below
+    flag_chars = [(Block,   'B'), (Fault, 'F'),
+                  (Br0,     'b'), (Br1,   'f'),
+                  (Special, 's')]
+
+    @classmethod
+    def format_flags(cls, flags):
+        """
+        Return a human-readable representation for the given TraceOp value.
+
+        This returns a compact representation: "-----" for no bit set, "B-bf-"
+        for the block, br0 and br1 bits set, etc. This compact representation
+        has always the same length, and is thus suitable for tabular printings.
+
+        :param int flags: Integer value for the TraceOp to decode. This is the
+            integer that is read directly from the trace file.
+        """
+        return ''.join(char if flags & v else '-'
+                       for v, char in cls.flag_images)
+
 
 class TraceSpecial(Enum):
     """
