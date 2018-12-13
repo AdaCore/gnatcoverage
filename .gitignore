@@ -21,4 +21,6 @@ test.py.*
 /testsuite/suite.cgpr
 /testsuite/support
 /testsuite/tests
+gnatcov-loc.xml
+gnatinspect.db
 README.html
