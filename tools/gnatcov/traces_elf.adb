@@ -2032,7 +2032,8 @@ package body Traces_Elf is
       Sec        : Address_Info_Acc;
       --  Current subprogram and section
 
-      Cache : Insn_Set_Cache := Empty_Cache;
+      Cache            : Insn_Set_Cache := Empty_Cache;
+      Ranges_For_Cache : Insn_Set_Ranges_Cst_Acc := null;
 
       procedure Set_Parents (PC : Pc_Type; Sloc : Source_Location);
       --  Set the current subprogram and section for PC, which is mapped to
@@ -2396,15 +2397,23 @@ package body Traces_Elf is
       function Last_For_Insn (First : Pc_Type) return Pc_Type is
          Code_Section : constant Address_Info_Acc :=
             Exec.Get_Address_Info (Section_Addresses, First);
+         Ranges       : constant Insn_Set_Ranges_Cst_Acc :=
+            Exec.Get_Insn_Set_Ranges (Code_Section.Section_Sec_Idx);
       begin
          Exec.Load_Section_Content (Code_Section);
+
+         --  Reset the cache if the next instruction range lookup works on a
+         --  different set of ranges.
+
+         if Ranges /= Ranges_For_Cache then
+            Cache := Empty_Cache;
+            Ranges_For_Cache := Ranges;
+         end if;
+
          declare
-            Ranges       : constant Insn_Set_Ranges :=
-               Exec.Get_Insn_Set_Ranges
-                 (Code_Section.Section_Sec_Idx).all;
-            Insn_Set     : constant Insn_Set_Type :=
-               Get_Insn_Set (Ranges, Cache, Last_Line.First);
-            Code         : constant Binary_Content :=
+            Insn_Set : constant Insn_Set_Type :=
+               Get_Insn_Set (Ranges.all, Cache, Last_Line.First);
+            Code     : constant Binary_Content :=
                Slice (Code_Section.Section_Content,
                       Last_Line.First,
                       Code_Section.Section_Content.Last);
