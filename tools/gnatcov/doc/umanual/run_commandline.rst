@@ -13,29 +13,31 @@ available from ``gnatcov`` ``--help``, as follows::
 
    run [OPTIONS] [EXE] [-eargs [EXE] EARGS...]
 
+.. _exe:
+
 :option:`EXE` :
-  The executable program to be emulated. The provided path is stored in the
+  Name of the program file to execute. The provided path is stored in the
   output trace header that |gcvcov| fetches for analysis purposes later on.
   Relative paths there will be considered relative to the location where
-  |gcvcov| is launched. When :ref:`eargs <eargs>` are passed, the executable
-  name may be provided there instead.
+  |gcvcov| is launched. If the program name is not provided on the base
+  command line (before eargs), the first earg or a project file attribute can
+  be used for this purpose instead. See the :ref:`exe-and-args` section of
+  this chapter for more details on this process.
 
 .. _eargs:
 
 :option:`-eargs` :
-  For cross configurations (with :option:`--target`), pass what follows to the
-  machine simulator that eventually executes the program. For native
-  configurations, pass what follows as command line arguments to the executed
-  program. If the executable program to run is not provided elsewhere on the
-  command line, the first earg is used for this purpose.
+  For cross configurations (with :option:`--target`), pass the items not used
+  as the program name to the machine simulator that eventually executes the
+  program. For native configurations, pass the items not used as the program
+  name as command line arguments to the executed program.
 
 Then the available :option:`[OPTIONS]` are:
 
 :option:`--level` :
   Convey the most precise kind of analysis that is intended from the produced
   traces later on. This defaults to `stmt+decision` and is best combined with
-  :option:`-P` or :option:`--scos` for efficiency when set to `stmt+mcdc`. See
-  the :ref:`trace-control` section of this chapter for additional details.
+  :option:`-P` or :option:`--scos` for efficiency when set to `stmt+mcdc`.
 
 :option:`-t`, :option:`--target` :
   State the target architecture/board/abi for which the analyzed program was
@@ -69,3 +71,15 @@ Then the available :option:`[OPTIONS]` are:
   output trace header.  The tag so associated with a trace can be retrieved
   from trace dumps and is output as part of some analysis reports.
 
+:option:`-P` :
+   Designate a root project file for various possible purposes.  This can
+   first be used together with :option:`--projects` as an alternative to
+   :option:`--scos` to collect the set of units of interest for later coverage
+   assessments if mcdc computation is needed. See the :ref:`trace-control` and
+   :ref:`sunits` sections of this manual for more details on this. Another
+   possible use is the specification in the root project file of attributes
+   controlling the execution, such as the coverage level intended to be
+   assessed later on or the name of the main subprogram unit, from which the
+   name of the executable to run can be inferred. In such cases, project
+   attributes provide default values, ignored when the corresponding item is
+   specified on the command line.

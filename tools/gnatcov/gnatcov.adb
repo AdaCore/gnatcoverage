@@ -879,50 +879,80 @@ procedure GNATcov is
             end loop;
 
          when Cmd_Run =>
-            --  If we don't yet have an executable specified, pick the first
-            --  EARG. Forward the remaining EARGS from Args to the Eargs local.
-            --  If we don't even have one argument, try to get a single main
-            --  executable from the project tree.
+
+            --  Sort out what to use as the executable name and what EARGS to
+            --  forward to our Eargs local, depending on whether we have an
+            --  executable argument on the command line, in the eargs or in a
+            --  project file.
 
             case Args.Remaining_Args.Length is
+
                when 0 =>
+
+                  --  We don't have an executable specified on the base
+                  --  command line (before eargs).
+                  --
+                  --  If the first EARG is an executable file, use it and
+                  --  forward the rest.
+                  --
+                  --  Otherwise, if we can get an executable from a project
+                  --  file, use that and forward all the EARGS.
+                  --
+                  --  Otherwise, complain about missing an executable to run.
+
                   declare
                      Eargs_Arg : String_Vectors.Vector
                      renames Args.String_List_Args (Opt_Eargs);
+
+                     Exe_From_Project : constant String :=
+                       (if Is_Project_Loaded
+                          then Get_Single_Main_Executable
+                          else "");
+
+                     C : String_Vectors.Cursor :=
+                       String_Vectors.First (Eargs_Arg);
+
+                     use String_Vectors;
+
+                     Earg0 : constant String :=
+                       (if Has_Element (C) then +Element (C) else "");
+
+                     Earg0_Executable : constant Boolean :=
+                       GNAT.OS_Lib.Is_Executable_File (Earg0);
                   begin
-                     if Eargs_Arg.Length = 0 then
-                        declare
-                           Main : constant String :=
-                             (if Is_Project_Loaded
-                              then Get_Single_Main_Executable
-                              else "");
-                        begin
-                           if not Is_Project_Loaded or else Main = "" then
-                              Report_Missing_Argument
-                                ("an executable to run (EXE)");
-                           end if;
 
-                           Inputs.Add_Input (Exe_Inputs, Main);
-                        end;
-
-                     else
-                        for Arg of Eargs_Arg loop
-                           if Inputs.Length (Exe_Inputs) = 0 then
-                              Inputs.Add_Input
-                                (Exe_Inputs, +Eargs_Arg.First_Element);
-                           else
-                              Eargs.Append (Arg);
-                           end if;
+                     if Earg0_Executable then
+                        Inputs.Add_Input (Exe_Inputs, Earg0);
+                        loop
+                           Next (C);
+                           exit when not Has_Element (C);
+                           Eargs.Append (Element (C));
                         end loop;
+
+                     elsif Exe_From_Project /= "" then
+                        Inputs.Add_Input (Exe_Inputs, Exe_From_Project);
+                        Eargs := Eargs_Arg;
+                     else
+                        Report_Missing_Argument ("an executable to run (EXE)");
                      end if;
+
                   end;
 
                when 1 =>
+
+                  --  We have single executable argument on the base command
+                  --  line (before eargs). Use it and forward all the EARGS
+                  --  options we have to the Eargs local.
+
                   Inputs.Add_Input
                     (Exe_Inputs, +Args.Remaining_Args.First_Element);
                   Eargs := Args.String_List_Args (Opt_Eargs);
 
                when others =>
+
+                  --  We have more than one non-earg trailing argument on the
+                  --  base command line, complain.
+
                   Fatal_Error ("Only one EXEC parameter is allowed");
             end case;
 
