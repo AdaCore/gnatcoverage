@@ -110,7 +110,7 @@ class BUILDER:
         if 'vxworks' in triplet:
             return ['-gno-strict-dwarf']
    	return []
- 
+
     @staticmethod
     def COMMON_CARGS():
         return (
@@ -290,7 +290,7 @@ def cargs_attr_for (lang):
 # == Shared command line options ==
 # =================================
 
-# Options are allowed at the testsuite.py level which need to be
+# Options allowed at the testsuite.py level which need to be
 # passed down to individual test.py.
 
 def add_shared_options_to (o, toplevel):
@@ -343,7 +343,16 @@ def add_shared_options_to (o, toplevel):
         '--kernel', dest='kernel', metavar='KERNEL',
         help='KERNEL to pass to gnatcov run in addition to exe'
         )
-    
+
+    # --trace-size-limit
+
+    o.add_option(
+        '--trace-size-limit', dest='trace_size_limit', metavar='TRSZ_LIMIT',
+        help=('Best effort request to the execution environment to stop when '
+              'the execution trace would grow beyond the provided size. Only '
+              'effective for qemu based executions, with values like "10M".')
+        )
+
     # --toolchain
 
     o.add_option(

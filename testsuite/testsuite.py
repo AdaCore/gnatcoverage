@@ -1011,6 +1011,10 @@ class TestSuite(object):
         if mopt.kernel:
             testcase_cmd.append('--kernel=%s' % mopt.kernel)
 
+        if mopt.trace_size_limit:
+            testcase_cmd.append(
+                '--trace-size-limit=%s' % mopt.trace_size_limit)
+
         if mopt.toolchain:
             testcase_cmd.append(
                 '--toolchain=%s' % self.__toolchain_discriminants()[0]

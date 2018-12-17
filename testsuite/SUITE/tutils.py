@@ -514,33 +514,49 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
 
     return p
 
-# ---------------------
-# -- xrun_suite_args --
-# ---------------------
-def xrun_suite_args():
-    """Arguments we should pass to gnatcov run to obey what we received on the
-    testsuite command line, in particular --kernel."""
-
-    # --kernel translates as --kernel to gnatcov run.
-    return (['--kernel=' + thistest.options.kernel]
-            if thistest.options.kernel else [])
 
 # ----------
 # -- xrun --
 # ----------
 def xrun(args, out=None, register_failure=True, auto_config_args=True,
          auto_target_args=True):
-    """Run <xcov run> with arguments ARGS for the current target."""
+    """Run <xcov run> with arguments ARGS for the current target, performing
+    operations only relevant to invocations intended to execute a program (for
+    example, requesting a limit on the output trace size).
+    """
 
-    # We special case xcov run to pass the extra option corresponding to the
-    # --kernel request on our command line, and to force a dummy input to
-    # prevent mysterious qemu misbehavior when input is a terminal.
+    # Force a dummy input to prevent mysterious qemu misbehavior when input is
+    # a terminal.
 
     nulinput = "devnul"
     touch(nulinput)
 
-    runargs = xrun_suite_args()
+    # Then possibly augment the arguments to pass.
+    #
+    # --kernel on the testsuite command line translates as --kernel to
+    # gnatcov run.
+    #
+    # --trace-size-limit on the testsuite command line adds to the -eargs
+    # passed to gnatcov run for cross targets running with an emulator.
+    #
+    # Be careful that we might have -eargs at the end of the input arguments
+    # we receive.
+
+    runargs = []
+
+    if thistest.options.kernel:
+        runargs.append('--kernel=' + thistest.options.kernel)
+
     runargs.extend (to_list(args))
+
+    if (thistest.options.trace_size_limit
+          and thistest.options.target
+          and not thistest.options.board):
+
+        if '-eargs' not in runargs:
+            runargs.append('-eargs')
+        runargs.extend(
+            ["-exec-trace-limit", thistest.options.trace_size_limit])
 
     return xcov (
         ['run'] + runargs, inp=nulinput, out=out,
@@ -589,4 +605,3 @@ class frame:
         self.width = 0
         self.lines = text.split('\n')
         [self.register(text) for text in self.lines]
-
