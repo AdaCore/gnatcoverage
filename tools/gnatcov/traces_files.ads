@@ -36,6 +36,25 @@ package Traces_Files is
    type Trace_File_Descriptor is limited private;
    --  Descriptor to open/read a trace file
 
+   type Read_Result (Success : Boolean := True) is record
+      case Success is
+         when False =>
+            Error : Ada.Strings.Unbounded.Unbounded_String;
+         when True =>
+            null;
+      end case;
+   end record;
+   --  Description of the result of a trace read operation: either it was
+   --  successful, either it failed with some error message.
+
+   Read_Success : constant Read_Result := (Success => True);
+
+   procedure Create_Error (Result : out Read_Result; Error : String);
+   --  Shortcut to create a Read_Result that contains an error
+
+   procedure Success_Or_Fatal_Error (Filename : String; Result : Read_Result);
+   --  If Result.Success is true, do nothing. Otherwise, raise a fatal error.
+
    Write_Error : exception;
    --  Exception is raised in case of OS error during write
 
@@ -61,8 +80,11 @@ package Traces_Files is
       --  executable".
 
       with procedure Process_Info_Entries
-        (Trace_File : Trace_File_Type) is null;
-      --  Called right before processing trace entries
+        (Trace_File : Trace_File_Type;
+         Result     : out Read_Result) is null;
+      --  Called right before processing trace entries. If Result.Success is
+      --  set to False, this will abort trace reading and will forward error
+      --  information.
 
       with procedure Process_Loadaddr
         (Trace_File : Trace_File_Type;
@@ -105,20 +127,31 @@ package Traces_Files is
 
    procedure Read_Trace_File_Gen
      (Filename   : String;
-      Trace_File : out Trace_File_Type);
+      Trace_File : out Trace_File_Type;
+      Result     : out Read_Result);
    --  Open a trace file and read its content. The file is expected to contain
    --  an Info section and a traces section (either flat or with history). Put
-   --  the result in Trace_File. In case of failure, a fatal error is raised.
+   --  the result in Trace_File.
+   --
+   --  If successful, Result.Success is set to True. Otherwise, Result is set
+   --  to the corresponding error information. In case of error, Trace_File is
+   --  left undefined.
 
-   procedure Check_Trace_File_From_Exec (Trace_File : Trace_File_Type);
-   --  Raise a fatal error if Trace_File is not a trace file that is the result
-   --  of a program execution.
+   procedure Check_Trace_File_From_Exec
+     (Trace_File : Trace_File_Type;
+      Result     : out Read_Result);
+   --  If Trace_File is not a trace file that is the result of program
+   --  execution, set Result to the corresponding error information.
 
    procedure Read_Trace_File
      (Filename   : String;
       Trace_File : out Trace_File_Type;
+      Result     : out Read_Result;
       Base       : in out Traces_Base);
    --  Specialization of Read_Trace_File_Gen that imports traces into a base.
+   --  In case of error, the Base is partially completed with trace entries
+   --  that were successfully read from Filename.
+   --
    --  TODO??? This does not handle shared objects.
 
    procedure Free (Trace_File : in out Trace_File_Type);

@@ -1317,8 +1317,11 @@ begin
             procedure Dump_Trace_Base (Trace_File_Name : String) is
                Trace_File : constant Trace_File_Element_Acc :=
                  new Trace_File_Element;
+               Result     : Read_Result;
             begin
-               Read_Trace_File (Trace_File_Name, Trace_File.Trace, Base);
+               Read_Trace_File
+                 (Trace_File_Name, Trace_File.Trace, Result, Base);
+               Success_Or_Fatal_Error (Trace_File_Name, Result);
                Dump_Traces (Base);
             end Dump_Trace_Base;
 
@@ -1730,8 +1733,14 @@ begin
                if Trace_File = null then
                   Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
                else
-                  Read_Trace_File
-                    (Trace_File.Filename.all, Trace_File.Trace, Base);
+                  declare
+                     Filename : String renames Trace_File.Filename.all;
+                     Result   : Read_Result;
+                  begin
+                     Read_Trace_File
+                       (Filename, Trace_File.Trace, Result, Base);
+                     Success_Or_Fatal_Error (Filename, Result);
+                  end;
 
                   Exe_File :=
                     Open_Exec_For_Trace (Trace_File.Filename.all,
@@ -1774,7 +1783,9 @@ begin
                Current_Subp_Info       : aliased Subprogram_Info;
                Current_Subp_Info_Valid : Boolean;
 
-               procedure Process_Info_Entries (TF : Trace_File_Type);
+               procedure Process_Info_Entries
+                 (TF     : Trace_File_Type;
+                  Result : out Read_Result);
 
                function Load_Shared_Object
                   (TF          : Trace_File_Type;
@@ -1796,9 +1807,14 @@ begin
                -- Process_Info_Entries --
                --------------------------
 
-               procedure Process_Info_Entries (TF : Trace_File_Type) is
+               procedure Process_Info_Entries
+                 (TF     : Trace_File_Type;
+                  Result : out Read_Result) is
                begin
-                  Check_Trace_File_From_Exec (TF);
+                  Check_Trace_File_From_Exec (TF, Result);
+                  if not Result.Success then
+                     return;
+                  end if;
                   Exe_File := Open_Exec_For_Trace
                                 (Trace_File.Filename.all,
                                  TF,
@@ -1887,7 +1903,13 @@ begin
                   Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
                   Decision_Map.Analyze (Exe_File);
                else
-                  Read_Trace_File (Trace_File.Filename.all, Trace_File.Trace);
+                  declare
+                     Filename : String renames Trace_File.Filename.all;
+                     Result   : Read_Result;
+                  begin
+                     Read_Trace_File (Filename, Trace_File.Trace, Result);
+                     Success_Or_Fatal_Error (Filename, Result);
+                  end;
                end if;
             end Process_Trace_For_Src_Coverage;
 

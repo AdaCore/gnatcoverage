@@ -18,10 +18,9 @@
 
 with GNAT.OS_Lib;
 
-with Binary_Files;   use Binary_Files;
-with Outputs;        use Outputs;
-with Qemu_Traces;    use Qemu_Traces;
-with Traces_Files;   use Traces_Files;
+with Binary_Files; use Binary_Files;
+with Qemu_Traces;  use Qemu_Traces;
+with Traces_Files; use Traces_Files;
 
 package body Trace_Output is
 
@@ -130,7 +129,8 @@ package body Trace_Output is
       is (True);
 
       procedure Process_Info_Entries
-        (Trace_File : Trace_File_Type);
+        (Trace_File : Trace_File_Type;
+         Result     : out Read_Result);
 
       procedure Process_Trace_Entry
         (Trace_File : Trace_File_Type;
@@ -149,14 +149,13 @@ package body Trace_Output is
       --------------------------
 
       procedure Process_Info_Entries
-        (Trace_File : Trace_File_Type)
-      is
+        (Trace_File : Trace_File_Type;
+         Result     : out Read_Result) is
       begin
          case Kind (Trace_File) is
          when Flat | History =>
-            Fatal_Error
-              (Filename (Trace_File)
-               & ": decision map expected, but this is a execution trace");
+            Create_Error
+              (Result, "decision map expected, but this is a execution trace");
 
          when Decision_Map =>
             null;
@@ -186,13 +185,15 @@ package body Trace_Output is
          This.Decision_Map.Insert (E.Last);
       end Process_Trace_Entry;
 
-      Trace_File  : Trace_File_Type;
+      Trace_File : Trace_File_Type;
+      Result     : Read_Result;
    begin
 
       if GNAT.OS_Lib.Is_Regular_File (Decision_Map_Path) then
          This.Decision_Map.Clear;
 
-         Read_Decision_Map_File (Decision_Map_Path, Trace_File);
+         Read_Decision_Map_File (Decision_Map_Path, Trace_File, Result);
+         Success_Or_Fatal_Error (Decision_Map_Path, Result);
 
          Free (Trace_File);
       end if;

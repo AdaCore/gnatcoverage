@@ -335,13 +335,15 @@ package body Traces_Disa is
          end if;
       end Disp_Entry;
 
-      File : Trace_File_Type;
+      File   : Trace_File_Type;
+      Result : Read_Result;
 
    --  Start of processing for Dump_Traces_With_Asm
 
    begin
-      Read_Trace_File (Trace_Filename, File);
+      Read_Trace_File (Trace_Filename, File, Result);
       Free (File);
+      Success_Or_Fatal_Error (Trace_Filename, Result);
    end Dump_Traces_With_Asm;
 
 end Traces_Disa;
