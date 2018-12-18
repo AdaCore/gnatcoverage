@@ -68,7 +68,8 @@ package Command_Line is
       Opt_Branch_Stats,
       Opt_Excluded_SCOs,
       Opt_Keep_Edges,
-      Opt_Pretty_Print);
+      Opt_Pretty_Print,
+      Opt_Keep_Reading_Traces);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -344,7 +345,17 @@ package Command_Line is
          Help      => "Output a pretty-printed JSON to ease debugging.",
          Commands  => (Cmd_Disassemble_Insn_Properties => True,
                        others => False),
-         Internal  => True));
+         Internal  => True),
+
+      Opt_Keep_Reading_Traces => Create
+        (Long_Name => "--keep-reading-traces",
+         Help      => "When an error occurs while reading a trace file,"
+                      & " skip it and keep reading other trace files until a"
+                      & " coverage report can be produced. Note that this"
+                      & " makes gnatcov exit with an error status.",
+         Commands  => (Cmd_Coverage => True,
+                       others       => False),
+         Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

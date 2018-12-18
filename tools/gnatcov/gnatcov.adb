@@ -106,6 +106,7 @@ procedure GNATcov is
    Keep_Edges           : Boolean := False;
    Pretty_Print         : Boolean := False;
    SO_Inputs            : SO_Set_Type;
+   Keep_Reading_Traces  : Boolean := False;
 
    function Command_Name return String
    is
@@ -186,6 +187,11 @@ procedure GNATcov is
    --  Otherwise, leave it unmodified.
    --
    --  In any case, the returned Target_Board may be null.
+
+   procedure Report_Bad_Trace (Trace_Filename : String; Result : Read_Result)
+      with Pre => not Result.Success;
+   --  Emit the error corresponding to Result with Outputs. If
+   --  Keep_Reading_Tracess is false, this is a fatal error.
 
    ----------------------------
    -- Fatal_Error_With_Usage --
@@ -554,6 +560,7 @@ procedure GNATcov is
       Excluded_SCOs               := Args.Bool_Args (Opt_Excluded_SCOs);
       Keep_Edges                  := Args.Bool_Args (Opt_Keep_Edges);
       Pretty_Print                := Args.Bool_Args (Opt_Pretty_Print);
+      Keep_Reading_Traces         := Args.Bool_Args (Opt_Keep_Reading_Traces);
 
       Load_Target_Option (Default_Target => True);
       Copy_Arg (Opt_Runtime, Runtime);
@@ -1139,6 +1146,23 @@ procedure GNATcov is
          Target_Board := null;
       end;
    end Load_Target_Option;
+
+   ----------------------
+   -- Report_Bad_Trace --
+   ----------------------
+
+   procedure Report_Bad_Trace (Trace_Filename : String; Result : Read_Result)
+   is
+      Message : constant String :=
+         Trace_Filename & ": "
+         & Ada.Strings.Unbounded.To_String (Result.Error);
+   begin
+      if Keep_Reading_Traces then
+         Outputs.Error (Message);
+      else
+         Outputs.Fatal_Error (Message);
+      end if;
+   end Report_Bad_Trace;
 
    ------------------
    -- Show_Version --
@@ -1739,7 +1763,10 @@ begin
                   begin
                      Read_Trace_File
                        (Filename, Trace_File.Trace, Result, Base);
-                     Success_Or_Fatal_Error (Filename, Result);
+                     if not Result.Success then
+                        Report_Bad_Trace (Filename, Result);
+                        return;
+                     end if;
                   end;
 
                   Exe_File :=
@@ -1908,7 +1935,10 @@ begin
                      Result   : Read_Result;
                   begin
                      Read_Trace_File (Filename, Trace_File.Trace, Result);
-                     Success_Or_Fatal_Error (Filename, Result);
+                     if not Result.Success then
+                        Report_Bad_Trace (Filename, Result);
+                        return;
+                     end if;
                   end;
                end if;
             end Process_Trace_For_Src_Coverage;
