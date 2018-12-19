@@ -45,7 +45,7 @@ package Traces_Files is
       end case;
    end record;
    --  Description of the result of a trace read operation: either it was
-   --  successful, either it failed with some error message.
+   --  successful or it failed with some error message.
 
    Read_Success : constant Read_Result := (Success => True);
 
