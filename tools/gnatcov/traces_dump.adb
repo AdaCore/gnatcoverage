@@ -18,8 +18,12 @@
 
 with Coverage;
 with Binary_Files;      use Binary_Files;
+with Disa_Symbolize;
+with Disassemblers;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;
+with Strings;
+with Traces;            use Traces;
 with Traces_Names;      use Traces_Names;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
@@ -38,16 +42,29 @@ package body Traces_Dump is
 
       Routine_Seen : Boolean := False;
 
-      procedure Process_One
+      Insn_Count, Insn_Covered : Integer := 0;
+
+      Branch_Count, Branch_Partially_Covered, Branch_Fully_Covered : Integer
+         := 0;
+
+      procedure Process_Subp
         (Key  : Subprogram_Key;
          Info : in out Subprogram_Info);
       --  Display traces for one routine
 
-      -----------------
-      -- Process_One --
-      -----------------
+      procedure Process_Insn
+        (Addr     : Pc_Type;
+         State    : Insn_State;
+         Insn     : Binary_Content;
+         Insn_Set : Insn_Set_Type;
+         Sym      : Disa_Symbolize.Symbolizer'Class);
+      --  Display traces for one instruction
 
-      procedure Process_One
+      ------------------
+      -- Process_Subp --
+      ------------------
+
+      procedure Process_Subp
         (Key  : Subprogram_Key;
          Info : in out Subprogram_Info)
       is
@@ -75,10 +92,58 @@ package body Traces_Dump is
             Disp_Assembly_Lines
               (Info.Insns, I_Ranges,
                Info.Traces.all,
-               Textio_Disassemble_Cb'Access,
+               Process_Insn'Access,
                Info.Exec.all);
          end if;
-      end Process_One;
+      end Process_Subp;
+
+      ------------------
+      -- Process_Insn --
+      ------------------
+
+      procedure Process_Insn
+        (Addr     : Pc_Type;
+         State    : Insn_State;
+         Insn     : Binary_Content;
+         Insn_Set : Insn_Set_Type;
+         Sym      : Disa_Symbolize.Symbolizer'Class) is
+      begin
+         Textio_Disassemble_Cb (Addr, State, Insn, Insn_Set, Sym);
+         Insn_Count := Insn_Count + 1;
+         case State is
+            when Unknown =>
+               raise Program_Error;
+            when Not_Covered =>
+               declare
+                  use Disassemblers;
+                  Branch                : Branch_Kind;
+                  Flag_Indir, Flag_Cond : Boolean;
+                  Branch_Dest, FT_Dest  : Dest;
+               begin
+                  Disa_For_Machine (Machine, Insn_Set).Get_Insn_Properties
+                    (Insn, Addr, Branch, Flag_Indir, Flag_Cond, Branch_Dest,
+                     FT_Dest);
+                  if Branch in Br_Call | Br_Ret | Br_Jmp
+                     and then Flag_Cond
+                  then
+                     Branch_Count := Branch_Count + 1;
+                  end if;
+               end;
+            when Covered =>
+               Insn_Covered := Insn_Covered + 1;
+            when Branch_Taken | Fallthrough_Taken =>
+               Insn_Covered := Insn_Covered + 1;
+               Branch_Count := Branch_Count + 1;
+               Branch_Partially_Covered := Branch_Partially_Covered + 1;
+            when Both_Taken =>
+               Insn_Covered := Insn_Covered + 1;
+               Branch_Count := Branch_Count + 1;
+               Branch_Fully_Covered := Branch_Fully_Covered + 1;
+         end case;
+      end Process_Insn;
+
+      function Img (I : Integer) return String renames Strings.Img;
+      use type Coverage.Coverage_Level;
 
       --  We resort to a number of routines and internal iterators that use
       --  Text_IO.Put to dump stuff without any consideration for a custom
@@ -101,9 +166,22 @@ package body Traces_Dump is
       end if;
 
       Put_Line ("Coverage level: " & Coverage.Coverage_Option_Value);
-      Iterate (Proc => Process_One'Access, Sorted => True);
+      Iterate (Proc => Process_Subp'Access, Sorted => True);
 
-      if not Routine_Seen then
+      if Routine_Seen then
+         Put_Line (Img (Insn_Count) & " instructions analyzed:");
+         Put_Line ("  " & Img (Insn_Covered) & " covered");
+         Put_Line ("  " & Img (Insn_Count - Insn_Covered) & " not executed");
+         if Coverage.Object_Level = Coverage.Branch then
+            Put_Line (Img (Branch_Count) & " conditional branches analyzed:");
+            Put_Line ("  " & Img (Branch_Fully_Covered) & " fully covered");
+            Put_Line ("  " & Img (Branch_Partially_Covered)
+                      & " partially covered");
+            Put_Line ("  " & Img (Branch_Count - Branch_Fully_Covered
+                                    - Branch_Partially_Covered)
+                      & " not executed");
+         end if;
+      else
          Put_Line ("*** No routine of interest");
       end if;
 
