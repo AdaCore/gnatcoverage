@@ -25,9 +25,6 @@ with Traces_Elf;        use Traces_Elf;
 
 package Traces_Disa is
 
-   Flag_Show_Asm : Boolean := False;
-   --  If True, Disp_Line_State will also display assembly code
-
    function Get_Label
      (Sym : Symbolizer'Class; Info : Address_Info_Acc) return String;
    --  Return the symbol corresponding to Info, if any, or return an empty

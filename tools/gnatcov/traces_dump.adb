@@ -72,13 +72,11 @@ package body Traces_Dump is
          New_Line;
 
          if Info.Traces /= null then
-            if Flag_Show_Asm then
-               Disp_Assembly_Lines
-                 (Info.Insns, I_Ranges,
-                  Info.Traces.all,
-                  Textio_Disassemble_Cb'Access,
-                  Info.Exec.all);
-            end if;
+            Disp_Assembly_Lines
+              (Info.Insns, I_Ranges,
+               Info.Traces.all,
+               Textio_Disassemble_Cb'Access,
+               Info.Exec.all);
          end if;
       end Process_One;
 

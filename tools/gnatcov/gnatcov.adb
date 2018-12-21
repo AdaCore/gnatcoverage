@@ -1978,7 +1978,6 @@ begin
                   Fatal_Error
                     ("Asm output supported for object coverage only.");
                end if;
-               Traces_Disa.Flag_Show_Asm := True;
                Traces_Dump.Dump_Routines_Traces (Output);
 
             when Annotate_Xml =>
