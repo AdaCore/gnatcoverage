@@ -21,7 +21,7 @@ import os, re, sys
 from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, LANGINFO
 
-from SUITE.cutils import ndirs_in, lines_of
+from SUITE.cutils import indent_after_first_line, lines_of, ndirs_in
 
 # This module is loaded as part of a Run operation for a test.py
 # file found and launched by the toplevel driver
@@ -230,11 +230,11 @@ class Test (object):
 
     def comment(self, text):
         """Output a TEXT comment."""
-        self.log('  - %s.' % text)
+        self.log('  - %s.' % indent_after_first_line(text, '    '))
 
     def failed(self, comment="assertion failed"):
         """Register a check failure."""
-        self.log('  * %s' % comment)
+        self.log('  * %s' % indent_after_first_line(comment, '    '))
         self.report.enable_diffs()
         self.n_failed += 1
 

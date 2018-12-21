@@ -81,6 +81,14 @@ def indent(blob, indent='  '):
         for line in lines
     )
 
+def indent_after_first_line(blob, prefix='  '):
+    """Like "indent", but do not change the first line."""
+    lines = list(blob) if isinstance(blob, list) else blob.splitlines()
+    if len(lines) < 2:
+        return '\n'.join(lines)
+    else:
+        return '\n'.join(lines[0:1] + indent(lines[1:], prefix).splitlines())
+
 # ------------------
 # -- text_to_file --
 # ------------------
