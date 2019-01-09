@@ -236,9 +236,16 @@ class Runner:
             sys.exit(1)
         log("Executable is: " + str(self.args))
 
+        handled_targets = ['trace32-stm32f7']
+        if self.options.target not in handled_targets:
+            print "unknown target %s" % self.options.target
+            return
+
         t32api.connect()
         t32api.basic_setup()
-        t32api.init_trace_stm32f7()
+
+        if self.options.target == 'trace32-stm32f7':
+            t32api.init_trace_stm32f7()
 
         t32api.load_executable(self.get_executable_filename())
         t32api.set_breakpoint("__gnat_last_chance_handler")
