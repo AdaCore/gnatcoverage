@@ -125,16 +125,16 @@ package body Instrument is
      (Start_Sloc (N.Sloc_Range));
 
    procedure Traverse_Declarations_Or_Statements
-     (L      : Ada_Node_List;
-      D      : Dominant_Info := No_Dominant;
-      P      : Ada_Node      := No_Ada_Node);
+     (L : Ada_Node_List;
+      D : Dominant_Info := No_Dominant;
+      P : Ada_Node      := No_Ada_Node);
    --  Process L, a list of statements or declarations dominated by D. If P is
    --  present, it is processed as though it had been prepended to L.
 
    function Traverse_Declarations_Or_Statements
-     (L      : Ada_Node_List;
-      D      : Dominant_Info := No_Dominant;
-      P      : Ada_Node      := No_Ada_Node) return Dominant_Info;
+     (L : Ada_Node_List;
+      D : Dominant_Info := No_Dominant;
+      P : Ada_Node      := No_Ada_Node) return Dominant_Info;
    --  Same as above, and returns dominant information corresponding to the
    --  last node with SCO in L.
 
@@ -269,9 +269,9 @@ package body Instrument is
    --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
-     (L      : Ada_Node_List;
-      D      : Dominant_Info := No_Dominant;
-      P      : Ada_Node      := No_Ada_Node)
+     (L : Ada_Node_List;
+      D : Dominant_Info := No_Dominant;
+      P : Ada_Node      := No_Ada_Node)
    is
       Discard_Dom : Dominant_Info;
       pragma Warnings (Off, Discard_Dom);
@@ -280,9 +280,9 @@ package body Instrument is
    end Traverse_Declarations_Or_Statements;
 
    function Traverse_Declarations_Or_Statements
-     (L      : Ada_Node_List;
-      D      : Dominant_Info := No_Dominant;
-      P      : Ada_Node      := No_Ada_Node) return Dominant_Info
+     (L : Ada_Node_List;
+      D : Dominant_Info := No_Dominant;
+      P : Ada_Node      := No_Ada_Node) return Dominant_Info
    is
       Current_Dominant : Dominant_Info := D;
       --  Dominance information for the current basic block
