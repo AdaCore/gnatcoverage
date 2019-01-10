@@ -768,7 +768,7 @@ package body Instrument is
                   --  only executed if the condition evaluates to False.
 
                   if not Cond.Is_Null then
-                     Current_Dominant := ('F', Ada_Node (Cond));
+                     Current_Dominant := ('F', N);
                   else
                      Current_Dominant := No_Dominant;
                   end if;
