@@ -1,0 +1,2 @@
+The trace32/stm32f7 configuration comes with a specialized BSP which handles
+termination just fine for our purposes. No need to override this here.
