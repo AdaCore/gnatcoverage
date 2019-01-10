@@ -19,13 +19,17 @@
 
 --  Source instrumentation
 
-with Ada.Characters.Conversions; use Ada.Characters.Conversions;
+with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
+with Ada.Characters.Handling;         use Ada.Characters.Handling;
+with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
+with Ada.Text_IO;
 
 with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
 with Langkit_Support.Symbols; use Langkit_Support.Symbols;
 with Langkit_Support.Text;    use Langkit_Support.Text;
 with Libadalang.Analysis;     use Libadalang.Analysis;
 with Libadalang.Common;       use Libadalang.Common;
+with Libadalang.Rewriting;    use Libadalang.Rewriting;
 with Libadalang.Sources;      use Libadalang.Sources;
 
 with Namet;  use Namet;
@@ -82,7 +86,11 @@ package body Instrument is
       From, To           : Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
-   --  Append a new entry to the SCO raw table
+   --  Append a new entry to the low-level SCO table
+
+   ----------------
+   -- Append_SCO --
+   ----------------
 
    procedure Append_SCO
      (C1, C2             : Character;
@@ -117,16 +125,16 @@ package body Instrument is
      (Start_Sloc (N.Sloc_Range));
 
    procedure Traverse_Declarations_Or_Statements
-     (L : Ada_Node_List;
-      D : Dominant_Info := No_Dominant;
-      P : Ada_Node      := No_Ada_Node);
+     (L      : Ada_Node_List;
+      D      : Dominant_Info := No_Dominant;
+      P      : Ada_Node      := No_Ada_Node);
    --  Process L, a list of statements or declarations dominated by D. If P is
    --  present, it is processed as though it had been prepended to L.
 
    function Traverse_Declarations_Or_Statements
-     (L : Ada_Node_List;
-      D : Dominant_Info := No_Dominant;
-      P : Ada_Node      := No_Ada_Node) return Dominant_Info;
+     (L      : Ada_Node_List;
+      D      : Dominant_Info := No_Dominant;
+      P      : Ada_Node      := No_Ada_Node) return Dominant_Info;
    --  Same as above, and returns dominant information corresponding to the
    --  last node with SCO in L.
 
@@ -206,6 +214,9 @@ package body Instrument is
       From : Source_Location;
       To   : Source_Location;
       Typ  : Character;
+
+      Index : Nat := 0;
+      --  1-based index of N in enclosing list, if any
    end record;
    --  Used to store a single entry in the following table, From:To represents
    --  the range of entries in the CS line entry, and typ is the type, with
@@ -258,9 +269,9 @@ package body Instrument is
    --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
-     (L : Ada_Node_List;
-      D : Dominant_Info := No_Dominant;
-      P : Ada_Node      := No_Ada_Node)
+     (L      : Ada_Node_List;
+      D      : Dominant_Info := No_Dominant;
+      P      : Ada_Node      := No_Ada_Node)
    is
       Discard_Dom : Dominant_Info;
       pragma Warnings (Off, Discard_Dom);
@@ -269,9 +280,9 @@ package body Instrument is
    end Traverse_Declarations_Or_Statements;
 
    function Traverse_Declarations_Or_Statements
-     (L : Ada_Node_List;
-      D : Dominant_Info := No_Dominant;
-      P : Ada_Node      := No_Ada_Node) return Dominant_Info
+     (L      : Ada_Node_List;
+      D      : Dominant_Info := No_Dominant;
+      P      : Ada_Node      := No_Ada_Node) return Dominant_Info
    is
       Current_Dominant : Dominant_Info := D;
       --  Dominance information for the current basic block
@@ -282,6 +293,12 @@ package body Instrument is
       SC_First : constant Nat := SC.Last + 1;
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
+
+      Current_Index : Nat := 0;
+      --  If traversing a list, 1-based index of the current element
+
+      Insertion_Count : Nat := 0;
+      --  Count of nodes inserted in current list so far
 
       procedure Extend_Statement_Sequence
         (N : Ada_Node'Class; Typ : Character);
@@ -407,7 +424,7 @@ package body Instrument is
             T := End_Sloc (To_Node.Sloc_Range);
          end if;
 
-         SC.Append ((Ada_Node (N), F, T, Typ));
+         SC.Append ((Ada_Node (N), F, T, Typ, Current_Index));
       end Extend_Statement_Sequence;
 
       -----------------------------
@@ -427,11 +444,87 @@ package body Instrument is
          SC_Last : constant Int := SC.Last;
          SD_Last : constant Int := SD.Last;
 
+         RH_Ctx : Rewriting_Handle;
+         RH_Enclosing_List : Node_Rewriting_Handle;
+
+         procedure Insert_Statement_Witness (SCE : SC_Entry; LL_SCO_Id : Nat)
+           with Pre => RH_Enclosing_List /= No_Node_Rewriting_Handle;
+         --  Insert statement witness call for the given SCE
+
+         function Make_Statement_Witness
+           (LL_SCO_Id : Nat;
+            Statement : Boolean) return Node_Rewriting_Handle;
+         --  Create a procedure call statement or object declaration to witness
+         --  execution of the given low level SCO
+
+         ----------------------------
+         -- Make_Statement_Witness --
+         ----------------------------
+
+         function Make_Statement_Witness
+           (LL_SCO_Id : Nat;
+            Statement : Boolean) return Node_Rewriting_Handle
+         is
+            Call : constant Node_Rewriting_Handle :=
+              Create_Call_Expr
+                (RH_Ctx,
+                 F_Name   =>
+                   Create_Token_Node (RH_Ctx, Ada_Identifier, "Witness"),
+                 F_Suffix =>
+                   Create_Regular_Node
+                     (RH_Ctx,
+                      Ada_Assoc_List,
+                      (1 => Create_Token_Node
+                         (RH_Ctx,
+                          Ada_Int_Literal,
+                          To_Wide_Wide_String (LL_SCO_Id'Img)))));
+
+         begin
+            if Statement then
+               return Create_Call_Stmt (RH_Ctx, Call);
+            else
+               return No_Node_Rewriting_Handle;
+               --  XXX TBD "Discard_<n> : constant Boolean := Witness (LL);"
+            end if;
+         end Make_Statement_Witness;
+
+         ------------------------------
+         -- Insert_Statement_Witness --
+         ------------------------------
+
+         procedure Insert_Statement_Witness
+           (SCE : SC_Entry; LL_SCO_Id : Nat)
+         is
+            W : constant Node_Rewriting_Handle :=
+              Make_Statement_Witness
+                (LL_SCO_Id,
+                 Statement => Is_Upper (SCE.Typ) or else SCE.Typ = ' ');
+         begin
+            --  XXX temporary while make_statement_witness is not
+            --  completely implemented.
+
+            if W = No_Node_Rewriting_Handle then
+               return;
+            end if;
+
+            Insert_Child
+              (Handle => RH_Enclosing_List,
+               Index  => Integer (SCE.Index + Insertion_Count + 1),
+               Child  => W);
+            Insertion_Count := Insertion_Count + 1;
+         end Insert_Statement_Witness;
+
+      --  Start of processing for Set_Statement_Entry
+
       begin
+         if not L.Is_Null then
+            RH_Ctx := Handle (Context (Unit (L)));
+            RH_Enclosing_List := Handle (L);
+         end if;
+
          --  Output statement entries from saved entries in SC table
 
          for J in SC_First .. SC_Last loop
-
             --  If there is a pending dominant for this statement sequence,
             --  emit a SCO for it.
 
@@ -472,6 +565,8 @@ package body Instrument is
                   To                 => SCE.To,
                   Last               => (J = SC_Last),
                   Pragma_Aspect_Name => Pragma_Aspect_Name);
+
+               Insert_Statement_Witness (SCE, SCOs.SCO_Table.Last);
             end;
          end loop;
 
@@ -749,7 +844,7 @@ package body Instrument is
             when Ada_Protected_Body =>
                Set_Statement_Entry;
                Traverse_Declarations_Or_Statements
-                 (As_Protected_Body (N).F_Decls.F_Decls);
+                 (L => As_Protected_Body (N).F_Decls.F_Decls);
 
             --  Exit statement, which is an exit statement in the SCO sense,
             --  so it is included in the current statement sequence, but
@@ -1350,6 +1445,7 @@ package body Instrument is
          declare
             N : constant Ada_Node := L.Child (J);
          begin
+            Current_Index := Int (J);
             Traverse_One (N);
          end;
       end loop;
@@ -1738,7 +1834,7 @@ package body Instrument is
                Loc := Sloc (Parent (N));
 
                if T = 'a' or else T = 'A' then
-                  Nam := As_Name (N.Parent.Parent.As_Pragma_Node.F_Id);
+                  Nam := Aspect_Assoc_Name (N.Parent.As_Aspect_Assoc);
                end if;
 
             when 'G' =>
@@ -1950,8 +2046,9 @@ package body Instrument is
    ---------------------
 
    procedure Instrument_Unit (Unit_Name : String) is
-      Ctx  : constant Analysis_Context := Create_Context;
-      Unit : constant Analysis_Unit := Get_From_File (Ctx, Unit_Name);
+      Ctx    : constant Analysis_Context := Create_Context;
+      RH_Ctx : Rewriting_Handle := Start_Rewriting (Ctx);
+      Unit   : constant Analysis_Unit := Get_From_File (Ctx, Unit_Name);
    begin
       SCOs.Initialize;
       Traverse_Declarations_Or_Statements
@@ -1972,6 +2069,23 @@ package body Instrument is
              From       => SCOs.SCO_Table.First,
              To         => SCOs.SCO_Table.Last));
          Process_Low_Level_SCOs (CU, SFI);
+      end;
+
+      declare
+         use Ada.Text_IO;
+         Result : constant Apply_Result := Apply (RH_Ctx);
+      begin
+         if Result.Success then
+            Put_Line ("--  Instrumented unit follows");
+            Put_Line (To_String (Unit.Text));
+         else
+            Put_Line ("Instrumentation failed");
+            for D of Result.Diagnostics loop
+               Put_Line (Image (D.Sloc_Range)
+                         & ": "
+                         & To_String (To_Wide_Wide_String (D.Message)));
+            end loop;
+         end if;
       end;
    end Instrument_Unit;
 
