@@ -20,7 +20,6 @@
 --  Source instrumentation
 
 with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
-with Ada.Characters.Handling;         use Ada.Characters.Handling;
 with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Text_IO;
 
@@ -300,6 +299,16 @@ package body Instrument is
       Insertion_Count : Nat := 0;
       --  Count of nodes inserted in current list so far
 
+      RH_Ctx                : Rewriting_Handle;
+      --  Rewriting handle of the context
+
+      RH_Enclosing_List     : Node_Rewriting_Handle;
+      --  If traversing a list, rewriting handle for the list
+
+      Witness_Use_Statement : Boolean;
+      --  Set True if traversing a list of statements, in which case inserted
+      --  statement witnesses must be statements.
+
       procedure Extend_Statement_Sequence
         (N : Ada_Node'Class; Typ : Character);
       --  Extend the current statement sequence to encompass the node N. Typ is
@@ -444,9 +453,6 @@ package body Instrument is
          SC_Last : constant Int := SC.Last;
          SD_Last : constant Int := SD.Last;
 
-         RH_Ctx : Rewriting_Handle;
-         RH_Enclosing_List : Node_Rewriting_Handle;
-
          procedure Insert_Statement_Witness (SCE : SC_Entry; LL_SCO_Id : Nat)
            with Pre => RH_Enclosing_List /= No_Node_Rewriting_Handle;
          --  Insert statement witness call for the given SCE
@@ -498,7 +504,7 @@ package body Instrument is
             W : constant Node_Rewriting_Handle :=
               Make_Statement_Witness
                 (LL_SCO_Id,
-                 Statement => Is_Upper (SCE.Typ) or else SCE.Typ = ' ');
+                 Statement => Witness_Use_Statement);
          begin
             --  XXX temporary while make_statement_witness is not
             --  completely implemented.
@@ -517,11 +523,6 @@ package body Instrument is
       --  Start of processing for Set_Statement_Entry
 
       begin
-         if not L.Is_Null then
-            RH_Ctx := Handle (Context (Unit (L)));
-            RH_Enclosing_List := Handle (L);
-         end if;
-
          --  Output statement entries from saved entries in SC table
 
          for J in SC_First .. SC_Last loop
@@ -1437,6 +1438,14 @@ package body Instrument is
 
       if not P.Is_Null then
          Traverse_One (P);
+      end if;
+
+      --  Set up rewriting for the list case
+
+      if not L.Is_Null then
+         RH_Ctx := Handle (Context (Unit (L)));
+         RH_Enclosing_List := Handle (L);
+         Witness_Use_Statement := L.Kind = Ada_Stmt_List;
       end if;
 
       --  Loop through statements or declarations
