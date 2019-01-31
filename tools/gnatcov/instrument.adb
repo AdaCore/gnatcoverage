@@ -20,6 +20,7 @@
 --  Source instrumentation
 
 with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
+with Ada.Containers.Ordered_Maps;
 with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Text_IO;
@@ -81,6 +82,53 @@ package body Instrument is
    --  Return a symbol from Symbols corresponding to the name of the given
    --  A aspect association.
 
+   ---------------------------------------------
+   -- Mapping of coverage buffer bits to SCOs --
+   ---------------------------------------------
+
+   --  As instrumentation is inserted, bit positions in coverage buffers
+   --  are allocated, and these allocations are associated to low-level
+   --  SCO Ids. Once low-level SCOs are converted to high-level SCOs, new
+   --  mappings are generated which will allow mapping bit positions to
+   --  high level SCOs when processing buffers from a target run.
+
+   type Any_Bit_Id is new Integer;
+   No_Bit_Id : constant Any_Bit_Id := -1;
+   subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
+
+   type Statement_SCO_Bits is record
+      Executed_Bit : Bit_Id;
+   end record;
+
+   type Decision_SCO_Bits is record
+      Outcome_True_Bit, Outcome_False_Bit : Bit_Id;
+   end record;
+
+   package LL_Statement_SCO_Bit_Maps is
+     new Ada.Containers.Ordered_Maps
+       (Key_Type     => Nat,
+        Element_Type => Statement_SCO_Bits);
+
+   package LL_Decision_SCO_Bit_Maps is
+     new Ada.Containers.Ordered_Maps
+       (Key_Type     => Nat,
+        Element_Type => Decision_SCO_Bits);
+
+   -----------------------------
+   -- Instrumentation context --
+   -----------------------------
+
+   --  This is the global state for the process of instrumenting a compilation
+   --  unit.
+
+   type Inst_Context is record
+      Statement_Bit_Map  : LL_Statement_SCO_Bit_Maps.Map;
+      Last_Statement_Bit : Any_Bit_Id := No_Bit_Id;
+
+      Decision_Bit_Map  : LL_Decision_SCO_Bit_Maps.Map;
+      Last_Decision_Bit : Any_Bit_Id := No_Bit_Id;
+   end record;
+
    procedure Append_SCO
      (C1, C2             : Character;
       From, To           : Source_Location;
@@ -125,7 +173,8 @@ package body Instrument is
      (Start_Sloc (N.Sloc_Range));
 
    procedure Traverse_Declarations_Or_Statements
-     (L       : Ada_Node_List;
+     (IC      : in out Inst_Context;
+      L       : Ada_Node_List;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
       P       : Ada_Node      := No_Ada_Node);
@@ -136,7 +185,8 @@ package body Instrument is
    --  insertion of witnesses).
 
    function Traverse_Declarations_Or_Statements
-     (L       : Ada_Node_List;
+     (IC      : in out Inst_Context;
+      L       : Ada_Node_List;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
       P       : Ada_Node      := No_Ada_Node) return Dominant_Info;
@@ -152,26 +202,32 @@ package body Instrument is
    --  the others are not???
 
    procedure Traverse_Generic_Package_Declaration
-     (N       : Generic_Package_Decl;
+     (IC      : in out Inst_Context;
+      N       : Generic_Package_Decl;
       Preelab : Boolean);
 
    procedure Traverse_Handled_Statement_Sequence
-     (N : Handled_Stmts;
+     (IC      : in out Inst_Context;
+      N : Handled_Stmts;
       D : Dominant_Info := No_Dominant);
 
    procedure Traverse_Package_Body
-     (N : Package_Body; Preelab : Boolean);
+     (IC      : in out Inst_Context;
+      N       : Package_Body;
+      Preelab : Boolean);
 
    procedure Traverse_Package_Declaration
-     (N       : Base_Package_Decl;
+     (IC      : in out Inst_Context;
+      N       : Base_Package_Decl;
       Preelab : Boolean;
       D       : Dominant_Info := No_Dominant);
 
    procedure Traverse_Subprogram_Or_Task_Body
-     (N : Ada_Node;
-      D : Dominant_Info := No_Dominant);
+     (IC : in out Inst_Context;
+      N  : Ada_Node;
+      D  : Dominant_Info := No_Dominant);
 
-   procedure Traverse_Sync_Definition (N : Ada_Node);
+   procedure Traverse_Sync_Definition (IC : in out Inst_Context; N : Ada_Node);
    --  Traverse a protected definition or task definition
 
    --  Note regarding traversals: In a few cases where an Alternatives list is
@@ -182,8 +238,8 @@ package body Instrument is
    --  which aren't valid for a pragma.
 
    procedure Process_Decisions
-     (N           : Ada_Node'Class;
-      T           : Character);
+     (N : Ada_Node'Class;
+      T : Character);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains. T is one of IEGPWX (for context of
    --  expression: if/exit when/entry guard/pragma/while/expression). If T is
@@ -278,7 +334,8 @@ package body Instrument is
    --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
-     (L       : Ada_Node_List;
+     (IC      : in out Inst_Context;
+      L       : Ada_Node_List;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
       P       : Ada_Node      := No_Ada_Node)
@@ -286,14 +343,17 @@ package body Instrument is
       Discard_Dom : Dominant_Info;
       pragma Warnings (Off, Discard_Dom);
    begin
-      Discard_Dom := Traverse_Declarations_Or_Statements (L, Preelab, D, P);
+      Discard_Dom := Traverse_Declarations_Or_Statements
+                       (IC, L, Preelab, D, P);
    end Traverse_Declarations_Or_Statements;
 
    function Traverse_Declarations_Or_Statements
-     (L       : Ada_Node_List;
+     (IC      : in out Inst_Context;
+      L       : Ada_Node_List;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
-      P       : Ada_Node      := No_Ada_Node) return Dominant_Info
+      P       : Ada_Node      := No_Ada_Node)
+      return Dominant_Info
    is
       Current_Dominant : Dominant_Info := D;
       --  Dominance information for the current basic block
@@ -470,31 +530,31 @@ package body Instrument is
          --  Insert statement witness call for the given SCE
 
          function Make_Statement_Witness
-           (LL_SCO_Id : Nat;
+           (Bit       : Bit_Id;
             Statement : Boolean) return Node_Rewriting_Handle;
          --  Create a procedure call statement or object declaration to witness
-         --  execution of the given low level SCO
+         --  execution of the low level SCO with the given bit id.
 
          ----------------------------
          -- Make_Statement_Witness --
          ----------------------------
 
          function Make_Statement_Witness
-           (LL_SCO_Id : Nat;
+           (Bit       : Bit_Id;
             Statement : Boolean) return Node_Rewriting_Handle
          is
             use Ada.Strings, Ada.Strings.Fixed;
 
-            LL_SCO_Img : constant String  := Trim (LL_SCO_Id'Img, Both);
+            Bit_Img : constant String  := Trim (Bit'Img, Both);
 
             function Call_Img return String is
-              ("Witness (" & LL_SCO_Img & ")");
+              ("Witness (" & Bit_Img & ")");
 
             function Stmt_Img return String is
               (Call_Img & ";");
 
             function Decl_Img return String is
-               ("Discard_" & LL_SCO_Img & " : Witness_Dummy_Type := "
+               ("Discard_" & Bit_Img & " : Witness_Dummy_Type := "
                 & Call_Img & ";");
 
          begin
@@ -514,17 +574,15 @@ package body Instrument is
          procedure Insert_Statement_Witness
            (SCE : SC_Entry; LL_SCO_Id : Nat)
          is
-            W : constant Node_Rewriting_Handle :=
-              Make_Statement_Witness
-                (LL_SCO_Id,
-                 Statement => Witness_Use_Statement);
          begin
-            --  XXX temporary while make_statement_witness is not
-            --  completely implemented.
+            --  Allocate a bit in the statement coverage buffer, and record
+            --  its id in the bitmap.
 
-            if W = No_Node_Rewriting_Handle then
-               return;
-            end if;
+            IC.Last_Statement_Bit := IC.Last_Statement_Bit + 1;
+            IC.Statement_Bit_Map.Include
+              (LL_SCO_Id, (Executed_Bit => IC.Last_Statement_Bit));
+
+            --  Insert witness statement or declaration
 
             Insert_Child
               (Handle => RH_Enclosing_List,
@@ -539,7 +597,11 @@ package body Instrument is
 
                  Integer (SCE.Index + Insertion_Count),
 
-               Child  => W);
+               Child  =>
+                 Make_Statement_Witness
+                   (Bit       => IC.Last_Statement_Bit,
+                    Statement => Witness_Use_Statement));
+
             Insertion_Count := Insertion_Count + 1;
          end Insert_Statement_Witness;
 
@@ -749,7 +811,7 @@ package body Instrument is
                         | Ada_Task_Body
                      =>
                         Traverse_Declarations_Or_Statements
-                          (P => Item_N.As_Ada_Node, L => No_Ada_Node_List);
+                          (IC, P => Item_N.As_Ada_Node, L => No_Ada_Node_List);
 
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
@@ -764,20 +826,20 @@ package body Instrument is
             when Ada_Package_Decl =>
                Set_Statement_Entry;
                Traverse_Package_Declaration
-                 (N.As_Base_Package_Decl, Preelab, Current_Dominant);
+                 (IC, N.As_Base_Package_Decl, Preelab, Current_Dominant);
 
             --  Generic package declaration
 
             when Ada_Generic_Package_Decl =>
                Set_Statement_Entry;
                Traverse_Generic_Package_Declaration
-                 (N.As_Generic_Package_Decl, Preelab);
+                 (IC, N.As_Generic_Package_Decl, Preelab);
 
             --  Package body
 
             when Ada_Package_Body =>
                Set_Statement_Entry;
-               Traverse_Package_Body (N.As_Package_Body, Preelab);
+               Traverse_Package_Body (IC, N.As_Package_Body, Preelab);
 
             --  Subprogram declaration or subprogram body stub
 
@@ -838,7 +900,7 @@ package body Instrument is
                | Ada_Task_Body
             =>
                Set_Statement_Entry;
-               Traverse_Subprogram_Or_Task_Body (N);
+               Traverse_Subprogram_Or_Task_Body (IC, N);
 
             --  Entry body
 
@@ -860,7 +922,7 @@ package body Instrument is
                      Inner_Dominant := ('T', N);
                   end if;
 
-                  Traverse_Subprogram_Or_Task_Body (N, Inner_Dominant);
+                  Traverse_Subprogram_Or_Task_Body (IC, N, Inner_Dominant);
                end;
 
             --  Protected body
@@ -868,7 +930,7 @@ package body Instrument is
             when Ada_Protected_Body =>
                Set_Statement_Entry;
                Traverse_Declarations_Or_Statements
-                 (L => As_Protected_Body (N).F_Decls.F_Decls);
+                 (IC, L => As_Protected_Body (N).F_Decls.F_Decls);
 
             --  Exit statement, which is an exit statement in the SCO sense,
             --  so it is included in the current statement sequence, but
@@ -911,12 +973,14 @@ package body Instrument is
                   --  is dominated by the elaboration of the last declaration.
 
                   Current_Dominant := Traverse_Declarations_Or_Statements
-                    (L => As_Decl_Block (N).F_Decls.F_Decls,
+                    (IC,
+                     L => As_Decl_Block (N).F_Decls.F_Decls,
                      D => Current_Dominant);
                end if;
 
                Traverse_Handled_Statement_Sequence
-                 (N => (case N.Kind is
+                 (IC,
+                  N => (case N.Kind is
                            when Ada_Decl_Block  => As_Decl_Block (N).F_Stmts,
                            when Ada_Begin_Block => As_Begin_Block (N).F_Stmts,
                            when others          => raise Program_Error),
@@ -939,7 +1003,8 @@ package body Instrument is
                   --  Now we traverse the statements in the THEN part
 
                   Traverse_Declarations_Or_Statements
-                    (L => If_N.F_Then_Stmts.As_Ada_Node_List,
+                    (IC,
+                     L => If_N.F_Then_Stmts.As_Ada_Node_List,
                      D => ('T', N));
 
                   --  Loop through ELSIF parts if present
@@ -981,7 +1046,8 @@ package body Instrument is
                            --  Traverse the statements in the ELSIF
 
                            Traverse_Declarations_Or_Statements
-                             (L => Elif.F_Stmts.As_Ada_Node_List,
+                             (IC,
+                              L => Elif.F_Stmts.As_Ada_Node_List,
                               D => ('T', Ada_Node (Elif)));
                         end;
                      end loop;
@@ -990,7 +1056,8 @@ package body Instrument is
                   --  Finally traverse the ELSE statements if present
 
                   Traverse_Declarations_Or_Statements
-                    (L => If_N.F_Else_Stmts.As_Ada_Node_List,
+                    (IC,
+                     L => If_N.F_Else_Stmts.As_Ada_Node_List,
                      D => ('F', Current_Test));
                end;
 
@@ -1016,7 +1083,8 @@ package body Instrument is
                           Alt_L.Child (J).As_Case_Stmt_Alternative;
                      begin
                         Traverse_Declarations_Or_Statements
-                          (L => Alt.F_Stmts.As_Ada_Node_List,
+                          (IC,
+                           L => Alt.F_Stmts.As_Ada_Node_List,
                            D => Current_Dominant);
                      end;
                   end loop;
@@ -1033,7 +1101,8 @@ package body Instrument is
                   --  statement.
 
                   Traverse_Handled_Statement_Sequence
-                    (N => N.As_Accept_Stmt_With_Stmts.F_Stmts,
+                    (IC,
+                     N => N.As_Accept_Stmt_With_Stmts.F_Stmts,
                      D => Current_Dominant);
                end if;
 
@@ -1065,7 +1134,8 @@ package body Instrument is
                         end if;
 
                         Traverse_Declarations_Or_Statements
-                          (L => Alt.F_Stmts.As_Ada_Node_List,
+                          (IC,
+                           L => Alt.F_Stmts.As_Ada_Node_List,
                            D => Current_Dominant);
 
                         Current_Dominant := S_Dom;
@@ -1073,10 +1143,12 @@ package body Instrument is
                   end loop;
 
                   Traverse_Declarations_Or_Statements
-                    (L => Sel_N.F_Else_Stmts.As_Ada_Node_List,
+                    (IC,
+                     L => Sel_N.F_Else_Stmts.As_Ada_Node_List,
                      D => Current_Dominant);
                   Traverse_Declarations_Or_Statements
-                    (L => Sel_N.F_Abort_Stmts.As_Ada_Node_List,
+                    (IC,
+                     L => Sel_N.F_Abort_Stmts.As_Ada_Node_List,
                      D => Current_Dominant);
                end;
 
@@ -1123,7 +1195,8 @@ package body Instrument is
                   Set_Statement_Entry;
 
                   Traverse_Handled_Statement_Sequence
-                    (N => ER_N.F_Stmts,
+                    (IC,
+                     N => ER_N.F_Stmts,
                      D => Current_Dominant);
                end;
                Current_Dominant := No_Dominant;
@@ -1196,7 +1269,8 @@ package body Instrument is
                   end if;
 
                   Traverse_Declarations_Or_Statements
-                    (L => Loop_S.F_Stmts.As_Ada_Node_List,
+                    (IC,
+                     L => Loop_S.F_Stmts.As_Ada_Node_List,
                      D => Inner_Dominant);
                end;
 
@@ -1358,7 +1432,7 @@ package body Instrument is
                end;
                Set_Statement_Entry;
 
-               Traverse_Sync_Definition (N);
+               Traverse_Sync_Definition (IC, N);
 
             when Ada_Single_Protected_Decl
                | Ada_Single_Task_Decl
@@ -1366,7 +1440,7 @@ package body Instrument is
                Extend_Statement_Sequence (N, 'o');
                Set_Statement_Entry;
 
-               Traverse_Sync_Definition (N);
+               Traverse_Sync_Definition (IC, N);
 
             when others =>
 
@@ -1496,13 +1570,14 @@ package body Instrument is
    ------------------------------------------
 
    procedure Traverse_Generic_Package_Declaration
-     (N       : Generic_Package_Decl;
+     (IC      : in out Inst_Context;
+      N       : Generic_Package_Decl;
       Preelab : Boolean)
    is
    begin
       Process_Decisions (N.F_Formal_Part, 'X');
       Traverse_Package_Declaration
-        (N.F_Package_Decl.As_Base_Package_Decl, Preelab);
+        (IC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
    end Traverse_Generic_Package_Declaration;
 
    -----------------------------------------
@@ -1510,8 +1585,9 @@ package body Instrument is
    -----------------------------------------
 
    procedure Traverse_Handled_Statement_Sequence
-     (N : Handled_Stmts;
-      D : Dominant_Info := No_Dominant)
+     (IC : in out Inst_Context;
+      N  : Handled_Stmts;
+      D  : Dominant_Info := No_Dominant)
    is
    begin
       if N.Is_Null then
@@ -1519,7 +1595,7 @@ package body Instrument is
       end if;
 
       Traverse_Declarations_Or_Statements
-        (L => N.F_Stmts.As_Ada_Node_List, D => D);
+        (IC, L => N.F_Stmts.As_Ada_Node_List, D => D);
 
       for J in 1 .. N.F_Exceptions.Children_Count loop
          declare
@@ -1529,7 +1605,8 @@ package body Instrument is
 
             if Handler.Kind = Ada_Exception_Handler then
                Traverse_Declarations_Or_Statements
-                 (L => Handler.As_Exception_Handler.F_Stmts.As_Ada_Node_List,
+                 (IC,
+                  L => Handler.As_Exception_Handler.F_Stmts.As_Ada_Node_List,
                   D => ('E', Handler));
             end if;
          end;
@@ -1541,7 +1618,8 @@ package body Instrument is
    ---------------------------
 
    procedure Traverse_Package_Body
-     (N       : Package_Body;
+     (IC      : in out Inst_Context;
+      N       : Package_Body;
       Preelab : Boolean)
    is
    begin
@@ -1549,9 +1627,10 @@ package body Instrument is
       --  dominated by the elaboration of the last declaration.
 
       Traverse_Handled_Statement_Sequence
-        (N => N.F_Stmts,
+        (IC,
+         N => N.F_Stmts,
          D => Traverse_Declarations_Or_Statements
-                (N.F_Decls.F_Decls, Preelab));
+                (IC, N.F_Decls.F_Decls, Preelab));
    end Traverse_Package_Body;
 
    ----------------------------------
@@ -1559,7 +1638,8 @@ package body Instrument is
    ----------------------------------
 
    procedure Traverse_Package_Declaration
-     (N       : Base_Package_Decl;
+     (IC      : in out Inst_Context;
+      N       : Base_Package_Decl;
       Preelab : Boolean;
       D       : Dominant_Info := No_Dominant)
    is
@@ -1567,17 +1647,21 @@ package body Instrument is
       --  First private declaration is dominated by last visible declaration
 
       Traverse_Declarations_Or_Statements
-        (L       => N.F_Private_Part.F_Decls,
+        (IC,
+         L       => N.F_Private_Part.F_Decls,
          Preelab => Preelab,
          D       => Traverse_Declarations_Or_Statements
-                      (N.F_Public_Part.F_Decls, Preelab, D));
+                      (IC, N.F_Public_Part.F_Decls, Preelab, D));
    end Traverse_Package_Declaration;
 
    ------------------------------
    -- Traverse_Sync_Definition --
    ------------------------------
 
-   procedure Traverse_Sync_Definition (N : Ada_Node) is
+   procedure Traverse_Sync_Definition
+     (IC : in out Inst_Context;
+      N  : Ada_Node)
+   is
       Dom_Info : Dominant_Info := ('S', N);
       --  The first declaration is dominated by the protected or task [type]
       --  declaration.
@@ -1633,8 +1717,7 @@ package body Instrument is
 
       if not Vis_Decl.Is_Null then
          Dom_Info := Traverse_Declarations_Or_Statements
-           (L => Vis_Decl.F_Decls,
-            D => Dom_Info);
+           (IC, L => Vis_Decl.F_Decls, D => Dom_Info);
       end if;
 
       if not Priv_Decl.Is_Null then
@@ -1642,8 +1725,7 @@ package body Instrument is
          --  is dominated by the last visible declaration.
 
          Traverse_Declarations_Or_Statements
-           (L => Priv_Decl.F_Decls,
-            D => Dom_Info);
+           (IC, L => Priv_Decl.F_Decls, D => Dom_Info);
       end if;
    end Traverse_Sync_Definition;
 
@@ -1652,8 +1734,9 @@ package body Instrument is
    --------------------------------------
 
    procedure Traverse_Subprogram_Or_Task_Body
-     (N : Ada_Node;
-      D : Dominant_Info := No_Dominant)
+     (IC : in out Inst_Context;
+      N  : Ada_Node;
+      D  : Dominant_Info := No_Dominant)
    is
       Decls    : Declarative_Part;
       HSS      : Handled_Stmts;
@@ -1685,11 +1768,10 @@ package body Instrument is
       --  last declaration.
 
       Dom_Info := Traverse_Declarations_Or_Statements
-                    (L => Decls.F_Decls, D => Dom_Info);
+                    (IC, L => Decls.F_Decls, D => Dom_Info);
 
       Traverse_Handled_Statement_Sequence
-        (N => HSS,
-         D => Dom_Info);
+        (IC, N => HSS, D => Dom_Info);
    end Traverse_Subprogram_Or_Task_Body;
 
    -----------------------
@@ -1783,6 +1865,7 @@ package body Instrument is
 
          Op_N  : Op;
          Op_NK : Ada_Node_Kind_Type;
+
       begin
          if N.Is_Null then
             return;
@@ -2092,6 +2175,8 @@ package body Instrument is
       Ctx      : constant Analysis_Context := Create_Context;
       RH_Ctx   : Rewriting_Handle := Start_Rewriting (Ctx);
       Unit     : constant Analysis_Unit := Get_From_File (Ctx, Unit_Name);
+
+      I_Ctx    : Inst_Context;
       Preelab  : constant Boolean := False;
       --  ??? to be implemented in libadalang ???
       --  Set to True if unit is required to be preelaborable, i.e.
@@ -2104,7 +2189,7 @@ package body Instrument is
    begin
       SCOs.Initialize;
       Traverse_Declarations_Or_Statements
-        (P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
+        (I_Ctx, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
 
       declare
          SFI : constant Source_File_Index :=
