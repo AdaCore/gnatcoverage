@@ -16,9 +16,56 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Source instrumentation
+--  Support for source instrumentation
+
+with Ada.Containers.Ordered_Maps;
+
+with Types; use Types;
 
 package Instrument is
+
+   ---------------------------------------------
+   -- Mapping of coverage buffer bits to SCOs --
+   ---------------------------------------------
+
+   --  As instrumentation is inserted, bit positions in coverage buffers are
+   --  allocated, and these allocations are associated to low-level SCO Ids.
+   --  Once low-level SCOs are converted to high-level SCOs, new mappings
+   --  are generated to allow mapping bit positions to high level SCOs when
+   --  processing buffers from a target run.
+
+   type Any_Bit_Id is new Integer;
+   No_Bit_Id : constant Any_Bit_Id := -1;
+   subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
+
+   --  Bitmap information for statements:
+   --  One bit witnessing "statement executed"
+
+   package LL_Statement_SCO_Bit_Maps is
+     new Ada.Containers.Ordered_Maps
+       (Key_Type     => Nat,
+        Element_Type => Bit_Id);
+
+   --  Bitmap information for decisions:
+   --  One bit witnessing each outcome
+
+   type Outcome_Bit_Ids is array (Boolean) of Any_Bit_Id;
+   No_Outcome_Bit_Ids : constant Outcome_Bit_Ids := (others => No_Bit_Id);
+
+   package LL_Decision_SCO_Bit_Maps is
+     new Ada.Containers.Ordered_Maps
+       (Key_Type     => Nat,
+        Element_Type => Outcome_Bit_Ids);
+
+   type LL_Unit_Bit_Maps is record
+      Statement_Bits : LL_Statement_SCO_Bit_Maps.Map;
+      Last_Statement_Bit : Any_Bit_Id := No_Bit_Id;
+
+      Decision_Bits : LL_Decision_SCO_Bit_Maps.Map;
+      Last_Decision_Bit : Any_Bit_Id := No_Bit_Id;
+   end record;
+
+   No_LL_Unit_Bit_Maps : constant LL_Unit_Bit_Maps := (others => <>);
 
    procedure Instrument_Unit (Unit_Name : String);
 

@@ -25,6 +25,7 @@ with Ada.Streams; use Ada.Streams;
 with GNAT.Regexp;
 
 limited with Checkpoints;
+with Instrument;  use Instrument;
 with Slocs;       use Slocs;
 with Traces;      use Traces;
 with Types;       use Types;
@@ -48,12 +49,15 @@ package SC_Obligations is
    -- Compilation units --
    -----------------------
 
+   type SCO_Provider is (Compiler, Instrumenter);
+
    type CU_Id is new Natural;
    No_CU_Id : constant CU_Id := 0;
    subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
 
    function Allocate_CU
-     (Origin : Source_File_Index := No_Source_File) return CU_Id;
+     (Provider : SCO_Provider;
+      Origin   : Source_File_Index := No_Source_File) return CU_Id;
    --  Allocate a new element in the compilation units table, optionally
    --  setting the CU's origin information.
 
@@ -111,11 +115,14 @@ package SC_Obligations is
    --  range has a non-null intersection with Sloc_Begin .. Sloc_End.
 
    procedure Process_Low_Level_SCOs
-     (CU_Index    : CU_Id;
-      Main_Source : Source_File_Index;
-      Deps        : SFI_Vector := SFI_Vectors.Empty_Vector);
+     (CU_Index     : CU_Id;
+      Main_Source  : Source_File_Index;
+      Deps         : SFI_Vector := SFI_Vectors.Empty_Vector;
+      LL_Unit_Bits : LL_Unit_Bit_Maps := No_LL_Unit_Bit_Maps);
    --  Populate high level SCO tables from low level ones, which have been
    --  populated either from an LI file, or directly by the instrumenter.
+   --  Low-level SCOs come from global tables in package SCOs. Bit maps are
+   --  provided in the case of source instrumentation.
 
    procedure Load_SCOs
      (ALI_Filename         : String;

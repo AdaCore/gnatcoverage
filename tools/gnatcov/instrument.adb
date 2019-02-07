@@ -20,7 +20,6 @@
 --  Source instrumentation
 
 with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
-with Ada.Containers.Ordered_Maps;
 with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Text_IO;
@@ -36,7 +35,6 @@ with Libadalang.Sources;      use Libadalang.Sources;
 with Namet;  use Namet;
 with SCOs;
 with Snames; use Snames;
-with Types;  use Types;
 with Table;
 
 with ALI_Files;
@@ -82,38 +80,6 @@ package body Instrument is
    --  Return a symbol from Symbols corresponding to the name of the given
    --  A aspect association.
 
-   ---------------------------------------------
-   -- Mapping of coverage buffer bits to SCOs --
-   ---------------------------------------------
-
-   --  As instrumentation is inserted, bit positions in coverage buffers
-   --  are allocated, and these allocations are associated to low-level
-   --  SCO Ids. Once low-level SCOs are converted to high-level SCOs, new
-   --  mappings are generated which will allow mapping bit positions to
-   --  high level SCOs when processing buffers from a target run.
-
-   type Any_Bit_Id is new Integer;
-   No_Bit_Id : constant Any_Bit_Id := -1;
-   subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
-
-   type Statement_SCO_Bits is record
-      Executed_Bit : Bit_Id;
-   end record;
-
-   type Decision_SCO_Bits is record
-      Outcome_True_Bit, Outcome_False_Bit : Bit_Id;
-   end record;
-
-   package LL_Statement_SCO_Bit_Maps is
-     new Ada.Containers.Ordered_Maps
-       (Key_Type     => Nat,
-        Element_Type => Statement_SCO_Bits);
-
-   package LL_Decision_SCO_Bit_Maps is
-     new Ada.Containers.Ordered_Maps
-       (Key_Type     => Nat,
-        Element_Type => Decision_SCO_Bits);
-
    -----------------------------
    -- Instrumentation context --
    -----------------------------
@@ -122,11 +88,7 @@ package body Instrument is
    --  unit.
 
    type Inst_Context is record
-      Statement_Bit_Map  : LL_Statement_SCO_Bit_Maps.Map;
-      Last_Statement_Bit : Any_Bit_Id := No_Bit_Id;
-
-      Decision_Bit_Map  : LL_Decision_SCO_Bit_Maps.Map;
-      Last_Decision_Bit : Any_Bit_Id := No_Bit_Id;
+      Unit_Bits : LL_Unit_Bit_Maps;
    end record;
 
    procedure Append_SCO
@@ -578,9 +540,10 @@ package body Instrument is
             --  Allocate a bit in the statement coverage buffer, and record
             --  its id in the bitmap.
 
-            IC.Last_Statement_Bit := IC.Last_Statement_Bit + 1;
-            IC.Statement_Bit_Map.Include
-              (LL_SCO_Id, (Executed_Bit => IC.Last_Statement_Bit));
+            IC.Unit_Bits.Last_Statement_Bit :=
+              IC.Unit_Bits.Last_Statement_Bit + 1;
+            IC.Unit_Bits.Statement_Bits.Include
+              (LL_SCO_Id, IC.Unit_Bits.Last_Statement_Bit);
 
             --  Insert witness statement or declaration
 
@@ -599,7 +562,7 @@ package body Instrument is
 
                Child  =>
                  Make_Statement_Witness
-                   (Bit       => IC.Last_Statement_Bit,
+                   (Bit       => IC.Unit_Bits.Last_Statement_Bit,
                     Statement => Witness_Use_Statement));
 
             Insertion_Count := Insertion_Count + 1;
@@ -2194,7 +2157,8 @@ package body Instrument is
       declare
          SFI : constant Source_File_Index :=
            Get_Index_From_Generic_Name (Unit_Name, Kind => Source_File);
-         CU  : constant CU_Id := Allocate_CU (Origin => SFI);
+         CU  : constant CU_Id :=
+                 Allocate_CU (Provider => Instrumenter, Origin => SFI);
          --  In the instrumentation case, the origin of SCO information is
          --  the original source file.
 

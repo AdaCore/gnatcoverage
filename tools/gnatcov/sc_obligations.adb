@@ -261,7 +261,21 @@ package body SC_Obligations is
    -- Source units table --
    ------------------------
 
-   type CU_Info is record
+   --  For units whose SCOs come from source instrumentation, maintain
+   --  mapping of coverage buffer bit indices to SCO info.
+
+   type Statement_Bit_Map is array (Bit_Id range <>) of SCO_Id;
+   type Statement_Bit_Map_Access is access all Statement_Bit_Map;
+
+   type Decision_Bit_Info is record
+      D_SCO   : SCO_Id;
+      Outcome : Boolean;
+   end record;
+
+   type Decision_Bit_Map is array (Bit_Id range <>) of Decision_Bit_Info;
+   type Decision_Bit_Map_Access is access all Decision_Bit_Map;
+
+   type CU_Info (Provider : SCO_Provider := SCO_Provider'First) is record
       Origin        : Source_File_Index;
       --  File from which this unit's SCO info comes from.
       --  For compiler-based analysis, this is the LI file; for instrumented
@@ -286,6 +300,15 @@ package body SC_Obligations is
 
       Fingerprint   : SCOs_Hash;
       --  Hash of SCO info in ALI, for incremental coverage consistency check
+
+      case Provider is
+         when Compiler =>
+            null;
+
+         when Instrumenter =>
+            Statement_Bits : Statement_Bit_Map_Access;
+            Decision_Bits  : Decision_Bit_Map_Access;
+      end case;
    end record;
 
    function Has_SCOs (CUI : CU_Info) return Boolean is
@@ -2524,10 +2547,13 @@ package body SC_Obligations is
    -----------------
 
    function Allocate_CU
-     (Origin : Source_File_Index := No_Source_File) return CU_Id
+     (Provider : SCO_Provider;
+      Origin   : Source_File_Index := No_Source_File) return CU_Id
    is
+      New_CU_Info : constant CU_Info (Provider) := (Origin   => Origin,
+                                                    others   => <>);
    begin
-      CU_Vector.Append (CU_Info'(Origin => Origin, others => <>));
+      CU_Vector.Append (New_CU_Info);
       return CU_Vector.Last_Index;
    end Allocate_CU;
 
@@ -2542,7 +2568,7 @@ package body SC_Obligations is
       Units, Deps : SFI_Vector;
       --  Units and dependencies of this compilation
 
-      CU_Index  : constant CU_Id := Allocate_CU;
+      CU_Index  : constant CU_Id := Allocate_CU (Provider => Compiler);
       --  Compilation unit for this ALI
 
       ALI_Index : constant Source_File_Index :=
@@ -2611,9 +2637,10 @@ package body SC_Obligations is
    ----------------------------
 
    procedure Process_Low_Level_SCOs
-     (CU_Index    : CU_Id;
-      Main_Source : Source_File_Index;
-      Deps        : SFI_Vector := SFI_Vectors.Empty_Vector)
+     (CU_Index     : CU_Id;
+      Main_Source  : Source_File_Index;
+      Deps         : SFI_Vector := SFI_Vectors.Empty_Vector;
+      LL_Unit_Bits : LL_Unit_Bit_Maps := No_LL_Unit_Bit_Maps)
    is
       use SCOs;
 
@@ -2649,6 +2676,9 @@ package body SC_Obligations is
       Current_BDD : BDD.BDD_Type;
       --  BDD of current decision
 
+      Statement_Bits : Statement_Bit_Map_Access;
+      Decision_Bits  : Decision_Bit_Map_Access;
+
       procedure Fixup_CU (CUI : in out CU_Info);
       --  Update CU entry with information gathered from the tables
 
@@ -2667,10 +2697,15 @@ package body SC_Obligations is
          CUI.First_Instance := Last_Instance_Upon_Entry + 1;
          CUI.Last_Instance  := Inst_Vector.Last_Index;
 
+         CUI.Statement_Bits := Statement_Bits;
+         CUI.Decision_Bits  := Decision_Bits;
+
          CUI.Fingerprint    := SCO_Tables_Fingerprint;
       end Fixup_CU;
 
       Deps_Present : constant Boolean := not Deps.Is_Empty;
+      Provider     : constant SCO_Provider :=
+                       CU_Vector.Element (CU_Index).Provider;
 
    --  Start of processing for Process_Low_Level_SCOs
 
@@ -2679,6 +2714,18 @@ package body SC_Obligations is
       --  SCOs are present, as it is used for checkpoint consolidation.
 
       CU_Map.Insert (Main_Source, CU_Index);
+
+      --  Allocate bitmaps if necessary
+
+      if Provider = Instrumenter then
+         Statement_Bits :=
+           new Statement_Bit_Map'
+             (Bit_Id'First .. LL_Unit_Bits.Last_Statement_Bit => No_SCO_Id);
+         Decision_Bits  :=
+           new Decision_Bit_Map'
+             (Bit_Id'First .. LL_Unit_Bits.Last_Decision_Bit =>
+                (No_SCO_Id, False));
+      end if;
 
       --  Walk low-level SCO table for this unit and populate high-level tables
 
@@ -2914,18 +2961,23 @@ package body SC_Obligations is
                   end if;
 
                   SCO_Vector.Append
-                    (SCO_Descriptor'(Kind           => Statement,
-                                     Origin         => CU_Index,
-                                     Sloc_Range     => SCO_Range,
-                                     S_Kind         =>
-                                        To_Statement_Kind (SCOE.C2),
-                                     Dominant       => Dom_SCO,
-                                     Dominant_Sloc  => Dom_Sloc,
-                                     Dominant_Value => Dom_Val,
-                                     Handler_Range  => Current_Handler_Range,
-                                     Pragma_Name    =>
-                                        Get_Pragma_Id (Pragma_Aspect_Name),
-                                     others         => <>));
+                    (SCO_Descriptor'
+                       (Kind           => Statement,
+                        Origin         => CU_Index,
+                        Sloc_Range     => SCO_Range,
+                        S_Kind         =>
+                           To_Statement_Kind (SCOE.C2),
+                        Dominant       => Dom_SCO,
+                        Dominant_Sloc  => Dom_Sloc,
+                        Dominant_Value => Dom_Val,
+                        Handler_Range  => Current_Handler_Range,
+                        Pragma_Name    =>
+                           Get_Pragma_Id (Pragma_Aspect_Name),
+                        others         => <>));
+                  if Statement_Bits /= null then
+                     Statement_Bits (LL_Unit_Bits.Statement_Bits.Element
+                                     (Cur_SCO_Entry)) := SCO_Vector.Last_Index;
+                  end if;
 
                   Current_Handler_Range := No_Range;
                   Dom_Val  := Unknown;
@@ -2941,23 +2993,36 @@ package body SC_Obligations is
 
                   pragma Assert (Current_Decision = No_SCO_Id);
                   SCO_Vector.Append
-                    (SCO_Descriptor'(Kind                => Decision,
-                                     Origin              => CU_Index,
-                                     Control_Location    =>
-                                        Slocs.To_Sloc
-                                          (Cur_Source_File, From_Sloc),
-                                     D_Kind              =>
-                                       To_Decision_Kind (SCOE.C1),
-                                     Last_Cond_Index     => 0,
-                                     Aspect_Name         =>
-                                       Get_Aspect_Id (Pragma_Aspect_Name),
-                                     others              => <>));
+                    (SCO_Descriptor'
+                       (Kind                => Decision,
+                        Origin              => CU_Index,
+                        Control_Location    =>
+                           Slocs.To_Sloc
+                          (Cur_Source_File, From_Sloc),
+                        D_Kind              =>
+                           To_Decision_Kind (SCOE.C1),
+                        Last_Cond_Index     => 0,
+                        Aspect_Name         =>
+                           Get_Aspect_Id (Pragma_Aspect_Name),
+                        others              => <>));
                   Current_BDD := BDD.Create (SCO_Vector.Last_Index);
 
                   pragma Assert (not SCOE.Last);
 
                   Current_Decision        := SCO_Vector.Last_Index;
                   Current_Condition_Index := No_Condition_Index;
+
+                  if Decision_Bits /= null then
+                     declare
+                        This_Decision_Bits : constant Outcome_Bit_Ids :=
+                          LL_Unit_Bits.Decision_Bits.Element (Cur_SCO_Entry);
+                     begin
+                        for Outcome in Boolean loop
+                           Decision_Bits (This_Decision_Bits (Outcome)) :=
+                             (Current_Decision, Outcome);
+                        end loop;
+                     end;
+                  end if;
 
                when ' ' =>
                   --  Condition
