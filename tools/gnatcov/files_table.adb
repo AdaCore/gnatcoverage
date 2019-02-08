@@ -20,6 +20,7 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
+with Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 
 with System;
@@ -36,6 +37,8 @@ with Project;
 with Switches;
 
 package body Files_Table is
+
+   subtype Stream_Access is Ada.Streams.Stream_IO.Stream_Access;
 
    procedure Free is new Ada.Unchecked_Deallocation
      (File_Info, File_Info_Access);
@@ -556,7 +559,7 @@ package body Files_Table is
    ---------------------
 
    procedure Fill_Line_Cache (FI : File_Info_Access) is
-      F          : File_Type;
+      F          : Ada.Text_IO.File_Type;
       Has_Source : Boolean;
       Line       : Natural := 1;
       LI         : Line_Info_Access;
@@ -1361,7 +1364,6 @@ package body Files_Table is
       FI      : File_Info_Access;
       Success : out Boolean)
    is
-
       procedure Try_Open
         (File    : in out File_Type;
          Name    : String;
@@ -1375,7 +1377,7 @@ package body Files_Table is
       --------------
 
       procedure Try_Open
-        (File    : in out File_Type;
+        (File    : in out Ada.Text_IO.File_Type;
          Name    : String;
          Success : out Boolean) is
       begin
@@ -1570,7 +1572,8 @@ package body Files_Table is
    -- Checkpoint_Save --
    ---------------------
 
-   procedure Checkpoint_Save (S : access Root_Stream_Type'Class) is
+   procedure Checkpoint_Save (CSS : in out Checkpoint_Save_State) is
+      S : Stream_Access renames CSS.Stream;
    begin
       --  1) Output first and last SFIs
 
@@ -1606,10 +1609,9 @@ package body Files_Table is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load
-     (S  : access Root_Stream_Type'Class;
-      CS : access Checkpoint_State)
-   is
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State) is
+      S : Stream_Access renames CLS.Stream;
+
       --  1) Read header
 
       CP_First_SFI : constant Source_File_Index := Source_File_Index'Input (S);
@@ -1637,7 +1639,7 @@ package body Files_Table is
       --  Kill bogus infinite loop warning (P324-050)
 
    begin
-      CS.SFI_Map :=
+      CLS.SFI_Map :=
         new SFI_Map_Array'(CP_First_SFI .. CP_Last_SFI => No_Source_File);
 
       --  We first load all file entries, and then import them into the
@@ -1719,10 +1721,10 @@ package body Files_Table is
                   end if;
                end if;
 
-               CS.SFI_Map (CP_SFI) := SFI;
+               CLS.SFI_Map (CP_SFI) := SFI;
                if Switches.Verbose then
                   Put_Line ("Remap " & FE.Name.all & ":" & CP_SFI'Img
-                            & " ->" & CS.SFI_Map (CP_SFI)'Img);
+                            & " ->" & CLS.SFI_Map (CP_SFI)'Img);
                end if;
             end if;
          end;

@@ -20,8 +20,6 @@
 
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Streams; use Ada.Streams;
-
 with GNAT.Regexp;
 
 limited with Checkpoints;
@@ -338,12 +336,10 @@ package SC_Obligations is
    -- Checkpoints --
    -----------------
 
-   procedure Checkpoint_Save (S : access Root_Stream_Type'Class);
+   procedure Checkpoint_Save (CSS : in out Checkpoints.Checkpoint_Save_State);
    --  Save the current SCOs to S
 
-   procedure Checkpoint_Load
-     (S  : access Root_Stream_Type'Class;
-      CS : access Checkpoints.Checkpoint_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed SCOs from S and merge them in current state
 
 private

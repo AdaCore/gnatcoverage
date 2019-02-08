@@ -18,6 +18,7 @@
 
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
+with Ada.Streams.Stream_IO; use Ada.Streams, Ada.Streams.Stream_IO;
 with Ada.Tags;
 with Ada.Unchecked_Deallocation;
 
@@ -207,22 +208,21 @@ package body Coverage.Source is
    -- Checkpoint_Save --
    ---------------------
 
-   procedure Checkpoint_Save (S : access Root_Stream_Type'Class) is
+   procedure Checkpoint_Save (CSS : in out Checkpoint_Save_State) is
    begin
-      Ada.Tags.Tag'Write (S, Tag_Provider'Tag);
-      SCI_Vector_Vectors.Vector'Write (S, SCI_Vector);
+      Ada.Tags.Tag'Write (CSS.Stream, Tag_Provider'Tag);
+      SCI_Vector_Vectors.Vector'Write (CSS.Stream, SCI_Vector);
    end Checkpoint_Save;
 
    ---------------------
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load
-     (S  : access Root_Stream_Type'Class;
-      CS : access Checkpoint_State)
-   is
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State) is
       use type Ada.Tags.Tag;
       use SCI_Vector_Vectors;
+
+      S : Stream_Access renames CLS.Stream;
 
       CP_Tag_Provider : Ada.Tags.Tag;
       CP_SCI_Vector   : SCI_Vector_Vectors.Vector;
@@ -250,7 +250,7 @@ package body Coverage.Source is
       for SCO_Cur in CP_SCI_Vector.Iterate loop
          Process_One_SCO : declare
             CP_SCO : constant SCO_Id := To_Index (SCO_Cur);
-            SCO    : constant SCO_Id := CS.SCO_Map (CP_SCO);
+            SCO    : constant SCO_Id := CLS.SCO_Map (CP_SCO);
 
             procedure Free_SCIs (SCIV : in out SCI_Vectors.Vector);
             --  Deallocate all elements in SCIV
@@ -274,7 +274,7 @@ package body Coverage.Source is
                   if CP_SCI /= null then
                      Merge_Checkpoint_SCI
                        (SCO,
-                        Tag_Provider.Map_Tag (CS.all, CP_SCI.Tag),
+                        Tag_Provider.Map_Tag (CLS, CP_SCI.Tag),
                         CP_SCI.all);
                   end if;
                end loop;

@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Doubly_Linked_Lists;
-with Ada.Streams; use Ada.Streams;
 
 with GNAT.Strings; use GNAT.Strings;
 
@@ -43,13 +42,11 @@ package Traces_Files_List is
    Files : Traces_Files_Lists.List;
 
    procedure Checkpoint_Save
-     (S       : access Root_Stream_Type'Class;
+     (CSS     : in out Checkpoints.Checkpoint_Save_State;
       Context : access Coverage.Context);
    --  Save the current list of trace files to S
 
-   procedure Checkpoint_Load
-     (S  : access Root_Stream_Type'Class;
-      CS : access Checkpoints.Checkpoint_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load list of trace files from S
 
 end Traces_Files_List;

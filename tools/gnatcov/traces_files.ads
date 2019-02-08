@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Strings.Unbounded;
-with Ada.Streams; use Ada.Streams;
 with Interfaces;  use Interfaces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
@@ -180,13 +179,12 @@ package Traces_Files is
    --  Raw dump of a trace file
 
    procedure Checkpoint_Save
-     (S          : access Root_Stream_Type'Class;
+     (CSS        : in out Checkpoints.Checkpoint_Save_State;
       Trace_File : Trace_File_Type);
    --  Save Trace_File's infos to S
 
    procedure Checkpoint_Load
-     (S          : access Root_Stream_Type'Class;
-      CS         : access Checkpoints.Checkpoint_State;
+     (CLS        : in out Checkpoints.Checkpoint_Load_State;
       Trace_File : in out Trace_File_Type);
    --  Load Trace_File's infos from S
 

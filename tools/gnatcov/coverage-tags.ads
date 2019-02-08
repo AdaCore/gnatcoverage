@@ -73,7 +73,7 @@ package Coverage.Tags is
 
    function Map_Tag
      (TP     : access Tag_Provider_Type;
-      CS     : Checkpoints.Checkpoint_State;
+      CLS    : Checkpoints.Checkpoint_Load_State;
       CP_Tag : SC_Tag) return SC_Tag is abstract;
    --  Convert a tag from a checkpoint to the corresponding one in the
    --  current context. Note: caller must ensure that TP is either a
@@ -105,7 +105,7 @@ package Coverage.Tags is
 
    overriding function Map_Tag
      (TP     : access Default_Tag_Provider_Type;
-      CS     : Checkpoints.Checkpoint_State;
+      CLS    : Checkpoints.Checkpoint_Load_State;
       CP_Tag : SC_Tag) return SC_Tag;
    --  Return No_SC_Tag
 
