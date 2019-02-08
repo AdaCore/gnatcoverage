@@ -58,10 +58,10 @@ package Instrument is
         Element_Type => Outcome_Bit_Ids);
 
    type LL_Unit_Bit_Maps is record
-      Statement_Bits : LL_Statement_SCO_Bit_Maps.Map;
+      Statement_Bits     : LL_Statement_SCO_Bit_Maps.Map;
       Last_Statement_Bit : Any_Bit_Id := No_Bit_Id;
 
-      Decision_Bits : LL_Decision_SCO_Bit_Maps.Map;
+      Decision_Bits     : LL_Decision_SCO_Bit_Maps.Map;
       Last_Decision_Bit : Any_Bit_Id := No_Bit_Id;
    end record;
 

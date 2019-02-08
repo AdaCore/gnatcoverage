@@ -2218,12 +2218,13 @@ package body Instrument is
         (RH_Ctx => Start_Rewriting (Ctx), others => <>);
       Preelab  : constant Boolean := False;
       --  ??? to be implemented in libadalang ???
-      --  Set to True if unit is required to be preelaborable, i.e.
-      --  it is either preelaborated, or the declaration of a remote types
-      --  or remote call interface library unit. In this case, do not
-      --  generate any witness calls for elaboration of declarations: they
-      --  would be pointless (there is no elaboration code anyway) and,
-      --  in any case, illegal.
+      --
+      --  Set to True if unit is required to be preelaborable, i.e.  it is
+      --  either preelaborated, or the declaration of a remote types or remote
+      --  call interface library unit. In this case, do not generate any
+      --  witness calls for elaboration of declarations: they would be
+      --  pointless (there is no elaboration code anyway) and, in any case,
+      --  illegal.
 
    begin
       SCOs.Initialize;
