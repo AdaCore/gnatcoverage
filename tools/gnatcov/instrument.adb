@@ -18,6 +18,7 @@
 
 --  Source instrumentation
 
+with Ada.Directories;
 with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
@@ -37,7 +38,9 @@ with Snames; use Snames;
 with Table;
 
 with ALI_Files;
-with Files_Table; use Files_Table;
+with Files_Table;    use Files_Table;
+with Outputs;
+with Project;
 with SC_Obligations; use SC_Obligations;
 
 package body Instrument is
@@ -2227,6 +2230,16 @@ package body Instrument is
       --  illegal.
 
    begin
+      if Unit.Has_Diagnostics then
+         Outputs.Error ("instrumentation failed for " & Unit_Name);
+         Outputs.Error
+           ("please make sure the original project can be compiled");
+         for D of Unit.Diagnostics loop
+            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
+         end loop;
+         raise Outputs.Xcov_Exit_Exc;
+      end if;
+
       SCOs.Initialize;
       Traverse_Declarations_Or_Statements
         (IC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
@@ -2255,15 +2268,26 @@ package body Instrument is
          Result : constant Apply_Result := Apply (IC.RH_Ctx);
       begin
          if Result.Success then
-            Put_Line ("--  Instrumented unit follows");
-            Put_Line (To_String (Unit.Text));
+            declare
+               Filename : constant String := Ada.Directories.Compose
+                 (Project.Output_Dir,
+                  Ada.Directories.Simple_Name (Unit.Get_Filename));
+               Out_File : File_Type;
+            begin
+               Create (File => Out_File, Name => Filename);
+               Put_Line (Out_File, To_String (Unit.Text));
+               Close (Out_File);
+            end;
          else
-            Put_Line ("Instrumentation failed");
+            Outputs.Error ("instrumentation failed for " & Unit_Name);
+            Outputs.Error
+              ("this is likely a bug in GNATcoverage: please report it");
             for D of Result.Diagnostics loop
-               Put_Line (Image (D.Sloc_Range)
-                         & ": "
-                         & To_String (To_Wide_Wide_String (D.Message)));
+               Outputs.Error
+                 (Image (D.Sloc_Range) & ": "
+                  & To_String (To_Wide_Wide_String (D.Message)));
             end loop;
+            raise Outputs.Xcov_Exit_Exc;
          end if;
       end;
    end Instrument_Unit;
