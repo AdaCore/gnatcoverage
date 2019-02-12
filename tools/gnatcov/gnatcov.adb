@@ -1291,7 +1291,9 @@ begin
 
             Check_Argument_Available (Src_Inputs, "SRC_FILEs");
             Inputs.Iterate (Src_Inputs, Instrument_One_Unit'Access);
-            Dump_All_SCOs;
+            if Verbose then
+               Dump_All_SCOs;
+            end if;
          end;
 
       when Cmd_Scan_Objects =>
