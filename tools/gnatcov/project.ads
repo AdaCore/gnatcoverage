@@ -20,6 +20,8 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
+with GNATCOLL.Projects;
+
 with Inputs;
 
 package Project is
@@ -79,6 +81,13 @@ package Project is
    --  present, it overrides the set of units to be considered, else the set
    --  defined by the project through the Units, Units_List, Exclude_Units, and
    --  Exclude_Units_List attributes is used.
+
+   procedure Enumerate_Ada_Sources
+     (Callback       : access procedure (File : GNATCOLL.Projects.File_Info);
+      Override_Units : Inputs.Inputs_Type);
+   --  Call Callback once for every Ada source file mentionned in a previous
+   --  Add_Project call. Override_Units has the same semantics as in
+   --  Enumerate_LIs.
 
    function Find_Source_File (Simple_Name : String) return String_Access;
    --  Look for the absolute path for the source file called Simple_Name. If no

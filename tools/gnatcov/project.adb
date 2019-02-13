@@ -498,6 +498,62 @@ package body Project is
       Report_Units_Without_LI (Override_Units_Map, Origin => "<command line>");
    end Enumerate_LIs;
 
+   ---------------------------
+   -- Enumerate_Ada_Sources --
+   ---------------------------
+
+   procedure Enumerate_Ada_Sources
+     (Callback       : access procedure (File : GNATCOLL.Projects.File_Info);
+      Override_Units : Inputs.Inputs_Type)
+   is
+      Override_Units_Map : Unit_Maps.Map
+         with Unreferenced;
+
+      procedure Enumerate_In_Single_Project
+        (Project           : Project_Type;
+         Inc_Units         : in out Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         Exc_Units         : Unit_Maps.Map;
+         Callback          : access procedure (File : File_Info));
+      --  Callback for Enumerate_For_Units_Of_Interest
+
+      procedure Enumerate_In_Projects is new Enumerate_For_Units_Of_Interest
+        (File_Info, Enumerate_In_Single_Project);
+
+      ---------------------------------
+      -- Enumerate_In_Single_Project --
+      ---------------------------------
+
+      procedure Enumerate_In_Single_Project
+        (Project           : Project_Type;
+         Inc_Units         : in out Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         Exc_Units         : Unit_Maps.Map;
+         Callback          : access procedure (File : File_Info))
+      is
+         Sources : GNATCOLL.VFS.File_Array_Access := Project.Source_Files;
+      begin
+         for S of Sources.all loop
+            declare
+               Info : constant File_Info := Prj_Tree.Info (S);
+               Unit : constant String := Info.Unit_Name;
+            begin
+               if Info.Language = "ada"
+                  and then not Exc_Units.Contains (Unit)
+                  and then (not Inc_Units_Defined
+                            or else Inc_Units.Contains (Unit))
+               then
+                  Callback (Info);
+               end if;
+            end;
+         end loop;
+         GNATCOLL.VFS.Unchecked_Free (Sources);
+      end Enumerate_In_Single_Project;
+
+   begin
+      Enumerate_In_Projects (Callback, Override_Units, Override_Units_Map);
+   end Enumerate_Ada_Sources;
+
    ----------------------
    -- Find_Source_File --
    ----------------------

@@ -86,7 +86,6 @@ procedure GNATcov is
    Exe_Inputs           : Inputs.Inputs_Type;
    Obj_Inputs           : Inputs.Inputs_Type;
    ALIs_Inputs          : Inputs.Inputs_Type;
-   Src_Inputs           : Inputs.Inputs_Type; --  For instrumentation
    Routines_Inputs      : Inputs.Inputs_Type;
    Units_Inputs         : Inputs.Inputs_Type;
    Projects_Inputs      : Inputs.Inputs_Type;
@@ -977,9 +976,9 @@ procedure GNATcov is
             end if;
 
          when Cmd_Instrument_Test =>
-            for Arg of Args.Remaining_Args loop
-               Inputs.Add_Input (Src_Inputs, +Arg);
-            end loop;
+            if Args.Remaining_Args.Length > 0 then
+               Fatal_Error ("no positional arguments accepted");
+            end if;
 
          when others =>
             null;
@@ -1270,31 +1269,12 @@ begin
          end;
 
       when Cmd_Instrument_Test =>
-         declare
-            procedure Instrument_One_Unit (Src_File_Name : String);
-            --  Extract SCOs from given source file
+         if not Is_Project_Loaded then
+            Fatal_Error ("instrumentation requires a project file;"
+                         & " please use the -P option");
+         end if;
 
-            -------------------------
-            -- Instrument_One_Unit --
-            -------------------------
-
-            procedure Instrument_One_Unit (Src_File_Name : String) is
-            begin
-               Instrument.Instrument_Unit (Src_File_Name);
-            end Instrument_One_Unit;
-
-         begin
-            if not Is_Project_Loaded then
-               Fatal_Error ("instrumentation requires a project file;"
-                            & " please use the -P option");
-            end if;
-
-            Check_Argument_Available (Src_Inputs, "SRC_FILEs");
-            Inputs.Iterate (Src_Inputs, Instrument_One_Unit'Access);
-            if Verbose then
-               Dump_All_SCOs;
-            end if;
-         end;
+         Instrument.Instrument_Units_Of_Interest (Units_Inputs);
 
       when Cmd_Scan_Objects =>
          declare

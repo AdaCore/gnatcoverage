@@ -37,13 +37,20 @@ with SCOs;
 with Snames; use Snames;
 with Table;
 
+with GNATCOLL.Projects;
+with GNATCOLL.VFS;
+
 with ALI_Files;
 with Files_Table;    use Files_Table;
 with Outputs;
 with Project;
 with SC_Obligations; use SC_Obligations;
+with Switches;
 
 package body Instrument is
+
+   procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info);
+   --  Generate the instrumented source corresponding to Source_File
 
    type Aspect_Symbols is
      (Dynamic_Predicate,
@@ -2209,89 +2216,6 @@ package body Instrument is
       N.Traverse (Process_Node'Access);
    end Process_Decisions;
 
-   ---------------------
-   -- Instrument_Unit --
-   ---------------------
-
-   procedure Instrument_Unit (Unit_Name : String) is
-      Ctx   : constant Analysis_Context := Create_Context;
-      Unit  : constant Analysis_Unit := Get_From_File (Ctx, Unit_Name);
-
-      IC    : Inst_Context :=
-        (RH_Ctx => Start_Rewriting (Ctx), others => <>);
-      Preelab  : constant Boolean := False;
-      --  ??? to be implemented in libadalang ???
-      --
-      --  Set to True if unit is required to be preelaborable, i.e.  it is
-      --  either preelaborated, or the declaration of a remote types or remote
-      --  call interface library unit. In this case, do not generate any
-      --  witness calls for elaboration of declarations: they would be
-      --  pointless (there is no elaboration code anyway) and, in any case,
-      --  illegal.
-
-   begin
-      if Unit.Has_Diagnostics then
-         Outputs.Error ("instrumentation failed for " & Unit_Name);
-         Outputs.Error
-           ("please make sure the original project can be compiled");
-         for D of Unit.Diagnostics loop
-            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
-         end loop;
-         raise Outputs.Xcov_Exit_Exc;
-      end if;
-
-      SCOs.Initialize;
-      Traverse_Declarations_Or_Statements
-        (IC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
-
-      declare
-         SFI : constant Source_File_Index :=
-           Get_Index_From_Generic_Name (Unit_Name, Kind => Source_File);
-         CU  : constant CU_Id :=
-                 Allocate_CU (Provider => Instrumenter, Origin => SFI);
-         --  In the instrumentation case, the origin of SCO information is
-         --  the original source file.
-
-      begin
-         SCOs.SCO_Unit_Table.Append
-           ((File_Name  => new String'(Unit_Name),
-             File_Index => SFI,
-             Dep_Num    => 1,
-             From       => SCOs.SCO_Table.First,
-             To         => SCOs.SCO_Table.Last));
-         Process_Low_Level_SCOs (CU, SFI, LL_Unit_Bits => IC.Unit_Bits);
-      end;
-
-      declare
-         use Ada.Text_IO;
-
-         Result : constant Apply_Result := Apply (IC.RH_Ctx);
-      begin
-         if Result.Success then
-            declare
-               Filename : constant String := Ada.Directories.Compose
-                 (Project.Output_Dir,
-                  Ada.Directories.Simple_Name (Unit.Get_Filename));
-               Out_File : File_Type;
-            begin
-               Create (File => Out_File, Name => Filename);
-               Put_Line (Out_File, To_String (Unit.Text));
-               Close (Out_File);
-            end;
-         else
-            Outputs.Error ("instrumentation failed for " & Unit_Name);
-            Outputs.Error
-              ("this is likely a bug in GNATcoverage: please report it");
-            for D of Result.Diagnostics loop
-               Outputs.Error
-                 (Image (D.Sloc_Range) & ": "
-                  & To_String (To_Wide_Wide_String (D.Message)));
-            end loop;
-            raise Outputs.Xcov_Exit_Exc;
-         end if;
-      end;
-   end Instrument_Unit;
-
    ------------------
    -- Has_Decision --
    ------------------
@@ -2426,5 +2350,106 @@ package body Instrument is
       (As_Symbol (Aspect_Assoc_Name (A)));
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Name_Id is
       (As_Name (Aspect_Assoc_Name (A)));
+
+   ---------------------
+   -- Instrument_Unit --
+   ---------------------
+
+   procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info) is
+      use GNATCOLL.VFS;
+
+      Filename : constant String := +Source_File.File.Full_Name;
+      Ctx      : constant Analysis_Context := Create_Context;
+      Unit     : constant Analysis_Unit := Get_From_File (Ctx, Filename);
+      IC       : Inst_Context :=
+        (RH_Ctx    => Start_Rewriting (Ctx),
+         Unit_Bits => <>);
+
+      Preelab : constant Boolean := False;
+      --  ??? To be implemented in Libadalang: S128-004
+      --
+      --  Set to True if Unit is required to be preelaborable, i.e.  it is
+      --  either preelaborated, or the declaration of a remote types or remote
+      --  call interface library unit. In this case, do not generate any
+      --  witness calls for elaboration of declarations: they would be
+      --  pointless (there is no elaboration code anyway) and, in any case,
+      --  illegal.
+
+   begin
+      if Unit.Has_Diagnostics then
+         Outputs.Error ("instrumentation failed for " & Filename);
+         Outputs.Error
+           ("please make sure the original project can be compiled");
+         for D of Unit.Diagnostics loop
+            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
+         end loop;
+         raise Outputs.Xcov_Exit_Exc;
+      end if;
+
+      SCOs.Initialize;
+      Traverse_Declarations_Or_Statements
+        (IC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
+
+      declare
+         SFI : constant Source_File_Index := Get_Index_From_Generic_Name
+           (Filename, Kind => Files_Table.Source_File);
+         CU  : constant CU_Id :=
+            Allocate_CU (Provider => Instrumenter, Origin => SFI);
+         --  In the instrumentation case, the origin of SCO information is
+         --  the original source file.
+
+      begin
+         SCOs.SCO_Unit_Table.Append
+           ((File_Name  => new String'(Filename),
+             File_Index => SFI,
+             Dep_Num    => 1,
+             From       => SCOs.SCO_Table.First,
+             To         => SCOs.SCO_Table.Last));
+         Process_Low_Level_SCOs (CU, SFI, LL_Unit_Bits => IC.Unit_Bits);
+      end;
+
+      declare
+         use Ada.Text_IO;
+         Result : constant Apply_Result := Apply (IC.RH_Ctx);
+      begin
+         if Result.Success then
+            declare
+               Filename : constant String := Ada.Directories.Compose
+                 (Project.Output_Dir,
+                  Ada.Directories.Simple_Name (Unit.Get_Filename));
+               Out_File : File_Type;
+            begin
+               Create (File => Out_File, Name => Filename);
+               Put_Line (Out_File, To_String (Unit.Text));
+               Close (Out_File);
+            end;
+         else
+            Outputs.Error ("instrumentation failed for " & Filename);
+            Outputs.Error
+              ("this is likely a bug in GNATcoverage: please report it");
+            for D of Result.Diagnostics loop
+               Outputs.Error
+                 (Image (D.Sloc_Range) & ": "
+                  & To_String (To_Wide_Wide_String (D.Message)));
+            end loop;
+            raise Outputs.Xcov_Exit_Exc;
+         end if;
+      end;
+   end Instrument_Unit;
+
+   ----------------------------------
+   -- Instrument_Units_Of_Interest --
+   ----------------------------------
+
+   procedure Instrument_Units_Of_Interest (Units_Inputs : Inputs.Inputs_Type)
+   is
+   begin
+      Project.Enumerate_Ada_Sources
+        (Instrument.Instrument_Unit'Access, Units_Inputs);
+
+      if Switches.Verbose then
+         Dump_All_SCOs;
+      end if;
+   end Instrument_Units_Of_Interest;
 
 end Instrument;

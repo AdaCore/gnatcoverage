@@ -20,6 +20,7 @@
 
 with Ada.Containers.Ordered_Maps;
 
+with Inputs;
 with Types; use Types;
 
 package Instrument is
@@ -67,6 +68,12 @@ package Instrument is
 
    No_LL_Unit_Bit_Maps : constant LL_Unit_Bit_Maps := (others => <>);
 
-   procedure Instrument_Unit (Unit_Name : String);
+   procedure Instrument_Units_Of_Interest (Units_Inputs : Inputs.Inputs_Type);
+   --  Generate instrumented sources for the source files of all units of
+   --  interest.
+   --
+   --  Units of interest are computed from the loaded project (-P/--projects),
+   --  unless Units_Inputs is not empty: in this case, use the given unit names
+   --  as the list of units of interest.
 
 end Instrument;
