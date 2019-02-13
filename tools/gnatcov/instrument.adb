@@ -18,10 +18,14 @@
 
 --  Source instrumentation
 
-with Ada.Directories;
+with Ada.Characters.Handling;
 with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
+with Ada.Containers.Indefinite_Ordered_Sets;
+with Ada.Containers.Vectors;
+with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
@@ -49,8 +53,53 @@ with Switches;
 
 package body Instrument is
 
-   procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info);
-   --  Generate the instrumented source corresponding to Source_File
+   type Ada_Identifier is new Ada.Strings.Unbounded.Unbounded_String;
+   --  Simple Ada identifier
+
+   package Ada_Identifier_Vectors is new Ada.Containers.Vectors
+     (Positive, Ada_Identifier);
+
+   subtype Ada_Qualified_Name is Ada_Identifier_Vectors.Vector;
+   --  Sequence of ada identifiers, representing a qualified name. For
+   --  instance: Scope_A.Scope_B.Scope_C
+
+   function "&" (Left, Right : Ada_Qualified_Name) return Ada_Qualified_Name
+      renames Ada_Identifier_Vectors."&";
+
+   function To_Ada (Name : Ada_Qualified_Name) return String;
+   --  Turn the given qualified name into Ada syntax
+
+   Sys_Prefix : Ada_Qualified_Name;
+   --  Scope for all instrumentation runtime files beyond the instrumented
+   --  sources.
+
+   Sys_Buffers : Ada_Qualified_Name;
+   --  Scope in Sys_Prefix for all packages to contain coverage buffers
+
+   type Unit_Kind is (Unit_Spec, Unit_Body);
+
+   type Compilation_Unit_Name is record
+      Unit : Ada_Qualified_Name;
+      Kind : Unit_Kind;
+   end record;
+   --  Unique identifier for an instrumented unit
+
+   function To_Compilation_Unit_Name
+     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name;
+   --  Return the compilation unit name corresponding to the unit in
+   --  Source_File.
+
+   function To_Filename (CU_Name : Compilation_Unit_Name) return String;
+   --  Return the name of the file to contain the given compilation unit. This
+   --  assumes standard GNAT naming scheme.
+
+   function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
+   --  Compare qualified name, identifier by identifier. If one is the
+   --  prefix of the other, the shorter is considered to come first. If
+   --  qualified name is the same, compare the kind.
+
+   package Instrumented_Unit_Sets is new Ada.Containers.Indefinite_Ordered_Sets
+     (Element_Type => Compilation_Unit_Name);
 
    type Aspect_Symbols is
      (Dynamic_Predicate,
@@ -2351,91 +2400,119 @@ package body Instrument is
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Name_Id is
       (As_Name (Aspect_Assoc_Name (A)));
 
-   ---------------------
-   -- Instrument_Unit --
-   ---------------------
+   ------------
+   -- To_Ada --
+   ------------
 
-   procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info) is
-      use GNATCOLL.VFS;
-
-      Filename : constant String := +Source_File.File.Full_Name;
-      Ctx      : constant Analysis_Context := Create_Context;
-      Unit     : constant Analysis_Unit := Get_From_File (Ctx, Filename);
-      IC       : Inst_Context :=
-        (RH_Ctx    => Start_Rewriting (Ctx),
-         Unit_Bits => <>);
-
-      Preelab : constant Boolean := False;
-      --  ??? To be implemented in Libadalang: S128-004
-      --
-      --  Set to True if Unit is required to be preelaborable, i.e.  it is
-      --  either preelaborated, or the declaration of a remote types or remote
-      --  call interface library unit. In this case, do not generate any
-      --  witness calls for elaboration of declarations: they would be
-      --  pointless (there is no elaboration code anyway) and, in any case,
-      --  illegal.
-
+   function To_Ada (Name : Ada_Qualified_Name) return String is
+      use Ada.Strings.Unbounded;
+      Result : Unbounded_String;
    begin
-      if Unit.Has_Diagnostics then
-         Outputs.Error ("instrumentation failed for " & Filename);
-         Outputs.Error
-           ("please make sure the original project can be compiled");
-         for D of Unit.Diagnostics loop
-            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
+      for Id of Name loop
+         if Length (Result) > 0 then
+            Append (Result, ".");
+         end if;
+         Append (Result, To_String (Id));
+      end loop;
+
+      return To_String (Result);
+   end To_Ada;
+
+   ------------------------------
+   -- To_Compilation_Unit_Name --
+   ------------------------------
+
+   function To_Compilation_Unit_Name
+     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name
+   is
+      use all type GNATCOLL.Projects.Unit_Parts;
+
+      Unit_Name : constant String := Source_File.Unit_Name;
+      First     : Positive := Unit_Name'First;
+   begin
+      return Result : Compilation_Unit_Name do
+         for I in Unit_Name'First .. Unit_Name'Last + 1 loop
+            if I = Unit_Name'Last + 1 or else Unit_Name (I) = '.' then
+               Result.Unit.Append
+                 (To_Unbounded_String (Unit_Name (First .. I - 1)));
+               First := I + 1;
+            end if;
          end loop;
-         raise Outputs.Xcov_Exit_Exc;
+
+         Result.Kind := (case Source_File.Unit_Part is
+                         when Unit_Body | Unit_Separate => Unit_Body,
+                         when Unit_Spec                 => Unit_Spec);
+      end return;
+   end To_Compilation_Unit_Name;
+
+   -----------------
+   -- To_Filename --
+   -----------------
+
+   function To_Filename (CU_Name : Compilation_Unit_Name) return String is
+      use Ada.Strings.Unbounded;
+      Result : Unbounded_String;
+   begin
+      for Id of CU_Name.Unit loop
+         if Length (Result) > 0 then
+            Append (Result, "-");
+         end if;
+         Append (Result, Ada.Characters.Handling.To_Lower (To_String (Id)));
+      end loop;
+
+      case CU_Name.Kind is
+         when Unit_Spec => Append (Result, ".ads");
+         when Unit_Body => Append (Result, ".adb");
+      end case;
+
+      return To_String (Result);
+   end To_Filename;
+
+   ---------
+   -- "<" --
+   ---------
+
+   function "<" (Left, Right : Compilation_Unit_Name) return Boolean is
+   begin
+      for I in 1 .. Left.Unit.Last_Index loop
+
+         if I > Right.Unit.Last_Index then
+
+            --  Here, we know that Left.Unit and Right.Unit are equal up to
+            --  Right.Unit's last index. Left is longer, so it comes after
+            --  Right.
+
+            return False;
+         end if;
+
+         declare
+            Left_Id  : constant Ada_Identifier := Left.Unit (I);
+            Right_Id : constant Ada_Identifier := Right.Unit (I);
+         begin
+            if Left_Id < Right_Id then
+               return True;
+            elsif Left_Id > Right_Id then
+               return False;
+            end if;
+
+            --  Here, Left.Unit and Right.Unit are equal up to I. Continue
+            --  looking for differences.
+         end;
+      end loop;
+
+      --  If Left is longer than Right, the return statement in the loop above
+      --  has bee executed. So at this point Left is either shorter or have the
+      --  same length than Right, and we know that Left is Right's prefix. So:
+      --
+      --  * either they have the same length: proceed to compare the unit kind
+      --  * either not (right is bigger) and Left comes first.
+
+      if Left.Unit.Last_Index /= Right.Unit.Last_Index then
+         return True;
       end if;
 
-      SCOs.Initialize;
-      Traverse_Declarations_Or_Statements
-        (IC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
-
-      declare
-         SFI : constant Source_File_Index := Get_Index_From_Generic_Name
-           (Filename, Kind => Files_Table.Source_File);
-         CU  : constant CU_Id :=
-            Allocate_CU (Provider => Instrumenter, Origin => SFI);
-         --  In the instrumentation case, the origin of SCO information is
-         --  the original source file.
-
-      begin
-         SCOs.SCO_Unit_Table.Append
-           ((File_Name  => new String'(Filename),
-             File_Index => SFI,
-             Dep_Num    => 1,
-             From       => SCOs.SCO_Table.First,
-             To         => SCOs.SCO_Table.Last));
-         Process_Low_Level_SCOs (CU, SFI, LL_Unit_Bits => IC.Unit_Bits);
-      end;
-
-      declare
-         use Ada.Text_IO;
-         Result : constant Apply_Result := Apply (IC.RH_Ctx);
-      begin
-         if Result.Success then
-            declare
-               Filename : constant String := Ada.Directories.Compose
-                 (Project.Output_Dir,
-                  Ada.Directories.Simple_Name (Unit.Get_Filename));
-               Out_File : File_Type;
-            begin
-               Create (File => Out_File, Name => Filename);
-               Put_Line (Out_File, To_String (Unit.Text));
-               Close (Out_File);
-            end;
-         else
-            Outputs.Error ("instrumentation failed for " & Filename);
-            Outputs.Error
-              ("this is likely a bug in GNATcoverage: please report it");
-            for D of Result.Diagnostics loop
-               Outputs.Error
-                 (Image (D.Sloc_Range) & ": "
-                  & To_String (To_Wide_Wide_String (D.Message)));
-            end loop;
-            raise Outputs.Xcov_Exit_Exc;
-         end if;
-      end;
-   end Instrument_Unit;
+      return Left.Kind < Right.Kind;
+   end "<";
 
    ----------------------------------
    -- Instrument_Units_Of_Interest --
@@ -2443,13 +2520,180 @@ package body Instrument is
 
    procedure Instrument_Units_Of_Interest (Units_Inputs : Inputs.Inputs_Type)
    is
+      Output_Dir : constant String := Project.Output_Dir;
+
+      function Output_File (Basename : String) return String is
+        (Ada.Directories.Compose (Output_Dir, Basename));
+
+      procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info);
+      --  Generate the instrumented source corresponding to Source_File
+
+      procedure Emit_Buffer_Unit
+        (Instrumented_Unit : Compilation_Unit_Name;
+         Bit_Maps          : LL_Unit_Bit_Maps);
+      --  Emit the unit to contain coverage buffers for the given instrumented
+      --  unit.
+
+      Instrumented_Units : Instrumented_Unit_Sets.Set;
+
+      ---------------------
+      -- Instrument_Unit --
+      ---------------------
+
+      procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info) is
+         use GNATCOLL.VFS;
+
+         Filename : constant String := +Source_File.File.Full_Name;
+         CU_Name  : constant Compilation_Unit_Name :=
+            To_Compilation_Unit_Name (Source_File);
+
+         Ctx  : constant Analysis_Context := Create_Context;
+         Unit : constant Analysis_Unit := Get_From_File (Ctx, Filename);
+         IC   : Inst_Context :=
+           (RH_Ctx    => Start_Rewriting (Ctx),
+            Unit_Bits => <>);
+
+         Preelab : constant Boolean := False;
+         --  ??? To be implemented in Libadalang: S128-004
+         --
+         --  Set to True if Unit is required to be preelaborable, i.e.  it is
+         --  either preelaborated, or the declaration of a remote types or
+         --  remote call interface library unit. In this case, do not generate
+         --  any witness calls for elaboration of declarations: they would be
+         --  pointless (there is no elaboration code anyway) and, in any case,
+         --  illegal.
+
+      begin
+         --  Check that we could at least parse the source file to instrument
+
+         if Unit.Has_Diagnostics then
+            Outputs.Error ("instrumentation failed for " & Filename);
+            Outputs.Error
+              ("please make sure the original project can be compiled");
+            for D of Unit.Diagnostics loop
+               Outputs.Error (Unit.Format_GNU_Diagnostic (D));
+            end loop;
+            raise Outputs.Xcov_Exit_Exc;
+         end if;
+
+         --  Then run SCOs generation. This inserts calls to witness
+         --  procedures/functions in the same pass.
+
+         SCOs.Initialize;
+         Traverse_Declarations_Or_Statements
+           (IC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
+
+         declare
+            SFI : constant Source_File_Index := Get_Index_From_Generic_Name
+              (Filename, Kind => Files_Table.Source_File);
+            CU  : constant CU_Id :=
+               Allocate_CU (Provider => Instrumenter, Origin => SFI);
+            --  In the instrumentation case, the origin of SCO information is
+            --  the original source file.
+
+         begin
+            SCOs.SCO_Unit_Table.Append
+              ((File_Name  => new String'(Filename),
+                File_Index => SFI,
+                Dep_Num    => 1,
+                From       => SCOs.SCO_Table.First,
+                To         => SCOs.SCO_Table.Last));
+            Process_Low_Level_SCOs (CU, SFI, LL_Unit_Bits => IC.Unit_Bits);
+         end;
+
+         --  Emit the instrumented source file
+
+         declare
+            use Ada.Text_IO;
+            Result : constant Apply_Result := Apply (IC.RH_Ctx);
+         begin
+            if Result.Success then
+               declare
+                  Filename : constant String := Output_File
+                    (Ada.Directories.Simple_Name (Unit.Get_Filename));
+                  Out_File : File_Type;
+               begin
+                  Create (File => Out_File, Name => Filename);
+                  Put_Line (Out_File, To_String (Unit.Text));
+                  Close (Out_File);
+               end;
+            else
+               Outputs.Error ("instrumentation failed for " & Filename);
+               Outputs.Error
+                 ("this is likely a bug in GNATcoverage: please report it");
+               for D of Result.Diagnostics loop
+                  Outputs.Error
+                    (Image (D.Sloc_Range) & ": "
+                     & To_String (To_Wide_Wide_String (D.Message)));
+               end loop;
+               raise Outputs.Xcov_Exit_Exc;
+            end if;
+         end;
+
+         --  Emit the corresponding System.GNATcov.Buffers.* unit
+
+         Emit_Buffer_Unit (CU_Name, IC.Unit_Bits);
+
+         Instrumented_Units.Insert (CU_Name);
+      end Instrument_Unit;
+
+      ----------------------
+      -- Emit_Buffer_Unit --
+      ----------------------
+
+      procedure Emit_Buffer_Unit
+        (Instrumented_Unit : Compilation_Unit_Name;
+         Bit_Maps          : LL_Unit_Bit_Maps)
+      is
+         use Ada.Text_IO;
+
+         CU_Name : Compilation_Unit_Name :=
+           (Unit => Sys_Buffers, Kind => Unit_Spec);
+         File : File_Type;
+      begin
+         --  Create the compilation unit name for the buffer unit to emit
+
+         case Instrumented_Unit.Kind is
+            when Unit_Spec =>
+               CU_Name.Unit.Append (To_Unbounded_String ("Specs"));
+            when Unit_Body =>
+               CU_Name.Unit.Append (To_Unbounded_String ("Bodies"));
+         end case;
+         CU_Name.Unit := CU_Name.Unit & Instrumented_Unit.Unit;
+
+         Create (File, Name => Output_File (To_Filename (CU_Name)));
+         declare
+            function Buffer_Range (Last_Bit : Any_Bit_Id) return String is
+              ("(0 .. " & Last_Bit'Image & ")");
+
+            Pkg_Name : constant String := To_Ada (CU_Name.Unit);
+         begin
+            Put_Line (File, "package " & Pkg_Name & " is");
+            Put_Line (File, "   Stmt_Buffers : Coverage_Buffer_Type "
+                            & Buffer_Range (Bit_Maps.Last_Statement_Bit)
+                            & ";");
+            Put_Line (File, "   Dc_Buffers : Coverage_Buffer_Type "
+                            & Buffer_Range (Bit_Maps.Last_Decision_Bit)
+                            & ";");
+            Put_Line (File, "end " & Pkg_Name & ";");
+         end;
+         Close (File);
+      end Emit_Buffer_Unit;
+
+   --  Start of processing for Instrument_Units_Of_Interest
+
    begin
-      Project.Enumerate_Ada_Sources
-        (Instrument.Instrument_Unit'Access, Units_Inputs);
+      Project.Enumerate_Ada_Sources (Instrument_Unit'Access, Units_Inputs);
 
       if Switches.Verbose then
          Dump_All_SCOs;
       end if;
    end Instrument_Units_Of_Interest;
 
+begin
+   Sys_Prefix.Append (To_Unbounded_String ("System"));
+   Sys_Prefix.Append (To_Unbounded_String ("GNATcov"));
+
+   Sys_Buffers := Sys_Prefix;
+   Sys_Buffers.Append (To_Unbounded_String ("Buffers"));
 end Instrument;
