@@ -81,10 +81,9 @@ package body Project is
       --  Set true if the LI file for this unit has been seen
    end record;
 
-   package Unit_Maps is
-     new Ada.Containers.Indefinite_Ordered_Maps
-       (Key_Type     => String,
-        Element_Type => Unit_Info);
+   package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => String,
+      Element_Type => Unit_Info);
 
    Env        : Project_Environment_Access;
    Prj_Tree   : Project_Tree_Access;
@@ -133,17 +132,49 @@ package body Project is
    --  List_File_Attr (a string attribute). Defined is set True if either
    --  List_Attr or List_File_Attr is defined explicitly in the project.
 
+   generic
+      type Result_Type (<>) is limited private;
+      --  Type for values to enumerate
+
+      with procedure Enumerate_In_Single_Project
+        (Project           : Project_Type;
+         Inc_Units         : in out Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         Exc_Units         : Unit_Maps.Map;
+         Callback          : access procedure (Value : Result_Type));
+      --  Enumerate all unit-related files that belong to Project. Call
+      --  Callback on each file.
+      --
+      --  If Inc_Units_Defined is true, go only through units in Inc_Units.
+      --  Otherwise, go through all units.
+      --
+      --  In any case, do not go through units in Exc_Units.
+
+   procedure Enumerate_For_Units_Of_Interest
+     (Callback           : access procedure (Value : Result_Type);
+      Override_Units     : Inputs.Inputs_Type;
+      Override_Units_Map : out Unit_Maps.Map);
+   --  Generic procedure to iterate over values (Result_Type) associated with
+   --  units of interest: source files, library files, etc.
+   --
+   --  Enumerate_In_Single_Project will be called for each project that
+   --  contains units of interest and is given included and excluded units
+   --  (from the Coverage.Units and Coverage.Excluded_Units attributes). It is
+   --  passed the same Callback, and it is up to it to invoke this callback on
+   --  each value.
+   --
+   --  If Override_Units is not empty, it is used to define the set of units of
+   --  interest.
+   --
+   --  On return, Override_Units_Map contains a map for all units processed.
+   --
+   --  The specific set of projects that are processed depends on: the root of
+   --  the project loaded (-P option), the optional set of projects of interest
+   --  (--projects) and the recursive mode (--recursive).
+
    procedure Report_Units_Without_LI (Units : Unit_Maps.Map; Origin : String);
    --  Output a warning for any element of Units that has LI_Seen set False.
    --  Origin indicates where the Units list comes from.
-
-   procedure Enumerate_LIs
-     (Root_Project       : Project_Type;
-      LI_Cb              : access procedure (LI_Name : String);
-      Override_Units_Map : in out Unit_Maps.Map;
-      Recursive          : Boolean);
-   --  Enumerate LI files for Root_Project. If Recursive is True, do so for
-   --  the whole subtree rooted at Root_Project.
 
    type Main_Source_File is record
       File    : Virtual_File;
@@ -203,6 +234,112 @@ package body Project is
          Next (Iter);
       end loop;
    end Iterate_Projects;
+
+   -------------------------------------
+   -- Enumerate_For_Units_Of_Interest --
+   -------------------------------------
+
+   procedure Enumerate_For_Units_Of_Interest
+     (Callback           : access procedure (Value : Result_Type);
+      Override_Units     : Inputs.Inputs_Type;
+      Override_Units_Map : out Unit_Maps.Map)
+   is
+      procedure Add_Override (U : String);
+      --  Add U to Override_Units_Map
+
+      procedure Process_Project (Project : Project_Type);
+      --  Compute the list of units of interest in Project and call
+      --  Enumerate_In_Single_Projects for Project.
+
+      ------------------
+      -- Add_Override --
+      ------------------
+
+      procedure Add_Override (U : String) is
+      begin
+         Override_Units_Map.Include
+           (To_Lower (U),
+            (Original_Name => To_Unbounded_String (U), LI_Seen => False));
+      end Add_Override;
+
+      ---------------------
+      -- Process_Project --
+      ---------------------
+
+      procedure Process_Project (Project : Project_Type)
+      is
+         Inc_Units         : Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         --  Units to be included, as specified in project
+
+         Exc_Units         : Unit_Maps.Map;
+         --  Units to be excluded, as specified in project
+      begin
+         --  Unless the set of units of interest is overriden by --units, go
+         --  through all units, taking into account Units and Excluded_Units
+         --  clauses in the Coverage project package.
+
+         if Override_Units_Map.Is_Empty then
+            List_From_Project
+              (Project,
+               List_Attr      => +Units,
+               List_File_Attr => +Units_List,
+               Units          => Inc_Units,
+               Defined        => Inc_Units_Defined);
+
+            declare
+               Dummy_Exc_Units_Defined : Boolean;
+            begin
+               List_From_Project
+                 (Project,
+                  List_Attr       => +Excluded_Units,
+                  List_File_Attr  => +Excluded_Units_List,
+                  Units           => Exc_Units,
+                  Defined         => Dummy_Exc_Units_Defined);
+            end;
+
+            Enumerate_In_Single_Project
+              (Project, Inc_Units, Inc_Units_Defined, Exc_Units, Callback);
+         else
+            Inc_Units_Defined := True;
+            Enumerate_In_Single_Project
+              (Project, Override_Units_Map, Inc_Units_Defined, Exc_Units,
+               Callback);
+         end if;
+      end Process_Project;
+
+      Recursive : constant Boolean := Standard.Switches.Recursive_Projects;
+      --  Whether to process recursively all projects from roots
+
+   --  Start of processing for Enumerate_For_Units_Of_Interest
+
+   begin
+      Iterate (Override_Units, Add_Override'Access);
+
+      if Override_Units_Map.Is_Empty then
+
+         --  No --units: only considered selected projects
+         --
+         --  TODO??? Do not process projects more than once (if one Prj is in
+         --  the closure of another one in recursive mode).
+
+         for Prj of Prj_Map loop
+            Iterate_Projects
+              (Root_Project => Prj,
+               Process      => Process_Project'Access,
+               Recursive    => Recursive);
+         end loop;
+
+      else
+         --  If --units is specified, always traverse the complete project
+         --  tree from the root.
+
+         Iterate_Projects
+           (Root_Project => Prj_Tree.Root_Project,
+            Process      => Process_Project'Access,
+            Recursive    => Recursive);
+      end if;
+   end Enumerate_For_Units_Of_Interest;
 
    --------------------
    -- Origin_Project --
@@ -268,90 +405,41 @@ package body Project is
    -------------------
 
    procedure Enumerate_LIs
-     (Root_Project       : Project_Type;
-      LI_Cb              : access procedure (LI_Name : String);
-      Override_Units_Map : in out Unit_Maps.Map;
-      Recursive          : Boolean)
+     (LI_Cb          : access procedure (LI_Name : String);
+      Override_Units : Inputs.Inputs_Type)
    is
-      procedure Enumerate_Project (Project : Project_Type);
-      --  Enumerate LI files for Project only
+      Override_Units_Map : Unit_Maps.Map;
+
+      procedure Enumerate_In_Single_Project
+        (Project           : Project_Type;
+         Inc_Units         : in out Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         Exc_Units         : Unit_Maps.Map;
+         Callback          : access procedure (Filename : String));
+      --  Callback for Enumerate_For_Units_Of_Interest
+
+      procedure Enumerate_In_Projects is new Enumerate_For_Units_Of_Interest
+        (String, Enumerate_In_Single_Project);
 
       procedure Set_LI_Seen (U : String; UI : in out Unit_Info);
       --  Helper for Enumerate_Project. Record that the LI file for U was
       --  found.
 
-      procedure Filter_Lib_Info
-        (Lib_Info          : Library_Info_List;
+      ---------------------------------
+      -- Enumerate_In_Single_Project --
+      ---------------------------------
+
+      procedure Enumerate_In_Single_Project
+        (Project           : Project_Type;
          Inc_Units         : in out Unit_Maps.Map;
          Inc_Units_Defined : Boolean;
-         Exc_Units         : Unit_Maps.Map);
-      --  Helper for Enumaret_Project. Call LI_Cb for any LI file of the
-      --  project that is in Inc_Units and not in Exc_Units.
-
-      -----------------------
-      -- Enumerate_Project --
-      -----------------------
-
-      procedure Enumerate_Project (Project : Project_Type) is
-         Lib_Info          : Library_Info_List;
-
-         Inc_Units         : Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
-         --  Units to be included, as specified in project
-
          Exc_Units         : Unit_Maps.Map;
-         Exc_Units_Defined : Boolean;
-         --  Units to be excluded, as specified in project
-
-      --  Start of processing for Enumerate_Project
-
-      begin
-         Project.Library_Files
-           (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
-
-         if Override_Units_Map.Is_Empty then
-            List_From_Project
-              (Project,
-               List_Attr      => +Units,
-               List_File_Attr => +Units_List,
-               Units          => Inc_Units,
-               Defined        => Inc_Units_Defined);
-
-            List_From_Project
-              (Project,
-               List_Attr       => +Excluded_Units,
-               List_File_Attr  => +Excluded_Units_List,
-               Units           => Exc_Units,
-               Defined         => Exc_Units_Defined);
-
-            Filter_Lib_Info
-              (Lib_Info, Inc_Units, Inc_Units_Defined, Exc_Units);
-            Report_Units_Without_LI
-              (Inc_Units,
-               Origin => +Full_Name (Project.Project_Path));
-
-         else
-
-            --  Note: Exc_Units is intentionally left uninitialized (empty) in
-            --  this call.
-
-            Inc_Units_Defined := True;
-            Filter_Lib_Info
-              (Lib_Info, Override_Units_Map, Inc_Units_Defined, Exc_Units);
-         end if;
-      end Enumerate_Project;
-
-      ---------------------
-      -- Filter_Lib_Info --
-      ---------------------
-
-      procedure Filter_Lib_Info
-        (Lib_Info          : Library_Info_List;
-         Inc_Units         : in out Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
-         Exc_Units         : Unit_Maps.Map)
+         Callback          : access procedure (Filename : String))
       is
+         Lib_Info : Library_Info_List;
       begin
+         Project.Library_Files (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
+
          for LI of Lib_Info loop
             Process_LI : declare
                use Unit_Maps;
@@ -362,7 +450,7 @@ package body Project is
                                   +Base_Name (File (LI.Source.all));
 
                U  : constant String :=
-                      (if LI_Source_Unit'Length >  0
+                      (if LI_Source_Unit'Length > 0
                        then LI_Source_Unit
                        else LI_Source_File);
                --  For unit-based languages (Ada), retrieve unit name from LI
@@ -378,7 +466,7 @@ package body Project is
                    or else not Inc_Units_Defined)
                  and then not Exc_Units.Contains (U)
                then
-                  LI_Cb (+Full_Name (LI.Library_File));
+                  Callback.all (+Full_Name (LI.Library_File));
                end if;
 
                --  Mark unit seen even if it is excluded
@@ -388,16 +476,16 @@ package body Project is
                end if;
             end Process_LI;
          end loop;
-      end Filter_Lib_Info;
+
+         Report_Units_Without_LI
+           (Inc_Units, Origin => +Full_Name (Project.Project_Path));
+      end Enumerate_In_Single_Project;
 
       -----------------
       -- Set_LI_Seen --
       -----------------
 
-      procedure Set_LI_Seen
-        (U  : String;
-         UI : in out Unit_Info)
-      is
+      procedure Set_LI_Seen (U : String; UI : in out Unit_Info) is
          pragma Unreferenced (U);
       begin
          UI.LI_Seen := True;
@@ -406,59 +494,7 @@ package body Project is
    --  Start of processing for Enumerate_LIs
 
    begin
-      Iterate_Projects (Root_Project, Enumerate_Project'Access, Recursive);
-   end Enumerate_LIs;
-
-   procedure Enumerate_LIs
-     (LI_Cb          : access procedure (LI_Name : String);
-      Override_Units : Inputs.Inputs_Type)
-   is
-      use Project_Maps;
-
-      Override_Units_Map : Unit_Maps.Map;
-
-      procedure Add_Override (U : String);
-      --  Add U to Override_Units_Map
-
-      ------------------
-      -- Add_Override --
-      ------------------
-
-      procedure Add_Override (U : String) is
-      begin
-         Override_Units_Map.Include
-           (To_Lower (U),
-            (Original_Name => To_Unbounded_String (U), LI_Seen => False));
-      end Add_Override;
-
-   --  Start of processing for Enumerate_LIs
-
-   begin
-      Iterate (Override_Units, Add_Override'Access);
-
-      if not Override_Units_Map.Is_Empty then
-
-         --  If --units is specified, always traverse the complete project
-         --  tree from the root.
-
-         Enumerate_LIs
-           (GNATCOLL.Projects.Root_Project (Prj_Tree.all),
-            LI_Cb,
-            Override_Units_Map,
-            Recursive => True);
-
-      else
-         --  No --units: only considered selected projects
-
-         for Prj of Prj_Map loop
-            Enumerate_LIs
-              (Prj,
-               LI_Cb,
-               Override_Units_Map,
-               Recursive => Standard.Switches.Recursive_Projects);
-         end loop;
-      end if;
-
+      Enumerate_In_Projects (LI_Cb, Override_Units, Override_Units_Map);
       Report_Units_Without_LI (Override_Units_Map, Origin => "<command line>");
    end Enumerate_LIs;
 
