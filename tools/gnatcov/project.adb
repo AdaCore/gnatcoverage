@@ -93,11 +93,14 @@ package body Project is
    --  Hold the object subdirectory to use (if any) for all loaded projects.
    --  Should be processed each time we load a project tree.
 
-   package Project_Maps is
-     new Ada.Containers.Indefinite_Ordered_Maps
-       (Key_Type     => String,
-        Element_Type => Project_Type);
+   package Project_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => String,
+      Element_Type => Project_Type);
+
    Prj_Map : Project_Maps.Map;
+   --  If the user specified a list of projects of interest (--projects), this
+   --  contains a mapping from their name to the corresponding project node.
+   --  Empty otherwise.
 
    procedure Initialize
      (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
