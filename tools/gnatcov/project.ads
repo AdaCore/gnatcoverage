@@ -49,6 +49,10 @@ package Project is
    function Is_Project_Loaded return Boolean;
    --  Return whether Load_Root_Project was called and returned successfully
 
+   function Root_Project_Filename return String
+      with Pre => Is_Project_Loaded;
+   --  Return the file name for the loaded root project
+
    function Get_Single_Main_Executable return String;
    --  If there is only one main source in the loaded project, return the full
    --  path of its main executable (including its suffix, for instance ".exe").

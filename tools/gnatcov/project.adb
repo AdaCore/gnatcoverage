@@ -811,6 +811,15 @@ package body Project is
       return Prj_Tree /= null;
    end Is_Project_Loaded;
 
+   ---------------------------
+   -- Root_Project_Filename --
+   ---------------------------
+
+   function Root_Project_Filename return String is
+   begin
+      return +Prj_Tree.Root_Project.Project_Path.Full_Name;
+   end Root_Project_Filename;
+
    --------------------------------
    -- Get_Single_Main_Executable --
    --------------------------------

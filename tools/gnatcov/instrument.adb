@@ -26,7 +26,6 @@ with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Strings.Unbounded;
-with Ada.Text_IO;
 
 with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;
@@ -50,6 +49,7 @@ with Outputs;
 with Project;
 with SC_Obligations; use SC_Obligations;
 with Switches;
+with Text_Files;
 
 package body Instrument is
 
@@ -2520,10 +2520,22 @@ package body Instrument is
 
    procedure Instrument_Units_Of_Interest (Units_Inputs : Inputs.Inputs_Type)
    is
-      Output_Dir : constant String := Project.Output_Dir;
+      function "/" (Dir, Name : String) return String is
+        (Ada.Directories.Compose (Dir, Name));
 
-      function Output_File (Basename : String) return String is
-        (Ada.Directories.Compose (Output_Dir, Basename));
+      Output_Dir : constant String := Project.Output_Dir / "gnatcov-instr";
+      --  Subdirectory in the root project file's object directory. All we
+      --  generate here must land in it.
+
+      Instr_Dir : constant String := Output_Dir / "src-instr";
+      --  Directory to contain all instrumented sources
+
+      Buffers_Dir : constant String := Output_Dir / "src-buffers";
+      --  Directory to contain all sources that create coverage buffers
+
+      procedure Prepare_Output_Dirs;
+      --  Make sure we have the expected tree of directories for the
+      --  instrumentation output.
 
       procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info);
       --  Generate the instrumented source corresponding to Source_File
@@ -2534,7 +2546,25 @@ package body Instrument is
       --  Emit the unit to contain coverage buffers for the given instrumented
       --  unit.
 
+      procedure Emit_Project_Files;
+      --  Emit project files to cover the instrumented sources
+
       Instrumented_Units : Instrumented_Unit_Sets.Set;
+
+      procedure Prepare_Output_Dirs is
+      begin
+         --  TODO??? Preserve existing files/directories but remove extra
+         --  files, for instance when users re-instrument a project with one
+         --  unit that was removed since the previous run.
+
+         if Ada.Directories.Exists (Output_Dir) then
+            Ada.Directories.Delete_Tree (Output_Dir);
+         end if;
+
+         Ada.Directories.Create_Path (Output_Dir);
+         Ada.Directories.Create_Path (Instr_Dir);
+         Ada.Directories.Create_Path (Buffers_Dir);
+      end Prepare_Output_Dirs;
 
       ---------------------
       -- Instrument_Unit --
@@ -2604,18 +2634,16 @@ package body Instrument is
          --  Emit the instrumented source file
 
          declare
-            use Ada.Text_IO;
             Result : constant Apply_Result := Apply (IC.RH_Ctx);
          begin
             if Result.Success then
                declare
-                  Filename : constant String := Output_File
-                    (Ada.Directories.Simple_Name (Unit.Get_Filename));
-                  Out_File : File_Type;
+                  Base_Filename : constant String :=
+                     Ada.Directories.Simple_Name (Unit.Get_Filename);
+                  Out_File      : Text_Files.File_Type;
                begin
-                  Create (File => Out_File, Name => Filename);
-                  Put_Line (Out_File, To_String (Unit.Text));
-                  Close (Out_File);
+                  Out_File.Create (Instr_Dir / Base_Filename);
+                  Out_File.Put_Line (To_String (Unit.Text));
                end;
             else
                Outputs.Error ("instrumentation failed for " & Filename);
@@ -2645,11 +2673,9 @@ package body Instrument is
         (Instrumented_Unit : Compilation_Unit_Name;
          Bit_Maps          : LL_Unit_Bit_Maps)
       is
-         use Ada.Text_IO;
-
          CU_Name : Compilation_Unit_Name :=
            (Unit => Sys_Buffers, Kind => Unit_Spec);
-         File : File_Type;
+         File    : Text_Files.File_Type;
       begin
          --  Create the compilation unit name for the buffer unit to emit
 
@@ -2661,30 +2687,58 @@ package body Instrument is
          end case;
          CU_Name.Unit := CU_Name.Unit & Instrumented_Unit.Unit;
 
-         Create (File, Name => Output_File (To_Filename (CU_Name)));
+         File.Create (Buffers_Dir / To_Filename (CU_Name));
+
          declare
             function Buffer_Range (Last_Bit : Any_Bit_Id) return String is
               ("(0 .. " & Last_Bit'Image & ")");
 
             Pkg_Name : constant String := To_Ada (CU_Name.Unit);
          begin
-            Put_Line (File, "package " & Pkg_Name & " is");
-            Put_Line (File, "   Stmt_Buffers : Coverage_Buffer_Type "
-                            & Buffer_Range (Bit_Maps.Last_Statement_Bit)
-                            & ";");
-            Put_Line (File, "   Dc_Buffers : Coverage_Buffer_Type "
-                            & Buffer_Range (Bit_Maps.Last_Decision_Bit)
-                            & ";");
-            Put_Line (File, "end " & Pkg_Name & ";");
+            File.Put_Line ("package " & Pkg_Name & " is");
+            File.Put_Line ("   Stmt_Buffers : Coverage_Buffer_Type "
+                           & Buffer_Range (Bit_Maps.Last_Statement_Bit)
+                           & ";");
+            File.Put_Line ("   Dc_Buffers : Coverage_Buffer_Type "
+                           & Buffer_Range (Bit_Maps.Last_Decision_Bit)
+                           & ";");
+            File.Put_Line ("end " & Pkg_Name & ";");
          end;
-         Close (File);
       end Emit_Buffer_Unit;
+
+      ------------------------
+      -- Emit_Project_Files --
+      ------------------------
+
+      procedure Emit_Project_Files is
+         File : Text_Files.File_Type;
+      begin
+         File.Create (Output_Dir / "instrumented.gpr");
+         File.Put_Line ("with ""buffers.gpr"";");
+         File.Put_Line ("project Instrumented extends """
+                        & Project.Root_Project_Filename & """ is");
+         File.Put_Line ("   for Source_Dirs use (""src-instr"");");
+         File.Put_Line ("   for Object_Dir use ""obj-instr"";");
+         File.Put_Line ("end Instrumented;");
+         File.Close;
+
+         File.Create (Output_Dir / "buffers.gpr");
+         File.Put_Line ("project Buffers is");
+         File.Put_Line ("   for Source_Dirs use (""src-buffers"");");
+         File.Put_Line ("   for Object_Dir use ""obj-buffers"";");
+         File.Put_Line ("   package Compiler is");
+         File.Put_Line ("      for Default_Switches (""Ada"") use");
+         File.Put_Line ("        (""-gnatg"");");
+         File.Put_Line ("   end Compiler;");
+         File.Put_Line ("end Buffers;");
+      end Emit_Project_Files;
 
    --  Start of processing for Instrument_Units_Of_Interest
 
    begin
+      Prepare_Output_Dirs;
       Project.Enumerate_Ada_Sources (Instrument_Unit'Access, Units_Inputs);
-
+      Emit_Project_Files;
       if Switches.Verbose then
          Dump_All_SCOs;
       end if;
