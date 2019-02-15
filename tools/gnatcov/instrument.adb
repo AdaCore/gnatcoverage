@@ -2851,13 +2851,11 @@ package body Instrument is
          File.Close;
 
          File.Create (Output_Dir / "buffers.gpr");
-         File.Put_Line ("project Buffers is");
+         File.Put_Line ("project Buffers");
+         File.Put_Line ("   extends ""gnatcoverage/gnatcov_rts.gpr""");
+         File.Put_Line ("is");
          File.Put_Line ("   for Source_Dirs use (""src-buffers"");");
          File.Put_Line ("   for Object_Dir use ""obj-buffers"";");
-         File.Put_Line ("   package Compiler is");
-         File.Put_Line ("      for Default_Switches (""Ada"") use");
-         File.Put_Line ("        (""-gnatg"");");
-         File.Put_Line ("   end Compiler;");
          File.Put_Line ("end Buffers;");
       end Emit_Project_Files;
 

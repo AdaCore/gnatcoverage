@@ -15,6 +15,8 @@ test.py.*
 /tools/gnatcov/obj64/
 /tools/gnatcov/examples/support/lib
 /tools/gnatcov/examples/support/obj
+/tools/gnatcov/rts-instr
+/tools/gnatcov/share/gnat/gnatcoverage/obj-gnatcov_rts
 /testsuite/install
 /testsuite/output
 /testsuite/rep_gnatcov

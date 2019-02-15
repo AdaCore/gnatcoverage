@@ -287,7 +287,7 @@ clean-adapters: $(CLEAN_ADAPTER_TARGETS)
 # Installation #
 ################
 
-.PHONY: install-bin install-examples install-doc install install-adapters
+.PHONY: install-bin install-examples install-doc install-projects install install-adapters
 
 install-bin:
 	$(MKDIR) $(PREFIX)/bin
@@ -304,7 +304,11 @@ install-doc.%:
 
 install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 
-install-common: install-bin install-examples
+install-projects:
+	$(MKDIR) $(PREFIX)/share/gnat/
+	$(CP) -r share/gnat/$(DIRNAME) $(PREFIX)/share/gnat/
+
+install-common: install-bin install-examples install-projects
 install-without-doc: install-common
 install-with-doc: install-common install-doc
 install: install-with-doc
