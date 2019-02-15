@@ -53,6 +53,10 @@ with Text_Files;
 
 package body Instrument is
 
+   function Create_Identifier
+     (RH : Rewriting_Handle; Text : Text_Type) return Node_Rewriting_Handle
+   is (Create_Token_Node (RH, Ada_Identifier, Text));
+
    type Ada_Identifier is new Ada.Strings.Unbounded.Unbounded_String;
    --  Simple Ada identifier
 
@@ -66,8 +70,15 @@ package body Instrument is
    function "&" (Left, Right : Ada_Qualified_Name) return Ada_Qualified_Name
       renames Ada_Identifier_Vectors."&";
 
-   function To_Ada (Name : Ada_Qualified_Name) return String;
+   function To_Ada (Name : Ada_Qualified_Name) return String
+      with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into Ada syntax
+
+   function To_Nodes
+     (Handle : Rewriting_Handle;
+      Name   : Ada_Qualified_Name) return Node_Rewriting_Handle
+      with Pre => not Name.Is_Empty;
+   --  Turn the given qualified name into a name tree for rewriting
 
    Sys_Prefix : Ada_Qualified_Name;
    --  Scope for all instrumentation runtime files beyond the instrumented
@@ -75,6 +86,14 @@ package body Instrument is
 
    Sys_Buffers : Ada_Qualified_Name;
    --  Scope in Sys_Prefix for all packages to contain coverage buffers
+
+   Stmt_Buffer_Name : constant String := "Stmt_Buffers";
+   --  Name of the buffer to contain coverage data corresponding to statement
+   --  obligations.
+
+   Dc_Buffer_Name : constant String := "Dc_Buffers";
+   --  Name of the buffer to contain coverage data corresponding to decision
+   --  obligations.
 
    type Unit_Kind is (Unit_Spec, Unit_Body);
 
@@ -142,6 +161,19 @@ package body Instrument is
    --  Return a symbol from Symbols corresponding to the name of the given
    --  A aspect association.
 
+   type Rewriting_Material is record
+      Common_Buffers : Node_Rewriting_Handle;
+      --  Qualified name for the unit that contains coverage buffer types and
+      --  witness subprograms.
+
+      Unit_Buffers : Node_Rewriting_Handle;
+      --  Qualified name for the unit that contains coverage buffers
+
+      Stmt_Buffer : Node_Rewriting_Handle;
+      --  Qualified name for the buffer corresponding to statement coverage
+      --  obligations.
+   end record;
+
    -----------------------------
    -- Instrumentation context --
    -----------------------------
@@ -150,23 +182,45 @@ package body Instrument is
    --  unit.
 
    type Inst_Context is record
-      RH_Ctx    : Rewriting_Handle;
+      Instrumented_Unit : Compilation_Unit_Name;
+      --  Name of the compilation unit currently being instrumented
+
+      Buffer_Unit : Compilation_Unit_Name;
+      --  Name of the compilation unit that holds coverage buffers for the
+      --  unit currently being instrumented.
+
+      RH_Ctx : Rewriting_Handle;
+      --  Rewriting handle for the instrumentation process
+
       Unit_Bits : LL_Unit_Bit_Maps;
+
+      Material : Rewriting_Material;
+      --  Bank of nodes to use during instrumentation
    end record;
+
+   procedure Create_Rewriting_Material (Context : in out Inst_Context);
+   --  Create nodes in Context.Material
+
+   procedure Append_SCO
+     (C1, C2             : Character;
+      From, To           : Source_Location;
+      Last               : Boolean;
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name);
+   --  Append a new entry to the low-level SCO table
 
    -------------------------------------
    -- Generation of witness fragments --
    -------------------------------------
 
    function Make_Statement_Witness
-     (RH_Ctx    : Rewriting_Handle;
+     (IC        : Inst_Context;
       Bit       : Bit_Id;
       Statement : Boolean) return Node_Rewriting_Handle;
    --  Create a procedure call statement or object declaration to witness
    --  execution of the low level SCO with the given bit id.
 
    function Make_Decision_Witness
-     (RH_Ctx    : Rewriting_Handle;
+     (IC        : Inst_Context;
       Bits      : Outcome_Bit_Ids;
       Decision  : Node_Rewriting_Handle) return Node_Rewriting_Handle;
    --  Create a function call to witness the outcome of the given decision,
@@ -177,32 +231,39 @@ package body Instrument is
    ----------------------------
 
    function Make_Statement_Witness
-     (RH_Ctx    : Rewriting_Handle;
+     (IC        : Inst_Context;
       Bit       : Bit_Id;
       Statement : Boolean) return Node_Rewriting_Handle
    is
       use Ada.Strings, Ada.Strings.Fixed;
 
-      Bit_Img : constant String := Trim (Bit'Img, Both);
+      Bit_Img : constant String  := Trim (Bit'Img, Both);
+      M       : Rewriting_Material renames IC.Material;
 
       function Call_Img return String is
-        ("Witness (" & Bit_Img & ")");
+        ("{}.Witness ({}, " & Bit_Img & ")");
 
       function Stmt_Img return String is
         (Call_Img & ";");
 
       function Decl_Img return String is
-        ("Discard_" & Bit_Img & " : Witness_Dummy_Type := "
+        ("Discard_" & Bit_Img & " : {}.Witness_Dummy_Type := "
          & Call_Img & ";");
 
    begin
-      return Create_From_Template
-        (RH_Ctx,
-         Template  => To_Wide_Wide_String
-           ((if Statement then Stmt_Img else Decl_Img)),
-         Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
-         Rule      => (if Statement then Call_Stmt_Rule
-                       else Object_Decl_Rule));
+      if Statement then
+         return Create_From_Template
+           (IC.RH_Ctx,
+            Template  => To_Wide_Wide_String (Stmt_Img),
+            Arguments => (M.Common_Buffers, M.Stmt_Buffer),
+            Rule      => Call_Stmt_Rule);
+      else
+         return Create_From_Template
+           (IC.RH_Ctx,
+            Template  => To_Wide_Wide_String (Decl_Img),
+            Arguments => (1 | 2 => M.Common_Buffers, 3 => M.Stmt_Buffer),
+            Rule      => Object_Decl_Rule);
+      end if;
    end Make_Statement_Witness;
 
    ---------------------------
@@ -210,7 +271,7 @@ package body Instrument is
    ---------------------------
 
    function Make_Decision_Witness
-     (RH_Ctx   : Rewriting_Handle;
+     (IC        : Inst_Context;
       Bits     : Outcome_Bit_Ids;
       Decision : Node_Rewriting_Handle) return Node_Rewriting_Handle
    is
@@ -223,18 +284,11 @@ package body Instrument is
         "{})";
    begin
       return Create_From_Template
-        (RH_Ctx,
+        (IC.RH_Ctx,
          Template  => To_Wide_Wide_String (Call_Img),
          Arguments => (1 => Decision),
          Rule      => Expr_Rule);
    end Make_Decision_Witness;
-
-   procedure Append_SCO
-     (C1, C2             : Character;
-      From, To           : Source_Location;
-      Last               : Boolean;
-      Pragma_Aspect_Name : Name_Id := Namet.No_Name);
-   --  Append a new entry to the low-level SCO table
 
    ----------------
    -- Append_SCO --
@@ -660,7 +714,7 @@ package body Instrument is
 
                Child  =>
                  Make_Statement_Witness
-                   (IC.RH_Ctx,
+                   (IC,
                     Bit       => IC.Unit_Bits.Last_Statement_Bit,
                     Statement => Witness_Use_Statement));
 
@@ -855,7 +909,7 @@ package body Instrument is
 
             when Ada_Compilation_Unit =>
                declare
-                  CUN : constant Compilation_Unit := N.As_Compilation_Unit;
+                  CUN    : constant Compilation_Unit := N.As_Compilation_Unit;
                   Item_N : constant Basic_Decl :=
                     CUN.F_Body.As_Library_Item.F_Item;
                begin
@@ -881,6 +935,20 @@ package body Instrument is
                      when others =>
                         null;
                   end case;
+
+                  --  All instrumented units need to reference the
+                  --  corresponding unit that contains coverage buffers.
+
+                  declare
+                     Buffers_Unit : constant Node_Rewriting_Handle :=
+                        To_Nodes (IC.RH_Ctx, IC.Buffer_Unit.Unit);
+                     With_Clause  : constant Node_Rewriting_Handle :=
+                        Create_From_Template
+                          (IC.RH_Ctx, "with {};", (1 => Buffers_Unit),
+                           With_Clause_Rule);
+                  begin
+                     Append_Child (Handle (CUN.F_Prelude), With_Clause);
+                  end;
                end;
 
             --  Package declaration
@@ -1940,7 +2008,7 @@ package body Instrument is
 
             --  Insert witness CALL
 
-            Replace (RH_N, Make_Decision_Witness (IC.RH_Ctx, Bits, RH_N));
+            Replace (RH_N, Make_Decision_Witness (IC, Bits, RH_N));
          end;
       end Insert_Decision_Witness;
 
@@ -2418,6 +2486,31 @@ package body Instrument is
       return To_String (Result);
    end To_Ada;
 
+   --------------
+   -- To_Nodes --
+   --------------
+
+   function To_Nodes
+     (Handle : Rewriting_Handle;
+      Name   : Ada_Qualified_Name) return Node_Rewriting_Handle
+   is
+      Result : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+   begin
+      for Id of Name loop
+         declare
+            Id_Node : constant Node_Rewriting_Handle := Create_Identifier
+              (Handle, To_Text (To_String (Id)));
+         begin
+            if Result = No_Node_Rewriting_Handle then
+               Result := Id_Node;
+            else
+               Result := Create_Dotted_Name (Handle, Result, Id_Node);
+            end if;
+         end;
+      end loop;
+      return Result;
+   end To_Nodes;
+
    ------------------------------
    -- To_Compilation_Unit_Name --
    ------------------------------
@@ -2514,6 +2607,21 @@ package body Instrument is
       return Left.Kind < Right.Kind;
    end "<";
 
+   -------------------------------
+   -- Create_Rewriting_Material --
+   -------------------------------
+
+   procedure Create_Rewriting_Material (Context : in out Inst_Context) is
+      RH : Rewriting_Handle renames Context.RH_Ctx;
+      M  : Rewriting_Material renames Context.Material;
+   begin
+      M.Common_Buffers := To_Nodes (RH, Sys_Buffers);
+      M.Unit_Buffers := To_Nodes (RH, Context.Buffer_Unit.Unit);
+      M.Stmt_Buffer := Create_Dotted_Name
+        (RH, M.Unit_Buffers,
+         Create_Identifier (RH, To_Text (Stmt_Buffer_Name)));
+   end Create_Rewriting_Material;
+
    ----------------------------------
    -- Instrument_Units_Of_Interest --
    ----------------------------------
@@ -2533,6 +2641,12 @@ package body Instrument is
       Buffers_Dir : constant String := Output_Dir / "src-buffers";
       --  Directory to contain all sources that create coverage buffers
 
+      function Buffer_Unit
+        (Instrumented_Unit : Compilation_Unit_Name)
+         return Compilation_Unit_Name;
+      --  Given a unit to instrument, return the name of the compilation unit
+      --  that holds its coverage buffers.
+
       procedure Prepare_Output_Dirs;
       --  Make sure we have the expected tree of directories for the
       --  instrumentation output.
@@ -2540,9 +2654,7 @@ package body Instrument is
       procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info);
       --  Generate the instrumented source corresponding to Source_File
 
-      procedure Emit_Buffer_Unit
-        (Instrumented_Unit : Compilation_Unit_Name;
-         Bit_Maps          : LL_Unit_Bit_Maps);
+      procedure Emit_Buffer_Unit (IC : Inst_Context);
       --  Emit the unit to contain coverage buffers for the given instrumented
       --  unit.
 
@@ -2550,6 +2662,31 @@ package body Instrument is
       --  Emit project files to cover the instrumented sources
 
       Instrumented_Units : Instrumented_Unit_Sets.Set;
+
+      -----------------
+      -- Buffer_Unit --
+      -----------------
+
+      function Buffer_Unit
+        (Instrumented_Unit : Compilation_Unit_Name)
+         return Compilation_Unit_Name is
+      begin
+         return CU_Name : Compilation_Unit_Name :=
+           (Unit => Sys_Buffers, Kind => Unit_Spec)
+         do
+            case Instrumented_Unit.Kind is
+               when Unit_Spec =>
+                  CU_Name.Unit.Append (To_Unbounded_String ("Specs"));
+               when Unit_Body =>
+                  CU_Name.Unit.Append (To_Unbounded_String ("Bodies"));
+            end case;
+            CU_Name.Unit := CU_Name.Unit & Instrumented_Unit.Unit;
+         end return;
+      end Buffer_Unit;
+
+      -------------------------
+      -- Prepare_Output_Dirs --
+      -------------------------
 
       procedure Prepare_Output_Dirs is
       begin
@@ -2573,15 +2710,18 @@ package body Instrument is
       procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info) is
          use GNATCOLL.VFS;
 
-         Filename : constant String := +Source_File.File.Full_Name;
-         CU_Name  : constant Compilation_Unit_Name :=
+         Filename        : constant String := +Source_File.File.Full_Name;
+         Instr_Unit_Name : constant Compilation_Unit_Name :=
             To_Compilation_Unit_Name (Source_File);
 
          Ctx  : constant Analysis_Context := Create_Context;
          Unit : constant Analysis_Unit := Get_From_File (Ctx, Filename);
          IC   : Inst_Context :=
-           (RH_Ctx    => Start_Rewriting (Ctx),
-            Unit_Bits => <>);
+           (Instrumented_Unit => Instr_Unit_Name,
+            Buffer_Unit       => Buffer_Unit (Instr_Unit_Name),
+            RH_Ctx            => Start_Rewriting (Ctx),
+            Unit_Bits         => <>,
+            Material          => <>);
 
          Preelab : constant Boolean := False;
          --  ??? To be implemented in Libadalang: S128-004
@@ -2605,6 +2745,8 @@ package body Instrument is
             end loop;
             raise Outputs.Xcov_Exit_Exc;
          end if;
+
+         Create_Rewriting_Material (IC);
 
          --  Then run SCOs generation. This inserts calls to witness
          --  procedures/functions in the same pass.
@@ -2660,33 +2802,19 @@ package body Instrument is
 
          --  Emit the corresponding System.GNATcov.Buffers.* unit
 
-         Emit_Buffer_Unit (CU_Name, IC.Unit_Bits);
+         Emit_Buffer_Unit (IC);
 
-         Instrumented_Units.Insert (CU_Name);
+         Instrumented_Units.Insert (IC.Instrumented_Unit);
       end Instrument_Unit;
 
       ----------------------
       -- Emit_Buffer_Unit --
       ----------------------
 
-      procedure Emit_Buffer_Unit
-        (Instrumented_Unit : Compilation_Unit_Name;
-         Bit_Maps          : LL_Unit_Bit_Maps)
-      is
-         CU_Name : Compilation_Unit_Name :=
-           (Unit => Sys_Buffers, Kind => Unit_Spec);
+      procedure Emit_Buffer_Unit (IC : Inst_Context) is
+         CU_Name : Compilation_Unit_Name renames IC.Buffer_Unit;
          File    : Text_Files.File_Type;
       begin
-         --  Create the compilation unit name for the buffer unit to emit
-
-         case Instrumented_Unit.Kind is
-            when Unit_Spec =>
-               CU_Name.Unit.Append (To_Unbounded_String ("Specs"));
-            when Unit_Body =>
-               CU_Name.Unit.Append (To_Unbounded_String ("Bodies"));
-         end case;
-         CU_Name.Unit := CU_Name.Unit & Instrumented_Unit.Unit;
-
          File.Create (Buffers_Dir / To_Filename (CU_Name));
 
          declare
@@ -2696,12 +2824,12 @@ package body Instrument is
             Pkg_Name : constant String := To_Ada (CU_Name.Unit);
          begin
             File.Put_Line ("package " & Pkg_Name & " is");
-            File.Put_Line ("   Stmt_Buffers : Coverage_Buffer_Type "
-                           & Buffer_Range (Bit_Maps.Last_Statement_Bit)
-                           & ";");
-            File.Put_Line ("   Dc_Buffers : Coverage_Buffer_Type "
-                           & Buffer_Range (Bit_Maps.Last_Decision_Bit)
-                           & ";");
+            File.Put_Line
+              ("   " & Stmt_Buffer_Name & " : Coverage_Buffer_Type "
+               & Buffer_Range (IC.Unit_Bits.Last_Statement_Bit) & ";");
+            File.Put_Line
+              ("   " & Dc_Buffer_Name & " : Coverage_Buffer_Type "
+               & Buffer_Range (IC.Unit_Bits.Last_Decision_Bit) & ";");
             File.Put_Line ("end " & Pkg_Name & ";");
          end;
       end Emit_Buffer_Unit;
