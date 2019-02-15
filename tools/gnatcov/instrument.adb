@@ -23,7 +23,6 @@ with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Directories;
-with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Strings.Unbounded;
 
@@ -48,6 +47,7 @@ with Files_Table;    use Files_Table;
 with Outputs;
 with Project;
 with SC_Obligations; use SC_Obligations;
+with Strings;
 with Switches;
 with Text_Files;
 
@@ -56,6 +56,9 @@ package body Instrument is
    function Create_Identifier
      (RH : Rewriting_Handle; Text : Text_Type) return Node_Rewriting_Handle
    is (Create_Token_Node (RH, Ada_Identifier, Text));
+
+   function Img (Bit : Any_Bit_Id) return String is
+     (Strings.Img (Integer (Bit)));
 
    type Ada_Identifier is new Ada.Strings.Unbounded.Unbounded_String;
    --  Simple Ada identifier
@@ -239,9 +242,7 @@ package body Instrument is
       Bit       : Bit_Id;
       Statement : Boolean) return Node_Rewriting_Handle
    is
-      use Ada.Strings, Ada.Strings.Fixed;
-
-      Bit_Img : constant String  := Trim (Bit'Img, Both);
+      Bit_Img : constant String  := Img (Bit);
       M       : Rewriting_Material renames IC.Material;
 
       function Call_Img return String is
@@ -279,14 +280,12 @@ package body Instrument is
       Bits     : Outcome_Bit_Ids;
       Decision : Node_Rewriting_Handle) return Node_Rewriting_Handle
    is
-      use Ada.Strings, Ada.Strings.Fixed;
-
       M        : Rewriting_Material renames IC.Material;
       Call_Img : constant String :=
-        "{}.Witness ({}, " &
-        Trim (Bits (False)'Img, Both) & "," &
-        Trim (Bits (True)'Img, Both) & "," &
-        "{})";
+        "{}.Witness ({}, "
+        & Img (Bits (False)) & ","
+        & Img (Bits (True)) & ","
+        & "{})";
    begin
       return Create_From_Template
         (IC.RH_Ctx,
