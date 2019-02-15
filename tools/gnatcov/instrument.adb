@@ -1,4 +1,3 @@
-
 ------------------------------------------------------------------------------
 --                                                                          --
 --                               GNATcoverage                               --
@@ -92,8 +91,84 @@ package body Instrument is
    --  unit.
 
    type Inst_Context is record
+      RH_Ctx    : Rewriting_Handle;
       Unit_Bits : LL_Unit_Bit_Maps;
    end record;
+
+   -------------------------------------
+   -- Generation of witness fragments --
+   -------------------------------------
+
+   function Make_Statement_Witness
+     (RH_Ctx    : Rewriting_Handle;
+      Bit       : Bit_Id;
+      Statement : Boolean) return Node_Rewriting_Handle;
+   --  Create a procedure call statement or object declaration to witness
+   --  execution of the low level SCO with the given bit id.
+
+   function Make_Decision_Witness
+     (RH_Ctx    : Rewriting_Handle;
+      Bits      : Outcome_Bit_Ids;
+      Decision  : Node_Rewriting_Handle) return Node_Rewriting_Handle;
+   --  Create a function call to witness the outcome of the given decision,
+   --  to be recorded using the given bit ids.
+
+   ----------------------------
+   -- Make_Statement_Witness --
+   ----------------------------
+
+   function Make_Statement_Witness
+     (RH_Ctx    : Rewriting_Handle;
+      Bit       : Bit_Id;
+      Statement : Boolean) return Node_Rewriting_Handle
+   is
+      use Ada.Strings, Ada.Strings.Fixed;
+
+      Bit_Img : constant String := Trim (Bit'Img, Both);
+
+      function Call_Img return String is
+        ("Witness (" & Bit_Img & ")");
+
+      function Stmt_Img return String is
+        (Call_Img & ";");
+
+      function Decl_Img return String is
+        ("Discard_" & Bit_Img & " : Witness_Dummy_Type := "
+         & Call_Img & ";");
+
+   begin
+      return Create_From_Template
+        (RH_Ctx,
+         Template  => To_Wide_Wide_String
+           ((if Statement then Stmt_Img else Decl_Img)),
+         Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+         Rule      => (if Statement then Call_Stmt_Rule
+                       else Object_Decl_Rule));
+   end Make_Statement_Witness;
+
+   ---------------------------
+   -- Make_Decision_Witness --
+   ---------------------------
+
+   function Make_Decision_Witness
+     (RH_Ctx   : Rewriting_Handle;
+      Bits     : Outcome_Bit_Ids;
+      Decision : Node_Rewriting_Handle) return Node_Rewriting_Handle
+   is
+      use Ada.Strings, Ada.Strings.Fixed;
+
+      Call_Img : constant String :=
+        "Witness (" &
+        Trim (Bits (False)'Img, Both) & "," &
+        Trim (Bits (True)'Img, Both) & "," &
+        "{})";
+   begin
+      return Create_From_Template
+        (RH_Ctx,
+         Template  => To_Wide_Wide_String (Call_Img),
+         Arguments => (1 => Decision),
+         Rule      => Expr_Rule);
+   end Make_Decision_Witness;
 
    procedure Append_SCO
      (C1, C2             : Character;
@@ -204,8 +279,9 @@ package body Instrument is
    --  which aren't valid for a pragma.
 
    procedure Process_Decisions
-     (N : Ada_Node'Class;
-      T : Character);
+     (IC : in out Inst_Context;
+      N  : Ada_Node'Class;
+      T  : Character);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains. T is one of IEGPWX (for context of
    --  expression: if/exit when/entry guard/pragma/while/expression). If T is
@@ -336,9 +412,6 @@ package body Instrument is
 
       Insertion_Count : Nat := 0;
       --  Count of nodes inserted in current list so far
-
-      RH_Ctx                : Rewriting_Handle;
-      --  Rewriting handle of the context
 
       RH_Enclosing_List     : Node_Rewriting_Handle;
       --  If traversing a list, rewriting handle for the list
@@ -495,44 +568,6 @@ package body Instrument is
            with Pre => RH_Enclosing_List /= No_Node_Rewriting_Handle;
          --  Insert statement witness call for the given SCE
 
-         function Make_Statement_Witness
-           (Bit       : Bit_Id;
-            Statement : Boolean) return Node_Rewriting_Handle;
-         --  Create a procedure call statement or object declaration to witness
-         --  execution of the low level SCO with the given bit id.
-
-         ----------------------------
-         -- Make_Statement_Witness --
-         ----------------------------
-
-         function Make_Statement_Witness
-           (Bit       : Bit_Id;
-            Statement : Boolean) return Node_Rewriting_Handle
-         is
-            use Ada.Strings, Ada.Strings.Fixed;
-
-            Bit_Img : constant String  := Trim (Bit'Img, Both);
-
-            function Call_Img return String is
-              ("Witness (" & Bit_Img & ")");
-
-            function Stmt_Img return String is
-              (Call_Img & ";");
-
-            function Decl_Img return String is
-               ("Discard_" & Bit_Img & " : Witness_Dummy_Type := "
-                & Call_Img & ";");
-
-         begin
-            return Create_From_Template
-              (RH_Ctx,
-               Template  => To_Wide_Wide_String
-                 ((if Statement then Stmt_Img else Decl_Img)),
-               Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
-               Rule      => (if Statement then Call_Stmt_Rule
-                             else Object_Decl_Rule));
-         end Make_Statement_Witness;
-
          ------------------------------
          -- Insert_Statement_Witness --
          ------------------------------
@@ -566,7 +601,8 @@ package body Instrument is
 
                Child  =>
                  Make_Statement_Witness
-                   (Bit       => IC.Unit_Bits.Last_Statement_Bit,
+                   (IC.RH_Ctx,
+                    Bit       => IC.Unit_Bits.Last_Statement_Bit,
                     Statement => Witness_Use_Statement));
 
             Insertion_Count := Insertion_Count + 1;
@@ -641,7 +677,7 @@ package body Instrument is
                SDE : SD_Entry renames SD.Table (J);
 
             begin
-               Process_Decisions (SDE.Nod, SDE.Typ);
+               Process_Decisions (IC, SDE.Nod, SDE.Typ);
             end;
          end loop;
 
@@ -1096,7 +1132,7 @@ package body Instrument is
                         Guard := Alt.F_Cond_Expr;
 
                         if not Guard.Is_Null then
-                           Process_Decisions (Guard, 'G');
+                           Process_Decisions (IC, Guard, 'G');
                            Current_Dominant := ('T', Ada_Node (Guard));
                         end if;
 
@@ -1507,7 +1543,6 @@ package body Instrument is
       --  Set up rewriting for the list case
 
       if not L.Is_Null then
-         RH_Ctx := Handle (Context (Unit (L)));
          RH_Enclosing_List := Handle (L);
          Witness_Use_Statement := L.Kind = Ada_Stmt_List;
       end if;
@@ -1542,7 +1577,7 @@ package body Instrument is
       Preelab : Boolean)
    is
    begin
-      Process_Decisions (N.F_Formal_Part, 'X');
+      Process_Decisions (IC, N.F_Formal_Part, 'X');
       Traverse_Package_Declaration
         (IC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
    end Traverse_Generic_Package_Declaration;
@@ -1746,8 +1781,9 @@ package body Instrument is
    -----------------------
 
    procedure Process_Decisions
-     (N : Ada_Node'Class;
-      T : Character)
+     (IC : in out Inst_Context;
+      N  : Ada_Node'Class;
+      T  : Character)
    is
       Mark : Nat;
       --  This is used to mark the location of a decision sequence in the SCO
@@ -1801,7 +1837,7 @@ package body Instrument is
       --  the table entry for the element, with C1 set to ' '. Last is set
       --  False, and an entry is made in the condition hash table.
 
-      procedure Output_Header (T : Character);
+      procedure Output_Header (T : Character; N : Ada_Node'Class);
       --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT WHEN/
       --  PRAGMA, and 'X' for the expression case.
 
@@ -1814,6 +1850,40 @@ package body Instrument is
       function Process_Node (N : Ada_Node'Class) return Visit_Status;
       --  Processes one node in the traversal, looking for logical operators,
       --  and if one is found, outputs the appropriate table entries.
+
+      procedure Insert_Decision_Witness (LL_SCO_Id : Nat; N : Ada_Node'Class);
+      --  Insert witness function call for decision SCO with the given
+      --  low level SCO id.
+
+      -----------------------------
+      -- Insert_Decision_Witness --
+      -----------------------------
+
+      procedure Insert_Decision_Witness
+        (LL_SCO_Id : Nat;
+         N         : Ada_Node'Class) is
+      begin
+         --  Allocate 2 bits in the decision coverage buffer, and record
+         --  their ids in the bitmap.
+
+         IC.Unit_Bits.Last_Decision_Bit :=
+           IC.Unit_Bits.Last_Decision_Bit + 2;
+
+         declare
+            Bits : constant Outcome_Bit_Ids :=
+              (False => IC.Unit_Bits.Last_Decision_Bit - 1,
+               True  => IC.Unit_Bits.Last_Decision_Bit);
+
+            RH_N : constant Node_Rewriting_Handle := Handle (N);
+
+         begin
+            IC.Unit_Bits.Decision_Bits.Include (LL_SCO_Id, Bits);
+
+            --  Insert witness CALL
+
+            Replace (RH_N, Make_Decision_Witness (IC.RH_Ctx, Bits, RH_N));
+         end;
+      end Insert_Decision_Witness;
 
       -----------------------------
       -- Output_Decision_Operand --
@@ -1910,7 +1980,7 @@ package body Instrument is
       -- Output_Header --
       -------------------
 
-      procedure Output_Header (T : Character) is
+      procedure Output_Header (T : Character; N : Ada_Node'Class) is
          Loc : Source_Location := No_Source_Location;
          --  Node whose Sloc is used for the decision
 
@@ -1958,7 +2028,7 @@ package body Instrument is
 
             when 'X' =>
 
-               --  For an expression, no Sloc
+               --  For an expression, no Sloc???
 
                null;
 
@@ -1975,6 +2045,8 @@ package body Instrument is
             To                 => No_Source_Location,
             Last               => False,
             Pragma_Aspect_Name => Nam);
+
+         Insert_Decision_Witness (SCOs.SCO_Table.Last, N);
 
          --  For an aspect specification, which will be rewritten into a
          --  pragma, enter a hash table entry now.
@@ -2001,7 +2073,7 @@ package body Instrument is
             end if;
 
          else
-            Process_Decisions (N, 'X');
+            Process_Decisions (IC, N, 'X');
          end if;
       end Process_Decision_Operand;
 
@@ -2036,7 +2108,7 @@ package body Instrument is
                X_Not_Decision := T = 'X' and then N.Kind = Ada_Op_Not;
                Mark      := SCOs.SCO_Table.Last;
                Mark_Hash := Hash_Entries.Last;
-               Output_Header (T);
+               Output_Header (T, N);
 
                --  Output the decision
 
@@ -2082,20 +2154,20 @@ package body Instrument is
                   Alt  : constant Elsif_Expr_Part_List := IEN.F_Alternatives;
 
                begin
-                  Process_Decisions (IEN.F_Cond_Expr, 'I');
-                  Process_Decisions (IEN.F_Then_Expr, 'X');
+                  Process_Decisions (IC, IEN.F_Cond_Expr, 'I');
+                  Process_Decisions (IC, IEN.F_Then_Expr, 'X');
 
                   for J in 1 .. Alt.Children_Count loop
                      declare
                         EIN : constant Elsif_Expr_Part :=
                           Alt.Child (J).As_Elsif_Expr_Part;
                      begin
-                        Process_Decisions (EIN.F_Cond_Expr, 'I');
-                        Process_Decisions (EIN.F_Then_Expr, 'X');
+                        Process_Decisions (IC, EIN.F_Cond_Expr, 'I');
+                        Process_Decisions (IC, EIN.F_Then_Expr, 'X');
                      end;
                   end loop;
 
-                  Process_Decisions (IEN.F_Else_Expr, 'X');
+                  Process_Decisions (IC, IEN.F_Else_Expr, 'X');
                   return Over;
                end;
 
@@ -2122,7 +2194,7 @@ package body Instrument is
       --  EXIT WHEN, or special PRAGMA construct.
 
       if T /= 'X' and then Is_Logical_Operator (N) = False then
-         Output_Header (T);
+         Output_Header (T, N);
          Output_Element (Ada_Node (N));
 
          --  Change Last in last table entry to True to mark end of
@@ -2139,11 +2211,11 @@ package body Instrument is
    ---------------------
 
    procedure Instrument_Unit (Unit_Name : String) is
-      Ctx      : constant Analysis_Context := Create_Context;
-      RH_Ctx   : Rewriting_Handle := Start_Rewriting (Ctx);
-      Unit     : constant Analysis_Unit := Get_From_File (Ctx, Unit_Name);
+      Ctx   : constant Analysis_Context := Create_Context;
+      Unit  : constant Analysis_Unit := Get_From_File (Ctx, Unit_Name);
 
-      I_Ctx    : Inst_Context;
+      IC    : Inst_Context :=
+        (RH_Ctx => Start_Rewriting (Ctx), others => <>);
       Preelab  : constant Boolean := False;
       --  ??? to be implemented in libadalang ???
       --  Set to True if unit is required to be preelaborable, i.e.
@@ -2156,7 +2228,7 @@ package body Instrument is
    begin
       SCOs.Initialize;
       Traverse_Declarations_Or_Statements
-        (I_Ctx, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
+        (IC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
 
       declare
          SFI : constant Source_File_Index :=
@@ -2173,12 +2245,13 @@ package body Instrument is
              Dep_Num    => 1,
              From       => SCOs.SCO_Table.First,
              To         => SCOs.SCO_Table.Last));
-         Process_Low_Level_SCOs (CU, SFI, LL_Unit_Bits => I_Ctx.Unit_Bits);
+         Process_Low_Level_SCOs (CU, SFI, LL_Unit_Bits => IC.Unit_Bits);
       end;
 
       declare
          use Ada.Text_IO;
-         Result : constant Apply_Result := Apply (RH_Ctx);
+
+         Result : constant Apply_Result := Apply (IC.RH_Ctx);
       begin
          if Result.Success then
             Put_Line ("--  Instrumented unit follows");
