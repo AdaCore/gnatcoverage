@@ -1776,15 +1776,20 @@ package body Instrument is
       Preelab : Boolean;
       D       : Dominant_Info := No_Dominant)
    is
+      Private_Part_Dominant : constant Dominant_Info :=
+         Traverse_Declarations_Or_Statements
+           (IC, N.F_Public_Part.F_Decls, Preelab, D);
    begin
-      --  First private declaration is dominated by last visible declaration
+      if not N.F_Private_Part.Is_Null then
 
-      Traverse_Declarations_Or_Statements
-        (IC,
-         L       => N.F_Private_Part.F_Decls,
-         Preelab => Preelab,
-         D       => Traverse_Declarations_Or_Statements
-                      (IC, N.F_Public_Part.F_Decls, Preelab, D));
+         --  First private declaration is dominated by last visible declaration
+
+         Traverse_Declarations_Or_Statements
+           (IC,
+            L       => N.F_Private_Part.F_Decls,
+            Preelab => Preelab,
+            D       => Private_Part_Dominant);
+      end if;
    end Traverse_Package_Declaration;
 
    ------------------------------
