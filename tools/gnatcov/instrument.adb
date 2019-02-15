@@ -172,6 +172,10 @@ package body Instrument is
       Stmt_Buffer : Node_Rewriting_Handle;
       --  Qualified name for the buffer corresponding to statement coverage
       --  obligations.
+
+      Dc_Buffer : Node_Rewriting_Handle;
+      --  Qualified name for the buffer corresponding to decision coverage
+      --  obligations.
    end record;
 
    -----------------------------
@@ -277,8 +281,9 @@ package body Instrument is
    is
       use Ada.Strings, Ada.Strings.Fixed;
 
+      M        : Rewriting_Material renames IC.Material;
       Call_Img : constant String :=
-        "Witness (" &
+        "{}.Witness ({}, " &
         Trim (Bits (False)'Img, Both) & "," &
         Trim (Bits (True)'Img, Both) & "," &
         "{})";
@@ -286,7 +291,7 @@ package body Instrument is
       return Create_From_Template
         (IC.RH_Ctx,
          Template  => To_Wide_Wide_String (Call_Img),
-         Arguments => (1 => Decision),
+         Arguments => (1 => M.Common_Buffers, 2 => M.Dc_Buffer, 3 => Decision),
          Rule      => Expr_Rule);
    end Make_Decision_Witness;
 
@@ -2620,6 +2625,9 @@ package body Instrument is
       M.Stmt_Buffer := Create_Dotted_Name
         (RH, M.Unit_Buffers,
          Create_Identifier (RH, To_Text (Stmt_Buffer_Name)));
+      M.Dc_Buffer := Create_Dotted_Name
+        (RH, M.Unit_Buffers,
+         Create_Identifier (RH, To_Text (Dc_Buffer_Name)));
    end Create_Rewriting_Material;
 
    ----------------------------------

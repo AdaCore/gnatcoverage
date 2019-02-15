@@ -32,4 +32,11 @@ package System.GNATcov.Buffers is
      (Buffer : in out Coverage_Buffer_Type; Bit : Bit_Id)
       return Witness_Dummy_Type;
 
+   function Witness
+     (Buffer              : in out Coverage_Buffer_Type;
+      False_Bit, True_Bit : Bit_Id;
+      Value               : Boolean) return Boolean;
+   --  If Value is false, set the Boolean corresponding to False_Bit to True in
+   --  Buffer. Set the one corresponding to True_Bit otherwise.
+
 end System.GNATcov.Buffers;
