@@ -1,6 +1,8 @@
 --  This package provides types and subprograms to maintain data about the
 --  satisfaction of coverage obligations.
 
+with Interfaces;
+
 package System.GNATcov.Buffers is
 
    pragma Pure;
@@ -15,11 +17,34 @@ package System.GNATcov.Buffers is
    --  indicates whether the decision reached the False outcome and another for
    --  the True outcome.
 
-   type Bit_Id is new Natural;
+   type Any_Unit_Kind is (Unit_Spec, Unit_Body);
+
+   type Any_Bit_Id is new Integer;
+   subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
    --  Unique identifier for a boolean in a coverage buffer
 
    type Coverage_Buffer_Type is array (Bit_Id range <>) of Boolean;
    pragma Pack (Coverage_Buffer_Type);
+
+   type Hash_Type is new Interfaces.Unsigned_32;
+
+   type Unit_Coverage_Buffers
+     (Unit_Name_Length           : Positive;
+      Stmt_Last_Bit, Dc_Last_Bit : Any_Bit_Id)
+   is record
+      Closure_Hash : Hash_Type;
+      --  Hash for the instrumented unit and its complete dependency closure.
+      --  This hash is used as a fast way to check that coverage obligations
+      --  and coverage data are consistent.
+
+      Unit_Kind : Any_Unit_Kind;
+      Unit_Name : String (1 .. Unit_Name_Length);
+      --  Unit kind and name for the instrumented unit
+
+      Stmt : Coverage_Buffer_Type (0 .. Stmt_Last_Bit);
+      Dc   : Coverage_Buffer_Type (0 .. Dc_Last_Bit);
+      --  Coverage buffers for statement and decision obligations
+   end record;
 
    --  Both Witness subprograms below set boolean corresponding to Bit to True
    --  in Buffer. The function form is used to set booleans in the middle of

@@ -90,13 +90,13 @@ package body Instrument is
    Sys_Buffers : Ada_Qualified_Name;
    --  Scope in Sys_Prefix for all packages to contain coverage buffers
 
-   Stmt_Buffer_Name : constant String := "Stmt_Buffers";
-   --  Name of the buffer to contain coverage data corresponding to statement
-   --  obligations.
+   Stmt_Buffer_Name : Ada_Qualified_Name;
+   --  Qualified name (relative to the unit buffer package) of the buffer to
+   --  contain coverage data corresponding to statement obligations.
 
-   Dc_Buffer_Name : constant String := "Dc_Buffers";
-   --  Name of the buffer to contain coverage data corresponding to decision
-   --  obligations.
+   Dc_Buffer_Name : Ada_Qualified_Name;
+   --  Qualified name (relative to the unit buffer package) of the buffer to
+   --  contain coverage data corresponding to decision obligations.
 
    type Unit_Kind is (Unit_Spec, Unit_Body);
 
@@ -2621,12 +2621,9 @@ package body Instrument is
    begin
       M.Common_Buffers := To_Nodes (RH, Sys_Buffers);
       M.Unit_Buffers := To_Nodes (RH, Context.Buffer_Unit.Unit);
-      M.Stmt_Buffer := Create_Dotted_Name
-        (RH, M.Unit_Buffers,
-         Create_Identifier (RH, To_Text (Stmt_Buffer_Name)));
-      M.Dc_Buffer := Create_Dotted_Name
-        (RH, M.Unit_Buffers,
-         Create_Identifier (RH, To_Text (Dc_Buffer_Name)));
+      M.Stmt_Buffer :=
+         To_Nodes (RH, Context.Buffer_Unit.Unit & Stmt_Buffer_Name);
+      M.Dc_Buffer := To_Nodes (RH, Context.Buffer_Unit.Unit & Dc_Buffer_Name);
    end Create_Rewriting_Material;
 
    ----------------------------------
@@ -2825,18 +2822,30 @@ package body Instrument is
          File.Create (Buffers_Dir / To_Filename (CU_Name));
 
          declare
-            function Buffer_Range (Last_Bit : Any_Bit_Id) return String is
-              ("(0 .. " & Last_Bit'Image & ")");
+            Pkg_Name  : constant String := To_Ada (CU_Name.Unit);
 
-            Pkg_Name : constant String := To_Ada (CU_Name.Unit);
+            Closure_Hash : constant String := Strings.Img (0);
+            --  TODO??? Actually compute this hash
+
+            Unit_Name : constant String := Ada.Characters.Handling.To_Lower
+              (To_Ada (IC.Instrumented_Unit.Unit));
+            Unit_Kind : constant String :=
+              (case IC.Instrumented_Unit.Kind is
+               when Unit_Spec => "Unit_Spec",
+               when Unit_Body => "Unit_Body");
          begin
             File.Put_Line ("package " & Pkg_Name & " is");
-            File.Put_Line
-              ("   " & Stmt_Buffer_Name & " : Coverage_Buffer_Type "
-               & Buffer_Range (IC.Unit_Bits.Last_Statement_Bit) & ";");
-            File.Put_Line
-              ("   " & Dc_Buffer_Name & " : Coverage_Buffer_Type "
-               & Buffer_Range (IC.Unit_Bits.Last_Decision_Bit) & ";");
+            File.Put_Line ("   Buffers : Unit_Coverage_Buffers :=");
+            File.Put_Line ("     (Unit_Name_Length => "
+                           & Strings.Img (Unit_Name'Length) & ",");
+            File.Put_Line ("      Stmt_Last_Bit => "
+                           & Img (IC.Unit_Bits.Last_Statement_Bit) & ",");
+            File.Put_Line ("      Dc_Last_Bit => "
+                           & Img (IC.Unit_Bits.Last_Decision_Bit) & ",");
+            File.Put_Line ("      Closure_Hash => " & Closure_Hash & ",");
+            File.Put_Line ("      Unit_Kind => " & Unit_Kind & ",");
+            File.Put_Line ("      Unit_Name => """ & Unit_Name & """,");
+            File.Put_Line ("      others => <>);");
             File.Put_Line ("end " & Pkg_Name & ";");
          end;
       end Emit_Buffer_Unit;
@@ -2883,4 +2892,10 @@ begin
 
    Sys_Buffers := Sys_Prefix;
    Sys_Buffers.Append (To_Unbounded_String ("Buffers"));
+
+   Stmt_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
+   Stmt_Buffer_Name.Append (To_Unbounded_String ("Stmt"));
+
+   Dc_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
+   Dc_Buffer_Name.Append (To_Unbounded_String ("Stmt"));
 end Instrument;
