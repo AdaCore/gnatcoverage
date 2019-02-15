@@ -299,8 +299,8 @@ install-examples:
 	$(CP) -r examples/* $(PREFIX)/share/examples/$(DIRNAME)
 
 install-doc.%:
-	   $(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/$*
-	   $(CP) -r doc/$*/* $(PREFIX)/share/doc/$(DIRNAME)/$*
+	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/$*
+	$(CP) -r doc/$*/* $(PREFIX)/share/doc/$(DIRNAME)/$*
 
 install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 
