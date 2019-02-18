@@ -20,7 +20,7 @@
 
 with Ada.Characters.Handling;
 with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
-with Ada.Containers.Indefinite_Ordered_Sets;
+with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Strings.Wide_Wide_Unbounded; use  Ada.Strings.Wide_Wide_Unbounded;
@@ -92,6 +92,10 @@ package body Instrument is
    Sys_Buffers : Ada_Qualified_Name;
    --  Scope in Sys_Prefix for all packages to contain coverage buffers
 
+   Sys_Closures : Ada_Qualified_Name;
+   --  Scope in Sys_Prefix for all packages to contain generic procedures for
+   --  iterations on coverage buffers.
+
    Stmt_Buffer_Name : Ada_Qualified_Name;
    --  Qualified name (relative to the unit buffer package) of the buffer to
    --  contain coverage data corresponding to statement obligations.
@@ -121,9 +125,6 @@ package body Instrument is
    --  Compare qualified name, identifier by identifier. If one is the
    --  prefix of the other, the shorter is considered to come first. If
    --  qualified name is the same, compare the kind.
-
-   package Instrumented_Unit_Sets is new Ada.Containers.Indefinite_Ordered_Sets
-     (Element_Type => Compilation_Unit_Name);
 
    type Aspect_Symbols is
      (Dynamic_Predicate,
@@ -2653,45 +2654,57 @@ package body Instrument is
       --  Directory to contain all sources that create coverage buffers
 
       function Buffer_Unit
-        (Instrumented_Unit : Compilation_Unit_Name)
-         return Compilation_Unit_Name;
-      --  Given a unit to instrument, return the name of the compilation unit
-      --  that holds its coverage buffers.
+        (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
+      --  Given a unit to instrument, return the name of the unit that holds
+      --  its coverage buffers.
 
       procedure Prepare_Output_Dirs;
       --  Make sure we have the expected tree of directories for the
       --  instrumentation output.
 
-      procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info);
-      --  Generate the instrumented source corresponding to Source_File
+      procedure Add_Instrumented_Unit
+        (Source_File : GNATCOLL.Projects.File_Info);
+      --  Add the given source file to Instrumented_Units
+
+      procedure Instrument_Unit
+        (CU_Name : Compilation_Unit_Name; Filename : String);
+      --  Generate the instrumented source corresponding to CU_Name, a unit
+      --  whose source file is Filename.
 
       procedure Emit_Buffer_Unit (IC : Inst_Context);
       --  Emit the unit to contain coverage buffers for the given instrumented
       --  unit.
 
+      procedure Emit_Closure_Unit;
+      --  Emit a generic procedure to output coverage buffers for all units of
+      --  interest.
+
       procedure Emit_Project_Files;
       --  Emit project files to cover the instrumented sources
 
-      Instrumented_Units : Instrumented_Unit_Sets.Set;
+      package Instrumented_Unit_Maps is new
+        Ada.Containers.Indefinite_Ordered_Maps
+          (Key_Type     => Compilation_Unit_Name,
+           Element_Type => String);
+      Instrumented_Units : Instrumented_Unit_Maps.Map;
+      --  Mapping from instrumented unit names to their source file
 
       -----------------
       -- Buffer_Unit --
       -----------------
 
       function Buffer_Unit
-        (Instrumented_Unit : Compilation_Unit_Name)
-         return Compilation_Unit_Name is
+        (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name
+      is
       begin
-         return CU_Name : Compilation_Unit_Name :=
-           (Unit => Sys_Buffers, Kind => Unit_Spec)
-         do
+         return CU_Name : Ada_Qualified_Name := Sys_Buffers do
             case Instrumented_Unit.Kind is
                when Unit_Spec =>
-                  CU_Name.Unit.Append (To_Unbounded_String ("Specs"));
+                  CU_Name.Append (To_Unbounded_String ("Specs"));
                when Unit_Body =>
-                  CU_Name.Unit.Append (To_Unbounded_String ("Bodies"));
+                  CU_Name.Append (To_Unbounded_String ("Bodies"));
             end case;
-            CU_Name.Unit := CU_Name.Unit & Instrumented_Unit.Unit;
+            CU_Name.Append (Instrumented_Unit.Unit);
          end return;
       end Buffer_Unit;
 
@@ -2714,22 +2727,31 @@ package body Instrument is
          Ada.Directories.Create_Path (Buffers_Dir);
       end Prepare_Output_Dirs;
 
+      ---------------------------
+      -- Add_Instrumented_Unit --
+      ---------------------------
+
+      procedure Add_Instrumented_Unit
+        (Source_File : GNATCOLL.Projects.File_Info)
+      is
+         use GNATCOLL.VFS;
+      begin
+         Instrumented_Units.Insert (To_Compilation_Unit_Name (Source_File),
+                                    +Source_File.File.Full_Name);
+      end Add_Instrumented_Unit;
+
       ---------------------
       -- Instrument_Unit --
       ---------------------
 
-      procedure Instrument_Unit (Source_File : GNATCOLL.Projects.File_Info) is
-         use GNATCOLL.VFS;
-
-         Filename        : constant String := +Source_File.File.Full_Name;
-         Instr_Unit_Name : constant Compilation_Unit_Name :=
-            To_Compilation_Unit_Name (Source_File);
-
+      procedure Instrument_Unit
+        (CU_Name : Compilation_Unit_Name; Filename : String)
+      is
          Ctx  : constant Analysis_Context := Create_Context;
          Unit : constant Analysis_Unit := Get_From_File (Ctx, Filename);
          IC   : Inst_Context :=
-           (Instrumented_Unit => Instr_Unit_Name,
-            Buffer_Unit       => Buffer_Unit (Instr_Unit_Name),
+           (Instrumented_Unit => CU_Name,
+            Buffer_Unit       => (Buffer_Unit (CU_Name), Unit_Spec),
             RH_Ctx            => Start_Rewriting (Ctx),
             Unit_Bits         => <>,
             Material          => <>);
@@ -2814,8 +2836,6 @@ package body Instrument is
          --  Emit the corresponding System.GNATcov.Buffers.* unit
 
          Emit_Buffer_Unit (IC);
-
-         Instrumented_Units.Insert (IC.Instrumented_Unit);
       end Instrument_Unit;
 
       ----------------------
@@ -2842,6 +2862,7 @@ package body Instrument is
                when Unit_Body => "Unit_Body");
          begin
             File.Put_Line ("package " & Pkg_Name & " is");
+            File.New_Line;
             File.Put_Line ("   Buffers : Unit_Coverage_Buffers :=");
             File.Put_Line ("     (Unit_Name_Length => "
                            & Strings.Img (Unit_Name'Length) & ",");
@@ -2853,9 +2874,74 @@ package body Instrument is
             File.Put_Line ("      Unit_Kind => " & Unit_Kind & ",");
             File.Put_Line ("      Unit_Name => """ & Unit_Name & """,");
             File.Put_Line ("      others => <>);");
+            File.New_Line;
             File.Put_Line ("end " & Pkg_Name & ";");
          end;
       end Emit_Buffer_Unit;
+
+      -----------------------
+      -- Emit_Closure_Unit --
+      -----------------------
+
+      procedure Emit_Closure_Unit is
+         use Ada.Strings.Unbounded;
+
+         Project_Name : constant String := Ada.Directories.Base_Name
+           (Project.Root_Project_Filename);
+         --  TODO??? Get the original casing for the project name
+
+         CU_Name : Compilation_Unit_Name := (Sys_Closures, Unit_Spec);
+         File    : Text_Files.File_Type;
+
+         package Buffer_Vectors is new Ada.Containers.Vectors
+           (Positive, Unbounded_String);
+
+         Buffer_Units : Buffer_Vectors.Vector;
+      begin
+         CU_Name.Unit.Append (To_Unbounded_String (Project_Name));
+
+         --  Compute the list of units that contain the coverage buffers to
+         --  process.
+
+         for Cur in Instrumented_Units.Iterate loop
+            declare
+               I_Unit : constant Compilation_Unit_Name :=
+                  Instrumented_Unit_Maps.Key (Cur);
+               B_Unit : constant String := To_Ada (Buffer_Unit (I_Unit));
+            begin
+               Buffer_Units.Append (To_Unbounded_String (B_Unit));
+            end;
+         end loop;
+
+         --  Now emit the generic procedure
+
+         declare
+            Unit_Name : constant String := To_Ada (CU_Name.Unit);
+         begin
+            File.Create (Buffers_Dir / To_Filename (CU_Name));
+            File.Put_Line ("generic");
+            File.Put_Line ("  with procedure Process"
+                           & " (Buffers : Unit_Coverage_Buffers);");
+            File.Put_Line ("procedure " & Unit_Name & ";");
+            File.New_Line;
+            File.Close;
+
+            CU_Name.Kind := Unit_Body;
+            File.Create (Buffers_Dir / To_Filename (CU_Name));
+            for Unit of Buffer_Units loop
+               File.Put_Line ("with " & To_String (Unit) & ";");
+            end loop;
+            File.New_Line;
+            File.Put_Line ("procedure " & Unit_Name & " is");
+            File.Put_Line ("begin");
+            for Unit of Buffer_Units loop
+               File.Put_Line
+                 ("   Process (" & To_String (Unit) & ".Buffers);");
+            end loop;
+            File.Put_Line ("end " & Unit_Name & ";");
+            File.New_Line;
+         end;
+      end Emit_Closure_Unit;
 
       ------------------------
       -- Emit_Project_Files --
@@ -2885,9 +2971,21 @@ package body Instrument is
    --  Start of processing for Instrument_Units_Of_Interest
 
    begin
+      --  First collect the list of all units to instrument
+
+      Project.Enumerate_Ada_Sources
+        (Add_Instrumented_Unit'Access, Units_Inputs);
+
+      --  Then run the instrumentation process itself
+
       Prepare_Output_Dirs;
-      Project.Enumerate_Ada_Sources (Instrument_Unit'Access, Units_Inputs);
+      for Cur in Instrumented_Units.Iterate loop
+         Instrument_Unit (Instrumented_Unit_Maps.Key (Cur),
+                          Instrumented_Unit_Maps.Element (Cur));
+      end loop;
+      Emit_Closure_Unit;
       Emit_Project_Files;
+
       if Switches.Verbose then
          Dump_All_SCOs;
       end if;
@@ -2899,6 +2997,9 @@ begin
 
    Sys_Buffers := Sys_Prefix;
    Sys_Buffers.Append (To_Unbounded_String ("Buffers"));
+
+   Sys_Closures := Sys_Prefix;
+   Sys_Closures.Append (To_Unbounded_String ("Closures"));
 
    Stmt_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
    Stmt_Buffer_Name.Append (To_Unbounded_String ("Stmt"));
