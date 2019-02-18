@@ -53,6 +53,8 @@ with Text_Files;
 
 package body Instrument is
 
+   --  TODO??? Handle Unicode file names and source text
+
    function Create_Identifier
      (RH : Rewriting_Handle; Text : Text_Type) return Node_Rewriting_Handle
    is (Create_Token_Node (RH, Ada_Identifier, Text));
