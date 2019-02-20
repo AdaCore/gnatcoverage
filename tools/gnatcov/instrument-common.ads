@@ -100,10 +100,18 @@ private package Instrument.Common is
    --  Given a unit to instrument, return the name of the unit that holds
    --  its coverage buffers.
 
+   type Instrumented_Unit_Info is record
+      Filename : Ada.Strings.Unbounded.Unbounded_String;
+      --  Name of the source to instrument for this unit
+
+      Is_Main : Boolean;
+      --  Whether this unit is a main
+   end record;
+
    package Instrumented_Unit_Maps is new
       Ada.Containers.Indefinite_Ordered_Maps
         (Key_Type     => Compilation_Unit_Name,
-         Element_Type => String);
+         Element_Type => Instrumented_Unit_Info);
 
    type Inst_Context is limited record
       Output_Dir : Ada.Strings.Unbounded.Unbounded_String;

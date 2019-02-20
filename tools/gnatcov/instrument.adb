@@ -216,7 +216,8 @@ package body Instrument is
       IC : Inst_Context := Create_Context;
 
       procedure Add_Instrumented_Unit
-        (Source_File : GNATCOLL.Projects.File_Info);
+        (Project     : GNATCOLL.Projects.Project_Type;
+         Source_File : GNATCOLL.Projects.File_Info);
       --  Add the given source file to IC.Instrumented_Units
 
       ---------------------------
@@ -224,12 +225,21 @@ package body Instrument is
       ---------------------------
 
       procedure Add_Instrumented_Unit
-        (Source_File : GNATCOLL.Projects.File_Info)
+        (Project     : GNATCOLL.Projects.Project_Type;
+         Source_File : GNATCOLL.Projects.File_Info)
       is
          use GNATCOLL.VFS;
+
+         Source_File_Str : constant GNATCOLL.VFS.Filesystem_String :=
+            Source_File.File.Full_Name;
+         Unit_Info : constant Instrumented_Unit_Info :=
+           (Filename => To_Unbounded_String (+Source_File_Str),
+            Is_Main  => GNATCOLL.Projects.Is_Main_File
+                          (Project, Source_File.File.Base_Name));
+
       begin
-         IC.Instrumented_Units.Insert (To_Compilation_Unit_Name (Source_File),
-                                       +Source_File.File.Full_Name);
+         IC.Instrumented_Units.Insert
+           (To_Compilation_Unit_Name (Source_File), Unit_Info);
       end Add_Instrumented_Unit;
 
    --  Start of processing for Instrument_Units_Of_Interest
@@ -247,9 +257,10 @@ package body Instrument is
          declare
             UIC : Unit_Inst_Context;
          begin
-            Instrument_Unit (Instrumented_Unit_Maps.Key (Cur),
-                             Instrumented_Unit_Maps.Element (Cur),
-                             IC, UIC);
+            Instrument_Unit
+              (Instrumented_Unit_Maps.Key (Cur),
+               +Instrumented_Unit_Maps.Element (Cur).Filename,
+               IC, UIC);
             Emit_Buffer_Unit (IC, UIC);
          end;
       end loop;

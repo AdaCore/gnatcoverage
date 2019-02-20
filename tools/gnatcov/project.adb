@@ -141,7 +141,8 @@ package body Project is
          Inc_Units         : in out Unit_Maps.Map;
          Inc_Units_Defined : Boolean;
          Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (Value : Result_Type));
+         Callback          : access procedure (Project : Project_Type;
+                                               Value   : Result_Type));
       --  Enumerate all unit-related files that belong to Project. Call
       --  Callback on each file.
       --
@@ -151,7 +152,8 @@ package body Project is
       --  In any case, do not go through units in Exc_Units.
 
    procedure Enumerate_For_Units_Of_Interest
-     (Callback           : access procedure (Value : Result_Type);
+     (Callback          : access procedure (Project : Project_Type;
+                                            Value   : Result_Type);
       Override_Units     : Inputs.Inputs_Type;
       Override_Units_Map : out Unit_Maps.Map);
    --  Generic procedure to iterate over values (Result_Type) associated with
@@ -240,7 +242,8 @@ package body Project is
    -------------------------------------
 
    procedure Enumerate_For_Units_Of_Interest
-     (Callback           : access procedure (Value : Result_Type);
+     (Callback          : access procedure (Project : Project_Type;
+                                            Value   : Result_Type);
       Override_Units     : Inputs.Inputs_Type;
       Override_Units_Map : out Unit_Maps.Map)
    is
@@ -415,7 +418,8 @@ package body Project is
          Inc_Units         : in out Unit_Maps.Map;
          Inc_Units_Defined : Boolean;
          Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (Filename : String));
+         Callback          : access procedure (Project  : Project_Type;
+                                               Filename : String));
       --  Callback for Enumerate_For_Units_Of_Interest
 
       procedure Enumerate_In_Projects is new Enumerate_For_Units_Of_Interest
@@ -424,6 +428,9 @@ package body Project is
       procedure Set_LI_Seen (U : String; UI : in out Unit_Info);
       --  Helper for Enumerate_Project. Record that the LI file for U was
       --  found.
+
+      procedure Callback (Ignored_Project : Project_Type; Filename : String);
+      --  Callback for Enumerate_In_Projects
 
       ---------------------------------
       -- Enumerate_In_Single_Project --
@@ -434,7 +441,8 @@ package body Project is
          Inc_Units         : in out Unit_Maps.Map;
          Inc_Units_Defined : Boolean;
          Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (Filename : String))
+         Callback          : access procedure (Project  : Project_Type;
+                                               Filename : String))
       is
          Lib_Info : Library_Info_List;
       begin
@@ -466,7 +474,7 @@ package body Project is
                    or else not Inc_Units_Defined)
                  and then not Exc_Units.Contains (U)
                then
-                  Callback.all (+Full_Name (LI.Library_File));
+                  Callback.all (Project, +Full_Name (LI.Library_File));
                end if;
 
                --  Mark unit seen even if it is excluded
@@ -491,10 +499,20 @@ package body Project is
          UI.LI_Seen := True;
       end Set_LI_Seen;
 
+      --------------
+      -- Callback --
+      --------------
+
+      procedure Callback (Ignored_Project : Project_Type; Filename : String) is
+      begin
+         LI_Cb.all (Filename);
+      end Callback;
+
    --  Start of processing for Enumerate_LIs
 
    begin
-      Enumerate_In_Projects (LI_Cb, Override_Units, Override_Units_Map);
+      Enumerate_In_Projects
+        (Callback'Access, Override_Units, Override_Units_Map);
       Report_Units_Without_LI (Override_Units_Map, Origin => "<command line>");
    end Enumerate_LIs;
 
@@ -503,7 +521,9 @@ package body Project is
    ---------------------------
 
    procedure Enumerate_Ada_Sources
-     (Callback       : access procedure (File : GNATCOLL.Projects.File_Info);
+     (Callback       : access procedure
+        (Project : GNATCOLL.Projects.Project_Type;
+         File    : GNATCOLL.Projects.File_Info);
       Override_Units : Inputs.Inputs_Type)
    is
       Override_Units_Map : Unit_Maps.Map
@@ -514,7 +534,8 @@ package body Project is
          Inc_Units         : in out Unit_Maps.Map;
          Inc_Units_Defined : Boolean;
          Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (File : File_Info));
+         Callback          : access procedure (Project : Project_Type;
+                                               File    : File_Info));
       --  Callback for Enumerate_For_Units_Of_Interest
 
       procedure Enumerate_In_Projects is new Enumerate_For_Units_Of_Interest
@@ -529,7 +550,8 @@ package body Project is
          Inc_Units         : in out Unit_Maps.Map;
          Inc_Units_Defined : Boolean;
          Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (File : File_Info))
+         Callback          : access procedure (Project : Project_Type;
+                                               File    : File_Info))
       is
          Sources : GNATCOLL.VFS.File_Array_Access := Project.Source_Files;
       begin
@@ -543,7 +565,7 @@ package body Project is
                   and then (not Inc_Units_Defined
                             or else Inc_Units.Contains (Unit))
                then
-                  Callback (Info);
+                  Callback (Project, Info);
                end if;
             end;
          end loop;

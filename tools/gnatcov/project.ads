@@ -87,7 +87,9 @@ package Project is
    --  Exclude_Units_List attributes is used.
 
    procedure Enumerate_Ada_Sources
-     (Callback       : access procedure (File : GNATCOLL.Projects.File_Info);
+     (Callback       : access procedure
+        (Project : GNATCOLL.Projects.Project_Type;
+         File    : GNATCOLL.Projects.File_Info);
       Override_Units : Inputs.Inputs_Type);
    --  Call Callback once for every Ada source file mentionned in a previous
    --  Add_Project call. Override_Units has the same semantics as in
