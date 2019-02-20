@@ -114,6 +114,9 @@ private package Instrument.Common is
          Element_Type => Instrumented_Unit_Info);
 
    type Inst_Context is limited record
+      Project_Name : Ada.Strings.Unbounded.Unbounded_String;
+      --  Name of the root project. It is also used to name the buffer closure
+
       Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
       --  Subdirectory in the root project file's object directory. All we
       --  generate here must land in it.
@@ -126,9 +129,12 @@ private package Instrument.Common is
 
       Instrumented_Units : Instrumented_Unit_Maps.Map;
       --  Mapping from instrumented unit names to their source file
+
+      Auto_Dump_Buffers : Boolean;
+      --  See the eponym argument in Instrument.Intrument_Units_Of_Interest
    end record;
 
-   function Create_Context return Inst_Context;
+   function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
 
 end Instrument.Common;

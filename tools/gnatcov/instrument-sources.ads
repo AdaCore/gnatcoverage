@@ -71,12 +71,12 @@ private package Instrument.Sources is
    --  Create nodes in Context.Material
 
    procedure Instrument_Unit
-     (CU_Name  : Compilation_Unit_Name;
-      Filename : String;
-      IC       : Inst_Context;
-      UIC      : out Unit_Inst_Context);
-   --  Generate the instrumented source corresponding to CU_Name, a unit whose
-   --  source file is Filename. Record instrumentation information in IC.
+     (CU_Name   : Compilation_Unit_Name;
+      Unit_Info : Instrumented_Unit_Info;
+      IC        : Inst_Context;
+      UIC       : out Unit_Inst_Context);
+   --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
+   --  Record instrumentation information in IC.
 
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));

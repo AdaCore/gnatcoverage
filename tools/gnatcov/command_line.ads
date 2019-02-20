@@ -71,7 +71,8 @@ package Command_Line is
       Opt_Excluded_SCOs,
       Opt_Keep_Edges,
       Opt_Pretty_Print,
-      Opt_Keep_Reading_Traces);
+      Opt_Keep_Reading_Traces,
+      Opt_Auto_Dump_Buffers);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -362,7 +363,16 @@ package Command_Line is
                       & " makes gnatcov exit with an error status.",
          Commands  => (Cmd_Coverage => True,
                        others       => False),
-         Internal  => False));
+         Internal  => False),
+
+      Opt_Auto_Dump_Buffers => Create
+        (Long_Name => "--auto-dump-buffers",
+         Help      => "Append a call to System.GNATcov.Traces.Output."
+                      & " .Write_Trace_File for the closure in all mains in"
+                      & " all mains in the project.",
+         Commands  => (Cmd_Instrument_Test => True,
+                       others              => False),
+         Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create
@@ -602,7 +612,7 @@ package Command_Line is
          Help        => ("State the set of units of interest by name,"
                          & " overriding the GPR-based selection by -P, etc."),
          Commands    => (Cmd_Run | Cmd_Coverage | Cmd_Scan_Decisions
-                             | Cmd_Map_Routines => True,
+                             | Cmd_Map_Routines | Cmd_Instrument_Test => True,
                          others => False),
          Internal    => False),
       Opt_Routines => Create

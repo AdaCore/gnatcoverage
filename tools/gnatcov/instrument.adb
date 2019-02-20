@@ -118,10 +118,6 @@ package body Instrument is
    -----------------------
 
    procedure Emit_Closure_Unit (IC : Inst_Context) is
-      Project_Name : constant String := Ada.Directories.Base_Name
-        (Project.Root_Project_Filename);
-      --  TODO??? Get the original casing for the project name
-
       CU_Name : Compilation_Unit_Name := (Sys_Closures, Unit_Spec);
       File    : Text_Files.File_Type;
 
@@ -130,7 +126,7 @@ package body Instrument is
 
       Buffer_Units : Buffer_Vectors.Vector;
    begin
-      CU_Name.Unit.Append (To_Unbounded_String (Project_Name));
+      CU_Name.Unit.Append (Ada_Identifier (IC.Project_Name));
 
       --  Compute the list of units that contain the coverage buffers to
       --  process.
@@ -211,9 +207,12 @@ package body Instrument is
    ----------------------------------
 
    procedure Instrument_Units_Of_Interest
-     (Checkpoint_Filename : String; Units_Inputs : Inputs.Inputs_Type)
+     (Checkpoint_Filename : String;
+      Units_Inputs        : Inputs.Inputs_Type;
+      Auto_Dump_Buffers   : Boolean)
    is
-      IC : Inst_Context := Create_Context;
+      IC : Inst_Context := Create_Context
+        (Auto_Dump_Buffers);
 
       procedure Add_Instrumented_Unit
         (Project     : GNATCOLL.Projects.Project_Type;
@@ -259,7 +258,7 @@ package body Instrument is
          begin
             Instrument_Unit
               (Instrumented_Unit_Maps.Key (Cur),
-               +Instrumented_Unit_Maps.Element (Cur).Filename,
+               Instrumented_Unit_Maps.Element (Cur),
                IC, UIC);
             Emit_Buffer_Unit (IC, UIC);
          end;

@@ -40,6 +40,8 @@ with Text_Files;
 
 package body Instrument.Sources is
 
+   package LAL renames Libadalang.Analysis;
+
    function Create_Identifier
      (RH : Rewriting_Handle; Text : Text_Type) return Node_Rewriting_Handle
    is (Create_Token_Node (RH, Libadalang.Common.Ada_Identifier, Text));
@@ -97,6 +99,14 @@ package body Instrument.Sources is
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a new entry to the low-level SCO table
+
+   procedure Add_Auto_Dump_Buffers
+     (IC   : Inst_Context;
+      UIC  : Unit_Inst_Context;
+      Unit : LAL.Analysis_Unit);
+   --  Try to insert a call to dump the closure of coverage buffers for units
+   --  of interest at the end of Unit, a main subprogram. Return without doing
+   --  anything if unsuccessful.
 
    -------------------------------------
    -- Generation of witness fragments --
@@ -2401,18 +2411,157 @@ package body Instrument.Sources is
       M.Dc_Buffer := To_Nodes (RH, Context.Buffer_Unit.Unit & Dc_Buffer_Name);
    end Create_Rewriting_Material;
 
+   ---------------------------
+   -- Add_Auto_Dump_Buffers --
+   ---------------------------
+
+   procedure Add_Auto_Dump_Buffers
+     (IC   : Inst_Context;
+      UIC  : Unit_Inst_Context;
+      Unit : LAL.Analysis_Unit)
+   is
+      Tmp : LAL.Ada_Node := Unit.Root;
+
+      CU        : LAL.Compilation_Unit;
+      Subp_Body : LAL.Subp_Body;
+
+      Old_Stmts, New_Stmts : Node_Rewriting_Handle;
+
+      Output_Unit, Output_Proc     : Ada_Qualified_Name;
+      Closure_Unit, Closure_Object : Ada_Qualified_Name;
+   begin
+      --  Make sure this main source has the expected structure: a
+      --  simple subprogram body in a compilation unit. If not, return without
+      --  doing anything.
+
+      if Tmp.Kind /= Ada_Compilation_Unit then
+         return;
+      else
+         CU := Tmp.As_Compilation_Unit;
+      end if;
+
+      Tmp := CU.F_Body;
+      if Tmp.Kind /= Ada_Library_Item then
+         return;
+      end if;
+
+      Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
+      if Tmp.Kind /= Ada_Subp_Body then
+         return;
+      else
+         Subp_Body := Tmp.As_Subp_Body;
+      end if;
+
+      --  Compute the qualified names we need for instrumentation
+
+      Output_Unit := Sys_Prefix;
+      Output_Unit.Append (To_Unbounded_String ("Traces"));
+      Output_Unit.Append (To_Unbounded_String ("Output"));
+
+      Output_Proc := Output_Unit;
+      Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
+
+      Closure_Unit := Sys_Closures;
+      Closure_Unit.Append (Common.Ada_Identifier (IC.Project_Name));
+
+      Closure_Object := Closure_Unit;
+      Closure_Object.Append (To_Unbounded_String ("Closure"));
+
+      --  Add the required WITH clauses
+
+      declare
+         Prelude     : constant Node_Rewriting_Handle :=
+            Handle (CU.F_Prelude);
+         With_Output : constant Node_Rewriting_Handle :=
+            Create_From_Template
+              (UIC.RH_Ctx,
+               Template  => "with {};",
+               Arguments => (1 => To_Nodes (UIC.RH_Ctx, Output_Unit)),
+               Rule      => With_Clause_Rule);
+         With_Closure : constant Node_Rewriting_Handle :=
+            Create_From_Template
+              (UIC.RH_Ctx,
+               Template  => "with {};",
+               Arguments => (1 => To_Nodes (UIC.RH_Ctx, Closure_Unit)),
+               Rule      => With_Clause_Rule);
+      begin
+         Append_Child (Prelude, With_Output);
+         Append_Child (Prelude, With_Closure);
+      end;
+
+      --  Wrap the previous subprogram body content (declarations, handled
+      --  statements) in a declare block. This is a simple handled statements
+      --  block if there is no declaration.
+
+      declare
+         --  Create a new list of statements to contain 1) the original handled
+         --  statements and 2) the call to
+         --  System.GNATcov.Traces.Output.Write_Trace_File.
+
+         New_Stmt_List : constant Node_Rewriting_Handle :=
+            Create_Node (UIC.RH_Ctx, Ada_Stmt_List);
+         New_Excs      : constant Node_Rewriting_Handle :=
+            Create_Node (UIC.RH_Ctx, Ada_Ada_Node_List);
+
+         Nested_Block : Node_Rewriting_Handle;
+         Nested_Decls : Node_Rewriting_Handle;
+      begin
+         --  Extract the original statements (Old_Stmts) and replace it in the
+         --  subprogram body with the new statements.
+
+         Old_Stmts := Handle (Subp_Body.F_Stmts);
+         New_Stmts := Create_Regular_Node
+           (UIC.RH_Ctx, Ada_Handled_Stmts, (New_Stmt_List, New_Excs));
+         Replace (Old_Stmts, New_Stmts);
+
+         --  If the original subprogram has declarations, wrap the original
+         --  statements in a declare block to hold them.
+
+         if Subp_Body.F_Decls.F_Decls.Children_Count = 0 then
+            Nested_Block := Old_Stmts;
+         else
+            Nested_Decls := Handle (Subp_Body.F_Decls);
+            Replace
+              (Nested_Decls,
+               Create_Regular_Node
+                 (UIC.RH_Ctx, Ada_Declarative_Part,
+                  (1 => Create_Node (UIC.RH_Ctx, Ada_Ada_Node_List))));
+
+            Nested_Block := Create_Regular_Node
+              (UIC.RH_Ctx, Ada_Decl_Block,
+               (Nested_Decls,               --  F_Decls
+                Old_Stmts,                  --  F_Stmts
+                No_Node_Rewriting_Handle)); --  F_End_Name
+         end if;
+
+         --  Add the statements and the call to Write_Trace_File to the
+         --  instrumented subprogram's new root list of statements.
+
+         Append_Child (New_Stmt_List, Nested_Block);
+         Append_Child
+           (New_Stmt_List,
+            Create_From_Template
+              (UIC.RH_Ctx,
+               Template  => "{} ({});",
+               Arguments => (To_Nodes (UIC.RH_Ctx, Output_Proc),
+                             To_Nodes (UIC.RH_Ctx, Closure_Object)),
+               Rule      => Stmt_Rule));
+      end;
+   end Add_Auto_Dump_Buffers;
+
    ---------------------
    -- Instrument_Unit --
    ---------------------
 
    procedure Instrument_Unit
-     (CU_Name  : Compilation_Unit_Name;
-      Filename : String;
-      IC       : Inst_Context;
-      UIC      : out Unit_Inst_Context)
+     (CU_Name   : Compilation_Unit_Name;
+      Unit_Info : Instrumented_Unit_Info;
+      IC        : Inst_Context;
+      UIC       : out Unit_Inst_Context)
    is
-      Ctx  : constant Analysis_Context := Create_Context;
-      Unit : constant Analysis_Unit := Get_From_File (Ctx, Filename);
+      Filename : constant String := To_String (Unit_Info.Filename);
+      Ctx      : constant Analysis_Context := Create_Context;
+      Unit     : constant Analysis_Unit := Get_From_File (Ctx, Filename);
 
       Preelab : constant Boolean := False;
       --  ??? To be implemented in Libadalang: S128-004
@@ -2471,6 +2620,10 @@ package body Instrument.Sources is
              To         => SCOs.SCO_Table.Last));
          Process_Low_Level_SCOs (CU, SFI, LL_Unit_Bits => UIC.Unit_Bits);
       end;
+
+      if IC.Auto_Dump_Buffers and then Unit_Info.Is_Main then
+         Add_Auto_Dump_Buffers (IC, UIC, Unit);
+      end if;
 
       --  Emit the instrumented source file
 

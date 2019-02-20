@@ -157,7 +157,7 @@ package body Instrument.Common is
    -- Create_Context --
    --------------------
 
-   function Create_Context return Inst_Context is
+   function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context is
       use Ada.Strings.Unbounded;
 
       Output_Dir  : constant String := Project.Output_Dir / "gnatcov-instr";
@@ -165,9 +165,14 @@ package body Instrument.Common is
       Buffers_Dir : constant String := Output_Dir / "src-buffers";
    begin
       return IC : Inst_Context do
+         IC.Project_Name := +Ada.Directories.Base_Name
+           (Project.Root_Project_Filename);
+         --  TODO??? Get the original casing for the project name
+
          IC.Output_Dir := +Output_Dir;
          IC.Instr_Dir := +Instr_Dir;
          IC.Buffers_Dir := +Buffers_Dir;
+         IC.Auto_Dump_Buffers := Auto_Dump_Buffers;
       end return;
    end Create_Context;
 

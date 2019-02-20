@@ -69,7 +69,9 @@ package Instrument is
    No_LL_Unit_Bit_Maps : constant LL_Unit_Bit_Maps := (others => <>);
 
    procedure Instrument_Units_Of_Interest
-     (Checkpoint_Filename : String; Units_Inputs : Inputs.Inputs_Type);
+     (Checkpoint_Filename : String;
+      Units_Inputs        : Inputs.Inputs_Type;
+      Auto_Dump_Buffers   : Boolean);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs to
    --  Checkpoint_Filename.
@@ -77,5 +79,9 @@ package Instrument is
    --  Units of interest are computed from the loaded project (-P/--projects),
    --  unless Units_Inputs is not empty: in this case, use the given unit names
    --  as the list of units of interest.
+   --
+   --  If Auto_Dump_Buffers is true, append a call to
+   --  System.GNATcov.Traces.Output.Write_Trace_File for the closure in all
+   --  mains in the project.
 
 end Instrument;

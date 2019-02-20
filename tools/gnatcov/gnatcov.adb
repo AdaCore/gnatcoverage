@@ -1276,7 +1276,8 @@ begin
                          & " please use the -P option");
          end if;
 
-         Instrument.Instrument_Units_Of_Interest (Output.all, Units_Inputs);
+         Instrument.Instrument_Units_Of_Interest
+           (Output.all, Units_Inputs, Args.Bool_Args (Opt_Auto_Dump_Buffers));
 
       when Cmd_Scan_Objects =>
          declare
