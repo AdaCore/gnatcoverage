@@ -817,7 +817,9 @@ package body Annotations.Xml is
          Attributes : constant String :=
             A ("kind", Name)
             & A ("count", Img (Amount))
-            & A ("ratio", Img (Ratio (Amount, Total)));
+            & (if Total = 0
+               then ""
+               else A ("ratio", Img (Ratio (Amount, Total))));
       begin
          Pp.T ("metric", Attributes, Dest_Index);
       end Print_Metric_Ratio;
