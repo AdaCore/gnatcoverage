@@ -68,9 +68,11 @@ package Instrument is
 
    No_LL_Unit_Bit_Maps : constant LL_Unit_Bit_Maps := (others => <>);
 
-   procedure Instrument_Units_Of_Interest (Units_Inputs : Inputs.Inputs_Type);
+   procedure Instrument_Units_Of_Interest
+     (Checkpoint_Filename : String; Units_Inputs : Inputs.Inputs_Type);
    --  Generate instrumented sources for the source files of all units of
-   --  interest.
+   --  interest. Also save mappings between coverage buffers and SCOs to
+   --  Checkpoint_Filename.
    --
    --  Units of interest are computed from the loaded project (-P/--projects),
    --  unless Units_Inputs is not empty: in this case, use the given unit names

@@ -26,14 +26,15 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
+with Checkpoints;
+with Coverage;
+with Instrument.Common;  use Instrument.Common;
+with Instrument.Sources; use Instrument.Sources;
 with Project;
 with SC_Obligations;
 with Strings;
 with Switches;
 with Text_Files;
-
-with Instrument.Common;  use Instrument.Common;
-with Instrument.Sources; use Instrument.Sources;
 
 package body Instrument is
 
@@ -209,7 +210,8 @@ package body Instrument is
    -- Instrument_Units_Of_Interest --
    ----------------------------------
 
-   procedure Instrument_Units_Of_Interest (Units_Inputs : Inputs.Inputs_Type)
+   procedure Instrument_Units_Of_Interest
+     (Checkpoint_Filename : String; Units_Inputs : Inputs.Inputs_Type)
    is
       IC : Inst_Context := Create_Context;
 
@@ -253,6 +255,19 @@ package body Instrument is
       end loop;
       Emit_Closure_Unit (IC);
       Emit_Project_Files (IC);
+
+      --  Finally, emit a checkpoint to contain mappings between bits in
+      --  coverage buffers and SCOs.
+      --
+      --  TODO??? Remove the explicit version argument for Checkpoint_Save once
+      --  the default includes support for source instrumentation.
+
+      declare
+         Context : aliased Coverage.Context := Coverage.Get_Context;
+      begin
+         Checkpoints.Checkpoint_Save
+           (Checkpoint_Filename, Context'Access, 2);
+      end;
 
       if Switches.Verbose then
          SC_Obligations.Dump_All_SCOs;

@@ -976,9 +976,11 @@ procedure GNATcov is
             end if;
 
          when Cmd_Instrument_Test =>
-            if Args.Remaining_Args.Length > 0 then
-               Fatal_Error ("no positional arguments accepted");
+            if Args.Remaining_Args.Length /= 1 then
+               Fatal_Error ("exactly one argument is allowed: a filename for"
+                            & " the output checkpoint");
             end if;
+            Output := new String'(+Args.Remaining_Args.First_Element);
 
          when others =>
             null;
@@ -1274,7 +1276,7 @@ begin
                          & " please use the -P option");
          end if;
 
-         Instrument.Instrument_Units_Of_Interest (Units_Inputs);
+         Instrument.Instrument_Units_Of_Interest (Output.all, Units_Inputs);
 
       when Cmd_Scan_Objects =>
          declare
