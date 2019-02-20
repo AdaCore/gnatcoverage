@@ -2441,6 +2441,7 @@ package body Instrument.Sources is
          for D of Unit.Diagnostics loop
             Outputs.Error (Unit.Format_GNU_Diagnostic (D));
          end loop;
+         Abort_Rewriting (UIC.RH_Ctx);
          raise Outputs.Xcov_Exit_Exc;
       end if;
 
@@ -2494,6 +2495,7 @@ package body Instrument.Sources is
                  (Image (D.Sloc_Range) & ": "
                   & To_String (To_Wide_Wide_String (D.Message)));
             end loop;
+            Abort_Rewriting (UIC.RH_Ctx);
             raise Outputs.Xcov_Exit_Exc;
          end if;
       end;
