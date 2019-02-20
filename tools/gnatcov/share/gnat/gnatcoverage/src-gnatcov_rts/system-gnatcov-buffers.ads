@@ -27,6 +27,7 @@ package System.GNATcov.Buffers is
    pragma Pack (Coverage_Buffer_Type);
 
    type Hash_Type is new Interfaces.Unsigned_32;
+   --  Hash type to perform consistency checks
 
    type Unit_Coverage_Buffers
      (Unit_Name_Length           : Positive;

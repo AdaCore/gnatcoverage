@@ -96,7 +96,7 @@ package body Instrument is
       begin
          File.Put_Line ("package " & Pkg_Name & " is");
          File.New_Line;
-         File.Put_Line ("   Buffers : Unit_Coverage_Buffers :=");
+         File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Unit_Name_Length => "
                         & Strings.Img (Unit_Name'Length) & ",");
          File.Put_Line ("      Stmt_Last_Bit => "
@@ -147,30 +147,36 @@ package body Instrument is
       --  Now emit the generic procedure
 
       declare
-         Unit_Name : constant String := To_Ada (CU_Name.Unit);
-      begin
-         File.Create ((+IC.Buffers_Dir) / To_Filename (CU_Name));
-         File.Put_Line ("generic");
-         File.Put_Line ("  with procedure Process"
-                        & " (Buffers : Unit_Coverage_Buffers);");
-         File.Put_Line ("procedure " & Unit_Name & ";");
-         File.New_Line;
-         File.Close;
+         use type Ada.Containers.Count_Type;
 
-         CU_Name.Kind := Unit_Body;
+         Unit_Name : constant String := To_Ada (CU_Name.Unit);
+         First     : Boolean := True;
+      begin
          File.Create ((+IC.Buffers_Dir) / To_Filename (CU_Name));
          for Unit of Buffer_Units loop
             File.Put_Line ("with " & To_String (Unit) & ";");
          end loop;
          File.New_Line;
-         File.Put_Line ("procedure " & Unit_Name & " is");
-         File.Put_Line ("begin");
-         for Unit of Buffer_Units loop
-            File.Put_Line
-              ("   Process (" & To_String (Unit) & ".Buffers);");
-         end loop;
-         File.Put_Line ("end " & Unit_Name & ";");
+         File.Put_Line ("package " & Unit_Name & " is");
          File.New_Line;
+         File.Put_Line ("   Closure : constant Unit_Coverage_Buffers_Array"
+                        & " :=");
+         File.Put ("     (");
+         if Buffer_Units.Length = 1 then
+            File.Put ("1 => ");
+         end if;
+         for Unit of Buffer_Units loop
+            if First then
+               First := False;
+            else
+               File.Put_Line (",");
+               File.Put ((1 .. 6 => ' '));
+            end if;
+            File.Put (To_String (Unit) & ".Buffers'Access");
+         end loop;
+         File.Put_Line (");");
+         File.New_Line;
+         File.Put_Line ("end " & Unit_Name & ";");
       end;
    end Emit_Closure_Unit;
 
