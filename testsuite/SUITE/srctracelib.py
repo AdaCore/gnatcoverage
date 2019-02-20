@@ -141,7 +141,8 @@ trace_entry_header_struct = Struct(
     ('stmt_bit_count', 'I'),
     ('dc_bit_count', 'I'),
     ('unit_kind', 'B'),
-    ('padding', '7B'),
+    ('bit_buffer_encoding', 'B'),
+    ('padding', '6B'),
 )
 
 
@@ -252,19 +253,25 @@ class TraceEntry(object):
 
             unit_kind = {0: 'spec', 1: 'body'}[header['unit_kind']]
 
-            if header['padding'] != (0, ) * 7:
+            if header['padding'] != (0, ) * 6:
                 raise ValueError('Invalid padding: {}'
                                  .format(header['padding']))
+
+            bit_buffer_encoding = {
+               0: 'lsb_first_bytes'
+            }[header['bit_buffer_encoding']]
 
             with fp.label_context('unit name'):
                 unit_name = read_aligned(
                     fp, header['unit_name_length'], trace_file.alignment)
             with fp.label_context('stmt buffer'):
                 stmt_buffer = TraceBuffer.read(
-                    fp, trace_file, header['stmt_bit_count'])
+                    fp, trace_file, bit_buffer_encoding,
+                    header['stmt_bit_count'])
             with fp.label_context('dc buffer'):
                 dc_buffer = TraceBuffer.read(
-                    fp, trace_file, header['dc_bit_count'])
+                    fp, trace_file, bit_buffer_encoding,
+                    header['dc_bit_count'])
 
         return cls(unit_kind, unit_name, header['closure_hash'], stmt_buffer,
                    dc_buffer)
@@ -279,7 +286,9 @@ class TraceBuffer(object):
         self.bits = bits
 
     @classmethod
-    def read(cls, fp, trace_file, bit_count):
+    def read(cls, fp, trace_file, bit_buffer_encoding, bit_count):
+        assert bit_buffer_encoding == 'lsb_first_bytes'
+
         bytes_count = bit_count // 8
         if bit_count % 8:
             bytes_count += 1

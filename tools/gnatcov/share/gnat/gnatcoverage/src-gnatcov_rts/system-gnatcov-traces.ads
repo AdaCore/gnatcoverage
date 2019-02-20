@@ -99,8 +99,12 @@ package System.GNATcov.Traces is
    --  * The statement coverage buffer. It is also NUL-padded.
    --
    --  * The decision coverage buffer. It is also NUL-padded.
-   --
-   --  Bit buffers have a simple encoding. They are sequences of bytes.
+
+   type Any_Bit_Buffer_Encoding is new Unsigned_8;
+   --  Encoding used to store coverage buffers
+
+   LSB_First_Bytes : constant Any_Bit_Buffer_Encoding := 0;
+   --  LSB_First_Bytes: bit buffers are encoded as sequences of bytes.
    --
    --  * Booleans are encoded with bits the usual way: 0 for False and 1 for
    --    True.
@@ -110,6 +114,10 @@ package System.GNATcov.Traces is
    --
    --  * Inside byte X, least significant bit maps to bit 8 * Y while the most
    --    significant bit maps to bit 8 * Y + 7.
+
+   subtype Supported_Bit_Buffer_Encoding is Any_Bit_Buffer_Encoding
+      with Static_Predicate => Supported_Bit_Buffer_Encoding in
+         LSB_First_Bytes;
 
    type Trace_Entry_Header is record
       Closure_Hash : Hash_Type;
@@ -127,18 +135,22 @@ package System.GNATcov.Traces is
       Unit_Kind : Any_Unit_Kind;
       --  Kind for the unit this trace entry describes
 
-      Padding : String (1 .. 7);
+      Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
+      --  Encoding used to represent statement and decision coverage buffers
+
+      Padding : String (1 .. 6);
       --  Padding used only to make the size of this trace entry header a
       --  multiple of 8 bytes. Must be zero.
    end record;
 
    for Trace_Entry_Header use record
-      Closure_Hash     at  0 range 0 .. 31;
-      Unit_Name_Length at  4 range 0 .. 31;
-      Stmt_Bit_Count   at  8 range 0 .. 31;
-      Dc_Bit_Count     at 12 range 0 .. 31;
-      Unit_Kind        at 16 range 0 .. 7;
-      Padding          at 17 range 0 .. 7 * 8 - 1;
+      Closure_Hash        at  0 range 0 .. 31;
+      Unit_Name_Length    at  4 range 0 .. 31;
+      Stmt_Bit_Count      at  8 range 0 .. 31;
+      Dc_Bit_Count        at 12 range 0 .. 31;
+      Unit_Kind           at 16 range 0 .. 7;
+      Bit_Buffer_Encoding at 17 range 0 .. 7;
+      Padding             at 18 range 0 .. 6 * 8 - 1;
    end record;
 
    for Trace_Entry_Header'Size use 24 * 8;

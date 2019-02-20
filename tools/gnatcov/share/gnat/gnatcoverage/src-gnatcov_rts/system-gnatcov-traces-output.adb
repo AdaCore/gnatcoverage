@@ -93,11 +93,14 @@ package body System.GNATcov.Traces.Output is
         (Closure_Hash     => Traces.Hash_Type (Buffers.Closure_Hash),
          Unit_Name_Length =>
             Interfaces.Unsigned_32 (Buffers.Unit_Name_Length),
-         Stmt_Bit_Count   => Traces.Any_Bit_Count (Buffers.Stmt_Last_Bit + 1),
-         Dc_Bit_Count     => Traces.Any_Bit_Count (Buffers.Dc_Last_Bit + 1),
-         Unit_Kind        => System.GNATcov.Buffers.Any_Unit_Kind'Pos
-                               (Buffers.Unit_Kind),
-         Padding          => (others => ASCII.NUL));
+         Stmt_Bit_Count      =>
+            Traces.Any_Bit_Count (Buffers.Stmt_Last_Bit + 1),
+         Dc_Bit_Count        =>
+            Traces.Any_Bit_Count (Buffers.Dc_Last_Bit + 1),
+         Unit_Kind           =>
+            System.GNATcov.Buffers.Any_Unit_Kind'Pos (Buffers.Unit_Kind),
+         Bit_Buffer_Encoding => LSB_First_Bytes,
+         Padding             => (others => ASCII.NUL));
    begin
       Write_Bytes (File, Header'Address, Header'Size / 8);
       Write_Bytes (File, Buffers.Unit_Name'Address, Buffers.Unit_Name'Length);
