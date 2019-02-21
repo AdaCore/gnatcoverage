@@ -25,6 +25,8 @@ with Types; use Types;
 
 package Instrument is
 
+   type Unit_Kind is (Unit_Spec, Unit_Body);
+
    ---------------------------------------------
    -- Mapping of coverage buffer bits to SCOs --
    ---------------------------------------------

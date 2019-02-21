@@ -50,6 +50,7 @@ with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Inputs;            use Inputs;
 with Instrument;
+with Instrument.Input_Traces;
 with Object_Locations;
 with Outputs;           use Outputs;
 with Perf_Counters;
@@ -816,7 +817,8 @@ procedure GNATcov is
             | Cmd_Dump_Trace
             | Cmd_Dump_Trace_Raw
             | Cmd_Dump_Trace_Base
-            | Cmd_Dump_Trace_Asm =>
+            | Cmd_Dump_Trace_Asm
+            | Cmd_Dump_Src_Trace =>
 
             --  For "coverage", require an annotation format unless we must
             --  save a checkpoint. In this case, we'll just skip report
@@ -1405,6 +1407,12 @@ begin
             Inputs.Iterate (Exe_Inputs, Open_Exec'Access);
             Inputs.Iterate (Trace_Inputs, Dump_Trace'Access);
          end;
+
+      when Cmd_Dump_Src_Trace =>
+         Check_Argument_Available (Trace_Inputs, "TRACE_FILE");
+         Inputs.Iterate
+           (Trace_Inputs,
+            Instrument.Input_Traces.Dump_Source_Trace_File'Access);
 
       when Cmd_Dump_Sections
         | Cmd_Dump_Symbols

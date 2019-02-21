@@ -44,6 +44,7 @@ package Command_Line is
       Cmd_Dump_Trace_Raw,
       Cmd_Dump_Trace_Base,
       Cmd_Dump_Trace_Asm,
+      Cmd_Dump_Src_Trace,
       Cmd_Dump_Sections,
       Cmd_Dump_Symbols,
       Cmd_Dump_Compile_Units,
@@ -203,6 +204,12 @@ package Command_Line is
          Pattern     => "[EXE] [TRACE_FILEs]",
          Description => ("Display of trace files with assembly code for each"
                          & " trace."),
+         Internal    => True),
+      Cmd_Dump_Src_Trace => Create
+        (Name        => "dump-src-trace",
+         Pattern     => "[TRACE_FILEs]",
+         Description => "Dump the content of a source trace file in a human-"
+                        & "-readable text form",
          Internal    => True),
       Cmd_Dump_Sections => Create
         (Name        => "dump-sections",

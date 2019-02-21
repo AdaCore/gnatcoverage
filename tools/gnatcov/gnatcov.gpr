@@ -1,5 +1,7 @@
 with "gnat_util", "gnatcoll", "libadalang";
 
+with "share/gnat/gnatcoverage/gnatcov_rts";
+
 project Gnatcov is
 
    type Bits_Type is ("32", "64");

@@ -77,7 +77,8 @@ package body Command_Line is
          when Cmd_Coverage
             | Cmd_Dump_Trace
             | Cmd_Dump_Trace_Raw
-            | Cmd_Dump_Trace_Base =>
+            | Cmd_Dump_Trace_Base
+            | Cmd_Dump_Src_Trace =>
 
             --  For these commands, remaining arguments are trace files:
             --  transfer them to Opt_Trace to unify traces handling.

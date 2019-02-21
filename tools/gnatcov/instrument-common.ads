@@ -73,8 +73,6 @@ private package Instrument.Common is
    --  Qualified name (relative to the unit buffer package) of the buffer to
    --  contain coverage data corresponding to decision obligations.
 
-   type Unit_Kind is (Unit_Spec, Unit_Body);
-
    type Compilation_Unit_Name is record
       Unit : Ada_Qualified_Name;
       Kind : Unit_Kind;
