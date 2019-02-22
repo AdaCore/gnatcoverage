@@ -28,8 +28,7 @@ package Instrument.Input_Traces is
 
    type Hash_Type is new Interfaces.Unsigned_32;
 
-   type Coverage_Buffer is array (Any_Bit_Id range <>) of Boolean
-      with Pack;
+   type Coverage_Buffer is array (Bit_Id range <>) of Boolean with Pack;
    --  Content of a coverage buffer
 
    generic
