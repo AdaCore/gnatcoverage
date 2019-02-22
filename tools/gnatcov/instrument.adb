@@ -102,7 +102,7 @@ package body Instrument is
                         & Strings.Img (Unit_Name'Length) & ",");
          File.Put_Line ("      Stmt_Last_Bit => "
                         & Img (UIC.Unit_Bits.Last_Statement_Bit) & ",");
-         File.Put_Line ("      Dc_Last_Bit => "
+         File.Put_Line ("      Decision_Last_Bit => "
                         & Img (UIC.Unit_Bits.Last_Decision_Bit) & ",");
          File.Put_Line ("      Closure_Hash => " & Closure_Hash & ",");
          File.Put_Line ("      Unit_Kind => " & Unit_Kind & ",");

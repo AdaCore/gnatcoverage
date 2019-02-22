@@ -183,7 +183,9 @@ package body Instrument.Sources is
       return Create_From_Template
         (IC.Rewriting_Context,
          Template  => To_Wide_Wide_String (Call_Img),
-         Arguments => (1 => E.Common_Buffers, 2 => E.Dc_Buffer, 3 => Decision),
+         Arguments => (1 => E.Common_Buffers,
+                       2 => E.Decision_Buffer,
+                       3 => Decision),
          Rule      => Expr_Rule);
    end Make_Decision_Witness;
 
@@ -2417,7 +2419,8 @@ package body Instrument.Sources is
          E.Unit_Buffers := To_Nodes (RH, IC.Buffer_Unit.Unit);
          E.Stmt_Buffer :=
             To_Nodes (RH, IC.Buffer_Unit.Unit & Stmt_Buffer_Name);
-         E.Dc_Buffer := To_Nodes (RH, IC.Buffer_Unit.Unit & Dc_Buffer_Name);
+         E.Decision_Buffer :=
+            To_Nodes (RH, IC.Buffer_Unit.Unit & Decision_Buffer_Name);
       end;
    end Initialize_Rewriting;
 

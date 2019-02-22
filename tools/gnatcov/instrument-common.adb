@@ -214,6 +214,6 @@ begin
    Stmt_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
    Stmt_Buffer_Name.Append (To_Unbounded_String ("Stmt"));
 
-   Dc_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
-   Dc_Buffer_Name.Append (To_Unbounded_String ("Dc"));
+   Decision_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
+   Decision_Buffer_Name.Append (To_Unbounded_String ("Dc"));
 end Instrument.Common;

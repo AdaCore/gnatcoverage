@@ -32,11 +32,11 @@ package Instrument.Input_Traces is
 
    generic
       with procedure On_Trace_Entry
-        (Closure_Hash : Hash_Type;
-         Unit_Name    : String;
-         Unit_Kind    : Instrument.Unit_Kind;
-         Stmt_Buffer  : Coverage_Buffer;
-         Dc_Buffer    : Coverage_Buffer) is <>;
+        (Closure_Hash    : Hash_Type;
+         Unit_Name       : String;
+         Unit_Kind       : Instrument.Unit_Kind;
+         Stmt_Buffer     : Coverage_Buffer;
+         Decision_Buffer : Coverage_Buffer) is <>;
    procedure Generic_Read_Source_Trace_File
      (Filename : String;
       Result   : out Traces_Files.Read_Result);

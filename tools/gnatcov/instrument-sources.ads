@@ -38,7 +38,7 @@ private package Instrument.Sources is
       --  Qualified name for the buffer corresponding to statement coverage
       --  obligations.
 
-      Dc_Buffer : Node_Rewriting_Handle;
+      Decision_Buffer : Node_Rewriting_Handle;
       --  Qualified name for the buffer corresponding to decision coverage
       --  obligations.
    end record;

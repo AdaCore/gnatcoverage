@@ -128,8 +128,8 @@ package System.GNATcov.Traces is
       Unit_Name_Length : Unsigned_32;
       --  Length of the unit name for the unit this trace entry describes
 
-      Stmt_Bit_Count : Any_Bit_Count;
-      Dc_Bit_Count   : Any_Bit_Count;
+      Stmt_Bit_Count     : Any_Bit_Count;
+      Decision_Bit_Count : Any_Bit_Count;
       --  Number of bits in the statement and decision coverage buffers
 
       Unit_Kind : Any_Unit_Kind;
@@ -147,7 +147,7 @@ package System.GNATcov.Traces is
       Closure_Hash        at  0 range 0 .. 31;
       Unit_Name_Length    at  4 range 0 .. 31;
       Stmt_Bit_Count      at  8 range 0 .. 31;
-      Dc_Bit_Count        at 12 range 0 .. 31;
+      Decision_Bit_Count  at 12 range 0 .. 31;
       Unit_Kind           at 16 range 0 .. 7;
       Bit_Buffer_Encoding at 17 range 0 .. 7;
       Padding             at 18 range 0 .. 6 * 8 - 1;

@@ -30,8 +30,8 @@ package System.GNATcov.Buffers is
    --  Hash type to perform consistency checks
 
    type Unit_Coverage_Buffers
-     (Unit_Name_Length           : Positive;
-      Stmt_Last_Bit, Dc_Last_Bit : Any_Bit_Id)
+     (Unit_Name_Length                 : Positive;
+      Stmt_Last_Bit, Decision_Last_Bit : Any_Bit_Id)
    is record
       Closure_Hash : Hash_Type;
       --  Hash for the instrumented unit and its complete dependency closure.
@@ -43,7 +43,7 @@ package System.GNATcov.Buffers is
       --  Unit kind and name for the instrumented unit
 
       Stmt : Coverage_Buffer_Type (0 .. Stmt_Last_Bit);
-      Dc   : Coverage_Buffer_Type (0 .. Dc_Last_Bit);
+      Dc   : Coverage_Buffer_Type (0 .. Decision_Last_Bit);
       --  Coverage buffers for statement and decision obligations
    end record;
 

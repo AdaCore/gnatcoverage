@@ -69,7 +69,7 @@ private package Instrument.Common is
    --  Qualified name (relative to the unit buffer package) of the buffer to
    --  contain coverage data corresponding to statement obligations.
 
-   Dc_Buffer_Name : Ada_Qualified_Name;
+   Decision_Buffer_Name : Ada_Qualified_Name;
    --  Qualified name (relative to the unit buffer package) of the buffer to
    --  contain coverage data corresponding to decision obligations.
 
