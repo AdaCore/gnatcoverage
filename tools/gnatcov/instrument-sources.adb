@@ -136,7 +136,7 @@ package body Instrument.Sources is
       Statement : Boolean) return Node_Rewriting_Handle
    is
       Bit_Img : constant String  := Img (Bit);
-      M       : Rewriting_Material renames IC.Material;
+      E       : Instrumentation_Entities renames IC.Entities;
 
       function Call_Img return String is
         ("{}.Witness ({}, " & Bit_Img & ")");
@@ -151,15 +151,15 @@ package body Instrument.Sources is
    begin
       if Statement then
          return Create_From_Template
-           (IC.RH_Ctx,
+           (IC.Rewriting_Context,
             Template  => To_Wide_Wide_String (Stmt_Img),
-            Arguments => (M.Common_Buffers, M.Stmt_Buffer),
+            Arguments => (E.Common_Buffers, E.Stmt_Buffer),
             Rule      => Call_Stmt_Rule);
       else
          return Create_From_Template
-           (IC.RH_Ctx,
+           (IC.Rewriting_Context,
             Template  => To_Wide_Wide_String (Decl_Img),
-            Arguments => (1 | 2 => M.Common_Buffers, 3 => M.Stmt_Buffer),
+            Arguments => (1 | 2 => E.Common_Buffers, 3 => E.Stmt_Buffer),
             Rule      => Object_Decl_Rule);
       end if;
    end Make_Statement_Witness;
@@ -173,7 +173,7 @@ package body Instrument.Sources is
       Bits     : Outcome_Bit_Ids;
       Decision : Node_Rewriting_Handle) return Node_Rewriting_Handle
    is
-      M        : Rewriting_Material renames IC.Material;
+      E        : Instrumentation_Entities renames IC.Entities;
       Call_Img : constant String :=
         "{}.Witness ({}, "
         & Img (Bits (False)) & ","
@@ -181,9 +181,9 @@ package body Instrument.Sources is
         & "{})";
    begin
       return Create_From_Template
-        (IC.RH_Ctx,
+        (IC.Rewriting_Context,
          Template  => To_Wide_Wide_String (Call_Img),
-         Arguments => (1 => M.Common_Buffers, 2 => M.Dc_Buffer, 3 => Decision),
+         Arguments => (1 => E.Common_Buffers, 2 => E.Dc_Buffer, 3 => Decision),
          Rule      => Expr_Rule);
    end Make_Decision_Witness;
 
@@ -839,11 +839,11 @@ package body Instrument.Sources is
 
                   declare
                      Buffers_Unit : constant Node_Rewriting_Handle :=
-                        To_Nodes (IC.RH_Ctx, IC.Buffer_Unit.Unit);
+                        To_Nodes (IC.Rewriting_Context, IC.Buffer_Unit.Unit);
                      With_Clause  : constant Node_Rewriting_Handle :=
                         Create_From_Template
-                          (IC.RH_Ctx, "with {};", (1 => Buffers_Unit),
-                           With_Clause_Rule);
+                          (IC.Rewriting_Context, "with {};",
+                           (1 => Buffers_Unit), With_Clause_Rule);
                   begin
                      Append_Child (Handle (CUN.F_Prelude), With_Clause);
                   end;
@@ -2396,20 +2396,30 @@ package body Instrument.Sources is
       return Result;
    end To_Nodes;
 
-   -------------------------------
-   -- Create_Rewriting_Material --
-   -------------------------------
+   --------------------------
+   -- Initialize_Rewriting --
+   --------------------------
 
-   procedure Create_Rewriting_Material (Context : in out Unit_Inst_Context) is
-      RH : Rewriting_Handle renames Context.RH_Ctx;
-      M  : Rewriting_Material renames Context.Material;
+   procedure Initialize_Rewriting
+     (IC                : out Unit_Inst_Context;
+      Instrumented_Unit : Compilation_Unit_Name;
+      Context           : Analysis_Context) is
    begin
-      M.Common_Buffers := To_Nodes (RH, Sys_Buffers);
-      M.Unit_Buffers := To_Nodes (RH, Context.Buffer_Unit.Unit);
-      M.Stmt_Buffer :=
-         To_Nodes (RH, Context.Buffer_Unit.Unit & Stmt_Buffer_Name);
-      M.Dc_Buffer := To_Nodes (RH, Context.Buffer_Unit.Unit & Dc_Buffer_Name);
-   end Create_Rewriting_Material;
+      IC.Instrumented_Unit := Instrumented_Unit;
+      IC.Buffer_Unit := (Buffer_Unit (Instrumented_Unit), Unit_Spec);
+      IC.Rewriting_Context := Start_Rewriting (Context);
+
+      declare
+         RH : constant Rewriting_Handle := IC.Rewriting_Context;
+         E  : Instrumentation_Entities renames IC.Entities;
+      begin
+         E.Common_Buffers := To_Nodes (RH, Sys_Buffers);
+         E.Unit_Buffers := To_Nodes (RH, IC.Buffer_Unit.Unit);
+         E.Stmt_Buffer :=
+            To_Nodes (RH, IC.Buffer_Unit.Unit & Stmt_Buffer_Name);
+         E.Dc_Buffer := To_Nodes (RH, IC.Buffer_Unit.Unit & Dc_Buffer_Name);
+      end;
+   end Initialize_Rewriting;
 
    ---------------------------
    -- Add_Auto_Dump_Buffers --
@@ -2474,15 +2484,17 @@ package body Instrument.Sources is
             Handle (CU.F_Prelude);
          With_Output : constant Node_Rewriting_Handle :=
             Create_From_Template
-              (UIC.RH_Ctx,
+              (UIC.Rewriting_Context,
                Template  => "with {};",
-               Arguments => (1 => To_Nodes (UIC.RH_Ctx, Output_Unit)),
+               Arguments =>
+                 (1 => To_Nodes (UIC.Rewriting_Context, Output_Unit)),
                Rule      => With_Clause_Rule);
          With_Closure : constant Node_Rewriting_Handle :=
             Create_From_Template
-              (UIC.RH_Ctx,
+              (UIC.Rewriting_Context,
                Template  => "with {};",
-               Arguments => (1 => To_Nodes (UIC.RH_Ctx, Closure_Unit)),
+               Arguments =>
+                 (1 => To_Nodes (UIC.Rewriting_Context, Closure_Unit)),
                Rule      => With_Clause_Rule);
       begin
          Append_Child (Prelude, With_Output);
@@ -2499,9 +2511,9 @@ package body Instrument.Sources is
          --  System.GNATcov.Traces.Output.Write_Trace_File.
 
          New_Stmt_List : constant Node_Rewriting_Handle :=
-            Create_Node (UIC.RH_Ctx, Ada_Stmt_List);
+            Create_Node (UIC.Rewriting_Context, Ada_Stmt_List);
          New_Excs      : constant Node_Rewriting_Handle :=
-            Create_Node (UIC.RH_Ctx, Ada_Ada_Node_List);
+            Create_Node (UIC.Rewriting_Context, Ada_Ada_Node_List);
 
          Nested_Block : Node_Rewriting_Handle;
          Nested_Decls : Node_Rewriting_Handle;
@@ -2511,7 +2523,8 @@ package body Instrument.Sources is
 
          Old_Stmts := Handle (Subp_Body.F_Stmts);
          New_Stmts := Create_Regular_Node
-           (UIC.RH_Ctx, Ada_Handled_Stmts, (New_Stmt_List, New_Excs));
+           (UIC.Rewriting_Context, Ada_Handled_Stmts,
+            (New_Stmt_List, New_Excs));
          Replace (Old_Stmts, New_Stmts);
 
          --  If the original subprogram has declarations, wrap the original
@@ -2524,11 +2537,12 @@ package body Instrument.Sources is
             Replace
               (Nested_Decls,
                Create_Regular_Node
-                 (UIC.RH_Ctx, Ada_Declarative_Part,
-                  (1 => Create_Node (UIC.RH_Ctx, Ada_Ada_Node_List))));
+                 (UIC.Rewriting_Context, Ada_Declarative_Part,
+                  (1 => Create_Node (UIC.Rewriting_Context,
+                                     Ada_Ada_Node_List))));
 
             Nested_Block := Create_Regular_Node
-              (UIC.RH_Ctx, Ada_Decl_Block,
+              (UIC.Rewriting_Context, Ada_Decl_Block,
                (Nested_Decls,               --  F_Decls
                 Old_Stmts,                  --  F_Stmts
                 No_Node_Rewriting_Handle)); --  F_End_Name
@@ -2541,10 +2555,10 @@ package body Instrument.Sources is
          Append_Child
            (New_Stmt_List,
             Create_From_Template
-              (UIC.RH_Ctx,
+              (UIC.Rewriting_Context,
                Template  => "{} ({});",
-               Arguments => (To_Nodes (UIC.RH_Ctx, Output_Proc),
-                             To_Nodes (UIC.RH_Ctx, Closure_Object)),
+               Arguments => (To_Nodes (UIC.Rewriting_Context, Output_Proc),
+                             To_Nodes (UIC.Rewriting_Context, Closure_Object)),
                Rule      => Stmt_Rule));
       end;
    end Add_Auto_Dump_Buffers;
@@ -2574,13 +2588,6 @@ package body Instrument.Sources is
       --  illegal.
 
    begin
-      UIC :=
-        (Instrumented_Unit => CU_Name,
-         Buffer_Unit       => (Buffer_Unit (CU_Name), Unit_Spec),
-         RH_Ctx            => Start_Rewriting (Ctx),
-         Unit_Bits         => <>,
-         Material          => <>);
-
       --  Check that we could at least parse the source file to instrument
 
       if Unit.Has_Diagnostics then
@@ -2590,11 +2597,10 @@ package body Instrument.Sources is
          for D of Unit.Diagnostics loop
             Outputs.Error (Unit.Format_GNU_Diagnostic (D));
          end loop;
-         Abort_Rewriting (UIC.RH_Ctx);
          raise Outputs.Xcov_Exit_Exc;
       end if;
 
-      Create_Rewriting_Material (UIC);
+      Initialize_Rewriting (UIC, CU_Name, Ctx);
 
       --  Then run SCOs generation. This inserts calls to witness
       --  procedures/functions in the same pass.
@@ -2628,7 +2634,7 @@ package body Instrument.Sources is
       --  Emit the instrumented source file
 
       declare
-         Result : constant Apply_Result := Apply (UIC.RH_Ctx);
+         Result : constant Apply_Result := Apply (UIC.Rewriting_Context);
       begin
          if Result.Success then
             declare
@@ -2648,7 +2654,7 @@ package body Instrument.Sources is
                  (Image (D.Sloc_Range) & ": "
                   & To_String (To_Wide_Wide_String (D.Message)));
             end loop;
-            Abort_Rewriting (UIC.RH_Ctx);
+            Abort_Rewriting (UIC.Rewriting_Context);
             raise Outputs.Xcov_Exit_Exc;
          end if;
       end;

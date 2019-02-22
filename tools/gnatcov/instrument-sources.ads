@@ -26,7 +26,7 @@ with Strings;
 
 private package Instrument.Sources is
 
-   type Rewriting_Material is record
+   type Instrumentation_Entities is record
       Common_Buffers : Node_Rewriting_Handle;
       --  Qualified name for the unit that contains coverage buffer types and
       --  witness subprograms.
@@ -58,17 +58,21 @@ private package Instrument.Sources is
       --  Name of the compilation unit that holds coverage buffers for the
       --  unit currently being instrumented.
 
-      RH_Ctx : Rewriting_Handle;
+      Rewriting_Context : Rewriting_Handle;
       --  Rewriting handle for the instrumentation process
 
       Unit_Bits : LL_Unit_Bit_Maps;
 
-      Material : Rewriting_Material;
+      Entities : Instrumentation_Entities;
       --  Bank of nodes to use during instrumentation
    end record;
 
-   procedure Create_Rewriting_Material (Context : in out Unit_Inst_Context);
-   --  Create nodes in Context.Material
+   procedure Initialize_Rewriting
+     (IC                : out Unit_Inst_Context;
+      Instrumented_Unit : Compilation_Unit_Name;
+      Context           : Analysis_Context);
+   --  Initialize a unit instrumentation context for the given unit to
+   --  instrument.
 
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
