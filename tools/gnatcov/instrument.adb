@@ -256,7 +256,7 @@ package body Instrument is
          declare
             UIC : Unit_Inst_Context;
          begin
-            Instrument_Unit
+            Instrument_Source_File
               (Instrumented_Unit_Maps.Key (Cur),
                Instrumented_Unit_Maps.Element (Cur),
                IC, UIC);

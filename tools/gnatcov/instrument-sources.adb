@@ -2549,11 +2549,11 @@ package body Instrument.Sources is
       end;
    end Add_Auto_Dump_Buffers;
 
-   ---------------------
-   -- Instrument_Unit --
-   ---------------------
+   ----------------------------
+   -- Instrument_Source_File --
+   ----------------------------
 
-   procedure Instrument_Unit
+   procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
       Unit_Info : Instrumented_Unit_Info;
       IC        : Inst_Context;
@@ -2652,6 +2652,6 @@ package body Instrument.Sources is
             raise Outputs.Xcov_Exit_Exc;
          end if;
       end;
-   end Instrument_Unit;
+   end Instrument_Source_File;
 
 end Instrument.Sources;

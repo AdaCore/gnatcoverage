@@ -70,7 +70,7 @@ private package Instrument.Sources is
    procedure Create_Rewriting_Material (Context : in out Unit_Inst_Context);
    --  Create nodes in Context.Material
 
-   procedure Instrument_Unit
+   procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
       Unit_Info : Instrumented_Unit_Info;
       IC        : Inst_Context;
