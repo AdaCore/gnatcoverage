@@ -83,7 +83,7 @@ package Instrument is
    --  as the list of units of interest.
    --
    --  If Auto_Dump_Buffers is true, append a call to
-   --  System.GNATcov.Traces.Output.Write_Trace_File for the closure in all
-   --  mains in the project.
+   --  System.GNATcov.Traces.Output.Write_Trace_File for list of coverage
+   --  buffers in all mains in the project.
 
 end Instrument;

@@ -1,4 +1,4 @@
-with System.GNATcov.Closures; use System.GNATcov.Closures;
+with System.GNATcov.Buffers.Lists; use System.GNATcov.Buffers.Lists;
 
 package System.GNATcov.Traces.Output is
 

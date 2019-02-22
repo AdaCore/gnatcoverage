@@ -208,8 +208,8 @@ begin
    Sys_Buffers := Sys_Prefix;
    Sys_Buffers.Append (To_Unbounded_String ("Buffers"));
 
-   Sys_Closures := Sys_Prefix;
-   Sys_Closures.Append (To_Unbounded_String ("Closures"));
+   Sys_Buffers_Lists := Sys_Buffers;
+   Sys_Buffers_Lists.Append (To_Unbounded_String ("Lists"));
 
    Stmt_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
    Stmt_Buffer_Name.Append (To_Unbounded_String ("Stmt"));

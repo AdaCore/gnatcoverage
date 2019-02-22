@@ -46,7 +46,7 @@ package body Instrument is
    --  Emit the unit to contain coverage buffers for the given instrumented
    --  unit.
 
-   procedure Emit_Closure_Unit (IC : Inst_Context);
+   procedure Emit_Buffers_List_Unit (IC : Inst_Context);
    --  Emit a generic procedure to output coverage buffers for all units of
    --  interest.
 
@@ -113,12 +113,12 @@ package body Instrument is
       end;
    end Emit_Buffer_Unit;
 
-   -----------------------
-   -- Emit_Closure_Unit --
-   -----------------------
+   ----------------------------
+   -- Emit_Buffers_List_Unit --
+   ----------------------------
 
-   procedure Emit_Closure_Unit (IC : Inst_Context) is
-      CU_Name : Compilation_Unit_Name := (Sys_Closures, Unit_Spec);
+   procedure Emit_Buffers_List_Unit (IC : Inst_Context) is
+      CU_Name : Compilation_Unit_Name := (Sys_Buffers_Lists, Unit_Spec);
       File    : Text_Files.File_Type;
 
       package Buffer_Vectors is new Ada.Containers.Vectors
@@ -156,7 +156,7 @@ package body Instrument is
          File.New_Line;
          File.Put_Line ("package " & Unit_Name & " is");
          File.New_Line;
-         File.Put_Line ("   Closure : constant Unit_Coverage_Buffers_Array"
+         File.Put_Line ("   List : constant Unit_Coverage_Buffers_Array"
                         & " :=");
          File.Put ("     (");
          if Buffer_Units.Length = 1 then
@@ -175,7 +175,7 @@ package body Instrument is
          File.New_Line;
          File.Put_Line ("end " & Unit_Name & ";");
       end;
-   end Emit_Closure_Unit;
+   end Emit_Buffers_List_Unit;
 
    ------------------------
    -- Emit_Project_Files --
@@ -263,7 +263,7 @@ package body Instrument is
             Emit_Buffer_Unit (IC, UIC);
          end;
       end loop;
-      Emit_Closure_Unit (IC);
+      Emit_Buffers_List_Unit (IC);
       Emit_Project_Files (IC);
 
       --  Finally, emit a checkpoint to contain mappings between bits in

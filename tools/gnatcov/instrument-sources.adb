@@ -104,8 +104,8 @@ package body Instrument.Sources is
      (IC   : Inst_Context;
       UIC  : Unit_Inst_Context;
       Unit : LAL.Analysis_Unit);
-   --  Try to insert a call to dump the closure of coverage buffers for units
-   --  of interest at the end of Unit, a main subprogram. Return without doing
+   --  Try to insert a call to dump the list of coverage buffers for units of
+   --  interest at the end of Unit, a main subprogram. Return without doing
    --  anything if unsuccessful.
 
    -------------------------------------
@@ -2440,8 +2440,8 @@ package body Instrument.Sources is
 
       Old_Stmts, New_Stmts : Node_Rewriting_Handle;
 
-      Output_Unit, Output_Proc     : Ada_Qualified_Name;
-      Closure_Unit, Closure_Object : Ada_Qualified_Name;
+      Output_Unit, Output_Proc               : Ada_Qualified_Name;
+      Buffers_List_Unit, Buffers_List_Object : Ada_Qualified_Name;
    begin
       --  Make sure this main source has the expected structure: a
       --  simple subprogram body in a compilation unit. If not, return without
@@ -2474,11 +2474,11 @@ package body Instrument.Sources is
       Output_Proc := Output_Unit;
       Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
 
-      Closure_Unit := Sys_Closures;
-      Closure_Unit.Append (Common.Ada_Identifier (IC.Project_Name));
+      Buffers_List_Unit := Sys_Buffers_Lists;
+      Buffers_List_Unit.Append (Common.Ada_Identifier (IC.Project_Name));
 
-      Closure_Object := Closure_Unit;
-      Closure_Object.Append (To_Unbounded_String ("Closure"));
+      Buffers_List_Object := Buffers_List_Unit;
+      Buffers_List_Object.Append (To_Unbounded_String ("List"));
 
       --  Add the required WITH clauses
 
@@ -2492,16 +2492,16 @@ package body Instrument.Sources is
                Arguments =>
                  (1 => To_Nodes (UIC.Rewriting_Context, Output_Unit)),
                Rule      => With_Clause_Rule);
-         With_Closure : constant Node_Rewriting_Handle :=
+         With_List : constant Node_Rewriting_Handle :=
             Create_From_Template
               (UIC.Rewriting_Context,
                Template  => "with {};",
                Arguments =>
-                 (1 => To_Nodes (UIC.Rewriting_Context, Closure_Unit)),
+                 (1 => To_Nodes (UIC.Rewriting_Context, Buffers_List_Unit)),
                Rule      => With_Clause_Rule);
       begin
          Append_Child (Prelude, With_Output);
-         Append_Child (Prelude, With_Closure);
+         Append_Child (Prelude, With_List);
       end;
 
       --  Wrap the previous subprogram body content (declarations, handled
@@ -2561,7 +2561,8 @@ package body Instrument.Sources is
               (UIC.Rewriting_Context,
                Template  => "{} ({});",
                Arguments => (To_Nodes (UIC.Rewriting_Context, Output_Proc),
-                             To_Nodes (UIC.Rewriting_Context, Closure_Object)),
+                             To_Nodes (UIC.Rewriting_Context,
+                                       Buffers_List_Object)),
                Rule      => Stmt_Rule));
       end;
    end Add_Auto_Dump_Buffers;

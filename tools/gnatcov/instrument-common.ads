@@ -61,7 +61,7 @@ private package Instrument.Common is
    Sys_Buffers : Ada_Qualified_Name;
    --  Scope in Sys_Prefix for all packages to contain coverage buffers
 
-   Sys_Closures : Ada_Qualified_Name;
+   Sys_Buffers_Lists : Ada_Qualified_Name;
    --  Scope in Sys_Prefix for all packages to contain generic procedures for
    --  iterations on coverage buffers.
 
@@ -113,7 +113,7 @@ private package Instrument.Common is
 
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
-      --  Name of the root project. It is also used to name the buffer closure
+      --  Name of the root project. It is also used to name the list of buffers
 
       Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
       --  Subdirectory in the root project file's object directory. All we
