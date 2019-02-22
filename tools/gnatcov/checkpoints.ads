@@ -42,6 +42,9 @@ package Checkpoints is
      array (Source_File_Index range <>) of Source_File_Index;
    type SFI_Map_Acc is access all SFI_Map_Array;
 
+   type CU_Id_Map_Array is array (CU_Id range <>) of CU_Id;
+   type CU_Id_Map_Acc is access all CU_Id_Map_Array;
+
    type Inst_Id_Map_Array is array (Inst_Id range <>) of Inst_Id;
    type Inst_Id_Map_Acc is access all Inst_Id_Map_Array;
 
@@ -75,6 +78,7 @@ package Checkpoints is
    type Checkpoint_Load_State is new Checkpoint_State with record
       Filename : Unbounded_String;
       SFI_Map  : SFI_Map_Acc;
+      CU_Map   : CU_Id_Map_Acc;
       Inst_Map : Inst_Id_Map_Acc;
       BDD_Map  : BDD_Node_Id_Map_Acc;
       SCO_Map  : SCO_Id_Map_Acc;

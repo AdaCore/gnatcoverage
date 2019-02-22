@@ -19,13 +19,16 @@
 --  Common data structures for source instrumentation-based coverage
 
 with Ada.Containers.Vectors;
-with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
 
-with GNATCOLL.Projects;
+with GNATCOLL.Projects; use GNATCOLL.Projects;
 
-private package Instrument.Common is
+with Checkpoints;
+with SC_Obligations; use SC_Obligations;
+
+package Instrument.Common is
 
    function "/" (Dir, Name : String) return String is
      (Ada.Directories.Compose (Dir, Name));
@@ -75,7 +78,7 @@ private package Instrument.Common is
 
    type Compilation_Unit_Name is record
       Unit : Ada_Qualified_Name;
-      Kind : Unit_Kind;
+      Part : Unit_Parts;
    end record;
    --  Unique identifier for an instrumented unit
 
@@ -99,17 +102,25 @@ private package Instrument.Common is
    --  its coverage buffers.
 
    type Instrumented_Unit_Info is record
-      Filename : Ada.Strings.Unbounded.Unbounded_String;
-      --  Name of the source to instrument for this unit
-
       Is_Main : Boolean;
       --  Whether this unit is a main
+
+      CU : CU_Id := No_CU_Id;
+      --  Compilation unit (set after instrumentation is inserted)
    end record;
 
    package Instrumented_Unit_Maps is new
-      Ada.Containers.Indefinite_Ordered_Maps
+      Ada.Containers.Ordered_Maps
         (Key_Type     => Compilation_Unit_Name,
          Element_Type => Instrumented_Unit_Info);
+
+   Instrumented_Units : Instrumented_Unit_Maps.Map;
+   --  Mapping from instrumented unit names to their info record
+
+   function Find_Instrumented_Unit
+     (Unit_Name : String;
+      Unit_Part : Unit_Parts) return Instrumented_Unit_Info;
+   --  Return a unit's entry from the instrumented units map
 
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
@@ -125,14 +136,25 @@ private package Instrument.Common is
       Buffers_Dir : Ada.Strings.Unbounded.Unbounded_String;
       --  Directory to contain all sources that create coverage buffers
 
-      Instrumented_Units : Instrumented_Unit_Maps.Map;
-      --  Mapping from instrumented unit names to their source file
-
       Auto_Dump_Buffers : Boolean;
       --  See the eponym argument in Instrument.Intrument_Units_Of_Interest
    end record;
 
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
+
+   -----------------
+   -- Checkpoints --
+   -----------------
+
+   --  Note: the following procedures must be called after the SCO units
+   --  table has been saved/loaded.
+
+   procedure Checkpoint_Save (CSS : in out Checkpoints.Checkpoint_Save_State);
+   --  Save the current instrumented units map to stream
+
+   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
+   --  Load checkpointed instrumented unit map from stream and merge them in
+   --  current state.
 
 end Instrument.Common;

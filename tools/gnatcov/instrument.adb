@@ -90,10 +90,8 @@ package body Instrument is
 
          Unit_Name : constant String := Ada.Characters.Handling.To_Lower
            (To_Ada (UIC.Instrumented_Unit.Unit));
-         Unit_Kind : constant String :=
-           (case UIC.Instrumented_Unit.Kind is
-            when Unit_Spec => "Unit_Spec",
-            when Unit_Body => "Unit_Body");
+         Unit_Kind : constant String := UIC.Instrumented_Unit.Part'Img;
+
       begin
          File.Put_Line ("package " & Pkg_Name & " is");
          File.New_Line;
@@ -118,6 +116,8 @@ package body Instrument is
    ----------------------------
 
    procedure Emit_Buffers_List_Unit (IC : Inst_Context) is
+      use GNATCOLL.Projects;
+
       CU_Name : Compilation_Unit_Name := (Sys_Buffers_Lists, Unit_Spec);
       File    : Text_Files.File_Type;
 
@@ -131,7 +131,7 @@ package body Instrument is
       --  Compute the list of units that contain the coverage buffers to
       --  process.
 
-      for Cur in IC.Instrumented_Units.Iterate loop
+      for Cur in Instrumented_Units.Iterate loop
          declare
             I_Unit : constant Compilation_Unit_Name :=
                Instrumented_Unit_Maps.Key (Cur);
@@ -211,58 +211,60 @@ package body Instrument is
       Units_Inputs        : Inputs.Inputs_Type;
       Auto_Dump_Buffers   : Boolean)
    is
-      IC : Inst_Context := Create_Context
-        (Auto_Dump_Buffers);
+      IC : constant Inst_Context := Create_Context (Auto_Dump_Buffers);
 
-      procedure Add_Instrumented_Unit
+      procedure Instrument_Unit
         (Project     : GNATCOLL.Projects.Project_Type;
          Source_File : GNATCOLL.Projects.File_Info);
-      --  Add the given source file to IC.Instrumented_Units
+      --  Instrument a single source file of interest from the project
 
-      ---------------------------
-      -- Add_Instrumented_Unit --
-      ---------------------------
+      ---------------------
+      -- Instrument_Unit --
+      ---------------------
 
-      procedure Add_Instrumented_Unit
+      procedure Instrument_Unit
         (Project     : GNATCOLL.Projects.Project_Type;
          Source_File : GNATCOLL.Projects.File_Info)
       is
          use GNATCOLL.VFS;
 
+         CU_Name         : constant Compilation_Unit_Name :=
+           To_Compilation_Unit_Name (Source_File);
          Source_File_Str : constant GNATCOLL.VFS.Filesystem_String :=
-            Source_File.File.Full_Name;
-         Unit_Info : constant Instrumented_Unit_Info :=
-           (Filename => To_Unbounded_String (+Source_File_Str),
-            Is_Main  => GNATCOLL.Projects.Is_Main_File
-                          (Project, Source_File.File.Base_Name));
+           Source_File.File.Full_Name;
+
+         UIC             : Unit_Inst_Context;
+         Unit_Info       : Instrumented_Unit_Info :=
+           (Is_Main => GNATCOLL.Projects.Is_Main_File
+                         (Project, Source_File.File.Base_Name),
+            others  => <>);
 
       begin
-         IC.Instrumented_Units.Insert
+         --  Instrument source file
+
+         Instrument_Source_File
+           (CU_Name   => CU_Name,
+            File_Name => +Source_File_Str,
+            Unit_Info => Unit_Info,
+            IC        => IC,
+            UIC       => UIC);
+
+         Emit_Buffer_Unit (IC, UIC);
+
+         --  Record in map of instrumented units
+
+         Unit_Info.CU := UIC.CU;
+         Instrumented_Units.Insert
            (To_Compilation_Unit_Name (Source_File), Unit_Info);
-      end Add_Instrumented_Unit;
+      end Instrument_Unit;
 
    --  Start of processing for Instrument_Units_Of_Interest
 
    begin
-      --  First collect the list of all units to instrument
-
-      Project.Enumerate_Ada_Sources
-        (Add_Instrumented_Unit'Access, Units_Inputs);
-
-      --  Then run the instrumentation process itself
-
       Prepare_Output_Dirs (IC);
-      for Cur in IC.Instrumented_Units.Iterate loop
-         declare
-            UIC : Unit_Inst_Context;
-         begin
-            Instrument_Source_File
-              (Instrumented_Unit_Maps.Key (Cur),
-               Instrumented_Unit_Maps.Element (Cur),
-               IC, UIC);
-            Emit_Buffer_Unit (IC, UIC);
-         end;
-      end loop;
+
+      Project.Enumerate_Ada_Sources (Instrument_Unit'Access, Units_Inputs);
+
       Emit_Buffers_List_Unit (IC);
       Emit_Project_Files (IC);
 

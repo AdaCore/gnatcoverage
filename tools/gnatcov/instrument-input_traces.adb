@@ -32,6 +32,8 @@ with Outputs;
 
 package body Instrument.Input_Traces is
 
+   use GNATCOLL.Projects;
+
    subtype Read_Result is Traces_Files.Read_Result;
    procedure Create_Error (Result : out Read_Result; Error : String)
       renames Traces_Files.Create_Error;
@@ -366,8 +368,8 @@ package body Instrument.Input_Traces is
          Raw_Header : Trace_Entry_Header
             with Import, Address => Buffer_Address (Stream);
       begin
-         if Raw_Header.Unit_Kind not in Supported_Unit_Kind then
-            Create_Error (Result, "invalid unit kind");
+         if Raw_Header.Unit_Part not in Supported_Unit_Kind then
+            Create_Error (Result, "invalid unit part");
             return False;
 
          elsif Raw_Header.Bit_Buffer_Encoding not in
@@ -548,7 +550,7 @@ package body Instrument.Input_Traces is
                On_Trace_Entry
                  (Hash_Type (Entry_Header.Closure_Hash),
                   Unit_Name,
-                  Unit_Kind'Val (Any_Unit_Kind'Pos (Entry_Header.Unit_Kind)),
+                  Unit_Parts'Val (Entry_Header.Unit_Part),
                   Stmt_Buffer (0 .. Last_Bit (Entry_Header.Stmt_Bit_Count)),
                   Decision_Buffer
                     (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)));
@@ -570,7 +572,7 @@ package body Instrument.Input_Traces is
       procedure On_Trace_Entry
         (Closure_Hash    : Hash_Type;
          Unit_Name       : String;
-         Unit_Kind       : Instrument.Unit_Kind;
+         Unit_Part       : Unit_Parts;
          Stmt_Buffer     : Coverage_Buffer;
          Decision_Buffer : Coverage_Buffer);
       --  Callback for Read_Source_Trace_File
@@ -584,14 +586,14 @@ package body Instrument.Input_Traces is
       procedure On_Trace_Entry
         (Closure_Hash    : Hash_Type;
          Unit_Name       : String;
-         Unit_Kind       : Instrument.Unit_Kind;
+         Unit_Part       : Unit_Parts;
          Stmt_Buffer     : Coverage_Buffer;
          Decision_Buffer : Coverage_Buffer)
       is
          use Ada.Text_IO;
       begin
          Put_Line
-           ("Unit " & Unit_Name & " (" & Unit_Kind'Image & ", hash="
+           ("Unit " & Unit_Name & " (" & Unit_Part'Image & ", hash="
             & Hex_Images.Hex_Image (Interfaces.Unsigned_32 (Closure_Hash))
             & ")");
          Dump_Buffer ("Stmt", Stmt_Buffer);

@@ -21,6 +21,7 @@
 with Libadalang.Analysis;     use Libadalang.Analysis;
 with Libadalang.Rewriting;    use Libadalang.Rewriting;
 
+with SC_Obligations;    use SC_Obligations;
 with Instrument.Common; use Instrument.Common;
 with Strings;
 
@@ -52,7 +53,13 @@ private package Instrument.Sources is
 
    type Unit_Inst_Context is record
       Instrumented_Unit : Compilation_Unit_Name;
-      --  Name of the compilation unit currently being instrumented
+      --  Name of the compilation unit being instrumented
+
+      SFI : Source_File_Index := No_Source_File;
+      --  Source file index of the compilation unit being instrumented
+
+      CU : CU_Id := No_CU_Id;
+      --  SCO identifier of the compilation unit being instrumented
 
       Buffer_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit that holds coverage buffers for the
@@ -76,6 +83,7 @@ private package Instrument.Sources is
 
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
+      File_Name : String;
       Unit_Info : Instrumented_Unit_Info;
       IC        : Inst_Context;
       UIC       : out Unit_Inst_Context);

@@ -21,6 +21,8 @@ with Ada.Directories;
 with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
+with GNATCOLL.Projects;       use GNATCOLL.Projects;
+
 with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;
 with Langkit_Support.Text;    use Langkit_Support.Text;
@@ -35,7 +37,6 @@ with Table;
 with ALI_Files;
 with Files_Table; use Files_Table;
 with Outputs;
-with SC_Obligations; use SC_Obligations;
 with Text_Files;
 
 package body Instrument.Sources is
@@ -2355,7 +2356,7 @@ package body Instrument.Sources is
    -----------------------
 
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Identifier is
-      AM : constant Name := A.F_Id;
+      AM : constant Libadalang.Analysis.Name := A.F_Id;
       --  aspect_mark of A
    begin
       --  Note: we just ignore a possible 'Class (we treat [Pre|Post]'Class
@@ -2573,13 +2574,13 @@ package body Instrument.Sources is
 
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
+      File_Name : String;
       Unit_Info : Instrumented_Unit_Info;
       IC        : Inst_Context;
       UIC       : out Unit_Inst_Context)
    is
-      Filename : constant String := To_String (Unit_Info.Filename);
       Ctx      : constant Analysis_Context := Create_Context;
-      Unit     : constant Analysis_Unit := Get_From_File (Ctx, Filename);
+      Unit     : constant Analysis_Unit := Get_From_File (Ctx, File_Name);
 
       Preelab : constant Boolean := False;
       --  ??? To be implemented in Libadalang: S128-004
@@ -2595,7 +2596,7 @@ package body Instrument.Sources is
       --  Check that we could at least parse the source file to instrument
 
       if Unit.Has_Diagnostics then
-         Outputs.Error ("instrumentation failed for " & Filename);
+         Outputs.Error ("instrumentation failed for " & File_Name);
          Outputs.Error
            ("please make sure the original project can be compiled");
          for D of Unit.Diagnostics loop
@@ -2613,23 +2614,19 @@ package body Instrument.Sources is
       Traverse_Declarations_Or_Statements
         (UIC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
 
-      declare
-         SFI : constant Source_File_Index := Get_Index_From_Generic_Name
-           (Filename, Kind => Files_Table.Source_File);
-         CU  : constant CU_Id :=
-            Allocate_CU (Provider => Instrumenter, Origin => SFI);
-         --  In the instrumentation case, the origin of SCO information is
-         --  the original source file.
+      UIC.SFI := Get_Index_From_Generic_Name
+        (File_Name, Kind => Files_Table.Source_File);
+      UIC.CU := Allocate_CU (Provider => Instrumenter, Origin => UIC.SFI);
+      --  In the instrumentation case, the origin of SCO information is
+      --  the original source file.
 
-      begin
-         SCOs.SCO_Unit_Table.Append
-           ((File_Name  => new String'(Filename),
-             File_Index => SFI,
-             Dep_Num    => 1,
-             From       => SCOs.SCO_Table.First,
-             To         => SCOs.SCO_Table.Last));
-         Process_Low_Level_SCOs (CU, SFI, LL_Unit_Bits => UIC.Unit_Bits);
-      end;
+      SCOs.SCO_Unit_Table.Append
+        ((File_Name  => new String'(File_Name),
+          File_Index => UIC.SFI,
+          Dep_Num    => 1,
+          From       => SCOs.SCO_Table.First,
+          To         => SCOs.SCO_Table.Last));
+      Process_Low_Level_SCOs (UIC.CU, UIC.SFI, LL_Unit_Bits => UIC.Unit_Bits);
 
       if IC.Auto_Dump_Buffers and then Unit_Info.Is_Main then
          Add_Auto_Dump_Buffers (IC, UIC, Unit);
@@ -2650,7 +2647,7 @@ package body Instrument.Sources is
                Out_File.Put_Line (To_String (Unit.Text));
             end;
          else
-            Outputs.Error ("instrumentation failed for " & Filename);
+            Outputs.Error ("instrumentation failed for " & File_Name);
             Outputs.Error
               ("this is likely a bug in GNATcoverage: please report it");
             for D of Result.Diagnostics loop

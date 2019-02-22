@@ -20,6 +20,8 @@
 
 with Interfaces;
 
+with GNATCOLL.Projects;
+
 with Traces_Files;
 
 package Instrument.Input_Traces is
@@ -34,7 +36,7 @@ package Instrument.Input_Traces is
       with procedure On_Trace_Entry
         (Closure_Hash    : Hash_Type;
          Unit_Name       : String;
-         Unit_Kind       : Instrument.Unit_Kind;
+         Unit_Part       : GNATCOLL.Projects.Unit_Parts;
          Stmt_Buffer     : Coverage_Buffer;
          Decision_Buffer : Coverage_Buffer) is <>;
    procedure Generic_Read_Source_Trace_File

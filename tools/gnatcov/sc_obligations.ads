@@ -332,15 +332,42 @@ package SC_Obligations is
    type Sloc_To_SCO_Map_Array_Acc is access all Sloc_To_SCO_Map_Array;
    --  Maps for statement, decision, condition, and operator SCOs
 
+   ---------------------------
+   -- Source trace bit maps --
+   ---------------------------
+
+   --  For units whose SCOs come from source instrumentation, maintain
+   --  mapping of coverage buffer bit indices to SCO info.
+
+   type Statement_Bit_Map is array (Bit_Id range <>) of SCO_Id;
+   type Statement_Bit_Map_Access is access all Statement_Bit_Map;
+
+   type Decision_Bit_Info is record
+      D_SCO   : SCO_Id;
+      Outcome : Boolean;
+   end record;
+
+   type Decision_Bit_Map is array (Bit_Id range <>) of Decision_Bit_Info;
+   type Decision_Bit_Map_Access is access all Decision_Bit_Map;
+
+   type CU_Bit_Maps is record
+      Statement_Bits : Statement_Bit_Map_Access;
+      Decision_Bits  : Decision_Bit_Map_Access;
+   end record;
+
+   function Bit_Maps (CU : CU_Id) return CU_Bit_Maps;
+   --  For a unit whose coverage is assessed through source code
+   --  instrumentation, return bit maps.
+
    -----------------
    -- Checkpoints --
    -----------------
 
    procedure Checkpoint_Save (CSS : in out Checkpoints.Checkpoint_Save_State);
-   --  Save the current SCOs to S
+   --  Save the current SCOs to stream
 
    procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
-   --  Load checkpointed SCOs from S and merge them in current state
+   --  Load checkpointed SCOs from stream and merge them in current state
 
 private
 

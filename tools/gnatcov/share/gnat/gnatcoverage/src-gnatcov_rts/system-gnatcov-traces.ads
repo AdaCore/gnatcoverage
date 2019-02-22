@@ -47,12 +47,16 @@ package System.GNATcov.Traces is
    type Hash_Type is new Unsigned_32;
    --  Hash type to perform consistency checks
 
-   type Any_Unit_Kind is new Unsigned_8;
-   Unit_Spec : constant Any_Unit_Kind := 0;
-   Unit_Body : constant Any_Unit_Kind := 1;
-   subtype Supported_Unit_Kind is Any_Unit_Kind
-      with Static_Predicate => Supported_Unit_Kind in Unit_Spec | Unit_Body;
+   type Any_Unit_Part is new Unsigned_8;
+   Unit_Body     : constant Any_Unit_Part := 0;
+   Unit_Spec     : constant Any_Unit_Part := 1;
+   Unit_Separate : constant Any_Unit_Part := 2;
+   subtype Supported_Unit_Kind is Any_Unit_Part with
+     Static_Predicate => Supported_Unit_Kind in Unit_Spec .. Unit_Separate;
    --  Describe the kind of unit referenced by a trace entry
+   --  Note: these values must be kept in sync with the definition of the
+   --  GNATCOLL.Projects.Unit_Parts enumerated type (but we do not want
+   --  to drag a dependency on GNATCOLL here).
 
    type Any_Bit_Count is new Unsigned_32;
    --  Number of bits contained in a coverage buffer
@@ -132,8 +136,8 @@ package System.GNATcov.Traces is
       Decision_Bit_Count : Any_Bit_Count;
       --  Number of bits in the statement and decision coverage buffers
 
-      Unit_Kind : Any_Unit_Kind;
-      --  Kind for the unit this trace entry describes
+      Unit_Part : Any_Unit_Part;
+      --  Part of the unit this trace entry describes
 
       Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
       --  Encoding used to represent statement and decision coverage buffers
@@ -148,7 +152,7 @@ package System.GNATcov.Traces is
       Unit_Name_Length    at  4 range 0 .. 31;
       Stmt_Bit_Count      at  8 range 0 .. 31;
       Decision_Bit_Count  at 12 range 0 .. 31;
-      Unit_Kind           at 16 range 0 .. 7;
+      Unit_Part           at 16 range 0 .. 7;
       Bit_Buffer_Encoding at 17 range 0 .. 7;
       Padding             at 18 range 0 .. 6 * 8 - 1;
    end record;

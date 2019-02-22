@@ -16,8 +16,11 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with GNATCOLL.Projects;
+
 with Checkpoints;    use Checkpoints;
 with Files_Table;    use Files_Table;
+with Instrument.Input_Traces; use Instrument.Input_Traces;
 with Traces;         use Traces;
 with Traces_Names;   use Traces_Names;
 with Traces_Lines;   use Traces_Lines;
@@ -34,8 +37,18 @@ package Coverage.Source is
      (Subp_Key  : Subprogram_Key;
       Subp_Info : Subprogram_Info;
       T         : Trace_Entry);
-   --  Analyze traces for the given subprogram to determine the coverage state
-   --  of each SCO.
+   --  Analyze execution environment traces for the given subprogram to
+   --  determine the coverage state of each SCO.
+
+   procedure Compute_Source_Coverage
+     (Closure_Hash    : Hash_Type;
+      Unit_Name       : String;
+      Unit_Part       : GNATCOLL.Projects.Unit_Parts;
+      Stmt_Buffer     : Coverage_Buffer;
+      Decision_Buffer : Coverage_Buffer);
+   --  Analyze source instrumentation traces to determine the coverage state
+   --  of each SCO. Generic actual for
+   --  Instrument.Input_Traces.Generic_Read_Source_Trace_File.
 
    procedure Compute_Line_State
      (Line_Num  : Positive;

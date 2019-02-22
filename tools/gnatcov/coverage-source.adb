@@ -29,6 +29,7 @@ with Coverage.Tags;     use Coverage.Tags;
 with Decision_Map;      use Decision_Map;
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
+with Instrument.Common; use Instrument.Common;
 with MC_DC;             use MC_DC;
 with Outputs;           use Outputs;
 with Slocs;             use Slocs;
@@ -1193,6 +1194,79 @@ package body Coverage.Source is
 
          exit Trace_Insns when PC = 0;
       end loop Trace_Insns;
+   end Compute_Source_Coverage;
+
+   procedure Compute_Source_Coverage
+     (Closure_Hash    : Instrument.Input_Traces.Hash_Type;
+      Unit_Name       : String;
+      Unit_Part       : GNATCOLL.Projects.Unit_Parts;
+      Stmt_Buffer     : Coverage_Buffer;
+      Decision_Buffer : Coverage_Buffer)
+   is
+      pragma Unreferenced (Closure_Hash);
+
+      CU  : constant CU_Id := Find_Instrumented_Unit (Unit_Name, Unit_Part).CU;
+      BM  : constant CU_Bit_Maps := Bit_Maps (CU);
+
+      procedure Set_Executed (SCI : in out Source_Coverage_Info);
+      --  Mark SCI as executed
+
+      ------------------
+      -- Set_Executed --
+      ------------------
+
+      procedure Set_Executed (SCI : in out Source_Coverage_Info) is
+      begin
+         SCI.Executed := True;
+      end Set_Executed;
+
+   --  Start of processing for Compute_Source_Coverage
+
+   begin
+      --  Sanity check that Closure_Hash is consistent with what the
+      --  instrumenter recorded in the CU info.
+
+      --  ??? TBD
+
+      --  Discharge SCOs based on source traces
+
+      for J in Stmt_Buffer'Range loop
+         if Stmt_Buffer (J) then
+            Update_SCI (BM.Statement_Bits (J), No_SC_Tag, Set_Executed'Access);
+
+            --  TODO??? Currently we hard-code No_SC_Tag.
+            --  Need to add support for per-instance coverage
+
+         end if;
+      end loop;
+
+      for J in Decision_Buffer'Range loop
+         declare
+            Outcome_Info : Decision_Bit_Info renames BM.Decision_Bits (J);
+
+            procedure Set_Known_Outcome_Taken
+              (SCI : in out Source_Coverage_Info);
+            --  Mark Outcome_Info.Outcome as taken
+
+            -----------------------------
+            -- Set_Known_Outcome_Taken --
+            -----------------------------
+
+            procedure Set_Known_Outcome_Taken
+              (SCI : in out Source_Coverage_Info)
+            is
+            begin
+               SCI.Known_Outcome_Taken (Outcome_Info.Outcome) := True;
+            end Set_Known_Outcome_Taken;
+
+         begin
+            Update_SCI
+              (Outcome_Info.D_SCO, No_SC_Tag, Set_Known_Outcome_Taken'Access);
+
+            --  TODO??? Currently we hard-code No_SC_Tag.
+            --  Need to add support for per-instance coverage
+         end;
+      end loop;
    end Compute_Source_Coverage;
 
    -------------------------

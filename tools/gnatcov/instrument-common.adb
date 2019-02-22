@@ -22,6 +22,12 @@ with Project;
 
 package body Instrument.Common is
 
+   function To_Compilation_Unit_Name
+     (Unit_Name : String;
+      Unit_Part : Unit_Parts) return Compilation_Unit_Name;
+   --  Create a Compilation_Unit_Name from its two components (name of
+   --  library unit or subunit, and part type).
+
    ------------
    -- To_Ada --
    ------------
@@ -45,26 +51,32 @@ package body Instrument.Common is
    ------------------------------
 
    function To_Compilation_Unit_Name
-     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name
+     (Unit_Name : String;
+      Unit_Part : Unit_Parts) return Compilation_Unit_Name
    is
-      use all type GNATCOLL.Projects.Unit_Parts;
-
-      Unit_Name : constant String := Source_File.Unit_Name;
-      First     : Positive := Unit_Name'First;
+      First : Positive := Unit_Name'First;
    begin
       return Result : Compilation_Unit_Name do
-         for I in Unit_Name'First .. Unit_Name'Last + 1 loop
-            if I = Unit_Name'Last + 1 or else Unit_Name (I) = '.' then
+         --  Split Ada qualified name into its components
+
+         for J in Unit_Name'First .. Unit_Name'Last + 1 loop
+            if J = Unit_Name'Last + 1 or else Unit_Name (J) = '.' then
                Result.Unit.Append
-                 (To_Unbounded_String (Unit_Name (First .. I - 1)));
-               First := I + 1;
+                 (To_Unbounded_String (Unit_Name (First .. J - 1)));
+               First := J + 1;
             end if;
          end loop;
 
-         Result.Kind := (case Source_File.Unit_Part is
-                         when Unit_Body | Unit_Separate => Unit_Body,
-                         when Unit_Spec                 => Unit_Spec);
+         Result.Part := Unit_Part;
       end return;
+   end To_Compilation_Unit_Name;
+
+   function To_Compilation_Unit_Name
+     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name
+   is
+   begin
+      return To_Compilation_Unit_Name
+        (Source_File.Unit_Name, Source_File.Unit_Part);
    end To_Compilation_Unit_Name;
 
    -----------------
@@ -82,9 +94,11 @@ package body Instrument.Common is
          Append (Result, Ada.Characters.Handling.To_Lower (To_String (Id)));
       end loop;
 
-      case CU_Name.Kind is
-         when Unit_Spec => Append (Result, ".ads");
-         when Unit_Body => Append (Result, ".adb");
+      case CU_Name.Part is
+         when Unit_Spec =>
+            Append (Result, ".ads");
+         when Unit_Body | Unit_Separate =>
+            Append (Result, ".adb");
       end case;
 
       return +Result;
@@ -133,7 +147,7 @@ package body Instrument.Common is
          return True;
       end if;
 
-      return Left.Kind < Right.Kind;
+      return Left.Part < Right.Part;
    end "<";
 
    -----------------
@@ -146,9 +160,10 @@ package body Instrument.Common is
    begin
       return CU_Name : Ada_Qualified_Name := Sys_Buffers do
          CU_Name.Append
-           (case Instrumented_Unit.Kind is
-            when Unit_Spec => To_Unbounded_String ("Specs"),
-            when Unit_Body => To_Unbounded_String ("Bodies"));
+           (case Instrumented_Unit.Part is
+               when Unit_Spec     => To_Unbounded_String ("Specs"),
+               when Unit_Body     => To_Unbounded_String ("Bodies"),
+               when Unit_Separate => To_Unbounded_String ("Subunits"));
 
          --  Create a unique identifier corresponding to the qualified name of
          --  the unit to instrument. Replace occurences of 'z' with 'zz' and
@@ -178,6 +193,42 @@ package body Instrument.Common is
       end return;
    end Buffer_Unit;
 
+   ---------------------
+   -- Checkpoint_Save --
+   ---------------------
+
+   procedure Checkpoint_Save
+     (CSS : in out Checkpoints.Checkpoint_Save_State)
+   is
+   begin
+      Instrumented_Unit_Maps.Map'Write (CSS.Stream, Instrumented_Units);
+   end Checkpoint_Save;
+
+   ---------------------
+   -- Checkpoint_Load --
+   ---------------------
+
+   procedure Checkpoint_Load
+     (CLS : in out Checkpoints.Checkpoint_Load_State)
+   is
+      use Instrumented_Unit_Maps;
+
+      CP_IU_Map : Map;
+   begin
+      Map'Read (CLS.Stream, CP_IU_Map);
+
+      for Cur in CP_IU_Map.Iterate loop
+         declare
+            CP_IU : constant Instrumented_Unit_Info := Element (Cur);
+         begin
+            Instrumented_Units.Insert
+              (Key (Cur),
+               Instrumented_Unit_Info'(Is_Main => CP_IU.Is_Main,
+                                       CU      => CLS.CU_Map (CP_IU.CU)));
+         end;
+      end loop;
+   end Checkpoint_Load;
+
    --------------------
    -- Create_Context --
    --------------------
@@ -200,6 +251,19 @@ package body Instrument.Common is
          IC.Auto_Dump_Buffers := Auto_Dump_Buffers;
       end return;
    end Create_Context;
+
+   ----------------------------
+   -- Find_Instrumented_Unit --
+   ----------------------------
+
+   function Find_Instrumented_Unit
+     (Unit_Name : String;
+      Unit_Part : Unit_Parts) return Instrumented_Unit_Info
+   is
+   begin
+      return Instrumented_Units.Element
+        (To_Compilation_Unit_Name (Unit_Name, Unit_Part));
+   end Find_Instrumented_Unit;
 
 begin
    Sys_Prefix.Append (To_Unbounded_String ("System"));
