@@ -149,7 +149,32 @@ package body Instrument.Common is
            (case Instrumented_Unit.Kind is
             when Unit_Spec => To_Unbounded_String ("Specs"),
             when Unit_Body => To_Unbounded_String ("Bodies"));
-         CU_Name.Append (Instrumented_Unit.Unit);
+
+         --  Create a unique identifier corresponding to the qualified name of
+         --  the unit to instrument. Replace occurences of 'z' with 'zz' and
+         --  insert '_z_' between identifiers.
+
+         declare
+            Simple_Name : Ada_Identifier;
+         begin
+            for Id of Instrumented_Unit.Unit loop
+               if Length (Simple_Name) > 0 then
+                  Append (Simple_Name, "_z_");
+               end if;
+               for I in 1 .. Length (Id) loop
+                  declare
+                     Char : constant Character := Element (Id, I);
+                  begin
+                     if Char in 'Z' | 'z' then
+                        Append (Simple_Name, "zz");
+                     else
+                        Append (Simple_Name, Char);
+                     end if;
+                  end;
+               end loop;
+            end loop;
+            CU_Name.Append (Simple_Name);
+         end;
       end return;
    end Buffer_Unit;
 
