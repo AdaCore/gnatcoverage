@@ -978,6 +978,13 @@ procedure GNATcov is
             end if;
 
          when Cmd_Instrument =>
+
+            --  Ensure we have a source coverage level
+
+            if not Source_Coverage_Enabled then
+               Report_Missing_Argument ("a source coverage level");
+            end if;
+
             if Args.Remaining_Args.Length /= 1 then
                Fatal_Error ("exactly one argument is allowed: a filename for"
                             & " the output checkpoint");
