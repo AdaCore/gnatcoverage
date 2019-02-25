@@ -1649,6 +1649,18 @@ begin
             procedure Process_Trace
               (Trace_File_Name    : String;
                Exec_Name_Override : String);
+            --  Try to read Trace_File_Name. Depending on the probed trace file
+            --  kind, dispatch to Process_Binary_Trace or Process_Source_Trace.
+            --  If Trace_File_Name is an empty string, just dispatch to
+            --  Process_Binary_Trace (case of forcing the load of a program).
+
+            procedure Process_Source_Trace (Trace_File_Name : String);
+            --  Process the given source trace file, discharging SCIs
+            --  referenced by its coverage buffers.
+
+            procedure Process_Binary_Trace
+              (Trace_File_Name    : String;
+               Exec_Name_Override : String);
             --  Common dispatching point for object and source coverage:
             --  process one trace file (with optional override of exec file
             --  name), or load one consolidated executable (if Trace_File_Name
@@ -1749,6 +1761,53 @@ begin
               (Trace_File_Name    : String;
                Exec_Name_Override : String)
             is
+               Kind   : Trace_File_Kind;
+               Result : Read_Result;
+            begin
+               if Trace_File_Name = "" then
+                  Process_Binary_Trace (Trace_File_Name, Exec_Name_Override);
+                  return;
+               end if;
+
+               Probe_Trace_File (Trace_File_Name, Kind, Result);
+               if not Result.Success then
+                  Report_Bad_Trace (Trace_File_Name, Result);
+               end if;
+
+               case Kind is
+                  when Binary_Trace_File =>
+                     Process_Binary_Trace
+                       (Trace_File_Name, Exec_Name_Override);
+                  when Source_Trace_File =>
+                     Process_Source_Trace (Trace_File_Name);
+               end case;
+            end Process_Trace;
+
+            --------------------------
+            -- Process_Source_Trace --
+            --------------------------
+
+            procedure Process_Source_Trace (Trace_File_Name : String) is
+               procedure Read_Source_Trace_File is new
+                  Instrument.Input_Traces.Generic_Read_Source_Trace_File
+                    (Compute_Source_Coverage);
+
+               Result : Read_Result;
+            begin
+               Read_Source_Trace_File (Trace_File_Name, Result);
+               if not Result.Success then
+                  Report_Bad_Trace (Trace_File_Name, Result);
+               end if;
+            end Process_Source_Trace;
+
+            --------------------------
+            -- Process_Binary_Trace --
+            --------------------------
+
+            procedure Process_Binary_Trace
+              (Trace_File_Name    : String;
+               Exec_Name_Override : String)
+            is
                Trace_File : Trace_File_Element_Acc;
             begin
                if Trace_File_Name /= "" then
@@ -1769,7 +1828,7 @@ begin
                   Process_Trace_For_Src_Coverage
                     (Trace_File, Exec_Name_Override);
                end if;
-            end Process_Trace;
+            end Process_Binary_Trace;
 
             ------------------------------------
             -- Process_Trace_For_Obj_Coverage --

@@ -28,13 +28,6 @@ with Traces;
 
 package Traces_Files is
 
-   type Trace_File_Type is limited private;
-   --  In memory content of a trace file. Note that this only contains the Info
-   --  section, not the trace entries themselves.
-
-   type Trace_File_Descriptor is limited private;
-   --  Descriptor to open/read a trace file
-
    type Read_Result (Success : Boolean := True) is record
       case Success is
          when False =>
@@ -45,6 +38,31 @@ package Traces_Files is
    end record;
    --  Description of the result of a trace read operation: either it was
    --  successful or it failed with some error message.
+
+   --  While this unit historically only deals with binary traces files (i.e.
+   --  traces coming from the execution of uninstrumented programs), the
+   --  following procedure enables to probe a trace file in order to determine
+   --  if it's a binary trace file or a source trace file.
+
+   type Trace_File_Kind is (Binary_Trace_File, Source_Trace_File);
+
+   procedure Probe_Trace_File
+     (Filename : String;
+      Kind     : out Trace_File_Kind;
+      Result   : out Read_Result);
+   --  Open Filename in read mode as a trace file and try to determine the kind
+   --  of trace file it is.
+   --
+   --  If there is an error opening or reading this file or if its kind is
+   --  unknown, put the relevant error information in Result. Otherwise, set
+   --  Result.Success to True and put the trace file kind in Kind.
+
+   type Trace_File_Type is limited private;
+   --  In memory content of a trace file. Note that this only contains the Info
+   --  section, not the trace entries themselves.
+
+   type Trace_File_Descriptor is limited private;
+   --  Descriptor to open/read a trace file
 
    Read_Success : constant Read_Result := (Success => True);
 

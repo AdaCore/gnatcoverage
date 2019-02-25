@@ -25,6 +25,7 @@ with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
 with System;
+with System.GNATcov.Traces;
 
 with Hex_Images; use Hex_Images;
 with Inputs;     use Inputs;
@@ -171,6 +172,50 @@ package body Traces_Files is
            (Filename & ": " & Ada.Strings.Unbounded.To_String (Result.Error));
       end if;
    end Success_Or_Fatal_Error;
+
+   ----------------------
+   -- Probe_Trace_File --
+   ----------------------
+
+   procedure Probe_Trace_File
+     (Filename : String;
+      Kind     : out Trace_File_Kind;
+      Result   : out Read_Result)
+   is
+      Fd : constant File_Descriptor := Open_Read (Filename, Binary);
+
+      Binary_Magic : String renames Qemu_Trace_Magic;
+      Source_Magic : String renames System.GNATcov.Traces.Trace_File_Magic;
+
+      Magic_Max_Size : constant Natural := Integer'Max
+        (Binary_Magic'Length, Source_Magic'Length);
+      Buffer         : String (1 .. Magic_Max_Size);
+
+      function Magic_Matches (Magic : String) return Boolean
+      is (Buffer (1 .. Magic'Length) = Magic);
+      --  Return whether the given Magic matches the first bytes in Buffer
+
+   begin
+      Result := (Success => True);
+      Kind := Binary_Trace_File;
+
+      if Fd = Invalid_FD then
+         Create_Error (Result, "cannot open " & Filename);
+         return;
+      end if;
+
+      if Read (Fd, Buffer'Address, Buffer'Length) /= Buffer'Length then
+         Create_Error (Result, "cannot read header of " & Filename);
+      elsif Magic_Matches (Binary_Magic) then
+         Kind := Binary_Trace_File;
+      elsif Magic_Matches (Source_Magic) then
+         Kind := Source_Trace_File;
+      else
+         Create_Error (Result, "invalid trace file: " & Filename);
+      end if;
+
+      Close (Fd);
+   end Probe_Trace_File;
 
    ------------------
    -- Check_Header --
