@@ -58,7 +58,7 @@ package Command_Line is
       Cmd_Disassemble,
       Cmd_Scan_Objects,
 
-      Cmd_Instrument_Test);
+      Cmd_Instrument);
    --  Set of commands we support. More complete descriptions below.
 
    type Bool_Options is
@@ -289,10 +289,11 @@ package Command_Line is
          Description => ("Scan object FILEs for empty symbols or orphan"
                          & " regions."),
          Internal    => True),
-      Cmd_Instrument_Test => Create
-        (Name        => "instrument-test",
-         Pattern     => "[SRC_FILEs]",
-         Description => ("Test run instrumenter on given source files."),
+      Cmd_Instrument => Create
+        (Name        => "instrument",
+         Pattern     => "[CHECKPOINT]",
+         Description => ("Instrument the given project and produce the"
+                         & " associated checkpoint."),
          Internal    => True));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
@@ -377,8 +378,8 @@ package Command_Line is
          Help      => "Append a call to System.GNATcov.Traces.Output."
                       & " .Write_Trace_File for the closure in all mains in"
                       & " all mains in the project.",
-         Commands  => (Cmd_Instrument_Test => True,
-                       others              => False),
+         Commands  => (Cmd_Instrument => True,
+                       others         => False),
          Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
@@ -475,7 +476,8 @@ package Command_Line is
          Help         => ("Specify coverage levels. LEVEL is one of:"
                           & ASCII.LF
                           & "  " & Coverage.Valid_Coverage_Options),
-         Commands     => (Cmd_Run | Cmd_Coverage | Cmd_Convert => True,
+         Commands     => (Cmd_Run | Cmd_Coverage | Cmd_Convert
+                             | Cmd_Instrument => True,
                           others => False),
          At_Most_Once => False,
          Internal     => False),
@@ -619,7 +621,7 @@ package Command_Line is
          Help        => ("State the set of units of interest by name,"
                          & " overriding the GPR-based selection by -P, etc."),
          Commands    => (Cmd_Run | Cmd_Coverage | Cmd_Scan_Decisions
-                             | Cmd_Map_Routines | Cmd_Instrument_Test => True,
+                             | Cmd_Map_Routines | Cmd_Instrument => True,
                          others => False),
          Internal    => False),
       Opt_Routines => Create

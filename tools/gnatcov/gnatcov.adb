@@ -977,7 +977,7 @@ procedure GNATcov is
                   & " is missing (required for ""convert"")");
             end if;
 
-         when Cmd_Instrument_Test =>
+         when Cmd_Instrument =>
             if Args.Remaining_Args.Length /= 1 then
                Fatal_Error ("exactly one argument is allowed: a filename for"
                             & " the output checkpoint");
@@ -1272,7 +1272,7 @@ begin
             Traces_Names.Disp_All_Routines_Of_Interest;
          end;
 
-      when Cmd_Instrument_Test =>
+      when Cmd_Instrument =>
          if not Is_Project_Loaded then
             Fatal_Error ("instrumentation requires a project file;"
                          & " please use the -P option");
