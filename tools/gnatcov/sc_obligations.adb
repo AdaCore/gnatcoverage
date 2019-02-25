@@ -1618,52 +1618,68 @@ package body SC_Obligations is
    is
       S : Stream_Access renames CLS.Stream;
 
+      procedure Read_Record (CUI : in out CU_Info);
+      --  Callback to initialize elements in V
+
+      -----------------
+      -- Read_Record --
+      -----------------
+
+      procedure Read_Record (CUI : in out CU_Info) is
+         Provider : constant SCO_Provider :=
+           (if CLS.Version_Less (Than => 2)
+            then Compiler else SCO_Provider'Input (S));
+         --  Discriminant for v2 data
+
+         New_CUI  : CU_Info (Provider);
+         pragma Warnings (Off, New_CUI);
+         --  Used only for discriminant and default initialization
+
+      begin
+         CUI := New_CUI;
+         --  Set CUI's discriminant
+
+         --  Checkpoint version 1 data
+
+         Source_File_Index'Read (S, CUI.Origin);
+         Source_File_Index'Read (S, CUI.Main_Source);
+         SCO_Id'Read            (S, CUI.First_SCO);
+         SCO_Id'Read            (S, CUI.Last_SCO);
+         Inst_Id'Read           (S, CUI.First_Instance);
+         Inst_Id'Read           (S, CUI.Last_Instance);
+         SFI_Vector'Read        (S, CUI.Deps);
+         Boolean'Read           (S, CUI.Has_Code);
+         SCOs_Hash'Read         (S, CUI.Fingerprint);
+
+         --  Checkpoint version 2 data (instrumentation support)
+
+         if not CLS.Version_Less (Than => 2) then
+            case CUI.Provider is
+               when Compiler =>
+                  null;
+               when Instrumenter =>
+                  CUI.Bit_Maps.Statement_Bits :=
+                    new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
+                  CUI.Bit_Maps.Decision_Bits :=
+                    new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
+            end case;
+         end if;
+      end Read_Record;
+
       Length : Ada.Containers.Count_Type;
+
+   --  Start of processing for CU_Info_Vector_Read
+
    begin
       Ada.Containers.Count_Type'Read (S, Length);
       V.Set_Length (Length);
 
-      for CUI of V loop
-         --  Discriminant for v2 data
+      --  Use the Cursor-based iteration and Update_Element instead of the
+      --  mutable element-based iteration to workaround a spurious discriminant
+      --  check in some versions of GNAT.
 
-         declare
-            Provider : constant SCO_Provider :=
-              (if CLS.Version_Less (Than => 2)
-               then Compiler else SCO_Provider'Input (S));
-            New_CUI  : CU_Info (Provider);
-            pragma Warnings (Off, New_CUI);
-            --  Used only for discriminant and default initialization
-
-         begin
-            CUI := New_CUI;
-            --  Set CUI's discriminant
-
-            --  Checkpoint version 1 data
-
-            Source_File_Index'Read (S, CUI.Origin);
-            Source_File_Index'Read (S, CUI.Main_Source);
-            SCO_Id'Read            (S, CUI.First_SCO);
-            SCO_Id'Read            (S, CUI.Last_SCO);
-            Inst_Id'Read           (S, CUI.First_Instance);
-            Inst_Id'Read           (S, CUI.Last_Instance);
-            SFI_Vector'Read        (S, CUI.Deps);
-            Boolean'Read           (S, CUI.Has_Code);
-            SCOs_Hash'Read         (S, CUI.Fingerprint);
-
-            --  Checkpoint version 2 data (instrumentation support)
-
-            if not CLS.Version_Less (Than => 2) then
-               case CUI.Provider is
-                  when Compiler =>
-                     null;
-                  when Instrumenter =>
-                     CUI.Bit_Maps.Statement_Bits :=
-                       new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
-                     CUI.Bit_Maps.Decision_Bits :=
-                       new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
-               end case;
-            end if;
-         end;
+      for Cursor in V.Iterate loop
+         V.Update_Element (Cursor, Read_Record'Access);
       end loop;
    end CU_Info_Vector_Read;
 
