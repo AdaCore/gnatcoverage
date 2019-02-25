@@ -42,8 +42,9 @@ package System.GNATcov.Buffers is
       Unit_Name : String (1 .. Unit_Name_Length);
       --  Unit kind and name for the instrumented unit
 
-      Stmt : Coverage_Buffer_Type (0 .. Stmt_Last_Bit);
-      Dc   : Coverage_Buffer_Type (0 .. Decision_Last_Bit);
+      Stmt : Coverage_Buffer_Type (0 .. Stmt_Last_Bit) := (others => False);
+      Dc   : Coverage_Buffer_Type (0 .. Decision_Last_Bit) :=
+         (others => False);
       --  Coverage buffers for statement and decision obligations
    end record;
 
