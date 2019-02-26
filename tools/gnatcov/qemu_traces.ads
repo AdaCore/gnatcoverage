@@ -158,7 +158,8 @@ package Qemu_Traces is
       --  ASCII representation of executable file size (in bytes)
 
       Exec_File_Time_Stamp,
-      --  Human-readable date/time for the executable file modification time
+      --  Human-readable string giving broken down date and time for the
+      --  executable file modification time in UTC.
 
       Exec_File_CRC32,
       --  ASCII representation of CRC32 checksum for the executable file, as a
@@ -302,7 +303,7 @@ package Qemu_Traces is
    --
    --    * Exec_File_Name: the file name for the loaded shared object.
    --    * Exec_File_Size: its file size (in bytes).
-   --    * Exec_Time_Stamp: its modification time.
+   --    * Exec_Time_Stamp: its modification time (UTC).
    --    * Exec_File_CRC32: its CRC32 checksum.
    --    * Exec_Code_Size: the size (in bytes) of the code section
 

@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded;
 with Interfaces;
 with System;
 
@@ -204,11 +203,8 @@ package Binary_Files is
       Size       : Long_Integer := 0;
       --  File size (in bytes), or 0 if unknown.
 
-      Time_Stamp : Ada.Strings.Unbounded.Unbounded_String :=
-         Ada.Strings.Unbounded.Null_Unbounded_String;
-      --  File modification time or empty string if unknown.
-      --  TODO??? Once we have OS_Time <-> UTC parts conversion helpers in
-      --  GNAT.OS_Lib, it would be good to switch this field to OS_Time.
+      Time_Stamp : OS_Time := Invalid_Time;
+      --  File modification time, or Invalid_Time if not known
 
       CRC32      : Interfaces.Unsigned_32 := 0;
       --  CRC32 checksum for the file content or 0 if unknown.
@@ -218,17 +214,17 @@ package Binary_Files is
 
    No_Signature : constant Binary_File_Signature := (others => <>);
 
-   function Time_Stamp_Image (TS : GNAT.OS_Lib.OS_Time) return String;
-   --  Return a simple string representation of a timestamp
+   function Time_Stamp_Image (TS : OS_Time) return String;
+   --  Return a representation of a timestamp as a string containing
+   --  a broken-down (year/month/day/hour/minute/second) value in UTC.
 
-   function Time_Stamp_Value (TS : String) return GNAT.OS_Lib.OS_Time;
-   --  Convert a simple string representation of a timestamp back into a
-   --  timestamp.
+   function Time_Stamp_Value (S : String) return OS_Time;
+   --  Reciprocal function of Time_Stamp_Image: parse broken down UTC time
+   --  and return the corresponding OS_Time.
 
    function Get_Signature (File : Binary_File) return Binary_File_Signature is
      ((Size       => Get_Size (File),
-       Time_Stamp => Ada.Strings.Unbounded.To_Unbounded_String
-         (Time_Stamp_Image (Get_Time_Stamp (File))),
+       Time_Stamp => Get_Time_Stamp (File),
        CRC32      => Get_CRC32 (File)));
 
    function Match_Signatures

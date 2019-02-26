@@ -342,8 +342,6 @@ package body Traces_Files is
       Code_Size : out Traces.Pc_Type;
       Result    : out Read_Result)
    is
-      use type Ada.Strings.Unbounded.Unbounded_String;
-
       Fname : String_Access;
       Sig   : Binary_File_Signature;
       CS    : Pc_Type := 0;
@@ -370,7 +368,7 @@ package body Traces_Files is
          when Exec_File_Name  => Fname := new String'(Data);
          when Exec_File_Size  => Sig.Size := Long_Integer'Value (Data);
          when Exec_File_Time_Stamp =>
-            Sig.Time_Stamp := Ada.Strings.Unbounded.To_Unbounded_String (Data);
+            Sig.Time_Stamp := Time_Stamp_Value (Data);
          when Exec_File_CRC32 => Sig.CRC32 := Unsigned_32'Value (Data);
          when Exec_Code_Size  => CS := Pc_Type'Value (Data);
          when others => null;
@@ -388,7 +386,7 @@ package body Traces_Files is
 
       if Fname = null
          or else Sig.Size = 0
-         or else Sig.Time_Stamp = Ada.Strings.Unbounded.Null_Unbounded_String
+         or else Sig.Time_Stamp = Invalid_Time
          or else Sig.CRC32 = 0
          or else CS = 0
       then
@@ -1477,7 +1475,7 @@ package body Traces_Files is
          Result.Size := Long_Integer'Value (Size);
       end if;
       if TS'Length > 0 then
-         Result.Time_Stamp := Ada.Strings.Unbounded.To_Unbounded_String (TS);
+         Result.Time_Stamp := Time_Stamp_Value (TS);
       end if;
       if CRC32'Length > 0 then
          Result.CRC32 := Unsigned_32'Value (CRC32);

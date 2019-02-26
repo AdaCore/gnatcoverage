@@ -16,11 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Calendar.Formatting; use Ada.Calendar, Ada.Calendar.Formatting;
+
 with Ada.Unchecked_Conversion;
 with Interfaces; use Interfaces;
 
 with GNAT.CRC32;  use GNAT.CRC32;
-with GNAT.Regpat; use GNAT.Regpat;
 
 with Hex_Images; use Hex_Images;
 
@@ -35,10 +36,9 @@ package body Binary_Files is
    function Compute_CRC32 (File : Binary_File) return Unsigned_32;
    --  Compute and return the CRC32 of File
 
-   Time_Stamp_Regexp  : constant String :=
-      "([0-9]+)-([0-9]+)-([0-9]+) ([0-9]+):([0-9]+):([0-9]+)";
-   Time_Stamp_Matcher : constant Pattern_Matcher :=
-      Compile (Time_Stamp_Regexp);
+   function To_Time (T : OS_Time) return Time;
+   function To_OS_Time (T : Time) return OS_Time;
+   --  Conversion between calendar time and GNAT's OS_Time
 
    --------------
    -- Allocate --
@@ -243,15 +243,15 @@ package body Binary_Files is
    function Create_File
      (Fd : File_Descriptor; Filename : String_Access) return Binary_File is
    begin
-      return Res : Binary_File := (Fd         => Fd,
-                                   Filename   => Filename,
-                                   File       => Invalid_Mapped_File,
-                                   Region     => Invalid_Mapped_Region,
-                                   Status     => Status_Ok,
-                                   Size       => File_Length (Fd),
+      return Res : Binary_File := (Fd           => Fd,
+                                   Filename     => Filename,
+                                   File         => Invalid_Mapped_File,
+                                   Region       => Invalid_Mapped_Region,
+                                   Status       => Status_Ok,
+                                   Size         => File_Length (Fd),
                                    Nbr_Sections => 0,
-                                   Time_Stamp => File_Time_Stamp (Fd),
-                                   CRC32      => 0)
+                                   Time_Stamp   => File_Time_Stamp (Fd),
+                                   CRC32        => 0)
       do
          Res.File := Open_Read (Filename.all);
          Res.CRC32 := Compute_CRC32 (Res);
@@ -441,75 +441,11 @@ package body Binary_Files is
    -- Time_Stamp_Image --
    ----------------------
 
-   function Time_Stamp_Image (TS : GNAT.OS_Lib.OS_Time) return String is
+   function Time_Stamp_Image (TS : OS_Time) return String is
+     (Image (To_Time (TS)));
 
-      function Pad (N, Length : Natural) return String;
-      --  Pad the given number with zeros on the left until the given length of
-      --  the image is reached.
-
-      ---------
-      -- Pad --
-      ---------
-
-      function Pad (N, Length : Natural) return String
-      is
-         Raw_Image   : constant String  := Natural'Image (N);
-         First_Idx   : constant Natural :=
-            (if Raw_Image (1) = ' ' then 2 else 1);
-         Digits_Number : constant Natural := Raw_Image'Length - First_Idx + 1;
-         Padding_Len : constant Natural :=
-            (if Length > Digits_Number then Length - Digits_Number else 0);
-         Padding     : constant String (1 .. Padding_Len) := (others => '0');
-
-      begin
-         return Padding & Raw_Image (First_Idx .. Raw_Image'Last);
-      end Pad;
-
-      Year   : Year_Type;
-      Month  : Month_Type;
-      Day    : Day_Type;
-      Hour   : Hour_Type;
-      Minute : Minute_Type;
-      Second : Second_Type;
-   begin
-      GM_Split (TS, Year, Month, Day, Hour, Minute, Second);
-      return
-         Pad (Integer (Year), 0)
-         & "-" & Pad (Natural (Month), 2)
-         & "-" & Pad (Natural (Day), 2)
-         & " " & Pad (Natural (Hour), 2)
-         & ":" & Pad (Natural (Minute), 2)
-         & ":" & Pad (Natural (Second), 2);
-   end Time_Stamp_Image;
-
-   ----------------------
-   -- Time_Stamp_Value --
-   ----------------------
-
-   function Time_Stamp_Value (TS : String) return GNAT.OS_Lib.OS_Time is
-
-      Matches : Match_Array (1 .. 6);
-
-      function Match (Index : Positive) return String is
-        (if Matches (Index) = No_Match
-         then raise Program_Error
-         else TS (Matches (Index).First
-               .. Matches (Index).Last));
-
-   begin
-      Match (Time_Stamp_Matcher, TS, Matches);
-      if Matches (1) = No_Match then
-         raise Constraint_Error with "invalid time stamp: " & TS;
-      end if;
-
-      return GM_Time_Of
-        (Year   => Year_Type'Value (Match (1)),
-         Month  => Month_Type'Value (Match (2)),
-         Day    => Day_Type'Value (Match (3)),
-         Hour   => Hour_Type'Value (Match (4)) + 1,
-         Minute => Minute_Type'Value (Match (5)),
-         Second => Second_Type'Value (Match (6)));
-   end Time_Stamp_Value;
+   function Time_Stamp_Value (S : String) return OS_Time is
+     (To_OS_Time (Value (S)));
 
    ----------------------
    -- Match_Signatures --
@@ -519,7 +455,6 @@ package body Binary_Files is
      (S_File, S_Trace : Binary_File_Signature)
       return String
    is
-      use Ada.Strings.Unbounded;
    begin
       if S_Trace.Size /= 0 and then S_File.Size /= S_Trace.Size then
          return
@@ -527,14 +462,14 @@ package body Binary_Files is
              & " bytes long, but trace indicates"
              & Long_Integer'Image (S_Trace.Size));
 
-      elsif S_Trace.Time_Stamp /= Null_Unbounded_String
+      elsif S_Trace.Time_Stamp /= Invalid_Time
             and then S_File.Time_Stamp /= S_Trace.Time_Stamp
       then
          return
             ("Executable file created on "
-             & To_String (S_File.Time_Stamp)
+             & Time_Stamp_Image (S_File.Time_Stamp)
              & " but trace indicates "
-             & To_String (S_Trace.Time_Stamp));
+             & Time_Stamp_Image (S_Trace.Time_Stamp));
 
       elsif S_Trace.CRC32 /= 0 and then S_File.CRC32 /= S_Trace.CRC32 then
          return
@@ -545,5 +480,60 @@ package body Binary_Files is
          return "";
       end if;
    end Match_Signatures;
+
+   -------------
+   -- To_Time --
+   -------------
+
+   function To_Time (T : OS_Time) return Time is
+      Year   : Year_Type;
+      Month  : Month_Type;
+      Day    : Day_Type;
+      Hour   : Hour_Type;
+      Minute : Minute_Type;
+      Second : Second_Type;
+
+   begin
+      --  Split T into its components, in UTC
+
+      GM_Split (T, Year, Month, Day, Hour, Minute, Second);
+
+      --  Convert broken-down UTC representation to calendar time
+
+      return Time_Of (Year, Month, Day, Hour, Minute, Second);
+   end To_Time;
+
+   ----------------
+   -- To_OS_Time --
+   ----------------
+
+   function To_OS_Time (T : Time) return OS_Time is
+      Year    : Year_Number;
+      Month   : Month_Number;
+      Day     : Day_Number;
+      Seconds : Day_Duration;
+
+      Hour    : Hour_Number;
+      Minute  : Minute_Number;
+
+   begin
+      --  Split T into its components, in local time zone
+
+      Split (T, Year, Month, Day, Seconds);
+
+      --  Convert broken-down local time representation to OS_Time.
+      --  Note: function GM_Time_Of is misnamed, it does expect a time
+      --  point in the local time zone, not in GMT/UTC.
+
+      Hour := Hour_Number (Integer (Seconds) / 3600);
+      Seconds := Seconds - Hour * 3600.0;
+
+      Minute := Minute_Number (Integer (Seconds) / 60);
+      Seconds := Seconds - Minute * 60.0;
+
+      return GM_Time_Of
+        (Year, Month, Day,
+         Hour, Minute, Second_Number (Seconds));
+   end To_OS_Time;
 
 end Binary_Files;
