@@ -251,7 +251,11 @@ class TraceEntry(object):
             if not header:
                 return None
 
-            unit_kind = {0: 'spec', 1: 'body'}[header['unit_kind']]
+            unit_kind = {
+                0: 'body',
+                1: 'spec',
+                2: 'separate'
+            }[header['unit_kind']]
 
             if header['padding'] != (0, ) * 6:
                 raise ValueError('Invalid padding: {}'

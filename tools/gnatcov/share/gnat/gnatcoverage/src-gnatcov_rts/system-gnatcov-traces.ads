@@ -2,6 +2,8 @@
 
 with Interfaces; use Interfaces;
 
+with System.GNATcov.Buffers;
+
 package System.GNATcov.Traces is
 
    --  Execution of an instrumented program sets bits in its coverage buffers.
@@ -51,12 +53,15 @@ package System.GNATcov.Traces is
    Unit_Body     : constant Any_Unit_Part := 0;
    Unit_Spec     : constant Any_Unit_Part := 1;
    Unit_Separate : constant Any_Unit_Part := 2;
-   subtype Supported_Unit_Part is Any_Unit_Part with
-     Static_Predicate => Supported_Unit_Part in Unit_Spec .. Unit_Separate;
+   subtype Supported_Unit_Part is
+      Any_Unit_Part range Unit_Body .. Unit_Separate;
    --  Describe the kind of unit referenced by a trace entry
-   --  Note: these values must be kept in sync with the definition of the
-   --  GNATCOLL.Projects.Unit_Parts enumerated type (but we do not want
-   --  to drag a dependency on GNATCOLL here).
+
+   Unit_Part_Map : constant
+      array (System.GNATcov.Buffers.Any_Unit_Part) of Supported_Unit_Part :=
+     (System.GNATcov.Buffers.Unit_Body     => Unit_Body,
+      System.GNATcov.Buffers.Unit_Spec     => Unit_Spec,
+      System.GNATcov.Buffers.Unit_Separate => Unit_Separate);
 
    type Any_Bit_Count is new Unsigned_32;
    --  Number of bits contained in a coverage buffer

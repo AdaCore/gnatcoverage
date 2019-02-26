@@ -34,6 +34,11 @@ package body Instrument.Input_Traces is
 
    use GNATCOLL.Projects;
 
+   Unit_Part_Map : constant array (Supported_Unit_Part) of Unit_Parts :=
+     (System.GNATcov.Traces.Unit_Body     => GNATCOLL.Projects.Unit_Body,
+      System.GNATcov.Traces.Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
+      System.GNATcov.Traces.Unit_Separate => GNATCOLL.Projects.Unit_Separate);
+
    subtype Read_Result is Traces_Files.Read_Result;
    procedure Create_Error (Result : out Read_Result; Error : String)
       renames Traces_Files.Create_Error;
@@ -550,7 +555,7 @@ package body Instrument.Input_Traces is
                On_Trace_Entry
                  (Hash_Type (Entry_Header.Closure_Hash),
                   Unit_Name,
-                  Unit_Parts'Val (Entry_Header.Unit_Part),
+                  Unit_Part_Map (Entry_Header.Unit_Part),
                   Stmt_Buffer (0 .. Last_Bit (Entry_Header.Stmt_Bit_Count)),
                   Decision_Buffer
                     (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)));
