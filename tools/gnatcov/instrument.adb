@@ -90,7 +90,14 @@ package body Instrument is
 
          Unit_Name : constant String := Ada.Characters.Handling.To_Lower
            (To_Ada (UIC.Instrumented_Unit.Unit));
-         Unit_Part : constant String := UIC.Instrumented_Unit.Part'Img;
+
+         Unit_Part : constant String :=
+           (case UIC.Instrumented_Unit.Part is
+            when GNATCOLL.Projects.Unit_Spec     => "Unit_Spec",
+            when GNATCOLL.Projects.Unit_Body     => "Unit_Body",
+            when GNATCOLL.Projects.Unit_Separate => "Unit_Separate");
+         --  Do not use 'Image so that we use the original casing for the
+         --  enumerators, and thus avoid compilation warnings/errors.
 
       begin
          File.Put_Line ("package " & Pkg_Name & " is");
