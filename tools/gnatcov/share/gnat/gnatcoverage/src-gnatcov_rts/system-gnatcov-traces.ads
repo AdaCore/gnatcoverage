@@ -51,8 +51,8 @@ package System.GNATcov.Traces is
    Unit_Body     : constant Any_Unit_Part := 0;
    Unit_Spec     : constant Any_Unit_Part := 1;
    Unit_Separate : constant Any_Unit_Part := 2;
-   subtype Supported_Unit_Kind is Any_Unit_Part with
-     Static_Predicate => Supported_Unit_Kind in Unit_Spec .. Unit_Separate;
+   subtype Supported_Unit_Part is Any_Unit_Part with
+     Static_Predicate => Supported_Unit_Part in Unit_Spec .. Unit_Separate;
    --  Describe the kind of unit referenced by a trace entry
    --  Note: these values must be kept in sync with the definition of the
    --  GNATCOLL.Projects.Unit_Parts enumerated type (but we do not want

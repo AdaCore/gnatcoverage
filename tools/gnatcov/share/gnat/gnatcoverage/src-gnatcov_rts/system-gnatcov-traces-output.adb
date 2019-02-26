@@ -97,8 +97,8 @@ package body System.GNATcov.Traces.Output is
             Traces.Any_Bit_Count (Buffers.Stmt_Last_Bit + 1),
          Decision_Bit_Count  =>
             Traces.Any_Bit_Count (Buffers.Decision_Last_Bit + 1),
-         Unit_Kind           =>
-            System.GNATcov.Buffers.Any_Unit_Kind'Pos (Buffers.Unit_Kind),
+         Unit_Part           =>
+            System.GNATcov.Buffers.Any_Unit_Part'Pos (Buffers.Unit_Part),
          Bit_Buffer_Encoding => LSB_First_Bytes,
          Padding             => (others => ASCII.NUL));
    begin

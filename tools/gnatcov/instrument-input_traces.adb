@@ -368,7 +368,7 @@ package body Instrument.Input_Traces is
          Raw_Header : Trace_Entry_Header
             with Import, Address => Buffer_Address (Stream);
       begin
-         if Raw_Header.Unit_Part not in Supported_Unit_Kind then
+         if Raw_Header.Unit_Part not in Supported_Unit_Part then
             Create_Error (Result, "invalid unit part");
             return False;
 

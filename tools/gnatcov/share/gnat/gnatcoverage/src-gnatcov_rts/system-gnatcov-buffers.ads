@@ -17,7 +17,7 @@ package System.GNATcov.Buffers is
    --  indicates whether the decision reached the False outcome and another for
    --  the True outcome.
 
-   type Any_Unit_Kind is (Unit_Spec, Unit_Body);
+   type Any_Unit_Part is (Unit_Spec, Unit_Body, Unit_Separate);
 
    type Any_Bit_Id is new Integer;
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
@@ -38,9 +38,12 @@ package System.GNATcov.Buffers is
       --  This hash is used as a fast way to check that coverage obligations
       --  and coverage data are consistent.
 
-      Unit_Kind : Any_Unit_Kind;
+      Unit_Part : Any_Unit_Part;
       Unit_Name : String (1 .. Unit_Name_Length);
-      --  Unit kind and name for the instrumented unit
+      --  Unit kind and name for the instrumented unit. More specifically,
+      --  Unit_Name is the fully qualified name of the compilation unit (or
+      --  subunit) in lower case. For instance: "foo", "ada.text_io" or
+      --  "foo.bar.my_subunit".
 
       Stmt : Coverage_Buffer_Type (0 .. Stmt_Last_Bit) := (others => False);
       Dc   : Coverage_Buffer_Type (0 .. Decision_Last_Bit) :=

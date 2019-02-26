@@ -90,7 +90,7 @@ package body Instrument is
 
          Unit_Name : constant String := Ada.Characters.Handling.To_Lower
            (To_Ada (UIC.Instrumented_Unit.Unit));
-         Unit_Kind : constant String := UIC.Instrumented_Unit.Part'Img;
+         Unit_Part : constant String := UIC.Instrumented_Unit.Part'Img;
 
       begin
          File.Put_Line ("package " & Pkg_Name & " is");
@@ -103,7 +103,7 @@ package body Instrument is
          File.Put_Line ("      Decision_Last_Bit => "
                         & Img (UIC.Unit_Bits.Last_Decision_Bit) & ",");
          File.Put_Line ("      Closure_Hash => " & Closure_Hash & ",");
-         File.Put_Line ("      Unit_Kind => " & Unit_Kind & ",");
+         File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
          File.Put_Line ("      Unit_Name => """ & Unit_Name & """,");
          File.Put_Line ("      others => <>);");
          File.New_Line;
