@@ -444,6 +444,8 @@ package body Project is
          Callback          : access procedure (Project  : Project_Type;
                                                Filename : String))
       is
+         use type Ada.Containers.Count_Type;
+
          Lib_Info : Library_Info_List;
       begin
          Project.Library_Files (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
@@ -485,8 +487,14 @@ package body Project is
             end Process_LI;
          end loop;
 
-         Report_Units_Without_LI
-           (Inc_Units, Origin => +Full_Name (Project.Project_Path));
+         --  At this point warn about units with no library info only when the
+         --  list of units of interests comes from project files, i.e. not
+         --  overriden by the --units command line argument.
+
+         if Inputs.Length (Override_Units) = 0 then
+            Report_Units_Without_LI
+              (Inc_Units, Origin => +Full_Name (Project.Project_Path));
+         end if;
       end Enumerate_In_Single_Project;
 
       -----------------
