@@ -198,8 +198,7 @@ package body Instrument.Common is
    ---------------------
 
    procedure Checkpoint_Save
-     (CSS : in out Checkpoints.Checkpoint_Save_State)
-   is
+     (CSS : in out Checkpoints.Checkpoint_Save_State) is
    begin
       Instrumented_Unit_Maps.Map'Write (CSS.Stream, Instrumented_Units);
    end Checkpoint_Save;

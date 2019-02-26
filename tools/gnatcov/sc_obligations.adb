@@ -2784,8 +2784,7 @@ package body SC_Obligations is
       Get_File (Main_Source).LI := ALI_Index;
       Get_File (ALI_Index).Main_Source := Main_Source;
 
-      Process_Low_Level_SCOs
-        (CU_Index, Main_Source, Deps);
+      Process_Low_Level_SCOs (CU_Index, Main_Source, Deps);
    end Load_SCOs;
 
    ----------------------------

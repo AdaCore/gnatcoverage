@@ -1253,8 +1253,7 @@ package body Coverage.Source is
             -----------------------------
 
             procedure Set_Known_Outcome_Taken
-              (SCI : in out Source_Coverage_Info)
-            is
+              (SCI : in out Source_Coverage_Info) is
             begin
                SCI.Known_Outcome_Taken (Outcome_Info.Outcome) := True;
             end Set_Known_Outcome_Taken;
