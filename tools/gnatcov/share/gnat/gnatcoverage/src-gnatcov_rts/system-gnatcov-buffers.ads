@@ -17,7 +17,7 @@ package System.GNATcov.Buffers is
    --  indicates whether the decision reached the False outcome and another for
    --  the True outcome.
 
-   type Any_Unit_Part is (Unit_Spec, Unit_Body, Unit_Separate);
+   type Any_Unit_Part is (Unit_Body, Unit_Spec, Unit_Separate);
 
    type Any_Bit_Id is new Integer;
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;

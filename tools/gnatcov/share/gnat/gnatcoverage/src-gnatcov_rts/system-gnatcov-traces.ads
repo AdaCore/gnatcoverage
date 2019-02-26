@@ -50,18 +50,21 @@ package System.GNATcov.Traces is
    --  Hash type to perform consistency checks
 
    type Any_Unit_Part is new Unsigned_8;
-   Unit_Body     : constant Any_Unit_Part := 0;
-   Unit_Spec     : constant Any_Unit_Part := 1;
-   Unit_Separate : constant Any_Unit_Part := 2;
+   Unit_Body     : constant Any_Unit_Part :=
+      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Body);
+   Unit_Spec     : constant Any_Unit_Part :=
+      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Spec);
+   Unit_Separate : constant Any_Unit_Part :=
+      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Separate);
    subtype Supported_Unit_Part is
       Any_Unit_Part range Unit_Body .. Unit_Separate;
    --  Describe the kind of unit referenced by a trace entry
 
    Unit_Part_Map : constant
-      array (System.GNATcov.Buffers.Any_Unit_Part) of Supported_Unit_Part :=
-     (System.GNATcov.Buffers.Unit_Body     => Unit_Body,
-      System.GNATcov.Buffers.Unit_Spec     => Unit_Spec,
-      System.GNATcov.Buffers.Unit_Separate => Unit_Separate);
+      array (Buffers.Any_Unit_Part) of Supported_Unit_Part :=
+     (Buffers.Unit_Body     => Unit_Body,
+      Buffers.Unit_Spec     => Unit_Spec,
+      Buffers.Unit_Separate => Unit_Separate);
 
    type Any_Bit_Count is new Unsigned_32;
    --  Number of bits contained in a coverage buffer
