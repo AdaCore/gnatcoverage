@@ -79,6 +79,11 @@ project Gnatcov is
       end case;
    end Binder;
 
+   package IDE is
+      for VCS_Kind use "git";
+      for VCS_Repository_Root use "../..";
+   end IDE;
+
    for Source_Dirs use (".", "libopcodes_bind");
    for Object_Dir use "obj" & Bits;
    for Languages use ("Ada", "C");
