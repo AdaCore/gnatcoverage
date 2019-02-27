@@ -455,6 +455,13 @@ package body Binary_Files is
      (S_File, S_Trace : Binary_File_Signature)
       return String
    is
+      File_Time_Stamp_Image  : constant String :=
+        Time_Stamp_Image (S_File.Time_Stamp);
+      Trace_Time_Stamp_Image : constant String :=
+        (if S_Trace.Time_Stamp = Invalid_Time
+         then ""
+         else Time_Stamp_Image (S_Trace.Time_Stamp));
+
    begin
       if S_Trace.Size /= 0 and then S_File.Size /= S_Trace.Size then
          return
@@ -462,14 +469,18 @@ package body Binary_Files is
              & " bytes long, but trace indicates"
              & Long_Integer'Image (S_Trace.Size));
 
+      --  We want to compare the time stamps, but on Windows we cannot
+      --  distinguish time stamps differing by just one second, so instead
+      --  we have to compare images for the time being, as a work-around???
+
       elsif S_Trace.Time_Stamp /= Invalid_Time
-            and then S_File.Time_Stamp /= S_Trace.Time_Stamp
+        and then File_Time_Stamp_Image /= Trace_Time_Stamp_Image
       then
          return
             ("Executable file created on "
-             & Time_Stamp_Image (S_File.Time_Stamp)
+             & File_Time_Stamp_Image
              & " but trace indicates "
-             & Time_Stamp_Image (S_Trace.Time_Stamp));
+             & Trace_Time_Stamp_Image);
 
       elsif S_Trace.CRC32 /= 0 and then S_File.CRC32 /= S_Trace.CRC32 then
          return
