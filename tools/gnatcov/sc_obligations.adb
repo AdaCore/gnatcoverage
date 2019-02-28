@@ -3176,7 +3176,7 @@ package body SC_Obligations is
                   --  Record the SCO/outcome association of both bits
                   --  associated to this decision obligation.
 
-                  if Decision_Bits /= null then
+                  if Enabled (Decision) and then Decision_Bits /= null then
                      declare
                         This_Decision_Bits : constant Outcome_Bit_Ids :=
                           LL_Unit_Bits.Decision_Bits.Element (Cur_SCO_Entry);

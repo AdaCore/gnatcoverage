@@ -35,6 +35,7 @@ with Snames; use Snames;
 with Table;
 
 with ALI_Files;
+with Coverage;
 with Files_Table; use Files_Table;
 with Outputs;
 with Text_Files;
@@ -1885,8 +1886,8 @@ package body Instrument.Sources is
       --  and if one is found, outputs the appropriate table entries.
 
       procedure Insert_Decision_Witness (LL_SCO_Id : Nat; N : Ada_Node'Class);
-      --  Insert witness function call for decision SCO with the given
-      --  low level SCO id.
+      --  If decision coverage is requested, insert witness function call for
+      --  decision SCO with the given low level SCO id.
 
       -----------------------------
       -- Insert_Decision_Witness --
@@ -1896,6 +1897,10 @@ package body Instrument.Sources is
         (LL_SCO_Id : Nat;
          N         : Ada_Node'Class) is
       begin
+         if not Coverage.Enabled (Coverage.Decision) then
+            return;
+         end if;
+
          --  Allocate 2 bits in the decision coverage buffer, and record
          --  their ids in the bitmap.
 
