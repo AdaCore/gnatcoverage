@@ -200,7 +200,8 @@ package body Instrument.Common is
    procedure Checkpoint_Save
      (CSS : in out Checkpoints.Checkpoint_Save_State) is
    begin
-      Instrumented_Unit_Maps.Map'Write (CSS.Stream, Instrumented_Units);
+      Instrumented_Unit_To_CU_Maps.Map'Write
+        (CSS.Stream, Instrumented_Unit_CUs);
    end Checkpoint_Save;
 
    ---------------------
@@ -210,21 +211,14 @@ package body Instrument.Common is
    procedure Checkpoint_Load
      (CLS : in out Checkpoints.Checkpoint_Load_State)
    is
-      use Instrumented_Unit_Maps;
+      use Instrumented_Unit_To_CU_Maps;
 
       CP_IU_Map : Map;
    begin
       Map'Read (CLS.Stream, CP_IU_Map);
 
       for Cur in CP_IU_Map.Iterate loop
-         declare
-            CP_IU : constant Instrumented_Unit_Info := Element (Cur);
-         begin
-            Instrumented_Units.Insert
-              (Key (Cur),
-               Instrumented_Unit_Info'(Is_Main => CP_IU.Is_Main,
-                                       CU      => CLS.CU_Map (CP_IU.CU)));
-         end;
+         Instrumented_Unit_CUs.Insert (Key (Cur), CLS.CU_Map (Element (Cur)));
       end loop;
    end Checkpoint_Load;
 
@@ -257,10 +251,9 @@ package body Instrument.Common is
 
    function Find_Instrumented_Unit
      (Unit_Name : String;
-      Unit_Part : Unit_Parts) return Instrumented_Unit_Info
-   is
+      Unit_Part : Unit_Parts) return CU_Id is
    begin
-      return Instrumented_Units.Element
+      return Instrumented_Unit_CUs.Element
         (To_Compilation_Unit_Name (Unit_Name, Unit_Part));
    end Find_Instrumented_Unit;
 

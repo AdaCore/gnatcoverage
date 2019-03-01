@@ -1205,7 +1205,7 @@ package body Coverage.Source is
    is
       pragma Unreferenced (Closure_Hash);
 
-      CU  : constant CU_Id := Find_Instrumented_Unit (Unit_Name, Unit_Part).CU;
+      CU  : constant CU_Id := Find_Instrumented_Unit (Unit_Name, Unit_Part);
       BM  : constant CU_Bit_Maps := Bit_Maps (CU);
 
       procedure Set_Executed (SCI : in out Source_Coverage_Info);

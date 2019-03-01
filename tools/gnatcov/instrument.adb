@@ -138,7 +138,7 @@ package body Instrument is
       --  Compute the list of units that contain the coverage buffers to
       --  process.
 
-      for Cur in Instrumented_Units.Iterate loop
+      for Cur in IC.Instrumented_Units.Iterate loop
          declare
             I_Unit : constant Compilation_Unit_Name :=
                Instrumented_Unit_Maps.Key (Cur);
@@ -218,18 +218,23 @@ package body Instrument is
       Units_Inputs        : Inputs.Inputs_Type;
       Auto_Dump_Buffers   : Boolean)
    is
-      IC : constant Inst_Context := Create_Context (Auto_Dump_Buffers);
+      IC : Inst_Context := Create_Context (Auto_Dump_Buffers);
 
-      procedure Instrument_Unit
+      procedure Add_Instrumented_Unit
         (Project     : GNATCOLL.Projects.Project_Type;
          Source_File : GNATCOLL.Projects.File_Info);
-      --  Instrument a single source file of interest from the project
-
-      ---------------------
-      -- Instrument_Unit --
-      ---------------------
+      --  Add the given source file to Instrumented_Units
 
       procedure Instrument_Unit
+        (CU_Name   : Compilation_Unit_Name;
+         Unit_Info : in out Instrumented_Unit_Info);
+      --  Instrument a single source file of interest from the project
+
+      ---------------------------
+      -- Add_Instrumented_Unit --
+      ---------------------------
+
+      procedure Add_Instrumented_Unit
         (Project     : GNATCOLL.Projects.Project_Type;
          Source_File : GNATCOLL.Projects.File_Info)
       is
@@ -239,38 +244,54 @@ package body Instrument is
            To_Compilation_Unit_Name (Source_File);
          Source_File_Str : constant GNATCOLL.VFS.Filesystem_String :=
            Source_File.File.Full_Name;
-
-         UIC             : Unit_Inst_Context;
-         Unit_Info       : Instrumented_Unit_Info :=
-           (Is_Main => GNATCOLL.Projects.Is_Main_File
-                         (Project, Source_File.File.Base_Name),
-            others  => <>);
-
+         Unit_Info       : constant Instrumented_Unit_Info :=
+           (Filename => To_Unbounded_String (+Source_File_Str),
+            Is_Main  => GNATCOLL.Projects.Is_Main_File
+                         (Project, Source_File.File.Base_Name));
       begin
-         --  Instrument source file
+         IC.Instrumented_Units.Insert (CU_Name, Unit_Info);
+      end Add_Instrumented_Unit;
+
+      ---------------------
+      -- Instrument_Unit --
+      ---------------------
+
+      procedure Instrument_Unit
+        (CU_Name   : Compilation_Unit_Name;
+         Unit_Info : in out Instrumented_Unit_Info)
+      is
+         UIC : Unit_Inst_Context;
+      begin
+         --  Instrument the source file and create a unit to contain its
+         --  coverage buffers.
 
          Instrument_Source_File
            (CU_Name   => CU_Name,
-            File_Name => +Source_File_Str,
             Unit_Info => Unit_Info,
             IC        => IC,
             UIC       => UIC);
-
          Emit_Buffer_Unit (IC, UIC);
 
-         --  Record in map of instrumented units
+         --  Track which CU_Id maps to which instrumented unit
 
-         Unit_Info.CU := UIC.CU;
-         Instrumented_Units.Insert
-           (To_Compilation_Unit_Name (Source_File), Unit_Info);
+         Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
       end Instrument_Unit;
 
    --  Start of processing for Instrument_Units_Of_Interest
 
    begin
-      Prepare_Output_Dirs (IC);
+      --  First get the list of all units of interest
 
-      Project.Enumerate_Ada_Sources (Instrument_Unit'Access, Units_Inputs);
+      Project.Enumerate_Ada_Sources
+        (Add_Instrumented_Unit'Access, Units_Inputs);
+
+      --  Then instrument them
+
+      Prepare_Output_Dirs (IC);
+      for Position in IC.Instrumented_Units.Iterate loop
+         IC.Instrumented_Units.Update_Element
+           (Position, Instrument_Unit'Access);
+      end loop;
 
       Emit_Buffers_List_Unit (IC);
       Emit_Project_Files (IC);

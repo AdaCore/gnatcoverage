@@ -101,26 +101,31 @@ package Instrument.Common is
    --  Given a unit to instrument, return the name of the unit that holds
    --  its coverage buffers.
 
-   type Instrumented_Unit_Info is record
-      Is_Main : Boolean;
-      --  Whether this unit is a main
+   package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Compilation_Unit_Name,
+      Element_Type => CU_Id);
 
-      CU : CU_Id := No_CU_Id;
-      --  Compilation unit (set after instrumentation is inserted)
-   end record;
-
-   package Instrumented_Unit_Maps is new
-      Ada.Containers.Ordered_Maps
-        (Key_Type     => Compilation_Unit_Name,
-         Element_Type => Instrumented_Unit_Info);
-
-   Instrumented_Units : Instrumented_Unit_Maps.Map;
-   --  Mapping from instrumented unit names to their info record
+   Instrumented_Unit_CUs : Instrumented_Unit_To_CU_Maps.Map;
+   --  Associate a CU id for all instrumented units. Updated each time we
+   --  instrument a unit (or load a checkpoint) and used each time we read a
+   --  coverage buffer (or save to a checkpoint).
 
    function Find_Instrumented_Unit
      (Unit_Name : String;
-      Unit_Part : Unit_Parts) return Instrumented_Unit_Info;
-   --  Return a unit's entry from the instrumented units map
+      Unit_Part : Unit_Parts) return CU_Id;
+   --  Find the CU_Id corresponding to the given instrumented unit
+
+   type Instrumented_Unit_Info is record
+      Filename : Ada.Strings.Unbounded.Unbounded_String;
+      --  Name of the source file for this unit
+
+      Is_Main : Boolean;
+      --  Whether this unit is a main
+   end record;
+
+   package Instrumented_Unit_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Compilation_Unit_Name,
+      Element_Type => Instrumented_Unit_Info);
 
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
@@ -138,6 +143,10 @@ package Instrument.Common is
 
       Auto_Dump_Buffers : Boolean;
       --  See the eponym argument in Instrument.Intrument_Units_Of_Interest
+
+      Instrumented_Units : Instrumented_Unit_Maps.Map;
+      --  Mapping from instrumented unit names to information used during
+      --  instrumentation.
    end record;
 
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context;

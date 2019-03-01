@@ -2579,13 +2579,13 @@ package body Instrument.Sources is
 
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
-      File_Name : String;
       Unit_Info : Instrumented_Unit_Info;
       IC        : Inst_Context;
       UIC       : out Unit_Inst_Context)
    is
       Ctx      : constant Analysis_Context := Create_Context;
-      Unit     : constant Analysis_Unit := Get_From_File (Ctx, File_Name);
+      Filename : constant String := To_String (Unit_Info.Filename);
+      Unit     : constant Analysis_Unit := Get_From_File (Ctx, Filename);
 
       Preelab : constant Boolean := False;
       --  ??? To be implemented in Libadalang: S128-004
@@ -2601,7 +2601,7 @@ package body Instrument.Sources is
       --  Check that we could at least parse the source file to instrument
 
       if Unit.Has_Diagnostics then
-         Outputs.Error ("instrumentation failed for " & File_Name);
+         Outputs.Error ("instrumentation failed for " & Filename);
          Outputs.Error
            ("please make sure the original project can be compiled");
          for D of Unit.Diagnostics loop
@@ -2620,13 +2620,13 @@ package body Instrument.Sources is
         (UIC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
 
       UIC.SFI := Get_Index_From_Generic_Name
-        (File_Name, Kind => Files_Table.Source_File);
+        (Filename, Kind => Files_Table.Source_File);
       UIC.CU := Allocate_CU (Provider => Instrumenter, Origin => UIC.SFI);
       --  In the instrumentation case, the origin of SCO information is
       --  the original source file.
 
       SCOs.SCO_Unit_Table.Append
-        ((File_Name  => new String'(File_Name),
+        ((File_Name  => new String'(Filename),
           File_Index => UIC.SFI,
           Dep_Num    => 1,
           From       => SCOs.SCO_Table.First,
@@ -2652,7 +2652,7 @@ package body Instrument.Sources is
                Out_File.Put_Line (To_String (Unit.Text));
             end;
          else
-            Outputs.Error ("instrumentation failed for " & File_Name);
+            Outputs.Error ("instrumentation failed for " & Filename);
             Outputs.Error
               ("this is likely a bug in GNATcoverage: please report it");
             for D of Result.Diagnostics loop
