@@ -18,8 +18,8 @@
 
 --  Generate SCOs and source code instrumentation
 
-with Libadalang.Analysis;     use Libadalang.Analysis;
-with Libadalang.Rewriting;    use Libadalang.Rewriting;
+with Libadalang.Analysis;  use Libadalang.Analysis;
+with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with SC_Obligations;    use SC_Obligations;
 with Instrument.Common; use Instrument.Common;
