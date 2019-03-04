@@ -31,6 +31,12 @@ end;
 --  /do_nop2/ l- ## s-
 --  /do_nop3/ l+ ## 0
 
+-- With the 7.4 series of compilers, when optimizing, some null
+-- subprograms can be reported uncovered even though executed.
+
+-- %tags:leon.*(7.4..) %cargs:-O1,-gnatn
+--  =/do_nop3/   ~l- ## ~s-
+
 --# ops.ads
 --  /do_nop1/ l- ## s-
 
