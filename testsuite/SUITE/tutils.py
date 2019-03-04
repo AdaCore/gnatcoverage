@@ -281,10 +281,13 @@ def gprfor(
 def exename_for (pgmname):
     return pgmname + TARGET_INFO.exeext
 
-# Tracefile name
+# Tracefile name (binary trace or source trace)
 
 def tracename_for (pgmname):
     return exename_for (pgmname) + ".trace"
+
+def srctracename_for (pgmname):
+    return exename_for (pgmname) + ".srctrace"
 
 # Decision map name
 
