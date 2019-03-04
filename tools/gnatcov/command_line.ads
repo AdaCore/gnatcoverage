@@ -375,9 +375,13 @@ package Command_Line is
 
       Opt_Auto_Dump_Buffers => Create
         (Long_Name => "--auto-dump-buffers",
-         Help      => "Append a call to System.GNATcov.Traces.Output."
-                      & " .Write_Trace_File for the closure in all mains in"
-                      & " all mains in the project.",
+         Help      => "Append a call to System.GNATcov.Traces.Output"
+                      & ".Write_Trace_File in all mains in the project. Note"
+                      & " that this also instruments mains that are the units"
+                      & " of interest."
+                      & ASCII.LF & ASCII.LF
+                      & "The call to Write_Trace_File dumps coverage buffers"
+                      & " for all units of interest in the main closure.",
          Commands  => (Cmd_Instrument => True,
                        others         => False),
          Internal  => True));

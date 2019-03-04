@@ -26,6 +26,8 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
+with Libadalang.Rewriting;
+
 with Checkpoints;
 with Coverage;
 with Instrument.Common;  use Instrument.Common;
@@ -52,6 +54,10 @@ package body Instrument is
 
    procedure Emit_Project_Files (IC : Inst_Context);
    --  Emit project files to cover the instrumented sources
+
+   procedure Auto_Dump_Buffers_In_Ada_Mains (IC : Inst_Context);
+   --  Instrument source files for Ada mains that are not units of interest to
+   --  add a dump of coverage buffers.
 
    -------------------------
    -- Prepare_Output_Dirs --
@@ -209,6 +215,44 @@ package body Instrument is
       File.Put_Line ("end Buffers;");
    end Emit_Project_Files;
 
+   ------------------------------------
+   -- Auto_Dump_Buffers_In_Ada_Mains --
+   ------------------------------------
+
+   procedure Auto_Dump_Buffers_In_Ada_Mains (IC : Inst_Context) is
+   begin
+      for Main of Project.Enumerate_Ada_Mains loop
+         declare
+            Info    : constant GNATCOLL.Projects.File_Info :=
+               Project.Project.Info (Main.File);
+            CU_Name : constant Compilation_Unit_Name :=
+               To_Compilation_Unit_Name (Info);
+         begin
+            if not IC.Instrumented_Units.Contains (CU_Name) then
+               declare
+                  use type GNATCOLL.VFS.Filesystem_String;
+
+                  Rewriter      : Source_Rewriter;
+                  Filename      : constant String := +Main.File.Full_Name;
+                  Base_Filename : constant String :=
+                     Ada.Directories.Simple_Name (Filename);
+               begin
+                  Rewriter.Start_Rewriting
+                    (Input_Filename  => Filename,
+                     Output_Filename =>
+                        To_String (IC.Instr_Dir) / Base_Filename);
+                  Add_Auto_Dump_Buffers
+                    (IC   => IC,
+                     Main => CU_Name.Unit,
+                     URH  => Libadalang.Rewriting.Handle
+                               (Rewriter.Rewritten_Unit));
+                  Rewriter.Apply;
+               end;
+            end if;
+         end;
+      end loop;
+   end Auto_Dump_Buffers_In_Ada_Mains;
+
    ----------------------------------
    -- Instrument_Units_Of_Interest --
    ----------------------------------
@@ -292,6 +336,14 @@ package body Instrument is
          IC.Instrumented_Units.Update_Element
            (Position, Instrument_Unit'Access);
       end loop;
+
+      --  If requested, also instrument all Ada mains that are not unit of
+      --  interest to add the dump of coverage buffers: Instrument_Unit already
+      --  took care of mains that are units of interest.
+
+      if Auto_Dump_Buffers then
+         Auto_Dump_Buffers_In_Ada_Mains (IC);
+      end if;
 
       Emit_Buffers_List_Unit (IC);
       Emit_Project_Files (IC);

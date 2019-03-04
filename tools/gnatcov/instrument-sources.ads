@@ -88,6 +88,9 @@ private package Instrument.Sources is
       UIC       : out Unit_Inst_Context);
    --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
    --  Record instrumentation information in IC.
+   --
+   --  If the unit to instrument is also a main and the --auto-dump-buffers is
+   --  active, instrumented code will also dump the coverage buffers.
 
    procedure Add_Auto_Dump_Buffers
      (IC   : Inst_Context;
