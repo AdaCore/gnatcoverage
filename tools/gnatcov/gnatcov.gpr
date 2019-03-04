@@ -1,6 +1,6 @@
 with "gnat_util", "gnatcoll", "libadalang";
 
-with "share/gnat/gnatcoverage/gnatcov_rts";
+with "share/gnatcov_rts";
 
 project Gnatcov is
 

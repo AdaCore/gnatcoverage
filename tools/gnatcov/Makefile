@@ -78,6 +78,7 @@ BINUTILS_BUILD_DIR?=$(BINUTILS_SRC_DIR)
 ###################
 
 GPRBUILD=gprbuild
+GPRINSTALL=gprinstall
 
 # Binary program name
 PGMNAME=gnatcov
@@ -180,7 +181,7 @@ default: bin
 
 bin: $(PGMPATH)
 
-all: bin adapters
+all: bin adapters gnatcov_rts_full
 
 $(PGMPATH):
 # Unlike BINUTILS_BUILD_DIR for which we have a default fallback,
@@ -209,6 +210,12 @@ $(ADAPTER_TARGETS): adapter-%: bin
 	$(MAKE) -C trace_adapters/$* $($*_ADAPTER_BUILD_VARS)
 
 adapters: $(ADAPTER_TARGETS)
+
+gnatcov_rts_full:
+	for build in static relocatable static-pic; do \
+	$(GPRBUILD) -Pshare/gnatcov_rts_full -p -j$(PARALLEL_BUILD) \
+		-XLIBRARY_TYPE=$$build; \
+	done
 
 #######################
 # Internal facilities #
@@ -287,7 +294,8 @@ clean-adapters: $(CLEAN_ADAPTER_TARGETS)
 # Installation #
 ################
 
-.PHONY: install-bin install-examples install-doc install-projects install install-adapters
+.PHONY: install-bin install-examples install-doc install-gnatcov_rts \
+	install-gnatcov_rts_full install install-adapters
 
 install-bin:
 	$(MKDIR) $(PREFIX)/bin
@@ -304,11 +312,22 @@ install-doc.%:
 
 install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 
-install-projects:
-	$(MKDIR) $(PREFIX)/share/gnat/
-	$(CP) -r share/gnat/$(DIRNAME) $(PREFIX)/share/gnat/
+install-gnatcov_rts:
+	$(MKDIR) $(PREFIX)/share/$(DIRNAME)
+	$(CP) -r \
+	    share/gnatcov_rts.gpr \
+	    share/gnatcov_rts \
+	    $(PREFIX)/share/$(DIRNAME)
 
-install-common: install-bin install-examples install-projects
+install-gnatcov_rts_full:
+	for build in static relocatable static-pic; do \
+	$(GPRINSTALL) -Pshare/gnatcov_rts_full -p --prefix=$(PREFIX) \
+		--build-var=LIBRARY_TYPE \
+		--build-name=$$build -XLIBRARY_TYPE=$$build; \
+	done
+
+install-common: install-bin install-examples install-gnatcov_rts \
+	install-gnatcov_rts_full
 install-without-doc: install-common
 install-with-doc: install-common install-doc
 install: install-with-doc

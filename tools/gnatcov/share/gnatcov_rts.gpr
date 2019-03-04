@@ -1,0 +1,17 @@
+--  Project to provide common units for the runtime of instrumented programs
+--
+--  This is a simple project that contains only type definitions for coverage
+--  buffers and for the format of GNATcoverage's source trace files.
+--
+--  If you need to use GNATcoverage's own implementation of the writer for
+--  source traces files (System.GNATcov.Traces.Output), please use the
+--  gnatcov_rts_full project instead.
+
+project GNATcov_RTS is
+   for Source_Dirs use ("gnatcov_rts");
+   for Object_Dir use "obj-gnatcov_rts";
+
+   package Compiler is
+      for Default_Switches ("Ada") use ("-gnatg");
+   end Compiler;
+end GNATcov_RTS;

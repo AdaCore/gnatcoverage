@@ -13,10 +13,13 @@ test.py.*
 /extra
 /tools/gnatcov/obj32/
 /tools/gnatcov/obj64/
+/tools/gnatcov/obj-gnatcov_rts/
 /tools/gnatcov/examples/support/lib
 /tools/gnatcov/examples/support/obj
 /tools/gnatcov/rts-instr
-/tools/gnatcov/share/gnat/gnatcoverage/obj-gnatcov_rts
+/tools/gnatcov/share/lib-gnatcov_rts_full.*
+/tools/gnatcov/share/obj-gnatcov_rts
+/tools/gnatcov/share/obj-gnatcov_rts_full.*
 /testsuite/install
 /testsuite/output
 /testsuite/rep_gnatcov
