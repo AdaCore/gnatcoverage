@@ -17,11 +17,13 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
+with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
 with GNATCOLL.Projects;       use GNATCOLL.Projects;
+with GNATCOLL.VFS;
 
 with Langkit_Support.Slocs;   use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;
@@ -102,13 +104,18 @@ package body Instrument.Sources is
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a new entry to the low-level SCO table
 
-   procedure Add_Auto_Dump_Buffers
+   package Ada_Qualified_Name_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Ada_Qualified_Name,
+      "="          => Ada_Identifier_Vectors."=");
+
+   function Buffer_Units_For_Closure
      (IC   : Inst_Context;
-      UIC  : Unit_Inst_Context;
-      Unit : LAL.Analysis_Unit);
-   --  Try to insert a call to dump the list of coverage buffers for units of
-   --  interest at the end of Unit, a main subprogram. Return without doing
-   --  anything if unsuccessful.
+      Main : Ada_Qualified_Name)
+      return Ada_Qualified_Name_Vectors.Vector;
+   --  Return the list of buffer units names for all units of interest in
+   --  Main's closure. If for some reason we cannot get this list, just return
+   --  an empty one.
 
    -------------------------------------
    -- Generation of witness fragments --
@@ -2430,25 +2437,80 @@ package body Instrument.Sources is
       end;
    end Initialize_Rewriting;
 
+   ------------------------------
+   -- Buffer_Units_For_Closure --
+   ------------------------------
+
+   function Buffer_Units_For_Closure
+     (IC   : Inst_Context;
+      Main : Ada_Qualified_Name)
+      return Ada_Qualified_Name_Vectors.Vector
+   is
+      pragma Unreferenced (Main);
+      Result : Ada_Qualified_Name_Vectors.Vector;
+   begin
+      --  TODO??? Here, we need the list of files needed to build Main: specs
+      --  for units WITHed by main, their bodies, the separates, etc.  It's
+      --  unclear what GNATCOLL.Projects.Get_Closure does, but experimentations
+      --  show that it's not what we want. So for now, return an approximation:
+      --  buffer units for all instrumented units. In the future, we should
+      --  either get this service from GNATCOLL.Projects, either re-implement
+      --  it on top of Libadalang.
+
+      for Position in IC.Instrumented_Units.Iterate loop
+         declare
+            Instr_Unit : constant Compilation_Unit_Name :=
+               Instrumented_Unit_Maps.Key (Position);
+         begin
+            Result.Append (Buffer_Unit (Instr_Unit));
+         end;
+      end loop;
+      return Result;
+   end Buffer_Units_For_Closure;
+
    ---------------------------
    -- Add_Auto_Dump_Buffers --
    ---------------------------
 
    procedure Add_Auto_Dump_Buffers
      (IC   : Inst_Context;
-      UIC  : Unit_Inst_Context;
-      Unit : LAL.Analysis_Unit)
+      Main : Ada_Qualified_Name;
+      URH  : Unit_Rewriting_Handle)
    is
-      Tmp : LAL.Ada_Node := Unit.Root;
+      No_Node : Node_Rewriting_Handle renames No_Node_Rewriting_Handle;
+
+      U   : constant Analysis_Unit := Unit (URH);
+      RH  : constant Rewriting_Handle := Handle (U.Context);
+      Tmp : LAL.Ada_Node := U.Root;
 
       CU        : LAL.Compilation_Unit;
       Subp_Body : LAL.Subp_Body;
 
       Old_Stmts, New_Stmts : Node_Rewriting_Handle;
 
-      Output_Unit, Output_Proc               : Ada_Qualified_Name;
-      Buffers_List_Unit, Buffers_List_Object : Ada_Qualified_Name;
+      New_Stmt_List        : constant Node_Rewriting_Handle :=
+         Create_Node (RH, Ada_Stmt_List);
+      --  List of statements to contain 1) the original handled statements
+      --  (Old_Stmts) and 2) the call to the Write_Trace_File procedure.
+
+      Output_Unit, Output_Proc : Ada_Qualified_Name;
+      --  Qualified names for the unit that contains the buffer output
+      --  procedure, and for the procedure itself.
+
+      Buffer_Id : constant Node_Rewriting_Handle :=
+         Create_Identifier (RH, "Buffers");
+      Access_Id : constant Node_Rewriting_Handle :=
+         Create_Identifier (RH, "Access");
+
+      Buffer_Units : constant Ada_Qualified_Name_Vectors.Vector :=
+         Buffer_Units_For_Closure (IC, Main);
+      --  List of names for units that contains the buffers to dump
+
    begin
+      if Buffer_Units.Is_Empty then
+         return;
+      end if;
+
       --  Make sure this main source has the expected structure: a
       --  simple subprogram body in a compilation unit. If not, return without
       --  doing anything.
@@ -2480,34 +2542,42 @@ package body Instrument.Sources is
       Output_Proc := Output_Unit;
       Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
 
-      Buffers_List_Unit := Sys_Buffers_Lists;
-      Buffers_List_Unit.Append (Common.Ada_Identifier (IC.Project_Name));
-
-      Buffers_List_Object := Buffers_List_Unit;
-      Buffers_List_Object.Append (To_Unbounded_String ("List"));
-
       --  Add the required WITH clauses
 
       declare
-         Prelude     : constant Node_Rewriting_Handle :=
-            Handle (CU.F_Prelude);
-         With_Output : constant Node_Rewriting_Handle :=
-            Create_From_Template
-              (UIC.Rewriting_Context,
-               Template  => "with {};",
-               Arguments =>
-                 (1 => To_Nodes (UIC.Rewriting_Context, Output_Unit)),
-               Rule      => With_Clause_Rule);
-         With_List : constant Node_Rewriting_Handle :=
-            Create_From_Template
-              (UIC.Rewriting_Context,
-               Template  => "with {};",
-               Arguments =>
-                 (1 => To_Nodes (UIC.Rewriting_Context, Buffers_List_Unit)),
-               Rule      => With_Clause_Rule);
+         use type Ada_Qualified_Name;
+
+         Prelude : constant Node_Rewriting_Handle := Handle (CU.F_Prelude);
+
+         Buffer_Unit_For_This_Main : constant Ada_Qualified_Name :=
+            Common.Buffer_Unit ((Main, Unit_Body));
+         --  Buffer unit for Main, to avoid duplicate WITH clause
+
+         procedure Add_With (Unit : Ada_Qualified_Name);
+         --  Add a WITH clause to Prelude for the given unit name
+
+         --------------
+         -- Add_With --
+         --------------
+
+         procedure Add_With (Unit : Ada_Qualified_Name) is
+            With_Clause : constant Node_Rewriting_Handle :=
+               Create_From_Template
+                 (RH,
+                  Template  => "with {};",
+                  Arguments => (1 => To_Nodes (RH, Unit)),
+                  Rule      => With_Clause_Rule);
+         begin
+            Append_Child (Prelude, With_Clause);
+         end Add_With;
+
       begin
-         Append_Child (Prelude, With_Output);
-         Append_Child (Prelude, With_List);
+         Add_With (Output_Unit);
+         for Buffer_Unit of Buffer_Units loop
+            if Buffer_Unit /= Buffer_Unit_For_This_Main then
+               Add_With (Buffer_Unit);
+            end if;
+         end loop;
       end;
 
       --  Wrap the previous subprogram body content (declarations, handled
@@ -2515,14 +2585,8 @@ package body Instrument.Sources is
       --  block if there is no declaration.
 
       declare
-         --  Create a new list of statements to contain 1) the original handled
-         --  statements and 2) the call to
-         --  System.GNATcov.Traces.Output.Write_Trace_File.
-
-         New_Stmt_List : constant Node_Rewriting_Handle :=
-            Create_Node (UIC.Rewriting_Context, Ada_Stmt_List);
-         New_Excs      : constant Node_Rewriting_Handle :=
-            Create_Node (UIC.Rewriting_Context, Ada_Ada_Node_List);
+         New_Excs : constant Node_Rewriting_Handle :=
+            Create_Node (RH, Ada_Ada_Node_List);
 
          Nested_Block : Node_Rewriting_Handle;
          Nested_Decls : Node_Rewriting_Handle;
@@ -2532,8 +2596,7 @@ package body Instrument.Sources is
 
          Old_Stmts := Handle (Subp_Body.F_Stmts);
          New_Stmts := Create_Regular_Node
-           (UIC.Rewriting_Context, Ada_Handled_Stmts,
-            (New_Stmt_List, New_Excs));
+           (RH, Ada_Handled_Stmts, (New_Stmt_List, New_Excs));
          Replace (Old_Stmts, New_Stmts);
 
          --  If the original subprogram has declarations, wrap the original
@@ -2546,30 +2609,73 @@ package body Instrument.Sources is
             Replace
               (Nested_Decls,
                Create_Regular_Node
-                 (UIC.Rewriting_Context, Ada_Declarative_Part,
-                  (1 => Create_Node (UIC.Rewriting_Context,
-                                     Ada_Ada_Node_List))));
+                 (RH, Ada_Declarative_Part,
+                  (1 => Create_Node (RH, Ada_Ada_Node_List))));
 
             Nested_Block := Create_Regular_Node
-              (UIC.Rewriting_Context, Ada_Decl_Block,
-               (Nested_Decls,               --  F_Decls
-                Old_Stmts,                  --  F_Stmts
-                No_Node_Rewriting_Handle)); --  F_End_Name
+              (RH, Ada_Decl_Block,
+               (Nested_Decls, --  F_Decls
+                Old_Stmts,    --  F_Stmts
+                No_Node));    --  F_End_Name
          end if;
 
-         --  Add the statements and the call to Write_Trace_File to the
-         --  instrumented subprogram's new root list of statements.
-
          Append_Child (New_Stmt_List, Nested_Block);
-         Append_Child
-           (New_Stmt_List,
-            Create_From_Template
-              (UIC.Rewriting_Context,
-               Template  => "{} ({});",
-               Arguments => (To_Nodes (UIC.Rewriting_Context, Output_Proc),
-                             To_Nodes (UIC.Rewriting_Context,
-                                       Buffers_List_Object)),
-               Rule      => Stmt_Rule));
+      end;
+
+      --  Build the call to Write_Trace_File on the list of buffers, and append
+      --  it to New_Stmt_List, right after the old list of statements.
+
+      declare
+         Buffer_List : constant Node_Rewriting_Handle :=
+            Create_Node (RH, Ada_Assoc_List);
+         --  List of Ada_Aggregate_Assoc nodes for the list of buffers to pass
+         --  to the output procedure.
+
+         Aggregate : constant Node_Rewriting_Handle := Create_Regular_Node
+           (RH, Ada_Aggregate, (1 => No_Node,       --  F_Ancestor_Expr
+                                2 => Buffer_List)); --  F_Assocs
+
+         Param_Assoc : constant Node_Rewriting_Handle := Create_Regular_Node
+           (RH, Ada_Param_Assoc, (1 => No_Node,     --  F_Designator
+                                  2 => Aggregate)); --  F_Expr
+
+         Assoc_List : constant Node_Rewriting_Handle :=
+            Create_Node (RH, Ada_Assoc_List);
+
+         Call_Expr : constant Node_Rewriting_Handle := Create_Regular_Node
+           (RH, Ada_Call_Expr, (1 => To_Nodes (RH, Output_Proc), --  F_Name
+                                2 => Assoc_List));               --  F_Suffix
+
+         Call_Stmt : constant Node_Rewriting_Handle :=
+            Create_Regular_Node (RH, Ada_Call_Stmt, (1 => Call_Expr));
+      begin
+         for Buffer_Unit of Buffer_Units loop
+            declare
+               Buffer_Name : constant Node_Rewriting_Handle :=
+                  Create_Regular_Node
+                    (RH, Ada_Dotted_Name,
+                     (1 => To_Nodes (RH, Buffer_Unit), --  F_Prefix
+                      2 => Clone (Buffer_Id)));        --  F_Suffix
+
+               Buffer_Access : constant Node_Rewriting_Handle :=
+                  Create_Regular_Node
+                    (RH, Ada_Attribute_Ref,
+                     (1 => Buffer_Name,         --  F_Prefix
+                      2 => Clone (Access_Id),   --  F_Attribute
+                      3 => No_Node));           --  F_Args
+
+               Assoc : constant Node_Rewriting_Handle :=
+                  Create_Regular_Node
+                    (RH, Ada_Aggregate_Assoc,
+                     (1 => Create_Node                   --  F_Designators
+                             (RH, Ada_Alternatives_List),
+                      2 => Buffer_Access));              --  F_R_Expr
+            begin
+               Append_Child (Buffer_List, Assoc);
+            end;
+         end loop;
+         Append_Child (Assoc_List, Param_Assoc);
+         Append_Child (New_Stmt_List, Call_Stmt);
       end;
    end Add_Auto_Dump_Buffers;
 
@@ -2634,7 +2740,10 @@ package body Instrument.Sources is
       Process_Low_Level_SCOs (UIC.CU, UIC.SFI, LL_Unit_Bits => UIC.Unit_Bits);
 
       if IC.Auto_Dump_Buffers and then Unit_Info.Is_Main then
-         Add_Auto_Dump_Buffers (IC, UIC, Unit);
+         Add_Auto_Dump_Buffers
+           (IC   => IC,
+            Main => UIC.Instrumented_Unit.Unit,
+            URH  => Handle (Unit));
       end if;
 
       --  Emit the instrumented source file

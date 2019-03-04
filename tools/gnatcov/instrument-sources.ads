@@ -89,6 +89,17 @@ private package Instrument.Sources is
    --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
    --  Record instrumentation information in IC.
 
+   procedure Add_Auto_Dump_Buffers
+     (IC   : Inst_Context;
+      Main : Ada_Qualified_Name;
+      URH  : Unit_Rewriting_Handle);
+   --  Try to insert in the sources of Main (a main subprogram) a call to dump
+   --  the list of coverage buffers for all units of interest in Main's
+   --  closure. Return without doing anything if unsuccessful.
+   --
+   --  URH must be a rewriting handle for the body unit that contains Main's
+   --  sources.
+
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));
 

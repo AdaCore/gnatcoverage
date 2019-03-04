@@ -1056,4 +1056,13 @@ package body Project is
       end if;
    end Finalize;
 
+   -------------
+   -- Project --
+   -------------
+
+   function Project return GNATCOLL.Projects.Project_Tree_Access is
+   begin
+      return Prj_Tree;
+   end Project;
+
 end Project;

@@ -125,4 +125,11 @@ package Project is
      (Process : access procedure (Source_File : String));
    --  Call Process on each name in the Coverage'Ignored_Source_File attribute
 
+   ---------------------------------------
+   -- Raw accessor for the project tree --
+   ---------------------------------------
+
+   function Project return GNATCOLL.Projects.Project_Tree_Access
+      with Pre => Is_Project_Loaded;
+
 end Project;
