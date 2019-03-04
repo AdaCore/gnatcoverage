@@ -16,11 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
+with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with Ada.Containers.Vectors;
 with Ada.Directories;
-with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
-with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
+with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects;       use GNATCOLL.Projects;
 with GNATCOLL.VFS;
@@ -39,7 +38,6 @@ with Table;
 with ALI_Files;
 with Coverage;
 with Files_Table; use Files_Table;
-with Outputs;
 with Text_Files;
 
 package body Instrument.Sources is
@@ -2422,7 +2420,7 @@ package body Instrument.Sources is
    begin
       IC.Instrumented_Unit := Instrumented_Unit;
       IC.Buffer_Unit := (Buffer_Unit (Instrumented_Unit), Unit_Spec);
-      IC.Rewriting_Context := Start_Rewriting (Context);
+      IC.Rewriting_Context := Handle (Context);
 
       declare
          RH : constant Rewriting_Handle := IC.Rewriting_Context;
@@ -2689,9 +2687,10 @@ package body Instrument.Sources is
       IC        : Inst_Context;
       UIC       : out Unit_Inst_Context)
    is
-      Ctx      : constant Analysis_Context := Create_Context;
-      Filename : constant String := To_String (Unit_Info.Filename);
-      Unit     : constant Analysis_Unit := Get_From_File (Ctx, Filename);
+      Rewriter      : Source_Rewriter;
+      Filename      : constant String := To_String (Unit_Info.Filename);
+      Base_Filename : constant String :=
+         Ada.Directories.Simple_Name (Filename);
 
       Preelab : constant Boolean := False;
       --  ??? To be implemented in Libadalang: S128-004
@@ -2704,26 +2703,21 @@ package body Instrument.Sources is
       --  illegal.
 
    begin
-      --  Check that we could at least parse the source file to instrument
+      Rewriter.Start_Rewriting
+        (Input_Filename  => Filename,
+         Output_Filename => To_String (IC.Instr_Dir) / Base_Filename);
 
-      if Unit.Has_Diagnostics then
-         Outputs.Error ("instrumentation failed for " & Filename);
-         Outputs.Error
-           ("please make sure the original project can be compiled");
-         for D of Unit.Diagnostics loop
-            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
-         end loop;
-         raise Outputs.Xcov_Exit_Exc;
-      end if;
-
-      Initialize_Rewriting (UIC, CU_Name, Ctx);
+      Initialize_Rewriting (UIC, CU_Name, Rewriter.Rewritten_Context);
 
       --  Then run SCOs generation. This inserts calls to witness
       --  procedures/functions in the same pass.
 
       SCOs.Initialize;
       Traverse_Declarations_Or_Statements
-        (UIC, P => Root (Unit), L => No_Ada_Node_List, Preelab => Preelab);
+        (IC      => UIC,
+         P       => Rewriter.Rewritten_Unit.Root,
+         L       => No_Ada_Node_List,
+         Preelab => Preelab);
 
       UIC.SFI := Get_Index_From_Generic_Name
         (Filename, Kind => Files_Table.Source_File);
@@ -2743,36 +2737,12 @@ package body Instrument.Sources is
          Add_Auto_Dump_Buffers
            (IC   => IC,
             Main => UIC.Instrumented_Unit.Unit,
-            URH  => Handle (Unit));
+            URH  => Handle (Rewriter.Rewritten_Unit));
       end if;
 
       --  Emit the instrumented source file
 
-      declare
-         Result : constant Apply_Result := Apply (UIC.Rewriting_Context);
-      begin
-         if Result.Success then
-            declare
-               Base_Filename : constant String :=
-                  Ada.Directories.Simple_Name (Unit.Get_Filename);
-               Out_File      : Text_Files.File_Type;
-            begin
-               Out_File.Create (To_String (IC.Instr_Dir) / Base_Filename);
-               Out_File.Put_Line (To_String (Unit.Text));
-            end;
-         else
-            Outputs.Error ("instrumentation failed for " & Filename);
-            Outputs.Error
-              ("this is likely a bug in GNATcoverage: please report it");
-            for D of Result.Diagnostics loop
-               Outputs.Error
-                 (Image (D.Sloc_Range) & ": "
-                  & To_String (To_Wide_Wide_String (D.Message)));
-            end loop;
-            Abort_Rewriting (UIC.Rewriting_Context);
-            raise Outputs.Xcov_Exit_Exc;
-         end if;
-      end;
+      Rewriter.Apply;
    end Instrument_Source_File;
 
 end Instrument.Sources;

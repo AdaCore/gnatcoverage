@@ -17,10 +17,15 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
+with Ada.Characters.Conversions;
 
+with Outputs;
 with Project;
+with Text_Files;
 
 package body Instrument.Common is
+
+   use Ada.Strings.Unbounded, Libadalang.Analysis, Libadalang.Rewriting;
 
    function To_Compilation_Unit_Name
      (Unit_Name : String;
@@ -33,7 +38,6 @@ package body Instrument.Common is
    ------------
 
    function To_Ada (Name : Ada_Qualified_Name) return String is
-      use Ada.Strings.Unbounded;
       Result : Unbounded_String;
    begin
       for Id of Name loop
@@ -84,7 +88,6 @@ package body Instrument.Common is
    -----------------
 
    function To_Filename (CU_Name : Compilation_Unit_Name) return String is
-      use Ada.Strings.Unbounded;
       Result : Unbounded_String;
    begin
       for Id of CU_Name.Unit loop
@@ -194,6 +197,106 @@ package body Instrument.Common is
    end Buffer_Unit;
 
    ---------------------
+   -- Start_Rewriting --
+   ---------------------
+
+   procedure Start_Rewriting
+     (Self            : out Source_Rewriter;
+      Input_Filename  : String;
+      Output_Filename : String)
+   is
+      Context : constant Analysis_Context := Create_Context;
+      Unit    : constant Analysis_Unit :=
+         Get_From_File (Context, Input_Filename);
+   begin
+      if Unit.Has_Diagnostics then
+         Outputs.Error ("instrumentation failed for " & Input_Filename);
+         Outputs.Error
+           ("please make sure the original project can be compiled");
+         for D of Unit.Diagnostics loop
+            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
+         end loop;
+         raise Outputs.Xcov_Exit_Exc;
+      end if;
+
+      Self.Input_Filename := To_Unbounded_String (Input_Filename);
+      Self.Output_Filename := To_Unbounded_String (Output_Filename);
+      Self.Context := Context;
+      Self.Unit := Unit;
+      Self.Handle := Start_Rewriting (Context);
+   end Start_Rewriting;
+
+   -----------------------
+   -- Rewritten_Context --
+   -----------------------
+
+   function Rewritten_Context
+     (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Context is
+   begin
+      return Self.Context;
+   end Rewritten_Context;
+
+   --------------------
+   -- Rewritten_Unit --
+   --------------------
+
+   function Rewritten_Unit
+     (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Unit is
+   begin
+      return Self.Unit;
+   end Rewritten_Unit;
+
+   -----------
+   -- Apply --
+   -----------
+
+   procedure Apply (Self : in out Source_Rewriter) is
+      Has_Error : Boolean := False;
+   begin
+      declare
+         Result : constant Apply_Result := Apply (Self.Handle);
+      begin
+         if Result.Success then
+            declare
+               Out_File : Text_Files.File_Type;
+            begin
+               Out_File.Create (To_String (Self.Output_Filename));
+               Out_File.Put_Line
+                 (Ada.Characters.Conversions.To_String (Self.Unit.Text));
+            end;
+
+         else
+            Has_Error := True;
+            Outputs.Error ("instrumentation failed for "
+                           & To_String (Self.Input_Filename));
+            Outputs.Error
+              ("this is likely a bug in GNATcoverage: please report it");
+            for D of Result.Diagnostics loop
+               Outputs.Error (Self.Unit.Format_GNU_Diagnostic (D));
+            end loop;
+         end if;
+      end;
+
+      Self.Finalize;
+      if Has_Error then
+         raise Outputs.Xcov_Exit_Exc;
+      end if;
+   end Apply;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   overriding procedure Finalize (Self : in out Source_Rewriter) is
+   begin
+      if Self.Handle /= No_Rewriting_Handle then
+         Abort_Rewriting (Self.Handle);
+      end if;
+      Self.Unit := No_Analysis_Unit;
+      Self.Context := No_Analysis_Context;
+   end Finalize;
+
+   ---------------------
    -- Checkpoint_Save --
    ---------------------
 
@@ -227,8 +330,6 @@ package body Instrument.Common is
    --------------------
 
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context is
-      use Ada.Strings.Unbounded;
-
       Output_Dir  : constant String := Project.Output_Dir / "gnatcov-instr";
       Instr_Dir   : constant String := Output_Dir / "src-instr";
       Buffers_Dir : constant String := Output_Dir / "src-buffers";

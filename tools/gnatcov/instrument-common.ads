@@ -25,6 +25,9 @@ with Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
+with Libadalang.Analysis;
+private with Libadalang.Rewriting;
+
 with Checkpoints;
 with SC_Obligations; use SC_Obligations;
 
@@ -152,6 +155,36 @@ package Instrument.Common is
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
 
+   -------------------------
+   -- Source instrumenter --
+   -------------------------
+
+   type Source_Rewriter is tagged limited private;
+   --  Helper object to instrument a source file
+
+   procedure Start_Rewriting
+     (Self            : out Source_Rewriter;
+      Input_Filename  : String;
+      Output_Filename : String);
+   --  Start a rewriting session for the given Input_Filename. If the rewriting
+   --  process is successful, the result will be written to Output_Filename.
+   --
+   --  If there are parsing errors while reading Input_Filename, this raises a
+   --  fatal error and prints the corresponding error messages.
+
+   function Rewritten_Context
+     (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Context;
+   --  Return the analysis context that Self uses to instrument
+
+   function Rewritten_Unit
+     (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Unit;
+   --  Return the analysis unit for the source that Self instruments
+
+   procedure Apply (Self : in out Source_Rewriter);
+   --  Write the instrumented source to the filename passed as Output_Filename
+   --  to Start_Rewriting. If rewriting failed, raise a fatal error and print
+   --  the corresponding error message.
+
    -----------------
    -- Checkpoints --
    -----------------
@@ -165,5 +198,19 @@ package Instrument.Common is
    procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed instrumented unit map from stream and merge them in
    --  current state.
+
+private
+
+   type Source_Rewriter is limited new Ada.Finalization.Limited_Controlled with
+   record
+      Input_Filename  : Ada.Strings.Unbounded.Unbounded_String;
+      Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
+
+      Context : Libadalang.Analysis.Analysis_Context;
+      Unit    : Libadalang.Analysis.Analysis_Unit;
+      Handle  : Libadalang.Rewriting.Rewriting_Handle;
+   end record;
+
+   overriding procedure Finalize (Self : in out Source_Rewriter);
 
 end Instrument.Common;
