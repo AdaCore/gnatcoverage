@@ -51,22 +51,27 @@ package System.GNATcov.Buffers is
       --  Coverage buffers for statement and decision obligations
    end record;
 
-   --  Both Witness subprograms below set boolean corresponding to Bit to True
-   --  in Buffer. The function form is used to set booleans in the middle of
-   --  declarative parts.
-
    procedure Witness (Buffer : in out Coverage_Buffer_Type; Bit : Bit_Id);
+   --  Set the boolean corresponding to Bit to True in Buffer
 
    type Witness_Dummy_Type is null record;
    function Witness
-     (Buffer : in out Coverage_Buffer_Type; Bit : Bit_Id)
+     (Buffer_Address : System.Address; Bit : Bit_Id)
       return Witness_Dummy_Type;
+   --  Given the address of a Coverage_Buffer_Type, set the boolean
+   --  corresponding to Bit to True in it.
+   --
+   --  Note taking an address rather than an IN OUT coverage buffer allows this
+   --  unit to be compiled in Ada 83.
 
    function Witness
-     (Buffer              : in out Coverage_Buffer_Type;
+     (Buffer_Address      : System.Address;
       False_Bit, True_Bit : Bit_Id;
       Value               : Boolean) return Boolean;
    --  If Value is false, set the Boolean corresponding to False_Bit to True in
    --  Buffer. Set the one corresponding to True_Bit otherwise.
+   --
+   --  Note taking an address rather than an IN OUT coverage buffer allows this
+   --  unit to be compiled in Ada 83.
 
 end System.GNATcov.Buffers;
