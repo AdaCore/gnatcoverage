@@ -21,6 +21,7 @@
 with GNAT.Strings; use GNAT.Strings;
 
 with GNATCOLL.Projects;
+with GNATCOLL.VFS;
 
 with Inputs;
 
@@ -94,6 +95,21 @@ package Project is
    --  Call Callback once for every Ada source file mentionned in a previous
    --  Add_Project call. Override_Units has the same semantics as in
    --  Enumerate_LIs.
+
+   type Main_Source_File is record
+      File    : GNATCOLL.VFS.Virtual_File;
+      --  Base name for the source file
+
+      Project : GNATCOLL.Projects.Project_Type;
+      --  The project this source files comes from
+   end record;
+
+   type Main_Source_File_Array is
+      array (Positive range <>) of Main_Source_File;
+
+   function Enumerate_Ada_Mains return Main_Source_File_Array;
+   --  Return the list of all Ada main source files recursively found in the
+   --  loaded project tree.
 
    function Find_Source_File (Simple_Name : String) return String_Access;
    --  Look for the absolute path for the source file called Simple_Name. If no

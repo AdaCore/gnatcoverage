@@ -178,21 +178,17 @@ package body Project is
    --  Output a warning for any element of Units that has LI_Seen set False.
    --  Origin indicates where the Units list comes from.
 
-   type Main_Source_File is record
-      File    : Virtual_File;
-      --  Base name for the source file
-
-      Project : Project_Type;
-      --  The project this source files comes from
-   end record;
-
-   type Main_Source_File_Array is
-      array (Positive range <>) of Main_Source_File;
-
    function Enumerate_Mains
-     (Root_Project : Project_Type) return Main_Source_File_Array;
+     (Root_Project : Project_Type;
+      Language     : String := "") return Main_Source_File_Array;
    --  Helper for Get_Single_Main_Executable. Return the list of all main
    --  source files recursively found in the Root_Project.
+   --
+   --  Note that this also returns source files for mains that are not units of
+   --  interest.
+   --
+   --  If Language is not an empty string, only return source files whose
+   --  language matches it.
 
    ---------
    -- "+" --
@@ -880,7 +876,9 @@ package body Project is
    ---------------------
 
    function Enumerate_Mains
-     (Root_Project : Project_Type) return Main_Source_File_Array is
+     (Root_Project : Project_Type;
+      Language     : String := "") return Main_Source_File_Array
+   is
 
       package Main_Source_File_Vectors is new Ada.Containers.Vectors
         (Positive, Main_Source_File);
@@ -900,7 +898,10 @@ package body Project is
             declare
                Name : constant Filesystem_String := Base_Name (F);
             begin
-               if Project.Is_Main_File (Name) then
+               if Project.Is_Main_File (Name)
+                  and then (Language = ""
+                            or else Prj_Tree.Info (F).Language = Language)
+               then
                   Mains.Append ((File => F, Project => Project));
                end if;
             end;
@@ -912,16 +913,23 @@ package body Project is
 
    begin
       Iterate_Projects (Root_Project, Enumerate_Mains'Access, True);
-      declare
-         Result : Main_Source_File_Array
-           (Mains.First_Index ..  Mains.Last_Index);
-      begin
+      return Result : Main_Source_File_Array (Mains.First_Index
+                                              .. Mains.Last_Index)
+      do
          for I in Result'Range loop
             Result (I) := Mains.Element (I);
          end loop;
-         return Result;
-      end;
+      end return;
    end Enumerate_Mains;
+
+   -------------------------
+   -- Enumerate_Ada_Mains --
+   -------------------------
+
+   function Enumerate_Ada_Mains return Main_Source_File_Array is
+   begin
+      return Enumerate_Mains (Prj_Tree.Root_Project, "ada");
+   end Enumerate_Ada_Mains;
 
    ----------------
    -- Output_Dir --
