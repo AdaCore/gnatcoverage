@@ -27,23 +27,19 @@ package System.GNATcov.Traces is
    --  TODO??? Bump to 1 once this feature is considered stable.
 
    type Any_Alignment is new Unsigned_8;
-   subtype Supported_Alignment is Any_Alignment
-      with Static_Predicate => Supported_Alignment in 1 | 2 | 4 | 8;
+   subtype Supported_Alignment is Any_Alignment;
    --  Number of bytes the trace file writer used to pad trace entries. The
    --  size of the trace file is supposed to be a multiple of this value.
+   --  Supported alignments are: 1, 2, 4 and 8.
 
    type Any_Endianity is new Unsigned_8;
    Little_Endian : constant Any_Endianity := 0;
    Big_Endian    : constant Any_Endianity := 1;
-   subtype Supported_Endianity is Any_Endianity
-      with Static_Predicate =>
-         Supported_Endianity in Little_Endian | Big_Endian;
+   subtype Supported_Endianity is
+      Any_Endianity range Little_Endian ..  Big_Endian;
    --  Endianity to decode multi-byte scalars
 
-   function Native_Endianity return Supported_Endianity is
-     (if Default_Bit_Order = Low_Order_First
-      then Little_Endian
-      else Big_Endian);
+   function Native_Endianity return Supported_Endianity;
    --  Return the native endianity
 
    type Hash_Type is new Unsigned_32;
@@ -127,9 +123,8 @@ package System.GNATcov.Traces is
    --  * Inside byte X, least significant bit maps to bit 8 * Y while the most
    --    significant bit maps to bit 8 * Y + 7.
 
-   subtype Supported_Bit_Buffer_Encoding is Any_Bit_Buffer_Encoding
-      with Static_Predicate => Supported_Bit_Buffer_Encoding in
-         LSB_First_Bytes;
+   subtype Supported_Bit_Buffer_Encoding is
+      Any_Bit_Buffer_Encoding range LSB_First_Bytes .. LSB_First_Bytes;
 
    type Trace_Entry_Header is record
       Closure_Hash : Hash_Type;

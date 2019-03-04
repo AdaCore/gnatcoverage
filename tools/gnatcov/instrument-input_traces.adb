@@ -333,7 +333,7 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "unsupported format version");
             return;
 
-         elsif Raw_Header.Alignment not in Supported_Alignment then
+         elsif Raw_Header.Alignment not in 1 | 2 | 4 | 8 then
             Create_Error (Result, "invalid alignment");
             return;
 

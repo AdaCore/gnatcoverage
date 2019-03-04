@@ -12,7 +12,7 @@ package body System.GNATcov.Traces.Output is
    package Bytes_IO is new Ada.Direct_IO (Interfaces.Unsigned_8);
    use Bytes_IO;
 
-   function Alignment return Any_Endianity is (System.Address'Size / 8);
+   function Alignment return Any_Endianity;
    --  Return the alignment to use when writing trace files
 
    function Trace_Filename (Filename : String) return String;
@@ -36,6 +36,15 @@ package body System.GNATcov.Traces.Output is
 
    procedure Write_Buffer (File : File_Type; Buffer : Coverage_Buffer_Type);
    --  Write the Buffer coverage buffer to File
+
+   ---------------
+   -- Alignment --
+   ---------------
+
+   function Alignment return Any_Endianity is
+   begin
+      return System.Address'Size / 8;
+   end Alignment;
 
    -----------------
    -- Write_Bytes --
@@ -170,8 +179,8 @@ package body System.GNATcov.Traces.Output is
    begin
       Create (File, Name => Trace_Filename (Filename));
       Write_Header (File);
-      for B of Buffers loop
-         Write_Entry (File, B.all);
+      for I in Buffers'Range loop
+         Write_Entry (File, Buffers (I).all);
       end loop;
       Close (File);
    end Write_Trace_File;
