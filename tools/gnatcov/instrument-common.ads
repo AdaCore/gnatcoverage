@@ -118,7 +118,8 @@ package Instrument.Common is
    function Find_Instrumented_Unit
      (Unit_Name : String;
       Unit_Part : Unit_Parts) return CU_Id;
-   --  Find the CU_Id corresponding to the given instrumented unit
+   --  Return the CU_Id corresponding to the given instrumented unit, or
+   --  No_CU_Id if not found.
 
    type Instrumented_Unit_Info is record
       Filename : Ada.Strings.Unbounded.Unbounded_String;

@@ -1205,8 +1205,8 @@ package body Coverage.Source is
    is
       pragma Unreferenced (Closure_Hash);
 
-      CU  : constant CU_Id := Find_Instrumented_Unit (Unit_Name, Unit_Part);
-      BM  : constant CU_Bit_Maps := Bit_Maps (CU);
+      CU : CU_Id;
+      BM : CU_Bit_Maps;
 
       procedure Set_Executed (SCI : in out Source_Coverage_Info);
       --  Mark SCI as executed
@@ -1223,6 +1223,22 @@ package body Coverage.Source is
    --  Start of processing for Compute_Source_Coverage
 
    begin
+      CU := Find_Instrumented_Unit (Unit_Name, Unit_Part);
+      if CU = No_CU_Id then
+         declare
+            use all type GNATCOLL.Projects.Unit_Parts;
+            Part : constant String :=
+              (case Unit_Part is
+               when Unit_Body => "body of",
+               when Unit_Spec => "spec of",
+               when Unit_Separate => "separate");
+         begin
+            Fatal_Error ("unknown instrumented unit: "
+                         & Part & " " & Unit_Name);
+         end;
+      end if;
+      BM := Bit_Maps (CU);
+
       --  Sanity check that Closure_Hash is consistent with what the
       --  instrumenter recorded in the CU info.
 

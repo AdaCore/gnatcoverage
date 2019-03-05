@@ -370,10 +370,18 @@ package body Instrument.Common is
 
    function Find_Instrumented_Unit
      (Unit_Name : String;
-      Unit_Part : Unit_Parts) return CU_Id is
-   begin
-      return Instrumented_Unit_CUs.Element
+      Unit_Part : Unit_Parts) return CU_Id
+   is
+      use Instrumented_Unit_To_CU_Maps;
+
+      Position : constant Cursor := Instrumented_Unit_CUs.Find
         (To_Compilation_Unit_Name (Unit_Name, Unit_Part));
+   begin
+      if Has_Element (Position) then
+         return Element (Position);
+      else
+         return No_CU_Id;
+      end if;
    end Find_Instrumented_Unit;
 
 begin
