@@ -33,8 +33,8 @@ class InstrumentedProject(object):
 
 
 def xcov_instrument(root_project, obj_dir, covlevel, checkpoint, projects=[],
-                    recursive=False, auto_dump_buffers=True, out=None,
-                    err=None, register_failure=True):
+                    units=[], recursive=False, auto_dump_buffers=True,
+                    out=None, err=None, register_failure=True):
     """
     Run "gnatcov instrument" on a project.
 
@@ -44,7 +44,9 @@ def xcov_instrument(root_project, obj_dir, covlevel, checkpoint, projects=[],
         argument).
     :param str checkpoint: Name of the checkpoint file to create.
     :param list[str] projects: Optional list of projects for units of
-        interests.
+        interests (--project argument).
+    :param list[str] units: Optional list of units of interest (--units
+        argument).
     :param bool recursive: Whether to process projects and their closures of
         dependencies (not done by default, --recursive option).
     :param bool auto_dump_buffers: Whether to instrument main sources to add a
@@ -61,6 +63,8 @@ def xcov_instrument(root_project, obj_dir, covlevel, checkpoint, projects=[],
 
     for p in projects:
         args.append('--project={}'.format(p))
+    for u in units:
+        args.append('--units={}'.format(u))
     if recursive:
         args.append('--recursive')
     if auto_dump_buffers:
