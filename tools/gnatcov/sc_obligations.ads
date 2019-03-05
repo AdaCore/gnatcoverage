@@ -369,8 +369,6 @@ package SC_Obligations is
    procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed SCOs from stream and merge them in current state
 
-private
-
    --  For each pragma we know of, whether an occurrence of the pragma in the
    --  source might generate code of its own, e.g. pragma Precondition.
    --

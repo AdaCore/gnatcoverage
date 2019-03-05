@@ -1325,6 +1325,7 @@ package body Instrument.Sources is
                   Nam       : constant Name_Id := Pragma_Name (Prag_N);
                   Arg       : Positive := 1;
                   Typ       : Character;
+                  Ignore    : Boolean := False;
 
                begin
                   case Nam is
@@ -1428,13 +1429,30 @@ package body Instrument.Sources is
                      --  [{Static,Dynamic}_]Predicate???
 
                      when others =>
-                        Process_Decisions_Defer (N, 'X');
-                        Typ := 'P';
+                        if Pragma_Might_Generate_Code
+                          (Case_Insensitive_Get_Pragma_Id (Nam))
+                        then
+                           Process_Decisions_Defer (N, 'X');
+                           Typ := 'P';
+
+                        else
+                           --  No need to create coverage obligations for
+                           --  pragmas which generate no code.
+                           --
+                           --  Doing so for pragmas that control elaboration is
+                           --  known to cause trouble: adding a declaration
+                           --  before them to tag them as covered will make the
+                           --  instrumented source illegal.
+
+                           Ignore := True;
+                        end if;
                   end case;
 
                   --  Add statement SCO
 
-                  Extend_Statement_Sequence (N, Typ);
+                  if not Ignore then
+                     Extend_Statement_Sequence (N, Typ);
+                  end if;
                end;
 
             --  Object or named number declaration
