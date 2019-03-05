@@ -226,6 +226,24 @@ package body Instrument.Common is
       Self.Handle := Start_Rewriting (Context);
    end Start_Rewriting;
 
+   ---------------------------
+   -- Start_Instr_Rewriting --
+   ---------------------------
+
+   procedure Start_Instr_Rewriting
+     (Self            : out Source_Rewriter;
+      IC              : in out Inst_Context;
+      Input_Filename  : String)
+   is
+      Base_Filename   : constant String :=
+         Ada.Directories.Simple_Name (Input_Filename);
+      Output_Filename : constant String :=
+         To_String (IC.Instr_Dir) / Base_Filename;
+   begin
+      Start_Rewriting (Self, Input_Filename, Output_Filename);
+      IC.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
+   end Start_Instr_Rewriting;
+
    -----------------------
    -- Rewritten_Context --
    -----------------------

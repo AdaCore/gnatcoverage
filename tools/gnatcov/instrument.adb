@@ -55,7 +55,7 @@ package body Instrument is
    procedure Emit_Project_Files (IC : Inst_Context);
    --  Emit project files to cover the instrumented sources
 
-   procedure Auto_Dump_Buffers_In_Ada_Mains (IC : Inst_Context);
+   procedure Auto_Dump_Buffers_In_Ada_Mains (IC : in out Inst_Context);
    --  Instrument source files for Ada mains that are not units of interest to
    --  add a dump of coverage buffers.
 
@@ -221,7 +221,7 @@ package body Instrument is
    -- Auto_Dump_Buffers_In_Ada_Mains --
    ------------------------------------
 
-   procedure Auto_Dump_Buffers_In_Ada_Mains (IC : Inst_Context) is
+   procedure Auto_Dump_Buffers_In_Ada_Mains (IC : in out Inst_Context) is
    begin
       for Main of Project.Enumerate_Ada_Mains loop
          declare
@@ -234,15 +234,9 @@ package body Instrument is
                declare
                   use type GNATCOLL.VFS.Filesystem_String;
 
-                  Rewriter      : Source_Rewriter;
-                  Filename      : constant String := +Main.File.Full_Name;
-                  Base_Filename : constant String :=
-                     Ada.Directories.Simple_Name (Filename);
+                  Rewriter : Source_Rewriter;
                begin
-                  Rewriter.Start_Rewriting
-                    (Input_Filename  => Filename,
-                     Output_Filename =>
-                        To_String (IC.Instr_Dir) / Base_Filename);
+                  Rewriter.Start_Instr_Rewriting (IC, +Main.File.Full_Name);
                   Add_Auto_Dump_Buffers
                     (IC   => IC,
                      Main => CU_Name.Unit,

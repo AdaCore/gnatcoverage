@@ -18,10 +18,12 @@
 
 --  Common data structures for source instrumentation-based coverage
 
-with Ada.Containers.Vectors;
+with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
@@ -130,6 +132,12 @@ package Instrument.Common is
      (Key_Type     => Compilation_Unit_Name,
       Element_Type => Instrumented_Unit_Info);
 
+   package File_Sets is new Ada.Containers.Hashed_Sets
+     (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
+      "="                 => Ada.Strings.Unbounded."=",
+      Equivalent_Elements => Ada.Strings.Unbounded."=",
+      Hash                => Ada.Strings.Unbounded.Hash);
+
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
@@ -150,6 +158,9 @@ package Instrument.Common is
       Instrumented_Units : Instrumented_Unit_Maps.Map;
       --  Mapping from instrumented unit names to information used during
       --  instrumentation.
+
+      Instr_Files : File_Sets.Set;
+      --  Set of files that were written to Instr_Dir
    end record;
 
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context;
@@ -171,6 +182,14 @@ package Instrument.Common is
    --
    --  If there are parsing errors while reading Input_Filename, this raises a
    --  fatal error and prints the corresponding error messages.
+
+   procedure Start_Instr_Rewriting
+     (Self            : out Source_Rewriter;
+      IC              : in out Inst_Context;
+      Input_Filename  : String);
+   --  Like Start_Rewriting but automatically compute the output filename to be
+   --  the same as Input_Filename's basename relocated in IC.Instr_Dir. Also,
+   --  register this basename in IC.Instr_Files.
 
    function Rewritten_Context
      (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Context;

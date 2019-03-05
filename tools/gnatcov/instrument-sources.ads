@@ -84,7 +84,7 @@ private package Instrument.Sources is
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
       Unit_Info : Instrumented_Unit_Info;
-      IC        : Inst_Context;
+      IC        : in out Inst_Context;
       UIC       : out Unit_Inst_Context);
    --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
    --  Record instrumentation information in IC.

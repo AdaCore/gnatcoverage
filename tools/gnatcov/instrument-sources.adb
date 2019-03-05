@@ -18,7 +18,6 @@
 
 with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with Ada.Containers.Vectors;
-with Ada.Directories;
 with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects;       use GNATCOLL.Projects;
@@ -2704,13 +2703,11 @@ package body Instrument.Sources is
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
       Unit_Info : Instrumented_Unit_Info;
-      IC        : Inst_Context;
+      IC        : in out Inst_Context;
       UIC       : out Unit_Inst_Context)
    is
-      Rewriter      : Source_Rewriter;
-      Filename      : constant String := To_String (Unit_Info.Filename);
-      Base_Filename : constant String :=
-         Ada.Directories.Simple_Name (Filename);
+      Rewriter : Source_Rewriter;
+      Filename : constant String := To_String (Unit_Info.Filename);
 
       Preelab : constant Boolean := False;
       --  ??? To be implemented in Libadalang: S128-004
@@ -2723,9 +2720,7 @@ package body Instrument.Sources is
       --  illegal.
 
    begin
-      Rewriter.Start_Rewriting
-        (Input_Filename  => Filename,
-         Output_Filename => To_String (IC.Instr_Dir) / Base_Filename);
+      Rewriter.Start_Instr_Rewriting (IC, Filename);
 
       Initialize_Rewriting (UIC, CU_Name, Rewriter.Rewritten_Context);
 
