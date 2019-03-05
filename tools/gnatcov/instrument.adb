@@ -59,6 +59,10 @@ package body Instrument is
    --  Instrument source files for Ada mains that are not units of interest to
    --  add a dump of coverage buffers.
 
+   procedure Remove_Old_Instr_Files (IC : Inst_Context);
+   --  Remove sources in IC.Instr_Dir that were not generated during this
+   --  instrumentation process.
+
    -------------------------
    -- Prepare_Output_Dirs --
    -------------------------
@@ -249,6 +253,39 @@ package body Instrument is
       end loop;
    end Auto_Dump_Buffers_In_Ada_Mains;
 
+   ----------------------------
+   -- Remove_Old_Instr_Files --
+   ----------------------------
+
+   procedure Remove_Old_Instr_Files (IC : Inst_Context) is
+      use Ada.Directories;
+
+      To_Delete : File_Sets.Set;
+      Search    : Search_Type;
+      Dir_Entry : Directory_Entry_Type;
+   begin
+      Start_Search (Search,
+                    Directory => To_String (IC.Instr_Dir),
+                    Pattern => "",
+                    Filter => (Ordinary_File => True, others => False));
+      while More_Entries (Search) loop
+         Get_Next_Entry (Search, Dir_Entry);
+         declare
+            Name : constant String := Simple_Name (Dir_Entry);
+            UB_Name : constant Unbounded_String := To_Unbounded_String (Name);
+         begin
+            if not IC.Instr_Files.Contains (UB_Name) then
+               To_Delete.Insert (UB_Name);
+            end if;
+         end;
+      end loop;
+      End_Search (Search);
+
+      for Name of To_Delete loop
+         Delete_File (To_String (Name));
+      end loop;
+   end Remove_Old_Instr_Files;
+
    ----------------------------------
    -- Instrument_Units_Of_Interest --
    ----------------------------------
@@ -343,6 +380,13 @@ package body Instrument is
 
       Emit_Buffers_List_Unit (IC);
       Emit_Project_Files (IC);
+
+      --  Remove sources in IC.Instr_Dir that we did not generate this time.
+      --  They are probably left overs from previous instrumentations for units
+      --  that are no longer of interest. It is crucial not to make them part
+      --  of next builds.
+
+      Remove_Old_Instr_Files (IC);
 
       --  Finally, emit a checkpoint to contain mappings between bits in
       --  coverage buffers and SCOs.
