@@ -1023,6 +1023,11 @@ procedure GNATcov is
             --  Set routines from project, not supported yet???
             null;
 
+         elsif Args.Command = Cmd_Instrument then
+            --  Instrumentation does not rely on ALI files, so no need to do
+            --  anything in this case.
+            null;
+
          elsif Inputs.Length (ALIs_Inputs) = 0 then
             declare
                procedure Add_LI (S : String);
