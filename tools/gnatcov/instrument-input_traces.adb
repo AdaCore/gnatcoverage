@@ -292,7 +292,7 @@ package body Instrument.Input_Traces is
      (Buffer : in out Coverage_Buffer_Access;
       Size   : Any_Bit_Count) is
    begin
-      if Buffer = null or else Size > Buffer.all'Size then
+      if Buffer = null or else Size > Buffer.all'Length then
          Free (Buffer);
          Buffer := new Coverage_Buffer (0 .. Any_Bit_Id (Size) - 1);
       end if;
