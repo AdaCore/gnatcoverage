@@ -48,6 +48,10 @@ package body Instrument is
    --  Emit the unit to contain coverage buffers for the given instrumented
    --  unit.
 
+   procedure Emit_Pure_Buffer_Unit
+     (IC : Inst_Context; UIC : Unit_Inst_Context);
+   --  Emit the unit to contain addresses for the coverage buffers
+
    procedure Emit_Buffers_List_Unit (IC : Inst_Context);
    --  Emit a generic procedure to output coverage buffers for all units of
    --  interest.
@@ -117,13 +121,25 @@ package body Instrument is
       begin
          File.Put_Line ("package " & Pkg_Name & " is");
          File.New_Line;
+         File.Put_Line ("   pragma Preelaborate;");
+         File.New_Line;
          File.Put_Line ("   Statement_Buffer : Coverage_Buffer_Type"
                         & " (0 .. " & Statement_Last_Bit & ") :="
                         & " (others => False);");
+         File.Put_Line ("   Statement_Buffer_Address : constant System.Address"
+                        & " := Statement_Buffer'Address;");
+         File.Put_Line ("   pragma Export (Ada, Statement_Buffer_Address, """
+                        & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
+                        & """);");
          File.New_Line;
          File.Put_Line ("   Decision_Buffer : Coverage_Buffer_Type"
                         & " (0 .. " & Decision_Last_Bit & ") :="
                         & " (others => False);");
+         File.Put_Line ("   Decision_Buffer_Address : constant System.Address"
+                        & " := Decision_Buffer'Address;");
+         File.Put_Line ("   pragma Export (Ada, Decision_Buffer_Address, """
+                        & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
+                        & """);");
          File.New_Line;
          File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Unit_Name_Length => "
@@ -144,6 +160,40 @@ package body Instrument is
          File.Put_Line ("end " & Pkg_Name & ";");
       end;
    end Emit_Buffer_Unit;
+
+   ---------------------------
+   -- Emit_Pure_Buffer_Unit --
+   ---------------------------
+
+   procedure Emit_Pure_Buffer_Unit (IC : Inst_Context; UIC : Unit_Inst_Context)
+   is
+      CU_Name : Compilation_Unit_Name renames UIC.Pure_Buffer_Unit;
+      File    : Text_Files.File_Type;
+   begin
+      File.Create ((+IC.Buffers_Dir) / To_Filename (CU_Name));
+
+      declare
+         Pkg_Name : constant String := To_Ada (CU_Name.Unit);
+      begin
+         File.Put_Line ("with System;");
+         File.New_Line;
+         File.Put_Line ("package " & Pkg_Name & " is");
+         File.New_Line;
+         File.Put_Line ("   pragma Pure;");
+         File.New_Line;
+         File.Put_Line ("   Statement_Buffer : constant System.Address;");
+         File.Put_Line ("   pragma Import (Ada, Statement_Buffer, """
+                        & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
+                        & """);");
+         File.New_Line;
+         File.Put_Line ("   Decision_Buffer : constant System.Address;");
+         File.Put_Line ("   pragma Import (Ada, Decision_Buffer, """
+                        & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
+                        & """);");
+         File.New_Line;
+         File.Put_Line ("end " & Pkg_Name & ";");
+      end;
+   end Emit_Pure_Buffer_Unit;
 
    ----------------------------
    -- Emit_Buffers_List_Unit --
@@ -365,6 +415,7 @@ package body Instrument is
             IC        => IC,
             UIC       => UIC);
          Emit_Buffer_Unit (IC, UIC);
+         Emit_Pure_Buffer_Unit (IC, UIC);
 
          --  Track which CU_Id maps to which instrumented unit
 

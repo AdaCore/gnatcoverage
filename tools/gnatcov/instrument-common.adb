@@ -33,6 +33,13 @@ package body Instrument.Common is
    --  Create a Compilation_Unit_Name from its two components (name of
    --  library unit or subunit, and part type).
 
+   function Buffer_Symbol
+     (Instrumented_Unit : Compilation_Unit_Name;
+      Buffer_Name       : String) return String;
+   --  Helper for Statement_Buffer_Symbol and Decision_Buffer_Symbol. Return
+   --  the name of the symbol for the entity that contains the address of a
+   --  coverage buffer for Instrumented_Unit.
+
    ------------
    -- To_Ada --
    ------------
@@ -197,6 +204,40 @@ package body Instrument.Common is
       end return;
    end Instrumented_Unit_Slug;
 
+   -------------------
+   -- Buffer_Symbol --
+   -------------------
+
+   function Buffer_Symbol
+     (Instrumented_Unit : Compilation_Unit_Name;
+      Buffer_Name       : String) return String
+   is
+      Slug : constant Ada_Identifier := Instrumented_Unit_Slug
+        (Instrumented_Unit);
+   begin
+      return "xcov__buf_" & Buffer_Name & "__" & To_String (Slug);
+   end Buffer_Symbol;
+
+   -----------------------------
+   -- Statement_Buffer_Symbol --
+   -----------------------------
+
+   function Statement_Buffer_Symbol
+     (Instrumented_Unit : Compilation_Unit_Name) return String is
+   begin
+      return Buffer_Symbol (Instrumented_Unit, "stmt");
+   end Statement_Buffer_Symbol;
+
+   ----------------------------
+   -- Decision_Buffer_Symbol --
+   ----------------------------
+
+   function Decision_Buffer_Symbol
+     (Instrumented_Unit : Compilation_Unit_Name) return String is
+   begin
+      return Buffer_Symbol (Instrumented_Unit, "dc");
+   end Decision_Buffer_Symbol;
+
    -----------------
    -- Buffer_Unit --
    -----------------
@@ -212,6 +253,22 @@ package body Instrument.Common is
          CU_Name.Append (Simple_Name);
       end return;
    end Buffer_Unit;
+
+   ----------------------
+   -- Pure_Buffer_Unit --
+   ----------------------
+
+   function Pure_Buffer_Unit
+     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name
+   is
+      Simple_Name : Ada_Identifier;
+   begin
+      Append (Simple_Name, 'P');
+      Append (Simple_Name, Instrumented_Unit_Slug (Instrumented_Unit));
+      return CU_Name : Ada_Qualified_Name := Sys_Buffers do
+         CU_Name.Append (Simple_Name);
+      end return;
+   end Pure_Buffer_Unit;
 
    ---------------------
    -- Start_Rewriting --
@@ -410,9 +467,6 @@ begin
    Sys_Buffers_Lists := Sys_Buffers;
    Sys_Buffers_Lists.Append (To_Unbounded_String ("Lists"));
 
-   Statement_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
-   Statement_Buffer_Name.Append (To_Unbounded_String ("Statement"));
-
-   Decision_Buffer_Name.Append (To_Unbounded_String ("Buffers"));
-   Decision_Buffer_Name.Append (To_Unbounded_String ("Decision"));
+   Statement_Buffer_Name.Append (To_Unbounded_String ("Statement_Buffer"));
+   Decision_Buffer_Name.Append (To_Unbounded_String ("Decision_Buffer"));
 end Instrument.Common;

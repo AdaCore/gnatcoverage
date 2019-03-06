@@ -33,7 +33,8 @@ private package Instrument.Sources is
       --  witness subprograms.
 
       Unit_Buffers : Node_Rewriting_Handle;
-      --  Qualified name for the unit that contains coverage buffers
+      --  Qualified name for the unit that contains addresses to coverage
+      --  buffers (Pure_Buffer_Unit).
 
       Statement_Buffer : Node_Rewriting_Handle;
       --  Qualified name for the buffer corresponding to statement coverage
@@ -63,7 +64,11 @@ private package Instrument.Sources is
 
       Buffer_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit that holds coverage buffers for the
-      --  unit currently being instrumented.
+      --  unit currently being instrumented (see Common.Buffer_Unit).
+
+      Pure_Buffer_Unit : Compilation_Unit_Name;
+      --  Name of the compilation unit that holds addresses for the coverage
+      --  buffers of the unit being instrumented (see Common.Pure_Buffer_Unit).
 
       Rewriting_Context : Rewriting_Handle;
       --  Rewriting handle for the instrumentation process

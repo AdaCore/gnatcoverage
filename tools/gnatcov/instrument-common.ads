@@ -108,10 +108,26 @@ package Instrument.Common is
    --
    --  One can use this slug to generate unique names for this unit.
 
+   function Statement_Buffer_Symbol
+     (Instrumented_Unit : Compilation_Unit_Name) return String;
+   --  Given a unit to instrument, return the name of the symbol to use for the
+   --  entity that contains address of the statement coverage buffer.
+
+   function Decision_Buffer_Symbol
+     (Instrumented_Unit : Compilation_Unit_Name) return String;
+   --  Given a unit to instrument, return the name of the symbol to use for the
+   --  entity that contains address of the decision coverage buffer.
+
    function Buffer_Unit
      (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
    --  Given a unit to instrument, return the name of the unit that holds
-   --  its coverage buffers.
+   --  its coverage buffers (Coverage_Buffer_Type and Unit_Coverage_Buffers
+   --  records).
+
+   function Pure_Buffer_Unit
+     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
+   --  Given a unit to instrument, return the name of the unit that holds
+   --  addresses to its coverage buffers.
 
    package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Compilation_Unit_Name,

@@ -846,8 +846,8 @@ package body Instrument.Sources is
                   --  corresponding unit that contains coverage buffers.
 
                   declare
-                     Buffers_Unit : constant Node_Rewriting_Handle :=
-                        To_Nodes (IC.Rewriting_Context, IC.Buffer_Unit.Unit);
+                     Buffers_Unit : constant Node_Rewriting_Handle := To_Nodes
+                       (IC.Rewriting_Context, IC.Pure_Buffer_Unit.Unit);
                      With_Clause  : constant Node_Rewriting_Handle :=
                         Create_From_Template
                           (IC.Rewriting_Context, "with {};",
@@ -2437,6 +2437,7 @@ package body Instrument.Sources is
    begin
       IC.Instrumented_Unit := Instrumented_Unit;
       IC.Buffer_Unit := (Buffer_Unit (Instrumented_Unit), Unit_Spec);
+      IC.Pure_Buffer_Unit := (Pure_Buffer_Unit (Instrumented_Unit), Unit_Spec);
       IC.Rewriting_Context := Handle (Context);
 
       declare
@@ -2444,11 +2445,11 @@ package body Instrument.Sources is
          E  : Instrumentation_Entities renames IC.Entities;
       begin
          E.Common_Buffers := To_Nodes (RH, Sys_Buffers);
-         E.Unit_Buffers := To_Nodes (RH, IC.Buffer_Unit.Unit);
+         E.Unit_Buffers := To_Nodes (RH, IC.Pure_Buffer_Unit.Unit);
          E.Statement_Buffer :=
-            To_Nodes (RH, IC.Buffer_Unit.Unit & Statement_Buffer_Name);
+            To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & Statement_Buffer_Name);
          E.Decision_Buffer :=
-            To_Nodes (RH, IC.Buffer_Unit.Unit & Decision_Buffer_Name);
+            To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & Decision_Buffer_Name);
       end;
    end Initialize_Rewriting;
 
@@ -2560,13 +2561,7 @@ package body Instrument.Sources is
       --  Add the required WITH clauses
 
       declare
-         use type Ada_Qualified_Name;
-
          Prelude : constant Node_Rewriting_Handle := Handle (CU.F_Prelude);
-
-         Buffer_Unit_For_This_Main : constant Ada_Qualified_Name :=
-            Common.Buffer_Unit ((Main, Unit_Body));
-         --  Buffer unit for Main, to avoid duplicate WITH clause
 
          procedure Add_With (Unit : Ada_Qualified_Name);
          --  Add a WITH clause to Prelude for the given unit name
@@ -2589,9 +2584,7 @@ package body Instrument.Sources is
       begin
          Add_With (Output_Unit);
          for Buffer_Unit of Buffer_Units loop
-            if Buffer_Unit /= Buffer_Unit_For_This_Main then
-               Add_With (Buffer_Unit);
-            end if;
+            Add_With (Buffer_Unit);
          end loop;
       end;
 
