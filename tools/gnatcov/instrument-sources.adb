@@ -144,17 +144,15 @@ package body Instrument.Sources is
       Bit_Img : constant String  := Img (Bit);
       E       : Instrumentation_Entities renames IC.Entities;
 
-      function Call_Img (For_Decl : Boolean) return String is
-        ("{}.Witness ({}"
-         & (if For_Decl then "'Address" else "")
-         & ", " & Bit_Img & ")");
+      function Call_Img return String is
+        ("{}.Witness ({}'Address, " & Bit_Img & ")");
 
       function Stmt_Img return String is
-        (Call_Img (False) & ";");
+        (Call_Img & ";");
 
       function Decl_Img return String is
         ("Discard_" & Bit_Img & " : {}.Witness_Dummy_Type := "
-         & Call_Img (True) & ";");
+         & Call_Img & ";");
 
    begin
       if Statement then

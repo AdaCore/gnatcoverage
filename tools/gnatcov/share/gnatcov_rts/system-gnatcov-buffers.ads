@@ -51,7 +51,15 @@ package System.GNATcov.Buffers is
       --  Coverage buffers for statement and decision obligations
    end record;
 
-   procedure Witness (Buffer : in out Coverage_Buffer_Type; Bit : Bit_Id);
+   --  Note that the Buffer_Address parameters below are required so that:
+   --
+   --  * functions don't have IN OUT formals, which are illegal before Ada
+   --    2012;
+   --
+   --  * our hack for pure units to be able to reference coverage buffers
+   --    (which are global state, i.e. unreachable from pure units) works.
+
+   procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id);
    --  Set the boolean corresponding to Bit to True in Buffer
 
    type Witness_Dummy_Type is null record;
@@ -60,9 +68,6 @@ package System.GNATcov.Buffers is
       return Witness_Dummy_Type;
    --  Given the address of a Coverage_Buffer_Type, set the boolean
    --  corresponding to Bit to True in it.
-   --
-   --  Note taking an address rather than an IN OUT coverage buffer allows this
-   --  unit to be compiled in Ada 83.
 
    function Witness
      (Buffer_Address      : System.Address;
@@ -70,8 +75,5 @@ package System.GNATcov.Buffers is
       Value               : Boolean) return Boolean;
    --  If Value is false, set the Boolean corresponding to False_Bit to True in
    --  Buffer. Set the one corresponding to True_Bit otherwise.
-   --
-   --  Note taking an address rather than an IN OUT coverage buffer allows this
-   --  unit to be compiled in Ada 83.
 
 end System.GNATcov.Buffers;
