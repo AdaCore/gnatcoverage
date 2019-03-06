@@ -39,6 +39,13 @@ package body GNATcov_RTS.Traces.Output is
    procedure Write_Buffer (File : File_Type; Buffer : Coverage_Buffer_Type);
    --  Write the Buffer coverage buffer to File
 
+   procedure Write_Buffer
+     (File           : File_Type;
+      Buffer_Address : System.Address;
+      Last_Bit       : Any_Bit_Id);
+   --  Wrapper for Write_Buffer to use a buffer from its address and upper
+   --  bound.
+
    ---------------
    -- Alignment --
    ---------------
@@ -104,8 +111,8 @@ package body GNATcov_RTS.Traces.Output is
         (Closure_Hash        => Traces.Hash_Type (Buffers.Closure_Hash),
          Unit_Name_Length    =>
             Interfaces.Unsigned_32 (Buffers.Unit_Name_Length),
-         Stmt_Bit_Count      =>
-            Traces.Any_Bit_Count (Buffers.Stmt_Last_Bit + 1),
+         Statement_Bit_Count =>
+            Traces.Any_Bit_Count (Buffers.Statement_Last_Bit + 1),
          Decision_Bit_Count  =>
             Traces.Any_Bit_Count (Buffers.Decision_Last_Bit + 1),
          Unit_Part           => Unit_Part_Map (Buffers.Unit_Part),
@@ -115,8 +122,8 @@ package body GNATcov_RTS.Traces.Output is
       Write_Bytes (File, Header'Address, Header'Size / 8);
       Write_Bytes (File, Buffers.Unit_Name'Address, Buffers.Unit_Name'Length);
       Write_Padding (File, Buffers.Unit_Name'Length);
-      Write_Buffer (File, Buffers.Stmt);
-      Write_Buffer (File, Buffers.Dc);
+      Write_Buffer (File, Buffers.Statement, Buffers.Statement_Last_Bit);
+      Write_Buffer (File, Buffers.Decision, Buffers.Decision_Last_Bit);
    end Write_Entry;
 
    ------------------
@@ -148,6 +155,22 @@ package body GNATcov_RTS.Traces.Output is
       --  Complete with the required padding
 
       Write_Padding (File, Bytes_Count);
+   end Write_Buffer;
+
+   ------------------
+   -- Write_Buffer --
+   ------------------
+
+   procedure Write_Buffer
+     (File           : File_Type;
+      Buffer_Address : System.Address;
+      Last_Bit       : Any_Bit_Id)
+   is
+      Buffer : constant Coverage_Buffer_Type (0 .. Last_Bit);
+      for Buffer'Address use Buffer_Address;
+      pragma Import (Ada, Buffer);
+   begin
+      Write_Buffer (File, Buffer);
    end Write_Buffer;
 
    --------------------

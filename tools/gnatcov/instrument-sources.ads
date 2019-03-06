@@ -35,7 +35,7 @@ private package Instrument.Sources is
       Unit_Buffers : Node_Rewriting_Handle;
       --  Qualified name for the unit that contains coverage buffers
 
-      Stmt_Buffer : Node_Rewriting_Handle;
+      Statement_Buffer : Node_Rewriting_Handle;
       --  Qualified name for the buffer corresponding to statement coverage
       --  obligations.
 

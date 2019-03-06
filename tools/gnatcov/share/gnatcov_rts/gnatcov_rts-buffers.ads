@@ -30,10 +30,7 @@ package GNATcov_RTS.Buffers is
    type Hash_Type is new Interfaces.Unsigned_32;
    --  Hash type to perform consistency checks
 
-   type Unit_Coverage_Buffers
-     (Unit_Name_Length                 : Positive;
-      Stmt_Last_Bit, Decision_Last_Bit : Any_Bit_Id)
-   is record
+   type Unit_Coverage_Buffers (Unit_Name_Length : Positive) is record
       Closure_Hash : Hash_Type;
       --  Hash for the instrumented unit and its complete dependency closure.
       --  This hash is used as a fast way to check that coverage obligations
@@ -46,10 +43,14 @@ package GNATcov_RTS.Buffers is
       --  subunit) in lower case. For instance: "foo", "ada.text_io" or
       --  "foo.bar.my_subunit".
 
-      Stmt : Coverage_Buffer_Type (0 .. Stmt_Last_Bit) := (others => False);
-      Dc   : Coverage_Buffer_Type (0 .. Decision_Last_Bit) :=
-         (others => False);
-      --  Coverage buffers for statement and decision obligations
+      Statement, Decision : System.Address;
+      --  Addresses of coverage buffers for statement and decision obligations.
+      --  The address refer to Coverage_Buffer_Type arrays whose bounds go from
+      --  0 to Unit_Coverage_Buffers.*_Last_Bit.
+
+      Statement_Last_Bit, Decision_Last_Bit : Any_Bit_Id;
+      --  Index for the last bits in coverage buffers for statements and
+      --  decisions.
    end record;
 
    --  Note that the Buffer_Address parameters below are required so that:

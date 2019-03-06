@@ -135,8 +135,8 @@ package GNATcov_RTS.Traces is
       Unit_Name_Length : Unsigned_32;
       --  Length of the unit name for the unit this trace entry describes
 
-      Stmt_Bit_Count     : Any_Bit_Count;
-      Decision_Bit_Count : Any_Bit_Count;
+      Statement_Bit_Count : Any_Bit_Count;
+      Decision_Bit_Count  : Any_Bit_Count;
       --  Number of bits in the statement and decision coverage buffers
 
       Unit_Part : Any_Unit_Part;
@@ -153,7 +153,7 @@ package GNATcov_RTS.Traces is
    for Trace_Entry_Header use record
       Closure_Hash        at  0 range 0 .. 31;
       Unit_Name_Length    at  4 range 0 .. 31;
-      Stmt_Bit_Count      at  8 range 0 .. 31;
+      Statement_Bit_Count at  8 range 0 .. 31;
       Decision_Bit_Count  at 12 range 0 .. 31;
       Unit_Part           at 16 range 0 .. 7;
       Bit_Buffer_Encoding at 17 range 0 .. 7;

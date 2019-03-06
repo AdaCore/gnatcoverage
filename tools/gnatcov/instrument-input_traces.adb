@@ -124,9 +124,9 @@ package body Instrument.Input_Traces is
    --  Return the address for the content of the buffer in Stream
 
    type Trace_Entry_Elements is record
-      Unit_Name       : System.Address;
-      Stmt_Buffer     : System.Address;
-      Decision_Buffer : System.Address;
+      Unit_Name        : System.Address;
+      Statement_Buffer : System.Address;
+      Decision_Buffer  : System.Address;
    end record;
 
    type Coverage_Buffer_Access is access all Coverage_Buffer;
@@ -398,17 +398,17 @@ package body Instrument.Input_Traces is
       --  coverage buffers) in one single read.
 
       declare
-         Unit_Name_Range       : constant Buffer_Range :=
+         Unit_Name_Range        : constant Buffer_Range :=
             Range_For (File_Header.Alignment, 0,
                        Natural (Entry_Header.Unit_Name_Length));
-         Stmt_Buffer_Range     : constant Buffer_Range :=
+         Statement_Buffer_Range : constant Buffer_Range :=
             Range_For (File_Header.Alignment,
                        Offset_After (Unit_Name_Range),
                        Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                                    Entry_Header.Stmt_Bit_Count));
-         Decision_Buffer_Range : constant Buffer_Range :=
+                                    Entry_Header.Statement_Bit_Count));
+         Decision_Buffer_Range  : constant Buffer_Range :=
             Range_For (File_Header.Alignment,
-                       Offset_After (Stmt_Buffer_Range),
+                       Offset_After (Statement_Buffer_Range),
                        Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
                                     Entry_Header.Decision_Bit_Count));
 
@@ -432,7 +432,7 @@ package body Instrument.Input_Traces is
 
          Base_Address := Buffer_Address (Stream);
          Trace_Entry := (Base_Address + Unit_Name_Range.Offset,
-                         Base_Address + Stmt_Buffer_Range.Offset,
+                         Base_Address + Statement_Buffer_Range.Offset,
                          Base_Address + Decision_Buffer_Range.Offset);
          return True;
       end;
@@ -482,12 +482,12 @@ package body Instrument.Input_Traces is
      (Filename : String;
       Result   : out Traces_Files.Read_Result)
    is
-      Stream          : Binary_Stream;
-      File_Header     : Trace_File_Header;
-      Entry_Header    : Trace_Entry_Header;
-      Trace_Entry     : Trace_Entry_Elements;
-      Stmt_Buffer     : Coverage_Buffer_Access;
-      Decision_Buffer : Coverage_Buffer_Access;
+      Stream           : Binary_Stream;
+      File_Header      : Trace_File_Header;
+      Entry_Header     : Trace_Entry_Header;
+      Trace_Entry      : Trace_Entry_Elements;
+      Statement_Buffer : Coverage_Buffer_Access;
+      Decision_Buffer  : Coverage_Buffer_Access;
    begin
       Result := (Success => True);
 
@@ -515,11 +515,12 @@ package body Instrument.Input_Traces is
                  (1 .. Natural (Entry_Header.Unit_Name_Length))
                   with Import, Address => Trace_Entry.Unit_Name;
 
-               Stmt_Buffer_Size : constant Natural :=
+               Statement_Buffer_Size : constant Natural :=
                   Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                               Entry_Header.Stmt_Bit_Count);
-               Raw_Stmt_Buffer  : constant Bytes_Array (1 .. Stmt_Buffer_Size)
-                  with Import, Address => Trace_Entry.Stmt_Buffer;
+                               Entry_Header.Statement_Bit_Count);
+               Raw_Statement_Buffer  : constant Bytes_Array
+                 (1 .. Statement_Buffer_Size)
+                  with Import, Address => Trace_Entry.Statement_Buffer;
 
                Decision_Buffer_Size : constant Natural :=
                   Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
@@ -531,13 +532,14 @@ package body Instrument.Input_Traces is
                function Last_Bit (Bit_Count : Any_Bit_Count) return Any_Bit_Id
                is (Any_Bit_Id (Bit_Count) - 1);
             begin
-               Reserve (Stmt_Buffer, Entry_Header.Stmt_Bit_Count);
+               Reserve (Statement_Buffer, Entry_Header.Statement_Bit_Count);
                Reserve (Decision_Buffer, Entry_Header.Decision_Bit_Count);
 
                Decode_Buffer
                  (Entry_Header.Bit_Buffer_Encoding,
-                  Raw_Stmt_Buffer,
-                  Stmt_Buffer (0 .. Last_Bit (Entry_Header.Stmt_Bit_Count)),
+                  Raw_Statement_Buffer,
+                  Statement_Buffer
+                    (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
                   Result);
                if not Result.Success then
                   exit;
@@ -557,14 +559,15 @@ package body Instrument.Input_Traces is
                  (Hash_Type (Entry_Header.Closure_Hash),
                   Unit_Name,
                   Unit_Part_Map (Entry_Header.Unit_Part),
-                  Stmt_Buffer (0 .. Last_Bit (Entry_Header.Stmt_Bit_Count)),
+                  Statement_Buffer
+                    (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
                   Decision_Buffer
                     (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)));
             end;
          end loop;
       end if;
 
-      Free (Stmt_Buffer);
+      Free (Statement_Buffer);
       Free (Decision_Buffer);
       Close (Stream.File);
    end Generic_Read_Source_Trace_File;
@@ -576,11 +579,11 @@ package body Instrument.Input_Traces is
    procedure Dump_Source_Trace_File (Filename : String) is
 
       procedure On_Trace_Entry
-        (Closure_Hash    : Hash_Type;
-         Unit_Name       : String;
-         Unit_Part       : Unit_Parts;
-         Stmt_Buffer     : Coverage_Buffer;
-         Decision_Buffer : Coverage_Buffer);
+        (Closure_Hash     : Hash_Type;
+         Unit_Name        : String;
+         Unit_Part        : Unit_Parts;
+         Statement_Buffer : Coverage_Buffer;
+         Decision_Buffer  : Coverage_Buffer);
       --  Callback for Read_Source_Trace_File
 
       procedure Dump_Buffer (Label : String; Buffer : Coverage_Buffer);
@@ -590,11 +593,11 @@ package body Instrument.Input_Traces is
       --------------------
 
       procedure On_Trace_Entry
-        (Closure_Hash    : Hash_Type;
-         Unit_Name       : String;
-         Unit_Part       : Unit_Parts;
-         Stmt_Buffer     : Coverage_Buffer;
-         Decision_Buffer : Coverage_Buffer)
+        (Closure_Hash     : Hash_Type;
+         Unit_Name        : String;
+         Unit_Part        : Unit_Parts;
+         Statement_Buffer : Coverage_Buffer;
+         Decision_Buffer  : Coverage_Buffer)
       is
          use Ada.Text_IO;
       begin
@@ -602,7 +605,7 @@ package body Instrument.Input_Traces is
            ("Unit " & Unit_Name & " (" & Unit_Part'Image & ", hash="
             & Hex_Images.Hex_Image (Interfaces.Unsigned_32 (Closure_Hash))
             & ")");
-         Dump_Buffer ("Stmt", Stmt_Buffer);
+         Dump_Buffer ("Stmt", Statement_Buffer);
          Dump_Buffer ("Deciision", Decision_Buffer);
          New_Line;
       end On_Trace_Entry;

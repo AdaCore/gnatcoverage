@@ -145,7 +145,7 @@ package body Instrument.Sources is
       E       : Instrumentation_Entities renames IC.Entities;
 
       function Call_Img return String is
-        ("{}.Witness ({}'Address, " & Bit_Img & ")");
+        ("{}.Witness ({}, " & Bit_Img & ")");
 
       function Stmt_Img return String is
         (Call_Img & ";");
@@ -159,13 +159,13 @@ package body Instrument.Sources is
          return Create_From_Template
            (IC.Rewriting_Context,
             Template  => To_Wide_Wide_String (Stmt_Img),
-            Arguments => (E.Common_Buffers, E.Stmt_Buffer),
+            Arguments => (E.Common_Buffers, E.Statement_Buffer),
             Rule      => Call_Stmt_Rule);
       else
          return Create_From_Template
            (IC.Rewriting_Context,
             Template  => To_Wide_Wide_String (Decl_Img),
-            Arguments => (1 | 2 => E.Common_Buffers, 3 => E.Stmt_Buffer),
+            Arguments => (1 | 2 => E.Common_Buffers, 3 => E.Statement_Buffer),
             Rule      => Object_Decl_Rule);
       end if;
    end Make_Statement_Witness;
@@ -181,7 +181,7 @@ package body Instrument.Sources is
    is
       E        : Instrumentation_Entities renames IC.Entities;
       Call_Img : constant String :=
-        "{}.Witness ({}'Address, "
+        "{}.Witness ({}, "
         & Img (Bits (False)) & ","
         & Img (Bits (True)) & ","
         & "{})";
@@ -2445,8 +2445,8 @@ package body Instrument.Sources is
       begin
          E.Common_Buffers := To_Nodes (RH, Sys_Buffers);
          E.Unit_Buffers := To_Nodes (RH, IC.Buffer_Unit.Unit);
-         E.Stmt_Buffer :=
-            To_Nodes (RH, IC.Buffer_Unit.Unit & Stmt_Buffer_Name);
+         E.Statement_Buffer :=
+            To_Nodes (RH, IC.Buffer_Unit.Unit & Statement_Buffer_Name);
          E.Decision_Buffer :=
             To_Nodes (RH, IC.Buffer_Unit.Unit & Decision_Buffer_Name);
       end;

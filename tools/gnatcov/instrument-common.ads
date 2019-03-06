@@ -73,7 +73,7 @@ package Instrument.Common is
    --  Scope in Sys_Prefix for all packages to contain generic procedures for
    --  iterations on coverage buffers.
 
-   Stmt_Buffer_Name : Ada_Qualified_Name;
+   Statement_Buffer_Name : Ada_Qualified_Name;
    --  Qualified name (relative to the unit buffer package) of the buffer to
    --  contain coverage data corresponding to statement obligations.
 

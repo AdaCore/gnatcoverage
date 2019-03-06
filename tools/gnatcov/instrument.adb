@@ -109,20 +109,37 @@ package body Instrument is
          --  Do not use 'Image so that we use the original casing for the
          --  enumerators, and thus avoid compilation warnings/errors.
 
+         Statement_Last_Bit : constant String := Img
+           (UIC.Unit_Bits.Last_Statement_Bit);
+         Decision_Last_Bit  : constant String := Img
+           (UIC.Unit_Bits.Last_Decision_Bit);
+
       begin
          File.Put_Line ("package " & Pkg_Name & " is");
+         File.New_Line;
+         File.Put_Line ("   Statement_Buffer : Coverage_Buffer_Type"
+                        & " (0 .. " & Statement_Last_Bit & ") :="
+                        & " (others => False);");
+         File.New_Line;
+         File.Put_Line ("   Decision_Buffer : Coverage_Buffer_Type"
+                        & " (0 .. " & Decision_Last_Bit & ") :="
+                        & " (others => False);");
          File.New_Line;
          File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Unit_Name_Length => "
                         & Strings.Img (Unit_Name'Length) & ",");
-         File.Put_Line ("      Stmt_Last_Bit => "
-                        & Img (UIC.Unit_Bits.Last_Statement_Bit) & ",");
-         File.Put_Line ("      Decision_Last_Bit => "
-                        & Img (UIC.Unit_Bits.Last_Decision_Bit) & ",");
          File.Put_Line ("      Closure_Hash => " & Closure_Hash & ",");
+
          File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
          File.Put_Line ("      Unit_Name => """ & Unit_Name & """,");
-         File.Put_Line ("      others => <>);");
+
+         File.Put_Line ("      Statement => Statement_Buffer'Address,");
+         File.Put_Line ("      Decision => Decision_Buffer'Address,");
+
+         File.Put_Line ("      Statement_Last_Bit => " & Statement_Last_Bit
+                        & ",");
+         File.Put_Line ("      Decision_Last_Bit => "
+                        & Decision_Last_Bit & ");");
          File.New_Line;
          File.Put_Line ("end " & Pkg_Name & ";");
       end;
