@@ -153,6 +153,50 @@ package body Instrument.Common is
       return Left.Part < Right.Part;
    end "<";
 
+   ----------------------------
+   -- Instrumented_Unit_Slug --
+   ----------------------------
+
+   function Instrumented_Unit_Slug
+     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Identifier
+   is
+      First : Boolean := True;
+   begin
+      return Result : Ada_Identifier do
+         --  Add a single letter so that the spec and body of the same unit
+         --  don't conflict.
+
+         Append (Result, (case Instrumented_Unit.Part is
+                          when Unit_Spec     => 'S',
+                          when Unit_Body     => 'B',
+                          when Unit_Separate => 'S'));
+         Append (Result, '_');
+
+         --  Create a unique suffix corresponding to the qualified name of the
+         --  unit to instrument. Replace occurences of 'z' with 'zz' and insert
+         --  '_z_' between identifiers.
+
+         for Id of Instrumented_Unit.Unit loop
+            if First then
+               First := False;
+            else
+               Append (Result, "_z_");
+            end if;
+            for I in 1 .. Length (Id) loop
+               declare
+                  Char : constant Character := Element (Id, I);
+               begin
+                  if Char in 'Z' | 'z' then
+                     Append (Result, "zz");
+                  else
+                     Append (Result, Char);
+                  end if;
+               end;
+            end loop;
+         end loop;
+      end return;
+   end Instrumented_Unit_Slug;
+
    -----------------
    -- Buffer_Unit --
    -----------------
@@ -160,39 +204,12 @@ package body Instrument.Common is
    function Buffer_Unit
      (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name
    is
+      Simple_Name : Ada_Identifier;
    begin
+      Append (Simple_Name, 'B');
+      Append (Simple_Name, Instrumented_Unit_Slug (Instrumented_Unit));
       return CU_Name : Ada_Qualified_Name := Sys_Buffers do
-         CU_Name.Append
-           (case Instrumented_Unit.Part is
-               when Unit_Spec     => To_Unbounded_String ("Specs"),
-               when Unit_Body     => To_Unbounded_String ("Bodies"),
-               when Unit_Separate => To_Unbounded_String ("Subunits"));
-
-         --  Create a unique identifier corresponding to the qualified name of
-         --  the unit to instrument. Replace occurences of 'z' with 'zz' and
-         --  insert '_z_' between identifiers.
-
-         declare
-            Simple_Name : Ada_Identifier;
-         begin
-            for Id of Instrumented_Unit.Unit loop
-               if Length (Simple_Name) > 0 then
-                  Append (Simple_Name, "_z_");
-               end if;
-               for I in 1 .. Length (Id) loop
-                  declare
-                     Char : constant Character := Element (Id, I);
-                  begin
-                     if Char in 'Z' | 'z' then
-                        Append (Simple_Name, "zz");
-                     else
-                        Append (Simple_Name, Char);
-                     end if;
-                  end;
-               end loop;
-            end loop;
-            CU_Name.Append (Simple_Name);
-         end;
+         CU_Name.Append (Simple_Name);
       end return;
    end Buffer_Unit;
 

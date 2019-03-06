@@ -101,6 +101,13 @@ package Instrument.Common is
    --  prefix of the other, the shorter is considered to come first. If
    --  qualified name is the same, compare the kind.
 
+   function Instrumented_Unit_Slug
+     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Identifier;
+   --  Given a unit to instrument, return a unique identifier to describe it
+   --  (the so called slug).
+   --
+   --  One can use this slug to generate unique names for this unit.
+
    function Buffer_Unit
      (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
    --  Given a unit to instrument, return the name of the unit that holds
