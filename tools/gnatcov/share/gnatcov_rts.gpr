@@ -10,8 +10,4 @@
 project GNATcov_RTS is
    for Source_Dirs use ("gnatcov_rts");
    for Object_Dir use "obj-gnatcov_rts";
-
-   package Compiler is
-      for Default_Switches ("Ada") use ("-gnatg");
-   end Compiler;
 end GNATcov_RTS;

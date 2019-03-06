@@ -1,4 +1,4 @@
-package body System.GNATcov.Buffers is
+package body GNATcov_RTS.Buffers is
 
    subtype Unbounded_Coverage_Buffer_Type is Coverage_Buffer_Type (Bit_Id);
 
@@ -35,4 +35,4 @@ package body System.GNATcov.Buffers is
       return Value;
    end Witness;
 
-end System.GNATcov.Buffers;
+end GNATcov_RTS.Buffers;

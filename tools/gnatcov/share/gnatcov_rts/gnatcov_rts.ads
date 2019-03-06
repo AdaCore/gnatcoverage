@@ -1,6 +1,6 @@
 --  Namespace for all support packages required to do instrumentation-based
 --  coverage computation in GNATcoverage.
 
-package System.GNATcov is
+package GNATcov_RTS is
    pragma Pure;
-end System.GNATcov;
+end GNATcov_RTS;

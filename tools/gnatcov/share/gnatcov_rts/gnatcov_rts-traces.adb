@@ -1,16 +1,19 @@
-package body System.GNATcov.Traces is
+with System;
+
+package body GNATcov_RTS.Traces is
 
    ----------------------
    -- Native_Endianity --
    ----------------------
 
    function Native_Endianity return Supported_Endianity is
+      use type System.Bit_Order;
    begin
-      if Default_Bit_Order = Low_Order_First then
+      if System.Default_Bit_Order = System.Low_Order_First then
          return Little_Endian;
       else
          return Big_Endian;
       end if;
    end Native_Endianity;
 
-end System.GNATcov.Traces;
+end GNATcov_RTS.Traces;

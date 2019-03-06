@@ -14,6 +14,6 @@ library project GNATcov_RTS_Full is
    for Object_Dir use "obj-gnatcov_rts_full." & Library_Type;
 
    package Compiler is
-      for Default_Switches ("Ada") use ("-gnatg", "-O2", "-g");
+      for Default_Switches ("Ada") use ("-O2", "-g");
    end Compiler;
 end GNATcov_RTS_Full;

@@ -21,10 +21,11 @@ with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with System;
-with System.GNATcov.Traces; use System.GNATcov.Traces;
 with System.Storage_Elements;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
+
+with GNATcov_RTS.Traces; use GNATcov_RTS.Traces;
 
 with Hex_Images;
 with Strings;
@@ -35,9 +36,9 @@ package body Instrument.Input_Traces is
    use GNATCOLL.Projects;
 
    Unit_Part_Map : constant array (Supported_Unit_Part) of Unit_Parts :=
-     (System.GNATcov.Traces.Unit_Body     => GNATCOLL.Projects.Unit_Body,
-      System.GNATcov.Traces.Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
-      System.GNATcov.Traces.Unit_Separate => GNATCOLL.Projects.Unit_Separate);
+     (GNATcov_RTS.Traces.Unit_Body     => GNATCOLL.Projects.Unit_Body,
+      GNATcov_RTS.Traces.Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
+      GNATcov_RTS.Traces.Unit_Separate => GNATCOLL.Projects.Unit_Separate);
 
    subtype Read_Result is Traces_Files.Read_Result;
    procedure Create_Error (Result : out Read_Result; Error : String)

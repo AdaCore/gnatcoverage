@@ -2,9 +2,9 @@
 
 with Interfaces; use Interfaces;
 
-with System.GNATcov.Buffers;
+with GNATcov_RTS.Buffers;
 
-package System.GNATcov.Traces is
+package GNATcov_RTS.Traces is
 
    --  Execution of an instrumented program sets bits in its coverage buffers.
    --  These bits convey information that GNATcov will later on use to
@@ -162,4 +162,4 @@ package System.GNATcov.Traces is
 
    for Trace_Entry_Header'Size use 24 * 8;
 
-end System.GNATcov.Traces;
+end GNATcov_RTS.Traces;

@@ -5,9 +5,11 @@ with Ada.Directories;
 
 with Interfaces;
 
-with System.GNATcov.Buffers; use System.GNATcov.Buffers;
+with System;
 
-package body System.GNATcov.Traces.Output is
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+
+package body GNATcov_RTS.Traces.Output is
 
    package Bytes_IO is new Ada.Direct_IO (Interfaces.Unsigned_8);
    use Bytes_IO;
@@ -185,4 +187,4 @@ package body System.GNATcov.Traces.Output is
       Close (File);
    end Write_Trace_File;
 
-end System.GNATcov.Traces.Output;
+end GNATcov_RTS.Traces.Output;

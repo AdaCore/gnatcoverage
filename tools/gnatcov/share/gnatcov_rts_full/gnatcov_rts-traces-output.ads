@@ -1,6 +1,6 @@
-with System.GNATcov.Buffers.Lists; use System.GNATcov.Buffers.Lists;
+with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
-package System.GNATcov.Traces.Output is
+package GNATcov_RTS.Traces.Output is
 
    GNATCOV_TRACE_FILE : constant String := "GNATCOV_TRACE_FILE";
    --  Name of the environment variable to contain the default file name for
@@ -16,4 +16,4 @@ package System.GNATcov.Traces.Output is
    --  empty, fallback to "PROGRAM.srctrace", where PROGRAM is the name of the
    --  running program.
 
-end System.GNATcov.Traces.Output;
+end GNATcov_RTS.Traces.Output;

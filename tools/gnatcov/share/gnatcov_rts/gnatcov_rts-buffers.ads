@@ -2,8 +2,9 @@
 --  satisfaction of coverage obligations.
 
 with Interfaces;
+with System;
 
-package System.GNATcov.Buffers is
+package GNATcov_RTS.Buffers is
 
    pragma Pure;
 
@@ -76,4 +77,4 @@ package System.GNATcov.Buffers is
    --  If Value is false, set the Boolean corresponding to False_Bit to True in
    --  Buffer. Set the one corresponding to True_Bit otherwise.
 
-end System.GNATcov.Buffers;
+end GNATcov_RTS.Buffers;

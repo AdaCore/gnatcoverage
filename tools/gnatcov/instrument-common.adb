@@ -402,8 +402,7 @@ package body Instrument.Common is
    end Find_Instrumented_Unit;
 
 begin
-   Sys_Prefix.Append (To_Unbounded_String ("System"));
-   Sys_Prefix.Append (To_Unbounded_String ("GNATcov"));
+   Sys_Prefix.Append (To_Unbounded_String ("GNATcov_RTS"));
 
    Sys_Buffers := Sys_Prefix;
    Sys_Buffers.Append (To_Unbounded_String ("Buffers"));
