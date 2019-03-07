@@ -1,3 +1,5 @@
+--  This unit needs to be compilable with Ada 95 compilers
+
 with System;
 
 package body GNATcov_RTS.Traces is

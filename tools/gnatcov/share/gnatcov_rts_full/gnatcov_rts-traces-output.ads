@@ -1,3 +1,5 @@
+--  This unit needs to be compilable with Ada 2005 compilers
+
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
 package GNATcov_RTS.Traces.Output is

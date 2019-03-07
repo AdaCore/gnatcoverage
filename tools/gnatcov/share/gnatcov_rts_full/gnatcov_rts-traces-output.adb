@@ -1,3 +1,5 @@
+--  This unit needs to be compilable with Ada 2005 compilers
+
 with Ada.Command_Line;
 with Ada.Environment_Variables;
 with Ada.Direct_IO;

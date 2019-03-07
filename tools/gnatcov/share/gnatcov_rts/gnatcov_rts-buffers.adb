@@ -1,3 +1,5 @@
+--  This unit needs to be compilable with Ada 95 compilers
+
 package body GNATcov_RTS.Buffers is
 
    subtype Unbounded_Coverage_Buffer_Type is Coverage_Buffer_Type (Bit_Id);

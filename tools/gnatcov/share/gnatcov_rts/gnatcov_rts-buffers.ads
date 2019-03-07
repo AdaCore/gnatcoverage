@@ -1,6 +1,8 @@
 --  This package provides types and subprograms to maintain data about the
 --  satisfaction of coverage obligations.
 
+--  This unit needs to be compilable with Ada 95 compilers
+
 with Interfaces;
 with System;
 

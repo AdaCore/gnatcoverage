@@ -1,5 +1,7 @@
 --  Trace file format for instrumented programs
 
+--  This unit needs to be compilable with Ada 95 compilers
+
 with Interfaces; use Interfaces;
 
 with GNATcov_RTS.Buffers;
