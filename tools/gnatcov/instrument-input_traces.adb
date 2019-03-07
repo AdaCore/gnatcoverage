@@ -605,8 +605,8 @@ package body Instrument.Input_Traces is
            ("Unit " & Unit_Name & " (" & Unit_Part'Image & ", hash="
             & Hex_Images.Hex_Image (Interfaces.Unsigned_32 (Closure_Hash))
             & ")");
-         Dump_Buffer ("Stmt", Statement_Buffer);
-         Dump_Buffer ("Deciision", Decision_Buffer);
+         Dump_Buffer ("Statement", Statement_Buffer);
+         Dump_Buffer ("Decision", Decision_Buffer);
          New_Line;
       end On_Trace_Entry;
 
