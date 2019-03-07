@@ -3066,8 +3066,6 @@ package body SC_Obligations is
                end if;
             end Update_Decision_Sloc;
 
-            Pragma_Aspect_Name : Name_Id := SCOE.Pragma_Aspect_Name;
-
          --  Start of processing for Process_Entry
 
          begin
@@ -3110,17 +3108,6 @@ package body SC_Obligations is
                when 'S' | 's' =>
                   pragma Assert (Current_Decision = No_SCO_Id);
 
-                  --  Older compilers produced pragma names in uppercase.
-                  --  We now expect them in lowercase (canonical form for
-                  --  Get_Pragma_Id), so convert here.
-
-                  if Pragma_Aspect_Name /= No_Name then
-                     Get_Name_String (Pragma_Aspect_Name);
-                     Name_Buffer (1 .. Name_Len) :=
-                       To_Lower (Name_Buffer (1 .. Name_Len));
-                     Pragma_Aspect_Name := Name_Find;
-                  end if;
-
                   SCO_Vector.Append
                     (SCO_Descriptor'
                        (Kind           => Statement,
@@ -3132,8 +3119,8 @@ package body SC_Obligations is
                         Dominant_Sloc  => Dom_Sloc,
                         Dominant_Value => Dom_Val,
                         Handler_Range  => Current_Handler_Range,
-                        Pragma_Name    =>
-                           Get_Pragma_Id (Pragma_Aspect_Name),
+                        Pragma_Name    => Case_Insensitive_Get_Pragma_Id
+                          (SCOE.Pragma_Aspect_Name),
                         others         => <>));
                   if Statement_Bits /= null then
                      Statement_Bits (LL_Unit_Bits.Statement_Bits.Element
@@ -3164,7 +3151,7 @@ package body SC_Obligations is
                            To_Decision_Kind (SCOE.C1),
                         Last_Cond_Index     => 0,
                         Aspect_Name         =>
-                           Get_Aspect_Id (Pragma_Aspect_Name),
+                           Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
                         others              => <>));
                   Current_BDD := BDD.Create (SCO_Vector.Last_Index);
 
@@ -4300,6 +4287,25 @@ package body SC_Obligations is
          New_Line;
       end loop;
    end Dump_All_SCOs;
+
+   ------------------------------------
+   -- Case_Insensitive_Get_Pragma_Id --
+   ------------------------------------
+
+   function Case_Insensitive_Get_Pragma_Id
+     (Pragma_Name : Name_Id) return Pragma_Id
+   is
+      Name : Name_Id := Pragma_Name;
+   begin
+      if Name /= No_Name then
+         Get_Name_String (Name);
+         Name_Buffer (1 .. Name_Len) :=
+           To_Lower (Name_Buffer (1 .. Name_Len));
+         Name := Name_Find;
+      end if;
+
+      return Get_Pragma_Id (Name);
+   end Case_Insensitive_Get_Pragma_Id;
 
 begin
    Snames.Initialize;

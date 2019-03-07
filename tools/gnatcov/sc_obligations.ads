@@ -22,12 +22,14 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with GNAT.Regexp;
 
+with Namet;
+with Snames; use Snames;
+with Types;  use Types;
+
 limited with Checkpoints;
-with Instrument;  use Instrument;
-with Slocs;       use Slocs;
-with Traces;      use Traces;
-with Types;       use Types;
-with Snames;      use Snames;
+with Instrument; use Instrument;
+with Slocs;      use Slocs;
+with Traces;     use Traces;
 
 package SC_Obligations is
 
@@ -368,6 +370,12 @@ package SC_Obligations is
 
    procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed SCOs from stream and merge them in current state
+
+   function Case_Insensitive_Get_Pragma_Id
+     (Pragma_Name : Namet.Name_Id) return Pragma_Id;
+   --  Return the Pragma_Id correspnding to the given pragma name. This takes
+   --  care of converting Pragma_Name to lowercase (canonical form for
+   --  Sem_Util.Get_Pragma_Id)
 
    --  For each pragma we know of, whether an occurrence of the pragma in the
    --  source might generate code of its own, e.g. pragma Precondition.
