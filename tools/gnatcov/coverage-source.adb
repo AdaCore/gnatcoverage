@@ -1257,30 +1257,33 @@ package body Coverage.Source is
       end loop;
 
       for J in Decision_Buffer'Range loop
-         declare
-            Outcome_Info : Decision_Bit_Info renames BM.Decision_Bits (J);
+         if Decision_Buffer (J) then
+            declare
+               Outcome_Info : Decision_Bit_Info renames BM.Decision_Bits (J);
 
-            procedure Set_Known_Outcome_Taken
-              (SCI : in out Source_Coverage_Info);
-            --  Mark Outcome_Info.Outcome as taken
+               procedure Set_Known_Outcome_Taken
+                 (SCI : in out Source_Coverage_Info);
+               --  Mark Outcome_Info.Outcome as taken
 
-            -----------------------------
-            -- Set_Known_Outcome_Taken --
-            -----------------------------
+               -----------------------------
+               -- Set_Known_Outcome_Taken --
+               -----------------------------
 
-            procedure Set_Known_Outcome_Taken
-              (SCI : in out Source_Coverage_Info) is
+               procedure Set_Known_Outcome_Taken
+                 (SCI : in out Source_Coverage_Info) is
+               begin
+                  SCI.Known_Outcome_Taken (Outcome_Info.Outcome) := True;
+               end Set_Known_Outcome_Taken;
+
             begin
-               SCI.Known_Outcome_Taken (Outcome_Info.Outcome) := True;
-            end Set_Known_Outcome_Taken;
+               Update_SCI
+                 (Outcome_Info.D_SCO, No_SC_Tag,
+                  Set_Known_Outcome_Taken'Access);
 
-         begin
-            Update_SCI
-              (Outcome_Info.D_SCO, No_SC_Tag, Set_Known_Outcome_Taken'Access);
-
-            --  TODO??? Currently we hard-code No_SC_Tag.
-            --  Need to add support for per-instance coverage
-         end;
+               --  TODO??? Currently we hard-code No_SC_Tag.
+               --  Need to add support for per-instance coverage
+            end;
+         end if;
       end loop;
    end Compute_Source_Coverage;
 
