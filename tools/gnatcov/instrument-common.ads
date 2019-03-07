@@ -17,6 +17,31 @@
 ------------------------------------------------------------------------------
 
 --  Common data structures for source instrumentation-based coverage
+--
+--  Organization of instrumented projects
+--  =====================================
+--
+--  "gnatcov instrument" generates instrumented sources in a subdirectory of
+--  the root project's object directory. The following compilation units (and
+--  source files) are generated:
+--
+--  * "gnatcov_rts-buffers-B<SLUG>.ads" for all compilation units of interest.
+--    (<SLUG> is the result of Instrumented_Unit_Slug for the compilation unit
+--    to instrument). These units are preelaborated and contain definitions for
+--    the coverage buffers themselves, but also for buffers "metadata".
+--
+--  * "gnatcov_rts-buffers-P<SLUG>.ads" for all compilation units of interest
+--    (<SLUG> is the result of Instrumented_Unit_Slug for the compilation unit
+--    to instrument). These units are pure and contain one System.Address
+--    constant per coverage buffer for the corresponding compilation unit.
+--
+--  * A single "gnatcov_rts-buffers-lists-<NAME>.ads" unit (<NAME> is the name
+--    of the root project). This unit contains a list of access to buffers for
+--    the coverage buffers of all units of interest.
+--
+--  * An instrumented version of all compilation units of interest. These new
+--    units are replacements for the original units. They fill the coverage
+--    buffers for the unit.
 
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
