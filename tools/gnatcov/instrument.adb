@@ -44,27 +44,25 @@ package body Instrument is
    --  Make sure we have the expected tree of directories for the
    --  instrumentation output.
 
-   procedure Emit_Buffer_Unit (IC : Inst_Context; UIC : Unit_Inst_Context);
+   procedure Emit_Buffer_Unit
+     (IC : in out Inst_Context; UIC : Unit_Inst_Context);
    --  Emit the unit to contain coverage buffers for the given instrumented
    --  unit.
 
    procedure Emit_Pure_Buffer_Unit
-     (IC : Inst_Context; UIC : Unit_Inst_Context);
+     (IC : in out Inst_Context; UIC : Unit_Inst_Context);
    --  Emit the unit to contain addresses for the coverage buffers
 
-   procedure Emit_Buffers_List_Unit (IC : Inst_Context);
+   procedure Emit_Buffers_List_Unit (IC : in out Inst_Context);
    --  Emit a generic procedure to output coverage buffers for all units of
    --  interest.
-
-   procedure Emit_Project_Files (IC : Inst_Context);
-   --  Emit project files to cover the instrumented sources
 
    procedure Auto_Dump_Buffers_In_Ada_Mains (IC : in out Inst_Context);
    --  Instrument source files for Ada mains that are not units of interest to
    --  add a dump of coverage buffers.
 
    procedure Remove_Old_Instr_Files (IC : Inst_Context);
-   --  Remove sources in IC.Instr_Dir that were not generated during this
+   --  Remove sources in IC.Output_Dir that were not generated during this
    --  instrumentation process.
 
    -------------------------
@@ -73,28 +71,22 @@ package body Instrument is
 
    procedure Prepare_Output_Dirs (IC : Inst_Context) is
    begin
-      --  TODO??? Preserve existing files/directories but remove extra
-      --  files, for instance when users re-instrument a project with one
-      --  unit that was removed since the previous run.
-
-      if Ada.Directories.Exists (+IC.Output_Dir) then
-         Ada.Directories.Delete_Tree (+IC.Output_Dir);
+      if not Ada.Directories.Exists (+IC.Output_Dir) then
+         Ada.Directories.Create_Path (+IC.Output_Dir);
       end if;
-
-      Ada.Directories.Create_Path (+IC.Output_Dir);
-      Ada.Directories.Create_Path (+IC.Instr_Dir);
-      Ada.Directories.Create_Path (+IC.Buffers_Dir);
    end Prepare_Output_Dirs;
 
    ----------------------
    -- Emit_Buffer_Unit --
    ----------------------
 
-   procedure Emit_Buffer_Unit (IC : Inst_Context; UIC : Unit_Inst_Context) is
+   procedure Emit_Buffer_Unit
+     (IC : in out Inst_Context; UIC : Unit_Inst_Context)
+   is
       CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
       File    : Text_Files.File_Type;
    begin
-      File.Create ((+IC.Buffers_Dir) / To_Filename (CU_Name));
+      Create_File (IC, File, To_Filename (CU_Name));
 
       declare
          Pkg_Name : constant String := To_Ada (CU_Name.Unit);
@@ -165,12 +157,13 @@ package body Instrument is
    -- Emit_Pure_Buffer_Unit --
    ---------------------------
 
-   procedure Emit_Pure_Buffer_Unit (IC : Inst_Context; UIC : Unit_Inst_Context)
+   procedure Emit_Pure_Buffer_Unit
+     (IC : in out Inst_Context; UIC : Unit_Inst_Context)
    is
       CU_Name : Compilation_Unit_Name renames UIC.Pure_Buffer_Unit;
       File    : Text_Files.File_Type;
    begin
-      File.Create ((+IC.Buffers_Dir) / To_Filename (CU_Name));
+      Create_File (IC, File, To_Filename (CU_Name));
 
       declare
          Pkg_Name : constant String := To_Ada (CU_Name.Unit);
@@ -199,7 +192,7 @@ package body Instrument is
    -- Emit_Buffers_List_Unit --
    ----------------------------
 
-   procedure Emit_Buffers_List_Unit (IC : Inst_Context) is
+   procedure Emit_Buffers_List_Unit (IC : in out Inst_Context) is
       use GNATCOLL.Projects;
 
       CU_Name : Compilation_Unit_Name := (Sys_Buffers_Lists, Unit_Spec);
@@ -233,7 +226,7 @@ package body Instrument is
          Unit_Name : constant String := To_Ada (CU_Name.Unit);
          First     : Boolean := True;
       begin
-         File.Create ((+IC.Buffers_Dir) / To_Filename (CU_Name));
+         Create_File (IC, File, To_Filename (CU_Name));
          for Unit of Buffer_Units loop
             File.Put_Line ("with " & To_String (Unit) & ";");
          end loop;
@@ -261,33 +254,6 @@ package body Instrument is
       end;
    end Emit_Buffers_List_Unit;
 
-   ------------------------
-   -- Emit_Project_Files --
-   ------------------------
-
-   procedure Emit_Project_Files (IC : Inst_Context) is
-      File : Text_Files.File_Type;
-   begin
-      File.Create ((+IC.Output_Dir) / "instrumented.gpr");
-      File.Put_Line ("with ""buffers.gpr"";");
-      File.Put_Line ("project Instrumented extends """
-                     & Project.Root_Project_Filename & """ is");
-      File.Put_Line ("   for Source_Dirs use (""src-instr"");");
-      File.Put_Line ("   for Object_Dir use ""obj-instr"";");
-      File.Put_Line ("end Instrumented;");
-      File.Close;
-
-      File.Create ((+IC.Output_Dir) / "buffers.gpr");
-      File.Put_Line ("with ""gnatcov_rts_full.gpr"";");
-      File.New_Line;
-      File.Put_Line ("project Buffers is");
-      File.Put_Line ("   for Source_Dirs use (""src-buffers"");");
-      File.Put_Line ("   for Object_Dir use ""obj-buffers"";");
-      File.New_Line;
-      File.Put_Line ("   package Compiler renames GNATcov_RTS_Full.Compiler;");
-      File.Put_Line ("end Buffers;");
-   end Emit_Project_Files;
-
    ------------------------------------
    -- Auto_Dump_Buffers_In_Ada_Mains --
    ------------------------------------
@@ -307,7 +273,7 @@ package body Instrument is
 
                   Rewriter : Source_Rewriter;
                begin
-                  Rewriter.Start_Instr_Rewriting (IC, +Main.File.Full_Name);
+                  Rewriter.Start_Rewriting (IC, +Main.File.Full_Name);
                   Add_Auto_Dump_Buffers
                     (IC   => IC,
                      Main => CU_Name.Unit,
@@ -327,18 +293,19 @@ package body Instrument is
    procedure Remove_Old_Instr_Files (IC : Inst_Context) is
       use Ada.Directories;
 
-      To_Delete : File_Sets.Set;
-      Search    : Search_Type;
-      Dir_Entry : Directory_Entry_Type;
+      Output_Dir : constant String := To_String (IC.Output_Dir);
+      To_Delete  : File_Sets.Set;
+      Search     : Search_Type;
+      Dir_Entry  : Directory_Entry_Type;
    begin
       Start_Search (Search,
-                    Directory => To_String (IC.Instr_Dir),
-                    Pattern => "",
-                    Filter => (Ordinary_File => True, others => False));
+                    Directory => Output_Dir,
+                    Pattern   => "",
+                    Filter    => (Ordinary_File => True, others => False));
       while More_Entries (Search) loop
          Get_Next_Entry (Search, Dir_Entry);
          declare
-            Name : constant String := Simple_Name (Dir_Entry);
+            Name    : constant String := Simple_Name (Dir_Entry);
             UB_Name : constant Unbounded_String := To_Unbounded_String (Name);
          begin
             if not IC.Instr_Files.Contains (UB_Name) then
@@ -349,7 +316,7 @@ package body Instrument is
       End_Search (Search);
 
       for Name of To_Delete loop
-         Delete_File (To_String (Name));
+         Delete_File (Output_Dir / To_String (Name));
       end loop;
    end Remove_Old_Instr_Files;
 
@@ -447,9 +414,8 @@ package body Instrument is
       end if;
 
       Emit_Buffers_List_Unit (IC);
-      Emit_Project_Files (IC);
 
-      --  Remove sources in IC.Instr_Dir that we did not generate this time.
+      --  Remove sources in IC.Output_Dir that we did not generate this time.
       --  They are probably left overs from previous instrumentations for units
       --  that are no longer of interest. It is crucial not to make them part
       --  of next builds.

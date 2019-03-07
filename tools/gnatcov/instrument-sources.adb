@@ -2711,7 +2711,7 @@ package body Instrument.Sources is
       --  illegal.
 
    begin
-      Rewriter.Start_Instr_Rewriting (IC, Filename);
+      Rewriter.Start_Rewriting (IC, Filename);
 
       Initialize_Rewriting (UIC, CU_Name, Rewriter.Rewritten_Context);
 

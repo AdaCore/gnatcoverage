@@ -21,7 +21,6 @@ with Ada.Characters.Conversions;
 
 with Outputs;
 with Project;
-with Text_Files;
 
 package body Instrument.Common is
 
@@ -39,6 +38,11 @@ package body Instrument.Common is
    --  Helper for Statement_Buffer_Symbol and Decision_Buffer_Symbol. Return
    --  the name of the symbol for the entity that contains the address of a
    --  coverage buffer for Instrumented_Unit.
+
+   function Register_New_File
+     (IC : in out Inst_Context; Name : String) return String;
+   --  Helper for Create_File and Start_Rewriting: compute the path to the file
+   --  to create and register it to IC.Instr_Files.
 
    ------------
    -- To_Ada --
@@ -276,9 +280,14 @@ package body Instrument.Common is
 
    procedure Start_Rewriting
      (Self            : out Source_Rewriter;
-      Input_Filename  : String;
-      Output_Filename : String)
+      IC              : in out Inst_Context;
+      Input_Filename  : String)
    is
+      Base_Filename   : constant String :=
+         Ada.Directories.Simple_Name (Input_Filename);
+      Output_Filename : constant String :=
+         To_String (IC.Output_Dir) / Base_Filename;
+
       Context : constant Analysis_Context := Create_Context;
       Unit    : constant Analysis_Unit :=
          Get_From_File (Context, Input_Filename);
@@ -298,25 +307,9 @@ package body Instrument.Common is
       Self.Context := Context;
       Self.Unit := Unit;
       Self.Handle := Start_Rewriting (Context);
-   end Start_Rewriting;
 
-   ---------------------------
-   -- Start_Instr_Rewriting --
-   ---------------------------
-
-   procedure Start_Instr_Rewriting
-     (Self            : out Source_Rewriter;
-      IC              : in out Inst_Context;
-      Input_Filename  : String)
-   is
-      Base_Filename   : constant String :=
-         Ada.Directories.Simple_Name (Input_Filename);
-      Output_Filename : constant String :=
-         To_String (IC.Instr_Dir) / Base_Filename;
-   begin
-      Start_Rewriting (Self, Input_Filename, Output_Filename);
       IC.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
-   end Start_Instr_Rewriting;
+   end Start_Rewriting;
 
    -----------------------
    -- Rewritten_Context --
@@ -422,9 +415,7 @@ package body Instrument.Common is
    --------------------
 
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context is
-      Output_Dir  : constant String := Project.Output_Dir / "gnatcov-instr";
-      Instr_Dir   : constant String := Output_Dir / "src-instr";
-      Buffers_Dir : constant String := Output_Dir / "src-buffers";
+      Output_Dir : constant String := Project.Output_Dir / "gnatcov-instr";
    begin
       return IC : Inst_Context do
          IC.Project_Name := +Ada.Directories.Base_Name
@@ -432,11 +423,39 @@ package body Instrument.Common is
          --  TODO??? Get the original casing for the project name
 
          IC.Output_Dir := +Output_Dir;
-         IC.Instr_Dir := +Instr_Dir;
-         IC.Buffers_Dir := +Buffers_Dir;
          IC.Auto_Dump_Buffers := Auto_Dump_Buffers;
       end return;
    end Create_Context;
+
+   -----------------------
+   -- Register_New_File --
+   -----------------------
+
+   function Register_New_File
+     (IC : in out Inst_Context; Name : String) return String
+   is
+      Base_Filename   : constant String :=
+         Ada.Directories.Simple_Name (Name);
+      Output_Filename : constant String :=
+         To_String (IC.Output_Dir) / Base_Filename;
+   begin
+      IC.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
+      return Output_Filename;
+   end Register_New_File;
+
+   -----------------
+   -- Create_File --
+   -----------------
+
+   procedure Create_File
+     (IC   : in out Inst_Context;
+      File : in out Text_Files.File_Type;
+      Name : String)
+   is
+      Filename : constant String := Register_New_File (IC, Name);
+   begin
+      File.Create (Filename);
+   end Create_File;
 
    ----------------------------
    -- Find_Instrumented_Unit --

@@ -57,6 +57,7 @@ private with Libadalang.Rewriting;
 
 with Checkpoints;
 with SC_Obligations; use SC_Obligations;
+with Text_Files;
 
 package Instrument.Common is
 
@@ -195,12 +196,6 @@ package Instrument.Common is
       --  Subdirectory in the root project file's object directory. All we
       --  generate here must land in it.
 
-      Instr_Dir : Ada.Strings.Unbounded.Unbounded_String;
-      --  Directory to contain all instrumented sources
-
-      Buffers_Dir : Ada.Strings.Unbounded.Unbounded_String;
-      --  Directory to contain all sources that create coverage buffers
-
       Auto_Dump_Buffers : Boolean;
       --  See the eponym argument in Instrument.Intrument_Units_Of_Interest
 
@@ -209,11 +204,21 @@ package Instrument.Common is
       --  instrumentation.
 
       Instr_Files : File_Sets.Set;
-      --  Set of files that were written to Instr_Dir
+      --  Set of files that were written to Output_Dir
    end record;
 
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
+
+   procedure Create_File
+     (IC   : in out Inst_Context;
+      File : in out Text_Files.File_Type;
+      Name : String);
+   --  Shortcut to Text_Files.Create: create a text file with the given name in
+   --  IC.Output_Dir and register it in IC.Instr_Files.
+   --
+   --  Name can be a basename, a relative name or an absolute one: in all
+   --  cases, the basename is taken and the file is created in IC.Output_Dir.
 
    -------------------------
    -- Source instrumenter --
@@ -224,21 +229,16 @@ package Instrument.Common is
 
    procedure Start_Rewriting
      (Self            : out Source_Rewriter;
-      Input_Filename  : String;
-      Output_Filename : String);
+      IC              : in out Inst_Context;
+      Input_Filename  : String);
    --  Start a rewriting session for the given Input_Filename. If the rewriting
-   --  process is successful, the result will be written to Output_Filename.
+   --  process is successful, the result will be written to a file in
+   --  IC.Output_Dir with the basename of Output_Filename.
+   --
+   --  This registers the output file in IC.Instr_Files.
    --
    --  If there are parsing errors while reading Input_Filename, this raises a
    --  fatal error and prints the corresponding error messages.
-
-   procedure Start_Instr_Rewriting
-     (Self            : out Source_Rewriter;
-      IC              : in out Inst_Context;
-      Input_Filename  : String);
-   --  Like Start_Rewriting but automatically compute the output filename to be
-   --  the same as Input_Filename's basename relocated in IC.Instr_Dir. Also,
-   --  register this basename in IC.Instr_Files.
 
    function Rewritten_Context
      (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Context;
