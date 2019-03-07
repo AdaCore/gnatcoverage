@@ -564,7 +564,7 @@ package body Project is
                Info : constant File_Info := Prj_Tree.Info (S);
                Unit : constant String := Info.Unit_Name;
             begin
-               if Info.Language = "ada"
+               if To_Lower (Info.Language) = "ada"
                   and then not Exc_Units.Contains (Unit)
                   and then (not Inc_Units_Defined
                             or else Inc_Units.Contains (Unit))
@@ -879,6 +879,7 @@ package body Project is
      (Root_Project : Project_Type;
       Language     : String := "") return Main_Source_File_Array
    is
+      Lower_Language : constant String := To_Lower (Language);
 
       package Main_Source_File_Vectors is new Ada.Containers.Vectors
         (Positive, Main_Source_File);
@@ -900,7 +901,8 @@ package body Project is
             begin
                if Project.Is_Main_File (Name)
                   and then (Language = ""
-                            or else Prj_Tree.Info (F).Language = Language)
+                            or else To_Lower (Prj_Tree.Info (F).Language)
+                                    = Lower_Language)
                then
                   Mains.Append ((File => F, Project => Project));
                end if;
