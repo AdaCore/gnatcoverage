@@ -189,7 +189,7 @@ package body GNATcov_RTS.Traces.Output is
          return Value (GNATCOV_TRACE_FILE);
 
       else
-         return Ada.Directories.Base_Name (Ada.Command_Line.Command_Name)
+         return Ada.Directories.Simple_Name (Ada.Command_Line.Command_Name)
                 & ".srctrace";
       end if;
    end Trace_Filename;
