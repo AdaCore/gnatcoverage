@@ -2634,6 +2634,8 @@ package body Instrument.Sources is
       --  it to New_Stmt_List, right after the old list of statements.
 
       declare
+         use Ada_Qualified_Name_Vectors;
+
          Buffer_List : constant Node_Rewriting_Handle :=
             Create_Node (RH, Ada_Assoc_List);
          --  List of Ada_Aggregate_Assoc nodes for the list of buffers to pass
@@ -2657,13 +2659,13 @@ package body Instrument.Sources is
          Call_Stmt : constant Node_Rewriting_Handle :=
             Create_Regular_Node (RH, Ada_Call_Stmt, (1 => Call_Expr));
       begin
-         for Buffer_Unit of Buffer_Units loop
+         for Position in Buffer_Units.Iterate loop
             declare
                Buffer_Name : constant Node_Rewriting_Handle :=
                   Create_Regular_Node
                     (RH, Ada_Dotted_Name,
-                     (1 => To_Nodes (RH, Buffer_Unit), --  F_Prefix
-                      2 => Clone (Buffer_Id)));        --  F_Suffix
+                     (1 => To_Nodes (RH, Element (Position)), --  F_Prefix
+                      2 => Clone (Buffer_Id)));               --  F_Suffix
 
                Buffer_Access : constant Node_Rewriting_Handle :=
                   Create_Regular_Node
@@ -2672,13 +2674,20 @@ package body Instrument.Sources is
                       2 => Clone (Access_Id),   --  F_Attribute
                       3 => No_Node));           --  F_Args
 
+               Designator      : constant Node_Rewriting_Handle :=
+                  Create_Node (RH, Ada_Alternatives_List);
+               Designator_Text : constant Text_Type :=
+                  To_Text (Strings.Img (To_Index (Position)));
+
                Assoc : constant Node_Rewriting_Handle :=
                   Create_Regular_Node
                     (RH, Ada_Aggregate_Assoc,
-                     (1 => Create_Node                   --  F_Designators
-                             (RH, Ada_Alternatives_List),
-                      2 => Buffer_Access));              --  F_R_Expr
+                     (1 => Designator,      --  F_Designators
+                      2 => Buffer_Access)); --  F_R_Expr
             begin
+               Append_Child
+                 (Designator,
+                  Create_Token_Node (RH, Ada_Int_Literal, Designator_Text));
                Append_Child (Buffer_List, Assoc);
             end;
          end loop;
