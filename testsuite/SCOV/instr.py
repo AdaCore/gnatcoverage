@@ -35,7 +35,7 @@ def xcov_instrument(root_project, covlevel, checkpoint, projects=[], units=[],
             '-P{}'.format(root_project)]
 
     for p in projects:
-        args.append('--project={}'.format(p))
+        args.append('--projects={}'.format(p))
     for u in units:
         args.append('--units={}'.format(u))
     if recursive:
