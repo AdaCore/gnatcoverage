@@ -8,14 +8,13 @@ import os.path
 from SUITE.tutils import XCOV, exepath_to, xcov
 
 
-def xcov_instrument(root_project, obj_dir, covlevel, checkpoint, projects=[],
-                    units=[], recursive=False, auto_dump_buffers=True,
-                    out=None, err=None, register_failure=True):
+def xcov_instrument(root_project, covlevel, checkpoint, projects=[], units=[],
+                    recursive=False, auto_dump_buffers=True, out=None,
+                    err=None, register_failure=True):
     """
     Run "gnatcov instrument" on a project.
 
     :param str root_project: Project to pass to gnatcov (-P).
-    :param str obj_dir: Object directory for that project.
     :param str covlevel: Coverage level for the instrumentation (--level
         argument).
     :param str checkpoint: Name of the checkpoint file to create.
