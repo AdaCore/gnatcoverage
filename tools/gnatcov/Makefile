@@ -175,9 +175,9 @@ dynamorio_ADAPTER_INSTALL_VARS=\
 trace32_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 nexus_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 
-.PHONY: default all adapters bin $(PGMPATH)
+.PHONY: default all adapters bin $(PGMPATH) gnatcov_rts_full
 
-default: bin
+default: bin gnatcov_rts_full
 
 bin: $(PGMPATH)
 
