@@ -306,7 +306,8 @@ package Command_Line is
          Help       => ("In addition to those designated by -P/--projects,"
                         & " consider units from any transitively imported"
                         & " project."),
-         Commands   => (Cmd_Run | Cmd_Coverage | Cmd_Dump_CFG => True,
+         Commands   => (Cmd_Run | Cmd_Coverage | Cmd_Instrument
+                           | Cmd_Dump_CFG => True,
                         others => False),
          Internal   => False),
       Opt_All_Decisions => Create
