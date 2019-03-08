@@ -94,7 +94,11 @@ def check_xcov_reports(xcov_filename_pattern, expected_cov):
     def fmt_sorted_indented_list(items):
         return '\n'.join('  {}'.format(s) for s in sorted(items))
 
-    xcov_files = {f for f in glob.glob(xcov_filename_pattern)}
+    # Avoid discrepancies between filenames on Windows and Unix. Although it is
+    # not the canonical representation, Windows supports using slash as
+    # separators, so use it.
+    xcov_files = {f.replace('\\', '/')
+                  for f in glob.glob(xcov_filename_pattern)}
     thistest.fail_if(
         xcov_files != set(expected_cov),
         'Unexpected XCOV files. Expected:\n'
