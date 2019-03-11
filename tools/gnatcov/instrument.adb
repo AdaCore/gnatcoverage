@@ -56,7 +56,7 @@ package body Instrument is
    procedure Emit_Buffers_List_Unit
      (IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info);
-   --  Emit in the root project a generic procedure to output coverage buffers
+   --  Emit in the root project a unit to contain the list of coverage buffers
    --  for all units of interest.
 
    procedure Auto_Dump_Buffers_In_Ada_Mains (IC : in out Inst_Context);
@@ -231,7 +231,7 @@ package body Instrument is
          end;
       end loop;
 
-      --  Now emit the generic procedure
+      --  Now emit the unit to contain the list of buffers
 
       declare
          use type Ada.Containers.Count_Type;
