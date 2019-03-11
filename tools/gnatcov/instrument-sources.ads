@@ -89,6 +89,7 @@ private package Instrument.Sources is
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
       Unit_Info : Instrumented_Unit_Info;
+      Prj_Info  : in out Project_Info;
       IC        : in out Inst_Context;
       UIC       : out Unit_Inst_Context);
    --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
@@ -100,7 +101,8 @@ private package Instrument.Sources is
    procedure Add_Auto_Dump_Buffers
      (IC   : Inst_Context;
       Main : Ada_Qualified_Name;
-      URH  : Unit_Rewriting_Handle);
+      URH  : Unit_Rewriting_Handle)
+      with Pre => IC.Auto_Dump_Buffers;
    --  Try to insert in the sources of Main (a main subprogram) a call to dump
    --  the list of coverage buffers for all units of interest in Main's
    --  closure. Return without doing anything if unsuccessful.

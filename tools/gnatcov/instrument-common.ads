@@ -43,6 +43,7 @@
 --    units are replacements for the original units. They fill the coverage
 --    buffers for the unit.
 
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
@@ -51,6 +52,7 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
+with GNATCOLL.VFS;
 
 with Libadalang.Analysis;
 private with Libadalang.Rewriting;
@@ -60,6 +62,8 @@ with SC_Obligations; use SC_Obligations;
 with Text_Files;
 
 package Instrument.Common is
+
+   pragma Elaborate_Body;
 
    function "/" (Dir, Name : String) return String is
      (Ada.Directories.Compose (Dir, Name));
@@ -170,9 +174,54 @@ package Instrument.Common is
    --  Return the CU_Id corresponding to the given instrumented unit, or
    --  No_CU_Id if not found.
 
+   package File_Sets is new Ada.Containers.Hashed_Sets
+     (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
+      "="                 => Ada.Strings.Unbounded."=",
+      Equivalent_Elements => Ada.Strings.Unbounded."=",
+      Hash                => Ada.Strings.Unbounded.Hash);
+
+   type Project_Info is record
+      Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
+      --  Subdirectory in the project file's object directory. All we generate
+      --  for this project must land in it.
+
+      Instr_Files : File_Sets.Set;
+      --  Set of files that were written to Output_Dir
+   end record;
+
+   type Project_Info_Access is access all Project_Info;
+
+   package Project_Info_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
+      Element_Type    => Project_Info_Access,
+      Equivalent_Keys => Ada.Strings.Unbounded."=",
+      Hash            => Ada.Strings.Unbounded.Hash);
+   --  Mapping from project name (as returned by GNATCOLL.Projects.Name) to
+   --  Project_Info records. Project_Info records are owned by this map, and
+   --  thus must be deallocated when maps are deallocated.
+
+   type Main_To_Instrument is record
+      Unit : Ada_Qualified_Name;
+      --  Name of the main to instrument
+
+      File : GNATCOLL.VFS.Virtual_File;
+      --  Source file to instrument
+
+      Prj_Info : Project_Info_Access;
+      --  Reference to the Project_Info record corresponding to the project
+      --  that owns the main to instrument.
+   end record;
+
+   package Main_To_Instrument_Vectors is new Ada.Containers.Vectors
+     (Positive, Main_To_Instrument);
+
    type Instrumented_Unit_Info is record
       Filename : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the source file for this unit
+
+      Prj_Info : Project_Info_Access;
+      --  Reference to the Project_Info record corresponding to the project
+      --  that owns the source file for this unit.
 
       Is_Main : Boolean;
       --  Whether this unit is a main
@@ -182,36 +231,53 @@ package Instrument.Common is
      (Key_Type     => Compilation_Unit_Name,
       Element_Type => Instrumented_Unit_Info);
 
-   package File_Sets is new Ada.Containers.Hashed_Sets
-     (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
-      "="                 => Ada.Strings.Unbounded."=",
-      Equivalent_Elements => Ada.Strings.Unbounded."=",
-      Hash                => Ada.Strings.Unbounded.Hash);
-
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
 
-      Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
-      --  Subdirectory in the root project file's object directory. All we
-      --  generate here must land in it.
-
       Auto_Dump_Buffers : Boolean;
       --  See the eponym argument in Instrument.Intrument_Units_Of_Interest
+
+      Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
+      --  List of mains to instrument *which are not units of interest*. Always
+      --  empty when Auto_Dump_Buffers is false.
+      --
+      --  We need a separate list for these as mains which are units of
+      --  interest are instrumented to dump coverage buffers at the same time
+      --  they are instrumented to fill coverage buffers.
 
       Instrumented_Units : Instrumented_Unit_Maps.Map;
       --  Mapping from instrumented unit names to information used during
       --  instrumentation.
 
-      Instr_Files : File_Sets.Set;
-      --  Set of files that were written to Output_Dir
+      Project_Info_Map : Project_Info_Maps.Map;
+      --  For each project that contains units of interest, this tracks a
+      --  Project_Info record.
    end record;
 
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
 
+   procedure Destroy_Context (Context : in out Inst_Context);
+   --  Free dynamically allocated resources in Context
+
+   function Get_Or_Create_Project_Info
+     (Context : in out Inst_Context;
+      Project : Project_Type) return Project_Info_Access;
+   --  Return the Project_Info record corresponding to Project. Create it if it
+   --  does not exist.
+
+   procedure Register_Main_To_Instrument
+     (Context : in out Inst_Context;
+      File    : GNATCOLL.VFS.Virtual_File;
+      Project : Project_Type)
+      with Pre => Context.Auto_Dump_Buffers;
+   --  Register a main to be instrumented so that it dumps coverage buffers.
+   --  File is the source file for this main, and Project is the project that
+   --  owns this main.
+
    procedure Create_File
-     (IC   : in out Inst_Context;
+     (Info : in out Project_Info;
       File : in out Text_Files.File_Type;
       Name : String);
    --  Shortcut to Text_Files.Create: create a text file with the given name in
@@ -228,9 +294,9 @@ package Instrument.Common is
    --  Helper object to instrument a source file
 
    procedure Start_Rewriting
-     (Self            : out Source_Rewriter;
-      IC              : in out Inst_Context;
-      Input_Filename  : String);
+     (Self           : out Source_Rewriter;
+      Info           : in out Project_Info;
+      Input_Filename : String);
    --  Start a rewriting session for the given Input_Filename. If the rewriting
    --  process is successful, the result will be written to a file in
    --  IC.Output_Dir with the basename of Output_Filename.

@@ -2703,6 +2703,7 @@ package body Instrument.Sources is
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
       Unit_Info : Instrumented_Unit_Info;
+      Prj_Info  : in out Project_Info;
       IC        : in out Inst_Context;
       UIC       : out Unit_Inst_Context)
    is
@@ -2720,7 +2721,7 @@ package body Instrument.Sources is
       --  illegal.
 
    begin
-      Rewriter.Start_Rewriting (IC, Filename);
+      Rewriter.Start_Rewriting (Prj_Info, Filename);
 
       Initialize_Rewriting (UIC, CU_Name, Rewriter.Rewritten_Context);
 

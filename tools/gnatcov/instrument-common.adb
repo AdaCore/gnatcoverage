@@ -18,6 +18,7 @@
 
 with Ada.Characters.Handling;
 with Ada.Characters.Conversions;
+with Ada.Unchecked_Deallocation;
 
 with Outputs;
 with Project;
@@ -40,9 +41,9 @@ package body Instrument.Common is
    --  coverage buffer for Instrumented_Unit.
 
    function Register_New_File
-     (IC : in out Inst_Context; Name : String) return String;
+     (Info : in out Project_Info; Name : String) return String;
    --  Helper for Create_File and Start_Rewriting: compute the path to the file
-   --  to create and register it to IC.Instr_Files.
+   --  to create and register it to Info.Instr_Files.
 
    ------------
    -- To_Ada --
@@ -279,14 +280,14 @@ package body Instrument.Common is
    ---------------------
 
    procedure Start_Rewriting
-     (Self            : out Source_Rewriter;
-      IC              : in out Inst_Context;
-      Input_Filename  : String)
+     (Self           : out Source_Rewriter;
+      Info           : in out Project_Info;
+      Input_Filename : String)
    is
       Base_Filename   : constant String :=
          Ada.Directories.Simple_Name (Input_Filename);
       Output_Filename : constant String :=
-         To_String (IC.Output_Dir) / Base_Filename;
+         To_String (Info.Output_Dir) / Base_Filename;
 
       Context : constant Analysis_Context := Create_Context;
       Unit    : constant Analysis_Unit :=
@@ -308,7 +309,7 @@ package body Instrument.Common is
       Self.Unit := Unit;
       Self.Handle := Start_Rewriting (Context);
 
-      IC.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
+      Info.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
    end Start_Rewriting;
 
    -----------------------
@@ -415,31 +416,120 @@ package body Instrument.Common is
    --------------------
 
    function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context is
-      Output_Dir : constant String := Project.Output_Dir / "gnatcov-instr";
    begin
       return IC : Inst_Context do
          IC.Project_Name := +Ada.Directories.Base_Name
            (Project.Root_Project_Filename);
          --  TODO??? Get the original casing for the project name
 
-         IC.Output_Dir := +Output_Dir;
          IC.Auto_Dump_Buffers := Auto_Dump_Buffers;
       end return;
    end Create_Context;
+
+   ---------------------
+   -- Destroy_Context --
+   ---------------------
+
+   procedure Destroy_Context (Context : in out Inst_Context) is
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Project_Info, Project_Info_Access);
+   begin
+      --  Deallocate all Project_Info in Context, and then clear the hashed
+      --  map, both to avoid dangling pointers and to make Destroy_Context
+      --  callable more than once, like conventional deallocation procedures in
+      --  Ada.
+
+      for Position in Context.Project_Info_Map.Iterate loop
+         declare
+            PI : Project_Info_Access := Project_Info_Maps.Element (Position);
+         begin
+            Free (PI);
+         end;
+      end loop;
+      Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
+   end Destroy_Context;
+
+   --------------------------------
+   -- Get_Or_Create_Project_Info --
+   --------------------------------
+
+   function Get_Or_Create_Project_Info
+     (Context : in out Inst_Context;
+      Project : Project_Type) return Project_Info_Access
+   is
+      use type GNATCOLL.VFS.Filesystem_String;
+      use Project_Info_Maps;
+
+      --  Look for an existing Project_Info record corresponding to Project
+
+      Project_Name : constant Unbounded_String := +Project.Name;
+      Position     : constant Cursor := Context.Project_Info_Map.Find
+        (Project_Name);
+   begin
+      if Has_Element (Position) then
+         return Element (Position);
+
+      else
+         --  The requested Project_Info record does not exist yet. Create it,
+         --  register it and return it.
+
+         declare
+            Project_Obj_Dir : constant String := +Project.Object_Dir.Full_Name;
+            Result          : constant Project_Info_Access := new Project_Info'
+              (Output_Dir  => +(Project_Obj_Dir / "gnatcov-instr"),
+               Instr_Files => <>);
+         begin
+            Context.Project_Info_Map.Insert (Project_Name, Result);
+            return Result;
+         end;
+      end if;
+   end Get_Or_Create_Project_Info;
+
+   ---------------------------------
+   -- Register_Main_To_Instrument --
+   ---------------------------------
+
+   procedure Register_Main_To_Instrument
+     (Context : in out Inst_Context;
+      File    : GNATCOLL.VFS.Virtual_File;
+      Project : Project_Type)
+   is
+      File_Info : constant GNATCOLL.Projects.File_Info :=
+         Standard.Project.Project.Info (File);
+      CU_Name   : constant Compilation_Unit_Name :=
+         To_Compilation_Unit_Name (File_Info);
+   begin
+      --  If this main is already a unit of interest, no need to register it:
+      --  we will instrument it as part of our regular instrumentation process.
+
+      if Context.Instrumented_Units.Contains (CU_Name) then
+         return;
+      end if;
+
+      declare
+         Prj_Info  : constant Project_Info_Access :=
+            Get_Or_Create_Project_Info (Context, Project);
+      begin
+         Context.Main_To_Instrument_Vector.Append
+           ((Unit     => CU_Name.Unit,
+             File     => File,
+             Prj_Info => Prj_Info));
+      end;
+   end Register_Main_To_Instrument;
 
    -----------------------
    -- Register_New_File --
    -----------------------
 
    function Register_New_File
-     (IC : in out Inst_Context; Name : String) return String
+     (Info : in out Project_Info; Name : String) return String
    is
       Base_Filename   : constant String :=
          Ada.Directories.Simple_Name (Name);
       Output_Filename : constant String :=
-         To_String (IC.Output_Dir) / Base_Filename;
+         To_String (Info.Output_Dir) / Base_Filename;
    begin
-      IC.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
+      Info.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
       return Output_Filename;
    end Register_New_File;
 
@@ -448,11 +538,11 @@ package body Instrument.Common is
    -----------------
 
    procedure Create_File
-     (IC   : in out Inst_Context;
+     (Info : in out Project_Info;
       File : in out Text_Files.File_Type;
       Name : String)
    is
-      Filename : constant String := Register_New_File (IC, Name);
+      Filename : constant String := Register_New_File (Info, Name);
    begin
       File.Create (Filename);
    end Create_File;
