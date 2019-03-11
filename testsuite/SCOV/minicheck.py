@@ -97,8 +97,14 @@ def check_xcov_reports(xcov_filename_pattern, expected_cov):
     # Avoid discrepancies between filenames on Windows and Unix. Although it is
     # not the canonical representation, Windows supports using slash as
     # separators, so use it.
-    xcov_files = {f.replace('\\', '/')
-                  for f in glob.glob(xcov_filename_pattern)}
+    def canonicalize_file(filename):
+        return filename.replace('\\', '/')
+
+    xcov_files = {canonicalize_file(filename)
+                  for filename in glob.glob(xcov_filename_pattern)}
+    expected_cov = {canonicalize_file(filename): cov_data
+                    for filename, cov_data in expected_cov.iteritems()}
+
     thistest.fail_if(
         xcov_files != set(expected_cov),
         'Unexpected XCOV files. Expected:\n'
