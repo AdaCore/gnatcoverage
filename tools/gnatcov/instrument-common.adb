@@ -439,9 +439,9 @@ package body Instrument.Common is
       --  callable more than once, like conventional deallocation procedures in
       --  Ada.
 
-      for Position in Context.Project_Info_Map.Iterate loop
+      for Cur in Context.Project_Info_Map.Iterate loop
          declare
-            PI : Project_Info_Access := Project_Info_Maps.Element (Position);
+            PI : Project_Info_Access := Project_Info_Maps.Element (Cur);
          begin
             Free (PI);
          end;

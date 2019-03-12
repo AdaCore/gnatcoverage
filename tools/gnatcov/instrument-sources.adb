@@ -2473,10 +2473,10 @@ package body Instrument.Sources is
       --  either get this service from GNATCOLL.Projects, either re-implement
       --  it on top of Libadalang.
 
-      for Position in IC.Instrumented_Units.Iterate loop
+      for Cur in IC.Instrumented_Units.Iterate loop
          declare
             Instr_Unit : constant Compilation_Unit_Name :=
-               Instrumented_Unit_Maps.Key (Position);
+               Instrumented_Unit_Maps.Key (Cur);
          begin
             Result.Append (Buffer_Unit (Instr_Unit));
          end;
@@ -2659,13 +2659,13 @@ package body Instrument.Sources is
          Call_Stmt : constant Node_Rewriting_Handle :=
             Create_Regular_Node (RH, Ada_Call_Stmt, (1 => Call_Expr));
       begin
-         for Position in Buffer_Units.Iterate loop
+         for Cur in Buffer_Units.Iterate loop
             declare
                Buffer_Name : constant Node_Rewriting_Handle :=
                   Create_Regular_Node
                     (RH, Ada_Dotted_Name,
-                     (1 => To_Nodes (RH, Element (Position)), --  F_Prefix
-                      2 => Clone (Buffer_Id)));               --  F_Suffix
+                     (1 => To_Nodes (RH, Element (Cur)), --  F_Prefix
+                      2 => Clone (Buffer_Id)));          --  F_Suffix
 
                Buffer_Access : constant Node_Rewriting_Handle :=
                   Create_Regular_Node
@@ -2677,7 +2677,7 @@ package body Instrument.Sources is
                Designator      : constant Node_Rewriting_Handle :=
                   Create_Node (RH, Ada_Alternatives_List);
                Designator_Text : constant Text_Type :=
-                  To_Text (Strings.Img (To_Index (Position)));
+                  To_Text (Strings.Img (To_Index (Cur)));
 
                Assoc : constant Node_Rewriting_Handle :=
                   Create_Regular_Node

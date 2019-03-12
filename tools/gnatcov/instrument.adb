@@ -74,10 +74,10 @@ package body Instrument is
    procedure Prepare_Output_Dirs (IC : Inst_Context) is
       use Project_Info_Maps;
    begin
-      for Position in IC.Project_Info_Map.Iterate loop
+      for Cur in IC.Project_Info_Map.Iterate loop
          declare
             Output_Dir : constant String :=
-               +(Element (Position).Output_Dir);
+               +(Element (Cur).Output_Dir);
          begin
             if not Ada.Directories.Exists (Output_Dir) then
                Ada.Directories.Create_Path (Output_Dir);
@@ -298,9 +298,9 @@ package body Instrument is
       use Project_Info_Maps;
 
    begin
-      for Position in IC.Project_Info_Map.Iterate loop
+      for Cur in IC.Project_Info_Map.Iterate loop
          declare
-            Prj_Info   : Project_Info renames Element (Position).all;
+            Prj_Info   : Project_Info renames Element (Cur).all;
             Output_Dir : constant String := To_String (Prj_Info.Output_Dir);
             To_Delete  : File_Sets.Set;
             Search     : Search_Type;
@@ -430,9 +430,9 @@ package body Instrument is
 
       --  Instrument all units of interest
 
-      for Position in IC.Instrumented_Units.Iterate loop
+      for Cur in IC.Instrumented_Units.Iterate loop
          IC.Instrumented_Units.Update_Element
-           (Position, Instrument_Unit'Access);
+           (Cur, Instrument_Unit'Access);
       end loop;
 
       Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
