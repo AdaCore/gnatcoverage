@@ -243,6 +243,16 @@ package body Instrument.Common is
       return Buffer_Symbol (Instrumented_Unit, "dc");
    end Decision_Buffer_Symbol;
 
+   ------------------------
+   -- MCDC_Buffer_Symbol --
+   ------------------------
+
+   function MCDC_Buffer_Symbol
+     (Instrumented_Unit : Compilation_Unit_Name) return String is
+   begin
+      return Buffer_Symbol (Instrumented_Unit, "mcdc");
+   end MCDC_Buffer_Symbol;
+
    -----------------
    -- Buffer_Unit --
    -----------------
@@ -577,5 +587,7 @@ begin
    Sys_Buffers_Lists.Append (To_Unbounded_String ("Lists"));
 
    Statement_Buffer_Name.Append (To_Unbounded_String ("Statement_Buffer"));
-   Decision_Buffer_Name.Append (To_Unbounded_String ("Decision_Buffer"));
+   Decision_Buffer_Name.Append  (To_Unbounded_String ("Decision_Buffer"));
+   MCDC_Buffer_Name.Append      (To_Unbounded_String ("MCDC_Buffer"));
+
 end Instrument.Common;

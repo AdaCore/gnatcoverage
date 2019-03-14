@@ -118,7 +118,9 @@ package body Instrument is
          Statement_Last_Bit : constant String := Img
            (UIC.Unit_Bits.Last_Statement_Bit);
          Decision_Last_Bit  : constant String := Img
-           (UIC.Unit_Bits.Last_Decision_Bit);
+           (UIC.Unit_Bits.Last_Outcome_Bit);
+         MCDC_Last_Bit      : constant String := Img
+           (UIC.Unit_Bits.Last_Path_Bit);
 
       begin
          File.Put_Line ("package " & Pkg_Name & " is");
@@ -134,6 +136,7 @@ package body Instrument is
                         & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
                         & """);");
          File.New_Line;
+
          File.Put_Line ("   Decision_Buffer : Coverage_Buffer_Type"
                         & " (0 .. " & Decision_Last_Bit & ") :="
                         & " (others => False);");
@@ -143,6 +146,17 @@ package body Instrument is
                         & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
                         & """);");
          File.New_Line;
+
+         File.Put_Line ("   MCDC_Buffer : Coverage_Buffer_Type"
+                        & " (0 .. " & MCDC_Last_Bit & ") :="
+                        & " (others => False);");
+         File.Put_Line ("   MCDC_Buffer_Address : constant System.Address"
+                        & " := MCDC_Buffer'Address;");
+         File.Put_Line ("   pragma Export (Ada, MCDC_Buffer_Address, """
+                        & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
+                        & """);");
+         File.New_Line;
+
          File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Unit_Name_Length => "
                         & Strings.Img (Unit_Name'Length) & ",");

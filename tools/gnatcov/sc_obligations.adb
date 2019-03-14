@@ -101,6 +101,10 @@ package body SC_Obligations is
                Dests : Destinations;
                --  Outgoing arcs depending on this condition
 
+               Path_Offset : Natural := 0;
+               --  Contribution to be added to the BDD path index if this
+               --  condition is True.
+
             when Jump =>
                Dest : BDD_Node_Id := No_BDD_Node_Id;
                --   Next BDD node
@@ -148,6 +152,9 @@ package body SC_Obligations is
          Reachable_Outcomes : Reachability := (others => False);
          --  Indicates whether each outcome is reachable (an outcome may be
          --  unreachable due to constant conditions).
+
+         Path_Count : Natural := 0;
+         --  Count of paths from root condition to any outcome
       end record;
 
       pragma Warnings (Off, "* is not referenced");
@@ -468,6 +475,10 @@ package body SC_Obligations is
                   Aspect_Name : Aspect_Id := No_Aspect;
                   --  For an aspect decision, name of the aspect
 
+                  Path_Count : Natural := 0;
+                  --  Count of distinct paths through the BDD from the root
+                  --  condition to any outcome.
+
                when Operator =>
                   Op_Kind : Operator_Kind;
 
@@ -589,11 +600,15 @@ package body SC_Obligations is
 
       Arcs_Stack : Arcs_Stacks.Vector;
 
-      procedure Check_Reachability (BDD : in out BDD_Type);
-      --  Look for diamonds in BDD (conditions that can be reached through more
-      --  than one path from the root condition). MC/DC coverage is equivalent
-      --  to object branch coverage if, and only if, there is no diamond.
-      --  Also determine whether each outcome is reachable.
+      procedure Enumerate_Paths (BDD : in out BDD_Type);
+      --  Enumerate all possible paths through BDD. For each BDD node,
+      --  Offset_For_True is assigned, so that the unique index of each path
+      --  is the sum of the offsets for each True condition. Also identify
+      --  conditions that can be reached through more than one path from the
+      --  root condition, and determine whether each outcome is reachable.
+      --  than one path from the root condition). Note that MC/DC is equivalent
+      --  to object branch coverage if, and only if, there is no multi-path
+      --  condition.
 
       procedure Set_Operand
         (Operator : SCO_Id;
@@ -640,6 +655,10 @@ package body SC_Obligations is
          BDD_Node_Id'Read  (S, V.Last_Node);
          BDD_Node_Id'Read  (S, V.Diamond_Base);
          Reachability'Read (S, V.Reachable_Outcomes);
+
+         if not Version_Less (S, Than => 2) then
+            Natural'Read (S, V.Path_Count);
+         end if;
       end Read;
 
       procedure Read
@@ -664,6 +683,12 @@ package body SC_Obligations is
                SCO_Id'Read       (S, V.C_SCO);
                Destinations'Read (S, V.Dests);
 
+               --  Checkpoint version 2 data (instrumentation support)
+
+               if not Version_Less (S, 2) then
+                  Natural'Read (S, V.Path_Offset);
+               end if;
+
             when Jump =>
                BDD_Node_Id'Read (S, V.Dest);
          end case;
@@ -684,6 +709,10 @@ package body SC_Obligations is
          BDD_Node_Id'Write  (S, V.Last_Node);
          BDD_Node_Id'Write  (S, V.Diamond_Base);
          Reachability'Write (S, V.Reachable_Outcomes);
+
+         if not Version_Less (S, Than => 2) then
+            Natural'Write (S, V.Path_Count);
+         end if;
       end Write;
 
       procedure Write
@@ -703,19 +732,30 @@ package body SC_Obligations is
                SCO_Id'Write       (S, V.C_SCO);
                Destinations'Write (S, V.Dests);
 
+               --  Checkpoint version 2 data (instrumentation support)
+
+               if not Version_Less (S, Than => 2) then
+                  Natural'Write (S, V.Path_Offset);
+               end if;
+
             when Jump =>
                BDD_Node_Id'Write (S, V.Dest);
          end case;
       end Write;
 
-      procedure Check_Reachability (BDD : in out BDD_Type) is
+      ---------------------
+      -- Enumerate_Paths --
+      ---------------------
+
+      procedure Enumerate_Paths (BDD : in out BDD_Type) is
          Visited : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
                      of Boolean := (others => False);
 
          procedure Visit
            (Node_Id      : BDD_Node_Id;
             Origin_Id    : BDD_Node_Id;
-            Origin_Value : Boolean);
+            Origin_Value : Boolean;
+            Path_Count   : out Natural);
          --  Visit one node. If it was already seen, note presence of a diamond
 
          -----------
@@ -725,7 +765,8 @@ package body SC_Obligations is
          procedure Visit
            (Node_Id      : BDD_Node_Id;
             Origin_Id    : BDD_Node_Id;
-            Origin_Value : Boolean)
+            Origin_Value : Boolean;
+            Path_Count   : out Natural)
          is
             Parent_Id : BDD_Node_Id := Origin_Id;
             C_Value   : Tristate;
@@ -739,64 +780,67 @@ package body SC_Obligations is
             ---------------
 
             procedure Visit_One (Node : in out BDD_Node) is
+               Edge_Count : array (Boolean) of Natural := (others => 0);
+               --  Count of paths through each successor to any outcome
+
             begin
                case Node.Kind is
                   when Condition =>
+
+                     --  Record first condition that is reachable through
+                     --  multiple paths ("diamond base").
+
+                     if  Visited (Node_Id) then
+                        if BDD.Diamond_Base = No_BDD_Node_Id then
+                           BDD.Diamond_Base := Node_Id;
+                           Parent_Id := No_BDD_Node_Id;
+                        end if;
+
+                        return;
+                     end if;
+                     Visited (Node_Id) := True;
+
                      C_Value           := Value (Node.C_SCO);
                      Node.Parent       := Parent_Id;
                      Node.Parent_Value := Origin_Value;
 
+                     for J in Boolean'Range loop
+                        --  Visit destination J if C_Value is Unknown or J
+
+                        if C_Value /= To_Tristate (not J) then
+                           Visit
+                             (Node.Dests (J),
+                              Origin_Id    => Node_Id,
+                              Origin_Value => J,
+                              Path_Count   => Edge_Count (J));
+
+                        end if;
+                     end loop;
+
+                     --  Compute path index contribution:
+                     --  * an outcome counts as one path
+                     --  * a successor condition counts as N paths
+                     --  * total paths for this node is sum of True and
+                     --    False edge paths
+                     --  * offset contribution when True is path count
+                     --    for False edge
+
+                     Node.Path_Offset := Edge_Count (False);
+                     Path_Count := Edge_Count (False) + Edge_Count (True);
+
                   when Outcome =>
                      BDD.Reachable_Outcomes (Node.Decision_Outcome) := True;
+                     Path_Count := 1;
 
                   when others =>
                      raise Program_Error;
                end case;
             end Visit_One;
 
-            Node : BDD_Node renames BDD_Vector.Element (Node_Id);
-
          --  Start of processing for Visit
 
          begin
-            --  Nothing to do if a diamond has already been identified and
-            --  both outcomes have been found to be reachable
-
-            if BDD.Diamond_Base /= No_BDD_Node_Id
-                 and then
-               BDD.Reachable_Outcomes = (True, True)
-            then
-               return;
-            end if;
-
-            --  Record first condition that is reachable through multiple paths
-            --  ("diamond base").
-
-            if Node.Kind = Condition
-                 and then
-               Visited (Node_Id)
-                 and then
-               BDD.Diamond_Base = No_BDD_Node_Id
-            then
-               BDD.Diamond_Base := Node_Id;
-               Parent_Id := No_BDD_Node_Id;
-            end if;
-
-            Visited (Node_Id) := True;
             BDD_Vector.Update_Element (Node_Id, Visit_One'Access);
-
-            if Node.Kind = Condition then
-               for J in Boolean'Range loop
-                  --  Visit destination J if C_Value is Unknown or J
-
-                  if C_Value /= To_Tristate (not J) then
-                     Visit
-                       (Node.Dests (J),
-                        Origin_Id    => Node_Id,
-                        Origin_Value => J);
-                  end if;
-               end loop;
-            end if;
          end Visit;
 
       --  Start of processing for Check_Reachability
@@ -805,8 +849,9 @@ package body SC_Obligations is
          Visit
            (BDD.Root_Condition,
             Origin_Id    => No_BDD_Node_Id,
-            Origin_Value => False);
-      end Check_Reachability;
+            Origin_Value => False,
+            Path_Count   => BDD.Path_Count);
+      end Enumerate_Paths;
 
       ---------------
       -- Completed --
@@ -878,7 +923,7 @@ package body SC_Obligations is
 
          --  Look for diamonds in BDD
 
-         Check_Reachability (BDD);
+         Enumerate_Paths (BDD);
 
          if Verbose then
             Dump_BDD (BDD);
@@ -1155,8 +1200,7 @@ package body SC_Obligations is
            (BDD, (Kind         => Condition,
                   C_SCO        => Condition_Id,
                   Dests        => A.Dests,
-                  Parent       => No_BDD_Node_Id,
-                  Parent_Value => False), N);
+                  others       => <>), N);
 
          if A.Origin /= No_BDD_Node_Id then
             BDD_Vector.Update_Element (A.Origin, Set_Dest'Access);
@@ -1608,6 +1652,10 @@ package body SC_Obligations is
          for D_Outcome of CP_CU.Bit_Maps.Decision_Bits.all loop
             Remap_SCO_Id (D_Outcome.D_SCO);
          end loop;
+
+         for D_Path of CP_CU.Bit_Maps.MCDC_Bits.all loop
+            Remap_SCO_Id (D_Path.D_SCO);
+         end loop;
       end if;
 
       --  Preallocate line table entries for last file
@@ -1759,6 +1807,8 @@ package body SC_Obligations is
                  new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
                V.Bit_Maps.Decision_Bits :=
                  new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
+               V.Bit_Maps.MCDC_Bits :=
+                 new MCDC_Bit_Map'(MCDC_Bit_Map'Input (S));
          end case;
       end if;
    end Read;
@@ -1801,6 +1851,8 @@ package body SC_Obligations is
                  (S, V.Bit_Maps.Statement_Bits.all);
                Decision_Bit_Map'Output
                  (S, V.Bit_Maps.Decision_Bits.all);
+               MCDC_Bit_Map'Output
+                 (S, V.Bit_Maps.MCDC_Bits.all);
          end case;
       end if;
    end Write;
@@ -2869,7 +2921,7 @@ package body SC_Obligations is
      (CU_Index     : CU_Id;
       Main_Source  : Source_File_Index;
       Deps         : SFI_Vector := SFI_Vectors.Empty_Vector;
-      LL_Unit_Bits : LL_Unit_Bit_Maps := No_LL_Unit_Bit_Maps)
+      SCO_Map      : access LL_HL_SCO_Map := null)
    is
       use SCOs;
 
@@ -2905,9 +2957,6 @@ package body SC_Obligations is
       Current_BDD : BDD.BDD_Type;
       --  BDD of current decision
 
-      Statement_Bits : Statement_Bit_Map_Access;
-      Decision_Bits  : Decision_Bit_Map_Access;
-
       procedure Fixup_CU (CUI : in out CU_Info);
       --  Update CU entry with information gathered from the tables
 
@@ -2926,21 +2975,10 @@ package body SC_Obligations is
          CUI.First_Instance := Last_Instance_Upon_Entry + 1;
          CUI.Last_Instance  := Inst_Vector.Last_Index;
 
-         case CUI.Provider is
-            when Compiler =>
-               null;
-
-            when Instrumenter =>
-               CUI.Bit_Maps := (Statement_Bits, Decision_Bits);
-
-         end case;
-
          CUI.Fingerprint    := SCO_Tables_Fingerprint;
       end Fixup_CU;
 
       Deps_Present : constant Boolean := not Deps.Is_Empty;
-      Provider     : constant SCO_Provider :=
-                       CU_Vector.Element (CU_Index).Provider;
 
    --  Start of processing for Process_Low_Level_SCOs
 
@@ -2949,18 +2987,6 @@ package body SC_Obligations is
       --  SCOs are present, as it is used for checkpoint consolidation.
 
       CU_Map.Insert (Main_Source, CU_Index);
-
-      --  Allocate bitmaps if necessary
-
-      if Provider = Instrumenter then
-         Statement_Bits :=
-           new Statement_Bit_Map'
-             (Bit_Id'First .. LL_Unit_Bits.Last_Statement_Bit => No_SCO_Id);
-         Decision_Bits  :=
-           new Decision_Bit_Map'
-             (Bit_Id'First .. LL_Unit_Bits.Last_Decision_Bit =>
-                (No_SCO_Id, False));
-      end if;
 
       --  Walk low-level SCO table for this unit and populate high-level tables
 
@@ -3051,6 +3077,24 @@ package body SC_Obligations is
             --  Build a Slocs.Source_Location record from the low-level
             --  SCO Sloc info.
 
+            function Add_SCO (SCOD : SCO_Descriptor) return SCO_Id;
+            --  Add a high level SCO descriptor for this low level SCO
+
+            -------------
+            -- Add_SCO --
+            -------------
+
+            function Add_SCO (SCOD : SCO_Descriptor) return SCO_Id is
+               New_SCO : SCO_Id;
+            begin
+               SCO_Vector.Append (SCOD);
+               New_SCO := SCO_Vector.Last_Index;
+               if SCO_Map /= null then
+                  SCO_Map (Cur_SCO_Entry) := New_SCO;
+               end if;
+               return New_SCO;
+            end Add_SCO;
+
             ---------------
             -- Make_Sloc --
             ---------------
@@ -3099,14 +3143,11 @@ package body SC_Obligations is
             function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id is
             begin
                pragma Assert (Current_Decision /= No_SCO_Id);
-               SCO_Vector.Append
-                 (SCO_Descriptor'(Kind       => Operator,
-                                  Origin     => CU_Index,
-                                  Sloc_Range => SCO_Range,
-                                  Op_Kind    => Kind,
-                                  others     => <>));
-
-               return SCO_Vector.Last_Index;
+               return Add_SCO ((Kind       => Operator,
+                                Origin     => CU_Index,
+                                Sloc_Range => SCO_Range,
+                                Op_Kind    => Kind,
+                                others     => <>));
             end New_Operator_SCO;
 
             -------------------------
@@ -3139,6 +3180,8 @@ package body SC_Obligations is
                   SCOD.Sloc_Range.L.Last_Sloc := To_Sloc;
                end if;
             end Update_Decision_Sloc;
+
+            New_SCO : SCO_Id;
 
          --  Start of processing for Process_Entry
 
@@ -3182,7 +3225,7 @@ package body SC_Obligations is
                when 'S' | 's' =>
                   pragma Assert (Current_Decision = No_SCO_Id);
 
-                  SCO_Vector.Append
+                  New_SCO := Add_SCO
                     (SCO_Descriptor'
                        (Kind           => Statement,
                         Origin         => CU_Index,
@@ -3196,10 +3239,6 @@ package body SC_Obligations is
                         Pragma_Name    => Case_Insensitive_Get_Pragma_Id
                           (SCOE.Pragma_Aspect_Name),
                         others         => <>));
-                  if Statement_Bits /= null then
-                     Statement_Bits (LL_Unit_Bits.Statement_Bits.Element
-                                     (Cur_SCO_Entry)) := SCO_Vector.Last_Index;
-                  end if;
 
                   Current_Handler_Range := No_Range;
                   Dom_Val  := Unknown;
@@ -3214,7 +3253,7 @@ package body SC_Obligations is
                   --  Decision
 
                   pragma Assert (Current_Decision = No_SCO_Id);
-                  SCO_Vector.Append
+                  Current_Decision := Add_SCO
                     (SCO_Descriptor'
                        (Kind                => Decision,
                         Origin              => CU_Index,
@@ -3227,27 +3266,10 @@ package body SC_Obligations is
                         Aspect_Name         =>
                            Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
                         others              => <>));
-                  Current_BDD := BDD.Create (SCO_Vector.Last_Index);
-
                   pragma Assert (not SCOE.Last);
 
-                  Current_Decision        := SCO_Vector.Last_Index;
+                  Current_BDD := BDD.Create (Current_Decision);
                   Current_Condition_Index := No_Condition_Index;
-
-                  --  Record the SCO/outcome association of both bits
-                  --  associated to this decision obligation.
-
-                  if Enabled (Decision) and then Decision_Bits /= null then
-                     declare
-                        This_Decision_Bits : constant Outcome_Bit_Ids :=
-                          LL_Unit_Bits.Decision_Bits.Element (Cur_SCO_Entry);
-                     begin
-                        for Outcome in Boolean loop
-                           Decision_Bits (This_Decision_Bits (Outcome)) :=
-                             (Current_Decision, Outcome);
-                        end loop;
-                     end;
-                  end if;
 
                when ' ' =>
                   --  Condition
@@ -3260,14 +3282,14 @@ package body SC_Obligations is
 
                   Current_Condition_Index := Current_Condition_Index + 1;
 
-                  SCO_Vector.Append
+                  New_SCO := Add_SCO
                     (SCO_Descriptor'(Kind       => Condition,
                                      Origin     => CU_Index,
                                      Sloc_Range => SCO_Range,
                                      Value      => Make_Condition_Value,
                                      Index      => Current_Condition_Index,
                                      others     => <>));
-                  BDD.Process_Condition (Current_BDD, SCO_Vector.Last_Index);
+                  BDD.Process_Condition (Current_BDD, New_SCO);
 
                   if SCOE.Last then
                      BDD.Completed (Current_BDD);
@@ -3637,6 +3659,48 @@ package body SC_Obligations is
       end if;
    end Next_Condition;
 
+   ---------------------
+   -- Offset_For_True --
+   ---------------------
+
+   function Offset_For_True (SCO : SCO_Id) return Natural is
+      use BDD;
+
+      Result : Natural;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result to the requested next BDD node id
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+         procedure QB (BDDN : BDD_Node);
+         --  Set Result to the requested next BDD node id
+
+         --------
+         -- QB --
+         --------
+
+         procedure QB (BDDN : BDD_Node) is
+         begin
+            Result := BDDN.Path_Offset;
+         end QB;
+
+      --  Start of processing for Q
+
+      begin
+         BDD_Vector.Query_Element (SCOD.BDD_Node, QB'Access);
+      end Q;
+
+   --  Start of processing for Next_BDD_Node
+
+   begin
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
+   end Offset_For_True;
+
    -------------
    -- Op_Kind --
    -------------
@@ -3764,6 +3828,32 @@ package body SC_Obligations is
       SCO_Vector.Query_Element (SCO, Q'Access);
       return Result;
    end Parent;
+
+   ----------------
+   -- Path_Count --
+   ----------------
+
+   function Path_Count (SCO : SCO_Id) return Natural is
+      Result : Natural;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result to SCOD.Operand (Position)
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Result := SCOD.Decision_BDD.Path_Count;
+      end Q;
+
+   --  Start of processing for Path_Count
+
+   begin
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
+   end Path_Count;
 
    --------------------
    -- Prealloc_Lines --
@@ -3972,6 +4062,25 @@ package body SC_Obligations is
    begin
       SCO_Vector.Update_Element (SCO, Set_SCOD_Degraded_Origins'Access);
    end Set_Degraded_Origins;
+
+   ------------------
+   -- Set_Bit_Maps --
+   ------------------
+
+   procedure Set_Bit_Maps (CU : CU_Id; Bit_Maps : CU_Bit_Maps) is
+      procedure Set_CUI_Bit_Maps (CUI : in out CU_Info);
+      --  Set CUI.Bit_Maps to Bit_Maps
+
+      procedure Set_CUI_Bit_Maps (CUI : in out CU_Info) is
+      begin
+         CUI.Bit_Maps := Bit_Maps;
+      end Set_CUI_Bit_Maps;
+
+   --  Start of processing for Set_Bit_Maps
+
+   begin
+      CU_Vector.Update_Element (CU, Set_CUI_Bit_Maps'Access);
+   end Set_Bit_Maps;
 
    -----------------------
    -- Set_Unit_Has_Code --

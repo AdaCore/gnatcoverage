@@ -17,8 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Conversions; use Ada.Characters.Conversions;
-with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects;       use GNATCOLL.Projects;
 with GNATCOLL.VFS;
@@ -35,8 +33,10 @@ with Snames; use Snames;
 with Table;
 
 with ALI_Files;
-with Coverage;
+with Coverage; use Coverage;
+with Diagnostics; use Diagnostics;
 with Files_Table; use Files_Table;
+with Strings; use Strings;
 with Text_Files;
 
 package body Instrument.Sources is
@@ -106,6 +106,9 @@ package body Instrument.Sources is
       Element_Type => Ada_Qualified_Name,
       "="          => Ada_Identifier_Vectors."=");
 
+   function Sloc (N : Ada_Node'Class) return Source_Location is
+     (Start_Sloc (N.Sloc_Range));
+
    function Buffer_Units_For_Closure
      (IC   : Inst_Context;
       Main : Ada_Qualified_Name)
@@ -115,7 +118,17 @@ package body Instrument.Sources is
    --  an empty one.
 
    function Unwrap (N : Expr) return Expr;
-   --  Strip Paren_Expr from N. If N is null, return it unchanged
+   --  Strip Paren_Expr from N
+
+   -----------------
+   -- Diagnostics --
+   -----------------
+
+   procedure Report
+     (IC   : Unit_Inst_Context;
+      Node : Ada_Node'Class;
+      Msg  : String;
+      Kind : Report_Kind := Diagnostics.Error);
 
    -------------------------------------
    -- Generation of witness fragments --
@@ -129,11 +142,65 @@ package body Instrument.Sources is
    --  execution of the low level SCO with the given bit id.
 
    function Make_Decision_Witness
-     (IC        : Unit_Inst_Context;
-      Bits      : Outcome_Bit_Ids;
-      Decision  : Node_Rewriting_Handle) return Node_Rewriting_Handle;
+     (IC         : Unit_Inst_Context;
+      Bits       : Decision_Bit_Ids;
+      MCDC_State : Unbounded_String;
+      Decision   : Node_Rewriting_Handle) return Node_Rewriting_Handle;
    --  Create a function call to witness the outcome of the given decision,
-   --  to be recorded using the given bit ids.
+   --  to be recorded using the given bit ids. If MC/DC is requested,
+   --  MCDC_State is the name of the MC/DC state local variable, else it
+   --  is the empty string.
+
+   function Make_Condition_Witness
+     (IC         : Unit_Inst_Context;
+      MCDC_State : Unbounded_String;
+      Condition  : Node_Rewriting_Handle;
+      Offset     : Natural) return Node_Rewriting_Handle;
+   --  Create a function call to witness the value of the given condition,
+   --  to be recorded in the given MC/DC state local variable.
+
+   function Make_MCDC_State_Name (LL_SCO_Id : Nat) return String is
+      ("MCDC_State_" & Img (Integer (LL_SCO_Id)));
+   --  Return the name of the MC/DC state local variable for the given
+   --  decision SCO.
+
+   function Make_MCDC_State
+     (IC   : Unit_Inst_Context;
+      Name : String) return Node_Rewriting_Handle;
+   --  Create the declaration of the MC/DC state local variable
+
+   procedure Insert_Condition_Witness
+     (IC     : in out Unit_Inst_Context;
+      SC     : Source_Condition;
+      Offset : Natural);
+   --  For use when MC/DC is requested. Insert witness function call for the
+   --  identified condition.
+
+   procedure Insert_Decision_Witness
+     (IC         : in out Unit_Inst_Context;
+      SD         : Source_Decision;
+      Path_Count : Positive);
+   --  For use when decision coverage or MC/DC is requested. Insert witness
+   --  function call for the identified condition.
+
+   ------------
+   -- Report --
+   ------------
+
+   procedure Report
+     (IC   : Unit_Inst_Context;
+      Node : Ada_Node'Class;
+      Msg  : String;
+      Kind : Report_Kind := Diagnostics.Error)
+   is
+      LAL_Loc : constant Source_Location := Sloc (Node);
+   begin
+      Report ((Source_File => IC.SFI,
+               L           => (Line   => Integer (LAL_Loc.Line),
+                               Column => Integer (LAL_Loc.Column))),
+              Msg,
+              Kind);
+   end Report;
 
    ----------------------------
    -- Make_Statement_Witness --
@@ -178,25 +245,96 @@ package body Instrument.Sources is
    ---------------------------
 
    function Make_Decision_Witness
-     (IC        : Unit_Inst_Context;
-      Bits     : Outcome_Bit_Ids;
-      Decision : Node_Rewriting_Handle) return Node_Rewriting_Handle
+     (IC         : Unit_Inst_Context;
+      Bits       : Decision_Bit_Ids;
+      MCDC_State : Unbounded_String;
+      Decision   : Node_Rewriting_Handle) return Node_Rewriting_Handle
+   is
+      E        : Instrumentation_Entities renames IC.Entities;
+
+      Is_MCDC : constant Boolean := Bits.Path_Bits_Base /= No_Bit_Id;
+
+      --  Note: we can't pass Decision directly as a subsitution to
+      --  Create_From_Template, as this would unparse it and create a
+      --  complete new tree, whereas we want to preserve the original
+      --  tree so that we can instrument individual conditions for MC/DC.
+
+      Call_Img : constant String :=
+        "{}.Witness ({}"
+        & "," & Img (Bits.Outcome_Bits (False))
+        & "," & Img (Bits.Outcome_Bits (True))
+        & (if Is_MCDC
+           then ", {}"
+                & ", " & Img (Bits.Path_Bits_Base)
+                & ", " & To_String (MCDC_State)
+           else "")
+        & ")";
+
+      RH_Call : constant Node_Rewriting_Handle :=
+        Create_From_Template
+          (IC.Rewriting_Context,
+           Template  => To_Wide_Wide_String (Call_Img),
+           Arguments => (1 => E.Common_Buffers,
+                         2 => E.Decision_Buffer)
+                        & (if Is_MCDC
+                           then (1 => E.MCDC_Buffer)
+                           else (1 .. 0 => No_Node_Rewriting_Handle)),
+           Rule      => Expr_Rule);
+
+   begin
+      --  The second child of RH_Call is its list of actual parameters
+
+      Append_Child (Child (RH_Call, 2), Decision);
+      return RH_Call;
+   end Make_Decision_Witness;
+
+   ----------------------------
+   -- Make_Condition_Witness --
+   ----------------------------
+
+   function Make_Condition_Witness
+     (IC         : Unit_Inst_Context;
+      MCDC_State : Unbounded_String;
+      Condition  : Node_Rewriting_Handle;
+      Offset     : Natural) return Node_Rewriting_Handle
    is
       E        : Instrumentation_Entities renames IC.Entities;
       Call_Img : constant String :=
-        "{}.Witness ({}, "
-        & Img (Bits (False)) & ","
-        & Img (Bits (True)) & ","
-        & "{})";
+        "{}.Witness (" & To_String (MCDC_State) & "'Address,"
+        & Img (Offset) & ")";
+
+      RH_Call : constant Node_Rewriting_Handle :=
+        Create_From_Template
+          (IC.Rewriting_Context,
+           Template  => To_Wide_Wide_String (Call_Img),
+           Arguments => (1 => E.Common_Buffers),
+           Rule      => Expr_Rule);
+
+   begin
+      --  The second child of RH_Call is its list of actual parameters
+
+      Append_Child (Child (RH_Call, 2), Condition);
+      return RH_Call;
+   end Make_Condition_Witness;
+
+   ---------------------
+   -- Make_MCDC_State --
+   ---------------------
+
+   function Make_MCDC_State
+     (IC   : Unit_Inst_Context;
+      Name : String) return Node_Rewriting_Handle
+   is
+      E        : Instrumentation_Entities renames IC.Entities;
+      Decl_Img : constant String :=
+        Name & " : aliased {}.MCDC_State_Type;";
    begin
       return Create_From_Template
         (IC.Rewriting_Context,
-         Template  => To_Wide_Wide_String (Call_Img),
-         Arguments => (1 => E.Common_Buffers,
-                       2 => E.Decision_Buffer,
-                       3 => Decision),
-         Rule      => Expr_Rule);
-   end Make_Decision_Witness;
+         Template  => To_Wide_Wide_String (Decl_Img),
+         Arguments => (1 => E.Common_Buffers),
+         Rule      => Object_Decl_Rule);
+   end Make_MCDC_State;
 
    ----------------
    -- Append_SCO --
@@ -230,9 +368,6 @@ package body Instrument.Sources is
       --  Node providing the Sloc(s) for the dominance marker
    end record;
    No_Dominant : constant Dominant_Info := (' ', No_Ada_Node);
-
-   function Sloc (N : Ada_Node'Class) return Source_Location is
-     (Start_Sloc (N.Sloc_Range));
 
    procedure Traverse_Declarations_Or_Statements
      (IC      : in out Unit_Inst_Context;
@@ -603,8 +738,8 @@ package body Instrument.Sources is
 
             IC.Unit_Bits.Last_Statement_Bit :=
               IC.Unit_Bits.Last_Statement_Bit + 1;
-            IC.Unit_Bits.Statement_Bits.Include
-              (LL_SCO_Id, IC.Unit_Bits.Last_Statement_Bit);
+            IC.Unit_Bits.Statement_Bits.Append
+              ((LL_SCO_Id, Executed => IC.Unit_Bits.Last_Statement_Bit));
 
             --  Insert witness statement or declaration
 
@@ -1803,6 +1938,8 @@ package body Instrument.Sources is
       HSS      : Handled_Stmts;
       Dom_Info : Dominant_Info    := D;
 
+      Saved_Local_Decls : constant Node_Rewriting_Handle := IC.Local_Decls;
+
    begin
       case Kind (N) is
          when Ada_Subp_Body =>
@@ -1825,14 +1962,17 @@ package body Instrument.Sources is
             raise Program_Error;
       end case;
 
+      IC.Local_Decls := Handle (Decls.F_Decls);
+
       --  If declarations are present, the first statement is dominated by the
       --  last declaration.
 
       Dom_Info := Traverse_Declarations_Or_Statements
-                    (IC, L => Decls.F_Decls, D => Dom_Info);
+        (IC, L => Decls.F_Decls, D => Dom_Info);
 
-      Traverse_Handled_Statement_Sequence
-        (IC, N => HSS, D => Dom_Info);
+      Traverse_Handled_Statement_Sequence (IC, N => HSS, D => Dom_Info);
+
+      IC.Local_Decls := Saved_Local_Decls;
    end Traverse_Subprogram_Or_Task_Body;
 
    -----------------------
@@ -1875,20 +2015,39 @@ package body Instrument.Sources is
       --  Hold temporarily (i.e. free'd before returning) the Hash_Entry before
       --  they are registered in SCO_Raw_Hash_Table.
 
+      ---------------------------------
+      -- Decision-specific variables --
+      ---------------------------------
+
+      --  The following variables are related to the current decision being
+      --  processed by this call to Process_Decisions. Note that in the case
+      --  of nested decisions, this subprogram recurses, so we do not have to
+      --  worry about overwriting them.
+
+      Current_Decision : Nat;
+      --  Low level SCO id of current decision
+
       X_Not_Decision : Boolean;
       --  This flag keeps track of whether a decision sequence in the SCO table
       --  contains only NOT operators, and is for an expression context (T=X).
       --  The flag will be set False if T is other than X, or if an operator
       --  other than NOT is in the sequence.
 
+      Condition_Count : Natural := 0;
+      --  Count of conditions for current decision (MC/DC only)
+
+      MCDC_State : Unbounded_String;
+      --  Name of MC/DC state local variable for current decision (MC/DC only)
+
       procedure Output_Decision_Operand (Operand : Expr);
-      --  The node N is the top level logical operator of a decision, or it is
-      --  one of the operands of a logical operator belonging to a single
-      --  complex decision. This routine outputs the sequence of table entries
-      --  corresponding to the node. Note that we do not process the sub-
-      --  operands to look for further decisions, that processing is done in
-      --  Process_Decision_Operand, because we can't get decisions mixed up in
-      --  the global table. Call has no effect if N is Empty.
+      --  The node Operand is the top level logical operator of a decision, or
+      --  it is one of the operands of a logical operator belonging to a single
+      --  complex decision. This (recursive) routine outputs the sequence of
+      --  table entries corresponding to the node. Note that we do not process
+      --  the sub- operands to look for further decisions, that processing is
+      --  done in Find_Nested_Decisions, because we can't get decisions mixed
+      --  up in the global table. Call has no effect if Operand is Empty.
+      --  Increments Condition_Count (recursively) for each condition.
 
       procedure Output_Element (N : Ada_Node);
       --  Node N is an operand of a logical operator that is not itself a
@@ -1898,9 +2057,10 @@ package body Instrument.Sources is
 
       procedure Output_Header (T : Character; N : Ada_Node'Class);
       --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT WHEN/
-      --  PRAGMA, and 'X' for the expression case.
+      --  PRAGMA, and 'X' for the expression case. Resets Condition_Count to 0,
+      --  and initializes MCDC_State.
 
-      procedure Process_Decision_Operand (Operand : Expr);
+      procedure Find_Nested_Decisions (Operand : Expr);
       --  This is called on node Operand, the top level node of a decision,
       --  or on one of its operands or suboperands after generating the full
       --  output for the complex decision. It process the suboperands of the
@@ -1909,44 +2069,6 @@ package body Instrument.Sources is
       function Process_Node (N : Ada_Node'Class) return Visit_Status;
       --  Processes one node in the traversal, looking for logical operators,
       --  and if one is found, outputs the appropriate table entries.
-
-      procedure Insert_Decision_Witness (LL_SCO_Id : Nat; N : Ada_Node'Class);
-      --  If decision coverage is requested, insert witness function call for
-      --  decision SCO with the given low level SCO id.
-
-      -----------------------------
-      -- Insert_Decision_Witness --
-      -----------------------------
-
-      procedure Insert_Decision_Witness
-        (LL_SCO_Id : Nat;
-         N         : Ada_Node'Class) is
-      begin
-         if not Coverage.Enabled (Coverage.Decision) then
-            return;
-         end if;
-
-         --  Allocate 2 bits in the decision coverage buffer, and record
-         --  their ids in the bitmap.
-
-         IC.Unit_Bits.Last_Decision_Bit :=
-           IC.Unit_Bits.Last_Decision_Bit + 2;
-
-         declare
-            Bits : constant Outcome_Bit_Ids :=
-              (False => IC.Unit_Bits.Last_Decision_Bit - 1,
-               True  => IC.Unit_Bits.Last_Decision_Bit);
-
-            RH_N : constant Node_Rewriting_Handle := Handle (N);
-
-         begin
-            IC.Unit_Bits.Decision_Bits.Include (LL_SCO_Id, Bits);
-
-            --  Insert witness CALL
-
-            Replace (RH_N, Make_Decision_Witness (IC, Bits, RH_N));
-         end;
-      end Insert_Decision_Witness;
 
       -----------------------------
       -- Output_Decision_Operand --
@@ -1969,10 +2091,6 @@ package body Instrument.Sources is
          Op_NK : Ada_Node_Kind_Type;
 
       begin
-         if N.Is_Null then
-            return;
-         end if;
-
          T := Is_Logical_Operator (N);
 
          --  Logical operator
@@ -2015,13 +2133,25 @@ package body Instrument.Sources is
 
             Hash_Entries.Append ((Sloc (N), SCOs.SCO_Table.Last));
 
-            Output_Decision_Operand (L);
+            if not L.Is_Null then
+               Output_Decision_Operand (L);
+            end if;
             Output_Decision_Operand (R);
 
-         --  Not a logical operator
+         --  Not a logical operator -> condition
 
          else
             Output_Element (N.As_Ada_Node);
+
+            if MCDC_Coverage_Enabled then
+               IC.Source_Conditions.Append
+                 ((LL_SCO    => SCOs.SCO_Table.Last,
+                   Condition => N.As_Expr,
+                   State     => MCDC_State,
+                   First     => Condition_Count = 0));
+
+               Condition_Count := Condition_Count + 1;
+            end if;
          end if;
       end Output_Decision_Operand;
 
@@ -2111,37 +2241,54 @@ package body Instrument.Sources is
             Last               => False,
             Pragma_Aspect_Name => Nam);
 
-         Insert_Decision_Witness (SCOs.SCO_Table.Last, N);
+         Current_Decision := SCOs.SCO_Table.Last;
+
+         if Coverage.Enabled (Coverage.Decision)
+           or else MCDC_Coverage_Enabled
+         then
+            if MCDC_Coverage_Enabled then
+               Condition_Count := 0;
+               MCDC_State :=
+                 To_Unbounded_String
+                   (Make_MCDC_State_Name (SCOs.SCO_Table.Last));
+            end if;
+
+            IC.Source_Decisions.Append
+              ((LL_SCO   => Current_Decision,
+                Decision => N.As_Expr,
+                State    => MCDC_State));
+         end if;
 
          --  For an aspect specification, which will be rewritten into a
          --  pragma, enter a hash table entry now.
 
          if T = 'a' then
-            Hash_Entries.Append ((Loc, SCOs.SCO_Table.Last));
+            Hash_Entries.Append ((Loc, Current_Decision));
          end if;
+
       end Output_Header;
 
-      ------------------------------
-      -- Process_Decision_Operand --
-      ------------------------------
+      ---------------------------
+      -- Find_Nested_Decisions --
+      ---------------------------
 
-      procedure Process_Decision_Operand (Operand : Expr) is
+      procedure Find_Nested_Decisions (Operand : Expr) is
          N : constant Expr := Unwrap (Operand);
       begin
          if Is_Logical_Operator (N) /= False then
             if N.Kind = Ada_Un_Op then
-               Process_Decision_Operand (N.As_Un_Op.F_Expr);
+               Find_Nested_Decisions (N.As_Un_Op.F_Expr);
 
             else
-               Process_Decision_Operand (N.As_Bin_Op.F_Left);
-               Process_Decision_Operand (N.As_Bin_Op.F_Right);
+               Find_Nested_Decisions (N.As_Bin_Op.F_Left);
+               Find_Nested_Decisions (N.As_Bin_Op.F_Right);
                X_Not_Decision := False;
             end if;
 
          else
             Process_Decisions (IC, N, 'X');
          end if;
-      end Process_Decision_Operand;
+      end Find_Nested_Decisions;
 
       ------------------
       -- Process_Node --
@@ -2182,7 +2329,8 @@ package body Instrument.Sources is
 
                --  If the decision was in an expression context (T = 'X')
                --  and contained only NOT operators, then we don't output
-               --  it, so delete it.
+               --  it, so delete the associated SCO entries. As a consequence,
+               --  no instrumentation will be emitted.
 
                if X_Not_Decision then
                   SCOs.SCO_Table.Set_Last (Mark);
@@ -2194,9 +2342,24 @@ package body Instrument.Sources is
                   SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
                end if;
 
+               --  Insert MC/DC scaffolding
+
+               if MCDC_Coverage_Enabled then
+                  if IC.Local_Decls = No_Node_Rewriting_Handle then
+                     Report (IC, EN,
+                             "gnatcov limitation: "
+                             & "cannot find local declarative part for MC/DC",
+                             Kind => Diagnostics.Error);
+                  else
+                     Insert_Child
+                       (IC.Local_Decls, 1,
+                        Make_MCDC_State (IC, To_String (MCDC_State)));
+                  end if;
+               end if;
+
                --  Process any embedded decisions
 
-               Process_Decision_Operand (EN);
+               Find_Nested_Decisions (EN);
                return Over;
             end;
          end if;
@@ -2454,8 +2617,16 @@ package body Instrument.Sources is
          E.Unit_Buffers := To_Nodes (RH, IC.Pure_Buffer_Unit.Unit);
          E.Statement_Buffer :=
             To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & Statement_Buffer_Name);
-         E.Decision_Buffer :=
-            To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & Decision_Buffer_Name);
+
+         if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
+            E.Decision_Buffer :=
+              To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & Decision_Buffer_Name);
+
+            if MCDC_Coverage_Enabled then
+               E.MCDC_Buffer :=
+                 To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & MCDC_Buffer_Name);
+            end if;
+         end if;
       end;
    end Initialize_Rewriting;
 
@@ -2702,6 +2873,87 @@ package body Instrument.Sources is
       end;
    end Add_Auto_Dump_Buffers;
 
+   ------------------------------
+   -- Insert_Condition_Witness --
+   ------------------------------
+
+   procedure Insert_Condition_Witness
+     (IC     : in out Unit_Inst_Context;
+      SC     : Source_Condition;
+      Offset : Natural)
+   is
+      N : Expr renames SC.Condition;
+
+      RH_P : constant Node_Rewriting_Handle :=
+        Create_Node
+          (IC.Rewriting_Context, Libadalang.Common.Ada_Identifier);
+      RH_N : constant Node_Rewriting_Handle := Handle (N);
+
+   begin
+      --  Detach original condition from tree so that it can be reattached
+      --  inside the witness call.
+
+      Replace (RH_N, RH_P);
+
+      --  Now attach witness call at the place of the original condition
+
+      Replace
+        (RH_P,
+         Make_Condition_Witness (IC, SC.State, RH_N, Offset));
+   end Insert_Condition_Witness;
+
+   -----------------------------
+   -- Insert_Decision_Witness --
+   -----------------------------
+
+   procedure Insert_Decision_Witness
+     (IC         : in out Unit_Inst_Context;
+      SD         : Source_Decision;
+      Path_Count : Positive)
+   is
+      LL_SCO_Id : Nat renames SD.LL_SCO;
+      N         : Expr renames SD.Decision;
+
+      Bits : Decision_Bit_Ids;
+      RH_P : constant Node_Rewriting_Handle :=
+        Create_Node
+          (IC.Rewriting_Context, Libadalang.Common.Ada_Identifier);
+
+      RH_N : constant Node_Rewriting_Handle := Handle (N);
+   begin
+      Bits.LL_D_SCO := LL_SCO_Id;
+
+      --  Allocate outcome bits
+
+      Bits.Outcome_Bits :=
+        (False => IC.Unit_Bits.Last_Outcome_Bit + 1,
+         True  => IC.Unit_Bits.Last_Outcome_Bit + 2);
+      IC.Unit_Bits.Last_Outcome_Bit :=
+        IC.Unit_Bits.Last_Outcome_Bit + 2;
+
+      --  Allocate path bits for MC/DC
+
+      if MCDC_Coverage_Enabled then
+         Bits.Path_Bits_Base := IC.Unit_Bits.Last_Path_Bit + 1;
+         IC.Unit_Bits.Last_Path_Bit :=
+           IC.Unit_Bits.Last_Path_Bit + Bit_Id (Path_Count);
+      else
+         Bits.Path_Bits_Base := No_Bit_Id;
+      end if;
+
+      IC.Unit_Bits.Decision_Bits.Append (Bits);
+
+      --  Detach original decision from tree so that it can be reattached
+      --  inside the witness call.
+
+      Replace (RH_N, RH_P);
+
+      --  Now attach witness call at the place of the original decision
+
+      Replace (RH_P,
+        Make_Decision_Witness (IC, Bits, SD.State, RH_N));
+   end Insert_Decision_Witness;
+
    ----------------------------
    -- Instrument_Source_File --
    ----------------------------
@@ -2731,6 +2983,12 @@ package body Instrument.Sources is
 
       Initialize_Rewriting (UIC, CU_Name, Rewriter.Rewritten_Context);
 
+      UIC.SFI := Get_Index_From_Generic_Name
+        (Filename, Kind => Files_Table.Source_File);
+      UIC.CU := Allocate_CU (Provider => Instrumenter, Origin => UIC.SFI);
+      --  In the instrumentation case, the origin of SCO information is
+      --  the original source file.
+
       --  Then run SCOs generation. This inserts calls to witness
       --  procedures/functions in the same pass.
 
@@ -2741,19 +2999,93 @@ package body Instrument.Sources is
          L       => No_Ada_Node_List,
          Preelab => Preelab);
 
-      UIC.SFI := Get_Index_From_Generic_Name
-        (Filename, Kind => Files_Table.Source_File);
-      UIC.CU := Allocate_CU (Provider => Instrumenter, Origin => UIC.SFI);
-      --  In the instrumentation case, the origin of SCO information is
-      --  the original source file.
-
       SCOs.SCO_Unit_Table.Append
         ((File_Name  => new String'(Filename),
           File_Index => UIC.SFI,
           Dep_Num    => 1,
           From       => SCOs.SCO_Table.First,
           To         => SCOs.SCO_Table.Last));
-      Process_Low_Level_SCOs (UIC.CU, UIC.SFI, LL_Unit_Bits => UIC.Unit_Bits);
+
+      --  Convert low level SCOs from the instrumenter to high level SCOs.
+      --  This creates BDDs for every decision.
+
+      declare
+         SCO_Map : aliased LL_HL_SCO_Map :=
+           (SCOs.SCO_Table.First .. SCOs.SCO_Table.Last => No_SCO_Id);
+         Bit_Maps : CU_Bit_Maps;
+      begin
+         Process_Low_Level_SCOs
+           (UIC.CU,
+            UIC.SFI,
+            SCO_Map => SCO_Map'Access);
+
+         if Coverage.Enabled (Coverage.Decision)
+           or else MCDC_Coverage_Enabled
+         then
+            for SD of UIC.Source_Decisions loop
+               Insert_Decision_Witness
+                 (UIC, SD, Path_Count (SCO_Map (SD.LL_SCO)));
+            end loop;
+
+            if MCDC_Coverage_Enabled then
+               --  As high-level SCO tables have been populated, we have built
+               --  BDDs for each decisions, and we can now set the correct
+               --  MC/DC path offset for each condition.
+
+               for SC of UIC.Source_Conditions loop
+                  Insert_Condition_Witness
+                    (UIC, SC, Offset_For_True (SCO_Map (SC.LL_SCO)));
+               end loop;
+            end if;
+         end if;
+
+         --  Witnesses have now been inserted, and bit indices allocated: build
+         --  bit maps.
+
+         Bit_Maps :=
+           (Statement_Bits => new Statement_Bit_Map'
+              (Bit_Id'First .. UIC.Unit_Bits.Last_Statement_Bit => No_SCO_Id),
+            Decision_Bits  => new Decision_Bit_Map'
+              (Bit_Id'First .. UIC.Unit_Bits.Last_Outcome_Bit =>
+                   (No_SCO_Id, False)),
+            MCDC_Bits      =>
+               new MCDC_Bit_Map'(Bit_Id'First .. UIC.Unit_Bits.Last_Path_Bit =>
+                                     (No_SCO_Id, 0)));
+
+         for S_Bit_Alloc of UIC.Unit_Bits.Statement_Bits loop
+            Bit_Maps.Statement_Bits (S_Bit_Alloc.Executed) :=
+              SCO_Map (S_Bit_Alloc.LL_S_SCO);
+         end loop;
+
+         for D_Bit_Alloc of UIC.Unit_Bits.Decision_Bits loop
+            declare
+               D_SCO : constant SCO_Id := SCO_Map (D_Bit_Alloc.LL_D_SCO);
+            begin
+               for Outcome in Boolean loop
+                  Bit_Maps.Decision_Bits
+                    (D_Bit_Alloc.Outcome_Bits (Outcome)) :=
+                      (D_SCO, Outcome);
+               end loop;
+
+               if MCDC_Coverage_Enabled then
+                  declare
+                     Path_Count : constant Natural :=
+                       SC_Obligations.Path_Count (D_SCO);
+                  begin
+                     for J in 1 .. Any_Bit_Id (Path_Count) loop
+                        Bit_Maps.MCDC_Bits
+                          (D_Bit_Alloc.Path_Bits_Base + J - 1) :=
+                          (D_SCO, Natural (J - 1));
+                     end loop;
+                  end;
+               end if;
+            end;
+         end loop;
+
+         Set_Bit_Maps (UIC.CU, Bit_Maps);
+      end;
+
+      --  Insert automatic buffer dump calls, if requested
 
       if IC.Auto_Dump_Buffers and then Unit_Info.Is_Main then
          Add_Auto_Dump_Buffers
@@ -2774,8 +3106,7 @@ package body Instrument.Sources is
    function Unwrap (N : Expr) return Expr is
       Unwrapped_N : Expr := N;
    begin
-      while not Unwrapped_N.Is_Null
-        and then Unwrapped_N.Kind = Ada_Paren_Expr
+      while Unwrapped_N.Kind = Ada_Paren_Expr
       loop
          Unwrapped_N := Unwrapped_N.As_Paren_Expr.F_Expr;
       end loop;

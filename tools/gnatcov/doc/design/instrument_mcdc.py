@@ -571,6 +571,10 @@ if __name__ == '__main__':
     C = Condition('C')
     D = Condition('D')
     E = Condition('E')
+    F = Condition('F')
+    G = Condition('G')
 
     test('test_1', Not(A & B) | C)
     test('test_2', (A & Not(B)) | (C & (D | E)))
+    test('test_3', (A & B & C & D) | (E & (F | G)))
+    test('test_4', (A & (B | C)))

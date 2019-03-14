@@ -111,6 +111,10 @@ package Instrument.Common is
    --  Qualified name (relative to the unit buffer package) of the buffer to
    --  contain coverage data corresponding to decision obligations.
 
+   MCDC_Buffer_Name : Ada_Qualified_Name;
+   --  Qualified name (relative to the unit buffer package) of the buffer to
+   --  contain coverage data corresponding to decision BDD paths.
+
    type Compilation_Unit_Name is record
       Unit : Ada_Qualified_Name;
       Part : Unit_Parts;
@@ -144,6 +148,11 @@ package Instrument.Common is
    --  entity that contains address of the statement coverage buffer.
 
    function Decision_Buffer_Symbol
+     (Instrumented_Unit : Compilation_Unit_Name) return String;
+   --  Given a unit to instrument, return the name of the symbol to use for the
+   --  entity that contains address of the decision coverage buffer.
+
+   function MCDC_Buffer_Symbol
      (Instrumented_Unit : Compilation_Unit_Name) return String;
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the decision coverage buffer.

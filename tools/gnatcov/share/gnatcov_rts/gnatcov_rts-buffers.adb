@@ -37,4 +37,38 @@ package body GNATcov_RTS.Buffers is
       return Value;
    end Witness;
 
+   function Witness
+     (Decision_Buffer_Address : System.Address;
+      False_Bit, True_Bit     : Bit_Id;
+      MCDC_Buffer_Address     : System.Address;
+      MCDC_Base               : Bit_Id;
+      MCDC_Path               : Bit_Id;
+      Value                   : Boolean) return Boolean
+   is
+   begin
+      Witness (MCDC_Buffer_Address, MCDC_Base + MCDC_Path);
+      return Witness (Decision_Buffer_Address, False_Bit, True_Bit, Value);
+   end Witness;
+
+   function Witness
+     (Buffer_Address  : System.Address;
+      Offset_For_True : Any_Bit_Id;
+      First           : Boolean;
+      Value           : Boolean) return Boolean
+   is
+      MCDC_Path_Index : Any_Bit_Id;
+      for MCDC_Path_Index'Address use Buffer_Address;
+      pragma Import (Ada, MCDC_Path_Index);
+   begin
+      if First then
+         MCDC_Path_Index := 0;
+      end if;
+
+      if Value then
+         MCDC_Path_Index := MCDC_Path_Index + Offset_For_True;
+      end if;
+
+      return Value;
+   end Witness;
+
 end GNATcov_RTS.Buffers;

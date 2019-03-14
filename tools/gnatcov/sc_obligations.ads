@@ -1,3 +1,4 @@
+
 ------------------------------------------------------------------------------
 --                                                                          --
 --                               GNATcoverage                               --
@@ -114,15 +115,19 @@ package SC_Obligations is
    --  Return True if there is at least one Statement or Condition SCO whose
    --  range has a non-null intersection with Sloc_Begin .. Sloc_End.
 
+   type LL_HL_SCO_Map is array (Nat range <>) of SCO_Id;
+   --  Map of low level SCOs to high level SCOs
+
    procedure Process_Low_Level_SCOs
      (CU_Index     : CU_Id;
       Main_Source  : Source_File_Index;
       Deps         : SFI_Vector := SFI_Vectors.Empty_Vector;
-      LL_Unit_Bits : LL_Unit_Bit_Maps := No_LL_Unit_Bit_Maps);
+      SCO_Map      : access LL_HL_SCO_Map := null);
    --  Populate high level SCO tables from low level ones, which have been
    --  populated either from an LI file, or directly by the instrumenter.
    --  Low-level SCOs come from global tables in package SCOs. Bit maps are
-   --  provided in the case of source instrumentation.
+   --  provided in the case of source instrumentation. If SCO_Map is provided,
+   --  it is set with the mapping of low level SCOs to high level SCOs.
 
    procedure Load_SCOs
      (ALI_Filename         : String;
@@ -279,6 +284,9 @@ package SC_Obligations is
    --  Enclosing decision (climbing up the expression tree through operator
    --  SCOs).
 
+   function Offset_For_True (SCO : SCO_Id) return Natural;
+   --  Offset to be added to BDD path index when this condition is True
+
    procedure Get_Origin
      (SCO        : SCO_Id;
       Prev_SCO   : out SCO_Id;
@@ -319,6 +327,10 @@ package SC_Obligations is
    --  True if SCO is for a pragma Assert/Pre/Postcondition/Check, or an
    --  equivalent aspect.
 
+   function Path_Count (SCO : SCO_Id) return Natural;
+   --  Return count of paths through decision's BDD from root condition to
+   --  any outcome.
+
    procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
 
    --------------------------
@@ -343,23 +355,46 @@ package SC_Obligations is
 
    type Statement_Bit_Map is array (Bit_Id range <>) of SCO_Id;
    type Statement_Bit_Map_Access is access all Statement_Bit_Map;
+   --  Statement buffer: bit set True denotes that the statement was executed
 
    type Decision_Bit_Info is record
       D_SCO   : SCO_Id;
+      --  Decision SCO
+
       Outcome : Boolean;
+      --  Decision outcome
    end record;
 
    type Decision_Bit_Map is array (Bit_Id range <>) of Decision_Bit_Info;
    type Decision_Bit_Map_Access is access all Decision_Bit_Map;
+   --  Decision buffer: bit set True denotes that the given decision was
+   --  evaluated to the given outcome.
+
+   type MCDC_Bit_Info is record
+      D_SCO      : SCO_Id;
+      --  Decision SCO
+
+      Path_Index : Natural;
+      --  BDD path index
+   end record;
+
+   type MCDC_Bit_Map is array (Bit_Id range <>) of MCDC_Bit_Info;
+   type MCDC_Bit_Map_Access is access all MCDC_Bit_Map;
+   --  MCDC buffer: bit set True denotes that the given decision was
+   --  evaluated, and that the indicated path through the BDD was taken.
 
    type CU_Bit_Maps is record
       Statement_Bits : Statement_Bit_Map_Access;
       Decision_Bits  : Decision_Bit_Map_Access;
+      MCDC_Bits      : MCDC_Bit_Map_Access;
    end record;
 
    function Bit_Maps (CU : CU_Id) return CU_Bit_Maps;
    --  For a unit whose coverage is assessed through source code
    --  instrumentation, return bit maps.
+
+   procedure Set_Bit_Maps (CU : CU_Id; Bit_Maps : CU_Bit_Maps);
+   --  Set the tables mapping source trace bit indices to SCO discharge info
 
    -----------------
    -- Checkpoints --

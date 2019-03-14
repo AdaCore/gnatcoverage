@@ -55,6 +55,13 @@ package GNATcov_RTS.Buffers is
       --  decisions.
    end record;
 
+   -------------------------
+   -- Witness subrpograms --
+   -------------------------
+
+   --  The following subprograms are called by generated code to record
+   --  the execution of constructs.
+
    --  Note that the Buffer_Address parameters below are required so that:
    --
    --  * functions don't have IN OUT formals, which are illegal before Ada
@@ -62,6 +69,8 @@ package GNATcov_RTS.Buffers is
    --
    --  * our hack for pure units to be able to reference coverage buffers
    --    (which are global state, i.e. unreachable from pure units) works.
+
+   --  Statements and declarations
 
    procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id);
    --  Set the boolean corresponding to Bit to True in Buffer
@@ -73,11 +82,36 @@ package GNATcov_RTS.Buffers is
    --  Given the address of a Coverage_Buffer_Type, set the boolean
    --  corresponding to Bit to True in it.
 
+   --  Decisions
+
+   subtype MCDC_State_Type is Any_Bit_Id;
+
    function Witness
      (Buffer_Address      : System.Address;
       False_Bit, True_Bit : Bit_Id;
       Value               : Boolean) return Boolean;
-   --  If Value is false, set the Boolean corresponding to False_Bit to True in
+   --  If Value is False, set the Boolean corresponding to False_Bit to True in
    --  Buffer. Set the one corresponding to True_Bit otherwise.
+
+   function Witness
+     (Decision_Buffer_Address : System.Address;
+      False_Bit, True_Bit     : Bit_Id;
+      MCDC_Buffer_Address     : System.Address;
+      MCDC_Base               : Bit_Id;
+      MCDC_Path               : Bit_Id;
+      Value                   : Boolean) return Boolean;
+   --  Same as above, and also set the indicated MCDC_Path_Bit in the
+   --  buffer at MCDC_Buffer_Address.
+
+   --  Conditions
+
+   function Witness
+     (Buffer_Address  : System.Address;
+      Offset_For_True : Any_Bit_Id;
+      First           : Boolean;
+      Value           : Boolean) return Boolean;
+   --  Buffer_Address is the address of an MCDC_State_Type local variable.
+   --  If First is True, first reset it to 0.
+   --  If Value is True, add Offset_For_True.
 
 end GNATcov_RTS.Buffers;
