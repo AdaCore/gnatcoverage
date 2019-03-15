@@ -114,6 +114,9 @@ package body Instrument.Sources is
    --  Main's closure. If for some reason we cannot get this list, just return
    --  an empty one.
 
+   function Unwrap (N : Expr) return Expr;
+   --  Strip Paren_Expr from N. If N is null, return it unchanged
+
    -------------------------------------
    -- Generation of witness fragments --
    -------------------------------------
@@ -1878,7 +1881,7 @@ package body Instrument.Sources is
       --  The flag will be set False if T is other than X, or if an operator
       --  other than NOT is in the sequence.
 
-      procedure Output_Decision_Operand (N : Expr);
+      procedure Output_Decision_Operand (Operand : Expr);
       --  The node N is the top level logical operator of a decision, or it is
       --  one of the operands of a logical operator belonging to a single
       --  complex decision. This routine outputs the sequence of table entries
@@ -1897,11 +1900,11 @@ package body Instrument.Sources is
       --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT WHEN/
       --  PRAGMA, and 'X' for the expression case.
 
-      procedure Process_Decision_Operand (N : Expr);
-      --  This is called on node N, the top level node of a decision, or on one
-      --  of its operands or suboperands after generating the full output for
-      --  the complex decision. It process the suboperands of the decision
-      --  looking for nested decisions.
+      procedure Process_Decision_Operand (Operand : Expr);
+      --  This is called on node Operand, the top level node of a decision,
+      --  or on one of its operands or suboperands after generating the full
+      --  output for the complex decision. It process the suboperands of the
+      --  decision looking for nested decisions.
 
       function Process_Node (N : Ada_Node'Class) return Visit_Status;
       --  Processes one node in the traversal, looking for logical operators,
@@ -1949,13 +1952,15 @@ package body Instrument.Sources is
       -- Output_Decision_Operand --
       -----------------------------
 
-      procedure Output_Decision_Operand (N : Expr) is
+      procedure Output_Decision_Operand (Operand : Expr) is
          C1 : Character;
          C2 : Character;
          --  C1 holds a character that identifies the operation while C2
          --  indicates whether we are sure (' ') or not ('?') this operation
          --  belongs to the decision. '?' entries will be filtered out in the
          --  second (SCO_Record_Filtered) pass.
+
+         N : constant Expr := Unwrap (Operand);
 
          L, R : Expr;
          T    : Tristate;
@@ -2120,7 +2125,8 @@ package body Instrument.Sources is
       -- Process_Decision_Operand --
       ------------------------------
 
-      procedure Process_Decision_Operand (N : Expr) is
+      procedure Process_Decision_Operand (Operand : Expr) is
+         N : constant Expr := Unwrap (Operand);
       begin
          if Is_Logical_Operator (N) /= False then
             if N.Kind = Ada_Un_Op then
@@ -2760,5 +2766,21 @@ package body Instrument.Sources is
 
       Rewriter.Apply;
    end Instrument_Source_File;
+
+   ------------
+   -- Unwrap --
+   ------------
+
+   function Unwrap (N : Expr) return Expr is
+      Unwrapped_N : Expr := N;
+   begin
+      while not Unwrapped_N.Is_Null
+        and then Unwrapped_N.Kind = Ada_Paren_Expr
+      loop
+         Unwrapped_N := Unwrapped_N.As_Paren_Expr.F_Expr;
+      end loop;
+
+      return Unwrapped_N;
+   end Unwrap;
 
 end Instrument.Sources;
