@@ -72,18 +72,19 @@ package Switches is
    type Debug_Type is
      (None,
 
-      --  Break long instructions in disassemblies, a la objdump.
       Break_Long_Instructions,
+      --  Break long instructions in disassemblies, a la objdump
 
-      --  Keep full historical traces for MC/DC even for decisions that do not
-      --  require it (decisions without diamond paths).
       Full_History,
+      --  Keep full historical traces for MC/DC even for decisions that do not
+      --  require it (decisions without multi-path conditions).
 
-      --  Exemption pragmas have no effect.
       Ignore_Exemptions,
+      --  Exemption pragmas have no effect.
 
-      --  Show debugging output for files table management
       File_Table);
+      --  Show debugging output for files table management
+
    --  Set of debug switches to expose on command-line
 
    subtype Valid_Debug_Type is Debug_Type range

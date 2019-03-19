@@ -28,7 +28,7 @@ package body Switches is
          +"Break long instructions in disassemblies, a la objdump",
       Full_History =>
          +("Keep full historical traces for MC/DC even for decisions that do"
-           & " not require it (decisions without diamond paths)."),
+           & " not require it (decisions without multi-path conditions)."),
       Ignore_Exemptions =>
          +"Exemption pragmas have no effect.",
       File_Table =>

@@ -291,9 +291,9 @@ package SC_Obligations is
      (SCO        : SCO_Id;
       Prev_SCO   : out SCO_Id;
       Prev_Value : out Boolean);
-   --  For a condition SCO that is part of a decision with no diamond, return
-   --  the previous tested condition and the value of that condition causing
-   --  the condition denoted by SCO to be evaluated.
+   --  For a condition SCO that is part of a decision with no multipath,
+   --  condition, return the previous tested condition and the value of
+   --  that condition causing the condition denoted by SCO to be evaluated.
 
    --  Operator SCOs
 
@@ -310,9 +310,8 @@ package SC_Obligations is
    --  For a decision whose outcome is compile time known, return that outcome;
    --  otherwise return Unknown.
 
-   function Has_Diamond (SCO : SCO_Id) return Boolean;
-   --  True if decison's BDD has a diamond, i.e. a node reachable through more
-   --  than one path.
+   function Has_Multipath_Condition (SCO : SCO_Id) return Boolean;
+   --  True if decison's BDD has a node reachable through more than one path
 
    function Enclosing_Statement (SCO : SCO_Id) return SCO_Id;
    --  Enclosing statement (climbing up the tree through any enclosing

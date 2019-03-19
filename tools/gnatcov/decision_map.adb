@@ -1820,7 +1820,7 @@ package body Decision_Map is
          --  structure (presence of multiple paths) or if Debug_Full_History
          --  is set.
 
-         if Has_Diamond (Enclosing_Decision (CBI.Condition))
+         if Has_Multipath_Condition (Enclosing_Decision (CBI.Condition))
            or else Debug_Full_History
          then
             Add_Entry

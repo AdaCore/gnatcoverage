@@ -895,7 +895,7 @@ package body Coverage.Source is
 
                   Inferred_Values : Vector;
                   --  Inferred condition values, for the case of a D_SCO with
-                  --  no diamond.
+                  --  no condition reachable through multile paths.
 
                   function Pop_Eval return Evaluation;
                   --  Pop the top element from the evaluation stack
@@ -948,14 +948,13 @@ package body Coverage.Source is
                      return;
                   end if;
 
-                  if Has_Diamond (D_SCO) then
+                  if Has_Multipath_Condition (D_SCO) then
                      Eval := Pop_Eval;
 
                   else
-                     --  Decision has no diamond: each condition is reachable
-                     --  through only one path, and we can infer the complete
-                     --  condition vector from just the last condition being
-                     --  tested.
+                     --  Each condition is reachable through only one path,
+                     --  and we can infer the complete condition vector from
+                     --  just the last condition tested.
 
                      Inferred_Values := Infer_Values (SCO);
                      Inferred_Values.Append (CBE.Origin);
@@ -1021,7 +1020,9 @@ package body Coverage.Source is
                           "edge " & E'Img & " raised an exception, "
                           & "abandoning evaluation", Kind => Notice);
 
-                        if Has_Diamond (D_SCO) or else Debug_Full_History then
+                        if Has_Multipath_Condition (D_SCO)
+                          or else Debug_Full_History
+                        then
                            Evaluation_Stack.Delete_Last;
                         end if;
 
@@ -1071,7 +1072,7 @@ package body Coverage.Source is
 
                when 3 =>
                   if MCDC_Coverage_Enabled
-                       and then (Has_Diamond (D_SCO)
+                       and then (Has_Multipath_Condition (D_SCO)
                                    or else Debug_Full_History)
                   then
                      --  For MC/DC we need full historical traces, not just
@@ -1359,9 +1360,9 @@ package body Coverage.Source is
          return;
       end if;
 
-      --  No-op if decision has no diamond and not debugging
+      --  No-op if decision has no multi-path condition and not debugging
 
-      if not (Has_Diamond (D_SCO) or else Debug_Full_History) then
+      if not (Has_Multipath_Condition (D_SCO) or else Debug_Full_History) then
          return;
       end if;
 

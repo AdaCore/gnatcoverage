@@ -145,9 +145,9 @@ package body SC_Obligations is
          Last_Node      : BDD_Node_Id := No_BDD_Node_Id;
          --  Index range of BDD nodes of this BDD
 
-         Diamond_Base   : BDD_Node_Id := No_BDD_Node_Id;
+         First_Multipath_Condition : BDD_Node_Id := No_BDD_Node_Id;
          --  If set, designates a node that is reachable through multiple paths
-         --  (see Check_Diamonds).
+         --  (see Enumerate_Paths).
 
          Reachable_Outcomes : Reachability := (others => False);
          --  Indicates whether each outcome is reachable (an outcome may be
@@ -653,7 +653,7 @@ package body SC_Obligations is
          BDD_Node_Id'Read  (S, V.Root_Condition);
          BDD_Node_Id'Read  (S, V.First_Node);
          BDD_Node_Id'Read  (S, V.Last_Node);
-         BDD_Node_Id'Read  (S, V.Diamond_Base);
+         BDD_Node_Id'Read  (S, V.First_Multipath_Condition);
          Reachability'Read (S, V.Reachable_Outcomes);
 
          if not Version_Less (S, Than => 2) then
@@ -707,7 +707,7 @@ package body SC_Obligations is
          BDD_Node_Id'Write  (S, V.Root_Condition);
          BDD_Node_Id'Write  (S, V.First_Node);
          BDD_Node_Id'Write  (S, V.Last_Node);
-         BDD_Node_Id'Write  (S, V.Diamond_Base);
+         BDD_Node_Id'Write  (S, V.First_Multipath_Condition);
          Reachability'Write (S, V.Reachable_Outcomes);
 
          if not Version_Less (S, Than => 2) then
@@ -756,7 +756,8 @@ package body SC_Obligations is
             Origin_Id    : BDD_Node_Id;
             Origin_Value : Boolean;
             Path_Count   : out Natural);
-         --  Visit one node. If it was already seen, note presence of a diamond
+         --  Visit one node. If it was already seen, record presence of a
+         --  multi-path condition.
 
          -----------
          -- Visit --
@@ -788,11 +789,11 @@ package body SC_Obligations is
                   when Condition =>
 
                      --  Record first condition that is reachable through
-                     --  multiple paths ("diamond base").
+                     --  multiple paths.
 
                      if  Visited (Node_Id) then
-                        if BDD.Diamond_Base = No_BDD_Node_Id then
-                           BDD.Diamond_Base := Node_Id;
+                        if BDD.First_Multipath_Condition = No_BDD_Node_Id then
+                           BDD.First_Multipath_Condition := Node_Id;
                            Parent_Id := No_BDD_Node_Id;
                         end if;
 
@@ -921,7 +922,8 @@ package body SC_Obligations is
             BDD_Vector.Update_Element (J, Patch_Jumps'Access);
          end loop;
 
-         --  Look for diamonds in BDD
+         --  Explore BDD to check for presence of multi-path conditions and
+         --  assign offsets for path index computation.
 
          Enumerate_Paths (BDD);
 
@@ -1022,10 +1024,10 @@ package body SC_Obligations is
       begin
          Put_Line ("----- BDD for decision " & Image (BDD.Decision));
          Put_Line ("--- Root condition:" & BDD.Root_Condition'Img);
-         if BDD.Diamond_Base /= No_BDD_Node_Id then
+         if BDD.First_Multipath_Condition /= No_BDD_Node_Id then
             Report
               (First_Sloc (BDD.Decision),
-               "BDD node" & BDD.Diamond_Base'Img
+               "BDD node" & BDD.First_Multipath_Condition'Img
                & " reachable through multiple paths",
                Kind => Notice);
             Report ("OBC does not imply MC/DC coverage", Kind => Notice);
@@ -1597,7 +1599,7 @@ package body SC_Obligations is
                      Remap_BDD_Node
                        (New_SCOD.Decision_BDD.Last_Node);
                      Remap_BDD_Node
-                       (New_SCOD.Decision_BDD.Diamond_Base);
+                       (New_SCOD.Decision_BDD.First_Multipath_Condition);
                   end if;
 
                when Condition =>
@@ -2369,11 +2371,11 @@ package body SC_Obligations is
       return No_Range;
    end Handler_Range;
 
-   -----------------
-   -- Has_Diamond --
-   -----------------
+   -----------------------------
+   -- Has_Multipath_Condition --
+   -----------------------------
 
-   function Has_Diamond (SCO : SCO_Id) return Boolean is
+   function Has_Multipath_Condition (SCO : SCO_Id) return Boolean is
       Result : Boolean;
 
       procedure Q (SCOD : SCO_Descriptor);
@@ -2386,15 +2388,16 @@ package body SC_Obligations is
 
       procedure Q (SCOD : SCO_Descriptor) is
       begin
-         Result := SCOD.Decision_BDD.Diamond_Base /= No_BDD_Node_Id;
+         Result :=
+           SCOD.Decision_BDD.First_Multipath_Condition /= No_BDD_Node_Id;
       end Q;
 
-   --  Start of processing for Has_Diamond
+   --  Start of processing for Has_Multipath_Condition
 
    begin
       SCO_Vector.Query_Element (SCO, Q'Access);
       return Result;
-   end Has_Diamond;
+   end Has_Multipath_Condition;
 
    -------------
    -- Has_SCO --
@@ -3905,7 +3908,7 @@ package body SC_Obligations is
          DB   : BDD_Node_Id;
       begin
          if SCOD.Kind = Decision then
-            DB := SCOD.Decision_BDD.Diamond_Base;
+            DB := SCOD.Decision_BDD.First_Multipath_Condition;
             if DB /= No_BDD_Node_Id then
                Report
                  (First_Sloc (BDD_Vector (DB).C_SCO),
@@ -3966,8 +3969,8 @@ package body SC_Obligations is
             --  inference of condition values from BDD position, because that
             --  would require that both outgoing edges from the condition also
             --  are conditions (not outcomes), and that can't happen in a short
-            --  circuit expression without a diamond; this would require a BDD
-            --  involving the Sel ternary operator:
+            --  circuit expression without a multipath condition; this would
+            --  require a BDD involving the Sel ternary operator:
             --    Sel (A, B, C) = (A and then B) or else (not A and then C)
 
          end if;
