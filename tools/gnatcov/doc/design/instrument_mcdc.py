@@ -32,7 +32,7 @@ not scale, however, as this creates a lot of indexes (2**N, for the number of
 conditions N). This makes the buffer array described above unrealistically
 large for pathological decisions such as:
 
-    A or B or C or C or ...
+    A or B or C or D or ...
 
 In practice, the number of possible evaluations is on the same order of
 magnitude as the number of conditions.
