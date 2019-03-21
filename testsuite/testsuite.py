@@ -1008,6 +1008,9 @@ class TestSuite(object):
         if mopt.gprmode:
             testcase_cmd.append('--gprmode')
 
+        if mopt.trace_mode:
+            testcase_cmd.append('--trace-mode=%s' % mopt.trace_mode)
+
         if mopt.kernel:
             testcase_cmd.append('--kernel=%s' % mopt.kernel)
 

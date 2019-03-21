@@ -37,7 +37,8 @@ from SUITE.gprutils import gprcov_for
 
 from gnatpython.fileutils import ls
 
-from internals.driver import SCOV_helper, WdirControl
+from internals.driver import SCOV_helper_bin_traces, SCOV_helper_src_traces
+from internals.driver import WdirControl
 
 from SCOV.tctl import CAT
 
@@ -133,7 +134,7 @@ class CovControl:
                 or self.units_out
                 or self.ulist_in
                 or self.ulist_out)
-                
+
     # ---------
     # -- gpr --
     # ---------
@@ -349,6 +350,11 @@ class TestCase:
         with --level=COVLEVEL, using the provided COVCONTROL parameters and
         requesting SUBDIRHINT to be part of temp dir names."""
 
+        this_scov_helper = (
+            SCOV_helper_bin_traces if thistest.options.trace_mode == 'bin'
+            else SCOV_helper_src_traces if thistest.options.trace_mode == 'src'
+            else None)
+
         # Compute the Working directory base for this level, then
         # run the test for each indivdual driver:
 
@@ -359,10 +365,10 @@ class TestCase:
             subdirhint = subdirhint)
 
         for driver in self.all_drivers:
-            drvo = SCOV_helper (self, drivers=[driver],
-                                xfile=driver,
-                                xcovlevel=covlevel, covctl=covcontrol,
-                                wdctl=wdctl)
+            drvo = this_scov_helper (self, drivers=[driver],
+                                     xfile=driver,
+                                     xcovlevel=covlevel, covctl=covcontrol,
+                                     wdctl=wdctl)
             self.__register_qde_for (drvo)
             drvo.run()
 
@@ -378,10 +384,10 @@ class TestCase:
             subdirhint = subdirhint)
 
         for cspec in self.all_cspecs:
-            drvo = SCOV_helper (self, drivers=self.__drivers_from(cspec),
-                                xfile=cspec,
-                                xcovlevel=covlevel, covctl=covcontrol,
-                                wdctl=wdctl)
+            drvo = this_scov_helper (self, drivers=self.__drivers_from(cspec),
+                                     xfile=cspec,
+                                     xcovlevel=covlevel, covctl=covcontrol,
+                                     wdctl=wdctl)
             self.__register_qde_for (drvo)
             drvo.run()
 

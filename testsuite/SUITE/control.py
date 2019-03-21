@@ -344,6 +344,16 @@ def add_shared_options_to (o, toplevel):
         help='KERNEL to pass to gnatcov run in addition to exe'
         )
 
+    # --trace-mode
+
+    o.add_option(
+        '--trace-mode', dest='trace_mode', metavar='TRACE_MODE',
+        choices=('bin', 'src'), default='bin',
+        help=('Kind of execution traces to use for SCOV driven tests. '
+              '"bin" for binary traces out of valgrind or qemu, '
+              '"src" for source traces out of source level instrumentation.')
+        )
+
     # --trace-size-limit
 
     o.add_option(

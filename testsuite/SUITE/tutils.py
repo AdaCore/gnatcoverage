@@ -438,6 +438,35 @@ def xcov_suite_args(covcmd, covargs,
     return result
 
 
+# ------------
+# -- cmdrun --
+# ------------
+def cmdrun(cmd, inp=None, out=None, err=None, register_failure=True):
+    """Execute the command+args list in CMD, redirecting its input, output and
+    error streams to INP, OUT and ERR when not None, respectively. Stop with a
+    FatalError if the execution status is not zero and REGISTER_FAILURE is
+    True. Return the process descriptor otherwise.
+    """
+
+    # Setup a dictionary of Run input/output/error arguments for which a
+    # non default value is requested.
+
+    kwargs = {
+        key: value
+        for key, value in [('input', inp), ('output', out), ('error', err)]
+        if value
+    }
+
+    p = Run(cmd, timeout=thistest.options.timeout, **kwargs)
+
+    thistest.stop_if(
+        register_failure and p.status != 0,
+        FatalError('"%s"' % ' '.join(cmd) + ' exit in error',
+                   outfile=out, outstr=p.out))
+
+    return p
+
+
 # ----------
 # -- xcov --
 # ----------
@@ -489,16 +518,8 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
     # projects. They are pointless wrt coverage run or analysis activities
     # so we don't include them here.
 
-    # If input(inp)/output(out)/error(err) are not given, we want to use Run
-    # defaults values: do not add them to kwargs if they are None.
-
-    kwargs = {
-        key: value
-        for key, value in [('input', inp), ('output', out), ('error', err)]
-        if value
-    }
-
-    p = Run(covpgm + covargs, timeout=thistest.options.timeout, **kwargs)
+    p = cmdrun(cmd=covpgm + covargs, inp=inp, out=out, err=err,
+               register_failure=register_failure)
 
     if thistest.options.enable_valgrind == 'memcheck':
         memcheck_log = contents_of (MEMCHECK_LOG)
@@ -509,12 +530,6 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
                 + 'FROM "%s":\n%s' % (
                     ' '.join(covpgm + covargs), memcheck_log)))
 
-    thistest.stop_if(
-        register_failure and p.status != 0,
-        FatalError(
-            '"%s"' % ' '.join(covpgm + covargs) + ' exit in error',
-            outfile = out, outstr = p.out))
-
     return p
 
 
@@ -523,6 +538,7 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
 # ----------
 def xrun(args, out=None, register_failure=True, auto_config_args=True,
          auto_target_args=True):
+
     """Run <xcov run> with arguments ARGS for the current target, performing
     operations only relevant to invocations intended to execute a program (for
     example, requesting a limit on the output trace size).
@@ -575,13 +591,9 @@ def do(command):
     """Execute COMMAND. Abort and dump output on failure. Return output
     otherwise."""
 
-    ofile = "cmd_.out"
-    p = Run(to_list (command), output=ofile)
+    p = cmdrun(cmd=to_list(command), register_failure=True)
 
-    thistest.stop_if(p.status != 0,
-        FatalError("command '%s' failed" % command, ofile))
-
-    return contents_of(ofile)
+    return p.out
 
 # -----------
 # -- frame --

@@ -25,13 +25,15 @@ from collections import defaultdict
 import os
 
 from SCOV.tctl import CAT
+from SCOV.instr import xcov_instrument
 
 from SUITE.context import thistest
 from SUITE.control import language_info
 from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
-from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
+from SUITE.tutils import gprbuild, gprfor, cmdrun, xrun, xcov, frame
 from SUITE.tutils import gprbuild_cargs_with
-from SUITE.tutils import exename_for, tracename_for, ckptname_for
+from SUITE.tutils import exename_for
+from SUITE.tutils import srctracename_for, tracename_for, ckptname_for
 
 from gnatpython.fileutils import cd, mkdir, ls
 
@@ -484,57 +486,6 @@ class SCOV_helper:
         """Whether SELF instantiates a single test."""
         return len(self.drivers) == 1
 
-    # ----------------
-    # -- locate_ali --
-    # ----------------
-    def locate_ali(self,source):
-        """Return the fullpath of the ali file corresponding to the given
-        SOURCE file.  Return None if none was found.
-        """
-
-        # Whatever the kind of test we are (single or consolidation), we
-        # expect every ALI file of interest to be associated with at least
-        # one single test, and to be present in the "obj" subdirectory of
-        # the associated binary dir.
-
-        # Compute the local path from single test bindir and iterate over
-        # binary dir for all our drivers until we find. There might actually
-        # be several instances in the consolidation case. We assume they are
-        # all identical, and they should be for typical situations where the
-        # same sources were exercised by multiple drivers:
-
-        lang_info = language_info(source)
-        lali="obj/"+lang_info.scofile_for(os.path.basename(source))
-        for main in self.drivers:
-            tloc=self.abdir_for(no_ext(main))+lali
-            if os.path.exists(tloc):
-                return tloc
-
-        return None
-
-    # --------------
-    # -- ali_list --
-    # --------------
-    def ali_list(self):
-        """Return a set of ali files corresponding to the list of sources
-        specified in this tests's UXset.
-        """
-
-        # It is legitimate for some sources to not have an associated ali, for
-        # example Ada separate sub-units compiled as part of their parent. We
-        # just skip those and will fail matching expectations if the SCOs are
-        # nowhere else.
-
-        # We might also have expectations for different sources that map to
-        # the same ali, as for example with the spec and body of the same
-        # package.  We make our result a set to prevent duplicates and xcov
-        # warnings later on.
-
-        return set (
-            [ali for ali in (self.locate_ali(source)
-                             for source in self.xrnotes) if ali]
-            )
-
     # ---------
     # -- run --
     # ---------
@@ -565,17 +516,17 @@ class SCOV_helper:
             exedir = self.abdir(),
             main_cargs = "-fno-inline",
             langs = ["Ada", "C"],
-            deps = self.covctl.deps if self.covctl else (),
+            deps = self.mode_gprdeps() + \
+                    (self.covctl.deps if self.covctl else []),
             extra = self.covctl.gpr () if self.covctl else "")
 
-        # For single tests (no consolidation), we first need to build,
-        # producing the binary to execute and the ALIs files, then to gnatcov
-        # run to get an execution trace.  All these we already have for
+        # For single tests (no consolidation), we first need to build, then
+        # to execute to get an execution trace.  All these we already have for
         # consolidation tests, and there's actually no need to build if we
         # were provided a bin directory to reuse:
 
         if self.singletest() and not self.wdctl.reuse_bin:
-            gprbuild (self.gpr, extracargs=self.extracargs)
+            self.mode_build ()
 
         # Compute the gnatcov command line argument we'll pass to convey
         # the set of scos to operate upon.  Note that we need these for
@@ -586,12 +537,7 @@ class SCOV_helper:
             or (self.covctl
                 and self.covctl.requires_gpr()))
 
-        self.scoptions = (
-            to_list (self.covctl.scoptions) if (
-                self.covctl and self.covctl.scoptions)
-            else ["-P%s" % self.gpr] if thistest.gprmode
-            else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
-            )
+        self.scoptions = self.mode_scoptions()
 
         # Remember which of these indicate the use of project files, which
         # might influence default output dirs for example.
@@ -604,7 +550,7 @@ class SCOV_helper:
         # traces from previous executions in the latter case.
 
         if self.singletest():
-            self.xcov_run(no_ext(self.drivers[0]))
+            self.mode_execute(main=no_ext(self.drivers[0]))
 
         # At this point, we have everything we need for the analysis. Either
         # from the just done build+run in the single test case, or from
@@ -690,33 +636,19 @@ class SCOV_helper:
         return self.adir_for (self.rbdir())
 
     # --------------
-    # -- xcov_run --
+    # -- run_test --
     # --------------
-    def xcov_run(self,main):
-        """run MAIN through "xcov run" to produce an execution trace."""
+    def run_test(self,main):
+        """Execute the MAIN program to produce an execution trace, and
+        trigger a failure if it raises an unhandled exception."""
 
-        # Feed xcov run with full path (absolute dir) of the program so we
-        # can directly get to the binary from the trace when reading it from
-        # a different directory, such as in consolidation tests.
-
-        ofile="xcov_run_%s.out" % main
-
-        # Some execution engines (e.g. valgrind) do not let us distinguish
-        # executed program errors from engine errors. Because of them, we
-        # ignore here any kind of execution error for tests expected to trigger
-        # failures (such as harness tests), assuming that they will perform
-        # further checks that are bound to fail if the execution doesn't
-        # proceed as expected somehow (e.g. not producing a trace).
-
-        xrun([self.abdir_for(main)+exename_for(main),
-              "--level=%s" % self.xcovlevel] + self.scoptions,
-             out=ofile, register_failure=not self.testcase.expect_failures)
+        p = self.execute(main=main)
 
         thistest.fail_if (
             match (
                 "(!!! EXCEPTION RAISED !!!"
                 "|raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)",
-                ofile),
+                p.out),
             "exception raised while running '%s'." % main)
 
     # -------------------------
@@ -801,7 +733,7 @@ class SCOV_helper:
 
         (input_opt, input_fn) = \
             ("--checkpoint=", ckptname_for) if use_checkpoint_inputs \
-            else ("", tracename_for)
+            else ("", self.mode_tracename_for)
 
         inputs = "%s@" % input_opt + list_to_file(
             [self.awdir_for(no_ext(main))+input_fn(no_ext(main))
@@ -1047,3 +979,113 @@ class SCOV_helper:
         """Switch to this test's homedir."""
         cd(self.homedir)
 
+
+class SCOV_helper_bin_traces(SCOV_helper):
+    """SCOV_helper specialization for the binary execution trace based mode."""
+
+    def mode_build(self):
+        gprbuild(self.gpr, extracargs=self.extracargs)
+
+    def mode_execute(self, main):
+
+        # Feed xcov run with full path (absolute dir) of the program so we
+        # can directly get to the binary from the trace when reading it from
+        # a different directory, such as in consolidation tests.
+
+        # Some execution engines (e.g. valgrind) do not let us distinguish
+        # executed program errors from engine errors. Because of them, we
+        # ignore here any kind of execution error for tests expected to trigger
+        # failures (such as harness tests), assuming that they will perform
+        # further checks that are bound to fail if the execution doesn't
+        # proceed as expected somehow (e.g. not producing a trace).
+
+        return xrun(
+            [self.abdir_for(main)+exename_for(main),
+             "--level=%s" % self.xcovlevel] + self.scoptions,
+            out="xrun_%s.out" % main,
+            register_failure=not self.testcase.expect_failures)
+
+    def mode_scoptions(self):
+        return (
+            to_list (self.covctl.scoptions) if (
+                self.covctl and self.covctl.scoptions)
+            else ["-P%s" % self.gpr] if thistest.gprmode
+            else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
+            )
+
+    def mode_gprdeps(self):
+        return []
+
+    def mode_tracename_for(self, pgm):
+        return tracename_for(pgm)
+
+    def locate_ali(self,source):
+        """Return the fullpath of the ali file corresponding to the given
+        SOURCE file.  Return None if none was found.
+        """
+
+        # Whatever the kind of test we are (single or consolidation), we
+        # expect every ALI file of interest to be associated with at least
+        # one single test, and to be present in the "obj" subdirectory of
+        # the associated binary dir.
+
+        # Compute the local path from single test bindir and iterate over
+        # binary dir for all our drivers until we find. There might actually
+        # be several instances in the consolidation case. We assume they are
+        # all identical, and they should be for typical situations where the
+        # same sources were exercised by multiple drivers:
+
+        lang_info = language_info(source)
+        lali="obj/"+lang_info.scofile_for(os.path.basename(source))
+        for main in self.drivers:
+            tloc=self.abdir_for(no_ext(main))+lali
+            if os.path.exists(tloc):
+                return tloc
+
+        return None
+
+    def ali_list(self):
+        """Return a set of ali files corresponding to the list of sources
+        specified in this tests's UXset.
+        """
+
+        # It is legitimate for some sources to not have an associated ali, for
+        # example Ada separate sub-units compiled as part of their parent. We
+        # just skip those and will fail matching expectations if the SCOs are
+        # nowhere else.
+
+        # We might also have expectations for different sources that map to
+        # the same ali, as for example with the spec and body of the same
+        # package.  We make our result a set to prevent duplicates and xcov
+        # warnings later on.
+
+        return set (
+            [ali for ali in (self.locate_ali(source)
+                             for source in self.xrnotes) if ali]
+            )
+
+class SCOV_helper_src_traces(SCOV_helper):
+    """SCOV_helper specialization for the source instrumentation mode."""
+
+    def mode_build(self):
+        self.instrumentation_ckpt = "instr.ckpt"
+        xcov_instrument(self.gpr, self.xcovlevel, self.instrumentation_ckpt)
+        gprbuild(
+            self.gpr, extracargs=self.extracargs,
+            gargs='--src-subdirs=gnatcov-instr')
+
+
+    def mode_execute(self, main):
+        return cmdrun(
+            [self.abdir_for(main)+exename_for(main)],
+            out="cmdrun_%s.out" % main,
+            register_failure=not self.testcase.expect_failures)
+
+    def mode_scoptions(self):
+        return ["--checkpoint=%s" % self.instrumentation_ckpt]
+
+    def mode_tracename_for(self, pgm):
+        return srctracename_for(pgm)
+
+    def mode_gprdeps(self):
+        return ["gnatcov_rts_full.gpr"]
