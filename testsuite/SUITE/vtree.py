@@ -40,68 +40,66 @@
 # This second part is still work in progress.
 
 import json
-import os, re
+import os
+import re
 from collections import OrderedDict
 
 from cutils import contents_of
 from gnatpython.fileutils import ls
 
-# *************************
-# ** DirLink abstraction **
-# *************************
 
 class DirLink:
 
     def __init__(self, vlfile):
 
         self.file = os.path.abspath(vlfile)
-        self.dir = os.path.dirname (self.file)
+        self.dir = os.path.dirname(self.file)
 
-        keys = json.loads (contents_of(vlfile))
+        keys = json.loads(contents_of(vlfile))
 
-        self.fstarget = self.__resolve (keys["fspath"])
+        self.fstarget = self.__resolve(keys["fspath"])
 
-        self.vcat = keys.get ("cat", None)
-        self.vlang = keys.get ("lang", None)
+        self.vcat = keys.get("cat", None)
+        self.vlang = keys.get("lang", None)
 
     def __resolve(self, fstarget):
-        return (
-            os.path.join (self.dir, fstarget)
-            if not fstarget.startswith (('/', '%'))
-            else fstarget)
+        return (os.path.join(self.dir, fstarget)
+                if not fstarget.startswith(('/', '%'))
+                else fstarget)
 
-
-# ********************************
-# ** Directory node abstraction **
-# ********************************
 
 class Dir:
     def __init__(self, fspath, subdirs, files):
 
         # Filesystem attributes for this directory
 
-        self.fspath  = fspath  # path to this dir
-        self.subdirs = subdirs # list of local subdir names
-        self.files   = files   # list of local file names
+        # path to this dir
+        self.fspath = fspath
 
-        self.name    = os.path.basename(fspath) # local name of this dir
+        # list of local subdir names
+        self.subdirs = subdirs
+
+        # list of local file names
+        self.files = files
+
+        # local name of this dir
+        self.name = os.path.basename(fspath)
 
         # Links to parent and children in the virtual tree. These are
         # set as dir objects get mapped within a DirTree instance.
-
         self.pdo = None
         self.subdos = []
 
-# ***************************
-# ** Path Info abstraction **
-# ***************************
-
-# Holds info about the path to the current node when walking
-# a directory tree
 
 class PathInfo:
+    """
+    Holds info about the path to the current node when walking a directory
+    tree.
+    """
     def __init__(self):
-        self.depth = 0   # Depth of this node wrt root of walk operation
+        # Depth of this node wrt root of walk operation
+        self.depth = 0
+
 
 # ********************************
 # ** Directory Tree abstraction **
@@ -109,14 +107,14 @@ class PathInfo:
 
 # Values to denote possible ways to walk a tree and possible actions to take
 # at every directory node when walking the tree
+topdown, botmup = range(2)
 
-topdown, botmup = range (2)
-
-dirProcess, dirSkip, dirCutPre, dirCutPost = range (4)
+dirProcess, dirSkip, dirCutPre, dirCutPost = range(4)
 # dirProcess: process this node and walk children
 # dirCutPre:  don't process this node and don't walk children
 # dirCutPost: process this node and don't walk children
 # dirSkip:    skip processing for this node, walk children nevertheless
+
 
 class DirTree:
 
@@ -135,29 +133,30 @@ class DirTree:
 
     class _WalkInfo:
         def __init__(self, pathi, ctl, mode, data):
-            self.ctl   = ctl
-            self.mode  = mode
+            self.ctl = ctl
+            self.mode = mode
             self.pathi = pathi
-            self.data  = data
+            self.data = data
             self.nodeq = []
 
-    def _walk_from (self, diro, wi):
+    def _walk_from(self, diro, wi):
 
-        this_ctl = wi.ctl (diro, wi.pathi, wi.data)
+        this_ctl = wi.ctl(diro, wi.pathi, wi.data)
 
         visit_children = this_ctl not in [dirCutPre, dirCutPost]
         process_this = this_ctl not in [dirSkip, dirCutPre]
 
         if process_this and wi.mode == topdown:
-            wi.nodeq.append (diro)
+            wi.nodeq.append(diro)
 
         if visit_children:
             wi.pathi.depth += 1
-            [self._gather_from (diro, wi) for diro in diro.subdos]
+            for diro in diro.subdos:
+                self._gather_from(diro, wi)
             wi.pathi.depth -= 1
 
         if process_this and wi.mode == botmup:
-            wi.nodeq.append (diro)
+            wi.nodeq.append(diro)
 
     def __default_ctl(self, diro, pathi, widata):
         return dirProcess
@@ -177,18 +176,16 @@ class DirTree:
         # Ignore some subdirectories. This is best done by removing from the
         # input list, so the parent filesystem iteration doesn't walk in.
 
-        to_prune = (
-            sd for sd in subdirs
-            if re.match (
-                pattern = "\.svn|tmp_|st_|dc_|mc_",
-                string = sd)
-            )
-        [subdirs.remove(sd) for sd in to_prune]
+        to_prune = (sd for sd in subdirs
+                    if re.match(pattern=r"\.svn|tmp_|st_|dc_|mc_",
+                                string=sd))
+        for sd in to_prune:
+            subdirs.remove(sd)
 
         # Map a new object for this dir ...
 
         dirname = dirname.rstrip('/')
-        diro = Dir (fspath=dirname, subdirs=subdirs, files=files)
+        diro = Dir(fspath=dirname, subdirs=subdirs, files=files)
         self.dirmap[dirname] = diro
 
         # Find out its parent object by name. If there's no parent object,
@@ -203,10 +200,8 @@ class DirTree:
             diro.pdo = parento
             parento.subdos.append(diro)
 
-        links = [
-            DirLink(os.path.join(dirname, f))
-            for f in files if f.endswith(".dtl")
-            ]
+        links = [DirLink(os.path.join(dirname, f))
+                 for f in files if f.endswith(".dtl")]
         if links:
             self.linkmap[diro] = links
 
@@ -218,14 +213,15 @@ class DirTree:
 
     def walk(self, mode, process, data=None, ctl=None):
 
-        if ctl is None: ctl = self.__default_ctl
+        if ctl is None:
+            ctl = self.__default_ctl
 
-        wi=DirTree._WalkInfo (
-            pathi=PathInfo(), mode=mode, ctl=ctl, data=data)
+        wi = DirTree._WalkInfo(pathi=PathInfo(), mode=mode, ctl=ctl, data=data)
 
-        self._walk_from (diro=self.rooto, wi=wi)
+        self._walk_from(diro=self.rooto, wi=wi)
 
-        [process (diro, data) for diro in wi.nodeq]
+        for diro in wi.nodeq:
+            process(diro, data)
 
         return wi.nodeq
 
@@ -287,11 +283,10 @@ class DirTree_frompath (DirTree):
 
     # fetching Dir objects
 
-    def _fsnodes (self):
+    def _fsnodes(self):
         return (
-            self.topdown_map (dirname, subdirs, files)
-            for (dirname, subdirs, files) in os.walk(self.rootp)
-            )
+            self.topdown_map(dirname, subdirs, files)
+            for (dirname, subdirs, files) in os.walk(self.rootp))
 
     def dirs(self, dirfilter):
 
@@ -300,16 +295,11 @@ class DirTree_frompath (DirTree):
 
         return (
             diro for diro in (
-                self.dirmap if self.dirmap is not None
-                else self._fsnodes()
-                )
-            if dirfilter (diro))
+                self.dirmap if self.dirmap is not None else self._fsnodes())
+            if dirfilter(diro))
 
-# =======================
-# == DirTree_withlinks ==
-# =======================
 
-class DirTree_withlinks (DirTree):
+class DirTree_withlinks(DirTree):
 
     def __init__(self, rootp):
         self.rootp = os.path.abspath(rootp)
@@ -317,26 +307,19 @@ class DirTree_withlinks (DirTree):
 
     def __resolve(self, dl):
 
-        SUBST = {
-            "root": self.rootp
-            }
+        SUBST = {"root": self.rootp}
         return (
             dl.fstarget % dict(
                 [(key, SUBST[key])
-                 for key in SUBST if ("(%s)s" % key) in dl.fstarget]
-                )
-            )
+                 for key in SUBST if ("(%s)s" % key) in dl.fstarget]))
 
-    def dirs (self, dirfilter):
+    def dirs(self, dirfilter):
 
-        startlinks = [
-            DirLink(r) for r in ls ("%s/*.dtl" % self.rootp)
-            ]
-        rootq = [
-            (subdir, None) for subdir in (
-                [dtl.fstarget for dtl in startlinks]
-                if startlinks else [self.rootp])
-            ]
+        startlinks = [DirLink(r) for r in ls("%s/*.dtl" % self.rootp)]
+        rootq = [(subdir, None)
+                 for subdir in (
+                     [dtl.fstarget for dtl in startlinks]
+                     if startlinks else [self.rootp])]
 
         while rootq:
             (rootp, parento) = rootq.pop()
@@ -347,8 +330,9 @@ class DirTree_withlinks (DirTree):
 
             dt.rooto.pdo = parento
 
-            [rootq.append((self.__resolve(dl), diro))
-             for diro in dt.linkmap for dl in dt.linkmap[diro]]
+            for diro in dt.linkmap:
+                for dl in dt.linkmap[diro]:
+                    rootq.append((self.__resolve(dl), diro))
 
 
 # *************************************
@@ -360,15 +344,14 @@ if __name__ == '__main__':
     # construct a virtual tree incrementally
     # by requesting all the reachable testcases.
 
-    def process_tc (fspath):
-        print fspath
+    def process_tc(fspath):
+        print(fspath)
 
-    dt = DirTree_withlinks (rootp='.')
-    [process_tc (dir.fspath) for dir in
-     dt.dirs(dirfilter=lambda diro: 'test.py' in diro.files)]
+    dt = DirTree_withlinks(rootp='.')
+    for dir in dt.dirs(dirfilter=lambda diro: 'test.py' in diro.files):
+        process_tc(dir.fspath)
 
-    print "================================"
+    print("================================")
 
-    [process_tc (dir.fspath) for dir in
-     dt.dirs(dirfilter=lambda diro: 'test.py' in diro.files)]
-
+    for dir in dt.dirs(dirfilter=lambda diro: 'test.py' in diro.files):
+        process_tc(dir.fspath)
