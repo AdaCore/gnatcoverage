@@ -77,7 +77,7 @@ class CovControl:
         # To control "with" dependencies (set of projects that will be withed
         # by the one we will be generating for the testcase):
 
-        self.deps = deps
+        self.deps = list(deps)
 
         # gnatcov options to pass SCOs. As we're setting up a coverage control
         # object, this is NOT intended for --scos. This is intended for
