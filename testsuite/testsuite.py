@@ -104,6 +104,7 @@ class QlevelInfo(object):
         # qualification mode
         self.xcovlevel = xcovlevel
 
+
 RE_QCOMMON = "(Common|Appendix)"
 RE_QLANG = "(%s)" % '|'.join(QLANGUAGES)
 
@@ -116,6 +117,7 @@ def RE_SUBTREE(re_crit):
         "root": QROOTDIR, "common": RE_QCOMMON,
         "lang": RE_QLANG, "crit": re_crit
         }
+
 
 # Note that we expect test directory names to be in unix form here.
 # This is easy to achieve, will have obvious observable effects if not
@@ -451,9 +453,11 @@ class TestSuite(object):
     # ------------------------
 
     def __init__(self):
-        """Prepare the testsuite run: parse options, compute and dump
+        """
+        Prepare the testsuite run: parse options, compute and dump
         discriminants, compute lists of dead/non-dead tests, run gprconfig and
-        build the support library for the whole series of tests to come"""
+        build the support library for the whole series of tests to come.
+        """
 
         # Latch our environment values, then setup the log directory and
         # initialize the GAIA log files. We need to do that before setting
@@ -615,8 +619,10 @@ class TestSuite(object):
         return result
 
     def __board_discriminants(self):
-        """Compute a list of string discriminants that convey a
-        request to run for a particular target board."""
+        """
+        Compute a list of string discriminants that convey a request to run for
+        a particular target board.
+        """
 
         # There are two possible sources for this, with slightly different
         # operational meanings but which don't need to be differentiated
@@ -631,10 +637,10 @@ class TestSuite(object):
         return ['board', boardname] if boardname else []
 
     def __cargs_discriminants(self):
-        """Compute a list of discriminants (string) for each switch passed in
-        all the --cargs command-line option(s).  The format of each
-        discriminant CARGS_<X> where <X> is the switch stripped of its
-        leading dashes.
+        """
+        Compute a list of discriminants (string) for each switch passed in all
+        the --cargs command-line option(s).  The format of each discriminant
+        CARGS_<X> where <X> is the switch stripped of its leading dashes.
 
         For instance, if this testsuite is called with --cargs='-O1'
         --cargs:Ada='-gnatp', then this function should return
@@ -652,9 +658,11 @@ class TestSuite(object):
         return ["CARGS_%s" % arg.lstrip('-') for arg in allopts.split()]
 
     def __qualif_level_discriminants(self):
-        """List of single discriminant (string) denoting our current
-        qualification mode, if any. This is ['XXX'] when invoked
-        with --qualif-level=XXX, [] otherwise"""
+        """
+        List of single discriminant (string) denoting our current qualification
+        mode, if any. This is ['XXX'] when invoked with --qualif-level=XXX, []
+        otherwise.
+        """
 
         return (
             [] if not self.env.main_options.qualif_level
@@ -662,9 +670,11 @@ class TestSuite(object):
             )
 
     def __rts_discriminants(self):
-        """Compute a list of discriminant strings that reflect the kind of
-        runtime support library in use, as conveyed by the --RTS command-line
-        option."""
+        """
+        Compute a list of discriminant strings that reflect the kind of runtime
+        support library in use, as conveyed by the --RTS command-line
+        option.
+        """
 
         # --RTS=zfp is strict zfp, missing malloc, memcmp, memcpy and put
 
@@ -692,18 +702,22 @@ class TestSuite(object):
             return ["RTS_FULL"]
 
     def __toolchain_discriminants(self):
-        """Compute the list of discriminants that reflects the version of the
-        particular toolchain in use. The match is on the sequence of three single
-        digits separated by dots after GNAT Pro."""
+        """
+        Compute the list of discriminants that reflects the version of the
+        particular toolchain in use. The match is on the sequence of three
+        single digits separated by dots after GNAT Pro.
+        """
 
         gcc_version = version(self.tool("gcc"))
-        m = re.search("GNAT Pro (\d\.\d\.\d)", gcc_version)
+        m = re.search(r"GNAT Pro (\d\.\d\.\d)", gcc_version)
         return [m.group(1)] if m else []
 
     def __generate_group(self, dirname, group_py):
-        """Helper for the "test.py" research: generate a tree of testcases for
-        the given "group.py" located in "dirname". Return whethet generation
-        was successful."""
+        """
+        Helper for the "test.py" research: generate a tree of testcases for the
+        given "group.py" located in "dirname". Return whethet generation was
+        successful.
+        """
 
         group_py_path = os.path.join(dirname, group_py)
         p = Run(
@@ -722,10 +736,12 @@ class TestSuite(object):
     # ---------------------
 
     def __next_testcase_from(self, root):
-        """Helper generator function for __next_testcase, producing a sequence
+        """
+        Helper generator function for __next_testcase, producing a sequence
         of testcases to be executed from a provided root directory, updating
         self.run_list and self.dead_list on the fly. The testcase path ids are
-        canonicalized into unix form here."""
+        canonicalized into unix form here.
+        """
 
         if not self.options.quiet:
             logging.info(
@@ -1629,7 +1645,7 @@ class TestCase(object):
             for path in set(ls(os.path.join(self.atestdir, globp))):
                 try:
                     rm(path, recursive=True)
-                except:
+                except Exception:
                     handle_comment = self.__handle_info_for(path)
                     self.passed = False
                     self.status = 'RMFAILED'
@@ -1737,17 +1753,15 @@ class TestCase(object):
                 return lang
         return None
 
-# ======================
-# == Global functions ==
-# ======================
-
 
 def _quoted_argv():
-    """Return a list of command line options used to when invoking this
-    script.  The different with sys.argv is that the first entry (the
-    name of this script) is stripped, and that arguments that have a space
-    in them get quoted.  The goal is to be able to copy/past the quoted
-    argument in a shell and obtained the desired effect."""
+    """
+    Return a list of command line options used to when invoking this script.
+    The different with sys.argv is that the first entry (the name of this
+    script) is stripped, and that arguments that have a space in them get
+    quoted.  The goal is to be able to copy/past the quoted argument in a shell
+    and obtained the desired effect.
+    """
     quoted_args = []
     for arg in sys.argv[1:]:
         if ' ' in arg:
@@ -1761,13 +1775,9 @@ def _quoted_argv():
         quoted_args.append(quoted_arg)
     return quoted_args
 
-# =================
-# == script body ==
-# =================
-
-# Instanciate and run a TestSuite object ...
 
 if __name__ == "__main__":
+    # Instanciate and run a TestSuite object ...
     tso = TestSuite()
     tso.maybe_exec(bin=tso.options.pre_testsuite, edir="...")
     tso.run()
