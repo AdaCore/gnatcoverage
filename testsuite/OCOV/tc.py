@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import collections
-import os
-import os.path
 import re
 
-import SUITE.control
+from gnatpython.fileutils import mkdir
 
 from SUITE.context import thistest
+import SUITE.control
 from SUITE.cutils import Wdir
-from SUITE.tutils import *
+from SUITE.tutils import (gprbuild, gprfor, tracename_for, unixpath_to, xcov,
+                          xrun)
 
 # Cache some values we need repeatedly
 
@@ -19,16 +19,17 @@ TARGET_INFO = SUITE.control.target_info()
 class TestCase(object):
 
     ROUTINES_FILE = 'routines.list'
-    RESULT_FILE   = 'coverage.result'
+    RESULT_FILE = 'coverage.result'
 
     SYMBOL_COVERAGE_PATTERN = re.compile(
-        '^([a-zA-Z_][a-zA-Z0-9_]*)' # Symbol name
-        ' ([-!+]): '                # Symbol coverage result
-        '[0-9a-f]+-[0-9a-f]+\n$'    # Address range for the symbol
+        '^([a-zA-Z_][a-zA-Z0-9_]*)'  # Symbol name
+        ' ([-!+]): '                 # Symbol coverage result
+        '[0-9a-f]+-[0-9a-f]+\n$'     # Address range for the symbol
     )
     NO_COV, PART_COV, FULL_COV = '-!+'
 
-    def __init__(self,
+    def __init__(
+        self,
         test_drivers, coverage_expectations,
         extra_sourcedirs=[],
         level='branch', annotate='asm',
@@ -50,7 +51,7 @@ class TestCase(object):
         '''
         Return if "gnatcov coverage" executed properly.
         '''
-        wd = Wdir('tmp_')
+        Wdir('tmp_')
 
         # Compile and run separately each test driver.
         for test_driver, switches in self.test_drivers.items():
@@ -64,8 +65,9 @@ class TestCase(object):
         # Consolidate resulting traces and parse the object coverage results.
         # If consolidation fails, return False.
         if (
-            not self._consolidate_traces(self.RESULT_FILE, register_failure)
-            and not register_failure
+            not self._consolidate_traces(self.RESULT_FILE,
+                                         register_failure) and
+            not register_failure
         ):
             return False
 
@@ -87,7 +89,8 @@ class TestCase(object):
         return True
 
     def _compile(self, test_driver, compile_unit_switches):
-        test_driver_wd = Wdir('{}-obj'.format(test_driver)).to_homedir()
+        mkdir('{}-obj'.format(test_driver))
+
         project_file = gprfor(
             mains=[test_driver + '.c'],
             prjid=test_driver,
