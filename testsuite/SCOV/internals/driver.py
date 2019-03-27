@@ -383,6 +383,39 @@ class _Xchecker:
 class SCOV_helper:
     """Helper class for source coverage activities."""
 
+    # The differences between the different kinds of traces (binary or source)
+    # are handled by specializing a few operations.
+
+    def mode_build(self):
+        """For a single test (not consolidation), build the program to run
+        out of the test sources.
+        """
+        raise NotImplementedError
+
+    def mode_execute(self, main):
+        """Execute the program designated by MAIN, arranging to produce an
+        execution trace. Return the name of a file containing the execution
+        output.
+        """
+        raise NotImplementedError
+
+    def mode_scoptions(self):
+        """Return the gnatcov options to use to convey how SCOs should
+        be retrieved, at either execution or analysis time as needed by
+        the current execution mode.
+        """
+        raise NotImplementedError
+
+    def mode_gprdeps(self):
+        """Return a list of mode specific project file dependencies that should
+        be added to a single test project file, as needed at build or execution
+        time.
+        """
+        raise NotImplementedError
+
+    def mode_tracename_for(self, pgm):
+        raise NotImplementedError
+
     # --------------
     # -- __init__ --
     # --------------
@@ -550,7 +583,7 @@ class SCOV_helper:
         # traces from previous executions in the latter case.
 
         if self.singletest():
-            self.mode_execute(main=no_ext(self.drivers[0]))
+            self.run_test(main=no_ext(self.drivers[0]))
 
         # At this point, we have everything we need for the analysis. Either
         # from the just done build+run in the single test case, or from
@@ -638,17 +671,17 @@ class SCOV_helper:
     # --------------
     # -- run_test --
     # --------------
-    def run_test(self,main):
+    def run_test(self, main):
         """Execute the MAIN program to produce an execution trace, and
         trigger a failure if it raises an unhandled exception."""
 
-        p = self.execute(main=main)
+        out_file = self.mode_execute(main=main)
 
         thistest.fail_if (
             match (
                 "(!!! EXCEPTION RAISED !!!"
                 "|raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)",
-                p.out),
+                out_file),
             "exception raised while running '%s'." % main)
 
     # -------------------------
@@ -988,9 +1021,13 @@ class SCOV_helper_bin_traces(SCOV_helper):
 
     def mode_execute(self, main):
 
+        out_file = 'xrun_{}.out'.format(main)
+
         # Feed xcov run with full path (absolute dir) of the program so we
         # can directly get to the binary from the trace when reading it from
         # a different directory, such as in consolidation tests.
+
+        main_path = self.abdir_for(main) + exename_for(main)
 
         # Some execution engines (e.g. valgrind) do not let us distinguish
         # executed program errors from engine errors. Because of them, we
@@ -999,11 +1036,10 @@ class SCOV_helper_bin_traces(SCOV_helper):
         # further checks that are bound to fail if the execution doesn't
         # proceed as expected somehow (e.g. not producing a trace).
 
-        return xrun(
-            [self.abdir_for(main)+exename_for(main),
-             "--level=%s" % self.xcovlevel] + self.scoptions,
-            out="xrun_%s.out" % main,
-            register_failure=not self.testcase.expect_failures)
+        xrun([main_path, "--level=%s" % self.xcovlevel] + self.scoptions,
+             out=out_file, register_failure=not self.testcase.expect_failures)
+
+        return out_file
 
     def mode_scoptions(self):
         return (
@@ -1076,10 +1112,10 @@ class SCOV_helper_src_traces(SCOV_helper):
 
 
     def mode_execute(self, main):
-        return cmdrun(
-            [self.abdir_for(main)+exename_for(main)],
-            out="cmdrun_%s.out" % main,
-            register_failure=not self.testcase.expect_failures)
+        out_file = 'cmdrun_{}.out'.format(main)
+        cmdrun([main], out=out_file,
+               register_failure=not self.testcase.expect_failures)
+        return out_file
 
     def mode_scoptions(self):
         return ["--checkpoint=%s" % self.instrumentation_ckpt]
