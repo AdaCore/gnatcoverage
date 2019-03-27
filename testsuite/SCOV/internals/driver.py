@@ -1026,7 +1026,6 @@ class SCOV_helper_bin_traces(SCOV_helper):
         # Feed xcov run with full path (absolute dir) of the program so we
         # can directly get to the binary from the trace when reading it from
         # a different directory, such as in consolidation tests.
-
         main_path = self.abdir_for(main) + exename_for(main)
 
         # Some execution engines (e.g. valgrind) do not let us distinguish
@@ -1035,7 +1034,6 @@ class SCOV_helper_bin_traces(SCOV_helper):
         # failures (such as harness tests), assuming that they will perform
         # further checks that are bound to fail if the execution doesn't
         # proceed as expected somehow (e.g. not producing a trace).
-
         xrun([main_path, "--level=%s" % self.xcovlevel] + self.scoptions,
              out=out_file, register_failure=not self.testcase.expect_failures)
 
