@@ -140,9 +140,10 @@ trace_entry_header_struct = Struct(
     ('unit_name_length', 'I'),
     ('stmt_bit_count', 'I'),
     ('dc_bit_count', 'I'),
+    ('mcdc_bit_count', 'I'),
     ('unit_kind', 'B'),
     ('bit_buffer_encoding', 'B'),
-    ('padding', '6B'),
+    ('padding', '2B'),
 )
 
 
@@ -225,6 +226,7 @@ class SrcTraceFile(object):
                 e.unit_name, e.unit_kind, e.closure_hash))
             print('  Stmt buffer: {}'.format(format_buffer(e.stmt_buffer)))
             print('  Dc buffer:   {}'.format(format_buffer(e.dc_buffer)))
+            print('  MCDC buffer: {}'.format(format_buffer(e.mcdc_buffer)))
             print('')
 
 
@@ -234,12 +236,13 @@ class TraceEntry(object):
     """
 
     def __init__(self, unit_kind, unit_name, closure_hash, stmt_buffer,
-                 dc_buffer):
+                 dc_buffer, mcdc_buffer):
         self.unit_kind = unit_kind
         self.unit_name = unit_name
         self.closure_hash = closure_hash
         self.stmt_buffer = stmt_buffer
         self.dc_buffer = dc_buffer
+        self.mcdc_buffer = mcdc_buffer
 
     @classmethod
     def read(cls, fp, trace_file):
@@ -257,7 +260,7 @@ class TraceEntry(object):
                 2: 'separate'
             }[header['unit_kind']]
 
-            if header['padding'] != (0, ) * 6:
+            if header['padding'] != (0, ) * 2:
                 raise ValueError('Invalid padding: {}'
                                  .format(header['padding']))
 
@@ -276,9 +279,13 @@ class TraceEntry(object):
                 dc_buffer = TraceBuffer.read(
                     fp, trace_file, bit_buffer_encoding,
                     header['dc_bit_count'])
+            with fp.label_context('mcdc buffer'):
+                mcdc_buffer = TraceBuffer.read(
+                    fp, trace_file, bit_buffer_encoding,
+                    header['mcdc_bit_count'])
 
         return cls(unit_kind, unit_name, header['closure_hash'], stmt_buffer,
-                   dc_buffer)
+                   dc_buffer, mcdc_buffer)
 
 
 class TraceBuffer(object):

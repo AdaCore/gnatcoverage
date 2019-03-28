@@ -117,6 +117,8 @@ package body GNATcov_RTS.Traces.Output is
             Traces.Any_Bit_Count (Buffers.Statement_Last_Bit + 1),
          Decision_Bit_Count  =>
             Traces.Any_Bit_Count (Buffers.Decision_Last_Bit + 1),
+         MCDC_Bit_Count      =>
+            Traces.Any_Bit_Count (Buffers.MCDC_Last_Bit + 1),
          Unit_Part           => Unit_Part_Map (Buffers.Unit_Part),
          Bit_Buffer_Encoding => LSB_First_Bytes,
          Padding             => (others => ASCII.NUL));
@@ -126,6 +128,7 @@ package body GNATcov_RTS.Traces.Output is
       Write_Padding (File, Buffers.Unit_Name'Length);
       Write_Buffer (File, Buffers.Statement, Buffers.Statement_Last_Bit);
       Write_Buffer (File, Buffers.Decision, Buffers.Decision_Last_Bit);
+      Write_Buffer (File, Buffers.MCDC, Buffers.MCDC_Last_Bit);
    end Write_Entry;
 
    ------------------

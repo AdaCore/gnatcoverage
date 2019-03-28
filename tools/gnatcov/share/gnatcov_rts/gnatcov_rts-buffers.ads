@@ -45,14 +45,15 @@ package GNATcov_RTS.Buffers is
       --  subunit) in lower case. For instance: "foo", "ada.text_io" or
       --  "foo.bar.my_subunit".
 
-      Statement, Decision : System.Address;
-      --  Addresses of coverage buffers for statement and decision obligations.
-      --  The address refer to Coverage_Buffer_Type arrays whose bounds go from
+      Statement, Decision, MCDC : System.Address;
+      --  Addresses of coverage buffers for statement obligations, decision
+      --  obligations and MC/DC obligations. The address refer to
+      --  Coverage_Buffer_Type arrays whose bounds go from
       --  0 to Unit_Coverage_Buffers.*_Last_Bit.
 
-      Statement_Last_Bit, Decision_Last_Bit : Any_Bit_Id;
-      --  Index for the last bits in coverage buffers for statements and
-      --  decisions.
+      Statement_Last_Bit, Decision_Last_Bit, MCDC_Last_Bit : Any_Bit_Id;
+      --  Index for the last bits in coverage buffers for statements, decisions
+      --  and MC/DC.
    end record;
 
    -------------------------

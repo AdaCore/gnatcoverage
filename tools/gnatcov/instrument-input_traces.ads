@@ -37,7 +37,8 @@ package Instrument.Input_Traces is
          Unit_Name       : String;
          Unit_Part       : GNATCOLL.Projects.Unit_Parts;
          Stmt_Buffer     : Coverage_Buffer;
-         Decision_Buffer : Coverage_Buffer) is <>;
+         Decision_Buffer : Coverage_Buffer;
+         MCDC_Buffer     : Coverage_Buffer) is <>;
    procedure Generic_Read_Source_Trace_File
      (Filename : String;
       Result   : out Traces_Files.Read_Result);

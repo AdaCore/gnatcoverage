@@ -1200,7 +1200,8 @@ package body Coverage.Source is
       Unit_Name       : String;
       Unit_Part       : GNATCOLL.Projects.Unit_Parts;
       Stmt_Buffer     : Coverage_Buffer;
-      Decision_Buffer : Coverage_Buffer)
+      Decision_Buffer : Coverage_Buffer;
+      MCDC_Buffer     : Coverage_Buffer)
    is
       pragma Unreferenced (Closure_Hash);
 
@@ -1284,6 +1285,9 @@ package body Coverage.Source is
             end;
          end if;
       end loop;
+
+      --  TODO??? Discharge MC/DC obligations using MCDC_Buffer
+      pragma Unreferenced (MCDC_Buffer);
    end Compute_Source_Coverage;
 
    -------------------------

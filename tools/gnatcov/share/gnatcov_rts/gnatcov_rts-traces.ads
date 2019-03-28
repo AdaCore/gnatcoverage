@@ -109,6 +109,8 @@ package GNATcov_RTS.Traces is
    --  * The statement coverage buffer. It is also NUL-padded.
    --
    --  * The decision coverage buffer. It is also NUL-padded.
+   --
+   --  * The MC/DC coverage buffer. It is also NUL-padded.
 
    type Any_Bit_Buffer_Encoding is new Unsigned_8;
    --  Encoding used to store coverage buffers
@@ -139,7 +141,8 @@ package GNATcov_RTS.Traces is
 
       Statement_Bit_Count : Any_Bit_Count;
       Decision_Bit_Count  : Any_Bit_Count;
-      --  Number of bits in the statement and decision coverage buffers
+      MCDC_Bit_Count      : Any_Bit_Count;
+      --  Number of bits in the statement, decision and MC/DC coverage buffers
 
       Unit_Part : Any_Unit_Part;
       --  Part of the unit this trace entry describes
@@ -147,7 +150,7 @@ package GNATcov_RTS.Traces is
       Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
       --  Encoding used to represent statement and decision coverage buffers
 
-      Padding : String (1 .. 6);
+      Padding : String (1 .. 2);
       --  Padding used only to make the size of this trace entry header a
       --  multiple of 8 bytes. Must be zero.
    end record;
@@ -157,9 +160,10 @@ package GNATcov_RTS.Traces is
       Unit_Name_Length    at  4 range 0 .. 31;
       Statement_Bit_Count at  8 range 0 .. 31;
       Decision_Bit_Count  at 12 range 0 .. 31;
-      Unit_Part           at 16 range 0 .. 7;
-      Bit_Buffer_Encoding at 17 range 0 .. 7;
-      Padding             at 18 range 0 .. 6 * 8 - 1;
+      MCDC_Bit_Count      at 16 range 0 .. 31;
+      Unit_Part           at 20 range 0 .. 7;
+      Bit_Buffer_Encoding at 21 range 0 .. 7;
+      Padding             at 22 range 0 .. 2 * 8 - 1;
    end record;
 
    for Trace_Entry_Header'Size use 24 * 8;

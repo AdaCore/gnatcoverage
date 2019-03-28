@@ -127,6 +127,7 @@ package body Instrument.Input_Traces is
       Unit_Name        : System.Address;
       Statement_Buffer : System.Address;
       Decision_Buffer  : System.Address;
+      MCDC_Buffer      : System.Address;
    end record;
 
    type Coverage_Buffer_Access is access all Coverage_Buffer;
@@ -384,7 +385,7 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid bit buffer encoding");
             return False;
 
-         elsif Raw_Header.Padding /= (1 .. 6 => ASCII.NUL) then
+         elsif Raw_Header.Padding /= (1 .. 2 => ASCII.NUL) then
             Create_Error (Result, "invalid entry header padding");
             return False;
          end if;
@@ -394,8 +395,8 @@ package body Instrument.Input_Traces is
          Entry_Header := Raw_Header;
       end;
 
-      --  Now read the varible-length parts (unit name, buffer and decision
-      --  coverage buffers) in one single read.
+      --  Now read the varible-length parts (unit name, statement, decision and
+      --  MC/DC coverage buffers) in one single read.
 
       declare
          Unit_Name_Range        : constant Buffer_Range :=
@@ -411,9 +412,13 @@ package body Instrument.Input_Traces is
                        Offset_After (Statement_Buffer_Range),
                        Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
                                     Entry_Header.Decision_Bit_Count));
+         MCDC_Buffer_Range      : constant Buffer_Range :=
+            Range_For (File_Header.Alignment,
+                       Offset_After (Decision_Buffer_Range),
+                       Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
+                                    Entry_Header.MCDC_Bit_Count));
 
-         Data_Size    : constant Natural :=
-            Offset_After (Decision_Buffer_Range);
+         Data_Size    : constant Natural := Offset_After (MCDC_Buffer_Range);
          Base_Address : System.Address;
 
          function "+"
@@ -433,7 +438,8 @@ package body Instrument.Input_Traces is
          Base_Address := Buffer_Address (Stream);
          Trace_Entry := (Base_Address + Unit_Name_Range.Offset,
                          Base_Address + Statement_Buffer_Range.Offset,
-                         Base_Address + Decision_Buffer_Range.Offset);
+                         Base_Address + Decision_Buffer_Range.Offset,
+                         Base_Address + MCDC_Buffer_Range.Offset);
          return True;
       end;
    end Read_Trace_Entry;
@@ -488,6 +494,7 @@ package body Instrument.Input_Traces is
       Trace_Entry      : Trace_Entry_Elements;
       Statement_Buffer : Coverage_Buffer_Access;
       Decision_Buffer  : Coverage_Buffer_Access;
+      MCDC_Buffer      : Coverage_Buffer_Access;
    begin
       Result := (Success => True);
 
@@ -529,11 +536,19 @@ package body Instrument.Input_Traces is
                  (1 .. Decision_Buffer_Size)
                   with Import, Address => Trace_Entry.Decision_Buffer;
 
+               MCDC_Buffer_Size : constant Natural :=
+                  Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
+                               Entry_Header.MCDC_Bit_Count);
+               Raw_MCDC_Buffer  : constant Bytes_Array
+                 (1 .. MCDC_Buffer_Size)
+                  with Import, Address => Trace_Entry.MCDC_Buffer;
+
                function Last_Bit (Bit_Count : Any_Bit_Count) return Any_Bit_Id
                is (Any_Bit_Id (Bit_Count) - 1);
             begin
                Reserve (Statement_Buffer, Entry_Header.Statement_Bit_Count);
                Reserve (Decision_Buffer, Entry_Header.Decision_Bit_Count);
+               Reserve (MCDC_Buffer, Entry_Header.MCDC_Bit_Count);
 
                Decode_Buffer
                  (Entry_Header.Bit_Buffer_Encoding,
@@ -555,6 +570,15 @@ package body Instrument.Input_Traces is
                   exit;
                end if;
 
+               Decode_Buffer
+                 (Entry_Header.Bit_Buffer_Encoding,
+                  Raw_MCDC_Buffer,
+                  MCDC_Buffer (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)),
+                  Result);
+               if not Result.Success then
+                  exit;
+               end if;
+
                On_Trace_Entry
                  (Hash_Type (Entry_Header.Closure_Hash),
                   Unit_Name,
@@ -562,13 +586,16 @@ package body Instrument.Input_Traces is
                   Statement_Buffer
                     (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
                   Decision_Buffer
-                    (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)));
+                    (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)),
+                  MCDC_Buffer
+                    (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)));
             end;
          end loop;
       end if;
 
       Free (Statement_Buffer);
       Free (Decision_Buffer);
+      Free (MCDC_Buffer);
       Close (Stream.File);
    end Generic_Read_Source_Trace_File;
 
@@ -583,7 +610,8 @@ package body Instrument.Input_Traces is
          Unit_Name        : String;
          Unit_Part        : Unit_Parts;
          Statement_Buffer : Coverage_Buffer;
-         Decision_Buffer  : Coverage_Buffer);
+         Decision_Buffer  : Coverage_Buffer;
+         MCDC_Buffer      : Coverage_Buffer);
       --  Callback for Read_Source_Trace_File
 
       procedure Dump_Buffer (Label : String; Buffer : Coverage_Buffer);
@@ -597,7 +625,8 @@ package body Instrument.Input_Traces is
          Unit_Name        : String;
          Unit_Part        : Unit_Parts;
          Statement_Buffer : Coverage_Buffer;
-         Decision_Buffer  : Coverage_Buffer)
+         Decision_Buffer  : Coverage_Buffer;
+         MCDC_Buffer      : Coverage_Buffer)
       is
          use Ada.Text_IO;
       begin
@@ -607,6 +636,7 @@ package body Instrument.Input_Traces is
             & ")");
          Dump_Buffer ("Statement", Statement_Buffer);
          Dump_Buffer ("Decision", Decision_Buffer);
+         Dump_Buffer ("MCDC", MCDC_Buffer);
          New_Line;
       end On_Trace_Entry;
 

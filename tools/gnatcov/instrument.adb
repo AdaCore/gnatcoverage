@@ -166,12 +166,14 @@ package body Instrument is
          File.Put_Line ("      Unit_Name => """ & Unit_Name & """,");
 
          File.Put_Line ("      Statement => Statement_Buffer'Address,");
-         File.Put_Line ("      Decision => Decision_Buffer'Address,");
+         File.Put_Line ("      Decision  => Decision_Buffer'Address,");
+         File.Put_Line ("      MCDC      => MCDC_Buffer'Address,");
 
          File.Put_Line ("      Statement_Last_Bit => " & Statement_Last_Bit
                         & ",");
-         File.Put_Line ("      Decision_Last_Bit => "
-                        & Decision_Last_Bit & ");");
+         File.Put_Line ("      Decision_Last_Bit => " & Decision_Last_Bit
+                        & ",");
+         File.Put_Line ("      MCDC_Last_Bit => " & MCDC_Last_Bit & ");");
          File.New_Line;
          File.Put_Line ("end " & Pkg_Name & ";");
       end;
