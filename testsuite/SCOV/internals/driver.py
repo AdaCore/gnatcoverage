@@ -24,7 +24,8 @@ __all__ = ["SCOV_helper"]
 from collections import defaultdict
 import os
 
-from SCOV.tctl import CAT
+from SCOV.tctl import CAT, CovControl
+
 from SCOV.instr import xcov_instrument
 
 from SUITE.context import thistest
@@ -494,6 +495,19 @@ class SCOV_helper:
         thistest.fail_if (
             not self.xrnotes, "empty xrnotes from %s !!" % xfile)
 
+    def sources_of_interest(self):
+        """List of sources for which we have expectations to match."""
+        return self.xrnotes.keys()
+
+    def units_of_interest(self):
+        """Set of units for which we have expectations to match, based
+        on the list of sources for which we have expectations and assuming
+        standard  use of '-' in filenames for child units or subunits
+        (foo-bar.ads for package Foo.Bar).
+        """
+        return {no_ext(os.path.basename(soi)).replace('-', '.')
+                for soi in self.sources_of_interest()}
+
     # --------------------------
     # -- xcov_translation_for --
     # --------------------------
@@ -536,6 +550,12 @@ class SCOV_helper:
         # driver unit, so we exercise the functional code as separately
         # compiled, not as an inlined version of it in a non-representative
         # driver context.
+
+        # If we are operating in gpr mode and don't have an explicit coverage
+        # control object to obey, build one to convey the units of interest.
+
+        if thistest.options.gprmode and not self.covctl:
+            self.covctl = CovControl(units_in=self.units_of_interest())
 
         # Most of the tests with coverage control operate within
         # an extra subdir level
