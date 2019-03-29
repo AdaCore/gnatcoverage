@@ -1111,7 +1111,8 @@ class SCOV_helper_src_traces(SCOV_helper):
 
     def mode_execute(self, main):
         out_file = 'cmdrun_{}.out'.format(main)
-        cmdrun([main], out=out_file,
+        main_path = self.abdir_for(main) + exename_for(main)
+        cmdrun([main_path], out=out_file,
                register_failure=not self.testcase.expect_failures)
         return out_file
 
