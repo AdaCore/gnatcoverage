@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Streams.Stream_IO; use Ada.Streams.Stream_IO;
 with Qemu_Traces; use Qemu_Traces;
 
 package body Traces_Files_List is
@@ -26,14 +25,13 @@ package body Traces_Files_List is
    ---------------------
 
    procedure Checkpoint_Save
-     (CSS     : in out Checkpoints.Checkpoint_Save_State;
+     (CSS     : access Checkpoints.Checkpoint_Save_State;
       Context : access Coverage.Context)
    is
-      S : Stream_Access renames CSS.Stream;
       Context_Info : constant String := Coverage.To_String (Context.all);
    begin
       for TF of Files loop
-         String'Output (S, TF.Filename.all);
+         String'Output (CSS, TF.Filename.all);
 
          --  If this trace file does not come from a checkpoint, then this
          --  context is the original one where it has actually been processed:
@@ -48,7 +46,7 @@ package body Traces_Files_List is
 
       --  Mark end of list with empty string
 
-      String'Output (S, "");
+      String'Output (CSS, "");
    end Checkpoint_Save;
 
    ---------------------
@@ -56,13 +54,12 @@ package body Traces_Files_List is
    ---------------------
 
    procedure Checkpoint_Load
-     (CLS : in out Checkpoints.Checkpoint_Load_State)
+     (CLS : access Checkpoints.Checkpoint_Load_State)
    is
-      S : Stream_Access renames CLS.Stream;
    begin
       loop
          declare
-            Name    : constant String := String'Input (S);
+            Name    : constant String := String'Input (CLS);
             CP_File : Trace_File_Element_Acc;
          begin
             exit when Name = "";

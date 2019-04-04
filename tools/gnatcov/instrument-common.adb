@@ -387,7 +387,7 @@ package body Instrument.Common is
    ---------------------
 
    procedure Checkpoint_Save
-     (CSS : in out Checkpoints.Checkpoint_Save_State) is
+     (CSS : access Checkpoints.Checkpoint_Save_State) is
    begin
       Instrumented_Unit_To_CU_Maps.Map'Write
         (CSS.Stream, Instrumented_Unit_CUs);
@@ -398,7 +398,7 @@ package body Instrument.Common is
    ---------------------
 
    procedure Checkpoint_Load
-     (CLS : in out Checkpoints.Checkpoint_Load_State)
+     (CLS : access Checkpoints.Checkpoint_Load_State)
    is
       use Instrumented_Unit_To_CU_Maps;
 

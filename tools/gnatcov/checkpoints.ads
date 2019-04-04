@@ -19,7 +19,7 @@
 --  This unit controls the generation and processing of coverage state
 --  checkpoint files for incremental coverage.
 
-with Ada.Streams.Stream_IO; use Ada.Streams.Stream_IO;
+with Ada.Streams; use Ada.Streams;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Interfaces;
 
@@ -54,28 +54,39 @@ package Checkpoints is
    type SCO_Id_Map_Array is array (SCO_Id range <>) of SCO_Id;
    type SCO_Id_Map_Acc is access all SCO_Id_Map_Array;
 
-   --  Global state shared across phases of a checkpoint load or save
+   --  A stream associated with global state shared across phases of a
+   --  checkpoint load or save.
 
-   type Checkpoint_State is abstract tagged limited record
-      Stream  : Stream_Access;
-      Version : Checkpoint_Version;
-   end record;
+   type Stateful_Stream (Stream : access Root_Stream_Type'Class) is abstract
+     new Root_Stream_Type with
+      record
+         Version : Checkpoint_Version;
+      end record;
+
+   procedure Read
+     (Stream : in out Stateful_Stream;
+      Item   : out Stream_Element_Array;
+      Last   : out Stream_Element_Offset);
+   procedure Write
+     (Stream : in out Stateful_Stream;
+      Item   : Stream_Element_Array);
+   --  Read/write from/to underlying stream
 
    use type Interfaces.Unsigned_32;
    function Version_Less
-     (CS : Checkpoint_State'Class; Than : Checkpoint_Version)
-      return Boolean is (CS.Version < Than)
+     (CS : access Root_Stream_Type'Class; Than : Checkpoint_Version)
+      return Boolean is (Stateful_Stream (CS.all).Version < Than)
      with Inline;
    --  This is provided as a function to prevent the compiler from generating
    --  "can never be greater than" warnings.
 
    --  Global state shared across phases of a checkpoint save
 
-   type Checkpoint_Save_State is new Checkpoint_State with null record;
+   type Checkpoint_Save_State is new Stateful_Stream with null record;
 
    --  Global state shared across phases of a checkpoint load
 
-   type Checkpoint_Load_State is new Checkpoint_State with record
+   type Checkpoint_Load_State is new Stateful_Stream with record
       Filename : Unbounded_String;
       SFI_Map  : SFI_Map_Acc;
       CU_Map   : CU_Id_Map_Acc;

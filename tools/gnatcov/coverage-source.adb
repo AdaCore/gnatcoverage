@@ -18,7 +18,7 @@
 
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
-with Ada.Streams.Stream_IO; use Ada.Streams, Ada.Streams.Stream_IO;
+with Ada.Streams; use Ada.Streams;
 with Ada.Tags;
 with Ada.Unchecked_Deallocation;
 
@@ -209,7 +209,7 @@ package body Coverage.Source is
    -- Checkpoint_Save --
    ---------------------
 
-   procedure Checkpoint_Save (CSS : in out Checkpoint_Save_State) is
+   procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
    begin
       Ada.Tags.Tag'Write (CSS.Stream, Tag_Provider'Tag);
       SCI_Vector_Vectors.Vector'Write (CSS.Stream, SCI_Vector);
@@ -219,11 +219,9 @@ package body Coverage.Source is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State) is
+   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
       use type Ada.Tags.Tag;
       use SCI_Vector_Vectors;
-
-      S : Stream_Access renames CLS.Stream;
 
       CP_Tag_Provider : Ada.Tags.Tag;
       CP_SCI_Vector   : SCI_Vector_Vectors.Vector;
@@ -233,7 +231,7 @@ package body Coverage.Source is
       --  tag provider is the default (i.e. no coverage separation), or same
       --  as checkpoint.
 
-      Ada.Tags.Tag'Read (S, CP_Tag_Provider);
+      Ada.Tags.Tag'Read (CLS, CP_Tag_Provider);
       if Tag_Provider.all not in Default_Tag_Provider_Type
         and then Tag_Provider'Tag /= CP_Tag_Provider
       then
@@ -247,7 +245,7 @@ package body Coverage.Source is
 
       Initialize_SCI;
 
-      SCI_Vector_Vectors.Vector'Read (S, CP_SCI_Vector);
+      SCI_Vector_Vectors.Vector'Read (CLS, CP_SCI_Vector);
       for SCO_Cur in CP_SCI_Vector.Iterate loop
          Process_One_SCO : declare
             CP_SCO : constant SCO_Id := To_Index (SCO_Cur);
@@ -275,7 +273,7 @@ package body Coverage.Source is
                   if CP_SCI /= null then
                      Merge_Checkpoint_SCI
                        (SCO,
-                        Tag_Provider.Map_Tag (CLS, CP_SCI.Tag),
+                        Tag_Provider.Map_Tag (CLS.all, CP_SCI.Tag),
                         CP_SCI.all);
                   end if;
                end loop;

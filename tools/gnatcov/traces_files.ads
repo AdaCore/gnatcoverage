@@ -230,12 +230,12 @@ package Traces_Files is
    --  Raw dump of a trace file
 
    procedure Checkpoint_Save
-     (CSS        : in out Checkpoints.Checkpoint_Save_State;
+     (CSS        : access Checkpoints.Checkpoint_Save_State;
       Trace_File : Trace_File_Type);
    --  Save Trace_File's infos to S
 
    procedure Checkpoint_Load
-     (CLS        : in out Checkpoints.Checkpoint_Load_State;
+     (CLS        : access Checkpoints.Checkpoint_Load_State;
       Trace_File : in out Trace_File_Type);
    --  Load Trace_File's infos from S
 

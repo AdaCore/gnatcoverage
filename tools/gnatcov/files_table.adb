@@ -1572,7 +1572,7 @@ package body Files_Table is
    -- Checkpoint_Save --
    ---------------------
 
-   procedure Checkpoint_Save (CSS : in out Checkpoint_Save_State) is
+   procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
       S : Stream_Access renames CSS.Stream;
    begin
       --  1) Output first and last SFIs
@@ -1609,7 +1609,7 @@ package body Files_Table is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State) is
+   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
       S : Stream_Access renames CLS.Stream;
 
       --  1) Read header

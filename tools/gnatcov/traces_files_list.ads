@@ -42,11 +42,11 @@ package Traces_Files_List is
    Files : Traces_Files_Lists.List;
 
    procedure Checkpoint_Save
-     (CSS     : in out Checkpoints.Checkpoint_Save_State;
+     (CSS     : access Checkpoints.Checkpoint_Save_State;
       Context : access Coverage.Context);
    --  Save the current list of trace files to S
 
-   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
+   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
    --  Load list of trace files from S
 
 end Traces_Files_List;

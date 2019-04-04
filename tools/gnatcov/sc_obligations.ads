@@ -365,10 +365,10 @@ package SC_Obligations is
    -- Checkpoints --
    -----------------
 
-   procedure Checkpoint_Save (CSS : in out Checkpoints.Checkpoint_Save_State);
+   procedure Checkpoint_Save (CSS : access Checkpoints.Checkpoint_Save_State);
    --  Save the current SCOs to stream
 
-   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
+   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed SCOs from stream and merge them in current state
 
    function Case_Insensitive_Get_Pragma_Id

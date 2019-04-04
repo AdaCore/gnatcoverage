@@ -19,7 +19,6 @@
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Exceptions; use Ada.Exceptions;
-with Ada.Streams.Stream_IO; use Ada.Streams, Ada.Streams.Stream_IO;
 with Ada.Text_IO;    use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
@@ -1404,10 +1403,9 @@ package body Traces_Files is
    ---------------------
 
    procedure Checkpoint_Save
-     (CSS        : in out Checkpoints.Checkpoint_Save_State;
+     (CSS        : access Checkpoints.Checkpoint_Save_State;
       Trace_File : Trace_File_Type)
    is
-      S    : Stream_Access renames CSS.Stream;
       Info : Trace_File_Info_Acc := Trace_File.First_Infos;
 
    begin
@@ -1416,12 +1414,12 @@ package body Traces_Files is
 
       while Info /= null loop
          pragma Assert (Info.Kind /= Info_End);
-         Info_Kind_Type'Write (S, Info.Kind);
-         String'Output (S, Info.Data);
+         Info_Kind_Type'Write (CSS, Info.Kind);
+         String'Output (CSS, Info.Data);
          Info := Info.Next;
       end loop;
 
-      Info_Kind_Type'Write (S, Info_End);
+      Info_Kind_Type'Write (CSS, Info_End);
    end Checkpoint_Save;
 
    ---------------------
@@ -1429,16 +1427,15 @@ package body Traces_Files is
    ---------------------
 
    procedure Checkpoint_Load
-     (CLS        : in out Checkpoints.Checkpoint_Load_State;
+     (CLS        : access Checkpoints.Checkpoint_Load_State;
       Trace_File : in out Trace_File_Type)
    is
-      S    : Stream_Access renames CLS.Stream;
       Kind : Info_Kind_Type;
    begin
       loop
-         Info_Kind_Type'Read (S, Kind);
+         Info_Kind_Type'Read (CLS, Kind);
          exit when Kind = Info_End;
-         Append_Info (Trace_File, Kind, String'Input (S));
+         Append_Info (Trace_File, Kind, String'Input (CLS));
       end loop;
    end Checkpoint_Load;
 

@@ -441,10 +441,10 @@ package Files_Table is
    -- Checkpoints --
    -----------------
 
-   procedure Checkpoint_Save (CSS : in out Checkpoint_Save_State);
+   procedure Checkpoint_Save (CSS : access Checkpoint_Save_State);
    --  Save the current files table to S
 
-   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State);
+   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State);
    --  Load checkpointed files table from S and merge in current state
 
 private

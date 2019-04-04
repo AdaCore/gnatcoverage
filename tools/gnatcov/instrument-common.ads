@@ -326,10 +326,10 @@ package Instrument.Common is
    --  Note: the following procedures must be called after the SCO units
    --  table has been saved/loaded.
 
-   procedure Checkpoint_Save (CSS : in out Checkpoints.Checkpoint_Save_State);
+   procedure Checkpoint_Save (CSS : access Checkpoints.Checkpoint_Save_State);
    --  Save the current instrumented units map to stream
 
-   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
+   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed instrumented unit map from stream and merge them in
    --  current state.
 
