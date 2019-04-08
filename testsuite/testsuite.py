@@ -1161,7 +1161,9 @@ class TestSuite(object):
         else:
             self.n_consecutive_failures = 0
 
-        if self.n_consecutive_failures >= 10:
+        if self.options.max_consecutive_failures > 0 and (
+            self.n_consecutive_failures >=
+                self.options.max_consecutive_failures):
             raise FatalError(
                 "Stopped after %d consecutive failures"
                 % self.n_consecutive_failures)
@@ -1297,6 +1299,16 @@ class TestSuite(object):
         if ((not m.options.toolchain) and m.options.target and
                 '-elf' in m.options.target):
             m.options.largs += " -lgnat"
+
+        # Hack: gnatpython.main uses 0 as the default value for
+        # --max-consecutive-failures. Here we want 10 by default, so if if we
+        # have the integer zero (default value), reset to 10, and if we have a
+        # string (explicit value), convert it to integer.
+        if m.options.max_consecutive_failures == 0:
+            m.options.max_consecutive_failures = 10
+        else:
+            m.options.max_consecutive_failures = int(
+                m.options.max_consecutive_failures)
 
         return m.options
 
