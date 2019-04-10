@@ -210,6 +210,11 @@ package body Instrument is
                         & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
                         & """);");
          File.New_Line;
+         File.Put_Line ("   MCDC_Buffer : constant System.Address;");
+         File.Put_Line ("   pragma Import (Ada, MCDC_Buffer, """
+                        & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
+                        & """);");
+         File.New_Line;
          File.Put_Line ("end " & Pkg_Name & ";");
       end;
    end Emit_Pure_Buffer_Unit;

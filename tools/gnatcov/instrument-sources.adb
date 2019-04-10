@@ -155,7 +155,8 @@ package body Instrument.Sources is
      (IC         : Unit_Inst_Context;
       MCDC_State : Unbounded_String;
       Condition  : Node_Rewriting_Handle;
-      Offset     : Natural) return Node_Rewriting_Handle;
+      Offset     : Natural;
+      First      : Boolean) return Node_Rewriting_Handle;
    --  Create a function call to witness the value of the given condition,
    --  to be recorded in the given MC/DC state local variable.
 
@@ -296,12 +297,13 @@ package body Instrument.Sources is
      (IC         : Unit_Inst_Context;
       MCDC_State : Unbounded_String;
       Condition  : Node_Rewriting_Handle;
-      Offset     : Natural) return Node_Rewriting_Handle
+      Offset     : Natural;
+      First      : Boolean) return Node_Rewriting_Handle
    is
       E        : Instrumentation_Entities renames IC.Entities;
       Call_Img : constant String :=
         "{}.Witness (" & To_String (MCDC_State) & "'Address,"
-        & Img (Offset) & ")";
+        & Img (Offset) & "," & First'Img & ")";
 
       RH_Call : constant Node_Rewriting_Handle :=
         Create_From_Template
@@ -2899,7 +2901,7 @@ package body Instrument.Sources is
 
       Replace
         (RH_P,
-         Make_Condition_Witness (IC, SC.State, RH_N, Offset));
+         Make_Condition_Witness (IC, SC.State, RH_N, Offset, SC.First));
    end Insert_Condition_Witness;
 
    -----------------------------
