@@ -1636,6 +1636,9 @@ package body Instrument.Sources is
 
                Traverse_Sync_Definition (IC, N);
 
+            when Ada_Named_Stmt =>
+               Traverse_One (N.As_Named_Stmt.F_Stmt.As_Ada_Node);
+
             when others =>
 
                --  Determine required type character code, or ASCII.NUL if
