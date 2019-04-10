@@ -321,7 +321,7 @@ install-gnatcov_rts:
 
 install-gnatcov_rts_full:
 	for build in static relocatable static-pic; do \
-	$(GPRINSTALL) -Pshare/gnatcov_rts_full -p --prefix=$(PREFIX) \
+	$(GPRINSTALL) -Pshare/gnatcov_rts_full -p -f --prefix=$(PREFIX) \
 		--sources-subdir=include/gnatcov_rts_full \
 		--build-var=LIBRARY_TYPE \
 		--build-name=$$build -XLIBRARY_TYPE=$$build; \
