@@ -170,6 +170,8 @@ package SC_Obligations is
    subtype Condition_Index is
      Any_Condition_Index range 0 .. Any_Condition_Index'Last;
 
+   type Condition_Values_Array is array (Condition_Index range <>) of Tristate;
+
    type Operand_Position is (Left, Right);
 
    --  Expose BDD node id type for the benefit of checkpoints
@@ -330,7 +332,16 @@ package SC_Obligations is
    --  Return count of paths through decision's BDD from root condition to
    --  any outcome.
 
+   function Condition_Values
+     (SCO        : SCO_Id;
+      Path_Index : Natural;
+      Outcome    : out Boolean) return Condition_Values_Array;
+   --  Return the vector of condition values and outcome for the BDD path
+   --  with the given index.
+
    procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
+   --  Flag SCO to indicate that the value of its (only) condition is known
+   --  only modulo an arbitrary negation.
 
    --------------------------
    -- Sloc -> SCO_Id index --

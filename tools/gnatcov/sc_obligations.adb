@@ -2016,6 +2016,89 @@ package body SC_Obligations is
    end Condition;
 
    ----------------------
+   -- Condition_Values --
+   ----------------------
+
+   function Condition_Values
+     (SCO        : SCO_Id;
+      Path_Index : Natural;
+      Outcome    : out Boolean) return Condition_Values_Array
+   is
+      Last_Cond_Index : Condition_Index;
+      --  Index of last condition in decision
+
+      Node : BDD_Node_Id;
+      --  Current BDD node
+
+      Tail_Index : Natural := Path_Index;
+      --  Path index in the sub-BDD rooted at Node
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Conditions to the condition count and Node to the root BDD node
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Last_Cond_Index := SCOD.Last_Cond_Index;
+         Node := SCOD.Decision_BDD.Root_Condition;
+      end Q;
+
+   --  Start of processing for Condition_Values
+
+   begin
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      declare
+         Result : Condition_Values_Array :=
+           (Condition_Index'First .. Last_Cond_Index => Unknown);
+         Outcome_Reached : Boolean := False;
+
+         procedure Visit_Node (BDDN : BDD.BDD_Node);
+         --  Determine value of current condition based on current
+         --  node and path index at that node.
+
+         ----------------
+         -- Visit_Node --
+         ----------------
+
+         procedure Visit_Node (BDDN : BDD.BDD_Node) is
+            use type BDD.BDD_Node_Kind;
+
+         begin
+            if BDDN.Kind = BDD.Outcome then
+               Outcome := BDDN.Decision_Outcome;
+               Outcome_Reached := True;
+               return;
+            end if;
+
+            declare
+               pragma Assert (BDDN.Kind = BDD.Condition);
+
+               Cond_Index : constant Condition_Index := Index (BDDN.C_SCO);
+               Cond_Value : constant Boolean := Tail_Index >= BDDN.Path_Offset;
+
+            begin
+               Result (Cond_Index) := To_Tristate (Cond_Value);
+               if Cond_Value then
+                  Tail_Index := Tail_Index - BDDN.Path_Offset;
+               end if;
+               Node := BDDN.Dests (Cond_Value);
+            end;
+         end Visit_Node;
+
+      begin
+         loop
+            BDD.BDD_Vector.Query_Element (Node, Visit_Node'Access);
+            exit when Outcome_Reached;
+         end loop;
+
+         return Result;
+      end;
+   end Condition_Values;
+
+   ----------------------
    -- Decision_Outcome --
    ----------------------
 

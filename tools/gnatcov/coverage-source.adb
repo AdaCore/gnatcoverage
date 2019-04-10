@@ -1286,8 +1286,36 @@ package body Coverage.Source is
          end if;
       end loop;
 
-      --  TODO??? Discharge MC/DC obligations using MCDC_Buffer
-      pragma Unreferenced (MCDC_Buffer);
+      for J in MCDC_Buffer'Range loop
+         if MCDC_Buffer (J) then
+            declare
+               MCDC_Info   : MCDC_Bit_Info renames BM.MCDC_Bits (J);
+               Outcome     : Boolean;
+               Cond_Values : constant Condition_Values_Array :=
+                 Condition_Values
+                   (MCDC_Info.D_SCO, MCDC_Info.Path_Index, Outcome);
+
+               procedure Add_Evaluation (SCI : in out Source_Coverage_Info);
+               --  Add evaluation to SCI
+
+               --------------------
+               -- Add_Evaluation --
+               --------------------
+
+               procedure Add_Evaluation (SCI : in out Source_Coverage_Info) is
+               begin
+                  SCI.Evaluations.Include
+                    ((Decision       => MCDC_Info.D_SCO,
+                      Values         => To_Vector (Cond_Values),
+                      Outcome        => To_Tristate (Outcome),
+                      Next_Condition => No_Condition_Index));
+               end Add_Evaluation;
+
+            begin
+               Update_SCI (MCDC_Info.D_SCO, No_SC_Tag, Add_Evaluation'Access);
+            end;
+         end if;
+      end loop;
    end Compute_Source_Coverage;
 
    -------------------------

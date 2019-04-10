@@ -28,6 +28,11 @@ package MC_DC is
      (Index_Type   => Condition_Index,
       Element_Type => Tristate);
 
+   function To_Vector
+     (Cond_Values : Condition_Values_Array)
+      return Condition_Evaluation_Vectors.Vector;
+   --  Convert Cond_Values to a vector
+
    --  Type Evaluation denotes one evaluation of a decision
 
    type Evaluation is record
