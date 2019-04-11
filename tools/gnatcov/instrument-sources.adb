@@ -1540,9 +1540,9 @@ package body Instrument.Sources is
                                                  .As_String_Literal.Text));
                               end if;
 
-                              Ann.CU := No_CU_Id; -- ???
+                              Ann.CU := IC.CU;
                               ALI_Annotations.Insert
-                                (Key => (Source_File => No_Source_File, -- ???
+                                (Key => (Source_File => IC.SFI,
                                          L => (Line   =>
                                                  Positive (Ann_Sloc.Line),
                                                Column =>
