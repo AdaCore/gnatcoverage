@@ -1,9 +1,8 @@
-
 ------------------------------------------------------------------------------
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2018, AdaCore                     --
+--                     Copyright (C) 2009-2019, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -709,5 +708,18 @@ package SC_Obligations is
           Pragma_Type_Invariant_Class => True,
 
           Unknown_Pragma => True);
+
+private
+
+   --  Write accessors for child units
+
+   procedure Set_Operand
+     (Operator : SCO_Id;
+      Position : Operand_Position;
+      Operand  : SCO_Id);
+   --  Set the operand slot indicated by Position in Operator to Operand
+
+   procedure Set_BDD_Node (C_SCO : SCO_Id; BDD_Node : BDD_Node_Id);
+   --  Set the BDD node for the given condition SCO
 
 end SC_Obligations;
