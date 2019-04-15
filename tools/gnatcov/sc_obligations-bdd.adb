@@ -177,16 +177,17 @@ package body SC_Obligations.BDD is
    ---------------------
 
    procedure Enumerate_Paths (BDD : in out BDD_Type) is
-      Visited : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
-                  of Boolean := (others => False);
+      Path_Count : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
+        of Integer := (others => 0);
 
       procedure Visit
         (Node_Id      : BDD_Node_Id;
          Origin_Id    : BDD_Node_Id;
-         Origin_Value : Boolean;
-         Path_Count   : out Natural);
+         Origin_Value : Boolean)
+        with Post => Path_Count (Node_Id) > 0;
       --  Visit one node. If it was already seen, record presence of a
-      --  multi-path condition.
+      --  multi-path condition. Sets Path_Count (Node_Id) to total count
+      --  of paths from the identified node.
 
       -----------
       -- Visit --
@@ -195,8 +196,7 @@ package body SC_Obligations.BDD is
       procedure Visit
         (Node_Id      : BDD_Node_Id;
          Origin_Id    : BDD_Node_Id;
-         Origin_Value : Boolean;
-         Path_Count   : out Natural)
+         Origin_Value : Boolean)
       is
          Parent_Id : BDD_Node_Id := Origin_Id;
          C_Value   : Tristate;
@@ -220,15 +220,13 @@ package body SC_Obligations.BDD is
                   --  Record first condition that is reachable through
                   --  multiple paths.
 
-                  if  Visited (Node_Id) then
+                  if  Path_Count (Node_Id) > 0 then
                      if BDD.First_Multipath_Condition = No_BDD_Node_Id then
                         BDD.First_Multipath_Condition := Node_Id;
                         Parent_Id := No_BDD_Node_Id;
                      end if;
-
                      return;
                   end if;
-                  Visited (Node_Id) := True;
 
                   C_Value           := Value (Node.C_SCO);
                   Node.Parent       := Parent_Id;
@@ -241,9 +239,8 @@ package body SC_Obligations.BDD is
                         Visit
                           (Node.Dests (J),
                            Origin_Id    => Node_Id,
-                           Origin_Value => J,
-                           Path_Count   => Edge_Count (J));
-
+                           Origin_Value => J);
+                        Edge_Count (J) := Path_Count (Node.Dests (J));
                      end if;
                   end loop;
 
@@ -256,11 +253,12 @@ package body SC_Obligations.BDD is
                   --    for False edge
 
                   Node.Path_Offset := Edge_Count (False);
-                  Path_Count := Edge_Count (False) + Edge_Count (True);
+                  Path_Count (Node_Id) :=
+                    Edge_Count (False) + Edge_Count (True);
 
                when Outcome =>
                   BDD.Reachable_Outcomes (Node.Decision_Outcome) := True;
-                  Path_Count := 1;
+                  Path_Count (Node_Id) := 1;
 
                when others =>
                   raise Program_Error;
@@ -279,8 +277,8 @@ package body SC_Obligations.BDD is
       Visit
         (BDD.Root_Condition,
          Origin_Id    => No_BDD_Node_Id,
-         Origin_Value => False,
-         Path_Count   => BDD.Path_Count);
+         Origin_Value => False);
+      BDD.Path_Count := Path_Count (BDD.Root_Condition);
    end Enumerate_Paths;
 
    ---------------
