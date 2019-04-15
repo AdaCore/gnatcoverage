@@ -1147,7 +1147,7 @@ package body SC_Obligations is
    begin
       SCO_Vector.Query_Element (SCO, Q'Access);
       declare
-         Result : Condition_Values_Array :=
+         Result          : Condition_Values_Array :=
            (Condition_Index'First .. Last_Cond_Index => Unknown);
          Outcome_Reached : Boolean := False;
 

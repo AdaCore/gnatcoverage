@@ -220,7 +220,7 @@ package body SC_Obligations.BDD is
                   --  Record first condition that is reachable through
                   --  multiple paths.
 
-                  if  Path_Count (Node_Id) > 0 then
+                  if Path_Count (Node_Id) > 0 then
                      if BDD.First_Multipath_Condition = No_BDD_Node_Id then
                         BDD.First_Multipath_Condition := Node_Id;
                         Parent_Id := No_BDD_Node_Id;
