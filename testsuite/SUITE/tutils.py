@@ -525,10 +525,9 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
         memcheck_log = contents_of (MEMCHECK_LOG)
         thistest.fail_if(
             memcheck_log,
-            FatalError(
-                'MEMCHECK log not empty\n'
-                + 'FROM "%s":\n%s' % (
-                    ' '.join(covpgm + covargs), memcheck_log)))
+            'MEMCHECK log not empty'
+            '\nFROM "%s":'
+            '\n%s' % (' '.join(covpgm + covargs), memcheck_log))
 
     return p
 
