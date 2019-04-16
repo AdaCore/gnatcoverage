@@ -183,8 +183,14 @@ package body Instrument.Tree is
       function Stmt_Img return String is
         (Call_Img & ";");
 
+      --  Note: package spec and package body are instrumented separately,
+      --  so we need to make sure that variables declared in a body can't
+      --  clash with those from the corresponding spec, hence the inclusion
+      --  of the unit part in the variable name.
+
       function Decl_Img return String is
-        ("Discard_" & Bit_Img & " : {}.Witness_Dummy_Type := "
+        ("Discard_" & IC.Instrumented_Unit.Part'Img & Bit_Img
+         & " : {}.Witness_Dummy_Type := "
          & Call_Img & ";");
 
    begin
