@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2013, AdaCore
+   Copyright (C) 2013-2019, AdaCore
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -32,6 +32,12 @@
 #include "dr_tools.h"
 
 #include "qtrace.h"
+
+/* The DR_LOG_ALL macro used to be named LOG_ALL prior to DRIO 7.1.
+   Accommodate both conventions.  */
+#ifndef DR_LOG_ALL
+#define DR_LOG_ALL LOG_ALL
+#endif
 
 /* History map.  This is a sorted and fixed array of PCs for which a trace
    must be written each time the instruction is executed.  */
@@ -576,7 +582,7 @@ void dr_client_main(client_id_t id, int argc, const char *argv[])
 
   dr_set_client_name("DynamoRIO Sample Client 'qtrace'",
 		     "http://dynamorio.org/issues");
-  dr_log(NULL, LOG_ALL, 1, "Client 'qtrace' initializing");
+  dr_log(NULL, DR_LOG_ALL, 1, "Client 'qtrace' initializing");
   client_id = id;
 
   trace_buffer_lock = dr_mutex_create ();
