@@ -364,7 +364,7 @@ package body Coverage.Source is
                      --  has been seen for the entire unit, this means that
                      --  the user probably omitted required tests for that
                      --  unit, so in that case we do not enter this branch
-                     --  (because Unit_Had_Code is False), and so we end up
+                     --  (because Unit_Has_Code is False), and so we end up
                      --  conservatively marking all statements in the unit as
                      --  not covered (on the basis that they might end up
                      --  having code, and be marked  as not covered, when the
@@ -379,6 +379,11 @@ package body Coverage.Source is
                      --  omitted at link time, so we don't know for sure
                      --  whether or not the compiler emitted code for that SCO,
                      --  so we conservatively assume that it might have.
+
+                     --  For source instrumentation, Unit_Has_Code is set when
+                     --  we load coverage buffers for the unit, and
+                     --  Basic_Block_Has_Code is set when there is a statement
+                     --  SCO bit for this statement SCO (or one it dominates).
 
                      if Report_If_Excluded (SCO) then
                         SCO_State := Not_Coverable;
@@ -1237,22 +1242,32 @@ package body Coverage.Source is
                          & Part & " " & Unit_Name);
          end;
       end if;
-      BM := Bit_Maps (CU);
+
+      --  Mark unit as present in closure
+
+      Set_Unit_Has_Code (CU);
 
       --  Sanity check that Closure_Hash is consistent with what the
       --  instrumenter recorded in the CU info.
-
       --  ??? TBD
 
       --  Discharge SCOs based on source traces
 
+      BM := Bit_Maps (CU);
+
       for J in Stmt_Buffer'Range loop
+
+         --  TODO??? Currently we hard-code No_SC_Tag.
+         --  Need to add support for per-instance coverage
+
+         --  Mark SCO as coverable (there is a bit referencing it)
+
+         Set_Basic_Block_Has_Code (BM.Statement_Bits (J), No_SC_Tag);
+
+         --  If bit is set, statement has been executed
+
          if Stmt_Buffer (J) then
             Update_SCI (BM.Statement_Bits (J), No_SC_Tag, Set_Executed'Access);
-
-            --  TODO??? Currently we hard-code No_SC_Tag.
-            --  Need to add support for per-instance coverage
-
          end if;
       end loop;
 

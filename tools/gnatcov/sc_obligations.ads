@@ -66,7 +66,9 @@ package SC_Obligations is
    --  source, or No_CU_Id if no such LI file has been loaded.
 
    procedure Set_Unit_Has_Code (CU : CU_Id);
-   --  Record the presence of object code for CU
+   --  Record the presence of object code for CU. For units analyzed through
+   --  source instrumentation, this is detected by the presence of coverage
+   --  buffers for the unit.
 
    procedure Report_Units_Without_Code;
    --  Emit an error message for any unit of interest for which no object code
