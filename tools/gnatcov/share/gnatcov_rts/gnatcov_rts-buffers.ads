@@ -75,11 +75,9 @@ package GNATcov_RTS.Buffers is
 
    type Witness_Dummy_Type is null record;
    function Witness
-     (Buffer_Address : System.Address; Bit : Bit_Id)
-      return Witness_Dummy_Type;
+     (Buffer_Address : System.Address; Bit : Bit_Id) return Witness_Dummy_Type;
    function Witness
-     (Buffer_Address : System.Address; Bit : Bit_Id)
-      return Boolean;
+     (Buffer_Address : System.Address; Bit : Bit_Id) return Boolean;
    procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id);
    --  Set the boolean corresponding to Bit to True in Buffer. The Boolean
    --  version always returns True.
