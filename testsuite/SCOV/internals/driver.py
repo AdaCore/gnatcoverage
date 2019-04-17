@@ -1025,6 +1025,8 @@ class SCOV_helper:
         mkdir(wdir)
         cd(wdir)
 
+        thistest.log("Work directory: %s" % os.getcwd())
+
     # ----------------
     # -- to_homedir --
     # ----------------
