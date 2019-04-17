@@ -25,6 +25,14 @@ package body GNATcov_RTS.Buffers is
    end Witness;
 
    function Witness
+     (Buffer_Address : System.Address; Bit : Bit_Id) return Boolean
+   is
+   begin
+      Witness (Buffer_Address, Bit);
+      return True;
+   end Witness;
+
+   function Witness
      (Buffer_Address      : System.Address;
       False_Bit, True_Bit : Bit_Id;
       Value               : Boolean) return Boolean is

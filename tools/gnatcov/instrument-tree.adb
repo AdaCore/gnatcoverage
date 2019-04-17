@@ -129,10 +129,12 @@ package body Instrument.Tree is
    -- Generation of witness fragments --
    -------------------------------------
 
+   type Statement_Witness_Flavor is
+     (Procedure_Call, Function_Call, Declaration);
    function Make_Statement_Witness
-     (IC        : Unit_Inst_Context;
-      Bit       : Bit_Id;
-      Statement : Boolean) return Node_Rewriting_Handle;
+     (IC     : Unit_Inst_Context;
+      Bit    : Bit_Id;
+      Flavor : Statement_Witness_Flavor) return Node_Rewriting_Handle;
    --  Create a procedure call statement or object declaration to witness
    --  execution of the low level SCO with the given bit id.
 
@@ -170,18 +172,16 @@ package body Instrument.Tree is
    ----------------------------
 
    function Make_Statement_Witness
-     (IC        : Unit_Inst_Context;
-      Bit       : Bit_Id;
-      Statement : Boolean) return Node_Rewriting_Handle
+     (IC     : Unit_Inst_Context;
+      Bit    : Bit_Id;
+      Flavor : Statement_Witness_Flavor) return Node_Rewriting_Handle
    is
       Bit_Img : constant String  := Img (Bit);
       E       : Instrumentation_Entities renames IC.Entities;
 
       function Call_Img return String is
-        ("{}.Witness ({}, " & Bit_Img & ")");
-
-      function Stmt_Img return String is
-        (Call_Img & ";");
+        ("{}.Witness ({}, " & Bit_Img & ")"
+         & (if Flavor = Function_Call then "" else ";"));
 
       --  Note: package spec and package body are instrumented separately,
       --  so we need to make sure that variables declared in a body can't
@@ -191,21 +191,24 @@ package body Instrument.Tree is
       function Decl_Img return String is
         ("Discard_" & IC.Instrumented_Unit.Part'Img & Bit_Img
          & " : {}.Witness_Dummy_Type := "
-         & Call_Img & ";");
+         & Call_Img);
+
+   --  Start of processing for Make_Statement_Witness
 
    begin
-      if Statement then
-         return Create_From_Template
-           (IC.Rewriting_Context,
-            Template  => To_Wide_Wide_String (Stmt_Img),
-            Arguments => (E.Common_Buffers, E.Statement_Buffer),
-            Rule      => Call_Stmt_Rule);
-      else
+      if Flavor = Declaration then
          return Create_From_Template
            (IC.Rewriting_Context,
             Template  => To_Wide_Wide_String (Decl_Img),
             Arguments => (1 | 2 => E.Common_Buffers, 3 => E.Statement_Buffer),
             Rule      => Object_Decl_Rule);
+      else
+         return Create_From_Template
+           (IC.Rewriting_Context,
+            Template  => To_Wide_Wide_String (Call_Img),
+            Arguments => (E.Common_Buffers, E.Statement_Buffer),
+            Rule      =>
+              (if Flavor = Procedure_Call then Call_Stmt_Rule else Name_Rule));
       end if;
    end Make_Statement_Witness;
 
@@ -616,28 +619,65 @@ package body Instrument.Tree is
             IC.Unit_Bits.Statement_Bits.Append
               ((LL_SCO_Id, Executed => IC.Unit_Bits.Last_Statement_Bit));
 
-            --  Insert witness statement or declaration
+            if SCE.N.Kind = Ada_Elsif_Stmt_Part then
+               declare
+                  Old_Cond : constant Node_Rewriting_Handle :=
+                    Handle (SCE.N.As_Elsif_Stmt_Part.F_Cond_Expr);
+                  New_Cond : constant Node_Rewriting_Handle :=
+                    Create_Regular_Node
+                      (IC.Rewriting_Context,
+                       Ada_Bin_Op,
+                       Children =>
+                         (1 => Make_Statement_Witness
+                            (IC,
+                             Bit    => IC.Unit_Bits.Last_Statement_Bit,
+                             Flavor => Function_Call),
 
-            Insert_Child
-              (Handle => RH_Enclosing_List,
+                          2 => Create_Node
+                            (IC.Rewriting_Context, Ada_Op_And_Then),
 
-               Index  =>
-                 --  The witness is inserted at the current location of the
-                 --  statement, so that it will occur immediately *before*
-                 --  it in the instrumented sources. This is necessary because
-                 --  we want to mark a statement as executed anytime it has
-                 --  commenced execution (including in cases it raises an
-                 --  exception or otherwise transfers control).
+                          --  Placeholder for relocation of old condition after
+                          --  it is detached from the tree.
 
-                 Integer (SCE.Index + Insertion_Count),
+                          3 => No_Node_Rewriting_Handle));
 
-               Child  =>
-                 Make_Statement_Witness
-                   (IC,
-                    Bit       => IC.Unit_Bits.Last_Statement_Bit,
-                    Statement => Witness_Use_Statement));
+               begin
+                  --  Detach old condition from tree and replace it with
+                  --  AND THEN node.
 
-            Insertion_Count := Insertion_Count + 1;
+                  Replace (Old_Cond, New_Cond);
+
+                  --  Now reattach old condition in new AND THEN node
+
+                  Set_Child (New_Cond, 3, Old_Cond);
+               end;
+
+            else
+               --  Insert witness statement or declaration
+
+               Insert_Child
+                 (Handle => RH_Enclosing_List,
+
+                  Index  =>
+                  --  The witness is inserted at the current location of the
+                  --  statement, so that it will occur immediately *before*
+                  --  it in the instrumented sources. This is necessary because
+                  --  we want to mark a statement as executed anytime it has
+                  --  commenced execution (including in cases it raises an
+                  --  exception or otherwise transfers control).
+
+                    Integer (SCE.Index + Insertion_Count),
+
+                  Child  =>
+                    Make_Statement_Witness
+                      (IC,
+                       Bit    => IC.Unit_Bits.Last_Statement_Bit,
+                       Flavor => (if Witness_Use_Statement
+                                  then Procedure_Call
+                                  else Declaration)));
+
+               Insertion_Count := Insertion_Count + 1;
+            end if;
          end Insert_Statement_Witness;
 
       --  Start of processing for Set_Statement_Entry
