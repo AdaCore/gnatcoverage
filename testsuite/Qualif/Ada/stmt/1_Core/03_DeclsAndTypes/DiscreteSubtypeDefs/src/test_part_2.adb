@@ -18,8 +18,10 @@ end;
 
 --# defs.ads
 -- /dcl/    l+ ## 0
--- /g1_dcl/ ~l- ## ~s-
 -- /g2_dcl/ l+ ## 0
+
+-- %opts: --trace-mode=src
+-- /g1_dcl/ l- ## s-
 
 --# defs.adb
 -- /1_local_dcl/ l- ## s-

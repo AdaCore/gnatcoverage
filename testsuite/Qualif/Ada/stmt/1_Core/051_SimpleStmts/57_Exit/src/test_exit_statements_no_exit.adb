@@ -25,6 +25,7 @@ begin
 end Test_EXIT_Statements_No_Exit;
 
 --# exit_statements.adb
+-- /1decl/            ~l- ## ~s-
 -- /1preloop/         ~l- ## ~s-
 -- /1loop/            ~l- ## ~s-
 -- /in1loop1exit/     ~l- ## ~s-
