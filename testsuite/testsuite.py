@@ -30,7 +30,8 @@ import os
 import re
 import sys
 
-from SUITE import cutils
+import SUITE.cutils as cutils
+
 from SUITE.cutils import strip_prefix, contents_of, FatalError, exit_if
 from SUITE.cutils import version
 
@@ -43,10 +44,12 @@ from SUITE.qdata import QLANGUAGES, QROOTDIR
 from SUITE.qdata import QSTRBOX_DIR, CTXDATA_FILE
 from SUITE.qdata import SUITE_context, TC_status, TOOL_info, OPT_info_from
 
-from SUITE import control
+import SUITE.control as control
+
 from SUITE.control import BUILDER, xcov_pgm
 from SUITE.control import altrun_opt_for, altrun_attr_for
 from SUITE.control import cargs_opt_for, cargs_attr_for
+
 from SUITE.vtree import DirTree
 
 DEFAULT_TIMEOUT = 600
