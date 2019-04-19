@@ -455,9 +455,9 @@ class SCOV_helper:
         # Compute the gnatcov coverage specific extra options that we'll have
         # to pass. We need these early for Xnote expansions.
 
-        self.covoptions = [
-            '--level='+self.xcovlevel
-            ] + (to_list (self.covctl.covoptions) if self.covctl else [])
+        self.covoptions = ['--level='+self.xcovlevel]
+        if self.covctl:
+            self.covoptions += to_list(self.covctl.covoptions)
 
         self.extracargs = to_list (self.testcase.extracargs)
 
