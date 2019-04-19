@@ -459,6 +459,11 @@ class SCOV_helper:
         if self.covctl:
             self.covoptions += to_list(self.covctl.covoptions)
 
+        # Compute the list of test launch options strings that we need for
+        # expectation CTL lines.
+
+        ctl_opts = ['--trace-mode=%s' % thistest.options.trace_mode]
+
         self.extracargs = to_list (self.testcase.extracargs)
 
         # { sourcename -> KnoteDict } dictionaries of emitted/expected
@@ -475,6 +480,7 @@ class SCOV_helper:
 
         xnotes = XnotesExpander (
             xfile=xfile, xcov_level=xcovlevel,
+            ctl_opts  = ctl_opts,
             ctl_cov   = self.covoptions,
             ctl_cargs = gprbuild_cargs_with (thiscargs=self.extracargs),
             ctl_tags  = thistest.options.tags,

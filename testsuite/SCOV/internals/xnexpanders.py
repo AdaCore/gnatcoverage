@@ -208,10 +208,14 @@ from SUITE.cutils import Identifier
 # for this option in particular, meaning "... if this option is *not* part of
 # of the compilation args for the test.
 #
-# %cov: ... is similar, against the gnatcov coverage specific options for the
-# test instead of the compilation flags. %tags: ... also is similar, against
-# the testsuite discriminants, of particular interest for a possible toolchain
-# indication.
+# %cov:  ... is similar, against the gnatcov coverage options for the test,
+#            instead of the compilation flags.
+#
+# %tags: ... is similar, against the testsuite discriminants, of particular
+#            interest for a possible toolchain indication.
+#
+# %opts: ... is similar, against options passed on the test execution command
+#            line, possibly coming from the upper testsuite level.
 #
 # When some of the conditions don't match, lx lines are ignored until
 # the decision to start grabbing again triggers from a subsequent CTL line.
@@ -678,7 +682,7 @@ class XnotesExpander:
 
     def __init__(
         self, xfile, xcov_level,
-        ctl_cov, ctl_cargs, ctl_tags, ctl_cons
+        ctl_opts, ctl_cov, ctl_cargs, ctl_tags, ctl_cons
         ):
 
         # XFILE is the name of the file from which coverage expectations
@@ -692,13 +696,17 @@ class XnotesExpander:
 
         self.xcov_level = xcov_level
 
-        # CTL_CARGS, CTL_COV, CTL_TAGS and CTL_CONS are the reference controls
-        # for CTL lines - compilation options and specific options to gnatcov
-        # coverage that we are going to use, relevant set of discriminants for
-        # the current run, and the kind of artifacts we are requested to use
-        # for consolidation:
+        # CTL_OPTS, CTL_COV, CTL_CARGS, CTL_TAGS and CTL_CONS are the reference
+        # lists of control strings for CTL lines:
+        #
+        # CTL_OPTS  - test option strings of interest (e.g. "trace_mode=src"),
+        # CTL_COV   - list of gnatcov coverage options that we are going to use
+        # CTL_CARGS - compilation options
+        # CTL_TAGS  - set of discriminants for the current run, and
+        # CTL_CONS  - kinds of consolidation artifacts we are requested to use
 
         self.ctls = {
+            "%opts" : ' '.join (ctl_opts),
             "%cargs": ' '.join (ctl_cargs),
             "%cov"  : ' '.join (ctl_cov),
             "%tags" : ' '.join (ctl_tags),
