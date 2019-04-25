@@ -1,14 +1,10 @@
-from SCOV.tc import *
-from SUITE.cutils import list_to_tmp, Wdir
-from SUITE.gprutils import gprdep_for
+import os.path
 
-libdep = os.path.abspath("mylib/mylib.gpr")
+from SCOV.tc import TestCase
+from SCOV.tctl import CovControl
+from SUITE.context import thistest
 
-TestCase().run (
-    covcontrol = CovControl (
-        deps = [libdep],
-        scoptions = "-Pgen --recursive"
-        )
-    )
-
+libdep = os.path.abspath('mylib/mylib.gpr')
+TestCase().run(covcontrol=CovControl(deps=[libdep],
+                                     scoptions='-Pgen --recursive'))
 thistest.result()

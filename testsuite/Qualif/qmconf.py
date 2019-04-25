@@ -1,4 +1,6 @@
-latex_show_pagerefs=True
+import os.path
+
+latex_show_pagerefs = True
 
 common_file = os.path.join(
     os.path.dirname(
