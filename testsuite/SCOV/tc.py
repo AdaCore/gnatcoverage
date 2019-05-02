@@ -29,8 +29,8 @@ from SUITE.context import thistest
 import os, re
 import os.path
 
+from SUITE.context import TEST_DIR
 from SUITE.cutils import to_list, contents_of, FatalError
-from SUITE.tutils import TEST_DIR
 
 from SUITE.qdata import Qdata, QDentry
 
