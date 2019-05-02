@@ -1,27 +1,23 @@
-# ***************************************************************************
-# **                             TEST SUITE-CONTEXT                        **
-# ***************************************************************************
+"""Testsuite context.
 
-# This module is imported by all testcases. It exposes a single "thistest"
-# instance of a Test class, to switch to the test subdir, and offer command
-# line and test status management facilities.
+This module is imported by all testcases. It exposes a single "thistest"
+instance of a Test class, to switch to the test subdir, and offer command line
+and test status management facilities.
 
-# It also exposes a few global variables of general use (env, TEST_DIR, etc)
+It also exposes a few global variables of general use (env, TEST_DIR, etc)
+"""
 
-# ***************************************************************************
+import os
+import sys
 
-from gnatpython.ex import Run, PIPE
-from gnatpython.env import Env
+from gnatpython.ex import Run
+from gnatpython.fileutils import cd, rm
 from gnatpython.main import Main
 
-from gnatpython.fileutils import cd, rm, which, diff, touch, mkdir, ls, find
-
-import os, re, sys
-
 from SUITE import control
-from SUITE.control import GPRCLEAN, BUILDER, LANGINFO
-
+from SUITE.control import GPRCLEAN, BUILDER, env
 from SUITE.cutils import indent_after_first_line, lines_of, ndirs_in
+
 
 # This module is loaded as part of a Run operation for a test.py
 # file found and launched by the toplevel driver
@@ -32,20 +28,16 @@ ROOT_DIR = os.getcwd()
 # And this is the relative directory where test.py was found:
 TEST_DIR = os.path.dirname(sys.modules['__main__'].__file__)
 
-env = Env()
-
-# ==================
-# == ReportOutput ==
-# ==================
 
 # Internal helper to dispatch information to test.py.err/log/out
 
 class _ReportOutput(object):
-    """A class that allows us to write some text to a report file, while
-    bufferizing part of it until we know whether this part should also
-    be printed on standard output or not.  The idea is to buffer the
-    output generated for each driver until the end of the test, and then
-    print that output to stdout if we then determine that the test failed.
+    """
+    A class that allows us to write some text to a report file, while
+    bufferizing part of it until we know whether this part should also be
+    printed on standard output or not.  The idea is to buffer the output
+    generated for each driver until the end of the test, and then print that
+    output to stdout if we then determine that the test failed.
 
     ATTRIBUTES
       report_fd: A file descriptor to the report file where all the output
@@ -71,14 +63,16 @@ class _ReportOutput(object):
         self.print_diff = False
 
     def enable_diffs(self):
-        """Turn printing of the output buffer on.  The printing will be done
-        at the next flush.
+        """
+        Turn printing of the output buffer on.  The printing will be done at
+        the next flush.
         """
         self.print_diff = True
 
     def log(self, text, end_of_line=True):
-        """Write the given text in the output file.  This also adds
-        the text to the output buffer.
+        """
+        Write the given text in the output file.  This also adds the text to
+        the output buffer.
 
         PARAMETERS
           text:   The text to be logged.
@@ -93,8 +87,9 @@ class _ReportOutput(object):
         self.report_fd.write(text)
 
     def flush(self):
-        """Reset the output buffer (printing its content on standard output
-        first if print_diff is True).  Reset print_diff to False as well.
+        """
+        Reset the output buffer (printing its content on standard output first
+        if print_diff is True).  Reset print_diff to False as well.
         """
         if self.print_diff:
             print self.output,
@@ -107,9 +102,6 @@ class _ReportOutput(object):
         """
         self.report_fd.close()
 
-# ==========
-# == Test ==
-# ==========
 
 class Test (object):
     """Test class:
@@ -133,28 +125,21 @@ class Test (object):
     no failure was registered.
     """
 
-    # ---------------
-    # -- __init __ --
-    # ---------------
-
     def __init__(self):
-        """Initialize the instance: switch to the test subdirectory, parse
-        command line options, reset the failures counter and precompute
-        gprbuild options we'll have to pass on every call to convey config
-        options.
         """
-
+        Initialize the instance: switch to the test subdirectory, parse command
+        line options, reset the failures counter and precompute gprbuild
+        options we'll have to pass on every call to convey config options.
+        """
         # Compute the depth of this test wrt testsuite root. We join ROOT and
         # TEST dirs then compute the length of the relative path, instead of
         # just counting the number of components in TEST_DIR, to prevent
         # inacuracies from possible "./" components that don't really increase
         # the depth.
-
         self.reldir = TEST_DIR
-        self.homedir = os.path.join (ROOT_DIR, TEST_DIR)
+        self.homedir = os.path.join(ROOT_DIR, TEST_DIR)
 
-        self.depth = ndirs_in (
-            os.path.relpath (self.homedir, ROOT_DIR))
+        self.depth = ndirs_in(os.path.relpath(self.homedir, ROOT_DIR))
 
         cd(TEST_DIR)
 
@@ -169,33 +154,29 @@ class Test (object):
             '-v' if self.options.qualif_level else '-q',
 
             # gprconfig base, selecting runtime
-            '--config=%s' % os.path.join (ROOT_DIR, BUILDER.SUITE_CGPR)
-            ]
-        
-        self.gprvaroptions = [
-            '-XTARGET=%s' % env.target.triplet]
+            '--config=%s' % os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR)]
+        self.gprvaroptions = ['-XTARGET=%s' % env.target.triplet]
 
         if self.options.board:
-            self.gprvaroptions.append ('-XBOARD=%s' % self.options.board)
+            self.gprvaroptions.append('-XBOARD=%s' % self.options.board)
 
         # Workaround a desynchronization between default build configuration
         # for TMS570 and GNATemulator's settings: see O519-032. We may get rid
         # of this kludge one day adapting GNATemulator.
         if self.options.RTS and self.options.RTS.endswith('-tms570'):
-            self.gprvaroptions.append ('-XLOADER=LORAM')
+            self.gprvaroptions.append('-XLOADER=LORAM')
 
         # For trace32 runs where the test is executed on a real board, we
         # choose to have both the code and data in RAM. The default is to run
         # from flash which would take more time for the probe to program. It
         # would also wear out the flash memory.
         if self.options.gnatcov_run and 'trace32' in self.options.gnatcov_run:
-            self.gprvaroptions.append ('-XLOADER=RAM')
+            self.gprvaroptions.append('-XLOADER=RAM')
 
         # Whether this test will be using project files to locate SCOs when
         # running gnatcov.  This is decided on a per gnatcov invocation basis.
         # self.options.gnatcov states whether we're queried to do this for
         # SCOV driven tests.
-
         self.gprmode = False
 
         # Callgrind may be invoked more than once for each test. Memorize the
@@ -208,24 +189,19 @@ class Test (object):
 
     def cleanup(self, project):
         """Cleanup possible remnants of previous builds."""
-
-        Run([GPRCLEAN, "-P%s" % project]
-            + self.gprconfoptions + self.gprvaroptions)
+        Run([GPRCLEAN, "-P%s" % project] +
+            self.gprconfoptions + self.gprvaroptions)
         rm('*.xcov')
         rm('*.bin')
 
-    # ----------------------------
-    # -- Test status management --
-    # ----------------------------
+    # Test status management
 
     def log(self, text, new_line=True):
-        """Calls self.report.log.
-        """
+        """Calls self.report.log. """
         self.report.log(text, new_line)
 
     def flush(self):
-        """Calls self.report.flush.
-        """
+        """Calls self.report.flush. """
         self.report.flush()
 
     def comment(self, text):
@@ -241,9 +217,9 @@ class Test (object):
     def fail_if(self, expr, comment="assertion failed"):
         """Register a check failure when EXPR is true."""
         if expr:
-            self.failed (comment)
+            self.failed(comment)
 
-    def stop(self,exc):
+    def stop(self, exc):
         self.failed("Processing failed")
         self.result()
         raise exc
@@ -264,23 +240,15 @@ class Test (object):
 
         # Flush the output, in case we forgot to do so earlier.  This has no
         # effect if the flush was already performed.
-
         self.flush()
         self.report.close()
-
-    # -------------------------
-    # -- create_callgrind_id --
-    # -------------------------
 
     def create_callgrind_id(self):
         """Return a test-unique ID to identify a callgrind run."""
         self.callgrind_count += 1
         return self.callgrind_count
 
-
-    # -----------------------------
-    # -- Test options management --
-    # -----------------------------
+    # Test options management
 
     def __cmdline_options(self):
         """Return an options object to represent the command line options"""
@@ -305,7 +273,7 @@ class Test (object):
 
         main.add_option('--tags', dest='tags', default="")
 
-        control.add_shared_options_to (main, toplevel=False)
+        control.add_shared_options_to(main, toplevel=False)
 
         main.parse_args()
         if main.options.report_file is None:
@@ -315,35 +283,33 @@ class Test (object):
 
         # Get our tags set as a list. Fetch contents from file if needed
         # first:
-
         if main.options.tags and main.options.tags.startswith('@'):
             main.options.tags = ' '.join(
-                lines_of (main.options.tags[1:])
+                lines_of(main.options.tags[1:])
                 )
         if main.options.tags:
             main.options.tags = main.options.tags.split()
 
         return main.options
 
-    def suite_cargs_for (self, lang):
-        """String of options passed as --cargs[:LANG] to the testsuite
-        driver. None if no such option passed. LANG might be None, to fetch
-        options passed as --cargs."""
+    def suite_cargs_for(self, lang):
+        """
+        String of options passed as --cargs[:LANG] to the testsuite driver.
+        None if no such option passed. LANG might be None, to fetch options
+        passed as --cargs.
+        """
+        return getattr(thistest.options, control.cargs_attr_for(lang))
 
-        return getattr(thistest.options, control.cargs_attr_for (lang))
-
-    def suite_covpgm_for (self, cmd):
-        """Alternate program to launch in lieu of "gnatcov CMD", if
-        any specified with the --gnatcov-CMD= command line option. None
-        otherwise."""
-
+    def suite_covpgm_for(self, cmd):
+        """
+        Alternate program to launch in lieu of "gnatcov CMD", if any specified
+        with the --gnatcov-CMD= command line option. None otherwise.
+        """
         return getattr(thistest.options, 'gnatcov_%s' % cmd, None)
 
     def support_dir(self):
-        return os.path.join (ROOT_DIR, 'support')
+        return os.path.join(ROOT_DIR, 'support')
 
-# Instantiate a Test object for the individual test module that
-# imports us.
 
-thistest = Test ()
-
+# Instantiate a Test object for the individual test module that imports us
+thistest = Test()
