@@ -1,60 +1,53 @@
-# Another big chantier, exploring ideas around the possibility to generate
-# parts of the testcase sources for libexp.
+"""
+Another big chantier, exploring ideas around the possibility to generate parts
+of the testcase sources for Libexp.
 
-# Still extremely rough. Not used in production at all.
+Still extremely rough. Not used in production at all.  Committed to facilitate
+communication between the developers involved.
+"""
 
-# Committed to facilitate communication between the developers involved.
 
-import re
-
-def body_lines (lines):
+def body_lines(lines):
     return '\n'.join(lines) + '\n'
+
 
 class Evaluator:
     def __init__(self, expr, context):
         self.expr = expr
         self.context = context
 
-class Ada_Evaluator (Evaluator):
+
+class Ada_Evaluator(Evaluator):
 
     def __init__(self, expr, context):
         Evaluator.__init__(self, expr, context)
 
     def package_spec(self):
-        return (
-            body_lines (["package This_Evaluator is"])
-            + self.expr.predefs()
-            + body_lines (["end;"])
-            )
+        return (body_lines(["package This_Evaluator is"]) +
+                self.expr.predefs() +
+                body_lines(["end;"]))
 
     def package_body(self):
-        return (
-            body_lines (["package body This_Evaluator is"])
-            + self.proc_body()
-            + body_lines (["end;"])
-            )
-
+        return (body_lines(["package body This_Evaluator is"]) +
+                self.proc_body() +
+                body_lines(["end;"]))
 
     def proc_formals(self):
-        return ', '.join (
-            ["%s : %s" % (op.formal_name, op.formal_type) for op in expr.op])
+        return ', '.join("%s : %s" % (op.formal_name, op.formal_type)
+                         for op in expr.op)
 
     def proc_body_start(self):
-        return body_lines (
-            ["procedure Eval (%s) is" % (
-                    self.proc_formals()),
-             "begin"]
-            )
+        return body_lines(["procedure Eval (%s) is" % (self.proc_formals()),
+                           "begin"])
 
     def proc_body_end(self):
-        return body_lines (["end;"])
+        return body_lines(["end;"])
 
     def proc_body(self):
-        return (
-            self.proc_body_start()
-            + self.context.body_for(expr=self.expr)
-            + self.proc_body_end()
-            )
+        return (self.proc_body_start() +
+                self.context.body_for(expr=self.expr) +
+                self.proc_body_end())
+
 
 class OP:
     def __init__(self):
@@ -67,34 +60,31 @@ class OP:
     def body(self):
         return "VAR_NOBODY"
 
-class OP_Ada_Bool (OP):
+
+class OP_Ada_Bool(OP):
     def __init__(self, formal_name):
         self.typedef = None
         self.formal_name = formal_name
         self.formal_type = "Boolean"
-        self.actual_for = {
-            False : "False",
-            True  : "True"
-            }
+        self.actual_for = {False: "False", True: "True"}
 
     def body(self):
         return self.formal_name
 
     @staticmethod
     def predefs():
-        return body_lines (["-- no predefs for me"])
+        return body_lines(["-- no predefs for me"])
+
 
 class EXPR:
     def __init__(self, opclasses):
         self.vectors = None
         self.next_arg_index = 0
 
-        self.op = [
-            opclass(formal_name=self.next_arg_name())
-            for opclass in opclasses
-            ]
+        self.op = [opclass(formal_name=self.next_arg_name())
+                   for opclass in opclasses]
 
-        self.opclass_set = set (opclasses)
+        self.opclass_set = set(opclasses)
 
     def next_arg_name(self):
         this_arg_index = self.next_arg_index
@@ -105,53 +95,49 @@ class EXPR:
         return "EXPR_NOBODY"
 
     def predefs(self):
-        return '\n'.join (
-            [opclass.predefs() for opclass in self.opclass_set]
-            )
+        return '\n'.join(opclass.predefs() for opclass in self.opclass_set)
+
 
 class EXPR_And(EXPR):
     def __init__(self, op0_class, op1_class):
         EXPR.__init__(self, opclasses=(op0_class, op1_class))
         self.vectors = ["fx_f", "tf_f", "tt_t"]
 
+
 class EXPR_Ada_AndThen(EXPR_And):
     def __init__(self, op0_class, op1_class):
         EXPR_And.__init__(self, op0_class, op1_class)
 
     def body(self):
-        return (
-            "%s and then %s" % (self.op[0].body(), self.op[1].body())
-            )
+        return "%s and then %s" % (self.op[0].body(), self.op[1].body())
+
 
 class EXPR_C_AndThen(EXPR_And):
     def __init__(self, op0, op1):
         EXPR_And.__init__(self, op0, op1)
 
     def body(self):
-        return (
-            "%s && %s" % (self.op[0].body(), self.op[1].body())
-            )
+        return "%s && %s" % (self.op[0].body(), self.op[1].body())
+
 
 class Context:
     pass
 
-class CTX_AdaReturn (Context):
 
+class CTX_AdaReturn(Context):
     def body_for(self, expr):
-        return body_lines (
-            ["return %s; -- # eval-all :e:" % expr.body()]
-            )
+        return body_lines(["return %s; -- # eval-all :e:" % expr.body()])
 
-class CTX_AdaIf (Context):
 
+class CTX_AdaIf(Context):
     def body_for(self, expr):
-        return body_lines (
-            ["if %s then       -- # eval-all :d:" % expr.body(),
-             "  return True;   -- # on-true",
-             "else",
-             "  return False;  -- # on-false",
-             "end if;"]
-            )
+        return body_lines([
+            "if %s then       -- # eval-all :d:" % expr.body(),
+            "  return True;   -- # on-true",
+            "else",
+            "  return False;  -- # on-false",
+            "end if;"])
+
 
 class Tcgen:
     def __init__(self, xprname, opkinds, vectors, lang):
@@ -164,19 +150,16 @@ class Tcgen:
         # class object from string ? instantiate ?
 
         xpr_classname = "EXPR_%s_%s" % (self.lang, self.xprname)
+        op_classnames = ["OP_%s_%s" % (self.lang, opk) for opk in self.opkinds]
+        del xpr_classname
+        del op_classnames
 
-        op_classnames = [
-            "OP_%s_%s" % (self.lang, opk) for opk in self.opkinds]
 
-expr = EXPR_Ada_AndThen (
-    op0_class = OP_Ada_Bool,
-    op1_class = OP_Ada_Bool
-    )
+expr = EXPR_Ada_AndThen(op0_class=OP_Ada_Bool,
+                        op1_class=OP_Ada_Bool)
 
 for ctx in [CTX_AdaIf, CTX_AdaReturn]:
-    aev = Ada_Evaluator (
-        expr = expr, context=ctx()
-        )
+    aev = Ada_Evaluator(expr=expr, context=ctx())
     print aev.package_spec()
     print aev.package_body()
 
