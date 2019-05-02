@@ -1,15 +1,19 @@
-# ***************************************************************************
-# **                             TEST SUITE CONTROL                        **
-# ***************************************************************************
+"""
+Testsuite control
+"""
+
+import os.path
+import re
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
 from gnatpython.fileutils import rm
-import os.path, re
 
 from SUITE.cutils import no_ext
 
+
 env = Env()
+
 
 def xcov_pgm(auto_arch, for_target=True):
     """Return the name of the "gnatcov" program to run.
@@ -24,13 +28,14 @@ def xcov_pgm(auto_arch, for_target=True):
     arch = env.target if for_target else env.build
     return 'gnatcov{bits}{ext}'.format(
         bits=str(arch.cpu.bits) if auto_arch else '',
-        ext=env.host.os.exeext
-    )
+        ext=env.host.os.exeext)
+
 
 # Append .exe on windows for native tools
-GPRBUILD  = 'gprbuild' + env.host.os.exeext
+GPRBUILD = 'gprbuild' + env.host.os.exeext
 GPRCONFIG = 'gprconfig' + env.host.os.exeext
-GPRCLEAN  = 'gprclean' + env.host.os.exeext
+GPRCLEAN = 'gprclean' + env.host.os.exeext
+
 
 class LangInfo:
     """A class that provides some info about a given language.
@@ -59,8 +64,8 @@ class LangInfo:
         self.comment = comment
         self.scofile_for = scofile_for
 
-# A dictionary mapping a LangInfo instance to each known language.
 
+# A dictionary mapping a LangInfo instance to each known language
 LANGINFO = {
     "Ada": LangInfo(
         name="Ada", src_ext=[".ads", ".adb"], comment='--',
@@ -81,11 +86,11 @@ LANGINFO = {
 
     "Cons": LangInfo(
         name="Consolidation", src_ext=[".txt"], comment='--',
-        scofile_for=None)
-    }
+        scofile_for=None)}
 
+# List of languages that gnatcov supports
 KNOWN_LANGUAGES = [li.name for li in LANGINFO.values() if li.scofile_for]
-# list of languages that gnatcov supports
+
 
 def language_info(source_filename):
     """Return the LangInfo associated to a given source filename.
@@ -99,36 +104,32 @@ def language_info(source_filename):
             return lang_info
     return None
 
-class BUILDER:
 
-    # Common compilation args, passed to all build invocations.
+class BUILDER:
+    """Common compilation args, passed to all build invocations."""
 
     @staticmethod
     def __TARGET_CARGS_FOR(triplet):
-        # Coverage analysis relies on advanced dwarf info disabled
-        # by default on VxWorks.
+        # Coverage analysis relies on advanced dwarf info disabled by default
+        # on VxWorks.
         if 'vxworks' in triplet:
             return ['-gno-strict-dwarf']
-   	return []
+        return []
 
     @staticmethod
     def COMMON_CARGS():
-        return (
-            ["-g", "-fpreserve-control-flow", "-fdump-scos"]
-            + BUILDER.__TARGET_CARGS_FOR (Env().target.triplet)
-            )
+        return (["-g", "-fpreserve-control-flow", "-fdump-scos"] +
+                BUILDER.__TARGET_CARGS_FOR(Env().target.triplet))
 
     # Base command for a build
-
     BASE_COMMAND = GPRBUILD
 
     # Configuration file suitable for all the builder invocations,
     # setup early, once, to latch the compiler paths and RTS settings
-
     SUITE_CGPR = "suite.cgpr"
 
     @staticmethod
-    def RUN_CONFIG_SEQUENCE (toplev_options):
+    def RUN_CONFIG_SEQUENCE(toplev_options):
         """Arrange to generate the SUITE_CONFIG configuration file"""
 
         # In principle, this would be something like
@@ -145,68 +146,60 @@ class BUILDER:
 
         # We build a temporary dummy project file in the current directory,
         # specifying languages only.
-
-        tempgpr = open ("suite.gpr", "w")
-
-        tempgpr.write ('\n'.join (
-                ('project %(prjname)s is',
-                 '  for Languages use ("Asm", "C", "Ada", "C++");',
-                 'end %(prjname)s;')
-                ) % {'prjname': os.path.basename(tempgpr.name).split('.')[0]}
-            )
-        tempgpr.close()
+        with open("suite.gpr", "w") as tempgpr:
+            tempgpr.write("""
+                project %(prjname)s is
+                   for Languages use ("Asm", "C", "Ada", "C++");
+                end %(prjname)s;
+            """ % {'prjname': os.path.basename(tempgpr.name).split('.')[0]})
 
         # We now run gprbuild -Ptemp.gpr --target=bla --RTS=blo, which
         # will complain about missing sources, but only after producing
         # an automatic config file with everything we need, and nothing
         # else (no other file).
-
-        rm (BUILDER.SUITE_CGPR)
+        rm(BUILDER.SUITE_CGPR)
 
         extraopts = []
         if toplev_options.RTS:
-            extraopts.append ('--RTS=%s' % toplev_options.RTS)
+            extraopts.append('--RTS=%s' % toplev_options.RTS)
 
         # Request a specific target only if one is explicitly called
         # for. On native configurations, note that we may be running 32bit
         # tools on a 64bit host.
-
         if toplev_options.target:
-            extraopts.append ('--target=%s' % env.target.triplet)
+            extraopts.append('--target=%s' % env.target.triplet)
 
-        Run ([GPRBUILD, '-P', tempgpr.name,
-              '--autoconf=%s' % BUILDER.SUITE_CGPR
-              ] + extraopts)
+        Run([GPRBUILD, '-P', tempgpr.name,
+             '--autoconf=%s' % BUILDER.SUITE_CGPR] + extraopts)
 
-        rm (tempgpr.name)
+        rm(tempgpr.name)
 
-# ===============================
-# == libsupport considerations ==
-# ===============================
 
-# We rely on our support lib to provide a common last chance handler in every
-# configuration where this makes sense, in particular with ZFP and Ravenscar
-# RTS libraries.
-#
-# * ZFP profiles because some of these don't provide a handler at all.
-#
-# * Ravenscar because some handlers fallthrough to a infinite idle loop,
-#   unfriendly wrt testcase termination in automated nightly executions.
-#
-# In addition, providing our last chance handler ensures we get consistent
-# output on unexpected exception, on any target configuration.
-#
-# We can't override "last chance" handling and don't really need to for full
-# runtimes (which terminate on exceptions), native or cross.
+def need_libsupport():
+    """
+    Libsupport considerations.
 
-# This function controls whether we build the library and link with it
+    We rely on our support lib to provide a common last chance handler in every
+    configuration where this makes sense, in particular with ZFP and Ravenscar
+    RTS libraries.
 
-def need_libsupport ():
-    return re.search ("zfp|ravenscar", env.main_options.RTS)
+    * ZFP profiles because some of these don't provide a handler at all.
 
-# ==========================
-# == target specificities ==
-# ==========================
+    * Ravenscar because some handlers fallthrough to a infinite idle loop,
+      unfriendly wrt testcase termination in automated nightly executions.
+
+    In addition, providing our last chance handler ensures we get consistent
+    output on unexpected exception, on any target configuration.
+
+    We can't override "last chance" handling and don't really need to for full
+    runtimes (which terminate on exceptions), native or cross.
+
+    This function controls whether we build the library and link with it.
+    """
+    return re.search("zfp|ravenscar", env.main_options.RTS)
+
+
+# Target specificities
 
 class TargetInfo:
     """
@@ -221,188 +214,155 @@ class TargetInfo:
     symbol into a platform specific one, or None if they are the same.  This
     enables us to use platform-independent symbol names in testcases.
     """
-    def __init__ (self, exeext, partiallinks, to_platform_specific_symbol=None):
+    def __init__(self, exeext, partiallinks, to_platform_specific_symbol=None):
         self.exeext = exeext
         self.partiallinks = partiallinks
-        self.to_platform_specific_symbol = to_platform_specific_symbol or (lambda x: x)
+        self.to_platform_specific_symbol = (
+            to_platform_specific_symbol or (lambda x: x))
+
 
 TARGETINFO = {
-    "powerpc-wrs-vxworks": TargetInfo (
-        exeext = ".out", partiallinks=True
-        ),
-    "e500v2-wrs-vxworks": TargetInfo (
-        exeext = ".out", partiallinks=True
-        ),
-    "i686-pc-mingw32": TargetInfo (
-        exeext = ".exe", partiallinks=False,
-        to_platform_specific_symbol=lambda x: '_{}'.format(x)
-        ),
-    "x86_64-pc-mingw32": TargetInfo (
-        exeext = ".exe", partiallinks=False
-        ),
-    "default": TargetInfo (
-        exeext = "", partiallinks=False
-        )
-}
+    'powerpc-wrs-vxworks': TargetInfo(exeext='.out', partiallinks=True),
+    'e500v2-wrs-vxworks': TargetInfo(exeext='.out', partiallinks=True),
+    'i686-pc-mingw32': TargetInfo(
+        exeext='.exe', partiallinks=False,
+        to_platform_specific_symbol=lambda x: '_{}'.format(x)),
+    'x86_64-pc-mingw32': TargetInfo(exeext='.exe', partiallinks=False),
+    'default': TargetInfo(exeext='', partiallinks=False)}
 
-def target_info (target=None):
+
+def target_info(target=None):
     if target is None:
         target = env.target.triplet
     return (
-        TARGETINFO [target] if target in TARGETINFO
+        TARGETINFO[target] if target in TARGETINFO
         else TARGETINFO["default"])
 
-# Allowed pairs for the --gnatcov-<cmd> family of command line options:
 
-ALTRUN_GNATCOV_PAIRS = (
-    ('gnatcov', 'run'),
-    )
+# Allowed pairs for the --gnatcov-<cmd> family of command line options:
+ALTRUN_GNATCOV_PAIRS = (('gnatcov', 'run'), )
 
 # Allowed pairs for the --pre/post-testsuite/testcase family of command line
 # options:
+ALTRUN_HOOK_PAIRS = (('pre', 'testsuite'),
+                     ('post', 'testsuite'),
+                     ('pre', 'testcase'),
+                     ('post', 'testcase'))
 
-ALTRUN_HOOK_PAIRS = (
-    ('pre', 'testsuite'),
-    ('post', 'testsuite'),
-    ('pre', 'testcase'),
-    ('post', 'testcase')
-    )
 
-def altrun_opt_for(p0,p1):
+def altrun_opt_for(p0, p1):
     """Name of the command line option controlling the ALTRUN (P0, P1) pair."""
     return "%s_%s" % (p0, p1)
 
-def altrun_attr_for(p0,p1):
+
+def altrun_attr_for(p0, p1):
     """Name of our internal controlling options attribute for the
     ALTRUN (P0, P1) pair."""
     return "%s_%s" % (p0, p1)
 
-def cargs_opt_for (lang):
+
+def cargs_opt_for(lang):
     """Name of the command line option to pass for language LANG."""
     return "cargs" + (':%s' % lang if lang else "")
 
-def cargs_attr_for (lang):
-    """Name of our internal options attribute to hold cargs for
-    language LANG."""
+
+def cargs_attr_for(lang):
+    """
+    Name of our internal options attribute to hold cargs for language LANG.
+    """
     return "cargs" + ('_%s' % lang if lang else "")
 
-# =================================
-# == Shared command line options ==
-# =================================
 
-# Options allowed at the testsuite.py level which need to be
-# passed down to individual test.py.
+def add_shared_options_to(o, toplevel):
+    """
+    Shared command line options.
 
-def add_shared_options_to (o, toplevel):
-
+    Options allowed at the testsuite.py level which need to be passed down to
+    individual test.py.
+    """
     # --gnatcov_<cmd> family
-
-    [o.add_option(
+    for pgm, cmd in ALTRUN_GNATCOV_PAIRS:
+        o.add_option(
             '--%s' % altrun_opt_for(pgm, cmd), dest=altrun_attr_for(pgm, cmd),
-            default=None, help='use CMD instead of "%s %s"' % (pgm, cmd),
+            default=None, help='Use CMD instead of "%s %s"' % (pgm, cmd),
             metavar="CMD")
-     for (pgm, cmd) in ALTRUN_GNATCOV_PAIRS]
 
-    # valgrind control
-
+    # Valgrind control
     o.add_option(
         '--enable-valgrind', dest='enable_valgrind',
         choices='memcheck callgrind'.split(),
         default=None,
-        help=('enable the use of Valgrind (memcheck or callgrind)'
-              'during the test execution.')
-        )
+        help=('Enable the use of Valgrind (memcheck or callgrind)'
+              'during the test execution.'))
 
     # RTS for tested programs. Defaulting to "" instead of None lets us
     # perform RE searches unconditionally to determine profile.
-
     o.add_option(
         '--RTS', dest='RTS', metavar='RTS', default="",
         help=('--RTS option to pass to gprbuild, if any. '
-              'Assume "full" profile by default.')
-        )
+              'Assume "full" profile by default.'))
 
     # --board
-
     o.add_option(
         '--board', dest='board', metavar='BOARD',
-        help='Specific target board to exercize'
-        )
+        help='Specific target board to exercize')
 
     # --gprmode
-
     o.add_option(
         '--gprmode', dest='gprmode', action='store_true',
         default=False,
-        help='Use -P instead of --scos for analysis on source coverage tests'
-        )
+        help='Use -P instead of --scos for analysis on source coverage tests')
 
     # --kernel
-
     o.add_option(
         '--kernel', dest='kernel', metavar='KERNEL',
-        help='KERNEL to pass to gnatcov run in addition to exe'
-        )
+        help='KERNEL to pass to gnatcov run in addition to exe')
 
     # --trace-mode
-
     o.add_option(
         '--trace-mode', dest='trace_mode', metavar='TRACE_MODE',
         choices=('bin', 'src'), default='bin',
         help=('Kind of execution traces to use for SCOV driven tests. '
               '"bin" for binary traces out of valgrind or qemu, '
-              '"src" for source traces out of source level instrumentation.')
-        )
+              '"src" for source traces out of source level instrumentation.'))
 
     # --trace-size-limit
-
     o.add_option(
         '--trace-size-limit', dest='trace_size_limit', metavar='TRSZ_LIMIT',
         help=('Best effort request to the execution environment to stop when '
               'the execution trace would grow beyond the provided size. Only '
-              'effective for qemu based executions, with values like "10M".')
-        )
+              'effective for qemu based executions, with values like "10M".'))
 
     # --toolchain
-
     o.add_option(
-        '--toolchain', dest='toolchain', metavar='TOOLCHAIN', default="",
-        help=('Prefix of the toolchain to use to compile tests' if toplevel
-              else 'Toolchain discriminant')
-        )
+        '--toolchain', dest='toolchain', metavar='TOOLCHAIN', default='',
+        help=('Prefix of the toolchain to use to compile tests'
+              if toplevel else 'Toolchain discriminant'))
 
     # --largs
-
     o.add_option(
-        '--largs', dest='largs', metavar='LARGS', default="",
-        help=('-largs to pass to gprbuild')
-        )
+        '--largs', dest='largs', metavar='LARGS', default='',
+        help=('-largs to pass to gprbuild'))
 
     # --cargs[:<lang>] family: a common, language agnostic, one + one for each
     # language we support. --cargs "" should be kept semantically equivalent
     # to absence of --cargs at all, and forcing a string allows simpler code
     # downstream.
-
-    [o.add_option (
-            "--%s" % cargs_opt_for(lang), dest=cargs_attr_for(lang),
-            metavar='CARGS', default="",
-            help=(
-                'Additional arguments to pass to the %scompiler when '
-                'building test programs.' % ("%s " % lang if lang else ""))
-            )
-     for lang in [None] + KNOWN_LANGUAGES]
+    for lang in [None] + KNOWN_LANGUAGES:
+        o.add_option(
+            '--%s' % cargs_opt_for(lang), dest=cargs_attr_for(lang),
+            metavar='CARGS', default='',
+            help='Additional arguments to pass to the %scompiler when '
+                 'building test programs.' % ('%s ' % lang if lang else ''))
 
     # --auto-arch
 
     o.add_option(
         '--auto-arch', action='store_true',
-        help='Autodetect which "gnatcov" to use (32-bit or 64-bit one)'
-    )
+        help='Autodetect which "gnatcov" to use (32-bit or 64-bit one)')
 
     # --consolidate
-
     o.add_option(
         '--consolidate', dest='consolidate', default="traces",
         help=("artefacts to be used for consolidation specs"),
-        choices=('traces', 'checkpoints')
-        )
+        choices=('traces', 'checkpoints'))
