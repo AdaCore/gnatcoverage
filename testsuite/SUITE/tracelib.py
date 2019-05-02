@@ -78,10 +78,10 @@ class TraceOp(Enum):
     """
     Trace operation bitmasks. See Trace_Op_* in qemu_traces.ads.
     """
-    Block   = 0x10
-    Fault   = 0x20
-    Br0     = 0x01
-    Br1     = 0x02
+    Block = 0x10
+    Fault = 0x20
+    Br0 = 0x01
+    Br1 = 0x02
     Special = 0x80
 
     # Helper for the format_flags method, below
@@ -122,6 +122,7 @@ Exepected value of the Magic header field. See Qemu_Trace_Magic in
 qemu_traces.ads.
 """
 
+
 def create_trace_header(kind, pc_size, big_endian, machine):
     """
     Return a tuple to represent a trace header. See Trace_Header in
@@ -141,6 +142,7 @@ def create_trace_header(kind, pc_size, big_endian, machine):
         machine >> 8,
         machine & 0xff
     )
+
 
 TraceHeaderStruct = Struct(
     '12s'  # Magic string
@@ -280,8 +282,10 @@ class TraceFile(object):
         if not raw and InfoKind.Kernel_File_Name in self.infos.infos:
             while True:
                 loadaddr = next(entries)
-                if (loadaddr.is_special and
-                    loadaddr.size == TraceSpecial.Loadaddr):
+                if (
+                    loadaddr.is_special and
+                    loadaddr.size == TraceSpecial.Loadaddr
+                ):
                     offset = loadaddr.pc
                     break
 
