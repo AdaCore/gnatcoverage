@@ -61,6 +61,9 @@ package SC_Obligations is
    --  Allocate a new element in the compilation units table, optionally
    --  setting the CU's origin information.
 
+   function Provider (CU : CU_Id) return SCO_Provider;
+   --  Return the SCO provider corresponding to the given compilation unit
+
    function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
    --  Return the identifier for the compilation unit containing the given
    --  source, or No_CU_Id if no such LI file has been loaded.

@@ -2021,6 +2021,15 @@ package body SC_Obligations is
       return CU_Vector.Last_Index;
    end Allocate_CU;
 
+   --------------
+   -- Provider --
+   --------------
+
+   function Provider (CU : CU_Id) return SCO_Provider is
+   begin
+      return CU_Vector.Reference (CU).Provider;
+   end Provider;
+
    ---------------
    -- Load_SCOs --
    ---------------
