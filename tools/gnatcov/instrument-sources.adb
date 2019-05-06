@@ -174,7 +174,7 @@ package body Instrument.Sources is
         & (if Is_MCDC
            then ", {}"
                 & ", " & Img (Bits.Path_Bits_Base)
-                & ", " & To_String (MCDC_State)
+                & ", " & To_String (MCDC_State) & "'Address"
            else "")
         & ")";
 

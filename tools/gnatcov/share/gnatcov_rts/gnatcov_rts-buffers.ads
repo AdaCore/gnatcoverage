@@ -100,10 +100,13 @@ package GNATcov_RTS.Buffers is
       False_Bit, True_Bit     : Bit_Id;
       MCDC_Buffer_Address     : System.Address;
       MCDC_Base               : Bit_Id;
-      MCDC_Path               : Bit_Id;
+      MCDC_Path_Address       : System.Address;
       Value                   : Boolean) return Boolean;
-   --  Same as above, and also set the indicated MCDC_Path_Bit in the
-   --  buffer at MCDC_Buffer_Address.
+   --  Same as above, and also set the bit determined by MCDC_Base and the
+   --  Bit_Id value at MCDC_Path_Address in the buffer at MCDC_Buffer_Address.
+   --  Note that MCDC_Path may not be passed by value, because it is not known
+   --  until the side effects of the actual for the Value formal have been
+   --  evaluated.
 
    --  Conditions
 
