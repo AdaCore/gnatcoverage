@@ -837,24 +837,48 @@ package body SC_Obligations is
             CP_CU_Id  => CP_CU_Id,
             New_CU_Id => New_CU_Id);
 
-      --  Case 2: CU already loaded from LI info. Record mapping of checkpoint
-      --  identifiers (SCOs and instances).
-
-      elsif CP_CU.Fingerprint
-        = CU_Vector.Element (New_CU_Id).Fingerprint
-      then
-         Checkpoint_Load_Merge_Unit
-           (CLS,
-            CP_CU      => CP_CU,
-            Real_CU_Id => New_CU_Id);
-
-      --  Case 3: Checkpointed CU is not consistent with existing info from LI
-      --  files. Skip checkpointed unit altogether (and display a warning).
+      --  Case 2: CU already loaded from LI info. Perform consistency checks,
+      --  skipping the checkpointed unit altogether and emitting a warning if
+      --  there is a mismatch. Record mapping of checkpoint identifiers (SCOs
+      --  and instances) otherwise.
 
       else
-         Warn ("cannot merge coverage information "
-               & "from " & To_String (CLS.Filename)
-               & " for " & Get_Simple_Name (CP_CU.Origin));
+         declare
+            CU_Record : CU_Info renames CU_Vector.Reference (New_CU_Id);
+
+            function Provider_Image (Provider : SCO_Provider) return String is
+              (case Provider is
+               when Compiler     => "ALI file",
+               when Instrumenter => "instrumentation");
+            --  Helper to designate SCO providers in an error message
+
+            function CU_Image return String is
+              (Get_Simple_Name (CP_CU.Origin)
+               & " (from " & To_String (CLS.Filename) & ")");
+            --  Helper to refer to the compilation unit in an error message
+
+         begin
+            --  Ignore CU when the provenance of SCOs is inconsistent
+
+            if CP_CU.Provider /= CU_Record.Provider then
+               Warn ("inconsistent coverage method for " & CU_Image);
+               Warn ("SCOs for this unit come from both "
+                     & Provider_Image (CP_CU.Provider)
+                     & " and from " & Provider_Image (CU_Record.Provider));
+
+            --  Ignore also when the fingerprint does not match
+
+            elsif CP_CU.Fingerprint /= CU_Record.Fingerprint then
+               Warn ("unexpected fingerprint, cannot merge coverage"
+                     & " information for " & CU_Image);
+
+            else
+               Checkpoint_Load_Merge_Unit
+                 (CLS,
+                  CP_CU      => CP_CU,
+                  Real_CU_Id => New_CU_Id);
+            end if;
+         end;
       end if;
    end Checkpoint_Load_Unit;
 
