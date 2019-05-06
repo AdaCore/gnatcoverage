@@ -479,8 +479,8 @@ package body Instrument.Tree is
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
 
-      procedure Traverse_Aspects (N : Ada_Node'Class);
-      --  Helper for Traverse_One: traverse N's aspect specifications
+      procedure Traverse_Aspects (AS : Aspect_Spec);
+      --  Helper for Traverse_One: traverse an Aspect_Spec
 
       procedure Traverse_Degenerate_Subprogram (N : Ada_Node'Class);
       --  Common code to handle null procedures and expression functions. Emit
@@ -762,23 +762,13 @@ package body Instrument.Tree is
       -- Traverse_Aspects --
       ----------------------
 
-      procedure Traverse_Aspects (N : Ada_Node'Class) is
-         AS : constant Aspect_Spec :=
-           (if N.Kind in Ada_Basic_Decl
-            then N.As_Basic_Decl.F_Aspects
-            else No_Aspect_Spec);
-         --  If there are any nodes other that Base_Decl that may have aspects
-         --  then this will need to be adjusted???
-
+      procedure Traverse_Aspects (AS : Aspect_Spec) is
          AL : Aspect_Assoc_List;
          AN : Aspect_Assoc;
          AE : Expr;
          C1 : Character;
 
       begin
-         if AS.Is_Null then
-            return;
-         end if;
          AL := AS.F_Aspect_Assocs;
          for I in 1 .. AL.Children_Count loop
             AN := AL.Child (I).As_Aspect_Assoc;
@@ -1505,6 +1495,11 @@ package body Instrument.Tree is
                   end if;
                end;
 
+            --  Aspects specification
+
+            when Ada_Aspect_Spec =>
+               Traverse_Aspects (N.As_Aspect_Spec);
+
             --  Object or named number declaration
             --  Generate a single SCO even if multiple defining identifiers
             --  are present.
@@ -1629,10 +1624,6 @@ package body Instrument.Tree is
                   Process_Decisions_Defer (N, 'X');
                end if;
          end case;
-
-         --  Process aspects if present
-
-         Traverse_Aspects (N);
       end Traverse_One;
 
       Items_Count : constant Natural :=
