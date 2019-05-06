@@ -571,25 +571,12 @@ package body Annotations is
    -------------------------
 
    procedure Inc_Exemption_Count (Sloc : Source_Location) is
+      use ALI_Annotation_Maps;
 
-      procedure Inc_Count (K : Source_Location; E : in out ALI_Annotation);
-      --  Increment E.Count
-
-      ---------------
-      -- Inc_Count --
-      ---------------
-
-      procedure Inc_Count (K : Source_Location; E : in out ALI_Annotation) is
-         pragma Unreferenced (K);
-      begin
-         E.Count := E.Count + 1;
-      end Inc_Count;
-
-   --  Start of processing for Inc_Exemption_Count
-
+      Cur : constant Cursor := ALI_Annotations.Find (Sloc);
+      E   : ALI_Annotation renames ALI_Annotations.Reference (Cur);
    begin
-      ALI_Annotations.Update_Element
-        (ALI_Annotations.Find (Sloc), Inc_Count'Access);
+      E.Count := E.Count + 1;
    end Inc_Exemption_Count;
 
    ------------------------

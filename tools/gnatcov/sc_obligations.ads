@@ -33,6 +33,12 @@ with Traces;     use Traces;
 
 package SC_Obligations is
 
+   --  This unit instantiates containers and we want to avoid too much
+   --  performance cost when using references to their elements, so suppress
+   --  tampering checks.
+
+   pragma Suppress (Tampering_Check);
+
    ------------------
    -- Source files --
    ------------------

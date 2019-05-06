@@ -198,77 +198,65 @@ package body SC_Obligations.BDD is
          Origin_Id    : BDD_Node_Id;
          Origin_Value : Boolean)
       is
+         Node      : BDD_Node renames BDD_Vector.Reference (Node_Id);
          Parent_Id : BDD_Node_Id := Origin_Id;
          C_Value   : Tristate;
 
-         procedure Visit_One (Node : in out BDD_Node);
+         Edge_Count : array (Boolean) of Natural := (others => 0);
+         --  Count of paths through each successor to any outcome
+      begin
          --  Set Node's parent to Parent_Id. Set C_Value to Node's condition
          --  value. Also markes outcome as reachable if Node is an outcome.
 
-         ---------------
-         -- Visit_One --
-         ---------------
+         case Node.Kind is
+            when Condition =>
 
-         procedure Visit_One (Node : in out BDD_Node) is
-            Edge_Count : array (Boolean) of Natural := (others => 0);
-            --  Count of paths through each successor to any outcome
+               --  Record first condition that is reachable through multiple
+               --  paths.
 
-         begin
-            case Node.Kind is
-               when Condition =>
-
-                  --  Record first condition that is reachable through
-                  --  multiple paths.
-
-                  if Path_Count (Node_Id) > 0 then
-                     if BDD.First_Multipath_Condition = No_BDD_Node_Id then
-                        BDD.First_Multipath_Condition := Node_Id;
-                        Parent_Id := No_BDD_Node_Id;
-                     end if;
-                     return;
+               if Path_Count (Node_Id) > 0 then
+                  if BDD.First_Multipath_Condition = No_BDD_Node_Id then
+                     BDD.First_Multipath_Condition := Node_Id;
+                     Parent_Id := No_BDD_Node_Id;
                   end if;
+                  return;
+               end if;
 
-                  C_Value           := Value (Node.C_SCO);
-                  Node.Parent       := Parent_Id;
-                  Node.Parent_Value := Origin_Value;
+               C_Value           := Value (Node.C_SCO);
+               Node.Parent       := Parent_Id;
+               Node.Parent_Value := Origin_Value;
 
-                  for J in Boolean'Range loop
-                     --  Visit destination J if C_Value is Unknown or J
+               for J in Boolean'Range loop
+                  --  Visit destination J if C_Value is Unknown or J
 
-                     if C_Value /= To_Tristate (not J) then
-                        Visit
-                          (Node.Dests (J),
-                           Origin_Id    => Node_Id,
-                           Origin_Value => J);
-                        Edge_Count (J) := Path_Count (Node.Dests (J));
-                     end if;
-                  end loop;
+                  if C_Value /= To_Tristate (not J) then
+                     Visit
+                       (Node.Dests (J),
+                        Origin_Id    => Node_Id,
+                        Origin_Value => J);
+                     Edge_Count (J) := Path_Count (Node.Dests (J));
+                  end if;
+               end loop;
 
-                  --  Compute path index contribution:
-                  --  * an outcome counts as one path
-                  --  * a successor condition counts as N paths
-                  --  * total paths for this node is sum of True and
-                  --    False edge paths
-                  --  * offset contribution when True is path count
-                  --    for False edge
+               --  Compute path index contribution:
+               --  * an outcome counts as one path
+               --  * a successor condition counts as N paths
+               --  * total paths for this node is sum of True and False edge
+               --    paths
+               --  * offset contribution when True is path count for False
+               --    edge.
 
-                  Node.Path_Offset := Edge_Count (False);
-                  Path_Count (Node_Id) :=
-                    Edge_Count (False) + Edge_Count (True);
+               Node.Path_Offset := Edge_Count (False);
+               Path_Count (Node_Id) :=
+                 Edge_Count (False) + Edge_Count (True);
 
-               when Outcome =>
-                  BDD.Reachable_Outcomes (Node.Decision_Outcome) := True;
-                  Path_Count (Node_Id) := 1;
+            when Outcome =>
+               BDD.Reachable_Outcomes (Node.Decision_Outcome) := True;
+               Path_Count (Node_Id) := 1;
 
-               when others =>
-                  raise Program_Error;
-            end case;
-         end Visit_One;
-
-      --  Start of processing for Visit
-
-      begin
-         BDD_Vector.Update_Element (Node_Id, Visit_One'Access);
+            when others =>
+               raise Program_Error;
+         end case;
       end Visit;
 
    --  Start of processing for Check_Reachability
@@ -288,46 +276,21 @@ package body SC_Obligations.BDD is
    procedure Completed (BDD : in out BDD_Type) is
       use BDD_Vectors;
 
-      procedure Patch_Jumps (Node : in out BDD_Node);
-      --  Replace all destinations of Node that denote Jump nodes with
-      --  the jump destination.
+      procedure Patch_Jump (Dest : in out BDD_Node_Id);
+      --  If Dest denotes a Jump node, replace it with its destination
 
-      -----------------
-      -- Patch_Jumps --
-      -----------------
+      ----------------
+      -- Patch_Jump --
+      ----------------
 
-      procedure Patch_Jumps (Node : in out BDD_Node) is
-         procedure Patch_Jump (Dest : in out BDD_Node_Id);
-         --  If Dest denotes a Jump node, replace it with its destination
-
-         ----------------
-         -- Patch_Jump --
-         ----------------
-
-         procedure Patch_Jump (Dest : in out BDD_Node_Id) is
-            Dest_Node : constant BDD_Node := BDD_Vector.Element (Dest);
-         begin
-            if Dest_Node.Kind = Jump then
-               Dest := Dest_Node.Dest;
-            end if;
-            pragma Assert (BDD_Vector.Element (Dest).Kind /= Jump);
-         end Patch_Jump;
-
-      --  Start of processing for Patch_Jumps
-
+      procedure Patch_Jump (Dest : in out BDD_Node_Id) is
+         Dest_Node : constant BDD_Node := BDD_Vector.Element (Dest);
       begin
-         case Node.Kind is
-            when Jump =>
-               Patch_Jump (Node.Dest);
-
-            when Condition =>
-               Patch_Jump (Node.Dests (False));
-               Patch_Jump (Node.Dests (True));
-
-            when others =>
-               null;
-         end case;
-      end Patch_Jumps;
+         if Dest_Node.Kind = Jump then
+            Dest := Dest_Node.Dest;
+         end if;
+         pragma Assert (BDD_Vector.Element (Dest).Kind /= Jump);
+      end Patch_Jump;
 
       use type Ada.Containers.Count_Type;
 
@@ -346,7 +309,24 @@ package body SC_Obligations.BDD is
       --  with references to their destination.
 
       for J in reverse BDD.First_Node .. BDD.Last_Node loop
-         BDD_Vector.Update_Element (J, Patch_Jumps'Access);
+         declare
+            Node : BDD_Node renames BDD_Vector.Reference (J);
+         begin
+            --  Replace all destinations of Node that denote Jump nodes with
+            --  the jump destination.
+
+            case Node.Kind is
+               when Jump =>
+                  Patch_Jump (Node.Dest);
+
+               when Condition =>
+                  Patch_Jump (Node.Dests (False));
+                  Patch_Jump (Node.Dests (True));
+
+               when others =>
+                  null;
+            end case;
+         end;
       end loop;
 
       --  Explore BDD to check for presence of multi-path conditions and

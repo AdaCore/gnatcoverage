@@ -40,6 +40,12 @@ with Types;
 
 package body Coverage.Source is
 
+   --  This unit instantiates containers and we want to avoid too much
+   --  performance cost when using references to their elements, so suppress
+   --  tampering checks.
+
+   pragma Suppress (Tampering_Check);
+
    use Ada.Containers;
 
    function Report_If_Excluded (SCO : SCO_Id) return Boolean;
@@ -250,23 +256,6 @@ package body Coverage.Source is
          Process_One_SCO : declare
             CP_SCO : constant SCO_Id := To_Index (SCO_Cur);
             SCO    : constant SCO_Id := CLS.SCO_Map (CP_SCO);
-
-            procedure Free_SCIs (SCIV : in out SCI_Vectors.Vector);
-            --  Deallocate all elements in SCIV
-
-            ---------------
-            -- Free_SCIs --
-            ---------------
-
-            procedure Free_SCIs (SCIV : in out SCI_Vectors.Vector) is
-            begin
-               for CP_SCI of SCIV loop
-                  Free (CP_SCI);
-               end loop;
-            end Free_SCIs;
-
-         --  Start of processing for Process_One_SCO
-
          begin
             if SCO /= No_SCO_Id then
                for CP_SCI of Element (SCO_Cur) loop
@@ -282,7 +271,14 @@ package body Coverage.Source is
             --  Deallocate checkpoint SCIs for this SCO once they have been
             --  merged into the main SCI vector.
 
-            CP_SCI_Vector.Update_Element (SCO_Cur, Free_SCIs'Access);
+            declare
+               SCIV : SCI_Vectors.Vector renames
+                  CP_SCI_Vector.Reference (SCO_Cur);
+            begin
+               for CP_SCI of SCIV loop
+                  Free (CP_SCI);
+               end loop;
+            end;
          end Process_One_SCO;
       end loop;
    end Checkpoint_Load;
@@ -313,27 +309,16 @@ package body Coverage.Source is
       for SCO of Line_Info.SCOs.all loop
          SCOs_Of_Line : declare
             SCO_State : Line_State := No_Code;
+         begin
+            --  Make sure we have at least one SCI for this SCO
 
-            procedure Ensure_SCI (SCIV : in out SCI_Vectors.Vector);
-            --  If SCIV is empty, add a SCI with no tag
-
-            ----------------
-            -- Ensure_SCI --
-            ----------------
-
-            procedure Ensure_SCI (SCIV : in out SCI_Vectors.Vector) is
+            declare
+               SCIV : SCI_Vectors.Vector renames SCI_Vector.Reference (SCO);
             begin
                if SCIV.Length = 0 then
                   SCIV.Append (new Source_Coverage_Info (Kind => Kind (SCO)));
                end if;
-            end Ensure_SCI;
-
-         --  Start of processing for SCOs_Of_Line
-
-         begin
-            --  Make sure we have at least one SCI for this SCO
-
-            SCI_Vector.Update_Element (SCO, Ensure_SCI'Access);
+            end;
 
             --  Iterate over all SCIs for this SCO
 
@@ -1370,10 +1355,6 @@ package body Coverage.Source is
       --  True when this evaluation is the expected next condition in the
       --  evaluation at the top of the evaluation stack.
 
-      procedure Update_Current_Evaluation (ES_Top : in out Evaluation);
-      --  Record the value of condition C_SCO in the current evaluation, and
-      --  set the next expected condition.
-
       ---------------------------
       -- In_Current_Evaluation --
       ---------------------------
@@ -1391,33 +1372,6 @@ package body Coverage.Source is
               and then ES_Top.Next_Condition = Index (C_SCO);
          end;
       end In_Current_Evaluation;
-
-      -------------------------------
-      -- Update_Current_Evaluation --
-      -------------------------------
-
-      procedure Update_Current_Evaluation (ES_Top : in out Evaluation) is
-         Next_C_SCO : SCO_Id;
-      begin
-         --  Add Unknown markers for masked conditions
-
-         while ES_Top.Values.Last_Index < Index (C_SCO) - 1 loop
-            ES_Top.Values.Append (Unknown);
-         end loop;
-
-         --  Record value for this condition
-
-         ES_Top.Values.Append (To_Tristate (C_Value));
-
-         --  Set index of next expected condition
-
-         Next_C_SCO := Next_Condition (C_SCO, C_Value);
-         if Next_C_SCO /= No_SCO_Id then
-            ES_Top.Next_Condition := Index (Next_C_SCO);
-         else
-            ES_Top.Next_Condition := No_Condition_Index;
-         end if;
-      end Update_Current_Evaluation;
 
    --  Start of processing for Condition_Evaluated
 
@@ -1450,8 +1404,33 @@ package body Coverage.Source is
             Kind => Warning);
       end if;
 
-      Evaluation_Stack.Update_Element
-        (Evaluation_Stack.Last_Index, Update_Current_Evaluation'Access);
+      --  Record the value of condition C_SCO in the current evaluation, and
+      --  set the next expected condition.
+
+      declare
+         ES_Top     : Evaluation renames
+            Evaluation_Stack.Reference (Evaluation_Stack.Last_Index);
+         Next_C_SCO : SCO_Id;
+      begin
+         --  Add Unknown markers for masked conditions
+
+         while ES_Top.Values.Last_Index < Index (C_SCO) - 1 loop
+            ES_Top.Values.Append (Unknown);
+         end loop;
+
+         --  Record value for this condition
+
+         ES_Top.Values.Append (To_Tristate (C_Value));
+
+         --  Set index of next expected condition
+
+         Next_C_SCO := Next_Condition (C_SCO, C_Value);
+         if Next_C_SCO /= No_SCO_Id then
+            ES_Top.Next_Condition := Index (Next_C_SCO);
+         else
+            ES_Top.Next_Condition := No_Condition_Index;
+         end if;
+      end;
    end Condition_Evaluated;
 
    --------------------------------
@@ -1493,42 +1472,30 @@ package body Coverage.Source is
      (SCO : SCO_Id; Tag : SC_Tag) return Source_Coverage_Info_Access
    is
       Result : RW_Source_Coverage_Info_Access;
-
-      procedure Q (SCI : RW_Source_Coverage_Info_Access);
-      --  Set Result to SCI if SCI.Tag = Tag
-
-      procedure QV (SCIV : SCI_Vectors.Vector);
-      --  Run Q for each element of SCIV, stopping if Result is set
-
-      -------
-      -- Q --
-      -------
-
-      procedure Q (SCI : RW_Source_Coverage_Info_Access) is
-      begin
-         if SCI.Tag = Tag then
-            Result := SCI;
-         end if;
-      end Q;
-
-      --------
-      -- QV --
-      --------
-
-      procedure QV (SCIV : SCI_Vectors.Vector) is
-      begin
-         for J in SCIV.First_Index .. SCIV.Last_Index loop
-            SCIV.Query_Element (J, Q'Access);
-            exit when Result /= null;
-         end loop;
-      end QV;
-
-   --  Start of processing for Get_SCI
-
    begin
+      --  Look for a SCI that matches both SCO and Tag and assign it to Result
+
       if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
-         SCI_Vector.Query_Element (SCO, QV'Access);
+
+         declare
+            SCIV : SCI_Vectors.Vector renames SCI_Vector.Reference (SCO);
+         begin
+            for J in SCIV.First_Index .. SCIV.Last_Index loop
+               declare
+                  SCI : constant RW_Source_Coverage_Info_Access :=
+                     SCIV.Element (J);
+               begin
+                  if SCI.Tag = Tag then
+                     Result := SCI;
+                     exit;
+                  end if;
+               end;
+            end loop;
+         end;
       end if;
+
+      --  If we found one, return its source coverage info, otherwise return
+      --  the default SCI for this kind of SCO.
 
       return
         (if Result /= null
@@ -1729,56 +1696,32 @@ package body Coverage.Source is
       Tag     : SC_Tag;
       Process : access procedure (SCI : in out Source_Coverage_Info))
    is
-      procedure Deref_Process (SCIA : RW_Source_Coverage_Info_Access);
-      --  Call Process (SCIA.all) and set Processed to True if SCIA.Tag = Tag
+      SCIV : SCI_Vectors.Vector renames SCI_Vector.Reference (SCO);
+   begin
+      --  Look for a SCI whose tag matches Tag. If we find one, call Process
+      --  on it and return.
 
-      procedure Update_SCIV (SCIV : in out SCI_Vectors.Vector);
-      --  Call Process on the relevant element of SCIV
-
-      Processed : Boolean;
-
-      -------------------
-      -- Deref_Process --
-      -------------------
-
-      procedure Deref_Process (SCIA : RW_Source_Coverage_Info_Access) is
-      begin
-         if SCIA.Tag = Tag then
-            Process (SCIA.all);
-            Processed := True;
-         end if;
-      end Deref_Process;
-
-      -----------------
-      -- Update_SCIV --
-      -----------------
-
-      procedure Update_SCIV (SCIV : in out SCI_Vectors.Vector) is
-      begin
-         Processed := False;
-         for J in SCIV.First_Index .. SCIV.Last_Index loop
-            SCIV.Query_Element (J, Deref_Process'Access);
-            if Processed then
+      for J in SCIV.First_Index .. SCIV.Last_Index loop
+         declare
+            SCI : Source_Coverage_Info renames SCIV.Element (J).all;
+         begin
+            if SCI.Tag = Tag then
+               Process (SCI);
                return;
             end if;
-         end loop;
-
-         --  Here if no SCI exists yet for this SCO and tag
-
-         declare
-            New_SCI : constant RW_Source_Coverage_Info_Access :=
-                        new Source_Coverage_Info (Kind (SCO));
-         begin
-            New_SCI.Tag := Tag;
-            Process (New_SCI.all);
-            SCIV.Append (New_SCI);
          end;
-      end Update_SCIV;
+      end loop;
 
-   --  Start of processing for Update_SCI
+      --  Otherwise, create a new SCI for this tag and call Process on it
 
-   begin
-      SCI_Vector.Update_Element (SCO, Update_SCIV'Access);
+      declare
+         New_SCI : constant RW_Source_Coverage_Info_Access :=
+                     new Source_Coverage_Info (Kind (SCO));
+      begin
+         New_SCI.Tag := Tag;
+         Process (New_SCI.all);
+         SCIV.Append (New_SCI);
+      end;
    end Update_SCI;
 
    ------------------

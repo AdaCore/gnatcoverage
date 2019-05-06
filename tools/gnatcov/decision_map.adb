@@ -48,6 +48,12 @@ with Traces_Names;      use Traces_Names;
 
 package body Decision_Map is
 
+   --  This unit instantiates containers and we want to avoid too much
+   --  performance cost when using references to their elements, so suppress
+   --  tampering checks.
+
+   pragma Suppress (Tampering_Check);
+
    use Ada.Containers;
    use Coverage;
 
@@ -2806,37 +2812,15 @@ package body Decision_Map is
    --------------------------------
 
    procedure Append_Decision_Occurrence (D_Occ : Decision_Occurrence_Access) is
-
-      procedure Update_Element
-        (SCO : SCO_Id;
-         V   : in out Decision_Occurrence_Vectors.Vector);
-      --  Append D_Occ to V
-
-      --------------------
-      -- Update_Element --
-      --------------------
-
-      procedure Update_Element
-        (SCO : SCO_Id;
-         V   : in out Decision_Occurrence_Vectors.Vector)
-      is
-         pragma Unreferenced (SCO);
-      begin
-         V.Append (D_Occ);
-      end Update_Element;
-
       use Decision_Occurrence_Maps;
       Cur : constant Cursor := Decision_Occurrence_Map.Find (D_Occ.Decision);
-
-   --  Start of processing for Append_Decision_Occurrence
-
    begin
       if Cur = Decision_Occurrence_Maps.No_Element then
          Decision_Occurrence_Map.Insert
            (Key      => D_Occ.Decision,
             New_Item => Decision_Occurrence_Vectors.To_Vector (D_Occ, 1));
       else
-         Decision_Occurrence_Map.Update_Element (Cur, Update_Element'Access);
+         Decision_Occurrence_Map.Reference (Cur).Append (D_Occ);
       end if;
    end Append_Decision_Occurrence;
 

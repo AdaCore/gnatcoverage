@@ -421,10 +421,6 @@ package body Project is
       procedure Enumerate_In_Projects is new Enumerate_For_Units_Of_Interest
         (String, Enumerate_In_Single_Project);
 
-      procedure Set_LI_Seen (U : String; UI : in out Unit_Info);
-      --  Helper for Enumerate_Project. Record that the LI file for U was
-      --  found.
-
       procedure Callback (Ignored_Project : Project_Type; Filename : String);
       --  Callback for Enumerate_In_Projects
 
@@ -478,7 +474,7 @@ package body Project is
                --  Mark unit seen even if it is excluded
 
                if UC /= Unit_Maps.No_Element then
-                  Inc_Units.Update_Element (UC, Set_LI_Seen'Access);
+                  Inc_Units.Reference (UC).LI_Seen := True;
                end if;
             end Process_LI;
          end loop;
@@ -492,16 +488,6 @@ package body Project is
               (Inc_Units, Origin => +Full_Name (Project.Project_Path));
          end if;
       end Enumerate_In_Single_Project;
-
-      -----------------
-      -- Set_LI_Seen --
-      -----------------
-
-      procedure Set_LI_Seen (U : String; UI : in out Unit_Info) is
-         pragma Unreferenced (U);
-      begin
-         UI.LI_Seen := True;
-      end Set_LI_Seen;
 
       --------------
       -- Callback --

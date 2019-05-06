@@ -30,6 +30,12 @@ with Types; use Types;
 
 package ALI_Files is
 
+   --  This unit instantiates containers and we want to avoid too much
+   --  performance cost when using references to their elements, so suppress
+   --  tampering checks.
+
+   pragma Suppress (Tampering_Check);
+
    function Load_ALI
      (ALI_Filename         : String;
       CU                   : CU_Id;
