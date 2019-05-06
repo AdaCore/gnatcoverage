@@ -1216,6 +1216,13 @@ package body Coverage.Source is
       procedure Set_Executed (SCI : in out Source_Coverage_Info);
       --  Mark SCI as executed
 
+      function Part_Image (Part : GNATCOLL.Projects.Unit_Parts) return String;
+      --  Helper to include Part in an error message
+
+      function Unit_Image return String is
+        (Part_Image (Unit_Part) & " " & Unit_Name);
+      --  Helper to refer to the instrumented unit in an error message
+
       ------------------
       -- Set_Executed --
       ------------------
@@ -1225,22 +1232,36 @@ package body Coverage.Source is
          SCI.Executed := True;
       end Set_Executed;
 
+      ----------------
+      -- Part_Image --
+      ----------------
+
+      function Part_Image (Part : GNATCOLL.Projects.Unit_Parts) return String
+      is
+         use all type GNATCOLL.Projects.Unit_Parts;
+      begin
+         return (case Part is
+                 when Unit_Body => "body of",
+                 when Unit_Spec => "spec of",
+                 when Unit_Separate => "separate");
+      end Part_Image;
+
    --  Start of processing for Compute_Source_Coverage
 
    begin
       CU := Find_Instrumented_Unit (Unit_Name, Unit_Part);
       if CU = No_CU_Id then
-         declare
-            use all type GNATCOLL.Projects.Unit_Parts;
-            Part : constant String :=
-              (case Unit_Part is
-               when Unit_Body => "body of",
-               when Unit_Spec => "spec of",
-               when Unit_Separate => "separate");
-         begin
-            Fatal_Error ("unknown instrumented unit: "
-                         & Part & " " & Unit_Name);
-         end;
+         Fatal_Error ("unknown instrumented unit: " & Unit_Image);
+
+      elsif Provider (CU) /= Instrumenter then
+
+         --  We loaded compiler-generated SCOs for this unit before processing
+         --  its source trace buffer, so we have inconsistent information. Just
+         --  ignore this coverage information and proceed.
+
+         Warn ("inconsistent coverage method, ignoring coverage information"
+               & " for " & Unit_Image);
+         return;
       end if;
 
       --  Mark unit as present in closure
