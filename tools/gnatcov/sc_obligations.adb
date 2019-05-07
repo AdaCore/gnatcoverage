@@ -2681,7 +2681,7 @@ package body SC_Obligations is
             D_SCO : SCO_Id;
          begin
             if SCOD.Kind /= Condition then
-               return;
+               goto Skip_SCO;
             end if;
 
             --  Report a static analysis error if one condition has no
@@ -2710,6 +2710,8 @@ package body SC_Obligations is
 
             end if;
          end;
+
+         <<Skip_SCO>>
       end loop;
    end Report_SCOs_Without_Code;
 
