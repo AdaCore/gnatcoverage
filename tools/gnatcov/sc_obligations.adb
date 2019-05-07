@@ -713,7 +713,7 @@ package body SC_Obligations is
 
       for SCO in New_First_SCO .. SCO_Vector.Last_Index loop
          declare
-            SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+            SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
          begin
             if SCOD.Kind in Statement | Decision then
                Add_SCO_To_Lines (SCO, SCOD);
