@@ -408,7 +408,7 @@ package body Instrument is
          Unit_Info : in out Instrumented_Unit_Info)
       is
          Prj_Info : Project_Info renames Unit_Info.Prj_Info.all;
-         UIC : Unit_Inst_Context;
+         UIC      : Unit_Inst_Context;
       begin
          --  Instrument the source file and create a unit to contain its
          --  coverage buffers.
