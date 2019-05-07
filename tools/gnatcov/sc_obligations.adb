@@ -2315,8 +2315,8 @@ package body SC_Obligations is
                      SCOD.Parent := Enclosing_SCO;
 
                      if SCOD.Control_Location /= No_Location then
-                           Sloc_Range :=
-                             To_Range (SCOD.Control_Location, No_Location);
+                        Sloc_Range :=
+                          To_Range (SCOD.Control_Location, No_Location);
                      end if;
 
                      Add_SCO_To_Lines (SCO, SCOD);
