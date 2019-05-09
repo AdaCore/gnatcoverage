@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2019, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -482,11 +482,15 @@ package body ALI_Files is
 
                      Valid := True;
 
+                     declare
+                        Msg : constant String := Match (6);
                      begin
                         Annotation :=
                           (CU      => CU,
                            Kind    => ALI_Annotation_Kind'Value (Match (4)),
-                           Message => new String'(Match (6)),
+                           Message => (if Msg'Length > 0
+                                       then new String'(Msg)
+                                       else null),
                            others  => <>);
                      exception
                         when Constraint_Error =>
@@ -513,7 +517,7 @@ package body ALI_Files is
                         end if;
 
                         if Annotation.Kind = Exempt_On then
-                           if Annotation.Message.all = "" then
+                           if Annotation.Message = null then
                               Report (Sloc, "empty message for EXEMPT_ON");
                            end if;
 
@@ -614,7 +618,14 @@ package body ALI_Files is
    begin
       CU_Id'Read (S, V.CU);
       ALI_Annotation_Kind'Read (S, V.Kind);
-      V.Message := new String'(String'Input (S));
+
+      declare
+         Msg : constant String := String'Input (S);
+      begin
+         if Msg'Length > 0 then
+            V.Message := new String'(Msg);
+         end if;
+      end;
       V.Count := 0;
    end Read;
 
@@ -626,7 +637,11 @@ package body ALI_Files is
    begin
       CU_Id'Write (S, V.CU);
       ALI_Annotation_Kind'Write (S, V.Kind);
-      String'Output (S, V.Message.all);
+      if V.Message /= null then
+         String'Output (S, V.Message.all);
+      else
+         String'Output (S, "");
+      end if;
    end Write;
 
 end ALI_Files;

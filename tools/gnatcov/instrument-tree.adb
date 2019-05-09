@@ -56,8 +56,11 @@ package body Instrument.Tree is
       with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into a name tree for rewriting
 
-   type Aspect_Symbols is
-     (Dynamic_Predicate,
+   type All_Symbols is
+     (
+      --  Aspects
+
+      Dynamic_Predicate,
       Invariant,
       Post,
       Postcondition,
@@ -65,22 +68,26 @@ package body Instrument.Tree is
       Precondition,
       Predicate,
       Static_Predicate,
-      Type_Invariant);
+      Type_Invariant,
 
-   function Precomputed_Aspect_Symbol (AS : Aspect_Symbols) return Text_Type is
-      (Canonicalize (To_Wide_Wide_String (AS'Img)).Symbol);
+      --  Annotations
+
+      Xcov);
+
+   function Precomputed_Symbol_Text (S : All_Symbols) return Text_Type is
+      (Canonicalize (To_Wide_Wide_String (S'Img)).Symbol);
 
    package Symbols_Pkg is
      new Langkit_Support.Symbols
-       (Aspect_Symbols, Precomputed_Aspect_Symbol);
+       (All_Symbols, Precomputed_Symbol_Text);
 
    use Symbols_Pkg;
 
    Symbols : constant Symbol_Table := Create_Symbol_Table;
    --  Holder for name singletons
 
-   function Aspect (AS : Aspect_Symbols) return Symbol_Type is
-      (Precomputed_Symbol (Symbols, AS));
+   function As_Symbol (S : All_Symbols) return Symbol_Type is
+      (Precomputed_Symbol (Symbols, S));
 
    function As_Symbol (Id : Identifier) return Symbol_Type;
    function As_Name (Id : Identifier) return Name_Id;
@@ -727,7 +734,17 @@ package body Instrument.Tree is
                   Last               => (J = SC_Last),
                   Pragma_Aspect_Name => Pragma_Aspect_Name);
 
-               Insert_Statement_Witness (SCE, SCOs.SCO_Table.Last);
+               --  Do not attempt to instrument a pragma that we know for
+               --  certain will not generate code (such as Annotate or
+               --  elaboration control pragmas).
+
+               if SCE.Typ /= 'P'
+                 or else Pragma_Might_Generate_Code
+                           (Case_Insensitive_Get_Pragma_Id
+                              (Pragma_Aspect_Name))
+               then
+                  Insert_Statement_Witness (SCE, SCOs.SCO_Table.Last);
+               end if;
             end;
          end loop;
 
@@ -776,15 +793,15 @@ package body Instrument.Tree is
 
             C1 := ASCII.NUL;
 
-            if Aspect_Assoc_Name (AN) in Aspect (Dynamic_Predicate)
-                                       | Aspect (Invariant)
-                                       | Aspect (Post)
-                                       | Aspect (Postcondition)
-                                       | Aspect (Pre)
-                                       | Aspect (Precondition)
-                                       | Aspect (Predicate)
-                                       | Aspect (Static_Predicate)
-                                       | Aspect (Type_Invariant)
+            if Aspect_Assoc_Name (AN) in As_Symbol (Dynamic_Predicate)
+                                       | As_Symbol (Invariant)
+                                       | As_Symbol (Post)
+                                       | As_Symbol (Postcondition)
+                                       | As_Symbol (Pre)
+                                       | As_Symbol (Precondition)
+                                       | As_Symbol (Predicate)
+                                       | As_Symbol (Static_Predicate)
+                                       | As_Symbol (Type_Invariant)
             then
                C1 := 'A';
 
@@ -1365,7 +1382,11 @@ package body Instrument.Tree is
                   Nam       : constant Name_Id := Pragma_Name (Prag_N);
                   Arg       : Positive := 1;
                   Typ       : Character;
-                  Ignore    : Boolean := False;
+
+                  function Prag_Arg_Expr (Index : Positive) return Expr is
+                    (Prag_Args.Child (Index).As_Pragma_Argument_Assoc.F_Expr);
+                  --  Return the expression for the Index'th argument of the
+                  --  pragma.
 
                begin
                   case Nam is
@@ -1417,16 +1438,15 @@ package body Instrument.Tree is
                         --  If this is a coverage exemption, record it
 
                         if Prag_Args.Children_Count >= 2
-                          and then Image (As_Symbol (Prag_Args.Child (1)
-                                                     .As_Identifier))
-                                     = Text_Type'("xcov")
+                          and then As_Symbol (Prag_Arg_Expr (1).As_Identifier)
+                                     = As_Symbol (Xcov)
                         then
                            declare
                               use ALI_Files;
 
                               Ann_Sloc : constant Source_Location := Sloc (N);
                               Ann_Kind : constant Symbol_Type :=
-                                As_Symbol (Prag_Args.Child (2).As_Identifier);
+                                As_Symbol (Prag_Arg_Expr (2).As_Identifier);
                               Ann : ALI_Annotation;
                            begin
                               Ann.Kind :=
@@ -1434,12 +1454,12 @@ package body Instrument.Tree is
 
                               if Ann.Kind = Exempt_On
                                 and then Prag_Args.Children_Count >= 3
-                                and then Prag_Args.Children (3).Kind
+                                and then Prag_Arg_Expr (3).Kind
                                            = Ada_String_Literal
                               then
                                  Ann.Message :=
                                    new String'
-                                     (To_String (Prag_Args.Child (3)
+                                     (To_String (Prag_Arg_Expr (3)
                                                  .As_String_Literal.Text));
                               end if;
 
@@ -1459,6 +1479,7 @@ package body Instrument.Tree is
                                  null;
                            end;
                         end if;
+                        Typ := 'P';
 
                      --  For all other pragmas, we generate decision entries
                      --  for any embedded expressions, and the pragma is
@@ -1469,30 +1490,14 @@ package body Instrument.Tree is
                      --  [{Static,Dynamic}_]Predicate???
 
                      when others =>
-                        if Pragma_Might_Generate_Code
-                          (Case_Insensitive_Get_Pragma_Id (Nam))
-                        then
-                           Process_Decisions_Defer (N, 'X');
-                           Typ := 'P';
+                        Process_Decisions_Defer (N, 'X');
+                        Typ := 'P';
 
-                        else
-                           --  No need to create coverage obligations for
-                           --  pragmas which generate no code.
-                           --
-                           --  Doing so for pragmas that control elaboration is
-                           --  known to cause trouble: adding a declaration
-                           --  before them to tag them as covered will make the
-                           --  instrumented source illegal.
-
-                           Ignore := True;
-                        end if;
                   end case;
 
                   --  Add statement SCO
 
-                  if not Ignore then
-                     Extend_Statement_Sequence (N, Typ);
-                  end if;
+                  Extend_Statement_Sequence (N, Typ);
                end;
 
             --  Aspects specification

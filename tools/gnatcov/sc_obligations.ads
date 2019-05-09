@@ -430,7 +430,7 @@ package SC_Obligations is
      (Pragma_Name : Namet.Name_Id) return Pragma_Id;
    --  Return the Pragma_Id correspnding to the given pragma name. This takes
    --  care of converting Pragma_Name to lowercase (canonical form for
-   --  Sem_Util.Get_Pragma_Id)
+   --  Snames.Get_Pragma_Id)
 
    --  For each pragma we know of, whether an occurrence of the pragma in the
    --  source might generate code of its own, e.g. pragma Precondition.
