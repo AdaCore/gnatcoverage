@@ -21,20 +21,16 @@ with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with GNATCOLL.Projects;       use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Langkit_Support.Symbols;
 with Langkit_Support.Text;    use Langkit_Support.Text;
 with Libadalang.Common;       use Libadalang.Common;
-with Libadalang.Sources;      use Libadalang.Sources;
 
-with Namet;  use Namet;
 with SCOs;
 
-with Coverage; use Coverage;
-with Files_Table; use Files_Table;
-with Strings; use Strings;
-with Text_Files;
-
+with Coverage;        use Coverage;
+with Files_Table;     use Files_Table;
 with Instrument.Tree; use Instrument.Tree;
+with Strings;         use Strings;
+with Text_Files;
 
 package body Instrument.Sources is
 
@@ -49,46 +45,6 @@ package body Instrument.Sources is
       Name   : Ada_Qualified_Name) return Node_Rewriting_Handle
       with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into a name tree for rewriting
-
-   type Aspect_Symbols is
-     (Dynamic_Predicate,
-      Invariant,
-      Post,
-      Postcondition,
-      Pre,
-      Precondition,
-      Predicate,
-      Static_Predicate,
-      Type_Invariant);
-
-   function Precomputed_Aspect_Symbol (AS : Aspect_Symbols) return Text_Type is
-      (Canonicalize (To_Wide_Wide_String (AS'Img)).Symbol);
-
-   package Symbols_Pkg is
-     new Langkit_Support.Symbols
-       (Aspect_Symbols, Precomputed_Aspect_Symbol);
-
-   use Symbols_Pkg;
-
-   Symbols : constant Symbol_Table := Create_Symbol_Table;
-   --  Holder for name singletons
-
-   function As_Symbol (Id : Identifier) return Symbol_Type;
-   function As_Name (Id : Identifier) return Name_Id;
-   --  Canonicalize Id and return a corresponding Name_Id/Symbol_Type
-
-   function Pragma_Name (P : Pragma_Node) return Symbol_Type;
-   function Pragma_Name (P : Pragma_Node) return Name_Id;
-   --  Return a symbol from Symbols corresponding to the name of the given
-   --  P pragma.
-
-   function Aspect_Assoc_Name (A : Aspect_Assoc) return Identifier;
-   function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type;
-   function Aspect_Assoc_Name (A : Aspect_Assoc) return Name_Id;
-   --  Return a symbol from Symbols corresponding to the name of the given
-   --  A aspect association.
-
-   --  Append a new entry to the low-level SCO table
 
    package Ada_Qualified_Name_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
@@ -106,9 +62,6 @@ package body Instrument.Sources is
    -------------------------------------
    -- Generation of witness fragments --
    -------------------------------------
-
-   --  Create a procedure call statement or object declaration to witness
-   --  execution of the low level SCO with the given bit id.
 
    function Make_Decision_Witness
      (IC         : Unit_Inst_Context;
@@ -128,11 +81,6 @@ package body Instrument.Sources is
       First      : Boolean) return Node_Rewriting_Handle;
    --  Create a function call to witness the value of the given condition,
    --  to be recorded in the given MC/DC state local variable.
-
-   --  Return the name of the MC/DC state local variable for the given
-   --  decision SCO.
-
-   --  Create the declaration of the MC/DC state local variable
 
    procedure Insert_Condition_Witness
      (IC     : in out Unit_Inst_Context;
@@ -225,57 +173,6 @@ package body Instrument.Sources is
       Append_Child (Child (RH_Call, 2), Condition);
       return RH_Call;
    end Make_Condition_Witness;
-
-   -------------
-   -- As_Name --
-   -------------
-
-   function As_Name (Id : Identifier) return Name_Id is
-   begin
-      --  Note: we really care only about Name_Ids for identifiers of pragmas
-      --  and aspects, which we assume never contain wide-wide characters.
-
-      return Name_Find (To_String (Canonicalize (Id.Text).Symbol));
-   end As_Name;
-
-   -------------
-   -- As_Name --
-   -------------
-
-   function As_Symbol (Id : Identifier) return Symbol_Type is
-     (Find (Symbols, Canonicalize (Id.Text).Symbol));
-
-   -----------------
-   -- Pragma_Name --
-   -----------------
-
-   function Pragma_Name (P : Pragma_Node) return Symbol_Type is
-     (As_Symbol (P.F_Id));
-   function Pragma_Name (P : Pragma_Node) return Name_Id is
-     (As_Name (P.F_Id));
-
-   -----------------------
-   -- Aspect_Assoc_Name --
-   -----------------------
-
-   function Aspect_Assoc_Name (A : Aspect_Assoc) return Identifier is
-      AM : constant Libadalang.Analysis.Name := A.F_Id;
-      --  aspect_mark of A
-   begin
-      --  Note: we just ignore a possible 'Class (we treat [Pre|Post]'Class
-      --  just like Pre/Post).
-
-      if AM.Kind = Ada_Attribute_Ref then
-         return AM.As_Attribute_Ref.F_Prefix.As_Identifier;
-      else
-         return AM.As_Identifier;
-      end if;
-   end Aspect_Assoc_Name;
-
-   function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type is
-      (As_Symbol (Aspect_Assoc_Name (A)));
-   function Aspect_Assoc_Name (A : Aspect_Assoc) return Name_Id is
-      (As_Name (Aspect_Assoc_Name (A)));
 
    --------------
    -- To_Nodes --
