@@ -2162,9 +2162,20 @@ package body Instrument.Tree is
          then
             if MCDC_Coverage_Enabled then
                Condition_Count := 0;
-               MCDC_State :=
-                 To_Unbounded_String
-                   (Make_MCDC_State_Name (SCOs.SCO_Table.Last));
+
+               if IC.Local_Decls = No_Node_Rewriting_Handle then
+                  Report (IC, N,
+                          "gnatcov limitation: "
+                          & "cannot find local declarative part for MC/DC",
+                          Kind => Diagnostics.Error);
+               else
+                  MCDC_State :=
+                    To_Unbounded_String
+                      (Make_MCDC_State_Name (SCOs.SCO_Table.Last));
+                  Insert_Child
+                    (IC.Local_Decls, 1,
+                     Make_MCDC_State (IC, To_String (MCDC_State)));
+               end if;
             end if;
 
             IC.Source_Decisions.Append
@@ -2209,13 +2220,25 @@ package body Instrument.Tree is
       ------------------
 
       function Process_Node (N : Ada_Node'Class) return Visit_Status is
-      begin
-         if N.Kind in Ada_Expr
-           and then Is_Logical_Operator (N.As_Expr) /= False
-         then
-            --  Logical operators, output table entries and then process
-            --  operands recursively to deal with nested conditions.
+         --  Test for the two cases where N is the root node of some decision:
 
+         Decision_Root : constant Boolean :=
+
+           --  Simple decision at outer level: a boolean expression (which is
+           --  not a logical operator or short circuit form) appearing as the
+           --  operand of an IF, WHILE, EXIT WHEN, or special PRAGMA construct.
+
+           (N = Process_Decisions.N and then T /= 'X')
+             or else
+
+           --  Complex decision, whether at outer level or nested: a boolean
+           --  expression involving a logical operator.
+
+           (N.Kind in Ada_Expr
+            and then Is_Logical_Operator (N.As_Expr) /= False);
+
+      begin
+         if Decision_Root then
             declare
                EN : constant Expr := N.As_Expr;
                T  : Character;
@@ -2237,7 +2260,7 @@ package body Instrument.Tree is
                Mark_Hash := Hash_Entries.Last;
                Output_Header (T, N);
 
-               --  Output the decision
+               --  Output the decision (recursively traversing operands)
 
                Output_Decision_Operand (EN);
 
@@ -2254,21 +2277,6 @@ package body Instrument.Tree is
 
                else
                   SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
-               end if;
-
-               --  Insert MC/DC scaffolding
-
-               if MCDC_Coverage_Enabled then
-                  if IC.Local_Decls = No_Node_Rewriting_Handle then
-                     Report (IC, EN,
-                             "gnatcov limitation: "
-                             & "cannot find local declarative part for MC/DC",
-                             Kind => Diagnostics.Error);
-                  else
-                     Insert_Child
-                       (IC.Local_Decls, 1,
-                        Make_MCDC_State (IC, To_String (MCDC_State)));
-                  end if;
                end if;
 
                --  Process any embedded decisions
@@ -2327,25 +2335,7 @@ package body Instrument.Tree is
       if N.Is_Null then
          return;
       end if;
-
       Hash_Entries.Init;
-
-      --  See if we have simple decision at outer level and if so then
-      --  generate the decision entry for this simple decision. A simple
-      --  decision is a boolean expression (which is not a logical operator
-      --  or short circuit form) appearing as the operand of an IF, WHILE,
-      --  EXIT WHEN, or special PRAGMA construct.
-
-      if T /= 'X' and then Is_Logical_Operator (N) = False then
-         Output_Header (T, N);
-         Output_Element (Ada_Node (N));
-
-         --  Change Last in last table entry to True to mark end of
-         --  sequence, which is this case is only one element long.
-
-         SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
-      end if;
-
       N.Traverse (Process_Node'Access);
    end Process_Decisions;
 
