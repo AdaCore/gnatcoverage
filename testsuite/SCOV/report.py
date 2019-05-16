@@ -102,10 +102,10 @@ class Piece:
     # Check expectations once we're done going through all the report lines
 
     def __first_match(self):
-        return self.matches[0]
+        return self.matches[0] if self.matches else None
 
     def __last_match(self):
-        return self.matches[-1]
+        return self.matches[-1] if self.matches else None
 
 
     def check(self):
@@ -119,26 +119,28 @@ class Piece:
             + "pre = %s" % str (self.pre)
             )
 
+        # Punt if we don't have the number of expected matches
 
-        # Check that we have the number of expected matches
-
-        thistest.fail_if (
-            nmatches != self.nexpected,
-            '%d matches of pattern "%s", != expected %d' % (
-                nmatches, self.pattern, self.nexpected)
-            )
+        if nmatches != self.nexpected:
+            thistest.failed(
+                'On "%s", %d matches != expected %d' % (
+                    self.pattern, nmatches, self.nexpected))
+            return
 
         # If we expected matches, have some, and have an ordering
         # constraint specified, check it
 
         if self.nexpected > 0 and nmatches != 0 and self.pre:
-            last_pre = self.pre.__last_match().lno
-            first_self = self.__first_match().lno
-            thistest.fail_if (
-                last_pre > first_self,
-                'first match for "%s" (%d) too early wrt predecessor "%s" (%d)'
-                % (self.pattern, first_self,  self.pre.pattern, last_pre)
-                )
+            last_pre = self.pre.__last_match()
+            first_self = self.__first_match()
+            if not last_pre:
+                thistest.failed(
+                    'On "%s", absence of  match for predecessor "%s"' % (
+                        self.pattern, self.pre.pattern))
+            elif last_pre.lno > first_self.lno:
+                thistest.failed(
+                    'first match for "%s" too early wrt predecessor "%s"' % (
+                        self.pattern, self.pre.pattern))
 
 # ==========================
 # == Whole report checker ==
