@@ -203,8 +203,8 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     #
     #    for Switches("test_blob.adb") use
     #      Compiler'Default_Switches("Ada") & ("-fno-inline")
-    default_switches = ', '.join('"%s"' % switch
-                                 for switch in BUILDER.COMMON_CARGS())
+    default_switches = ', '.join(
+        '"%s"' % switch for switch in BUILDER.COMMON_CARGS(thistest.options))
     compswitches = (
         '\n'.join(
             ['for Default_Switches ("%s") use (%s);' % (

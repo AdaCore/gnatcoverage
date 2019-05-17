@@ -1005,7 +1005,8 @@ class QDreport(object):
             {itemno: "s1",
              item: "compiler switches - language independent",
              value: literal(' '.join(
-                    BUILDER.COMMON_CARGS() + [suite_options['cargs']]))
+                 BUILDER.COMMON_CARGS(suite_options) +
+                 [suite_options['cargs']]))
              })
 
         for lang in self.languages:

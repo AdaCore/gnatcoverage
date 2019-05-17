@@ -171,14 +171,15 @@ QLEVEL_INFO = {
 # and reliable ways to determine the set of options we support and too many
 # possible sources for options is unwelcome.
 
-# On top of this user level control, we add a couple of flags such as
-# -fdump-scos automatically. Below is a sketch of the internal compilation
-# flags flow:
+# On top of this user level control, we add a couple of flags such as -g or
+# -fdump-scos automatically (depending on command line options, in particular
+# on the requested kind of trace mode). Below is a sketch of the internal
+# compilation flags flow:
 #
 #     gprfor ()
 #        template.gpr
 #        % Switches (main)   += "-fno-inline" as needed
-#        % Switches (<lang>) += SUITE.control.BUILDER.COMMON_CARGS
+#        % Switches (<lang>) += SUITE.control.BUILDER.COMMON_CARGS(options)
 #             |                 (-g -fdump-scos ...)
 #             |
 #             |   direct calls to gprbuild() from test.py,

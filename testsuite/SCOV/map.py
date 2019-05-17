@@ -26,7 +26,8 @@ class MapChecker:
     def __init__(self, sources, options="",
                  execs=None, alis=None, ensure_dcscos=True):
 
-        self.options = ' '.join (BUILDER.COMMON_CARGS() + [options])
+        self.options = ' '.join (
+            BUILDER.COMMON_CARGS(thistest.options) + [options])
 
         self.sources = to_list(sources)
         self.ensure_dcscos = ensure_dcscos

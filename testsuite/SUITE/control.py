@@ -106,7 +106,10 @@ def language_info(source_filename):
 
 
 class BUILDER:
-    """Common compilation args, passed to all build invocations."""
+    """
+    Builder related testsuite controls, such as common compilation
+    options for all the tests or common GPR configuration setup.
+    """
 
     @staticmethod
     def __TARGET_CARGS_FOR(triplet):
@@ -117,9 +120,20 @@ class BUILDER:
         return []
 
     @staticmethod
-    def COMMON_CARGS():
-        return (["-g", "-fpreserve-control-flow", "-fdump-scos"] +
-                BUILDER.__TARGET_CARGS_FOR(Env().target.triplet))
+    def COMMON_CARGS(options):
+        """Common compilation args, passed to all build invocations. `options`
+        is a command line options object, either from the toplevel testsuite or
+        from a an individual test instance, which share a lot in common.
+        """
+
+        cargs = ["-g"]
+
+        if options.trace_mode == 'bin':
+            cargs += ["-fpreserve-control-flow", "-fdump-scos"]
+
+        cargs += BUILDER.__TARGET_CARGS_FOR(Env().target.triplet)
+
+        return cargs
 
     # Base command for a build
     BASE_COMMAND = GPRBUILD
