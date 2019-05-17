@@ -176,22 +176,22 @@ QLEVEL_INFO = {
 # on the requested kind of trace mode). Below is a sketch of the internal
 # compilation flags flow:
 #
-#     gprfor ()
-#        template.gpr
-#        % Switches (main)   += "-fno-inline" as needed
-#        % Switches (<lang>) += SUITE.control.BUILDER.COMMON_CARGS(options)
-#             |                 (-g -fdump-scos ...)
-#             |
-#             |   direct calls to gprbuild() from test.py,
-#             |   or via TestCase(extracargs)
-#             |       |
-#             v       v           testsuite.py
-#  gprbuild (gpr, extracargs)     [--cargs=<>] [--cargs:Ada=<>] [--cargs:C=<>]
-#                     |               |
-#                     o----> ADD <----o
-#                             |
-#                             v
-#     run "gprbuild -Pgpr -cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
+#  SUITE.control.BUILDER.COMMON_CARGS(options) (-g -fdump-scos ...)
+#   |
+#   |      gprfor ()
+#   |        template.gpr
+#   |        % Switches (main)   += "-fno-inline" as needed
+#   |            |
+#   |            |   direct calls to gprbuild() from test.py,
+#   |            |   or via TestCase(extracargs)
+#   |            |       |
+#   |            v       v         testsuite.py
+#   |  gprbuild (gpr, extracargs)  [--cargs=<>] [--cargs:Ada=<>] [--cargs:C=<>]
+#   |                    |              |
+#   o--------------------o--------------o
+#                        |
+#                        v
+#   run "gprbuild -Pgpr -cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
 
 # In addition to the SUITE.control bits, the only default option we enforce is
 # -gnat05 for Ada.

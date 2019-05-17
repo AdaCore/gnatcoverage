@@ -26,10 +26,8 @@ class MapChecker:
     def __init__(self, sources, options="",
                  execs=None, alis=None, ensure_dcscos=True):
 
-        self.options = ' '.join (
-            BUILDER.COMMON_CARGS(thistest.options) + [options])
-
         self.sources = to_list(sources)
+        self.options = options
         self.ensure_dcscos = ensure_dcscos
 
         # Infer default list of executables and alis from list of sources

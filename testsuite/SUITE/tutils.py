@@ -81,10 +81,16 @@ def gprbuild_cargs_with(thiscargs, suitecargs=True):
         for lang in KNOWN_LANGUAGES:
             add_for_lang(lang=lang)
 
-    # Compute the language agnostic cargs, testsuite level + those
-    # for this specific run:
+    # Compute the language agnostic cargs: common ones + testsuite -cargs
+    # + those for this specific run.
 
     other_cargs = []
+
+    # Let individual tests request not to pass the common ones by just setting
+    # BUILDER.COMMON_CARGS to None or so.
+
+    if BUILDER.COMMON_CARGS:
+        other_cargs.extend(BUILDER.COMMON_CARGS(thistest.options))
 
     if suitecargs:
         other_cargs.extend(to_list(thistest.suite_cargs_for(lang=None)))
@@ -194,22 +200,13 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     basegpr = (("%s/support/base" % ROOT_DIR)
                if control.need_libsupport() else None)
 
-    # Generate compilation switches:
-    #
-    # - For each language, add BUILDER.COMMON_CARGS as default switches.
-    #
-    # - If we have specific flags for the mains, append them. This is
-    #   typically something like:
+    # If we have specific flags for the mains, append them. This is
+    # typically something like:
     #
     #    for Switches("test_blob.adb") use
     #      Compiler'Default_Switches("Ada") & ("-fno-inline")
-    default_switches = ', '.join(
-        '"%s"' % switch for switch in BUILDER.COMMON_CARGS(thistest.options))
+
     compswitches = (
-        '\n'.join(
-            ['for Default_Switches ("%s") use (%s);' % (
-                    language, default_switches)
-             for language in languages_l]) + '\n' +
         '\n'.join(
             ['for Switches("%s") use \n'
              '  Compiler\'Default_Switches ("%s") & (%s);' % (

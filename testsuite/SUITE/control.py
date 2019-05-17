@@ -124,6 +124,9 @@ class BUILDER:
         """Common compilation args, passed to all build invocations. `options`
         is a command line options object, either from the toplevel testsuite or
         from a an individual test instance, which share a lot in common.
+
+        Individual tests request not to pass those flags ones by just setting
+        BUILDER.COMMON_CARGS to None or so.
         """
 
         cargs = ["-g"]
