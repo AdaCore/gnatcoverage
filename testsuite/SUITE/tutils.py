@@ -52,21 +52,25 @@ def gprbuild_gargs_with(thisgargs):
     ] + (thistest.gprconfoptions + thistest.gprvaroptions + to_list(thisgargs))
 
 
-def gprbuild_cargs_with(thiscargs, suitecargs=True):
+def gprbuild_cargs_with(thiscargs, scovcargs=True, suitecargs=True):
     """
     Compute and return all the cargs arguments to pass on gprbuild invocations,
-    including language agnostic and language specific ones (-cargs and
-    -cargs:<lang>) when SUITECARGS is true. Account for specific requests in
-    THISCARGS.
+    in accordance with the gprbuild() documentation.
+
+    For SUITECARGS, include language agnostic and language specific switches
+    (-cargs and -cargs:<lang>).
     """
 
-    # To make sure we have a clear view of what options are used for a
-    # qualification run, qualification tests are not allowed to state
-    # compilation flags of their own
+    # Check assumptions made by the production of qualification material,
+    # which runs source coverage tests only.
 
-    thistest.stop_if(
-        thistest.options.qualif_level and (not suitecargs or thiscargs),
-        FatalError("CARGS requested for qualification test. Forbidden."))
+    if thistest.options.qualif_level:
+        thistest.stop_if(
+            not scovcargs,
+            FatalError("SCOV_CARGS required for qualification test"))
+        thistest.stop_if(
+            thiscargs,
+            FatalError("Specific CARGS forbidden for qualification test"))
 
     # Compute the language specific cargs, all testsuite level:
 
@@ -86,11 +90,8 @@ def gprbuild_cargs_with(thiscargs, suitecargs=True):
 
     other_cargs = []
 
-    # Let individual tests request not to pass the common ones by just setting
-    # BUILDER.COMMON_CARGS to None or so.
-
-    if BUILDER.COMMON_CARGS:
-        other_cargs.extend(BUILDER.COMMON_CARGS(thistest.options))
+    if scovcargs:
+        other_cargs.extend(BUILDER.SCOV_CARGS(thistest.options))
 
     if suitecargs:
         other_cargs.extend(to_list(thistest.suite_cargs_for(lang=None)))
@@ -117,24 +118,32 @@ def gprbuild_largs_with(thislargs):
     return all_largs
 
 
-def gprbuild(project, extracargs=None, gargs=None, largs=None,
-             suitecargs=True):
+def gprbuild(project,
+             scovcargs=True,
+             suitecargs=True,
+             extracargs=None,
+             gargs=None,
+             largs=None):
     """
     Cleanup & build the provided PROJECT file using gprbuild, passing
-    GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches, in
-    addition to the switches required by the infrastructure or provided on the
-    testsuite commandline for the --cargs family when SUITECARGS is true.
+    GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches. Each
+    of these arguments may be either None, a list of options, or a string
+    containing a space-separated list of options.
 
-    The *ARGS arguments may be either: None, a string containing
-    a space-separated list of options, or a list of options.
+    SCOVCARGS tell whether or not we should prepend BUILDER.SCOV_CARGS to
+    the -cargs switches.
+
+    SUITECARGS tells whether or not we should also add the -cargs passed on
+    the testsuite toplevel command line.
     """
 
     # Fetch options, from what is requested specifically here
     # or from command line requests
     all_gargs = gprbuild_gargs_with(thisgargs=gargs)
     all_largs = gprbuild_largs_with(thislargs=largs)
-    all_cargs = gprbuild_cargs_with(thiscargs=extracargs,
-                                    suitecargs=suitecargs)
+    all_cargs = gprbuild_cargs_with(scovcargs=scovcargs,
+                                    suitecargs=suitecargs,
+                                    thiscargs=extracargs)
 
     # Now cleanup, do build and check status
     thistest.cleanup(project)

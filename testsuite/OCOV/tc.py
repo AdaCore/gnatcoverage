@@ -106,7 +106,7 @@ class TestCase(object):
             )
         )
 
-        gprbuild(project_file, suitecargs=self.suitecargs)
+        gprbuild(project_file, scovcargs=False, suitecargs=self.suitecargs)
 
     def _run(self, test_driver):
         xrun(unixpath_to(test_driver))

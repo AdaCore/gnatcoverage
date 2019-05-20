@@ -176,7 +176,7 @@ QLEVEL_INFO = {
 # on the requested kind of trace mode). Below is a sketch of the internal
 # compilation flags flow:
 #
-#  SUITE.control.BUILDER.COMMON_CARGS(options) (-g -fdump-scos ...)
+#  SUITE.control.BUILDER.SCOV_CARGS(options) (-g -fdump-scos ...)
 #   |
 #   |      gprfor ()
 #   |        template.gpr

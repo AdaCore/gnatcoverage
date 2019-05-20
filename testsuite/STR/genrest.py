@@ -987,8 +987,7 @@ class QDreport(object):
         # to languages out of that subset.
 
         # Options might be coming from a variety of places:
-        # - BUILDER.COMMON_CARGS (e.g. -fpreserve-control-flow),
-        # - LANGINFO.cargs (e.g. -gnateS for Ada, -fdump-scos for C)
+        # - BUILDER.SCOV_CARGS (e.g. -fdump-scos),
         # - --cargs family
 
         suite_options = self.suitedata['options']
@@ -1005,7 +1004,7 @@ class QDreport(object):
             {itemno: "s1",
              item: "compiler switches - language independent",
              value: literal(' '.join(
-                 BUILDER.COMMON_CARGS(suite_options) +
+                 BUILDER.SCOV_CARGS(suite_options) +
                  [suite_options['cargs']]))
              })
 
