@@ -620,6 +620,12 @@ class TestSuite(object):
         result = ['ALL'] + self.env.discriminants
         if which(self.tool('g++')):
             result.append('C++')
+
+        # Add a discriminant to track the current trace mode
+        result.append('src-traces'
+                      if self.env.main_options.trace_mode == 'src'
+                      else 'bin-traces')
+
         return result
 
     def __board_discriminants(self):
