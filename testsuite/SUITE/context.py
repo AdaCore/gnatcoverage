@@ -183,10 +183,6 @@ class Test (object):
         # number of times it has been used in order to generate multiple logs.
         self.callgrind_count = 0
 
-    # -------------
-    # -- cleanup --
-    # -------------
-
     def cleanup(self, project):
         """Cleanup possible remnants of previous builds."""
         Run([GPRCLEAN, "-P%s" % project] +
