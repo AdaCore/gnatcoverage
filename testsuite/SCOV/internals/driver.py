@@ -514,6 +514,12 @@ class SCOV_helper:
         return {no_ext(os.path.basename(soi)).replace('-', '.')
                 for soi in self.sources_of_interest()}
 
+    def programs(self):
+        """List of base binary file names for the test drivers we are
+        given to exercise.
+        """
+        return [no_ext(main) for main in self.drivers]
+
     # --------------------------
     # -- xcov_translation_for --
     # --------------------------
@@ -794,10 +800,11 @@ class SCOV_helper:
             ("--checkpoint=", ckptname_for) if use_checkpoint_inputs \
             else ("", self.mode_tracename_for)
 
-        inputs = "%s@" % input_opt + list_to_file(
-            [self.awdir_for(no_ext(main))+input_fn(no_ext(main))
-             for main in self.drivers],
-            "inputs.list")
+        inputs = "%s@%s" % (
+            input_opt, list_to_file(
+                [self.awdir_for(pgm) + input_fn(pgm)
+                 for pgm in self.programs()],
+                "inputs.list"))
 
         # We don't need and don't want to pass SCO options when using
         # checkpoints as inputs:
@@ -1044,6 +1051,28 @@ class SCOV_helper:
 class SCOV_helper_bin_traces(SCOV_helper):
     """SCOV_helper specialization for the binary execution trace based mode."""
 
+    # Outline of the binary trace based scheme:
+    #
+    # * Compilation of the sources produces SCOS in .ali files,
+    #
+    # * Execution of a program produces a binary trace file
+    #
+    # * Analysis by gnatcov coverage for a single program takes the trace and
+    #   a description of the units of interest by way of a designation of the
+    #   corresponding ALI files containing SCOs, with -P or --scos.
+    #
+    # * Consolidation is achieved by either
+    #
+    #   - Passing all the traces and the global SCOS of interest via -P
+    #     or --scos to gnatcov coverage, or
+    #
+    #   - Combining coverage checkpoints produced for each program right
+    #     after their execution to generate a trace.
+    #
+    # A key characteristic of this scheme is that units of interest are
+    # conveyed through ALI files at analysis time, either when consolidating
+    # from traces or when producing intermediate coverage checkpoints.
+
     def mode_build(self):
         gprbuild(self.gpr, extracargs=self.extracargs)
 
@@ -1126,16 +1155,51 @@ class SCOV_helper_bin_traces(SCOV_helper):
                              for source in self.xrnotes) if ali]
             )
 
+
 class SCOV_helper_src_traces(SCOV_helper):
     """SCOV_helper specialization for the source instrumentation mode."""
 
+    # Outline of the source instrumentation based scheme:
+    #
+    # * Instrumentation produces instrumented sources and a so called
+    #   "instrumentation checkpoint", holding SCOs and data required to
+    #   decode source traces later on, similar to executable files for
+    #   binary traces.
+    #
+    #   Units of interest must be conveyed at this stage, through project
+    #   file attributes, as they control which units are instrumented.
+    #
+    # * Execution of the instrumented code produces a so called "source
+    #   trace" file.
+    #
+    # * Analysis for a single program proceeds by providing gnatcov coverage
+    #   with the source trace file and the corresponding instrumentation
+    #   checkpoint.
+    #
+    # * Consolidation is achieved by either
+    #
+    #   - Providing the set or source traces and the corresponding checkpoints
+    #     to gnatcov coverage, or
+    #
+    #   - Combining coverage checkpoints produced for each program right
+    #     after their execution to generate a trace.
+    #
+    # The main differences with the binary trace based scheme are:
+    #
+    # * Units of interest are conveyed at instrumentation time (even prior
+    #   to build) for the instrumentation scheme vs at analysis time for the
+    #   binary trace case)
+    #
+    # * Instrumentation checkpoints must be provided to gnatcov coverage
+    #   together with the source traces. Unlike executables for binary traces,
+    #   instrumentation checkpoints are not necessarily visible at program
+    #   execution time so can't be recorded in the traces.
+
     def mode_build(self):
-        self.instrumentation_ckpt = "instr.ckpt"
-        xcov_instrument(self.gpr, self.xcovlevel, self.instrumentation_ckpt)
+        xcov_instrument(self.gpr, self.xcovlevel, 'instr.ckpt')
         gprbuild(
             self.gpr, extracargs=self.extracargs,
             gargs='--src-subdirs=gnatcov-instr')
-
 
     def mode_execute(self, main):
         out_file = 'cmdrun_{}.out'.format(main)
@@ -1145,7 +1209,17 @@ class SCOV_helper_src_traces(SCOV_helper):
         return out_file
 
     def mode_scoptions(self):
-        return ["--checkpoint=%s" % self.instrumentation_ckpt]
+
+        # Units of interest are conveyed at instrumentation time
+        # and the corresponding SCOs are held by the instrumentation
+        # checkpoints.
+
+        instr_checkpoints_opt = "--checkpoint=@%s" % list_to_file(
+            [self.abdir_for(pgm) + "instr.ckpt"
+             for pgm in self.programs()],
+            "instr-checkpoints.list")
+
+        return [instr_checkpoints_opt]
 
     def mode_tracename_for(self, pgm):
         return srctracename_for(pgm)
