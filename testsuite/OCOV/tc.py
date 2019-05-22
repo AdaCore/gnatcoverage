@@ -33,8 +33,7 @@ class TestCase(object):
         test_drivers, coverage_expectations,
         extra_sourcedirs=[],
         level='branch', annotate='asm',
-        extra_xcov_args=[],
-        suitecargs=True,
+        extra_xcov_args=[]
     ):
         self.test_drivers = test_drivers
         self.coverage_expectations = {
@@ -45,7 +44,6 @@ class TestCase(object):
         self.level = level
         self.annotate = annotate
         self.extra_xcov_args = extra_xcov_args
-        self.suitecargs = suitecargs
 
     def run(self, register_failure=True):
         '''
@@ -106,7 +104,10 @@ class TestCase(object):
             )
         )
 
-        gprbuild(project_file, scovcargs=False, suitecargs=self.suitecargs)
+        # We never want the testuite optimization options or source coverage
+        # options to interfere with object coverage testcases as these are very
+        # sensitive to code generation.
+        gprbuild(project_file, scovcargs=False, suitecargs=False)
 
     def _run(self, test_driver):
         xrun(unixpath_to(test_driver))
