@@ -7,8 +7,10 @@ and test status management facilities.
 It also exposes a few global variables of general use (env, TEST_DIR, etc)
 """
 
+import logging
 import os
 import sys
+import time
 
 from gnatpython.ex import Run
 from gnatpython.fileutils import cd, rm
@@ -21,6 +23,8 @@ from SUITE.cutils import indent_after_first_line, lines_of, ndirs_in
 
 # This module is loaded as part of a Run operation for a test.py
 # file found and launched by the toplevel driver
+
+logger = logging.getLogger('SUITE.context')
 
 # This is where the toplevel invocation was issued:
 ROOT_DIR = os.getcwd()
@@ -131,6 +135,8 @@ class Test (object):
         line options, reset the failures counter and precompute gprbuild
         options we'll have to pass on every call to convey config options.
         """
+        self.start_time = time.time()
+
         # Compute the depth of this test wrt testsuite root. We join ROOT and
         # TEST dirs then compute the length of the relative path, instead of
         # just counting the number of components in TEST_DIR, to prevent
@@ -229,10 +235,23 @@ class Test (object):
 
         This should be called once at the end of the test
         """
+        from SUITE.tutils import run_processes
+
         if self.n_failed == 0:
             self.log('==== PASSED ============================.')
         else:
             self.log('**** FAILED ****************************.')
+
+        # Log the total execution time as well as the list of processes that
+        # were run, with their duration. This is useful to investigate where
+        # time is spent exactly when testcases take too long to run.
+        duration = time.time() - self.start_time
+        logger.debug('Total ellapsed time: {:.3f}s'.format(duration))
+        if run_processes:
+            logger.debug('Processes run:')
+            for p in run_processes:
+                logger.debug('  [{:6.3f}s] {}'.format(
+                    p.duration, ' '.join(p.original_cmd)))
 
         # Flush the output, in case we forgot to do so earlier.  This has no
         # effect if the flush was already performed.

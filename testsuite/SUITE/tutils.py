@@ -9,6 +9,7 @@
 # ***************************************************************************
 
 import os
+import time
 
 
 # Expose a few other items as a test util-facilities as well
@@ -35,6 +36,34 @@ VALGRIND = 'valgrind' + env.host.os.exeext
 
 MEMCHECK_LOG = 'memcheck.log'
 CALLGRIND_LOG = 'callgrind-{}.log'
+
+
+run_processes = []
+"""
+List of processes run through run_and_log. Useful for debugging.
+
+:type: list[Run]
+"""
+
+
+def run_and_log(*args, **kwargs):
+    """
+    Wrapper around gnatpython.ex.Run to collect all processes that are run.
+    """
+    start = time.time()
+    p = Run(*args, **kwargs)
+
+    # Register the command for this process as well as the time it took to run
+    # it.
+    try:
+        cmd = kwargs['cmds']
+    except KeyError:
+        cmd = args[0]
+    p.original_cmd = cmd
+    p.duration = time.time() - start
+    run_processes.append(p)
+
+    return p
 
 
 def gprbuild_gargs_with(thisgargs):
@@ -151,7 +180,7 @@ def gprbuild(project,
     ofile = "gprbuild.out"
     args = (to_list(BUILDER.BASE_COMMAND) +
             ['-P%s' % project] + all_gargs + all_cargs + all_largs)
-    p = Run(args, output=ofile, timeout=thistest.options.timeout)
+    p = run_and_log(args, output=ofile, timeout=thistest.options.timeout)
     thistest.stop_if(p.status != 0,
                      FatalError("gprbuild exit in error", ofile))
 
@@ -420,7 +449,7 @@ def cmdrun(cmd, inp=None, out=None, err=None, register_failure=True):
         if value
     }
 
-    p = Run(cmd, timeout=thistest.options.timeout, **kwargs)
+    p = run_and_log(cmd, timeout=thistest.options.timeout, **kwargs)
 
     thistest.stop_if(
         register_failure and p.status != 0,
