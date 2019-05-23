@@ -604,13 +604,6 @@ class SCOV_helper:
 
         self.scoptions = self.mode_scoptions()
 
-        # Remember which of these indicate the use of project files, which
-        # might influence default output dirs for example.
-
-        self.gproptions = [
-            opt for opt in self.scoptions if opt.startswith ("-P")
-            ]
-
         # Do gnatcov run now unless we're consolidating.  We'll just reuse
         # traces from previous executions in the latter case.
 
@@ -737,7 +730,7 @@ class SCOV_helper:
             '--annotate='+format, inputs
             ] + (self.covoptions + to_list(options))
 
-        if self.gproptions:
+        if self.gprmode:
             covargs.append ('--output-dir=.')
 
         # Run, latching standard output in a file so we can check contents on
