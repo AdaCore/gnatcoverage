@@ -400,10 +400,9 @@ class SCOV_helper:
         """
         raise NotImplementedError
 
-    def mode_scoptions(self):
+    def mode_coverage_sco_options(self):
         """Return the gnatcov options to use to convey how SCOs should
-        be retrieved, at either execution or analysis time as needed by
-        the current execution mode.
+        be retrieved at gnatcov coverage analysis time.
         """
         raise NotImplementedError
 
@@ -603,8 +602,6 @@ class SCOV_helper:
         if self.singletest() and not self.wdctl.reuse_bin:
             self.mode_build ()
 
-        self.scoptions = self.mode_scoptions()
-
         # Do gnatcov run now unless we're consolidating.  We'll just reuse
         # traces from previous executions in the latter case.
 
@@ -800,31 +797,34 @@ class SCOV_helper:
                  for pgm in self.programs()],
                 "inputs.list"))
 
-        # We don't need and don't want to pass SCO options when using
-        # checkpoints as inputs:
+        # Determine what command line options we'll pass to designate units of
+        # interest and maybe produce a coverage checkpoint. We don't need and
+        # don't want to pass SCO options when using checkpoints as inputs.
 
-        report_options = self.scoptions if not use_checkpoint_inputs else []
+        sco_options = (
+            [] if use_checkpoint_inputs else self.mode_coverage_sco_options())
 
-        report_options.extend (['-o', 'test.rep'])
+        save_checkpoint_options = (
+            ["--save-checkpoint=%s" % ckptname_for(single_driver)]
+            if single_driver and checkpoints else [])
 
-        if single_driver and checkpoints:
-            report_options.append (
-                "--save-checkpoint=%s" % ckptname_for (single_driver))
+        # Now produce the --annotate=report format:
 
         self.gen_one_xcov_report(
-            inputs, format="report", options=report_options)
+            inputs, format="report",
+            options=sco_options + save_checkpoint_options + ['-o', 'test.rep'])
 
-        # Now produce an alternate .xcov output format, unless we are
-        # performing a qualification run, for which that format isn't
-        # appropriate.
+        # Then an alternate .xcov output format, unless we are performing a
+        # qualification run, for which that format isn't appropriate. No need
+        # to regenerate a coverage checkpoint there - it would convey the same
+        # as what the --annotate=report already produced if a checkpoint is
+        # needed.
 
         if thistest.options.qualif_level:
             return
 
-        xcov_options = self.scoptions if not use_checkpoint_inputs else []
-
         self.gen_one_xcov_report(
-            inputs, format="xcov", options=xcov_options)
+            inputs, format="xcov", options=sco_options)
 
     # ------------------------------
     # -- check_unexpected_reports --
@@ -1085,12 +1085,13 @@ class SCOV_helper_bin_traces(SCOV_helper):
         # failures (such as harness tests), assuming that they will perform
         # further checks that are bound to fail if the execution doesn't
         # proceed as expected somehow (e.g. not producing a trace).
-        xrun([main_path, "--level=%s" % self.xcovlevel] + self.scoptions,
+        xrun([main_path, "--level=%s" % self.xcovlevel] +
+             self.mode_coverage_sco_options(),
              out=out_file, register_failure=not self.testcase.expect_failures)
 
         return out_file
 
-    def mode_scoptions(self):
+    def mode_coverage_sco_options(self):
         return (
             to_list (self.covctl.scoptions) if (
                 self.covctl and self.covctl.scoptions)
@@ -1202,7 +1203,7 @@ class SCOV_helper_src_traces(SCOV_helper):
                register_failure=not self.testcase.expect_failures)
         return out_file
 
-    def mode_scoptions(self):
+    def mode_coverage_sco_options(self):
 
         # Units of interest are conveyed at instrumentation time
         # and the corresponding SCOs are held by the instrumentation
