@@ -1092,12 +1092,18 @@ class SCOV_helper_bin_traces(SCOV_helper):
         return out_file
 
     def mode_coverage_sco_options(self):
-        return (
-            to_list (self.covctl.scoptions) if (
-                self.covctl and self.covctl.scoptions)
-            else ["-P%s" % self.gpr] if thistest.gprmode
-            else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
-            )
+        # If we have a request for specific options, honor that.  Otherwise,
+        # if we are requested to convey unit of interest through project file
+        # attributes, use our build project file which has been amended for
+        # that. Otherwise, fallback to --scos with a list of ALIs we compute
+        # here:
+
+        if self.covctl and self.covctl.scoptions:
+            return to_list(self.covctl.scoptions)
+        elif self.gprmode:
+            return ["-P%s" % self.gpr]
+        else:
+            return ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
 
     def mode_gprdeps(self):
         return []
