@@ -53,6 +53,17 @@ from SUITE.control import cargs_opt_for, cargs_attr_for
 from SUITE.vtree import DirTree
 
 DEFAULT_TIMEOUT = 600
+"""
+Default timeout to use (in seconds) to run testcases. Users can override this
+using gnatpython.main's --timeout command-line option.
+"""
+
+VALGRIND_TIMEOUT_FACTOR = 2
+"""
+When the testsuite runs with Valgrind (--enable-valgrind), the default timeout
+is multiplied by this number to get the actual default timeout. This is used to
+compensate the slowdown that Valgrind incurs.
+"""
 
 # ==========================================
 # == Qualification principles and control ==
@@ -1095,7 +1106,12 @@ class TestSuite(object):
             test.start_time = time.time()
             return SKIP_EXECUTION
 
-        timeout = test.getopt('limit', default=DEFAULT_TIMEOUT)
+        # Compute the testcase timeout, whose default vary depending on whether
+        # we use Valgrind.
+        default_timeout = DEFAULT_TIMEOUT
+        if self.enable_valgrind:
+            default_timeout = VALGRIND_TIMEOUT_FACTOR * default_timeout
+        timeout = test.getopt('limit', default=default_timeout)
 
         self.maybe_exec(
             self.options.pre_testcase, args=[self.options.altrun],
