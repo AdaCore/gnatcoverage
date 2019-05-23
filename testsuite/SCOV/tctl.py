@@ -8,9 +8,8 @@ from SUITE.gprutils import gprcov_for
 # == User Level Coverage Control ==
 # =================================
 
-# Facility to allow GPR level control and general options control for
-# "gnatcov coverage". An instance of this might be passed to the
-# TestCase run() invocation below, to
+# Facility to allow control of the operations performed by the source
+# coverage oriented tests driven by the tc.TestCase class.
 #
 #   - Influence the project file constructed to build the testcase binaries,
 #     with dependencies to other projects or directives pertaining to the
@@ -24,7 +23,7 @@ from SUITE.gprutils import gprcov_for
 #
 #   - Influence the GPR related command line options to gnatcov, controlling
 #     which projects are to be considered part of the analysis closure
-#     (scooptions).
+#     (gprsw).
 #
 #   - Influence the non-GPR related command line options to gnatcov coverage
 #     (covoptions).
@@ -34,20 +33,17 @@ class CovControl:
     def __init__ (
         self, deps = (), units_in = None, ulist_in = None,
         units_out = None, ulist_out = None, xreports = None,
-        scoptions = "", covoptions=""):
+        gprsw = None, covoptions=""):
 
         # To control "with" dependencies (set of projects that will be withed
         # by the one we will be generating for the testcase):
 
         self.deps = list(deps)
 
-        # gnatcov options to pass SCOs. As we're setting up a coverage control
-        # object, this is NOT intended for --scos. This is intended for
-        # "--recursive" or "--units" in addition to a -P argument, which needs
-        # to be provided by the caller as well. This will be passed to both
-        # gnatcov run and gnatcov coverage invocations.
+        # A GPRswitches instance to hold the set of GPR options to pass
+        # to gnatcov to convey units of interest.
 
-        self.scoptions = scoptions
+        self.gprsw = gprsw
 
         # Extra options to gnatcov coverage only, typically for "-S" variants.
 
@@ -91,7 +87,7 @@ class CovControl:
         a project file."""
 
         return (self.deps
-                or self.scoptions
+                or self.gprsw
                 or self.units_in
                 or self.units_out
                 or self.ulist_in

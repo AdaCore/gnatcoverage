@@ -138,3 +138,54 @@ def gprcov_for (
             ]
         + ["end Coverage;"]
         )
+
+
+class GPRswitches:
+    """
+    Handler for GPR-related switches for gnatcov commands.
+
+    A class to materialize GPR related instructions for gnatcov commands as
+    state variables instead of option strings, which facilitates the
+    development of tests where computed variations of some of the controls
+    need to be exercised.
+    """
+
+    def __init__(self,
+                 root_project,
+                 projects=None,
+                 units=None,
+                 recursive=False):
+        """
+        :param str root_project: Root project to consider (-P argument).
+        :param list[str] projects: Optional list of projects for units of
+           interest (--project argument).
+        :param list[str] units: Optional list of names of units of interest
+           (--units argument).
+        :param bool recursive: Whether to process closures of project
+           dependencies (not done by default, --recursive option).
+        """
+
+        self.root_project = root_project
+        self.projects = projects or []
+        self.units = units or []
+        self.recursive = recursive
+
+    @property
+    def as_strings(self):
+        """
+        List of GPR related gnatcov command line option strings
+        this object represents.
+        """
+
+        switches = ['-P{}'.format(self.root_project)]
+
+        for p in self.projects:
+            switches.append('--projects={}'.format(p))
+
+        for u in self.units:
+            switches.append('--units={}'.format(u))
+
+        if self.recursive:
+            switches.append('--recursive')
+
+        return switches

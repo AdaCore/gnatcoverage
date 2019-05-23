@@ -31,6 +31,7 @@ from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
 from SUITE.control import language_info
 from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
+from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, cmdrun, xrun, xcov, frame
 from SUITE.tutils import gprbuild_cargs_with
 from SUITE.tutils import exename_for
@@ -1098,8 +1099,8 @@ class SCOV_helper_bin_traces(SCOV_helper):
         # that. Otherwise, fallback to --scos with a list of ALIs we compute
         # here:
 
-        if self.covctl and self.covctl.scoptions:
-            return to_list(self.covctl.scoptions)
+        if self.covctl and self.covctl.gprsw:
+            return self.covctl.gprsw.as_strings
         elif self.gprmode:
             return ["-P%s" % self.gpr]
         else:
