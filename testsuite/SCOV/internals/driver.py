@@ -1145,7 +1145,7 @@ class SCOV_helper_bin_traces(SCOV_helper):
 
         return set (
             [ali for ali in (self.locate_ali(source)
-                             for source in self.xrnotes) if ali]
+                             for source in self.sources_of_interest()) if ali]
             )
 
 
