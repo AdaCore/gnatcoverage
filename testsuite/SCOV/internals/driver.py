@@ -557,17 +557,27 @@ class SCOV_helper:
         # switch back when done:
         self.to_workdir(self.rwdir())
 
+        # If we are requested to convey units of interest through a project
+        # file and don't have a coverage control object to obey, build one to
+        # convey the units of interest:
+
+        if thistest.options.gprmode and not self.covctl:
+            self.covctl = CovControl(units_in=self.units_of_interest())
+
+        # Assess whether we should be using a project file to convey units of
+        # interest, either requested from the command line or for specific
+        # test purposes:
+
+        self.gprmode = (
+            thistest.options.gprmode
+            or (self.covctl
+                and self.covctl.requires_gpr()))
+
         # Compute our GPR now, which we will need for build of single tests
         # and/or analysis later on if in gprmode.  Turn inlining off for the
         # driver unit, so we exercise the functional code as separately
         # compiled, not as an inlined version of it in a non-representative
         # driver context.
-
-        # If we are operating in gpr mode and don't have an explicit coverage
-        # control object to obey, build one to convey the units of interest.
-
-        if thistest.options.gprmode and not self.covctl:
-            self.covctl = CovControl(units_in=self.units_of_interest())
 
         # Most of the tests with coverage control operate within
         # an extra subdir level
@@ -592,15 +602,6 @@ class SCOV_helper:
 
         if self.singletest() and not self.wdctl.reuse_bin:
             self.mode_build ()
-
-        # Compute the gnatcov command line argument we'll pass to convey
-        # the set of scos to operate upon.  Note that we need these for
-        # both gnatcov run and gnatcov coverage.
-
-        thistest.gprmode = (
-            thistest.options.gprmode
-            or (self.covctl
-                and self.covctl.requires_gpr()))
 
         self.scoptions = self.mode_scoptions()
 
