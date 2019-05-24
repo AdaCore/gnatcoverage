@@ -1864,10 +1864,10 @@ begin
                      end if;
                   end;
 
-                  Exe_File :=
-                    Open_Exec_For_Trace (Trace_File.Filename.all,
-                               Trace_File.Trace,
-                               Exec_Name_Override);
+                  Exe_File := Open_Exec_For_Trace
+                    (Trace_File.Filename.all,
+                     Trace_File.Trace,
+                     Exec_Name_Override);
                end if;
 
                --  If there is no routine in list, get routine names from the
