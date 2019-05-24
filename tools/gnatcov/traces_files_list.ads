@@ -28,10 +28,23 @@ with Traces_Files; use Traces_Files;
 
 package Traces_Files_List is
 
-   type Trace_File_Element is record
+   type Trace_File_Element (Kind : Trace_File_Kind := Trace_File_Kind'First)
+   is record
       From_Checkpoint : Boolean;
-      Filename        : String_Access;
-      Trace           : Trace_File_Type;
+      --  False if this trace file was loaded by this instance of gnatcov, True
+      --  if we loaded it from a checkpoint.
+
+      Filename : String_Access;
+      --  File name for the trace file, as passed to "gnatcov coverage"
+
+      case Kind is
+         when Binary_Trace_File =>
+            Trace : Trace_File_Type;
+            --  In-memory data loaded from the trace file
+
+         when Source_Trace_File =>
+            null;
+      end case;
    end record;
 
    type Trace_File_Element_Acc is access Trace_File_Element;

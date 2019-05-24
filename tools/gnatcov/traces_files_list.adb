@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Streams;
 with Qemu_Traces; use Qemu_Traces;
 
 package body Traces_Files_List is
@@ -32,6 +33,7 @@ package body Traces_Files_List is
    begin
       for TF of Files loop
          String'Output (CSS, TF.Filename.all);
+         Trace_File_Kind'Write (CSS, TF.Kind);
 
          --  If this trace file does not come from a checkpoint, then this
          --  context is the original one where it has actually been processed:
@@ -41,7 +43,13 @@ package body Traces_Files_List is
             Append_Info (TF.Trace, Coverage_Context, Context_Info);
          end if;
 
-         Checkpoint_Save (CSS, TF.Trace);
+         case TF.Kind is
+            when Binary_Trace_File =>
+               Checkpoint_Save (CSS, TF.Trace);
+
+            when Source_Trace_File =>
+               null;
+         end case;
       end loop;
 
       --  Mark end of list with empty string
@@ -56,19 +64,35 @@ package body Traces_Files_List is
    procedure Checkpoint_Load
      (CLS : access Checkpoints.Checkpoint_Load_State)
    is
+      S : constant access Ada.Streams.Root_Stream_Type'Class := CLS.all'Access;
    begin
       loop
          declare
             Name    : constant String := String'Input (CLS);
+            Kind    : Trace_File_Kind;
             CP_File : Trace_File_Element_Acc;
          begin
             exit when Name = "";
 
-            CP_File := new Trace_File_Element'
-              (From_Checkpoint => True,
-               Filename        => new String'(Name),
-               others          => <>);
-            Checkpoint_Load (CLS, CP_File.Trace);
+            --  Before version 2 of the checkpoints format, the only trace
+            --  files that existed were binary ones.
+
+            Kind := (if Checkpoints.Version_Less (S, Than => 2)
+                     then Binary_Trace_File
+                     else Trace_File_Kind'Input (CLS));
+
+            CP_File := new Trace_File_Element (Kind);
+            CP_File.From_Checkpoint := True;
+            CP_File.Filename := new String'(Name);
+
+            case Kind is
+               when Binary_Trace_File =>
+                  Checkpoint_Load (CLS, CP_File.Trace);
+
+               when Source_Trace_File =>
+                  null;
+            end case;
+
             Files.Append (CP_File);
          end;
       end loop;

@@ -1817,7 +1817,8 @@ begin
             begin
                if Trace_File_Name /= "" then
                   Trace_File := new Trace_File_Element'
-                    (From_Checkpoint => False,
+                    (Kind            => Binary_Trace_File,
+                     From_Checkpoint => False,
                      Filename        => new String'(Trace_File_Name),
                      others          => <>);
 
