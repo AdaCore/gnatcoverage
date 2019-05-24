@@ -1575,11 +1575,41 @@ begin
 
       when Cmd_Coverage =>
 
-         --  Validate combination of output format and coverage level
+         --  Make sure we have a coverage level
 
-         if Annotation = Annotate_Report and then Object_Coverage_Enabled then
-            Fatal_Error
-              ("Report output is supported for source coverage only.");
+         if not (Source_Coverage_Enabled or else Object_Coverage_Enabled)
+         then
+            Report_Missing_Argument ("a coverage level");
+         end if;
+
+         --  Reject the use of several features that are not supported with
+         --  object coverage.
+
+         if Object_Coverage_Enabled then
+            declare
+               procedure Unsupported (Label : String);
+               --  Raise a fatal error saying that Label is supported for
+               --  source coverage only.
+
+               -----------------
+               -- Unsupported --
+               -----------------
+
+               procedure Unsupported (Label : String) is
+               begin
+                  Fatal_Error
+                    (Label & " is supported for source coverage only.");
+               end Unsupported;
+            begin
+               if Annotation = Annotate_Report then
+                  Unsupported ("Report output");
+
+               elsif Inputs.Length (Checkpoints_Inputs) > 0
+                     or else Save_Checkpoint /= null
+               then
+                  Unsupported ("Incremental coverage");
+               end if;
+            end;
          end if;
 
          --  Validate availability of the output format
@@ -1591,15 +1621,6 @@ begin
               ("Dynamic HTML report format support is not installed.");
          end if;
 
-         --  Validate checkpoint related arguments and coverage level
-
-         if (Inputs.Length (Checkpoints_Inputs) > 0
-             or else Save_Checkpoint /= null)
-           and then not Source_Coverage_Enabled
-         then
-            Fatal_Error ("Incremental object coverage not supported");
-         end if;
-
          --  Load ALI files
 
          if Source_Coverage_Enabled then
@@ -1607,9 +1628,6 @@ begin
 
          elsif Object_Coverage_Enabled then
             Inputs.Iterate (ALIs_Inputs, Load_ALI'Access);
-
-         else
-            Report_Missing_Argument ("a coverage level");
          end if;
 
          --  Load routines from command line
