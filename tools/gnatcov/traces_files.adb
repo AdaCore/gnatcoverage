@@ -173,6 +173,20 @@ package body Traces_Files is
       end if;
    end Success_Or_Fatal_Error;
 
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Kind : Trace_File_Kind) return String is
+   begin
+      case Kind is
+         when Binary_Trace_File =>
+            return "binary";
+         when Source_Trace_File =>
+            return "source";
+      end case;
+   end Image;
+
    ----------------------
    -- Probe_Trace_File --
    ----------------------

@@ -313,10 +313,25 @@ package body Annotations.Dynamic_Html is
 
          begin
             Trace.Set_Field ("filename", TF.Filename.all);
-            Trace.Set_Field ("program", Get_Info (TF.Trace, Exec_File_Name));
-            Trace.Set_Field
-              ("date", Format_Date_Info (Get_Info (TF.Trace, Date_Time)));
-            Trace.Set_Field ("tag", Get_Info (TF.Trace, User_Data));
+            Trace.Set_Field ("kind", Image (TF.Kind));
+
+            case TF.Kind is
+               when Binary_Trace_File =>
+                  Trace.Set_Field
+                    ("program", Get_Info (TF.Trace, Exec_File_Name));
+                  Trace.Set_Field
+                    ("date",
+                     Format_Date_Info (Get_Info (TF.Trace, Date_Time)));
+                  Trace.Set_Field ("tag", Get_Info (TF.Trace, User_Data));
+
+               when Source_Trace_File =>
+                  --  TODO: enhance the DHTML viewer to handle source trace
+                  --  files
+
+                  Trace.Set_Field ("program", "");
+                  Trace.Set_Field ("date", "");
+                  Trace.Set_Field ("tag", "");
+            end case;
 
             --  For a trace that has been processed in an earlier run, provide
             --  information on original coverage assessment context.

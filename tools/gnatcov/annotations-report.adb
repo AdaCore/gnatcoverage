@@ -667,12 +667,20 @@ package body Annotations.Report is
       begin
          New_Line (Output.all);
          Put_Line (Output.all, E.Filename.all);
-         Put_Line (Output.all, "  program  : "
-                   & Get_Info (E.Trace, Exec_File_Name));
-         Put_Line (Output.all, "  date     : "
-                   & Format_Date_Info (Get_Info (E.Trace, Date_Time)));
-         Put_Line (Output.all, "  tag      : "
-                   & Get_Info (E.Trace, User_Data));
+         Put_Line (Output.all, "  kind     : " & Image (E.Kind));
+
+         case E.Kind is
+            when Binary_Trace_File =>
+               Put_Line (Output.all, "  program  : "
+                         & Get_Info (E.Trace, Exec_File_Name));
+               Put_Line (Output.all, "  date     : "
+                         & Format_Date_Info (Get_Info (E.Trace, Date_Time)));
+               Put_Line (Output.all, "  tag      : "
+                         & Get_Info (E.Trace, User_Data));
+
+            when Source_Trace_File =>
+               null;
+         end case;
 
          --  For a trace that has been processed in an earlier run, provide
          --  information on original coverage assessment context.

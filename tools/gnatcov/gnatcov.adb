@@ -1815,8 +1815,20 @@ begin
                   Instrument.Input_Traces.Generic_Read_Source_Trace_File
                     (Compute_Source_Coverage);
 
-               Result : Read_Result;
+               Trace_File : Trace_File_Element_Acc;
+               Result     : Read_Result;
             begin
+               --  Register the trace file, so it is included in coverage
+               --  reports.
+
+               Trace_File := new Trace_File_Element'
+                 (Kind            => Source_Trace_File,
+                  Context         => null,
+                  Filename        => new String'(Trace_File_Name));
+               Traces_Files_List.Files.Append (Trace_File);
+
+               --  We can now read it and import its data
+
                Read_Source_Trace_File (Trace_File_Name, Result);
                if not Result.Success then
                   Report_Bad_Trace (Trace_File_Name, Result);

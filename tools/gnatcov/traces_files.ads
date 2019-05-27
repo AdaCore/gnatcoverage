@@ -46,6 +46,9 @@ package Traces_Files is
 
    type Trace_File_Kind is (Binary_Trace_File, Source_Trace_File);
 
+   function Image (Kind : Trace_File_Kind) return String;
+   --  Human-readable name for Kind
+
    procedure Probe_Trace_File
      (Filename : String;
       Kind     : out Trace_File_Kind;
