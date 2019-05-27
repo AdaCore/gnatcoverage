@@ -1198,7 +1198,25 @@ class SCOV_helper_src_traces(SCOV_helper):
     #   execution time so can't be recorded in the traces.
 
     def mode_build(self):
-        xcov_instrument(self.gpr, self.xcovlevel, 'instr.ckpt')
+
+        # We first need to instrument, with proper selection of the units of
+        # interest. Expect we are to provide this through a project file as
+        # we have no LI file at hand:
+        assert self.gprmode
+
+        # If we have a request for specific options, honor that. Otherwise,
+        # use the already computed project file for this test:
+        if self.covctl and self.covctl.gprsw:
+            instrument_gprsw = self.covctl.gprsw
+        else:
+            instrument_gprsw = GPRswitches(root_project=self.gpr)
+
+        xcov_instrument(
+            covlevel=self.xcovlevel, checkpoint='instr.ckpt',
+            gprsw=instrument_gprsw)
+
+        # Now we can build, instructing gprbuild to fetch the instrumented
+        # sources in their dedicated subdir:
         gprbuild(
             self.gpr, extracargs=self.extracargs,
             gargs='--src-subdirs=gnatcov-instr')
