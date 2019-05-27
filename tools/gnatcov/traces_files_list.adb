@@ -39,8 +39,10 @@ package body Traces_Files_List is
          --  context is the original one where it has actually been processed:
          --  record in in its infos.
 
-         if not TF.From_Checkpoint then
-            Append_Info (TF.Trace, Coverage_Context, Context_Info);
+         if TF.Context = null then
+            String'Output (CSS, Context_Info);
+         else
+            String'Output (CSS, TF.Context.all);
          end if;
 
          case TF.Kind is
@@ -82,8 +84,14 @@ package body Traces_Files_List is
                      else Trace_File_Kind'Input (CLS));
 
             CP_File := new Trace_File_Element (Kind);
-            CP_File.From_Checkpoint := True;
             CP_File.Filename := new String'(Name);
+
+            --  Before version 2, the context was stored as a trace info rather
+            --  than as a stand-alone field.
+
+            if not Checkpoints.Version_Less (S, Than => 2) then
+               CP_File.Context := new String'(String'Input (CLS));
+            end if;
 
             case Kind is
                when Binary_Trace_File =>
@@ -92,6 +100,11 @@ package body Traces_Files_List is
                when Source_Trace_File =>
                   null;
             end case;
+
+            if not Checkpoints.Version_Less (S, Than => 2) then
+               CP_File.Context := new String'
+                 (Get_Info (CP_File.Trace, Coverage_Context));
+            end if;
 
             Files.Append (CP_File);
          end;

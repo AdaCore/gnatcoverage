@@ -30,9 +30,11 @@ package Traces_Files_List is
 
    type Trace_File_Element (Kind : Trace_File_Kind := Trace_File_Kind'First)
    is record
-      From_Checkpoint : Boolean;
-      --  False if this trace file was loaded by this instance of gnatcov, True
-      --  if we loaded it from a checkpoint.
+      Context : String_Access;
+      --  Null if this trace file was loaded by this instance of gnatcov.
+      --  Otherwise, contains a string, to be decoded with
+      --  Coverage.From_String, that describes the context where it has
+      --  actually been processed.
 
       Filename : String_Access;
       --  File name for the trace file, as passed to "gnatcov coverage"

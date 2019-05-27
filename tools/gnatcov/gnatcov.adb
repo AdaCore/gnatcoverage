@@ -1835,10 +1835,10 @@ begin
             begin
                if Trace_File_Name /= "" then
                   Trace_File := new Trace_File_Element'
-                    (Kind            => Binary_Trace_File,
-                     From_Checkpoint => False,
-                     Filename        => new String'(Trace_File_Name),
-                     others          => <>);
+                    (Kind     => Binary_Trace_File,
+                     Context  => null,
+                     Filename => new String'(Trace_File_Name),
+                     others   => <>);
 
                   Traces_Files_List.Files.Append (Trace_File);
                else
