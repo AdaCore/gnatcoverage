@@ -42,7 +42,7 @@ with Qemu_Traces;
 with Strings;
 with Switches;
 with Traces_Disa;
-with Traces_Files_List;
+with Traces_Files; use Traces_Files;
 
 --  This package generates a dynamic HTML report, i.e. an HTML document heavily
 --  relying on JavaScript for presenting advanced graphical components.
@@ -293,7 +293,6 @@ package body Annotations.Dynamic_Html is
 
       procedure Append_Traces_List is
          use Qemu_Traces;
-         use Traces_Files_List;
          use Traces_Files_Lists;
 
          procedure Process_Trace (Position : Cursor);
@@ -308,7 +307,7 @@ package body Annotations.Dynamic_Html is
             TF           : constant Trace_File_Element_Acc :=
               Element (Position);
             Orig_Context : constant String :=
-              Original_Processing_Context (TF.Trace);
+              Original_Processing_Context (TF.all);
 
             Trace : constant JSON_Value := Create_Object;
 

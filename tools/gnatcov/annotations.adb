@@ -22,15 +22,16 @@ with Ada.Strings.Unbounded;
 
 with Interfaces;
 
-with ALI_Files;   use ALI_Files;
+with ALI_Files;    use ALI_Files;
 with Coverage.Object;
 with Coverage.Source;
 with Coverage.Tags;
-with Outputs;     use Outputs;
-with Qemu_Traces; use Qemu_Traces;
-with Strings;     use Strings;
-with Switches;    use Switches;
+with Outputs;      use Outputs;
+with Qemu_Traces;  use Qemu_Traces;
+with Strings;      use Strings;
+with Switches;     use Switches;
 with Traces_Disa;
+with Traces_Files; use Traces_Files;
 
 package body Annotations is
 
@@ -606,11 +607,12 @@ package body Annotations is
    -- Original_Processing_Context --
    ---------------------------------
 
-   function Original_Processing_Context (TF : Trace_File_Type) return String is
+   function Original_Processing_Context (TF : Trace_File_Element) return String
+   is
       use Ada.Calendar.Formatting;
       use Ada.Strings.Unbounded;
 
-      Context_Info : constant String := Get_Info (TF, Coverage_Context);
+      Context_Info : constant String := Get_Info (TF.Trace, Coverage_Context);
    begin
       if Context_Info /= "" then
          declare

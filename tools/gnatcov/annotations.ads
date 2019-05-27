@@ -18,20 +18,20 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
-with Binary_Files;   use Binary_Files;
+with Binary_Files;      use Binary_Files;
 with Coverage;
-with Diagnostics;    use Diagnostics;
-with Disa_Symbolize; use Disa_Symbolize;
+with Diagnostics;       use Diagnostics;
+with Disa_Symbolize;    use Disa_Symbolize;
 with Elf_Disassemblers; use Elf_Disassemblers;
-with Files_Table;    use Files_Table;
-with SC_Obligations; use SC_Obligations;
-with Slocs;          use Slocs;
-with Traces;         use Traces;
-with Traces_Elf;     use Traces_Elf;
-with Traces_Files;   use Traces_Files;
-with Traces_Lines;   use Traces_Lines;
-with Traces_Stats;   use Traces_Stats;
-with Types;          use Types;
+with Files_Table;       use Files_Table;
+with SC_Obligations;    use SC_Obligations;
+with Slocs;             use Slocs;
+with Traces;            use Traces;
+with Traces_Elf;        use Traces_Elf;
+with Traces_Files_List; use Traces_Files_List;
+with Traces_Lines;      use Traces_Lines;
+with Traces_Stats;      use Traces_Stats;
+with Types;             use Types;
 
 package Annotations is
 
@@ -170,7 +170,8 @@ private
    function Aggregated_State (Info : Line_Info) return Any_Line_State;
    --  Return synthetic indication of coverage state for all computed criteria
 
-   function Original_Processing_Context (TF : Trace_File_Type) return String;
+   function Original_Processing_Context
+     (TF : Trace_File_Element) return String;
    --  If TF was processed in a previous Gnatcov execution whose coverage
    --  information was then reloadad through a checkpoint, provide information
    --  about the original processing context. Empty string for traces processed

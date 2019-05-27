@@ -21,12 +21,12 @@ with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Strings.Unbounded;
 with Interfaces;
 
-with Coverage;    use Coverage;
-with Hex_Images;  use Hex_Images;
-with Outputs;     use Outputs;
-with Strings;     use Strings;
-with Traces_Disa; use Traces_Disa;
-with Traces_Files_List;
+with Coverage;     use Coverage;
+with Hex_Images;   use Hex_Images;
+with Outputs;      use Outputs;
+with Strings;      use Strings;
+with Traces_Disa;  use Traces_Disa;
+with Traces_Files; use Traces_Files;
 with Qemu_Traces;
 
 package body Annotations.Xml is
@@ -580,7 +580,6 @@ package body Annotations.Xml is
 
    procedure Print_Trace_Info (Pp : in out Xml_Pretty_Printer'Class) is
       use Qemu_Traces;
-      use Traces_Files_List;
       use Traces_Files_Lists;
 
       procedure Process_One_Trace (Position : Cursor);

@@ -20,12 +20,12 @@ with Ada.Characters.Handling;
 with Ada.Integer_Text_IO;
 with Ada.Text_IO;           use Ada.Text_IO;
 
-with Hex_Images;  use Hex_Images;
-with Traces_Disa; use Traces_Disa;
-with Traces_Files_List;
+with Hex_Images;   use Hex_Images;
+with Traces_Disa;  use Traces_Disa;
+with Traces_Files; use Traces_Files;
 with Qemu_Traces;
-with Coverage;    use Coverage;
-with Outputs;     use Outputs;
+with Coverage;     use Coverage;
+with Outputs;      use Outputs;
 
 package body Annotations.Html is
    type String_Cst_Acc is access constant String;
@@ -420,7 +420,6 @@ package body Annotations.Html is
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer) is
       use Qemu_Traces;
-      use Traces_Files_List;
       use Traces_Files_Lists;
 
       procedure Pi (S : String);
