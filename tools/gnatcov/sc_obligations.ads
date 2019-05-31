@@ -607,6 +607,7 @@ package SC_Obligations is
           Pragma_Max_Queue_Length => False,
           Pragma_Memory_Size => False,
           Pragma_No_Body => False,
+          Pragma_No_Caching => False,
           Pragma_No_Elaboration_Code_All => False,
           Pragma_No_Inline => False,
           Pragma_No_Return => False,
