@@ -2140,7 +2140,9 @@ begin
 
             if Save_Checkpoint /= null then
                Checkpoints.Checkpoint_Save
-                 (Save_Checkpoint.all, Context'Access);
+                 (Save_Checkpoint.all,
+                  Context'Access,
+                  Purpose => Checkpoints.Consolidation);
             end if;
          end;
 

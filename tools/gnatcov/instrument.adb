@@ -481,7 +481,10 @@ package body Instrument is
          Context : aliased Coverage.Context := Coverage.Get_Context;
       begin
          Checkpoints.Checkpoint_Save
-           (Checkpoint_Filename, Context'Access, 2);
+           (Checkpoint_Filename,
+            Context'Access,
+            Purpose => Checkpoints.Instrumentation,
+            Version => 2);
       end;
 
       if Switches.Verbose then

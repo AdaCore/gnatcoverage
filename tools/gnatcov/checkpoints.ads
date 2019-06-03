@@ -95,10 +95,18 @@ package Checkpoints is
       SCO_Map  : SCO_Id_Map_Acc;
    end record;
 
+   type Checkpoint_Purpose is (Instrumentation, Consolidation);
+   --  Purpose of checkpoint can be to provide:
+   --    * SCO information from instrumentation of source files
+   --    * a snapshot of an intermediate state in consolidated coverage
+
    procedure Checkpoint_Save
      (Filename : String;
       Context  : access Coverage.Context;
+      Purpose  : Checkpoint_Purpose;
       Version  : Checkpoint_Version := Default_Checkpoint_Version);
+   --  Dump internal data structures to a checkpoint file.
+
    procedure Checkpoint_Load (Filename : String);
 
    procedure Remap_SFI

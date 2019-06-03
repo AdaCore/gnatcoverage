@@ -48,20 +48,35 @@ package body Checkpoints is
    procedure Checkpoint_Save
      (Filename : String;
       Context  : access Coverage.Context;
+      Purpose  : Checkpoint_Purpose;
       Version  : Checkpoint_Version := Default_Checkpoint_Version)
    is
       SF  : Ada.Streams.Stream_IO.File_Type;
    begin
+      if Purpose = Instrumentation and then Version < 2 then
+         raise Program_Error
+           with "instrumentation checkpoints must be at least version 2";
+      end if;
+
       Create (SF, Out_File, Filename);
 
       declare
-         CSS : aliased Checkpoint_Save_State :=
+         use Coverage;
+
+         CSS              : aliased Checkpoint_Save_State :=
            (Root_Stream_Type with Stream => Stream (SF), Version => Version);
+         Supported_Levels : Levels_Type := Current_Levels;
       begin
          Checkpoint_Header'Write
            (CSS.Stream, (Version => Version, others => <>));
-         Coverage.Levels_Type'Write
-           (CSS.Stream, Coverage.Current_Levels);
+
+         --  Instrumentation is the same for all MC/DC variants, so a
+         --  checkpoint generated for any of them supports all of them.
+
+         if Purpose = Instrumentation and then MCDC_Coverage_Enabled then
+            Supported_Levels (MCDC_Coverage_Level'Range) := (others => True);
+         end if;
+         Coverage.Levels_Type'Write (CSS.Stream, Supported_Levels);
 
          Files_Table.Checkpoint_Save (CSS'Access);
          SC_Obligations.Checkpoint_Save (CSS'Access);
