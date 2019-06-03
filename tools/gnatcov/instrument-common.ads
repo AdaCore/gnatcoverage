@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2018, AdaCore                     --
+--                     Copyright (C) 2008-2019, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -129,6 +129,9 @@ package Instrument.Common is
    function To_Filename (CU_Name : Compilation_Unit_Name) return String;
    --  Return the name of the file to contain the given compilation unit. This
    --  assumes standard GNAT naming scheme.
+
+   function Image (CU_Name : Compilation_Unit_Name) return String;
+   --  Return a string representation of CU_Name for use in diagnostics
 
    function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
    --  Compare qualified name, identifier by identifier. If one is the

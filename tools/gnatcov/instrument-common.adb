@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2018, AdaCore                     --
+--                     Copyright (C) 2008-2019, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -20,7 +20,7 @@ with Ada.Characters.Handling;
 with Ada.Characters.Conversions;
 with Ada.Unchecked_Deallocation;
 
-with Outputs;
+with Outputs; use Outputs;
 with Project;
 
 package body Instrument.Common is
@@ -118,6 +118,20 @@ package body Instrument.Common is
 
       return +Result;
    end To_Filename;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (CU_Name : Compilation_Unit_Name) return String is
+   begin
+      return To_Ada (CU_Name.Unit)
+        & " "
+        & (case CU_Name.Part is
+              when Unit_Spec     => "spec",
+              when Unit_Body     => "body",
+              when Unit_Separate => "subunit");
+   end Image;
 
    ---------
    -- "<" --
@@ -304,13 +318,12 @@ package body Instrument.Common is
          Get_From_File (Context, Input_Filename);
    begin
       if Unit.Has_Diagnostics then
-         Outputs.Error ("instrumentation failed for " & Input_Filename);
-         Outputs.Error
-           ("please make sure the original project can be compiled");
+         Error ("instrumentation failed for " & Input_Filename);
+         Error ("please make sure the original project can be compiled");
          for D of Unit.Diagnostics loop
-            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
+            Error (Unit.Format_GNU_Diagnostic (D));
          end loop;
-         raise Outputs.Xcov_Exit_Exc;
+         raise Xcov_Exit_Exc;
       end if;
 
       Self.Input_Filename := To_Unbounded_String (Input_Filename);
@@ -363,19 +376,18 @@ package body Instrument.Common is
 
          else
             Has_Error := True;
-            Outputs.Error ("instrumentation failed for "
-                           & To_String (Self.Input_Filename));
-            Outputs.Error
-              ("this is likely a bug in GNATcoverage: please report it");
+            Error ("instrumentation failed for "
+                   & To_String (Self.Input_Filename));
+            Error ("this is likely a bug in GNATcoverage: please report it");
             for D of Result.Diagnostics loop
-               Outputs.Error (Self.Unit.Format_GNU_Diagnostic (D));
+               Error (Self.Unit.Format_GNU_Diagnostic (D));
             end loop;
          end if;
       end;
 
       Self.Finalize;
       if Has_Error then
-         raise Outputs.Xcov_Exit_Exc;
+         raise Xcov_Exit_Exc;
       end if;
    end Apply;
 
@@ -417,7 +429,26 @@ package body Instrument.Common is
       Map'Read (CLS.Stream, CP_IU_Map);
 
       for Cur in CP_IU_Map.Iterate loop
-         Instrumented_Unit_CUs.Insert (Key (Cur), CLS.CU_Map (Element (Cur)));
+         declare
+            CP_Unit_Name : constant Compilation_Unit_Name := Key (Cur);
+
+            Existing_Cur   : constant Cursor :=
+              Instrumented_Unit_CUs.Find (CP_Unit_Name);
+            Existing_CU_Id : constant CU_Id :=
+              (if Existing_Cur = No_Element
+               then No_CU_Id
+               else Element (Existing_Cur));
+            New_CU_Id      : constant CU_Id := CLS.CU_Map (Element (Cur));
+
+         begin
+            if Existing_CU_Id = No_CU_Id then
+               Instrumented_Unit_CUs.Insert (CP_Unit_Name, New_CU_Id);
+
+            elsif Existing_CU_Id /= New_CU_Id then
+               Warn ("inconsistent information for instrumented unit "
+                     & Image (CP_Unit_Name));
+            end if;
+         end;
       end loop;
    end Checkpoint_Load;
 
