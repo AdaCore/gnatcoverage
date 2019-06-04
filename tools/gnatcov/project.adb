@@ -92,6 +92,9 @@ package body Project is
    --  Hold the object subdirectory to use (if any) for all loaded projects.
    --  Should be processed each time we load a project tree.
 
+   Externally_Built_Projects_Processing_Enabled : Boolean := False;
+   --  Whether to include projects marked as externally built to processings
+
    package Project_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
       Element_Type => Project_Type);
@@ -224,11 +227,19 @@ package body Project is
          Project := Current (Iter);
          exit when Project = No_Project;
 
-         --  If project is extended, go to the ultimate extending project,
-         --  which might override the Coverage package.
+         --  Skip externally built projects unless they are explicitly
+         --  requested.
 
-         Project := Extending_Project (Project, Recurse => True);
-         Process (Project);
+         if Externally_Built_Projects_Processing_Enabled
+            or else not Project.Externally_Built
+         then
+            --  If project is extended, go to the ultimate extending project,
+            --  which might override the Coverage package.
+
+            Project := Extending_Project (Project, Recurse => True);
+            Process (Project);
+         end if;
+
          Next (Iter);
       end loop;
    end Iterate_Projects;
@@ -806,6 +817,15 @@ package body Project is
       if Obj_Subdir /= Null_Unbounded_String then
          Env.Set_Object_Subdir (+To_String (Obj_Subdir));
       end if;
+
+      if not Externally_Built_Projects_Processing_Enabled
+         and then Prj_Tree.Root_Project.Externally_Built
+      then
+         Fatal_Error
+           ("Root project is marked as externally built, while externally"
+            & " built projects are ignored by default. Consider using"
+            & " --externally-built-projects.");
+      end if;
    end Load_Root_Project;
 
    -----------------------
@@ -967,6 +987,15 @@ package body Project is
          Env.Set_Object_Subdir (+Subdir);
       end if;
    end Set_Subdirs;
+
+   -------------------------------------------------
+   -- Enable_Externally_Built_Projects_Processing --
+   -------------------------------------------------
+
+   procedure Enable_Externally_Built_Projects_Processing is
+   begin
+      Externally_Built_Projects_Processing_Enabled := True;
+   end Enable_Externally_Built_Projects_Processing;
 
    ------------------
    -- Project_Name --

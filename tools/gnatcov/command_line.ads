@@ -73,7 +73,8 @@ package Command_Line is
       Opt_Keep_Edges,
       Opt_Pretty_Print,
       Opt_Keep_Reading_Traces,
-      Opt_Auto_Dump_Buffers);
+      Opt_Auto_Dump_Buffers,
+      Opt_Externally_Built_Projects);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -385,7 +386,14 @@ package Command_Line is
                       & " for all units of interest in the main closure.",
          Commands  => (Cmd_Instrument => True,
                        others         => False),
-         Internal  => True));
+         Internal  => True),
+
+      Opt_Externally_Built_Projects => Create
+        (Long_Name => "--externally-built-projects",
+         Help      => "Process projects marked as externally built.",
+         Commands  => (Cmd_Run | Cmd_Coverage | Cmd_Dump_CFG => True,
+                       others                                => False),
+         Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

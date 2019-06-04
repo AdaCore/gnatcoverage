@@ -71,6 +71,11 @@ package Project is
    procedure Set_Subdirs (Subdir : String);
    --  Set the object subdir for all loaded projects
 
+   procedure Enable_Externally_Built_Projects_Processing
+      with Pre => not Is_Project_Loaded;
+   --  Request that the projects marked as externally built are included in
+   --  processings (they are excluded by default).
+
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------

@@ -414,6 +414,10 @@ procedure GNATcov is
          Set_Subdirs (+Args.String_Args (Opt_Subdirs).Value);
       end if;
 
+      if Args.Bool_Args (Opt_Externally_Built_Projects) then
+         Enable_Externally_Built_Projects_Processing;
+      end if;
+
       --  If the project file does not define a target, loading it needs the
       --  target information: load it here. Likewise for the runtime system.
 
