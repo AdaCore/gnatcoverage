@@ -185,6 +185,22 @@ def gprbuild(project,
                      FatalError("gprbuild exit in error", ofile))
 
 
+def gprinstall(project, prefix=None):
+    """
+    Run "gprinstall" on the provided project file.
+
+    :param None|str prefix: If a string is passed, add `--prefix=PREFIX` to the
+        gprinstall command-line.
+    """
+    ofile = 'gprinstall.out'
+    args = ['gprinstall', '-P', project, '-p']
+    if prefix:
+        args.append('--prefix={}'.format(prefix))
+    p = run_and_log(args, output=ofile, timeout=thistest.options.timeout)
+    thistest.stop_if(p.status != 0,
+                     FatalError('gprinstall exit in error', ofile))
+
+
 def gpr_emulator_package():
     """
     If there is a board name, return a package Emulator to be included in a GPR
