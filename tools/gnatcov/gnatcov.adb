@@ -433,7 +433,6 @@ procedure GNATcov is
       --  project subsystem and load the root project.
 
       Load_Root_Project (Root_Project.all, Target_Family, Runtime, CGPR_File);
-      Compute_Project_View;
 
       --  Get common and command-specific switches, decode them (if any) and
       --  store the result in Project_Args, then merge it into Args.

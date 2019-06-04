@@ -68,9 +68,6 @@ package Project is
    --  If the loaded root project has an Origin_Project attribute, return its
    --  value. Return an empty string otherwise.
 
-   procedure Compute_Project_View;
-   --  Recompute the view of the loaded project within the current scenario
-
    procedure Set_Subdirs (Subdir : String);
    --  Set the object subdir for all loaded projects
 

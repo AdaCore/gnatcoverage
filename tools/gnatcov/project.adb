@@ -390,15 +390,6 @@ package body Project is
       Prj_Map.Insert (Prj_Name, Prj);
    end Add_Project;
 
-   --------------------------
-   -- Compute_Project_View --
-   --------------------------
-
-   procedure Compute_Project_View is
-   begin
-      Prj_Tree.Recompute_View;
-   end Compute_Project_View;
-
    -------------------
    -- Enumerate_LIs --
    -------------------
@@ -795,13 +786,16 @@ package body Project is
       Initialize (Target, Runtime, CGPR_File);
       pragma Assert (Env /= null);
 
+      if Obj_Subdir /= Null_Unbounded_String then
+         Env.Set_Object_Subdir (+To_String (Obj_Subdir));
+      end if;
+
       Prj_Tree := new Project_Tree;
       begin
          Prj_Tree.Load
            (Root_Project_Path => Create (+Prj_Name),
             Env               => Env,
             Packages_To_Check => Coverage_Package_List'Access,
-            Recompute_View    => False,
             Errors            => Outputs.Warning_Or_Error'Access);
       exception
          when Invalid_Project =>
