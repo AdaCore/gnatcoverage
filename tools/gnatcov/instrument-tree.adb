@@ -1412,8 +1412,7 @@ package body Instrument.Tree is
                            Arg := 2;
                         end if;
 
-                        Process_Decisions_Defer
-                          (Prag_Args.Child (Arg), 'P');
+                        Process_Decisions_Defer (Prag_Arg_Expr (Arg), 'P');
                         Typ := 'p';
 
                         --  Pre/postconditions can be inherited so SCO should
@@ -1426,12 +1425,11 @@ package body Instrument.Tree is
                            --  is a P decision, any nested decision in the
                            --  second argument is an X decision.
 
-                           Process_Decisions_Defer
-                             (Prag_Args.Child (Arg), 'P');
+                           Process_Decisions_Defer (Prag_Arg_Expr (Arg), 'P');
                            Arg := 2;
                         end if;
 
-                        Process_Decisions_Defer (Prag_Args.Child (Arg), 'X');
+                        Process_Decisions_Defer (Prag_Arg_Expr (Arg), 'X');
                         Typ := 'p';
 
                      when Name_Annotate =>
