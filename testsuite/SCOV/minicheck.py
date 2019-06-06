@@ -1,10 +1,3 @@
-import collections
-import glob
-import re
-
-from SUITE.cutils import FatalError, contents_of
-from SUITE.tutils import thistest, xcov
-
 """
 Dummy XCOV reports checker.
 
@@ -13,6 +6,13 @@ reports. Ideally, we should use the regular SCOV circuitry for that but that's
 not possible at the moment for manual report production schemes (for instance
 for specific checkpoints usage testcases).
 """
+
+import collections
+import glob
+import re
+
+from SUITE.cutils import contents_of
+from SUITE.tutils import thistest, xcov
 
 COV_RE = re.compile('^ *(\d+) (.):.*$')
 
@@ -54,8 +54,7 @@ def check_xcov_content(filename, expected_cov):
 
     "expected_cov" is a dict like:
 
-    >>> {'+': {5, 7},
-         '!': {6}}
+    >>> {'+': {5, 7}, '!': {6}}
 
     This is interpreted as: lines 5 and 7 must be fully covered (+), line 6
     must be partially covered (!) and all other lines must be no-code (.).
