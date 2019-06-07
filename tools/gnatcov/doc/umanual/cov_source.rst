@@ -1566,6 +1566,28 @@ On the other hand, if two distinct instances of a generic subprogram are
 inlined within a single calling routine, they will undergo a single coverage
 analysis since they now occur in the same symbol.
 
+Handling Ada assertions and contracts
+=====================================
+
+Ada 2012 introduced sophisticated *programming by contract* mechanisms which
+generalize the base ``pragma Assert`` construct originally offered by the
+language. All these facilities allow asserting various properties of the
+program state at specific points of its execution, for example as type
+invariants or as Pre/Post-conditions on subprograms.
+
+Each property is expressed a Boolean expression expected to hold True,
+triggering an exception otherwise. When the current assertion policy activates
+a given assertion construct, the associated Boolean expression is treated by
+|gcv| as a decision for MCDC purposes.
+
+As assertions are by construction designed never to evaluate False, reaching
+proper coverage for them is non-trivial, if not entirely meaningless, for
+post-conditions in particular.
+
+The simple way out consists in disabling the relevant constructs in builds
+intended for coverage analysis, by setting the corresponding
+``Assertion_Policy`` to ``Disable`` with GNAT Pro toolchains.
+
 .. _c_macros:
 
 Processing of C macros
