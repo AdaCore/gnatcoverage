@@ -590,14 +590,28 @@ package body Annotations.Xml is
       -----------------------
 
       procedure Process_One_Trace (Position : Cursor) is
-         TF : constant Trace_File_Element_Acc := Element (Position);
+         use Ada.Strings.Unbounded;
+
+         TF         : constant Trace_File_Element_Acc := Element (Position);
+         Attributes : Unbounded_String;
       begin
-         Pp.T ("trace",
-               A ("filename", TF.Filename.all)
-               & A ("program", Get_Info (TF.Trace, Exec_File_Name))
-               & A ("date", Format_Date_Info (Get_Info (TF.Trace, Date_Time)))
-               & A ("tag", Get_Info (TF.Trace, User_Data)),
-               Dest_Trace_Info);
+         Append (Attributes,
+                 A ("filename", TF.Filename.all)
+                 & A ("kind", Image (TF.Kind)));
+
+         case TF.Kind is
+            when Binary_Trace_File =>
+               Append
+                 (Attributes,
+                  A ("program", Get_Info (TF.Trace, Exec_File_Name))
+                  & A ("date",
+                       Format_Date_Info (Get_Info (TF.Trace, Date_Time)))
+                  & A ("tag", Get_Info (TF.Trace, User_Data)));
+            when Source_Trace_File =>
+               null;
+         end case;
+
+         Pp.T ("trace", To_String (Attributes), Dest_Trace_Info);
       end Process_One_Trace;
 
    --  Start of processing for Print_Trace_Info
