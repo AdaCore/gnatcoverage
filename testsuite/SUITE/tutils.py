@@ -222,6 +222,12 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     the end of the Compiler package contents. Add EXTRA, if any, at the end of
     the project file contents. Return the gpr file name.
     """
+    # If we work with source instrumentation, add the dependency on
+    # gnatcov_full_rts so that instrumented program are compilable in the
+    # generated project.
+    if thistest.options.trace_mode == 'src':
+        deps.append('gnatcov_rts_full.gpr')
+
     deps = '\n'.join('with "%s";' % dep for dep in deps)
 
     mains = to_list(mains)

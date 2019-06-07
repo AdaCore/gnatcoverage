@@ -407,13 +407,6 @@ class SCOV_helper:
         """
         raise NotImplementedError
 
-    def mode_gprdeps(self):
-        """Return a list of mode specific project file dependencies that should
-        be added to a single test project file, as needed at build or execution
-        time.
-        """
-        raise NotImplementedError
-
     def mode_tracename_for(self, pgm):
         raise NotImplementedError
 
@@ -591,8 +584,7 @@ class SCOV_helper:
             exedir = self.abdir(),
             main_cargs = "-fno-inline",
             langs = ["Ada", "C"],
-            deps = self.mode_gprdeps() + \
-                    (self.covctl.deps if self.covctl else []),
+            deps = self.covctl.deps if self.covctl else [],
             extra = self.covctl.gpr () if self.covctl else "")
 
         # For single tests (no consolidation), we first need to build, then
@@ -1106,9 +1098,6 @@ class SCOV_helper_bin_traces(SCOV_helper):
         else:
             return ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
 
-    def mode_gprdeps(self):
-        return []
-
     def mode_tracename_for(self, pgm):
         return tracename_for(pgm)
 
@@ -1243,6 +1232,3 @@ class SCOV_helper_src_traces(SCOV_helper):
 
     def mode_tracename_for(self, pgm):
         return srctracename_for(pgm)
-
-    def mode_gprdeps(self):
-        return ["gnatcov_rts_full.gpr"]
