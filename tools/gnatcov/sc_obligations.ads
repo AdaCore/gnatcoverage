@@ -688,6 +688,16 @@ package SC_Obligations is
           Pragma_Acc_Loop => False,
           Pragma_Acc_Parallel => False,
 
+          --  Special case for pre/postcondition: these do not generate code
+          --  at their normal point of occurrence in the instruction flow,
+          --  and in the case of instrumentation based coverage, they cannot
+          --  be instrumented because of their special placement rules. So,
+          --  we mark them as generating no code, and we treat them as
+          --  "free-standing" decisions (outside of statement context).
+
+          Pragma_Postcondition => False,
+          Pragma_Precondition => False,
+
           --  Now pragmas which might generate code. This is an explicit list
           --  instead of a mere "others" fallback to make sure we notice when
           --  new pragmas get in the daily compiler from which we build, which
@@ -705,13 +715,11 @@ package SC_Obligations is
 
           Pragma_Debug => True,
           Pragma_Post => True,
-          Pragma_Postcondition => True,
           Pragma_Post_Class => True,
           Pragma_Refined_Post => True,
           Pragma_Pre => True,
-          Pragma_Precondition => True,
-          Pragma_Pre_Class => True,
           Pragma_Predicate => True,
+          Pragma_Pre_Class => True,
           Pragma_Contract_Cases => True,
 
           Pragma_Loop_Invariant => True,
