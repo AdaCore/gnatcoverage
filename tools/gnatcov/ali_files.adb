@@ -141,6 +141,7 @@ package body ALI_Files is
                   Ignored_Source_Files => null,
                   Units                => Discard_Units,
                   Deps                 => Discard_Deps,
+                  ALI_Annotations      => ALI_Annotations,
                   With_SCOs            => False);
    end Load_ALI;
 
@@ -154,6 +155,7 @@ package body ALI_Files is
       Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Units                : out SFI_Vector;
       Deps                 : out SFI_Vector;
+      ALI_Annotations      : in out ALI_Annotation_Maps.Map;
       With_SCOs            : Boolean) return Source_File_Index
    is
       ALI_File  : File_Type;

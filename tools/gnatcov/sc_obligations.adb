@@ -1759,9 +1759,9 @@ package body SC_Obligations is
       CU_Index : constant CU_Id := Allocate_CU (Provider => Compiler);
       --  Compilation unit for this ALI
 
-      ALI_Index : constant Source_File_Index :=
-        Load_ALI (ALI_Filename, CU_Index, Ignored_Source_Files,
-                  Units, Deps, With_SCOs => True);
+      ALI_Index : constant Source_File_Index := Load_ALI
+        (ALI_Filename, CU_Index, Ignored_Source_Files, Units, Deps,
+         ALI_Annotations, With_SCOs => True);
       --  Load ALI file and update the last SCO and instance indices
 
       Main_Source : Source_File_Index;

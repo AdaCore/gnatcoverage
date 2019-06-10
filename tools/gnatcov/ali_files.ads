@@ -36,27 +36,6 @@ package ALI_Files is
 
    pragma Suppress (Tampering_Check);
 
-   function Load_ALI
-     (ALI_Filename         : String;
-      CU                   : CU_Id;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp;
-      Units                : out SFI_Vector;
-      Deps                 : out SFI_Vector;
-      With_SCOs            : Boolean) return Types.Source_File_Index;
-   --  Load coverage related information (coverage exemptions and, if With_SCOs
-   --  is True, source coverage obligations) from ALI_Filename. Returns the
-   --  source file index for the ALI file. Subsequent calls for the same ALI
-   --  file will return No_Source_File immediately, without reloading the file.
-   --  Units are the units contained in this compilation.
-   --
-   --  Ignore all source obligations according to Ignored_Source_Files (see
-   --  SC_Obligations.Load_SCOs' documentation).
-   --
-   --  Deps are the dependencies of the compilation.
-
-   procedure Load_ALI (ALI_Filename : String);
-   --  Load ALI information for Filename, without SCOs
-
    type ALI_Annotation_Kind is (Exempt_On, Exempt_Off);
 
    type ALI_Annotation is record
@@ -88,5 +67,27 @@ package ALI_Files is
         Element_Type => ALI_Annotation);
 
    ALI_Annotations : ALI_Annotation_Maps.Map;
+
+   function Load_ALI
+     (ALI_Filename         : String;
+      CU                   : CU_Id;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Units                : out SFI_Vector;
+      Deps                 : out SFI_Vector;
+      ALI_Annotations      : in out ALI_Annotation_Maps.Map;
+      With_SCOs            : Boolean) return Types.Source_File_Index;
+   --  Load coverage related information (coverage exemptions and, if With_SCOs
+   --  is True, source coverage obligations) from ALI_Filename. Returns the
+   --  source file index for the ALI file. Subsequent calls for the same ALI
+   --  file will return No_Source_File immediately, without reloading the file.
+   --  Units are the units contained in this compilation.
+   --
+   --  Ignore all source obligations according to Ignored_Source_Files (see
+   --  SC_Obligations.Load_SCOs' documentation).
+   --
+   --  Deps are the dependencies of the compilation.
+
+   procedure Load_ALI (ALI_Filename : String);
+   --  Load ALI information for Filename, without SCOs
 
 end ALI_Files;
