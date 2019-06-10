@@ -374,6 +374,8 @@ package body SC_Obligations is
    --  either an already existing CU_Id (if the unit was already known),
    --  or a newly assigned one (if not).
 
+   BDD_Vector : BDD.BDD_Vectors.Vector;
+
    -----------------
    -- Add_Address --
    -----------------
@@ -555,7 +557,7 @@ package body SC_Obligations is
 
       --  Remap BDD node ids
 
-      New_First_BDD_Node := BDD.BDD_Vector.Last_Index + 1;
+      New_First_BDD_Node := BDD_Vector.Last_Index + 1;
       CLS.BDD_Map :=
         new BDD_Node_Id_Map_Array (CP_Vectors.BDD_Vector.First_Index
                                    .. CP_Vectors.BDD_Vector.Last_Index);
@@ -596,9 +598,9 @@ package body SC_Obligations is
                   null;
             end case;
 
-            BDD.BDD_Vector.Append (New_BDD_Node);
+            BDD_Vector.Append (New_BDD_Node);
             CLS.BDD_Map (Old_BDD_Node_Id) :=
-              BDD.BDD_Vector.Last_Index;
+              BDD_Vector.Last_Index;
          end;
       end loop;
 
@@ -672,7 +674,7 @@ package body SC_Obligations is
                when Condition =>
                   Remap_BDD_Node (New_SCOD.BDD_Node);
                   Remap_SCO_Id
-                    (BDD.BDD_Vector.Reference (New_SCOD.BDD_Node).C_SCO);
+                    (BDD_Vector.Reference (New_SCOD.BDD_Node).C_SCO);
 
                   New_SCOD.PC_Set.Clear;
 
@@ -1016,7 +1018,7 @@ package body SC_Obligations is
       CU_Info_Vectors.Vector'Write   (S, CU_Vector);
       ALI_Annotation_Maps.Map'Write  (S, ALI_Annotations);
       Inst_Info_Vectors.Vector'Write (S, Inst_Vector);
-      BDD.BDD_Vectors.Vector'Write   (S, BDD.BDD_Vector);
+      BDD.BDD_Vectors.Vector'Write   (S, BDD_Vector);
       SCO_Vectors.Vector'Write       (S, SCO_Vector);
    end Checkpoint_Save;
 
@@ -1100,7 +1102,7 @@ package body SC_Obligations is
 
             declare
                use type BDD.BDD_Node_Kind;
-               BDDN : BDD.BDD_Node renames BDD.BDD_Vector.Reference (Node);
+               BDDN : BDD.BDD_Node renames BDD_Vector.Reference (Node);
             begin
                if BDDN.Kind = BDD.Outcome then
                   Outcome := BDDN.Decision_Outcome;
@@ -2150,7 +2152,7 @@ package body SC_Obligations is
                         others              => <>));
                   pragma Assert (not SCOE.Last);
 
-                  Current_BDD := BDD.Create (Current_Decision);
+                  Current_BDD := BDD.Create (BDD_Vector, Current_Decision);
                   Current_Condition_Index := No_Condition_Index;
 
                when ' ' =>
@@ -2171,10 +2173,10 @@ package body SC_Obligations is
                                      Value      => Make_Condition_Value,
                                      Index      => Current_Condition_Index,
                                      others     => <>));
-                  BDD.Process_Condition (Current_BDD, New_SCO);
+                  BDD.Process_Condition (BDD_Vector, Current_BDD, New_SCO);
 
                   if SCOE.Last then
-                     BDD.Completed (Current_BDD);
+                     BDD.Completed (BDD_Vector, Current_BDD);
                      SCO_Vector.Update_Element
                        (Current_BDD.Decision, Update_Decision_BDD'Access);
 
@@ -2185,16 +2187,15 @@ package body SC_Obligations is
                   end if;
 
                when '!' =>
-                  BDD.Process_Not
-                    (New_Operator_SCO (Op_Not), Current_BDD);
+                  BDD.Process_Not (New_Operator_SCO (Op_Not), Current_BDD);
 
                when '&' =>
                   BDD.Process_And_Then
-                    (New_Operator_SCO (Op_And_Then), Current_BDD);
+                    (BDD_Vector, New_Operator_SCO (Op_And_Then), Current_BDD);
 
                when '|' =>
                   BDD.Process_Or_Else
-                    (New_Operator_SCO (Op_Or_Else), Current_BDD);
+                    (BDD_Vector, New_Operator_SCO (Op_Or_Else), Current_BDD);
 
                when 'H' =>
                   --  Chaining indicator: not used yet

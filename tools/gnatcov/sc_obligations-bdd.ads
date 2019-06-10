@@ -93,7 +93,6 @@ private package SC_Obligations.BDD is
      new Ada.Containers.Vectors
        (Index_Type   => Valid_BDD_Node_Id,
         Element_Type => BDD_Node);
-   BDD_Vector : BDD_Vectors.Vector;
 
    type Reachability is array (Boolean) of Boolean;
 
@@ -132,9 +131,10 @@ private package SC_Obligations.BDD is
    for BDD_Type'Write use Write;
 
    procedure Allocate
-     (BDD     : in out BDD_Type;
-      Node    : BDD_Node;
-      Node_Id : out BDD_Node_Id);
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      BDD        : in out BDD_Type;
+      Node       : BDD_Node;
+      Node_Id    : out BDD_Node_Id);
    --  Allocate a node within the given BDD with the given properties
 
    ------------------------------------
@@ -212,23 +212,36 @@ private package SC_Obligations.BDD is
 
    --  Construction of a BDD
 
-   function Create (Decision : SCO_Id) return BDD_Type;
+   function Create
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      Decision   : SCO_Id) return BDD_Type;
    --  Start construction of a new BDD for the given decision
 
-   procedure Process_Not      (O_SCO : SCO_Id; BDD : BDD_Type);
-   procedure Process_And_Then (O_SCO : SCO_Id; BDD : in out BDD_Type);
-   procedure Process_Or_Else  (O_SCO : SCO_Id; BDD : in out BDD_Type);
+   procedure Process_Not (O_SCO : SCO_Id; BDD   : BDD_Type);
+   procedure Process_And_Then
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      O_SCO      : SCO_Id;
+      BDD        : in out BDD_Type);
+   procedure Process_Or_Else
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      O_SCO      : SCO_Id;
+      BDD        : in out BDD_Type);
    --  Process NOT, AND THEN, OR ELSE operators
 
    procedure Process_Condition
-     (BDD          : in out BDD_Type;
+     (BDD_Vector   : in out BDD_Vectors.Vector;
+      BDD          : in out BDD_Type;
       Condition_Id : SCO_Id);
    --  Process condition
 
-   procedure Completed (BDD : in out BDD_Type);
+   procedure Completed
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      BDD        : in out BDD_Type);
    --  Called when all items in decision have been processed
 
-   procedure Dump_BDD (BDD : BDD_Type);
+   procedure Dump_BDD
+     (BDD_Vector : BDD_Vectors.Vector;
+      BDD        : BDD_Type);
    --  Display BDD for debugging purposes
 
 end SC_Obligations.BDD;

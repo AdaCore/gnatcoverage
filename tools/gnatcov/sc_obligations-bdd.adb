@@ -35,7 +35,9 @@ package body SC_Obligations.BDD is
 
    Arcs_Stack : Arcs_Stacks.Vector;
 
-   procedure Enumerate_Paths (BDD : in out BDD_Type);
+   procedure Enumerate_Paths
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      BDD        : in out BDD_Type);
    --  Enumerate all possible paths through BDD. For each BDD node,
    --  Offset_For_True is assigned, so that the unique index of each path
    --  is the sum of the offsets for each True condition. Also identify
@@ -50,9 +52,10 @@ package body SC_Obligations.BDD is
    --------------
 
    procedure Allocate
-     (BDD     : in out BDD_Type;
-      Node    : BDD_Node;
-      Node_Id : out BDD_Node_Id)
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      BDD        : in out BDD_Type;
+      Node       : BDD_Node;
+      Node_Id    : out BDD_Node_Id)
    is
    begin
       BDD_Vector.Append (Node);
@@ -176,7 +179,10 @@ package body SC_Obligations.BDD is
    -- Enumerate_Paths --
    ---------------------
 
-   procedure Enumerate_Paths (BDD : in out BDD_Type) is
+   procedure Enumerate_Paths
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      BDD        : in out BDD_Type)
+   is
       Path_Count : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
         of Integer := (others => 0);
 
@@ -273,7 +279,10 @@ package body SC_Obligations.BDD is
    -- Completed --
    ---------------
 
-   procedure Completed (BDD : in out BDD_Type) is
+   procedure Completed
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      BDD        : in out BDD_Type)
+   is
       use BDD_Vectors;
 
       procedure Patch_Jump (Dest : in out BDD_Node_Id);
@@ -332,10 +341,10 @@ package body SC_Obligations.BDD is
       --  Explore BDD to check for presence of multi-path conditions and
       --  assign offsets for path index computation.
 
-      Enumerate_Paths (BDD);
+      Enumerate_Paths (BDD_Vector, BDD);
 
       if Verbose then
-         Dump_BDD (BDD);
+         Dump_BDD (BDD_Vector, BDD);
       end if;
    end Completed;
 
@@ -343,7 +352,10 @@ package body SC_Obligations.BDD is
    -- Dump_BDD --
    --------------
 
-   procedure Dump_BDD (BDD : BDD_Type) is
+   procedure Dump_BDD
+     (BDD_Vector : BDD_Vectors.Vector;
+      BDD        : BDD_Type)
+   is
       procedure Dump_Condition (N : BDD_Node_Id);
       --  Display one condition
 
@@ -354,7 +366,7 @@ package body SC_Obligations.BDD is
       procedure Dump_Condition (N : BDD_Node_Id) is
          use Ada.Strings;
 
-         Node : BDD_Node renames BDD_Vector.Element (N);
+         Node           : BDD_Node renames BDD_Vector.Element (N);
          Next_Condition : BDD_Node_Id := N + 1;
 
          procedure Put_Dest (Origin : Boolean; Dest : BDD_Node_Id);
@@ -447,17 +459,22 @@ package body SC_Obligations.BDD is
    -- Create --
    ------------
 
-   function Create (Decision : SCO_Id) return BDD_Type is
+   function Create
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      Decision   : SCO_Id) return BDD_Type
+   is
       Exit_False_Id, Exit_True_Id : BDD_Node_Id;
    begin
       return BDD : BDD_Type do
          BDD.Decision := Decision;
 
          Allocate
-           (BDD, BDD_Node'(Kind => Outcome, Decision_Outcome => False),
+           (BDD_Vector, BDD,
+            BDD_Node'(Kind => Outcome, Decision_Outcome => False),
             Exit_False_Id);
          Allocate
-           (BDD, BDD_Node'(Kind => Outcome, Decision_Outcome => True),
+           (BDD_Vector, BDD,
+            BDD_Node'(Kind => Outcome, Decision_Outcome => True),
             Exit_True_Id);
 
          Push
@@ -473,7 +490,11 @@ package body SC_Obligations.BDD is
    -- Process_And_Then --
    ----------------------
 
-   procedure Process_And_Then (O_SCO : SCO_Id; BDD : in out BDD_Type) is
+   procedure Process_And_Then
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      O_SCO      : SCO_Id;
+      BDD        : in out BDD_Type)
+   is
       A : constant Arcs := Pop;
       L : BDD_Node_Id;
    begin
@@ -482,8 +503,8 @@ package body SC_Obligations.BDD is
          Position => A.O_Pos,
          Operand  => O_SCO);
 
-      Allocate (BDD, BDD_Node'(Kind => Jump,
-                               Dest => No_BDD_Node_Id), L);
+      Allocate (BDD_Vector, BDD, BDD_Node'(Kind => Jump,
+                                           Dest => No_BDD_Node_Id), L);
 
       --  Arcs for right operand: subtree is reached through label L if
       --  left operand is True.
@@ -509,7 +530,7 @@ package body SC_Obligations.BDD is
    -- Process_Not --
    -----------------
 
-   procedure Process_Not (O_SCO : SCO_Id; BDD : BDD_Type) is
+   procedure Process_Not (O_SCO : SCO_Id; BDD   : BDD_Type) is
       pragma Unreferenced (BDD);
 
       A : constant Arcs := Pop;
@@ -533,7 +554,11 @@ package body SC_Obligations.BDD is
    -- Process_Or_Else --
    ---------------------
 
-   procedure Process_Or_Else (O_SCO : SCO_Id; BDD : in out BDD_Type) is
+   procedure Process_Or_Else
+     (BDD_Vector : in out BDD_Vectors.Vector;
+      O_SCO      : SCO_Id;
+      BDD        : in out BDD_Type)
+   is
       A : constant Arcs := Pop;
       L : BDD_Node_Id;
    begin
@@ -541,7 +566,8 @@ package body SC_Obligations.BDD is
         (Operator => A.O_SCO,
          Position => A.O_Pos,
          Operand  => O_SCO);
-      Allocate (BDD, BDD_Node'(Kind => Jump, Dest => No_BDD_Node_Id), L);
+      Allocate
+        (BDD_Vector, BDD, BDD_Node'(Kind => Jump, Dest => No_BDD_Node_Id), L);
 
       --  Arcs for right operand: subtree is reached through label L if
       --  left operand is False.
@@ -568,7 +594,8 @@ package body SC_Obligations.BDD is
    -----------------------
 
    procedure Process_Condition
-     (BDD          : in out BDD_Type;
+     (BDD_Vector   : in out BDD_Vectors.Vector;
+      BDD          : in out BDD_Type;
       Condition_Id : SCO_Id)
    is
       A : constant Arcs := Pop;
@@ -590,7 +617,8 @@ package body SC_Obligations.BDD is
 
    begin
       Allocate
-        (BDD, (Kind         => Condition,
+        (BDD_Vector,
+         BDD, (Kind         => Condition,
                C_SCO        => Condition_Id,
                Dests        => A.Dests,
                others       => <>), N);
