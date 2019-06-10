@@ -1842,9 +1842,9 @@ package body SC_Obligations is
       --  Whether the SCOs referring to the current source file should be
       --  ignored.
 
-      Dom_SCO  : SCO_Id          := No_SCO_Id;
-      Dom_Sloc : Source_Location := No_Location;
-      Dom_Val  : Tristate        := Unknown;
+      Dom_SCO               : SCO_Id          := No_SCO_Id;
+      Dom_Sloc              : Source_Location := No_Location;
+      Dom_Val               : Tristate        := Unknown;
       Current_Handler_Range : Source_Location_Range := No_Range;
       --  Dominant information for basic block chaining
 

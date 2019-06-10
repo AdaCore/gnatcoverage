@@ -63,7 +63,7 @@ package ALI_Files is
       CU : CU_Id;
       --  Compilation unit whose LI file this annotation comes from
 
-      Kind    : ALI_Annotation_Kind;
+      Kind : ALI_Annotation_Kind;
       --  On or Off
 
       Message : String_Access;
@@ -71,7 +71,7 @@ package ALI_Files is
       --  This is null if no justification is given (i.e. this is never an
       --  access to an empty string).
 
-      Count   : Natural := 0;
+      Count : Natural := 0;
       --  When Kind = Exempt_On, this counts the "hits" on this exemption:
       --  exempted messages if generating a report, exempted non/partially
       --  covered lines otherwise.
