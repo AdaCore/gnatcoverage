@@ -145,10 +145,10 @@ end Test_Object_Declarations_Part_2;
 --  /in_if/             l+ ## 0
 
 --  /g1_local_swap/      ~l- ## ~s-
---  /g1_in_iflocal_swap/ ~l- ## ~s-
+--  /g1_if_local_swap/   ~l- ## ~s-
 --  /g1_decl/            ~l- ## ~s-
 --  /g1_stmt/            ~l- ## ~s-
---  /g1_in_if_stmt/      ~l- ## ~s-
+--  /g1_in_if/           ~l- ## ~s-
 
 --  /g2_local_swap/      ~l- ## ~s-
 --  /g2_decl/            l+ ## 0
