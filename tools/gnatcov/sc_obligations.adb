@@ -331,19 +331,20 @@ package body SC_Obligations is
      (Name => "instance", T => Instance_Tag_Provider_Type);
    pragma Unreferenced (R);
 
-   -----------------------------------------
-   -- Helper routines for Checkpoint_Load --
-   -----------------------------------------
+   --  Source_Coverage_Vectors holds all SCO-related data. This holder can
+   --  contain data loaded from a checkpoints.
 
-   --  CP_SCO_Vectors holds all SCO-related data loaded from a checkpoint
-
-   type CP_SCO_Vectors is record
+   type Source_Coverage_Vectors is record
       CU_Vector       : CU_Info_Vectors.Vector;
       ALI_Annotations : ALI_Annotation_Maps.Map;
       Inst_Vector     : Inst_Info_Vectors.Vector;
       BDD_Vector      : BDD.BDD_Vectors.Vector;
       SCO_Vector      : SCO_Vectors.Vector;
    end record;
+
+   -----------------------------------------
+   -- Helper routines for Checkpoint_Load --
+   -----------------------------------------
 
    procedure Checkpoint_Load_Merge_Unit
      (CLS        : access Checkpoint_Load_State;
@@ -354,19 +355,19 @@ package body SC_Obligations is
 
    procedure Checkpoint_Load_New_Unit
      (CLS        : access Checkpoint_Load_State;
-      CP_SCOV   : CP_SCO_Vectors;
-      CP_CU     : in out CU_Info;
-      CP_CU_Id  : CU_Id;
-      New_CU_Id : out CU_Id);
+      CP_Vectors : Source_Coverage_Vectors;
+      CP_CU      : in out CU_Info;
+      CP_CU_Id   : CU_Id;
+      New_CU_Id  : out CU_Id);
    --  Load CU from checkpoint that does not correspond to a current unit of
    --  interest. The newly assigned CU_Id is returned in New_CU_Id.
 
    procedure Checkpoint_Load_Unit
      (CLS        : access Checkpoint_Load_State;
-      CP_SCOV   : CP_SCO_Vectors;
-      CP_CU     : in out CU_Info;
-      CP_CU_Id  : CU_Id;
-      New_CU_Id : out CU_Id);
+      CP_Vectors : Source_Coverage_Vectors;
+      CP_CU      : in out CU_Info;
+      CP_CU_Id   : CU_Id;
+      New_CU_Id  : out CU_Id);
    --  Process one compilation unit from a checkpoint.
    --  CP_CU_Id is the CU_Id in the checkpoint.
    --  New_CU_Id is the corresponding CU_Id in the current context, and is
@@ -462,10 +463,10 @@ package body SC_Obligations is
 
    procedure Checkpoint_Load_New_Unit
      (CLS        : access Checkpoint_Load_State;
-      CP_SCOV   : CP_SCO_Vectors;
-      CP_CU     : in out CU_Info;
-      CP_CU_Id  : CU_Id;
-      New_CU_Id : out CU_Id)
+      CP_Vectors : Source_Coverage_Vectors;
+      CP_CU      : in out CU_Info;
+      CP_CU_Id   : CU_Id;
+      New_CU_Id  : out CU_Id)
 
    is
       New_First_Instance : Inst_Id;
@@ -520,7 +521,7 @@ package body SC_Obligations is
       loop
          Remap_Inst : declare
             New_Inst : Inst_Info :=
-              CP_SCOV.Inst_Vector.Element (Old_Inst_Id);
+              CP_Vectors.Inst_Vector.Element (Old_Inst_Id);
 
             procedure Remap_Inst_Id (S : in out Inst_Id);
             --  Remap an Inst_Id. Note: this assumes possible
@@ -556,12 +557,12 @@ package body SC_Obligations is
 
       New_First_BDD_Node := BDD.BDD_Vector.Last_Index + 1;
       CLS.BDD_Map :=
-        new BDD_Node_Id_Map_Array (CP_SCOV.BDD_Vector.First_Index
-                                   .. CP_SCOV.BDD_Vector.Last_Index);
+        new BDD_Node_Id_Map_Array (CP_Vectors.BDD_Vector.First_Index
+                                   .. CP_Vectors.BDD_Vector.Last_Index);
       for Old_BDD_Node_Id in CLS.BDD_Map'Range loop
          declare
             New_BDD_Node : BDD.BDD_Node :=
-              CP_SCOV.BDD_Vector.Element (Old_BDD_Node_Id);
+              CP_Vectors.BDD_Vector.Element (Old_BDD_Node_Id);
 
             procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id);
             --  Remap a BDD node id
@@ -575,7 +576,7 @@ package body SC_Obligations is
                if S /= No_BDD_Node_Id then
                   S := New_First_BDD_Node
                     + S
-                    - CP_SCOV.BDD_Vector.First_Index;
+                    - CP_Vectors.BDD_Vector.First_Index;
                end if;
             end Remap_BDD_Node_Id;
 
@@ -607,7 +608,7 @@ package body SC_Obligations is
       for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
          declare
             New_SCOD : SCO_Descriptor :=
-              CP_SCOV.SCO_Vector.Element (Old_SCO_Id);
+              CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
          begin
             New_SCOD.Origin := New_CU_Id;
 
@@ -744,10 +745,10 @@ package body SC_Obligations is
 
    procedure Checkpoint_Load_Unit
      (CLS        : access Checkpoint_Load_State;
-      CP_SCOV   : CP_SCO_Vectors;
-      CP_CU     : in out CU_Info;
-      CP_CU_Id  : CU_Id;
-      New_CU_Id : out CU_Id)
+      CP_Vectors : Source_Coverage_Vectors;
+      CP_CU      : in out CU_Info;
+      CP_CU_Id   : CU_Id;
+      New_CU_Id  : out CU_Id)
    is
    begin
       --  Remap source file indices
@@ -781,7 +782,7 @@ package body SC_Obligations is
       if New_CU_Id = No_CU_Id then
          Checkpoint_Load_New_Unit
            (CLS,
-            CP_SCOV,
+            CP_Vectors,
             CP_CU,
             CP_CU_Id  => CP_CU_Id,
             New_CU_Id => New_CU_Id);
@@ -933,29 +934,29 @@ package body SC_Obligations is
    ---------------------
 
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
-      CP_SCOV : CP_SCO_Vectors;
-      S : constant access Root_Stream_Type'Class := CLS.all'Access;
+      CP_Vectors : Source_Coverage_Vectors;
+      S          : constant access Root_Stream_Type'Class := CLS.all'Access;
    begin
       --  Load data from stream
       --  This part must be kept consistent with Checkpoint_Save
 
-      CU_Info_Vectors.Vector'Read   (S, CP_SCOV.CU_Vector);
-      ALI_Annotation_Maps.Map'Read  (S, CP_SCOV.ALI_Annotations);
-      Inst_Info_Vectors.Vector'Read (S, CP_SCOV.Inst_Vector);
-      BDD.BDD_Vectors.Vector'Read   (S, CP_SCOV.BDD_Vector);
-      SCO_Vectors.Vector'Read       (S, CP_SCOV.SCO_Vector);
+      CU_Info_Vectors.Vector'Read   (S, CP_Vectors.CU_Vector);
+      ALI_Annotation_Maps.Map'Read  (S, CP_Vectors.ALI_Annotations);
+      Inst_Info_Vectors.Vector'Read (S, CP_Vectors.Inst_Vector);
+      BDD.BDD_Vectors.Vector'Read   (S, CP_Vectors.BDD_Vector);
+      SCO_Vectors.Vector'Read       (S, CP_Vectors.SCO_Vector);
 
       --  Allocate mapping tables for SCOs and instance identifiers
 
-      CLS.CU_Map :=
-        new CU_Id_Map_Array'(CP_SCOV.CU_Vector.First_Index
-                             .. CP_SCOV.CU_Vector.Last_Index => No_CU_Id);
-      CLS.SCO_Map :=
-        new SCO_Id_Map_Array'(CP_SCOV.SCO_Vector.First_Index
-                           .. CP_SCOV.SCO_Vector.Last_Index => No_SCO_Id);
-      CLS.Inst_Map :=
-        new Inst_Id_Map_Array'(CP_SCOV.Inst_Vector.First_Index
-                            .. CP_SCOV.Inst_Vector.Last_Index => No_Inst_Id);
+      CLS.CU_Map := new CU_Id_Map_Array'
+        (CP_Vectors.CU_Vector.First_Index
+      .. CP_Vectors.CU_Vector.Last_Index => No_CU_Id);
+      CLS.SCO_Map := new SCO_Id_Map_Array'
+        (CP_Vectors.SCO_Vector.First_Index
+      .. CP_Vectors.SCO_Vector.Last_Index => No_SCO_Id);
+      CLS.Inst_Map := new Inst_Id_Map_Array'
+        (CP_Vectors.Inst_Vector.First_Index
+      .. CP_Vectors.Inst_Vector.Last_Index => No_Inst_Id);
 
       declare
          Last_Existing_CU_Id : constant CU_Id := CU_Vector.Last_Index;
@@ -963,7 +964,7 @@ package body SC_Obligations is
       begin
          --  Remap and merge into current tables
 
-         for Cur in CP_SCOV.CU_Vector.Iterate loop
+         for Cur in CP_Vectors.CU_Vector.Iterate loop
             declare
                use CU_Info_Vectors;
 
@@ -972,7 +973,7 @@ package body SC_Obligations is
             begin
                Checkpoint_Load_Unit
                  (CLS,
-                  CP_SCOV,
+                  CP_Vectors,
                   CP_CU,
                   CP_CU_Id  => CP_CU_Id,
                   New_CU_Id => CLS.CU_Map (CP_CU_Id));
@@ -981,7 +982,7 @@ package body SC_Obligations is
 
          --  Remap annotations
 
-         for Cur in CP_SCOV.ALI_Annotations.Iterate loop
+         for Cur in CP_Vectors.ALI_Annotations.Iterate loop
             declare
                use ALI_Annotation_Maps;
                Annotation_Sloc : Source_Location := Key (Cur);
