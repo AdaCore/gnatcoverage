@@ -16,8 +16,8 @@ begin
 end Test_Pragmas_Full;
 
 --# pragmas.adb
--- /pre_check_val/      l+ ## 0
--- /post_check_val/     l+ ## 0
+-- /pre_check_val/      l. ## 0
+-- /post_check_val/     l. ## 0
 -- /check_val/          l+ ## 0
 -- /neverexecuted/      l- ## s-
 

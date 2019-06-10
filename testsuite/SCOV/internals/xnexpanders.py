@@ -469,6 +469,16 @@ class UnitCX:
                 lPartCov: lFullCov
                 },
 
+        # s/e: Statement uncovered expectations for line are to be
+        # matched as expression never evaluated, for contexts where
+        # the evaluated expression is not enclosed in a statement,
+        # for instance on
+        #
+        #    pragma Precondition (A and then B); -- # eval :s/e:
+
+        "s/e": {sNoCov: eNoCov,
+                },
+
         # eval on the line are in expression or decision context
 
         "e": {},
