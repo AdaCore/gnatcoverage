@@ -7,7 +7,7 @@
 --  other - as non-covered.
 --
 --  This test driver makes about a half of the object declarations of interest
---  elaborated. Test_Object_Declarations_Part_1 does this for another half.
+--  elaborated. Test_Object_Declarations_Part_2 does this for another half.
 
 with Access_Swap;
 with Integer_Swap;
