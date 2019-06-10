@@ -77,8 +77,6 @@ package body SC_Obligations is
        (Index_Type   => Valid_Inst_Id,
         Element_Type => Inst_Info);
 
-   Inst_Vector : Inst_Info_Vectors.Vector;
-
    ------------------------
    -- Source units table --
    ------------------------
@@ -136,9 +134,6 @@ package body SC_Obligations is
    package CU_Info_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Valid_CU_Id,
       Element_Type => CU_Info);
-
-   CU_Vector : CU_Info_Vectors.Vector;
-   --  Vector of compilation unit info (one entry per LI file)
 
    package CU_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Source_File_Index,
@@ -283,7 +278,6 @@ package body SC_Obligations is
      new Ada.Containers.Vectors
        (Index_Type   => Valid_SCO_Id,
         Element_Type => SCO_Descriptor);
-   SCO_Vector : SCO_Vectors.Vector;
 
    function Next_BDD_Node
      (SCO   : SCO_Id;
@@ -374,7 +368,24 @@ package body SC_Obligations is
    --  either an already existing CU_Id (if the unit was already known),
    --  or a newly assigned one (if not).
 
-   BDD_Vector : BDD.BDD_Vectors.Vector;
+   ------------------
+   -- Local tables --
+   ------------------
+
+   SC_Vectors : Source_Coverage_Vectors;
+   --  Vectors for all currently loaded source coverage information
+
+   CU_Vector : CU_Info_Vectors.Vector renames SC_Vectors.CU_Vector;
+   --  Vector of compilation unit info (one entry per LI file)
+
+   Inst_Vector : Inst_Info_Vectors.Vector renames SC_Vectors.Inst_Vector;
+   --  Vector of info for generic instantiations
+
+   BDD_Vector : BDD.BDD_Vectors.Vector renames SC_Vectors.BDD_Vector;
+   --  Vector for BDD nodes (one per BDD node, all BDDs considered)
+
+   SCO_Vector : SCO_Vectors.Vector renames SC_Vectors.SCO_Vector;
+   --  Vector of high-level Source Coverage Obligations (for all units)
 
    -----------------
    -- Add_Address --
