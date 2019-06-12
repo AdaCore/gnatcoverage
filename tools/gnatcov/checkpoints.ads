@@ -54,6 +54,33 @@ package Checkpoints is
    type SCO_Id_Map_Array is array (SCO_Id range <>) of SCO_Id;
    type SCO_Id_Map_Acc is access all SCO_Id_Map_Array;
 
+   type Checkpoint_Relocations is record
+      Filename : Unbounded_String;
+      --  Name of the file whose loading created this checkpoint
+
+      SFI_Map  : SFI_Map_Acc;
+      CU_Map   : CU_Id_Map_Acc;
+      Inst_Map : Inst_Id_Map_Acc;
+      BDD_Map  : BDD_Node_Id_Map_Acc;
+      SCO_Map  : SCO_Id_Map_Acc;
+      --  Maps to replace checkpoint identifiers with local table identifiers
+      --  after merging the checkpoint in local tables.
+   end record;
+
+   procedure Free (Relocs : in out Checkpoint_Relocations);
+   --  Relase allocated maps in Relocs
+
+   procedure Remap_SFI
+     (Relocs             : Checkpoint_Relocations;
+      CP_SFI             : in out Source_File_Index;
+      Require_Valid_File : Boolean := True);
+   --  Remap one source file index.
+   --
+   --  If CP_SFI is No_Source_File then it's returned unchanged. If it is
+   --  any other value, then it is remapped to the corresponding value in
+   --  the current run. If Require_Valid_File is True, then a check is made
+   --  that the remapped value is not No_Source_File.
+
    --  A stream associated with global state shared across phases of a
    --  checkpoint load or save.
 
@@ -87,12 +114,7 @@ package Checkpoints is
    --  Global state shared across phases of a checkpoint load
 
    type Checkpoint_Load_State is new Stateful_Stream with record
-      Filename : Unbounded_String;
-      SFI_Map  : SFI_Map_Acc;
-      CU_Map   : CU_Id_Map_Acc;
-      Inst_Map : Inst_Id_Map_Acc;
-      BDD_Map  : BDD_Node_Id_Map_Acc;
-      SCO_Map  : SCO_Id_Map_Acc;
+      Relocations : Checkpoint_Relocations;
    end record;
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
@@ -108,15 +130,5 @@ package Checkpoints is
    --  Dump internal data structures to a checkpoint file.
 
    procedure Checkpoint_Load (Filename : String);
-
-   procedure Remap_SFI
-     (CLS                : Checkpoint_Load_State'Class;
-      CP_SFI             : in out Source_File_Index;
-      Require_Valid_File : Boolean := True);
-   --  Remap one source file index.
-   --  If CP_SFI is No_Source_File then it's returned unchanged. If it is
-   --  any other value, then it is remapped to the corresponding value in
-   --  the current run. If Require_Valid_File is True, then a check is made
-   --  that the remapped value is not No_Source_File.
 
 end Checkpoints;

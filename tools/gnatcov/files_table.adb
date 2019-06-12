@@ -1610,7 +1610,8 @@ package body Files_Table is
    ---------------------
 
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
-      S : Stream_Access renames CLS.Stream;
+      S      : Stream_Access renames CLS.Stream;
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
       --  1) Read header
 
@@ -1639,7 +1640,7 @@ package body Files_Table is
       --  Kill bogus infinite loop warning (P324-050)
 
    begin
-      CLS.SFI_Map :=
+      Relocs.SFI_Map :=
         new SFI_Map_Array'(CP_First_SFI .. CP_Last_SFI => No_Source_File);
 
       --  We first load all file entries, and then import them into the
@@ -1721,10 +1722,10 @@ package body Files_Table is
                   end if;
                end if;
 
-               CLS.SFI_Map (CP_SFI) := SFI;
+               Relocs.SFI_Map (CP_SFI) := SFI;
                if Switches.Verbose then
                   Put_Line ("Remap " & FE.Name.all & ":" & CP_SFI'Img
-                            & " ->" & CLS.SFI_Map (CP_SFI)'Img);
+                            & " ->" & Relocs.SFI_Map (CP_SFI)'Img);
                end if;
             end if;
          end;

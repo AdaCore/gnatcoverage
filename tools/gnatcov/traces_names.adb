@@ -67,7 +67,7 @@ package body Traces_Names is
 
    overriding function Map_Tag
      (TP     : access Routine_Tag_Provider_Type;
-      CLS    : Checkpoints.Checkpoint_Load_State;
+      Relocs : Checkpoints.Checkpoint_Relocations;
       CP_Tag : SC_Tag) return SC_Tag;
 
    package R is new Tag_Providers.Register_Factory
@@ -646,10 +646,10 @@ package body Traces_Names is
 
    overriding function Map_Tag
      (TP     : access Routine_Tag_Provider_Type;
-      CLS    : Checkpoints.Checkpoint_Load_State;
+      Relocs : Checkpoints.Checkpoint_Relocations;
       CP_Tag : SC_Tag) return SC_Tag
    is
-      pragma Unreferenced (TP, CLS, CP_Tag);
+      pragma Unreferenced (TP, Relocs, CP_Tag);
    begin
       Fatal_Error ("cannot perform incremental coverage with "
                    & "routines-based separation");

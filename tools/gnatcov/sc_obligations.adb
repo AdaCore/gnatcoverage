@@ -318,7 +318,7 @@ package body SC_Obligations is
 
    overriding function Map_Tag
      (TP     : access Instance_Tag_Provider_Type;
-      CLS    : Checkpoints.Checkpoint_Load_State;
+      Relocs : Checkpoint_Relocations;
       CP_Tag : SC_Tag) return SC_Tag;
 
    package R is new Tag_Providers.Register_Factory
@@ -341,14 +341,14 @@ package body SC_Obligations is
    -----------------------------------------
 
    procedure Checkpoint_Load_Merge_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (Relocs     : in out Checkpoint_Relocations;
       CP_CU      : CU_Info;
       Real_CU_Id : CU_Id);
    --  Load CU from checkpoint that corresponds to a current unit of interest
    --  whose ID is Real_CU_Id.
 
    procedure Checkpoint_Load_New_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (Relocs     : in out Checkpoint_Relocations;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -357,7 +357,7 @@ package body SC_Obligations is
    --  interest. The newly assigned CU_Id is returned in New_CU_Id.
 
    procedure Checkpoint_Load_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (Relocs     : in out Checkpoint_Relocations;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -424,7 +424,7 @@ package body SC_Obligations is
    --------------------------------
 
    procedure Checkpoint_Load_Merge_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (Relocs     : in out Checkpoint_Relocations;
       CP_CU      : CU_Info;
       Real_CU_Id : CU_Id)
    is
@@ -443,7 +443,7 @@ package body SC_Obligations is
                      Real_CU.Last_SCO - Real_CU.First_SCO);
 
       for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
-         CLS.SCO_Map (Old_SCO_Id) :=
+         Relocs.SCO_Map (Old_SCO_Id) :=
            Old_SCO_Id
              + Real_CU.First_SCO
            - CP_CU.First_SCO;
@@ -459,7 +459,7 @@ package body SC_Obligations is
       for Old_Inst_Id in CP_CU.First_Instance
         .. CP_CU.Last_Instance
       loop
-         CLS.Inst_Map (Old_Inst_Id) :=
+         Relocs.Inst_Map (Old_Inst_Id) :=
            Old_Inst_Id
              + Real_CU.First_Instance
            - CP_CU.First_Instance;
@@ -475,7 +475,7 @@ package body SC_Obligations is
    ------------------------------
 
    procedure Checkpoint_Load_New_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (Relocs     : in out Checkpoint_Relocations;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -503,7 +503,7 @@ package body SC_Obligations is
       procedure Remap_BDD_Node (B : in out BDD_Node_Id) is
       begin
          if B /= No_BDD_Node_Id then
-            B := CLS.BDD_Map (B);
+            B := Relocs.BDD_Map (B);
          end if;
       end Remap_BDD_Node;
 
@@ -556,23 +556,23 @@ package body SC_Obligations is
          --  Start of processing for Remap_Inst
 
          begin
-            Remap_SFI (CLS.all, New_Inst.Sloc.Source_File);
+            Remap_SFI (Relocs, New_Inst.Sloc.Source_File);
             Remap_Inst_Id (New_Inst.Enclosing_Instance);
             pragma Assert (New_Inst.Comp_Unit = CP_CU_Id);
             New_Inst.Comp_Unit := New_CU_Id;
 
             Inst_Vector.Append (New_Inst);
-            CLS.Inst_Map (Old_Inst_Id) := Inst_Vector.Last_Index;
+            Relocs.Inst_Map (Old_Inst_Id) := Inst_Vector.Last_Index;
          end Remap_Inst;
       end loop;
 
       --  Remap BDD node ids
 
       New_First_BDD_Node := BDD_Vector.Last_Index + 1;
-      CLS.BDD_Map :=
+      Relocs.BDD_Map :=
         new BDD_Node_Id_Map_Array (CP_Vectors.BDD_Vector.First_Index
                                    .. CP_Vectors.BDD_Vector.Last_Index);
-      for Old_BDD_Node_Id in CLS.BDD_Map'Range loop
+      for Old_BDD_Node_Id in Relocs.BDD_Map'Range loop
          declare
             New_BDD_Node : BDD.BDD_Node :=
               CP_Vectors.BDD_Vector.Element (Old_BDD_Node_Id);
@@ -610,7 +610,7 @@ package body SC_Obligations is
             end case;
 
             BDD_Vector.Append (New_BDD_Node);
-            CLS.BDD_Map (Old_BDD_Node_Id) :=
+            Relocs.BDD_Map (Old_BDD_Node_Id) :=
               BDD_Vector.Last_Index;
          end;
       end loop;
@@ -627,7 +627,7 @@ package body SC_Obligations is
 
             --  Remap SFIs in all source locations
 
-            Remap_SFI (CLS.all, New_SCOD.Sloc_Range.Source_File);
+            Remap_SFI (Relocs, New_SCOD.Sloc_Range.Source_File);
 
             --  Preallocate line table entries for previous unit
 
@@ -654,8 +654,8 @@ package body SC_Obligations is
 
             case New_SCOD.Kind is
                when Statement =>
-                  Remap_SFI (CLS.all, New_SCOD.Dominant_Sloc.Source_File);
-                  Remap_SFI (CLS.all, New_SCOD.Handler_Range.Source_File);
+                  Remap_SFI (Relocs, New_SCOD.Dominant_Sloc.Source_File);
+                  Remap_SFI (Relocs, New_SCOD.Handler_Range.Source_File);
 
                   Remap_SCO_Id (New_SCOD.Dominant);
 
@@ -665,8 +665,7 @@ package body SC_Obligations is
                   end loop;
 
                   if New_SCOD.Kind = Decision then
-                     Remap_SFI
-                       (CLS.all, New_SCOD.Control_Location.Source_File);
+                     Remap_SFI (Relocs, New_SCOD.Control_Location.Source_File);
 
                      --  Decision BDD
 
@@ -694,7 +693,7 @@ package body SC_Obligations is
             --  Append new SCOD and record mapping
 
             SCO_Vector.Append (New_SCOD);
-            CLS.SCO_Map (Old_SCO_Id) := SCO_Vector.Last_Index;
+            Relocs.SCO_Map (Old_SCO_Id) := SCO_Vector.Last_Index;
             if Verbose then
                Put_Line
                  ("Loaded from checkpoint: "
@@ -757,7 +756,7 @@ package body SC_Obligations is
    --------------------------
 
    procedure Checkpoint_Load_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (Relocs     : in out Checkpoint_Relocations;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -766,8 +765,8 @@ package body SC_Obligations is
    begin
       --  Remap source file indices
 
-      Remap_SFI (CLS.all, CP_CU.Origin);
-      Remap_SFI (CLS.all, CP_CU.Main_Source);
+      Remap_SFI (Relocs, CP_CU.Origin);
+      Remap_SFI (Relocs, CP_CU.Main_Source);
       for Dep_SFI of CP_CU.Deps loop
 
          --  Units of interest can depend on units outside of the
@@ -776,7 +775,7 @@ package body SC_Obligations is
          --  one, so they are excluded from checkpoints. Hence, allow
          --  them to be missing here.
 
-         Remap_SFI (CLS.all, Dep_SFI, Require_Valid_File => False);
+         Remap_SFI (Relocs, Dep_SFI, Require_Valid_File => False);
       end loop;
 
       --  Next check whether this unit is already known
@@ -794,7 +793,7 @@ package body SC_Obligations is
 
       if New_CU_Id = No_CU_Id then
          Checkpoint_Load_New_Unit
-           (CLS,
+           (Relocs,
             CP_Vectors,
             CP_CU,
             CP_CU_Id  => CP_CU_Id,
@@ -817,7 +816,7 @@ package body SC_Obligations is
 
             function CU_Image return String is
               (Get_Simple_Name (CP_CU.Origin)
-               & " (from " & To_String (CLS.Filename) & ")");
+               & " (from " & To_String (Relocs.Filename) & ")");
             --  Helper to refer to the compilation unit in an error message
 
          begin
@@ -837,7 +836,7 @@ package body SC_Obligations is
 
             else
                Checkpoint_Load_Merge_Unit
-                 (CLS,
+                 (Relocs,
                   CP_CU      => CP_CU,
                   Real_CU_Id => New_CU_Id);
             end if;
@@ -949,6 +948,7 @@ package body SC_Obligations is
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
       CP_Vectors : Source_Coverage_Vectors;
       S          : constant access Root_Stream_Type'Class := CLS.all'Access;
+      Relocs     : Checkpoint_Relocations renames CLS.Relocations;
    begin
       --  Load data from stream
       --  This part must be kept consistent with Checkpoint_Save
@@ -961,13 +961,13 @@ package body SC_Obligations is
 
       --  Allocate mapping tables for SCOs and instance identifiers
 
-      CLS.CU_Map := new CU_Id_Map_Array'
+      Relocs.CU_Map := new CU_Id_Map_Array'
         (CP_Vectors.CU_Vector.First_Index
       .. CP_Vectors.CU_Vector.Last_Index => No_CU_Id);
-      CLS.SCO_Map := new SCO_Id_Map_Array'
+      Relocs.SCO_Map := new SCO_Id_Map_Array'
         (CP_Vectors.SCO_Vector.First_Index
       .. CP_Vectors.SCO_Vector.Last_Index => No_SCO_Id);
-      CLS.Inst_Map := new Inst_Id_Map_Array'
+      Relocs.Inst_Map := new Inst_Id_Map_Array'
         (CP_Vectors.Inst_Vector.First_Index
       .. CP_Vectors.Inst_Vector.Last_Index => No_Inst_Id);
 
@@ -985,11 +985,11 @@ package body SC_Obligations is
                CP_CU    : CU_Info := Element (Cur);
             begin
                Checkpoint_Load_Unit
-                 (CLS,
+                 (Relocs,
                   CP_Vectors,
                   CP_CU,
                   CP_CU_Id  => CP_CU_Id,
-                  New_CU_Id => CLS.CU_Map (CP_CU_Id));
+                  New_CU_Id => Relocs.CU_Map (CP_CU_Id));
             end;
          end loop;
 
@@ -1008,10 +1008,10 @@ package body SC_Obligations is
                --  now (else it is assumed to be already present in the
                --  ALI_Annotation map).
 
-               pragma Assert (CLS.CU_Map (Annotation.CU) /= No_CU_Id);
-               Annotation.CU := CLS.CU_Map (Annotation.CU);
+               pragma Assert (Relocs.CU_Map (Annotation.CU) /= No_CU_Id);
+               Annotation.CU := Relocs.CU_Map (Annotation.CU);
                if Annotation.CU > Last_Existing_CU_Id then
-                  Remap_SFI (CLS.all, Annotation_Sloc.Source_File);
+                  Remap_SFI (Relocs, Annotation_Sloc.Source_File);
                   ALI_Annotations.Insert (Annotation_Sloc, Element (Cur));
                end if;
             end;
@@ -2486,14 +2486,14 @@ package body SC_Obligations is
 
    overriding function Map_Tag
      (TP     : access Instance_Tag_Provider_Type;
-      CLS    : Checkpoints.Checkpoint_Load_State;
+      Relocs : Checkpoint_Relocations;
       CP_Tag : SC_Tag) return SC_Tag
    is
       pragma Unreferenced (TP);
    begin
       --  Remap CP_Tag interpreted as a global instance id
 
-      return SC_Tag (CLS.Inst_Map (Inst_Id (CP_Tag)));
+      return SC_Tag (Relocs.Inst_Map (Inst_Id (CP_Tag)));
    end Map_Tag;
 
    -------------------

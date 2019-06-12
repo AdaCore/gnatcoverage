@@ -106,7 +106,7 @@ package body Checkpoints is
          CLS : aliased Checkpoint_Load_State :=
            (Root_Stream_Type with Stream => Stream (SF), others => <>);
       begin
-         CLS.Filename := To_Unbounded_String (Filename);
+         CLS.Relocations.Filename := To_Unbounded_String (Filename);
 
          Checkpoint_Header'Read (CLS.Stream, CP_Header);
          if CP_Header.Magic /= Checkpoint_Magic then
@@ -136,9 +136,7 @@ package body Checkpoints is
             Coverage.Source.Checkpoint_Load (CLS'Access);
             Traces_Files_List.Checkpoint_Load (CLS'Access);
 
-            Free (CLS.SFI_Map);
-            Free (CLS.SCO_Map);
-            Free (CLS.Inst_Map);
+            Free (CLS.Relocations);
          end if;
       end;
 
@@ -158,18 +156,29 @@ package body Checkpoints is
       Stream.Stream.Read (Item, Last);
    end Read;
 
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Relocs : in out Checkpoint_Relocations) is
+   begin
+      Free (Relocs.SFI_Map);
+      Free (Relocs.Inst_Map);
+      Free (Relocs.SCO_Map);
+   end Free;
+
    ---------------
    -- Remap_SFI --
    ---------------
 
    procedure Remap_SFI
-     (CLS                : Checkpoint_Load_State'Class;
+     (Relocs             : Checkpoint_Relocations;
       CP_SFI             : in out Source_File_Index;
       Require_Valid_File : Boolean := True)
    is
    begin
       if CP_SFI /= No_Source_File then
-         CP_SFI := CLS.SFI_Map (CP_SFI);
+         CP_SFI := Relocs.SFI_Map (CP_SFI);
          pragma Assert
            (not Require_Valid_File or else CP_SFI /= No_Source_File);
       end if;

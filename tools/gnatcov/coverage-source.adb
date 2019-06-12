@@ -231,6 +231,7 @@ package body Coverage.Source is
 
       CP_Tag_Provider : Ada.Tags.Tag;
       CP_SCI_Vector   : SCI_Vector_Vectors.Vector;
+      Relocs          : Checkpoint_Relocations renames CLS.Relocations;
 
    begin
       --  Checkpointed coverage information can only be loaded if the current
@@ -255,14 +256,14 @@ package body Coverage.Source is
       for SCO_Cur in CP_SCI_Vector.Iterate loop
          Process_One_SCO : declare
             CP_SCO : constant SCO_Id := To_Index (SCO_Cur);
-            SCO    : constant SCO_Id := CLS.SCO_Map (CP_SCO);
+            SCO    : constant SCO_Id := Relocs.SCO_Map (CP_SCO);
          begin
             if SCO /= No_SCO_Id then
                for CP_SCI of Element (SCO_Cur) loop
                   if CP_SCI /= null then
                      Merge_Checkpoint_SCI
                        (SCO,
-                        Tag_Provider.Map_Tag (CLS.all, CP_SCI.Tag),
+                        Tag_Provider.Map_Tag (Relocs, CP_SCI.Tag),
                         CP_SCI.all);
                   end if;
                end loop;

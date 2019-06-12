@@ -425,6 +425,7 @@ package body Instrument.Common is
       use Instrumented_Unit_To_CU_Maps;
 
       CP_IU_Map : Map;
+      Relocs    : Checkpoints.Checkpoint_Relocations renames CLS.Relocations;
    begin
       Map'Read (CLS.Stream, CP_IU_Map);
 
@@ -438,7 +439,7 @@ package body Instrument.Common is
               (if Existing_Cur = No_Element
                then No_CU_Id
                else Element (Existing_Cur));
-            New_CU_Id      : constant CU_Id := CLS.CU_Map (Element (Cur));
+            New_CU_Id      : constant CU_Id := Relocs.CU_Map (Element (Cur));
 
          begin
             if Existing_CU_Id = No_CU_Id then

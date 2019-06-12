@@ -72,10 +72,10 @@ package body Coverage.Tags is
 
    overriding function Map_Tag
      (TP     : access Default_Tag_Provider_Type;
-      CLS    : Checkpoints.Checkpoint_Load_State;
+      Relocs : Checkpoints.Checkpoint_Relocations;
       CP_Tag : SC_Tag) return SC_Tag
    is
-      pragma Unreferenced (TP, CLS, CP_Tag);
+      pragma Unreferenced (TP, Relocs, CP_Tag);
    begin
       return No_SC_Tag;
    end Map_Tag;
