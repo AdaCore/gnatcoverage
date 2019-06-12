@@ -34,12 +34,16 @@ package body Checkpoints is
       Version : Interfaces.Unsigned_32;
    end record;
 
-   procedure Free is
-     new Ada.Unchecked_Deallocation (SFI_Map_Array, SFI_Map_Acc);
-   procedure Free is
-     new Ada.Unchecked_Deallocation (SCO_Id_Map_Array, SCO_Id_Map_Acc);
-   procedure Free is
-     new Ada.Unchecked_Deallocation (Inst_Id_Map_Array, Inst_Id_Map_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (SFI_Map_Array, SFI_Map_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (CU_Id_Map_Array, CU_Id_Map_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Inst_Id_Map_Array, Inst_Id_Map_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (BDD_Node_Id_Map_Array, BDD_Node_Id_Map_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (SCO_Id_Map_Array, SCO_Id_Map_Acc);
 
    ---------------------
    -- Checkpoint_Save --
@@ -163,7 +167,9 @@ package body Checkpoints is
    procedure Free (Relocs : in out Checkpoint_Relocations) is
    begin
       Free (Relocs.SFI_Map);
+      Free (Relocs.CU_Map);
       Free (Relocs.Inst_Map);
+      Free (Relocs.BDD_Map);
       Free (Relocs.SCO_Map);
    end Free;
 
