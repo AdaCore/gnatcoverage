@@ -604,6 +604,7 @@ package SC_Obligations is
           Pragma_Main => False,
           Pragma_Main_Storage => False,
           Pragma_Max_Entry_Queue_Depth => False,
+          Pragma_Max_Entry_Queue_Length => False,
           Pragma_Max_Queue_Length => False,
           Pragma_Memory_Size => False,
           Pragma_No_Body => False,
