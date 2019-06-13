@@ -719,14 +719,13 @@ package body Instrument.Tree is
 
             declare
                SCE                : SC_Entry renames SC.Table (J);
-               Is_Pragma          : constant Boolean :=
-                 SCE.N.Kind = Ada_Pragma_Node;
-               Pragma_Aspect_Name : constant Name_Id :=
-                 (if Is_Pragma
-                  then Pragma_Name (SCE.N.As_Pragma_Node)
-                  else Namet.No_Name);
+               Pragma_Aspect_Name : Name_Id := Namet.No_Name;
 
             begin
+               if SCE.Typ = 'P' then
+                  Pragma_Aspect_Name := Pragma_Name (SCE.N.As_Pragma_Node);
+               end if;
+
                Append_SCO
                  (C1                 => 'S',
                   C2                 => SCE.Typ,
@@ -739,7 +738,7 @@ package body Instrument.Tree is
                --  certain will not generate code (such as Annotate or
                --  elaboration control pragmas).
 
-               if not Is_Pragma
+               if SCE.Typ /= 'P'
                  or else Pragma_Might_Generate_Code
                            (Case_Insensitive_Get_Pragma_Id
                               (Pragma_Aspect_Name))
