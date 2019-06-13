@@ -631,9 +631,7 @@ package body SC_Obligations is
 
             --  Preallocate line table entries for previous unit
 
-            if New_SCOD.Sloc_Range.Source_File
-              /= Cur_Source_File
-            then
+            if New_SCOD.Sloc_Range.Source_File /= Cur_Source_File then
                Prealloc_Lines (Cur_Source_File, Last_Line);
                Cur_Source_File := New_SCOD.Sloc_Range.Source_File;
                CU_Map.Include (Cur_Source_File, New_CU_Id);
