@@ -388,10 +388,12 @@ package body Instrument.Sources is
            (RH, Ada_Handled_Stmts, (New_Stmt_List, New_Excs));
          Replace (Old_Stmts, New_Stmts);
 
-         --  If the original subprogram has declarations, wrap the original
-         --  statements in a declare block to hold them.
+         --  If the original subprogram has declarations or exception handlers,
+         --  wrap the original statements in a declare block to hold them.
 
-         if Subp_Body.F_Decls.F_Decls.Children_Count = 0 then
+         if Subp_Body.F_Decls.F_Decls.Children_Count = 0
+            and then Subp_Body.F_Stmts.F_Exceptions.Children_Count = 0
+         then
             Nested_Block := Old_Stmts;
          else
             Nested_Decls := Handle (Subp_Body.F_Decls);
