@@ -91,9 +91,9 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
 
     elif trace_mode == 'src':
         # Instrument the project and build the result
-        checkpoint = abspath('instr.ckpt')
-        xcov_instrument(gprsw, covlevel, checkpoint, out='instrument.log')
-        xcov_args.extend(['-C', checkpoint])
+        isi_file = abspath('instr.isi')
+        xcov_instrument(gprsw, covlevel, isi_file, out='instrument.log')
+        xcov_args.extend(['--isi', isi_file])
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
 

@@ -91,6 +91,7 @@ procedure GNATcov is
    Units_Inputs         : Inputs.Inputs_Type;
    Projects_Inputs      : Inputs.Inputs_Type;
    Checkpoints_Inputs   : Inputs.Inputs_Type;
+   ISI_Inputs           : Inputs.Inputs_Type;
    Ignored_Source_Files : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
    Target_Family        : String_Access := null;
@@ -326,7 +327,10 @@ procedure GNATcov is
    --  Start of processing for Load_All_SCOs
 
    begin
-      if Check_SCOs and then Inputs.Length (Checkpoints_Inputs) = 0 then
+      if Check_SCOs
+         and then Inputs.Length (Checkpoints_Inputs) = 0
+         and then Inputs.Length (ISI_Inputs) = 0
+      then
          Check_Argument_Available
            (ALIs_Inputs,
             "SCOs",
@@ -583,6 +587,7 @@ procedure GNATcov is
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
+      Copy_Arg_List (Opt_ISI, ISI_Inputs);
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
 
       if Args.String_Args (Opt_Coverage_Level).Present then
@@ -1660,6 +1665,11 @@ begin
                Fatal_Error ("Routine list not allowed for source coverage.");
             end if;
          end if;
+
+         --  Read instrumented source information to decode source traces
+
+         Inputs.Iterate
+           (ISI_Inputs, Checkpoints.Checkpoint_Load'Access);
 
          --  Read checkpointed coverage data from previous executions
 

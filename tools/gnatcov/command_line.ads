@@ -108,6 +108,7 @@ package Command_Line is
       Opt_Eargs,
       Opt_Scos,
       Opt_Units,
+      Opt_ISI,
       Opt_Routines,
       Opt_Routines_List,
       Opt_Exec,
@@ -292,9 +293,10 @@ package Command_Line is
          Internal    => True),
       Cmd_Instrument => Create
         (Name        => "instrument",
-         Pattern     => "[CHECKPOINT]",
+         Pattern     => "[ISI-FILE]",
          Description => ("Instrument the given project and produce the"
-                         & " associated checkpoint."),
+                         & " associated Instrumented Source Information"
+                         & " file."),
          Internal    => True));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
@@ -636,6 +638,15 @@ package Command_Line is
          Commands    => (Cmd_Run | Cmd_Coverage | Cmd_Scan_Decisions
                              | Cmd_Map_Routines | Cmd_Instrument => True,
                          others => False),
+         Internal    => False),
+      Opt_ISI => Create
+        (Long_Name   => "--isi",
+         Pattern     => "[FILE|@LISTFILE]",
+         Help        => ("Load Instrumented Source Information from FILE for"
+                         & " this operation; or do that for each file listed"
+                         & " in LISTFILE."),
+         Commands    => (Cmd_Coverage => True,
+                         others       => False),
          Internal    => False),
       Opt_Routines => Create
         (Long_Name   => "--routines",

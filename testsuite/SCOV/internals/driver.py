@@ -1186,6 +1186,8 @@ class SCOV_helper_src_traces(SCOV_helper):
     #   instrumentation checkpoints are not necessarily visible at program
     #   execution time so can't be recorded in the traces.
 
+    ISI_FILE = 'instr.isi'
+
     def mode_build(self):
 
         # We first need to instrument, with proper selection of the units of
@@ -1201,7 +1203,7 @@ class SCOV_helper_src_traces(SCOV_helper):
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
         xcov_instrument(
-            covlevel=self.xcovlevel, checkpoint='instr.ckpt',
+            covlevel=self.xcovlevel, isi_file=self.ISI_FILE,
             gprsw=instrument_gprsw)
 
         # Now we can build, instructing gprbuild to fetch the instrumented
@@ -1223,10 +1225,10 @@ class SCOV_helper_src_traces(SCOV_helper):
         # and the corresponding SCOs are held by the instrumentation
         # checkpoints.
 
-        instr_checkpoints_opt = "--checkpoint=@%s" % list_to_file(
-            [self.abdir_for(pgm) + "instr.ckpt"
+        instr_checkpoints_opt = "--isi=@%s" % list_to_file(
+            [self.abdir_for(pgm) + self.ISI_FILE
              for pgm in self.programs()],
-            "instr-checkpoints.list")
+            "isi-files.list")
 
         return [instr_checkpoints_opt]
 
