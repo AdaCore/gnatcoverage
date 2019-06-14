@@ -875,14 +875,18 @@ package body Instrument.Tree is
 
             when Ada_Compilation_Unit =>
                declare
-                  CUN    : constant Compilation_Unit := N.As_Compilation_Unit;
-                  Item_N : constant Basic_Decl :=
-                    CUN.F_Body.As_Library_Item.F_Item;
+                  CUN      : constant Compilation_Unit :=
+                    N.As_Compilation_Unit;
+                  CUN_Body : constant Ada_Node := CUN.F_Body;
+                  CU_Decl  : constant Basic_Decl :=
+                    (if CUN_Body.Kind = Ada_Library_Item
+                     then CUN_Body.As_Library_Item.F_Item
+                     else Basic_Decl (CUN_Body.As_Subunit.F_Body));
                begin
                   --  Note: we do not traverse the context clause or generate
                   --  any SCOs for it, as nothing there can generate any code.
 
-                  case Item_N.Kind is
+                  case CU_Decl.Kind is
                      when Ada_Generic_Instantiation
                         | Ada_Generic_Package_Decl
                         | Ada_Package_Body
@@ -893,7 +897,9 @@ package body Instrument.Tree is
                         | Ada_Task_Body
                      =>
                         Traverse_Declarations_Or_Statements
-                          (IC, P => Item_N.As_Ada_Node, L => No_Ada_Node_List);
+                          (IC,
+                           P => CU_Decl.As_Ada_Node,
+                           L => No_Ada_Node_List);
 
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
