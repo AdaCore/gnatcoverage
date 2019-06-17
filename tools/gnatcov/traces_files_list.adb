@@ -29,21 +29,38 @@ package body Traces_Files_List is
      (CSS     : access Checkpoints.Checkpoint_Save_State;
       Context : access Coverage.Context)
    is
-      Context_Info : constant String := Coverage.To_String (Context.all);
+      Context_Info          : constant String :=
+         Coverage.To_String (Context.all);
+      Context_As_Trace_Info : constant Boolean :=
+         Checkpoints.Version_Less (CSS, Than => 2);
+      --  Before version 2, the context was stored as a trace info rather than
+      --  as a stand-alone field.
    begin
       for TF of Files loop
          String'Output (CSS, TF.Filename.all);
-         Trace_File_Kind'Write (CSS, TF.Kind);
+
+         --  Before version 2, binary traces were the only traces
+
+         if not Checkpoints.Version_Less (CSS, Than => 2) then
+            Trace_File_Kind'Write (CSS, TF.Kind);
+         end if;
 
          --  If this trace file does not come from a checkpoint, then this
          --  context is the original one where it has actually been processed:
          --  record in in its infos.
 
-         if TF.Context = null then
-            String'Output (CSS, Context_Info);
-         else
-            String'Output (CSS, TF.Context.all);
-         end if;
+         declare
+            Context : constant String :=
+              (if TF.Context = null
+               then Context_Info
+               else TF.Context.all);
+         begin
+            if Context_As_Trace_Info then
+               Append_Info (TF.Trace, Coverage_Context, Context);
+            else
+               String'Output (CSS, Context);
+            end if;
+         end;
 
          case TF.Kind is
             when Binary_Trace_File =>
@@ -67,6 +84,11 @@ package body Traces_Files_List is
      (CLS : access Checkpoints.Checkpoint_Load_State)
    is
       S : constant access Ada.Streams.Root_Stream_Type'Class := CLS.all'Access;
+
+      Context_As_Trace_Info : constant Boolean :=
+         Checkpoints.Version_Less (S, Than => 2);
+      --  Before version 2, the context was stored as a trace info rather than
+      --  as a stand-alone field.
    begin
       loop
          declare
@@ -89,7 +111,7 @@ package body Traces_Files_List is
             --  Before version 2, the context was stored as a trace info rather
             --  than as a stand-alone field.
 
-            if not Checkpoints.Version_Less (S, Than => 2) then
+            if not Context_As_Trace_Info then
                CP_File.Context := new String'(String'Input (CLS));
             end if;
 
@@ -101,7 +123,7 @@ package body Traces_Files_List is
                   null;
             end case;
 
-            if not Checkpoints.Version_Less (S, Than => 2) then
+            if Context_As_Trace_Info then
                CP_File.Context := new String'
                  (Get_Info (CP_File.Trace, Coverage_Context));
             end if;
