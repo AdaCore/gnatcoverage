@@ -111,6 +111,9 @@ procedure GNATcov is
    SO_Inputs            : SO_Set_Type;
    Keep_Reading_Traces  : Boolean := False;
 
+   SCOs_Loaded : Boolean := False;
+   --  Whether we loaded SCOs from ALI files
+
    function Command_Name return String is
      (Command_Line.Parser.Command_Name (Arg_Parser, Args.Command));
 
@@ -1387,10 +1390,12 @@ begin
          end;
 
       when Cmd_Scan_Decisions =>
+         Set_Coverage_Levels ("stmt");
          Load_All_ALIs (Check_SCOs => True);
          SC_Obligations.Report_Multipath_Decisions;
 
       when Cmd_Check_SCOs =>
+         Set_Coverage_Levels ("stmt");
          Inputs.Iterate (ALIs_Inputs, Check_SCOs.Check_SCO_Syntax'Access);
          Load_All_ALIs (Check_SCOs => True);
 
@@ -1664,9 +1669,13 @@ begin
               ("Dynamic HTML report format support is not installed.");
          end if;
 
-         --  Load ALI files
+         --  Check that the user specified units of interest. We'll load ALIs
+         --  only when necessary, i.e. only the first time we process a binary
+         --  trace file. This will avoid conflicts between incompatible source
+         --  obligations (instrumentation-based SCOs from an ISI, ALIs from a
+         --  rebuilt project, ...).
 
-         Load_All_ALIs (Check_SCOs => True);
+         Check_User_Provided_SCOs;
 
          --  Load routines from command line
 
@@ -1700,11 +1709,6 @@ begin
 
          Inputs.Iterate
            (ISI_Inputs, Checkpoints.Checkpoint_Load'Access);
-
-         --  Read checkpointed coverage data from previous executions
-
-         Inputs.Iterate
-           (Checkpoints_Inputs, Checkpoints.Checkpoint_Load'Access);
 
          --  Read and process traces
 
@@ -1815,6 +1819,7 @@ begin
 
             procedure Process_Exec (Exec_Name : String) is
             begin
+               Load_All_ALIs (Check_SCOs => False);
                Process_Trace
                  (Trace_File_Name => "", Exec_Name_Override => Exec_Name);
             end Process_Exec;
@@ -1888,6 +1893,8 @@ begin
             is
                Trace_File : Trace_File_Element_Acc;
             begin
+               Load_All_ALIs (Check_SCOs => False);
+
                if Trace_File_Name /= "" then
                   Trace_File := new Trace_File_Element'
                     (Kind     => Binary_Trace_File,
@@ -2119,6 +2126,11 @@ begin
             Inputs.Iterate (Exe_Inputs,  Process_Exec'Access);
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
          end;
+
+         --  Read checkpointed coverage data from previous executions
+
+         Inputs.Iterate
+           (Checkpoints_Inputs, Checkpoints.Checkpoint_Load'Access);
 
          --  Now determine coverage according to the requested metric (for
          --  source coverage, complete coverage information has been determined
