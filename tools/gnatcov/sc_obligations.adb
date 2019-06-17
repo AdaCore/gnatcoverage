@@ -44,6 +44,8 @@ with SC_Obligations.BDD;
 
 package body SC_Obligations is
 
+   Instrumented_Units_Present : Boolean := False;
+
    subtype Source_Location is Slocs.Source_Location;
    No_Location : Source_Location renames Slocs.No_Location;
    --  (not SCOs.Source_Location)
@@ -761,6 +763,10 @@ package body SC_Obligations is
       New_CU_Id  : out CU_Id)
    is
    begin
+      if CP_CU.Provider = Instrumenter then
+         Instrumented_Units_Present := True;
+      end if;
+
       --  Remap source file indices
 
       Remap_SFI (Relocs, CP_CU.Origin);
@@ -1722,6 +1728,15 @@ package body SC_Obligations is
 
    function Last_SCO return SCO_Id is
      (SCO_Vector.Last_Index);
+
+   ----------------------------
+   -- Has_Instrumented_Units --
+   ----------------------------
+
+   function Has_Instrumented_Units return Boolean is
+   begin
+      return Instrumented_Units_Present;
+   end Has_Instrumented_Units;
 
    ---------------
    -- Last_Sloc --

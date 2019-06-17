@@ -161,6 +161,11 @@ package SC_Obligations is
    function Last_SCO return SCO_Id;
    --  Return highest allocated SCO Id
 
+   function Has_Instrumented_Units return Boolean;
+   --  Return whether instrumented units were involved so far in any internal
+   --  data structure. This is used to select the version format to use when
+   --  saving checkpoints.
+
    pragma Warnings (Off);
    --  Redefinition of entity names from Standard
    type Tristate is (False, True, Unknown);

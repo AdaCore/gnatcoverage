@@ -2191,13 +2191,18 @@ begin
                pragma Assert (Save_Checkpoint /= null);
             end case;
 
-            --  Generate checkpoint, if requested
+            --  Generate checkpoint, if requested. Use the last version as soon
+            --  as instrumentation is involved, as the default version does not
+            --  allow us to encode all the information we need to encode.
 
             if Save_Checkpoint /= null then
                Checkpoints.Checkpoint_Save
                  (Save_Checkpoint.all,
                   Context'Access,
-                  Purpose => Checkpoints.Consolidation);
+                  Purpose => Checkpoints.Consolidation,
+                  Version => (if Has_Instrumented_Units
+                              then 2
+                              else Checkpoints.Default_Checkpoint_Version));
             end if;
          end;
 
