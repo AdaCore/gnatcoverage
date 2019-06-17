@@ -1594,6 +1594,7 @@ package body Files_Table is
             File_Kind'Write (S, FI.Kind);
             Boolean'Write (S, FI.Indexed_Simple_Name);
             if FI.Kind = Library_File then
+               pragma Assert (FI.Main_Source /= No_Source_File);
                Source_File_Index'Write (S, FI.Main_Source);
             end if;
          end;
@@ -1701,6 +1702,7 @@ package body Files_Table is
                   begin
                      if Main_SFI /= No_Source_File then
                         SFI := Get_File (Main_SFI).LI;
+                        FE.Main_Source := No_Source_File;
                      end if;
                   end;
                end if;
@@ -1727,6 +1729,28 @@ package body Files_Table is
                             & " ->" & Relocs.SFI_Map (CP_SFI)'Img);
                end if;
             end if;
+         end;
+      end loop;
+
+      --  For library files loaded during this execution of gnatcov (not the
+      --  merged ones: see the optimization above), propagate the main source
+      --  information.
+
+      for CP_SFI in CP_Entries'Range loop
+         declare
+            FE : File_Entry renames CP_Entries (CP_SFI);
+            FI : File_Info renames Get_File (Relocs.SFI_Map (CP_SFI)).all;
+         begin
+            case FE.Kind is
+               when Stub_File | Source_File =>
+                  null;
+
+               when Library_File =>
+                  if FE.Main_Source /= No_Source_File then
+                     FI.Main_Source := FE.Main_Source;
+                     Remap_SFI (Relocs, FI.Main_Source);
+                  end if;
+            end case;
          end;
       end loop;
 
