@@ -751,9 +751,9 @@ package body Files_Table is
 
       Simple_Path : constant Virtual_File := Create (+Simple_Name);
 
-      Cur  : constant Simple_Name_Maps.Cursor :=
+      Cur : constant Simple_Name_Maps.Cursor :=
         Simple_Name_Map.Find (Simple_Path);
-      Res  : Source_File_Index;
+      Res : Source_File_Index;
    begin
       if Switches.Debug_File_Table then
          Put ("GISN: <<" & Simple_Name & ">> Insert=" & Insert'Img);
@@ -948,10 +948,9 @@ package body Files_Table is
          File : File_Info_Access;
          Map  : in out Alias_Maps.Map)
       is
-         V_Key       : constant Virtual_File :=
-           Create (+Key.all);
-         Cur         : constant Cursor := Map.Find (V_Key);
-         File_Set   : File_Set_Access;
+         V_Key    : constant Virtual_File := Create (+Key.all);
+         Cur      : constant Cursor := Map.Find (V_Key);
+         File_Set : File_Set_Access;
       begin
          if Cur = No_Element then
             File_Set := new File_Sets.Set;

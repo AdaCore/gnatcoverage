@@ -127,7 +127,7 @@ package body ALI_Files is
    --------------
 
    procedure Load_ALI (ALI_Filename : String) is
-      Discard_ALI  : Source_File_Index;
+      Discard_ALI                 : Source_File_Index;
       Discard_Units, Discard_Deps : SFI_Vector;
 
       pragma Unreferenced (Discard_ALI);
