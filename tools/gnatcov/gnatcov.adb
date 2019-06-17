@@ -27,7 +27,7 @@ with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
-with ALI_Files;         use ALI_Files;
+with ALI_Files;
 with Annotations;       use Annotations;
 with Annotations.Dynamic_Html;
 with Annotations.Html;
@@ -168,9 +168,13 @@ procedure GNATcov is
       Additional_Info : String := "");
    --  Invoke Report_Missing_Argument if Input_Args is empty
 
-   procedure Load_All_SCOs (Check_SCOs : Boolean);
-   --  Load all listed SCO files and initialize source coverage data structure.
-   --  If Check_SCOs is True, report an error if no SCOs are provided.
+   procedure Check_User_Provided_SCOs;
+   --  If source coverage is enabled, report an error if no SCOs are provided.
+   --  Do nothing in object coverage mode.
+
+   procedure Load_All_ALIs (Check_SCOs : Boolean);
+   --  Load all listed ALI files and initialize source coverage data structure
+   --  (if appropriate). If Check_SCOs is True, call Check_User_Provided_SCOs.
 
    procedure Create_Ignored_Source_Files_Matcher
      (Matcher     : out GNAT.Regexp.Regexp;
@@ -301,11 +305,28 @@ procedure GNATcov is
       end if;
    end Check_Argument_Available;
 
+   ------------------------------
+   -- Check_User_Provided_SCOs --
+   ------------------------------
+
+   procedure Check_User_Provided_SCOs is
+   begin
+      if Source_Coverage_Enabled
+         and then Inputs.Length (Checkpoints_Inputs) = 0
+         and then Inputs.Length (ISI_Inputs) = 0
+      then
+         Check_Argument_Available
+           (ALIs_Inputs,
+            "SCOs",
+            ", specifying Units in project or using --units/--scos");
+      end if;
+   end Check_User_Provided_SCOs;
+
    -------------------
-   -- Load_All_SCOs --
+   -- Load_All_ALIs --
    -------------------
 
-   procedure Load_All_SCOs (Check_SCOs : Boolean) is
+   procedure Load_All_ALIs (Check_SCOs : Boolean) is
       Matcher     : aliased GNAT.Regexp.Regexp;
       Has_Matcher : Boolean;
 
@@ -324,23 +345,37 @@ procedure GNATcov is
                                    else null));
       end Load_SCOs_Wrapper;
 
-   --  Start of processing for Load_All_SCOs
+   --  Start of processing for Load_All_ALIs
 
    begin
-      if Check_SCOs
-         and then Inputs.Length (Checkpoints_Inputs) = 0
-         and then Inputs.Length (ISI_Inputs) = 0
-      then
-         Check_Argument_Available
-           (ALIs_Inputs,
-            "SCOs",
-            ", specifying Units in project or using --units/--scos");
+      if Check_SCOs then
+         Check_User_Provided_SCOs;
       end if;
 
-      Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
-      Inputs.Iterate (ALIs_Inputs, Load_SCOs_Wrapper'Access);
-      Coverage.Source.Initialize_SCI;
-   end Load_All_SCOs;
+      --  Do not load SCOs more than once
+
+      if SCOs_Loaded then
+         return;
+      end if;
+      SCOs_Loaded := True;
+
+      if Source_Coverage_Enabled then
+
+         --  Load SCOs from ALI files and initialize source coverage data
+         --  structures.
+
+         Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
+         Inputs.Iterate (ALIs_Inputs, Load_SCOs_Wrapper'Access);
+         Coverage.Source.Initialize_SCI;
+
+      elsif Object_Coverage_Enabled then
+
+         --  For object coverage, just load ALIs (not SCOs inside them) just to
+         --  get exemptions as they apply to instruction/branch coverage.
+
+         Inputs.Iterate (ALIs_Inputs, ALI_Files.Load_ALI'Access);
+      end if;
+   end Load_All_ALIs;
 
    ----------------------------
    -- Load_Project_Arguments --
@@ -1343,7 +1378,7 @@ begin
             end Build_Decision_Map;
 
          begin
-            Load_All_SCOs (Check_SCOs => True);
+            Load_All_ALIs (Check_SCOs => True);
             Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
             if Verbose then
                SC_Obligations.Report_SCOs_Without_Code;
@@ -1352,12 +1387,12 @@ begin
          end;
 
       when Cmd_Scan_Decisions =>
-         Load_All_SCOs (Check_SCOs => True);
+         Load_All_ALIs (Check_SCOs => True);
          SC_Obligations.Report_Multipath_Decisions;
 
       when Cmd_Check_SCOs =>
          Inputs.Iterate (ALIs_Inputs, Check_SCOs.Check_SCO_Syntax'Access);
-         Load_All_SCOs (Check_SCOs => True);
+         Load_All_ALIs (Check_SCOs => True);
 
       when Cmd_Dump_Trace =>
          Check_Argument_Available (Trace_Inputs, "TRACE_FILEs");
@@ -1631,12 +1666,7 @@ begin
 
          --  Load ALI files
 
-         if Source_Coverage_Enabled then
-            Load_All_SCOs (Check_SCOs => True);
-
-         elsif Object_Coverage_Enabled then
-            Inputs.Iterate (ALIs_Inputs, Load_ALI'Access);
-         end if;
+         Load_All_ALIs (Check_SCOs => True);
 
          --  Load routines from command line
 
@@ -2179,7 +2209,7 @@ begin
 
                   else
                      Histmap := new String'(Exe_File & ".dmap");
-                     Load_All_SCOs (Check_SCOs => False);
+                     Load_All_ALIs (Check_SCOs => False);
                      Build_Decision_Map (Exe_File, Text_Start, Histmap.all);
                   end if;
                end if;
@@ -2204,7 +2234,7 @@ begin
                   Warn ("No SCOs specified for MC/DC level.");
 
                else
-                  Load_All_SCOs (Check_SCOs => False);
+                  Load_All_ALIs (Check_SCOs => False);
                   Build_Decision_Map (Exec, Text_Start, Histmap);
                end if;
             end if;
