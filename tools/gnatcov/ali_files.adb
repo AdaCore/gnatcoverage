@@ -137,7 +137,6 @@ package body ALI_Files is
    begin
       Discard_ALI :=
         Load_ALI (ALI_Filename         => ALI_Filename,
-                  CU                   => No_CU_Id,
                   Ignored_Source_Files => null,
                   Units                => Discard_Units,
                   Deps                 => Discard_Deps,
@@ -151,7 +150,6 @@ package body ALI_Files is
 
    function Load_ALI
      (ALI_Filename         : String;
-      CU                   : CU_Id;
       Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Units                : out SFI_Vector;
       Deps                 : out SFI_Vector;
@@ -488,7 +486,7 @@ package body ALI_Files is
                         Msg : constant String := Match (6);
                      begin
                         Annotation :=
-                          (CU      => CU,
+                          (CU      => No_CU_Id,
                            Kind    => ALI_Annotation_Kind'Value (Match (4)),
                            Message => (if Msg'Length > 0
                                        then new String'(Msg)

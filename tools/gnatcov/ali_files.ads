@@ -70,7 +70,6 @@ package ALI_Files is
 
    function Load_ALI
      (ALI_Filename         : String;
-      CU                   : CU_Id;
       Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Units                : out SFI_Vector;
       Deps                 : out SFI_Vector;

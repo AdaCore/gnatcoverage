@@ -95,7 +95,8 @@ package Files_Table is
    --  If the file is already registered, check that it was registered with
    --  Kind (or Stub_File) and raise a fatal error if it was not.
    --
-   --  Indexed_Simple_Name can be set to True only when loading a checkpoint.
+   --  If Indexed_Simple_Name is set to True, register both the full name and
+   --  the simple name to our internal maps.
 
    function Get_Index_From_Generic_Name
      (Name                : String;

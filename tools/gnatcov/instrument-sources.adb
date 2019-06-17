@@ -589,11 +589,20 @@ package body Instrument.Sources is
 
       Initialize_Rewriting (UIC, CU_Name, Rewriter.Rewritten_Context);
 
+      --  Make sure that the simple name of the instrumented source file is
+      --  registered in our tables. This is required to properly detect when we
+      --  try to load SCOs for the same unit from an ALI file, as ALI files
+      --  only provide simple names.
+
       UIC.SFI := Get_Index_From_Generic_Name
-        (Filename, Kind => Files_Table.Source_File);
-      UIC.CU := Allocate_CU (Provider => Instrumenter, Origin => UIC.SFI);
+        (Filename,
+         Kind                => Files_Table.Source_File,
+         Indexed_Simple_Name => True);
+
       --  In the instrumentation case, the origin of SCO information is
       --  the original source file.
+
+      UIC.CU := Allocate_CU (Provider => Instrumenter, Origin => UIC.SFI);
 
       --  Then run SCOs generation. This inserts calls to witness
       --  procedures/functions in the same pass.

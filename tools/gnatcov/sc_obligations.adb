@@ -1768,12 +1768,14 @@ package body SC_Obligations is
       Units, Deps : SFI_Vector;
       --  Units and dependencies of this compilation
 
-      CU_Index : constant CU_Id := Allocate_CU (Provider => Compiler);
+      CU_Index : CU_Id;
       --  Compilation unit for this ALI
 
+      Temp_ALI_Annotations : ALI_Annotation_Maps.Map;
+
       ALI_Index : constant Source_File_Index := Load_ALI
-        (ALI_Filename, CU_Index, Ignored_Source_Files, Units, Deps,
-         ALI_Annotations, With_SCOs => True);
+        (ALI_Filename, Ignored_Source_Files, Units, Deps,
+         Temp_ALI_Annotations, With_SCOs => True);
       --  Load ALI file and update the last SCO and instance indices
 
       Main_Source : Source_File_Index;
@@ -1781,15 +1783,6 @@ package body SC_Obligations is
       if ALI_Index = No_Source_File then
          return;
       end if;
-
-      declare
-         CUI : CU_Info renames CU_Vector.Reference (CU_Index);
-      begin
-         --  Set CUI's origin to ALI_Index (in the compiler-based scenario
-         --  case, the origin of SCO information is the ALI file).
-
-         CUI.Origin := ALI_Index;
-      end;
 
       --  Determine main source name. This is the name for the file denoted
       --  by the first U line. For Ada we keep the simple name. For C we try
@@ -1820,6 +1813,65 @@ package body SC_Obligations is
             & Get_Full_Name (Get_File (Main_Source).LI, True)
             & ASCII.LF & "Is the same ALI file provided twice?");
       end if;
+
+      --  Check whether this unit is already known. If not, we can finally
+      --  allocate a compilation unit record for it.
+
+      CU_Index := Comp_Unit (Main_Source);
+      if CU_Index /= No_CU_Id then
+         declare
+            CU : CU_Info renames CU_Vector.Reference (CU_Index);
+
+            --  Unless the two origins are homonyms, designate origin files
+            --  with their base names.
+
+            Old_Origin      : constant String := Get_Simple_Name (CU.Origin);
+            New_Origin      : constant String := Get_Simple_Name (ALI_Index);
+            Old_Origin_Full : constant String :=
+              (if Old_Origin = New_Origin
+               then Get_Full_Name (CU.Origin)
+               else Old_Origin);
+            New_Origin_Full : constant String :=
+              (if Old_Origin = New_Origin
+               then Get_Full_Name (ALI_Index)
+               else New_Origin);
+
+            Origin_Action : constant String :=
+              (case CU.Provider is
+               when Compiler => "loading",
+               when Instrumenter => "instrumenting");
+         begin
+            Warn ("ignoring duplicate SCOs for "
+                  & Get_Simple_Name (Main_Source)
+                  & " (from " & New_Origin_Full & ")");
+            Warn ("previous SCOs for this unit came from "
+                  & Origin_Action & " " & Old_Origin_Full);
+            return;
+         end;
+      end if;
+      CU_Index := Allocate_CU (Provider => Compiler);
+
+      --  Copy annotations from the ALI file to our internal table, filling in
+      --  the compilation unit.
+
+      for Cur in Temp_ALI_Annotations.Iterate loop
+         declare
+            use ALI_Annotation_Maps;
+            A : ALI_Annotation := Element (Cur);
+         begin
+            A.CU := CU_Index;
+            ALI_Annotations.Insert (Key (Cur), A);
+         end;
+      end loop;
+
+      declare
+         CUI : CU_Info renames CU_Vector.Reference (CU_Index);
+      begin
+         --  Set CUI's origin to ALI_Index (in the compiler-based scenario
+         --  case, the origin of SCO information is the ALI file).
+
+         CUI.Origin := ALI_Index;
+      end;
 
       Get_File (Main_Source).LI := ALI_Index;
       Get_File (ALI_Index).Main_Source := Main_Source;
