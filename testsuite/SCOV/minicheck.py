@@ -83,7 +83,8 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
         for m in mains:
-            xrun(['--level', covlevel, exepath(m)] + scos_args)
+            xrun(['--level', covlevel, exepath(m)] + scos_args,
+                 out='run.log')
 
         xcov_args.extend(scos_args)
         xcov_args.extend(abspath(tracename_for(m)) for m in mains)
@@ -91,7 +92,7 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
     elif trace_mode == 'src':
         # Instrument the project and build the result
         checkpoint = abspath('instr.ckpt')
-        xcov_instrument(gprsw, covlevel, checkpoint)
+        xcov_instrument(gprsw, covlevel, checkpoint, out='instrument.log')
         xcov_args.extend(['-C', checkpoint])
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
@@ -109,7 +110,7 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
     return xcov_args + extra_xcov_args
 
 
-def build_run_and_coverage(out=None, err=None, register_failure=True,
+def build_run_and_coverage(out='coverage.log', err=None, register_failure=True,
                            **kwargs):
     """
     Helper to call build_and_run and then invoke `xcov`.
