@@ -455,7 +455,8 @@ package body Instrument.Tree is
       Insertion_Count : Nat := 0;
       --  Count of nodes inserted in current list so far
 
-      RH_Enclosing_List     : Node_Rewriting_Handle;
+      RH_Enclosing_List     : Node_Rewriting_Handle :=
+        No_Node_Rewriting_Handle;
       --  If traversing a list, rewriting handle for the list
 
       Witness_Use_Statement : Boolean;
@@ -734,11 +735,17 @@ package body Instrument.Tree is
                   Last               => (J = SC_Last),
                   Pragma_Aspect_Name => Pragma_Aspect_Name);
 
+               --  Can't instrument statement if there is no enclosing list
+               --  to which a witness call can be attached.
+
+               if RH_Enclosing_List = No_Node_Rewriting_Handle then
+                  null;
+
                --  Do not attempt to instrument a pragma that we know for
                --  certain will not generate code (such as Annotate or
                --  elaboration control pragmas).
 
-               if SCE.Typ /= 'P'
+               elsif SCE.Typ /= 'P' then
                  or else Pragma_Might_Generate_Code
                            (Case_Insensitive_Get_Pragma_Id
                               (Pragma_Aspect_Name))
