@@ -396,7 +396,7 @@ class UnitCX:
 
     def instanciate_notes_for(self, lx, tline, block, srules):
         [self.xldict.register (ln)
-         for ln in lx.instanciate_lnotes_over (tline, block, srules)]
+         for ln in lx.instanciate_lnotes_over (tline, block, srules) if ln]
         [self.xrdict.register (rn)
          for rn in lx.instanciate_rnotes_over (tline, block, srules) if rn]
 
@@ -433,40 +433,48 @@ class UnitCX:
     #
     #    Assert (Andthen (A => True, B => True));
     #
-    # doesn't exercise the False outcome of an and-then expression, always.
-    # This could result in different output expectations depending on the
-    # context where the expression is used.
+    # doesn't exercise the False outcome of an and-then expression, and
+    # the way this will be reported depends on the context when the and-then
+    # expression appears.
     #
     # A shared driver would express this with "oF-", that needs to be turned
     # into, say, dF- or eF- according to hints in the functional source.  Such
-    # hints are provided as :<subst-key>: at the end of line anchors, with the
-    # following possible values for <subst-key> :
+    # hints are provided as :<subst-key>,<subst-key>,...: at the end of line
+    # anchors, with the following possible values for each <subst-key> :
 
     subst_tuples_for = {
 
-        # outcome expectations for line are to produce "decision"
-        # expectations
+        # o/d: Outcome expectations for line are to produce "decision"
+        # expectations, for instance on
+        #
+        #     if A and then B then  -- # eval :o/d:
 
         "o/d": {otNoCov : dtNoCov,
                 ofNoCov : dfNoCov,
                 oPartCov: dPartCov,
                 oNoCov  : dNoCov},
 
-        # outcome expectations for line are to produce "expression"
-        # expectations
+        # o/e: Outcome expectations for line are to produce "expression"
+        # expectations, for instance on
+        #
+        #    return Value (A and then B); -- # eval :o/e:
 
         "o/e": {otNoCov : etNoCov,
                 ofNoCov : efNoCov,
                 oPartCov: ePartCov,
                 oNoCov  : eNoCov},
 
-        # outcome expectations for line are to be ignored
+        # o/0: outcome expectations for line are to be ignored, for
+        # contexts where the evaluated expression is not actually a
+        # decision, for instance on
+        #
+        #    pragma Precondition (not X); -- # eval :o/0:
 
-        "o/0": {otNoCov : r0,
-                ofNoCov : r0,
-                oPartCov: r0,
-                oNoCov  : r0,
-                lPartCov: lFullCov
+        "o/0": {otNoCov : None,
+                ofNoCov : None,
+                oPartCov: None,
+                oNoCov  : None,
+                lPartCov: None
                 },
 
         # s/e: Statement uncovered expectations for line are to be

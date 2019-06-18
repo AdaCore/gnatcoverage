@@ -227,6 +227,8 @@ class XnoteP:
             else self.kind
             )
 
-        return self.factory.instanciate_over (
-            tline=tline, block=block, kind=kind)
+        return (
+            None if kind is None
+            else self.factory.instanciate_over (
+                tline=tline, block=block, kind=kind))
 
