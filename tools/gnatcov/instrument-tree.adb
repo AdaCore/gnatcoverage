@@ -745,7 +745,7 @@ package body Instrument.Tree is
                --  certain will not generate code (such as Annotate or
                --  elaboration control pragmas).
 
-               elsif SCE.Typ /= 'P' then
+               elsif SCE.Typ /= 'P'
                  or else Pragma_Might_Generate_Code
                            (Case_Insensitive_Get_Pragma_Id
                               (Pragma_Aspect_Name))
