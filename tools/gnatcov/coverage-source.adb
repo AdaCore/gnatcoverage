@@ -244,6 +244,7 @@ package body Coverage.Source is
       CP_Tag_Provider : Unbounded_String;
       CP_SCI_Vector   : SCI_Vector_Vectors.Vector;
       Relocs          : Checkpoint_Relocations renames CLS.Relocations;
+      Do_Merge        : Boolean := True;
 
    begin
       --  Checkpointed coverage information can only be loaded if the current
@@ -271,7 +272,7 @@ package body Coverage.Source is
       then
          Warn ("cannot merge coverage information separated by "
                & To_String (CP_Tag_Provider));
-         return;
+         Do_Merge := False;
       end if;
 
       --  Extend SCI vector to accomodate any supplementary SCOs loaded from
@@ -279,7 +280,15 @@ package body Coverage.Source is
 
       Initialize_SCI;
 
+      --  Even if we cannot merge coverage information, we must read it in
+      --  order to be able to decode the rest of the checkpoint.
+
       SCI_Vector_Vectors.Vector'Read (CLS, CP_SCI_Vector);
+
+      if not Do_Merge then
+         return;
+      end if;
+
       for SCO_Cur in CP_SCI_Vector.Iterate loop
          Process_One_SCO : declare
             CP_SCO : constant SCO_Id := To_Index (SCO_Cur);
