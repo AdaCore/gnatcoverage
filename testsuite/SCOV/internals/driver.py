@@ -1204,6 +1204,7 @@ class SCOV_helper_src_traces(SCOV_helper):
 
         xcov_instrument(
             covlevel=self.xcovlevel, isi_file=self.ISI_FILE,
+            extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
             gprsw=instrument_gprsw)
 
         # Now we can build, instructing gprbuild to fetch the instrumented
