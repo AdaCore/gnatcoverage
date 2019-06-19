@@ -100,8 +100,6 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         # Then execute each main
         for m in mains:
             xcov_args.append(abspath(srctracename_for(m)))
-            if gpr_exe_dir:
-                m = os.path.join(gpr_exe_dir, m)
             Run([exepath(m)])
 
     else:
