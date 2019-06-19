@@ -112,6 +112,9 @@ package Coverage.Tags is
    Tag_Provider : Tag_Provider_Access;
    Default_Tag_Provider_Name : constant String := "default";
 
+   function Tag_Provider_Name return String;
+   --  Return the name of Tag_Provider
+
    ----------------------
    -- Utility routines --
    ----------------------

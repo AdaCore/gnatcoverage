@@ -216,8 +216,16 @@ package body Coverage.Source is
    ---------------------
 
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
+      Stream_Tags : constant Boolean :=
+         not Checkpoints.Version_Less (CSS, Than => 2);
+      --  Before version 2, we streamed mere tags in the checkpoint. We stream
+      --  tag provider names since then.
    begin
-      Ada.Tags.Tag'Write (CSS.Stream, Tag_Provider'Tag);
+      if Stream_Tags then
+         String'Output (CSS, Tag_Provider_Name);
+      else
+         Ada.Tags.Tag'Write (CSS, Tag_Provider'Tag);
+      end if;
       SCI_Vector_Vectors.Vector'Write (CSS.Stream, SCI_Vector);
    end Checkpoint_Save;
 
@@ -226,10 +234,14 @@ package body Coverage.Source is
    ---------------------
 
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
-      use type Ada.Tags.Tag;
       use SCI_Vector_Vectors;
 
-      CP_Tag_Provider : Ada.Tags.Tag;
+      Stream_Tags : constant Boolean :=
+         not Checkpoints.Version_Less (CLS, Than => 2);
+      --  Before version 2, we streamed mere tags in the checkpoint. We stream
+      --  tag provider names since then.
+
+      CP_Tag_Provider : Unbounded_String;
       CP_SCI_Vector   : SCI_Vector_Vectors.Vector;
       Relocs          : Checkpoint_Relocations renames CLS.Relocations;
 
@@ -238,12 +250,27 @@ package body Coverage.Source is
       --  tag provider is the default (i.e. no coverage separation), or same
       --  as checkpoint.
 
-      Ada.Tags.Tag'Read (CLS, CP_Tag_Provider);
+      if Stream_Tags then
+         CP_Tag_Provider := To_Unbounded_String (String'Input (CLS));
+      else
+         declare
+            Tag : Ada.Tags.Tag;
+         begin
+            Ada.Tags.Tag'Read (CLS, Tag);
+            CP_Tag_Provider := To_Unbounded_String (Tag_Providers.Name (Tag));
+         exception
+            when Constraint_Error =>
+               Warn ("cannot read " & To_String (Relocs.Filename) & ", it was"
+                     & " produced with an incompatible version of gnatcov");
+               CP_Tag_Provider := To_Unbounded_String ("<unknown>");
+         end;
+      end if;
+
       if Tag_Provider.all not in Default_Tag_Provider_Type
-        and then Tag_Provider'Tag /= CP_Tag_Provider
+        and then Tag_Provider_Name /= To_String (CP_Tag_Provider)
       then
          Warn ("cannot merge coverage information separated by "
-               & Tag_Providers.Name (CP_Tag_Provider));
+               & To_String (CP_Tag_Provider));
          return;
       end if;
 

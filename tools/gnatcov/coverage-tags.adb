@@ -94,4 +94,13 @@ package body Coverage.Tags is
       return "";
    end Tag_Name;
 
+   -----------------------
+   -- Tag_Provider_Name --
+   -----------------------
+
+   function Tag_Provider_Name return String is
+   begin
+      return Tag_Providers.Name (Tag_Provider'Tag);
+   end Tag_Provider_Name;
+
 end Coverage.Tags;
