@@ -562,17 +562,23 @@ package body Instrument.Tree is
                | Ada_Task_Type_Decl
             =>
                declare
-                  Decl : constant Protected_Type_Decl :=
-                     N.As_Protected_Type_Decl;
+                  Aspects       : constant Aspect_Spec :=
+                    (if N.Kind = Ada_Protected_Type_Decl
+                     then N.As_Protected_Type_Decl.F_Aspects
+                     else N.As_Task_Type_Decl.F_Aspects);
+                  Discriminants : constant Discriminant_Part :=
+                    (if N.Kind = Ada_Protected_Type_Decl
+                     then N.As_Protected_Type_Decl.F_Discriminants
+                     else N.As_Task_Type_Decl.F_Discriminants);
                begin
-                  if not Decl.F_Aspects.Is_Null then
-                     To_Node := Decl.F_Aspects.As_Ada_Node;
+                  if not Aspects.Is_Null then
+                     To_Node := Aspects.As_Ada_Node;
 
-                  elsif not Decl.F_Discriminants.Is_Null then
-                     To_Node := Decl.F_Discriminants.As_Ada_Node;
+                  elsif not Discriminants.Is_Null then
+                     To_Node := Discriminants.As_Ada_Node;
 
                   else
-                     To_Node := Decl.F_Name.As_Ada_Node;
+                     To_Node := N.As_Base_Type_Decl.F_Name.As_Ada_Node;
                   end if;
                end;
 
