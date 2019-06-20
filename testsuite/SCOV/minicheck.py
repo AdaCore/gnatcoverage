@@ -163,23 +163,62 @@ def check_xcov_content(filename, expected_cov):
     >>> {'+': {5, 7}, '!': {6}}
 
     This is interpreted as: lines 5 and 7 must be fully covered (+), line 6
-    must be partially covered (!) and all other lines must be no-code (.).
+    must be partially covered (!) and all other lines must be no-code (.) or
+    fully covered (+).
     """
+
+    def remove_empty_sets(data):
+        """
+        Remove entries in "data" that contain empty sets of lines.
+        """
+        return {annotation: lines
+                for annotation, lines in data.items()
+                if lines}
+
+    # Check that expected coverage data contain only supported line annotations
+    invalid_line_annotations = set(expected_cov) - {'+', '!', '-'}
+    assert not invalid_line_annotations, (
+        'Invalid line annotations: {}'
+        .format(' '.join(sorted(invalid_line_annotations))))
+
     got_cov = collections.defaultdict(set)
+    dot_lines = set()
     with open(filename) as f:
         for line in f:
             m = COV_RE.match(line)
             if m:
                 lineno, cov_char = m.groups()
-                if cov_char != '.':
-                    got_cov[cov_char].add(int(lineno))
+                lineno = int(lineno)
+                if cov_char == '.':
+                    dot_lines.add(lineno)
+                else:
+                    got_cov[cov_char].add(lineno)
+    got_cov = dict(got_cov)
+
+    # Compute the set of lines that are expected not to be tagged as no-code
+    # and refine expectations to expect "+" when we got "+" while we expected
+    # nothing specific.
+    expected_non_dot_lines = set()
+    for lines in expected_cov.values():
+        expected_non_dot_lines.update(lines)
+
+    refined_expectations = collections.defaultdict(set)
+    refined_expectations.update(expected_cov)
+    for line in got_cov.get('+', set()):
+        if line not in expected_non_dot_lines:
+            refined_expectations['+'].add(line)
+
+    got_cov = remove_empty_sets(got_cov)
+    refined_expectations = remove_empty_sets(refined_expectations)
 
     thistest.fail_if(
-        got_cov != expected_cov,
+        got_cov != refined_expectations,
         '{}: unexpected coverage report content:\n'
-        'Expected: {}\n'
-        'But got:  {}\n'.format(
-            filename, fmt_cov(expected_cov), fmt_cov(got_cov)
+        'Expected:   {}\n'
+        'Refined to: {}\n'
+        'But got:    {}\n'.format(
+            filename, fmt_cov(expected_cov), fmt_cov(refined_expectations),
+            fmt_cov(got_cov)
         )
     )
 
