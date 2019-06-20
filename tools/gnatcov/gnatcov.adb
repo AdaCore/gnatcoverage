@@ -1343,7 +1343,7 @@ begin
             Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
 
             Instrument.Instrument_Units_Of_Interest
-              (Checkpoint_Filename  => Output.all,
+              (ISI_Filename         => Output.all,
                Units_Inputs         => Units_Inputs,
                Auto_Dump_Buffers    => Args.Bool_Args (Opt_Auto_Dump_Buffers),
                Ignored_Source_Files =>

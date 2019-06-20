@@ -39,13 +39,13 @@ package Instrument is
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
 
    procedure Instrument_Units_Of_Interest
-     (Checkpoint_Filename  : String;
+     (ISI_Filename         : String;
       Units_Inputs         : Inputs.Inputs_Type;
       Auto_Dump_Buffers    : Boolean;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs to
-   --  Checkpoint_Filename.
+   --  ISI_Filename.
    --
    --  Units of interest are computed from the loaded project (-P/--projects),
    --  unless Units_Inputs is not empty: in this case, use the given unit names

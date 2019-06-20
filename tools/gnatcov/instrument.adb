@@ -358,7 +358,7 @@ package body Instrument is
    ----------------------------------
 
    procedure Instrument_Units_Of_Interest
-     (Checkpoint_Filename  : String;
+     (ISI_Filename         : String;
       Units_Inputs         : Inputs.Inputs_Type;
       Auto_Dump_Buffers    : Boolean;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
@@ -482,7 +482,7 @@ package body Instrument is
 
       Remove_Old_Instr_Files (IC);
 
-      --  Finally, emit a checkpoint to contain mappings between bits in
+      --  Finally, emit an ISI file to contain mappings between bits in
       --  coverage buffers and SCOs.
       --
       --  TODO??? Remove the explicit version argument for Checkpoint_Save once
@@ -492,7 +492,7 @@ package body Instrument is
          Context : aliased Coverage.Context := Coverage.Get_Context;
       begin
          Checkpoints.Checkpoint_Save
-           (Checkpoint_Filename,
+           (ISI_Filename,
             Context'Access,
             Purpose => Checkpoints.Instrumentation,
             Version => 2);
