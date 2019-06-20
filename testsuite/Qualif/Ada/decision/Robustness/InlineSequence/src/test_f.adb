@@ -10,3 +10,6 @@ end;
 
 --# ops.adb
 --  /eval/ l! ## d!:"X ="
+
+-- %opts: --trace-mode=src
+-- =/eval/ l! ## dT-:"X ="
