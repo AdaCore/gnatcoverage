@@ -719,7 +719,8 @@ package Command_Line is
         (Long_Name => "--ignore-source-files",
          Pattern   => "[FILE|@LISTFILE]",
          Help      => "Specify a list of source files to ignore for coverage",
-         Commands  => (Cmd_Coverage | Cmd_Map_Routines => True,
+         Commands  => (Cmd_Coverage | Cmd_Map_Routines
+                           | Cmd_Instrument => True,
                        others => False),
          Internal  => False),
 

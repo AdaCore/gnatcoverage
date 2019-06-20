@@ -1336,8 +1336,19 @@ begin
                          & " please use the -P option");
          end if;
 
-         Instrument.Instrument_Units_Of_Interest
-           (Output.all, Units_Inputs, Args.Bool_Args (Opt_Auto_Dump_Buffers));
+         declare
+            Matcher     : aliased GNAT.Regexp.Regexp;
+            Has_Matcher : Boolean;
+         begin
+            Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
+
+            Instrument.Instrument_Units_Of_Interest
+              (Checkpoint_Filename  => Output.all,
+               Units_Inputs         => Units_Inputs,
+               Auto_Dump_Buffers    => Args.Bool_Args (Opt_Auto_Dump_Buffers),
+               Ignored_Source_Files =>
+                 (if Has_Matcher then Matcher'Access else null));
+         end;
 
       when Cmd_Scan_Objects =>
          declare

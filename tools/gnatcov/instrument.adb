@@ -358,9 +358,10 @@ package body Instrument is
    ----------------------------------
 
    procedure Instrument_Units_Of_Interest
-     (Checkpoint_Filename : String;
-      Units_Inputs        : Inputs.Inputs_Type;
-      Auto_Dump_Buffers   : Boolean)
+     (Checkpoint_Filename  : String;
+      Units_Inputs         : Inputs.Inputs_Type;
+      Auto_Dump_Buffers    : Boolean;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
       IC                : Inst_Context := Create_Context (Auto_Dump_Buffers);
       Root_Project_Info : constant Project_Info_Access :=
@@ -385,18 +386,28 @@ package body Instrument is
          Source_File : GNATCOLL.Projects.File_Info)
       is
          use GNATCOLL.VFS;
-
-         CU_Name         : constant Compilation_Unit_Name :=
-           To_Compilation_Unit_Name (Source_File);
-         Source_File_Str : constant GNATCOLL.VFS.Filesystem_String :=
-           Source_File.File.Full_Name;
-         Unit_Info       : constant Instrumented_Unit_Info :=
-           (Filename => To_Unbounded_String (+Source_File_Str),
-            Prj_Info => Get_Or_Create_Project_Info (IC, Project),
-            Is_Main  => GNATCOLL.Projects.Is_Main_File
-                         (Project, Source_File.File.Base_Name));
       begin
-         IC.Instrumented_Units.Insert (CU_Name, Unit_Info);
+         --  Skip this file if we were told to ignore it
+
+         if Ignored_Source_Files /= null
+            and then GNAT.Regexp.Match
+              (+Source_File.File.Base_Name, Ignored_Source_Files.all)
+         then
+            return;
+         end if;
+
+         declare
+            CU_Name   : constant Compilation_Unit_Name :=
+              To_Compilation_Unit_Name (Source_File);
+            Unit_Info : constant Instrumented_Unit_Info :=
+              (Filename => To_Unbounded_String
+                             (+Source_File.File.Full_Name),
+               Prj_Info => Get_Or_Create_Project_Info (IC, Project),
+               Is_Main  => GNATCOLL.Projects.Is_Main_File
+                            (Project, Source_File.File.Base_Name));
+         begin
+            IC.Instrumented_Units.Insert (CU_Name, Unit_Info);
+         end;
       end Add_Instrumented_Unit;
 
       ---------------------

@@ -18,6 +18,8 @@
 
 --  Support for source instrumentation
 
+with GNAT.Regexp;
+
 with Inputs;
 
 package Instrument is
@@ -37,9 +39,10 @@ package Instrument is
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
 
    procedure Instrument_Units_Of_Interest
-     (Checkpoint_Filename : String;
-      Units_Inputs        : Inputs.Inputs_Type;
-      Auto_Dump_Buffers   : Boolean);
+     (Checkpoint_Filename  : String;
+      Units_Inputs         : Inputs.Inputs_Type;
+      Auto_Dump_Buffers    : Boolean;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs to
    --  Checkpoint_Filename.
@@ -51,5 +54,8 @@ package Instrument is
    --  If Auto_Dump_Buffers is true, append a call to
    --  System.GNATcov.Traces.Output.Write_Trace_File for list of coverage
    --  buffers in all mains in the project.
+   --
+   --  If Ignored_Source_File is non-null, ignore files whose names match the
+   --  accessed pattern.
 
 end Instrument;
