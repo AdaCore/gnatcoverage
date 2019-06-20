@@ -1,0 +1,7 @@
+Code-Review+2: Thomas Quinot <quinot@adacore.com>
+Code-Review+1: CI Builder <ci-builder@adacore.com>
+Submitted-by: Olivier Hainque <hainque@adacore.com>
+Submitted-at: Thu, 20 Jun 2019 12:18:27 +0200
+Reviewed-on: https://git.adacore.com/56474
+Project: gnatcoverage
+Branch: refs/heads/master
