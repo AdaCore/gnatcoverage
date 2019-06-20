@@ -1886,6 +1886,14 @@ package body Instrument.Tree is
                HSS   := TBN.F_Stmts;
             end;
 
+         when Ada_Entry_Body =>
+            declare
+               EBN : constant Entry_Body := N.As_Entry_Body;
+            begin
+               Decls := EBN.F_Decls;
+               HSS := EBN.F_Stmts;
+            end;
+
          when others =>
             raise Program_Error;
       end case;
