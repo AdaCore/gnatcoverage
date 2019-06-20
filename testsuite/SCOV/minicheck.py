@@ -24,7 +24,8 @@ COV_RE = re.compile('^ *(\d+) (.):.*$')
 
 
 def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
-                  gpr_exe_dir=None, extra_gargs=[], absolute_paths=False):
+                  gpr_exe_dir=None, ignored_source_files=[], extra_gargs=[],
+                  absolute_paths=False):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -50,6 +51,8 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
     :param None|str gpr_exe_dir: Optional name of the directory where gprbuild
         will create executables to run. If left to None, assume they are
         produced in the current directory.
+    :param list[str] ignored_source_files: List of file patterns to pass using
+        the --ignore-source-files option.
     :param list[str] extra_gargs: List of arguments to pass to gprbuild.
     :param bool absolute_paths: If true, use absolute paths in the result.
 
@@ -75,10 +78,15 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         xcov_args.extend(gprsw.as_strings)
     scos_args = []
 
+    # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
+    # instrument" (src trace mode).
+    cov_or_instr_args = ['--ignore-source-files={}'.format(pattern)
+                         for pattern in ignored_source_files]
+
     if trace_mode == 'bin':
         if xcov_scos_args:
-            scos_args = ['--scos={}'.format(abspath(a))
-                         for a in xcov_scos_args]
+            cov_or_instr_args.extend('--scos={}'.format(abspath(a))
+                                     for a in xcov_scos_args)
 
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
@@ -86,13 +94,14 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
             xrun(['--level', covlevel, exepath(m)] + scos_args,
                  out='run.log')
 
-        xcov_args.extend(scos_args)
+        xcov_args.extend(cov_or_instr_args)
         xcov_args.extend(abspath(tracename_for(m)) for m in mains)
 
     elif trace_mode == 'src':
         # Instrument the project and build the result
         isi_file = abspath('instr.isi')
-        xcov_instrument(gprsw, covlevel, isi_file, out='instrument.log')
+        xcov_instrument(gprsw, covlevel, isi_file,
+                        extra_args=cov_or_instr_args, out='instrument.log')
         xcov_args.extend(['--isi', isi_file])
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
