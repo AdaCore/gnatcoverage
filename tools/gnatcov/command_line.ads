@@ -550,7 +550,7 @@ package Command_Line is
         (Short_Name   => "-S",
          Pattern      => Coverage.Tags.Tag_Providers.Registered_Names ("|"),
          Help         => ("Perform separate source coverage (EXPERIMENTAL)."),
-         Commands     => (Cmd_Coverage => True,
+         Commands     => (Cmd_Coverage | Cmd_Instrument => True,
                           others => False),
          At_Most_Once => False,
          Internal     => False),
