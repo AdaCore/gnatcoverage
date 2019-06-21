@@ -31,7 +31,7 @@ private package Instrument.Tree is
 
    procedure Traverse_Declarations_Or_Statements
      (IC      : in out Unit_Inst_Context;
-      L       : Ada_Node_List;
+      L       : Ada_List'Class;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
       P       : Ada_Node      := No_Ada_Node);

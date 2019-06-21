@@ -496,6 +496,12 @@ package body Instrument.Sources is
       RH_N : constant Node_Rewriting_Handle := Handle (N);
 
    begin
+      --  No instrumentation for condition if there is no local state variable
+
+      if Length (SC.State) = 0 then
+         return;
+      end if;
+
       --  Detach original condition from tree so that it can be reattached
       --  inside the witness call.
 
@@ -537,9 +543,10 @@ package body Instrument.Sources is
       IC.Unit_Bits.Last_Outcome_Bit :=
         IC.Unit_Bits.Last_Outcome_Bit + 2;
 
-      --  Allocate path bits for MC/DC
+      --  Allocate path bits for MC/DC if MC/DC is required and we were
+      --  able to generate a local state variable.
 
-      if MCDC_Coverage_Enabled then
+      if MCDC_Coverage_Enabled and then Length (SD.State) > 0 then
          Bits.Path_Bits_Base := IC.Unit_Bits.Last_Path_Bit + 1;
          IC.Unit_Bits.Last_Path_Bit :=
            IC.Unit_Bits.Last_Path_Bit + Bit_Id (Path_Count);
@@ -611,7 +618,7 @@ package body Instrument.Sources is
       Traverse_Declarations_Or_Statements
         (IC      => UIC,
          P       => Rewriter.Rewritten_Unit.Root,
-         L       => No_Ada_Node_List,
+         L       => No_Ada_List,
          Preelab => Preelab);
 
       SCOs.SCO_Unit_Table.Append
@@ -682,7 +689,9 @@ package body Instrument.Sources is
                       (D_SCO, Outcome);
                end loop;
 
-               if MCDC_Coverage_Enabled then
+               if MCDC_Coverage_Enabled
+                 and then D_Bit_Alloc.Path_Bits_Base /= No_Bit_Id
+               then
                   declare
                      Path_Count : constant Natural :=
                        SC_Obligations.Path_Count (D_SCO);

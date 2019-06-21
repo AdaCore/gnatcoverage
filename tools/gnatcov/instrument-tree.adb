@@ -268,7 +268,7 @@ package body Instrument.Tree is
 
    function Traverse_Declarations_Or_Statements
      (IC      : in out Unit_Inst_Context;
-      L       : Ada_Node_List;
+      L       : Ada_List'Class;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
       P       : Ada_Node      := No_Ada_Node) return Dominant_Info;
@@ -419,7 +419,7 @@ package body Instrument.Tree is
 
    procedure Traverse_Declarations_Or_Statements
      (IC      : in out Unit_Inst_Context;
-      L       : Ada_Node_List;
+      L       : Ada_List'Class;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
       P       : Ada_Node      := No_Ada_Node)
@@ -433,7 +433,7 @@ package body Instrument.Tree is
 
    function Traverse_Declarations_Or_Statements
      (IC      : in out Unit_Inst_Context;
-      L       : Ada_Node_List;
+      L       : Ada_List'Class;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
       P       : Ada_Node      := No_Ada_Node)
@@ -906,7 +906,7 @@ package body Instrument.Tree is
                         Traverse_Declarations_Or_Statements
                           (IC,
                            P => CU_Decl.As_Ada_Node,
-                           L => No_Ada_Node_List);
+                           L => CUN.F_Pragmas);
 
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
@@ -1654,9 +1654,12 @@ package body Instrument.Tree is
          Traverse_One (P);
       end if;
 
-      --  Set up rewriting for the list case
+      --  Set up rewriting for the list case, if L is a statement or
+      --  declaration list, i.e. a list where witnesses can be inserted.
 
-      if not L.Is_Null then
+      if not L.Is_Null
+        and then L.Kind in Ada_Decl_List | Ada_Stmt_List
+      then
          RH_Enclosing_List := Handle (L);
          Witness_Use_Statement := L.Kind = Ada_Stmt_List;
       end if;
