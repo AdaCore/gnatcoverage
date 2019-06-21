@@ -558,18 +558,19 @@ package body Coverage.Source is
                               (Enclosing_Statement (SCO), SCI.Tag)
                   then
                      --  Similar to the above for statement coverage: a
-                     --  decision that cannot ever be executed is reported as
-                     --  No_Code, not Not_Covered. Note: the enclosing
-                     --  statement may be covered even though the decision has
-                     --  never been evaluated (case e.g. of an exception being
-                     --  raised before any outcome is reached, or of a
-                     --  condition for which we fail to identify the
+                     --  decision that cannot ever be executed is reported
+                     --  as No_Code, not Not_Covered. Note: the enclosing
+                     --  statement may be covered even though the decision
+                     --  has never been evaluated (case e.g. of an exception
+                     --  being raised before any outcome is reached, or
+                     --  of a condition for which we fail to identify the
                      --  corresponding conditional branch instruction). We
                      --  report the coverage failure for the decision in that
                      --  case only; if the statement was not executed, we
                      --  report only the statement failure. If there is no
-                     --  enclosing statement then we always report the coverage
-                     --  status.
+                     --  enclosing statement, or there is an ignored SCO
+                     --  (e.g. case of a pragma that generates freestanding
+                     --  decisions) then we always report the coverage status.
 
                      declare
                         S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
@@ -581,6 +582,7 @@ package body Coverage.Source is
                         if S_SCI = null
                           or else S_SCI.Executed
                           or else S_SCI.Line_Executed
+                          or else Ignore_SCO (S_SCO)
                         then
                            Report_Violation (SCO, SCI.Tag, "never evaluated");
                         end if;
