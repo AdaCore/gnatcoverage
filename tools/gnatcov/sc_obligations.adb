@@ -2556,9 +2556,14 @@ package body SC_Obligations is
    is
       pragma Unreferenced (TP);
    begin
-      --  Remap CP_Tag interpreted as a global instance id
+      --  Remap CP_Tag interpreted as a global instance id. No remapping is
+      --  needed for No_SC_Tag as it designates the absence of instance.
 
-      return SC_Tag (Relocs.Inst_Map (Inst_Id (CP_Tag)));
+      if CP_Tag = No_SC_Tag then
+         return No_SC_Tag;
+      else
+         return SC_Tag (Relocs.Inst_Map (Inst_Id (CP_Tag)));
+      end if;
    end Map_Tag;
 
    -------------------
