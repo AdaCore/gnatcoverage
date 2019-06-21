@@ -17,6 +17,6 @@ begin
 end;
 
 --# and_eq_or.adb
---  /eval/  l! ## dF-:"A"
+--  /eval/  l! ## dF-:"\(A"
 --  /true/  l+ ## 0
 --  /false/ l- ## s-

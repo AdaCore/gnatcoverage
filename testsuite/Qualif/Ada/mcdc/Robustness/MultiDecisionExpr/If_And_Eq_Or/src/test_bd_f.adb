@@ -8,7 +8,7 @@ begin
 end;
 
 --# and_eq_or.adb
---  /eval/  l! ## c!:"A", c!:"C", dT-:"A"
+--  /eval/  l! ## c!:"A", c!:"C", dT-:"\(A"
 --  /true/  l- ## s-
 --  /false/ l+ ## 0
 
