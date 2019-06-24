@@ -1660,12 +1660,10 @@ package body Instrument.Tree is
          Traverse_One (P);
       end if;
 
-      --  Set up rewriting for the list case, if L is a statement or
-      --  declaration list, i.e. a list where witnesses can be inserted.
+      --  Set up rewriting for the list case, if L is a list where witnesses
+      --  can be inserted.
 
-      if not L.Is_Null
-        and then L.Kind in Ada_Decl_List | Ada_Stmt_List
-      then
+      if not L.Is_Null and then L.Kind /= Ada_Pragma_Node_List then
          RH_Enclosing_List := Handle (L);
          Witness_Use_Statement := L.Kind = Ada_Stmt_List;
       end if;
