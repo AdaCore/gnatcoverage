@@ -272,8 +272,12 @@ package body Instrument.Tree is
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
       P       : Ada_Node      := No_Ada_Node) return Dominant_Info;
-   --  Same as above, and returns dominant information corresponding to the
-   --  last node with SCO in L.
+   --  Process L, a list of statements or declarations dominated by D. If P is
+   --  present, it is processed as though it had been prepended to L. Preelab
+   --  is True if L is a list of preelaborable declarations (which do not
+   --  allow elaboration code, so do not require any SCOs, and wouldn't allow
+   --  insertion of witnesses). Returns dominant information corresponding to
+   --  the last node with SCO in L.
 
    --  The following Traverse_* routines perform appropriate calls to
    --  Traverse_Declarations_Or_Statements to traverse specific node kinds.
@@ -428,7 +432,7 @@ package body Instrument.Tree is
       pragma Warnings (Off, Discard_Dom);
    begin
       Discard_Dom := Traverse_Declarations_Or_Statements
-                       (IC, L, Preelab, D, P);
+        (IC, L, Preelab, D, P);
    end Traverse_Declarations_Or_Statements;
 
    function Traverse_Declarations_Or_Statements
@@ -436,8 +440,7 @@ package body Instrument.Tree is
       L       : Ada_List'Class;
       Preelab : Boolean       := False;
       D       : Dominant_Info := No_Dominant;
-      P       : Ada_Node      := No_Ada_Node)
-      return Dominant_Info
+      P       : Ada_Node      := No_Ada_Node) return Dominant_Info
    is
       Current_Dominant : Dominant_Info := D;
       --  Dominance information for the current basic block
@@ -1221,8 +1224,7 @@ package body Instrument.Tree is
                      D => Current_Dominant);
                end if;
 
-               --  SELECT statement
-
+            --  SELECT statement
             --  (all 4 non-terminals: selective_accept, timed_entry_call,
             --  conditional_entry_call, and asynchronous_select).
 
