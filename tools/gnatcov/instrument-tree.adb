@@ -256,7 +256,8 @@ package body Instrument.Tree is
           To   =>
               (Line => Logical_Line_Number (To.Line),
                Col  => Types.Column_Number (To.Column)),
-          C1   => C1,   C2 => C2,
+          C1   => C1,
+          C2   => C2,
           Last => Last,
           Pragma_Sloc        => No_Location,
           Pragma_Aspect_Name => Pragma_Aspect_Name));
