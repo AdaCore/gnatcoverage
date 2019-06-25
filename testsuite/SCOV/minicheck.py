@@ -77,9 +77,6 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
 
     trace_mode = thistest.options.trace_mode
     xcov_args = ['coverage', '--level', covlevel]
-    if not xcov_scos_args:
-        xcov_args.extend(gprsw.as_strings)
-    scos_args = []
 
     # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
     # instrument" (src trace mode).
@@ -89,9 +86,11 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         cov_or_instr_args.extend(['-S', separate_coverage])
 
     if trace_mode == 'bin':
-        if xcov_scos_args:
-            cov_or_instr_args.extend('--scos={}'.format(abspath(a))
-                                     for a in xcov_scos_args)
+        # Compute arguments to specify units of interest
+        scos_args = (['--scos={}'.format(abspath(a)) for a in xcov_scos_args]
+                     if xcov_scos_args else
+                     gprsw.as_strings)
+        cov_or_instr_args.extend(scos_args)
 
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
