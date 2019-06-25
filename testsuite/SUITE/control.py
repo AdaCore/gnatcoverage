@@ -78,7 +78,7 @@ LANGINFO = {
     "C++": LangInfo(
         name="C++", src_ext=[".hpp", ".cpp", ".cc", ".hh", ".hxx"],
         comment='//',
-        scofile_for=lambda source: '{}.gli'.format(source)),
+        scofile_for=None),
 
     "Asm": LangInfo(
         name="Asm", src_ext=[".s"], comment='#',

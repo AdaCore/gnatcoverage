@@ -101,26 +101,31 @@ def gprbuild_cargs_with(thiscargs, scovcargs=True, suitecargs=True):
             thiscargs,
             FatalError("Specific CARGS forbidden for qualification test"))
 
-    # Compute the language specific cargs, all testsuite level:
+    # Compute the language specific cargs, from testsuite args first:
 
     lang_cargs = []
 
-    def add_for_lang(lang):
-        lcargs = to_list(thistest.suite_cargs_for(lang))
-        if lcargs:
-            lang_cargs.extend(["-cargs:%s" % lang] + lcargs)
-
     if suitecargs:
         for lang in KNOWN_LANGUAGES:
-            add_for_lang(lang=lang)
+            lcargs = to_list(thistest.suite_cargs_for(lang))
+            if lcargs:
+                lang_cargs.extend(["-cargs:%s" % lang] + lcargs)
 
-    # Compute the language agnostic cargs: common ones + testsuite -cargs
-    # + those for this specific run.
+    # Add the cargs for SCOV based tests if requested. While these are
+    # notionally language agnostic, they are only supported for a subset of
+    # languages in practice and could be rejected for languages not in this
+    # subset.
+
+    SCOV_CARGS = BUILDER.SCOV_CARGS(thistest.options)
+
+    if scovcargs and SCOV_CARGS:
+        for lang in KNOWN_LANGUAGES:
+            lang_cargs.extend(["-cargs:%s" % lang] + SCOV_CARGS)
+
+    # Compute the language agnostic cargs: testsuite -cargs + those requested
+    # for this specific run.
 
     other_cargs = []
-
-    if scovcargs:
-        other_cargs.extend(BUILDER.SCOV_CARGS(thistest.options))
 
     if suitecargs:
         other_cargs.extend(to_list(thistest.suite_cargs_for(lang=None)))
