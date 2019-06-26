@@ -119,16 +119,19 @@ package Checkpoints is
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:
-   --    * SCO information from instrumentation of source files
-   --    * a snapshot of an intermediate state in consolidated coverage
+   --    * Instrumentation: SCO information from instrumentation of source
+   --      files (ISI files);
+   --    * Consolidation: a snapshot of an intermediate state in consolidated
+   --      coverage (regular checkpoints).
 
    procedure Checkpoint_Save
      (Filename : String;
       Context  : access Coverage.Context;
       Purpose  : Checkpoint_Purpose;
       Version  : Checkpoint_Version := Default_Checkpoint_Version);
-   --  Dump internal data structures to a checkpoint file.
+   --  Dump internal data structures to a checkpoint file
 
    procedure Checkpoint_Load (Filename : String);
+   --  Load a checkpoint file into internal data structures
 
 end Checkpoints;
