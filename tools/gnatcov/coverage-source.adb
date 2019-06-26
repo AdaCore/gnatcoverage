@@ -198,7 +198,8 @@ package body Coverage.Source is
    procedure Merge_Checkpoint_SCI
      (SCO    : SCO_Id;
       Tag    : SC_Tag;
-      CP_SCI : Source_Coverage_Info);
+      CP_SCI : Source_Coverage_Info;
+      Relocs : Checkpoint_Relocations);
    --  Merge the given checkpointed coverage information with current coverage
    --  info for SCO.
 
@@ -300,7 +301,8 @@ package body Coverage.Source is
                      Merge_Checkpoint_SCI
                        (SCO,
                         Tag_Provider.Map_Tag (Relocs, CP_SCI.Tag),
-                        CP_SCI.all);
+                        CP_SCI.all,
+                        Relocs);
                   end if;
                end loop;
             end if;
@@ -1574,7 +1576,8 @@ package body Coverage.Source is
    procedure Merge_Checkpoint_SCI
      (SCO    : SCO_Id;
       Tag    : SC_Tag;
-      CP_SCI : Source_Coverage_Info)
+      CP_SCI : Source_Coverage_Info;
+      Relocs : Checkpoint_Relocations)
    is
       procedure Merge_SCI (SCI : in out Source_Coverage_Info);
       --  Merge coverage information from checkpointed CP_SCI into SCI
@@ -1614,7 +1617,16 @@ package body Coverage.Source is
                     SCI.Outcome_Taken or CP_SCI.Outcome_Taken;
                end if;
 
-               SCI.Evaluations.Union (CP_SCI.Evaluations);
+               --  Merge evaluation vectors from checkpoint
+
+               for Cur in CP_SCI.Evaluations.Iterate loop
+                  declare
+                     E : Evaluation := Evaluation_Sets.Element (Cur);
+                  begin
+                     E.Decision := Relocs.SCO_Map (E.Decision);
+                     SCI.Evaluations.Include (E);
+                  end;
+               end loop;
 
             when others =>
                null;
