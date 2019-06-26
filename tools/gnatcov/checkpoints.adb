@@ -45,6 +45,9 @@ package body Checkpoints is
    procedure Free is new Ada.Unchecked_Deallocation
      (SCO_Id_Map_Array, SCO_Id_Map_Acc);
 
+   procedure Checkpoint_Load (Filename : String; Purpose : Checkpoint_Purpose);
+   --  Common implementation for ISI_Load and Checkpoint_Load
+
    ---------------------
    -- Checkpoint_Save --
    ---------------------
@@ -74,6 +77,10 @@ package body Checkpoints is
          Checkpoint_Header'Write
            (CSS.Stream, (Version => Version, others => <>));
 
+         if not Version_Less (CSS'Access, Than => 2) then
+            Checkpoint_Purpose'Write (CSS.Stream, Purpose);
+         end if;
+
          --  Instrumentation is the same for all MC/DC variants, so a
          --  checkpoint generated for any of them supports all of them.
 
@@ -94,15 +101,33 @@ package body Checkpoints is
       Close (SF);
    end Checkpoint_Save;
 
+   --------------
+   -- ISI_Load --
+   --------------
+
+   procedure ISI_Load (Filename : String) is
+   begin
+      Checkpoint_Load (Filename, Instrumentation);
+   end ISI_Load;
+
+   --------------
+   -- ISI_Load --
+   --------------
+
+   procedure Checkpoint_Load (Filename : String) is
+   begin
+      Checkpoint_Load (Filename, Consolidation);
+   end Checkpoint_Load;
+
    ---------------------
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (Filename : String) is
+   procedure Checkpoint_Load (Filename : String; Purpose : Checkpoint_Purpose)
+   is
       SF        : Ada.Streams.Stream_IO.File_Type;
       CP_Header : Checkpoint_Header;
       Levels    : Coverage.Levels_Type;
-
    begin
       Open (SF, In_File, Filename);
 
@@ -122,6 +147,24 @@ package body Checkpoints is
 
          else
             CLS.Version := CP_Header.Version;
+
+            --  Check that we are loading the kind of checkpoint we are
+            --  expecting (Purpose).
+
+            if not Version_Less (CLS'Access, Than => 2) then
+               declare
+                  CP_Purpose : constant Checkpoint_Purpose :=
+                     Checkpoint_Purpose'Input (CLS.Stream);
+               begin
+                  if CP_Purpose /= Purpose then
+                     Fatal_Error
+                       (Filename & " is a " & Purpose_Name (CP_Purpose)
+                        & " while a " & Purpose_Name (Purpose)
+                        & " was expected");
+                  end if;
+               end;
+            end if;
+
             Coverage.Levels_Type'Read (CLS.Stream, Levels);
             declare
                Error_Msg : constant String :=

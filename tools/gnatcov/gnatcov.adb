@@ -1719,7 +1719,7 @@ begin
          --  Read instrumented source information to decode source traces
 
          Inputs.Iterate
-           (ISI_Inputs, Checkpoints.Checkpoint_Load'Access);
+           (ISI_Inputs, Checkpoints.ISI_Load'Access);
 
          --  Read and process traces
 

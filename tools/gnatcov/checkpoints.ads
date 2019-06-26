@@ -124,12 +124,22 @@ package Checkpoints is
    --    * Consolidation: a snapshot of an intermediate state in consolidated
    --      coverage (regular checkpoints).
 
+   function Purpose_Name (Purpose : Checkpoint_Purpose) return String
+   is (case Purpose is
+       when Instrumentation => "Instrumented Source Information (ISI)",
+       when Consolidation   => "checkpoint");
+   --  Return a user-level name to designate a checkpoint created for the given
+   --  Purpose.
+
    procedure Checkpoint_Save
      (Filename : String;
       Context  : access Coverage.Context;
       Purpose  : Checkpoint_Purpose;
       Version  : Checkpoint_Version := Default_Checkpoint_Version);
    --  Dump internal data structures to a checkpoint file
+
+   procedure ISI_Load (Filename : String);
+   --  Load an ISI file into internal data structures
 
    procedure Checkpoint_Load (Filename : String);
    --  Load a checkpoint file into internal data structures
