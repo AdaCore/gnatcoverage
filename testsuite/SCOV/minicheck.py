@@ -25,8 +25,8 @@ COV_RE = re.compile('^ *(\d+) (.):.*$')
 
 def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
                   gpr_exe_dir=None, ignored_source_files=[],
-                  separate_coverage=None, extra_gargs=[],
-                  absolute_paths=False):
+                  separate_coverage=None, extra_common_xcov_args=[],
+                  extra_gargs=[], absolute_paths=False):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -56,6 +56,8 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         the --ignore-source-files option.
     :param None|str separate_coverage: If provided, the argument is forwarded
         to gnatcov using the -S option.
+    :param list[str] extra_common_xcov_args: List of arguments to pass to
+        any execution of gnatcov (gnatcov run|instrument|coverage).
     :param list[str] extra_gargs: List of arguments to pass to gprbuild.
     :param bool absolute_paths: If true, use absolute paths in the result.
 
@@ -80,8 +82,10 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
 
     # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
     # instrument" (src trace mode).
-    cov_or_instr_args = ['--ignore-source-files={}'.format(pattern)
-                         for pattern in ignored_source_files]
+    cov_or_instr_args = (
+        extra_common_xcov_args +
+        ['--ignore-source-files={}'.format(pattern)
+         for pattern in ignored_source_files])
     if separate_coverage:
         cov_or_instr_args.extend(['-S', separate_coverage])
 
@@ -95,7 +99,8 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
         for m in mains:
-            xrun(['--level', covlevel, exepath(m)] + scos_args,
+            xrun(['--level', covlevel, exepath(m)] + scos_args +
+                    extra_common_xcov_args,
                  out='run.log')
 
         xcov_args.extend(cov_or_instr_args)
@@ -114,6 +119,8 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         for m in mains:
             xcov_args.append(abspath(srctracename_for(m)))
             Run([exepath(m)])
+
+        xcov_args.extend(extra_common_xcov_args)
 
     else:
         assert False, 'Unknown trace mode: {}'.format(trace_mode)
