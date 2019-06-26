@@ -697,7 +697,9 @@ package body SC_Obligations is
             if Verbose then
                Put_Line
                  ("Loaded from checkpoint: "
-                  & Image (SCO_Vector.Last_Index));
+                  & Image (SCO_Vector.Last_Index)
+                  & " (was #" & Trim (Old_SCO_Id'Img, Side => Ada.Strings.Both)
+                  & " in checkpoint)");
             end if;
          end;
       end loop;
