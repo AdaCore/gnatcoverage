@@ -120,9 +120,12 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
             xcov_args.append(abspath(srctracename_for(m)))
             Run([exepath(m)])
 
-        # Pass the project to "gnatcov coverage". This is necessary for
-        # instance to select the default output directory for coverage reports.
-        xcov_args.extend(['-P', gprsw.root_project])
+        # If we would have passed the project to "gnatcov coverage" in binary
+        # trace mode, pass it here too. This is necessary for instance to
+        # select the default output directory for coverage reports.
+        if not xcov_scos_args:
+            xcov_args.extend(['-P', gprsw.root_project])
+
         xcov_args.extend(extra_common_xcov_args)
 
     else:
