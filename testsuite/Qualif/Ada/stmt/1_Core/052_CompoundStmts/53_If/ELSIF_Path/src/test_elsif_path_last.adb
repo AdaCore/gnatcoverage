@@ -44,3 +44,9 @@ end Test_ELSIF_Path_Last;
 -- /gt0elab/     l+ ## 0
 -- /notgt0elab/  l- ## s-
 -- /eq0elabeq0/  l- ## s-
+
+-- %opts: --trace-mode=src
+-- =/max/         l- ## s-
+-- =/declmax/     l- ## s-
+-- =/ifmax/       l- ## s-
+-- =/elsemax/     l- ## s-
