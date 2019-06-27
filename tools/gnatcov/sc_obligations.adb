@@ -707,17 +707,23 @@ package body SC_Obligations is
       --  Remap SCO_Ids in source trace bit maps
 
       if CP_CU.Provider = Instrumenter then
-         for S_SCO of CP_CU.Bit_Maps.Statement_Bits.all loop
-            Remap_SCO_Id (S_SCO);
-         end loop;
+         if CP_CU.Bit_Maps.Statement_Bits /= null then
+            for S_SCO of CP_CU.Bit_Maps.Statement_Bits.all loop
+               Remap_SCO_Id (S_SCO);
+            end loop;
+         end if;
 
-         for D_Outcome of CP_CU.Bit_Maps.Decision_Bits.all loop
-            Remap_SCO_Id (D_Outcome.D_SCO);
-         end loop;
+         if CP_CU.Bit_Maps.Decision_Bits /= null then
+            for D_Outcome of CP_CU.Bit_Maps.Decision_Bits.all loop
+               Remap_SCO_Id (D_Outcome.D_SCO);
+            end loop;
+         end if;
 
-         for D_Path of CP_CU.Bit_Maps.MCDC_Bits.all loop
-            Remap_SCO_Id (D_Path.D_SCO);
-         end loop;
+         if CP_CU.Bit_Maps.MCDC_Bits /= null then
+            for D_Path of CP_CU.Bit_Maps.MCDC_Bits.all loop
+               Remap_SCO_Id (D_Path.D_SCO);
+            end loop;
+         end if;
       end if;
 
       --  Preallocate line table entries for last file
@@ -893,12 +899,14 @@ package body SC_Obligations is
             when Compiler =>
                null;
             when Instrumenter =>
-               V.Bit_Maps.Statement_Bits :=
-                 new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
-               V.Bit_Maps.Decision_Bits :=
-                 new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
-               V.Bit_Maps.MCDC_Bits :=
-                 new MCDC_Bit_Map'(MCDC_Bit_Map'Input (S));
+               if Purpose_Of (S) = Instrumentation then
+                  V.Bit_Maps.Statement_Bits :=
+                    new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
+                  V.Bit_Maps.Decision_Bits :=
+                    new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
+                  V.Bit_Maps.MCDC_Bits :=
+                    new MCDC_Bit_Map'(MCDC_Bit_Map'Input (S));
+               end if;
          end case;
       end if;
    end Read;
@@ -937,12 +945,14 @@ package body SC_Obligations is
             when Compiler =>
                null;
             when Instrumenter =>
-               Statement_Bit_Map'Output
-                 (S, V.Bit_Maps.Statement_Bits.all);
-               Decision_Bit_Map'Output
-                 (S, V.Bit_Maps.Decision_Bits.all);
-               MCDC_Bit_Map'Output
-                 (S, V.Bit_Maps.MCDC_Bits.all);
+               if Purpose_Of (S) = Instrumentation then
+                  Statement_Bit_Map'Output
+                    (S, V.Bit_Maps.Statement_Bits.all);
+                  Decision_Bit_Map'Output
+                    (S, V.Bit_Maps.Decision_Bits.all);
+                  MCDC_Bit_Map'Output
+                    (S, V.Bit_Maps.MCDC_Bits.all);
+               end if;
          end case;
       end if;
    end Write;

@@ -71,7 +71,10 @@ package body Checkpoints is
          use Coverage;
 
          CSS              : aliased Checkpoint_Save_State :=
-           (Root_Stream_Type with Stream => Stream (SF), Version => Version);
+           (Root_Stream_Type with
+            Stream  => Stream (SF),
+            Version => Version,
+            Purpose => Purpose);
          Supported_Levels : Levels_Type := Current_Levels;
       begin
          Checkpoint_Header'Write
@@ -133,7 +136,10 @@ package body Checkpoints is
 
       declare
          CLS : aliased Checkpoint_Load_State :=
-           (Root_Stream_Type with Stream => Stream (SF), others => <>);
+           (Root_Stream_Type with
+            Stream  => Stream (SF),
+            Purpose => Purpose,
+            others  => <>);
       begin
          CLS.Relocations.Filename := To_Unbounded_String (Filename);
 

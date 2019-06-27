@@ -38,6 +38,20 @@ package Checkpoints is
    --  1 -- initial version of checkpoint support
    --  2 -- support for source instrumentation (WIP, subject to change)
 
+   type Checkpoint_Purpose is (Instrumentation, Consolidation);
+   --  Purpose of checkpoint can be to provide:
+   --    * Instrumentation: SCO information from instrumentation of source
+   --      files (ISI files);
+   --    * Consolidation: a snapshot of an intermediate state in consolidated
+   --      coverage (regular checkpoints).
+
+   function Purpose_Name (Purpose : Checkpoint_Purpose) return String
+   is (case Purpose is
+       when Instrumentation => "Instrumented Source Information (ISI)",
+       when Consolidation   => "checkpoint");
+   --  Return a user-level name to designate a checkpoint created for the given
+   --  Purpose.
+
    type SFI_Map_Array is
      array (Source_File_Index range <>) of Source_File_Index;
    type SFI_Map_Acc is access all SFI_Map_Array;
@@ -88,6 +102,10 @@ package Checkpoints is
      new Root_Stream_Type with
       record
          Version : Checkpoint_Version;
+         --  Format version for the checkpoint being written/read
+
+         Purpose : Checkpoint_Purpose;
+         --  Purpose for the checkpoint being written/read
       end record;
 
    procedure Read
@@ -107,6 +125,13 @@ package Checkpoints is
    --  This is provided as a function to prevent the compiler from generating
    --  "can never be greater than" warnings.
 
+   function Purpose_Of
+     (CS : access Root_Stream_Type'Class) return Checkpoint_Purpose
+   is (Stateful_Stream (CS.all).Purpose)
+     with Inline;
+   --  Shortcut to get the purpose of a stream that is known to be an instance
+   --  of Stateful_Stream.
+
    --  Global state shared across phases of a checkpoint save
 
    type Checkpoint_Save_State is new Stateful_Stream with null record;
@@ -116,20 +141,6 @@ package Checkpoints is
    type Checkpoint_Load_State is new Stateful_Stream with record
       Relocations : Checkpoint_Relocations;
    end record;
-
-   type Checkpoint_Purpose is (Instrumentation, Consolidation);
-   --  Purpose of checkpoint can be to provide:
-   --    * Instrumentation: SCO information from instrumentation of source
-   --      files (ISI files);
-   --    * Consolidation: a snapshot of an intermediate state in consolidated
-   --      coverage (regular checkpoints).
-
-   function Purpose_Name (Purpose : Checkpoint_Purpose) return String
-   is (case Purpose is
-       when Instrumentation => "Instrumented Source Information (ISI)",
-       when Consolidation   => "checkpoint");
-   --  Return a user-level name to designate a checkpoint created for the given
-   --  Purpose.
 
    procedure Checkpoint_Save
      (Filename : String;
