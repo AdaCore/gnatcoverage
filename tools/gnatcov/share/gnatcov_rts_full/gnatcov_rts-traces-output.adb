@@ -136,26 +136,53 @@ package body GNATcov_RTS.Traces.Output is
    ------------------
 
    procedure Write_Buffer (File : File_Type; Buffer : Coverage_Buffer_Type) is
-      Bytes_Count : Natural := Buffer'Size / 8;
-      Extra_Bits  : constant Any_Bit_Id := Buffer'Size mod 8;
+
+      procedure Append_Bit (Value : Boolean);
+      procedure Flush;
+
+      Current_Byte : Interfaces.Unsigned_8 := 0;
+      Bit_Mask     : Interfaces.Unsigned_8 := 1;
+      Bytes_Count  : Natural := 0;
+
+      ----------------
+      -- Append_Bit --
+      ----------------
+
+      procedure Append_Bit (Value : Boolean) is
+         use type Interfaces.Unsigned_8;
+      begin
+         if Value then
+            Current_Byte := Current_Byte or Bit_Mask;
+         end if;
+         Bit_Mask := 2 * Bit_Mask;
+         if Bit_Mask = 2 ** 8 then
+            Flush;
+         end if;
+      end Append_Bit;
+
+      -----------
+      -- Flush --
+      -----------
+
+      procedure Flush is
+      begin
+         if Bit_Mask /= 1 then
+            Write (File, Current_Byte);
+            Current_Byte := 0;
+            Bit_Mask := 1;
+            Bytes_Count := Bytes_Count + 1;
+         end if;
+      end Flush;
+
+   --  Start of processing for Write_Buffer
+
    begin
       --  Write bytes that are included in the coverage buffer
 
-      Write_Bytes (File, Buffer'Address, Bytes_Count);
-
-      --  Then write the remaining bits, padded with NUL bytes
-
-      if Extra_Bits /= 0 then
-         declare
-            Byte : Interfaces.Unsigned_8 := 0;
-         begin
-            for I in Buffer'Last - Extra_Bits + 1 .. Buffer'Last loop
-               Byte := 2 * Byte + Boolean'Pos (Buffer (I));
-            end loop;
-            Write (File, Byte);
-         end;
-         Bytes_Count := Bytes_Count + 1;
-      end if;
+      for Value of Buffer loop
+         Append_Bit (Value);
+      end loop;
+      Flush;
 
       --  Complete with the required padding
 

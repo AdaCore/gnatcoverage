@@ -27,7 +27,8 @@ package GNATcov_RTS.Buffers is
    --  Unique identifier for a boolean in a coverage buffer
 
    type Coverage_Buffer_Type is array (Bit_Id range <>) of Boolean;
-   pragma Pack (Coverage_Buffer_Type);
+   --  Even though it is tempting to pack this array to save memory, we must
+   --  avoid bit packing to allow concurrent writes to coverage buffers.
 
    type Hash_Type is new Interfaces.Unsigned_32;
    --  Hash type to perform consistency checks
