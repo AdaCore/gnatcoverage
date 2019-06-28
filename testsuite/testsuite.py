@@ -29,10 +29,12 @@ import logging
 import os
 import re
 import sys
+import itertools
 
 import SUITE.cutils as cutils
 
-from SUITE.cutils import strip_prefix, contents_of, FatalError, exit_if
+from SUITE.cutils import strip_prefix, contents_of, lines_of, list_to_tmp
+from SUITE.cutils import FatalError, exit_if
 from SUITE.cutils import version
 
 from SUITE.dutils import pdump_to, pload_from
@@ -1548,49 +1550,42 @@ class TestCase(object):
     # -- Testcase options and status --
     # ---------------------------------
 
-    def __try_killcmd(self, cmd, opt):
-        """See if the killing command CMD applies to this testcase according
-        to the provided set of parsed OPTions. Set self.killcmd to the
-        corresponding text for GAIA reports."""
-
-        value = opt.get_value(cmd)
-        self.killcmd = (
-            None if value is None
-            else "%s:%s" % (cmd, value)
-            )
-
-    def __trykill_from(self, opt):
-        """See if the provided OPTions parsed for our discriminants
-        trigger a DEAD or SKIP for this test. Set killcmd accordingly."""
-
-        [self.__try_killcmd(cmd=cmd, opt=opt)
-         for cmd in ('DEAD', 'SKIP') if not self.killcmd]
-
     def parseopt(self, suite_discriminants):
         """Parse the local test.opt + possible extra.opt uptree in
-        accordance with the provided SUITE_DISCRIMINANTS + the test
-        specific discriminants, if any."""
+        accordance with the provided SUITE_DISCRIMINANTS + the test specific
+        discriminants, if any. The deeper .opt file prevails.
+        """
 
         tags = suite_discriminants + self.discriminants()
 
+        # Build a list of strings corresponding to the catenation of
+        # test.opt/extra.opt files for this test, fetched bottom up in
+        # directory tree order, then feed that to the opt file parser.
+        #
+        # Beware the extra.opt list we have at hand is top-down.
+
+        opt_files_topdown = list(self.diro.extraopt_uptree)
+
         test_opt = os.path.join(self.atestdir, 'test.opt')
-        self.opt = (
-            OptFileParse(tags, test_opt) if os.path.exists(test_opt)
-            else None
-            )
+        if os.path.exists(test_opt):
+            opt_files_topdown.append(test_opt)
+
+        opt_lines = list(itertools.chain.from_iterable(
+            [lines_of(opt) for opt in reversed(opt_files_topdown)]))
+
+        self.opt = OptFileParse(tags, opt_lines)
+
         self.expected_out = self.getopt('out', 'test.out')
 
         # Determine whether anything kills this test for the provided set
-        # of discriminants. Check the local test.opt first, then possible
-        # instances of extra.opt uptree:
+        # of discriminants.
 
         self.killcmd = None
+        for cmd in ['DEAD', 'SKIP']:
+            value = self.opt.get_value(cmd)
+            if value is not None and not self.killcmd:
+                self.killcmd = "%s:%s" % (cmd, value)
 
-        if self.opt:
-            self.__trykill_from(self.opt)
-
-        [self.__trykill_from(OptFileParse(tags, extraopt))
-         for extraopt in self.diro.extraopt_uptree if not self.killcmd]
 
     def getopt(self, key, default=None):
         """Get the value extracted from test.opt that correspond to key
