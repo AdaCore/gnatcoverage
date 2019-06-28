@@ -35,9 +35,10 @@ def contents_of(filename):
 
 
 def lines_of(filename):
-    """Return contents of file FILENAME as a list of lines"""
+    """Return contents of file FILENAME as a list of lines without the
+    newline termination character."""
     with open(filename) as fd:
-        return fd.readlines()
+        return fd.read().splitlines()
 
 
 def set_from(filename):
