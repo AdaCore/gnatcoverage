@@ -23,10 +23,10 @@ from SUITE.tutils import (exepath_to, gprbuild, srctracename_for, thistest,
 COV_RE = re.compile('^ *(\d+) (.):.*$')
 
 
-def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
+def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_exe_dir=None, ignored_source_files=[],
-                  separate_coverage=None, extra_common_xcov_args=[],
-                  extra_gargs=[], absolute_paths=False):
+                  separate_coverage=None, extra_args=[],
+                  extra_gprbuild_args=[], absolute_paths=False):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -41,14 +41,14 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
     :param list[str] mains: List of names for the various mains to run. These
         are lower-case names without extension, for instance "foo" for the
         "foo.adb" main source file.
-    :param list[str] extra_xcov_args:
-        List of arguments to append to the "gnatcov coverage" command-line
-        returned. This is just for convenience: one can pass an empty list here
-        and manually append extra arguments to the result.
-    :param None|list[str] xcov_scos_arg: Optional list of SCOs to pass to
-        gnatcov, if the current trace mode is binary. If absent, we pass "-P"
-        to "gnatcov coverage"/"gnatcov instrument" so that it automatically
-        discovers the units of interest.
+    :param list[str] extra_coverage_args: List of arguments to append to the
+        "gnatcov coverage" command-line returned. This is just for convenience:
+        one can pass an empty list here and manually append extra arguments to
+        the result.
+    :param None|list[str] scos: Optional list of SCOs to pass to gnatcov, if
+        the current trace mode is binary. If absent, we pass "-P" to "gnatcov
+        coverage"/"gnatcov instrument" so that it automatically discovers the
+        units of interest.
     :param None|str gpr_exe_dir: Optional name of the directory where gprbuild
         will create executables to run. If left to None, assume they are
         produced in the current directory.
@@ -56,9 +56,10 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         the --ignore-source-files option.
     :param None|str separate_coverage: If provided, the argument is forwarded
         to gnatcov using the -S option.
-    :param list[str] extra_common_xcov_args: List of arguments to pass to
-        any execution of gnatcov (gnatcov run|instrument|coverage).
-    :param list[str] extra_gargs: List of arguments to pass to gprbuild.
+    :param list[str] extra_args: List of arguments to pass to any
+        execution of gnatcov (gnatcov run|instrument|coverage).
+    :param list[str] extra_gprbuild_args: List of arguments to pass to
+        gprbuild.
     :param bool absolute_paths: If true, use absolute paths in the result.
 
     :rtype: list[str]
@@ -76,7 +77,7 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         return abspath(exepath_to(main))
 
     def gprbuild_wrapper(root_project, gargs=[]):
-        gprbuild(root_project, gargs=gargs + extra_gargs)
+        gprbuild(root_project, gargs=gargs + extra_gprbuild_args)
 
     trace_mode = thistest.options.trace_mode
     xcov_args = ['coverage', '--level', covlevel]
@@ -85,7 +86,7 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
     # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
     # instrument" (src trace mode).
     cov_or_instr_args = (
-        extra_common_xcov_args +
+        extra_args +
         ['--ignore-source-files={}'.format(pattern)
          for pattern in ignored_source_files])
     if separate_coverage:
@@ -93,16 +94,16 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
 
     if trace_mode == 'bin':
         # Compute arguments to specify units of interest
-        scos_args = (['--scos={}'.format(abspath(a)) for a in xcov_scos_args]
-                     if xcov_scos_args else
+        scos = (['--scos={}'.format(abspath(a)) for a in scos]
+                     if scos else
                      gprsw.as_strings)
-        cov_or_instr_args.extend(scos_args)
+        cov_or_instr_args.extend(scos)
 
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
         for m in mains:
-            xrun(['--level', covlevel, exepath(m)] + scos_args +
-                    extra_common_xcov_args,
+            xrun(['--level', covlevel, exepath(m)] + scos +
+                  extra_args,
                  out='run.log')
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
@@ -125,15 +126,15 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
         # If we would have passed the project to "gnatcov coverage" in binary
         # trace mode, pass it here too. This is necessary for instance to
         # select the default output directory for coverage reports.
-        if not xcov_scos_args:
+        if not scos:
             xcov_args.extend(['-P', gprsw.root_project])
 
-        xcov_args.extend(extra_common_xcov_args)
+        xcov_args.extend(extra_args)
 
     else:
         assert False, 'Unknown trace mode: {}'.format(trace_mode)
 
-    return xcov_args + extra_xcov_args + trace_files
+    return xcov_args + extra_coverage_args + trace_files
 
 
 def build_run_and_coverage(out='coverage.log', err=None, register_failure=True,
