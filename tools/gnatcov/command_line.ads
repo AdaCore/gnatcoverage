@@ -549,7 +549,7 @@ package Command_Line is
       Opt_Separate => Create
         (Short_Name   => "-S",
          Pattern      => Coverage.Tags.Tag_Providers.Registered_Names ("|"),
-         Help         => ("Perform separate source coverage (EXPERIMENTAL)."),
+         Help         => ("Perform separate source coverage analysis."),
          Commands     => (Cmd_Coverage | Cmd_Instrument => True,
                           others => False),
          At_Most_Once => False,
