@@ -148,6 +148,17 @@ package body Instrument.Input_Traces is
    --  Read a trace file header from Stream and store it in File_Header. Set
    --  Result to an error if something wrong happened.
 
+   procedure Read_Trace_Info
+     (Stream      : in out Binary_Stream;
+      File_Header : Trace_File_Header;
+      Kind        : out Supported_Info_Kind;
+      Data        : out String_Access;
+      Result      : in out Read_Result)
+      with Pre => Result.Success;
+   --  Read a trace info entry from Stream. Return an error if something wrong
+   --  happened, otherwise put its kind in Kind and allocate a string in Data
+   --  to hold the data associated to this entry.
+
    function Read_Trace_Entry
      (Stream       : in out Binary_Stream;
       File_Header  : Trace_File_Header;
@@ -350,6 +361,76 @@ package body Instrument.Input_Traces is
       end;
    end Read_Trace_File_Header;
 
+   ---------------------
+   -- Read_Trace_Info --
+   ---------------------
+
+   procedure Read_Trace_Info
+     (Stream      : in out Binary_Stream;
+      File_Header : Trace_File_Header;
+      Kind        : out Supported_Info_Kind;
+      Data        : out String_Access;
+      Result      : in out Read_Result)
+   is
+      Ignored_EOF : Boolean;
+   begin
+      --  Default initialize OUT arguments to avoid pointless warnings
+
+      Kind := Info_End;
+      Data := null;
+
+      --  Read the trace info header
+
+      Read_Bytes
+        (Stream, Trace_Info_Header'Size / 8, Ignored_EOF, Result);
+      if not Result.Success then
+         return;
+      end if;
+
+      declare
+         use type Interfaces.Unsigned_32;
+
+         Header : Trace_Info_Header
+            with Import, Address => Buffer_Address (Stream);
+      begin
+         if Header.Kind not in Supported_Info_Kind then
+            Create_Error (Result, "invalid trace info kind");
+            return;
+         end if;
+
+         Kind := Header.Kind;
+
+         if Header.Kind = Info_End then
+            if Header.Length /= 0 then
+               Create_Error
+                 (Result, "invalid end marker for trace info sequence");
+               return;
+            end if;
+         end if;
+
+         Data := new String (1 .. Natural (Header.Length));
+      end;
+
+      --  Read the associated data
+
+      declare
+         Read_Size : constant Natural :=
+            With_Padding (File_Header.Alignment, Data.all'Length);
+      begin
+         Read_Bytes (Stream, Read_Size, Ignored_EOF, Result);
+      end;
+      if not Result.Success then
+         Free (Data);
+         return;
+      end if;
+      declare
+         Data_As_String : String (Data.all'Range)
+            with Import, Address => Buffer_Address (Stream);
+      begin
+         Data.all := Data_As_String;
+      end;
+   end Read_Trace_Info;
+
    ----------------------
    -- Read_Trace_Entry --
    ----------------------
@@ -510,89 +591,114 @@ package body Instrument.Input_Traces is
       --  Read the trace file header
 
       Read_Trace_File_Header (Stream, File_Header, Result);
-      if Result.Success then
-
-         --  If all went well so far, go through all trace entries
-
-         while Read_Trace_Entry
-           (Stream, File_Header, Entry_Header, Trace_Entry, Result)
-         loop
-            declare
-               Unit_Name    : constant String
-                 (1 .. Natural (Entry_Header.Unit_Name_Length))
-                  with Import, Address => Trace_Entry.Unit_Name;
-
-               Statement_Buffer_Size : constant Natural :=
-                  Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                               Entry_Header.Statement_Bit_Count);
-               Raw_Statement_Buffer  : constant Bytes_Array
-                 (1 .. Statement_Buffer_Size)
-                  with Import, Address => Trace_Entry.Statement_Buffer;
-
-               Decision_Buffer_Size : constant Natural :=
-                  Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                               Entry_Header.Decision_Bit_Count);
-               Raw_Decision_Buffer  : constant Bytes_Array
-                 (1 .. Decision_Buffer_Size)
-                  with Import, Address => Trace_Entry.Decision_Buffer;
-
-               MCDC_Buffer_Size : constant Natural :=
-                  Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                               Entry_Header.MCDC_Bit_Count);
-               Raw_MCDC_Buffer  : constant Bytes_Array
-                 (1 .. MCDC_Buffer_Size)
-                  with Import, Address => Trace_Entry.MCDC_Buffer;
-
-               function Last_Bit (Bit_Count : Any_Bit_Count) return Any_Bit_Id
-               is (Any_Bit_Id (Bit_Count) - 1);
-            begin
-               Reserve (Statement_Buffer, Entry_Header.Statement_Bit_Count);
-               Reserve (Decision_Buffer, Entry_Header.Decision_Bit_Count);
-               Reserve (MCDC_Buffer, Entry_Header.MCDC_Bit_Count);
-
-               Decode_Buffer
-                 (Entry_Header.Bit_Buffer_Encoding,
-                  Raw_Statement_Buffer,
-                  Statement_Buffer
-                    (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
-                  Result);
-               if not Result.Success then
-                  exit;
-               end if;
-
-               Decode_Buffer
-                 (Entry_Header.Bit_Buffer_Encoding,
-                  Raw_Decision_Buffer,
-                  Decision_Buffer
-                    (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)),
-                  Result);
-               if not Result.Success then
-                  exit;
-               end if;
-
-               Decode_Buffer
-                 (Entry_Header.Bit_Buffer_Encoding,
-                  Raw_MCDC_Buffer,
-                  MCDC_Buffer (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)),
-                  Result);
-               if not Result.Success then
-                  exit;
-               end if;
-
-               On_Trace_Entry
-                 (Hash_Type (Entry_Header.Closure_Hash),
-                  Unit_Name,
-                  Unit_Part_Map (Entry_Header.Unit_Part),
-                  Statement_Buffer
-                    (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
-                  Decision_Buffer
-                    (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)),
-                  MCDC_Buffer
-                    (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)));
-            end;
-         end loop;
+      if not Result.Success then
+         goto Cleanup_And_Exit;
       end if;
 
+      --  Read the sequence of trace info entries
+
+      loop
+         declare
+            Kind : Supported_Info_Kind;
+            Data : String_Access;
+         begin
+            Read_Trace_Info (Stream, File_Header, Kind, Data, Result);
+            if not Result.Success then
+               goto Cleanup_And_Exit;
+            end if;
+
+            --  ??? Forward this trace info the caller
+
+            Free (Data);
+
+            if Kind = Info_End then
+               exit;
+            end if;
+         end;
+      end loop;
+
+      --  If all went well so far, go through all trace entries
+
+      while Read_Trace_Entry
+        (Stream, File_Header, Entry_Header, Trace_Entry, Result)
+      loop
+         declare
+            Unit_Name    : constant String
+              (1 .. Natural (Entry_Header.Unit_Name_Length))
+               with Import, Address => Trace_Entry.Unit_Name;
+
+            Statement_Buffer_Size : constant Natural :=
+               Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
+                            Entry_Header.Statement_Bit_Count);
+            Raw_Statement_Buffer  : constant Bytes_Array
+              (1 .. Statement_Buffer_Size)
+               with Import, Address => Trace_Entry.Statement_Buffer;
+
+            Decision_Buffer_Size : constant Natural :=
+               Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
+                            Entry_Header.Decision_Bit_Count);
+            Raw_Decision_Buffer  : constant Bytes_Array
+              (1 .. Decision_Buffer_Size)
+               with Import, Address => Trace_Entry.Decision_Buffer;
+
+            MCDC_Buffer_Size : constant Natural :=
+               Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
+                            Entry_Header.MCDC_Bit_Count);
+            Raw_MCDC_Buffer  : constant Bytes_Array
+              (1 .. MCDC_Buffer_Size)
+               with Import, Address => Trace_Entry.MCDC_Buffer;
+
+            function Last_Bit (Bit_Count : Any_Bit_Count) return Any_Bit_Id
+            is (Any_Bit_Id (Bit_Count) - 1);
+
+         begin
+            Reserve (Statement_Buffer, Entry_Header.Statement_Bit_Count);
+            Reserve (Decision_Buffer, Entry_Header.Decision_Bit_Count);
+            Reserve (MCDC_Buffer, Entry_Header.MCDC_Bit_Count);
+
+            Decode_Buffer
+              (Entry_Header.Bit_Buffer_Encoding,
+               Raw_Statement_Buffer,
+               Statement_Buffer
+                 (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
+               Result);
+            if not Result.Success then
+               goto Cleanup_And_Exit;
+            end if;
+
+            Decode_Buffer
+              (Entry_Header.Bit_Buffer_Encoding,
+               Raw_Decision_Buffer,
+               Decision_Buffer
+                 (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)),
+               Result);
+            if not Result.Success then
+               goto Cleanup_And_Exit;
+            end if;
+
+            Decode_Buffer
+              (Entry_Header.Bit_Buffer_Encoding,
+               Raw_MCDC_Buffer,
+               MCDC_Buffer (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)),
+               Result);
+            if not Result.Success then
+               goto Cleanup_And_Exit;
+            end if;
+
+            On_Trace_Entry
+              (Hash_Type (Entry_Header.Closure_Hash),
+               Unit_Name,
+               Unit_Part_Map (Entry_Header.Unit_Part),
+               Statement_Buffer
+                 (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
+               Decision_Buffer
+                 (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)),
+               MCDC_Buffer
+                 (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)));
+         end;
+      end loop;
+
+   <<Cleanup_And_Exit>>
       Free (Statement_Buffer);
       Free (Decision_Buffer);
       Free (MCDC_Buffer);

@@ -17,10 +17,11 @@ package GNATcov_RTS.Traces is
 
    --  This format expects bytes/Characters to be 8-bit values.
 
-   --  Each trace file starts with a header (see Trace_File_Header) and then
-   --  contains zero or several trace entries, typically one per instrumented
-   --  unit. Each trace entry is padded so that trace entries start and end on
-   --  byte/half word/word/long word boundaries.
+   --  Each trace file starts with a header (see Trace_File_Header), followed
+   --  by a sequence of trace info entries (see Trace_Entry_Header) ending with
+   --  a Info_End entry, and then contains zero or several trace entries,
+   --  typically one per instrumented unit. Each trace entry is padded so that
+   --  trace entries start and end on byte/half word/word/long word boundaries.
 
    type Trace_File_Format_Version is new Unsigned_32;
    Current_Version : Trace_File_Format_Version := 0;
@@ -96,6 +97,41 @@ package GNATcov_RTS.Traces is
    end record;
 
    for Trace_File_Header'Size use 40 * 8;
+
+   -----------------------
+   -- Trace information --
+   -----------------------
+
+   --  Each trace info entry starts with the following header. Then goes the
+   --  bytes for the entry content, NUL-padded according to the trace file
+   --  alignment.
+
+   type Any_Info_Kind is new Unsigned_32;
+
+   Info_End : constant Any_Info_Kind := 0;
+   --  Special trace info entry: indicates the end of a sequence of entries. No
+   --  data is associated to this trace info entry.
+
+   Info_Program_Name : constant Any_Info_Kind := 1;
+   --  Name of the program that produced this trace
+
+   subtype Supported_Info_Kind is
+      Any_Info_Kind range Info_End ..  Info_Program_Name;
+
+   type Trace_Info_Header is record
+      Kind : Any_Info_Kind;
+      --  Kind for this trace info entry
+
+      Length : Unsigned_32;
+      --  Length of the data associated to this entry
+   end record;
+
+   for Trace_Info_Header use record
+      Kind   at 0 range 0 .. 31;
+      Length at 4 range 0 .. 31;
+   end record;
+
+   for Trace_Info_Header'Size use 8 * 8;
 
    ------------------------
    -- Trace entry header --

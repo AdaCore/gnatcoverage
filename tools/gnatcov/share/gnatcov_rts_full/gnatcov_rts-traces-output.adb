@@ -34,6 +34,12 @@ package body GNATcov_RTS.Traces.Output is
    procedure Write_Header (File : File_Type);
    --  Write a trace file header to File
 
+   procedure Write_Info
+     (File : File_Type;
+      Kind : Supported_Info_Kind;
+      Data : String);
+   --  Write a trace info entry to File
+
    procedure Write_Entry (File : File_Type; Buffers : Unit_Coverage_Buffers);
    --  Write a whole trace entry (header, unit name and buffers) for Buffers to
    --  File.
@@ -102,6 +108,24 @@ package body GNATcov_RTS.Traces.Output is
    begin
       Write_Bytes (File, Header'Address, Header'Size / 8);
    end Write_Header;
+
+   ----------------
+   -- Write_Info --
+   ----------------
+
+   procedure Write_Info
+     (File : File_Type;
+      Kind : Supported_Info_Kind;
+      Data : String)
+   is
+      Header : constant Trace_Info_Header :=
+        (Kind   => Kind,
+         Length => Data'Length);
+   begin
+      Write_Bytes (File, Header'Address, Header'Size / 8);
+      Write_Bytes (File, Data'Address, Data'Length);
+      Write_Padding (File, Data'Length);
+   end Write_Info;
 
    -----------------
    -- Write_Entry --
@@ -229,13 +253,16 @@ package body GNATcov_RTS.Traces.Output is
    ----------------------
 
    procedure Write_Trace_File
-     (Buffers  : Unit_Coverage_Buffers_Array;
-      Filename : String := "")
+     (Buffers      : Unit_Coverage_Buffers_Array;
+      Program_Name : String := Ada.Command_Line.Command_Name;
+      Filename     : String := "")
    is
       File : File_Type;
    begin
       Create (File, Name => Trace_Filename (Filename));
       Write_Header (File);
+      Write_Info (File, Info_Program_Name, Program_Name);
+      Write_Info (File, Info_End, "");
       for I in Buffers'Range loop
          Write_Entry (File, Buffers (I).all);
       end loop;

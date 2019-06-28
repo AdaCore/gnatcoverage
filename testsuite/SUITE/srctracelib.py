@@ -134,6 +134,12 @@ trace_file_header_struct = Struct(
     ('padding', 'H'),
 )
 
+trace_info_header_struct = Struct(
+    'trace info header',
+    ('kind', 'I'),
+    ('length', 'I'),
+)
+
 trace_entry_header_struct = Struct(
     'trace entry header',
     ('closure_hash', 'I'),
@@ -170,9 +176,10 @@ class SrcTraceFile(object):
     In-memory representation of a source trace file.
     """
 
-    def __init__(self, alignment, endianity, entries):
+    def __init__(self, alignment, endianity, info_entries, entries):
         self.alignment = alignment
         self.endianity = endianity
+        self.info_entries = info_entries
         self.entries = entries
 
     @classmethod
@@ -198,8 +205,15 @@ class SrcTraceFile(object):
         endianity = header['endianity']
         endianity = {0: 'little-endian', 1: 'big-endian'}[endianity]
 
+        info_entries = []
         entries = []
-        result = cls(alignment, endianity, entries)
+        result = cls(alignment, endianity, info_entries, entries)
+
+        while True:
+            entry = TraceInfoEntry.read(fp, result)
+            if entry.kind == 'end':
+                break
+            info_entries.append(entry)
 
         while True:
             entry = TraceEntry.read(fp, result)
@@ -228,6 +242,40 @@ class SrcTraceFile(object):
             print('  Dc buffer:   {}'.format(format_buffer(e.dc_buffer)))
             print('  MCDC buffer: {}'.format(format_buffer(e.mcdc_buffer)))
             print('')
+
+
+class TraceInfoEntry(object):
+    """
+    In-memory representation of a trace info entry.
+    """
+
+    def __init__(self, kind, data):
+        self.kind = kind
+        self.data = data
+
+    @classmethod
+    def read(cls, fp, trace_file):
+        """
+        Read a trace info entry from the `fp` file. Return a TraceInfoEntry
+        instance.
+        """
+        with fp.label_context('trace info'):
+            header = trace_info_header_struct.read(fp)
+            if not header:
+                return None
+
+            kind = {
+                0: 'end',
+                1: 'program-name',
+            }[header['kind']]
+
+            if kind == 'end' and header['length']:
+                raise ValueError('invalid "end" marker')
+
+            with fp.label_context('data'):
+                data = read_aligned(fp, header['length'], trace_file.alignment)
+
+        return cls(kind, data)
 
 
 class TraceEntry(object):
