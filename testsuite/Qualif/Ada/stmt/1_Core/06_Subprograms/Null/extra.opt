@@ -1,0 +1,1 @@
+src-traces XFAIL no stmt instrumentation on null procedures (S628-008)

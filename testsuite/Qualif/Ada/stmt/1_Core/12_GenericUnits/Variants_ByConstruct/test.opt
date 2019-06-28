@@ -1,1 +1,2 @@
 7.0.2 DEAD testing per-instance analysis of generics, implemented post 7.0.3
+src-traces XFAIL no per-instance instrumentation of generics (S628-011)

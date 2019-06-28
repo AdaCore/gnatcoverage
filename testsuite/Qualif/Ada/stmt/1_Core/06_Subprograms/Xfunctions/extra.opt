@@ -1,0 +1,1 @@
+src-traces XFAIL no stmt instrumentation on expression functions (S610-039)
