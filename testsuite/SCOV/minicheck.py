@@ -64,7 +64,8 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
         "gnatcov coverage". The only mandatory argument that is missing is the
-        annotation format.
+        annotation format. The last N arguments correspond to trace files for
+        the given N mains.
     """
     def abspath(path):
         return os.path.abspath(path) if absolute_paths else path
@@ -79,6 +80,7 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
 
     trace_mode = thistest.options.trace_mode
     xcov_args = ['coverage', '--level', covlevel]
+    trace_files = []
 
     # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
     # instrument" (src trace mode).
@@ -102,9 +104,9 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
             xrun(['--level', covlevel, exepath(m)] + scos_args +
                     extra_common_xcov_args,
                  out='run.log')
+        trace_files = [abspath(tracename_for(m)) for m in mains]
 
         xcov_args.extend(cov_or_instr_args)
-        xcov_args.extend(abspath(tracename_for(m)) for m in mains)
 
     elif trace_mode == 'src':
         # Instrument the project and build the result
@@ -117,8 +119,8 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
 
         # Then execute each main
         for m in mains:
-            xcov_args.append(abspath(srctracename_for(m)))
             Run([exepath(m)])
+        trace_files = [abspath(srctracename_for(m)) for m in mains]
 
         # If we would have passed the project to "gnatcov coverage" in binary
         # trace mode, pass it here too. This is necessary for instance to
@@ -131,7 +133,7 @@ def build_and_run(gprsw, covlevel, mains, extra_xcov_args, xcov_scos_args=None,
     else:
         assert False, 'Unknown trace mode: {}'.format(trace_mode)
 
-    return xcov_args + extra_xcov_args
+    return xcov_args + extra_xcov_args + trace_files
 
 
 def build_run_and_coverage(out='coverage.log', err=None, register_failure=True,
