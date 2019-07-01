@@ -16,6 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Calendar;
+with Ada.Calendar.Conversions;
+
+with Interfaces.C;
+
+with Outputs;
 with Qemu_Traces; use Qemu_Traces;
 
 package body Traces_Files_List is
@@ -77,6 +83,49 @@ package body Traces_Files_List is
 
          when Info_Program_Name =>
             Element.Program_Name := To_Unbounded_String (Data);
+
+         when Info_Exec_Date =>
+            declare
+               use Ada.Calendar.Conversions;
+               use Interfaces;
+               use Interfaces.C;
+               Timestamp : long := 0;
+            begin
+               --  Turn Data (little-endian 64-bit Unix timestamp) into
+               --  Timestamp.
+
+               if Data'Length /= 8 then
+                  Outputs.Fatal_Error
+                    (To_String (Element.Filename)
+                     & "invalid execution date format");
+               end if;
+               for I in reverse Data'Range loop
+                  Timestamp := 2 ** 8 * Timestamp + Character'Pos (Data (I));
+               end loop;
+
+               --  We can now split this timestamp it in UTC and turn this into
+               --  the Trace_Info_Date structure to finally use
+               --  Format_Date_Info for our internal data structures.
+
+               declare
+                  Info_Date           : Trace_Info_Date;
+                  Info_Date_As_String : String (1 .. Trace_Info_Date'Size / 8)
+                     with Import, Address => Info_Date'Address;
+
+                  Year, Month, Day, Hour, Minute, Second : int;
+               begin
+                  To_Struct_Tm (To_Ada_Time (Timestamp), Year, Month, Day,
+                                Hour, Minute, Second);
+                  Info_Date.Year  := Unsigned_16 (1900 + Year);
+                  Info_Date.Month := Unsigned_8 (1 + Month);
+                  Info_Date.Day   := Unsigned_8 (Day);
+                  Info_Date.Hour  := Unsigned_8 (Hour);
+                  Info_Date.Min   := Unsigned_8 (Minute);
+                  Info_Date.Sec   := Unsigned_8 (int'Min (Second, 59));
+                  Element.Time    := To_Unbounded_String
+                    (Format_Date_Info (Info_Date_As_String));
+               end;
+            end;
       end case;
    end Update_From_Source_Trace;
 

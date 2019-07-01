@@ -115,8 +115,11 @@ package GNATcov_RTS.Traces is
    Info_Program_Name : constant Any_Info_Kind := 1;
    --  Name of the program that produced this trace
 
+   Info_Exec_Date : constant Any_Info_Kind := 2;
+   --  Date for the program execution that produced this trace
+
    subtype Supported_Info_Kind is
-      Any_Info_Kind range Info_End ..  Info_Program_Name;
+      Any_Info_Kind range Info_End ..  Info_Exec_Date;
 
    type Trace_Info_Header is record
       Kind : Any_Info_Kind;

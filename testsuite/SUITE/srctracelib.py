@@ -267,6 +267,7 @@ class TraceInfoEntry(object):
             kind = {
                 0: 'end',
                 1: 'program-name',
+                2: 'exec-date',
             }[header['kind']]
 
             if kind == 'end' and header['length']:

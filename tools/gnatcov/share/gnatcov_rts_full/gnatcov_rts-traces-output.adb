@@ -1,11 +1,13 @@
 --  This unit needs to be compilable with Ada 2005 compilers
 
+with Ada.Calendar.Conversions;
 with Ada.Command_Line;
 with Ada.Environment_Variables;
 with Ada.Direct_IO;
 with Ada.Directories;
 
 with Interfaces;
+with Interfaces.C;
 
 with System;
 
@@ -21,6 +23,12 @@ package body GNATcov_RTS.Traces.Output is
 
    function Trace_Filename (Filename : String) return String;
    --  Return the name of trace file to write to in Write_Trace_File
+
+   subtype Serialized_Timestamp is String (1 .. 8);
+   --  Little-endian 64-bit unsigned integer
+
+   function Format_Date (Date : Ada.Calendar.Time) return Serialized_Timestamp;
+   --  Return Date represented as a little-endian 64-bit Unix timestamp
 
    procedure Write_Bytes
      (File : File_Type; Bytes : System.Address; Count : Natural);
@@ -248,6 +256,24 @@ package body GNATcov_RTS.Traces.Output is
       end if;
    end Trace_Filename;
 
+   -----------------
+   -- Format_Date --
+   -----------------
+
+   function Format_Date (Date : Ada.Calendar.Time) return Serialized_Timestamp
+   is
+      use Ada.Calendar;
+      use Interfaces.C;
+      Timestamp : long := Ada.Calendar.Conversions.To_Unix_Time (Date);
+      Result    : Serialized_Timestamp;
+   begin
+      for I in Result'Range loop
+         Result (I) := Character'Val (Timestamp mod 2 ** 8);
+         Timestamp := Timestamp / 2 ** 8;
+      end loop;
+      return Result;
+   end Format_Date;
+
    ----------------------
    -- Write_Trace_File --
    ----------------------
@@ -255,13 +281,15 @@ package body GNATcov_RTS.Traces.Output is
    procedure Write_Trace_File
      (Buffers      : Unit_Coverage_Buffers_Array;
       Program_Name : String := Ada.Command_Line.Command_Name;
-      Filename     : String := "")
+      Filename     : String := "";
+      Exec_Date    : Ada.Calendar.Time := Ada.Calendar.Clock)
    is
       File : File_Type;
    begin
       Create (File, Name => Trace_Filename (Filename));
       Write_Header (File);
       Write_Info (File, Info_Program_Name, Program_Name);
+      Write_Info (File, Info_Exec_Date, Format_Date (Exec_Date));
       Write_Info (File, Info_End, "");
       for I in Buffers'Range loop
          Write_Entry (File, Buffers (I).all);

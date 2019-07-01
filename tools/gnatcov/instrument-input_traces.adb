@@ -742,7 +742,8 @@ package body Instrument.Input_Traces is
          Kind_Name : constant String :=
            (case Kind is
             when Info_End          => raise Program_Error,
-            when Info_Program_Name => "Program_Name");
+            when Info_Program_Name => "Program_Name",
+            when Info_Exec_Date    => "Exec_Date");
       begin
          Put_Line ("Info " & Kind_Name & ": " & Data);
          Last_Is_Info := True;
