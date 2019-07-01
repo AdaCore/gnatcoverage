@@ -229,7 +229,11 @@ class ReportChecker:
             pattern="Trace files:", pre=covLevel)
 
         trFile = Piece (
-            pattern="\.trace", pre=trHeader, nexpected=ntraces)
+            pattern=(r'\.trace'
+                     if thistest.options.trace_mode == 'bin' else
+                     r'\.srctrace'),
+            pre=trHeader,
+            nexpected=ntraces)
         trPgm = Piece (
             pattern="program *:", pre=None, nexpected=ntraces)
         trDate = Piece (
