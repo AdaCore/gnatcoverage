@@ -27,7 +27,6 @@ with Outputs;      use Outputs;
 with Strings;      use Strings;
 with Traces_Disa;  use Traces_Disa;
 with Traces_Files; use Traces_Files;
-with Qemu_Traces;
 
 package body Annotations.Xml is
 
@@ -82,7 +81,9 @@ package body Annotations.Xml is
    Trace_File_Name : constant String := "trace.xml";
 
    function A (Name : String; Value : Character) return String;
-
+   function A
+     (Name  : String;
+      Value : Ada.Strings.Unbounded.Unbounded_String) return String;
    function A (Name : String; Value : String) return String;
    --  Return a string representing an xml attribute whose name
    --  and value are given in parameter. id est
@@ -219,6 +220,14 @@ package body Annotations.Xml is
    function A (Name : String; Value : String) return String is
    begin
       return " " & Name & "=" & '"' & To_Xml_String (Value) & '"';
+   end A;
+
+   function A
+     (Name  : String;
+      Value : Ada.Strings.Unbounded.Unbounded_String) return String
+   is
+   begin
+      return A (Name, Ada.Strings.Unbounded.To_String (Value));
    end A;
 
    function A (Name : String; Value : Character) return String is
@@ -579,7 +588,6 @@ package body Annotations.Xml is
    ----------------------
 
    procedure Print_Trace_Info (Pp : in out Xml_Pretty_Printer'Class) is
-      use Qemu_Traces;
       use Traces_Files_Lists;
 
       procedure Process_One_Trace (Position : Cursor);
@@ -596,21 +604,11 @@ package body Annotations.Xml is
          Attributes : Unbounded_String;
       begin
          Append (Attributes,
-                 A ("filename", TF.Filename.all)
-                 & A ("kind", Image (TF.Kind)));
-
-         case TF.Kind is
-            when Binary_Trace_File =>
-               Append
-                 (Attributes,
-                  A ("program", Get_Info (TF.Trace, Exec_File_Name))
-                  & A ("date",
-                       Format_Date_Info (Get_Info (TF.Trace, Date_Time)))
-                  & A ("tag", Get_Info (TF.Trace, User_Data)));
-            when Source_Trace_File =>
-               null;
-         end case;
-
+                 A ("filename", TF.Filename)
+                 & A ("kind", Image (TF.Kind))
+                 & A ("program", TF.Program_Name)
+                 & A ("date", TF.Time)
+                 & A ("tag", TF.User_Data));
          Pp.T ("trace", To_String (Attributes), Dest_Trace_Info);
       end Process_One_Trace;
 

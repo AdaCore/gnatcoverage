@@ -610,13 +610,13 @@ package body Annotations is
       use Ada.Calendar.Formatting;
       use Ada.Strings.Unbounded;
    begin
-      if TF.Context = null then
+      if Length (TF.Context) = 0 then
          return "";
 
       else
          declare
             Orig_Context : constant Coverage.Context :=
-              Coverage.From_String (TF.Context.all);
+              Coverage.From_String (To_String (TF.Context));
          begin
             return To_String (Orig_Context.Command)
               & " @ " & Image (Orig_Context.Timestamp,

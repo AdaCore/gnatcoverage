@@ -1722,6 +1722,8 @@ begin
          --  Read and process traces
 
          declare
+            use Ada.Strings.Unbounded;
+
             procedure Process_Exec (Exec_Name : String);
             --  Load a consolidated executable
 
@@ -1878,10 +1880,8 @@ begin
                --  Register the trace file, so it is included in coverage
                --  reports.
 
-               Trace_File := new Trace_File_Element'
-                 (Kind            => Source_Trace_File,
-                  Context         => null,
-                  Filename        => new String'(Trace_File_Name));
+               Trace_File := Create_Trace_File_Element
+                 (Trace_File_Name, Source_Trace_File);
                Traces_Files_List.Files.Append (Trace_File);
 
                --  We can now read it and import its data
@@ -1905,12 +1905,8 @@ begin
                Load_All_ALIs (Check_SCOs => False);
 
                if Trace_File_Name /= "" then
-                  Trace_File := new Trace_File_Element'
-                    (Kind     => Binary_Trace_File,
-                     Context  => null,
-                     Filename => new String'(Trace_File_Name),
-                     others   => <>);
-
+                  Trace_File := Create_Trace_File_Element
+                    (Trace_File_Name, Binary_Trace_File);
                   Traces_Files_List.Files.Append (Trace_File);
                else
                   pragma Assert (Exec_Name_Override /= "");
@@ -1935,6 +1931,10 @@ begin
             is
                --  TODO??? Handle shared objects
 
+               Trace_Filename : constant String :=
+                 (if Trace_File = null
+                  then ""
+                  else To_String (Trace_File.Filename));
                Exe_File : Exe_File_Acc;
             begin
                Init_Base (Base);
@@ -1943,21 +1943,19 @@ begin
                   Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
                else
                   declare
-                     Filename : String renames Trace_File.Filename.all;
                      Result   : Read_Result;
+                     TF       : Trace_File_Type;
                   begin
-                     Read_Trace_File
-                       (Filename, Trace_File.Trace, Result, Base);
+                     Read_Trace_File (Trace_Filename, TF, Result, Base);
                      if not Result.Success then
-                        Report_Bad_Trace (Filename, Result);
+                        Report_Bad_Trace (Trace_Filename, Result);
                         return;
                      end if;
+                     Update_From_Binary_Trace (Trace_File.all, TF);
+                     Exe_File := Open_Exec_For_Trace
+                       (Trace_Filename, TF, Exec_Name_Override);
+                     Free (TF);
                   end;
-
-                  Exe_File := Open_Exec_For_Trace
-                    (Trace_File.Filename.all,
-                     Trace_File.Trace,
-                     Exec_Name_Override);
                end if;
 
                --  If there is no routine in list, get routine names from the
@@ -1971,8 +1969,7 @@ begin
                Build_Debug_Compile_Units (Exe_File.all);
 
                if Verbose and then Trace_File /= null then
-                  Put_Line
-                    ("Processing traces from " & Trace_File.Filename.all);
+                  Put_Line ("Processing traces from " & Trace_Filename);
                end if;
 
                Load_Code_And_Traces (Exe_File, Base'Access);
@@ -1988,6 +1985,11 @@ begin
             is
                Exe_File : Exe_File_Acc;
                --  Executable this trace file refers to
+
+               Trace_Filename : constant String :=
+                 (if Trace_File = null
+                  then ""
+                  else To_String (Trace_File.Filename));
 
                Current_Exec            : Exe_File_Acc;
                Current_Sym             : Address_Info_Acc;
@@ -2028,9 +2030,7 @@ begin
                      return;
                   end if;
                   Exe_File := Open_Exec_For_Trace
-                                (Trace_File.Filename.all,
-                                 TF,
-                                 Exec_Name_Override);
+                    (Trace_Filename, TF, Exec_Name_Override);
                   Decision_Map.Analyze (Exe_File);
                end Process_Info_Entries;
 
@@ -2050,9 +2050,7 @@ begin
                   Result : Exe_File_Acc;
                begin
                   Open_Exec_For_Trace
-                    (Filename, 0,
-                     Trace_File.Filename.all, Signature,
-                     Result);
+                    (Filename, 0, Trace_Filename, Signature, Result);
                   Decision_Map.Analyze (Result);
                   return Result;
                end Load_Shared_Object;
@@ -2116,14 +2114,16 @@ begin
                   Decision_Map.Analyze (Exe_File);
                else
                   declare
-                     Filename : String renames Trace_File.Filename.all;
-                     Result   : Read_Result;
+                     TF     : Trace_File_Type;
+                     Result : Read_Result;
                   begin
-                     Read_Trace_File (Filename, Trace_File.Trace, Result);
+                     Read_Trace_File (Trace_Filename, TF, Result);
                      if not Result.Success then
-                        Report_Bad_Trace (Filename, Result);
+                        Report_Bad_Trace (Trace_Filename, Result);
                         return;
                      end if;
+                     Update_From_Binary_Trace (Trace_File.all, TF);
+                     Free (TF);
                   end;
                end if;
             end Process_Trace_For_Src_Coverage;

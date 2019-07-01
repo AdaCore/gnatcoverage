@@ -21,7 +21,6 @@ with Interfaces;  use Interfaces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Binary_Files; use Binary_Files;
-with Checkpoints;
 with Qemu_Traces;  use Qemu_Traces;
 with Traces_Dbase; use Traces_Dbase;
 with Traces;
@@ -235,16 +234,6 @@ package Traces_Files is
 
    procedure Dump_Raw_Trace_File (Filename : String);
    --  Raw dump of a trace file
-
-   procedure Checkpoint_Save
-     (CSS        : access Checkpoints.Checkpoint_Save_State;
-      Trace_File : Trace_File_Type);
-   --  Save Trace_File's infos to S
-
-   procedure Checkpoint_Load
-     (CLS        : access Checkpoints.Checkpoint_Load_State;
-      Trace_File : in out Trace_File_Type);
-   --  Load Trace_File's infos from S
 
 private
    type Trace_File_Info (Raw_Length : Natural);

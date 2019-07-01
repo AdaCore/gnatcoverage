@@ -16,10 +16,45 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Streams;
 with Qemu_Traces; use Qemu_Traces;
 
 package body Traces_Files_List is
+
+   use Ada.Strings.Unbounded;
+
+   -------------------------------
+   -- Create_Trace_File_Element --
+   -------------------------------
+
+   function Create_Trace_File_Element
+     (Filename : String;
+      Kind     : Trace_File_Kind) return Trace_File_Element_Acc
+   is
+   begin
+      return Result : constant Trace_File_Element_Acc := new Trace_File_Element
+      do
+         Result.Filename := To_Unbounded_String (Filename);
+         Result.Kind := Kind;
+         Result.Context := Null_Unbounded_String;
+      end return;
+   end Create_Trace_File_Element;
+
+   ------------------------------
+   -- Update_From_Binary_Trace --
+   ------------------------------
+
+   procedure Update_From_Binary_Trace
+     (Element : in out Trace_File_Element;
+      File    : Trace_File_Type)
+   is
+   begin
+      Element.Program_Name := To_Unbounded_String
+        (Get_Info (File, Exec_File_Name));
+      Element.Time := To_Unbounded_String
+        (Format_Date_Info (Get_Info (File, Date_Time)));
+      Element.User_Data := To_Unbounded_String
+        (Get_Info (File, User_Data));
+   end Update_From_Binary_Trace;
 
    ---------------------
    -- Checkpoint_Save --
@@ -29,46 +64,53 @@ package body Traces_Files_List is
      (CSS     : access Checkpoints.Checkpoint_Save_State;
       Context : access Coverage.Context)
    is
-      Context_Info          : constant String :=
-         Coverage.To_String (Context.all);
-      Context_As_Trace_Info : constant Boolean :=
-         Checkpoints.Version_Less (CSS, Than => 2);
-      --  Before version 2, the context was stored as a trace info rather than
-      --  as a stand-alone field.
+      This_Context : constant Unbounded_String := To_Unbounded_String
+        (Coverage.To_String (Context.all));
    begin
       for TF of Files loop
-         String'Output (CSS, TF.Filename.all);
-
-         --  Before version 2, binary traces were the only traces
-
-         if not Checkpoints.Version_Less (CSS, Than => 2) then
-            Trace_File_Kind'Write (CSS, TF.Kind);
-         end if;
-
-         --  If this trace file does not come from a checkpoint, then this
-         --  context is the original one where it has actually been processed:
-         --  record in in its infos.
+         Unbounded_String'Output (CSS, TF.Filename);
 
          declare
-            Context : constant String :=
-              (if TF.Context = null
-               then Context_Info
-               else TF.Context.all);
+            --  If this trace file does not come from a checkpoint (TF.Context
+            --  is empty), then this context is the original one where it has
+            --  actually been processed: record in in its infos.
+
+            TF_Context : constant Unbounded_String :=
+               (if Length (TF.Context) = 0
+                then This_Context
+                else TF.Context);
          begin
-            if Context_As_Trace_Info then
-               Append_Info (TF.Trace, Coverage_Context, Context);
+            if Checkpoints.Version_Less (CSS, Than => 2) then
+
+               --  Before version 2, there were only binary traces and we
+               --  streamed metadata as trace infos.
+
+               pragma Assert (TF.Kind = Binary_Trace_File);
+
+               Info_Kind_Type'Write (CSS, Coverage_Context);
+               Unbounded_String'Write (CSS, TF_Context);
+
+               Info_Kind_Type'Write (CSS, Exec_File_Name);
+               Unbounded_String'Write (CSS, TF.Program_Name);
+
+               Info_Kind_Type'Write (CSS, Date_Time);
+               Unbounded_String'Write
+                 (CSS,
+                  To_Unbounded_String (Parse_Date_Info (To_String (TF.Time))));
+
+               Info_Kind_Type'Write (CSS, User_Data);
+               Unbounded_String'Write (CSS, TF.User_Data);
+
+               Info_Kind_Type'Write (CSS, Info_End);
+
             else
-               String'Output (CSS, Context);
+               Trace_File_Kind'Write  (CSS, TF.Kind);
+               Unbounded_String'Write (CSS, TF_Context);
+               Unbounded_String'Write (CSS, TF.Program_Name);
+               Unbounded_String'Write (CSS, TF.Time);
+               Unbounded_String'Write (CSS, TF.User_Data);
             end if;
          end;
-
-         case TF.Kind is
-            when Binary_Trace_File =>
-               Checkpoint_Save (CSS, TF.Trace);
-
-            when Source_Trace_File =>
-               null;
-         end case;
       end loop;
 
       --  Mark end of list with empty string
@@ -80,55 +122,70 @@ package body Traces_Files_List is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load
-     (CLS : access Checkpoints.Checkpoint_Load_State)
+   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State)
    is
-      S : constant access Ada.Streams.Root_Stream_Type'Class := CLS.all'Access;
-
-      Context_As_Trace_Info : constant Boolean :=
-         Checkpoints.Version_Less (S, Than => 2);
-      --  Before version 2, the context was stored as a trace info rather than
-      --  as a stand-alone field.
    begin
       loop
          declare
-            Name    : constant String := String'Input (CLS);
-            Kind    : Trace_File_Kind;
+            Name    : constant Unbounded_String :=
+               Unbounded_String'Input (CLS);
             CP_File : Trace_File_Element_Acc;
          begin
-            exit when Name = "";
-
-            --  Before version 2 of the checkpoints format, the only trace
-            --  files that existed were binary ones.
-
-            Kind := (if Checkpoints.Version_Less (S, Than => 2)
-                     then Binary_Trace_File
-                     else Trace_File_Kind'Input (CLS));
-
-            CP_File := new Trace_File_Element (Kind);
-            CP_File.Filename := new String'(Name);
-
-            --  Before version 2, the context was stored as a trace info rather
-            --  than as a stand-alone field.
-
-            if not Context_As_Trace_Info then
-               CP_File.Context := new String'(String'Input (CLS));
-            end if;
-
-            case Kind is
-               when Binary_Trace_File =>
-                  Checkpoint_Load (CLS, CP_File.Trace);
-
-               when Source_Trace_File =>
-                  null;
-            end case;
-
-            if Context_As_Trace_Info then
-               CP_File.Context := new String'
-                 (Get_Info (CP_File.Trace, Coverage_Context));
-            end if;
-
+            exit when Length (Name) = 0;
+            CP_File := new Trace_File_Element;
+            CP_File.Filename := Name;
             Files.Append (CP_File);
+
+            if Checkpoints.Version_Less (CLS, Than => 2) then
+
+               --  Before version 2, there were only binary traces and we
+               --  streamed metadata as trace infos.
+
+               CP_File.Kind := Binary_Trace_File;
+               CP_File.Context := Null_Unbounded_String;
+               CP_File.Program_Name := Null_Unbounded_String;
+               CP_File.Time := Null_Unbounded_String;
+               CP_File.User_Data := Null_Unbounded_String;
+
+               declare
+                  Kind : Info_Kind_Type;
+                  Data : Unbounded_String;
+               begin
+                  loop
+                     Info_Kind_Type'Read (CLS, Kind);
+                     exit when Kind = Info_End;
+
+                     Unbounded_String'Read (CLS, Data);
+                     case Kind is
+                        when Exec_File_Name =>
+                           CP_File.Program_Name := Data;
+                        when Date_Time =>
+                           CP_File.Time := To_Unbounded_String
+                             (Format_Date_Info (To_String (Data)));
+                        when User_Data =>
+                           CP_File.User_Data := Data;
+                        when Coverage_Context =>
+                           CP_File.Context := Data;
+                        when others =>
+                           null;
+                     end case;
+                  end loop;
+               end;
+
+               --  All traces in checkpoints are supposed to have a coverage
+               --  context.
+
+               if Length (CP_File.Context) = 0 then
+                  raise Program_Error;
+               end if;
+
+            else
+               Trace_File_Kind'Read (CLS, CP_File.Kind);
+               Unbounded_String'Read (CLS, CP_File.Context);
+               Unbounded_String'Read (CLS, CP_File.Program_Name);
+               Unbounded_String'Read (CLS, CP_File.Time);
+               Unbounded_String'Read (CLS, CP_File.User_Data);
+            end if;
          end;
       end loop;
    end Checkpoint_Load;

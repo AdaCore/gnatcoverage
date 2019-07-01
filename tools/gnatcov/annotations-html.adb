@@ -23,7 +23,6 @@ with Ada.Text_IO;           use Ada.Text_IO;
 with Hex_Images;   use Hex_Images;
 with Traces_Disa;  use Traces_Disa;
 with Traces_Files; use Traces_Files;
-with Qemu_Traces;
 with Coverage;     use Coverage;
 with Outputs;      use Outputs;
 
@@ -419,7 +418,6 @@ package body Annotations.Html is
    ------------------------
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer) is
-      use Qemu_Traces;
       use Traces_Files_Lists;
 
       procedure Pi (S : String);
@@ -483,23 +481,11 @@ package body Annotations.Html is
       while Has_Element (Cur) loop
          El := Element (Cur);
          Pi ("    <tr>");
-         Pi ("      <td>" & El.Filename.all & "</td>");
+         Pi ("      <td>" & To_String (El.Filename) & "</td>");
          Pi ("      <td>" & Image (El.Kind) & "</td>");
-
-         case El.Kind is
-            when Binary_Trace_File =>
-               Pi ("      <td>" & Get_Info (El.Trace, Exec_File_Name)
-                   & "</td>");
-               Pi ("      <td>"
-                   & Format_Date_Info (Get_Info (El.Trace, Date_Time))
-                   & "</td>");
-               Pi ("      <td>" & Get_Info (El.Trace, User_Data) & "</td>");
-
-            when Source_Trace_File =>
-               Pi ("      <td></td>");
-               Pi ("      <td></td>");
-               Pi ("      <td></td>");
-         end case;
+         Pi ("      <td>" & To_String (El.Program_Name) & "</td>");
+         Pi ("      <td>" & To_String (El.Time) & "</td>");
+         Pi ("      <td>" & To_String (El.User_Data) & "</td>");
          Pi ("    </tr>");
          Next (Cur);
       end loop;
