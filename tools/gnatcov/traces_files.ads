@@ -194,6 +194,10 @@ package Traces_Files is
    --  passed as Raw_String must have the same memory layout as a
    --  Trace_Info_Date record.
 
+   function Parse_Date_Info (Formatted : String) return String;
+   --  Decode the human-readable date string that Format_Date_Info returns into
+   --  a Trace_Info_Data record memory dump.
+
    procedure Open_Output_Flat_Trace_File
      (Filename   : String;
       Desc       : out Trace_File_Descriptor;

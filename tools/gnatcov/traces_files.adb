@@ -1514,6 +1514,32 @@ package body Traces_Files is
       return Res;
    end Format_Date_Info;
 
+   ---------------------
+   -- Parse_Date_Info --
+   ---------------------
+
+   function Parse_Date_Info (Formatted : String) return String is
+      Result : String (1 .. Trace_Info_Date'Size / 8);
+      Struct : Trace_Info_Date with Import, Address => Result'Address;
+      O      : constant Positive := Formatted'First;
+      Year   : String renames Formatted (O + 0  .. O + 3);
+      Month  : String renames Formatted (O + 5  .. O + 6);
+      Day    : String renames Formatted (O + 8  .. O + 9);
+      Hour   : String renames Formatted (O + 11 .. O + 12);
+      Minute : String renames Formatted (O + 14 .. O + 15);
+      Second : String renames Formatted (O + 17 .. O + 18);
+
+   begin
+      Struct.Year  := Unsigned_16'Value (Year);
+      Struct.Month := Unsigned_8'Value (Month);
+      Struct.Day   := Unsigned_8'Value (Day);
+      Struct.Hour  := Unsigned_8'Value (Hour);
+      Struct.Min   := Unsigned_8'Value (Minute);
+      Struct.Sec   := Unsigned_8'Value (Second);
+      Struct.Pad   := 0;
+      return Result;
+   end Parse_Date_Info;
+
    -------------------
    -- Get_Signature --
    -------------------
