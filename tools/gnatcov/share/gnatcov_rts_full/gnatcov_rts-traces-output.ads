@@ -15,7 +15,8 @@ package GNATcov_RTS.Traces.Output is
      (Buffers      : Unit_Coverage_Buffers_Array;
       Program_Name : String := Ada.Command_Line.Command_Name;
       Filename     : String := "";
-      Exec_Date    : Ada.Calendar.Time := Ada.Calendar.Clock);
+      Exec_Date    : Ada.Calendar.Time := Ada.Calendar.Clock;
+      User_Data    : String := "");
    --  Write a trace file in Filename to contain the data in Buffers.
    --
    --  If Filename is not provided, use the name in the GNATCOV_TRACE_FILE
@@ -23,7 +24,7 @@ package GNATcov_RTS.Traces.Output is
    --  empty, fallback to "PROGRAM.srctrace", where PROGRAM is the name of the
    --  running program.
    --
-   --  Program_Name and Exec_Date are used to fill the corresponding metadata
-   --  in the written trace file.
+   --  Program_Name, Exec_Date, and User_Data are used to fill the
+   --  corresponding metadata in the written trace file.
 
 end GNATcov_RTS.Traces.Output;

@@ -118,8 +118,12 @@ package GNATcov_RTS.Traces is
    Info_Exec_Date : constant Any_Info_Kind := 2;
    --  Date for the program execution that produced this trace
 
+   Info_User_Data : constant Any_Info_Kind := 3;
+   --  Arbitrary storage for user data. This is exposed to users as the trace
+   --  "tag".
+
    subtype Supported_Info_Kind is
-      Any_Info_Kind range Info_End ..  Info_Exec_Date;
+      Any_Info_Kind range Info_End ..  Info_User_Data;
 
    type Trace_Info_Header is record
       Kind : Any_Info_Kind;

@@ -282,7 +282,8 @@ package body GNATcov_RTS.Traces.Output is
      (Buffers      : Unit_Coverage_Buffers_Array;
       Program_Name : String := Ada.Command_Line.Command_Name;
       Filename     : String := "";
-      Exec_Date    : Ada.Calendar.Time := Ada.Calendar.Clock)
+      Exec_Date    : Ada.Calendar.Time := Ada.Calendar.Clock;
+      User_Data    : String := "")
    is
       File : File_Type;
    begin
@@ -290,6 +291,7 @@ package body GNATcov_RTS.Traces.Output is
       Write_Header (File);
       Write_Info (File, Info_Program_Name, Program_Name);
       Write_Info (File, Info_Exec_Date, Format_Date (Exec_Date));
+      Write_Info (File, Info_User_Data, User_Data);
       Write_Info (File, Info_End, "");
       for I in Buffers'Range loop
          Write_Entry (File, Buffers (I).all);

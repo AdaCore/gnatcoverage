@@ -126,6 +126,9 @@ package body Traces_Files_List is
                     (Format_Date_Info (Info_Date_As_String));
                end;
             end;
+
+         when Info_User_Data =>
+            Element.User_Data := To_Unbounded_String (Data);
       end case;
    end Update_From_Source_Trace;
 
