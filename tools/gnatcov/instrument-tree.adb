@@ -1436,7 +1436,14 @@ package body Instrument.Tree is
                         end if;
 
                         Process_Decisions_Defer (Prag_Arg_Expr (Arg), 'P');
-                        Typ := 'p';
+
+                        --  Note: conservatively assume that the check policy
+                        --  for all pragmas is enabled. In the compiler, we
+                        --  initially set the type to 'p' (disabled pragma),
+                        --  and then switch it to 'P' if/when the policy is
+                        --  determined to be enabled later on.
+
+                        Typ := 'P';
 
                         --  Pre/postconditions can be inherited so SCO should
                         --  never be deactivated???
@@ -1453,7 +1460,12 @@ package body Instrument.Tree is
                         end if;
 
                         Process_Decisions_Defer (Prag_Arg_Expr (Arg), 'X');
-                        Typ := 'p';
+
+                        --  Note: conservatively assume that the check policy
+                        --  for all pragmas is enabled (see comment above for
+                        --  Assert case).
+
+                        Typ := 'P';
 
                      when Name_Annotate =>
                         --  If this is a coverage exemption, record it
