@@ -70,6 +70,8 @@ with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
 with Version;
 
+with GNATcov_RTS.Traces;
+
 procedure GNATcov is
 
    Arg_Parser   : Parser_Type := Command_Line.Create;
@@ -1870,12 +1872,29 @@ begin
             --------------------------
 
             procedure Process_Source_Trace (Trace_File_Name : String) is
+               procedure On_Trace_Info
+                 (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+                  Data : String);
+               --  Callback for Read_Source_Trace_File
+
                procedure Read_Source_Trace_File is new
                   Instrument.Input_Traces.Generic_Read_Source_Trace_File
-                    (Compute_Source_Coverage);
+                    (On_Trace_Info  => On_Trace_Info,
+                     On_Trace_Entry => Compute_Source_Coverage);
 
                Trace_File : Trace_File_Element_Acc;
                Result     : Read_Result;
+
+               procedure On_Trace_Info
+                 (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+                  Data : String)
+               is
+               begin
+                  Update_From_Source_Trace (Trace_File.all, Kind, Data);
+               end On_Trace_Info;
+
+            --  Start of processing for Process_Source_Trace
+
             begin
                --  Register the trace file, so it is included in coverage
                --  reports.

@@ -23,6 +23,7 @@ with Interfaces;
 with GNATCOLL.Projects;
 
 with Traces_Files;
+with GNATcov_RTS.Traces;
 
 package Instrument.Input_Traces is
 
@@ -32,6 +33,9 @@ package Instrument.Input_Traces is
    --  Content of a coverage buffer
 
    generic
+      with procedure On_Trace_Info
+        (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+         Data : String) is <>;
       with procedure On_Trace_Entry
         (Closure_Hash    : Hash_Type;
          Unit_Name       : String;
@@ -42,8 +46,10 @@ package Instrument.Input_Traces is
    procedure Generic_Read_Source_Trace_File
      (Filename : String;
       Result   : out Traces_Files.Read_Result);
-   --  Read the given Filename source trace file and call On_Trace_Entry on
-   --  each decoded trace entry.
+   --  Read the given Filename source trace file and call:
+   --
+   --    * On_Trace_Info on each decoded trace info entry;
+   --    * On_Trace_Entry on each decoded trace entry.
    --
    --  If successful, Result.Success is set to True. Otherwise, Result is set
    --  to the corresponding error information.

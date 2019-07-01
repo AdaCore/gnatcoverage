@@ -607,8 +607,9 @@ package body Instrument.Input_Traces is
                goto Cleanup_And_Exit;
             end if;
 
-            --  ??? Forward this trace info the caller
-
+            if Kind /= Info_End then
+               On_Trace_Info (Kind, Data.all);
+            end if;
             Free (Data);
 
             if Kind = Info_End then
@@ -711,6 +712,9 @@ package body Instrument.Input_Traces is
 
    procedure Dump_Source_Trace_File (Filename : String) is
 
+      procedure On_Trace_Info
+        (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+         Data : String);
       procedure On_Trace_Entry
         (Closure_Hash     : Hash_Type;
          Unit_Name        : String;
@@ -718,9 +722,31 @@ package body Instrument.Input_Traces is
          Statement_Buffer : Coverage_Buffer;
          Decision_Buffer  : Coverage_Buffer;
          MCDC_Buffer      : Coverage_Buffer);
-      --  Callback for Read_Source_Trace_File
+      --  Callbacks for Read_Source_Trace_File
+
+      Last_Is_Info : Boolean := False;
+      --  Whether the last line printed describes a trace info. Used to emit an
+      --  empty line between trace infos and entries.
 
       procedure Dump_Buffer (Label : String; Buffer : Coverage_Buffer);
+
+      -------------------
+      -- On_Trace_Info --
+      -------------------
+
+      procedure On_Trace_Info
+        (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+         Data : String)
+      is
+         use Ada.Text_IO;
+         Kind_Name : constant String :=
+           (case Kind is
+            when Info_End          => raise Program_Error,
+            when Info_Program_Name => "Program_Name");
+      begin
+         Put_Line ("Info " & Kind_Name & ": " & Data);
+         Last_Is_Info := True;
+      end On_Trace_Info;
 
       --------------------
       -- On_Trace_Entry --
@@ -736,6 +762,11 @@ package body Instrument.Input_Traces is
       is
          use Ada.Text_IO;
       begin
+         if Last_Is_Info then
+            New_Line;
+            Last_Is_Info := False;
+         end if;
+
          Put_Line
            ("Unit " & Unit_Name & " (" & Unit_Part'Image & ", hash="
             & Hex_Images.Hex_Image (Interfaces.Unsigned_32 (Closure_Hash))

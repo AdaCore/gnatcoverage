@@ -56,6 +56,30 @@ package body Traces_Files_List is
         (Get_Info (File, User_Data));
    end Update_From_Binary_Trace;
 
+   ------------------------------
+   -- Update_From_Source_Trace --
+   ------------------------------
+
+   procedure Update_From_Source_Trace
+     (Element : in out Trace_File_Element;
+      Kind    : GNATcov_RTS.Traces.Supported_Info_Kind;
+      Data    : String)
+   is
+      use GNATcov_RTS.Traces;
+   begin
+      case Kind is
+         when GNATcov_RTS.Traces.Info_End =>
+            --  As this special kind is used only to encode the end of a trace
+            --  entry sequence in the file format, we don't expect it to show
+            --  up at execution.
+
+            raise Program_Error;
+
+         when Info_Program_Name =>
+            Element.Program_Name := To_Unbounded_String (Data);
+      end case;
+   end Update_From_Source_Trace;
+
    ---------------------
    -- Checkpoint_Save --
    ---------------------

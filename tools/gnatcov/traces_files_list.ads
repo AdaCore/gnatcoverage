@@ -23,6 +23,8 @@ with Checkpoints;
 with Coverage;
 with Traces_Files; use Traces_Files;
 
+with GNATcov_RTS.Traces;
+
 --  The list of all processed trace files
 
 package Traces_Files_List is
@@ -62,6 +64,13 @@ package Traces_Files_List is
      (Element : in out Trace_File_Element;
       File    : Trace_File_Type);
    --  Initialize Element fields using information read from File
+
+   procedure Update_From_Source_Trace
+     (Element : in out Trace_File_Element;
+      Kind    : GNATcov_RTS.Traces.Supported_Info_Kind;
+      Data    : String);
+   --  Initialize Element fields using a trace info entry from a source trace
+   --  file.
 
    package Traces_Files_Lists is
       new Ada.Containers.Doubly_Linked_Lists (Trace_File_Element_Acc);
