@@ -238,6 +238,7 @@ package SC_Obligations is
       Extended_Return_Statement,
       Select_Statement,
       While_Loop_Statement,
+      Degenerate_Subprogram_Statement,
       Other_Statement);
 
    subtype Statement_Kind is Any_Statement_Kind

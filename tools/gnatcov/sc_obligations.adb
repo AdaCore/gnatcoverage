@@ -3089,6 +3089,7 @@ package body SC_Obligations is
          when 'R'    => return Extended_Return_Statement;
          when 'S'    => return Select_Statement;
          when 'W'    => return While_Loop_Statement;
+         when 'X'    => return Degenerate_Subprogram_Statement;
          when ' '    => return Other_Statement;
          when others => raise Constraint_Error;
       end case;

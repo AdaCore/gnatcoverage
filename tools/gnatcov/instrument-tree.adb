@@ -858,7 +858,7 @@ package body Instrument.Tree is
             --  chain.
 
             Current_Dominant := No_Dominant;
-            Extend_Statement_Sequence (N, Typ => ' ');
+            Extend_Statement_Sequence (N, Typ => 'X');
 
             --  For the case of an expression-function, collect decisions
             --  embedded in the expression now.
