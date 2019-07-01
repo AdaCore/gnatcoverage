@@ -1428,12 +1428,10 @@ begin
             ---------------------
 
             procedure Dump_Trace_Base (Trace_File_Name : String) is
-               Trace_File : constant Trace_File_Element_Acc :=
-                 new Trace_File_Element;
+               Trace_File : Trace_File_Type;
                Result     : Read_Result;
             begin
-               Read_Trace_File
-                 (Trace_File_Name, Trace_File.Trace, Result, Base);
+               Read_Trace_File (Trace_File_Name, Trace_File, Result, Base);
                Success_Or_Fatal_Error (Trace_File_Name, Result);
                Dump_Traces (Base);
             end Dump_Trace_Base;
