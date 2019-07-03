@@ -271,8 +271,9 @@ package body Coverage.Source is
       if Tag_Provider.all not in Default_Tag_Provider_Type
         and then Tag_Provider_Name /= To_String (CP_Tag_Provider)
       then
-         Warn ("cannot merge coverage information separated by "
-               & To_String (CP_Tag_Provider));
+         Warn ("cannot merge coverage information from "
+               & To_String (CLS.Relocations.Filename)
+               & " as it is separated by " & To_String (CP_Tag_Provider));
          Do_Merge := False;
       end if;
 
