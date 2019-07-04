@@ -18,10 +18,14 @@
 
 with Ada.Characters.Handling;
 with Ada.Characters.Conversions;
+with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
+
+with Langkit_Support.Text;
 
 with Outputs; use Outputs;
 with Project;
+with Switches;
 
 package body Instrument.Common is
 
@@ -363,6 +367,7 @@ package body Instrument.Common is
       Has_Error : Boolean := False;
    begin
       declare
+         use Ada.Text_IO;
          Result : constant Apply_Result := Apply (Self.Handle);
       begin
          if Result.Success then
@@ -382,6 +387,24 @@ package body Instrument.Common is
             for D of Result.Diagnostics loop
                Error (Self.Unit.Format_GNU_Diagnostic (D));
             end loop;
+
+            if Switches.Verbose then
+
+               --  Dump the tree that rewriting failed to process, for
+               --  debugging purposes.
+
+               Put_Line ("Dump of the rewritten tree:");
+               declare
+                  Rewritten_Unit : constant Unit_Rewriting_Handle :=
+                     Handle (Result.Unit);
+                  Root_Node      : constant Node_Rewriting_Handle :=
+                     Root (Rewritten_Unit);
+                  Text           : constant String :=
+                     Langkit_Support.Text.To_UTF8 (Unparse (Root_Node));
+               begin
+                  Put_Line (Text);
+               end;
+            end if;
          end if;
       end;
 
