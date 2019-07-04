@@ -639,7 +639,7 @@ package body Instrument.Tree is
 
             if SCE.N.Kind = Ada_Elsif_Stmt_Part then
                declare
-                  Old_Cond : constant Node_Rewriting_Handle :=
+                  Old_Cond : Node_Rewriting_Handle :=
                     Handle (SCE.N.As_Elsif_Stmt_Part.F_Cond_Expr);
                   New_Cond : constant Node_Rewriting_Handle :=
                     Create_Regular_Node
@@ -665,7 +665,19 @@ package body Instrument.Tree is
 
                   Replace (Old_Cond, New_Cond);
 
-                  --  Now reattach old condition in new AND THEN node
+                  --  Now reattach old condition in new AND THEN node. If it
+                  --  is AND, OR or XOR binary operation, we need to wrap it in
+                  --  parens to generate valid code.
+
+                  if Kind (Old_Cond) = Ada_Bin_Op
+                     and then Kind (Child (Old_Cond, 2)) in
+                        Ada_Op_And | Ada_Op_Or | Ada_Op_Xor
+                  then
+                     Old_Cond := Create_Regular_Node
+                       (IC.Rewriting_Context,
+                        Ada_Paren_Expr,
+                        Children => (1 => Old_Cond));
+                  end if;
 
                   Set_Child (New_Cond, 3, Old_Cond);
                end;
