@@ -249,7 +249,7 @@ package Command_Line is
                          & " must be a non-empty list of patterns, which is"
                          & " used to match code to draw. The patterns can be:"
                          & ASCII.LF & ASCII.LF
-                         & "file:line1:col1-line2-col2" & ASCII.LF
+                         & "file:line1:col1-line2:col2" & ASCII.LF
                          & "  Match code included in a source location range"
                          & ASCII.LF & ASCII.LF
                          & "@0xADDRESS" & ASCII.LF
