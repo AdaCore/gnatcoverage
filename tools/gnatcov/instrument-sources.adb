@@ -711,7 +711,7 @@ package body Instrument.Sources is
 
       --  Insert automatic buffer dump calls, if requested
 
-      if IC.Auto_Dump_Buffers and then Unit_Info.Is_Main then
+      if IC.Dump_Method /= Manual and then Unit_Info.Is_Main then
          Add_Auto_Dump_Buffers
            (IC   => IC,
             Main => UIC.Instrumented_Unit.Unit,

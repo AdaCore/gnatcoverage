@@ -360,10 +360,10 @@ package body Instrument is
    procedure Instrument_Units_Of_Interest
      (ISI_Filename         : String;
       Units_Inputs         : Inputs.Inputs_Type;
-      Auto_Dump_Buffers    : Boolean;
+      Dump_Method          : Any_Dump_Method;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
-      IC                : Inst_Context := Create_Context (Auto_Dump_Buffers);
+      IC                : Inst_Context := Create_Context (Dump_Method);
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 
@@ -449,7 +449,7 @@ package body Instrument is
       --  If we need to instrument all Ada mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.
 
-      if Auto_Dump_Buffers then
+      if Dump_Method /= Manual then
          for Main of Project.Enumerate_Ada_Mains loop
             Register_Main_To_Instrument (IC, Main.File, Main.Project);
          end loop;

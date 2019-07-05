@@ -247,12 +247,12 @@ package Instrument.Common is
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
 
-      Auto_Dump_Buffers : Boolean;
+      Dump_Method : Any_Dump_Method;
       --  See the eponym argument in Instrument.Intrument_Units_Of_Interest
 
       Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
       --  List of mains to instrument *which are not units of interest*. Always
-      --  empty when Auto_Dump_Buffers is false.
+      --  empty when Dump_Method is Manual.
       --
       --  We need a separate list for these as mains which are units of
       --  interest are instrumented to dump coverage buffers at the same time
@@ -267,7 +267,7 @@ package Instrument.Common is
       --  Project_Info record.
    end record;
 
-   function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context;
+   function Create_Context (Dump_Method : Any_Dump_Method) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
 
    procedure Destroy_Context (Context : in out Inst_Context);
@@ -283,7 +283,7 @@ package Instrument.Common is
      (Context : in out Inst_Context;
       File    : GNATCOLL.VFS.Virtual_File;
       Project : Project_Type)
-      with Pre => Context.Auto_Dump_Buffers;
+      with Pre => Context.Dump_Method /= Manual;
    --  Register a main to be instrumented so that it dumps coverage buffers.
    --  File is the source file for this main, and Project is the project that
    --  owns this main.

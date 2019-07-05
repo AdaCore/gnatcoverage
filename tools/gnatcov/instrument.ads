@@ -38,10 +38,15 @@ package Instrument is
    No_Bit_Id : constant Any_Bit_Id := -1;
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
 
+   type Any_Dump_Method is (Manual, Main_End);
+   --  Method to use in order to automatically dump coverage buffers in
+   --  instrumented programs. See the user documentation for the --dump-method
+   --  command-line option.
+
    procedure Instrument_Units_Of_Interest
      (ISI_Filename         : String;
       Units_Inputs         : Inputs.Inputs_Type;
-      Auto_Dump_Buffers    : Boolean;
+      Dump_Method          : Any_Dump_Method;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs to
@@ -51,7 +56,7 @@ package Instrument is
    --  unless Units_Inputs is not empty: in this case, use the given unit names
    --  as the list of units of interest.
    --
-   --  If Auto_Dump_Buffers is true, append a call to
+   --  Depending on Dump_Method, instrument mains to schedule a call to
    --  System.GNATcov.Traces.Output.Write_Trace_File for list of coverage
    --  buffers in all mains in the project.
    --

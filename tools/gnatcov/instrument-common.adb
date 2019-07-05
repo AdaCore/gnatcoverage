@@ -480,14 +480,15 @@ package body Instrument.Common is
    -- Create_Context --
    --------------------
 
-   function Create_Context (Auto_Dump_Buffers : Boolean) return Inst_Context is
+   function Create_Context (Dump_Method : Any_Dump_Method) return Inst_Context
+   is
    begin
       return IC : Inst_Context do
          IC.Project_Name := +Ada.Directories.Base_Name
            (Project.Root_Project_Filename);
          --  TODO??? Get the original casing for the project name
 
-         IC.Auto_Dump_Buffers := Auto_Dump_Buffers;
+         IC.Dump_Method := Dump_Method;
       end return;
    end Create_Context;
 

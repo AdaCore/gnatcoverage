@@ -1339,15 +1339,35 @@ begin
          end if;
 
          declare
+            use Instrument;
+
             Matcher     : aliased GNAT.Regexp.Regexp;
             Has_Matcher : Boolean;
+
+            Dump_Opt    : String_Option renames
+              Args.String_Args (Opt_Dump_Method);
+            Dump_Method : Any_Dump_Method := Manual;
          begin
             Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
+
+            if Dump_Opt.Present then
+               declare
+                  Value : constant String := +Dump_Opt.Value;
+               begin
+                  if Value = "manual" then
+                     Dump_Method := Manual;
+                  elsif Value = "main-end" then
+                     Dump_Method := Main_End;
+                  else
+                     Fatal_Error ("Bad buffers dumping method: " & Value);
+                  end if;
+               end;
+            end if;
 
             Instrument.Instrument_Units_Of_Interest
               (ISI_Filename         => Output.all,
                Units_Inputs         => Units_Inputs,
-               Auto_Dump_Buffers    => Args.Bool_Args (Opt_Auto_Dump_Buffers),
+               Dump_Method          => Dump_Method,
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null));
          end;

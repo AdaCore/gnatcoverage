@@ -73,7 +73,6 @@ package Command_Line is
       Opt_Keep_Edges,
       Opt_Pretty_Print,
       Opt_Keep_Reading_Traces,
-      Opt_Auto_Dump_Buffers,
       Opt_Externally_Built_Projects);
    --  Set of boolean options we support. More complete descriptions below.
 
@@ -98,7 +97,8 @@ package Command_Line is
       Opt_Output_Format,
       Opt_Trace_Source,
       Opt_Save_Checkpoint,
-      Opt_Report_Title);
+      Opt_Report_Title,
+      Opt_Dump_Method);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -377,19 +377,6 @@ package Command_Line is
                        others       => False),
          Internal  => False),
 
-      Opt_Auto_Dump_Buffers => Create
-        (Long_Name => "--auto-dump-buffers",
-         Help      => "Append a call to System.GNATcov.Traces.Output"
-                      & ".Write_Trace_File in all mains in the project. Note"
-                      & " that this also instruments mains that are the units"
-                      & " of interest."
-                      & ASCII.LF & ASCII.LF
-                      & "The call to Write_Trace_File dumps coverage buffers"
-                      & " for all units of interest in the main closure.",
-         Commands  => (Cmd_Instrument => True,
-                       others         => False),
-         Internal  => True),
-
       Opt_Externally_Built_Projects => Create
         (Long_Name => "--externally-built-projects",
          Help      => "Process projects marked as externally built.",
@@ -586,7 +573,30 @@ package Command_Line is
                           & " reports"),
          Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => False,
-         Internal     => False));
+         Internal     => False),
+
+      Opt_Dump_Method => Create
+        (Long_Name    => "--dump-method",
+         Help         => "Select a method to dump coverage buffers in the"
+                         & " instrumented program."
+                         & ASCII.LF & ASCII.LF
+                         & """manual"" (the default) does nothing specific,"
+                         & " leaving the responsibility to call"
+                         & " System.GNATcov.Traces.Output.Write_Trace_File"
+                         & " when appropriate."
+                         & ASCII.LF & ASCII.LF
+                         & """main-end"" instructs to append a call to"
+                         & " Write_Trace_File at the end of the main"
+                         & " subprogram."
+                         & ASCII.LF & ASCII.LF
+                         & "Except for ""manual"", these methods inject code"
+                         & " in all mains in the project closure to dump"
+                         & " coverage buffers for all units of interest in the"
+                         & " main closure.",
+         Commands     => (Cmd_Instrument => True, others => False),
+         At_Most_Once => False,
+         Internal     => True,
+         Pattern      => "atexit|main-end"));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Debug => Create
