@@ -1153,9 +1153,9 @@ class SCOV_helper_src_traces(SCOV_helper):
     # Outline of the source instrumentation based scheme:
     #
     # * Instrumentation produces instrumented sources and a so called
-    #   "instrumentation checkpoint", holding SCOs and data required to
-    #   decode source traces later on, similar to executable files for
-    #   binary traces.
+    #   "Instrumentation Source Information (ISI)" file, holding SCOs and data
+    #   required to decode source traces later on, similar to executable files
+    #   for binary traces.
     #
     #   Units of interest must be conveyed at this stage, through project
     #   file attributes, as they control which units are instrumented.
@@ -1164,12 +1164,11 @@ class SCOV_helper_src_traces(SCOV_helper):
     #   trace" file.
     #
     # * Analysis for a single program proceeds by providing gnatcov coverage
-    #   with the source trace file and the corresponding instrumentation
-    #   checkpoint.
+    #   with the source trace file and the corresponding ISI file.
     #
     # * Consolidation is achieved by either
     #
-    #   - Providing the set or source traces and the corresponding checkpoints
+    #   - Providing the set or source traces and the corresponding ISI files
     #     to gnatcov coverage, or
     #
     #   - Combining coverage checkpoints produced for each program right
@@ -1179,12 +1178,12 @@ class SCOV_helper_src_traces(SCOV_helper):
     #
     # * Units of interest are conveyed at instrumentation time (even prior
     #   to build) for the instrumentation scheme vs at analysis time for the
-    #   binary trace case)
+    #   binary trace case,
     #
-    # * Instrumentation checkpoints must be provided to gnatcov coverage
-    #   together with the source traces. Unlike executables for binary traces,
-    #   instrumentation checkpoints are not necessarily visible at program
-    #   execution time so can't be recorded in the traces.
+    # * ISI files must be provided to gnatcov coverage together with the
+    #   source traces. Unlike executables for binary traces, ISI files are not
+    #   necessarily visible at program execution time so can't be recorded in
+    #   the traces.
 
     ISI_FILE = 'instr.isi'
 
