@@ -585,6 +585,9 @@ package Command_Line is
                          & " System.GNATcov.Traces.Output.Write_Trace_File"
                          & " when appropriate."
                          & ASCII.LF & ASCII.LF
+                         & """atexit"" uses the libc's atexit() routine to"
+                         & " schedule the dump."
+                         & ASCII.LF & ASCII.LF
                          & """main-end"" instructs to append a call to"
                          & " Write_Trace_File at the end of the main"
                          & " subprogram."

@@ -38,10 +38,12 @@ package Instrument is
    No_Bit_Id : constant Any_Bit_Id := -1;
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
 
-   type Any_Dump_Method is (Manual, Main_End);
+   type Any_Dump_Method is (Manual, At_Exit, Main_End);
    --  Method to use in order to automatically dump coverage buffers in
    --  instrumented programs. See the user documentation for the --dump-method
    --  command-line option.
+
+   subtype Auto_Dump_Method is Any_Dump_Method range At_Exit .. Main_End;
 
    procedure Instrument_Units_Of_Interest
      (ISI_Filename         : String;

@@ -8,7 +8,7 @@ import os.path
 from SUITE.tutils import XCOV, exepath_to, xcov
 
 def xcov_instrument(gprsw, covlevel, isi_file, extra_args=[],
-                    dump_method='main-end', out=None,
+                    dump_method='atexit', out=None,
                     err=None, register_failure=True):
     """
     Run "gnatcov instrument" on a project.

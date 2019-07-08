@@ -125,6 +125,11 @@ package Instrument.Common is
    --  Name of the procedure (in main dump helper packages) that dumps all
    --  coverage buffers to the source trace file.
 
+   Register_Dump_Procedure_Name : constant Ada_Identifier :=
+      To_Unbounded_String ("Register_Dump_Buffers");
+   --  Name of the procedure (in main dump helper packages) that registers the
+   --  coverage buffers dump through atexit(3).
+
    type Compilation_Unit_Name is record
       Unit : Ada_Qualified_Name;
       Part : Unit_Parts;

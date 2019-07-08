@@ -1356,6 +1356,8 @@ begin
                begin
                   if Value = "manual" then
                      Dump_Method := Manual;
+                  elsif Value = "atexit" then
+                     Dump_Method := At_Exit;
                   elsif Value = "main-end" then
                      Dump_Method := Main_End;
                   else

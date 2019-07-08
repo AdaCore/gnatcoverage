@@ -339,7 +339,20 @@ package body Instrument.Sources is
          File.Put_Line ("package " & Helper_Unit_Name & " is");
          File.New_Line;
          File.Put_Line ("   procedure " & Dump_Procedure & ";");
+         File.Put_Line ("   pragma Export (C, " & Dump_Procedure & ");");
          File.New_Line;
+
+         case Auto_Dump_Method (IC.Dump_Method) is
+            when At_Exit =>
+               File.Put_Line
+                 ("procedure "
+                  & To_String (Register_Dump_Procedure_Name) & ";");
+               File.New_Line;
+
+            when Main_End =>
+               null;
+         end case;
+
          File.Put_Line ("end " & Helper_Unit_Name & ";");
          File.Close;
 
@@ -352,7 +365,18 @@ package body Instrument.Sources is
             Put_With (Buffer_Unit);
          end loop;
 
+         case Auto_Dump_Method (IC.Dump_Method) is
+            when At_Exit  =>
+               File.Put_Line ("with Ada.Strings.Unbounded;");
+               File.Put_Line ("use Ada.Strings.Unbounded;");
+               File.Put_Line ("with Interfaces.C;");
+            when Main_End =>
+               null;
+         end case;
+
          File.Put_Line ("package body " & Helper_Unit_Name & " is");
+         File.New_Line;
+         File.Put_Line ("   Filename : Unbounded_String;");
          File.New_Line;
          File.Put_Line ("   procedure " & Dump_Procedure & " is");
          File.Put_Line ("   begin");
@@ -370,15 +394,42 @@ package body Instrument.Sources is
                File.Put (Strings.Img (To_Index (Cur))
                          & " => " & Buffer_Name & "'Access");
                if Index = Buffer_Units.Last_Index then
-                  File.Put_Line ("));");
+                  File.Put_Line ("),");
                else
                   File.Put_Line (",");
                   File.Put ((1 .. 10 => ' '));
                end if;
             end;
          end loop;
+         File.Put_Line ("         Filename => To_String (Filename));");
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;
+
+         case Auto_Dump_Method (IC.Dump_Method) is
+            when At_Exit =>
+               File.Put_Line
+                 ("procedure "
+                  & To_String (Register_Dump_Procedure_Name) & " is");
+               File.Put_Line ("   type Callback is access procedure;");
+               File.Put_Line ("   pragma Convention (C, Callback);");
+               File.New_Line;
+               File.Put_Line ("   function atexit (Func : Callback)"
+                              & " return Interfaces.C.int;");
+               File.Put_Line ("   pragma Import (C, atexit);");
+               File.Put_Line ("   Dummy : constant Interfaces.C.int :=");
+               File.Put_Line ("     atexit (" & Dump_Procedure & "'Access);");
+               File.Put_Line ("begin");
+               File.Put_Line ("   Filename := To_Unbounded_String");
+               File.Put_Line ("     (" & To_Ada (Output_Unit)
+                              & ".Default_Trace_Filename);");
+               File.Put_Line
+                 ("end " & To_String (Register_Dump_Procedure_Name) & ";");
+               File.New_Line;
+
+            when Main_End =>
+               null;
+         end case;
+
          File.Put_Line ("end " & Helper_Unit_Name & ";");
          File.Close;
       end;
@@ -416,9 +467,6 @@ package body Instrument.Sources is
 
       Helper_Unit : Ada_Qualified_Name;
       --  Name of unit to contain helpers implementing the buffers dump
-
-      Dump_Procedure : Ada_Qualified_Name;
-      --  Name of the procedure to dump coverage buffers
 
    begin
       if Buffer_Units.Is_Empty then
@@ -510,19 +558,53 @@ package body Instrument.Sources is
          Append_Child (New_Stmt_List, Nested_Block);
       end;
 
-      --  Build the call to the dump procedure and append it to New_Stmt_List,
-      --  right after the old list of statements.
+      --  Depending on the chosen coverage buffers dump method, insert the
+      --  appropriate code.
 
-      Dump_Procedure := Helper_Unit;
-      Dump_Procedure.Append (Dump_Procedure_Name);
+      case Auto_Dump_Method (IC.Dump_Method) is
 
-      declare
-         Call_Stmt : constant Node_Rewriting_Handle :=
-            Create_Regular_Node
+      when At_Exit =>
+
+         --  Build the call to the registration procedure and insert it in
+         --  New_Stmt_List, right before the old list of statements.
+
+         declare
+            Register_Procedure : Ada_Qualified_Name;
+            --  Name of the procedure to register the coverage buffers dump
+            --  routine.
+
+            Call_Stmt : Node_Rewriting_Handle;
+
+         begin
+            Register_Procedure := Helper_Unit;
+            Register_Procedure.Append (Register_Dump_Procedure_Name);
+
+            Call_Stmt := Create_Regular_Node
+              (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Register_Procedure)));
+            Insert_Child (New_Stmt_List, 1, Call_Stmt);
+         end;
+
+      when Main_End =>
+
+         --  Build the call to the dump procedure and append it to
+         --  New_Stmt_List, right after the old list of statements.
+
+         declare
+            Dump_Procedure : Ada_Qualified_Name;
+            --  Name of the procedure to dump coverage buffers
+
+            Call_Stmt : Node_Rewriting_Handle;
+
+         begin
+            Dump_Procedure := Helper_Unit;
+            Dump_Procedure.Append (Dump_Procedure_Name);
+
+            Call_Stmt := Create_Regular_Node
               (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Dump_Procedure)));
-      begin
-         Append_Child (New_Stmt_List, Call_Stmt);
-      end;
+            Append_Child (New_Stmt_List, Call_Stmt);
+         end;
+
+      end case;
    end Add_Auto_Dump_Buffers;
 
    ------------------------------
