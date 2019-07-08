@@ -191,6 +191,7 @@ private package Instrument.Sources is
 
    procedure Add_Auto_Dump_Buffers
      (IC   : Inst_Context;
+      Info : in out Project_Info;
       Main : Ada_Qualified_Name;
       URH  : Unit_Rewriting_Handle)
       with Pre => IC.Dump_Method /= Manual;
@@ -198,8 +199,8 @@ private package Instrument.Sources is
    --  the list of coverage buffers for all units of interest in Main's
    --  closure. Return without doing anything if unsuccessful.
    --
-   --  URH must be a rewriting handle for the body unit that contains Main's
-   --  sources.
+   --  Info must be the project that owns the Main unit, and URH must be a
+   --  rewriting handle for the body unit that contains Main's sources.
 
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));

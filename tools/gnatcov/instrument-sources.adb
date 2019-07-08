@@ -59,6 +59,16 @@ package body Instrument.Sources is
    --  Main's closure. If for some reason we cannot get this list, just return
    --  an empty one.
 
+   procedure Emit_Dump_Helper_Unit
+     (IC          : Inst_Context;
+      Info        : in out Project_Info;
+      Main        : Ada_Qualified_Name;
+      Helper_Unit : out Ada_Qualified_Name);
+   --  Emit the unit to contain helpers to implement the automatic dump of
+   --  coverage buffers for the given Main unit. Info must be the project that
+   --  owns this main. Upon return, the name of this helper unit is stored in
+   --  Helper_Unit.
+
    -------------------------------------
    -- Generation of witness fragments --
    -------------------------------------
@@ -266,11 +276,121 @@ package body Instrument.Sources is
    end Buffer_Units_For_Closure;
 
    ---------------------------
+   -- Emit_Dump_Helper_Unit --
+   ---------------------------
+
+   procedure Emit_Dump_Helper_Unit
+     (IC          : Inst_Context;
+      Info        : in out Project_Info;
+      Main        : Ada_Qualified_Name;
+      Helper_Unit : out Ada_Qualified_Name)
+   is
+      File : Text_Files.File_Type;
+
+      procedure Put_With (Unit : Ada_Qualified_Name);
+      --  Put a "with" context clause in File
+
+      --------------
+      -- Put_With --
+      --------------
+
+      procedure Put_With (Unit : Ada_Qualified_Name) is
+      begin
+         File.Put_Line ("with " & To_Ada (Unit) & ";");
+      end Put_With;
+
+      Output_Unit, Output_Proc : Ada_Qualified_Name;
+      --  Qualified names for the unit that contains the buffer output
+      --  procedure, and for the procedure itself.
+
+   --  Start of processing for Emit_Dump_Helper_Unit
+
+   begin
+      --  Create the name of the helper unit
+
+      Helper_Unit := Sys_Buffers;
+      Helper_Unit.Append
+        (To_Unbounded_String ("D")
+         & Instrumented_Unit_Slug ((Main, Unit_Body)));
+
+      --  Compute the qualified names we need for instrumentation
+
+      Output_Unit := Sys_Prefix;
+      Output_Unit.Append (To_Unbounded_String ("Traces"));
+      Output_Unit.Append (To_Unbounded_String ("Output"));
+
+      Output_Proc := Output_Unit;
+      Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
+
+      declare
+         Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
+         Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
+
+         Buffer_Units : constant Ada_Qualified_Name_Vectors.Vector :=
+            Buffer_Units_For_Closure (IC, Main);
+         --  List of names for units that contains the buffers to dump
+
+      begin
+         --  Emit the package spec. This includes one Dump_Buffers procedure,
+         --  which dumps all coverage buffers in Main's closure to the source
+         --  trace file.
+
+         Create_File (Info, File, To_Filename ((Helper_Unit, Unit_Spec)));
+         File.Put_Line ("package " & Helper_Unit_Name & " is");
+         File.New_Line;
+         File.Put_Line ("   procedure " & Dump_Procedure & ";");
+         File.New_Line;
+         File.Put_Line ("end " & Helper_Unit_Name & ";");
+         File.Close;
+
+         --  Emit the package body
+
+         Create_File (Info, File, To_Filename ((Helper_Unit, Unit_Body)));
+
+         Put_With (Output_Unit);
+         for Buffer_Unit of Buffer_Units loop
+            Put_With (Buffer_Unit);
+         end loop;
+
+         File.Put_Line ("package body " & Helper_Unit_Name & " is");
+         File.New_Line;
+         File.Put_Line ("   procedure " & Dump_Procedure & " is");
+         File.Put_Line ("   begin");
+         File.Put_Line ("      " & To_Ada (Output_Proc));
+         File.Put      ("        ((");
+         for Cur in Buffer_Units.Iterate loop
+            declare
+               use Ada_Qualified_Name_Vectors;
+
+               Index       : constant Positive := To_Index (Cur);
+               Buffer_Name : constant String :=
+                  To_Ada (Element (Cur)) & ".Buffers";
+
+            begin
+               File.Put (Strings.Img (To_Index (Cur))
+                         & " => " & Buffer_Name & "'Access");
+               if Index = Buffer_Units.Last_Index then
+                  File.Put_Line ("));");
+               else
+                  File.Put_Line (",");
+                  File.Put ((1 .. 10 => ' '));
+               end if;
+            end;
+         end loop;
+         File.Put_Line ("   end " & Dump_Procedure & ";");
+         File.New_Line;
+         File.Put_Line ("end " & Helper_Unit_Name & ";");
+         File.Close;
+      end;
+   end Emit_Dump_Helper_Unit;
+
+   ---------------------------
    -- Add_Auto_Dump_Buffers --
    ---------------------------
 
    procedure Add_Auto_Dump_Buffers
      (IC   : Inst_Context;
+      Info : in out Project_Info;
       Main : Ada_Qualified_Name;
       URH  : Unit_Rewriting_Handle)
    is
@@ -290,18 +410,15 @@ package body Instrument.Sources is
       --  List of statements to contain 1) the original handled statements
       --  (Old_Stmts) and 2) the call to the Write_Trace_File procedure.
 
-      Output_Unit, Output_Proc : Ada_Qualified_Name;
-      --  Qualified names for the unit that contains the buffer output
-      --  procedure, and for the procedure itself.
-
-      Buffer_Id : constant Node_Rewriting_Handle :=
-         Create_Identifier (RH, "Buffers");
-      Access_Id : constant Node_Rewriting_Handle :=
-         Create_Identifier (RH, "Access");
-
       Buffer_Units : constant Ada_Qualified_Name_Vectors.Vector :=
          Buffer_Units_For_Closure (IC, Main);
       --  List of names for units that contains the buffers to dump
+
+      Helper_Unit : Ada_Qualified_Name;
+      --  Name of unit to contain helpers implementing the buffers dump
+
+      Dump_Procedure : Ada_Qualified_Name;
+      --  Name of the procedure to dump coverage buffers
 
    begin
       if Buffer_Units.Is_Empty then
@@ -330,43 +447,22 @@ package body Instrument.Sources is
          Subp_Body := Tmp.As_Subp_Body;
       end if;
 
-      --  Compute the qualified names we need for instrumentation
+      --  Emit the helper unit and add a WITH clause for it
 
-      Output_Unit := Sys_Prefix;
-      Output_Unit.Append (To_Unbounded_String ("Traces"));
-      Output_Unit.Append (To_Unbounded_String ("Output"));
-
-      Output_Proc := Output_Unit;
-      Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
-
-      --  Add the required WITH clauses
+      Emit_Dump_Helper_Unit (IC, Info, Main, Helper_Unit);
 
       declare
          Prelude : constant Node_Rewriting_Handle := Handle (CU.F_Prelude);
 
-         procedure Add_With (Unit : Ada_Qualified_Name);
-         --  Add a WITH clause to Prelude for the given unit name
-
-         --------------
-         -- Add_With --
-         --------------
-
-         procedure Add_With (Unit : Ada_Qualified_Name) is
-            With_Clause : constant Node_Rewriting_Handle :=
-               Create_From_Template
-                 (RH,
-                  Template  => "with {};",
-                  Arguments => (1 => To_Nodes (RH, Unit)),
-                  Rule      => With_Clause_Rule);
-         begin
-            Append_Child (Prelude, With_Clause);
-         end Add_With;
+         With_Clause : constant Node_Rewriting_Handle :=
+            Create_From_Template
+              (RH,
+               Template  => "with {};",
+               Arguments => (1 => To_Nodes (RH, Helper_Unit)),
+               Rule      => With_Clause_Rule);
 
       begin
-         Add_With (Output_Unit);
-         for Buffer_Unit of Buffer_Units loop
-            Add_With (Buffer_Unit);
-         end loop;
+         Append_Child (Prelude, With_Clause);
       end;
 
       --  Wrap the previous subprogram body content (declarations, handled
@@ -379,6 +475,7 @@ package body Instrument.Sources is
 
          Nested_Block : Node_Rewriting_Handle;
          Nested_Decls : Node_Rewriting_Handle;
+
       begin
          --  Extract the original statements (Old_Stmts) and replace it in the
          --  subprogram body with the new statements.
@@ -413,68 +510,17 @@ package body Instrument.Sources is
          Append_Child (New_Stmt_List, Nested_Block);
       end;
 
-      --  Build the call to Write_Trace_File on the list of buffers, and append
-      --  it to New_Stmt_List, right after the old list of statements.
+      --  Build the call to the dump procedure and append it to New_Stmt_List,
+      --  right after the old list of statements.
+
+      Dump_Procedure := Helper_Unit;
+      Dump_Procedure.Append (Dump_Procedure_Name);
 
       declare
-         use Ada_Qualified_Name_Vectors;
-
-         Buffer_List : constant Node_Rewriting_Handle :=
-            Create_Node (RH, Ada_Assoc_List);
-         --  List of Ada_Aggregate_Assoc nodes for the list of buffers to pass
-         --  to the output procedure.
-
-         Aggregate : constant Node_Rewriting_Handle := Create_Regular_Node
-           (RH, Ada_Aggregate, (1 => No_Node,       --  F_Ancestor_Expr
-                                2 => Buffer_List)); --  F_Assocs
-
-         Param_Assoc : constant Node_Rewriting_Handle := Create_Regular_Node
-           (RH, Ada_Param_Assoc, (1 => No_Node,     --  F_Designator
-                                  2 => Aggregate)); --  F_Expr
-
-         Assoc_List : constant Node_Rewriting_Handle :=
-            Create_Node (RH, Ada_Assoc_List);
-
-         Call_Expr : constant Node_Rewriting_Handle := Create_Regular_Node
-           (RH, Ada_Call_Expr, (1 => To_Nodes (RH, Output_Proc), --  F_Name
-                                2 => Assoc_List));               --  F_Suffix
-
          Call_Stmt : constant Node_Rewriting_Handle :=
-            Create_Regular_Node (RH, Ada_Call_Stmt, (1 => Call_Expr));
+            Create_Regular_Node
+              (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Dump_Procedure)));
       begin
-         for Cur in Buffer_Units.Iterate loop
-            declare
-               Buffer_Name : constant Node_Rewriting_Handle :=
-                  Create_Regular_Node
-                    (RH, Ada_Dotted_Name,
-                     (1 => To_Nodes (RH, Element (Cur)), --  F_Prefix
-                      2 => Clone (Buffer_Id)));          --  F_Suffix
-
-               Buffer_Access : constant Node_Rewriting_Handle :=
-                  Create_Regular_Node
-                    (RH, Ada_Attribute_Ref,
-                     (1 => Buffer_Name,         --  F_Prefix
-                      2 => Clone (Access_Id),   --  F_Attribute
-                      3 => No_Node));           --  F_Args
-
-               Designator      : constant Node_Rewriting_Handle :=
-                  Create_Node (RH, Ada_Alternatives_List);
-               Designator_Text : constant Text_Type :=
-                  To_Text (Strings.Img (To_Index (Cur)));
-
-               Assoc : constant Node_Rewriting_Handle :=
-                  Create_Regular_Node
-                    (RH, Ada_Aggregate_Assoc,
-                     (1 => Designator,      --  F_Designators
-                      2 => Buffer_Access)); --  F_R_Expr
-            begin
-               Append_Child
-                 (Designator,
-                  Create_Token_Node (RH, Ada_Int_Literal, Designator_Text));
-               Append_Child (Buffer_List, Assoc);
-            end;
-         end loop;
-         Append_Child (Assoc_List, Param_Assoc);
          Append_Child (New_Stmt_List, Call_Stmt);
       end;
    end Add_Auto_Dump_Buffers;
@@ -714,6 +760,7 @@ package body Instrument.Sources is
       if IC.Dump_Method /= Manual and then Unit_Info.Is_Main then
          Add_Auto_Dump_Buffers
            (IC   => IC,
+            Info => Prj_Info,
             Main => UIC.Instrumented_Unit.Unit,
             URH  => Handle (Rewriter.Rewritten_Unit));
       end if;

@@ -39,6 +39,11 @@
 --    of the root project). This unit contains a list of access to buffers for
 --    the coverage buffers of all units of interest.
 --
+--  * When the buffers dumping method is not manual (see the --dump-method
+--    switch), "gnatcov_rts-buffers-D<SLUG>.ads" for all mains in all projects.
+--    This unit contains method-dependent routines to implement the automatic
+--    dump of coverage buffers.
+--
 --  * An instrumented version of all compilation units of interest. These new
 --    units are replacements for the original units. They fill the coverage
 --    buffers for the unit.
@@ -114,6 +119,11 @@ package Instrument.Common is
    MCDC_Buffer_Name : Ada_Qualified_Name;
    --  Qualified name (relative to the unit buffer package) of the buffer to
    --  contain coverage data corresponding to decision BDD paths.
+
+   Dump_Procedure_Name : constant Ada_Identifier :=
+      To_Unbounded_String ("Dump_Buffers");
+   --  Name of the procedure (in main dump helper packages) that dumps all
+   --  coverage buffers to the source trace file.
 
    type Compilation_Unit_Name is record
       Unit : Ada_Qualified_Name;

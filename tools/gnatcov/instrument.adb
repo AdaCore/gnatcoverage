@@ -303,6 +303,7 @@ package body Instrument is
             Rewriter.Start_Rewriting (Main.Prj_Info.all, +Main.File.Full_Name);
             Add_Auto_Dump_Buffers
               (IC   => IC,
+               Info => Main.Prj_Info.all,
                Main => Main.Unit,
                URH  => Libadalang.Rewriting.Handle (Rewriter.Rewritten_Unit));
             Rewriter.Apply;
