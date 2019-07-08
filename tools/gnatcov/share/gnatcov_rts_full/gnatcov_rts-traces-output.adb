@@ -21,9 +21,6 @@ package body GNATcov_RTS.Traces.Output is
    function Alignment return Any_Endianity;
    --  Return the alignment to use when writing trace files
 
-   function Trace_Filename (Filename : String) return String;
-   --  Return the name of trace file to write to in Write_Trace_File
-
    subtype Serialized_Timestamp is String (1 .. 8);
    --  Little-endian 64-bit unsigned integer
 
@@ -237,24 +234,21 @@ package body GNATcov_RTS.Traces.Output is
       Write_Buffer (File, Buffer);
    end Write_Buffer;
 
-   --------------------
-   -- Trace_Filename --
-   --------------------
+   ----------------------------
+   -- Default_Trace_Filename --
+   ----------------------------
 
-   function Trace_Filename (Filename : String) return String is
+   function Default_Trace_Filename return String is
       use Ada.Environment_Variables;
    begin
-      if Filename /= "" then
-         return Filename;
-
-      elsif Value (GNATCOV_TRACE_FILE, "") /= "" then
+      if Value (GNATCOV_TRACE_FILE, "") /= "" then
          return Value (GNATCOV_TRACE_FILE);
 
       else
          return Ada.Directories.Simple_Name (Ada.Command_Line.Command_Name)
                 & ".srctrace";
       end if;
-   end Trace_Filename;
+   end Default_Trace_Filename;
 
    -----------------
    -- Format_Date --
@@ -287,7 +281,11 @@ package body GNATcov_RTS.Traces.Output is
    is
       File : File_Type;
    begin
-      Create (File, Name => Trace_Filename (Filename));
+      if Filename = "" then
+         Create (File, Name => Default_Trace_Filename);
+      else
+         Create (File, Name => Filename);
+      end if;
       Write_Header (File);
       Write_Info (File, Info_Program_Name, Program_Name);
       Write_Info (File, Info_Exec_Date, Format_Date (Exec_Date));
