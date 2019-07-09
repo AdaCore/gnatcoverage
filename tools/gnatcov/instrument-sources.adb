@@ -303,6 +303,10 @@ package body Instrument.Sources is
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
 
+      Dump_Method : constant Auto_Dump_Method := IC.Dump_Method;
+      --  Shortcut to avoid repeatedly restricting the dump method to the
+      --  Auto_Dump_Method subtype.
+
    --  Start of processing for Emit_Dump_Helper_Unit
 
    begin
@@ -342,7 +346,7 @@ package body Instrument.Sources is
          File.Put_Line ("   pragma Export (C, " & Dump_Procedure & ");");
          File.New_Line;
 
-         case Auto_Dump_Method (IC.Dump_Method) is
+         case Dump_Method is
             when At_Exit =>
                File.Put_Line
                  ("procedure "
@@ -365,7 +369,7 @@ package body Instrument.Sources is
             Put_With (Buffer_Unit);
          end loop;
 
-         case Auto_Dump_Method (IC.Dump_Method) is
+         case Dump_Method is
             when At_Exit  =>
                File.Put_Line ("with Ada.Strings.Unbounded;");
                File.Put_Line ("use Ada.Strings.Unbounded;");
@@ -405,7 +409,7 @@ package body Instrument.Sources is
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;
 
-         case Auto_Dump_Method (IC.Dump_Method) is
+         case Dump_Method is
             when At_Exit =>
                File.Put_Line
                  ("procedure "
