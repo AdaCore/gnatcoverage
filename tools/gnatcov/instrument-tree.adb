@@ -268,17 +268,22 @@ package body Instrument.Tree is
    -----------------------------------------
 
    function Traverse_Declarations_Or_Statements
-     (IC      : in out Unit_Inst_Context;
-      L       : Ada_List'Class;
-      Preelab : Boolean       := False;
-      D       : Dominant_Info := No_Dominant;
-      P       : Ada_Node      := No_Ada_Node) return Dominant_Info;
+     (IC                         : in out Unit_Inst_Context;
+      L                          : Ada_List'Class;
+      Preelab                    : Boolean       := False;
+      D                          : Dominant_Info := No_Dominant;
+      P                          : Ada_Node      := No_Ada_Node;
+      Is_Select_Stmt_Alternative : Boolean       := False)
+      return Dominant_Info;
    --  Process L, a list of statements or declarations dominated by D. If P is
    --  present, it is processed as though it had been prepended to L. Preelab
    --  is True if L is a list of preelaborable declarations (which do not
    --  allow elaboration code, so do not require any SCOs, and wouldn't allow
-   --  insertion of witnesses). Returns dominant information corresponding to
-   --  the last node with SCO in L.
+   --  insertion of witnesses). If Is_Select_Stmt_Alternative is True,
+   --  then this is for a select_alternative, entry_call_alternative, or
+   --  triggering_alternative: the witness for the first statement must
+   --  be inserted after it, not before as we do usually. Returns dominant
+   --  information corresponding to the last node with SCO in L.
 
    --  The following Traverse_* routines perform appropriate calls to
    --  Traverse_Declarations_Or_Statements to traverse specific node kinds.
@@ -369,8 +374,18 @@ package body Instrument.Tree is
       To   : Source_Location;
       Typ  : Character;
 
-      Index : Nat := 0;
+      Index : Natural := 0;
       --  1-based index of N in enclosing list, if any
+
+      Instrument_After : Boolean := False;
+      --  By default, the witness for a statement is inserted before the
+      --  statement itself, so that the statement is recorded as having
+      --  been executed (at least partially), even if it raises an exception.
+      --  However there are special cases where this is not legal (e.g. for
+      --  the first statement of an alternative in a SELECT statement, which
+      --  has special semantics). In these rare cases, this flag is set True
+      --  to indicate that the witness must be inserted after the statement,
+      --  not before.
    end record;
    --  Used to store a single entry in the following table, From:To represents
    --  the range of entries in the CS line entry, and typ is the type, with
@@ -423,25 +438,27 @@ package body Instrument.Tree is
    --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
-     (IC      : in out Unit_Inst_Context;
-      L       : Ada_List'Class;
-      Preelab : Boolean       := False;
-      D       : Dominant_Info := No_Dominant;
-      P       : Ada_Node      := No_Ada_Node)
+     (IC                         : in out Unit_Inst_Context;
+      L                          : Ada_List'Class;
+      Preelab                    : Boolean       := False;
+      D                          : Dominant_Info := No_Dominant;
+      P                          : Ada_Node      := No_Ada_Node;
+      Is_Select_Stmt_Alternative : Boolean       := False)
    is
       Discard_Dom : Dominant_Info;
       pragma Warnings (Off, Discard_Dom);
    begin
       Discard_Dom := Traverse_Declarations_Or_Statements
-        (IC, L, Preelab, D, P);
+        (IC, L, Preelab, D, P, Is_Select_Stmt_Alternative);
    end Traverse_Declarations_Or_Statements;
 
    function Traverse_Declarations_Or_Statements
-     (IC      : in out Unit_Inst_Context;
-      L       : Ada_List'Class;
-      Preelab : Boolean       := False;
-      D       : Dominant_Info := No_Dominant;
-      P       : Ada_Node      := No_Ada_Node) return Dominant_Info
+     (IC                         : in out Unit_Inst_Context;
+      L                          : Ada_List'Class;
+      Preelab                    : Boolean       := False;
+      D                          : Dominant_Info := No_Dominant;
+      P                          : Ada_Node      := No_Ada_Node;
+      Is_Select_Stmt_Alternative : Boolean       := False) return Dominant_Info
    is
       Current_Dominant : Dominant_Info := D;
       --  Dominance information for the current basic block
@@ -453,10 +470,10 @@ package body Instrument.Tree is
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
 
-      Current_Index : Nat := 0;
+      Current_Index : Natural := 0;
       --  If traversing a list, 1-based index of the current element
 
-      Insertion_Count : Nat := 0;
+      Insertion_Count : Natural := 0;
       --  Count of nodes inserted in current list so far
 
       RH_Enclosing_List     : Node_Rewriting_Handle :=
@@ -597,7 +614,15 @@ package body Instrument.Tree is
             T := End_Sloc (To_Node.Sloc_Range);
          end if;
 
-         SC.Append ((Ada_Node (N), F, T, Typ, Current_Index));
+         SC.Append
+           ((N                => Ada_Node (N),
+             From             => F,
+             To               => T,
+             Typ              => Typ,
+             Index            => Current_Index,
+             Instrument_After =>
+               Is_Select_Stmt_Alternative
+                 and then N = L.Children (L.Children'First)));
       end Extend_Statement_Sequence;
 
       -----------------------------
@@ -628,6 +653,9 @@ package body Instrument.Tree is
          procedure Insert_Statement_Witness
            (SCE : SC_Entry; LL_SCO_Id : Nat)
          is
+            Insert_List : Node_Rewriting_Handle;
+            Insert_Pos  : Natural;
+
          begin
             --  Allocate a bit in the statement coverage buffer, and record
             --  its id in the bitmap.
@@ -683,21 +711,59 @@ package body Instrument.Tree is
                end;
 
             else
-               --  Insert witness statement or declaration
+               if SCE.N.Kind = Ada_Accept_Stmt_With_Stmts
+                 and then SCE.Instrument_After
+               then
+                  --  In the case of an accept_statement containing a sequence
+                  --  of statements, if Instrument_After is True, we want to
+                  --  call the witness after the entry has been accepted, but
+                  --  before the enclosed statements are executed, so insert
+                  --  the witness call in the inner statement list at first
+                  --  position.
 
-               Insert_Child
-                 (Handle => RH_Enclosing_List,
+                  Insert_List := Handle
+                    (SCE.N.As_Accept_Stmt_With_Stmts.F_Stmts.F_Stmts);
+                  Insert_Pos  := 1;
 
-                  Index  =>
+               else
+                  Insert_List := RH_Enclosing_List;
+
+                  --  Adjust insertion to account for any insertion performed
+                  --  outside of the processing of the current list (case of
+                  --  the above special processing for accept statements).
+
+                  declare
+                     RH_Children_Count : constant Natural :=
+                       Children_Count (RH_Enclosing_List);
+                  begin
+                     while Child (RH_Enclosing_List,
+                                  Integer (SCE.Index + Insertion_Count))
+                       /= Handle (SCE.N)
+                     loop
+                        Insertion_Count := Insertion_Count + 1;
+                        pragma Assert
+                          (SCE.Index + Insertion_Count <= RH_Children_Count);
+                     end loop;
+                  end;
+
                   --  The witness is inserted at the current location of the
                   --  statement, so that it will occur immediately *before*
                   --  it in the instrumented sources. This is necessary because
                   --  we want to mark a statement as executed anytime it has
                   --  commenced execution (including in cases it raises an
-                  --  exception or otherwise transfers control).
+                  --  exception or otherwise transfers control). However in
+                  --  some special cases we have to insert after the statement,
+                  --  see comment for Instrument_After component.
 
-                    Integer (SCE.Index + Insertion_Count),
+                  Insert_Pos := SCE.Index + Insertion_Count
+                    + Boolean'Pos (SCE.Instrument_After);
+               end if;
 
+               --  Insert witness statement or declaration
+
+               Insert_Child
+                 (Handle => Insert_List,
+                  Index  => Insert_Pos,
                   Child  =>
                     Make_Statement_Witness
                       (IC,
@@ -1264,10 +1330,14 @@ package body Instrument.Tree is
                            Current_Dominant := ('T', Ada_Node (Guard));
                         end if;
 
+                        --  Travrse the select_alternative,
+                        --  entry_call_alternative, or triggering_alternative.
+
                         Traverse_Declarations_Or_Statements
                           (IC,
                            L => Alt.F_Stmts.As_Ada_Node_List,
-                           D => Current_Dominant);
+                           D => Current_Dominant,
+                           Is_Select_Stmt_Alternative => True);
 
                         Current_Dominant := S_Dom;
                      end;
@@ -1283,18 +1353,16 @@ package body Instrument.Tree is
                      D => Current_Dominant);
                end;
 
+            --  There is no SCO for a TERMINATE alternative in instrumentation
+            --  mode, because there is no place to attach a witness. It would
+            --  be dubious anyway, since no code is actually executed if the
+            --  alternative is selected.
+
             when Ada_Terminate_Alternative =>
-
-               --  It is dubious to emit a statement SCO for a TERMINATE
-               --  alternative, since no code is actually executed if the
-               --  alternative is selected -- the tasking runtime call just
-               --  never returns???
-
-               Extend_Statement_Sequence (N, ' ');
-               Set_Statement_Entry;
+               null;
 
             --  Unconditional exit points, which are included in the current
-            --  statement sequence, but then terminate it
+            --  statement sequence, but then terminate it.
 
             when Ada_Goto_Stmt
                | Ada_Raise_Stmt
@@ -1702,7 +1770,7 @@ package body Instrument.Tree is
          declare
             N : constant Ada_Node := L.Child (J);
          begin
-            Current_Index := Int (J);
+            Current_Index := J;
             Traverse_One (N);
          end;
       end loop;

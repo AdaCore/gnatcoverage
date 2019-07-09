@@ -30,11 +30,12 @@ private package Instrument.Tree is
    No_Dominant : constant Dominant_Info;
 
    procedure Traverse_Declarations_Or_Statements
-     (IC      : in out Unit_Inst_Context;
-      L       : Ada_List'Class;
-      Preelab : Boolean       := False;
-      D       : Dominant_Info := No_Dominant;
-      P       : Ada_Node      := No_Ada_Node);
+     (IC                         : in out Unit_Inst_Context;
+      L                          : Ada_List'Class;
+      Preelab                    : Boolean       := False;
+      D                          : Dominant_Info := No_Dominant;
+      P                          : Ada_Node      := No_Ada_Node;
+      Is_Select_Stmt_Alternative : Boolean       := False);
    --  Process L, a list of statements or declarations dominated by D. If P is
    --  present, it is processed as though it had been prepended to L. Preelab
    --  is True if L is a list of preelaborable declarations (which do not
