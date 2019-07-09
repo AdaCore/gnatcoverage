@@ -710,6 +710,16 @@ package body Instrument.Tree is
                   Set_Child (New_Cond, 3, Old_Cond);
                end;
 
+            elsif SCE.N.Parent.Kind = Ada_Expr_Function then
+
+               --  ??? We don't know yet how to intert a witness call for the
+               --  statement SCO corresponding to the expression body for the
+               --  expression function. Be conservative in the meantime: insert
+               --  no such call for now, so the corresponding obligations will
+               --  never be satisfied.
+
+               null;
+
             else
                if SCE.N.Kind = Ada_Accept_Stmt_With_Stmts
                  and then SCE.Instrument_After
