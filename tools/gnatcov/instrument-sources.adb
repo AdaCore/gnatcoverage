@@ -380,8 +380,19 @@ package body Instrument.Sources is
 
          File.Put_Line ("package body " & Helper_Unit_Name & " is");
          File.New_Line;
-         File.Put_Line ("   Filename : Unbounded_String;");
-         File.New_Line;
+
+         if IC.Dump_Method = At_Exit then
+
+            --  The at-exit dump method computes the trace filename at
+            --  registration time, but writes the trace file later, so it needs
+            --  a temporary to hold the filename between these two steps.
+
+            File.Put_Line ("   Filename : Unbounded_String;");
+            File.New_Line;
+         end if;
+
+         --  Emit the procedure to write the trace file
+
          File.Put_Line ("   procedure " & Dump_Procedure & " is");
          File.Put_Line ("   begin");
          File.Put_Line ("      " & To_Ada (Output_Proc));
@@ -405,12 +416,28 @@ package body Instrument.Sources is
                end if;
             end;
          end loop;
-         File.Put_Line ("         Filename => To_String (Filename));");
+
+         declare
+            Filename_Expr : constant String :=
+              (case Dump_Method is
+               when At_Exit =>
+                  "To_String (Filename)",
+               when Main_End =>
+                  To_Ada (Output_Unit) & ".Default_Trace_Filename");
+         begin
+            File.Put_Line ("         Filename => " & Filename_Expr & ");");
+         end;
+
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;
 
+         --  Emit method-specific procedures
+
          case Dump_Method is
             when At_Exit =>
+
+               --  Emit a procedure to schedule a trace dump with atexit
+
                File.Put_Line
                  ("procedure "
                   & To_String (Register_Dump_Procedure_Name) & " is");
