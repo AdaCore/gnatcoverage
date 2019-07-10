@@ -1201,10 +1201,21 @@ class SCOV_helper_src_traces(SCOV_helper):
         else:
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
+        out = 'xinstr.out'
         xcov_instrument(
             covlevel=self.xcovlevel, isi_file=self.ISI_FILE,
             extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
-            gprsw=instrument_gprsw)
+            gprsw=instrument_gprsw,
+            out=out)
+
+        # Standard output might contain warnings indicating instrumentation
+        # issues. This should not happen, so simply fail as soon as the output
+        # file is not empty.
+        thistest.fail_if(
+            os.path.getsize(out) > 0,
+            'xcov instrument standard output not empty ({}):'
+            '\n--'
+            '\n{}'.format(out, contents_of(out)))
 
         # Now we can build, instructing gprbuild to fetch the instrumented
         # sources in their dedicated subdir:
