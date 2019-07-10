@@ -718,7 +718,12 @@ package body Instrument.Tree is
                --  no such call for now, so the corresponding obligations will
                --  never be satisfied.
 
-               null;
+               Report
+                 (IC   => IC,
+                  Node => SCE.N,
+                  Msg  => "gnatcov limitation: cannot insert witness call for"
+                          & " expression function",
+                  Kind => Diagnostics.Warning);
 
             else
                if SCE.N.Kind = Ada_Accept_Stmt_With_Stmts
