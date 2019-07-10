@@ -1469,29 +1469,18 @@ package body Instrument.Tree is
                      --  FOR loop
 
                      else
+                        pragma Assert (ISC.Kind = Ada_For_Loop_Spec);
+
+                        --  In Libadalang, there is only one kind of FOR loop:
+                        --  both the RM's loop_parameter_specification and
+                        --  iterator_specification are materialized with
+                        --  For_Loop_Spec nodes. In each case, decisions can
+                        --  only appear in the "iteration expression", i.e. the
+                        --  expression that comes before the LOOP keyword.
+
                         Extend_Statement_Sequence (N, 'F');
-
-                        declare
-                           ISC_For : constant For_Loop_Spec :=
-                             ISC.As_For_Loop_Spec;
-                           For_Param : constant For_Loop_Var_Decl :=
-                             ISC_For.F_Var_Decl;
-                        begin
-                           --  loop_parameter_specification case
-
-                           if not For_Param.Is_Null then
-                              Process_Decisions_Defer
-                                (Ada_Node (For_Param), 'X');
-
-                           --  iterator_specification case
-
-                           else
-                              Process_Decisions_Defer
-                                (ISC_For.F_Loop_Type, 'X');
-                              Process_Decisions_Defer
-                                (ISC_For.F_Iter_Expr, 'X');
-                           end if;
-                        end;
+                        Process_Decisions_Defer
+                          (ISC.As_For_Loop_Spec.F_Iter_Expr, 'X');
                      end if;
                   end if;
 
