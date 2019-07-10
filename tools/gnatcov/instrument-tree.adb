@@ -741,14 +741,31 @@ package body Instrument.Tree is
                   --  Adjust insertion to account for any insertion performed
                   --  outside of the processing of the current list (case of
                   --  the above special processing for accept statements).
+                  --  Note that SCE.N might not be a direct element of the
+                  --  enclosing list (e.g. in the case where it is a named
+                  --  statement), so we must first go up to the parent of
+                  --  SCE.N that *is* an element of that list, and *then* scan
+                  --  forward to determine the current position of that parent
+                  --  note within the list.
 
                   declare
+                     RH_Element_Node : Node_Rewriting_Handle := Handle (SCE.N);
                      RH_Children_Count : constant Natural :=
                        Children_Count (RH_Enclosing_List);
                   begin
+                     --  Find the parent of SCE.N that is an element of the
+                     --  enclosing list.
+
+                     while Parent (RH_Element_Node) /= RH_Enclosing_List loop
+                        RH_Element_Node := Parent (RH_Element_Node);
+                     end loop;
+
+                     --  Scan forward in enclosing list for adjusted position
+                     --  of the element node.
+
                      while Child (RH_Enclosing_List,
                                   Integer (SCE.Index + Insertion_Count))
-                       /= Handle (SCE.N)
+                       /= RH_Element_Node
                      loop
                         Insertion_Count := Insertion_Count + 1;
                         pragma Assert
