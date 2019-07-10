@@ -539,11 +539,13 @@ package body Instrument.Tree is
 
       begin
          case Kind (N) is
-            when Ada_Accept_Stmt =>
+            when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
+
                --  Make the SCO statement span until the parameters closing
                --  parent (if present). If there is no parameter, then use the
                --  entry index. If there is no entry index, fallback to the
                --  entry name.
+
                declare
                   Stmt : constant Accept_Stmt := N.As_Accept_Stmt;
                begin
