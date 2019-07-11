@@ -1,1 +1,2 @@
 7.0.2 XFAIL relies on specific debug info for untangling multiple inlined instances, fixed post 7.0
+src-traces XFAIL no stmt instrumentation on expression functions (S610-039)
