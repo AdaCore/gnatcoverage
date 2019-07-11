@@ -4,7 +4,7 @@ package body Notes is
    function Id (N : Cnote) return Nid is
    begin
       raise Program_Error; -- # cnote
-      return "ERR!";       -- no code for this line
+      return "ERR!";       -- # no-code
    end;
 
    function Id (N : Dtne) return Nid is
