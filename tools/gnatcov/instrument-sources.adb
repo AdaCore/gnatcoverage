@@ -652,13 +652,23 @@ package body Instrument.Sources is
       RH_P : constant Node_Rewriting_Handle :=
         Create_Node
           (IC.Rewriting_Context, Libadalang.Common.Ada_Identifier);
-      RH_N : constant Node_Rewriting_Handle := Handle (N);
+      RH_N : Node_Rewriting_Handle;
 
    begin
       --  No instrumentation for condition if there is no local state variable
 
       if Length (SC.State) = 0 then
          return;
+      end if;
+
+      --  Special case of conditional and quantified expressions: we need to
+      --  move them along with their enclosing parentheses.
+
+      if Kind (N) in Ada_Quantified_Expr | Ada_If_Expr | Ada_Case_Expr then
+         pragma Assert (Kind (N.Parent) = Ada_Paren_Expr);
+         RH_N := Handle (N.Parent);
+      else
+         RH_N := Handle (N);
       end if;
 
       --  Detach original condition from tree so that it can be reattached
