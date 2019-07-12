@@ -461,6 +461,7 @@ package SC_Obligations is
           Pragma_Ada_2012 => False,
           Pragma_Ada_2020 => False,
 
+          Pragma_Aggregate_Individually_Assign => False,
           Pragma_Allow_Integer_Address => False,
           Pragma_Annotate => False,
           Pragma_Assertion_Policy => False,
