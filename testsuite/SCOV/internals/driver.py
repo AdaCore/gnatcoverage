@@ -577,8 +577,10 @@ class SCOV_helper:
         this_depth = (
             thistest.depth + 1 if self.covctl else thistest.depth)
 
+        self.gpr_obj_dir = 'obj'
         self.gpr = gprfor (
             mains = self.drivers, prjid="gen",
+            objdir = self.gpr_obj_dir,
             srcdirs = [
                 "../"*n + "src" for n in range (1, this_depth)],
             exedir = self.abdir(),
@@ -1206,6 +1208,7 @@ class SCOV_helper_src_traces(SCOV_helper):
             covlevel=self.xcovlevel, isi_file=self.ISI_FILE,
             extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
             gprsw=instrument_gprsw,
+            gpr_obj_dir=self.gpr_obj_dir,
             out=out)
 
         # Standard output might contain warnings indicating instrumentation

@@ -24,7 +24,7 @@ COV_RE = re.compile('^ *(\d+) (.):.*$')
 
 
 def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
-                  gpr_exe_dir=None, ignored_source_files=[],
+                  gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
                   separate_coverage=None, extra_args=[],
                   extra_gprbuild_args=[], absolute_paths=False):
     """
@@ -49,6 +49,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         the current trace mode is binary. If absent, we pass "-P" to "gnatcov
         coverage"/"gnatcov instrument" so that it automatically discovers the
         units of interest.
+    :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
+        will create build artifacts. If left to None, assume they are produced
+        in "$gpr_exe_dir/obj".
     :param None|str gpr_exe_dir: Optional name of the directory where gprbuild
         will create executables to run. If left to None, assume they are
         produced in the current directory.
@@ -78,6 +81,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
     def gprbuild_wrapper(root_project, gargs=[]):
         gprbuild(root_project, gargs=gargs + extra_gprbuild_args)
+
+    gpr_exe_dir = gpr_exe_dir or '.'
+    gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, 'obj')
 
     trace_mode = thistest.options.trace_mode
     xcov_args = ['coverage', '--level', covlevel]
@@ -113,7 +119,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         # Instrument the project and build the result
         isi_file = abspath('instr.isi')
         xcov_instrument(gprsw, covlevel, isi_file,
-                        extra_args=cov_or_instr_args, out='instrument.log')
+                        extra_args=cov_or_instr_args, gpr_obj_dir=gpr_obj_dir,
+                        out='instrument.log')
         xcov_args.extend(['--isi', isi_file])
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
