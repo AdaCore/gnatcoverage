@@ -696,12 +696,12 @@ package body Instrument.Tree is
                   Replace (Old_Cond, New_Cond);
 
                   --  Now reattach old condition in new AND THEN node. If it
-                  --  is AND, OR or XOR binary operation, we need to wrap it in
-                  --  parens to generate valid code.
+                  --  is AND, OR, XOR or OR ELSE binary operation, we need to
+                  --  wrap it in parens to generate valid code.
 
                   if Kind (Old_Cond) = Ada_Bin_Op
                      and then Kind (Child (Old_Cond, 2)) in
-                        Ada_Op_And | Ada_Op_Or | Ada_Op_Xor
+                        Ada_Op_And | Ada_Op_Or | Ada_Op_Xor | Ada_Op_Or_Else
                   then
                      Old_Cond := Create_Regular_Node
                        (IC.Rewriting_Context,
