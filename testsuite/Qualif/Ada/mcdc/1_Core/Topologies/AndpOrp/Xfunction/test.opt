@@ -1,3 +1,3 @@
 7.0.2 DEAD support for Ada2012 constructs not in 7.0.2
 7.2.2 DEAD support for Ada2012 constructs weak in 7.2.2
-src-traces XFAIL no stmt instrumentation on expression functions (S610-039)
+src-traces XFAIL no mc/dc instrumentation on expression functions (S725-026)
