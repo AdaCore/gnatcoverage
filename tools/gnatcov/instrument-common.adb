@@ -22,6 +22,8 @@ with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Langkit_Support.Text;
+with Libadalang.Common;
+with Libadalang.Sources;
 
 with Outputs; use Outputs;
 with Project;
@@ -48,6 +50,10 @@ package body Instrument.Common is
      (Info : in out Project_Info; Name : String) return String;
    --  Helper for Create_File and Start_Rewriting: compute the path to the file
    --  to create and register it to Info.Instr_Files.
+
+   procedure Disable_Warnings_And_Style_Checks (Rewriter : Source_Rewriter);
+   --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit and prepend
+   --  pragmas to disable both.
 
    ------------
    -- To_Ada --
@@ -359,6 +365,107 @@ package body Instrument.Common is
       return Self.Unit;
    end Rewritten_Unit;
 
+   ---------------------------------------
+   -- Disable_Warnings_And_Style_Checks --
+   ---------------------------------------
+
+   procedure Disable_Warnings_And_Style_Checks (Rewriter : Source_Rewriter) is
+      use Langkit_Support.Text;
+      use Libadalang.Common;
+      use Libadalang.Sources;
+
+      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean;
+      --  Return whether Node is a pragma Warnings or Style_Checks
+
+      function Create_Pragma (Name : Text_Type) return Node_Rewriting_Handle;
+      --  Helper to create nodes for "pragma <Name> (Off);"
+
+      procedure Process (Node : Node_Rewriting_Handle);
+      --  Recursive traversal subprogram for all nodes in Rewriter's unit.
+      --
+      --  Remove all pragma Warnings/Style_Checks statements from Node and its
+      --  children. Once this is done, if Node is a compilation unit, prepend
+      --  pragmas to disable all warnings and style checks to its prelude.
+
+      -------------------
+      -- Should_Remove --
+      -------------------
+
+      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean is
+      begin
+         if Kind (Node) /= Ada_Pragma_Node then
+            return False;
+         end if;
+
+         declare
+            Symbol : constant Symbolization_Result :=
+               Canonicalize (Text (Child (Node, 1)));
+         begin
+            return (Symbol.Success
+                    and then Symbol.Symbol in "warnings" | "style_checks");
+         end;
+      end Should_Remove;
+
+      -------------------
+      -- Create_Pragma --
+      -------------------
+
+      function Create_Pragma (Name : Text_Type) return Node_Rewriting_Handle is
+      begin
+         return Create_From_Template
+           (Handle    => Rewriter.Handle,
+            Template  => "pragma " & Name & " (Off);",
+            Arguments => (1 .. 0 => <>),
+            Rule      => Libadalang.Common.Stmt_Rule);
+      end Create_Pragma;
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Node : Node_Rewriting_Handle) is
+      begin
+         if Node = No_Node_Rewriting_Handle then
+            return;
+         end if;
+
+         --  Go through all children in reverse order so that we can remove
+         --  pragmas in one pass.
+
+         for I in reverse 1 .. Children_Count (Node) loop
+            declare
+               Child : constant Node_Rewriting_Handle :=
+                  Libadalang.Rewriting.Child (Node, I);
+            begin
+               if Child /= No_Node_Rewriting_Handle
+                 and then Should_Remove (Child)
+               then
+                  Remove_Child (Node, I);
+               else
+                  Process (Child);
+               end if;
+            end;
+         end loop;
+
+         --  Disable warnings and pragmas on compilation units
+
+         if Kind (Node) = Ada_Compilation_Unit then
+            declare
+               Prelude : constant Node_Rewriting_Handle :=
+                  Child (Node, 1);
+            begin
+               Insert_Child (Prelude, 1, Create_Pragma ("Warnings"));
+               Insert_Child (Prelude, 2, Create_Pragma ("Style_Checks"));
+            end;
+         end if;
+      end Process;
+
+   --  Start of processing for Disable_Warnings_And_Style_Checks
+
+   begin
+      Process (Handle (Rewriter.Unit.Root));
+   end Disable_Warnings_And_Style_Checks;
+
    -----------
    -- Apply --
    -----------
@@ -366,6 +473,13 @@ package body Instrument.Common is
    procedure Apply (Self : in out Source_Rewriter) is
       Has_Error : Boolean := False;
    begin
+      --  Automatically insert pragmas to disable style checks and
+      --  warnings in generated code: it is not our goal to make
+      --  instrumentation generate warning-free or well-formatted
+      --  code.
+
+      Disable_Warnings_And_Style_Checks (Self);
+
       declare
          use Ada.Text_IO;
          Result : constant Apply_Result := Apply (Self.Handle);
