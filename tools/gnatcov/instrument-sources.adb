@@ -371,8 +371,6 @@ package body Instrument.Sources is
 
          case Dump_Method is
             when At_Exit  =>
-               File.Put_Line ("with Ada.Strings.Unbounded;");
-               File.Put_Line ("use Ada.Strings.Unbounded;");
                File.Put_Line ("with Interfaces.C;");
             when Main_End =>
                null;
@@ -380,16 +378,6 @@ package body Instrument.Sources is
 
          File.Put_Line ("package body " & Helper_Unit_Name & " is");
          File.New_Line;
-
-         if IC.Dump_Method = At_Exit then
-
-            --  The at-exit dump method computes the trace filename at
-            --  registration time, but writes the trace file later, so it needs
-            --  a temporary to hold the filename between these two steps.
-
-            File.Put_Line ("   Filename : Unbounded_String;");
-            File.New_Line;
-         end if;
 
          --  Emit the procedure to write the trace file
 
@@ -417,16 +405,9 @@ package body Instrument.Sources is
             end;
          end loop;
 
-         declare
-            Filename_Expr : constant String :=
-              (case Dump_Method is
-               when At_Exit =>
-                  "To_String (Filename)",
-               when Main_End =>
-                  To_Ada (Output_Unit) & ".Default_Trace_Filename");
-         begin
-            File.Put_Line ("         Filename => " & Filename_Expr & ");");
-         end;
+         File.Put_Line ("         Filename => "
+                        & To_Ada (Output_Unit) & ".Default_Trace_Filename"
+                        & ");");
 
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;
@@ -450,9 +431,7 @@ package body Instrument.Sources is
                File.Put_Line ("   Dummy : constant Interfaces.C.int :=");
                File.Put_Line ("     atexit (" & Dump_Procedure & "'Access);");
                File.Put_Line ("begin");
-               File.Put_Line ("   Filename := To_Unbounded_String");
-               File.Put_Line ("     (" & To_Ada (Output_Unit)
-                              & ".Default_Trace_Filename);");
+               File.Put_Line ("   null;");
                File.Put_Line
                  ("end " & To_String (Register_Dump_Procedure_Name) & ";");
                File.New_Line;
