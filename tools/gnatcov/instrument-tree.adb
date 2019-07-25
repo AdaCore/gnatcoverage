@@ -714,18 +714,54 @@ package body Instrument.Tree is
 
             elsif SCE.N.Parent.Kind = Ada_Expr_Function then
 
-               --  ??? We don't know yet how to intert a witness call for the
-               --  statement SCO corresponding to the expression body for the
-               --  expression function. Be conservative in the meantime: insert
-               --  no such call for now, so the corresponding obligations will
-               --  never be satisfied.
+               --  Wrap the expression in the following construct:
+               --
+               --     (case [WITNESS_CALL] is
+               --        when others => [SCE.N])
+               --
+               --  So that the witness call is executed before the original
+               --  expression is evaluated.
 
-               Report
-                 (IC   => IC,
-                  Node => SCE.N,
-                  Msg  => "gnatcov limitation: cannot insert witness call for"
-                          & " expression function",
-                  Kind => Diagnostics.Warning);
+               declare
+                  Ctx           : constant Rewriting_Handle :=
+                     IC.Rewriting_Context;
+                  Expr_Function : constant Node_Rewriting_Handle :=
+                     Handle (SCE.N.Parent);
+                  Expr          : constant Node_Rewriting_Handle :=
+                     Handle (SCE.N);
+
+                  Witness_Call : constant Node_Rewriting_Handle :=
+                    Make_Statement_Witness
+                      (IC,
+                       Bit    => IC.Unit_Bits.Last_Statement_Bit,
+                       Flavor => Function_Call);
+
+                  Case_Alternatives : constant Node_Rewriting_Handle :=
+                     Create_Node (Ctx, Ada_Case_Expr_Alternative_List);
+
+                  Choices : constant Node_Rewriting_Handle :=
+                     Create_Node (Ctx, Ada_Alternatives_List);
+
+                  Wrapping_Expr : constant Node_Rewriting_Handle :=
+                     Create_Regular_Node
+                       (Ctx, Ada_Paren_Expr,
+                        (1 => Create_Regular_Node
+                                (Ctx, Ada_Case_Expr,
+                                 (1 => Witness_Call,
+                                 2 => Case_Alternatives))));
+               begin
+                  Set_Child (Expr_Function, 3, Wrapping_Expr);
+                  Append_Child
+                    (Choices,
+                     Create_Regular_Node (Ctx, Ada_Others_Designator,
+                                          (1 .. 0 => <>)));
+                  Append_Child
+                    (Case_Alternatives,
+                     Create_Regular_Node
+                       (Ctx, Ada_Case_Expr_Alternative,
+                        (1 => Choices,
+                         2 => Expr)));
+               end;
 
             else
                if SCE.N.Kind = Ada_Accept_Stmt_With_Stmts
