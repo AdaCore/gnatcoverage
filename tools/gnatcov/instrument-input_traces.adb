@@ -18,13 +18,17 @@
 
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
+with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
+
+with Interfaces;
 
 with System;
 with System.Storage_Elements;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
+with GNATcov_RTS.Buffers;
 with GNATcov_RTS.Traces; use GNATcov_RTS.Traces;
 
 with Hex_Images;
@@ -628,6 +632,11 @@ package body Instrument.Input_Traces is
               (1 .. Natural (Entry_Header.Unit_Name_Length))
                with Import, Address => Trace_Entry.Unit_Name;
 
+            function Convert is new Ada.Unchecked_Conversion
+              (GNATcov_RTS.Buffers.SCOs_Hash, SC_Obligations.SCOs_Hash);
+            Fingerprint : constant SC_Obligations.SCOs_Hash :=
+               Convert (Entry_Header.Fingerprint);
+
             Statement_Buffer_Size : constant Natural :=
                Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
                             Entry_Header.Statement_Bit_Count);
@@ -687,7 +696,7 @@ package body Instrument.Input_Traces is
             end if;
 
             On_Trace_Entry
-              (Hash_Type (Entry_Header.Closure_Hash),
+              (Fingerprint,
                Unit_Name,
                Unit_Part_Map (Entry_Header.Unit_Part),
                Statement_Buffer
@@ -716,7 +725,7 @@ package body Instrument.Input_Traces is
         (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
          Data : String);
       procedure On_Trace_Entry
-        (Closure_Hash     : Hash_Type;
+        (Fingerprint      : SC_Obligations.SCOs_Hash;
          Unit_Name        : String;
          Unit_Part        : Unit_Parts;
          Statement_Buffer : Coverage_Buffer;
@@ -755,7 +764,7 @@ package body Instrument.Input_Traces is
       --------------------
 
       procedure On_Trace_Entry
-        (Closure_Hash     : Hash_Type;
+        (Fingerprint      : SC_Obligations.SCOs_Hash;
          Unit_Name        : String;
          Unit_Part        : Unit_Parts;
          Statement_Buffer : Coverage_Buffer;
@@ -769,10 +778,11 @@ package body Instrument.Input_Traces is
             Last_Is_Info := False;
          end if;
 
-         Put_Line
-           ("Unit " & Unit_Name & " (" & Unit_Part'Image & ", hash="
-            & Hex_Images.Hex_Image (Interfaces.Unsigned_32 (Closure_Hash))
-            & ")");
+         Put ("Unit " & Unit_Name & " (" & Unit_Part'Image & ", hash=");
+         for B of Fingerprint loop
+            Put (Hex_Images.Hex_Image (Interfaces.Unsigned_8 (B)));
+         end loop;
+         Put_Line (")");
          Dump_Buffer ("Statement", Statement_Buffer);
          Dump_Buffer ("Decision", Decision_Buffer);
          Dump_Buffer ("MCDC", MCDC_Buffer);

@@ -24,8 +24,6 @@ with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with GNAT.SHA1;
-
 with ALI_Files;     use ALI_Files;
 with Aspects;       use Aspects;
 with Checkpoints;   use Checkpoints;
@@ -53,8 +51,6 @@ package body SC_Obligations is
    -------------------------------------
    -- Low-level SCO tables management --
    -------------------------------------
-
-   type SCOs_Hash is new GNAT.SHA1.Binary_Message_Digest;
 
    function SCO_Tables_Fingerprint return SCOs_Hash;
    --  Return a fingerprint for all low-level SCO tables
@@ -1783,6 +1779,15 @@ package body SC_Obligations is
    begin
       return CU_Vector.Reference (CU).Provider;
    end Provider;
+
+   -----------------
+   -- Fingerprint --
+   -----------------
+
+   function Fingerprint (CU : CU_Id) return SCOs_Hash is
+   begin
+      return CU_Vector.Reference (CU).Fingerprint;
+   end Fingerprint;
 
    ---------------
    -- Load_SCOs --

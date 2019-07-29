@@ -174,11 +174,6 @@ package GNATcov_RTS.Traces is
       Any_Bit_Buffer_Encoding range LSB_First_Bytes .. LSB_First_Bytes;
 
    type Trace_Entry_Header is record
-      Closure_Hash : Hash_Type;
-      --  Hash for the instrumented unit and its complete dependency closure.
-      --  This hash is used as a fast way to check that coverage obligations
-      --  and coverage data are consistent.
-
       Unit_Name_Length : Unsigned_32;
       --  Length of the unit name for the unit this trace entry describes
 
@@ -193,22 +188,27 @@ package GNATcov_RTS.Traces is
       Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
       --  Encoding used to represent statement and decision coverage buffers
 
+      Fingerprint : Buffers.SCOs_Hash;
+      --  Hash of SCO info for this unit. Useds a fast way to check that
+      --  coverage obligations and coverage data are consistent. Specific hash
+      --  values are computed during instrumentation.
+
       Padding : String (1 .. 2);
       --  Padding used only to make the size of this trace entry header a
       --  multiple of 8 bytes. Must be zero.
    end record;
 
    for Trace_Entry_Header use record
-      Closure_Hash        at  0 range 0 .. 31;
-      Unit_Name_Length    at  4 range 0 .. 31;
-      Statement_Bit_Count at  8 range 0 .. 31;
-      Decision_Bit_Count  at 12 range 0 .. 31;
-      MCDC_Bit_Count      at 16 range 0 .. 31;
-      Unit_Part           at 20 range 0 .. 7;
-      Bit_Buffer_Encoding at 21 range 0 .. 7;
-      Padding             at 22 range 0 .. 2 * 8 - 1;
+      Unit_Name_Length    at  0 range 0 .. 31;
+      Statement_Bit_Count at  4 range 0 .. 31;
+      Decision_Bit_Count  at  8 range 0 .. 31;
+      MCDC_Bit_Count      at 12 range 0 .. 31;
+      Unit_Part           at 16 range 0 .. 7;
+      Bit_Buffer_Encoding at 17 range 0 .. 7;
+      Fingerprint         at 18 range 0 .. 20 * 8 - 1;
+      Padding             at 38 range 0 .. 2 * 8 - 1;
    end record;
 
-   for Trace_Entry_Header'Size use 24 * 8;
+   for Trace_Entry_Header'Size use 40 * 8;
 
 end GNATcov_RTS.Traces;

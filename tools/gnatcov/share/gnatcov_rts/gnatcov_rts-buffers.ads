@@ -5,6 +5,7 @@
 
 with Interfaces;
 with System;
+with System.Storage_Elements;
 
 package GNATcov_RTS.Buffers is
 
@@ -30,14 +31,16 @@ package GNATcov_RTS.Buffers is
    --  Even though it is tempting to pack this array to save memory, we must
    --  avoid bit packing to allow concurrent writes to coverage buffers.
 
-   type Hash_Type is new Interfaces.Unsigned_32;
-   --  Hash type to perform consistency checks
+   type SCOs_Hash is new System.Storage_Elements.Storage_Array (1 ..  20);
+   --  Hash type to perform consistency checks over Source Coverage
+   --  Obligations. 20-byte to hold a SHA-1.
 
    type Unit_Coverage_Buffers (Unit_Name_Length : Positive) is record
-      Closure_Hash : Hash_Type;
-      --  Hash for the instrumented unit and its complete dependency closure.
-      --  This hash is used as a fast way to check that coverage obligations
-      --  and coverage data are consistent.
+      Fingerprint : SCOs_Hash;
+      --  Hash of SCO info for this unit, as gnatcov computes it (see
+      --  SC_Obligations). Used a fast way to check that coverage obligations
+      --  and coverage data are consistent. Specific hash values are computed
+      --  during instrumentation.
 
       Unit_Part : Any_Unit_Part;
       Unit_Name : String (1 .. Unit_Name_Length);

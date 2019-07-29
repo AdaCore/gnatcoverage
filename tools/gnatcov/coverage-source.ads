@@ -41,7 +41,7 @@ package Coverage.Source is
    --  determine the coverage state of each SCO.
 
    procedure Compute_Source_Coverage
-     (Closure_Hash    : Hash_Type;
+     (Fingerprint     : SC_Obligations.SCOs_Hash;
       Unit_Name       : String;
       Unit_Part       : GNATCOLL.Projects.Unit_Parts;
       Stmt_Buffer     : Coverage_Buffer;

@@ -101,8 +101,7 @@ package body Instrument is
       declare
          Pkg_Name : constant String := To_Ada (CU_Name.Unit);
 
-         Closure_Hash : constant String := Strings.Img (0);
-         --  TODO??? Actually compute this hash
+         Fingerprint : Unbounded_String;
 
          Unit_Name : constant String := Ada.Characters.Handling.To_Lower
            (To_Ada (UIC.Instrumented_Unit.Unit));
@@ -123,6 +122,23 @@ package body Instrument is
            (UIC.Unit_Bits.Last_Path_Bit);
 
       begin
+         --  Turn the fingerprint value into the corresponding Ada literal
+
+         declare
+            First : Boolean := True;
+         begin
+            Append (Fingerprint, "(");
+            for Byte of SC_Obligations.Fingerprint (UIC.CU) loop
+               if First then
+                  First := False;
+               else
+                  Append (Fingerprint, ", ");
+               end if;
+               Append (Fingerprint, Strings.Img (Integer (Byte)));
+            end loop;
+            Append (Fingerprint, ")");
+         end;
+
          File.Put_Line ("package " & Pkg_Name & " is");
          File.New_Line;
          File.Put_Line ("   pragma Preelaborate;");
@@ -160,7 +176,8 @@ package body Instrument is
          File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Unit_Name_Length => "
                         & Strings.Img (Unit_Name'Length) & ",");
-         File.Put_Line ("      Closure_Hash => " & Closure_Hash & ",");
+         File.Put_Line ("      Fingerprint => "
+                        & To_String (Fingerprint) & ",");
 
          File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
          File.Put_Line ("      Unit_Name => """ & Unit_Name & """,");

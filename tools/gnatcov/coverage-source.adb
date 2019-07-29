@@ -1228,14 +1228,14 @@ package body Coverage.Source is
    end Compute_Source_Coverage;
 
    procedure Compute_Source_Coverage
-     (Closure_Hash    : Instrument.Input_Traces.Hash_Type;
+     (Fingerprint     : SC_Obligations.SCOs_Hash;
       Unit_Name       : String;
       Unit_Part       : GNATCOLL.Projects.Unit_Parts;
       Stmt_Buffer     : Coverage_Buffer;
       Decision_Buffer : Coverage_Buffer;
       MCDC_Buffer     : Coverage_Buffer)
    is
-      pragma Unreferenced (Closure_Hash);
+      pragma Unreferenced (Fingerprint);
 
       CU : CU_Id;
       BM : CU_Bit_Maps;
@@ -1295,7 +1295,7 @@ package body Coverage.Source is
 
       Set_Unit_Has_Code (CU);
 
-      --  Sanity check that Closure_Hash is consistent with what the
+      --  Sanity check that Fingerprint is consistent with what the
       --  instrumenter recorded in the CU info.
       --  ??? TBD
 

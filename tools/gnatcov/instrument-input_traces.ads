@@ -18,16 +18,13 @@
 
 --  Source trace files decoding
 
-with Interfaces;
-
 with GNATCOLL.Projects;
 
-with Traces_Files;
 with GNATcov_RTS.Traces;
+with SC_Obligations;
+with Traces_Files;
 
 package Instrument.Input_Traces is
-
-   type Hash_Type is new Interfaces.Unsigned_32;
 
    type Coverage_Buffer is array (Bit_Id range <>) of Boolean with Pack;
    --  Content of a coverage buffer
@@ -37,7 +34,7 @@ package Instrument.Input_Traces is
         (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
          Data : String) is <>;
       with procedure On_Trace_Entry
-        (Closure_Hash    : Hash_Type;
+        (Fingerprint     : SC_Obligations.SCOs_Hash;
          Unit_Name       : String;
          Unit_Part       : GNATCOLL.Projects.Unit_Parts;
          Stmt_Buffer     : Coverage_Buffer;

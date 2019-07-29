@@ -139,8 +139,7 @@ package body GNATcov_RTS.Traces.Output is
    procedure Write_Entry (File : File_Type; Buffers : Unit_Coverage_Buffers)
    is
       Header : constant Trace_Entry_Header :=
-        (Closure_Hash        => Traces.Hash_Type (Buffers.Closure_Hash),
-         Unit_Name_Length    =>
+        (Unit_Name_Length    =>
             Interfaces.Unsigned_32 (Buffers.Unit_Name_Length),
          Statement_Bit_Count =>
             Traces.Any_Bit_Count (Buffers.Statement_Last_Bit + 1),
@@ -150,6 +149,7 @@ package body GNATcov_RTS.Traces.Output is
             Traces.Any_Bit_Count (Buffers.MCDC_Last_Bit + 1),
          Unit_Part           => Unit_Part_Map (Buffers.Unit_Part),
          Bit_Buffer_Encoding => LSB_First_Bytes,
+         Fingerprint         => Buffers.Fingerprint,
          Padding             => (others => ASCII.NUL));
    begin
       Write_Bytes (File, Header'Address, Header'Size / 8);

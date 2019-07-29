@@ -20,7 +20,9 @@
 
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
+
 with GNAT.Regexp;
+with GNAT.SHA1;
 
 with Namet;
 with Snames; use Snames;
@@ -69,6 +71,11 @@ package SC_Obligations is
 
    function Provider (CU : CU_Id) return SCO_Provider;
    --  Return the SCO provider corresponding to the given compilation unit
+
+   type SCOs_Hash is new GNAT.SHA1.Binary_Message_Digest;
+
+   function Fingerprint (CU : CU_Id) return SCOs_Hash;
+   --  Hash of SCO info in ALI, for incremental coverage consistency check
 
    function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
    --  Return the identifier for the compilation unit containing the given
