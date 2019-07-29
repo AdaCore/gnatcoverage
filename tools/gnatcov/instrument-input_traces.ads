@@ -34,7 +34,8 @@ package Instrument.Input_Traces is
         (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
          Data : String) is <>;
       with procedure On_Trace_Entry
-        (Fingerprint     : SC_Obligations.SCOs_Hash;
+        (Filename        : String;
+         Fingerprint     : SC_Obligations.SCOs_Hash;
          Unit_Name       : String;
          Unit_Part       : GNATCOLL.Projects.Unit_Parts;
          Stmt_Buffer     : Coverage_Buffer;

@@ -1228,15 +1228,14 @@ package body Coverage.Source is
    end Compute_Source_Coverage;
 
    procedure Compute_Source_Coverage
-     (Fingerprint     : SC_Obligations.SCOs_Hash;
+     (Filename        : String;
+      Fingerprint     : SC_Obligations.SCOs_Hash;
       Unit_Name       : String;
       Unit_Part       : GNATCOLL.Projects.Unit_Parts;
       Stmt_Buffer     : Coverage_Buffer;
       Decision_Buffer : Coverage_Buffer;
       MCDC_Buffer     : Coverage_Buffer)
    is
-      pragma Unreferenced (Fingerprint);
-
       CU : CU_Id;
       BM : CU_Bit_Maps;
 
@@ -1291,13 +1290,19 @@ package body Coverage.Source is
          return;
       end if;
 
+      --  Sanity check that Fingerprint is consistent with what the
+      --  instrumenter recorded in the CU info.
+
+      if Fingerprint /= SC_Obligations.Fingerprint (CU) then
+         Warn ("traces for " & Unit_Image  & " (from " & Filename & ") are"
+               & " inconsistent with the corresponding Instrumented Source"
+               & " Information");
+         return;
+      end if;
+
       --  Mark unit as present in closure
 
       Set_Unit_Has_Code (CU);
-
-      --  Sanity check that Fingerprint is consistent with what the
-      --  instrumenter recorded in the CU info.
-      --  ??? TBD
 
       --  Discharge SCOs based on source traces
 

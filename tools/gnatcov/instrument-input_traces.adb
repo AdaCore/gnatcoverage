@@ -696,7 +696,7 @@ package body Instrument.Input_Traces is
             end if;
 
             On_Trace_Entry
-              (Fingerprint,
+              (Filename, Fingerprint,
                Unit_Name,
                Unit_Part_Map (Entry_Header.Unit_Part),
                Statement_Buffer
@@ -725,12 +725,13 @@ package body Instrument.Input_Traces is
         (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
          Data : String);
       procedure On_Trace_Entry
-        (Fingerprint      : SC_Obligations.SCOs_Hash;
-         Unit_Name        : String;
-         Unit_Part        : Unit_Parts;
-         Statement_Buffer : Coverage_Buffer;
-         Decision_Buffer  : Coverage_Buffer;
-         MCDC_Buffer      : Coverage_Buffer);
+        (Filename        : String;
+         Fingerprint     : SC_Obligations.SCOs_Hash;
+         Unit_Name       : String;
+         Unit_Part       : GNATCOLL.Projects.Unit_Parts;
+         Stmt_Buffer     : Coverage_Buffer;
+         Decision_Buffer : Coverage_Buffer;
+         MCDC_Buffer     : Coverage_Buffer);
       --  Callbacks for Read_Source_Trace_File
 
       Last_Is_Info : Boolean := False;
@@ -764,13 +765,15 @@ package body Instrument.Input_Traces is
       --------------------
 
       procedure On_Trace_Entry
-        (Fingerprint      : SC_Obligations.SCOs_Hash;
-         Unit_Name        : String;
-         Unit_Part        : Unit_Parts;
-         Statement_Buffer : Coverage_Buffer;
-         Decision_Buffer  : Coverage_Buffer;
-         MCDC_Buffer      : Coverage_Buffer)
+        (Filename        : String;
+         Fingerprint     : SC_Obligations.SCOs_Hash;
+         Unit_Name       : String;
+         Unit_Part       : GNATCOLL.Projects.Unit_Parts;
+         Stmt_Buffer     : Coverage_Buffer;
+         Decision_Buffer : Coverage_Buffer;
+         MCDC_Buffer     : Coverage_Buffer)
       is
+         pragma Unreferenced (Filename);
          use Ada.Text_IO;
       begin
          if Last_Is_Info then
@@ -783,7 +786,7 @@ package body Instrument.Input_Traces is
             Put (Hex_Images.Hex_Image (Interfaces.Unsigned_8 (B)));
          end loop;
          Put_Line (")");
-         Dump_Buffer ("Statement", Statement_Buffer);
+         Dump_Buffer ("Statement", Stmt_Buffer);
          Dump_Buffer ("Decision", Decision_Buffer);
          Dump_Buffer ("MCDC", MCDC_Buffer);
          New_Line;
