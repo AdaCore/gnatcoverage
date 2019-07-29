@@ -594,8 +594,9 @@ package body Instrument.Common is
    -- Create_Context --
    --------------------
 
-   function Create_Context (Dump_Method : Any_Dump_Method) return Inst_Context
-   is
+   function Create_Context
+     (Dump_Method      : Any_Dump_Method;
+      Language_Version : Any_Language_Version) return Inst_Context is
    begin
       return IC : Inst_Context do
          IC.Project_Name := +Ada.Directories.Base_Name
@@ -603,6 +604,7 @@ package body Instrument.Common is
          --  TODO??? Get the original casing for the project name
 
          IC.Dump_Method := Dump_Method;
+         IC.Language_Version := Language_Version;
       end return;
    end Create_Context;
 

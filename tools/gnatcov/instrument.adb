@@ -379,9 +379,11 @@ package body Instrument is
      (ISI_Filename         : String;
       Units_Inputs         : Inputs.Inputs_Type;
       Dump_Method          : Any_Dump_Method;
+      Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
-      IC                : Inst_Context := Create_Context (Dump_Method);
+      IC                : Inst_Context :=
+         Create_Context (Dump_Method, Language_Version);
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 

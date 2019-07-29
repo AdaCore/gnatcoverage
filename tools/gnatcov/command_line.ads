@@ -98,7 +98,8 @@ package Command_Line is
       Opt_Trace_Source,
       Opt_Save_Checkpoint,
       Opt_Report_Title,
-      Opt_Dump_Method);
+      Opt_Dump_Method,
+      Opt_Ada);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -599,7 +600,20 @@ package Command_Line is
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
          Internal     => True,
-         Pattern      => "atexit|main-end"));
+         Pattern      => "atexit|main-end"),
+
+      Opt_Ada => Create
+        (Long_Name    => "--ada",
+         Pattern      => "83|95|05|12|1983|1995|2005|2012",
+         Help         => "Select a target language version for source"
+                         & " instrumentation. This restricts the set of"
+                         & " language constructs that can be introduced in "
+                         & " instrumented sources. Emit a warning when such a"
+                         & " construct is needed. Use the latest language"
+                         & " version by default.",
+         Commands     => (Cmd_Instrument => True, others => False),
+         At_Most_Once => False,
+         Internal     => True));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Debug => Create

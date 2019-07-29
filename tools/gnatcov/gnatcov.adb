@@ -1345,8 +1345,12 @@ begin
             Has_Matcher : Boolean;
 
             Dump_Opt    : String_Option renames
-              Args.String_Args (Opt_Dump_Method);
+               Args.String_Args (Opt_Dump_Method);
             Dump_Method : Any_Dump_Method := Manual;
+
+            Language_Version_Opt : String_Option renames
+               Args.String_Args (Opt_Ada);
+            Language_Version : Any_Language_Version := Ada_2012;
          begin
             Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
 
@@ -1366,10 +1370,27 @@ begin
                end;
             end if;
 
+            if Language_Version_Opt.Present then
+               declare
+                  Value : constant String := +Language_Version_Opt.Value;
+               begin
+                  if Value in "83" | "1983" then
+                     Language_Version := Ada_83;
+                  elsif Value in "95" | "1995" then
+                     Language_Version := Ada_95;
+                  elsif Value in "05" | "2005" then
+                     Language_Version := Ada_2005;
+                  elsif Value in "12" | "2012" then
+                     Language_Version := Ada_2012;
+                  end if;
+               end;
+            end if;
+
             Instrument.Instrument_Units_Of_Interest
               (ISI_Filename         => Output.all,
                Units_Inputs         => Units_Inputs,
                Dump_Method          => Dump_Method,
+               Language_Version     => Language_Version,
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null));
          end;

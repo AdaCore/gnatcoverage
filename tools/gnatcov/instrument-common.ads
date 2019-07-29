@@ -262,8 +262,9 @@ package Instrument.Common is
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
 
-      Dump_Method : Any_Dump_Method;
-      --  See the eponym argument in Instrument.Intrument_Units_Of_Interest
+      Dump_Method      : Any_Dump_Method;
+      Language_Version : Any_Language_Version;
+      --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
 
       Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
       --  List of mains to instrument *which are not units of interest*. Always
@@ -282,7 +283,9 @@ package Instrument.Common is
       --  Project_Info record.
    end record;
 
-   function Create_Context (Dump_Method : Any_Dump_Method) return Inst_Context;
+   function Create_Context
+     (Dump_Method      : Any_Dump_Method;
+      Language_Version : Any_Language_Version) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
 
    procedure Destroy_Context (Context : in out Inst_Context);

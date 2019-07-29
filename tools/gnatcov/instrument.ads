@@ -45,10 +45,13 @@ package Instrument is
 
    subtype Auto_Dump_Method is Any_Dump_Method range At_Exit .. Main_End;
 
+   type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012);
+
    procedure Instrument_Units_Of_Interest
      (ISI_Filename         : String;
       Units_Inputs         : Inputs.Inputs_Type;
       Dump_Method          : Any_Dump_Method;
+      Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs to
@@ -61,6 +64,11 @@ package Instrument is
    --  Depending on Dump_Method, instrument mains to schedule a call to
    --  System.GNATcov.Traces.Output.Write_Trace_File for list of coverage
    --  buffers in all mains in the project.
+   --
+   --  Language_Version restricts what source constructs the instrumenter is
+   --  allowed to use. For instance, if Ada_2005 (or a lower version) is
+   --  passed, it will not be allowed to introduce expression functions, and
+   --  thus will emit a warning when it needed to do so.
    --
    --  If Ignored_Source_File is non-null, ignore files whose names match the
    --  accessed pattern.
