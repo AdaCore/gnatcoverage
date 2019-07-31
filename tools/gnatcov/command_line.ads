@@ -61,6 +61,10 @@ package Command_Line is
       Cmd_Instrument);
    --  Set of commands we support. More complete descriptions below.
 
+   Instrument_Experimental : constant Boolean := True;
+   --  Remove this once we consider that instrumentation is officially
+   --  supported.
+
    type Bool_Options is
      (Opt_Verbose,
       Opt_Recursive,
@@ -298,7 +302,7 @@ package Command_Line is
          Description => ("Instrument the given project and produce the"
                          & " associated Instrumented Source Information"
                          & " file."),
-         Internal    => True));
+         Internal    => Instrument_Experimental));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
      (Opt_Verbose => Create
@@ -599,7 +603,7 @@ package Command_Line is
                          & " main closure.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
-         Internal     => True,
+         Internal     => Instrument_Experimental,
          Pattern      => "atexit|main-end"),
 
       Opt_Ada => Create
@@ -613,7 +617,7 @@ package Command_Line is
                          & " version by default.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
-         Internal     => True));
+         Internal     => Instrument_Experimental));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Debug => Create
@@ -674,7 +678,7 @@ package Command_Line is
                          & " in LISTFILE."),
          Commands    => (Cmd_Coverage => True,
                          others       => False),
-         Internal    => False),
+         Internal    => Instrument_Experimental),
       Opt_Routines => Create
         (Long_Name   => "--routines",
          Pattern     => "[ROUTINE|@LISTFILE]",
