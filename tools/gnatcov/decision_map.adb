@@ -439,7 +439,7 @@ package body Decision_Map is
            and then BB.Branch = Br_Call
            and then BB.Called_Sym /= null
            and then Platform_Independent_Symbol (BB.Called_Sym.all, Exec.all)
-                      = "__gnat_begin_handler";
+                      in "__gnat_begin_handler" | "__gnat_begin_handler_v1";
       end Is_Begin_Handler_Call;
 
    --  Start of processing for Analyze_Conditional_Branch
