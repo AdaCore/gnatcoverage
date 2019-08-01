@@ -274,7 +274,8 @@ package body Instrument.Tree is
       D                          : Dominant_Info := No_Dominant;
       P                          : Ada_Node      := No_Ada_Node;
       Is_Select_Stmt_Alternative : Boolean       := False)
-      return Dominant_Info;
+      return Dominant_Info
+     with Post => IC.Current_Insertion_Info = IC'Old.Current_Insertion_Info;
    --  Process L, a list of statements or declarations dominated by D. If P is
    --  present, it is processed as though it had been prepended to L. Preelab
    --  is True if L is a list of preelaborable declarations (which do not
@@ -284,6 +285,9 @@ package body Instrument.Tree is
    --  triggering_alternative: the witness for the first statement must
    --  be inserted after it, not before as we do usually. Returns dominant
    --  information corresponding to the last node with SCO in L.
+   --
+   --  The postcondition ensures that the Current_Insertion_Info has been
+   --  correctly reset to its value upon entry.
 
    --  The following Traverse_* routines perform appropriate calls to
    --  Traverse_Declarations_Or_Statements to traverse specific node kinds.
@@ -368,6 +372,28 @@ package body Instrument.Tree is
    --  holding statement and decision entries. These are declared globally
    --  since they are shared by recursive calls to this procedure.
 
+   type Instrument_Location_Type is (Before, After, Before_Parent);
+   --  Where to insert the witness call for a statement:
+
+   --  Before: common case, insert immediately before the statement in
+   --  the same sequence, so that the statement is recorded as having
+   --  been executed (at least partially), even if it raises an exception.
+   --
+   --  After: special cases where this is not legal (e.g. for the first
+   --  statement of an alternative in a SELECT statement [except for a DELAY
+   --  alternative, see below], which has special semantics). In these rare
+   --  cases, the location indication is set to After to indicate that the
+   --  witness must be inserted after the statement, not before.
+   --
+   --  Before_Parent: special case of a DELAY or entry call alternative: the
+   --  evaluation of the delay duration, entry name, or entry call actuals
+   --  occurs inconditionally as soon as the enclosing SELECT statement is
+   --  executed, so we insert the witness immediately before the SELECT.
+   --
+   --  SC_Entry is a single entry in the following table, From:To represents
+   --  the range of entries in the CS line entry, and typ is the type, with
+   --  space meaning that no type letter will accompany the entry.
+
    type SC_Entry is record
       N    : Ada_Node;
       From : Source_Location;
@@ -377,19 +403,8 @@ package body Instrument.Tree is
       Index : Natural := 0;
       --  1-based index of N in enclosing list, if any
 
-      Instrument_After : Boolean := False;
-      --  By default, the witness for a statement is inserted before the
-      --  statement itself, so that the statement is recorded as having
-      --  been executed (at least partially), even if it raises an exception.
-      --  However there are special cases where this is not legal (e.g. for
-      --  the first statement of an alternative in a SELECT statement, which
-      --  has special semantics). In these rare cases, this flag is set True
-      --  to indicate that the witness must be inserted after the statement,
-      --  not before.
+      Instrument_Location : Instrument_Location_Type := Before;
    end record;
-   --  Used to store a single entry in the following table, From:To represents
-   --  the range of entries in the CS line entry, and typ is the type, with
-   --  space meaning that no type letter will accompany the entry.
 
    package SC is new Table.Table
      (Table_Component_Type => SC_Entry,
@@ -470,15 +485,9 @@ package body Instrument.Tree is
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
 
-      Current_Index : Natural := 0;
-      --  If traversing a list, 1-based index of the current element
-
-      Insertion_Count : Natural := 0;
-      --  Count of nodes inserted in current list so far
-
-      RH_Enclosing_List     : Node_Rewriting_Handle :=
-        No_Node_Rewriting_Handle;
-      --  If traversing a list, rewriting handle for the list
+      Current_Insertion_Info : aliased Insertion_Info :=
+        (Parent => IC.Current_Insertion_Info,
+         others => <>);
 
       Witness_Use_Statement : Boolean;
       --  Set True if traversing a list of statements, in which case inserted
@@ -617,14 +626,22 @@ package body Instrument.Tree is
          end if;
 
          SC.Append
-           ((N                => Ada_Node (N),
-             From             => F,
-             To               => T,
-             Typ              => Typ,
-             Index            => Current_Index,
-             Instrument_After =>
-               Is_Select_Stmt_Alternative
-                 and then N = L.Children (L.Children'First)));
+           ((N                   => Ada_Node (N),
+             From                => F,
+             To                  => T,
+             Typ                 => Typ,
+             Index               => Current_Insertion_Info.Index,
+             Instrument_Location =>
+               --  See discussion in comment for declaration of
+               --  Instrument_Location_Type.
+
+               (if Is_Select_Stmt_Alternative
+                          and then N = L.Children (L.Children'First)
+                then (case N.Kind is
+                        when Ada_Delay_Stmt
+                           | Ada_Call_Stmt => Before_Parent,
+                        when others        => After)
+                else Before)));
       end Extend_Statement_Sequence;
 
       -----------------------------
@@ -645,7 +662,8 @@ package body Instrument.Tree is
          SD_Last : constant Int := SD.Last;
 
          procedure Insert_Statement_Witness (SCE : SC_Entry; LL_SCO_Id : Nat)
-           with Pre => RH_Enclosing_List /= No_Node_Rewriting_Handle;
+           with Pre => Current_Insertion_Info.RH_List
+                         /= No_Node_Rewriting_Handle;
          --  Insert statement witness call for the given SCE
 
          ------------------------------
@@ -657,6 +675,8 @@ package body Instrument.Tree is
          is
             Insert_List : Node_Rewriting_Handle;
             Insert_Pos  : Natural;
+            Insert_Info : Insertion_Info_Access :=
+              Current_Insertion_Info'Unchecked_Access;
 
          begin
             --  Allocate a bit in the statement coverage buffer, and record
@@ -765,21 +785,28 @@ package body Instrument.Tree is
 
             else
                if SCE.N.Kind = Ada_Accept_Stmt_With_Stmts
-                 and then SCE.Instrument_After
+                 and then SCE.Instrument_Location = After
                then
                   --  In the case of an accept_statement containing a sequence
-                  --  of statements, if Instrument_After is True, we want to
-                  --  call the witness after the entry has been accepted, but
-                  --  before the enclosed statements are executed, so insert
-                  --  the witness call in the inner statement list at first
-                  --  position.
+                  --  of statements, if Instrument_Location is After, we want
+                  --  to call the witness after the entry has been accepted,
+                  --  but before the enclosed statements are executed, so
+                  --  insert the witness call in the inner statement list
+                  --  at first position.
 
                   Insert_List := Handle
                     (SCE.N.As_Accept_Stmt_With_Stmts.F_Stmts.F_Stmts);
                   Insert_Pos  := 1;
 
                else
-                  Insert_List := RH_Enclosing_List;
+                  if SCE.Instrument_Location = Before_Parent then
+                     Insert_Info := Insert_Info.Parent;
+                     Insert_Pos := Insert_Info.Index;
+                  else
+                     Insert_Pos := SCE.Index;
+                  end if;
+
+                  Insert_List := Insert_Info.RH_List;
 
                   --  Adjust insertion to account for any insertion performed
                   --  outside of the processing of the current list (case of
@@ -794,25 +821,31 @@ package body Instrument.Tree is
                   declare
                      RH_Element_Node : Node_Rewriting_Handle := Handle (SCE.N);
                      RH_Children_Count : constant Natural :=
-                       Children_Count (RH_Enclosing_List);
+                       Children_Count (Insert_Info.RH_List);
                   begin
                      --  Find the parent of SCE.N that is an element of the
                      --  enclosing list.
 
-                     while Parent (RH_Element_Node) /= RH_Enclosing_List loop
+                     while Parent (RH_Element_Node)
+                       /= Insert_Info.RH_List
+                     loop
                         RH_Element_Node := Parent (RH_Element_Node);
                      end loop;
 
                      --  Scan forward in enclosing list for adjusted position
                      --  of the element node.
 
-                     while Child (RH_Enclosing_List,
-                                  Integer (SCE.Index + Insertion_Count))
+                     while Child
+                       (Insert_Info.RH_List,
+                        Integer (Insert_Pos
+                          + Insert_Info.Insertion_Count))
                        /= RH_Element_Node
                      loop
-                        Insertion_Count := Insertion_Count + 1;
+                        Insert_Info.Insertion_Count :=
+                          Insert_Info.Insertion_Count + 1;
                         pragma Assert
-                          (SCE.Index + Insertion_Count <= RH_Children_Count);
+                          (Insert_Pos + Insert_Info.Insertion_Count
+                           <= RH_Children_Count);
                      end loop;
                   end;
 
@@ -823,10 +856,13 @@ package body Instrument.Tree is
                   --  commenced execution (including in cases it raises an
                   --  exception or otherwise transfers control). However in
                   --  some special cases we have to insert after the statement,
-                  --  see comment for Instrument_After component.
+                  --  see comment for Instrument_Location_Type.
 
-                  Insert_Pos := SCE.Index + Insertion_Count
-                    + Boolean'Pos (SCE.Instrument_After);
+                  Insert_Pos := Insert_Pos
+                    + Insert_Info.Insertion_Count
+                    + (case SCE.Instrument_Location is
+                          when Before | Before_Parent => 0,
+                          when After  => 1);
                end if;
 
                --  Insert witness statement or declaration
@@ -842,7 +878,7 @@ package body Instrument.Tree is
                                   then Procedure_Call
                                   else Declaration)));
 
-               Insertion_Count := Insertion_Count + 1;
+               Insert_Info.Insertion_Count := Insert_Info.Insertion_Count + 1;
             end if;
          end Insert_Statement_Witness;
 
@@ -897,7 +933,9 @@ package body Instrument.Tree is
                --  Can't instrument statement if there is no enclosing list
                --  to which a witness call can be attached.
 
-               if RH_Enclosing_List = No_Node_Rewriting_Handle then
+               if Current_Insertion_Info.RH_List
+                    = No_Node_Rewriting_Handle
+               then
                   null;
 
                --  Do not attempt to instrument a pragma that we know for
@@ -1413,6 +1451,9 @@ package body Instrument.Tree is
                      end;
                   end loop;
 
+                  --  Note: the sequences of statements for ELSE and ABORT
+                  --  do not require the special processing for alternatives.
+
                   Traverse_Declarations_Or_Statements
                     (IC,
                      L => Sel_N.F_Else_Stmts.As_Ada_Node_List,
@@ -1809,6 +1850,10 @@ package body Instrument.Tree is
    --  Start of processing for Traverse_Declarations_Or_Statements
 
    begin
+      --  Push new insertion info
+
+      IC.Current_Insertion_Info := Current_Insertion_Info'Unchecked_Access;
+
       --  Process single prefixed node
 
       if not P.Is_Null then
@@ -1819,7 +1864,7 @@ package body Instrument.Tree is
       --  can be inserted.
 
       if not L.Is_Null and then L.Kind /= Ada_Pragma_Node_List then
-         RH_Enclosing_List := Handle (L);
+         Current_Insertion_Info.RH_List := Handle (L);
          Witness_Use_Statement := L.Kind = Ada_Stmt_List;
       end if;
 
@@ -1829,7 +1874,7 @@ package body Instrument.Tree is
          declare
             N : constant Ada_Node := L.Child (J);
          begin
-            Current_Index := J;
+            Current_Insertion_Info.Index := J;
             Traverse_One (N);
          end;
       end loop;
@@ -1840,6 +1885,9 @@ package body Instrument.Tree is
          Set_Statement_Entry;
       end if;
 
+      --  Pop insertion info
+
+      IC.Current_Insertion_Info := Current_Insertion_Info.Parent;
       return Current_Dominant;
    end Traverse_Declarations_Or_Statements;
 

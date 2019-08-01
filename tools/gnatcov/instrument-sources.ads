@@ -135,6 +135,27 @@ private package Instrument.Sources is
    package Source_Condition_Vectors is
      new Ada.Containers.Vectors (Natural, Source_Condition);
 
+   --  Insertion_Info defines the current state for traversal of a list of
+   --  statements or declarations in which witness calls are inserted.
+
+   type Insertion_Info;
+   type Insertion_Info_Access is access all Insertion_Info;
+
+   type Insertion_Info is record
+      RH_List : Node_Rewriting_Handle :=
+        No_Node_Rewriting_Handle;
+      --  If traversing a list, rewriting handle for the list
+
+      Index : Natural := 0;
+      --  Index of the element in RH_List being traversed
+
+      Insertion_Count : Natural := 0;
+      --  Count of nodes inserted in current list so far
+
+      Parent : Insertion_Info_Access;
+      --  Insertion_Info for the upper enclosing list
+   end record;
+
    type Unit_Inst_Context is record
       Instrumented_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit being instrumented
@@ -168,6 +189,9 @@ private package Instrument.Sources is
 
       Entities : Instrumentation_Entities;
       --  Bank of nodes to use during instrumentation
+
+      Current_Insertion_Info : Insertion_Info_Access;
+      --  Insertion_Info for the list being traversed
    end record;
 
    procedure Initialize_Rewriting
