@@ -112,13 +112,13 @@ class Struct(object):
         """
         with fp.label_context(self.label):
             result = {}
-            for i, (name, struct) in enumerate(self.fields):
+            for i, (name, structure) in enumerate(self.fields):
                 with fp.label_context(name):
-                    buf = fp.read(struct.size)
-                    assert (not buf and i == 0) or len(buf) == struct.size
+                    buf = fp.read(structure.size)
+                    assert (not buf and i == 0) or len(buf) == structure.size
                     if not buf:
                         return None
-                    field = struct.unpack(buf)
+                    field = structure.unpack(buf)
                     if len(field) == 1:
                         field = field[0]
                     result[name] = field
