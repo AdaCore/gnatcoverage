@@ -10,7 +10,6 @@ library project GNATcov_RTS_Full is
    for Library_Name use "gnatcov_rts_full";
    for Library_Kind use Library_Type;
    for Library_Dir use "lib-gnatcov_rts_full." & Library_Type;
-   for Source_Dirs use ("gnatcov_rts", "gnatcov_rts_full");
    for Object_Dir use "obj-gnatcov_rts_full." & Library_Type;
 
    package Compiler is

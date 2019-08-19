@@ -8,6 +8,11 @@
 --  gnatcov_rts_full project instead.
 
 project GNATcov_RTS is
-   for Source_Dirs use ("gnatcov_rts");
+   for Source_Files use
+     ("gnatcov_rts.ads",
+      "gnatcov_rts-buffers.ads",
+      "gnatcov_rts-buffers.adb",
+      "gnatcov_rts-traces.ads",
+      "gnatcov_rts-traces.adb");
    for Object_Dir use "obj-gnatcov_rts";
 end GNATcov_RTS;
