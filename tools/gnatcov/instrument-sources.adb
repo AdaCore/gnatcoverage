@@ -36,6 +36,10 @@ package body Instrument.Sources is
 
    package LAL renames Libadalang.Analysis;
 
+   function Expr_Needs_Parens (Kind : Ada_Node_Kind_Type) return Boolean
+   is (Kind in Ada_Quantified_Expr | Ada_If_Expr | Ada_Case_Expr);
+   --  Whether nodes of type Kind must be wrapped with parens
+
    function Create_Identifier
      (RH : Rewriting_Handle; Text : Text_Type) return Node_Rewriting_Handle
    is (Create_Token_Node (RH, Libadalang.Common.Ada_Identifier, Text));
@@ -116,7 +120,8 @@ package body Instrument.Sources is
       MCDC_State : Unbounded_String;
       Decision   : Node_Rewriting_Handle) return Node_Rewriting_Handle
    is
-      E        : Instrumentation_Entities renames IC.Entities;
+      E : Instrumentation_Entities renames IC.Entities;
+      D : Node_Rewriting_Handle := Decision;
 
       Is_MCDC : constant Boolean := Bits.Path_Bits_Base /= No_Bit_Id;
 
@@ -148,9 +153,19 @@ package body Instrument.Sources is
            Rule      => Expr_Rule);
 
    begin
+      --  Wrap decisions with parens if their syntax requires. We can't always
+      --  move the parens that wrap the decision in sources because they can
+      --  sometimes belong to another syntactic construct, for instance:
+      --
+      --     pragma Assert (if A then B);
+
+      if Expr_Needs_Parens (Kind (D)) then
+         D := Create_Paren_Expr (IC.Rewriting_Context, D);
+      end if;
+
       --  The second child of RH_Call is its list of actual parameters
 
-      Append_Child (Child (RH_Call, 2), Decision);
+      Append_Child (Child (RH_Call, 2), D);
       return RH_Call;
    end Make_Decision_Witness;
 
@@ -643,7 +658,7 @@ package body Instrument.Sources is
       --  Special case of conditional and quantified expressions: we need to
       --  move them along with their enclosing parentheses.
 
-      if Kind (N) in Ada_Quantified_Expr | Ada_If_Expr | Ada_Case_Expr then
+      if Expr_Needs_Parens (N.Kind) then
          pragma Assert (Kind (N.Parent) = Ada_Paren_Expr);
          RH_N := Handle (N.Parent);
       else
