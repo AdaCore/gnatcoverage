@@ -106,7 +106,12 @@ package SC_Obligations is
    No_SCO_Id : constant SCO_Id := 0;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
-   type SCO_Kind is (Statement, Decision, Condition, Operator);
+   type Any_SCO_Kind is (Removed, Statement, Decision, Condition, Operator);
+   subtype SCO_Kind is Any_SCO_Kind range Statement .. Operator;
+   --  Removed is used for SCOs coming from C code in static inline functions
+   --  present in headers. These SCOs can appear duplicated in multiple
+   --  compilation units and we replace all but one of the duplicated entries
+   --  with a Removed one.
 
    procedure Add_Address (SCO : SCO_Id; Address : Pc_Type);
    --  Record Address in SCO's address list
@@ -207,7 +212,7 @@ package SC_Obligations is
 
    --  All SCOs
 
-   function Kind       (SCO : SCO_Id) return SCO_Kind;
+   function Kind       (SCO : SCO_Id) return Any_SCO_Kind;
    function First_Sloc (SCO : SCO_Id) return Source_Location;
    function Last_Sloc  (SCO : SCO_Id) return Source_Location;
    function Sloc_Range (SCO : SCO_Id) return Source_Location_Range;

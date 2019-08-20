@@ -347,6 +347,10 @@ package body Coverage.Source is
       --  Examine each SCO associated with line
 
       for SCO of Line_Info.SCOs.all loop
+         if Kind (SCO) = Removed then
+            goto Next_SCO;
+         end if;
+
          SCOs_Of_Line : declare
             SCO_State : Line_State := No_Code;
          begin
@@ -623,6 +627,8 @@ package body Coverage.Source is
                end if;
             end loop;
          end SCOs_Of_Line;
+
+         <<Next_SCO>> null;
       end loop;
    end Compute_Line_State;
 

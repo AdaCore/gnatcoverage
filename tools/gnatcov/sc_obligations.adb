@@ -172,21 +172,30 @@ package body SC_Obligations is
 
    type Operand_Pair is array (Operand_Position) of SCO_Id;
 
-   type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
-      Origin : CU_Id;
-      --  Compilation unit whose LI file containing this SCO
-
-      Sloc_Range : Source_Location_Range := No_Range;
-      --  For a decision, cumulative range from all conditions
-
-      Parent : SCO_Id := No_SCO_Id;
-      --  For a decision, pointer to the enclosing statement (or condition in
-      --  the case of a nested decision), unset if decision is part of a
-      --  flow control structure.
-      --  For a condition or operator, pointer to the enclosing operator, or to
-      --  enclosing decision if at top level.
-
+   type SCO_Descriptor (Kind : Any_SCO_Kind := SCO_Kind'First) is record
       case Kind is
+      when Removed =>
+         null;
+
+      when others =>
+         Origin : CU_Id;
+         --  Compilation unit whose LI file containing this SCO
+
+         Sloc_Range : Source_Location_Range := No_Range;
+         --  For a decision, cumulative range from all conditions
+
+         Parent : SCO_Id := No_SCO_Id;
+         --  For a decision, pointer to the enclosing statement (or condition
+         --  in the case of a nested decision), unset if decision is part of a
+         --  flow control structure.
+         --
+         --  For a condition or operator, pointer to the enclosing operator, or
+         --  to enclosing decision if at top level.
+
+         case Kind is
+         when Removed =>
+            null;
+
          when Statement =>
             S_Kind         : Statement_Kind := Statement_Kind'First;
             --  Statement kind indication
@@ -261,6 +270,7 @@ package body SC_Obligations is
 
             Op_Kind : Operator_Kind;
             --  Kind of operation this node represents
+         end case;
       end case;
    end record;
 
@@ -272,10 +282,7 @@ package body SC_Obligations is
    for SCO_Descriptor'Read use Read;
    for SCO_Descriptor'Write use Write;
 
-   No_SCO_Descriptor : constant SCO_Descriptor :=
-     (Kind   => Statement,
-      Origin => No_CU_Id,
-      others => <>);
+   Removed_SCO_Descriptor : constant SCO_Descriptor := (Kind => Removed);
 
    package SCO_Vectors is
      new Ada.Containers.Vectors
@@ -626,6 +633,10 @@ package body SC_Obligations is
             New_SCOD : SCO_Descriptor :=
               CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
          begin
+            if New_SCOD.Kind = Removed then
+               goto Next_SCO;
+            end if;
+
             New_SCOD.Origin := New_CU_Id;
 
             --  Remap SFIs in all source locations
@@ -653,7 +664,7 @@ package body SC_Obligations is
             --  data that is not saved to checkpoint files (such as
             --  BDD information).
 
-            case New_SCOD.Kind is
+            case SCO_Kind (New_SCOD.Kind) is
                when Statement =>
                   Remap_SFI (Relocs, New_SCOD.Dominant_Sloc.Source_File);
                   Remap_SFI (Relocs, New_SCOD.Handler_Range.Source_File);
@@ -699,6 +710,8 @@ package body SC_Obligations is
                   & " in checkpoint)");
             end if;
          end;
+
+         <<Next_SCO>> null;
       end loop;
 
       --  Remap SCO_Ids in source trace bit maps
@@ -1159,7 +1172,7 @@ package body SC_Obligations is
       use BDD;
 
       SCOD               : SCO_Descriptor renames SCO_Vector.Reference (SCO);
-      Reachable_Outcomes : Reachability renames
+      Reachable_Outcomes : constant Reachability :=
          SCOD.Decision_BDD.Reachable_Outcomes;
    begin
       --  If exactly one outcome is reachable, then decision is always True or
@@ -1713,7 +1726,7 @@ package body SC_Obligations is
    -- Kind --
    ----------
 
-   function Kind (SCO : SCO_Id) return SCO_Kind is
+   function Kind (SCO : SCO_Id) return Any_SCO_Kind is
    begin
       return SCO_Vector.Reference (SCO).Kind;
    end Kind;
@@ -2357,6 +2370,8 @@ package body SC_Obligations is
 
                return
                  (case L.Kind is
+                     when Removed =>
+                        raise Program_Error with "unreachable code",
                      when Statement =>
                         L.S_Kind = R.S_Kind,
                      when Condition =>
@@ -2397,6 +2412,9 @@ package body SC_Obligations is
                end if;
 
                case SCOD.Kind is
+                  when Removed =>
+                     raise Program_Error with "unreachable code";
+
                   when Decision =>
                      --  A Decision SCO must have a statement or (in the case
                      --  of a nested decision) a Condition SCO as its parent,
@@ -2470,11 +2488,10 @@ package body SC_Obligations is
                            & Image (Element (Cur)));
                      end if;
 
-                     --  Reset SCOD to No_SCO_Descriptor, which acts as a
-                     --  placeholder to cancel the entry. The corresponding
-                     --  SCO is a (disabled) statement with no origin.
+                     --  Reset SCOD to Removed_SCO_Descriptor, which acts as a
+                     --  placeholder to cancel the entry.
 
-                     SCOD := No_SCO_Descriptor;
+                     SCOD := Removed_SCO_Descriptor;
                   end if;
                end;
             end Process_Descriptor;
@@ -2589,11 +2606,19 @@ package body SC_Obligations is
    is
       SCOD : SCO_Descriptor (SCO_Kind'Input (S));
    begin
+      if SCOD.Kind = Removed then
+         V := Removed_SCO_Descriptor;
+         return;
+      end if;
+
       SCOD.Origin     := CU_Id'Input (S);
       SCOD.Sloc_Range := Source_Location_Range'Input (S);
       SCOD.Parent     := SCO_Id'Input (S);
 
       case SCOD.Kind is
+      when Removed =>
+         raise Program_Error with "unreachable code";
+
       when Statement =>
          SCOD.S_Kind         := Statement_Kind'Input (S);
          SCOD.Dominant       := SCO_Id'Input (S);
@@ -2645,12 +2670,19 @@ package body SC_Obligations is
 
    procedure Write (S : access Root_Stream_Type'Class; V : SCO_Descriptor) is
    begin
-      SCO_Kind'Output              (S, V.Kind);
+      SCO_Kind'Output (S, V.Kind);
+      if V.Kind = Removed then
+         return;
+      end if;
+
       CU_Id'Output                 (S, V.Origin);
       Source_Location_Range'Output (S, V.Sloc_Range);
       SCO_Id'Output                (S, V.Parent);
 
       case V.Kind is
+      when Removed =>
+         raise Program_Error with "unreachable code";
+
       when Statement =>
          Statement_Kind'Output        (S, V.S_Kind);
          SCO_Id'Output                (S, V.Dominant);

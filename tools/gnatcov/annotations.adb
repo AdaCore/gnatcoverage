@@ -307,8 +307,8 @@ package body Annotations is
          --  SCO when its first sloc is at the current line. Otherwise, it
          --  should have been processed earlier.
 
-         if First_Sloc (SCO).L.Line = Line then
-            case Kind (SCO) is
+         if Kind (SCO) /= Removed and then First_Sloc (SCO).L.Line = Line then
+            case SCO_Kind (Kind (SCO)) is
                when Statement =>
                   if Coverage.Enabled (Coverage.Stmt) then
                      SCO_State := Get_Line_State (SCO, Coverage.Stmt);
