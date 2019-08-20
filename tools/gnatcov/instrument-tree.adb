@@ -2310,11 +2310,16 @@ package body Instrument.Tree is
             when 'P' =>
 
                --  For PRAGMA, we must get the location from the pragma node.
-               --  Argument N is the pragma argument, and we have to go up
-               --  two levels (through the pragma argument association) to
-               --  get to the pragma node itself.
+               --  Argument N is the pragma argument.
 
-               Loc := Sloc (Parent (Parent (N)));
+               declare
+                  PN : Ada_Node := N.As_Ada_Node;
+               begin
+                  while PN.Kind /= Ada_Pragma_Node loop
+                     PN := PN.Parent;
+                  end loop;
+                  Loc := Sloc (PN);
+               end;
 
             when 'X' =>
 
