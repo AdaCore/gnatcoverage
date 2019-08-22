@@ -12,12 +12,10 @@ import glob
 import os.path
 import re
 
-from gnatpython.ex import Run
-
 from SCOV.instr import xcov_instrument
 from SUITE.cutils import contents_of
-from SUITE.tutils import (exepath_to, gprbuild, srctracename_for, thistest,
-                          tracename_for, xcov, xrun)
+from SUITE.tutils import (cmdrun, exepath_to, gprbuild, srctracename_for,
+                          thistest, tracename_for, xcov, xrun)
 
 
 COV_RE = re.compile('^ *(\d+) (.):.*$')
@@ -136,7 +134,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
         # Then execute each main
         for m in mains:
-            Run([exepath(m)])
+            cmdrun([exepath(m)])
         trace_files = [abspath(srctracename_for(m)) for m in mains]
 
         # If we would have passed the project to "gnatcov coverage" in binary
