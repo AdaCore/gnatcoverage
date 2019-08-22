@@ -18,7 +18,7 @@ package Compiler is
 %(compiler_extra)s
 end Compiler;
 
-for Main use (%(gprmains)s);
+%(gprmains)s
 
 %(pkg_emulator)s
 

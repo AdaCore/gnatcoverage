@@ -250,6 +250,8 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     # Turn the list of main sources into the proper comma separated sequence
     # of string literals for the Main GPR attribute.
     gprmains = ', '.join('"%s"' % m for m in mains)
+    if gprmains:
+        gprmains = 'for Main use (%s);' % gprmains
 
     # Likewise for source dirs. Filter on existence, to allow widening the set
     # of tentative dirs while preventing complaints from gprbuild about
