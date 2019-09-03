@@ -57,7 +57,7 @@ rst_epilog = """
 .. |gem|   replace:: GNATemulator
 .. |gnat|  replace:: GNAT
 .. |gpro|  replace:: GNAT Pro
-.. |gps|   replace:: GPS
+.. |gps|   replace:: GNAT Studio
 .. |gtest| replace:: GNATtest
 
 .. |marg| replace:: *(mandatory)*

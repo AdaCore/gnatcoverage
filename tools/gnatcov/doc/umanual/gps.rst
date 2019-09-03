@@ -16,7 +16,7 @@ Analysis`` entry and select the ``Gnatcov`` toolchain.
 .. image:: gps_screenshots/0-pref-cov-toolchain.png
 
 This step is not tied to a particular project, so this is done once for all: it
-will apply to all the other projects you work with in GPS.
+will apply to all the other projects you work with in |gps|.
 
 The next step is to tell which coverage criterion GNATcoverage should use.
 For this, go to the project properties (:menuselection:`Edit -->
