@@ -188,7 +188,7 @@ package body SC_Obligations is
 
       case Kind is
          when Statement =>
-            S_Kind         : Statement_Kind;
+            S_Kind         : Statement_Kind := Statement_Kind'First;
             --  Statement kind indication
 
             Dominant       : SCO_Id   := No_SCO_Id;
@@ -207,7 +207,7 @@ package body SC_Obligations is
             --  Sloc range of the exception handler of which this is the first
             --  statement.
 
-            Pragma_Name : Pragma_Id;
+            Pragma_Name : Pragma_Id := Pragma_Id'First;
             --  For a Pragma_Statement, corresponding pragma identifier
 
          when Condition =>
@@ -266,6 +266,14 @@ package body SC_Obligations is
             end case;
       end case;
    end record;
+
+   pragma Warnings (Off, "* is not referenced");
+   procedure Read (S : access Root_Stream_Type'Class; V : out SCO_Descriptor);
+   procedure Write (S : access Root_Stream_Type'Class; V : SCO_Descriptor);
+   pragma Warnings (On, "* is not referenced");
+
+   for SCO_Descriptor'Read use Read;
+   for SCO_Descriptor'Write use Write;
 
    No_SCO_Descriptor : constant SCO_Descriptor :=
      (Kind   => Statement,
@@ -2582,6 +2590,101 @@ package body SC_Obligations is
          return SC_Tag (Relocs.Inst_Map (Inst_Id (CP_Tag)));
       end if;
    end Map_Tag;
+
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read (S : access Root_Stream_Type'Class; V : out SCO_Descriptor)
+   is
+      SCOD : SCO_Descriptor (SCO_Kind'Input (S));
+   begin
+      SCOD.Origin     := CU_Id'Input (S);
+      SCOD.Sloc_Range := Source_Location_Range'Input (S);
+      SCOD.Parent     := SCO_Id'Input (S);
+
+      case SCOD.Kind is
+      when Statement =>
+         SCOD.S_Kind         := Statement_Kind'Input (S);
+         SCOD.Dominant       := SCO_Id'Input (S);
+         SCOD.Dominant_Value := Tristate'Input (S);
+         SCOD.Dominant_Sloc  := Source_Location'Input (S);
+         SCOD.Handler_Range  := Source_Location_Range'Input (S);
+         SCOD.Pragma_Name    := Pragma_Id'Input (S);
+
+      when Condition =>
+         SCOD.Value    := Tristate'Input (S);
+         SCOD.PC_Set   := PC_Sets.Set'Input (S);
+         SCOD.BDD_Node := BDD_Node_Id'Input (S);
+         SCOD.Index    := Condition_Index'Input (S);
+
+      when Decision | Operator =>
+         case SCOD.Kind is
+         when Decision =>
+            SCOD.D_Kind           := Decision_Kind'Input (S);
+            SCOD.Control_Location := Source_Location'Input (S);
+            SCOD.Last_Cond_Index  := Any_Condition_Index'Input (S);
+            SCOD.Decision_BDD     := BDD.BDD_Type'Input (S);
+            SCOD.Degraded_Origins := Boolean'Input (S);
+            SCOD.Aspect_Name      := Aspect_Id'Input (S);
+            SCOD.Path_Count       := Natural'Input (S);
+
+         when Operator =>
+            SCOD.Op_Kind := Operator_Kind'Input (S);
+
+         when others =>
+            null;
+         end case;
+      end case;
+
+      V := SCOD;
+   end Read;
+
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (S : access Root_Stream_Type'Class; V : SCO_Descriptor) is
+   begin
+      SCO_Kind'Output              (S, V.Kind);
+      CU_Id'Output                 (S, V.Origin);
+      Source_Location_Range'Output (S, V.Sloc_Range);
+      SCO_Id'Output                (S, V.Parent);
+
+      case V.Kind is
+      when Statement =>
+         Statement_Kind'Output        (S, V.S_Kind);
+         SCO_Id'Output                (S, V.Dominant);
+         Tristate'Output              (S, V.Dominant_Value);
+         Source_Location'Output       (S, V.Dominant_Sloc);
+         Source_Location_Range'Output (S, V.Handler_Range);
+         Pragma_Id'Output             (S, V.Pragma_Name);
+
+      when Condition =>
+         Tristate'Output        (S, V.Value);
+         PC_Sets.Set'Output     (S, V.PC_Set);
+         BDD_Node_Id'Output     (S, V.BDD_Node);
+         Condition_Index'Output (S, V.Index);
+
+      when Decision | Operator =>
+         case V.Kind is
+         when Decision =>
+            Decision_Kind'Output       (S, V.D_Kind);
+            Source_Location'Output     (S, V.Control_Location);
+            Any_Condition_Index'Output (S, V.Last_Cond_Index);
+            BDD.BDD_Type'Output        (S, V.Decision_BDD);
+            Boolean'Output             (S, V.Degraded_Origins);
+            Aspect_Id'Output           (S, V.Aspect_Name);
+            Natural'Output             (S, V.Path_Count);
+
+         when Operator =>
+            Operator_Kind'Output (S, V.Op_Kind);
+
+         when others =>
+            null;
+         end case;
+      end case;
+   end Write;
 
    -------------------
    -- Next_BDD_Node --
