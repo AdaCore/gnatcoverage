@@ -514,8 +514,7 @@ package body Instrument is
          Checkpoints.Checkpoint_Save
            (ISI_Filename,
             Context'Access,
-            Purpose => Checkpoints.Instrumentation,
-            Version => 2);
+            Purpose => Checkpoints.Instrumentation);
       end;
 
       if Switches.Verbose then

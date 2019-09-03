@@ -2270,10 +2270,7 @@ begin
                Checkpoints.Checkpoint_Save
                  (Save_Checkpoint.all,
                   Context'Access,
-                  Purpose => Checkpoints.Consolidation,
-                  Version => (if Has_Instrumented_Units
-                              then 2
-                              else Checkpoints.Default_Checkpoint_Version));
+                  Purpose => Checkpoints.Consolidation);
             end if;
          end;
 
