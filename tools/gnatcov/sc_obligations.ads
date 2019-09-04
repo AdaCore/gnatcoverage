@@ -323,7 +323,10 @@ package SC_Obligations is
    --  Operator SCOs
 
    function Op_Kind (SCO : SCO_Id) return Operator_Kind;
-   function Operand (SCO : SCO_Id; Position : Operand_Position) return SCO_Id;
+
+   function Operand (SCO : SCO_Id; Position : Operand_Position) return SCO_Id
+      with Pre => Kind (SCO) = Operator;
+   --  Return the operand slot indicated by Position in the SCO Operator.
 
    --  Decision SCOs
 
@@ -751,8 +754,15 @@ private
    procedure Set_Operand
      (Operator : SCO_Id;
       Position : Operand_Position;
-      Operand  : SCO_Id);
-   --  Set the operand slot indicated by Position in Operator to Operand
+      Operand  : SCO_Id)
+      with Pre => (case Kind (Operator) is
+                   when SC_Obligations.Operator => True,
+                   when Decision                => Position = Right,
+                   when others                  => False);
+   --  Set the operand slot indicated by Position in Operator to Operand.
+   --
+   --  For convenience, if Operator is actually a Decision SCO, assume Position
+   --  is Right and set the decision's expression instead.
 
    procedure Set_BDD_Node (C_SCO : SCO_Id; BDD_Node : BDD_Node_Id);
    --  Set the BDD node for the given condition SCO

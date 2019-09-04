@@ -225,45 +225,42 @@ package body SC_Obligations is
             Index : Condition_Index;
             --  Index of this condition in the decision
 
-         when Decision | Operator =>
+         when Decision =>
+            Expression : SCO_Id;
+            --  Top expression node for this decision
+
+            D_Kind : Decision_Kind;
+            --  Decision kind indication
+
+            Control_Location : Source_Location := No_Location;
+            --  For a decision other than an Expression, sloc of the execution
+            --  flow control construct.
+
+            Last_Cond_Index : Any_Condition_Index;
+            --  Index of last condition in decision (should be > 0 for complex
+            --  decisions, = 0 otherwise).
+
+            Decision_BDD : BDD.BDD_Type;
+            --  BDD of the decision
+
+            Degraded_Origins : Boolean := False;
+            --  Set True for the case of a single-condition decision, whose
+            --  conditional branch instructions have origins (i.e. condition
+            --  value labels) set modulo an arbitrary negation.
+
+            Aspect_Name : Aspect_Id := No_Aspect;
+            --  For an aspect decision, name of the aspect
+
+            Path_Count : Natural := 0;
+            --  Count of distinct paths through the BDD from the root condition
+            --  to any outcome.
+
+         when Operator =>
             Operands : Operand_Pair := (others => No_SCO_Id);
-            --  Operands of this operator (for a decision, only the right
-            --  operand is set, and it points to the top expression node.
+            --  Operands of this operator
 
-            case Kind is
-               when Decision =>
-                  D_Kind : Decision_Kind;
-                  --  Decision kind indication
-
-                  Control_Location : Source_Location := No_Location;
-                  --  For a decision other than an Expression, sloc of the
-                  --  execution flow control construct.
-
-                  Last_Cond_Index : Any_Condition_Index;
-                  --  Index of last condition in decision (should be > 0 for
-                  --  complex decisions, = 0 otherwise).
-
-                  Decision_BDD : BDD.BDD_Type;
-                  --  BDD of the decision
-
-                  Degraded_Origins : Boolean := False;
-                  --  Set True for the case of a single-condition decision,
-                  --  whose conditional branch instructions have origins (i.e.
-                  --  condition value labels) set modulo an arbitrary negation.
-
-                  Aspect_Name : Aspect_Id := No_Aspect;
-                  --  For an aspect decision, name of the aspect
-
-                  Path_Count : Natural := 0;
-                  --  Count of distinct paths through the BDD from the root
-                  --  condition to any outcome.
-
-               when Operator =>
-                  Op_Kind : Operator_Kind;
-
-               when others =>
-                  null;
-            end case;
+            Op_Kind : Operator_Kind;
+            --  Kind of operation this node represents
       end case;
    end record;
 
@@ -663,27 +660,23 @@ package body SC_Obligations is
 
                   Remap_SCO_Id (New_SCOD.Dominant);
 
-               when Operator | Decision =>
+               when Decision =>
+                  Remap_SCO_Id (New_SCOD.Expression);
+
+                  Remap_SFI (Relocs, New_SCOD.Control_Location.Source_File);
+
+                  Remap_SCO_Id (New_SCOD.Decision_BDD.Decision);
+
+                  Remap_BDD_Node (New_SCOD.Decision_BDD.Root_Condition);
+                  Remap_BDD_Node (New_SCOD.Decision_BDD.First_Node);
+                  Remap_BDD_Node (New_SCOD.Decision_BDD.Last_Node);
+                  Remap_BDD_Node
+                    (New_SCOD.Decision_BDD.First_Multipath_Condition);
+
+               when Operator =>
                   for Op_SCO in New_SCOD.Operands'Range loop
                      Remap_SCO_Id (New_SCOD.Operands (Op_SCO));
                   end loop;
-
-                  if New_SCOD.Kind = Decision then
-                     Remap_SFI (Relocs, New_SCOD.Control_Location.Source_File);
-
-                     --  Decision BDD
-
-                     Remap_SCO_Id (New_SCOD.Decision_BDD.Decision);
-
-                     Remap_BDD_Node
-                       (New_SCOD.Decision_BDD.Root_Condition);
-                     Remap_BDD_Node
-                       (New_SCOD.Decision_BDD.First_Node);
-                     Remap_BDD_Node
-                       (New_SCOD.Decision_BDD.Last_Node);
-                     Remap_BDD_Node
-                       (New_SCOD.Decision_BDD.First_Multipath_Condition);
-                  end if;
 
                when Condition =>
                   Remap_BDD_Node (New_SCOD.BDD_Node);
@@ -1226,19 +1219,18 @@ package body SC_Obligations is
             when Condition =>
                Put ('C' & Img (Integer (Index (Op_SCO))));
 
-            when Decision | Operator =>
-               if Kind (Op_SCO) = Operator then
-                  Put ('(');
-               end if;
+            when Decision =>
+               Visit (SCO_Vector.Reference (Op_SCO).Expression);
 
-               Binary := Kind (Op_SCO) = Operator
-                           and then Op_Kind (Op_SCO) /= Op_Not;
+            when Operator =>
+               Put ('(');
+               Binary := Op_Kind (Op_SCO) /= Op_Not;
 
                for J in Operand_Position'Range loop
                   declare
                      Opnd_SCO : constant SCO_Id := Operand (Op_SCO, J);
                   begin
-                     if Kind (Op_SCO) = Operator and then J = Right then
+                     if J = Right then
                         case Op_Kind (Op_SCO) is
                            when Op_Not      => Put ("not ");
                            when Op_And_Then => Put (" and then ");
@@ -1256,9 +1248,7 @@ package body SC_Obligations is
                   end;
                end loop;
 
-               if Kind (Op_SCO) = Operator then
-                  Put (')');
-               end if;
+               Put (')');
 
             when others =>
                raise Program_Error;
@@ -2618,23 +2608,32 @@ package body SC_Obligations is
          SCOD.BDD_Node := BDD_Node_Id'Input (S);
          SCOD.Index    := Condition_Index'Input (S);
 
-      when Decision | Operator =>
-         case SCOD.Kind is
-         when Decision =>
-            SCOD.D_Kind           := Decision_Kind'Input (S);
-            SCOD.Control_Location := Source_Location'Input (S);
-            SCOD.Last_Cond_Index  := Any_Condition_Index'Input (S);
-            SCOD.Decision_BDD     := BDD.BDD_Type'Input (S);
-            SCOD.Degraded_Origins := Boolean'Input (S);
-            SCOD.Aspect_Name      := Aspect_Id'Input (S);
-            SCOD.Path_Count       := Natural'Input (S);
+      when Decision =>
 
-         when Operator =>
-            SCOD.Op_Kind := Operator_Kind'Input (S);
+         --  Before version 2, decisions shared Operations's Operand member,
+         --  and stored the expression as its Right array item.
 
-         when others =>
-            null;
-         end case;
+         if Version_Less (S, Than => 2) then
+            declare
+               Operands : constant Operand_Pair := Operand_Pair'Input (S);
+            begin
+               SCOD.Expression := Operands (Right);
+            end;
+         else
+            SCOD.Expression       := SCO_Id'Input (S);
+         end if;
+
+         SCOD.D_Kind           := Decision_Kind'Input (S);
+         SCOD.Control_Location := Source_Location'Input (S);
+         SCOD.Last_Cond_Index  := Any_Condition_Index'Input (S);
+         SCOD.Decision_BDD     := BDD.BDD_Type'Input (S);
+         SCOD.Degraded_Origins := Boolean'Input (S);
+         SCOD.Aspect_Name      := Aspect_Id'Input (S);
+         SCOD.Path_Count       := Natural'Input (S);
+
+      when Operator =>
+         SCOD.Operands := Operand_Pair'Input (S);
+         SCOD.Op_Kind := Operator_Kind'Input (S);
       end case;
 
       V := SCOD;
@@ -2669,6 +2668,7 @@ package body SC_Obligations is
       when Decision | Operator =>
          case V.Kind is
          when Decision =>
+            SCO_Id'Output              (S, V.Expression);
             Decision_Kind'Output       (S, V.D_Kind);
             Source_Location'Output     (S, V.Control_Location);
             Any_Condition_Index'Output (S, V.Last_Cond_Index);
@@ -2679,6 +2679,7 @@ package body SC_Obligations is
 
          when Operator =>
             Operator_Kind'Output (S, V.Op_Kind);
+            Operand_Pair'Output  (S, V.Operands);
 
          when others =>
             null;
@@ -2740,9 +2741,7 @@ package body SC_Obligations is
    -- Operand --
    -------------
 
-   function Operand
-     (SCO      : SCO_Id;
-      Position : Operand_Position) return SCO_Id
+   function Operand (SCO : SCO_Id; Position : Operand_Position) return SCO_Id
    is
    begin
       return SCO_Vector.Reference (SCO).Operands (Position);
@@ -2986,9 +2985,21 @@ package body SC_Obligations is
       Position : Operand_Position;
       Operand  : SCO_Id)
    is
+      Operator_D : SCO_Descriptor renames SCO_Vector.Reference (Operator);
+      Operand_D  : SCO_Descriptor renames SCO_Vector.Reference (Operand);
    begin
-      SCO_Vector.Reference (Operator).Operands (Position) := Operand;
-      SCO_Vector.Reference (Operand).Parent := Operator;
+      Operand_D.Parent := Operator;
+
+      case Kind (Operator) is
+         when SC_Obligations.Operator =>
+            Operator_D.Operands (Position) := Operand;
+
+         when Decision =>
+            Operator_D.Expression := Operand;
+
+         when others =>
+            raise Program_Error with "unreachable code";
+      end case;
    end Set_Operand;
 
    -----------------------
