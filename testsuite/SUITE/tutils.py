@@ -72,13 +72,26 @@ def gprbuild_gargs_with(thisgargs):
     specific requests in THISGARGS.
     """
     # Force a few bits useful for practical reasons and without influence on
-    # code generation, then add our testsuite configuration options (selecting
-    # target model and board essentially).
-    return [
+    # code generation
+    result = [
         '-f',               # always rebuild
         '-XSTYLE_CHECKS=',  # style checks off
         '-p'                # create missing directories (obj, typically)
-    ] + (thistest.gprconfoptions + thistest.gprvaroptions + to_list(thisgargs))
+    ]
+
+    # Add our testsuite configuration options (selecting target model and board
+    # essentially).
+    result.extend(thistest.gprconfoptions)
+    result.extend(thistest.gprvaroptions)
+    result.extend(to_list(thisgargs))
+
+    # If we work with source instrumentation, add the dependency on
+    # gnatcov_full_rts to that instrumented programs are compilable in the
+    # generated projects.
+    if thistest.options.trace_mode == 'src':
+        result.append('--implicit-with=gnatcov_rts_full.gpr')
+
+    return result
 
 
 def gprbuild_cargs_with(thiscargs, scovcargs=True, suitecargs=True):
@@ -227,15 +240,6 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     the end of the Compiler package contents. Add EXTRA, if any, at the end of
     the project file contents. Return the gpr file name.
     """
-    # Make sure we have a list to allow additions
-    deps = list(deps)
-
-    # If we work with source instrumentation, add the dependency on
-    # gnatcov_full_rts so that instrumented program are compilable in the
-    # generated project.
-    if thistest.options.trace_mode == 'src':
-        deps.append('gnatcov_rts_full.gpr')
-
     deps = '\n'.join('with "%s";' % dep for dep in deps)
 
     mains = to_list(mains)
