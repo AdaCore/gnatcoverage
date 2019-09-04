@@ -21,12 +21,21 @@ Sample html annotated source
 
 .. _target_specific_notes:
 
-Target specific points of note
-==============================
+Target specific points of note with Binary traces
+=================================================
 
 The following list summarizes points of note for each target where some
 aspects of the build/execution/analysis process depart from the general
 instructions.
+
+For **cross** configurations in general:
+
+- Need to convey the target to |gcvrun|, either with a :option:`--target`
+  switch or a ``Target`` project file attribute;
+
+- Need to convey the target and Ada runtime when using project files
+  to state units of interest, for |gcvcov|, |gcvins| or |gcvrun|. See
+  :ref:`sunits`, :ref:`gpr_context`.
 
 For **powerpc-vxworks6**:
 
@@ -53,8 +62,8 @@ For **Windows native**:
 
 .. _known_limitations:
 
-Known Limitations
-=================
+Known Limitations with Binary traces
+====================================
 
 Incomplete statement coverage on lines with multiple statements
 ---------------------------------------------------------------
@@ -78,13 +87,13 @@ expanded on demand (:option:`=html+` and :option:`xcov+` output formats).
 
 .. _mcdc-limitations:
 
-MCDC inaccuracies with interrupts and multi-threaded applications 
+MCDC inaccuracies with interrupts and multi-threaded applications
 -----------------------------------------------------------------
 
-There is one limitation in |gcp| with respect to MCDC assessments: potential
-inaccuracies in results reported for particular decisions when these decisions
-are evaluated concurrently by different threads or mixed with interrupt
-processing in bareboard configurations.
+There is one limitation in |gcp| with respect to MCDC assessments from binary
+traces: potential inaccuracies in results reported for particular decisions
+when these decisions are evaluated concurrently by different threads or mixed
+with interrupt processing in bareboard configurations.
 
 Technically, the decisions of concern are those for which the associated
 binary decision diagram is not a tree, that is, those with at least one

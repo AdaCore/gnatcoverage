@@ -1,6 +1,6 @@
-###############################
-Trace Importation with |gcvcnv|
-###############################
+#####################################
+Importing binary traces with |gcvcnv|
+#####################################
 
 Traces generated from external sources (other than by using |gcvrun|)
 can be imported into |gcp| by converting them to the |gcp| format

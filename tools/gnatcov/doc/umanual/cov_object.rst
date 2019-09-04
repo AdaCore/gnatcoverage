@@ -1,13 +1,10 @@
 .. _ocov:
 
-************************
-Object Coverage Analysis
-************************
+**************************************
+Object coverage analysis with |gcvcov|
+**************************************
 
 .. _ocov-principles:
-
-General principles & Compilation requirements
-=============================================
 
 Object coverage analysis computes metrics focused on machine-level object
 code, concerned with machine basic instructions or conditional branches.
@@ -16,10 +13,7 @@ On request, the metrics can be presented on sources, with an annotation on
 each line synthesizing the coverage status of all the instructions generated
 for this line. This mapping relies on debug information, so sources must be
 compiled with :option:`-g` for this to work. There is no further compilation
-requirement for object coverage alone. However, if :ref:`source coverage
-analysis <scov>` is to be performed as well, the whole process is simpler if
-the same compilation options are used and they have to be strictly controlled
-for the source level criteria.
+requirement for object coverage alone.
 
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage
@@ -29,7 +23,7 @@ detail in the following sections. As for source coverage, there is never a
 requirement to recompile just because a different criterion needs to be
 analyzed.
 
-The :ref:`gnatcov_run-commandline` section of this document provides details
+The :ref:`bin_traces` chapter of this document provides details
 on the trace production interface. The remainder of this chapter explains the
 use of |gcvcov| in particular, to analyse traces once they have been
 produced. The general command line structure is always like::
@@ -50,6 +44,57 @@ regarding :ref:`ocov-generics`. Finally, :ref:`ocov-full` describes tools that
 help analyze low-level object files for issues of interest when aiming at full
 object coverage.
 
+|gcvcov| command line
+=====================
+
+.. index::
+   single: gnatcov coverage command line for object coverage
+
+.. _gnatcov_coverage-commandline-obj:
+
+Coverage analysis with |gcp| is performed by invoking |gcvcov| for a set of
+critera queried via the :option:`--level` command line option. The general
+interface synopsis is available from |gcv| :option:`--help`::
+
+ gnatcov coverage OPTIONS TRACE_FILES
+
+The available options are as follows:
+
+:option:`-c`, :option:`--level` |marg|:
+   Tell the set of coverage criteria to be assessed. The possible values
+   for object coverage analysis are :option:`insn`, :option:`branch`, both
+   explained later in this chapter.
+
+:option:`-a`, :option:`--annotate` |marg|:
+   Request a specific output report format.  The two possible criteria support
+   ``xcov[+]``, ``html[+]``, ``dhtml`` and ``asm``, with interpretations that
+   vary  depending on the assessed criteria. See the corresponding
+   documentation later in this chapter for more details.
+
+.. include:: cov_common_switches.rst
+
+:option:`--routines`, |rarg|:
+   Provide the list of object symbol names that correspond to routines for
+   which the coverage assessment is to be performed. Each instance of this
+   option on the command line adds to what is to be assessed eventually. See
+   the :ref:`oroutines` section for extra details and use examples.
+
+:option:`--alis`, |rarg|:
+    Provide set of :term:`Library Information files` for units where there
+    might be applicable exemption regions to account for, as explained in the
+   :ref:`ocov_exemptions` section of this manual.
+
+:option:`-P`:
+   Use the indicated project file to find default options. This can also be
+   used, possibly combined with other project related switches, as an
+   alternative to :option:`--alis` to determine the set of units for which
+   coverage exemptions should be honored. In this case, the
+   target/runtime/scenario contextual options that would be passed to build
+   the project should also be passed for proper interpretation of the project
+   files. This is similar to the use of project facilities for the
+   determination of SCOs for source coverage analysis, and described in the
+   :ref:`sunits` chapter of this manual.
+
 .. _oreport-formats:
 
 Output report formats (:option:`--annotate`)
@@ -64,7 +109,7 @@ information of interest to object coverage analysis, simply presented in
 different manners through the other possible output formats. The
 :option:`xcov`, :option:`html`, and :option:`dhtml` formats produce a set of
 annotated source files, in the directory where |gcv| is launched unless
-overriden with a :ref:`--output-dir option <cov-outdir>`. Even though
+overriden with a :option:`--output-dir` option. Even though
 presented on sources, the annotations remain representative of object coverage
 metrics, synthesized for all the instructions associated with each source
 line.
@@ -73,7 +118,7 @@ Later in this chapter we name output formats by the text to add to
 :option:`--annotate` on the command line. For example, we use "the
 :option:`=asm` outputs" to mean "the coverage reports produced with
 :option:`--annotate=asm`". We also sometimes use *in-source* reports
-or outputs to designate the set of outputs in annotated source forms. 
+or outputs to designate the set of outputs in annotated source forms.
 
 We illustrate the various formats with coverage analysis excerpts on
 the following example Ada support unit:
@@ -176,7 +221,7 @@ as an indication of the assessed criterion. Below is an example of report
 obtained for our Assert unit:
 
 .. code-block:: ada
- 
+
  examples/src/assert.adb:
  75% of 4 lines covered
 
@@ -406,7 +451,7 @@ combinations::
   or --routines=@symlist123
   or --routines=sym3 --routines=@symlist12
 
-... provided a ``symlist12`` text file containing the first two symbol names 
+... provided a ``symlist12`` text file containing the first two symbol names
 and a ``symlist123`` text file containing the three of them.
 
 It is often convenient to compute the lists of symbols for a :term:`@listfile
@@ -553,7 +598,7 @@ object code for each instance:
 And now a simple test driver that executes all the code for ``Count`` in the
 first instance (going within the *if* statement), and only part of the code
 for ``Count`` in the second instance (not going within the *if* statement):
-   
+
 .. code-block:: ada
 
    procedure Test_Genpos is
@@ -582,7 +627,7 @@ and on)::
    204 -:  3c 00 00 00      lis    r0,0x0000  | cond branch taken,
    ...                                        | skip everything up to 224
    ...                                        v
-   224 +:  60 00 00 00      ori    r0,r0,0x0000 
+   224 +:  60 00 00 00      ori    r0,r0,0x0000
    ...
 
 The presence of uncovered instructions yields a partial coverage annotation
@@ -632,5 +677,4 @@ explicit request. |gcv| provides the :option:`scan-objects` command for this
 purpose. The command expects the set of object files to examine on the command
 line, as a sequence of either object file or :term:`@listfile argument`, and
 reports about the two kinds of situations described above.
-
 

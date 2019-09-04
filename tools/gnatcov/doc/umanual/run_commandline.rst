@@ -11,7 +11,7 @@
 machine and produce execution traces. The general interface synopsis is
 available from ``gnatcov`` ``--help``, as follows::
 
-   run [OPTIONS] [EXE] [-eargs [EXE] EARGS...]
+   gnatcov run [OPTIONS] [EXE] [-eargs [EXE] EARGS...]
 
 .. _exe:
 
@@ -36,11 +36,11 @@ Then the available :option:`[OPTIONS]` are:
 
 :option:`--level` :
   Convey the most precise kind of analysis that is intended from the produced
-  traces later on. This defaults to `stmt+decision` and must be set to
-   `stmt+mcdc` if you intend to perform MCDC analysis. In this case, it is
+  traces later on. This defaults to ``stmt+decision`` and must be set to
+  ``stmt+mcdc`` if you intend to perform MCDC analysis. In this case, it is
   highly recommended, for efficiency purposes, to also state the units on
-  which you will perform such analysis with :option:`-P` or :option:`--scos`,
-  as described in :ref:`sunits`.
+  which you will perform such analysis with :option:`-P` or :option:`--scos`
+  options, as described in :ref:`sunits`.
 
 :option:`-t`, :option:`--target` :
   State the target architecture/board/abi for which the analyzed program was

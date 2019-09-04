@@ -1,53 +1,172 @@
 .. _scov:
 
-************************
-Source Coverage Analysis
-************************
+**************************************
+Source coverage analysis with |gcvcov|
+**************************************
 
 .. _scov-principles:
 
-General principles & Compilation requirements
-=============================================
-
 Source coverage analysis computes metrics focused on source programming
-language entities such as high level `statements` or `decisions` (DO178
-parlance for boolean expressions). In |gcp| terms, we designate these entities
-as :term:`Source Coverage Obligations`, or SCOs. SCO tables, describing the
-nature and source location of each item of interest, are part of the
-information produced by the |gpro| compilers, in the .ali or .gli
-:term:`Library Information file` corresponding to each Ada or C unit.
+language entities such as high level *statements* or *decisions* (DO178
+parlance for boolean expressions), which translate as :term:`Source Coverage
+Obligations`, or SCOs, in |gcp| terms.
 
-SCO tables are produced by the :option:`-fdump-scos` compilation
-option. Accurate mapping of the execution traces back to source level
-obligations requires :option:`-g` :option:`-fpreserve-control-flow` in
-addition, as well as :option:`-gno-strict-dwarf` :option:`-mlongcall` for
-PowerPC VxWorks targets. These options must be used to compile the sources you
-wish to analyze later on. Optimization is supported up to :option:`-O1` with
-inlining.
+Once you have produced source or binary traces, actual analysis is then
+performed with |gcvcov| to generate coverage reports. *Source* coverage is
+queried by passing a specific :option:`--level` argument to |gcvcov|.
 
-Once your application is built, the analysis proceeds in two steps: |gcvrun|
-is used to produce execution traces, then |gcvcov| to generate coverage
-reports. *Source* coverage is queried by passing a specific :option:`--level`
-argument to |gcvcov|. The compiler output is suitable whatever the assessed
-criteria; there is never a requirement to recompile just because a different
-criterion needs to be analyzed.
-
-The :ref:`gnatcov_run-commandline` section of this document provides details
-on the trace production interface. The remainder of this chapter focuses on
-the use of |gcvcov| to analyse traces once they have been produced.  The
-general structure of this command line is always like::
+The general structure of this command line is always like::
 
   gnatcov coverage --level=<criterion> --annotate=<format>
-                   <unit selection arguments> ... <traces>
+                   <units-of-interest> ... <traces-or-checkpoints>
 
 The next sections describe the :ref:`available report formats
 <sreport-formats>`, then provide more details regarding :ref:`scov-stmt`,
-:ref:`scov-dc`, and :ref:`scov-mcdc`. The :ref:`sunits` section describes how
-application units to be considered for coverage assessment are to be
-specified.  Essentially, this is achieved by command line options that
-designate the sets of relevant Source Coverage Obligations, either straight
-from Library Information files with the :option:`--scos` option, or leveraging
-the higher level GNAT project file support with a :option:`-P` option.
+:ref:`scov-dc`, and :ref:`scov-mcdc`.
+
+The :ref:`sunits` chapter describes how application units to be considered for
+coverage assessment are to be specified.
+
+|gcvcov| command line
+=====================
+
+.. index::
+   single: gnatcov coverage command line for source coverage
+
+.. _gnatcov_coverage-commandline-src:
+
+Coverage analysis with |gcp| is performed by invoking |gcvcov| for a set of
+critera queried via the :option:`--level` command line option. The general
+interface synopsis is available from |gcv| :option:`--help`::
+
+ gnatcov coverage OPTIONS TRACE_FILES
+
+The available options are as follows:
+
+:option:`-c`, :option:`--level` |marg|:
+   Tell the set of coverage criteria to be assessed. The possible values
+   for source coverage analysis are :option:`stmt`, :option:`stmt+decision`,
+   :option:`stmt+mcdc`, and :option:`stmt+uc_mcdc`, all explained later
+   in this chapter.
+
+:option:`-a`, :option:`--annotate` |marg|:
+   Request a specific output report format.  All the criteria support
+   ``xcov[+]``, ``html[+]``, ``dhtml`` and ``report`` formats, with
+   interpretations that vary depending on the assessed criteria. See the
+   corresponding documentation later in this chapter for more details.
+
+:option:`-o` :
+   Request that the synthetic report produced by ``--annotate=report`` be
+   output in the provided filname instead of standard output by default. This
+   is just ignored for other output formats.
+
+.. include:: cov_common_switches.rst
+
+:option:`-t`, :option:`--target` :
+  State the target architecture/board/ABI for which the analyzed program was
+  built.  This corresponds to the target prefix of your compilation toolchain,
+  for example ``powerpc-elf`` or ``leon-elf``, and can also be specified as a
+  ``Target`` attribute within the project file designated by :option:`-P`, if
+  any. By default, |gcv| assumes that this target is the same as the host
+  environment. Stating the correct target is required for correct processing
+  of project files.
+
+:option:`--non-coverable`:
+   Report about language statements for which no object code could be found in
+   the surrounding suprogram (typically out of optimization).
+
+:option:`-P`:
+   Use the indicated project file as the root project to select the units of
+   interest for the analysis and find default options. Default options are
+   taken only from this project. In absence of :option:`--projects` and of
+   :option:`--no-subprojects`, the units of interest are those designated by
+   this project and all it's transitive dependencies, minus those
+   advertised as externally-built.  The target/runtime/scenario contextual
+   options that would be passed to build the project should also be passed
+   for proper interpretation of the project files.  See the :ref:`sunits`
+   chapter of this manual for more details.
+
+:option:`--projects`, |rarg|:
+   When using :option:`-P`, use the provided
+   projects to select units of interest, together with their transitive
+   dependencies unless :option:`--no-subprojects` is also provided. The
+   projects designated by this option must all be part of the import
+   transitive closure reachable from the root project designated by
+   :option:`-P`.
+
+:option:`--no-subprojects`:
+  Consider only the projects (and units) encompassed by the :option:`-P`
+  / :option:`--projects` options as of-interest. Don't include any project
+  imported from there.
+
+:option:`--units`, |rarg|:
+   When using project files, override the list of units of interest for
+   source coverage with those provided.
+
+:option:`--subdirs`:
+   When using project files, look for :term:`Library Information files` in the
+   indicated subdirectory of each project's object directory.
+
+:option:`--scos`, |rarg|:
+   Provide the set of
+   :term:`Library Information files` from which Source Coverage Obligations
+   (SCOs) should be loaded. This low-level switch effectively overrides the
+   project based units of interest selection.
+
+:option:`--ignore-source-files`, |rarg|:
+   Provide a list of globbing patterns (as in Unix shells) of source
+   files to be excluded from the analysis and from the output report.
+   See the :ref:`ada_subunits` section for more information.
+
+:option:`--save-checkpoint`:
+    Save the resulting coverage analysis to the named checkpoint file.
+
+:option:`--checkpoint`, |rarg|:
+    Load previously saved coverage analysis checkpoint(s), and continue coverage
+    analysis from that initial state.
+
+A lot of options are available to control the set of units for which coverage
+is to be assessed. They may be combined in multiple ways and attributed within
+the project files are available to refine the set of units to include or
+exclude from each designated project. See :ref:`sunits` for extra details, and
+:ref:`using-gpr` for a general overview of how the project facilities operate.
+
+Saving coverage analysis state checkpoints allows the production of
+consolidated results from successive runs of the ``coverage`` command.
+In particular this allows coverage results to be computed incrementally,
+and allows consolidation with different sets of units of interest,
+in order to avoid incidental coverage. See :ref:`checkpoints` for a
+discussion of these use cases.
+
+Positional arguments on the command line (not tied to a particular option) are
+considered as trace file arguments. At least one trace file is required for
+the ``coverage`` command to operate, which may but need not be introduced with
+:option:`-T` or :option:`--trace`. Here are a few examples of valid command
+lines to illustrate. Other examples will be exposed along the course of the
+following sections::
+
+  gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=prog.trace
+  #                      (a)         (b)              (c)            (d)
+  # (a) Request Statement coverage assessment,
+  # (b) for units associated with the ALI files listed in the "alis" text file,
+  # (c) producing a synthetic text report on standard output (no -o option),
+  # (d) out of a single execution trace "prog.trace".
+
+  gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html t1 t2
+  # Statement and Decision coverage assessments for two traces "t1" and "t2",
+  # producing html report files in the current directory.
+
+  gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html @mytraces
+  # Same report, with t1 and t2 listed in the "mytraces" text file
+
+  gnatcov coverage --level=stmt -Papp.gpr --annotate=html @mytraces
+  # Same kind of report, for Statement coverage only, on source units owned
+  # by "app.gpr" and its transitive closure of project dependencies.
+
+  gnatcov coverage --level=stmt -Papp.gpr --no-subprojects --annotate=html @mytraces
+  # Likewise, considering only the units owned by app.gpr
+
+
 
 .. _sreport-formats:
 
@@ -58,7 +177,7 @@ Source coverage reports may be produced in various formats, as requested with
 the :option:`--annotate` command line argument of |gcvcov|. The
 :option:`xcov`, :option:`html` and :option:`dhtml` formats produce a set of
 annotated source files, in the directory where |gcv| is launched unless
-overriden with a :ref:`--output-dir option <cov-outdir>`. The :option:`report`
+overriden with a :option:`--output-dir` option. The :option:`report`
 output consists in a synthetic text report of :term:`coverage violations` with
 respect to the requested criteria, produced on standard output by default or
 in the file specified by the :option:`-o` command line option.
@@ -75,8 +194,7 @@ application unit:
 .. code-block:: ada
 
    function Between (X1, X2, V : Integer) return Boolean;
-   --  Whether V is between X1 and X2, inclusive and regardless
-   --  of their ordering.
+   --  Is V between X1 and X2, inclusive and regardless of their ordering?
 
    function Between (X1, X2, V : Integer) return Boolean is
    begin
@@ -139,7 +257,7 @@ details consists in the list of :term:`coverage violations` diagnosed for the
 line, which depends on the coverage criteria involved. Here is an excerpt for
 our previous example, where the only improperly satisfied obligation is an
 uncovered statement on line 7::
- 
+
    7 -:          return V >= X2 and then V <= X1;
    STATEMENT "return V ..." at 7:10 not executed
 
@@ -152,7 +270,7 @@ original source with an extra ``.html`` extension at the end.  Each annotated
 source page contains a summary of the assessment results followed by the
 original source lines, all numbered and marked with a coverage annotation as
 in the :option:`--annotate=xcov` case. Lines with obligations are colorized in
-green, orange or red for ``+``, ``!`` or ``-`` coverage respectively. 
+green, orange or red for ``+``, ``!`` or ``-`` coverage respectively.
 
 An `index.html` page is also produced, which contains a summary of the
 assessment context (assessed criteria, trace files involved, ...) and of the
@@ -540,7 +658,7 @@ again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
    == 1. ASSESSMENT CONTEXT ==
    ===========================
    ...
-  
+
    ============================
    == 2. COVERAGE VIOLATIONS ==
    ============================
@@ -1100,250 +1218,6 @@ There is no equivalent in C, where the allowed operand types are much more
 varied and where the restriction would make the language really much harder to
 use.
 
-.. _sunits:
-
-Specifying the units of interest
-================================
-
-This section describes the means available to convey the set of units on
-which coverage should be assessed, which we will call the set of :dfn:`units
-of interest` and which are relevant to both |gcvrun| and |gcvcov|.
-
-.. _passing_scos:
-
-Providing the Library Information files (:option:`--scos`)
-----------------------------------------------------------
-
-With the :option:`--scos` command line argument, users convey the set of units
-of interest by providing the set of Library Information files corresponding to
-those units. Each occurrence of :option:`--scos` on the command line expects a
-single argument which specifies a set of units of interest. Multiple
-occurrences are allowed and the sets accumulate. The argument might be either
-the name of a single Library Information file for a unit (typically, a
-``.ali`` file for Ada, or a ``.c.gli`` file for C), or a :term:`@listfile
-argument` expected to contain a list of such Library Information file names.
-
-For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
-with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with
-``--scos=u3.ali --scos=@lst12`` where ``lst12`` is a text file containing the
-first two ALI file names, or with other combinations alike.
-
-The GNAT toolchain provides a useful device for list computations: the
-:option:`-A` command line argument to :command:`gnatbind` which produces a
-list of all the .ali files involved in an executable construction.  By
-default, the list goes to standard output. It may be directed to a file on
-request with :option:`-A=<list-filename>`, and users may of course filter this
-list as they see fit depending on their analysis purposes. 
-
-Below is an example sequence of commands to illustrate, using the standard
-Unix ``grep`` tool to filter out test harness units, assuming a basic naming
-convention::
-
-    # Build executable and produce the corresponding list of ALI files. Pass
-    # -A to gnatbind through gprbuild -bargs then filter out the test units:
-
-    gprbuild -p --target=powerpc-elf --RTS=zfp-prep -Pmy.gpr
-     test_divmod0.adb -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
-
-
-
-    # Run and analyse all units except the test harness:
-
-    grep -v 'test_[^/]*.ali' all.alis > divmod0.alis
-
-    gnatcov run --level=stmt+mcdc --scos=@divmod0.alis
-    gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
-
-
-.. _passing_gpr:
-
-Using project files (:option:`-P`, :option:`--projects`, :option:`--units`)
----------------------------------------------------------------------------
-
-As an alternative to manually providing the complete list of Library
-Information files to consider with :option:`--scos`, you can use GNAT project
-files to specify units of interest directly. When both :option:`--scos` and
-project file options are on the command line, :option:`--scos` prevails and
-the project files are just ignored with respect to the units of interest
-computation.
-
-As an application often incurs a tree of (sub-)projects, the units of interest
-designation with project files incurs two levels of selection: first, specify
-the set of :dfn:`projects of interest` where the units of interest reside,
-then for each project of interest, specify units of interest therein if
-needed.
-
-For starters, a single :dfn:`root project` must be specified using the
-:option:`-P` option, then projects of interest within the tree rooted at the
-given root may be specified with :option:`--projects` options.  If :option:`-P`
-is used alone, without any :option:`--projects` option, then the root project
-itself is considered of interest, unless this root project defines a
-``Origin_Project`` attribute, in which case the project of interest will be the
-one this attribute designates.  With :option:`--projects` options, the projects
-listed by these options are considered of interest. The root project designated
-by :option:`-P` needs to be listed in the :option:`--projects` set to be
-considered of interest as well. With a lone :option:`-P` or with
-:option:`--projects` in addition, projects imported by the listed ones are also
-considered recursively by default, unless :option:`--no-subprojects` is used.
-
-We will illustrate the effect of various combinations, assuming an example
-project tree depicted below:
-
-.. image:: prjtree.*
-  :align: center
-
-On this tree, :ref:`fig-Proot` restricts the analysis to units in the root
-project only, and :ref:`fig-Proot-ss_a` allows focusing on the Subsystem A
-project only. If the root project is of interest as well, it must be listed
-explicitly, as in :ref:`fig-Proot-root-ss_a`.
-
-.. _fig-Proot:
-.. figure:: Proot.*
-  :align: center
-
-  ``-Proot --no-subprojects``
-
-.. _fig-Proot-ss_a:
-.. figure:: Proot-ss_a.*
-  :align: center
-
-  ``-Proot --projects=subsystem_a --no-subprojects``
-
-.. _fig-Proot-root-ss_a:
-.. figure:: Proot-root-ss_a.*
-  :align: center
-
-  ``-Proot --projects=root --projects=ss_a --no-subprojects``
-
-Removing :option:`--no-subprojects` lets you consider all the projects
-transitively imported by the designated ones. For example:
-
-.. _fig-Proot-ss_a-recursive:
-.. figure:: Proot-ss_a-recursive.*
-  :align: center
-
-  ``-Proot --projects=subsystem_a``
-
-By default, all the units encompassed by a project of interest are considered
-of interest. This can be tailored thanks to specific attributes in package
-``Coverage`` of project files.
-
-Four attributes are available to control the set of units to be considered of
-interest within a project: ``Units``, ``Units_List``, ``Excluded_Units``, and
-``Excluded_Units_List``.
-
-``Units`` and ``Units_List`` are used to construct an initial set of units for
-which coverage analysis should be performed.  For example, given a project
-with three packages ``Pak1``, ``Pak2``, and ``Pak3``, if you want to do
-coverage analysis only for ``Pak1`` and ``Pak3`` you can specify::
-
-  package Coverage is 
-    for Units use ("pak1", "pak3"); -- pak1 and pak3 are of interest
-  end Coverage;
-
-Similarily to ``Sources`` and ``Sources_List``, the ``Units`` attribute
-specifies a set of units and ``Units_List`` specifies the name of a text file
-containing a list of units.  See the :ref:`unit-names` section for details
-how individual units should be denoted depending on the source language.
-
-``Excluded_Units`` and ``Excluded_Units_List`` operate like ``Units`` and
-``Units_List`` but for units that should never be considered of interest for
-coverage. Back to our example, the same result as above is obtained by
-specifying::
-
-   package Coverage is
-      for Excluded_Units use ("pak2");  -- all units except pak2 are of interest
-   end Coverage;
-
-When the exclude/include sets overlap, the excluding attributes prevail
-over the including ones. The exact rules for computation of the units to be
-considered of interest within a project are as follows:
-
-- An initial set is determined using the ``Units`` and ``Units_List``
-  attributes in the project's ``Coverage`` package; By default, if no such
-  attribute is found, the initial set comprises all the units of the project,
-
-- Units determined using the ``Excluded_Units`` and ``Excluded_Units_List``
-  attributes are removed from the initial set to yield the set to consider.
-
-Finally, the list of units of interest for a given execution of |gcv| can also
-be overriden from the command line using the :option:`--units` switch.  When
-this option is used, the project files attributes are ignored.
-
-Each occurrence of this switch indicates one unit to focus on, or with the @
-syntax the name of a file containing a list of units to focus on.
-
-.. _unit-names:
-
-Compilation unit vs source file names
--------------------------------------
-
-For Ada, explicit *compilation unit* names are given to library level packages
-or suprograms, case insensitive. This is what must be used in project file
-attributes or :option:`--units` arguments to elaborate the set of :dfn:`units
-of interest`, not source file names.
-
-This offers a simple and consistent naming basis to users, orthogonal to the
-unit/source name mapping. Consider, for example, a project file with the set
-of declarations below, which parameterizes the source file name to use for the
-body of a ``Logger`` package depending on the kind of build performed::
-
-  type Build_Mode_Type is ("Production", "Debug");
-  Build_Mode : Build_Mode_Type := external ("BUILD_MODE", "Debug");
-
-  package Naming is
-     case Build_Mode is
-        when "Production" =>
-           for Implementation ("Logger") use "production-logger.adb";
-        when "Debug" =>
-           for Implementation ("Logger") use "debug-logger.adb";
-     end case;
-  end Naming;
-
-Regardless of the build mode, restricting the analysis to the ``Logger``
-package would be achieved with :option:`-P<project> --units=logger` or
-with a ``Units`` attribute such as::
-  
-  package Coverage is
-     for Units use ("Logger"); -- compilation unit name here
-  end Coverage;
-
-
-Source file names are used in the output reports, still, either in source
-location references as part of the :option:`=report` outputs, or as the base
-filename of annotated source files for other formats. For our ``Logger`` case
-above, the analysis with, for example, :option:`--annotate=xcov` of a program
-built in Debug mode would yield a ``debug-logger.adb.xcov`` annotated source
-result.
-
-For C, the notion of *translation unit* resolves to the set of tokens that the
-compiler gets to work on, after the pre-processing expansion of macros,
-#include directives and the like. This doesn't have an explicit name and
-:dfn:`units of interest` must be designated by the toplevel source file names
-from which object files are produced.
-
-Typically, from a sample ``foo.c`` source like:
-
-.. code-block:: c
-
-   #include "foo.h"
-
-   static int bar (void)
-   { ... }
-
-   ...
-   void foo (int x)
-   { ... }
-
-
-``gcc -c foo.c -fdump-scos ...`` would produce a ``foo.o`` object file, a
-``foo.c.gli`` companion Library Information file, and excluding it from the
-analysis scope can be achieved with::
-
-  package Coverage is
-     for Excluded_Units use ("foo.c"); /* source file name here  */
-  end Coverage;
-
 .. _ada_subunits:
 
 Ada subunits ("separates")
@@ -1358,7 +1232,7 @@ in the entire unit implementation, subunit sources included.
 However it is quite common to use subunits as a mean to do unit testing: a
 subunit is physically separated from other sources and can have access to
 implementation internals. Such subunits vary from one test to another and thus
-interfer with the consolidation process. For this specific use case, the
+interfere with the consolidation process. For this specific use case, the
 :option:`--ignore-source-files` command-line argument for |gcvcov| makes it
 possible for the coverage analysis and the report production to ignore source
 files even though they belong to units of interest.
@@ -1379,7 +1253,7 @@ In order to ignore all files whose name match ``*-test.adb``, you can also run::
 
   gnatcov coverage [regular options] --units=ops --ignore-source-files=*-test.adb [trace files]
 
-Inlining & Ada Generic Units
+Inlining & Ada generic units
 ============================
 
 In the vast majority of situations, inlining is just transparent to source
@@ -1387,6 +1261,18 @@ coverage metrics: calls are treated as regular statements, and coverage of the
 inlined bodies is reported on the corresponding sources regardless of their
 actual inlining status. See the :ref:`optimization` section for a description
 of effects that might show up on rare occasions.
+
+Generic units have a different status, where each instantiation produces a
+distinct, potentially unique instance of the generic code working on a
+different types, objects, with different helper subprograms or packages.
+
+|gcp| offers two main kinds of coverage strategies for generic units: one
+where the generic source is considered as the entity of interest, to which all
+the instances contribute, and one where each instance is considered as a
+separate entity of interest.
+
+Combined coverage on generics (default behavior)
+------------------------------------------------
 
 By default, Ada generic units are also uniformly treated as single source
 entities, with the coverage achieved by all the instances combined and
@@ -1456,14 +1342,14 @@ fully covered by default::
  100% of 4 lines covered
  Coverage level: stmt
    1 .: package body Vops is
-   2 .:    
+   2 .:
    3 .:    procedure Inc (V : in out Vector_Type; Amount : Integer) is
    4 .:    begin
    5 +:       for I in V'Range loop
    6 +:          V(I) := V(I) + Amount;
    7 .:       end loop;
    8 .:    end;
-   9 .:    
+   9 .:
   10 .:    procedure Mult (V : in out Vector_Type; Amount : Integer) is
   11 .:    begin
   12 +:       for I in V'Range loop
@@ -1475,8 +1361,8 @@ fully covered by default::
 Per instance analysis is possible though, as part of what we refer to as
 :dfn:`separated coverage` facilities.
 
-Separated coverage analysis
----------------------------
+Separated coverage on generics
+------------------------------
 
 As described above, a single coverage analysis of any source construct is
 performed by default, consolidating all code copies generated by this
@@ -1485,7 +1371,7 @@ copies. For generic units, consolidation over all instances.
 
 A finer-grained analysis is possible, where distinct copies of the code coming
 from a given source construct are identified according to some criterion, and
-a separate coverage assessment is made for each of these copies. 
+a separate coverage assessment is made for each of these copies.
 
 In this case, coverage violations carry an additional indication of which code
 copy the violation is reported for, available in all but the non-extended
@@ -1541,12 +1427,12 @@ with distinct symbols of the executable file. As we will describe, this
 provides a good approximation of per-instance analysis in absence of inlining,
 and becomes inaccurate when inlining comes into play.
 
-Separation by routine (:option:`-S routine`)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Separation by routine (:option:`-S routine`, *obsolete*)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this mode, two code regions coming from the same source construct will
 undergo separate coverage analyses if they occur in different symbols of the
-executable file.
+executable file. This scheme is obsolete, unreliable in presence of inlining.
 
 When a given subprogram is inlined in two different calling routines, each
 inlined copy thus undergoes a separate coverage assessment.  In the absence of
@@ -1617,11 +1503,11 @@ Consider this C code for example:
      5	    else                   \
      6	      (y)++;               \
      7	  } while(0)
-     8	
+     8
      9	int main ()
     10	{
     11	  volatile x = 0, y = 0;
-    12	
+    12
     13	  COND_INC(x == 0, x, y);
     14	  COND_INC(x == 0, x, y);
     15	}
@@ -1739,4 +1625,3 @@ as a specific color in the html formats. For our example, this yields::
   14 0:          Put_Line ("X is not positive");
   15 0:          return False;
   16 .:       end if;
-

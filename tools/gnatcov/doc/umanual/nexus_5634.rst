@@ -20,7 +20,7 @@ on target 5634 hardware, and, through the Analyzer tool, to configure and execut
 Program Trace data collection and output. winIDEA is a GUI, and the information
 in this section describes the user interaction with the GUI. winIDEA APIs are
 provided for several languages (including Python and C++), and these are useful
-when not working in interactive mode. 
+when not working in interactive mode.
 
 winIDEA runs on a host computer that is connected via USB to iSystem hardware
 (the "Blue Box"), which in turn is connected to a Mictor connector on the target
@@ -29,8 +29,8 @@ winIDEA runs on a host computer that is connected via USB to iSystem hardware
 While the program and analyzer are running, Program Trace data and other Nexus data
 are sent over the processor's Nexus interface to the Blue Box, where it is annotated
 and buffered. (The buffering is shared between memory on the Blue Box and resources
-on the host computer; this affects how to configure the Analyzer). 
- 
+on the host computer; this affects how to configure the Analyzer).
+
 The Analyzer can stop as a result of any of several conditions; e.g. when the program
 halts upon encountering a breakpoint, or when some condition set in the Analyzer
 configuration is met.
@@ -47,32 +47,32 @@ The 5634 hardware supplies two options for controlling when Nexus Program Trace 
 is output while the CPU is running:
 
   * A bit in a control register in the Nexus Module
- 
+
     When this bit is set, Nexus data will be produced whenever the CPU is running.
 
   * Watchpoint triggers
- 
+
     If the control register bit is not set, Watchpoint Triggers may be used to generate trace data.
     Not all of the functionality of Watchpoint Triggers is supported by |gcp|, but what is used
     is built around the four Instruction Address Compare registers on the 5634 (IAC1 - IAC4).
     These registers can be used to cause watchpoint events when the PC attains specified values.
     In the basic usage, an address is set in one of the IAC registers and a watchpoint occurs when
     the PC matches the value set in the IAC. In the Nexus module, an IAC watchpoint event can be set
-    to ``start`` or to ``stop`` the production of Nexus Program Trace messages. 
- 
+    to ``start`` or to ``stop`` the production of Nexus Program Trace messages.
+
 Configuring the winIDEA Analyzer
 ================================
 
 The Watchpoint Triggers functionality of the 5634 is the (only) option supported by |gcp|.
 The Analyzer must be configured accordingly, and options to the |gcvcnv| command reflect the
-trigger settings that were set by the Analyzer when the trace data was collected: 
+trigger settings that were set by the Analyzer when the trace data was collected:
 
-   * the IAC that was used for the ``start`` trigger, 
-   * the address that was in the ``start`` trigger IAC, 
-   * the IAC used for the ``stop`` trigger. 
- 
-The address in the ``stop`` trigger is not needed, and the ``stop`` trigger can be omitted completely. 
- 
+   * the IAC that was used for the ``start`` trigger,
+   * the address that was in the ``start`` trigger IAC,
+   * the IAC used for the ``stop`` trigger.
+
+The address in the ``stop`` trigger is not needed, and the ``stop`` trigger can be omitted completely.
+
 Here are two examples:
 
    * A program continually runs a loop where it receives a command and dispatches based on that command.
@@ -90,7 +90,7 @@ create a configuration that will be applicable across a wide range of test execu
 
     * Open the ``Analyzer Configuration List`` dialog, choose New->Trace and choose a name for your configuration.
       This will bring up a trigger configuration window.
-    
+
     * The first, ``Recorder`` tab is used to set values for four properites (click on the initial values for
       the first three to see that they are drop down lists). For ``Start``, ``Buffer Size`` and ``Trigger Position``
       choose ``Immediately``, ``1 GB`` (+/-) and ``Begin``. Do not check ``Break On Trigger``.
@@ -105,7 +105,7 @@ create a configuration that will be applicable across a wide range of test execu
         lose the context for interpreting some Nexus messages.
         |gcvcnv| will generate an error message when it is passed a start
         trigger address for a branch instruction.
-    
+
     * Back at the ``Analyzer Configuration`` window, the new configurataion will be shown to be the active one
       with a red arrow on the left. Check both ``Start Analyzer when CPU starts`` and
       ``Stop Analyzer when CPU stops``. The first is a minor convenience, making it unnecessary to explicitly

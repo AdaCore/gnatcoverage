@@ -9,10 +9,10 @@ coverage of some source construct is not achievable. The |gcp|
 :dfn:`exemptions` facility was designed to allow abstracting these coverage
 violations away from the genuine defects of a testing campaign.
 
-Exemption Regions
-=================
+Defining :term:`Exemption Regions`
+==================================
 
-:dfn:`exemption regions` are lexical sections of sources in which coverage
+:dfn:`Exemption regions` are lexical sections of sources in which coverage
 violations are expected and can be justified. For Ada with the |gnat|
 compilers, regions are defined by the insertion of dedicated pragmas in the
 sources:
@@ -38,27 +38,22 @@ To illustrate, let us consider a common assertion control procedure in Ada:
       pragma Annotate (Xcov, Exempt_Off);
    end Eassert;
 
-We declare an exemption region to state that coverage violations are expected
-and not to be considered as a testing campaign deficiency.  Indeed, we expect
-never to reach here with ``T`` False in nominal circumstances, so the inner
-``raise`` statement is never executed and the ``not T`` decision controlling
-the ``if`` is only exercised one way.
+We expect never to reach here with ``T`` False, so we declare an exemption
+region to state that coverage violations across this region are expected and
+not a testing campaign deficiency.
 
 
-Reporting about Coverage Exemptions
+Reporting about coverage exemptions
 ===================================
 
 Exempted regions are reported as blocks in both the annotated source and the
 synthetic text reports, for both source and object coverage metrics.
-
 In annotated source reports, a ``#`` or ``*`` caracter annotates all the
 exempted lines, depending on whether 0 or at least 1 violation was exempted
 over the whole section, respectively.
 For our ``Eassert`` example above, a typical :option:`=xcov` output
 for :option:`stmt+decision` coverage for would be::
 
- 0% of 2 lines covered, Coverage level: stmt+decision
- ...
    6 .: procedure Eassert (T : Boolean) is
    7 .: begin
    8 *:    pragma Annotate (Xcov, Exempt_On, "assert condition never to be False");
@@ -134,27 +129,22 @@ In synthetic reports, the count of exempted violations is 0, like::
 
   1 exempted region.
 
-.. _exemption_alis:
+.. _ocov_exemptions:
 
-Locating exemption annotations
-==============================
+Object coverage exemptions
+==========================
 
-While exemption regions are specified via annotations in source files,
-exemptions are not criterion specific. They apply to both source and object
-level criteria analyzed over the annotated regions.
+Exemption regions specified via annotations in source files actually apply
+to both source and object level criteria analyzed over the annotated regions.
 
-In the example above, we would have used similar exemption annotations to deal
-with expected object instruction and branch coverage failures in Eassert, as
-the conditional branch used to implement the ``if`` statement is expected to
-remain partially covered, as well as the sequence of machine instructions
+In the previous example, we would have used similar exemption annotations to
+deal with expected object instruction and branch coverage failures in Eassert,
+as the conditional branch used to implement the ``if`` statement is expected
+to remain partially covered, as well as the sequence of machine instructions
 triggerring the Ada exception raise.
 
 As for Source Coverage Obligations for source level criteria, information
 about the declared exemption regions is located in the :term:`Library
-Information files` produced by the compiler for every compilation unit.
-
-Similar mechanisms are available to designate units for which exemption
-regions are of interest: the :option:`--alis` command line option, with
-similar use rules as :ref:`--scos to designate source coverage obligations
-<passing_scos>`, and the :ref:`high level project file support <passing_gpr>`
-integrated in gnatcov.
+Information files` produced by the compiler for every compilation unit. The
+mechanisms described in chapter :ref:`sunits` can then also be used to
+designate units for which exemptions regions should be accounted for.

@@ -1,6 +1,5 @@
 .. _osmetrics:
 
-******************************************
 Object/Source level metrics considerations
 ******************************************
 
@@ -53,8 +52,8 @@ Using the basic test driver below:
 ``Divides`` features a simple decision controlling an *if* statement exercised
 both ways so the driver achieves statement and decision coverage. It even
 achieves mcdc since the decision has a single condition, which is reported by
-|gcp| with 100% stmt+mcdc coverage and ``+`` annotations everywhere in the
-:option:`=xcov` output::
+|gcp| with a 100% achievement for the *stmt+mcdc* coverage level and ``+``
+annotations everywhere in the :option:`=xcov` output::
 
   gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov test_ops1.trace
   ...
@@ -76,7 +75,7 @@ If we consider object coverage now, we have to consider that the Ada ``mod``
 operator needs special treatment to handle negative operands, which incurs an
 internal test (conditional branch) and dedicated sequences of
 instructions. The operation normally also entails a check to raise the
-predefined Contraint_Error exception if X happens to be null. These sequences
+predefined ``Constraint_Error`` exception if X happens to be null. These sequences
 are not exercised by our basic driver, and object coverage for the same
 execution trace correctly reports partial achievement only::
 

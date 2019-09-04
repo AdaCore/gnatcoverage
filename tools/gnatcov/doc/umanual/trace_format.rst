@@ -1,5 +1,5 @@
 *******************
-Trace File Contents
+Trace file contents
 *******************
 
 A trace file essentially consists in
@@ -59,5 +59,5 @@ features the following information entries:
   to |gcvrun|.
 
 The precise structure is described in the ``qemu_traces.ads`` unit of the
-gnatcov sources. 
+gnatcov sources.
 

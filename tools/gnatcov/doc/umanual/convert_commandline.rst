@@ -39,7 +39,7 @@ Details about the available options follow:
   The name of the file to write the output trace into can be provided by
   by this option. If ``--output`` is not used, the output filename is derived
   from the name of the executable, by taking the basename of the executable
-  file and appending ``.trace``. 
+  file and appending ``.trace``.
 
 :option:`--hw-trigger-traces` :
   For Nexus modules that support the Class 4 HW Watchpoint Trigger feature,
