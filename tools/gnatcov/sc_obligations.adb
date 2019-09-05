@@ -3008,31 +3008,31 @@ package body SC_Obligations is
       CU_Vector.Reference (CU).Bit_Maps := Bit_Maps;
    end Set_Bit_Maps;
 
-   -----------------
-   -- Set_Operand --
-   -----------------
+   -------------------------------
+   -- Set_Operand_Or_Expression --
+   -------------------------------
 
-   procedure Set_Operand
-     (Operator : SCO_Id;
+   procedure Set_Operand_Or_Expression
+     (SCO      : SCO_Id;
       Position : Operand_Position;
-      Operand  : SCO_Id)
+      Expr     : SCO_Id)
    is
-      Operator_D : SCO_Descriptor renames SCO_Vector.Reference (Operator);
-      Operand_D  : SCO_Descriptor renames SCO_Vector.Reference (Operand);
+      SCOD      : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+      Expr_SCOD : SCO_Descriptor renames SCO_Vector.Reference (Expr);
    begin
-      Operand_D.Parent := Operator;
+      Expr_SCOD.Parent := SCO;
 
-      case Kind (Operator) is
-         when SC_Obligations.Operator =>
-            Operator_D.Operands (Position) := Operand;
+      case SCOD.Kind is
+         when Operator =>
+            SCOD.Operands (Position) := Expr;
 
          when Decision =>
-            Operator_D.Expression := Operand;
+            SCOD.Expression := Expr;
 
          when others =>
             raise Program_Error with "unreachable code";
       end case;
-   end Set_Operand;
+   end Set_Operand_Or_Expression;
 
    -----------------------
    -- Set_Unit_Has_Code --

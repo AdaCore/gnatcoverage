@@ -756,18 +756,16 @@ private
 
    --  Write accessors for child units
 
-   procedure Set_Operand
-     (Operator : SCO_Id;
+   procedure Set_Operand_Or_Expression
+     (SCO      : SCO_Id;
       Position : Operand_Position;
-      Operand  : SCO_Id)
-      with Pre => (case Kind (Operator) is
-                   when SC_Obligations.Operator => True,
-                   when Decision                => Position = Right,
-                   when others                  => False);
-   --  Set the operand slot indicated by Position in Operator to Operand.
+      Expr     : SCO_Id)
+      with Pre => Kind (SCO) in Operator | Decision;
+   --  If SCO is an Operator, set the Operand slot indicated by Position
+   --  to Expr.
    --
-   --  For convenience, if Operator is actually a Decision SCO, assume Position
-   --  is Right and set the decision's expression instead.
+   --  If SCO is a Decision, Position is ignored, and the decision's
+   --  Expression is set to Expr.
 
    procedure Set_BDD_Node (C_SCO : SCO_Id; BDD_Node : BDD_Node_Id);
    --  Set the BDD node for the given condition SCO

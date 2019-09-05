@@ -195,15 +195,17 @@ private package SC_Obligations.BDD is
    --  with direct references to their destinations.
 
    type Arcs is record
-      Dests  : Destinations;
+      Dests      : Destinations;
       --  Outgoing arcs for next condition
 
-      Origin : BDD_Node_Id := No_BDD_Node_Id;
+      Origin     : BDD_Node_Id := No_BDD_Node_Id;
       --  Jump node referencing next condition
 
-      O_SCO : SCO_Id;
-      O_Pos : Operand_Position;
-      --  Reference to parent operator and position (Left or Right) in it
+      Parent_SCO : SCO_Id;
+      --  Reference to parent operator or decision
+
+      O_Pos      : Operand_Position;
+      --  Position of this node within the enclosing operator (Left or Right)
    end record;
 
    procedure Push (A : Arcs);

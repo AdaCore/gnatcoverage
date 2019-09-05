@@ -480,9 +480,9 @@ package body SC_Obligations.BDD is
          Push
            (((False => Exit_False_Id,
               True  => Exit_True_Id),
-            Origin => No_BDD_Node_Id,
-            O_SCO  => Decision,
-            O_Pos  => Right));
+            Origin     => No_BDD_Node_Id,
+            Parent_SCO => Decision,
+            O_Pos      => Right));
       end return;
    end Create;
 
@@ -498,10 +498,10 @@ package body SC_Obligations.BDD is
       A : constant Arcs := Pop;
       L : BDD_Node_Id;
    begin
-      Set_Operand
-        (Operator => A.O_SCO,
+      Set_Operand_Or_Expression
+        (SCO      => A.Parent_SCO,
          Position => A.O_Pos,
-         Operand  => O_SCO);
+         Expr     => O_SCO);
 
       Allocate (BDD_Vector, BDD, BDD_Node'(Kind => Jump,
                                            Dest => No_BDD_Node_Id), L);
@@ -512,18 +512,18 @@ package body SC_Obligations.BDD is
       Push
         (((False => A.Dests (False),
            True  => A.Dests (True)),
-         Origin => L,
-         O_SCO  => O_SCO,
-         O_Pos  => Right));
+         Origin     => L,
+         Parent_SCO => O_SCO,
+         O_Pos      => Right));
 
       --  Arcs for left operand
 
       Push
         (((False => A.Dests (False),
            True  => L),
-         Origin => A.Origin,
-         O_SCO  => O_SCO,
-         O_Pos  => Left));
+         Origin     => A.Origin,
+         Parent_SCO => O_SCO,
+         O_Pos      => Left));
    end Process_And_Then;
 
    -----------------
@@ -535,19 +535,19 @@ package body SC_Obligations.BDD is
 
       A : constant Arcs := Pop;
    begin
-      Set_Operand
-        (Operator => A.O_SCO,
+      Set_Operand_Or_Expression
+        (SCO      => A.Parent_SCO,
          Position => A.O_Pos,
-         Operand  => O_SCO);
+         Expr     => O_SCO);
 
       --  Swap destinations of top arcs
 
       Push
         (((False => A.Dests (True),
            True  => A.Dests (False)),
-         Origin => A.Origin,
-         O_SCO  => O_SCO,
-         O_Pos  => Right));
+         Origin     => A.Origin,
+         Parent_SCO => O_SCO,
+         O_Pos      => Right));
    end Process_Not;
 
    ---------------------
@@ -562,10 +562,10 @@ package body SC_Obligations.BDD is
       A : constant Arcs := Pop;
       L : BDD_Node_Id;
    begin
-      Set_Operand
-        (Operator => A.O_SCO,
+      Set_Operand_Or_Expression
+        (SCO      => A.Parent_SCO,
          Position => A.O_Pos,
-         Operand  => O_SCO);
+         Expr     => O_SCO);
       Allocate
         (BDD_Vector, BDD, BDD_Node'(Kind => Jump, Dest => No_BDD_Node_Id), L);
 
@@ -575,18 +575,18 @@ package body SC_Obligations.BDD is
       Push
         (((False => A.Dests (False),
            True  => A.Dests (True)),
-         Origin => L,
-         O_SCO  => O_SCO,
-         O_Pos  => Right));
+         Origin     => L,
+         Parent_SCO => O_SCO,
+         O_Pos      => Right));
 
       --  Arcs for left operand
 
       Push
         (((False => L,
            True  => A.Dests (True)),
-         Origin => A.Origin,
-         O_SCO  => O_SCO,
-         O_Pos  => Left));
+         Origin     => A.Origin,
+         Parent_SCO => O_SCO,
+         O_Pos      => Left));
    end Process_Or_Else;
 
    -----------------------
@@ -632,10 +632,10 @@ package body SC_Obligations.BDD is
       end if;
 
       Set_BDD_Node (Condition_Id, N);
-      Set_Operand
-        (Operator => A.O_SCO,
+      Set_Operand_Or_Expression
+        (SCO      => A.Parent_SCO,
          Position => A.O_Pos,
-         Operand  => Condition_Id);
+         Expr     => Condition_Id);
    end Process_Condition;
 
    ---------
