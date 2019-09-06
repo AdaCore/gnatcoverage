@@ -122,6 +122,14 @@ package body Instrument.Tree is
    function Unwrap (N : Expr) return Expr;
    --  Strip Paren_Expr from N
 
+   function Inclusive_End_Sloc
+     (SL : Source_Location_Range) return Source_Location;
+   --  End slocs from Libadalang nodes are exclusive: the correspond to the
+   --  source location for the (hypothetical) character right after the last
+   --  character that was consumed to produce the node. In gnatcov, we need the
+   --  sloc of this last character, so we need to subtract 1 from the column
+   --  number.
+
    -----------------
    -- Diagnostics --
    -----------------
@@ -534,7 +542,7 @@ package body Instrument.Tree is
          SR      : constant Source_Location_Range := N.Sloc_Range;
 
          F       : constant Source_Location := Start_Sloc (SR);
-         T       : Source_Location := End_Sloc (SR);
+         T       : Source_Location := Inclusive_End_Sloc (SR);
          --  Source location bounds used to produre a SCO statement. By
          --  default, this should cover the same source location range as N,
          --  however for nodes that can contain themselves other statements
@@ -622,7 +630,7 @@ package body Instrument.Tree is
          end case;
 
          if not To_Node.Is_Null then
-            T := End_Sloc (To_Node.Sloc_Range);
+            T := Inclusive_End_Sloc (To_Node.Sloc_Range);
          end if;
 
          SC.Append
@@ -896,7 +904,7 @@ package body Instrument.Tree is
                   SR   : constant Source_Location_Range :=
                      Current_Dominant.N.Sloc_Range;
                   From : constant Source_Location := Start_Sloc (SR);
-                  To   : Source_Location := End_Sloc (SR);
+                  To   : Source_Location := Inclusive_End_Sloc (SR);
 
                begin
                   if Current_Dominant.K /= 'E' then
@@ -2313,7 +2321,7 @@ package body Instrument.Tree is
            (C1   => ' ',
             C2   => 'c',
             From => Start_Sloc (N_SR),
-            To   => End_Sloc (N_SR),
+            To   => Inclusive_End_Sloc (N_SR),
             Last => False);
          Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
       end Output_Element;
@@ -2751,5 +2759,19 @@ package body Instrument.Tree is
 
       return Unwrapped_N;
    end Unwrap;
+
+   ------------------------
+   -- Inclusive_End_Sloc --
+   ------------------------
+
+   function Inclusive_End_Sloc
+     (SL : Source_Location_Range) return Source_Location
+   is
+   begin
+      return Result : Source_Location := End_Sloc (SL) do
+         pragma Assert (Result.Column > 1);
+         Result.Column := Result.Column - 1;
+      end return;
+   end Inclusive_End_Sloc;
 
 end Instrument.Tree;
