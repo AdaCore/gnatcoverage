@@ -1997,8 +1997,8 @@ package body Instrument.Tree is
       --  The first declaration is dominated by the protected or task [type]
       --  declaration.
 
-      Vis_Decl  : Public_Part;
-      Priv_Decl : Private_Part;
+      Vis_Decl  : Public_Part := No_Public_Part;
+      Priv_Decl : Private_Part := No_Private_Part;
       --  Visible and private declarations of the protected or task definition
 
    begin
@@ -2026,8 +2026,10 @@ package body Instrument.Tree is
                T_Def : constant Task_Def :=
                  N.As_Single_Task_Decl.F_Task_Type.F_Definition;
             begin
-               Vis_Decl := T_Def.F_Public_Part;
-               Priv_Decl := T_Def.F_Private_Part;
+               if not T_Def.Is_Null then
+                  Vis_Decl := T_Def.F_Public_Part;
+                  Priv_Decl := T_Def.F_Private_Part;
+               end if;
             end;
 
          when Ada_Task_Type_Decl =>
@@ -2035,8 +2037,10 @@ package body Instrument.Tree is
                T_Def : constant Task_Def :=
                  N.As_Task_Type_Decl.F_Definition;
             begin
-               Vis_Decl := T_Def.F_Public_Part;
-               Priv_Decl := T_Def.F_Private_Part;
+               if not T_Def.Is_Null then
+                  Vis_Decl := T_Def.F_Public_Part;
+                  Priv_Decl := T_Def.F_Private_Part;
+               end if;
             end;
 
          when others =>
