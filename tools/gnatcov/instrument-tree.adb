@@ -1110,8 +1110,9 @@ package body Instrument.Tree is
                      =>
                         Traverse_Declarations_Or_Statements
                           (IC,
-                           P => CU_Decl.As_Ada_Node,
-                           L => CUN.F_Pragmas);
+                           P       => CU_Decl.As_Ada_Node,
+                           L       => CUN.F_Pragmas,
+                           Preelab => Preelab);
 
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
@@ -1871,7 +1872,10 @@ package body Instrument.Tree is
       --  Set up rewriting for the list case, if L is a list where witnesses
       --  can be inserted.
 
-      if not L.Is_Null and then L.Kind /= Ada_Pragma_Node_List then
+      if not L.Is_Null
+        and then L.Kind /= Ada_Pragma_Node_List
+        and then not Preelab
+      then
          Current_Insertion_Info.RH_List := Handle (L);
          Witness_Use_Statement := L.Kind = Ada_Stmt_List;
       end if;

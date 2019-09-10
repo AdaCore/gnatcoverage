@@ -27,6 +27,7 @@ with Libadalang.Common;       use Libadalang.Common;
 with SCOs;
 
 with Coverage;        use Coverage;
+with Diagnostics;     use Diagnostics;
 with Files_Table;     use Files_Table;
 with Instrument.Tree; use Instrument.Tree;
 with Strings;         use Strings;
@@ -744,9 +745,12 @@ package body Instrument.Sources is
       Rewriter : Source_Rewriter;
       Filename : constant String := To_String (Unit_Info.Filename);
 
-      Preelab : constant Boolean := False;
-      --  ??? To be implemented in Libadalang: S128-004
-      --
+      Root_Analysis_Unit : Analysis_Unit;
+
+      Root_Unit          : Compilation_Unit;
+      --  Compilation unit node for the library item being analyzed
+
+      Preelab : Boolean;
       --  Set to True if Unit is required to be preelaborable, i.e.  it is
       --  either preelaborated, or the declaration of a remote types or
       --  remote call interface library unit. In this case, do not generate
@@ -756,6 +760,29 @@ package body Instrument.Sources is
 
    begin
       Rewriter.Start_Rewriting (Prj_Info, Filename);
+
+      Root_Analysis_Unit := Rewriter.Rewritten_Unit;
+
+      --  Determine whether Unit is required to be preelaborable, and whether
+      --  we can insert witness calls (which are not preelaborable).
+
+      Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
+
+      begin
+         Preelab := Root_Unit.P_Is_Preelaborable
+           and then Root_Unit.F_Body.Kind = Ada_Library_Item
+           and then Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
+             Ada_Package_Decl
+           | Ada_Package_Body
+           | Ada_Generic_Package_Decl;
+      exception
+         when Libadalang.Common.Property_Error =>
+            Report
+              (Msg  => "failed to determine preelaboration constraint for "
+                         & Filename,
+               Kind => Warning);
+            Preelab := False;
+      end;
 
       Initialize_Rewriting (UIC, CU_Name, Rewriter.Rewritten_Context);
 
