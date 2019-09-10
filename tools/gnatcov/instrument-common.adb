@@ -23,6 +23,7 @@ with Ada.Unchecked_Deallocation;
 
 with Langkit_Support.Text;
 with Libadalang.Common;
+with Libadalang.Project_Provider;
 with Libadalang.Sources;
 
 with Outputs; use Outputs;
@@ -323,8 +324,14 @@ package body Instrument.Common is
       Output_Filename : constant String :=
          To_String (Info.Output_Dir) / Base_Filename;
 
-      Context : constant Analysis_Context := Create_Context;
-      Unit    : constant Analysis_Unit :=
+      Provider : constant Unit_Provider_Reference :=
+         Libadalang.Project_Provider.Create_Project_Unit_Provider_Reference
+           (Project          => Project.Project,
+            Env              => null,
+            Is_Project_Owner => False);
+      Context  : constant Analysis_Context :=
+         Create_Context (Unit_Provider => Provider);
+      Unit     : constant Analysis_Unit :=
          Get_From_File (Context, Input_Filename);
    begin
       if Unit.Has_Diagnostics then
