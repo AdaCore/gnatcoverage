@@ -2,12 +2,11 @@
 
 with Ada.Calendar.Conversions;
 with Ada.Command_Line;
-with Ada.Environment_Variables;
 with Ada.Direct_IO;
-with Ada.Directories;
 
 with Interfaces;
 with Interfaces.C;
+with Interfaces.C.Strings;
 
 with System;
 
@@ -208,8 +207,8 @@ package body GNATcov_RTS.Traces.Output is
    begin
       --  Write bytes that are included in the coverage buffer
 
-      for Value of Buffer loop
-         Append_Bit (Value);
+      for J in Buffer'Range loop
+         Append_Bit (Buffer (J));
       end loop;
       Flush;
 
@@ -239,14 +238,64 @@ package body GNATcov_RTS.Traces.Output is
    ----------------------------
 
    function Default_Trace_Filename return String is
-      use Ada.Environment_Variables;
-   begin
-      if Value (GNATCOV_TRACE_FILE, "") /= "" then
-         return Value (GNATCOV_TRACE_FILE);
 
+      --  We need this unit to be compileable in Ada 95 mode, so we cannot
+      --  use:
+      --
+      --  * Ada.Environment_Variables: directly use the libc's getenv function.
+      --  * Ada.Directories.Simple_Name: do a good enough approximation
+      --    instead.
+
+      use Interfaces.C.Strings;
+
+      function Environment_Variable (Name : String) return String;
+      --  Return the value for the Name environment variable. Return an empty
+      --  string if there is no matching environment variable.
+
+      function Basename (Name : String) return String;
+      --  Return the base name of the Name file
+
+      --------------------------
+      -- Environment_Variable --
+      --------------------------
+
+      function Environment_Variable (Name : String) return String is
+         function getenv (Name : chars_ptr) return chars_ptr;
+         pragma Import (C, getenv);
+
+         C_Name : chars_ptr := New_String (Name);
+         Result : constant chars_ptr := getenv (C_Name);
+      begin
+         Free (C_Name);
+         if Result = Null_Ptr then
+            return "";
+         else
+            return Value (Result);
+         end if;
+      end Environment_Variable;
+
+      --------------
+      -- Basename --
+      --------------
+
+      function Basename (Name : String) return String is
+         First : Natural := Name'Last + 1;
+      begin
+         for J in reverse Name'Range loop
+            exit when Name (J) = '/' or Name (J) = '\';
+            First := J;
+         end loop;
+         return Name (First .. Name'Last);
+      end Basename;
+
+      Env_Trace_Filename : constant String :=
+         Environment_Variable (GNATCOV_TRACE_FILE);
+
+   begin
+      if Env_Trace_Filename /= "" then
+         return Env_Trace_Filename;
       else
-         return Ada.Directories.Simple_Name (Ada.Command_Line.Command_Name)
-                & ".srctrace";
+         return Basename (Ada.Command_Line.Command_Name) & ".srctrace";
       end if;
    end Default_Trace_Filename;
 
