@@ -3,6 +3,10 @@
 # This is a developer convenience script to build and install gnatcov_rts_full
 # in the toolchain's default prefix.
 
+if [ $# -gt 0 ]; then
+    PREFIX_ARG="--prefix=$1"
+fi
+
 # If gnatcov_rts_full was already installed, just uninstall it (one single
 # gprbuild --uninstall is enough for all variants).
 gprinstall --uninstall -Pgnatcov_rts_full
@@ -13,5 +17,6 @@ do
     gprbuild   -P gnatcov_rts_full.gpr -XLIBRARY_TYPE=$i -p
     gprinstall -P gnatcov_rts_full.gpr  -XLIBRARY_TYPE=$i -p \
         --sources-subdir=include/gnatcov_rts_full \
-        --build-var=LIBRARY_TYPE --build-name=$i
+        --build-var=LIBRARY_TYPE --build-name=$i \
+        $PREFIX_ARG
 done
