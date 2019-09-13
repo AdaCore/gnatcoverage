@@ -15,7 +15,7 @@ gprinstall --uninstall -Pgnatcov_rts_full
 for i in static static-pic relocatable
 do
     gprbuild   -P gnatcov_rts_full.gpr -XLIBRARY_TYPE=$i -p
-    gprinstall -P gnatcov_rts_full.gpr  -XLIBRARY_TYPE=$i -p \
+    gprinstall -P gnatcov_rts_full.gpr -XLIBRARY_TYPE=$i -f -p \
         --sources-subdir=include/gnatcov_rts_full \
         --build-var=LIBRARY_TYPE --build-name=$i \
         $PREFIX_ARG
