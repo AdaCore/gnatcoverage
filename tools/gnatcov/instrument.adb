@@ -21,15 +21,18 @@
 with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Directories;
+with Ada.Exceptions;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
+with Libadalang.Common;
 with Libadalang.Rewriting;
 
 with Checkpoints;
 with Coverage;
+with Diagnostics;        use Diagnostics;
 with Instrument.Common;  use Instrument.Common;
 with Instrument.Sources; use Instrument.Sources;
 with Project;
@@ -456,6 +459,13 @@ package body Instrument is
          --  Track which CU_Id maps to which instrumented unit
 
          Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
+      exception
+         when E : Libadalang.Common.Property_Error =>
+            Report
+              ("internal error while instrumenting "
+               & To_String (Unit_Info.Filename) & ": "
+               & Ada.Exceptions.Exception_Information (E),
+               Kind => Diagnostics.Error);
       end Instrument_Unit;
 
    --  Start of processing for Instrument_Units_Of_Interest
