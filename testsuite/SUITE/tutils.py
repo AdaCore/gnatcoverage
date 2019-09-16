@@ -66,11 +66,13 @@ def run_and_log(*args, **kwargs):
     return p
 
 
-def gprbuild_gargs_with(thisgargs):
+def gprbuild_gargs_with(thisgargs, trace_mode=None):
     """
     Compute and return all the toplevel gprbuild arguments to pass. Account for
     specific requests in THISGARGS.
     """
+    trace_mode = trace_mode or thistest.options.trace_mode
+
     # Force a few bits useful for practical reasons and without influence on
     # code generation
     result = [
@@ -88,7 +90,7 @@ def gprbuild_gargs_with(thisgargs):
     # If we work with source instrumentation, add the dependency on
     # gnatcov_full_rts to that instrumented programs are compilable in the
     # generated projects.
-    if thistest.options.trace_mode == 'src':
+    if trace_mode == 'src':
         result.append('--implicit-with=gnatcov_rts_full.gpr')
 
     return result
@@ -170,7 +172,8 @@ def gprbuild(project,
              suitecargs=True,
              extracargs=None,
              gargs=None,
-             largs=None):
+             largs=None,
+             trace_mode=None):
     """
     Cleanup & build the provided PROJECT file using gprbuild, passing
     GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches. Each
@@ -186,7 +189,7 @@ def gprbuild(project,
 
     # Fetch options, from what is requested specifically here
     # or from command line requests
-    all_gargs = gprbuild_gargs_with(thisgargs=gargs)
+    all_gargs = gprbuild_gargs_with(thisgargs=gargs, trace_mode=trace_mode)
     all_largs = gprbuild_largs_with(thislargs=largs)
     all_cargs = gprbuild_cargs_with(scovcargs=scovcargs,
                                     suitecargs=suitecargs,

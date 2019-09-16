@@ -25,7 +25,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
                   separate_coverage=None, extra_args=[],
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
-                  absolute_paths=False, subdirs=None, dump_method='atexit'):
+                  absolute_paths=False, subdirs=None, dump_method='atexit',
+                  trace_mode=None):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -69,6 +70,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         gprbuild and gnatcov.
     :param str dump_method: Method to dump coverage buffers (--dump-method)
         argument.
+    :param None|str trace_mode: If None, use the testsuite's trace mode.
+        Otherwise, use the given trace mode ('bin', or 'src').
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -88,7 +91,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     def gprbuild_wrapper(root_project, gargs=[]):
         gprbuild(root_project,
                  gargs=gargs + extra_gprbuild_args,
-                 extracargs=extra_gprbuild_cargs)
+                 extracargs=extra_gprbuild_cargs,
+                 trace_mode=trace_mode)
 
     gpr_exe_dir = gpr_exe_dir or '.'
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, 'obj')
@@ -98,7 +102,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         extra_args = list(extra_args) + subdirs_args
         extra_gprbuild_args = list(extra_gprbuild_args) + subdirs_args
 
-    trace_mode = thistest.options.trace_mode
+    trace_mode = trace_mode or thistest.options.trace_mode
     xcov_args = ['coverage', '--level', covlevel]
     trace_files = []
 
