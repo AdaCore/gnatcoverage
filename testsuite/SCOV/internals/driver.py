@@ -1199,7 +1199,18 @@ class SCOV_helper_src_traces(SCOV_helper):
         # If we have a request for specific options, honor that. Otherwise,
         # use the already computed project file for this test:
         if self.covctl and self.covctl.gprsw:
-            instrument_gprsw = self.covctl.gprsw
+            # In order for the auto traces dump to work correctly, we must pass
+            # the top-level project (i.e. the one that contains the main) to
+            # "gnatcov instrument", so pass --projects if needed.
+            projects = self.covctl.gprsw.projects
+            if not projects and not self.covctl.gprsw.units:
+                projects = [os.path.basename(self.covctl.gprsw.root_project)]
+
+            instrument_gprsw = GPRswitches(
+                root_project=self.gpr,
+                projects=projects,
+                units=self.covctl.gprsw.units,
+                recursive=self.covctl.gprsw.recursive)
         else:
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
