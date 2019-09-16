@@ -13,7 +13,7 @@ import os.path
 import re
 
 from SCOV.instr import xcov_instrument
-from SUITE.cutils import contents_of
+from SUITE.cutils import contents_of, indent
 from SUITE.tutils import (cmdrun, exepath_to, gprbuild, srctracename_for,
                           thistest, tracename_for, xcov, xrun)
 
@@ -26,7 +26,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   separate_coverage=None, extra_args=[],
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
                   absolute_paths=False, subdirs=None, dump_method='atexit',
-                  trace_mode=None):
+                  check_gprbuild_output=False, trace_mode=None):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -70,6 +70,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         gprbuild and gnatcov.
     :param str dump_method: Method to dump coverage buffers (--dump-method)
         argument.
+    :param bool check_gprbuild_output: If true, check that gprbuild's output is
+        empty.
     :param None|str trace_mode: If None, use the testsuite's trace mode.
         Otherwise, use the given trace mode ('bin', or 'src').
 
@@ -93,6 +95,12 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                  gargs=gargs + extra_gprbuild_args,
                  extracargs=extra_gprbuild_cargs,
                  trace_mode=trace_mode)
+        if check_gprbuild_output:
+            gprbuild_out = contents_of('gprbuild.out')
+            thistest.fail_if(
+                gprbuild_out,
+                "gprbuild's output (gprbuild.out) is not empty:\n{}"
+                .format(indent(gprbuild_out)))
 
     gpr_exe_dir = gpr_exe_dir or '.'
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, 'obj')
