@@ -36,8 +36,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
     :param SUITE.gprutils.GPRswitches gprsw: GPRswitches instance used to
         describe the project and units of interest to analyze.
-    :param str covlevel: Coverage level (as passed with gnatcov's --level=
-        argument) for the coverage analysis.
+    :param None|str covlevel: Coverage level (as passed with gnatcov's --level=
+        argument) for the coverage analysis. Not passed if None.
     :param list[str] mains: List of names for the various mains to run. These
         are lower-case names without extension, for instance "foo" for the
         "foo.adb" main source file.
@@ -111,7 +111,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         extra_gprbuild_args = list(extra_gprbuild_args) + subdirs_args
 
     trace_mode = trace_mode or thistest.options.trace_mode
-    xcov_args = ['coverage', '--level', covlevel]
+    covlevel_args = [] if covlevel is None else ['--level', covlevel]
+    xcov_args = ['coverage'] + covlevel_args
     trace_files = []
 
     # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
@@ -133,8 +134,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
         for m in mains:
-            xrun(['--level', covlevel, exepath(m)] + scos +
-                  extra_args,
+            xrun(covlevel_args + [exepath(m)] + scos + extra_args,
                  out='run.log')
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
