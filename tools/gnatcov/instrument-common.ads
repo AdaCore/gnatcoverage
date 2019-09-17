@@ -272,6 +272,11 @@ package Instrument.Common is
       Language_Version : Any_Language_Version;
       --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
 
+      Ignored_Source_Files_Present : Boolean;
+      Ignored_Source_Files         : GNAT.Regexp.Regexp;
+      --  If present, instrumentation will ignore files whose names match the
+      --  accessed pattern.
+
       Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
       --  List of mains to instrument *which are not units of interest*. Always
       --  empty when Dump_Method is Manual.
@@ -294,8 +299,9 @@ package Instrument.Common is
    end record;
 
    function Create_Context
-     (Dump_Method      : Any_Dump_Method;
-      Language_Version : Any_Language_Version) return Inst_Context;
+     (Dump_Method          : Any_Dump_Method;
+      Language_Version     : Any_Language_Version;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
 
    procedure Destroy_Context (Context : in out Inst_Context);
@@ -315,6 +321,12 @@ package Instrument.Common is
    --  Register a main to be instrumented so that it dumps coverage buffers.
    --  File is the source file for this main, and Project is the project that
    --  owns this main.
+
+   procedure Add_Instrumented_Unit
+     (Context     : in out Inst_Context;
+      Project     : GNATCOLL.Projects.Project_Type;
+      Source_File : GNATCOLL.Projects.File_Info);
+   --  Add the given source file to the queue of units to instrument
 
    procedure Create_File
      (Info : in out Project_Info;

@@ -602,8 +602,9 @@ package body Instrument.Common is
    --------------------
 
    function Create_Context
-     (Dump_Method      : Any_Dump_Method;
-      Language_Version : Any_Language_Version) return Inst_Context is
+     (Dump_Method          : Any_Dump_Method;
+      Language_Version     : Any_Language_Version;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
    begin
       return IC : Inst_Context do
          IC.Project_Name := +Ada.Directories.Base_Name
@@ -612,6 +613,11 @@ package body Instrument.Common is
 
          IC.Dump_Method := Dump_Method;
          IC.Language_Version := Language_Version;
+
+         IC.Ignored_Source_Files_Present := Ignored_Source_Files /= null;
+         if Ignored_Source_Files /= null then
+            IC.Ignored_Source_Files := Ignored_Source_Files.all;
+         end if;
       end return;
    end Create_Context;
 
@@ -719,6 +725,51 @@ package body Instrument.Common is
              Prj_Info => Prj_Info));
       end;
    end Register_Main_To_Instrument;
+
+   ---------------------------
+   -- Add_Instrumented_Unit --
+   ---------------------------
+
+   procedure Add_Instrumented_Unit
+     (Context     : in out Inst_Context;
+      Project     : GNATCOLL.Projects.Project_Type;
+      Source_File : GNATCOLL.Projects.File_Info)
+   is
+      use GNATCOLL.VFS;
+   begin
+      --  Skip this file if we were told to ignore it
+
+      if Context.Ignored_Source_Files_Present
+         and then GNAT.Regexp.Match
+           (+Source_File.File.Base_Name, Context.Ignored_Source_Files)
+      then
+         return;
+      end if;
+
+      declare
+         CU_Name   : constant Compilation_Unit_Name :=
+           To_Compilation_Unit_Name (Source_File);
+      begin
+         --  If we already planned to instrument this unit, do nothing more
+
+         if Context.Instrumented_Units.Contains (CU_Name) then
+            return;
+         end if;
+
+         declare
+            Unit_Info : constant Instrumented_Unit_Info_Access :=
+               new Instrumented_Unit_Info'
+                 (Filename => To_Unbounded_String
+                                (+Source_File.File.Full_Name),
+                  Prj_Info => Get_Or_Create_Project_Info (Context, Project),
+                  Is_Main  => GNATCOLL.Projects.Is_Main_File
+                               (Project, Source_File.File.Base_Name));
+         begin
+            Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
+            Context.Instrumentation_Queue.Append (CU_Name);
+         end;
+      end;
+   end Add_Instrumented_Unit;
 
    -----------------------
    -- Register_New_File --

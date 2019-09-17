@@ -386,14 +386,14 @@ package body Instrument is
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
       IC                : Inst_Context :=
-         Create_Context (Dump_Method, Language_Version);
+         Create_Context (Dump_Method, Language_Version, Ignored_Source_Files);
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 
       procedure Add_Instrumented_Unit
         (Project     : GNATCOLL.Projects.Project_Type;
          Source_File : GNATCOLL.Projects.File_Info);
-      --  Add the given source file to the queue of units to instrument
+      --  Wrapper for the eponym procedure in Instrument.Common
 
       procedure Instrument_Unit
         (CU_Name   : Compilation_Unit_Name;
@@ -408,40 +408,8 @@ package body Instrument is
         (Project     : GNATCOLL.Projects.Project_Type;
          Source_File : GNATCOLL.Projects.File_Info)
       is
-         use GNATCOLL.VFS;
       begin
-         --  Skip this file if we were told to ignore it
-
-         if Ignored_Source_Files /= null
-            and then GNAT.Regexp.Match
-              (+Source_File.File.Base_Name, Ignored_Source_Files.all)
-         then
-            return;
-         end if;
-
-         declare
-            CU_Name   : constant Compilation_Unit_Name :=
-              To_Compilation_Unit_Name (Source_File);
-         begin
-            --  If we already planned to instrument this unit, do nothing more
-
-            if IC.Instrumented_Units.Contains (CU_Name) then
-               return;
-            end if;
-
-            declare
-               Unit_Info : constant Instrumented_Unit_Info_Access :=
-                  new Instrumented_Unit_Info'
-                    (Filename => To_Unbounded_String
-                                   (+Source_File.File.Full_Name),
-                     Prj_Info => Get_Or_Create_Project_Info (IC, Project),
-                     Is_Main  => GNATCOLL.Projects.Is_Main_File
-                                  (Project, Source_File.File.Base_Name));
-            begin
-               IC.Instrumented_Units.Insert (CU_Name, Unit_Info);
-               IC.Instrumentation_Queue.Append (CU_Name);
-            end;
-         end;
+         Add_Instrumented_Unit (IC, Project, Source_File);
       end Add_Instrumented_Unit;
 
       ---------------------
