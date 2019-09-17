@@ -19,8 +19,9 @@
 --  Tree traversal for instrumentation and SCO generation (adapted from Par_SCO
 --  compiler unit).
 
-with Libadalang.Analysis;  use Libadalang.Analysis;
+with Libadalang.Analysis; use Libadalang.Analysis;
 
+with Instrument.Common;  use Instrument.Common;
 with Instrument.Sources; use Instrument.Sources;
 with Text_Files;
 
@@ -30,7 +31,8 @@ private package Instrument.Tree is
    No_Dominant : constant Dominant_Info;
 
    procedure Traverse_Declarations_Or_Statements
-     (UIC                        : in out Unit_Inst_Context;
+     (IC                         : in out Inst_Context;
+      UIC                        : in out Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
       D                          : Dominant_Info := No_Dominant;

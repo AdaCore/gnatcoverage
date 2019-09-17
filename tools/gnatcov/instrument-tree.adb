@@ -37,12 +37,11 @@ with Snames; use Snames;
 with Table;
 
 with ALI_Files;
-with Coverage;          use Coverage;
-with Diagnostics;       use Diagnostics;
-with Instrument.Common; use Instrument.Common;
-with SC_Obligations;    use SC_Obligations;
-with Strings;           use Strings;
-with Types;             use Types;
+with Coverage;       use Coverage;
+with Diagnostics;    use Diagnostics;
+with SC_Obligations; use SC_Obligations;
+with Strings;        use Strings;
+with Types;          use Types;
 
 package body Instrument.Tree is
 
@@ -276,7 +275,8 @@ package body Instrument.Tree is
    -----------------------------------------
 
    function Traverse_Declarations_Or_Statements
-     (UIC                        : in out Unit_Inst_Context;
+     (IC                         : in out Inst_Context;
+      UIC                        : in out Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
       D                          : Dominant_Info := No_Dominant;
@@ -306,33 +306,40 @@ package body Instrument.Tree is
    --  the others are not???
 
    procedure Traverse_Generic_Package_Declaration
-     (UIC     : in out Unit_Inst_Context;
+     (IC      : in out Inst_Context;
+      UIC     : in out Unit_Inst_Context;
       N       : Generic_Package_Decl;
       Preelab : Boolean);
 
    procedure Traverse_Handled_Statement_Sequence
-     (UIC     : in out Unit_Inst_Context;
-      N : Handled_Stmts;
-      D : Dominant_Info := No_Dominant);
+     (IC  : in out Inst_Context;
+      UIC : in out Unit_Inst_Context;
+      N   : Handled_Stmts;
+      D   : Dominant_Info := No_Dominant);
 
    procedure Traverse_Package_Body
-     (UIC     : in out Unit_Inst_Context;
+     (IC      : in out Inst_Context;
+      UIC     : in out Unit_Inst_Context;
       N       : Package_Body;
       Preelab : Boolean);
 
    procedure Traverse_Package_Declaration
-     (UIC     : in out Unit_Inst_Context;
+     (IC      : in out Inst_Context;
+      UIC     : in out Unit_Inst_Context;
       N       : Base_Package_Decl;
       Preelab : Boolean;
       D       : Dominant_Info := No_Dominant);
 
    procedure Traverse_Subprogram_Or_Task_Body
-     (UIC : in out Unit_Inst_Context;
+     (IC  : in out Inst_Context;
+      UIC : in out Unit_Inst_Context;
       N   : Ada_Node;
       D   : Dominant_Info := No_Dominant);
 
    procedure Traverse_Sync_Definition
-     (UIC : in out Unit_Inst_Context; N : Ada_Node);
+     (IC  : in out Inst_Context;
+      UIC : in out Unit_Inst_Context;
+      N   : Ada_Node);
    --  Traverse a protected definition or task definition
 
    --  Note regarding traversals: In a few cases where an Alternatives list is
@@ -461,7 +468,8 @@ package body Instrument.Tree is
    --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
-     (UIC                        : in out Unit_Inst_Context;
+     (IC                         : in out Inst_Context;
+      UIC                        : in out Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
       D                          : Dominant_Info := No_Dominant;
@@ -472,11 +480,12 @@ package body Instrument.Tree is
       pragma Warnings (Off, Discard_Dom);
    begin
       Discard_Dom := Traverse_Declarations_Or_Statements
-        (UIC, L, Preelab, D, P, Is_Select_Stmt_Alternative);
+        (IC, UIC, L, Preelab, D, P, Is_Select_Stmt_Alternative);
    end Traverse_Declarations_Or_Statements;
 
    function Traverse_Declarations_Or_Statements
-     (UIC                        : in out Unit_Inst_Context;
+     (IC                         : in out Inst_Context;
+      UIC                        : in out Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
       D                          : Dominant_Info := No_Dominant;
@@ -1077,6 +1086,33 @@ package body Instrument.Tree is
 
       procedure Traverse_One (N : Ada_Node) is
       begin
+         --  Subunits must be instrumented along with the unit that contains
+         --  the corresponding stub. To do this, schedule the instrumentation
+         --  of the subunit when we find a stub (see the IF block below) and of
+         --  the unit that contains the subunit when we find a subunit (see the
+         --  Is_Subunit IF block in processing for Ada_Compilation_Unit below).
+
+         if N.Kind in Ada_Body_Stub then
+            begin
+               declare
+                  Stub        : constant Body_Stub := N.As_Body_Stub;
+                  Subunit_FQN : constant Unbounded_Text_Type_Array :=
+                     Stub.P_Fully_Qualified_Name_Array;
+                  Subunit_Name : constant Compilation_Unit_Name :=
+                    (Unit => To_Qualified_Name (Subunit_FQN),
+                     Part => Unit_Separate);
+               begin
+                  Add_Instrumented_Unit (IC, Subunit_Name);
+               end;
+            exception
+               when Property_Error =>
+                  Report
+                    (UIC, N,
+                     "failed to locate the subunit for this stub",
+                     Kind => Warning);
+            end;
+         end if;
+
          --  Initialize or extend current statement sequence. Note that for
          --  special cases such as IF and Case statements we will modify
          --  the range to exclude internal statements that should not be
@@ -1087,14 +1123,30 @@ package body Instrument.Tree is
 
             when Ada_Compilation_Unit =>
                declare
-                  CUN      : constant Compilation_Unit :=
+                  CUN        : constant Compilation_Unit :=
                     N.As_Compilation_Unit;
-                  CUN_Body : constant Ada_Node := CUN.F_Body;
-                  CU_Decl  : constant Basic_Decl :=
-                    (if CUN_Body.Kind = Ada_Library_Item
-                     then CUN_Body.As_Library_Item.F_Item
-                     else Basic_Decl (CUN_Body.As_Subunit.F_Body));
+                  CUN_Body   : constant Ada_Node := CUN.F_Body;
+                  Is_Subunit : constant Boolean :=
+                     CUN_Body.Kind /= Ada_Library_Item;
+                  CU_Decl    : constant Basic_Decl :=
+                    (if Is_Subunit
+                     then Basic_Decl (CUN_Body.As_Subunit.F_Body)
+                     else CUN_Body.As_Library_Item.F_Item);
                begin
+                  --  If we found a subunit, make sure we also instrument the
+                  --  unit that contains the corresponding stub.
+
+                  if Is_Subunit then
+                     declare
+                        Body_Name : constant Compilation_Unit_Name :=
+                          (Unit => To_Qualified_Name
+                                     (CUN_Body.As_Subunit.F_Name),
+                           Part => Unit_Separate);
+                     begin
+                        Add_Instrumented_Unit (IC, Body_Name);
+                     end;
+                  end if;
+
                   --  Note: we do not traverse the context clause or generate
                   --  any SCOs for it, as nothing there can generate any code.
 
@@ -1109,7 +1161,7 @@ package body Instrument.Tree is
                         | Ada_Task_Body
                      =>
                         Traverse_Declarations_Or_Statements
-                          (UIC,
+                          (IC, UIC,
                            P       => CU_Decl.As_Ada_Node,
                            L       => CUN.F_Pragmas,
                            Preelab => Preelab);
@@ -1141,20 +1193,20 @@ package body Instrument.Tree is
             when Ada_Package_Decl =>
                Set_Statement_Entry;
                Traverse_Package_Declaration
-                 (UIC, N.As_Base_Package_Decl, Preelab, Current_Dominant);
+                 (IC, UIC, N.As_Base_Package_Decl, Preelab, Current_Dominant);
 
             --  Generic package declaration
 
             when Ada_Generic_Package_Decl =>
                Set_Statement_Entry;
                Traverse_Generic_Package_Declaration
-                 (UIC, N.As_Generic_Package_Decl, Preelab);
+                 (IC, UIC, N.As_Generic_Package_Decl, Preelab);
 
             --  Package body
 
             when Ada_Package_Body =>
                Set_Statement_Entry;
-               Traverse_Package_Body (UIC, N.As_Package_Body, Preelab);
+               Traverse_Package_Body (IC, UIC, N.As_Package_Body, Preelab);
 
             --  Subprogram declaration or subprogram body stub
 
@@ -1215,7 +1267,7 @@ package body Instrument.Tree is
                | Ada_Task_Body
             =>
                Set_Statement_Entry;
-               Traverse_Subprogram_Or_Task_Body (UIC, N);
+               Traverse_Subprogram_Or_Task_Body (IC, UIC, N);
 
             --  Entry body
 
@@ -1237,7 +1289,8 @@ package body Instrument.Tree is
                      Inner_Dominant := ('T', N);
                   end if;
 
-                  Traverse_Subprogram_Or_Task_Body (UIC, N, Inner_Dominant);
+                  Traverse_Subprogram_Or_Task_Body
+                    (IC, UIC, N, Inner_Dominant);
                end;
 
             --  Protected body
@@ -1245,7 +1298,7 @@ package body Instrument.Tree is
             when Ada_Protected_Body =>
                Set_Statement_Entry;
                Traverse_Declarations_Or_Statements
-                 (UIC, L => As_Protected_Body (N).F_Decls.F_Decls);
+                 (IC, UIC, L => As_Protected_Body (N).F_Decls.F_Decls);
 
             --  Exit statement, which is an exit statement in the SCO sense,
             --  so it is included in the current statement sequence, but
@@ -1288,13 +1341,13 @@ package body Instrument.Tree is
                   --  is dominated by the elaboration of the last declaration.
 
                   Current_Dominant := Traverse_Declarations_Or_Statements
-                    (UIC,
+                    (IC, UIC,
                      L => As_Decl_Block (N).F_Decls.F_Decls,
                      D => Current_Dominant);
                end if;
 
                Traverse_Handled_Statement_Sequence
-                 (UIC,
+                 (IC, UIC,
                   N => (case N.Kind is
                            when Ada_Decl_Block  => As_Decl_Block (N).F_Stmts,
                            when Ada_Begin_Block => As_Begin_Block (N).F_Stmts,
@@ -1318,7 +1371,7 @@ package body Instrument.Tree is
                   --  Now we traverse the statements in the THEN part
 
                   Traverse_Declarations_Or_Statements
-                    (UIC,
+                    (IC, UIC,
                      L => If_N.F_Then_Stmts.As_Ada_Node_List,
                      D => ('T', N));
 
@@ -1361,7 +1414,7 @@ package body Instrument.Tree is
                            --  Traverse the statements in the ELSIF
 
                            Traverse_Declarations_Or_Statements
-                             (UIC,
+                             (IC, UIC,
                               L => Elif.F_Stmts.As_Ada_Node_List,
                               D => ('T', Ada_Node (Elif)));
                         end;
@@ -1371,7 +1424,7 @@ package body Instrument.Tree is
                   --  Finally traverse the ELSE statements if present
 
                   Traverse_Declarations_Or_Statements
-                    (UIC,
+                    (IC, UIC,
                      L => If_N.F_Else_Stmts.As_Ada_Node_List,
                      D => ('F', Current_Test));
                end;
@@ -1398,7 +1451,7 @@ package body Instrument.Tree is
                           Alt_L.Child (J).As_Case_Stmt_Alternative;
                      begin
                         Traverse_Declarations_Or_Statements
-                          (UIC,
+                          (IC, UIC,
                            L => Alt.F_Stmts.As_Ada_Node_List,
                            D => Current_Dominant);
                      end;
@@ -1416,7 +1469,7 @@ package body Instrument.Tree is
                   --  statement.
 
                   Traverse_Handled_Statement_Sequence
-                    (UIC,
+                    (IC, UIC,
                      N => N.As_Accept_Stmt_With_Stmts.F_Stmts,
                      D => Current_Dominant);
                end if;
@@ -1451,7 +1504,7 @@ package body Instrument.Tree is
                         --  entry_call_alternative, or triggering_alternative.
 
                         Traverse_Declarations_Or_Statements
-                          (UIC,
+                          (IC, UIC,
                            L => Alt.F_Stmts.As_Ada_Node_List,
                            D => Current_Dominant,
                            Is_Select_Stmt_Alternative => True);
@@ -1464,11 +1517,11 @@ package body Instrument.Tree is
                   --  do not require the special processing for alternatives.
 
                   Traverse_Declarations_Or_Statements
-                    (UIC,
+                    (IC, UIC,
                      L => Sel_N.F_Else_Stmts.As_Ada_Node_List,
                      D => Current_Dominant);
                   Traverse_Declarations_Or_Statements
-                    (UIC,
+                    (IC, UIC,
                      L => Sel_N.F_Abort_Stmts.As_Ada_Node_List,
                      D => Current_Dominant);
                end;
@@ -1514,7 +1567,7 @@ package body Instrument.Tree is
                   Set_Statement_Entry;
 
                   Traverse_Handled_Statement_Sequence
-                    (UIC,
+                    (IC, UIC,
                      N => ER_N.F_Stmts,
                      D => Current_Dominant);
                end;
@@ -1577,7 +1630,7 @@ package body Instrument.Tree is
                   end if;
 
                   Traverse_Declarations_Or_Statements
-                    (UIC,
+                    (IC, UIC,
                      L => Loop_S.F_Stmts.As_Ada_Node_List,
                      D => Inner_Dominant);
                end;
@@ -1761,7 +1814,7 @@ package body Instrument.Tree is
                end;
                Set_Statement_Entry;
 
-               Traverse_Sync_Definition (UIC, N);
+               Traverse_Sync_Definition (IC, UIC, N);
 
             when Ada_Single_Protected_Decl
                | Ada_Single_Task_Decl
@@ -1769,7 +1822,7 @@ package body Instrument.Tree is
                Extend_Statement_Sequence (N, 'o');
                Set_Statement_Entry;
 
-               Traverse_Sync_Definition (UIC, N);
+               Traverse_Sync_Definition (IC, UIC, N);
 
             when Ada_Named_Stmt =>
                Traverse_One (N.As_Named_Stmt.F_Stmt.As_Ada_Node);
@@ -1908,14 +1961,15 @@ package body Instrument.Tree is
    ------------------------------------------
 
    procedure Traverse_Generic_Package_Declaration
-     (UIC     : in out Unit_Inst_Context;
+     (IC      : in out Inst_Context;
+      UIC     : in out Unit_Inst_Context;
       N       : Generic_Package_Decl;
       Preelab : Boolean)
    is
    begin
       Process_Decisions (UIC, N.F_Formal_Part, 'X');
       Traverse_Package_Declaration
-        (UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
+        (IC, UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
    end Traverse_Generic_Package_Declaration;
 
    -----------------------------------------
@@ -1923,7 +1977,8 @@ package body Instrument.Tree is
    -----------------------------------------
 
    procedure Traverse_Handled_Statement_Sequence
-     (UIC : in out Unit_Inst_Context;
+     (IC  : in out Inst_Context;
+      UIC : in out Unit_Inst_Context;
       N   : Handled_Stmts;
       D   : Dominant_Info := No_Dominant)
    is
@@ -1933,7 +1988,7 @@ package body Instrument.Tree is
       end if;
 
       Traverse_Declarations_Or_Statements
-        (UIC, L => N.F_Stmts.As_Ada_Node_List, D => D);
+        (IC, UIC, L => N.F_Stmts.As_Ada_Node_List, D => D);
 
       for J in 1 .. N.F_Exceptions.Children_Count loop
          declare
@@ -1943,7 +1998,7 @@ package body Instrument.Tree is
 
             if Handler.Kind = Ada_Exception_Handler then
                Traverse_Declarations_Or_Statements
-                 (UIC,
+                 (IC, UIC,
                   L => Handler.As_Exception_Handler.F_Stmts.As_Ada_Node_List,
                   D => ('E', Handler));
             end if;
@@ -1956,7 +2011,8 @@ package body Instrument.Tree is
    ---------------------------
 
    procedure Traverse_Package_Body
-     (UIC     : in out Unit_Inst_Context;
+     (IC      : in out Inst_Context;
+      UIC     : in out Unit_Inst_Context;
       N       : Package_Body;
       Preelab : Boolean)
    is
@@ -1965,10 +2021,10 @@ package body Instrument.Tree is
       --  dominated by the elaboration of the last declaration.
 
       Traverse_Handled_Statement_Sequence
-        (UIC,
+        (IC, UIC,
          N => N.F_Stmts,
          D => Traverse_Declarations_Or_Statements
-                (UIC, N.F_Decls.F_Decls, Preelab));
+                (IC, UIC, N.F_Decls.F_Decls, Preelab));
    end Traverse_Package_Body;
 
    ----------------------------------
@@ -1976,21 +2032,22 @@ package body Instrument.Tree is
    ----------------------------------
 
    procedure Traverse_Package_Declaration
-     (UIC     : in out Unit_Inst_Context;
+     (IC      : in out Inst_Context;
+      UIC     : in out Unit_Inst_Context;
       N       : Base_Package_Decl;
       Preelab : Boolean;
       D       : Dominant_Info := No_Dominant)
    is
       Private_Part_Dominant : constant Dominant_Info :=
          Traverse_Declarations_Or_Statements
-           (UIC, N.F_Public_Part.F_Decls, Preelab, D);
+           (IC, UIC, N.F_Public_Part.F_Decls, Preelab, D);
    begin
       if not N.F_Private_Part.Is_Null then
 
          --  First private declaration is dominated by last visible declaration
 
          Traverse_Declarations_Or_Statements
-           (UIC,
+           (IC, UIC,
             L       => N.F_Private_Part.F_Decls,
             Preelab => Preelab,
             D       => Private_Part_Dominant);
@@ -2002,7 +2059,8 @@ package body Instrument.Tree is
    ------------------------------
 
    procedure Traverse_Sync_Definition
-     (UIC : in out Unit_Inst_Context;
+     (IC  : in out Inst_Context;
+      UIC : in out Unit_Inst_Context;
       N   : Ada_Node)
    is
       Dom_Info : Dominant_Info := ('S', N);
@@ -2064,7 +2122,7 @@ package body Instrument.Tree is
 
       if not Vis_Decl.Is_Null then
          Dom_Info := Traverse_Declarations_Or_Statements
-           (UIC, L => Vis_Decl.F_Decls, D => Dom_Info);
+           (IC, UIC, L => Vis_Decl.F_Decls, D => Dom_Info);
       end if;
 
       if not Priv_Decl.Is_Null then
@@ -2072,7 +2130,7 @@ package body Instrument.Tree is
          --  is dominated by the last visible declaration.
 
          Traverse_Declarations_Or_Statements
-           (UIC, L => Priv_Decl.F_Decls, D => Dom_Info);
+           (IC, UIC, L => Priv_Decl.F_Decls, D => Dom_Info);
       end if;
    end Traverse_Sync_Definition;
 
@@ -2081,7 +2139,8 @@ package body Instrument.Tree is
    --------------------------------------
 
    procedure Traverse_Subprogram_Or_Task_Body
-     (UIC : in out Unit_Inst_Context;
+     (IC  : in out Inst_Context;
+      UIC : in out Unit_Inst_Context;
       N   : Ada_Node;
       D   : Dominant_Info := No_Dominant)
    is
@@ -2127,9 +2186,9 @@ package body Instrument.Tree is
       --  last declaration.
 
       Dom_Info := Traverse_Declarations_Or_Statements
-        (UIC, L => Decls.F_Decls, D => Dom_Info);
+        (IC, UIC, L => Decls.F_Decls, D => Dom_Info);
 
-      Traverse_Handled_Statement_Sequence (UIC, N => HSS, D => Dom_Info);
+      Traverse_Handled_Statement_Sequence (IC, UIC, N => HSS, D => Dom_Info);
 
       UIC.Local_Decls := Saved_Local_Decls;
    end Traverse_Subprogram_Or_Task_Body;

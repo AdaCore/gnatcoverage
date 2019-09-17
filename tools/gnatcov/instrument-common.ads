@@ -94,6 +94,16 @@ package Instrument.Common is
    function "&" (Left, Right : Ada_Qualified_Name) return Ada_Qualified_Name
       renames Ada_Identifier_Vectors."&";
 
+   function To_Qualified_Name
+     (Name : Libadalang.Analysis.Name) return Ada_Qualified_Name;
+   --  Return the qualified name corresponding to the given name from a parse
+   --  tree.
+
+   function To_Qualified_Name
+     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
+      return Ada_Qualified_Name;
+   --  Convert a Libadalang fully qualified name into our format
+
    function To_Ada (Name : Ada_Qualified_Name) return String
       with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into Ada syntax
@@ -327,6 +337,12 @@ package Instrument.Common is
       Project     : GNATCOLL.Projects.Project_Type;
       Source_File : GNATCOLL.Projects.File_Info);
    --  Add the given source file to the queue of units to instrument
+
+   procedure Add_Instrumented_Unit
+     (Context : in out Inst_Context; CU_Name : Compilation_Unit_Name);
+   --  Add the given compilation unit to the queue of units to instrument.
+   --  If we cannot find a source file for CU_Name in the currently loaded
+   --  project, just emit a warning and return.
 
    procedure Create_File
      (Info : in out Project_Info;

@@ -806,7 +806,8 @@ package body Instrument.Sources is
 
       SCOs.Initialize;
       Traverse_Declarations_Or_Statements
-        (UIC     => UIC,
+        (IC      => IC,
+         UIC     => UIC,
          L       => No_Ada_List,
          Preelab => Preelab,
          P       => Rewriter.Rewritten_Unit.Root);

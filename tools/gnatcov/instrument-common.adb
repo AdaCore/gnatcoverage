@@ -18,6 +18,7 @@
 
 with Ada.Characters.Handling;
 with Ada.Characters.Conversions;
+with Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
@@ -55,6 +56,67 @@ package body Instrument.Common is
    procedure Disable_Warnings_And_Style_Checks (Rewriter : Source_Rewriter);
    --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit and prepend
    --  pragmas to disable both.
+
+   -----------------------
+   -- To_Qualified_Name --
+   -----------------------
+
+   function To_Qualified_Name
+     (Name : Libadalang.Analysis.Name) return Ada_Qualified_Name
+   is
+      use Libadalang.Common;
+   begin
+      return Result : Ada_Qualified_Name do
+         case Ada_Name (Name.Kind) is
+            when Ada_Dotted_Name =>
+               declare
+                  DN     : constant Dotted_Name := Name.As_Dotted_Name;
+                  Suffix : constant Ada_Qualified_Name := To_Qualified_Name
+                     (DN.F_Suffix.As_Name);
+               begin
+                  Result := To_Qualified_Name (DN.F_Prefix);
+                  Result.Append (Suffix);
+               end;
+
+            when Ada_Single_Tok_Node =>
+               declare
+                  use Langkit_Support.Text;
+
+                  --  ??? GNATCOLL.Projects does not specify how to encode
+                  --  Unicode unit names as strings, so for now, assume that we
+                  --  process only codepoints in the ASCII range and thus use
+                  --  Langkit_Support.Text.Image.
+
+                  Identifier : constant Ada_Identifier :=
+                     To_Unbounded_String (Image (Name.Text));
+               begin
+                  Result.Append (Identifier);
+               end;
+
+            when others =>
+               raise Constraint_Error
+                  with "no qualified name for " & Name.Kind'Image & " nodes";
+         end case;
+      end return;
+   end To_Qualified_Name;
+
+   function To_Qualified_Name
+     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
+      return Ada_Qualified_Name
+   is
+      use Ada.Strings.Wide_Wide_Unbounded;
+      use Langkit_Support.Text;
+   begin
+      return Result : Ada_Qualified_Name do
+         for N of Name loop
+
+            --  ??? Same limitation regarding non-ASCII characters as above
+
+            Result.Append
+              (To_Unbounded_String (Image (To_Wide_Wide_String (N))));
+         end loop;
+      end return;
+   end To_Qualified_Name;
 
    ------------
    -- To_Ada --
@@ -768,6 +830,33 @@ package body Instrument.Common is
             Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
             Context.Instrumentation_Queue.Append (CU_Name);
          end;
+      end;
+   end Add_Instrumented_Unit;
+
+   ---------------------------
+   -- Add_Instrumented_Unit --
+   ---------------------------
+
+   procedure Add_Instrumented_Unit
+     (Context : in out Inst_Context; CU_Name : Compilation_Unit_Name)
+   is
+      Prj  : Project_Type renames Project.Project.Root_Project;
+      File : constant GNATCOLL.VFS.Filesystem_String := Prj.File_From_Unit
+        (Unit_Name => To_Ada (CU_Name.Unit),
+         Part      => CU_Name.Part,
+         Language  => "Ada");
+   begin
+      if File'Length = 0 then
+         Warn
+           ("cannot instrument " & Image (CU_Name) & ": this unit does not"
+            & " belong to this project");
+         return;
+      end if;
+
+      declare
+         Info : constant File_Info := Prj.Create_From_Project (File);
+      begin
+         Add_Instrumented_Unit (Context, Info.Project, Info);
       end;
    end Add_Instrumented_Unit;
 
