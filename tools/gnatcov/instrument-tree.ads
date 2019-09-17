@@ -30,7 +30,7 @@ private package Instrument.Tree is
    No_Dominant : constant Dominant_Info;
 
    procedure Traverse_Declarations_Or_Statements
-     (IC                         : in out Unit_Inst_Context;
+     (UIC                        : in out Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
       D                          : Dominant_Info := No_Dominant;

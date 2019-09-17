@@ -806,10 +806,10 @@ package body Instrument.Sources is
 
       SCOs.Initialize;
       Traverse_Declarations_Or_Statements
-        (IC      => UIC,
-         P       => Rewriter.Rewritten_Unit.Root,
+        (UIC     => UIC,
          L       => No_Ada_List,
-         Preelab => Preelab);
+         Preelab => Preelab,
+         P       => Rewriter.Rewritten_Unit.Root);
 
       SCOs.SCO_Unit_Table.Append
         ((File_Name  => new String'(Filename),
