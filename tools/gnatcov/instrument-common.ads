@@ -21,9 +21,9 @@
 --  Organization of instrumented projects
 --  =====================================
 --
---  "gnatcov instrument" generates instrumented sources in a subdirectory of
---  the root project's object directory. The following compilation units (and
---  source files) are generated:
+--  "gnatcov instrument" generates instrumented sources in the "gnatcov-instr"
+--  subdirectory of each project's object directory. The following compilation
+--  units (and source files) are generated:
 --
 --  * "gnatcov_rts-buffers-B<SLUG>.ads" for all compilation units of interest.
 --    (<SLUG> is the result of Instrumented_Unit_Slug for the compilation unit
