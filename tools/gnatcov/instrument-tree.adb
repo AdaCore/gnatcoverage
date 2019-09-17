@@ -18,31 +18,31 @@
 
 with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 
-with GNATCOLL.Projects;       use GNATCOLL.Projects;
+with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with Langkit_Support;
 with Langkit_Support.Slocs; use Langkit_Support.Slocs;
-with Langkit_Support.Text; use Langkit_Support.Text;
+with Langkit_Support.Text;  use Langkit_Support.Text;
 with Langkit_Support.Symbols;
-with Libadalang.Common; use Libadalang.Common;
-with Libadalang.Rewriting; use Libadalang.Rewriting;
-with Libadalang.Sources; use Libadalang.Sources;
+with Libadalang.Common;     use Libadalang.Common;
+with Libadalang.Rewriting;  use Libadalang.Rewriting;
+with Libadalang.Sources;    use Libadalang.Sources;
 
-with Namet; use Namet;
+with Namet;  use Namet;
 with SCOs;
 with Snames; use Snames;
 with Table;
 
 with ALI_Files;
-with Coverage; use Coverage;
-with Diagnostics; use Diagnostics;
+with Coverage;          use Coverage;
+with Diagnostics;       use Diagnostics;
 with Instrument.Common; use Instrument.Common;
-with SC_Obligations; use SC_Obligations;
-with Strings; use Strings;
-with Types; use Types;
+with SC_Obligations;    use SC_Obligations;
+with Strings;           use Strings;
+with Types;             use Types;
 
 package body Instrument.Tree is
 
