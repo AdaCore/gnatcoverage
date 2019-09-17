@@ -24,8 +24,8 @@ COV_RE = re.compile('^ *(\d+) (.):.*$')
 def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
                   separate_coverage=None, extra_args=[],
-                  extra_gprbuild_args=[], absolute_paths=False,
-                  subdirs=None):
+                  extra_gprbuild_args=[], extra_gprbuild_cargs=[],
+                  absolute_paths=False, subdirs=None):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -62,6 +62,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         execution of gnatcov (gnatcov run|instrument|coverage).
     :param list[str] extra_gprbuild_args: List of arguments to pass to
         gprbuild.
+    :param list[str] extra_gprbuild_cargs: List of arguments to pass to
+        gprbuild's -cargs section.
     :param bool absolute_paths: If true, use absolute paths in the result.
     :param None|str subdirs: If passed, name of the subdirectory to pass to
         gprbuild and gnatcov.
@@ -82,7 +84,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         return abspath(exepath_to(main))
 
     def gprbuild_wrapper(root_project, gargs=[]):
-        gprbuild(root_project, gargs=gargs + extra_gprbuild_args)
+        gprbuild(root_project,
+                 gargs=gargs + extra_gprbuild_args,
+                 extracargs=extra_gprbuild_cargs)
 
     gpr_exe_dir = gpr_exe_dir or '.'
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, 'obj')
