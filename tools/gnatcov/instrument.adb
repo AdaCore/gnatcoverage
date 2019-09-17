@@ -393,7 +393,7 @@ package body Instrument is
       procedure Add_Instrumented_Unit
         (Project     : GNATCOLL.Projects.Project_Type;
          Source_File : GNATCOLL.Projects.File_Info);
-      --  Add the given source file to Instrumented_Units
+      --  Add the given source file to the queue of units to instrument
 
       procedure Instrument_Unit
         (CU_Name   : Compilation_Unit_Name;
@@ -422,14 +422,25 @@ package body Instrument is
          declare
             CU_Name   : constant Compilation_Unit_Name :=
               To_Compilation_Unit_Name (Source_File);
-            Unit_Info : constant Instrumented_Unit_Info :=
-              (Filename => To_Unbounded_String
-                             (+Source_File.File.Full_Name),
-               Prj_Info => Get_Or_Create_Project_Info (IC, Project),
-               Is_Main  => GNATCOLL.Projects.Is_Main_File
-                            (Project, Source_File.File.Base_Name));
          begin
-            IC.Instrumented_Units.Insert (CU_Name, Unit_Info);
+            --  If we already planned to instrument this unit, do nothing more
+
+            if IC.Instrumented_Units.Contains (CU_Name) then
+               return;
+            end if;
+
+            declare
+               Unit_Info : constant Instrumented_Unit_Info_Access :=
+                  new Instrumented_Unit_Info'
+                    (Filename => To_Unbounded_String
+                                   (+Source_File.File.Full_Name),
+                     Prj_Info => Get_Or_Create_Project_Info (IC, Project),
+                     Is_Main  => GNATCOLL.Projects.Is_Main_File
+                                  (Project, Source_File.File.Base_Name));
+            begin
+               IC.Instrumented_Units.Insert (CU_Name, Unit_Info);
+               IC.Instrumentation_Queue.Append (CU_Name);
+            end;
          end;
       end Add_Instrumented_Unit;
 
@@ -492,9 +503,16 @@ package body Instrument is
 
       --  Instrument all units of interest
 
-      for Cur in IC.Instrumented_Units.Iterate loop
-         IC.Instrumented_Units.Update_Element
-           (Cur, Instrument_Unit'Access);
+      while not IC.Instrumentation_Queue.Is_Empty loop
+         declare
+            use Instrumented_Unit_Maps;
+
+            CU  : constant Compilation_Unit_Name :=
+               IC.Instrumentation_Queue.First_Element;
+         begin
+            IC.Instrumentation_Queue.Delete_First;
+            Instrument_Unit (CU, IC.Instrumented_Units.Element (CU).all);
+         end;
       end loop;
 
       Emit_Buffers_List_Unit (IC, Root_Project_Info.all);

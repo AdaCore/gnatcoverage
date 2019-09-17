@@ -621,12 +621,26 @@ package body Instrument.Common is
 
    procedure Destroy_Context (Context : in out Inst_Context) is
       procedure Free is new Ada.Unchecked_Deallocation
+        (Instrumented_Unit_Info, Instrumented_Unit_Info_Access);
+      procedure Free is new Ada.Unchecked_Deallocation
         (Project_Info, Project_Info_Access);
    begin
-      --  Deallocate all Project_Info in Context, and then clear the hashed
-      --  map, both to avoid dangling pointers and to make Destroy_Context
-      --  callable more than once, like conventional deallocation procedures in
-      --  Ada.
+      --  Deallocate all Insrtrumented_Unit_Info in Context, and then clear the
+      --  hashed map, both to avoid dangling pointers and to make
+      --  Destroy_Context callable more than once, like conventional
+      --  deallocation procedures in Ada.
+
+      for Cur in Context.Instrumented_Units.Iterate loop
+         declare
+            IU : Instrumented_Unit_Info_Access :=
+               Instrumented_Unit_Maps.Element (Cur);
+         begin
+            Free (IU);
+         end;
+      end loop;
+      Context.Instrumented_Units := Instrumented_Unit_Maps.Empty_Map;
+
+      --  Likewise for Project_Info records
 
       for Cur in Context.Project_Info_Map.Iterate loop
          declare

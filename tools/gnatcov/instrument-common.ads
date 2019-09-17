@@ -48,6 +48,7 @@
 --    units are replacements for the original units. They fill the coverage
 --    buffers for the unit.
 
+with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
@@ -254,9 +255,14 @@ package Instrument.Common is
       --  Whether this unit is a main
    end record;
 
+   type Instrumented_Unit_Info_Access is access all Instrumented_Unit_Info;
+
    package Instrumented_Unit_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Compilation_Unit_Name,
-      Element_Type => Instrumented_Unit_Info);
+      Element_Type => Instrumented_Unit_Info_Access);
+
+   package Compilation_Unit_Lists is new Ada.Containers.Doubly_Linked_Lists
+     (Element_Type => Compilation_Unit_Name);
 
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
@@ -281,6 +287,10 @@ package Instrument.Common is
       Project_Info_Map : Project_Info_Maps.Map;
       --  For each project that contains units of interest, this tracks a
       --  Project_Info record.
+
+      Instrumentation_Queue : Compilation_Unit_Lists.List;
+      --  Queue (push at the back, pop the front) of compilation units to
+      --  instrument.
    end record;
 
    function Create_Context
