@@ -339,9 +339,9 @@ package Instrument.Common is
       Input_Filename : String);
    --  Start a rewriting session for the given Input_Filename. If the rewriting
    --  process is successful, the result will be written to a file in
-   --  IC.Output_Dir with the basename of Output_Filename.
+   --  Info.Output_Dir with the basename of Output_Filename.
    --
-   --  This registers the output file in IC.Instr_Files.
+   --  This registers the output file in Info.Instr_Files.
    --
    --  If there are parsing errors while reading Input_Filename, this raises a
    --  fatal error and prints the corresponding error messages.
