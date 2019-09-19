@@ -20,7 +20,7 @@ def xcov_instrument(gprsw, covlevel, isi_file, extra_args=[],
         (--level argument).
     :param str isi_file: Name of the ISI file to create.
     :param list[str] extra_args: Extra arguments to append to the command line.
-    :param bool dump_method: Method to dump coverage buffers (--dump-method)
+    :param str dump_method: Method to dump coverage buffers (--dump-method)
         argument.
     :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
         will create build artifacts. If left to None, assume they are produced
