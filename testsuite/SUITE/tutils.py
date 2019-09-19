@@ -173,7 +173,8 @@ def gprbuild(project,
              extracargs=None,
              gargs=None,
              largs=None,
-             trace_mode=None):
+             trace_mode=None,
+             out='gprbuild.out'):
     """
     Cleanup & build the provided PROJECT file using gprbuild, passing
     GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches. Each
@@ -185,6 +186,8 @@ def gprbuild(project,
 
     SUITECARGS tells whether or not we should also add the -cargs passed on
     the testsuite toplevel command line.
+
+    OUT is the name of the file to contain gprbuild's output.
     """
 
     # Fetch options, from what is requested specifically here
@@ -198,12 +201,11 @@ def gprbuild(project,
     # Now cleanup, do build and check status
     thistest.cleanup(project)
 
-    ofile = "gprbuild.out"
     args = (to_list(BUILDER.BASE_COMMAND) +
             ['-P%s' % project] + all_gargs + all_cargs + all_largs)
-    p = run_and_log(args, output=ofile, timeout=thistest.options.timeout)
+    p = run_and_log(args, output=out, timeout=thistest.options.timeout)
     thistest.stop_if(p.status != 0,
-                     FatalError("gprbuild exit in error", ofile))
+                     FatalError("gprbuild exit in error", out))
 
 
 def gprinstall(project, prefix=None):
