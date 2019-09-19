@@ -61,7 +61,7 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with Libadalang.Analysis;
-private with Libadalang.Rewriting;
+with Libadalang.Rewriting;
 
 with Checkpoints;
 with SC_Obligations; use SC_Obligations;
@@ -278,6 +278,9 @@ package Instrument.Common is
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
 
+      Context : Libadalang.Analysis.Analysis_Context;
+      --  Libadalang context to load all units to rewrite
+
       Dump_Method      : Any_Dump_Method;
       Language_Version : Any_Language_Version;
       --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
@@ -309,7 +312,8 @@ package Instrument.Common is
    end record;
 
    function Create_Context
-     (Dump_Method          : Any_Dump_Method;
+     (Context              : Libadalang.Analysis.Analysis_Context;
+      Dump_Method          : Any_Dump_Method;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
@@ -363,6 +367,7 @@ package Instrument.Common is
 
    procedure Start_Rewriting
      (Self           : out Source_Rewriter;
+      IC             : Inst_Context;
       Info           : in out Project_Info;
       Input_Filename : String);
    --  Start a rewriting session for the given Input_Filename. If the rewriting
@@ -373,10 +378,6 @@ package Instrument.Common is
    --
    --  If there are parsing errors while reading Input_Filename, this raises a
    --  fatal error and prints the corresponding error messages.
-
-   function Rewritten_Context
-     (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Context;
-   --  Return the analysis context that Self uses to instrument
 
    function Rewritten_Unit
      (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Unit;
@@ -408,9 +409,8 @@ private
       Input_Filename  : Ada.Strings.Unbounded.Unbounded_String;
       Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
 
-      Context : Libadalang.Analysis.Analysis_Context;
-      Unit    : Libadalang.Analysis.Analysis_Unit;
-      Handle  : Libadalang.Rewriting.Rewriting_Handle;
+      Unit   : Libadalang.Analysis.Analysis_Unit;
+      Handle : Libadalang.Rewriting.Rewriting_Handle;
    end record;
 
    overriding procedure Finalize (Self : in out Source_Rewriter);

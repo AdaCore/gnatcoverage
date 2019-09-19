@@ -27,7 +27,9 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
+with Libadalang.Analysis;
 with Libadalang.Common;
+with Libadalang.Project_Provider;
 with Libadalang.Rewriting;
 
 with Checkpoints;
@@ -320,7 +322,8 @@ package body Instrument is
 
             Rewriter : Source_Rewriter;
          begin
-            Rewriter.Start_Rewriting (Main.Prj_Info.all, +Main.File.Full_Name);
+            Rewriter.Start_Rewriting
+              (IC, Main.Prj_Info.all, +Main.File.Full_Name);
             Add_Auto_Dump_Buffers
               (IC   => IC,
                Info => Main.Prj_Info.all,
@@ -385,8 +388,22 @@ package body Instrument is
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
-      IC                : Inst_Context :=
-         Create_Context (Dump_Method, Language_Version, Ignored_Source_Files);
+      use Libadalang.Analysis;
+
+      --  First create the context for Libadalang
+
+      Provider : constant Unit_Provider_Reference :=
+         Libadalang.Project_Provider.Create_Project_Unit_Provider_Reference
+           (Project          => Project.Project,
+            Env              => null,
+            Is_Project_Owner => False);
+      Context  : constant Analysis_Context :=
+         Create_Context (Unit_Provider => Provider);
+
+      --  Then create the instrumenter's own context, based on Libadalang's
+
+      IC                : Inst_Context := Create_Context
+         (Context, Dump_Method, Language_Version, Ignored_Source_Files);
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 

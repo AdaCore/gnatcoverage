@@ -26,7 +26,6 @@ with Ada.Unchecked_Deallocation;
 
 with Langkit_Support.Text;
 with Libadalang.Common;
-with Libadalang.Project_Provider;
 with Libadalang.Sources;
 
 with Outputs; use Outputs;
@@ -379,6 +378,7 @@ package body Instrument.Common is
 
    procedure Start_Rewriting
      (Self           : out Source_Rewriter;
+      IC             : Inst_Context;
       Info           : in out Project_Info;
       Input_Filename : String)
    is
@@ -386,16 +386,8 @@ package body Instrument.Common is
          Ada.Directories.Simple_Name (Input_Filename);
       Output_Filename : constant String :=
          To_String (Info.Output_Dir) / Base_Filename;
-
-      Provider : constant Unit_Provider_Reference :=
-         Libadalang.Project_Provider.Create_Project_Unit_Provider_Reference
-           (Project          => Project.Project,
-            Env              => null,
-            Is_Project_Owner => False);
-      Context  : constant Analysis_Context :=
-         Create_Context (Unit_Provider => Provider);
-      Unit     : constant Analysis_Unit :=
-         Get_From_File (Context, Input_Filename);
+      Unit            : constant Analysis_Unit :=
+         Get_From_File (IC.Context, Input_Filename);
    begin
       if Unit.Has_Diagnostics then
          Error ("instrumentation failed for " & Input_Filename);
@@ -408,22 +400,11 @@ package body Instrument.Common is
 
       Self.Input_Filename := To_Unbounded_String (Input_Filename);
       Self.Output_Filename := To_Unbounded_String (Output_Filename);
-      Self.Context := Context;
       Self.Unit := Unit;
-      Self.Handle := Start_Rewriting (Context);
+      Self.Handle := Start_Rewriting (IC.Context);
 
       Info.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
    end Start_Rewriting;
-
-   -----------------------
-   -- Rewritten_Context --
-   -----------------------
-
-   function Rewritten_Context
-     (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Context is
-   begin
-      return Self.Context;
-   end Rewritten_Context;
 
    --------------------
    -- Rewritten_Unit --
@@ -606,7 +587,6 @@ package body Instrument.Common is
          Abort_Rewriting (Self.Handle);
       end if;
       Self.Unit := No_Analysis_Unit;
-      Self.Context := No_Analysis_Context;
    end Finalize;
 
    ---------------------
@@ -663,7 +643,8 @@ package body Instrument.Common is
    --------------------
 
    function Create_Context
-     (Dump_Method          : Any_Dump_Method;
+     (Context              : Libadalang.Analysis.Analysis_Context;
+      Dump_Method          : Any_Dump_Method;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
    begin
@@ -671,6 +652,8 @@ package body Instrument.Common is
          IC.Project_Name := +Ada.Directories.Base_Name
            (Project.Root_Project_Filename);
          --  TODO??? Get the original casing for the project name
+
+         IC.Context := Context;
 
          IC.Dump_Method := Dump_Method;
          IC.Language_Version := Language_Version;

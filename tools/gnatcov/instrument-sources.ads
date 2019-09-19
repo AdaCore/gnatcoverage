@@ -142,8 +142,7 @@ private package Instrument.Sources is
    type Insertion_Info_Access is access all Insertion_Info;
 
    type Insertion_Info is record
-      RH_List : Node_Rewriting_Handle :=
-        No_Node_Rewriting_Handle;
+      RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
       --  If traversing a list, rewriting handle for the list
 
       Index : Natural := 0;

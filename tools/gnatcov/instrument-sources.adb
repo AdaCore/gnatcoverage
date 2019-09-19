@@ -759,7 +759,7 @@ package body Instrument.Sources is
       --  illegal.
 
    begin
-      Rewriter.Start_Rewriting (Prj_Info, Filename);
+      Rewriter.Start_Rewriting (IC, Prj_Info, Filename);
 
       Root_Analysis_Unit := Rewriter.Rewritten_Unit;
 
@@ -784,7 +784,7 @@ package body Instrument.Sources is
             Preelab := False;
       end;
 
-      Initialize_Rewriting (UIC, CU_Name, Rewriter.Rewritten_Context);
+      Initialize_Rewriting (UIC, CU_Name, IC.Context);
 
       --  Make sure that the simple name of the instrumented source file is
       --  registered in our tables. This is required to properly detect when we
