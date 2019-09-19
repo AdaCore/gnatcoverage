@@ -25,7 +25,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
                   separate_coverage=None, extra_args=[],
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
-                  absolute_paths=False, subdirs=None):
+                  absolute_paths=False, subdirs=None, dump_method='atexit'):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -67,6 +67,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :param bool absolute_paths: If true, use absolute paths in the result.
     :param None|str subdirs: If passed, name of the subdirectory to pass to
         gprbuild and gnatcov.
+    :param str dump_method: Method to dump coverage buffers (--dump-method)
+        argument.
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -131,7 +133,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         isi_file = abspath('instr.isi')
         xcov_instrument(gprsw, covlevel, isi_file,
                         extra_args=cov_or_instr_args, gpr_obj_dir=gpr_obj_dir,
-                        out='instrument.log')
+                        dump_method=dump_method, out='instrument.log')
         xcov_args.extend(['--isi', isi_file])
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
