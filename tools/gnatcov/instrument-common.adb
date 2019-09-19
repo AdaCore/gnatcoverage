@@ -19,7 +19,9 @@
 with Ada.Characters.Handling;
 with Ada.Characters.Conversions;
 with Ada.Strings.Wide_Wide_Unbounded;
-with Ada.Text_IO;
+pragma Warnings (Off, "* is an internal GNAT unit");
+with Ada.Strings.Wide_Wide_Unbounded.Aux;
+pragma Warnings (On, "* is an internal GNAT unit");
 with Ada.Unchecked_Deallocation;
 
 with Langkit_Support.Text;
@@ -29,7 +31,6 @@ with Libadalang.Sources;
 
 with Outputs; use Outputs;
 with Project;
-with Switches;
 
 package body Instrument.Common is
 
@@ -540,7 +541,6 @@ package body Instrument.Common is
    -----------
 
    procedure Apply (Self : in out Source_Rewriter) is
-      Has_Error : Boolean := False;
    begin
       --  Automatically insert pragmas to disable style checks and
       --  warnings in generated code: it is not our goal to make
@@ -550,51 +550,50 @@ package body Instrument.Common is
       Disable_Warnings_And_Style_Checks (Self);
 
       declare
-         use Ada.Text_IO;
-         Result : constant Apply_Result := Apply (Self.Handle);
+         use Ada.Strings.Wide_Wide_Unbounded;
+         use Ada.Strings.Wide_Wide_Unbounded.Aux;
+
+         Unit   : constant Unit_Rewriting_Handle := Handle (Self.Unit);
+         Source : constant Unbounded_Wide_Wide_String :=
+            Unparse (Unit);
+
+         --  To avoid copying the potentially big string for sources on the
+         --  secondary stack (and reduce the amount of copies anyway), use the
+         --  internal GNAT API to retreive the internal string access and
+         --  process it by chunks.
+
+         Source_Access : Big_Wide_Wide_String_Access;
+         Length        : Natural;
+
+         Chunk_Size : constant := 4096;
+         Position   : Natural;
+
+         Out_File : Text_Files.File_Type;
       begin
-         if Result.Success then
+         Abort_Rewriting (Self.Handle);
+         Out_File.Create (To_String (Self.Output_Filename));
+
+         Get_Wide_Wide_String (Source, Source_Access, Length);
+         Position := Source_Access.all'First;
+
+         while Position <= Length loop
             declare
-               Out_File : Text_Files.File_Type;
+               Chunk_First : constant Natural := Position;
+               Chunk_Last  : constant Natural := Natural'Min
+                 (Chunk_First + Chunk_Size - 1, Length);
+
+               Chunk         : Wide_Wide_String renames
+                  Source_Access.all (Chunk_First .. Chunk_Last);
+               Encoded_Chunk : constant String :=
+                  Ada.Characters.Conversions.To_String (Chunk);
             begin
-               Out_File.Create (To_String (Self.Output_Filename));
-               Out_File.Put_Line
-                 (Ada.Characters.Conversions.To_String (Self.Unit.Text));
+               Out_File.Put (Encoded_Chunk);
+               Position := Chunk_Last + 1;
             end;
-
-         else
-            Has_Error := True;
-            Error ("instrumentation failed for "
-                   & To_String (Self.Input_Filename));
-            Error ("this is likely a bug in GNATcoverage: please report it");
-            for D of Result.Diagnostics loop
-               Error (Self.Unit.Format_GNU_Diagnostic (D));
-            end loop;
-
-            if Switches.Verbose then
-
-               --  Dump the tree that rewriting failed to process, for
-               --  debugging purposes.
-
-               Put_Line ("Dump of the rewritten tree:");
-               declare
-                  Rewritten_Unit : constant Unit_Rewriting_Handle :=
-                     Handle (Result.Unit);
-                  Root_Node      : constant Node_Rewriting_Handle :=
-                     Root (Rewritten_Unit);
-                  Text           : constant String :=
-                     Langkit_Support.Text.To_UTF8 (Unparse (Root_Node));
-               begin
-                  Put_Line (Text);
-               end;
-            end if;
-         end if;
+         end loop;
       end;
 
       Self.Finalize;
-      if Has_Error then
-         raise Xcov_Exit_Exc;
-      end if;
    end Apply;
 
    --------------
