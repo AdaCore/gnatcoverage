@@ -46,7 +46,7 @@ package body Checkpoints is
      (SCO_Id_Map_Array, SCO_Id_Map_Acc);
 
    procedure Checkpoint_Load (Filename : String; Purpose : Checkpoint_Purpose);
-   --  Common implementation for ISI_Load and Checkpoint_Load
+   --  Common implementation for SID_Load and Checkpoint_Load
 
    ---------------------
    -- Checkpoint_Save --
@@ -105,17 +105,17 @@ package body Checkpoints is
    end Checkpoint_Save;
 
    --------------
-   -- ISI_Load --
+   -- SID_Load --
    --------------
 
-   procedure ISI_Load (Filename : String) is
+   procedure SID_Load (Filename : String) is
    begin
       Checkpoint_Load (Filename, Instrumentation);
-   end ISI_Load;
+   end SID_Load;
 
-   --------------
-   -- ISI_Load --
-   --------------
+   ---------------------
+   -- Checkpoint_Load --
+   ---------------------
 
    procedure Checkpoint_Load (Filename : String) is
    begin

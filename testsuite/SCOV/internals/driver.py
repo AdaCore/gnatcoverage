@@ -1155,7 +1155,7 @@ class SCOV_helper_src_traces(SCOV_helper):
     # Outline of the source instrumentation based scheme:
     #
     # * Instrumentation produces instrumented sources and a so called
-    #   "Instrumentation Source Information (ISI)" file, holding SCOs and data
+    #   "Source Instrumentation Data" (SID) file, holding SCOs and data
     #   required to decode source traces later on, similar to executable files
     #   for binary traces.
     #
@@ -1166,11 +1166,11 @@ class SCOV_helper_src_traces(SCOV_helper):
     #   trace" file.
     #
     # * Analysis for a single program proceeds by providing gnatcov coverage
-    #   with the source trace file and the corresponding ISI file.
+    #   with the source trace file and the corresponding SID file.
     #
     # * Consolidation is achieved by either
     #
-    #   - Providing the set or source traces and the corresponding ISI files
+    #   - Providing the set or source traces and the corresponding SID files
     #     to gnatcov coverage, or
     #
     #   - Combining coverage checkpoints produced for each program right
@@ -1182,12 +1182,12 @@ class SCOV_helper_src_traces(SCOV_helper):
     #   to build) for the instrumentation scheme vs at analysis time for the
     #   binary trace case,
     #
-    # * ISI files must be provided to gnatcov coverage together with the
-    #   source traces. Unlike executables for binary traces, ISI files are not
+    # * SID files must be provided to gnatcov coverage together with the
+    #   source traces. Unlike executables for binary traces, SID files are not
     #   necessarily visible at program execution time so can't be recorded in
     #   the traces.
 
-    ISI_FILE = 'instr.isi'
+    SID_FILE = 'instr.sid'
 
     def mode_build(self):
 
@@ -1216,7 +1216,7 @@ class SCOV_helper_src_traces(SCOV_helper):
 
         out = 'xinstr.out'
         xcov_instrument(
-            covlevel=self.xcovlevel, isi_file=self.ISI_FILE,
+            covlevel=self.xcovlevel, sid_file=self.SID_FILE,
             extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
             gprsw=instrument_gprsw,
             gpr_obj_dir=self.gpr_obj_dir,
@@ -1250,10 +1250,10 @@ class SCOV_helper_src_traces(SCOV_helper):
         # and the corresponding SCOs are held by the instrumentation
         # checkpoints.
 
-        instr_checkpoints_opt = "--isi=@%s" % list_to_file(
-            [self.abdir_for(pgm) + self.ISI_FILE
+        instr_checkpoints_opt = "--sid=@%s" % list_to_file(
+            [self.abdir_for(pgm) + self.SID_FILE
              for pgm in self.programs()],
-            "isi-files.list")
+            "sid-files.list")
 
         return [instr_checkpoints_opt]
 

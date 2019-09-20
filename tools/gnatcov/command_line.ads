@@ -113,7 +113,7 @@ package Command_Line is
       Opt_Eargs,
       Opt_Scos,
       Opt_Units,
-      Opt_ISI,
+      Opt_SID,
       Opt_Routines,
       Opt_Routines_List,
       Opt_Exec,
@@ -298,10 +298,9 @@ package Command_Line is
          Internal    => True),
       Cmd_Instrument => Create
         (Name        => "instrument",
-         Pattern     => "[ISI-FILE]",
+         Pattern     => "[SID-FILE]",
          Description => ("Instrument the given project and produce the"
-                         & " associated Instrumented Source Information"
-                         & " file."),
+                         & " associated Source Instrumentation Data file."),
          Internal    => Instrument_Experimental));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
@@ -670,12 +669,12 @@ package Command_Line is
                              | Cmd_Map_Routines | Cmd_Instrument => True,
                          others => False),
          Internal    => False),
-      Opt_ISI => Create
-        (Long_Name   => "--isi",
+      Opt_SID => Create
+        (Long_Name   => "--sid",
          Pattern     => "[FILE|@LISTFILE]",
-         Help        => ("Load Instrumented Source Information from FILE for"
-                         & " this operation; or do that for each file listed"
-                         & " in LISTFILE."),
+         Help        => ("Load Source Instrumentation Data from FILE for this"
+                         & " operation; or do that for each file listed in"
+                         & " LISTFILE."),
          Commands    => (Cmd_Coverage => True,
                          others       => False),
          Internal    => Instrument_Experimental),

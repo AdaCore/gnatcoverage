@@ -379,7 +379,7 @@ package body Instrument is
    ----------------------------------
 
    procedure Instrument_Units_Of_Interest
-     (ISI_Filename         : String;
+     (SID_Filename         : String;
       Units_Inputs         : Inputs.Inputs_Type;
       Dump_Method          : Any_Dump_Method;
       Language_Version     : Any_Language_Version;
@@ -498,7 +498,7 @@ package body Instrument is
 
       Remove_Old_Instr_Files (IC);
 
-      --  Finally, emit an ISI file to contain mappings between bits in
+      --  Finally, emit an SID file to contain mappings between bits in
       --  coverage buffers and SCOs.
       --
       --  TODO??? Remove the explicit version argument for Checkpoint_Save once
@@ -508,7 +508,7 @@ package body Instrument is
          Context : aliased Coverage.Context := Coverage.Get_Context;
       begin
          Checkpoints.Checkpoint_Save
-           (ISI_Filename,
+           (SID_Filename,
             Context'Access,
             Purpose => Checkpoints.Instrumentation);
       end;

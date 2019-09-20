@@ -93,7 +93,7 @@ procedure GNATcov is
    Units_Inputs         : Inputs.Inputs_Type;
    Projects_Inputs      : Inputs.Inputs_Type;
    Checkpoints_Inputs   : Inputs.Inputs_Type;
-   ISI_Inputs           : Inputs.Inputs_Type;
+   SID_Inputs           : Inputs.Inputs_Type;
    Ignored_Source_Files : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
    Target_Family        : String_Access := null;
@@ -318,7 +318,7 @@ procedure GNATcov is
    begin
       if Source_Coverage_Enabled
          and then Inputs.Length (Checkpoints_Inputs) = 0
-         and then Inputs.Length (ISI_Inputs) = 0
+         and then Inputs.Length (SID_Inputs) = 0
       then
          Check_Argument_Available
            (ALIs_Inputs,
@@ -627,7 +627,7 @@ procedure GNATcov is
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
-      Copy_Arg_List (Opt_ISI, ISI_Inputs);
+      Copy_Arg_List (Opt_SID, SID_Inputs);
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
 
       if Args.String_Args (Opt_Coverage_Level).Present then
@@ -1387,7 +1387,7 @@ begin
             end if;
 
             Instrument.Instrument_Units_Of_Interest
-              (ISI_Filename         => Output.all,
+              (SID_Filename         => Output.all,
                Units_Inputs         => Units_Inputs,
                Dump_Method          => Dump_Method,
                Language_Version     => Language_Version,
@@ -1726,7 +1726,7 @@ begin
          --  Check that the user specified units of interest. We'll load ALIs
          --  only when necessary, i.e. only the first time we process a binary
          --  trace file. This will avoid conflicts between incompatible source
-         --  obligations (instrumentation-based SCOs from an ISI, ALIs from a
+         --  obligations (instrumentation-based SCOs from an SID, ALIs from a
          --  rebuilt project, ...).
 
          Check_User_Provided_SCOs;
@@ -1759,10 +1759,9 @@ begin
             end if;
          end if;
 
-         --  Read instrumented source information to decode source traces
+         --  Read source instrumentation data to decode source traces
 
-         Inputs.Iterate
-           (ISI_Inputs, Checkpoints.ISI_Load'Access);
+         Inputs.Iterate (SID_Inputs, Checkpoints.SID_Load'Access);
 
          --  Read and process traces
 

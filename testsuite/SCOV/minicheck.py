@@ -142,11 +142,11 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
     elif trace_mode == 'src':
         # Instrument the project and build the result
-        isi_file = abspath('instr.isi')
-        xcov_instrument(gprsw, covlevel, isi_file,
+        sid_file = abspath('instr.sid')
+        xcov_instrument(gprsw, covlevel, sid_file,
                         extra_args=cov_or_instr_args, gpr_obj_dir=gpr_obj_dir,
                         dump_method=dump_method, out='instrument.log')
-        xcov_args.extend(['--isi', isi_file])
+        xcov_args.extend(['--sid', sid_file])
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
 
