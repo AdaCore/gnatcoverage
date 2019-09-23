@@ -369,14 +369,19 @@ package body Instrument.Tree is
    --  contains a nested decision (i.e. either is a logical operator, or
    --  contains a logical operator in its subtree).
 
-   function Operator (N : Expr) return Op;
+   function Operator (N : Expr'Class) return Op;
    --  Return the operator node of an unary or binary expression, or No_Op if
    --  not an operator.
 
-   function Is_Logical_Operator (N : Ada_Node'Class) return Tristate;
+   function Is_Logical_Operator (N : Ada_Node'Class) return Boolean;
    --  False for any node that isn't an Expr. For an Expr, determines whether N
    --  is a logical operator: True for short circuit conditions, False for OR
    --  and AND (TODO??? handle Short_Circuit_And_Or pragmas) and NOT.
+
+   function Is_Complex_Decision (N : Expr'Class) return Boolean;
+   --  Return whether N is a complex decision, i.e. a tree of
+   --  NOT/AND-THEN/OR-ELSE operators that contain at least one AND-THEN or
+   --  OR-ELSE operaton.
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -2302,17 +2307,15 @@ package body Instrument.Tree is
          N : constant Expr := Unwrap (Operand);
 
          L, R : Expr;
-         T    : Tristate;
 
          Op_N  : Op;
          Op_NK : Ada_Node_Kind_Type;
 
       begin
-         T := Is_Logical_Operator (N);
 
          --  Logical operator
 
-         if T /= False then
+         if Is_Logical_Operator (N) then
             Op_N := Operator (N);
             Op_NK := Op_N.Kind;
 
@@ -2335,12 +2338,7 @@ package body Instrument.Tree is
                end;
             end if;
 
-            if T = True then
-               C2 := ' ';
-            else
-               C2 := '?';
-            end if;
-
+            C2 := ' ';
             Append_SCO
               (C1   => C1,
                C2   => C2,
@@ -2508,7 +2506,7 @@ package body Instrument.Tree is
       procedure Find_Nested_Decisions (Operand : Expr) is
          N : constant Expr := Unwrap (Operand);
       begin
-         if Is_Logical_Operator (N) /= False then
+         if Is_Logical_Operator (N) then
             if N.Kind = Ada_Un_Op then
                Find_Nested_Decisions (N.As_Un_Op.F_Expr);
 
@@ -2543,7 +2541,7 @@ package body Instrument.Tree is
            --  expression involving a logical operator.
 
            (N.Kind in Ada_Expr
-            and then Is_Logical_Operator (N.As_Expr) /= False);
+            and then Is_Complex_Decision (N.As_Expr));
 
       begin
          if Decision_Root then
@@ -2666,7 +2664,7 @@ package body Instrument.Tree is
       function Visit (N : Ada_Node'Class) return Visit_Status is
       begin
          if N.Kind in Ada_Expr
-           and then (Is_Logical_Operator (N) /= False
+           and then (Is_Complex_Decision (N.As_Expr)
                      or else N.Kind = Ada_If_Expr)
          then
             return Stop;
@@ -2685,7 +2683,7 @@ package body Instrument.Tree is
    -- Is_Logical_Operator --
    -------------------------
 
-   function Is_Logical_Operator (N : Ada_Node'Class) return Tristate is
+   function Is_Logical_Operator (N : Ada_Node'Class) return Boolean is
    begin
       if N.Kind not in Ada_Expr then
          return False;
@@ -2701,7 +2699,6 @@ package body Instrument.Tree is
          case Op_N.Kind is
             when Ada_Op_Not =>
                return True;
-               --  Ada_Op_Not should be Unkwown???
 
             when Ada_Op_And_Then | Ada_Op_Or_Else =>
                return True;
@@ -2715,11 +2712,51 @@ package body Instrument.Tree is
       end;
    end Is_Logical_Operator;
 
+   -------------------------
+   -- Is_Complex_Decision --
+   -------------------------
+
+   function Is_Complex_Decision (N : Expr'Class) return Boolean is
+      Op_N : constant Op := Operator (N);
+   begin
+      if Op_N.Is_Null then
+         return False;
+      end if;
+
+      case Op_N.Kind is
+         when Ada_Op_Not =>
+
+            --  A "not" operator is the root of a decision iff its operand
+            --  itself could be the root of a decision on its own. For
+            --  instance, the following is a decision:
+            --
+            --     not (A and then B)
+            --
+            --  but not the following:
+            --
+            --     not A
+
+            return Is_Complex_Decision (N.As_Un_Op.F_Expr);
+
+         when Ada_Op_And_Then | Ada_Op_Or_Else =>
+            return True;
+
+         when Ada_Op_And | Ada_Op_Or =>
+
+            --  ??? (S923-012) Maybe we should consider these make up decisions
+
+            return False;
+
+         when others =>
+            return False;
+      end case;
+   end Is_Complex_Decision;
+
    --------------
    -- Operator --
    --------------
 
-   function Operator (N : Expr) return Op is
+   function Operator (N : Expr'Class) return Op is
    begin
       case N.Kind is
          when Ada_Un_Op =>
