@@ -763,13 +763,12 @@ package body Instrument.Tree is
                --  So that the witness call is executed before the original
                --  expression is evaluated.
 
-               declare
+               Witness_For_Expr_Function : declare
                   Ctx           : constant Rewriting_Handle :=
                      UIC.Rewriting_Context;
                   Expr_Function : constant Node_Rewriting_Handle :=
                      Handle (SCE.N.Parent);
-                  Expr          : constant Node_Rewriting_Handle :=
-                     Handle (SCE.N);
+                  Expr          : Node_Rewriting_Handle := Handle (SCE.N);
 
                   Witness_Call : constant Node_Rewriting_Handle :=
                     Make_Statement_Witness
@@ -789,8 +788,76 @@ package body Instrument.Tree is
                         (1 => Create_Regular_Node
                                 (Ctx, Ada_Case_Expr,
                                  (1 => Witness_Call,
-                                 2 => Case_Alternatives))));
+                                  2 => Case_Alternatives))));
+
+                  procedure Qualify_Aggregate
+                    (Expr : in out Node_Rewriting_Handle);
+                  --  Assuming Expr is Expr_Function's return expression, if
+                  --  Expr is an aggregate (possibly wrapped in paren
+                  --  expressions), wrap it in a qualified expression. If Expr
+                  --  is the aggregate, update it to point to the qualifying
+                  --  expression.
+
+                  -----------------------
+                  -- Qualify_Aggregate --
+                  -----------------------
+
+                  procedure Qualify_Aggregate
+                    (Expr : in out Node_Rewriting_Handle)
+                  is
+                  begin
+                     case Kind (Expr) is
+                        when Ada_Aggregate =>
+
+                           --  We can deduce from this aggregate that this
+                           --  function returns an array or a record. Hence,
+                           --  the type expression after the "return" keyword
+                           --  is a name, and thus we can get a fully qualified
+                           --  name for the return type.
+
+                           declare
+                              Return_Type_Name : Text_Type renames
+                                 Node (Expr_Function).As_Expr_Function
+                                 .F_Subp_Spec.F_Subp_Returns.Text;
+                              Return_Type      : Node_Rewriting_Handle;
+                              Qual_Expr        : Node_Rewriting_Handle;
+                           begin
+                              Return_Type := Create_From_Template
+                                (UIC.Rewriting_Context,
+                                 Template  => Return_Type_Name,
+                                 Arguments =>  (1 .. 0 => <>),
+                                 Rule      => Name_Rule);
+                              Qual_Expr := Create_Regular_Node
+                                (Ctx, Ada_Qual_Expr,
+                                 (1 => Return_Type,
+                                  2 => No_Node_Rewriting_Handle));
+                              Replace (Expr, Qual_Expr);
+                              Set_Child (Qual_Expr, 2, Expr);
+                              Expr := Qual_Expr;
+                           end;
+
+                        when Ada_Paren_Expr =>
+                           declare
+                              Subexpr : Node_Rewriting_Handle :=
+                                 Child (Expr, 1);
+                           begin
+                              Qualify_Aggregate (Subexpr);
+                           end;
+
+                        when others =>
+                           null;
+                     end case;
+                  end Qualify_Aggregate;
+
+               --  Start of processing for Witness_For_Expr_Function
+
                begin
+                  --  Workaround a GNAT bug that is known to be present at
+                  --  least up to GNAT Pro 20.0 (S924-014): if this expression
+                  --  function returns an aggregate, qualify it.
+
+                  Qualify_Aggregate (Expr);
+
                   Set_Child (Expr_Function, 3, Wrapping_Expr);
                   Append_Child
                     (Choices,
@@ -802,7 +869,7 @@ package body Instrument.Tree is
                        (Ctx, Ada_Case_Expr_Alternative,
                         (1 => Choices,
                          2 => Expr)));
-               end;
+               end Witness_For_Expr_Function;
 
             else
                if SCE.N.Kind = Ada_Accept_Stmt_With_Stmts
