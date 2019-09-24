@@ -375,9 +375,8 @@ package body Instrument.Tree is
 
    function Is_Logical_Operator (N : Ada_Node'Class) return Tristate;
    --  False for any node that isn't an Expr. For an Expr, determines whether N
-   --  is a logical operator: True for short circuit conditions, Unknown for OR
-   --  and AND (the Short_Circuit_And_Or pragma may be used) and False
-   --  otherwise.
+   --  is a logical operator: True for short circuit conditions, False for OR
+   --  and AND (TODO??? handle Short_Circuit_And_Or pragmas) and NOT.
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -2708,7 +2707,7 @@ package body Instrument.Tree is
                return True;
 
             when Ada_Op_And | Ada_Op_Or =>
-               return Unknown;
+               return False;
 
             when others =>
                return False;
