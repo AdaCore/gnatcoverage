@@ -135,16 +135,21 @@ package body Project is
    --  each line, then set Defined. Just reset Defined if no attribute is
    --  defined.
 
-   procedure List_From_Project
+   procedure Units_From_Project
      (Prj            : Project_Type;
       List_Attr      : Attribute_Pkg_List;
       List_File_Attr : Attribute_Pkg_String;
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean);
-   --  Return a vector containing each value of List_Attr (a list attribute),
-   --  and each value from successive lines in the file denoted by
-   --  List_File_Attr (a string attribute). Defined is set True if either
-   --  List_Attr or List_File_Attr is defined explicitly in the project.
+   --  Build a map of units from project attributes.
+   --
+   --  This considers that List_Attr is an attribute that can contain a list of
+   --  unit names and that List_File_Attr is an attribute that can contain a
+   --  file name for a text file, and that this file contains one unit name per
+   --  line.
+   --
+   --  If Prj contains at least one of these attributes, set Defined to True
+   --  and fill Units with one entry per unit. Set Defined to False otherwise.
 
    generic
       type Result_Type (<>) is limited private;
@@ -302,7 +307,7 @@ package body Project is
             --  attributes in the Coverage project package.
 
             if Override_Units_Map.Is_Empty then
-               List_From_Project
+               Units_From_Project
                  (Project,
                   List_Attr      => +Units,
                   List_File_Attr => +Units_List,
@@ -312,7 +317,7 @@ package body Project is
                declare
                   Dummy_Exc_Units_Defined : Boolean;
                begin
-                  List_From_Project
+                  Units_From_Project
                     (Project,
                      List_Attr       => +Excluded_Units,
                      List_File_Attr  => +Excluded_Units_List,
@@ -767,11 +772,11 @@ package body Project is
       end if;
    end List_From_Project;
 
-   -----------------------
-   -- List_From_Project --
-   -----------------------
+   ------------------------
+   -- Units_From_Project --
+   ------------------------
 
-   procedure List_From_Project
+   procedure Units_From_Project
      (Prj            : Project_Type;
       List_Attr      : Attribute_Pkg_List;
       List_File_Attr : Attribute_Pkg_String;
@@ -792,12 +797,12 @@ package body Project is
             (Original_Name => To_Unbounded_String (S), LI_Seen => False));
       end Add_Line;
 
-   --  Start of processing for List_From_Project
+   --  Start of processing for Units_From_Project
 
    begin
       List_From_Project
         (Prj, List_Attr, List_File_Attr, Add_Line'Access, Defined);
-   end List_From_Project;
+   end Units_From_Project;
 
    -----------------------
    -- Load_Root_Project --
