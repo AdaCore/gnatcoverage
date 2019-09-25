@@ -75,30 +75,13 @@ package body Project is
 
    procedure Iterate_Source_Files
      (Root_Project : Project_Type;
-      Process      : access procedure (Unit_Name : String));
+      Process      : access procedure (Unit_Name : String);
+      Recursive    : Boolean);
    --  Call Process on all source files in Root_Project (recursively
-   --  considering source files of sub-projects).
+   --  considering source files of sub-projects if Recursive is true).
    --
    --  This passes the name of the unit as Unit_Name for languages featuring
    --  this notion (Ada) and the base file name otherwise (i.e. for C sources).
-
-   type Unit_Info is record
-      Original_Name : Unbounded_String;
-      --  Units are referenced in unit maps under their lowercased name.
-      --  Here we record the name with original casing (from the project or
-      --  the command line).
-
-      LI_Seen : Boolean;
-      --  Set true if the LI file for this unit has been seen
-   end record;
-
-   package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => String,
-      Element_Type => Unit_Info);
-
-   procedure Add_Unit (Units : in out Unit_Maps.Map; Original_Name : String);
-   --  Add an entry to Unit_Map. See Unit_Info's members for the semantics of
-   --  arguments.
 
    Env : Project_Environment_Access;
    --  Environment in which we load the project tree
@@ -126,6 +109,30 @@ package body Project is
    --  Map of all projects for which coverage analysis is desired. Populated in
    --  Build_Prj_Map, called from Load_Root_Project.
 
+   package Unit_Name_Sets is new Ada.Containers.Indefinite_Ordered_Sets
+     (Element_Type => String);
+
+   type Unit_Info is record
+      Original_Name : Unbounded_String;
+      --  Units are referenced in unit maps under their lowercased name.
+      --  Here we record the name with original casing (from the project or
+      --  the command line).
+
+      LI_Seen : Boolean;
+      --  Set true if the LI file for this unit has been seen
+   end record;
+
+   package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => String,
+      Element_Type => Unit_Info);
+
+   procedure Add_Unit (Units : in out Unit_Maps.Map; Original_Name : String);
+   --  Add an entry to Unit_Maps. See Unit_Info's members for the semantics of
+   --  arguments.
+
+   Unit_Map : Unit_Maps.Map;
+   --  Map lower-case unit names to Unit_Info records for all units of interest
+
    procedure Initialize
      (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
       with Pre => (Target = null and then Runtime = null)
@@ -135,6 +142,9 @@ package body Project is
 
    procedure Build_Prj_Map with Pre => Is_Project_Loaded;
    --  Add entries in Prj_Map for all relevant projects
+
+   procedure Build_Unit_Map (Override_Units : Inputs.Inputs_Type);
+   --  Add entries in Unit_Map for all units of interest
 
    procedure List_From_Project
      (Prj            : Project_Type;
@@ -292,10 +302,11 @@ package body Project is
 
    procedure Iterate_Source_Files
      (Root_Project : Project_Type;
-      Process      : access procedure (Unit_Name : String))
+      Process      : access procedure (Unit_Name : String);
+      Recursive    : Boolean)
    is
       Source_Files : File_Array_Access :=
-         Root_Project.Source_Files (Recursive => True);
+         Root_Project.Source_Files (Recursive => Recursive);
    begin
       for F of Source_Files.all loop
          declare
@@ -799,6 +810,136 @@ package body Project is
       end loop;
    end Build_Prj_Map;
 
+   --------------------
+   -- Build_Unit_Map --
+   --------------------
+
+   procedure Build_Unit_Map (Override_Units : Inputs.Inputs_Type) is
+      use type Ada.Containers.Count_Type;
+
+      Units_Specified : constant Boolean := Length (Override_Units) > 0;
+      --  Whether the user requested a specific set of units of interest
+      --  through the --units command-line argument.
+
+      Requested_Units : Unit_Name_Sets.Set;
+      --  Lower-cased unit names from Override_Units for efficient lookup
+
+      procedure Process_Override_Units (Unit : String);
+      --  Register Unit to Requested_Units and add a filler entry to Unit_Map
+      --  for it.
+
+      procedure Process_Project (Project : Project_Type);
+      --  Compute the list of units of interest in Project and call
+      --  Enumerate_In_Single_Projects for Project.
+
+      ----------------------------
+      -- Process_Override_Units --
+      ----------------------------
+
+      procedure Process_Override_Units (Unit : String) is
+      begin
+         Requested_Units.Include (To_Lower (Unit));
+         Add_Unit (Unit_Map, Unit);
+      end Process_Override_Units;
+
+      ---------------------
+      -- Process_Project --
+      ---------------------
+
+      procedure Process_Project (Project : Project_Type) is
+         Inc_Units         : Unit_Maps.Map;
+         Inc_Units_Defined : Boolean;
+         --  Units to be included, as specified in project
+
+         Exc_Units : Unit_Maps.Map;
+         --  Units to be excluded, as specified in project
+      begin
+         --  Unless the set of units of interest is overriden by --units, go
+         --  through all units, taking into account Units and Excluded_Units
+         --  clauses in the Coverage project package.
+
+         if not Units_Specified then
+
+            Units_From_Project
+              (Project,
+               List_Attr      => +Units,
+               List_File_Attr => +Units_List,
+               Units          => Inc_Units,
+               Defined        => Inc_Units_Defined);
+
+            declare
+               Dummy_Exc_Units_Defined : Boolean;
+            begin
+               Units_From_Project
+                 (Project,
+                  List_Attr       => +Excluded_Units,
+                  List_File_Attr  => +Excluded_Units_List,
+                  Units           => Exc_Units,
+                  Defined         => Dummy_Exc_Units_Defined);
+            end;
+         end if;
+
+         --  If Project does not specify units of interest thanks to project
+         --  attributes, assume that all of its units are of interest.
+
+         if not Inc_Units_Defined then
+            declare
+               procedure Process_Source_File (Unit_Name : String);
+               --  Add Unit_Name to Inc_Units
+
+               -------------------------
+               -- Process_Source_File --
+               -------------------------
+
+               procedure Process_Source_File (Unit_Name : String) is
+               begin
+                  if not Units_Specified
+                     or else Requested_Units.Contains (To_Lower (Unit_Name))
+                  then
+                     Add_Unit (Inc_Units, Unit_Name);
+                  end if;
+               end Process_Source_File;
+
+            begin
+               Iterate_Source_Files
+                 (Project, Process_Source_File'Access, Recursive => False);
+               Inc_Units_Defined := True;
+            end;
+         end if;
+
+         --  Register as units of interest all units in Inc_Units which are not
+         --  in Exc_Units.
+
+         for Cur in Inc_Units.Iterate loop
+            declare
+               use Unit_Maps;
+               K : constant String := Key (Cur);
+            begin
+               if not Exc_Units.Contains (K) then
+                  Unit_Map.Include (K, Element (Cur));
+               end if;
+            end;
+         end loop;
+      end Process_Project;
+
+   --  Start of processing for Build_Unit_Map
+
+   begin
+      --  Create filler map entries for requested units
+
+      Inputs.Iterate (Override_Units, Process_Override_Units'Access);
+
+      --  Now go through all selected projects to find units of interest
+
+      for Prj of Prj_Map loop
+         Process_Project (Prj);
+      end loop;
+
+      if Unit_Map.Is_Empty then
+         Warn ("no unit of interest");
+      end if;
+   end Build_Unit_Map;
+
    -----------------------
    -- List_From_Project --
    -----------------------
@@ -856,9 +997,7 @@ package body Project is
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
-      package Unit_Sets is new Ada.Containers.Indefinite_Ordered_Sets
-        (Element_Type => String);
-      Units_Present : Unit_Sets.Set;
+      Units_Present : Unit_Name_Sets.Set;
       --  Set of units present in Prj
 
       procedure Add_Line (S : String);
@@ -898,7 +1037,8 @@ package body Project is
       --  this notion (Ada) and use the source file name otherwise (i.e. for C
       --  sources).
 
-      Iterate_Source_Files (Prj, Process_Source_File'Access);
+      Iterate_Source_Files
+        (Prj, Process_Source_File'Access, Recursive => True);
 
       --  Now go through all units referenced by project attributes
 
@@ -912,7 +1052,9 @@ package body Project is
 
    procedure Load_Root_Project
      (Prj_Name                   : String;
-      Target, Runtime, CGPR_File : GNAT.Strings.String_Access) is
+      Target, Runtime, CGPR_File : GNAT.Strings.String_Access;
+      Override_Units             : Inputs.Inputs_Type)
+   is
    begin
       if Prj_Tree /= null then
          Fatal_Error ("only one root project can be specified");
@@ -958,6 +1100,7 @@ package body Project is
       end if;
 
       Build_Prj_Map;
+      Build_Unit_Map (Override_Units);
    end Load_Root_Project;
 
    -----------------------

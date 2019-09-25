@@ -429,6 +429,7 @@ procedure GNATcov is
       --    * the target architecture;
       --    * the runtime system (RTS);
       --    * the requested list of projects of interest (if any);
+      --    * the requested list of units of interest (if any);
       --    * whether to process recursively the project tree.
 
       Root_Project := new String'(+Args.String_Args (Opt_Project).Value);
@@ -463,8 +464,6 @@ procedure GNATcov is
          Enable_Externally_Built_Projects_Processing;
       end if;
 
-      Switches.Recursive_Projects := Args.Bool_Args (Opt_Recursive);
-
       --  If the project file does not define a target, loading it needs the
       --  target information: load it here. Likewise for the runtime system.
 
@@ -487,10 +486,14 @@ procedure GNATcov is
          Project.Add_Project (+Arg);
       end loop;
 
+      Switches.Recursive_Projects := Args.Bool_Args (Opt_Recursive);
+      Copy_Arg_List (Opt_Units, Units_Inputs);
+
       --  All -X command line switches have now been processed: initialize the
       --  project subsystem and load the root project.
 
-      Load_Root_Project (Root_Project.all, Target_Family, Runtime, CGPR_File);
+      Load_Root_Project
+        (Root_Project.all, Target_Family, Runtime, CGPR_File, Units_Inputs);
 
       --  Get common and command-specific switches, decode them (if any) and
       --  store the result in Project_Args, then merge it into Args.
@@ -631,7 +634,6 @@ procedure GNATcov is
       Copy_Arg (Opt_Save_Checkpoint, Save_Checkpoint);
 
       Copy_Arg_List (Opt_Scos, ALIs_Inputs);
-      Copy_Arg_List (Opt_Units, Units_Inputs);
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);

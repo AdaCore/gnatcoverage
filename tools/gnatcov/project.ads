@@ -62,7 +62,9 @@ package Project is
       --  an error.
 
    procedure Load_Root_Project
-     (Prj_Name : String; Target, Runtime, CGPR_File : String_Access)
+     (Prj_Name                   : String;
+      Target, Runtime, CGPR_File : String_Access;
+      Override_Units             : Inputs.Inputs_Type)
       with Pre  => not Is_Project_Loaded
                    and then ((Target = null and then Runtime = null)
                              or else CGPR_File = null),
@@ -75,6 +77,10 @@ package Project is
    --
    --  Note that Target/Runtime must not be provided if a configuration project
    --  file is provided, and reciprocally.
+   --
+   --  If Override_Units is present, it overrides the set of units to be
+   --  considered, else the set defined by the project through the Units,
+   --  Units_List, Exclude_Units, and Exclude_Units_List attributes is used.
 
    ----------------------------
    -- Post-loading accessors --
