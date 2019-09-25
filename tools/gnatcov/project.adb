@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
@@ -85,8 +86,11 @@ package body Project is
      (Key_Type     => String,
       Element_Type => Unit_Info);
 
-   Env        : Project_Environment_Access;
-   Prj_Tree   : Project_Tree_Access;
+   Env : Project_Environment_Access;
+   --  Environment in which we load the project tree
+
+   Prj_Tree : Project_Tree_Access;
+   --  Loaded project tree
 
    Obj_Subdir : Unbounded_String;
    --  Hold the object subdirectory to use (if any) for all loaded projects.
@@ -95,14 +99,18 @@ package body Project is
    Externally_Built_Projects_Processing_Enabled : Boolean := False;
    --  Whether to include projects marked as externally built to processings
 
+   package Project_Sets is new Ada.Containers.Indefinite_Ordered_Sets
+     (Element_type => String);
    package Project_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
       Element_Type => Project_Type);
 
+   Requested_Projects : Project_Sets.Set;
+   --  Set of all projects passed to the Add_Project procedure
+
    Prj_Map : Project_Maps.Map;
-   --  If the user specified a list of projects of interest (--projects), this
-   --  contains a mapping from their name to the corresponding project node.
-   --  Empty otherwise.
+   --  Map of all projects for which coverage analysis is desired. Populated in
+   --  Build_Prj_Map, called from Load_Root_Project.
 
    procedure Initialize
      (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
@@ -110,6 +118,9 @@ package body Project is
                   or else CGPR_File = null;
    --  Initialize project environment. Formals have the same semantics as in
    --  Load_Root_Project.
+
+   procedure Build_Prj_Map with Pre => Is_Project_Loaded;
+   --  Add entries in Prj_Map for all relevant projects
 
    procedure List_From_Project
      (Prj            : Project_Type;
@@ -257,10 +268,6 @@ package body Project is
       procedure Add_Override (U : String);
       --  Add U to Override_Units_Map
 
-      procedure Process_Project (Project : Project_Type);
-      --  Compute the list of units of interest in Project and call
-      --  Enumerate_In_Single_Projects for Project.
-
       ------------------
       -- Add_Override --
       ------------------
@@ -272,133 +279,66 @@ package body Project is
             (Original_Name => To_Unbounded_String (U), LI_Seen => False));
       end Add_Override;
 
-      ---------------------
-      -- Process_Project --
-      ---------------------
-
-      procedure Process_Project (Project : Project_Type)
-      is
-         Inc_Units         : Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
-         --  Units to be included, as specified in project
-
-         Exc_Units         : Unit_Maps.Map;
-         --  Units to be excluded, as specified in project
-      begin
-         --  Unless the set of units of interest is overriden by --units, go
-         --  through all units, taking into account Units and Excluded_Units
-         --  clauses in the Coverage project package.
-
-         if Override_Units_Map.Is_Empty then
-            List_From_Project
-              (Project,
-               List_Attr      => +Units,
-               List_File_Attr => +Units_List,
-               Units          => Inc_Units,
-               Defined        => Inc_Units_Defined);
-
-            declare
-               Dummy_Exc_Units_Defined : Boolean;
-            begin
-               List_From_Project
-                 (Project,
-                  List_Attr       => +Excluded_Units,
-                  List_File_Attr  => +Excluded_Units_List,
-                  Units           => Exc_Units,
-                  Defined         => Dummy_Exc_Units_Defined);
-            end;
-
-            Enumerate_In_Single_Project
-              (Project, Inc_Units, Inc_Units_Defined, Exc_Units, Callback);
-         else
-            Inc_Units_Defined := True;
-            Enumerate_In_Single_Project
-              (Project, Override_Units_Map, Inc_Units_Defined, Exc_Units,
-               Callback);
-         end if;
-      end Process_Project;
-
-      Recursive : constant Boolean := Standard.Switches.Recursive_Projects;
-      --  Whether to process recursively all projects from roots
-
    --  Start of processing for Enumerate_For_Units_Of_Interest
 
    begin
       Iterate (Override_Units, Add_Override'Access);
 
-      if Override_Units_Map.Is_Empty then
+      for Project of Prj_Map loop
 
-         --  No --units: only considered selected projects
-         --
-         --  TODO??? Do not process projects more than once (if one Prj is in
-         --  the closure of another one in recursive mode).
+         --  Compute the list of units of interest in Project and call
+         --  Enumerate_In_Single_Projects for Project.
 
-         for Prj of Prj_Map loop
-            Iterate_Projects
-              (Root_Project => Prj,
-               Process      => Process_Project'Access,
-               Recursive    => Recursive);
-         end loop;
+         declare
+            Inc_Units         : Unit_Maps.Map;
+            Inc_Units_Defined : Boolean;
+            --  Units to be included, as specified in project
 
-      else
-         --  If --units is specified, always traverse the complete project
-         --  tree from the root.
+            Exc_Units         : Unit_Maps.Map;
+            --  Units to be excluded, as specified in project
+         begin
+            --  Unless the set of units of interest is overriden by --units, go
+            --  through all units, taking into account Units and Excluded_Units
+            --  attributes in the Coverage project package.
 
-         Iterate_Projects
-           (Root_Project => Prj_Tree.Root_Project,
-            Process      => Process_Project'Access,
-            Recursive    => Recursive);
-      end if;
+            if Override_Units_Map.Is_Empty then
+               List_From_Project
+                 (Project,
+                  List_Attr      => +Units,
+                  List_File_Attr => +Units_List,
+                  Units          => Inc_Units,
+                  Defined        => Inc_Units_Defined);
+
+               declare
+                  Dummy_Exc_Units_Defined : Boolean;
+               begin
+                  List_From_Project
+                    (Project,
+                     List_Attr       => +Excluded_Units,
+                     List_File_Attr  => +Excluded_Units_List,
+                     Units           => Exc_Units,
+                     Defined         => Dummy_Exc_Units_Defined);
+               end;
+
+               Enumerate_In_Single_Project
+                 (Project, Inc_Units, Inc_Units_Defined, Exc_Units, Callback);
+            else
+               Inc_Units_Defined := True;
+               Enumerate_In_Single_Project
+                 (Project, Override_Units_Map, Inc_Units_Defined, Exc_Units,
+                  Callback);
+            end if;
+         end;
+      end loop;
    end Enumerate_For_Units_Of_Interest;
-
-   --------------------
-   -- Origin_Project --
-   --------------------
-
-   function Origin_Project return String is
-      Root_Prj : Project_Type;
-   begin
-      if Prj_Tree = null then
-         return "";
-      end if;
-
-      Root_Prj := GNATCOLL.Projects.Root_Project (Prj_Tree.all);
-      return Attribute_Value (Root_Prj, Origin_Project_Attribute);
-   end Origin_Project;
 
    -----------------
    -- Add_Project --
    -----------------
 
    procedure Add_Project (Prj_Name : String) is
-      Prj         : Project_Type;
-      Prj_Name_FS : constant GNATCOLL.VFS.Filesystem_String :=
-        +Simple_Name (Prj_Name);
-      Last        : Integer;
    begin
-      --  Strip optional Project_File_Extension
-
-      if Prj_Name_FS'Length >= Project_File_Extension'Length
-           and then
-         Prj_Name_FS (Prj_Name_FS'Last - Project_File_Extension'Length + 1
-                      .. Prj_Name_FS'Last) = Project_File_Extension
-      then
-         Last := Prj_Name_FS'Last - Project_File_Extension'Length;
-      else
-         Last := Prj_Name_FS'Last;
-      end if;
-
-      --  Look up project from project tree
-
-      Prj := Prj_Tree.Project_From_Name
-        (+Prj_Name_FS (Prj_Name_FS'First .. Last));
-      if Prj = No_Project then
-         Fatal_Error ("project " & Prj_Name & " not found");
-      end if;
-
-      --  Add it to Prj_Map
-
-      Prj_Map.Insert (Prj_Name, Prj);
+      Requested_Projects.Include (Prj_Name);
    end Add_Project;
 
    -------------------
@@ -698,6 +638,89 @@ package body Project is
       end if;
    end Initialize;
 
+   -------------------
+   -- Build_Prj_Map --
+   -------------------
+
+   procedure Build_Prj_Map is
+
+      function Lookup_Project (Prj_Name : String) return Project_Type;
+      --  Look for the project in Prj_Tree whose name matches Prj_Name and
+      --  return it. Emit a fatal error if there is no such project.
+
+      procedure Process_Project (Project : Project_Type);
+      --  Callback for Iterate_Projects: add an entry in Prj_Map for Project
+
+      --------------------
+      -- Lookup_Project --
+      --------------------
+
+      function Lookup_Project (Prj_Name : String) return Project_Type is
+         Prj_Name_FS : constant GNATCOLL.VFS.Filesystem_String :=
+           +Simple_Name (Prj_Name);
+         Last        : Integer;
+      begin
+         --  Strip optional Project_File_Extension
+
+         if Prj_Name_FS'Length >= Project_File_Extension'Length
+              and then
+            Prj_Name_FS (Prj_Name_FS'Last - Project_File_Extension'Length + 1
+                         .. Prj_Name_FS'Last) = Project_File_Extension
+         then
+            Last := Prj_Name_FS'Last - Project_File_Extension'Length;
+         else
+            Last := Prj_Name_FS'Last;
+         end if;
+
+         --  Look up project from project tree
+
+         return Result : constant Project_Type := Prj_Tree.Project_From_Name
+           (+Prj_Name_FS (Prj_Name_FS'First .. Last))
+         do
+            if Result = No_Project then
+               Fatal_Error ("project " & Prj_Name & " not found");
+            end if;
+         end return;
+      end Lookup_Project;
+
+      ---------------------
+      -- Process_Project --
+      ---------------------
+
+      procedure Process_Project (Project : Project_Type) is
+      begin
+         Prj_Map.Insert (Project.Name, Project);
+      end Process_Project;
+
+   --  Start of processing for Build_Prj_Map
+
+   begin
+      --  If no project was specified, consider the root one. If this root
+      --  project has an Origin_Project attribute, actually use this project
+      --  instead.
+
+      if Requested_Projects.Is_Empty then
+         declare
+            Origin_Prj : constant String :=
+               Prj_Tree.Root_Project.Attribute_Value
+                 (Origin_Project_Attribute);
+            Prj_Name   : constant String :=
+              (if Origin_Prj = ""
+               then Prj_Tree.Root_Project.Name
+               else Origin_Prj);
+         begin
+            Requested_Projects.Insert (Prj_Name);
+         end;
+      end if;
+
+      for Prj_Name of Requested_Projects loop
+         Iterate_Projects
+           (Lookup_Project (Prj_Name),
+            Process_Project'Access,
+            Standard.Switches.Recursive_Projects);
+      end loop;
+   end Build_Prj_Map;
+
    -----------------------
    -- List_From_Project --
    -----------------------
@@ -826,6 +849,8 @@ package body Project is
             & " built projects are ignored by default. Consider using"
             & " --externally-built-projects.");
       end if;
+
+      Build_Prj_Map;
    end Load_Root_Project;
 
    -----------------------

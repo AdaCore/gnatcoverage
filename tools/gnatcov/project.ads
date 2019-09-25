@@ -51,6 +51,16 @@ package Project is
       with Pre => not Is_Project_Loaded;
    --  Set the object subdir for all loaded projects
 
+   procedure Add_Project (Prj_Name : String)
+      with Pre => not Is_Project_Loaded;
+   --  Add Prj_Name to the list of projects for which coverage analysis is
+   --  desired.
+   --
+   --  Prj_Name may optionally have a Project_File_Extension.
+   --
+   --  If Prj_Name maps to no loaded project, Load_Root_Project will later emit
+      --  an error.
+
    procedure Load_Root_Project
      (Prj_Name : String; Target, Runtime, CGPR_File : String_Access)
       with Pre  => not Is_Project_Loaded
@@ -79,17 +89,6 @@ package Project is
    --  If there is only one main source in the loaded project, return the full
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
-
-   procedure Add_Project (Prj_Name : String)
-      with Pre => Is_Project_Loaded;
-   --  Add Prj_Name to the list of projects for which coverage analysis is
-   --  desired. This must be a project in the closure of the previously loaded
-   --  root project. Prj_Name may optionally have a Project_File_Extension.
-
-   function Origin_Project return String
-      with Pre => Is_Project_Loaded;
-   --  If the loaded root project has an Origin_Project attribute, return its
-   --  value. Return an empty string otherwise.
 
    --------------------------------------
    -- Accessors for project properties --

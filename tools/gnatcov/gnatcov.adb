@@ -91,7 +91,6 @@ procedure GNATcov is
    ALIs_Inputs          : Inputs.Inputs_Type;
    Routines_Inputs      : Inputs.Inputs_Type;
    Units_Inputs         : Inputs.Inputs_Type;
-   Projects_Inputs      : Inputs.Inputs_Type;
    Checkpoints_Inputs   : Inputs.Inputs_Type;
    SID_Inputs           : Inputs.Inputs_Type;
    Ignored_Source_Files : Inputs.Inputs_Type;
@@ -428,7 +427,9 @@ procedure GNATcov is
       --    * scenario variables;
       --    * the object subdir;
       --    * the target architecture;
-      --    * the runtime system (RTS).
+      --    * the runtime system (RTS);
+      --    * the requested list of projects of interest (if any);
+      --    * whether to process recursively the project tree.
 
       Root_Project := new String'(+Args.String_Args (Opt_Project).Value);
 
@@ -462,6 +463,8 @@ procedure GNATcov is
          Enable_Externally_Built_Projects_Processing;
       end if;
 
+      Switches.Recursive_Projects := Args.Bool_Args (Opt_Recursive);
+
       --  If the project file does not define a target, loading it needs the
       --  target information: load it here. Likewise for the runtime system.
 
@@ -476,6 +479,13 @@ procedure GNATcov is
          Fatal_Error ("--config cannot be used with --target and --RTS");
       end if;
       Copy_Arg (Opt_Config, CGPR_File);
+
+      --  Communicate to our project handling code the list of project files to
+      --  consider.
+
+      for Arg of Args.String_List_Args (Opt_Projects) loop
+         Project.Add_Project (+Arg);
+      end loop;
 
       --  All -X command line switches have now been processed: initialize the
       --  project subsystem and load the root project.
@@ -600,15 +610,14 @@ procedure GNATcov is
    begin
       --  First, handle all options...
 
-      Switches.Recursive_Projects := Args.Bool_Args (Opt_Recursive);
-      Verbose                     := Args.Bool_Args (Opt_Verbose);
-      Switches.All_Decisions      := Args.Bool_Args (Opt_All_Decisions);
-      Switches.All_Messages       := Args.Bool_Args (Opt_All_Messages);
-      Branch_Stats                := Args.Bool_Args (Opt_Branch_Stats);
-      Excluded_SCOs               := Args.Bool_Args (Opt_Excluded_SCOs);
-      Keep_Edges                  := Args.Bool_Args (Opt_Keep_Edges);
-      Pretty_Print                := Args.Bool_Args (Opt_Pretty_Print);
-      Keep_Reading_Traces         := Args.Bool_Args (Opt_Keep_Reading_Traces);
+      Verbose                := Args.Bool_Args (Opt_Verbose);
+      Switches.All_Decisions := Args.Bool_Args (Opt_All_Decisions);
+      Switches.All_Messages  := Args.Bool_Args (Opt_All_Messages);
+      Branch_Stats           := Args.Bool_Args (Opt_Branch_Stats);
+      Excluded_SCOs          := Args.Bool_Args (Opt_Excluded_SCOs);
+      Keep_Edges             := Args.Bool_Args (Opt_Keep_Edges);
+      Pretty_Print           := Args.Bool_Args (Opt_Pretty_Print);
+      Keep_Reading_Traces    := Args.Bool_Args (Opt_Keep_Reading_Traces);
 
       Load_Target_Option (Default_Target => True);
       Copy_Arg (Opt_Runtime, Runtime);
@@ -621,7 +630,6 @@ procedure GNATcov is
       Copy_Arg (Opt_Input, Convert.Input_Arg);
       Copy_Arg (Opt_Save_Checkpoint, Save_Checkpoint);
 
-      Copy_Arg_List (Opt_Projects, Projects_Inputs);
       Copy_Arg_List (Opt_Scos, ALIs_Inputs);
       Copy_Arg_List (Opt_Units, Units_Inputs);
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
@@ -1044,25 +1052,6 @@ procedure GNATcov is
       end case;
 
       if Is_Project_Loaded then
-         --  If a root project has been specified but no project is being
-         --  considered for coverage analysis, then:
-         --
-         --  * If it has an Origin_Project attribute, consider the project it
-         --    references. GNATtest uses this attribute in the generated
-         --    harness project to reference the user project that is tested, so
-         --    this behavior is helpful.
-         --
-         --  * Otherwise just consider the root project.
-
-         if Length (Projects_Inputs) = 0 then
-            if Origin_Project'Length /= 0 then
-               Inputs.Add_Input (Projects_Inputs, Origin_Project);
-            else
-               Inputs.Add_Input (Projects_Inputs, Root_Project.all);
-            end if;
-         end if;
-         Inputs.Iterate (Projects_Inputs, Project.Add_Project'Access);
-
          --  Set defaults for options identifying the entities of interest
          --  coverage analysis if they have not been identified on the command
          --  line.
@@ -1094,7 +1083,7 @@ procedure GNATcov is
             end;
          end if;
 
-      elsif Length (Projects_Inputs) /= 0 then
+      elsif not Args.String_List_Args (Opt_Projects).Is_Empty then
          Fatal_Error ("--projects requires -P");
       end if;
 
