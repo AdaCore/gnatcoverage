@@ -22,6 +22,7 @@ with Ada.Containers.Vectors;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Tags;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.OS_Lib;
@@ -72,6 +73,15 @@ package body Project is
    --  Call Process on Root_Project if Recursive is False, or on the whole
    --  project tree otherwise.
 
+   procedure Iterate_Source_Files
+     (Root_Project : Project_Type;
+      Process      : access procedure (Unit_Name : String));
+   --  Call Process on all source files in Root_Project (recursively
+   --  considering source files of sub-projects).
+   --
+   --  This passes the name of the unit as Unit_Name for languages featuring
+   --  this notion (Ada) and the base file name otherwise (i.e. for C sources).
+
    type Unit_Info is record
       Original_Name : Unbounded_String;
       --  Units are referenced in unit maps under their lowercased name.
@@ -85,6 +95,10 @@ package body Project is
    package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
       Element_Type => Unit_Info);
+
+   procedure Add_Unit (Units : in out Unit_Maps.Map; Original_Name : String);
+   --  Add an entry to Unit_Map. See Unit_Info's members for the semantics of
+   --  arguments.
 
    Env : Project_Environment_Access;
    --  Environment in which we load the project tree
@@ -223,6 +237,18 @@ package body Project is
       return Build (Coverage_Package, A'Img);
    end "+";
 
+   --------------
+   -- Add_Unit --
+   --------------
+
+   procedure Add_Unit (Units : in out Unit_Maps.Map; Original_Name : String) is
+   begin
+      Units.Include
+        (To_Lower (Original_Name),
+         (Original_Name => To_Unbounded_String (Original_Name),
+          LI_Seen       => False));
+   end Add_Unit;
+
    ----------------------
    -- Iterate_Projects --
    ----------------------
@@ -260,6 +286,55 @@ package body Project is
       end loop;
    end Iterate_Projects;
 
+   --------------------------
+   -- Iterate_Source_Files --
+   --------------------------
+
+   procedure Iterate_Source_Files
+     (Root_Project : Project_Type;
+      Process      : access procedure (Unit_Name : String))
+   is
+      Source_Files : File_Array_Access :=
+         Root_Project.Source_Files (Recursive => True);
+   begin
+      for F of Source_Files.all loop
+         declare
+            use type Ada.Tags.Tag;
+
+            Infos : constant File_Info_Set := Prj_Tree.Info_Set (F);
+         begin
+            for Abstract_Info of Infos loop
+
+               --  ??? It seems that GNATCOLL.Projects.Info_Set always put
+               --  File_Info records in File_Info_Sets.Set containers, so it's
+               --  not clear why File_Info_Sets.Set contains
+               --  File_Info_Abstract'Class objects instead. Anyway, put
+               --  defensive code here to avoid constraint errors if that is
+               --  not true one day.
+
+               if Abstract_Info'Tag = File_Info'Tag then
+                  declare
+                     Info : constant File_Info := File_Info (Abstract_Info);
+                  begin
+                     --  Register only units in supported languages (Ada and
+                     --  C). We do not treat subunits as independent units.
+
+                     if To_Lower (Info.Language) in "ada" | "c"
+                        and then Info.Unit_Part /= Unit_Separate
+                     then
+                        Process.all
+                          (Unit_Name => (if Info.Unit_Name = ""
+                                         then +F.Base_Name
+                                         else Info.Unit_Name));
+                     end if;
+                  end;
+               end if;
+            end loop;
+         end;
+      end loop;
+      Unchecked_Free (Source_Files);
+   end Iterate_Source_Files;
+
    -------------------------------------
    -- Enumerate_For_Units_Of_Interest --
    -------------------------------------
@@ -279,9 +354,7 @@ package body Project is
 
       procedure Add_Override (U : String) is
       begin
-         Override_Units_Map.Include
-           (To_Lower (U),
-            (Original_Name => To_Unbounded_String (U), LI_Seen => False));
+         Add_Unit (Override_Units_Map, U);
       end Add_Override;
 
    --  Start of processing for Enumerate_For_Units_Of_Interest
@@ -783,23 +856,52 @@ package body Project is
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
+      package Unit_Sets is new Ada.Containers.Indefinite_Ordered_Sets
+        (Element_Type => String);
+      Units_Present : Unit_Sets.Set;
+      --  Set of units present in Prj
+
       procedure Add_Line (S : String);
-      --  Add S to Result
+      --  Add S to Units
+
+      procedure Process_Source_File (Unit_Name : String);
+      --  Add Unit_Name to Units_Present
 
       --------------
       -- Add_Line --
       --------------
 
       procedure Add_Line (S : String) is
+         Unit_Name : constant String := To_Lower (S);
       begin
-         Units.Include
-           (To_Lower (S),
-            (Original_Name => To_Unbounded_String (S), LI_Seen => False));
+         if Units_Present.Contains (Unit_Name) then
+            Add_Unit (Units, S);
+         else
+            Warn ("no information found for unit " & S
+                  & " in project " & Prj.Name);
+         end if;
       end Add_Line;
+
+      -------------------------
+      -- Process_Source_File --
+      -------------------------
+
+      procedure Process_Source_File (Unit_Name : String) is
+      begin
+         Units_Present.Include (Unit_Name);
+      end Process_Source_File;
 
    --  Start of processing for Units_From_Project
 
    begin
+      --  Initialize Units_Present. Use the unit name for languages featuring
+      --  this notion (Ada) and use the source file name otherwise (i.e. for C
+      --  sources).
+
+      Iterate_Source_Files (Prj, Process_Source_File'Access);
+
+      --  Now go through all units referenced by project attributes
+
       List_From_Project
         (Prj, List_Attr, List_File_Attr, Add_Line'Access, Defined);
    end Units_From_Project;
