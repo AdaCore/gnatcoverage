@@ -9,6 +9,7 @@ It also exposes a few global variables of general use (env, TEST_DIR, etc)
 
 import logging
 import os
+import re
 import sys
 import time
 
@@ -18,7 +19,7 @@ from gnatpython.main import Main
 
 from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, env
-from SUITE.cutils import indent_after_first_line, lines_of, ndirs_in
+from SUITE.cutils import indent, indent_after_first_line, lines_of, ndirs_in
 
 
 # This module is loaded as part of a Run operation for a test.py
@@ -220,6 +221,26 @@ class Test (object):
         """Register a check failure when EXPR is true."""
         if expr:
             self.failed(comment)
+
+    def fail_if_not_equal(self, what, expected, actual):
+        """Register a check failure when EXPECTED and ACTUAL are not equal."""
+        self.fail_if(
+            expected != actual,
+            'Unexpected {}. Expected:'
+            '\n{}'
+            '\nBut got:'
+            '\n{}'.format(what, indent(str(expected)), indent(str(actual))))
+
+    def fail_if_no_match(self, what, regexp, actual):
+        """Register a check failure when ACTUAL does not match regexp."""
+        if isinstance(regexp, str):
+            regexp = re.compile(regexp)
+        self.fail_if(
+            not regexp.match(actual),
+            'Unexpected {}. Expected:'
+            '\n{}'
+            '\nBut got:'
+            '\n{}'.format(what, indent(regexp.pattern), indent(str(actual))))
 
     def stop(self, exc):
         self.failed("Processing failed")
