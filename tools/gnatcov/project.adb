@@ -132,6 +132,9 @@ package body Project is
    Unit_Map : Unit_Maps.Map;
    --  Map lower-case unit names to Unit_Info records for all units of interest
 
+   Are_LIs_Enumerated : Boolean := False;
+   --  Return whether Enumerate_LIs was called
+
    procedure Initialize
      (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
       with Pre => (Target = null and then Runtime = null)
@@ -215,9 +218,6 @@ package body Project is
    --  The specific set of projects that are processed depends on: the root of
    --  the project loaded (-P option), the optional set of projects of interest
    --  (--projects) and the recursive mode (--recursive).
-
-   procedure Report_Units_Without_LI (Units : Unit_Maps.Map);
-   --  Output a warning for any element of Units that has LI_Seen set False
 
    function Enumerate_Mains
      (Root_Project : Project_Type;
@@ -465,16 +465,12 @@ package body Project is
          Callback          : access procedure (Project  : Project_Type;
                                                Filename : String))
       is
-         use type Ada.Containers.Count_Type;
-
          Lib_Info : Library_Info_List;
       begin
          Project.Library_Files (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
 
          for LI of Lib_Info loop
             Process_LI : declare
-               use Unit_Maps;
-
                LI_Source_Unit : constant String :=
                                   Unit_Name (LI.Source.all);
                LI_Source_File : constant String :=
@@ -488,12 +484,10 @@ package body Project is
                --  file. For file-based languages (C), fall back to translation
                --  unit source file name instead.
 
-               UC : constant Unit_Maps.Cursor := Inc_Units.Find (U);
-
             --  Start of processing for Process_LI
 
             begin
-               if (UC /= Unit_Maps.No_Element
+               if (Inc_Units.Contains (U)
                    or else not Inc_Units_Defined)
                  and then not Exc_Units.Contains (U)
                then
@@ -502,19 +496,16 @@ package body Project is
 
                --  Mark unit seen even if it is excluded
 
-               if UC /= Unit_Maps.No_Element then
-                  Inc_Units.Reference (UC).LI_Seen := True;
-               end if;
+               declare
+                  use Unit_Maps;
+                  Cur : constant Cursor := Unit_Map.Find (U);
+               begin
+                  if Has_Element (Cur) then
+                     Unit_Map.Reference (Cur).LI_Seen := True;
+                  end if;
+               end;
             end Process_LI;
          end loop;
-
-         --  At this point warn about units with no library info only when the
-         --  list of units of interests comes from project files, i.e. not
-         --  overriden by the --units command line argument.
-
-         if Inputs.Length (Override_Units) = 0 then
-            Report_Units_Without_LI (Inc_Units);
-         end if;
       end Enumerate_In_Single_Project;
 
       --------------
@@ -531,8 +522,32 @@ package body Project is
    begin
       Enumerate_In_Projects
         (Callback'Access, Override_Units, Override_Units_Map);
-      Report_Units_Without_LI (Override_Units_Map);
+      pragma Unreferenced (Override_Units_Map);
+      Are_LIs_Enumerated := True;
    end Enumerate_LIs;
+
+   --------------------
+   -- LIs_Enumerated --
+   --------------------
+
+   function LIs_Enumerated return Boolean is
+   begin
+      return Are_LIs_Enumerated;
+   end LIs_Enumerated;
+
+   -----------------------------
+   -- Report_Units_Without_LI --
+   -----------------------------
+
+   procedure Report_Units_Without_LI is
+   begin
+      for UI of Unit_Map loop
+         if not UI.LI_Seen then
+            Warn ("no information found for unit "
+                  & To_String (UI.Original_Name));
+         end if;
+      end loop;
+   end Report_Units_Without_LI;
 
    ---------------------------
    -- Enumerate_Ada_Sources --
@@ -1213,20 +1228,6 @@ package body Project is
    begin
       return +Prj_Tree.Root_Project.Object_Dir.Full_Name;
    end Output_Dir;
-
-   -----------------------------
-   -- Report_Units_Without_LI --
-   -----------------------------
-
-   procedure Report_Units_Without_LI (Units : Unit_Maps.Map) is
-   begin
-      for UI of Units loop
-         if not UI.LI_Seen then
-            Warn ("no information found for unit "
-                  & To_String (UI.Original_Name));
-         end if;
-      end loop;
-   end Report_Units_Without_LI;
 
    --------------
    -- Switches --

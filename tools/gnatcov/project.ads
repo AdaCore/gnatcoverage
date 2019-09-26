@@ -103,12 +103,20 @@ package Project is
    procedure Enumerate_LIs
      (LI_Cb          : access procedure (LI_Name : String);
       Override_Units : Inputs.Inputs_Type)
-      with Pre => Is_Project_Loaded;
+      with Pre  => Is_Project_Loaded and then not LIs_Enumerated,
+           Post => LIs_Enumerated;
    --  Call LI_Cb once for every library information (ALI/GLI) file from a
    --  project mentioned in a previous Add_Project call. If Override_Units is
    --  present, it overrides the set of units to be considered, else the set
    --  defined by the project through the Units, Units_List, Exclude_Units, and
    --  Exclude_Units_List attributes is used.
+
+   function LIs_Enumerated return Boolean with Pre => Is_Project_Loaded;
+   --  Return whether Enumerate_LIs was called
+
+   procedure Report_Units_Without_LI with Pre => LIs_Enumerated;
+   --  Output a warning for all units of interest for which we saw no library
+   --  information file.
 
    procedure Enumerate_Ada_Sources
      (Callback       : access procedure

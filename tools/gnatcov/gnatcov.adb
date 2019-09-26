@@ -363,6 +363,12 @@ procedure GNATcov is
       end if;
       SCOs_Loaded := True;
 
+      --  When appropriate, warn about units of interest with no LI
+
+      if Is_Project_Loaded and then LIs_Enumerated then
+         Report_Units_Without_LI;
+      end if;
+
       if Source_Coverage_Enabled then
 
          --  Load SCOs from ALI files and initialize source coverage data
