@@ -32,10 +32,9 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
-with Diagnostics; use Diagnostics;
-with Inputs;      use Inputs;
-with Outputs;     use Outputs;
-with Switches;    use Switches;
+with Inputs;   use Inputs;
+with Outputs;  use Outputs;
+with Switches; use Switches;
 
 package body Project is
 
@@ -217,9 +216,8 @@ package body Project is
    --  the project loaded (-P option), the optional set of projects of interest
    --  (--projects) and the recursive mode (--recursive).
 
-   procedure Report_Units_Without_LI (Units : Unit_Maps.Map; Origin : String);
-   --  Output a warning for any element of Units that has LI_Seen set False.
-   --  Origin indicates where the Units list comes from.
+   procedure Report_Units_Without_LI (Units : Unit_Maps.Map);
+   --  Output a warning for any element of Units that has LI_Seen set False
 
    function Enumerate_Mains
      (Root_Project : Project_Type;
@@ -515,8 +513,7 @@ package body Project is
          --  overriden by the --units command line argument.
 
          if Inputs.Length (Override_Units) = 0 then
-            Report_Units_Without_LI
-              (Inc_Units, Origin => +Full_Name (Project.Project_Path));
+            Report_Units_Without_LI (Inc_Units);
          end if;
       end Enumerate_In_Single_Project;
 
@@ -534,7 +531,7 @@ package body Project is
    begin
       Enumerate_In_Projects
         (Callback'Access, Override_Units, Override_Units_Map);
-      Report_Units_Without_LI (Override_Units_Map, Origin => "<command line>");
+      Report_Units_Without_LI (Override_Units_Map);
    end Enumerate_LIs;
 
    ---------------------------
@@ -1221,17 +1218,12 @@ package body Project is
    -- Report_Units_Without_LI --
    -----------------------------
 
-   procedure Report_Units_Without_LI
-     (Units  : Unit_Maps.Map;
-      Origin : String)
-   is
+   procedure Report_Units_Without_LI (Units : Unit_Maps.Map) is
    begin
       for UI of Units loop
          if not UI.LI_Seen then
-            Report
-              (Origin & ": no information found for unit "
-               & To_String (UI.Original_Name),
-               Kind => Warning);
+            Warn ("no information found for unit "
+                  & To_String (UI.Original_Name));
          end if;
       end loop;
    end Report_Units_Without_LI;
