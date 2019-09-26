@@ -74,7 +74,7 @@ package body Project is
 
    procedure Iterate_Source_Files
      (Root_Project : Project_Type;
-      Process      : access procedure (Unit_Name : String);
+      Process      : access procedure (Info : File_Info; Unit_Name : String);
       Recursive    : Boolean);
    --  Call Process on all source files in Root_Project (recursively
    --  considering source files of sub-projects if Recursive is true).
@@ -117,6 +117,11 @@ package body Project is
       --  Here we record the name with original casing (from the project or
       --  the command line).
 
+      Is_Subunit : Boolean;
+      --  Whether this unit is actually a subunit. We consider that subunits
+      --  are not units of their own (in particular they don't have their own
+      --  LI ifle), but we still allow them to appear in unit lists.
+
       LI_Seen : Boolean;
       --  Set true if the LI file for this unit has been seen
    end record;
@@ -125,8 +130,11 @@ package body Project is
      (Key_Type     => String,
       Element_Type => Unit_Info);
 
-   procedure Add_Unit (Units : in out Unit_Maps.Map; Original_Name : String);
-   --  Add an entry to Unit_Maps. See Unit_Info's members for the semantics of
+   procedure Add_Unit
+     (Units         : in out Unit_Maps.Map;
+      Cur           : out Unit_Maps.Cursor;
+      Original_Name : String);
+   --  Add an entry to Units. See Unit_Info's members for the semantics of
    --  arguments.
 
    Unit_Map : Unit_Maps.Map;
@@ -249,12 +257,20 @@ package body Project is
    -- Add_Unit --
    --------------
 
-   procedure Add_Unit (Units : in out Unit_Maps.Map; Original_Name : String) is
+   procedure Add_Unit
+     (Units         : in out Unit_Maps.Map;
+      Cur           : out Unit_Maps.Cursor;
+      Original_Name : String)
+   is
+      Ignored_Inserted : Boolean;
    begin
-      Units.Include
-        (To_Lower (Original_Name),
-         (Original_Name => To_Unbounded_String (Original_Name),
-          LI_Seen       => False));
+      Units.Insert
+        (Key      => To_Lower (Original_Name),
+         New_Item => (Original_Name => To_Unbounded_String (Original_Name),
+                      Is_Subunit    => False,
+                      LI_Seen       => False),
+         Position => Cur,
+         Inserted => Ignored_Inserted);
    end Add_Unit;
 
    ----------------------
@@ -300,7 +316,7 @@ package body Project is
 
    procedure Iterate_Source_Files
      (Root_Project : Project_Type;
-      Process      : access procedure (Unit_Name : String);
+      Process      : access procedure (Info : File_Info; Unit_Name : String);
       Recursive    : Boolean)
    is
       Source_Files : File_Array_Access :=
@@ -326,13 +342,12 @@ package body Project is
                      Info : constant File_Info := File_Info (Abstract_Info);
                   begin
                      --  Register only units in supported languages (Ada and
-                     --  C). We do not treat subunits as independent units.
+                     --  C).
 
-                     if To_Lower (Info.Language) in "ada" | "c"
-                        and then Info.Unit_Part /= Unit_Separate
-                     then
+                     if To_Lower (Info.Language) in "ada" | "c" then
                         Process.all
-                          (Unit_Name => (if Info.Unit_Name = ""
+                          (Info      => Info,
+                           Unit_Name => (if Info.Unit_Name = ""
                                          then +F.Base_Name
                                          else Info.Unit_Name));
                      end if;
@@ -362,8 +377,9 @@ package body Project is
       ------------------
 
       procedure Add_Override (U : String) is
+         Ignored_Cur : Unit_Maps.Cursor;
       begin
-         Add_Unit (Override_Units_Map, U);
+         Add_Unit (Override_Units_Map, Ignored_Cur, U);
       end Add_Override;
 
    --  Start of processing for Enumerate_For_Units_Of_Interest
@@ -488,7 +504,7 @@ package body Project is
    procedure Report_Units_Without_LI is
    begin
       for UI of Unit_Map loop
-         if not UI.LI_Seen then
+         if not UI.Is_Subunit and then not UI.LI_Seen then
             Warn ("no information found for unit "
                   & To_String (UI.Original_Name));
          end if;
@@ -795,9 +811,10 @@ package body Project is
       ----------------------------
 
       procedure Process_Override_Units (Unit : String) is
+         Ignored_Cur : Unit_Maps.Cursor;
       begin
          Requested_Units.Include (To_Lower (Unit));
-         Add_Unit (Unit_Map, Unit);
+         Add_Unit (Unit_Map, Ignored_Cur, Unit);
       end Process_Override_Units;
 
       ---------------------
@@ -842,19 +859,25 @@ package body Project is
 
          if not Inc_Units_Defined then
             declare
-               procedure Process_Source_File (Unit_Name : String);
+               procedure Process_Source_File
+                 (Info : File_Info; Unit_Name : String);
                --  Add Unit_Name to Inc_Units
 
                -------------------------
                -- Process_Source_File --
                -------------------------
 
-               procedure Process_Source_File (Unit_Name : String) is
+               procedure Process_Source_File
+                 (Info : File_Info; Unit_Name : String)
+               is
+                  Cur : Unit_Maps.Cursor;
                begin
                   if not Units_Specified
                      or else Requested_Units.Contains (To_Lower (Unit_Name))
                   then
-                     Add_Unit (Inc_Units, Unit_Name);
+                     Add_Unit (Inc_Units, Cur, Unit_Name);
+                     Inc_Units.Reference (Cur).Is_Subunit :=
+                        Info.Unit_Part = Unit_Separate;
                   end if;
                end Process_Source_File;
 
@@ -961,7 +984,7 @@ package body Project is
       procedure Add_Line (S : String);
       --  Add S to Units
 
-      procedure Process_Source_File (Unit_Name : String);
+      procedure Process_Source_File (Info : File_Info; Unit_Name : String);
       --  Add Unit_Name to Units_Present
 
       --------------
@@ -969,10 +992,11 @@ package body Project is
       --------------
 
       procedure Add_Line (S : String) is
-         Unit_Name : constant String := To_Lower (S);
+         Unit_Name   : constant String := To_Lower (S);
+         Ignored_Cur : Unit_Maps.Cursor;
       begin
          if Units_Present.Contains (Unit_Name) then
-            Add_Unit (Units, S);
+            Add_Unit (Units, Ignored_Cur, S);
          else
             Warn ("no information found for unit " & S
                   & " in project " & Prj.Name);
@@ -983,7 +1007,8 @@ package body Project is
       -- Process_Source_File --
       -------------------------
 
-      procedure Process_Source_File (Unit_Name : String) is
+      procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
+         pragma Unreferenced (Info);
       begin
          Units_Present.Include (Unit_Name);
       end Process_Source_File;
