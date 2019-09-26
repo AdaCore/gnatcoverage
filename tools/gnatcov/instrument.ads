@@ -20,8 +20,6 @@
 
 with GNAT.Regexp;
 
-with Inputs;
-
 package Instrument is
 
    ---------------------------------------------
@@ -49,17 +47,12 @@ package Instrument is
 
    procedure Instrument_Units_Of_Interest
      (SID_Filename         : String;
-      Units_Inputs         : Inputs.Inputs_Type;
       Dump_Method          : Any_Dump_Method;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs to
    --  SID_Filename.
-   --
-   --  Units of interest are computed from the loaded project (-P/--projects),
-   --  unless Units_Inputs is not empty: in this case, use the given unit names
-   --  as the list of units of interest.
    --
    --  Depending on Dump_Method, instrument mains to schedule a call to
    --  System.GNATcov.Traces.Output.Write_Trace_File for list of coverage

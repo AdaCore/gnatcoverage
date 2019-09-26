@@ -1386,7 +1386,6 @@ begin
 
             Instrument.Instrument_Units_Of_Interest
               (SID_Filename         => Output.all,
-               Units_Inputs         => Units_Inputs,
                Dump_Method          => Dump_Method,
                Language_Version     => Language_Version,
                Ignored_Source_Files =>

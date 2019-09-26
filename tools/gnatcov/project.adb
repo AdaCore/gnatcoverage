@@ -195,48 +195,6 @@ package body Project is
    --  If Prj contains at least one of these attributes, set Defined to True
    --  and fill Units with one entry per unit. Set Defined to False otherwise.
 
-   generic
-      type Result_Type (<>) is limited private;
-      --  Type for values to enumerate
-
-      with procedure Enumerate_In_Single_Project
-        (Project           : Project_Type;
-         Inc_Units         : in out Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
-         Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (Project : Project_Type;
-                                               Value   : Result_Type));
-      --  Enumerate all unit-related files that belong to Project. Call
-      --  Callback on each file.
-      --
-      --  If Inc_Units_Defined is true, go only through units in Inc_Units.
-      --  Otherwise, go through all units.
-      --
-      --  In any case, do not go through units in Exc_Units.
-
-   procedure Enumerate_For_Units_Of_Interest
-     (Callback          : access procedure (Project : Project_Type;
-                                            Value   : Result_Type);
-      Override_Units     : Inputs.Inputs_Type;
-      Override_Units_Map : out Unit_Maps.Map);
-   --  Generic procedure to iterate over values (Result_Type) associated with
-   --  units of interest: source files, library files, etc.
-   --
-   --  Enumerate_In_Single_Project will be called for each project that
-   --  contains units of interest and is given included and excluded units
-   --  (from the Coverage.Units and Coverage.Excluded_Units attributes). It is
-   --  passed the same Callback, and it is up to it to invoke this callback on
-   --  each value.
-   --
-   --  If Override_Units is not empty, it is used to define the set of units of
-   --  interest.
-   --
-   --  On return, Override_Units_Map contains a map for all units processed.
-   --
-   --  The specific set of projects that are processed depends on: the root of
-   --  the project loaded (-P option), the optional set of projects of interest
-   --  (--projects) and the recursive mode (--recursive).
-
    function Enumerate_Mains
      (Root_Project : Project_Type;
       Language     : String := "") return Main_Source_File_Array;
@@ -388,82 +346,6 @@ package body Project is
       Unchecked_Free (Source_Files);
    end Iterate_Source_Files;
 
-   -------------------------------------
-   -- Enumerate_For_Units_Of_Interest --
-   -------------------------------------
-
-   procedure Enumerate_For_Units_Of_Interest
-     (Callback          : access procedure (Project : Project_Type;
-                                            Value   : Result_Type);
-      Override_Units     : Inputs.Inputs_Type;
-      Override_Units_Map : out Unit_Maps.Map)
-   is
-      procedure Add_Override (U : String);
-      --  Add U to Override_Units_Map
-
-      ------------------
-      -- Add_Override --
-      ------------------
-
-      procedure Add_Override (U : String) is
-         Ignored_Cur : Unit_Maps.Cursor;
-      begin
-         Add_Unit (Override_Units_Map, Ignored_Cur, U);
-      end Add_Override;
-
-   --  Start of processing for Enumerate_For_Units_Of_Interest
-
-   begin
-      Iterate (Override_Units, Add_Override'Access);
-
-      for Project of Prj_Map loop
-
-         --  Compute the list of units of interest in Project and call
-         --  Enumerate_In_Single_Projects for Project.
-
-         declare
-            Inc_Units         : Unit_Maps.Map;
-            Inc_Units_Defined : Boolean;
-            --  Units to be included, as specified in project
-
-            Exc_Units         : Unit_Maps.Map;
-            --  Units to be excluded, as specified in project
-         begin
-            --  Unless the set of units of interest is overriden by --units, go
-            --  through all units, taking into account Units and Excluded_Units
-            --  attributes in the Coverage project package.
-
-            if Override_Units_Map.Is_Empty then
-               Units_From_Project
-                 (Project,
-                  List_Attr      => +Units,
-                  List_File_Attr => +Units_List,
-                  Units          => Inc_Units,
-                  Defined        => Inc_Units_Defined);
-
-               declare
-                  Dummy_Exc_Units_Defined : Boolean;
-               begin
-                  Units_From_Project
-                    (Project,
-                     List_Attr       => +Excluded_Units,
-                     List_File_Attr  => +Excluded_Units_List,
-                     Units           => Exc_Units,
-                     Defined         => Dummy_Exc_Units_Defined);
-               end;
-
-               Enumerate_In_Single_Project
-                 (Project, Inc_Units, Inc_Units_Defined, Exc_Units, Callback);
-            else
-               Inc_Units_Defined := True;
-               Enumerate_In_Single_Project
-                 (Project, Override_Units_Map, Inc_Units_Defined, Exc_Units,
-                  Callback);
-            end if;
-         end;
-      end loop;
-   end Enumerate_For_Units_Of_Interest;
-
    -----------------
    -- Add_Project --
    -----------------
@@ -546,57 +428,32 @@ package body Project is
    procedure Enumerate_Ada_Sources
      (Callback       : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
-         File    : GNATCOLL.Projects.File_Info);
-      Override_Units : Inputs.Inputs_Type)
+         File    : GNATCOLL.Projects.File_Info))
    is
-      Override_Units_Map : Unit_Maps.Map
-         with Unreferenced;
+      procedure Process_Source_File (Info : File_Info; Unit_Name : String);
+      --  Callback for Iterate_Source_File. If Unit_Name is a unit of interest,
+      --  call "Callback" on this file.
 
-      procedure Enumerate_In_Single_Project
-        (Project           : Project_Type;
-         Inc_Units         : in out Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
-         Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (Project : Project_Type;
-                                               File    : File_Info));
-      --  Callback for Enumerate_For_Units_Of_Interest
+      -------------------------
+      -- Process_Source_File --
+      -------------------------
 
-      procedure Enumerate_In_Projects is new Enumerate_For_Units_Of_Interest
-        (File_Info, Enumerate_In_Single_Project);
-
-      ---------------------------------
-      -- Enumerate_In_Single_Project --
-      ---------------------------------
-
-      procedure Enumerate_In_Single_Project
-        (Project           : Project_Type;
-         Inc_Units         : in out Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
-         Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (Project : Project_Type;
-                                               File    : File_Info))
-      is
-         Sources : GNATCOLL.VFS.File_Array_Access := Project.Source_Files;
+      procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
       begin
-         for S of Sources.all loop
-            declare
-               Info : constant File_Info := Prj_Tree.Info (S);
-               Unit : constant String := Info.Unit_Name;
-            begin
-               if To_Lower (Info.Language) = "ada"
-                  and then not Exc_Units.Contains (Unit)
-                  and then (not Inc_Units_Defined
-                            or else Inc_Units.Contains (Unit))
-               then
-                  Callback (Project, Info);
-               end if;
-            end;
-         end loop;
-         GNATCOLL.VFS.Unchecked_Free (Sources);
-      end Enumerate_In_Single_Project;
+         if To_Lower (Info.Language) = "ada"
+            and then Unit_Map.Contains (To_Lower (Unit_Name))
+         then
+            Callback (Info.Project, Info);
+         end if;
+      end Process_Source_File;
 
    begin
-      Enumerate_In_Projects (Callback, Override_Units, Override_Units_Map);
+      --  Go through all sources files in all projects of interest
+
+      for Project of Prj_Map loop
+         Iterate_Source_Files
+           (Project, Process_Source_File'Access, Recursive => False);
+      end loop;
    end Enumerate_Ada_Sources;
 
    ----------------------
@@ -859,7 +716,7 @@ package body Project is
       begin
          --  Unless the set of units of interest is overriden by --units, go
          --  through all units, taking into account Units and Excluded_Units
-         --  clauses in the Coverage project package.
+         --  attributes in the Coverage project package.
 
          if not Units_Specified then
 

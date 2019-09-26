@@ -383,7 +383,6 @@ package body Instrument is
 
    procedure Instrument_Units_Of_Interest
      (SID_Filename         : String;
-      Units_Inputs         : Inputs.Inputs_Type;
       Dump_Method          : Any_Dump_Method;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
@@ -469,8 +468,7 @@ package body Instrument is
    begin
       --  First get the list of all units of interest
 
-      Project.Enumerate_Ada_Sources
-        (Add_Instrumented_Unit'Access, Units_Inputs);
+      Project.Enumerate_Ada_Sources (Add_Instrumented_Unit'Access);
 
       --  If we need to instrument all Ada mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.
