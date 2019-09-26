@@ -117,6 +117,10 @@ package body Project is
       --  Here we record the name with original casing (from the project or
       --  the command line).
 
+      Present_In_Projects : Boolean;
+      --  Whether we found at least one source file in the projects of interest
+      --  that matches this unit.
+
       Is_Subunit : Boolean;
       --  Whether this unit is actually a subunit. We consider that subunits
       --  are not units of their own (in particular they don't have their own
@@ -124,6 +128,9 @@ package body Project is
 
       LI_Seen : Boolean;
       --  Set true if the LI file for this unit has been seen
+
+      Warned_About_Missing_Info : Boolean;
+      --  Whether Warn_Missing_Info was called for this unit
    end record;
 
    package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
@@ -136,6 +143,9 @@ package body Project is
       Original_Name : String);
    --  Add an entry to Units. See Unit_Info's members for the semantics of
    --  arguments.
+
+   procedure Warn_Missing_Info (Unit : in out Unit_Info);
+   --  If we haven't alredy, warn that we miss information about Unit
 
    Unit_Map : Unit_Maps.Map;
    --  Map lower-case unit names to Unit_Info records for all units of interest
@@ -263,15 +273,34 @@ package body Project is
       Original_Name : String)
    is
       Ignored_Inserted : Boolean;
+      Orig_Name        : constant Unbounded_String :=
+         To_Unbounded_String (Original_Name);
    begin
       Units.Insert
         (Key      => To_Lower (Original_Name),
-         New_Item => (Original_Name => To_Unbounded_String (Original_Name),
-                      Is_Subunit    => False,
-                      LI_Seen       => False),
+         New_Item => (Original_Name             => Orig_Name,
+                      Present_In_Projects       => False,
+                      Is_Subunit                => False,
+                      LI_Seen                   => False,
+                      Warned_About_Missing_Info => False),
          Position => Cur,
          Inserted => Ignored_Inserted);
    end Add_Unit;
+
+   -----------------------
+   -- Warn_Missing_Info --
+   -----------------------
+
+   procedure Warn_Missing_Info (Unit : in out Unit_Info) is
+   begin
+      if Unit.Warned_About_Missing_Info then
+         return;
+      end if;
+
+      Warn ("no information found for unit "
+            & To_String (Unit.Original_Name));
+      Unit.Warned_About_Missing_Info := True;
+   end Warn_Missing_Info;
 
    ----------------------
    -- Iterate_Projects --
@@ -505,8 +534,7 @@ package body Project is
    begin
       for UI of Unit_Map loop
          if not UI.Is_Subunit and then not UI.LI_Seen then
-            Warn ("no information found for unit "
-                  & To_String (UI.Original_Name));
+            Warn_Missing_Info (UI);
          end if;
       end loop;
    end Report_Units_Without_LI;
@@ -897,7 +925,12 @@ package body Project is
                K : constant String := Key (Cur);
             begin
                if not Exc_Units.Contains (K) then
-                  Unit_Map.Include (K, Element (Cur));
+                  declare
+                     Info : Unit_Info := Element (Cur);
+                  begin
+                     Info.Present_In_Projects := True;
+                     Unit_Map.Include (K, Info);
+                  end;
                end if;
             end;
          end loop;
@@ -919,6 +952,16 @@ package body Project is
       if Unit_Map.Is_Empty then
          Warn ("no unit of interest");
       end if;
+
+      for Cur in Unit_Map.Iterate loop
+         declare
+            Info : Unit_Info renames Unit_Map.Reference (Cur);
+         begin
+            if not Info.Present_In_Projects then
+               Warn_Missing_Info (Info);
+            end if;
+         end;
+      end loop;
    end Build_Unit_Map;
 
    -----------------------
