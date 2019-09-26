@@ -100,16 +100,11 @@ package Project is
    -- Accessors for project properties --
    --------------------------------------
 
-   procedure Enumerate_LIs
-     (LI_Cb          : access procedure (LI_Name : String);
-      Override_Units : Inputs.Inputs_Type)
+   procedure Enumerate_LIs (LI_Cb : access procedure (LI_Name : String))
       with Pre  => Is_Project_Loaded and then not LIs_Enumerated,
            Post => LIs_Enumerated;
    --  Call LI_Cb once for every library information (ALI/GLI) file from a
-   --  project mentioned in a previous Add_Project call. If Override_Units is
-   --  present, it overrides the set of units to be considered, else the set
-   --  defined by the project through the Units, Units_List, Exclude_Units, and
-   --  Exclude_Units_List attributes is used.
+   --  project mentioned in a previous Add_Project call.
 
    function LIs_Enumerated return Boolean with Pre => Is_Project_Loaded;
    --  Return whether Enumerate_LIs was called

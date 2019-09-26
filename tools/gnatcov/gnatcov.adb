@@ -1087,7 +1087,7 @@ procedure GNATcov is
                   Inputs.Add_Input (ALIs_Inputs, S);
                end Add_LI;
             begin
-               Enumerate_LIs (Add_LI'Access, Override_Units => Units_Inputs);
+               Enumerate_LIs (Add_LI'Access);
             end;
          end if;
 

@@ -432,49 +432,23 @@ package body Project is
    -- Enumerate_LIs --
    -------------------
 
-   procedure Enumerate_LIs
-     (LI_Cb          : access procedure (LI_Name : String);
-      Override_Units : Inputs.Inputs_Type)
-   is
-      Override_Units_Map : Unit_Maps.Map;
+   procedure Enumerate_LIs (LI_Cb : access procedure (LI_Name : String)) is
+      Lib_Info : Library_Info_List;
+   begin
+      --  Go through all library files in all projects of interest
 
-      procedure Enumerate_In_Single_Project
-        (Project           : Project_Type;
-         Inc_Units         : in out Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
-         Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (Project  : Project_Type;
-                                               Filename : String));
-      --  Callback for Enumerate_For_Units_Of_Interest
-
-      procedure Enumerate_In_Projects is new Enumerate_For_Units_Of_Interest
-        (String, Enumerate_In_Single_Project);
-
-      procedure Callback (Ignored_Project : Project_Type; Filename : String);
-      --  Callback for Enumerate_In_Projects
-
-      ---------------------------------
-      -- Enumerate_In_Single_Project --
-      ---------------------------------
-
-      procedure Enumerate_In_Single_Project
-        (Project           : Project_Type;
-         Inc_Units         : in out Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
-         Exc_Units         : Unit_Maps.Map;
-         Callback          : access procedure (Project  : Project_Type;
-                                               Filename : String))
-      is
-         Lib_Info : Library_Info_List;
-      begin
+      for Project of Prj_Map loop
          Project.Library_Files (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
-
          for LI of Lib_Info loop
-            Process_LI : declare
-               LI_Source_Unit : constant String :=
-                                  Unit_Name (LI.Source.all);
-               LI_Source_File : constant String :=
-                                  +Base_Name (File (LI.Source.all));
+
+            --  If the unit for this library file is in Unit_Map, this is a
+            --  unit of interest, so use it.
+
+            declare
+               use Unit_Maps;
+
+               LI_Source_Unit : constant String := LI.Source.Unit_Name;
+               LI_Source_File : constant String := +LI.Source.File.Base_Name;
 
                U  : constant String :=
                       (if LI_Source_Unit'Length > 0
@@ -484,45 +458,17 @@ package body Project is
                --  file. For file-based languages (C), fall back to translation
                --  unit source file name instead.
 
-            --  Start of processing for Process_LI
-
+               Cur : constant Cursor := Unit_Map.Find (U);
             begin
-               if (Inc_Units.Contains (U)
-                   or else not Inc_Units_Defined)
-                 and then not Exc_Units.Contains (U)
-               then
-                  Callback.all (Project, +Full_Name (LI.Library_File));
+               if Has_Element (Cur) then
+                  LI_Cb.all (+LI.Library_File.Full_Name);
+                  Unit_Map.Reference (Cur).LI_Seen := True;
                end if;
-
-               --  Mark unit seen even if it is excluded
-
-               declare
-                  use Unit_Maps;
-                  Cur : constant Cursor := Unit_Map.Find (U);
-               begin
-                  if Has_Element (Cur) then
-                     Unit_Map.Reference (Cur).LI_Seen := True;
-                  end if;
-               end;
-            end Process_LI;
+            end;
          end loop;
-      end Enumerate_In_Single_Project;
+         Lib_Info.Clear;
+      end loop;
 
-      --------------
-      -- Callback --
-      --------------
-
-      procedure Callback (Ignored_Project : Project_Type; Filename : String) is
-      begin
-         LI_Cb.all (Filename);
-      end Callback;
-
-   --  Start of processing for Enumerate_LIs
-
-   begin
-      Enumerate_In_Projects
-        (Callback'Access, Override_Units, Override_Units_Map);
-      pragma Unreferenced (Override_Units_Map);
       Are_LIs_Enumerated := True;
    end Enumerate_LIs;
 
