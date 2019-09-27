@@ -95,11 +95,26 @@ package body Project is
    Externally_Built_Projects_Processing_Enabled : Boolean := False;
    --  Whether to include projects marked as externally built to processings
 
+   type Project_Info is record
+      Project : Project_Type;
+      --  The project this info relates to
+
+      Has_Units_Of_Interest : Boolean;
+      --  Whether this project contributed to the selection of units of
+      --  interest. They do contribute either:
+      --
+      --    * having unit selection attributes or containing units of interest
+      --      (if no --units argument is passed)
+      --
+      --    * having at least one unit of interest (as soon as one --units
+      --      argument is passed).
+   end record;
+
    package Project_Sets is new Ada.Containers.Indefinite_Ordered_Sets
      (Element_type => String);
    package Project_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
-      Element_Type => Project_Type);
+      Element_Type => Project_Info);
 
    Requested_Projects : Project_Sets.Set;
    --  Set of all projects passed to the Add_Project procedure
@@ -364,8 +379,9 @@ package body Project is
    begin
       --  Go through all library files in all projects of interest
 
-      for Project of Prj_Map loop
-         Project.Library_Files (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
+      for Prj_Info of Prj_Map loop
+         Prj_Info.Project.Library_Files
+           (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
          for LI of Lib_Info loop
 
             --  If the unit for this library file is in Unit_Map, this is a
@@ -450,9 +466,9 @@ package body Project is
    begin
       --  Go through all sources files in all projects of interest
 
-      for Project of Prj_Map loop
+      for Prj_Info of Prj_Map loop
          Iterate_Source_Files
-           (Project, Process_Source_File'Access, Recursive => False);
+           (Prj_Info.Project, Process_Source_File'Access, Recursive => False);
       end loop;
    end Enumerate_Ada_Sources;
 
@@ -637,7 +653,7 @@ package body Project is
 
       procedure Process_Project (Project : Project_Type) is
       begin
-         Prj_Map.Insert (Project.Name, Project);
+         Prj_Map.Insert (Project.Name, (Project => Project, others => False));
       end Process_Project;
 
    --  Start of processing for Build_Prj_Map
@@ -713,6 +729,13 @@ package body Project is
 
          Exc_Units : Unit_Maps.Map;
          --  Units to be excluded, as specified in project
+
+         Has_Unit_Selection_Attributes : Boolean := False;
+         --  Whether this project defines attributes to select units of
+         --  interest.
+
+         Has_One_Unit_Of_Interest : Boolean := False;
+         --  Whether this project has at least one unit of interest
       begin
          --  Unless the set of units of interest is overriden by --units, go
          --  through all units, taking into account Units and Excluded_Units
@@ -728,14 +751,17 @@ package body Project is
                Defined        => Inc_Units_Defined);
 
             declare
-               Dummy_Exc_Units_Defined : Boolean;
+               Exc_Units_Defined : Boolean;
             begin
                Units_From_Project
                  (Project,
                   List_Attr       => +Excluded_Units,
                   List_File_Attr  => +Excluded_Units_List,
                   Units           => Exc_Units,
-                  Defined         => Dummy_Exc_Units_Defined);
+                  Defined         => Exc_Units_Defined);
+
+               Has_Unit_Selection_Attributes :=
+                  Inc_Units_Defined or else Exc_Units_Defined;
             end;
          end if;
 
@@ -785,12 +811,21 @@ package body Project is
                   declare
                      Info : Unit_Info := Element (Cur);
                   begin
+                     Has_One_Unit_Of_Interest := True;
                      Info.Present_In_Projects := True;
                      Unit_Map.Include (K, Info);
                   end;
                end if;
             end;
          end loop;
+
+         --  Compute whether this project contributes to the selection of units
+         --  of interest.
+
+         Prj_Map.Reference (Project.Name).Has_Units_Of_Interest :=
+           (Has_One_Unit_Of_Interest
+            or else (not Units_Specified
+                     and then Has_Unit_Selection_Attributes));
       end Process_Project;
 
    --  Start of processing for Build_Unit_Map
@@ -802,8 +837,8 @@ package body Project is
 
       --  Now go through all selected projects to find units of interest
 
-      for Prj of Prj_Map loop
-         Process_Project (Prj);
+      for Prj_Info of Prj_Map loop
+         Process_Project (Prj_Info.Project);
       end loop;
 
       if Unit_Map.Is_Empty then
@@ -819,6 +854,21 @@ package body Project is
             end if;
          end;
       end loop;
+
+      --  Warn about projects of interest that don't contribute to the
+      --  selection of units of interest. Do this only in non-recursive mode as
+      --  --recursive selects too many projects to make it practical for users
+      --  to select only the projects that provide units of interest: the goal
+      --  of this warning is to help users, pointing at "useless" projects.
+
+      if not Standard.Switches.Recursive_Projects then
+         for Prj_Info of Prj_Map loop
+            if not Prj_Info.Has_Units_Of_Interest then
+               Warn ("project " & Prj_Info.Project.Name
+                     & " provides no unit of interest");
+            end if;
+         end loop;
+      end if;
    end Build_Unit_Map;
 
    -----------------------
@@ -1195,9 +1245,9 @@ package body Project is
    --  Start of processing for Enumerate_Ignored_Source_Files
 
    begin
-      for Prj of Prj_Map loop
+      for Prj_Info of Prj_Map loop
          Iterate_Projects
-           (Root_Project => Prj,
+           (Root_Project => Prj_Info.Project,
             Process      => Enumerate'Access,
             Recursive    => Standard.Switches.Recursive_Projects);
       end loop;
