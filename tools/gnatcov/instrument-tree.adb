@@ -374,9 +374,8 @@ package body Instrument.Tree is
    --  not an operator.
 
    function Is_Logical_Operator (N : Ada_Node'Class) return Boolean;
-   --  False for any node that isn't an Expr. For an Expr, determines whether N
-   --  is a logical operator: True for short circuit conditions, False for OR
-   --  and AND (TODO??? handle Short_Circuit_And_Or pragmas) and NOT.
+   --  Return whether N is an operator that can be part of a decision (NOT or
+   --  short circuit AND/OR).
 
    function Is_Complex_Decision (N : Expr'Class) return Boolean;
    --  Return whether N is a complex decision, i.e. a tree of
@@ -2771,6 +2770,9 @@ package body Instrument.Tree is
                return True;
 
             when Ada_Op_And | Ada_Op_Or =>
+
+               --  TODO??? Handle Short_Circuit_And_Or pragmas
+
                return False;
 
             when others =>
