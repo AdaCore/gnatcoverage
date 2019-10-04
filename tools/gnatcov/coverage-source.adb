@@ -1301,8 +1301,8 @@ package body Coverage.Source is
 
       if Fingerprint /= SC_Obligations.Fingerprint (CU) then
          Warn ("traces for " & Unit_Image  & " (from " & Filename & ") are"
-               & " inconsistent with the corresponding Instrumented Source"
-               & " Information");
+               & " inconsistent with the corresponding Source Instrumentation"
+               & " Data");
          return;
       end if;
 
