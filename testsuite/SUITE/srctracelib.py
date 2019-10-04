@@ -142,13 +142,13 @@ trace_info_header_struct = Struct(
 
 trace_entry_header_struct = Struct(
     'trace entry header',
-    ('closure_hash', 'I'),
     ('unit_name_length', 'I'),
     ('stmt_bit_count', 'I'),
     ('dc_bit_count', 'I'),
     ('mcdc_bit_count', 'I'),
-    ('unit_kind', 'B'),
+    ('unit_part', 'B'),
     ('bit_buffer_encoding', 'B'),
+    ('fingerprint', '20B'),
     ('padding', '2B'),
 )
 
@@ -236,8 +236,9 @@ class SrcTraceFile(object):
         print('  Endianity:', self.endianity)
         print('')
         for e in self.entries:
-            print('  Unit {} ({}, hash={:#0x})'.format(
-                e.unit_name, e.unit_kind, e.closure_hash))
+            print('  Unit {} ({}, fingerprint={})'.format(
+                e.unit_name, e.unit_part,
+                ''.join('{:02x}'.format(b) for b in e.fingerprint)))
             print('  Stmt buffer: {}'.format(format_buffer(e.stmt_buffer)))
             print('  Dc buffer:   {}'.format(format_buffer(e.dc_buffer)))
             print('  MCDC buffer: {}'.format(format_buffer(e.mcdc_buffer)))
@@ -285,11 +286,11 @@ class TraceEntry(object):
     In-memory representation of a trace entry.
     """
 
-    def __init__(self, unit_kind, unit_name, closure_hash, stmt_buffer,
+    def __init__(self, unit_part, unit_name, fingerprint, stmt_buffer,
                  dc_buffer, mcdc_buffer):
-        self.unit_kind = unit_kind
+        self.unit_part = unit_part
         self.unit_name = unit_name
-        self.closure_hash = closure_hash
+        self.fingerprint = fingerprint
         self.stmt_buffer = stmt_buffer
         self.dc_buffer = dc_buffer
         self.mcdc_buffer = mcdc_buffer
@@ -304,11 +305,11 @@ class TraceEntry(object):
             if not header:
                 return None
 
-            unit_kind = {
+            unit_part = {
                 0: 'body',
                 1: 'spec',
                 2: 'separate'
-            }[header['unit_kind']]
+            }[header['unit_part']]
 
             if header['padding'] != (0, ) * 2:
                 raise ValueError('Invalid padding: {}'
@@ -334,7 +335,7 @@ class TraceEntry(object):
                     fp, trace_file, bit_buffer_encoding,
                     header['mcdc_bit_count'])
 
-        return cls(unit_kind, unit_name, header['closure_hash'], stmt_buffer,
+        return cls(unit_part, unit_name, header['fingerprint'], stmt_buffer,
                    dc_buffer, mcdc_buffer)
 
 
