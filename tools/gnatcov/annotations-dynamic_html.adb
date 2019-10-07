@@ -775,6 +775,12 @@ package body Annotations.Dynamic_Html is
       with Pre => Is_Open (Output);
       --  Write Item (Unbounded String) into Output
 
+      procedure W
+        (Item     : JSON_Value;
+         Output   : File_Type := HTML;
+         New_Line : Boolean := True);
+      --  Write Item (JSON value) into Output
+
       procedure I
         (Filename : String;
          Indent   : Natural   := 0;
@@ -805,10 +811,6 @@ package body Annotations.Dynamic_Html is
          end if;
       end W;
 
-      -------
-      -- W --
-      -------
-
       procedure W
         (Item     : Unbounded_String;
          Output   : File_Type := HTML;
@@ -825,6 +827,16 @@ package body Annotations.Dynamic_Html is
          if New_Line then
             NL (Output => Output);
          end if;
+      end W;
+
+      procedure W
+        (Item     : JSON_Value;
+         Output   : File_Type := HTML;
+         New_Line : Boolean := True)
+      is
+         Item_US : constant Unbounded_String := Item.Write (Compact => True);
+      begin
+         W (Item_US, Output, New_Line);
       end W;
 
       --------
@@ -907,6 +919,65 @@ package body Annotations.Dynamic_Html is
       ------------------
 
       procedure Write_Report (Filename : String) is
+
+         --  Report production involves serializing the Report JSON object.
+         --  On the one hand, we want to emit a compact output (no extra line
+         --  breaks and indentation) to avoid output bloat, but on the other
+         --  hand, producing a huge output line is known to create trouble in
+         --  tools processing the HTML output.
+         --
+         --  We adopt a compromise here: we know that huge output lines in the
+         --  compact form are due to "sources" and "traces" array attributes in
+         --  the Report object, so we specifically emit one item per line for
+         --  Report attributes that are arrays, and use the compact formatting
+         --  for all other attributes.
+
+         First_JSON_Item : Boolean := True;
+         --  Whether Write_JSON_Item has not been called yet
+
+         procedure Write_JSON_Item (Name : UTF8_String; Value : JSON_Value);
+         --  Callback for Map_JSON_Object: called to output an attribute pair
+         --  for the Report JSON object.
+
+         ---------------------
+         -- Write_JSON_Item --
+         ---------------------
+
+         procedure Write_JSON_Item (Name : UTF8_String; Value : JSON_Value) is
+         begin
+            if First_JSON_Item then
+               First_JSON_Item := False;
+               NL;
+            else
+               W (",");
+            end if;
+
+            --  Output the attribute name
+
+            W ("""" & Name & """: ", New_Line => False);
+
+            --  Then output the attribute value. If the attribute is an array,
+            --  output one array item per line to avoid too long lines,
+            --  otherwise use the regular JSON serialization function.
+
+            if Value.Kind = JSON_Array_Type then
+               declare
+                  Items : constant JSON_Array := Value.Get;
+               begin
+                  W ("[", New_Line => False);
+                  for J in 1 .. Length (Items) loop
+                     if J > 1 then
+                        W (",");
+                     end if;
+                     W (Get (Items, J), New_Line => False);
+                  end loop;
+                  W ("]", New_Line => False);
+               end;
+            else
+               W (Value, New_Line => False);
+            end if;
+         end Write_JSON_Item;
+
       begin
          Create_Output_File (HTML, Filename);
 
@@ -938,11 +1009,9 @@ package body Annotations.Dynamic_Html is
          W ("   </div>");
          W ("  </noscript>");
          NL;
-         W ("  <script>gnatcov.load_report(", New_Line => False);
-         W
-           (Item     => Unbounded_String'(Write (Report, Compact => True)),
-            New_Line => False);
-         W (");</script>");
+         W ("  <script>gnatcov.load_report({");
+         Report.Map_JSON_Object (Write_JSON_Item'Access);
+         W ("});</script>");
          NL;
          W (" </body>");
          W ("</html>");
