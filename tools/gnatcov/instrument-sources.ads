@@ -136,6 +136,17 @@ private package Instrument.Sources is
    package Source_Condition_Vectors is
      new Ada.Containers.Vectors (Natural, Source_Condition);
 
+   --  Generic_Subp defines the declaration and body for a generic subprogram
+   --  that are produced during the tree traversal for the instrumentation
+   --  of degenerate subprograms (null procedures and expression functions).
+
+   type Generic_Subp is record
+      Generic_Subp_Decl, Generic_Subp_Body : Unbounded_Wide_Wide_String;
+   end record;
+
+   package Generic_Subp_Vectors is
+     new Ada.Containers.Vectors (Natural, Generic_Subp);
+
    --  Insertion_Info defines the current state for traversal of a list of
    --  statements or declarations in which witness calls are inserted.
 
@@ -143,14 +154,18 @@ private package Instrument.Sources is
    type Insertion_Info_Access is access all Insertion_Info;
 
    type Insertion_Info is record
+      Witness_Use_Statement : Boolean := False;
+      --  Set False when traversing a list of declarations,
+      --  True when traversing a list of statements.
+
       RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
       --  If traversing a list, rewriting handle for the list
 
       Index : Natural := 0;
       --  Index of the element in RH_List being traversed
 
-      Insertion_Count : Natural := 0;
-      --  Count of nodes inserted in current list so far
+      Rewriting_Offset : Integer := 0;
+      --  Count of nodes inserted/removed in current list so far
 
       Parent : Insertion_Info_Access;
       --  Insertion_Info for the upper enclosing list
@@ -204,6 +219,15 @@ private package Instrument.Sources is
 
       Current_Insertion_Info : Insertion_Info_Access;
       --  Insertion_Info for the list being traversed
+
+      Degenerate_Subprogram_Index : Natural := 0;
+      --  Index of last processed degenerate subprogram (null procedure or
+      --  expression function) in current unit. This is used to assign
+      --  unique names for generated constructs.
+
+      Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
+      --  Generics to be generated in the pure buffers unit to support
+      --  instrumentation of degenerate subprograms.
    end record;
 
    function Insert_MCDC_State

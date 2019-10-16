@@ -20,10 +20,12 @@
 
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Characters.Conversions;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Wide_Wide_Unbounded;
 
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
@@ -31,7 +33,7 @@ with GNATCOLL.VFS;
 with Libadalang.Analysis;
 with Libadalang.Common;
 with Libadalang.Project_Provider;
-with Libadalang.Rewriting;
+with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with Checkpoints;
 with Coverage;
@@ -295,37 +297,84 @@ package body Instrument is
    procedure Emit_Pure_Buffer_Unit
      (Info : in out Project_Info; UIC : Unit_Inst_Context)
    is
-      CU_Name : Compilation_Unit_Name renames UIC.Pure_Buffer_Unit;
-      File    : Text_Files.File_Type;
+      use Ada.Characters.Conversions;
+      use Ada.Strings.Wide_Wide_Unbounded;
+
+      CU_Name  : Compilation_Unit_Name := UIC.Pure_Buffer_Unit;
+      Pkg_Name : constant String := To_Ada (CU_Name.Unit);
+      File     : Text_Files.File_Type;
+
+      procedure Put_Language_Version_Pragma;
+      --  If the instrumented unit has a language version configuration
+      --  pragma, insert a consistent one here to ensure legality of
+      --  degenerate subprograms supporting generics.
+
+      ---------------------------------
+      -- Put_Language_Version_Pragma --
+      ---------------------------------
+
+      procedure Put_Language_Version_Pragma is
+      begin
+         if Length (UIC.Language_Version_Pragma) > 0 then
+            File.Put_Line
+              ("pragma "
+               & To_String (To_Wide_Wide_String (UIC.Language_Version_Pragma))
+               & ";");
+            File.New_Line;
+         end if;
+      end Put_Language_Version_Pragma;
+
+   --  Start of processing for Emit_Pure_Buffer_Unit
+
    begin
       Create_File (Info, File, To_Filename (CU_Name));
 
-      declare
-         Pkg_Name : constant String := To_Ada (CU_Name.Unit);
-      begin
-         File.Put_Line ("with System;");
+      Put_Language_Version_Pragma;
+      File.Put_Line ("with System;");
+      File.New_Line;
+      File.Put_Line ("package " & Pkg_Name & " is");
+      File.New_Line;
+      File.Put_Line ("   pragma Pure;");
+      File.New_Line;
+      File.Put_Line ("   Statement_Buffer : constant System.Address;");
+      File.Put_Line ("   pragma Import (Ada, Statement_Buffer, """
+                     & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
+                     & """);");
+      File.New_Line;
+      File.Put_Line ("   Decision_Buffer : constant System.Address;");
+      File.Put_Line ("   pragma Import (Ada, Decision_Buffer, """
+                     & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
+                     & """);");
+      File.New_Line;
+      File.Put_Line ("   MCDC_Buffer : constant System.Address;");
+      File.Put_Line ("   pragma Import (Ada, MCDC_Buffer, """
+                     & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
+                     & """);");
+      File.New_Line;
+      for G of UIC.Degenerate_Subprogram_Generics loop
+         File.Put_Line
+           ("   " & To_String (To_Wide_Wide_String (G.Generic_Subp_Decl)));
+      end loop;
+      File.Put_Line ("end " & Pkg_Name & ";");
+
+      Text_Files.Close (File);
+
+      if not UIC.Degenerate_Subprogram_Generics.Is_Empty then
+         CU_Name.Part := GNATCOLL.Projects.Unit_Body;
+
+         Create_File (Info, File, To_Filename (CU_Name));
+
+         Put_Language_Version_Pragma;
+         File.Put_Line ("package body " & Pkg_Name & " is");
          File.New_Line;
-         File.Put_Line ("package " & Pkg_Name & " is");
-         File.New_Line;
-         File.Put_Line ("   pragma Pure;");
-         File.New_Line;
-         File.Put_Line ("   Statement_Buffer : constant System.Address;");
-         File.Put_Line ("   pragma Import (Ada, Statement_Buffer, """
-                        & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
-                        & """);");
-         File.New_Line;
-         File.Put_Line ("   Decision_Buffer : constant System.Address;");
-         File.Put_Line ("   pragma Import (Ada, Decision_Buffer, """
-                        & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
-                        & """);");
-         File.New_Line;
-         File.Put_Line ("   MCDC_Buffer : constant System.Address;");
-         File.Put_Line ("   pragma Import (Ada, MCDC_Buffer, """
-                        & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
-                        & """);");
-         File.New_Line;
+         for G of UIC.Degenerate_Subprogram_Generics loop
+            File.Put_Line
+              ("   " & To_String (To_Wide_Wide_String (G.Generic_Subp_Body)));
+         end loop;
          File.Put_Line ("end " & Pkg_Name & ";");
-      end;
+
+         Text_Files.Close (File);
+      end if;
    end Emit_Pure_Buffer_Unit;
 
    ----------------------------
