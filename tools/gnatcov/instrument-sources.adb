@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Conversions; use Ada.Characters.Conversions;
+with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
 
 with GNATCOLL.Projects;       use GNATCOLL.Projects;
 with GNATCOLL.VFS;
@@ -138,7 +138,7 @@ package body Instrument.Sources is
         & (if Is_MCDC
            then ", {}"
                 & ", " & Img (Bits.Path_Bits_Base)
-                & ", " & To_String (MCDC_State) & "'Address"
+                & ", " & To_String (MCDC_State)
            else "")
         & ")";
 
@@ -183,7 +183,7 @@ package body Instrument.Sources is
    is
       E        : Instrumentation_Entities renames IC.Entities;
       Call_Img : constant String :=
-        "{}.Witness (" & To_String (MCDC_State) & "'Address,"
+        "{}.Witness (" & To_String (MCDC_State) & ","
         & Img (Offset) & "," & First'Img & ")";
 
       RH_Call : constant Node_Rewriting_Handle :=
@@ -747,9 +747,6 @@ package body Instrument.Sources is
 
       Root_Analysis_Unit : Analysis_Unit;
 
-      Root_Unit          : Compilation_Unit;
-      --  Compilation unit node for the library item being analyzed
-
       Preelab : Boolean;
       --  Set to True if Unit is required to be preelaborable, i.e.  it is
       --  either preelaborated, or the declaration of a remote types or
@@ -766,12 +763,12 @@ package body Instrument.Sources is
       --  Determine whether Unit is required to be preelaborable, and whether
       --  we can insert witness calls (which are not preelaborable).
 
-      Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
+      UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
 
       begin
-         Preelab := Root_Unit.P_Is_Preelaborable
-           and then Root_Unit.F_Body.Kind = Ada_Library_Item
-           and then Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
+         Preelab := UIC.Root_Unit.P_Is_Preelaborable
+           and then UIC.Root_Unit.F_Body.Kind = Ada_Library_Item
+           and then UIC.Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
              Ada_Package_Decl
            | Ada_Package_Body
            | Ada_Generic_Package_Decl;
@@ -914,5 +911,27 @@ package body Instrument.Sources is
 
       Rewriter.Apply;
    end Instrument_Source_File;
+
+   ------------------------
+   -- Ensure_With_System --
+   ------------------------
+
+   procedure Ensure_With_System (UIC : in out Unit_Inst_Context) is
+      RH : Rewriting_Handle renames UIC.Rewriting_Context;
+   begin
+      if UIC.Has_With_System then
+         return;
+      end if;
+
+      Append_Child
+        (Handle (UIC.Root_Unit.F_Prelude),
+         Create_From_Template
+           (RH,
+            Template  => "with System;",
+            Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+            Rule      => With_Clause_Rule));
+
+      UIC.Has_With_System := True;
+   end Ensure_With_System;
 
 end Instrument.Sources;

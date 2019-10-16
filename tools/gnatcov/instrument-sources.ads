@@ -19,7 +19,8 @@
 --  Generate SCOs and source code instrumentation
 
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
+with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
@@ -135,6 +136,13 @@ private package Instrument.Sources is
    package Source_Condition_Vectors is
      new Ada.Containers.Vectors (Natural, Source_Condition);
 
+   type Generic_Subp is record
+      Generic_Subp_Decl, Generic_Subp_Body : Unbounded_Wide_Wide_String;
+   end record;
+
+   package Generic_Subp_Vectors is
+     new Ada.Containers.Vectors (Natural, Generic_Subp);
+
    --  Insertion_Info defines the current state for traversal of a list of
    --  statements or declarations in which witness calls are inserted.
 
@@ -142,6 +150,10 @@ private package Instrument.Sources is
    type Insertion_Info_Access is access all Insertion_Info;
 
    type Insertion_Info is record
+      Witness_Use_Statement : Boolean := False;
+      --  Set False when traversiong a list of declarations,
+      --  True when traversing a list of statements.
+
       RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
       --  If traversing a list, rewriting handle for the list
 
@@ -158,6 +170,12 @@ private package Instrument.Sources is
    type Unit_Inst_Context is record
       Instrumented_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit being instrumented
+
+      Root_Unit : Compilation_Unit;
+      --  Node of compilation unit
+
+      Has_With_System : Boolean := False;
+      --  Set True if Instrumented_Unit has a dependency on System
 
       SFI : Source_File_Index := No_Source_File;
       --  Source file index of the compilation unit being instrumented
@@ -191,6 +209,14 @@ private package Instrument.Sources is
 
       Current_Insertion_Info : Insertion_Info_Access;
       --  Insertion_Info for the list being traversed
+
+      Degenerate_Subprogram_Index : Natural := 0;
+      --  Index of last processed degenerate subprogram (null procedure or
+      --  expression function).
+
+      Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
+      --  Generics to be generated in the pure buffers unit to support
+      --  instrumentation of degenerate subprograms.
    end record;
 
    procedure Initialize_Rewriting
@@ -227,5 +253,8 @@ private package Instrument.Sources is
 
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));
+
+   procedure Ensure_With_System (UIC : in out Unit_Inst_Context);
+   --  Ensure that the unit being instrumented has a dependency on System
 
 end Instrument.Sources;

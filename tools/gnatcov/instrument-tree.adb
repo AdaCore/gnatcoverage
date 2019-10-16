@@ -16,20 +16,22 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Conversions; use Ada.Characters.Conversions;
+with Ada.Characters.Conversions;      use Ada.Characters.Conversions;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
+with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with Langkit_Support;
-with Langkit_Support.Slocs; use Langkit_Support.Slocs;
-with Langkit_Support.Text;  use Langkit_Support.Text;
+with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
+with Langkit_Support.Text;     use Langkit_Support.Text;
 with Langkit_Support.Symbols;
-with Libadalang.Common;     use Libadalang.Common;
-with Libadalang.Rewriting;  use Libadalang.Rewriting;
-with Libadalang.Sources;    use Libadalang.Sources;
+with Libadalang.Common;        use Libadalang.Common;
+with Libadalang.Rewriting;     use Libadalang.Rewriting;
+with Libadalang.Sources;       use Libadalang.Sources;
+with Libadalang.Introspection; use Libadalang.Introspection;
 
 with Namet;  use Namet;
 with SCOs;
@@ -129,6 +131,23 @@ package body Instrument.Tree is
    --  sloc of this last character, so we need to subtract 1 from the column
    --  number.
 
+   ------------------------------------
+   -- Indices for syntactic children --
+   ------------------------------------
+
+   I_Accept_Stmt_With_Stmts_F_Stmts : constant Integer :=
+     Index (Ada_Accept_Stmt_With_Stmts, Accept_Stmt_With_Stmts_F_Stmts);
+   I_Defining_Name_F_Name : constant Integer :=
+     Index (Ada_Defining_Name, Defining_Name_F_Name);
+   I_Handled_Stmts_F_Stmts : constant Integer :=
+     Index (Ada_Handled_Stmts, Handled_Stmts_F_Stmts);
+   I_Subp_Spec_F_Subp_Name : constant Integer :=
+     Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Name);
+   I_Subp_Spec_F_Subp_Params : constant Integer :=
+     Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Params);
+   I_Params_F_Params : constant Integer :=
+     Index (Ada_Params, Params_F_Params);
+
    -----------------
    -- Diagnostics --
    -----------------
@@ -157,10 +176,9 @@ package body Instrument.Tree is
    --  Return the name of the MC/DC state local variable for the given
    --  decision SCO.
 
-   function Make_MCDC_State
-     (UIC  : Unit_Inst_Context;
-      Name : String) return Node_Rewriting_Handle;
-   --  Create the declaration of the MC/DC state local variable
+   procedure Insert_MCDC_State (UIC : in out Unit_Inst_Context; Name : String);
+   --  Create and insert the declaration of an MC/DC state local variable
+   --  and of a constant, with the given Name, denoting its address.
 
    ------------
    -- Report --
@@ -226,24 +244,35 @@ package body Instrument.Tree is
       end if;
    end Make_Statement_Witness;
 
-   ---------------------
-   -- Make_MCDC_State --
-   ---------------------
+   -----------------------
+   -- Insert_MCDC_State --
+   -----------------------
 
-   function Make_MCDC_State
-     (UIC  : Unit_Inst_Context;
-      Name : String) return Node_Rewriting_Handle
+   procedure Insert_MCDC_State (UIC : in out Unit_Inst_Context; Name : String)
    is
-      E        : Instrumentation_Entities renames UIC.Entities;
-      Decl_Img : constant String :=
-        Name & " : aliased {}.MCDC_State_Type;";
+      E             : Instrumentation_Entities renames UIC.Entities;
+      Var_Decl_Img  : constant String :=
+        Name & "_Var : aliased {}.MCDC_State_Type;";
+      Addr_Decl_Img : constant String :=
+        Name & " : constant System.Address := " & Name & "_Var'Address;";
+
    begin
-      return Create_From_Template
-        (UIC.Rewriting_Context,
-         Template  => To_Wide_Wide_String (Decl_Img),
-         Arguments => (1 => E.Common_Buffers),
-         Rule      => Object_Decl_Rule);
-   end Make_MCDC_State;
+      Ensure_With_System (UIC);
+      Insert_Child
+        (UIC.Local_Decls, 1,
+         Create_From_Template
+          (UIC.Rewriting_Context,
+           Template  => To_Wide_Wide_String (Var_Decl_Img),
+           Arguments => (1 => E.Common_Buffers),
+           Rule      => Object_Decl_Rule));
+      Insert_Child
+        (UIC.Local_Decls, 2,
+         Create_From_Template
+          (UIC.Rewriting_Context,
+           Template  => To_Wide_Wide_String (Addr_Decl_Img),
+           Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+           Rule      => Object_Decl_Rule));
+   end Insert_MCDC_State;
 
    ----------------
    -- Append_SCO --
@@ -413,7 +442,9 @@ package body Instrument.Tree is
    --  space meaning that no type letter will accompany the entry.
 
    type SC_Entry is record
-      N    : Ada_Node;
+      N           : Ada_Node;
+      Insertion_N : Node_Rewriting_Handle;
+
       From : Source_Location;
       To   : Source_Location;
       Typ  : Character;
@@ -509,15 +540,19 @@ package body Instrument.Tree is
         (Parent => UIC.Current_Insertion_Info,
          others => <>);
 
-      Witness_Use_Statement : Boolean;
-      --  Set True if traversing a list of statements, in which case inserted
-      --  statement witnesses must be statements.
-
       procedure Extend_Statement_Sequence
-        (N : Ada_Node'Class; Typ : Character);
+        (N           : Ada_Node'Class;
+         Typ         : Character;
+         Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle);
       --  Extend the current statement sequence to encompass the node N. Typ is
       --  the letter that identifies the type of statement/declaration that is
-      --  being added to the sequence.
+      --  being added to the sequence. N is the original node from user code,
+      --  and controls the source location assigned to the statement SCO.
+      --  In general, this is also where the witness statement is inserted,
+      --  but in some rare cases, it needs to be inserted at a different
+      --  place (case of a degenerated subprogram, which gets rewritten into
+      --  a generic). In that case, Insertion_N indicates where to insert the
+      --  witness.
 
       procedure Process_Decisions_Defer (N : Ada_Node'Class; T : Character);
       pragma Inline (Process_Decisions_Defer);
@@ -540,16 +575,60 @@ package body Instrument.Tree is
       procedure Traverse_Aspects (AS : Aspect_Spec);
       --  Helper for Traverse_One: traverse an Aspect_Spec
 
-      procedure Traverse_Degenerate_Subprogram (N : Ada_Node'Class);
-      --  Common code to handle null procedures and expression functions. Emit
-      --  a SCO of the given Kind and N outside of the dominance flow.
+      procedure Traverse_Subp_Decl_Or_Stub (N : Basic_Decl);
+      --  Common code to handle subprogram declarations and subprogram body
+      --  stubs. Includes special processing for the case of degenerate
+      --  subprograms (null procedures and expression functions).
+
+      ------------------------------------------
+      -- Utility functions for node synthesis --
+      ------------------------------------------
+
+      RC : Rewriting_Handle renames UIC.Rewriting_Context;
+
+      function Make (K : Ada_Node_Kind_Type) return Node_Rewriting_Handle is
+        (Create_Node (RC, K));
+
+      function Make_Identifier
+        (Id : Wide_Wide_String) return Node_Rewriting_Handle
+      is
+         (Create_Token_Node (RC, Libadalang.Common.Ada_Identifier, Id));
+
+      function Make_Defining_Name
+        (D_Name : Wide_Wide_String) return Node_Rewriting_Handle
+      is
+         (Create_Defining_Name (RC, Make_Identifier (D_Name)));
+
+      function Clone (N : Ada_Node'Class) return Node_Rewriting_Handle is
+        (Clone (Handle (N)));
+
+      function Detach (N : Ada_Node'Class) return Node_Rewriting_Handle;
+      --  Replace N with No_Node_Rewriting_Handle, and return its previous
+      --  handle for possible reuse elsewhere in the tree.
+
+      ------------
+      -- Detach --
+      ------------
+
+      function Detach (N : Ada_Node'Class) return Node_Rewriting_Handle is
+      begin
+         if N.Is_Null then
+            return No_Node_Rewriting_Handle;
+         end if;
+
+         return H : constant Node_Rewriting_Handle := Handle (N) do
+            Replace (H, No_Node_Rewriting_Handle);
+         end return;
+      end Detach;
 
       -------------------------------
       -- Extend_Statement_Sequence --
       -------------------------------
 
       procedure Extend_Statement_Sequence
-        (N : Ada_Node'Class; Typ : Character)
+        (N           : Ada_Node'Class;
+         Typ         : Character;
+         Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle)
       is
          SR      : constant Source_Location_Range := N.Sloc_Range;
 
@@ -646,11 +725,15 @@ package body Instrument.Tree is
          end if;
 
          SC.Append
-           ((N                   => Ada_Node (N),
+           ((N                   => N.As_Ada_Node,
+             Insertion_N         =>
+                 (if Insertion_N = No_Node_Rewriting_Handle
+                  then Handle (N)
+                  else Insertion_N),
              From                => F,
              To                  => T,
              Typ                 => Typ,
-             Index               => Current_Insertion_Info.Index,
+             Index               => UIC.Current_Insertion_Info.Index,
              Instrument_Location =>
                --  See discussion in comment for declaration of
                --  Instrument_Location_Type.
@@ -682,8 +765,8 @@ package body Instrument.Tree is
          SD_Last : constant Int := SD.Last;
 
          procedure Insert_Statement_Witness (SCE : SC_Entry; LL_SCO_Id : Nat)
-           with Pre => Current_Insertion_Info.RH_List
-                         /= No_Node_Rewriting_Handle;
+           with Pre =>
+             UIC.Current_Insertion_Info.RH_List /= No_Node_Rewriting_Handle;
          --  Insert statement witness call for the given SCE
 
          ------------------------------
@@ -695,8 +778,7 @@ package body Instrument.Tree is
          is
             Insert_List : Node_Rewriting_Handle;
             Insert_Pos  : Natural;
-            Insert_Info : Insertion_Info_Access :=
-              Current_Insertion_Info'Unchecked_Access;
+            Insert_Info : Insertion_Info_Access := UIC.Current_Insertion_Info;
 
          begin
             --  Allocate a bit in the statement coverage buffer, and record
@@ -713,7 +795,7 @@ package body Instrument.Tree is
                     Handle (SCE.N.As_Elsif_Stmt_Part.F_Cond_Expr);
                   New_Cond : constant Node_Rewriting_Handle :=
                     Create_Regular_Node
-                      (UIC.Rewriting_Context,
+                      (RC,
                        Ada_Bin_Op,
                        Children =>
                          (1 => Make_Statement_Witness
@@ -721,8 +803,7 @@ package body Instrument.Tree is
                              Bit    => UIC.Unit_Bits.Last_Statement_Bit,
                              Flavor => Function_Call),
 
-                          2 => Create_Node
-                            (UIC.Rewriting_Context, Ada_Op_And_Then),
+                          2 => Make (Ada_Op_And_Then),
 
                           --  Placeholder for relocation of old condition after
                           --  it is detached from the tree.
@@ -744,7 +825,7 @@ package body Instrument.Tree is
                         Ada_Op_And | Ada_Op_Or | Ada_Op_Xor | Ada_Op_Or_Else
                   then
                      Old_Cond := Create_Regular_Node
-                       (UIC.Rewriting_Context,
+                       (RC,
                         Ada_Paren_Expr,
                         Children => (1 => Old_Cond));
                   end if;
@@ -752,7 +833,7 @@ package body Instrument.Tree is
                   Set_Child (New_Cond, 3, Old_Cond);
                end;
 
-            elsif SCE.N.Parent.Kind = Ada_Expr_Function then
+            elsif False and then SCE.N.Parent.Kind = Ada_Expr_Function then
 
                --  Wrap the expression in the following construct:
                --
@@ -776,16 +857,16 @@ package body Instrument.Tree is
                        Flavor => Function_Call);
 
                   Case_Alternatives : constant Node_Rewriting_Handle :=
-                     Create_Node (Ctx, Ada_Case_Expr_Alternative_List);
+                     Make (Ada_Case_Expr_Alternative_List);
 
                   Choices : constant Node_Rewriting_Handle :=
-                     Create_Node (Ctx, Ada_Alternatives_List);
+                     Make (Ada_Alternatives_List);
 
                   Wrapping_Expr : constant Node_Rewriting_Handle :=
                      Create_Regular_Node
-                       (Ctx, Ada_Paren_Expr,
+                       (RC, Ada_Paren_Expr,
                         (1 => Create_Regular_Node
-                                (Ctx, Ada_Case_Expr,
+                                (RC, Ada_Case_Expr,
                                  (1 => Witness_Call,
                                   2 => Case_Alternatives))));
 
@@ -860,18 +941,18 @@ package body Instrument.Tree is
                   Set_Child (Expr_Function, 3, Wrapping_Expr);
                   Append_Child
                     (Choices,
-                     Create_Regular_Node (Ctx, Ada_Others_Designator,
+                     Create_Regular_Node (RC, Ada_Others_Designator,
                                           (1 .. 0 => <>)));
                   Append_Child
                     (Case_Alternatives,
                      Create_Regular_Node
-                       (Ctx, Ada_Case_Expr_Alternative,
+                       (RC, Ada_Case_Expr_Alternative,
                         (1 => Choices,
                          2 => Expr)));
                end Witness_For_Expr_Function;
 
             else
-               if SCE.N.Kind = Ada_Accept_Stmt_With_Stmts
+               if Kind (SCE.Insertion_N) = Ada_Accept_Stmt_With_Stmts
                  and then SCE.Instrument_Location = After
                then
                   --  In the case of an accept_statement containing a sequence
@@ -881,8 +962,13 @@ package body Instrument.Tree is
                   --  insert the witness call in the inner statement list
                   --  at first position.
 
-                  Insert_List := Handle
-                    (SCE.N.As_Accept_Stmt_With_Stmts.F_Stmts.F_Stmts);
+                  Insert_List :=
+                    Child
+                      (Child
+                         (SCE.Insertion_N,
+                          I_Accept_Stmt_With_Stmts_F_Stmts),
+                       I_Handled_Stmts_F_Stmts);
+
                   Insert_Pos  := 1;
 
                else
@@ -906,7 +992,8 @@ package body Instrument.Tree is
                   --  note within the list.
 
                   declare
-                     RH_Element_Node : Node_Rewriting_Handle := Handle (SCE.N);
+                     RH_Element_Node : Node_Rewriting_Handle :=
+                       SCE.Insertion_N;
                      RH_Children_Count : constant Natural :=
                        Children_Count (Insert_Info.RH_List);
                   begin
@@ -961,7 +1048,7 @@ package body Instrument.Tree is
                     Make_Statement_Witness
                       (UIC,
                        Bit    => UIC.Unit_Bits.Last_Statement_Bit,
-                       Flavor => (if Witness_Use_Statement
+                       Flavor => (if Insert_Info.Witness_Use_Statement
                                   then Procedure_Call
                                   else Declaration)));
 
@@ -1111,36 +1198,565 @@ package body Instrument.Tree is
          end loop;
       end Traverse_Aspects;
 
-      ------------------------------------
-      -- Traverse_Degenerate_Subprogram --
-      ------------------------------------
+      --------------------------------
+      -- Traverse_Subp_Decl_Or_Stub --
+      --------------------------------
 
-      procedure Traverse_Degenerate_Subprogram (N : Ada_Node'Class) is
+      procedure Traverse_Subp_Decl_Or_Stub (N : Basic_Decl) is
+         Is_Expr_Function : constant Boolean := N.Kind = Ada_Expr_Function;
+
+         N_Spec : constant Subp_Spec := N.P_Subp_Spec_Or_Null.As_Subp_Spec;
+         N_Expr : constant Expr :=
+           (if Is_Expr_Function
+            then N.As_Expr_Function.F_Expr
+            else No_Expr);
+
       begin
-         --  Complete current sequence of statements
-
          Set_Statement_Entry;
 
+         --  Process decisions nested in formal parameters
+
+         Process_Decisions_Defer (N_Spec.F_Subp_Params, 'X');
+
+         --  Nothing else to do except for the case of degenerate subprograms
+
+         if N.Kind not in Ada_Null_Subp_Decl | Ada_Expr_Function then
+            return;
+         end if;
+
+         UIC.Degenerate_Subprogram_Index :=
+           UIC.Degenerate_Subprogram_Index + 1;
+
          declare
+            E : Instrumentation_Entities renames UIC.Entities;
+
+            Orig_Subp : constant Node_Rewriting_Handle := Handle (N);
+            Orig_Overriding : constant Node_Rewriting_Handle :=
+               Detach (N.As_Expr_Function.F_Overriding);
+
+            New_Subp_Decl : constant Node_Rewriting_Handle :=
+               Create_Subp_Decl (RC,
+                 Classic_Subp_Decl_F_Overriding => Orig_Overriding,
+                 Classic_Subp_Decl_F_Subp_Spec  => Clone (N_Spec),
+                 Subp_Decl_F_Aspects            => Detach (N.F_Aspects));
+
+            Orig_Spec : constant Node_Rewriting_Handle :=
+               (if Is_Expr_Function
+                then Clone (N_Spec)
+                else No_Node_Rewriting_Handle);
+            --  Saved copy of the original spec before it is augmented
+            --  with additional parameters for MC/DC states.
+
+            N_Subp_Name : constant Defining_Name := N_Spec.F_Subp_Name;
+            --  Node for the original subprogram name. For an expressiong
+            --  function, will be changed to be used as the name for the
+            --  augmented expression function.
+
+            Orig_Name   : constant Node_Rewriting_Handle :=
+              Detach (N_Subp_Name.F_Name);
+
+            N_Params    : constant Param_Spec_List :=
+              N_Spec.F_Subp_Params.F_Params;
+
+            Saved_Insertion_Info : constant Insertion_Info_Access :=
+              UIC.Current_Insertion_Info;
+
+            Gen_Formals : constant Node_Rewriting_Handle :=
+              Make (Ada_Ada_Node_List);
+
+            Gen_Subp_Param_Specs : constant Node_Rewriting_Handle :=
+              Make (Ada_Param_Spec_List);
+
+            Gen_Names_Prefix : constant Wide_Wide_String :=
+              (if Is_Expr_Function then "Func_Expr" else "Null_Proc_")
+              & To_Wide_Wide_String
+                  (Img (UIC.Degenerate_Subprogram_Index))
+              & "_";
+
+            Wrapper_Pkg_Name : constant Node_Rewriting_Handle :=
+              (if Is_Expr_Function
+               then Make_Identifier (Gen_Names_Prefix & "Pkg")
+               else No_Node_Rewriting_Handle);
+
+            Gen_Subp_Name : constant Wide_Wide_String :=
+              Gen_Names_Prefix & "Gen";
+
+            Formal_Subp_Name : constant Wide_Wide_String :=
+              Gen_Names_Prefix & "With_States";
+
+            Formal_Subp_Spec   : Node_Rewriting_Handle;
+            Formal_Subp_Params : Node_Rewriting_Handle;
+            Formal_Subp_Decl   : Node_Rewriting_Handle;
+
+            --  Parameters for call to augmented expression function:
+            --  all original parameters, plus MC/DC states.
+
+            Call_Params : constant Node_Rewriting_Handle :=
+              (if Is_Expr_Function
+               then Make (Ada_Assoc_List)
+               else No_Node_Rewriting_Handle);
+
+            Gen_Body_Stmt : constant Node_Rewriting_Handle :=
+              (if Is_Expr_Function
+                    then Create_Return_Stmt
+                      (RC,
+                       Return_Stmt_F_Return_Expr =>
+                         Create_Call_Expr
+                           (RC,
+                            Call_Expr_F_Name   =>
+                              Make_Identifier (Formal_Subp_Name),
+                            Call_Expr_F_Suffix => Call_Params))
+               else Make (Ada_Null_Stmt));
+
+            Gen_Body_Stmt_List : constant Node_Rewriting_Handle :=
+              Create_Regular_Node
+                (RC, Ada_Stmt_List, (1 => Gen_Body_Stmt));
+
+            Gen_Subp_Kind : constant Node_Rewriting_Handle :=
+              Make ((if Is_Expr_Function
+                     then Ada_Subp_Kind_Function
+                     else Ada_Subp_Kind_Procedure));
+
+            Gen_Subp_Return_Type : constant Node_Rewriting_Handle :=
+               (if Is_Expr_Function
+                then Make_Identifier ("Ret")
+                else No_Node_Rewriting_Handle);
+
+            Gen_Subp_Spec : constant Node_Rewriting_Handle :=
+              Create_Subp_Spec
+                (RC,
+                 Subp_Spec_F_Subp_Kind    => Gen_Subp_Kind,
+                 Subp_Spec_F_Subp_Name    =>
+                   Make_Defining_Name (Gen_Subp_Name),
+
+                 Subp_Spec_F_Subp_Params  =>
+                   Create_Params
+                     (RC,
+                      Params_F_Params => Gen_Subp_Param_Specs),
+
+                 Subp_Spec_F_Subp_Returns =>
+                   Gen_Subp_Return_Type);
+
+            Gen_Decl : constant Node_Rewriting_Handle :=
+              Create_Generic_Subp_Decl
+                (RC,
+                 Generic_Decl_F_Formal_Part =>
+                   Create_Generic_Formal_Part
+                     (RC, Generic_Formal_Part_F_Decls => Gen_Formals),
+
+                 Generic_Subp_Decl_F_Subp_Decl =>
+                   Create_Generic_Subp_Internal
+                     (RC,
+                      Generic_Subp_Internal_F_Subp_Spec => Gen_Subp_Spec,
+                      Generic_Subp_Internal_F_Aspects   =>
+                        No_Node_Rewriting_Handle),
+                 Generic_Subp_Decl_F_Aspects   => No_Node_Rewriting_Handle);
+
+            Gen_Body_Decls : constant Node_Rewriting_Handle :=
+              Make (Ada_Ada_Node_List);
+            Gen_Body : Node_Rewriting_Handle;
+
+            --  The augmented expression function, taking supplementary
+            --  parameters for state buffers, and the generic instantiation,
+            --  must be wrapped in a package so that they do not create
+            --  additional primitive operations.
+
+            Wrapper_Pkg_Decls : constant Node_Rewriting_Handle :=
+              Create_Regular_Node
+                (RC,
+                 Ada_Ada_Node_List,
+                 (1 .. 0 => No_Node_Rewriting_Handle));
+            Wrapper_Pkg : constant Node_Rewriting_Handle :=
+              Create_Package_Decl
+                (RC,
+                 Base_Package_Decl_F_Package_Name => Wrapper_Pkg_Name,
+                 Base_Package_Decl_F_Aspects =>
+                   No_Node_Rewriting_Handle,
+                 Base_Package_Decl_F_Public_Part =>
+                   Create_Public_Part
+                     (RC,
+                      Declarative_Part_F_Decls => Wrapper_Pkg_Decls),
+                 Base_Package_Decl_F_Private_Part =>
+                   No_Node_Rewriting_Handle,
+                 Base_Package_Decl_F_End_Name =>
+                   No_Node_Rewriting_Handle);
+
+            Inst_Name : constant Node_Rewriting_Handle := Orig_Name;
+
+            Inst_Params : constant Node_Rewriting_Handle :=
+              Make (Ada_Assoc_List);
+
+            Gen_Body_Insertion_Info : aliased Insertion_Info :=
+               (RH_List               => Gen_Body_Stmt_List,
+                Index                 => 1,
+                Insertion_Count       => 0,
+                Witness_Use_Statement => True,
+                Parent                => null);
+
             Saved_Dominant : constant Dominant_Info := Current_Dominant;
             --  Save last statement in current sequence as dominant
 
+            Saved_Local_Decls : constant Node_Rewriting_Handle :=
+               UIC.Local_Decls;
+            --  Save location where MC/DC state objects are inserted
+
+            First_Source_Decision : constant Natural :=
+              UIC.Source_Decisions.Last_Index + 1;
+            --  Index of first decision in expression function
+
+            procedure Insert (New_Node : Node_Rewriting_Handle);
+            --  Insert New_Node in sequence after N
+
+            function Make_Formal_Type
+              (FT_Name : Wide_Wide_String;
+               TE      : Type_Expr)
+               return Node_Rewriting_Handle;
+            --  Create a formal type with the given name, suitable for
+            --  instantiation with TE as the actual type.
+
+            ------------
+            -- Insert --
+            ------------
+
+            procedure Insert (New_Node : Node_Rewriting_Handle) is
+            begin
+               Insert_Child
+                 (Handle => Saved_Insertion_Info.RH_List,
+                  Index  => Saved_Insertion_Info.Index
+                              + Saved_Insertion_Info.Insertion_Count
+                              + 1,
+                  Child  => New_Node);
+               Saved_Insertion_Info.Insertion_Count :=
+                 Saved_Insertion_Info.Insertion_Count + 1;
+            end Insert;
+
+            ----------------------
+            -- Make_Formal_Type --
+            ----------------------
+
+            function Make_Formal_Type
+              (FT_Name : Wide_Wide_String;
+               TE      : Type_Expr)
+               return Node_Rewriting_Handle
+            is
+               pragma Unreferenced (TE);
+               Is_Tagged : constant Boolean := False;
+               --  ??? determine if TE denotes a tagged type
+
+            begin
+               return
+                 Create_Generic_Formal_Type_Decl
+                   (RC,
+                    Generic_Formal_F_Decl =>
+                      Create_Type_Decl
+                        (RC,
+                         Base_Type_Decl_F_Name =>
+                           Make_Defining_Name (FT_Name),
+
+                         Type_Decl_F_Discriminants =>
+                           Make (Ada_Unknown_Discriminant_Part),
+
+                         Type_Decl_F_Type_Def      =>
+                           Create_Private_Type_Def
+                             (RC,
+                              Private_Type_Def_F_Has_Abstract =>
+                                (if Is_Tagged
+                                 then Make (Ada_Abstract_Present)
+                                 else No_Node_Rewriting_Handle),
+
+                              Private_Type_Def_F_Has_Tagged =>
+                                (if Is_Tagged
+                                 then Make (Ada_Tagged_Present)
+                                 else No_Node_Rewriting_Handle),
+
+                              Private_Type_Def_F_Has_Limited =>
+                                Make (Ada_Limited_Present)),
+
+                         Type_Decl_F_Aspects       =>
+                           No_Node_Rewriting_Handle),
+
+                    Generic_Formal_F_Aspects => No_Node_Rewriting_Handle);
+            end Make_Formal_Type;
+
          begin
-            --  Output statement SCO for degenerate subprogram body (null
-            --  statement or freestanding expression) outside of the dominance
-            --  chain.
+            --  Replace original subprogram with a proper subsprogram decl,
+            --  keeping the original aspects and default parameters.
 
-            Current_Dominant := No_Dominant;
-            Extend_Statement_Sequence (N, Typ => 'X');
+            Replace (Orig_Subp, New_Subp_Decl);
 
-            --  For the case of an expression-function, collect decisions
-            --  embedded in the expression now.
+            --  First traverse all formal parameters
 
-            if N.Kind in Ada_Expr then
-               Process_Decisions_Defer (N, 'X');
+            for J in 1 .. N_Params.Children_Count loop
+               declare
+                  P_Spec : constant Param_Spec :=
+                     N_Params.Children (J).As_Param_Spec;
+                  P_Type : constant Type_Expr := P_Spec.F_Type_Expr;
+                  Formal_Type_Name : constant Wide_Wide_String :=
+                    "Par" & To_Wide_Wide_String (Img (J));
+               begin
+                  --  Add formal type
+
+                  Append_Child
+                    (Gen_Subp_Param_Specs,
+                     Create_Param_Spec
+                       (RC,
+                        Param_Spec_F_Ids          =>
+                          Clone (P_Spec.F_Ids),
+                        Param_Spec_F_Has_Aliased  =>
+                          Clone (P_Spec.F_Has_Aliased),
+                        Param_Spec_F_Mode         =>
+                          Clone (P_Spec.F_Mode),
+                        Param_Spec_F_Type_Expr    =>
+                          Make_Identifier (Formal_Type_Name),
+                        Param_Spec_F_Default_Expr =>
+                          No_Node_Rewriting_Handle,
+                        Param_Spec_F_Aspects      =>
+                          No_Node_Rewriting_Handle));
+
+                  --  Add formal parameter to generic subprogram spec
+
+                  Append_Child
+                    (Gen_Formals,
+                     Make_Formal_Type (Formal_Type_Name, P_Type));
+
+                  --  Add actual type to instantiation
+
+                  Append_Child (Inst_Params, Clone (P_Type));
+
+                  --  XXX add default expression
+                  --  (generic formal,
+                  --  generic actual,
+                  --  formal in generic subprogram)
+                  --  (needed in the procedure case only, because in the func
+                  --  case we create a new expression function that calls the
+                  --  instance will all parameters)
+
+                  --  Pass parameter in call
+
+                  if Is_Expr_Function then
+                     declare
+                        Param_Ids : constant Defining_Name_List :=
+                          P_Spec.F_Ids;
+                     begin
+                        for J in 1 .. Param_Ids.Children_Count loop
+                           Append_Child
+                             (Call_Params,
+                              Make_Identifier (Param_Ids.Child (J).Text));
+                        end loop;
+                     end;
+                  end if;
+               end;
+            end loop;
+
+            if Is_Expr_Function then
+               --  Add generic return type
+
+               Append_Child
+                 (Gen_Formals,
+                  Make_Formal_Type ("Ret", N_Spec.F_Subp_Returns));
+               Append_Child (Inst_Params, Clone (N_Spec.F_Subp_Returns));
+
+               --  Add MC/DC state parameters to original expression function
+
+               Formal_Subp_Spec := Clone (Gen_Subp_Spec);
+               Set_Text
+                 (Child
+                    (Child
+                         (Formal_Subp_Spec,
+                          I_Subp_Spec_F_Subp_Name),
+                     I_Defining_Name_F_Name),
+                  Formal_Subp_Name);
+               Formal_Subp_Params :=
+                  Child
+                     (Child (Formal_Subp_Spec, I_Subp_Spec_F_Subp_Params),
+                      I_Params_F_Params);
+
+               Formal_Subp_Decl :=
+                 Create_Concrete_Formal_Subp_Decl
+                   (RC,
+                    Classic_Subp_Decl_F_Overriding  =>
+                      No_Node_Rewriting_Handle,
+                    Classic_Subp_Decl_F_Subp_Spec   =>
+                      Formal_Subp_Spec,
+                    Formal_Subp_Decl_F_Default_Expr =>
+                      No_Node_Rewriting_Handle,
+                    Formal_Subp_Decl_F_Aspects      =>
+                      No_Node_Rewriting_Handle);
+               Append_Child (Gen_Formals, Formal_Subp_Decl);
             end if;
 
+            Gen_Body :=
+              Create_Subp_Body
+                (RC,
+                 Base_Subp_Body_F_Overriding => No_Node_Rewriting_Handle,
+                 Base_Subp_Body_F_Subp_Spec  => Clone (Gen_Subp_Spec),
+                 Subp_Body_F_Aspects         => No_Node_Rewriting_Handle,
+                 Subp_Body_F_Decls           =>
+                   Create_Declarative_Part
+                     (RC,
+                      Declarative_Part_F_Decls => Gen_Body_Decls),
+                 Subp_Body_F_Stmts           =>
+                   Create_Handled_Stmts
+                     (RC,
+                      Handled_Stmts_F_Stmts      =>
+                        Gen_Body_Stmt_List,
+                      Handled_Stmts_F_Exceptions => No_Node_Rewriting_Handle),
+                 Subp_Body_F_End_Name        => No_Node_Rewriting_Handle);
+
+            --  The statement witness for the null statement (null procedure)
+            --  or return statement (expression function) will be inserted in
+            --  the generic body.
+
+            UIC.Current_Insertion_Info :=
+              Gen_Body_Insertion_Info'Unchecked_Access;
+
+            --  Output statement SCO for degenerate subprogram body (null
+            --  statement or freestanding expression) outside of the dominance
+            --  chain. Note that the notional null statement for a null
+            --  procedure is not materialized in the Libadalang tree, so we
+            --  instead use the spec node to provide a sloc.
+
+            Current_Dominant := No_Dominant;
+            Extend_Statement_Sequence
+              (N           =>
+                 (if not N_Expr.Is_Null then N_Expr else N_Spec),
+               Typ         => 'X',
+               Insertion_N => Gen_Body_Stmt);
+
+            --  Collect decisions in the expression, creating
+            --  any required MC/DC state variable in the generic
+            --  subprogram body.
+
+            UIC.Local_Decls := Gen_Body_Decls;
+            if Is_Expr_Function then
+               Process_Decisions_Defer (N_Expr, 'X');
+            end if;
             Set_Statement_Entry;
+            UIC.Local_Decls := Saved_Local_Decls;
+
+            if Is_Expr_Function then
+               --  Decisions in the expression functions have been appended
+               --  to Source_Decisions. Insert parameters for their MC/DC
+               --  state buffers.
+
+               for J in First_Source_Decision
+                     .. UIC.Source_Decisions.Last_Index
+               loop
+                  declare
+                     State_Identifier : constant Node_Rewriting_Handle :=
+                        Make_Identifier
+                          (To_Wide_Wide_String
+                             (To_String (UIC.Source_Decisions (J).State)));
+                     State_Formal : constant Node_Rewriting_Handle :=
+                       Create_Defining_Name (RC, State_Identifier);
+                     State_Param_Spec : constant Node_Rewriting_Handle :=
+                        Create_Param_Spec
+                          (RC,
+                           Param_Spec_F_Ids          =>
+                             Create_Regular_Node
+                               (RC,
+                                Ada_Defining_Name_List,
+                                Children => (1 => State_Formal)),
+                           Param_Spec_F_Has_Aliased  =>
+                             No_Node_Rewriting_Handle,
+                           Param_Spec_F_Mode         =>
+                             No_Node_Rewriting_Handle,
+                           Param_Spec_F_Type_Expr    =>
+                             Make_Identifier ("System.Address"),
+                           Param_Spec_F_Default_Expr =>
+                             No_Node_Rewriting_Handle,
+                           Param_Spec_F_Aspects      =>
+                             No_Node_Rewriting_Handle);
+
+                  begin
+                     Append_Child (Formal_Subp_Params, State_Param_Spec);
+                     Append_Child
+                       (Handle (N_Params), Clone (State_Param_Spec));
+
+                     Append_Child (Call_Params, Clone (State_Identifier));
+                  end;
+               end loop;
+
+               declare
+                  Augmented_Expr_Func_Name : constant Wide_Wide_String :=
+                    Text (Orig_Name) & "_With_States";
+               begin
+                  --  Set new name for original expression function
+
+                  Set_Child
+                    (Handle (N_Subp_Name),
+                     I_Defining_Name_F_Name,
+                     Make_Identifier (Augmented_Expr_Func_Name));
+
+                  --  ... move it to the wrapper package
+
+                  Append_Child (Wrapper_Pkg_Decls, Orig_Subp);
+
+                  --  ... and pass it as generic actual
+
+                  Append_Child
+                    (Inst_Params, Make_Identifier (Augmented_Expr_Func_Name));
+               end;
+            end if;
+
+            UIC.Current_Insertion_Info := Saved_Insertion_Info;
+
+            --  Insert generic instantiation and renaming to complete
+            --  subprogram declaration.
+
+            declare
+               Instance : constant Node_Rewriting_Handle :=
+                 Create_Generic_Subp_Instantiation
+                   (RC,
+                    Generic_Subp_Instantiation_F_Overriding =>
+                      No_Node_Rewriting_Handle,
+                    Generic_Subp_Instantiation_F_Kind =>
+                      Clone (Gen_Subp_Kind),
+                    Generic_Subp_Instantiation_F_Subp_Name =>
+                      Create_Defining_Name (RC, Inst_Name),
+                    Generic_Subp_Instantiation_F_Generic_Subp_Name =>
+                      Create_Dotted_Name
+                        (RC,
+                         Dotted_Name_F_Prefix =>
+                           Clone (E.Unit_Buffers),
+                         Dotted_Name_F_Suffix =>
+                           Make_Identifier (Gen_Subp_Name)),
+                    Generic_Subp_Instantiation_F_Params =>
+                      Inst_Params,
+                    Generic_Subp_Instantiation_F_Aspects =>
+                      No_Node_Rewriting_Handle);
+
+               Renaming_Decl : constant Node_Rewriting_Handle :=
+                  Create_Subp_Renaming_Decl
+                    (RC,
+                     Base_Subp_Body_F_Subp_Spec  =>
+                       Clone (Orig_Spec),
+                     Base_Subp_Body_F_Overriding =>
+                       Clone (Orig_Overriding),
+                     Subp_Renaming_Decl_F_Renames =>
+                       Create_Renaming_Clause
+                         (RC,
+                          Renaming_Clause_F_Renamed_Object =>
+                            Create_Dotted_Name
+                              (RC,
+                               Dotted_Name_F_Prefix =>
+                                 Clone (Wrapper_Pkg_Name),
+                               Dotted_Name_F_Suffix =>
+                                 Clone (Inst_Name))),
+                     Subp_Renaming_Decl_F_Aspects =>
+                       No_Node_Rewriting_Handle);
+
+            begin
+               Insert (Wrapper_Pkg);
+               Append_Child (Wrapper_Pkg_Decls, Instance);
+               Insert (Renaming_Decl);
+
+               UIC.Degenerate_Subprogram_Generics.Append
+                 ((Generic_Subp_Decl =>
+                     To_Unbounded_Wide_Wide_String (Unparse (Gen_Decl)),
+                   Generic_Subp_Body =>
+                     To_Unbounded_Wide_Wide_String (Unparse (Gen_Body))));
+            end;
 
             --  Restore current dominant information designating last statement
             --  in previous sequence (i.e. make the dominance chain skip over
@@ -1148,7 +1764,7 @@ package body Instrument.Tree is
 
             Current_Dominant := Saved_Dominant;
          end;
-      end Traverse_Degenerate_Subprogram;
+      end Traverse_Subp_Decl_Or_Stub;
 
       ------------------
       -- Traverse_One --
@@ -1281,37 +1897,11 @@ package body Instrument.Tree is
             --  Subprogram declaration or subprogram body stub
 
             when Ada_Expr_Function
+               | Ada_Null_Subp_Decl
                | Ada_Subp_Body_Stub
                | Ada_Subp_Decl
             =>
-               declare
-                  Spec : constant Subp_Spec :=
-                    As_Subp_Spec (As_Basic_Decl (N).P_Subp_Spec_Or_Null);
-               begin
-                  Process_Decisions_Defer (Spec.F_Subp_Params, 'X');
-
-                  --  Case of a null procedure: generate SCO for fictitious
-                  --  NULL statement located at the NULL keyword in the
-                  --  procedure specification.
-
-                  if N.Kind = Ada_Null_Subp_Decl
-                    and then Spec.F_Subp_Kind.Kind = Ada_Subp_Kind_Procedure
-                  then
-                     --  Traverse_Degenerate_Subprogram
-                     --    (Null_Statement (Spec));
-                     --  LAL??? No such fictitious node. But it doesn't really
-                     --  matter, just pass Spec to provide the sloc.
-                     Traverse_Degenerate_Subprogram (Spec);
-
-                  --  Case of an expression function: generate a statement SCO
-                  --  for the expression (and then decision SCOs for any nested
-                  --  decisions).
-
-                  elsif N.Kind = Ada_Expr_Function then
-                     Traverse_Degenerate_Subprogram
-                       (N.As_Expr_Function.F_Expr);
-                  end if;
-               end;
+               Traverse_Subp_Decl_Or_Stub (N.As_Basic_Decl);
 
             --  Entry declaration
 
@@ -2000,7 +2590,8 @@ package body Instrument.Tree is
         and then not Preelab
       then
          Current_Insertion_Info.RH_List := Handle (L);
-         Witness_Use_Statement := L.Kind = Ada_Stmt_List;
+         Current_Insertion_Info.Witness_Use_Statement :=
+           L.Kind = Ada_Stmt_List;
       end if;
 
       --  Loop through statements or declarations
@@ -2544,9 +3135,7 @@ package body Instrument.Tree is
                   MCDC_State :=
                     To_Unbounded_String
                       (Make_MCDC_State_Name (SCOs.SCO_Table.Last));
-                  Insert_Child
-                    (UIC.Local_Decls, 1,
-                     Make_MCDC_State (UIC, To_String (MCDC_State)));
+                  Insert_MCDC_State (UIC, To_String (MCDC_State));
                end if;
             end if;
 
