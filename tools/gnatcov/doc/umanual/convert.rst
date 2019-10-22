@@ -11,3 +11,4 @@ using |gcvcnv|.
 
    convert_commandline
    nexus_5634
+   trace32

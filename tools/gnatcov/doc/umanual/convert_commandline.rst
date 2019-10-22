@@ -18,12 +18,13 @@
 Details about the available options follow:
 
 :option:`--trace-source` :
-  An identifier of the source of the input trace data is provided using
-  this option.  The input source effects which other options are required.
-  Currently, the only value for this option is ``iSystem-5634``, which is
-  the identification for Nexus data output by the MPC5634M SOC, captured
-  and written by an iSystem probe and software. For the ``iSystem-5634``
-  source, the ``--hw-trigger-traces`` option is required.
+  An identifier of the source of the input trace data is provided using this
+  option. The input source effects which other options are required. Currently,
+  the only values for this option are ``iSystem-5634`` (see
+  :ref:`GeneratingCoverageInformationFromNexusTraces`) and
+  ``Trace32-Branchflow`` (see
+  :ref:`GeneratingCoverageInformationFromLauterbachTrace32`). For the
+  ``iSystem-5634`` source, the ``--hw-trigger-traces`` option is required.
 
 :option:`--exec` :
   This option provides the filename of a file containing the
