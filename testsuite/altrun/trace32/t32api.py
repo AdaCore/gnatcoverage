@@ -195,7 +195,7 @@ def run_until(symbol, timeout_sec):
 
     if get_cpu_state() == "running":
         # Stop the CPU
-        cmd_wrapper(b"Brake.direct")
+        cmd_wrapper(b"Break.direct")
         print "!!! TIMEOUT !!!"
 
 
