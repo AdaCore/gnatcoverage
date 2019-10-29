@@ -20,9 +20,10 @@ information produced by the |gpro| compilers, in the .ali or .gli
 SCO tables are produced by the :option:`-fdump-scos` compilation
 option. Accurate mapping of the execution traces back to source level
 obligations requires :option:`-g` :option:`-fpreserve-control-flow` in
-addition, as well as :option:`-gno-strict-dwarf` for VxWorks targets. These
-options must be used to compile the sources you wish to analyze later
-on. Optimization is supported up to :option:`-O1` with inlining.
+addition, as well as :option:`-gno-strict-dwarf` :option:`-mlongcall` for
+PowerPC VxWorks targets. These options must be used to compile the sources you
+wish to analyze later on. Optimization is supported up to :option:`-O1` with
+inlining.
 
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage

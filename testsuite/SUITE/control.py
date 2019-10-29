@@ -135,8 +135,16 @@ class BUILDER:
             # it is cleaner and simpler to have this exposed only when needed
             # in qualification material.
 
+            # In addition, identification of call targets, necessary to
+            # recognize exception edges, currently requires call-site debug
+            # info on partially linked objects, which we'll only get for long
+            # calls on powerpc.
+
             if 'vxworks' in Env().target.triplet:
                 cargs.append("-gno-strict-dwarf")
+
+                if 'powerpc' in Env().target.triplet:
+                    cargs.append("-mlongcall")
 
             return cargs
 
