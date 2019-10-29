@@ -91,10 +91,10 @@ Very briefly here:
   on which the analysis should focus, if any.
 
 For source coverage assessments, sources must be compiled with :option:`-g
--fpreserve-control-flow -fdump-scos`, plus :option:`-gno-strict-dwarf`
-for VxWorks targets.  Optimization is supported up to :option:`-O1`, with
-inlining allowed.  For backwards compatibility, :option:`-gnateS`
-can be used as a synonym of :option:`-fdump-scos` for Ada.
+-fpreserve-control-flow -fdump-scos`, plus :option:`-gno-strict-dwarf
+-mlongcall` for PowerPC VxWorks targets.  Optimization is supported up to
+-:option:`-O1`, with inlining allowed.  For backwards compatibility,
+-:option:`-gnateS` can be used as a synonym of :option:`-fdump-scos` for Ada.
 
 Object coverage analysis proceeds in a similar fashion, with different
 :option:`--level` option values. There is no `source` coverage obligation

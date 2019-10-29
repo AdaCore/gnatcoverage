@@ -30,7 +30,8 @@ instructions.
 
 For **powerpc-vxworks6**:
 
-- Need to compile with -gno-strict-dwarf for source coverage analysis;
+- Need to compile with -gno-strict-dwarf -mlongcall for source coverage
+  analysis;
 
 - Need to add a --kernel argument on |gcvrun|;
 
