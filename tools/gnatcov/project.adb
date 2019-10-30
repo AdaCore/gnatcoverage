@@ -724,7 +724,7 @@ package body Project is
 
       procedure Process_Project (Project : Project_Type) is
          Inc_Units         : Unit_Maps.Map;
-         Inc_Units_Defined : Boolean;
+         Inc_Units_Defined : Boolean := False;
          --  Units to be included, as specified in project
 
          Exc_Units : Unit_Maps.Map;
