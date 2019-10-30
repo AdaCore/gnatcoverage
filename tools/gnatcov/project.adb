@@ -344,9 +344,11 @@ package body Project is
                      Info : constant File_Info := File_Info (Abstract_Info);
                   begin
                      --  Register only units in supported languages (Ada and
-                     --  C).
+                     --  C), and don't consider subunits as independent units.
 
-                     if To_Lower (Info.Language) in "ada" | "c" then
+                     if To_Lower (Info.Language) in "ada" | "c"
+                        and then Info.Unit_Part /= Unit_Separate
+                     then
                         Process.all
                           (Info      => Info,
                            Unit_Name => (if Info.Unit_Name = ""
