@@ -308,7 +308,17 @@ package Instrument.Common is
 
       Instrumentation_Queue : Compilation_Unit_Lists.List;
       --  Queue (push at the back, pop the front) of compilation units to
-      --  instrument.
+      --  instrument (excluding those for mains: see below).
+
+      Mains_Instrumentation_Queue : Compilation_Unit_Lists.List;
+      --  Queue (push at the back, pop the front) of compilation units for
+      --  mains to instrument.
+
+      Mains_Instrumentation_Started : Boolean;
+      --  Whether instrumentation started to process main units. Since the
+      --  instrumentation of mains uses the list of instrumented units, it is
+      --  an error to add a unit to instrument while we have started to
+      --  instrument mains.
    end record;
 
    function Create_Context

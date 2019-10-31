@@ -484,7 +484,7 @@ package body Instrument is
 
       Prepare_Output_Dirs (IC);
 
-      --  Instrument all units of interest
+      --  Instrument all units of interest that are not mains
 
       while not IC.Instrumentation_Queue.Is_Empty loop
          declare
@@ -496,6 +496,13 @@ package body Instrument is
             IC.Instrumentation_Queue.Delete_First;
             Instrument_Unit (CU, IC.Instrumented_Units.Element (CU).all);
          end;
+      end loop;
+
+      --  Then instrument all units of interest that are mains
+
+      IC.Mains_Instrumentation_Started := True;
+      for CU of IC.Mains_Instrumentation_Queue loop
+         Instrument_Unit (CU, IC.Instrumented_Units.Element (CU).all);
       end loop;
 
       Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
