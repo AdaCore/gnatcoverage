@@ -30,7 +30,8 @@ from SCOV.instr import xcov_instrument
 
 from SUITE.context import thistest
 from SUITE.control import language_info
-from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
+from SUITE.cutils import to_list, list_to_file, match, no_ext
+from SUITE.cutils import contents_of, lines_of
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, cmdrun, xrun, xcov, frame
 from SUITE.tutils import gprbuild_cargs_with
@@ -481,6 +482,7 @@ class SCOV_helper:
             )
         self.xlnotes = xnotes.xlnotes
         self.xrnotes = xnotes.xrnotes
+        self.abspaths = xnotes.abspaths
 
         # Even though we remember them here, we won't be looking at the
         # xlnotes if we're running for qualification.
@@ -498,14 +500,32 @@ class SCOV_helper:
         """List of sources for which we have expectations to match."""
         return self.xrnotes.keys()
 
+    def is_subunit(self, soi):
+        """Determine whether the input Source Of Interest name denotes
+        a subunit, assuming source file names obey the standard GNAT naming
+        convention.
+        """
+
+        # There has to be a '-' in the source file name, which could also
+        # be for a child unit. Check if we also have a line starting with
+        # "separate" to disambiguate.
+
+        return (
+            '-' in os.path.basename(soi)
+            and any(line.lstrip().lower().startswith('separate')
+                    for line in lines_of(self.abspaths[soi])))
+
     def units_of_interest(self):
         """Set of units for which we have expectations to match, based
         on the list of sources for which we have expectations and assuming
         standard  use of '-' in filenames for child units or subunits
-        (foo-bar.ads for package Foo.Bar).
+        (foo-bar.ads for package Foo.Bar). Subunits are excluded from this
+        set..
         """
+
         return {no_ext(os.path.basename(soi)).replace('-', '.')
-                for soi in self.sources_of_interest()}
+                for soi in self.sources_of_interest()
+                if not self.is_subunit(soi)}
 
     def programs(self):
         """List of base binary file names for the test drivers we are
@@ -843,6 +863,9 @@ class SCOV_helper:
     # -- check_expectations --
     # ------------------------
     def check_expectations(self):
+        """Verify that all the stated expectations are met and that we don't
+        have unexpected coverage indications.
+        """
 
         # Complain about report notes or xcov reports for unexpected
         # sources, when the list happens to be specified. We need the
@@ -955,13 +978,18 @@ class SCOV_helper:
         )
 
         # Now process source by source, skipping those for which no report
-        # is expected when the list happens to be specified
+        # is expected when the list happens to be specified.
+
+        # Note that the expectations we check are based on _sources_ of
+        # interest here (computed from stated expectations), regardless of how
+        # we convey _units_ of interest to the commands used to produce the
+        # reports.
 
         [self.check_expectations_over (
             source=source, relevance_cat=relevance_cat,
             r_discharge_kdict=r_discharge_kdict,
             l_discharge_kdict=l_discharge_kdict)
-         for source in self.xrnotes if (
+         for source in self.sources_of_interest() if (
                 not self.covctl or self.covctl.expected (source))
         ]
 

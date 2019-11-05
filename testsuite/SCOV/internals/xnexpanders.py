@@ -76,7 +76,7 @@ from SUITE.cutils import Identifier
 #
 # A group of expectations may apply to several sources, just listed in sequence
 # as in:
-# 
+#
 #   -- # x0.adb y0.adb        : in x0.adb and y0.adb, expect ...
 #
 # Alternatives sets, useful for shared drivers, are allowed for a given group.
@@ -351,7 +351,7 @@ class Sref:
 
         # XPATH: The relative path expressed in the expectation:
         self.xpath = xsource[1:] if xsource.startswith('+') else xsource
-        
+
         # SPATH: The resolved path to an actual source file reachable for
         # the testcase at hand:
         self.spath = self.__resolve(self.xpath)
@@ -731,24 +731,28 @@ class XnotesExpander:
             "%cons" : ' '.join (ctl_cons)
             }
 
-        # And these are the dictionaries we expose:
+        # And these are the dictionaries we expose. This includes the expected
+        # line notes, the expected report notes, and the absolute paths to the
+        # source for each source referenced in expectations:
 
         self.xlnotes = {}
         self.xrnotes = {}
+        self.abspaths = {}
 
-        [self.__to_xnotes(ux) for ux in
+        [self.__expose(ux) for ux in
          self.__parse_scovdata (self.__get_scovdata (xfile))]
 
-    def __to_xnotes(self, ux):
+    def __expose(self, ux):
 
         # A '+' prefix on the source reference means we expect
         # sources to be referenced with relative dir indications:
-        
+
         source = (
             ux.sref.xpath if ux.sref.xsource.startswith('+')
             else os.path.basename (ux.sref.xpath)
             )
 
+        self.abspaths [source] = os.path.abspath(ux.sref.spath)
         self.xrnotes [source] = ux.xrdict
         self.xlnotes [source] = ux.xldict
 
