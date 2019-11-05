@@ -321,8 +321,21 @@ package body Project is
       Process      : access procedure (Info : File_Info; Unit_Name : String);
       Recursive    : Boolean)
    is
+      --  If Root_Project is extending some project P, consider for coverage
+      --  purposes that source files in P also belong to Root_Project. For
+      --  instance, if Root_Project extends P only to replace some of P's units
+      --  with stubs, users most likely want to compute the coverage of other
+      --  units in P.
+      --
+      --  When Recursive is true, there is nothing specific to do, as
+      --  Source_Files will go through extended projects. However, when
+      --  recursive is False, use Extended_Projects_Source_Files to go through
+      --  them.
+
       Source_Files : File_Array_Access :=
-         Root_Project.Source_Files (Recursive => Recursive);
+        (if Recursive
+         then Root_Project.Source_Files (Recursive => True)
+         else Root_Project.Extended_Projects_Source_Files);
    begin
       for F of Source_Files.all loop
          declare
