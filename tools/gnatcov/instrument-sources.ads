@@ -112,7 +112,7 @@ private package Instrument.Sources is
       Decision : Expr;
       --  Decision expression
 
-      State     : Unbounded_String;
+      State    : Unbounded_String;
       --  Name of MC/DC state local variable
    end record;
 
