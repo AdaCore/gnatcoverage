@@ -106,27 +106,27 @@ private package Instrument.Sources is
    --  MC/DC instrumentation depends on BDD information.
 
    type Source_Decision is record
-      LL_SCO   : Nat;
+      LL_SCO : Nat;
       --  Low-level SCO id of decision
 
       Decision : Expr;
       --  Decision expression
 
-      State     : Unbounded_String;
+      State : Unbounded_String;
       --  Name of MC/DC state local variable
    end record;
 
    type Source_Condition is record
-      LL_SCO    : Nat;
+      LL_SCO : Nat;
       --  Low-level SCO id of condition
 
       Condition : Expr;
       --  Condition expression
 
-      State     : Unbounded_String;
+      State : Unbounded_String;
       --  Name of MC/DC state local variable
 
-      First     : Boolean;
+      First : Boolean;
       --  True if this condition is the first one in its decision
    end record;
 
