@@ -372,19 +372,33 @@ package Files_Table is
       Process : not null access procedure (Index : Positive))
      with Pre => File.Kind = Source_File;
 
+   --  All the Get_Line functions below look for a line information record at
+   --  File:Index (a line in a filename) or at Sloc (a source location, i.e.
+   --  referencing a file and a line number).
+   --
+   --  The overrides that return a Line_Info_Access return null if the
+   --  referenced file is a stub. The override that return a string only accept
+   --  actual source files.
+
    function Get_Line
      (File  : File_Info_Access;
       Index : Positive) return Line_Info_Access
-     with Pre => File.Kind = Source_File;
+      with Pre => File.Kind in Stub_File | Source_File;
 
-   function Get_Line (Sloc : Source_Location) return Line_Info_Access;
+   function Get_Line (Sloc : Source_Location) return Line_Info_Access
+      with Pre =>
+         Sloc = Slocs.No_Location
+         or else Get_File (Sloc.Source_File).Kind in Stub_File | Source_File;
 
    function Get_Line
      (File  : File_Info_Access;
       Index : Positive) return String
-     with Pre => File.Kind = Source_File;
+      with Pre => File.Kind = Source_File;
 
-   function Get_Line (Sloc : Source_Location) return String;
+   function Get_Line (Sloc : Source_Location) return String
+      with Pre =>
+         Sloc = Slocs.No_Location
+         or else Get_File (Sloc.Source_File).Kind = Source_File;
 
    --  Get line info (or text) at File:Index (or at Sloc)
 

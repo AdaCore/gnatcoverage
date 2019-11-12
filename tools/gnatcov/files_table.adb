@@ -831,13 +831,15 @@ package body Files_Table is
       Index : Positive) return Line_Info_Access
    is
    begin
-      if Index in File.Lines.First_Index .. File.Lines.Last_Index then
+      if File.Kind = Source_File
+         and then Index in File.Lines.First_Index .. File.Lines.Last_Index
+      then
          return File.Lines.Element (Index);
       else
-         --  Get_Line may be called with no source information loaded, for
-         --  example when emitting a diagnostic with sloc information based on
-         --  SCOs only. In that case return a null pointer, since we do not
-         --  have any available Line_Info structure.
+         --  Get_Line may be called on a stub file or with no source
+         --  information loaded, for example when emitting a diagnostic with
+         --  sloc information based on SCOs only. In that case return a null
+         --  pointer, since we do not have any available Line_Info structure.
 
          return null;
       end if;
