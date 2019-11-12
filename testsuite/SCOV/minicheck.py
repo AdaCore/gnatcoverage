@@ -26,7 +26,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   separate_coverage=None, extra_args=[],
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
                   absolute_paths=False, subdirs=None, dump_method='atexit',
-                  check_gprbuild_output=False, trace_mode=None):
+                  check_gprbuild_output=False, trace_mode=None,
+                  gprsw_for_coverage=None):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -74,6 +75,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         empty.
     :param None|str trace_mode: If None, use the testsuite's trace mode.
         Otherwise, use the given trace mode ('bin', or 'src').
+    :param None|SUITE.gprutils.GPRswitches gprsw_for_coverage: GPRswitches
+        instance used to describe the project and units of interest to analyze
+        in "gnatcov coverage". If left to None, use "gprsw".
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -127,9 +131,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     if trace_mode == 'bin':
         # Compute arguments to specify units of interest
         scos = (['--scos={}'.format(abspath(a)) for a in scos]
-                     if scos else
-                     gprsw.as_strings)
-        cov_or_instr_args.extend(scos)
+                if scos else
+                gprsw.as_strings)
 
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
@@ -139,6 +142,11 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
         xcov_args.extend(cov_or_instr_args)
+
+        if gprsw_for_coverage:
+            xcov_args.extend(gprsw_for_coverage.as_strings)
+        elif scos:
+            xcov_args.extend(scos)
 
     elif trace_mode == 'src':
         # Instrument the project and build the result
@@ -158,7 +166,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         # If we would have passed the project to "gnatcov coverage" in binary
         # trace mode, pass it here too. This is necessary for instance to
         # select the default output directory for coverage reports.
-        if not scos:
+        if gprsw_for_coverage:
+            xcov_args.extend(['-P', gprsw_for_coverage.root_project])
+        elif not scos:
             xcov_args.extend(['-P', gprsw.root_project])
 
         xcov_args.extend(extra_args)
