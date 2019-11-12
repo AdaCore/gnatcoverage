@@ -284,29 +284,37 @@ package body Project is
       Process      : access procedure (Prj : Project_Type);
       Recursive    : Boolean)
    is
-      Iter    : Project_Iterator := Start
+      Iter             : Project_Iterator := Start
         (Root_Project     => Root_Project,
          Recursive        => Recursive,
          Include_Extended => False);
-      Project : Project_Type;
+      Visited_Projects : Project_Sets.Set;
+      Project          : Project_Type;
 
    begin
       loop
          Project := Current (Iter);
          exit when Project = No_Project;
 
-         --  Skip externally built projects unless they are explicitly
-         --  requested.
+         --  If project is extended, go to the ultimate extending project,
+         --  which might override the Coverage package.
 
-         if Externally_Built_Projects_Processing_Enabled
-            or else not Project.Externally_Built
-         then
-            --  If project is extended, go to the ultimate extending project,
-            --  which might override the Coverage package.
+         Project := Extending_Project (Project, Recurse => True);
 
-            Project := Extending_Project (Project, Recurse => True);
-            Process (Project);
-         end if;
+         declare
+            Name : constant String := Project.Name;
+         begin
+            --  Skip externally built projects unless they are explicitly
+            --  requested.
+
+            if (Externally_Built_Projects_Processing_Enabled
+                or else not Project.Externally_Built)
+               and then not Visited_Projects.Contains (Name)
+            then
+               Process (Project);
+               Visited_Projects.Insert (Name);
+            end if;
+         end;
 
          Next (Iter);
       end loop;
