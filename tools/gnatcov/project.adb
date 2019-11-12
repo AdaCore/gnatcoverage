@@ -1124,7 +1124,8 @@ package body Project is
       ---------------------
 
       procedure Enumerate_Mains (Project : Project_Type) is
-         Src_Files : File_Array_Access := Project.Source_Files;
+         Src_Files : File_Array_Access :=
+            Project.Extended_Projects_Source_Files;
       begin
          for F of Src_Files.all loop
             declare
