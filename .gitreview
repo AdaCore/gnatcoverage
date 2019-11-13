@@ -2,5 +2,5 @@
 host = git.adacore.com
 port = 29418
 project = gnatcoverage
-defaultbranch = 18.2
+defaultbranch = 18-sustained
 defaultremote = origin
