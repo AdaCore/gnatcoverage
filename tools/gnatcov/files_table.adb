@@ -20,7 +20,6 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
-with Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 
 with System;
@@ -37,8 +36,6 @@ with Project;
 with Switches;
 
 package body Files_Table is
-
-   subtype Stream_Access is Ada.Streams.Stream_IO.Stream_Access;
 
    procedure Free is new Ada.Unchecked_Deallocation
      (File_Info, File_Info_Access);
@@ -1572,7 +1569,7 @@ package body Files_Table is
    ---------------------
 
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
-      S : Stream_Access renames CSS.Stream;
+      S : access Ada.Streams.Root_Stream_Type'Class renames CSS.Stream;
    begin
       --  1) Output first and last SFIs
 
@@ -1610,7 +1607,7 @@ package body Files_Table is
    ---------------------
 
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
-      S      : Stream_Access renames CLS.Stream;
+      S      : access Ada.Streams.Root_Stream_Type'Class renames CLS.Stream;
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
       --  1) Read header
