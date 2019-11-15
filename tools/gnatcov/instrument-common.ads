@@ -197,6 +197,11 @@ package Instrument.Common is
    --  Given a unit to instrument, return the name of the unit that holds
    --  addresses to its coverage buffers.
 
+   function Project_Output_Dir (Project : Project_Type) return String;
+   --  Return the directory in which we must create instrumented sources for
+   --  Project. This retuns an empty strings for projects that do not have an
+   --  object directory.
+
    package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Compilation_Unit_Name,
       Element_Type => CU_Id);
@@ -223,7 +228,7 @@ package Instrument.Common is
       --  Subdirectory in the project file's object directory. All we generate
       --  for this project must land in it.
 
-      Instr_Files : File_Sets.Set;
+      Instr_Files : aliased File_Sets.Set;
       --  Set of files that were written to Output_Dir
    end record;
 

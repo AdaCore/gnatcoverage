@@ -176,11 +176,24 @@ package Project is
       with Pre => Is_Project_Loaded;
    --  Call Process on each name in the Coverage'Ignored_Source_File attribute
 
-   ---------------------------------------
-   -- Raw accessor for the project tree --
-   ---------------------------------------
+   ----------------------------------------
+   -- Raw accessors for the project tree --
+   ----------------------------------------
 
    function Project return GNATCOLL.Projects.Project_Tree_Access
       with Pre => Is_Project_Loaded;
+
+   procedure Iterate_Projects
+     (Root_Project : GNATCOLL.Projects.Project_Type;
+      Process      : access procedure (Prj : GNATCOLL.Projects.Project_Type);
+      Recursive    : Boolean;
+      Extended     : Boolean := False)
+      with Pre => Is_Project_Loaded;
+   --  Call Process on Root_Project if Recursive is False, or on the whole
+   --  project tree otherwise.
+   --
+   --  Visit extended projects only if Extended is True. This is useful only in
+   --  very specific cases, such as when needing to process all object
+   --  direcotries in the project tree.
 
 end Project;

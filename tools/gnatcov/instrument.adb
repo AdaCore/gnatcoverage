@@ -340,41 +340,100 @@ package body Instrument is
 
    procedure Remove_Old_Instr_Files (IC : Inst_Context) is
       use Ada.Directories;
+      use GNATCOLL.Projects;
       use Project_Info_Maps;
 
+      procedure Remove_Files
+        (Output_Dir    : String;
+         Ignored_Files : access File_Sets.Set);
+      --  Remove all files in the Output_Dir directory. If Ignored_Files is not
+      --  null, do not remove the file it contains.
+
+      procedure Remove_Files (Project : Project_Type);
+      --  Callback for Project.Iterate_Projects. Wrapper around the other
+      --  Remove_Files, to remove all files from the "gnatcov-instr" folder in
+      --  Project's object directory (only if Project is not a project of
+      --  interest).
+
+      ------------------
+      -- Remove_Files --
+      ------------------
+
+      procedure Remove_Files
+        (Output_Dir    : String;
+         Ignored_Files : access File_Sets.Set)
+      is
+         To_Delete : File_Sets.Set;
+         Search    : Search_Type;
+         Dir_Entry : Directory_Entry_Type;
+      begin
+         --  Some projects don't have an object directory: ignore them as there
+         --  is nothing to do.
+
+         if Output_Dir'Length = 0
+            or else not Exists (Output_Dir)
+            or else Kind (Output_Dir) /= Directory
+         then
+            return;
+         end if;
+
+         Start_Search
+           (Search,
+            Directory => Output_Dir,
+            Pattern   => "",
+            Filter    => (Ordinary_File => True, others => False));
+         while More_Entries (Search) loop
+            Get_Next_Entry (Search, Dir_Entry);
+            declare
+               Name    : constant String := Simple_Name (Dir_Entry);
+               UB_Name : constant Unbounded_String :=
+                  To_Unbounded_String (Name);
+            begin
+               if Ignored_Files = null
+                  or else not Ignored_Files.Contains (UB_Name)
+               then
+                  To_Delete.Insert (UB_Name);
+               end if;
+            end;
+         end loop;
+         End_Search (Search);
+
+         for Name of To_Delete loop
+            Delete_File (Output_Dir / To_String (Name));
+         end loop;
+      end Remove_Files;
+
+      ------------------
+      -- Remove_Files --
+      ------------------
+      procedure Remove_Files (Project : Project_Type) is
+      begin
+         if not IC.Project_Info_Map.Contains (+Project.Name) then
+            Remove_Files (Project_Output_Dir (Project), null);
+         end if;
+      end Remove_Files;
+
+   --  Start of processing for Remove_Old_Instr_Files
+
    begin
+      --  Remove files that this run did not create in the "gnatcov-instr"
+      --  directory for projects of interest.
+
       for Cur in IC.Project_Info_Map.Iterate loop
          declare
-            Prj_Info   : Project_Info renames Element (Cur).all;
-            Output_Dir : constant String := To_String (Prj_Info.Output_Dir);
-            To_Delete  : File_Sets.Set;
-            Search     : Search_Type;
-            Dir_Entry  : Directory_Entry_Type;
+            Prj_Info : Project_Info renames Element (Cur).all;
          begin
-            Start_Search
-              (Search,
-               Directory => Output_Dir,
-               Pattern   => "",
-               Filter    => (Ordinary_File => True, others => False));
-            while More_Entries (Search) loop
-               Get_Next_Entry (Search, Dir_Entry);
-               declare
-                  Name    : constant String := Simple_Name (Dir_Entry);
-                  UB_Name : constant Unbounded_String :=
-                     To_Unbounded_String (Name);
-               begin
-                  if not Prj_Info.Instr_Files.Contains (UB_Name) then
-                     To_Delete.Insert (UB_Name);
-                  end if;
-               end;
-            end loop;
-            End_Search (Search);
-
-            for Name of To_Delete loop
-               Delete_File (Output_Dir / To_String (Name));
-            end loop;
+            Remove_Files (To_String (Prj_Info.Output_Dir),
+                          Prj_Info.Instr_Files'Access);
          end;
       end loop;
+
+      --  Remove all files in the "gnatcov-instr" directory for other projects
+
+      Project.Iterate_Projects
+        (Root_Project => Project.Project.Root_Project,
+         Process      => Remove_Files'Access,
+         Recursive    => True);
    end Remove_Old_Instr_Files;
 
    ----------------------------------

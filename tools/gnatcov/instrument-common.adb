@@ -372,6 +372,21 @@ package body Instrument.Common is
       end return;
    end Pure_Buffer_Unit;
 
+   ------------------------
+   -- Project_Output_Dir --
+   ------------------------
+
+   function Project_Output_Dir (Project : Project_Type) return String is
+      use type GNATCOLL.VFS.Filesystem_String;
+      Obj_Dir : constant String := +Project.Object_Dir.Full_Name;
+   begin
+      if Obj_Dir'Length = 0 then
+         return "";
+      else
+         return Obj_Dir / "gnatcov-instr";
+      end if;
+   end Project_Output_Dir;
+
    ---------------------
    -- Start_Rewriting --
    ---------------------
@@ -712,7 +727,6 @@ package body Instrument.Common is
      (Context : in out Inst_Context;
       Project : Project_Type) return Project_Info_Access
    is
-      use type GNATCOLL.VFS.Filesystem_String;
       use Project_Info_Maps;
 
       --  Look for an existing Project_Info record corresponding to Project
@@ -729,9 +743,8 @@ package body Instrument.Common is
          --  register it and return it.
 
          declare
-            Project_Obj_Dir : constant String := +Project.Object_Dir.Full_Name;
-            Result          : constant Project_Info_Access := new Project_Info'
-              (Output_Dir  => +(Project_Obj_Dir / "gnatcov-instr"),
+            Result : constant Project_Info_Access := new Project_Info'
+              (Output_Dir  => +Project_Output_Dir (Project),
                Instr_Files => <>);
          begin
             Context.Project_Info_Map.Insert (Project_Name, Result);

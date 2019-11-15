@@ -65,13 +65,6 @@ package body Project is
    function "+" (A : List_Attribute) return Attribute_Pkg_List;
    --  Build identifiers for attributes in package Coverage
 
-   procedure Iterate_Projects
-     (Root_Project : Project_Type;
-      Process      : access procedure (Prj : Project_Type);
-      Recursive    : Boolean);
-   --  Call Process on Root_Project if Recursive is False, or on the whole
-   --  project tree otherwise.
-
    procedure Iterate_Source_Files
      (Root_Project : Project_Type;
       Process      : access procedure (Info : File_Info; Unit_Name : String);
@@ -282,7 +275,8 @@ package body Project is
    procedure Iterate_Projects
      (Root_Project : Project_Type;
       Process      : access procedure (Prj : Project_Type);
-      Recursive    : Boolean)
+      Recursive    : Boolean;
+      Extended     : Boolean := False)
    is
       Iter             : Project_Iterator := Start
         (Root_Project     => Root_Project,
@@ -296,10 +290,13 @@ package body Project is
          Project := Current (Iter);
          exit when Project = No_Project;
 
-         --  If project is extended, go to the ultimate extending project,
-         --  which might override the Coverage package.
+         --  Unless specifically asked to go through extended projects, go to
+         --  the ultimate extending project, which might override the Coverage
+         --  package.
 
-         Project := Extending_Project (Project, Recurse => True);
+         if not Extended then
+            Project := Extending_Project (Project, Recurse => True);
+         end if;
 
          declare
             Name : constant String := Project.Name;
