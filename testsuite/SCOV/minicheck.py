@@ -27,7 +27,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
                   absolute_paths=False, subdirs=None, dump_method='atexit',
                   check_gprbuild_output=False, trace_mode=None,
-                  gprsw_for_coverage=None):
+                  gprsw_for_coverage=None, scos_for_run=True):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -78,6 +78,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :param None|SUITE.gprutils.GPRswitches gprsw_for_coverage: GPRswitches
         instance used to describe the project and units of interest to analyze
         in "gnatcov coverage". If left to None, use "gprsw".
+    :param bool scos_for_run: Whether to pass SCOs/project information to
+        "gnatcov run".
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -136,9 +138,11 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
+        run_args = covlevel_args + extra_args
+        if scos_for_run:
+            run_args.extend(scos)
         for m in mains:
-            xrun(covlevel_args + [exepath(m)] + scos + extra_args,
-                 out='run.log')
+            xrun(run_args + [exepath(m)], out='run.log')
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
         xcov_args.extend(cov_or_instr_args)
