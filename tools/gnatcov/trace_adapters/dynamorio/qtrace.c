@@ -64,7 +64,8 @@ struct trace_cache_entry
   /* Size of the code for the trace entry.  */
   uint16_t size;
 
-  /* Branch flags.  Same as a trace entry.  */
+  /* Branch flags.  Same as a trace entry.
+     If the block has not been executed the value stay 0.  */
   unsigned char op;
 };
 
@@ -182,8 +183,13 @@ flush_cb (int id)
   (void) id;
   dr_mutex_lock (trace_buffer_lock);
   dr_mutex_lock (trace_lru_entries_lock);
-  for (i = 0; i < cache_entries_idx; i++)
-    write_trace_cache_entry (&cache_entries[i]);
+  for (i = 0; i < cache_entries_idx; i++) {
+    /* Don't write the entries which has not been executed at all.  They will
+       be executed later from a newly translated basic block.  */
+    if (cache_entries[i].op) {
+      write_trace_cache_entry (&cache_entries[i]);
+    }
+  }
   cache_entries_idx = 0;
   dr_mutex_unlock (trace_lru_entries_lock);
   dr_mutex_unlock (trace_buffer_lock);
@@ -308,6 +314,11 @@ at_cache(app_pc inst_addr, app_pc targ_addr, app_pc fall_addr,
   (void) inst_addr;
   (void) targ_addr;
   (void) fall_addr;
+
+  /* This assumes that we cannot execute this block while we are flushing the
+     basic block which seems correct here.  So no need to grab the lock
+     here.  */
+  tce->op |= TRACE_OP_BLOCK;
   tce->op |= taken ? TRACE_OP_BR0 : TRACE_OP_BR1;
 }
 
@@ -375,7 +386,7 @@ event_basic_block(void *drcontext, void *tag, instrlist_t *bb,
 		{
 		  tce->addr = bb_pc;
 		  tce->size = size;
-		  tce->op = TRACE_OP_BLOCK;
+		  tce->op = 0;
 		}
 
 	      dr_insert_cbr_instrumentation_ex
