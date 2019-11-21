@@ -73,6 +73,9 @@ environment variable designating the GNAT installation root.
     gnatcov build process only needs access to the source+build directory (no
     need to run `make install`).
 
+3.  Build & install Libadalang: please refer to
+    [Libadalang's instructions](https://github.com/adacore/libadalang#quick-guide-to-use-libadalang).
+
 3.  Build & install a base Valgrind:
 
     Best is to use a Valgrind release for this, for example 3.10.1 or
