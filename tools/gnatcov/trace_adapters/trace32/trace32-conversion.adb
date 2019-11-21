@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2017, AdaCore                       --
+--                     Copyright (C) 2017-2019, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -62,6 +62,7 @@ package body Trace32.Conversion is
       BF_Status      : BF.Status_Kind;
       Prev_Landing   : Pc_Type;
       Output         : Trace_Output.QEMU_Trace_Output;
+      Kind           : Instruction_Kind;
    begin
 
       --  Load the instruction info from the ELF file
@@ -104,50 +105,93 @@ package body Trace32.Conversion is
          Prev_Landing := BF_Entry.Target;
       end if;
 
-      --  Convertion loop
-      loop
+      Conversion : loop
+
          BF_Status := Branch_Flow.Next_Entry (BF_Entry);
 
          --  Are we at the end of the Branch flow file?
-         exit when BF_Status = BF.No_More_Entry;
 
-         --  Make sure the Caller address is designating a branch instruction
-         if Insn.Is_Branch (BF_Entry.Caller) then
-            declare
-               Ent : Traces.Trace_Entry;
-            begin
-               --  Set the address of the first instrunction in the basic block
-               Ent.First := Prev_Landing;
+         exit Conversion when BF_Status = BF.No_More_Entry;
 
-               --  Set the address of the last byte of the last instruction in
-               --  the basic block.
-               Ent.Last  := BF_Entry.Caller +
-                 Insn.Get_Insn_Length (BF_Entry.Caller) - 1;
+         Kind := Insn.Kind (BF_Entry.Caller);
+         case Kind is
 
-               --  Mark the basic block as executed
-               Ent.Op    := Qemu_Traces.Trace_Op_Block;
+            when Branch | Not_A_Branch =>
+               declare
+                  Ent : Traces.Trace_Entry;
+               begin
+                  --  Set the address of the first instruction in the basic
+                  --  block.
+                  Ent.First := Prev_Landing;
 
-               --  Check if Target is the fallthrough address of Caller
-               --  instuction.
-               if Insn.Fallthrough_Address (BF_Entry.Caller,
-                                            BF_Entry.Target)
-               then
-                  --  Fallthrough
-                  Ent.Op := Ent.Op or Qemu_Traces.Trace_Op_Br1;
-               else
-                  --  Branch
-                  Ent.Op := Ent.Op or Qemu_Traces.Trace_Op_Br0;
-               end if;
+                  --  Set the address of the last byte of the last instruction
+                  --  in the basic block.
+                  Ent.Last  := BF_Entry.Caller +
+                    Insn.Get_Insn_Length (BF_Entry.Caller) - 1;
 
-               Output.Push_Entry (Ent);
-            end;
-         else
-            Outputs.Fatal_Error ("Caller is not a branch (" &
-                                   Hex_Image (BF_Entry.Caller) & ")");
-         end if;
+                  --  Mark the basic block as executed
+                  Ent.Op    := Qemu_Traces.Trace_Op_Block;
+
+                  if Kind = Branch then
+                     --  Check if Target is the fallthrough address of Caller
+                     --  instruction.
+                     if Insn.Fallthrough_Address (BF_Entry.Caller,
+                                                  BF_Entry.Target)
+                     then
+                        --  Fallthrough
+                        Ent.Op := Ent.Op or Qemu_Traces.Trace_Op_Br1;
+                     else
+                        --  Branch
+                        Ent.Op := Ent.Op or Qemu_Traces.Trace_Op_Br0;
+                     end if;
+                  else
+
+                     --  The flow of execution changed at an instruction that
+                     --  is not a branch. We consider this case as a machine
+                     --  fault.
+                     Ent.Op := Qemu_Traces.Trace_Op_Fault;
+                  end if;
+
+                  Output.Push_Entry (Ent);
+               end;
+
+            when Unknown =>
+
+               --  The kind of instruction is unknown, this most probably means
+               --  that the instruction is not within the sections of the ELF
+               --  file (could be the execution of a bootloader or an OS for
+               --  instance).
+               --
+               --  Without the instruction kind the conversion is not possible,
+               --  so we will try to recover from this situation by searching
+               --  for the next known instruction.
+
+               Recovery : loop
+
+                  if Insn.Kind (BF_Entry.Caller) /= Unknown then
+
+                     Outputs.Warn
+                       ("Recovering from unknown instruction ("
+                          & Hex_Image (BF_Entry.Target) & ")");
+                     exit Recovery;
+                  else
+                     Outputs.Warning_Or_Error
+                       ("Could not get instruction info ("
+                          & Hex_Image (BF_Entry.Caller) & ")");
+                  end if;
+
+                  BF_Status := Branch_Flow.Next_Entry (BF_Entry);
+
+                  --  Are we at the end of the Branch flow file?
+
+                  exit Conversion when BF_Status = BF.No_More_Entry;
+
+               end loop Recovery;
+
+         end case;
 
          Prev_Landing := BF_Entry.Target;
-      end loop;
+      end loop Conversion;
 
       Branch_Flow.Close_Trace_File;
       Output.Close_Trace_File;

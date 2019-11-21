@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2017, AdaCore                       --
+--                     Copyright (C) 2017-2019, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,12 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces;    use Interfaces;
+with Interfaces; use Interfaces;
 
-with Binary_Files;  use Binary_Files;
-with Disassemblers; use Disassemblers;
+with Binary_Files;   use Binary_Files;
+with Disassemblers;  use Disassemblers;
 with Execs_Dbase;
-with Outputs;       use Outputs;
+with Outputs;        use Outputs;
 
 package body Instructions_Info is
 
@@ -95,32 +95,39 @@ package body Instructions_Info is
       return Pc_Type (Disas.Get_Insn_Length (Slice (Code, PC, Code.Last)));
    end Get_Insn_Length;
 
-   ---------------
-   -- Is_Branch --
-   ---------------
+   ----------
+   -- Kind --
+   ----------
 
-   function Is_Branch (This : in out Insn_Info;
-                       PC   : Pc_Type)
-                       return Boolean
+   function Kind (This : in out Insn_Info;
+                  PC   : Pc_Type)
+                 return Instruction_Kind
    is
       Disas       : access Disassembler'Class;
       Code        : constant Binary_Content := This.Section.Section_Content;
-      Branch      : Branch_Kind;
+      Br          : Branch_Kind;
       Flag_Indir  : Boolean;
       Flag_Cond   : Boolean;
       Branch_Dest : Dest;
       FT_Dest     : Dest;
    begin
+      if PC not in Code.First .. Code.Last then
+         return Unknown;
+      end if;
       Disas := Disa_For_Machine (Machine, This.I_Ranges, This.Cache, PC);
       Disas.Get_Insn_Properties (Slice (Code, PC, Code.Last),
                                  Pc          => PC,
-                                 Branch      => Branch,
+                                 Branch      => Br,
                                  Flag_Indir  => Flag_Indir,
                                  Flag_Cond   => Flag_Cond,
                                  Branch_Dest => Branch_Dest,
                                  FT_Dest     => FT_Dest);
-      return Branch /= Br_None;
-   end Is_Branch;
+      if Br /= Br_None then
+         return Branch;
+      else
+         return Not_A_Branch;
+      end if;
+   end Kind;
 
    -----------------
    -- Fallthrough --
