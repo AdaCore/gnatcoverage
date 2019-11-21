@@ -1,2 +1,2 @@
-7.0.2 DEAD relies on compiler change introduced post 7.4 
+7.1.2 DEAD relies on compiler change introduced post 7.4 
 src-traces XFAIL Testcase update pending the resolution of S624-021

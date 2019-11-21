@@ -15,6 +15,6 @@ end;
 -- Old compiler are weaker on mere declarations, not
 -- the point of any of the tests in this this family.
 
--- %tags:7.0.2
+-- %tags:7.1.2
 -- =/decl/  ~l- ## ~s-
 

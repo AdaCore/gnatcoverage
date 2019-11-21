@@ -1,2 +1,2 @@
 RTS_ZFP DEAD no support for unbounded strings in ZFP runtimes
-CARGS_O1,7.0.2 XFAIL Debug info issue fixed post 7.0, PB30-044
+CARGS_O1,7.1.2 XFAIL Debug info issue fixed post 7.0, PB30-044

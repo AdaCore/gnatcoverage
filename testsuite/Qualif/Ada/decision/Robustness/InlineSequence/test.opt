@@ -1,1 +1,1 @@
-7.0.2 XFAIL relies on specific debug info for untangling multiple inlined instances, fixed post 7.0
+7.1.2 XFAIL relies on specific debug info for untangling multiple inlined instances, fixed post 7.0

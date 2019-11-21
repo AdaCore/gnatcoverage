@@ -37,7 +37,7 @@ end Test_Instantiations_No;
 -- /elab/          l- ## s-
 -- /line-elab/     l- ## 0
 
--- %tags:(7.0.2|7.2.2|7.4.3)
+-- %tags:(7.1.2|7.2.2|7.4.3)
 -- =/decl/         l- ## s-
 -- =/elab/         l- ## s-
 -- =/line-elab/    l- ## 0c
@@ -59,7 +59,7 @@ end Test_Instantiations_No;
 -- /default_stack/ l- ## s-
 -- /elab/          l- ## s-
 --
--- %tags:(7.0.2|7.2.2|7.4.3)
+-- %tags:(7.1.2|7.2.2|7.4.3)
 --
 -- =/push/          l- ## s-
 -- =/pop/           l- ## s-
@@ -76,5 +76,5 @@ end Test_Instantiations_No;
 --%opts: --trace-mode=src
 -- /stmt/          l- ## s-
 
--- %tags:(7.0.2|7.2.2|7.4.3)
+-- %tags:(7.1.2|7.2.2|7.4.3)
 -- =/stmt/         l- ## s-

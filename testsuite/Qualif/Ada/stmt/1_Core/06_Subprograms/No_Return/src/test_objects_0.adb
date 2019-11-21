@@ -13,5 +13,5 @@ end;
 -- Old compilers are less precise in tracking
 -- dominance 
 
--- %tags:(7.0.2|7.2.2)
+-- %tags:(7.1.2|7.2.2)
 -- =/pragma/ ~l- ## ~s-
