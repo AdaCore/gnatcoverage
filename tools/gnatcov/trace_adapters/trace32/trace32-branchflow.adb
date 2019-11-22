@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2017, AdaCore                       --
+--                     Copyright (C) 2017-2019, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -36,8 +36,7 @@ package body Trace32.Branchflow is
 
    function Open
      (This : in out Branchflow_Trace;
-      Path : String)
-      return Status_Kind
+      Path : String) return Status_Kind
    is
       function Check_Header return Boolean;
       --  Return True if the trace header is correct
@@ -94,8 +93,7 @@ package body Trace32.Branchflow is
    -- Close_Trace_File --
    ----------------------
 
-   procedure Close_Trace_File
-     (This : in out Branchflow_Trace)
+   procedure Close_Trace_File (This : in out Branchflow_Trace)
    is
    begin
       Close (This.File);
@@ -108,8 +106,7 @@ package body Trace32.Branchflow is
 
    function Next_Entry
      (This : in out Branchflow_Trace;
-      Ent  : out Branchflow_Trace_Entry)
-      return Status_Kind
+      Ent  : out Branchflow_Trace_Entry) return Status_Kind
    is
    begin
       declare

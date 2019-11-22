@@ -29,8 +29,9 @@ package body Instructions_Info is
    -- Load_Elf --
    --------------
 
-   procedure Load_Elf (This      : in out Insn_Info;
-                       Exec_Path : String)
+   procedure Load_Elf
+     (This      : in out Insn_Info;
+      Exec_Path : String)
    is
       Section_Iterator : Addresses_Iterator;
    begin
@@ -70,9 +71,9 @@ package body Instructions_Info is
    -- Get_Next_Insn_Address --
    ---------------------------
 
-   function Get_Next_Insn_Address (This : in out Insn_Info;
-                                   PC : Pc_Type)
-                                   return Pc_Type
+   function Get_Next_Insn_Address
+     (This : in out Insn_Info;
+      PC   : Pc_Type) return Pc_Type
    is
    begin
       return PC + This.Get_Insn_Length (PC);
@@ -82,9 +83,9 @@ package body Instructions_Info is
    -- Get_Insn_Length --
    ---------------------
 
-   function Get_Insn_Length (This : in out Insn_Info;
-                             PC   : Pc_Type)
-                             return Pc_Type
+   function Get_Insn_Length
+     (This : in out Insn_Info;
+      PC   : Pc_Type) return Pc_Type
    is
       Disas    : access Disassembler'Class;
       Code     : constant Binary_Content := This.Section.Section_Content;
@@ -99,9 +100,9 @@ package body Instructions_Info is
    -- Kind --
    ----------
 
-   function Kind (This : in out Insn_Info;
-                  PC   : Pc_Type)
-                 return Instruction_Kind
+   function Kind
+     (This : in out Insn_Info;
+      PC   : Pc_Type) return Instruction_Kind
    is
       Disas       : access Disassembler'Class;
       Code        : constant Binary_Content := This.Section.Section_Content;
@@ -133,9 +134,9 @@ package body Instructions_Info is
    -- Fallthrough --
    -----------------
 
-   function Fallthrough_Address (This           : in out Insn_Info;
-                         Caller, Target : Pc_Type)
-                         return Boolean
+   function Fallthrough_Address
+     (This           : in out Insn_Info;
+      Caller, Target : Pc_Type) return Boolean
    is
    begin
       return Get_Next_Insn_Address (This, Caller) = Target;

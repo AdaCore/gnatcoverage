@@ -42,23 +42,23 @@ package Instructions_Info is
    --  or an unknown kind. Unknown can be return when the disassembler doesn't
    --  have enough information to determine the kind of instruction.
 
-   function Get_Next_Insn_Address (This : in out Insn_Info;
-                                   PC   : Pc_Type)
-                                   return Pc_Type
+   function Get_Next_Insn_Address
+     (This : in out Insn_Info;
+      PC   : Pc_Type) return Pc_Type
      with
        Pre => Loaded (This) and then Kind (This, PC) /= Unknown;
    --  Return the address of the next instruction after PC
 
-   function Get_Insn_Length (This : in out Insn_Info;
-                             PC   : Pc_Type)
-                             return Pc_Type
+   function Get_Insn_Length
+     (This : in out Insn_Info;
+      PC   : Pc_Type) return Pc_Type
      with
        Pre => Loaded (This) and then Kind (This, PC) /= Unknown;
    --  Return memory lenght of the instruction at PC
 
-   function Fallthrough_Address (This           : in out Insn_Info;
-                                 Caller, Target : Pc_Type)
-                                 return Boolean
+   function Fallthrough_Address
+     (This           : in out Insn_Info;
+      Caller, Target : Pc_Type) return Boolean
      with
        Pre => Loaded (This) and then Kind (This, Caller) = Branch;
    --  Return True if Target is the fallthouth address of the branch

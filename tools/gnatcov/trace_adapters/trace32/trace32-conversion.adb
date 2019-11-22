@@ -69,16 +69,16 @@ package body Trace32.Conversion is
       Insn.Load_Elf (Elf_File);
 
       if not Insn.Loaded then
-         Outputs.Fatal_Error ("Cannot load .text section for ELF file: '" &
-                                Elf_File & "'");
+         Outputs.Fatal_Error ("Cannot load .text section for ELF file: '"
+                                & Elf_File & "'");
       end if;
 
       Report ("Loading Trace32 Branch Flow file: " & Branchflow_File);
 
       if Branch_Flow.Open (Branchflow_File) /= BF.Status_Ok
       then
-         Outputs.Fatal_Error ("Cannot open Trace32 Branch Flow file: '" &
-                                Branchflow_File & "'");
+         Outputs.Fatal_Error ("Cannot open Trace32 Branch Flow file: '"
+                                & Branchflow_File & "'");
       end if;
 
       Output.Open (Qemu_Trace_File, Decision_Map_File);
@@ -95,11 +95,10 @@ package body Trace32.Conversion is
 
       if BF_Status /= Status_Ok then
          --  No entry in Branchflow file
-         Outputs.Fatal_Error ("No entry in Trace32 Branchflow file'" &
-                                Branchflow_File & "'");
+         Outputs.Fatal_Error ("No entry in Trace32 Branchflow file'"
+                                & Branchflow_File & "'");
          return;
       else
-
          --  Use Target address of first branchflow entry as the first address
          --  of the first basic block.
          Prev_Landing := BF_Entry.Target;

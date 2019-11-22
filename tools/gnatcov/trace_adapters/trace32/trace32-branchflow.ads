@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2017, AdaCore                       --
+--                     Copyright (C) 2017-2019, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -29,9 +29,9 @@ package Trace32.Branchflow is
                         Invalid_Trace_File,
                         No_More_Entry);
 
-   function Open (This : in out Branchflow_Trace;
-                  Path : String)
-                  return Status_Kind
+   function Open
+     (This : in out Branchflow_Trace;
+      Path : String) return Status_Kind
      with Pre  => not This.Is_Open,
      Post => Open'Result in Status_Ok | File_Error | Invalid_Trace_File
                and then
@@ -56,9 +56,9 @@ package Trace32.Branchflow is
       --  Destination address of the flow change
    end record;
 
-   function Next_Entry (This : in out Branchflow_Trace;
-                        Ent  : out Branchflow_Trace_Entry)
-                        return Status_Kind
+   function Next_Entry
+     (This : in out Branchflow_Trace;
+      Ent  : out Branchflow_Trace_Entry) return Status_Kind
      with Pre  => This.Is_Open,
           Post => Next_Entry'Result in Status_Ok | No_More_Entry;
    --  Read the next entry in the branchflow file. This function returns
