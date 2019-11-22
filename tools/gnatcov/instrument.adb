@@ -394,7 +394,8 @@ package body Instrument is
 
       Provider : constant Unit_Provider_Reference :=
          Libadalang.Project_Provider.Create_Project_Unit_Provider_Reference
-           (Project          => Project.Project,
+           (Tree             => Project.Project,
+            Project          => Project.Project.Root_Project,
             Env              => null,
             Is_Project_Owner => False);
       Context  : constant Analysis_Context :=
