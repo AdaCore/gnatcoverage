@@ -2,11 +2,14 @@
 Qemu trace files loading and saving library.
 """
 
+from __future__ import absolute_import, division, print_function
 
+import argparse
 import binascii
 import datetime
 import os
-from struct import Struct
+
+from SUITE.stream_decoder import ByteStreamDecoder, Struct
 
 
 class Enum(object):
@@ -140,40 +143,55 @@ def create_trace_header(kind, pc_size, big_endian, machine):
         pc_size,
         big_endian,
         machine >> 8,
-        machine & 0xff
+        machine & 0xff,
+        0
     )
 
 
 TraceHeaderStruct = Struct(
-    '12s'  # Magic string
-    'B'    # Version of file format
-    'B'    # Section kind
+    'trace file header',
 
-    'B'    # Size of PC on target, in bytes
-    'B'    # Whether the host is big endian
+    # See Trace_Header in qemu_traces.ads
+    ('magic', '12s'),
+    ('version', 'B'),
+    ('kind', 'B'),
 
-    'BB'   # Target ELF machine ID
-    'xx'   # Padding
+    ('sizeof_target_pc', 'B'),
+    ('big_endian', 'B'),
+
+    ('machine_hi', 'B'),
+    ('machine_lo', 'B'),
+    ('padding', 'H'),
 )
 
 
 TraceInfoHeaderStruct = Struct(
-    'I'  # Kind
-    'I'  # Length
+    'trace info header',
+
+    # See Trace_Info_Header in qemu_traces.ads
+    ('kind', 'I'),
+    ('length', 'I'),
 )
 
 
 TraceEntry32Struct = Struct(
-    'I'  # Pc
-    'H'  # Size
-    'B'  # Op
-    'x'  # Padding
+    'trace entry 32',
+
+    # See Trace_Entry32 in qemu_traces.ads
+    ('pc', 'I'),
+    ('size', 'H'),
+    ('op', 'B'),
+    ('padding', 'B'),
 )
 TraceEntry64Struct = Struct(
-    'Q'      # Pc
-    'H'      # Size
-    'B'      # Op
-    'xxxxx'  # Padding
+    'trace entry 64',
+
+    # See Trace_Entry64 in qemu_traces.ads
+    ('pc', 'Q'),
+    ('size', 'H'),
+    ('op', 'B'),
+    ('padding0', 'B'),
+    ('padding1', 'I'),
 )
 
 
@@ -185,11 +203,10 @@ def unpack_from_file(fp, struct):
     :param file fp: File from which to read bytes.
     :param Struct struct: Struct instance to decode data.
     """
-    buf = fp.read(struct.size)
-    if not buf:
+    fields = struct.read(fp)
+    if fields is None:
         return None
-    assert len(buf) == struct.size
-    return struct.unpack(buf)
+    return [fields[name] for name, _ in struct.fields]
 
 
 class TraceFile(object):
@@ -246,11 +263,12 @@ class TraceFile(object):
         bits = cls.bits(first_header)
 
         entries = []
-        while True:
-            entry = TraceEntry.read(fp, bits)
-            if not entry:
-                break
-            entries.append(entry)
+        if second_header:
+            while True:
+                entry = TraceEntry.read(fp, bits)
+                if not entry:
+                    break
+                entries.append(entry)
 
         return cls(first_header, infos, second_header, entries)
 
@@ -260,9 +278,9 @@ class TraceFile(object):
         """
         assert self.bits
 
-        fp.write(TraceHeaderStruct.pack(*self.first_header))
+        TraceHeaderStruct.write(fp, self.first_header)
         self.infos.write(fp)
-        fp.write(TraceHeaderStruct.pack(*self.second_header))
+        TraceHeaderStruct.write(fp, self.second_header)
         for entry in self.entries:
             entry.write(fp)
 
@@ -338,24 +356,27 @@ class TraceInfo(object):
         Read a trace info entry from the `fp` file. Return a TraceInfo
         instance.
         """
-        hdr = unpack_from_file(fp, TraceInfoHeaderStruct)
-        assert hdr
-        kind, length = hdr
-        InfoKind.check(kind)
+        with fp.label_context('trace info'):
+            hdr = unpack_from_file(fp, TraceInfoHeaderStruct)
+            assert hdr
+            kind, length = hdr
+            InfoKind.check(kind)
 
-        data = fp.read(length)
-        assert len(data) == length
+            with fp.label_context('data'):
+                data = fp.read(length)
+                assert len(data) == length
 
-        padding_size = cls.padding_size(len(data))
-        padding = fp.read(padding_size)
-        assert len(padding) == padding_size, (
-            'Expected {} padding bytes but got {}'.format(
-                padding_size, len(padding)
-            )
-        )
-        assert padding == ('\x00' * padding_size), (
-            'Some padding bytes are non-null: {}'.format(repr(padding))
-        )
+            with fp.label_context('padding'):
+                padding_size = cls.padding_size(len(data))
+                padding = fp.read(padding_size)
+                assert len(padding) == padding_size, (
+                    'Expected {} padding bytes but got {}'.format(
+                        padding_size, len(padding)
+                    )
+                )
+                assert padding == ('\x00' * padding_size), (
+                    'Some padding bytes are non-null: {}'.format(repr(padding))
+                )
 
         return cls(kind, data)
 
@@ -363,7 +384,7 @@ class TraceInfo(object):
         """
         Write this trace info to the `fp` file.
         """
-        fp.write(TraceInfoHeaderStruct.pack(self.kind, len(self.data)))
+        TraceInfoHeaderStruct.write(fp, (self.kind, len(self.data)))
         fp.write(self.data)
         fp.write('\x00' * self.padding_size(len(self.data)))
 
@@ -403,7 +424,7 @@ class TraceInfoList(object):
         """
         for _, info in sorted(self.infos.items()):
             info.write(fp)
-        fp.write(TraceInfoHeaderStruct.pack(InfoKind.InfoEnd, 0))
+        TraceInfoHeaderStruct.write(fp, (InfoKind.InfoEnd, 0))
 
 
 class TraceEntry(object):
@@ -450,22 +471,32 @@ class TraceEntry(object):
         """
         Read a trace entry from the `fp` file. Return a TraceEntry instance.
         """
-        fields = unpack_from_file(fp, cls.struct(bits))
-        if not fields:
-            return None
+        with fp.label_context('trace entry'):
+            fields = unpack_from_file(fp, cls.struct(bits))
+            if not fields:
+                return None
 
-        result = cls(bits, *fields)
-        if result.is_special and result.size == TraceSpecial.LoadSharedObject:
-            result.infos = TraceInfoList.read(fp)
-        return result
+            # Remove padding
+            fields.pop()
+            if bits == 64:
+                fields.pop()
+
+            result = cls(bits, *fields)
+            if (
+                result.is_special
+                and result.size == TraceSpecial.LoadSharedObject
+            ):
+                result.infos = TraceInfoList.read(fp)
+            return result
 
     def write(self, fp):
         """
         Write this trace entry to the `fp` file.
         """
-        fp.write(self.struct(self.bits).pack(
-            self.pc, self.size, self.op
-        ))
+        fields = [self.pc, self.size, self.op, 0]
+        if self.bits == 64:
+            fields.append(0)
+        self.struct(self.bits).write(fp, fields)
         if self.infos:
             self.infos.write(fp)
 
@@ -498,3 +529,17 @@ def create_exec_infos(filename, code_size=None):
         infos.append(TraceInfo(InfoKind.ExecCodeSize, ' ' + str(code_size)))
 
     return TraceInfoList({info.kind: info for info in infos})
+
+
+parser = argparse.ArgumentParser('Decode a binary trace file')
+parser.add_argument('--debug', '-d', action='store_true',
+                    help='Enable debug traces')
+parser.add_argument('trace-file', help='Binary trace file to decode')
+
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    with open(getattr(args, 'trace-file'), 'rb') as f:
+        tf = TraceFile.read(ByteStreamDecoder(f, args.debug))
+
+    # TODO: add trace-file dump capabilities
