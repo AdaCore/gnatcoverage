@@ -540,6 +540,6 @@ parser.add_argument('trace-file', help='Binary trace file to decode')
 if __name__ == '__main__':
     args = parser.parse_args()
     with open(getattr(args, 'trace-file'), 'rb') as f:
-        tf = TraceFile.read(ByteStreamDecoder(f, args.debug))
+        tf = TraceFile.read(ByteStreamDecoder(f, args.debug, 4))
 
     # TODO: add trace-file dump capabilities

@@ -8,23 +8,31 @@ class ByteStreamDecoder(object):
     """
 
     BYTES_PER_LINE = 16
+    INDENT = '  '
 
-    def __init__(self, stream, enabled=False):
+    def __init__(self, stream, enabled=False, max_indent=0):
         """
         :param file stream: Byte stream to read.
         :param bool enable: If true, enable decoding traces
+        :param int max_indent: Amount of columns to reserve in logs so that
+            the indentation due to label_context does not shift ASCII dumps.
         """
         self.stream = stream
         self.enabled = enabled
         self.label_stack = []
         self.offset = 0
+        self.max_indent = max_indent
+
+    @property
+    def _indent_prefix(self):
+        return self.INDENT * len(self.label_stack)
 
     def _print(self, message, *args, **kwargs):
         if not self.enabled:
             return
         if args or kwargs:
             message = message.format(*args, **kwargs)
-        print('{}{}'.format('  ' * len(self.label_stack), message))
+        print('{}{}'.format(self._indent_prefix, message))
 
     @contextmanager
     def label_context(self, label):
@@ -48,9 +56,12 @@ class ByteStreamDecoder(object):
         """
         bytes = self.stream.read(size)
         if self.enabled:
-
-            # Two characters per byte and one space in between
+            # Two characters per byte and one space in between. Adjust to
+            # account for the maximum indentation.
             bytes_part_size = 3 * self.BYTES_PER_LINE - 1
+
+            reserved_indent = self.max_indent - len(self.label_stack)
+            bytes_part_size += max(0, len(self.INDENT) * reserved_indent)
 
             # Number of lines to represent bytes
             lines_count = (len(bytes) + self.BYTES_PER_LINE
