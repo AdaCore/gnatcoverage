@@ -160,10 +160,9 @@ package body Instrument.Tree is
    --  Return the name of the MC/DC state local variable for the given
    --  decision SCO.
 
-   function Make_MCDC_State
-     (UIC  : Unit_Inst_Context;
-      Name : String) return Node_Rewriting_Handle;
-   --  Create the declaration of the MC/DC state local variable
+   procedure Insert_MCDC_State (UIC : in out Unit_Inst_Context; Name : String);
+   --  Create and insert the declaration of an MC/DC state local variable
+   --  and of a constant, with the given Name, denoting its address.
 
    ------------
    -- Report --
@@ -229,24 +228,36 @@ package body Instrument.Tree is
       end if;
    end Make_Statement_Witness;
 
-   ---------------------
-   -- Make_MCDC_State --
-   ---------------------
+   -----------------------
+   -- Insert_MCDC_State --
+   -----------------------
 
-   function Make_MCDC_State
-     (UIC  : Unit_Inst_Context;
-      Name : String) return Node_Rewriting_Handle
+   procedure Insert_MCDC_State (UIC : in out Unit_Inst_Context; Name : String)
    is
-      E        : Instrumentation_Entities renames UIC.Entities;
-      Decl_Img : constant String :=
-        Name & " : aliased {}.MCDC_State_Type;";
+      E             : Instrumentation_Entities renames UIC.Entities;
+      Var_Decl_Img  : constant String :=
+        Name & "_Var : aliased {}.MCDC_State_Type;";
+      Addr_Decl_Img : constant String :=
+        Name & " : constant Standard.System.Address := "
+        & Name & "_Var'Address;";
+
    begin
-      return Create_From_Template
-        (UIC.Rewriting_Context,
-         Template  => To_Wide_Wide_String (Decl_Img),
-         Arguments => (1 => E.Common_Buffers),
-         Rule      => Object_Decl_Rule);
-   end Make_MCDC_State;
+      Ensure_With_System (UIC);
+      Insert_Child
+        (UIC.Local_Decls, 1,
+         Create_From_Template
+          (UIC.Rewriting_Context,
+           Template  => To_Wide_Wide_String (Var_Decl_Img),
+           Arguments => (1 => E.Common_Buffers),
+           Rule      => Object_Decl_Rule));
+      Insert_Child
+        (UIC.Local_Decls, 2,
+         Create_From_Template
+          (UIC.Rewriting_Context,
+           Template  => To_Wide_Wide_String (Addr_Decl_Img),
+           Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+           Rule      => Object_Decl_Rule));
+   end Insert_MCDC_State;
 
    ----------------
    -- Append_SCO --
@@ -2584,9 +2595,7 @@ package body Instrument.Tree is
                   MCDC_State :=
                     To_Unbounded_String
                       (Make_MCDC_State_Name (SCOs.SCO_Table.Last));
-                  Insert_Child
-                    (UIC.Local_Decls, 1,
-                     Make_MCDC_State (UIC, To_String (MCDC_State)));
+                  Insert_MCDC_State (UIC, To_String (MCDC_State));
                end if;
             end if;
 

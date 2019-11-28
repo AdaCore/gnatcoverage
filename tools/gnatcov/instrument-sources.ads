@@ -238,4 +238,7 @@ private package Instrument.Sources is
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));
 
+   procedure Ensure_With_System (UIC : in out Unit_Inst_Context);
+   --  Ensure that the unit being instrumented has a dependency on System
+
 end Instrument.Sources;

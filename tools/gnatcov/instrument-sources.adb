@@ -138,7 +138,7 @@ package body Instrument.Sources is
         & (if Is_MCDC
            then ", {}"
                 & ", " & Img (Bits.Path_Bits_Base)
-                & ", " & To_String (MCDC_State) & "'Address"
+                & ", " & To_String (MCDC_State)
            else "")
         & ")";
 
@@ -183,7 +183,7 @@ package body Instrument.Sources is
    is
       E        : Instrumentation_Entities renames IC.Entities;
       Call_Img : constant String :=
-        "{}.Witness (" & To_String (MCDC_State) & "'Address,"
+        "{}.Witness (" & To_String (MCDC_State) & ","
         & Img (Offset) & "," & First'Img & ")";
 
       RH_Call : constant Node_Rewriting_Handle :=
@@ -932,5 +932,27 @@ package body Instrument.Sources is
 
       Rewriter.Apply;
    end Instrument_Source_File;
+
+   ------------------------
+   -- Ensure_With_System --
+   ------------------------
+
+   procedure Ensure_With_System (UIC : in out Unit_Inst_Context) is
+      RH : Rewriting_Handle renames UIC.Rewriting_Context;
+   begin
+      if UIC.Has_With_System then
+         return;
+      end if;
+
+      Append_Child
+        (Handle (UIC.Root_Unit.F_Prelude),
+         Create_From_Template
+           (RH,
+            Template  => "with System;",
+            Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+            Rule      => With_Clause_Rule));
+
+      UIC.Has_With_System := True;
+   end Ensure_With_System;
 
 end Instrument.Sources;
