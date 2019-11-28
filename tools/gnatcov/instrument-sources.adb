@@ -747,9 +747,6 @@ package body Instrument.Sources is
 
       Root_Analysis_Unit : Analysis_Unit;
 
-      Root_Unit          : Compilation_Unit;
-      --  Compilation unit node for the library item being analyzed
-
       Preelab : Boolean;
       --  Set to True if Unit is required to be preelaborable, i.e.  it is
       --  either preelaborated, or the declaration of a remote types or
@@ -766,12 +763,12 @@ package body Instrument.Sources is
       --  Determine whether Unit is required to be preelaborable, and whether
       --  we can insert witness calls (which are not preelaborable).
 
-      Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
+      UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
 
       begin
-         Preelab := Root_Unit.P_Is_Preelaborable
-           and then Root_Unit.F_Body.Kind = Ada_Library_Item
-           and then Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
+         Preelab := UIC.Root_Unit.P_Is_Preelaborable
+           and then UIC.Root_Unit.F_Body.Kind = Ada_Library_Item
+           and then UIC.Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
              Ada_Package_Decl
            | Ada_Package_Body
            | Ada_Generic_Package_Decl;

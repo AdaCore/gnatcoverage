@@ -19,7 +19,8 @@
 --  Generate SCOs and source code instrumentation
 
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
+with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
@@ -158,6 +159,15 @@ private package Instrument.Sources is
    type Unit_Inst_Context is record
       Instrumented_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit being instrumented
+
+      Root_Unit : Compilation_Unit;
+      --  Node of compilation unit
+
+      Has_With_System : Boolean := False;
+      --  Set True if Instrumented_Unit has a dependency on System
+
+      Language_Version_Pragma : Unbounded_Wide_Wide_String;
+      --  Language version configuration pragma for unit, if any
 
       SFI : Source_File_Index := No_Source_File;
       --  Source file index of the compilation unit being instrumented

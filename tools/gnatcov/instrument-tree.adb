@@ -16,9 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Conversions; use Ada.Characters.Conversions;
+with Ada.Wide_Wide_Characters.Handling; use Ada.Wide_Wide_Characters.Handling;
+with Ada.Characters.Conversions;        use Ada.Characters.Conversions;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;             use Ada.Strings.Unbounded;
+with Ada.Strings.Wide_Wide_Fixed;
+with Ada.Strings.Wide_Wide_Unbounded;   use Ada.Strings.Wide_Wide_Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
@@ -302,8 +305,13 @@ package body Instrument.Tree is
    --  Parameter D, when present, indicates the dominant of the first
    --  declaration or statement within N.
 
-   --  Why is Traverse_Sync_Definition commented specifically, whereas
-   --  the others are not???
+   procedure Traverse_Context_Clause
+     (UIC : in out Unit_Inst_Context;
+      L   : Ada_Node_List);
+   --  Traverse the context clause of a library item. No SCOs are generated,
+   --  but information is extracted to govern further processing:
+   --  presence of a language version configuration pragma, presence of a
+   --  dependency on System.
 
    procedure Traverse_Generic_Package_Declaration
      (IC      : in out Inst_Context;
@@ -1215,6 +1223,11 @@ package body Instrument.Tree is
                      begin
                         Add_Instrumented_Unit (IC, Body_Name);
                      end;
+
+                  --  For a library unit, scan context clause
+
+                  else
+                     Traverse_Context_Clause (UIC, CUN.F_Prelude);
                   end if;
 
                   --  Note: we do not traverse the context clause or generate
@@ -2025,6 +2038,57 @@ package body Instrument.Tree is
       UIC.Current_Insertion_Info := Current_Insertion_Info.Parent;
       return Current_Dominant;
    end Traverse_Declarations_Or_Statements;
+
+   -----------------------------
+   -- Traverse_Context_Clause --
+   -----------------------------
+
+   procedure Traverse_Context_Clause
+     (UIC : in out Unit_Inst_Context;
+      L   : Ada_Node_List)
+   is
+   begin
+      for J in 1 .. L.Children_Count loop
+         declare
+            N : constant Ada_Node := L.Child (J);
+         begin
+            case N.Kind is
+               when Ada_Pragma_Node =>
+                  declare
+                     use Ada.Strings.Wide_Wide_Fixed;
+
+                     Pragma_Name : constant Wide_Wide_String :=
+                       To_Lower (Text (N.As_Pragma_Node.F_Id));
+                  begin
+                     if Index (Pragma_Name, "ada_") = Pragma_Name'First then
+                        UIC.Language_Version_Pragma :=
+                          To_Unbounded_Wide_Wide_String (Pragma_Name);
+                     end if;
+                  end;
+
+               when Ada_With_Clause =>
+                  declare
+                     With_N : constant With_Clause := N.As_With_Clause;
+                     With_P : constant Libadalang.Analysis.Name_List :=
+                       With_N.F_Packages;
+                  begin
+                     if not With_N.F_Has_Limited then
+                        for Pkg in 1 .. With_P.Children_Count loop
+                           if To_Lower (Text (With_P.Child (Pkg))) = "system"
+                           then
+                              UIC.Has_With_System := True;
+                           end if;
+                        end loop;
+                     end if;
+                  end;
+
+               when others =>
+                  null;
+            end case;
+         end;
+      end loop;
+
+   end Traverse_Context_Clause;
 
    ------------------------------------------
    -- Traverse_Generic_Package_Declaration --
