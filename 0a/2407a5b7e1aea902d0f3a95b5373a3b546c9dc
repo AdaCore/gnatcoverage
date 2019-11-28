@@ -1,0 +1,7 @@
+Code-Review+1: CI Builder <ci-builder@adacore.com>
+Code-Review+2: Thomas Quinot <quinot@adacore.com>
+Submitted-by: Pierre-Marie de Rodat <derodat@adacore.com>
+Submitted-at: Thu, 28 Nov 2019 10:14:20 +0100
+Reviewed-on: https://git.adacore.com/64095
+Project: gnatcoverage
+Branch: refs/heads/master
