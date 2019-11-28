@@ -265,11 +265,7 @@ package body Instrument.Common is
          --  Add a single letter so that the spec and body of the same unit
          --  don't conflict.
 
-         Append (Result, (case Instrumented_Unit.Part is
-                          when Unit_Spec     => 'S',
-                          when Unit_Body     => 'B',
-                          when Unit_Separate => 'S'));
-         Append (Result, '_');
+         Append (Result, Part_Tags (Instrumented_Unit.Part) & '_');
 
          --  Create a unique suffix corresponding to the qualified name of the
          --  unit to instrument. Replace occurences of 'z' with 'zz' and insert

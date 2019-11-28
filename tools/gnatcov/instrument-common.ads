@@ -147,6 +147,11 @@ package Instrument.Common is
    end record;
    --  Unique identifier for an instrumented unit
 
+   Part_Tags : constant array (Unit_Parts) of Character :=
+     (Unit_Spec     => 'S',
+      Unit_Body     => 'B',
+      Unit_Separate => 'U');
+
    function To_Compilation_Unit_Name
      (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name;
    --  Return the compilation unit name corresponding to the unit in
