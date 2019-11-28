@@ -24,12 +24,12 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with Langkit_Support;
-with Langkit_Support.Slocs; use Langkit_Support.Slocs;
-with Langkit_Support.Text;  use Langkit_Support.Text;
+with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
+with Langkit_Support.Text;     use Langkit_Support.Text;
 with Langkit_Support.Symbols;
-with Libadalang.Common;     use Libadalang.Common;
-with Libadalang.Rewriting;  use Libadalang.Rewriting;
-with Libadalang.Sources;    use Libadalang.Sources;
+with Libadalang.Common;        use Libadalang.Common;
+with Libadalang.Rewriting;     use Libadalang.Rewriting;
+with Libadalang.Sources;       use Libadalang.Sources;
 
 with Namet;  use Namet;
 with SCOs;

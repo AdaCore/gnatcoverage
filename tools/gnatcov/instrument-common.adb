@@ -550,8 +550,7 @@ package body Instrument.Common is
          use Ada.Strings.Wide_Wide_Unbounded.Aux;
 
          Unit   : constant Unit_Rewriting_Handle := Handle (Self.Unit);
-         Source : constant Unbounded_Wide_Wide_String :=
-            Unparse (Unit);
+         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
 
          --  To avoid copying the potentially big string for sources on the
          --  secondary stack (and reduce the amount of copies anyway), use the
