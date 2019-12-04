@@ -44,9 +44,6 @@ package Execs_Dbase is
    --
    --  Sections and symbols are read.
    --  In case of error, exception is propagated (see trace_elf.ads)
-   --
-   --  Target is used to find the actual filename on target which have, for
-   --  instance, implicit suffixes (like ".exe" on Windows).
 
    procedure Open_Exec_For_Trace
      (Filename       : String;
