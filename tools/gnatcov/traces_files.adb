@@ -23,8 +23,6 @@ with Ada.Text_IO;    use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
-with System;
-
 with GNATcov_RTS.Traces;
 
 with Hex_Images; use Hex_Images;
@@ -36,7 +34,7 @@ with Traces;     use Traces;
 
 package body Traces_Files is
 
-   type File_Open_Mode is (Read_Only, Read_Write);
+   type File_Open_Mode is (Read_File, Create_File, Append_File);
 
    subtype Qemu_Trace_Entry is Qemu_Traces_Entries.Trace_Entry;
 
@@ -64,7 +62,7 @@ package body Traces_Files is
    --  Calls Read_Trace_File_Entries to add all file info entries to Trace_File
 
    procedure Read_Trace_Entry
-     (Desc   : Trace_File_Descriptor;
+     (Desc   : in out Trace_File_Descriptor;
       Eof    : out Boolean;
       E      : out Qemu_Trace_Entry;
       Result : out Read_Result);
@@ -74,10 +72,13 @@ package body Traces_Files is
    --  closed.
 
    procedure Dump_Infos (Trace_File : Trace_File_Type);
-   procedure Write_Trace_File_Info (Fd : File_Descriptor;
-                                    Trace_File : Trace_File_Type);
+   procedure Write_Trace_File_Info
+     (Desc       : Output_Trace_File;
+      Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Traces
-     (Fd : File_Descriptor; Kind : Trace_Kind; Base : Traces_Base);
+     (Desc : Output_Trace_File;
+      Kind : Trace_Kind;
+      Base : Traces_Base);
    --  Need comments???
 
    procedure Dump_Trace_File (Filename : String; Raw : Boolean);
@@ -187,6 +188,52 @@ package body Traces_Files is
       end case;
    end Image;
 
+   ------------------
+   -- Read_Or_None --
+   ------------------
+
+   function Read_Or_None
+     (Desc   : Input_Trace_File;
+      Buffer : System.Address;
+      Size   : Natural) return Read_Status
+   is
+      Bytes_Read : constant Natural := Read (Desc.Fd, Buffer, Size);
+   begin
+      if Bytes_Read = Size then
+         return Full;
+      elsif Bytes_Read = 0 then
+         return None;
+      else
+         return Partial;
+      end if;
+   end Read_Or_None;
+
+   ----------
+   -- Read --
+   ----------
+
+   function Read
+     (Desc   : Input_Trace_File;
+      Buffer : System.Address;
+      Size   : Natural) return Boolean
+   is
+   begin
+      return Read_Or_None (Desc, Buffer, Size) = Full;
+   end Read;
+
+   -----------
+   -- Write --
+   -----------
+
+   function Write
+     (Desc   : Output_Trace_File;
+      Buffer : System.Address;
+      Size   : Positive) return Boolean
+   is
+   begin
+      return Write (Desc.Fd, Buffer, Size) = Size;
+   end Write;
+
    ----------------------
    -- Probe_Trace_File --
    ----------------------
@@ -240,8 +287,7 @@ package body Traces_Files is
       Hdr    : out Trace_Header;
       Result : out Read_Result) is
    begin
-      if Read (Desc.Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size
-      then
+      if not Read (Desc, Hdr'Address, Trace_Header_Size) then
          Create_Error (Result, "cannot read header");
 
       elsif Hdr.Magic /= Qemu_Trace_Magic then
@@ -378,12 +424,14 @@ package body Traces_Files is
    is
       Fd : File_Descriptor;
    begin
-      Log_File_Open (Filename);
       case Mode is
-         when Read_Only =>
+         when Read_File =>
+            Log_File_Open (Filename);
             Fd := Open_Read (Filename, Binary);
-         when Read_Write =>
-            Fd := Open_Read_Write (Filename, Binary);
+         when Create_File =>
+            Fd := Create_File (Filename, Binary);
+         when Append_File =>
+            Fd := Open_Append (Filename, Binary);
       end case;
 
       if Fd = Invalid_FD then
@@ -489,13 +537,14 @@ package body Traces_Files is
    is
       Result : Read_Result;
    begin
-      Desc.Fd := Open_File (Filename, Read_Only);
+      Desc := (Writeable => False, others => <>);
+      Desc.Fd := Open_File (Filename, Read_File);
       Desc.Filename := US.To_Unbounded_String (Filename);
       Read_Trace_File_Headers (Desc, Trace_File, Result);
       Success_Or_Fatal_Error (Filename, Result);
    exception
       when E : others =>
-         Close (Desc.Fd);
+         Close_Trace_File (Desc);
          Fatal_Error
            ("processing of trace file " & Filename
             & " failed: " & Exception_Message (E)
@@ -516,18 +565,26 @@ package body Traces_Files is
       Result   : Read_Result;
       Flat_Hdr : constant Trace_Header := Make_Trace_Header (Flat);
    begin
-      Desc.Fd := Open_File (Filename, Read_Write);
+      --  First, read the current partial trace file
+
+      Desc := (Writeable => False, others => <>);
+      Desc.Fd := Open_File (Filename, Read_File);
       Desc.Filename := US.To_Unbounded_String (Filename);
 
       Read_Trace_File_Headers
         (Desc, Trace_File, Result, For_Trace_Output => True);
       Success_Or_Fatal_Error (Filename, Result);
 
-      --  Write flat (raw) trace header
+      Close_Trace_File (Desc);
 
-      if Write (Desc.Fd, Flat_Hdr'Address, Trace_Header_Size) /=
-        Trace_Header_Size
-      then
+      --  Then, append to this file the second header, for a flat (raw) trace
+      --  file.
+
+      Desc := (Writeable => True, others => <>);
+      Desc.Fd := Open_File (Filename, Append_File);
+      Desc.Filename := US.To_Unbounded_String (Filename);
+
+      if not Write (Desc, Flat_Hdr'Address, Trace_Header_Size) then
          raise Write_Error with "failed to write Flat trace header";
       end if;
 
@@ -540,7 +597,7 @@ package body Traces_Files is
 
    exception
       when E : others =>
-         Close (Desc.Fd);
+         Close_Trace_File (Desc);
          Fatal_Error
            ("processing of trace file " & Filename
             & " failed: " & Exception_Message (E)
@@ -566,9 +623,7 @@ package body Traces_Files is
       loop
          --  Read the Trace_Info_Header
 
-         if Read (Desc.Fd, Ihdr'Address, Trace_Info_Header_Size)
-               /= Trace_Info_Header_Size
-         then
+         if not Read (Desc, Ihdr'Address, Trace_Info_Header_Size) then
             Create_Error (Result, "cannot read info header");
             return;
          end if;
@@ -583,8 +638,7 @@ package body Traces_Files is
          begin
             --  Read the associated data
 
-            if Read (Desc.Fd, Data'Address, Data'Length) /= Data'Length
-            then
+            if not Read (Desc, Data'Address, Data'Length) then
                Create_Error (Result, "cannot read info data");
                return;
             end if;
@@ -594,7 +648,7 @@ package body Traces_Files is
             Pad_Len := Natural (Ihdr.Info_Length) mod Trace_Info_Alignment;
             if Pad_Len /= 0 then
                Pad_Len := Trace_Info_Alignment - Pad_Len;
-               if Read (Desc.Fd, Pad'Address, Pad_Len) /= Pad_Len then
+               if not Read (Desc, Pad'Address, Pad_Len) then
                   Create_Error (Result, "cannot read info pad");
                   return;
                elsif Pad (1 .. Pad_Len) /= (1 .. Pad_Len => Character'Val (0))
@@ -870,12 +924,11 @@ package body Traces_Files is
    ----------------------
 
    procedure Read_Trace_Entry
-     (Desc   : Trace_File_Descriptor;
+     (Desc   : in out Trace_File_Descriptor;
       Eof    : out Boolean;
       E      : out Qemu_Trace_Entry;
       Result : out Read_Result)
    is
-      Res : Integer;
    begin
       Eof := False;
       Result := Read_Success;
@@ -888,22 +941,24 @@ package body Traces_Files is
 
       --  Read an entry, making sure the read operation could get a whole one
 
-      Res := Read (Desc.Fd, E'Address, Trace_Entry_Size);
-      if Res = 0 then
-         Eof := True;
-         return;
-      elsif Res /= Trace_Entry_Size then
-         Close (Desc.Fd);
-         Create_Error (Result, "file truncated");
-         return;
-      end if;
+      case Read_Or_None (Desc, E'Address, Trace_Entry_Size) is
+         when None =>
+            Eof := True;
+            return;
 
-      Eof := False;
+         when Partial =>
+            Close_Trace_File (Desc);
+            Create_Error (Result, "file truncated");
+            return;
 
-      if Desc.Header.Big_Endian /= Big_Endian_Host then
-         Qemu_Traces.Swap_Pc (E.Pc);
-         Swaps.Swap_16 (E.Size);
-      end if;
+         when Full =>
+            Eof := False;
+
+            if Desc.Header.Big_Endian /= Big_Endian_Host then
+               Qemu_Traces.Swap_Pc (E.Pc);
+               Swaps.Swap_16 (E.Size);
+            end if;
+      end case;
    end Read_Trace_Entry;
 
    -----------------------
@@ -915,7 +970,6 @@ package body Traces_Files is
       E    : Trace_Entry)
    is
       Ent : Qemu_Traces_Entries.Trace_Entry;
-      Res : Integer;
    begin
 
       if Desc.Header.Sizeof_Target_Pc /= Pc_Type_Size then
@@ -935,14 +989,9 @@ package body Traces_Files is
 
       --  Write an entry
 
-      Res := Write (Desc.Fd, Ent'Address, Trace_Entry_Size);
-
-      --  Check result
-
-      if Res /= Trace_Entry_Size then
+      if not Write (Desc, Ent'Address, Trace_Entry_Size) then
          raise Write_Error with "file truncated";
       end if;
-
    end Write_Trace_Entry;
 
    ----------------------
@@ -1241,14 +1290,14 @@ package body Traces_Files is
    ---------------------------
 
    procedure Write_Trace_File_Info
-     (Fd         : File_Descriptor;
+     (Desc       : Output_Trace_File;
       Trace_File : Trace_File_Type)
    is
       Hdr     : constant Trace_Header := Make_Trace_Header (Info);
       Tr_Info : Trace_File_Info_Acc;
       Ihdr    : Trace_Info_Header;
    begin
-      if Write (Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size then
+      if not Write (Desc, Hdr'Address, Trace_Header_Size) then
          raise Write_Error with "failed to write first header";
       end if;
 
@@ -1262,20 +1311,16 @@ package body Traces_Files is
             Ihdr.Info_Kind := Info_Kind_Type'Pos (Tr_Info.Kind);
             Ihdr.Info_Length := Unsigned_32 (Tr_Info.Raw_Length);
 
-            if Write (Fd, Ihdr'Address, Trace_Info_Header_Size)
-              /= Trace_Info_Header_Size
-            then
+            if not Write (Desc, Ihdr'Address, Trace_Info_Header_Size) then
                raise Write_Error with "failed to write info header";
             end if;
 
-            if Write (Fd, Tr_Info.Data'Address, Tr_Info.Raw_Length)
-              /= Tr_Info.Raw_Length
-            then
+            if not Write (Desc, Tr_Info.Data'Address, Tr_Info.Raw_Length) then
                raise Write_Error with "failed to write info data";
             end if;
 
             if Pad'Length /= 0
-              and then Write (Fd, Pad'Address, Pad'Length) /= Pad'Length
+              and then not Write (Desc, Pad'Address, Pad'Length)
             then
                raise Write_Error with "failed to write info pad";
             end if;
@@ -1288,9 +1333,7 @@ package body Traces_Files is
 
       Ihdr.Info_Kind    := Info_Kind_Type'Pos (Info_End);
       Ihdr.Info_Length := 0;
-      if Write (Fd, Ihdr'Address, Trace_Info_Header_Size)
-        /= Trace_Info_Header_Size
-      then
+      if not Write (Desc, Ihdr'Address, Trace_Info_Header_Size) then
          raise Write_Error with "failed to write info header";
       end if;
    end Write_Trace_File_Info;
@@ -1300,7 +1343,7 @@ package body Traces_Files is
    -----------------------------
 
    procedure Write_Trace_File_Traces
-     (Fd   : File_Descriptor;
+     (Desc : Output_Trace_File;
       Kind : Trace_Kind;
       Base : Traces_Base)
    is
@@ -1313,7 +1356,7 @@ package body Traces_Files is
       Res_Size : Natural;
       Cur      : Entry_Iterator;
    begin
-      if Write (Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size then
+      if not Write (Desc, Hdr'Address, Trace_Header_Size) then
          raise Write_Error with "failed to write header";
       end if;
 
@@ -1329,7 +1372,7 @@ package body Traces_Files is
                  Op     => E.Op,
                  others => <>);
 
-         if Write (Fd, Addr, Res_Size) /= Res_Size then
+         if not Write (Desc, Addr, Res_Size) then
             raise Write_Error with "failed to write entry";
          end if;
 
@@ -1346,29 +1389,26 @@ package body Traces_Files is
       Base       : Traces_Base)
    is
       Filename : constant String := Traces_Files.Filename (Trace_File);
-      Fd       : File_Descriptor;
+      Desc     : Output_Trace_File;
    begin
-      Fd := Create_File (Filename, Binary);
-      if Fd = Invalid_FD then
-         Fatal_Error ("Cannot create the trace file " & Filename);
-      end if;
+      Desc.Fd := Open_File (Filename, Create_File);
 
       if Trace_File.First_Infos /= null
         or else Trace_File.Header.Kind = Info
       then
-         Write_Trace_File_Info (Fd, Trace_File);
+         Write_Trace_File_Info (Desc, Trace_File);
       end if;
 
       --  Nothing else to do if we only dump infos
 
       if Trace_File.Header.Kind /= Info then
-         Write_Trace_File_Traces (Fd, Trace_File.Header.Kind, Base);
+         Write_Trace_File_Traces (Desc, Trace_File.Header.Kind, Base);
       end if;
 
-      Close (Fd);
+      Close_Trace_File (Desc);
    exception
       when others =>
-         Close (Fd);
+         Close_Trace_File (Desc);
          raise;
    end Write_Trace_File;
 
@@ -1379,19 +1419,14 @@ package body Traces_Files is
    procedure Write_Trace_File (Trace_File : Trace_File_Type)
    is
       Filename : constant String := Traces_Files.Filename (Trace_File);
-      Fd       : File_Descriptor;
+      Desc     : Output_Trace_File;
    begin
-      Fd := Create_File (Filename, Binary);
-      if Fd = Invalid_FD then
-         Fatal_Error ("Cannot create the trace file " & Filename);
-      end if;
-
-      Write_Trace_File_Info (Fd, Trace_File);
-
-      Close (Fd);
+      Desc.Fd := Open_File (Filename, Create_File);
+      Write_Trace_File_Info (Desc, Trace_File);
+      Close_Trace_File (Desc);
    exception
       when others =>
-         Close (Fd);
+         Close_Trace_File (Desc);
          raise;
    end Write_Trace_File;
 

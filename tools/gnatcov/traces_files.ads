@@ -18,6 +18,8 @@
 
 with Ada.Strings.Unbounded;
 with Interfaces;  use Interfaces;
+private with System;
+
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Binary_Files; use Binary_Files;
@@ -64,7 +66,7 @@ package Traces_Files is
    --  section, not the trace entries themselves.
 
    type Trace_File_Descriptor is limited private;
-   --  Descriptor to open/read a trace file
+   --  Descriptor to read or write a trace file
 
    Read_Success : constant Read_Result := (Success => True);
 
@@ -272,12 +274,38 @@ private
       Last_Infos  : Trace_File_Info_Acc;
    end record;
 
-   type Trace_File_Descriptor is record
-      Fd       : File_Descriptor;
+   type Trace_File_Descriptor (Writeable : Boolean := False) is record
       Filename : US.Unbounded_String;
       Header   : Trace_File_Header;
+      Fd       : File_Descriptor;
    end record;
-   --  Descriptor to open/read a trace file
+   subtype Input_Trace_File is Trace_File_Descriptor (Writeable => False);
+   subtype Output_Trace_File is Trace_File_Descriptor (Writeable => True);
+
+   type Read_Status is (None, Partial, Full);
+   --  Whether a read was null (no byte read while some requested), partial (at
+   --  least one read, but not as many as requested) or full (all requested
+   --  bytes read).
+
+   function Read_Or_None
+     (Desc   : Input_Trace_File;
+      Buffer : System.Address;
+      Size   : Natural) return Read_Status;
+   --  Try to read Size bytes from Desc, and put them at the Buffer address.
+   --  Return how the read completed.
+
+   function Read
+     (Desc   : Input_Trace_File;
+      Buffer : System.Address;
+      Size   : Natural) return Boolean;
+   --  Like Read_Or_None, but return instead whether the read was full
+
+   function Write
+     (Desc   : Output_Trace_File;
+      Buffer : System.Address;
+      Size   : Positive) return Boolean;
+   --  Try to write the Size bytes at the Buffer adress to Desc. Return whether
+   --  the write completed.
 
    function Kind (Trace_File : Trace_File_Type) return Trace_Kind is
      (Trace_File.Header.Kind);
