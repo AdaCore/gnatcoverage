@@ -82,7 +82,7 @@ GPRINSTALL=gprinstall
 
 # Binary program name
 PGMNAME=gnatcov
-PGMPATH=obj$(BITS_ARCH)/$(PGMNAME)
+PGMPATH=obj$(BITS_ARCH)/$(BUILD_MODE)/$(PGMNAME)
 
 # Directory name in the install tree
 DIRNAME=gnatcoverage
