@@ -505,11 +505,12 @@ package body Traces_Elf is
             --  Create_File from an aggregate, so store its result in a local
             --  variable first.
 
-            E_File : constant Elf_File := Create_File (Fd, Name);
+            E_File   : constant Elf_File := Create_File (Fd, Name);
             Exec_Acc : constant Exe_File_Acc := new Elf_Exe_File_Type'
               (Elf_File => E_File,
                others => <>);
-            Exec : Elf_Exe_File_Type renames Elf_Exe_File_Type (Exec_Acc.all);
+            Exec     : Elf_Exe_File_Type renames
+               Elf_Exe_File_Type (Exec_Acc.all);
 
          begin
             Exec.File := Exec.Elf_File'Unchecked_Access;
