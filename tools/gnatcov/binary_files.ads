@@ -69,7 +69,7 @@ package Binary_Files is
 
    function Get
      (Bin_Cont : Binary_Content;
-      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8
+      Offset   : Arch.Arch_Addr) return Interfaces.Unsigned_8
      with Inline;
    --  Return the byte in Bin_Cont at Offset
 
