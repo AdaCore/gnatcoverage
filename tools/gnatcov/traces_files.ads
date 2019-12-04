@@ -236,6 +236,18 @@ package Traces_Files is
    --  Raw dump of a trace file
 
 private
+
+   package US renames Ada.Strings.Unbounded;
+
+   type Trace_File_Header is record
+      Kind             : Trace_Kind;
+      Sizeof_Target_Pc : Unsigned_8;
+      Big_Endian       : Boolean;
+      Machine          : Unsigned_16;
+   end record;
+   --  Holder for the information present in trace file headers. They are
+   --  necessary to decode the rest of the trace file.
+
    type Trace_File_Info (Raw_Length : Natural);
    type Trace_File_Info_Acc is access Trace_File_Info;
 
@@ -251,36 +263,26 @@ private
    end record;
 
    type Trace_File_Type is record
-      --  Parameters from header
-
-      Kind             : Trace_Kind;
-      Sizeof_Target_Pc : Unsigned_8;
-      Big_Endian       : Boolean;
-      Machine          : Unsigned_16;
+      Filename : US.Unbounded_String;
+      Header   : Trace_File_Header;
 
       --  Linked list of infos
 
       First_Infos : Trace_File_Info_Acc;
       Last_Infos  : Trace_File_Info_Acc;
-
-      Filename : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
    type Trace_File_Descriptor is record
       Fd       : File_Descriptor;
-      Filename : Ada.Strings.Unbounded.Unbounded_String;
-
-      --  Parameter from header
-      Kind             : Trace_Kind;
-      Sizeof_Target_Pc : Unsigned_8;
-      Big_Endian       : Boolean;
+      Filename : US.Unbounded_String;
+      Header   : Trace_File_Header;
    end record;
    --  Descriptor to open/read a trace file
 
    function Kind (Trace_File : Trace_File_Type) return Trace_Kind is
-     (Trace_File.Kind);
+     (Trace_File.Header.Kind);
 
    function Filename (Trace_File : Trace_File_Type) return String is
-     (Ada.Strings.Unbounded.To_String (Trace_File.Filename));
+     (US.To_String (Trace_File.Filename));
 
 end Traces_Files;

@@ -169,7 +169,7 @@ package body Traces_Files is
    begin
       if not Result.Success then
          Fatal_Error
-           (Filename & ": " & Ada.Strings.Unbounded.To_String (Result.Error));
+           (Filename & ": " & US.To_String (Result.Error));
       end if;
    end Success_Or_Fatal_Error;
 
@@ -257,7 +257,7 @@ package body Traces_Files is
          Create_Error (Result, "invalid header (bad kind)");
 
       else
-         Desc.Big_Endian := Hdr.Big_Endian;
+         Desc.Header.Big_Endian := Hdr.Big_Endian;
       end if;
    end Check_Header;
 
@@ -345,20 +345,22 @@ package body Traces_Files is
       Result     : out Read_Result) is
    begin
       Result := Read_Success;
-      Desc.Kind := Hdr.Kind;
-      Trace_File.Kind := Desc.Kind;
+      Desc.Header.Kind := Hdr.Kind;
+      Trace_File.Header.Kind := Hdr.Kind;
 
-      Desc.Sizeof_Target_Pc := Hdr.Sizeof_Target_Pc;
-      if Desc.Sizeof_Target_Pc /= 4 and then Desc.Sizeof_Target_Pc /= 8 then
+      Desc.Header.Sizeof_Target_Pc := Hdr.Sizeof_Target_Pc;
+      if Desc.Header.Sizeof_Target_Pc /= 4
+         and then Desc.Header.Sizeof_Target_Pc /= 8
+      then
          Create_Error (Result, "invalid header (bad pc size)");
          return;
       end if;
 
-      Trace_File.Machine := Unsigned_16 (Hdr.Machine_Hi) * 256
+      Trace_File.Header.Machine := Unsigned_16 (Hdr.Machine_Hi) * 256
         + Unsigned_16 (Hdr.Machine_Lo);
 
-      if ELF_Machine = 0 or else ELF_Machine = Trace_File.Machine then
-         ELF_Machine := Trace_File.Machine;
+      if ELF_Machine = 0 or else ELF_Machine = Trace_File.Header.Machine then
+         ELF_Machine := Trace_File.Header.Machine;
          Machine := Decode_EM (ELF_Machine);
       else
          Create_Error (Result, "target machine doesn't match previous one");
@@ -488,7 +490,7 @@ package body Traces_Files is
       Result : Read_Result;
    begin
       Desc.Fd := Open_File (Filename, Read_Only);
-      Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
+      Desc.Filename := US.To_Unbounded_String (Filename);
       Read_Trace_File_Headers (Desc, Trace_File, Result);
       Success_Or_Fatal_Error (Filename, Result);
    exception
@@ -515,7 +517,7 @@ package body Traces_Files is
       Flat_Hdr : constant Trace_Header := Make_Trace_Header (Flat);
    begin
       Desc.Fd := Open_File (Filename, Read_Write);
-      Desc.Filename := Ada.Strings.Unbounded.To_Unbounded_String (Filename);
+      Desc.Filename := US.To_Unbounded_String (Filename);
 
       Read_Trace_File_Headers
         (Desc, Trace_File, Result, For_Trace_Output => True);
@@ -531,9 +533,10 @@ package body Traces_Files is
 
       --  Set traces info in the Trace_File_Descriptor
 
-      Desc.Kind := Flat_Hdr.Kind;
-      Desc.Sizeof_Target_Pc := Flat_Hdr.Sizeof_Target_Pc;
-      Desc.Big_Endian := Flat_Hdr.Big_Endian;
+      Desc.Header.Kind := Flat_Hdr.Kind;
+      Desc.Header.Sizeof_Target_Pc := Flat_Hdr.Sizeof_Target_Pc;
+      Desc.Header.Big_Endian := Flat_Hdr.Big_Endian;
+      Desc.Header.Machine := 0;
 
    exception
       when E : others =>
@@ -570,7 +573,7 @@ package body Traces_Files is
             return;
          end if;
 
-         if Desc.Big_Endian /= Big_Endian_Host then
+         if Desc.Header.Big_Endian /= Big_Endian_Host then
             Swaps.Swap_32 (Ihdr.Info_Kind);
             Swaps.Swap_32 (Ihdr.Info_Length);
          end if;
@@ -702,8 +705,7 @@ package body Traces_Files is
       Raw_Entry : Qemu_Trace_Entry;
    begin
       Open_Trace_File (Filename, Desc, Trace_File);
-      Trace_File.Filename :=
-         Ada.Strings.Unbounded.To_Unbounded_String (Filename);
+      Trace_File.Filename := US.To_Unbounded_String (Filename);
       Process_Info_Entries (Trace_File, Result);
       if not Result.Success then
          return;
@@ -877,7 +879,7 @@ package body Traces_Files is
    begin
       Eof := False;
       Result := Read_Success;
-      if Desc.Sizeof_Target_Pc /= Pc_Type_Size then
+      if Desc.Header.Sizeof_Target_Pc /= Pc_Type_Size then
          Create_Error
            (Result, "only" & Unsigned_8'Image (Pc_Type_Size)
                     & " bytes pc are handled");
@@ -898,7 +900,7 @@ package body Traces_Files is
 
       Eof := False;
 
-      if Desc.Big_Endian /= Big_Endian_Host then
+      if Desc.Header.Big_Endian /= Big_Endian_Host then
          Qemu_Traces.Swap_Pc (E.Pc);
          Swaps.Swap_16 (E.Size);
       end if;
@@ -916,7 +918,7 @@ package body Traces_Files is
       Res : Integer;
    begin
 
-      if Desc.Sizeof_Target_Pc /= Pc_Type_Size then
+      if Desc.Header.Sizeof_Target_Pc /= Pc_Type_Size then
          raise Write_Error with
             "only" & Unsigned_8'Image (Pc_Type_Size)
             & " bytes pc are handled";
@@ -926,7 +928,7 @@ package body Traces_Files is
       Ent.Size := Unsigned_16 (E.Last - E.First + 1);
       Ent.Op   := E.Op;
 
-      if Desc.Big_Endian /= Big_Endian_Host then
+      if Desc.Header.Big_Endian /= Big_Endian_Host then
          Qemu_Traces.Swap_Pc (Ent.Pc);
          Swaps.Swap_16 (Ent.Size);
       end if;
@@ -952,7 +954,7 @@ package body Traces_Files is
    begin
       Close (Desc.Fd);
       Desc.Fd := Invalid_FD;
-      Desc.Filename := Ada.Strings.Unbounded.Null_Unbounded_String;
+      Desc.Filename := US.Null_Unbounded_String;
    end Close_Trace_File;
 
    --------------------------------
@@ -964,7 +966,7 @@ package body Traces_Files is
       Result     : out Read_Result) is
    begin
       Result := Read_Success;
-      case Trace_File.Kind is
+      case Trace_File.Header.Kind is
          when Flat | History =>
             null;
 
@@ -1352,15 +1354,15 @@ package body Traces_Files is
       end if;
 
       if Trace_File.First_Infos /= null
-        or else Trace_File.Kind = Info
+        or else Trace_File.Header.Kind = Info
       then
          Write_Trace_File_Info (Fd, Trace_File);
       end if;
 
       --  Nothing else to do if we only dump infos
 
-      if Trace_File.Kind /= Info then
-         Write_Trace_File_Traces (Fd, Trace_File.Kind, Base);
+      if Trace_File.Header.Kind /= Info then
+         Write_Trace_File_Traces (Fd, Trace_File.Header.Kind, Base);
       end if;
 
       Close (Fd);
@@ -1550,17 +1552,14 @@ package body Traces_Files is
    procedure Create_Trace_File
      (Filename   : String;
       Kind       : Trace_Kind;
-      Trace_File : out Trace_File_Type) is
+      Trace_File : out Trace_File_Type)
+   is
    begin
       Trace_File := Trace_File_Type'
-        (Kind             => Kind,
-         Sizeof_Target_Pc => Pc_Type_Size,
-         Big_Endian       => Big_Endian_Host,
-         Machine          => 0,
-         First_Infos      => null,
-         Last_Infos       => null,
-         Filename         =>
-            Ada.Strings.Unbounded.To_Unbounded_String (Filename));
+        (Filename    => US.To_Unbounded_String (Filename),
+         Header      => (Kind, Pc_Type_Size, Big_Endian_Host, 0),
+         First_Infos => null,
+         Last_Infos  => null);
    end Create_Trace_File;
 
    ------------------
