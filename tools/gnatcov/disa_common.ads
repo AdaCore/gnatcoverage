@@ -44,7 +44,7 @@ package Disa_Common is
       Insn_Bin     : Binary_Content;
       Pc           : Traces.Pc_Type;
       Buffer       : in out Highlighting.Buffer_Type;
-      Insn_Len     : out Natural;
+      Insn_Len     : out Positive;
       Sym          : Symbolizer'Class;
       Insn_Max_Len : Positive)
      with Inline => True;
@@ -52,6 +52,20 @@ package Disa_Common is
    --
    --  Disassemble instruction at Pc in Insn_Bin, and put the result in Buffer.
    --  Also put the instruction length (in bytes) in Insn_Len.
+   --
+   --  Insn_Max_Len must correspond to the size of the largest instruction
+   --  available on the architecture Handle was created for.
+
+   function Opcodes_Get_Insn_Length
+     (Handle       : Dis_Opcodes.Disassemble_Handle;
+      Insn_Bin     : Binary_Content;
+      Pc           : Traces.Pc_Type;
+      Insn_Max_Len : Positive) return Positive
+     with Inline => True;
+   --  Common function to get instruction length through libopcode bindings.
+   --
+   --  Disassemble instruction at Pc in Insn_Bin and return the instruction
+   --  length (in bytes) in Insn_Len.
    --
    --  Insn_Max_Len must correspond to the size of the largest instruction
    --  available on the architecture Handle was created for.

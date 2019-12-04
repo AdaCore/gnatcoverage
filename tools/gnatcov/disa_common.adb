@@ -25,6 +25,20 @@ with Traces;   use Traces;
 
 package body Disa_Common is
 
+   function Opcodes_Run_Disassembler
+     (Handle       : Dis_Opcodes.Disassemble_Handle;
+      Insn_Bin     : Binary_Content;
+      Pc           : Traces.Pc_Type;
+      Insn_Max_Len : Positive;
+      Sym          : Symbolizer'Class;
+      Buffer       : out C.char_array) return Positive;
+   --  Helper to factorize common code for the public Opcodes_* subprograms.
+   --  Run the libopcode Handle disassembler on the instruction in Insn_Bin at
+   --  Pc and put the disassembly text in Buffer. Return the length in bytes of
+   --  the disassembled instruction.
+   --
+   --  See Opcodes_Disassemble_Insn for the meaning of Insn_Max_Len and Sym.
+
    ----------------
    -- ELF_To_U16 --
    ----------------
@@ -128,6 +142,41 @@ package body Disa_Common is
    end Print_Symbol_Func;
 
    ------------------------------
+   -- Opcodes_Run_Disassembler --
+   ------------------------------
+
+   function Opcodes_Run_Disassembler
+     (Handle       : Dis_Opcodes.Disassemble_Handle;
+      Insn_Bin     : Binary_Content;
+      Pc           : Traces.Pc_Type;
+      Insn_Max_Len : Positive;
+      Sym          : Symbolizer'Class;
+      Buffer       : out C.char_array) return Positive
+   is
+      pragma Assert (Big_Endian_ELF_Initialized);
+
+      Insn_Bytes : Dis_Opcodes.BFD_Byte_Array (0 .. Insn_Max_Len - 1)
+         with Import, Address => Insn_Bin.Content.all'Address;
+   begin
+      Dis_Opcodes.Set_Disassembler_Symbolizer
+        (Handle, Sym'Address, Disa_Common.Print_Symbol_Func'Access);
+
+      return Positive
+        (Dis_Opcodes.Disassemble_To_Text
+           (DH          => Handle,
+            Pc          => Dis_Opcodes.BFD_VMA (Pc),
+            Dest        => Buffer,
+            Dest_Size   => Buffer'Length,
+            Insn_Buffer => Insn_Bytes,
+            Ib_Size     => C.unsigned
+              (Unsigned_32'Min (Insn_Bytes'Length,
+                                Unsigned_32 (Length (Insn_Bin)))),
+            Endian      => (if Big_Endian_ELF
+                            then Dis_Opcodes.BFD_ENDIAN_BIG
+                            else Dis_Opcodes.BFD_ENDIAN_LITTLE)));
+   end Opcodes_Run_Disassembler;
+
+   ------------------------------
    -- Opcodes_Disassemble_Insn --
    ------------------------------
 
@@ -136,38 +185,32 @@ package body Disa_Common is
       Insn_Bin     : Binary_Content;
       Pc           : Pc_Type;
       Buffer       : in out Highlighting.Buffer_Type;
-      Insn_Len     : out Natural;
+      Insn_Len     : out Positive;
       Sym          : Symbolizer'Class;
       Insn_Max_Len : Positive)
    is
-      pragma Assert (Big_Endian_ELF_Initialized);
-
-      Insn_Bytes : Dis_Opcodes.BFD_Byte_Array (0 .. Insn_Max_Len - 1)
-         with Import, Address => Insn_Bin.Content.all'Address;
-
       Buff : C.char_array := (C.size_t (1) .. C.size_t (256) => <>);
    begin
-      Dis_Opcodes.Set_Disassembler_Symbolizer
-        (Handle, Sym'Address, Disa_Common.Print_Symbol_Func'Access);
-
-      Insn_Len :=
-        Natural
-          (Dis_Opcodes.Disassemble_To_Text
-             (DH          => Handle,
-              Pc          => Dis_Opcodes.BFD_VMA (Pc),
-              Dest        => Buff,
-              Dest_Size   => Buff'Length,
-              Insn_Buffer => Insn_Bytes,
-              Ib_Size     =>
-                C.unsigned
-                  (Unsigned_32'Min
-                       (Insn_Bytes'Length, Unsigned_32 (Length (Insn_Bin)))),
-              Endian      => (if Big_Endian_ELF then Dis_Opcodes.BFD_ENDIAN_BIG
-                              else Dis_Opcodes.BFD_ENDIAN_LITTLE)));
-
+      Insn_Len := Opcodes_Run_Disassembler
+        (Handle, Insn_Bin, Pc, Insn_Max_Len, Sym, Buff);
       Buffer.Start_Token (Highlighting.Text);
-
       Buffer.Put (C.To_Ada (Buff));
    end Opcodes_Disassemble_Insn;
+
+   -----------------------------
+   -- Opcodes_Get_Insn_Length --
+   -----------------------------
+
+   function Opcodes_Get_Insn_Length
+     (Handle       : Dis_Opcodes.Disassemble_Handle;
+      Insn_Bin     : Binary_Content;
+      Pc           : Traces.Pc_Type;
+      Insn_Max_Len : Positive) return Positive
+   is
+      Buff : C.char_array := (1 .. 0 => <>);
+   begin
+      return Opcodes_Run_Disassembler
+        (Handle, Insn_Bin, Pc, Insn_Max_Len, Nul_Symbolizer, Buff);
+   end Opcodes_Get_Insn_Length;
 
 end Disa_Common;

@@ -24,10 +24,12 @@ with Interfaces;   use Interfaces;
 
 with Disa_Common;
 with Hex_Images;   use Hex_Images;
-with Highlighting; use Highlighting;
 with Outputs;      use Outputs;
 
 package body Disa_X86 is
+
+   Insn_Max_Length : constant := 15;
+   --  Number of bytes for the longest instruction
 
    subtype Byte is Interfaces.Unsigned_8;
    type Bytes is array (Pc_Type range <>) of Byte;
@@ -202,7 +204,7 @@ package body Disa_X86 is
       Sym      : Symbolizer'Class) is
    begin
       Disa_Common.Opcodes_Disassemble_Insn
-        (Self.Handle, Insn_Bin, Pc, Buffer, Insn_Len, Sym, 15);
+        (Self.Handle, Insn_Bin, Pc, Buffer, Insn_Len, Sym, Insn_Max_Length);
    end Disassemble_Insn;
 
    ---------------------
@@ -211,15 +213,10 @@ package body Disa_X86 is
 
    function Get_Insn_Length
      (Self     : X86_Disassembler;
-      Insn_Bin : Binary_Content) return Positive
-   is
-      Buffer   : Highlighting.Buffer_Type (0);
-      Len      : Natural;
-
+      Insn_Bin : Binary_Content) return Positive is
    begin
-      Disassemble_Insn
-        (Self, Insn_Bin, Insn_Bin.First, Buffer, Len, Nul_Symbolizer);
-      return Len;
+      return Disa_Common.Opcodes_Get_Insn_Length
+        (Self.Handle, Insn_Bin, Insn_Bin.First, Insn_Max_Length);
    end Get_Insn_Length;
 
    -------------------------

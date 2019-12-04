@@ -39,6 +39,11 @@ stream_printf (disassembler_stream *ds, const char *format, ...)
   va_list ap;
   int res;
 
+  if (ds->buff == NULL)
+    {
+      return 0;
+    }
+
   va_start (ap, format);
 
   res = vsnprintf (ds->buff + ds->idx, ds->size - ds->idx, format, ap);
@@ -88,6 +93,6 @@ stream_is_empty (disassembler_stream *const ds)
 void
 set_stream_buffer (disassembler_stream *const ds, char *const buff, int size)
 {
-  ds->buff = buff;
+  ds->buff = (size == 0) ? NULL : buff;
   ds->size = size;
 }
