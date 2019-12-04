@@ -49,11 +49,12 @@ package Disa_Common is
       Insn_Max_Len : Positive)
      with Inline => True;
    --  Common function to disassemble through libopcode bindings.
-   --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.
-   --  LINE_POS is the index of the next character to be written (ie line
-   --  length if Line'First = 1).
-   --  INSN_MAX_LEN must correspond to the size of the largest instruction
-   --  available on the architecture HANDLE was created for.
+   --
+   --  Disassemble instruction at Pc in Insn_Bin, and put the result in Buffer.
+   --  Also put the instruction length (in bytes) in Insn_Len.
+   --
+   --  Insn_Max_Len must correspond to the size of the largest instruction
+   --  available on the architecture Handle was created for.
 
    function Print_Symbol_Func
      (Addr           : Dis_Opcodes.BFD_VMA;

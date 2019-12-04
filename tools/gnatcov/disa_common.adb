@@ -138,19 +138,17 @@ package body Disa_Common is
       Buffer       : in out Highlighting.Buffer_Type;
       Insn_Len     : out Natural;
       Sym          : Symbolizer'Class;
-      Insn_Max_Len : Positive) is
+      Insn_Max_Len : Positive)
+   is
+      pragma Assert (Big_Endian_ELF_Initialized);
 
-      Insn_Bytes : Dis_Opcodes.BFD_Byte_Array (0 .. Insn_Max_Len - 1);
-      for Insn_Bytes'Address use Insn_Bin.Content.all'Address;
+      Insn_Bytes : Dis_Opcodes.BFD_Byte_Array (0 .. Insn_Max_Len - 1)
+         with Import, Address => Insn_Bin.Content.all'Address;
 
-      Buff       : C.char_array :=
-        (C.size_t (1) .. C.size_t (256) => <>);
-
+      Buff : C.char_array := (C.size_t (1) .. C.size_t (256) => <>);
    begin
       Dis_Opcodes.Set_Disassembler_Symbolizer
         (Handle, Sym'Address, Disa_Common.Print_Symbol_Func'Access);
-
-      pragma Assert (Big_Endian_ELF_Initialized);
 
       Insn_Len :=
         Natural
