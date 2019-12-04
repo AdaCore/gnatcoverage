@@ -192,6 +192,24 @@ package body Traces_Elf is
    --  file name used in Actual_File_Name (to be free'd by the caller). If
    --  unsuccessful, raise a Binary_Files.Error exception.
 
+   -------------------------
+   -- Has_Decision_Mapped --
+   -------------------------
+
+   function Has_Decision_Mapped (Exec : Exe_File_Type'Class) return Boolean is
+   begin
+      return Exec.Has_Decision_Mapped;
+   end Has_Decision_Mapped;
+
+   -------------------------
+   -- Set_Decision_Mapped --
+   -------------------------
+
+   procedure Set_Decision_Mapped (Exec : in out Exe_File_Type'Class) is
+   begin
+      Exec.Has_Decision_Mapped := True;
+   end Set_Decision_Mapped;
+
    ---------
    -- "<" --
    ---------

@@ -304,6 +304,14 @@ package body Decision_Map is
       Subp_Key                : Subprogram_Key;
       Subp_Info               : Subprogram_Info;
    begin
+      --  Do not map decisions more than once: although it is correct to run
+      --  this more than once per executable, this is a time consuming
+      --  operation.
+
+      if Exe_File.Has_Decision_Mapped then
+         return;
+      end if;
+
       Build_Debug_Lines (Exe_File.all);
 
       --  Add routine names of interest to routines database
@@ -347,6 +355,8 @@ package body Decision_Map is
             end if;
          end if;
       end loop;
+
+      Exe_File.Set_Decision_Mapped;
    end Analyze;
 
    ---------------------------

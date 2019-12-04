@@ -94,6 +94,12 @@ package Traces_Elf is
    function Get_Signature (Exec : Exe_File_Type) return Binary_File_Signature;
    --  Return the binary file signature for Exec
 
+   function Has_Decision_Mapped (Exec : Exe_File_Type'Class) return Boolean;
+   --  Return whether we mapped decisions for Exec
+
+   procedure Set_Decision_Mapped (Exec : in out Exe_File_Type'Class);
+   --  Consider that decisions are mapped for Exec
+
    type Address_Info;
    type Address_Info_Acc is access all Address_Info;
    type Address_Info_Arr is array (Positive range <>) of Address_Info_Acc;
@@ -536,6 +542,10 @@ private
       --  Temporary holders for inlined subprograms read from .debug_info,
       --  waiting for their associated slocs to be completely decoded using
       --  .debug_line info. See the documentation for Inline_Subprogram_Raw.
+
+      Has_Decision_Mapped : Boolean := False;
+      --  Whether Decision_Map.Analyze processed this executable. We use this
+      --  to avoid processing executables more than once.
    end record;
 
    procedure Close_Exe_File (Exec : in out Exe_File_Type);
