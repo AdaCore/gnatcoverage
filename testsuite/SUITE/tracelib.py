@@ -477,9 +477,11 @@ class TraceEntry(object):
                 return None
 
             # Remove padding
-            fields.pop()
+            padding = fields.pop()
+            assert padding == 0, repr(padding)
             if bits == 64:
-                fields.pop()
+                padding = fields.pop()
+                assert padding == 0, repr(padding)
 
             result = cls(bits, *fields)
             if (
