@@ -18,9 +18,11 @@
 
 with Ada.Strings.Unbounded;
 with Interfaces;  use Interfaces;
-private with System;
+private with System.Storage_Elements;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
+
+with GNATCOLL.Mmap;
 
 with Binary_Files; use Binary_Files;
 with Qemu_Traces;  use Qemu_Traces;
@@ -240,6 +242,8 @@ package Traces_Files is
 private
 
    package US renames Ada.Strings.Unbounded;
+   package SSE renames System.Storage_Elements;
+   package Mmap renames GNATCOLL.Mmap;
 
    type Trace_File_Header is record
       Kind             : Trace_Kind;
@@ -277,7 +281,31 @@ private
    type Trace_File_Descriptor (Writeable : Boolean := False) is record
       Filename : US.Unbounded_String;
       Header   : Trace_File_Header;
-      Fd       : File_Descriptor;
+
+      --  Use memory mapping to read trace files (for efficiency), and
+      --  traditional I/O primitives to write them (for simplicity).
+
+      case Writeable is
+         when False =>
+            File   : Mmap.Mapped_File;
+            Region : Mmap.Mapped_Region;
+            --  File and region for the trace file to read
+
+            Buffer : System.Address;
+            --  Address of the first byte in Region
+
+            Length : SSE.Storage_Count;
+            --  Number of bytes available in Region
+
+            Position : SSE.Storage_Offset;
+            --  Offset of the next byte to process in the trace file. We
+            --  process files from the beginnig to the end, like with
+            --  tratidional I/O.
+
+         when True =>
+            Fd : File_Descriptor;
+            --  Descriptor for the trace file to write
+      end case;
    end record;
    subtype Input_Trace_File is Trace_File_Descriptor (Writeable => False);
    subtype Output_Trace_File is Trace_File_Descriptor (Writeable => True);
@@ -288,16 +316,16 @@ private
    --  bytes read).
 
    function Read_Or_None
-     (Desc   : Input_Trace_File;
-      Buffer : System.Address;
-      Size   : Natural) return Read_Status;
-   --  Try to read Size bytes from Desc, and put them at the Buffer address.
-   --  Return how the read completed.
+     (Desc   : in out Input_Trace_File;
+      Size   : Natural;
+      Buffer : out System.Address) return Read_Status;
+   --  Read Size bytes from Desc and put the address of the buffer holding the
+   --  bytes in Buffer. Return how the read completed.
 
    function Read
-     (Desc   : Input_Trace_File;
-      Buffer : System.Address;
-      Size   : Natural) return Boolean;
+     (Desc   : in out Input_Trace_File;
+      Size   : Natural;
+      Buffer : out System.Address) return Boolean;
    --  Like Read_Or_None, but return instead whether the read was full
 
    function Write

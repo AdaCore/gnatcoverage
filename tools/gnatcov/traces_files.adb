@@ -38,6 +38,85 @@ package body Traces_Files is
 
    subtype Qemu_Trace_Entry is Qemu_Traces_Entries.Trace_Entry;
 
+   -----------------------------------------------------------
+   -- Helpers to read/write binary data from/to trace files --
+   -----------------------------------------------------------
+
+   Trace_Header_Size      : constant Natural :=
+      Trace_Header'Size / System.Storage_Unit;
+   Trace_Info_Header_Size : constant Natural :=
+      Trace_Info_Header'Size / System.Storage_Unit;
+   Trace_Entry_Size       : constant Natural :=
+      Qemu_Trace_Entry'Size / System.Storage_Unit;
+
+   generic
+      type Object (<>) is limited private;
+      --  Object to read in memory
+
+      Object_Size : Natural;
+      --  Size of this object, in bytes
+
+   package Object_IO is
+      --  Wrappers around the Read_Or_None/Read function to deal with actual
+      --  object types instead of System.Address values.
+
+      type Ref is access all Object;
+
+      function Read_Or_None
+        (Desc   : in out Input_Trace_File;
+         Object : out Ref) return Read_Status;
+      function Read
+        (Desc   : in out Input_Trace_File;
+         Object : out Ref) return Boolean;
+
+   end Object_IO;
+
+   ---------------
+   -- Object_IO --
+   ---------------
+
+   package body Object_IO is
+
+      function Convert is new Ada.Unchecked_Conversion (System.Address, Ref);
+
+      ------------------
+      -- Read_Or_None --
+      ------------------
+
+      function Read_Or_None
+        (Desc   : in out Input_Trace_File;
+         Object : out Ref) return Read_Status
+      is
+         Object_Address : System.Address;
+      begin
+         return Result : constant Read_Status := Read_Or_None
+           (Desc, Object_Size, Object_Address)
+         do
+            Object := Convert (Object_Address);
+         end return;
+      end Read_Or_None;
+
+      ----------
+      -- Read --
+      ----------
+
+      function Read
+        (Desc   : in out Input_Trace_File;
+         Object : out Ref) return Boolean
+      is
+      begin
+         return Read_Or_None (Desc, Object) = Full;
+      end Read;
+
+   end Object_IO;
+
+   package Trace_Header_IO is new Object_IO
+     (Trace_Header, Trace_Header_Size);
+   package Trace_Info_Header_IO is new Object_IO
+     (Trace_Info_Header, Trace_Info_Header_Size);
+   package Trace_Entry_IO is new Object_IO
+     (Qemu_Trace_Entry, Trace_Entry_Size);
+
    procedure Open_Trace_File
      (Filename   : String;
       Desc       : out Trace_File_Descriptor;
@@ -51,12 +130,12 @@ package body Traces_Files is
       --  Called for each trace info entry
 
    procedure Read_Trace_File_Entries
-     (Desc : Trace_File_Descriptor; Result : out Read_Result);
+     (Desc : in out Trace_File_Descriptor; Result : out Read_Result);
    --  Read all trace file info entries from Desc and call Process_Info for
    --  each of them. Raise a fatal error if one entry is invalid.
 
    procedure Append_Info_Entries_From_Descriptor
-     (Desc       : Trace_File_Descriptor;
+     (Desc       : in out Trace_File_Descriptor;
       Trace_File : in out Trace_File_Type;
       Result     : out Read_Result);
    --  Calls Read_Trace_File_Entries to add all file info entries to Trace_File
@@ -64,7 +143,7 @@ package body Traces_Files is
    procedure Read_Trace_Entry
      (Desc   : in out Trace_File_Descriptor;
       Eof    : out Boolean;
-      E      : out Qemu_Trace_Entry;
+      E      : out Trace_Entry_IO.Ref;
       Result : out Read_Result);
    --  Read a trace from DESC. Set EOF to True in case of end-of-file (in
    --  this case E isn't set), otherwise EOF is set to False and E is
@@ -87,20 +166,11 @@ package body Traces_Files is
    function Make_Trace_Header (Kind : Trace_Kind) return Trace_Header;
    --  Create a trace file header with the given kind
 
-   Trace_Header_Size : constant Natural :=
-                         Trace_Header'Size / System.Storage_Unit;
-
-   Trace_Info_Header_Size : constant Natural :=
-                              Trace_Info_Header'Size / System.Storage_Unit;
-
-   Trace_Entry_Size : constant Natural :=
-      Qemu_Trace_Entry'Size / System.Storage_Unit;
-
    Truncated_File : exception;
 
    procedure Check_Header
      (Desc   : in out Trace_File_Descriptor;
-      Hdr    : out Trace_Header;
+      Hdr    : out Trace_Header_IO.Ref;
       Result : out Read_Result);
    --  Read and perform basic validation on Hdr: make sure it has the proper
    --  magic header, format version and that the endianity is valid. Update the
@@ -143,7 +213,7 @@ package body Traces_Files is
    --  exception is raised.
 
    procedure Read_SO_Info
-     (Desc      : Trace_File_Descriptor;
+     (Desc      : in out Trace_File_Descriptor;
       Filename  : out String_Access;
       Signature : out Binary_File_Signature;
       Code_Size : out Traces.Pc_Type;
@@ -194,15 +264,25 @@ package body Traces_Files is
    ------------------
 
    function Read_Or_None
-     (Desc   : Input_Trace_File;
-      Buffer : System.Address;
-      Size   : Natural) return Read_Status
+     (Desc   : in out Input_Trace_File;
+      Size   : Natural;
+      Buffer : out System.Address) return Read_Status
    is
-      Bytes_Read : constant Natural := Read (Desc.Fd, Buffer, Size);
+      use SSE;
+
+      Old_Position : constant Storage_Offset := Desc.Position;
+      New_Position : constant Storage_Offset :=
+         Desc.Position + Storage_Count (Size);
    begin
-      if Bytes_Read = Size then
+      Buffer := Desc.Buffer + Desc.Position;
+      Desc.Position := Storage_Offset'Min (New_Position, Desc.Length);
+
+      --  If there are not enough bytes left in the buffer to read in order to
+      --  provide Size bytes, return that it's a partial read.
+
+      if New_Position <= Desc.Length or else Size = 0 then
          return Full;
-      elsif Bytes_Read = 0 then
+      elsif Old_Position = Desc.Length then
          return None;
       else
          return Partial;
@@ -214,12 +294,12 @@ package body Traces_Files is
    ----------
 
    function Read
-     (Desc   : Input_Trace_File;
-      Buffer : System.Address;
-      Size   : Natural) return Boolean
+     (Desc   : in out Input_Trace_File;
+      Size   : Natural;
+      Buffer : out System.Address) return Boolean
    is
    begin
-      return Read_Or_None (Desc, Buffer, Size) = Full;
+      return Read_Or_None (Desc, Size, Buffer) = Full;
    end Read;
 
    -----------
@@ -285,13 +365,19 @@ package body Traces_Files is
 
    procedure Check_Header
      (Desc   : in out Trace_File_Descriptor;
-      Hdr    : out Trace_Header;
-      Result : out Read_Result) is
+      Hdr    : out Trace_Header_IO.Ref;
+      Result : out Read_Result)
+   is
    begin
-      if not Read (Desc, Hdr'Address, Trace_Header_Size) then
-         Create_Error (Result, "cannot read header");
+      --  First read the header
 
-      elsif Hdr.Magic /= Qemu_Trace_Magic then
+      if not Trace_Header_IO.Read (Desc, Hdr) then
+         Create_Error (Result, "cannot read header");
+      end if;
+
+      --  Then check that it contains valid data
+
+      if Hdr.Magic /= Qemu_Trace_Magic then
          Create_Error (Result, "invalid header (bad magic)");
 
       elsif Hdr.Version /= Qemu_Trace_Version then
@@ -302,10 +388,11 @@ package body Traces_Files is
 
       elsif not Hdr.Kind'Valid then
          Create_Error (Result, "invalid header (bad kind)");
-
-      else
-         Desc.Header.Big_Endian := Hdr.Big_Endian;
       end if;
+
+      --  Finally, return queried data
+
+      Desc.Header.Big_Endian := Hdr.Big_Endian;
    end Check_Header;
 
    -----------------------------
@@ -318,7 +405,7 @@ package body Traces_Files is
       Result           : out Read_Result;
       For_Trace_Output : Boolean := False)
    is
-      Hdr : Trace_Header;
+      Hdr : Trace_Header_IO.Ref;
    begin
       Result := Read_Success;
 
@@ -346,7 +433,7 @@ package body Traces_Files is
                return;
 
             else
-               Decode_Trace_Header (Hdr, Trace_File, Desc, Result);
+               Decode_Trace_Header (Hdr.all, Trace_File, Desc, Result);
                if not Result.Success then
                   return;
                end if;
@@ -378,7 +465,7 @@ package body Traces_Files is
          return;
       end if;
 
-      Decode_Trace_Header (Hdr, Trace_File, Desc, Result);
+      Decode_Trace_Header (Hdr.all, Trace_File, Desc, Result);
    end Read_Trace_File_Headers;
 
    -------------------------
@@ -423,21 +510,43 @@ package body Traces_Files is
      (Filename : String;
       Mode     : File_Open_Mode) return Trace_File_Descriptor
    is
+      procedure Cannot_Open_Error with No_Return;
+      --  Call Fatal_Error to complain that we cannot open Filename
+
+      procedure Cannot_Open_Error is
+      begin
+         Fatal_Error (Filename & ": cannot open file");
+      end Cannot_Open_Error;
+
    begin
       return Desc : Trace_File_Descriptor (Writeable => Mode /= Read_File) do
          Desc.Filename := US.To_Unbounded_String (Filename);
          case Mode is
             when Read_File =>
                Log_File_Open (Filename);
-               Desc.Fd := Open_Read (Filename, Binary);
+               begin
+                  Desc.File := Mmap.Open_Read (Filename);
+               exception
+                  when Name_Error =>
+                     Cannot_Open_Error;
+               end;
+
+               --  Make the region mutable so that we can perform byte swap if
+               --  needed.
+
+               Desc.Region := Mmap.Read (Desc.File, Mutable => True);
+               Desc.Buffer := Mmap.Data_Address (Desc.Region);
+               Desc.Length := SSE.Storage_Count (Mmap.Data_Size (Desc.Region));
+               Desc.Position := 0;
+
             when Create_File =>
                Desc.Fd := Create_File (Filename, Binary);
             when Append_File =>
                Desc.Fd := Open_Append (Filename, Binary);
          end case;
 
-         if Desc.Fd = Invalid_FD then
-            Fatal_Error (Filename & ": cannot open file");
+         if Desc.Writeable and then Desc.Fd = Invalid_FD then
+            Cannot_Open_Error;
          end if;
       end return;
    end Open_File;
@@ -447,7 +556,7 @@ package body Traces_Files is
    ------------------
 
    procedure Read_SO_Info
-     (Desc      : Trace_File_Descriptor;
+     (Desc      : in out Trace_File_Descriptor;
       Filename  : out String_Access;
       Signature : out Binary_File_Signature;
       Code_Size : out Traces.Pc_Type;
@@ -604,19 +713,20 @@ package body Traces_Files is
    -----------------------------
 
    procedure Read_Trace_File_Entries
-     (Desc : Trace_File_Descriptor; Result : out Read_Result)
+     (Desc : in out Trace_File_Descriptor; Result : out Read_Result)
    is
-      Ihdr    : Trace_Info_Header;
-      Pad     : String (1 .. Trace_Info_Alignment);
-      Pad_Len : Natural;
-      Kind    : Info_Kind_Type;
+      Ihdr : Trace_Info_Header_IO.Ref;
+      Kind : Info_Kind_Type;
+
+      Data_Length  : Natural;
+      Data_Address : System.Address;
    begin
       Result := Read_Success;
 
       loop
-         --  Read the Trace_Info_Header
+         --  Read the Trace_Info_Header and decode it
 
-         if not Read (Desc, Ihdr'Address, Trace_Info_Header_Size) then
+         if not Trace_Info_Header_IO.Read (Desc, Ihdr) then
             Create_Error (Result, "cannot read info header");
             return;
          end if;
@@ -626,52 +736,68 @@ package body Traces_Files is
             Swaps.Swap_32 (Ihdr.Info_Length);
          end if;
 
-         declare
-            Data : String (1 .. Natural (Ihdr.Info_Length));
          begin
-            --  Read the associated data
+            Kind := Info_Kind_Type'Val (Ihdr.Info_Kind);
+         exception
+            when Constraint_Error =>
+               Create_Error
+                 (Result, "unknown trace info kind: 0x"
+                           & Hex_Image (Ihdr.Info_Kind));
+               return;
+         end;
 
-            if not Read (Desc, Data'Address, Data'Length) then
-               Create_Error (Result, "cannot read info data");
+         --  If it's an "end" trace info entry, just stop
+
+         if Kind = Info_End then
+            if Ihdr.Info_Length /= 0 then
+               Create_Error (Result, "bad end info length");
+               return;
+            end if;
+            exit;
+         end if;
+
+         --  Read the associated data
+
+         Data_Length := Natural (Ihdr.Info_Length);
+         if not Read (Desc, Data_Length, Data_Address) then
+            Create_Error (Result, "cannot read info data");
+            return;
+         end if;
+
+         --  Discard padding. Still check that it's only null bytes.
+
+         declare
+            Pad_Len     : Natural := Data_Length mod Trace_Info_Alignment;
+            Pad_Address : System.Address;
+         begin
+            if Pad_Len /= 0 then
+               Pad_Len := Trace_Info_Alignment - Pad_Len;
+            end if;
+
+            if not Read (Desc, Pad_Len, Pad_Address) then
+               Create_Error (Result, "cannot read info pad");
                return;
             end if;
 
-            --  Discard padding. Still check that it's only null bytes.
-
-            Pad_Len := Natural (Ihdr.Info_Length) mod Trace_Info_Alignment;
-            if Pad_Len /= 0 then
-               Pad_Len := Trace_Info_Alignment - Pad_Len;
-               if not Read (Desc, Pad'Address, Pad_Len) then
-                  Create_Error (Result, "cannot read info pad");
-                  return;
-               elsif Pad (1 .. Pad_Len) /= (1 .. Pad_Len => Character'Val (0))
-               then
-                  Create_Error (Result, "bad padding content");
-                  return;
-               end if;
-            end if;
-
+            declare
+               Pad : constant String (1 .. Pad_Len)
+                  with Import, Address => Pad_Address;
             begin
-               Kind := Info_Kind_Type'Val (Ihdr.Info_Kind);
-            exception
-               when Constraint_Error =>
-                  Create_Error
-                    (Result, "unknown trace info kind: 0x"
-                              & Hex_Image (Ihdr.Info_Kind));
-                  return;
+               for B of Pad loop
+                  if B /= Character'Val (0) then
+                     Create_Error (Result, "bad padding content");
+                  end if;
+               end loop;
             end;
+         end;
 
-            --  If it's an "end" trace info entry, just stop
+         --  Finally, interpret the data
 
-            if Kind = Info_End then
-               if Data'Length /= 0 then
-                  Create_Error (Result, "bad end info length");
-                  return;
-               end if;
-               exit;
-            else
-               Process_Info (Kind, Data);
-            end if;
+         declare
+            Data : constant String (1 .. Data_Length)
+               with Import, Address => Data_Address;
+         begin
+            Process_Info (Kind, Data);
          end;
       end loop;
    end Read_Trace_File_Entries;
@@ -681,7 +807,7 @@ package body Traces_Files is
    -----------------------------------------
 
    procedure Append_Info_Entries_From_Descriptor
-     (Desc       : Trace_File_Descriptor;
+     (Desc       : in out Trace_File_Descriptor;
       Trace_File : in out Trace_File_Type;
       Result     : out Read_Result)
    is
@@ -749,7 +875,7 @@ package body Traces_Files is
       --  SO_Set.
 
       EOF       : Boolean;
-      Raw_Entry : Qemu_Trace_Entry;
+      Raw_Entry : Trace_Entry_IO.Ref;
    begin
       Open_Trace_File (Filename, Desc, Trace_File);
       Trace_File.Filename := US.To_Unbounded_String (Filename);
@@ -804,7 +930,7 @@ package body Traces_Files is
             if not Handle_Relocations then
                Process_Trace_Entry
                  (Trace_File, No_Shared_Object,
-                  Decode_Trace_Entry (Raw_Entry));
+                  Decode_Trace_Entry (Raw_Entry.all));
             end if;
          end loop;
       end if;
@@ -902,7 +1028,8 @@ package body Traces_Files is
             end if;
 
             Process_Trace_Entry
-              (Trace_File, SO, Decode_Trace_Entry (Raw_Entry, Trace_Offset));
+              (Trace_File, SO,
+               Decode_Trace_Entry (Raw_Entry.all, Trace_Offset));
          end;
 
          << Skip >> null;
@@ -919,7 +1046,7 @@ package body Traces_Files is
    procedure Read_Trace_Entry
      (Desc   : in out Trace_File_Descriptor;
       Eof    : out Boolean;
-      E      : out Qemu_Trace_Entry;
+      E      : out Trace_Entry_IO.Ref;
       Result : out Read_Result)
    is
    begin
@@ -934,7 +1061,7 @@ package body Traces_Files is
 
       --  Read an entry, making sure the read operation could get a whole one
 
-      case Read_Or_None (Desc, E'Address, Trace_Entry_Size) is
+      case Trace_Entry_IO.Read_Or_None (Desc, E) is
          when None =>
             Eof := True;
             return;
@@ -994,8 +1121,16 @@ package body Traces_Files is
    procedure Close_Trace_File (Desc : in out Trace_File_Descriptor)
    is
    begin
-      Close (Desc.Fd);
-      Desc.Fd := Invalid_FD;
+      if Desc.Writeable then
+         Close (Desc.Fd);
+         Desc.Fd := Invalid_FD;
+      else
+         Desc.Position := 0;
+         Desc.Length := 0;
+         Desc.Buffer := System.Null_Address;
+         Mmap.Free (Desc.Region);
+         Mmap.Close (Desc.File);
+      end if;
       Desc.Filename := US.Null_Unbounded_String;
    end Close_Trace_File;
 
