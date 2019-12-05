@@ -136,10 +136,11 @@ package body Traces_Files is
       Desc       : in out Trace_File_Descriptor;
       Result     : out Read_Result);
 
-   function Open_File (Filename : String;
-                       Mode     : File_Open_Mode) return File_Descriptor;
+   function Open_File
+     (Filename : String;
+      Mode     : File_Open_Mode) return Trace_File_Descriptor;
    --  Open a file, without reading or writing to it. In case of failure, an
-   --  exception is raised and the file is considered as not open.
+   --  exception is raised.
 
    procedure Read_SO_Info
      (Desc      : Trace_File_Descriptor;
@@ -418,26 +419,27 @@ package body Traces_Files is
    -- Open_File --
    ---------------
 
-   function Open_File (Filename : String;
-                       Mode     : File_Open_Mode)
-                       return File_Descriptor
+   function Open_File
+     (Filename : String;
+      Mode     : File_Open_Mode) return Trace_File_Descriptor
    is
-      Fd : File_Descriptor;
    begin
-      case Mode is
-         when Read_File =>
-            Log_File_Open (Filename);
-            Fd := Open_Read (Filename, Binary);
-         when Create_File =>
-            Fd := Create_File (Filename, Binary);
-         when Append_File =>
-            Fd := Open_Append (Filename, Binary);
-      end case;
+      return Desc : Trace_File_Descriptor (Writeable => Mode /= Read_File) do
+         Desc.Filename := US.To_Unbounded_String (Filename);
+         case Mode is
+            when Read_File =>
+               Log_File_Open (Filename);
+               Desc.Fd := Open_Read (Filename, Binary);
+            when Create_File =>
+               Desc.Fd := Create_File (Filename, Binary);
+            when Append_File =>
+               Desc.Fd := Open_Append (Filename, Binary);
+         end case;
 
-      if Fd = Invalid_FD then
-         Fatal_Error (Filename & ": cannot open file");
-      end if;
-      return Fd;
+         if Desc.Fd = Invalid_FD then
+            Fatal_Error (Filename & ": cannot open file");
+         end if;
+      end return;
    end Open_File;
 
    ------------------
@@ -537,9 +539,7 @@ package body Traces_Files is
    is
       Result : Read_Result;
    begin
-      Desc := (Writeable => False, others => <>);
-      Desc.Fd := Open_File (Filename, Read_File);
-      Desc.Filename := US.To_Unbounded_String (Filename);
+      Desc := Open_File (Filename, Read_File);
       Read_Trace_File_Headers (Desc, Trace_File, Result);
       Success_Or_Fatal_Error (Filename, Result);
    exception
@@ -567,23 +567,16 @@ package body Traces_Files is
    begin
       --  First, read the current partial trace file
 
-      Desc := (Writeable => False, others => <>);
-      Desc.Fd := Open_File (Filename, Read_File);
-      Desc.Filename := US.To_Unbounded_String (Filename);
-
+      Desc := Open_File (Filename, Read_File);
       Read_Trace_File_Headers
         (Desc, Trace_File, Result, For_Trace_Output => True);
       Success_Or_Fatal_Error (Filename, Result);
-
       Close_Trace_File (Desc);
 
       --  Then, append to this file the second header, for a flat (raw) trace
       --  file.
 
-      Desc := (Writeable => True, others => <>);
-      Desc.Fd := Open_File (Filename, Append_File);
-      Desc.Filename := US.To_Unbounded_String (Filename);
-
+      Desc := Open_File (Filename, Append_File);
       if not Write (Desc, Flat_Hdr'Address, Trace_Header_Size) then
          raise Write_Error with "failed to write Flat trace header";
       end if;
@@ -1389,10 +1382,8 @@ package body Traces_Files is
       Base       : Traces_Base)
    is
       Filename : constant String := Traces_Files.Filename (Trace_File);
-      Desc     : Output_Trace_File;
+      Desc     : Output_Trace_File := Open_File (Filename, Create_File);
    begin
-      Desc.Fd := Open_File (Filename, Create_File);
-
       if Trace_File.First_Infos /= null
         or else Trace_File.Header.Kind = Info
       then
@@ -1419,9 +1410,8 @@ package body Traces_Files is
    procedure Write_Trace_File (Trace_File : Trace_File_Type)
    is
       Filename : constant String := Traces_Files.Filename (Trace_File);
-      Desc     : Output_Trace_File;
+      Desc     : Output_Trace_File := Open_File (Filename, Create_File);
    begin
-      Desc.Fd := Open_File (Filename, Create_File);
       Write_Trace_File_Info (Desc, Trace_File);
       Close_Trace_File (Desc);
    exception
