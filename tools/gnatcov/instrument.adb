@@ -532,7 +532,7 @@ package body Instrument is
       --  First create the context for Libadalang
 
       Provider : constant Unit_Provider_Reference :=
-         Libadalang.Project_Provider.Create_Project_Unit_Provider_Reference
+         Libadalang.Project_Provider.Create_Project_Unit_Provider
            (Tree             => Project.Project,
             Project          => Project.Project.Root_Project,
             Env              => null,
