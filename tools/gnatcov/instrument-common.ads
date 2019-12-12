@@ -104,6 +104,9 @@ package Instrument.Common is
       return Ada_Qualified_Name;
    --  Convert a Libadalang fully qualified name into our format
 
+   function Canonicalize (Name : Ada_Qualified_Name) return Ada_Qualified_Name;
+   --  Fold casing of Ada identifiers
+
    function To_Ada (Name : Ada_Qualified_Name) return String
       with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into Ada syntax
@@ -341,11 +344,22 @@ package Instrument.Common is
    procedure Destroy_Context (Context : in out Inst_Context);
    --  Free dynamically allocated resources in Context
 
+   function Is_Ignored_Source_File
+     (Context : Inst_Context; Filename : String) return Boolean;
+   --  Return whether the instrumentation process must ignore the Filename
+   --  source file.
+
    function Get_Or_Create_Project_Info
      (Context : in out Inst_Context;
       Project : Project_Type) return Project_Info_Access;
    --  Return the Project_Info record corresponding to Project. Create it if it
    --  does not exist.
+
+   function Unit_Info
+     (CU_Name : Compilation_Unit_Name;
+      Info    : out GNATCOLL.Projects.File_Info) return Boolean;
+   --  Look for a compilation unit in the loaded project. If found, put its
+   --  file info in Info and return True. Return False otherwise.
 
    procedure Register_Main_To_Instrument
      (Context : in out Inst_Context;
@@ -361,12 +375,6 @@ package Instrument.Common is
       Project     : GNATCOLL.Projects.Project_Type;
       Source_File : GNATCOLL.Projects.File_Info);
    --  Add the given source file to the queue of units to instrument
-
-   procedure Add_Instrumented_Unit
-     (Context : in out Inst_Context; CU_Name : Compilation_Unit_Name);
-   --  Add the given compilation unit to the queue of units to instrument.
-   --  If we cannot find a source file for CU_Name in the currently loaded
-   --  project, just emit a warning and return.
 
    procedure Create_File
      (Info : in out Project_Info;

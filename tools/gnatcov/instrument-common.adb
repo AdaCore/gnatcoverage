@@ -118,6 +118,21 @@ package body Instrument.Common is
       end return;
    end To_Qualified_Name;
 
+   ------------------
+   -- Canonicalize --
+   ------------------
+
+   function Canonicalize (Name : Ada_Qualified_Name) return Ada_Qualified_Name
+   is
+      use Ada.Characters.Handling;
+   begin
+      return Result : Ada_Qualified_Name := Name do
+         for N of Result loop
+            N := To_Unbounded_String (To_Lower (To_String (N)));
+         end loop;
+      end return;
+   end Canonicalize;
+
    ------------
    -- To_Ada --
    ------------
@@ -714,6 +729,19 @@ package body Instrument.Common is
       Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
    end Destroy_Context;
 
+   ----------------------------
+   -- Is_Ignored_Source_File --
+   ----------------------------
+
+   function Is_Ignored_Source_File
+     (Context : Inst_Context; Filename : String) return Boolean
+   is
+   begin
+      return
+         Context.Ignored_Source_Files_Present
+         and then GNAT.Regexp.Match (Filename, Context.Ignored_Source_Files);
+   end Is_Ignored_Source_File;
+
    --------------------------------
    -- Get_Or_Create_Project_Info --
    --------------------------------
@@ -747,6 +775,28 @@ package body Instrument.Common is
          end;
       end if;
    end Get_Or_Create_Project_Info;
+
+   ---------------
+   -- Unit_Info --
+   ---------------
+
+   function Unit_Info
+     (CU_Name : Compilation_Unit_Name;
+      Info    : out GNATCOLL.Projects.File_Info) return Boolean
+   is
+      Prj  : Project_Type renames Project.Project.Root_Project;
+      File : constant GNATCOLL.VFS.Filesystem_String := Prj.File_From_Unit
+        (Unit_Name => To_Ada (CU_Name.Unit),
+         Part      => CU_Name.Part,
+         Language  => "Ada");
+   begin
+      if File'Length = 0 then
+         return False;
+      end if;
+
+      Info := Prj.Create_From_Project (File);
+      return True;
+   end Unit_Info;
 
    ---------------------------------
    -- Register_Main_To_Instrument --
@@ -799,10 +849,7 @@ package body Instrument.Common is
 
       --  Skip this file if we were told to ignore it
 
-      if Context.Ignored_Source_Files_Present
-         and then GNAT.Regexp.Match
-           (+SF_Basename, Context.Ignored_Source_Files)
-      then
+      if Is_Ignored_Source_File (Context, +SF_Basename) then
          return;
       end if;
 
@@ -835,33 +882,6 @@ package body Instrument.Common is
                Context.Instrumentation_Queue.Append (CU_Name);
             end if;
          end;
-      end;
-   end Add_Instrumented_Unit;
-
-   ---------------------------
-   -- Add_Instrumented_Unit --
-   ---------------------------
-
-   procedure Add_Instrumented_Unit
-     (Context : in out Inst_Context; CU_Name : Compilation_Unit_Name)
-   is
-      Prj  : Project_Type renames Project.Project.Root_Project;
-      File : constant GNATCOLL.VFS.Filesystem_String := Prj.File_From_Unit
-        (Unit_Name => To_Ada (CU_Name.Unit),
-         Part      => CU_Name.Part,
-         Language  => "Ada");
-   begin
-      if File'Length = 0 then
-         Warn
-           ("cannot instrument " & Image (CU_Name) & ": this unit does not"
-            & " belong to this project");
-         return;
-      end if;
-
-      declare
-         Info : constant File_Info := Prj.Create_From_Project (File);
-      begin
-         Add_Instrumented_Unit (Context, Info.Project, Info);
       end;
    end Add_Instrumented_Unit;
 

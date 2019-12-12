@@ -38,6 +38,7 @@ with Checkpoints;
 with Coverage;
 with Diagnostics;        use Diagnostics;
 with Instrument.Common;  use Instrument.Common;
+with Instrument.Find_Units;
 with Instrument.Sources; use Instrument.Sources;
 with Project;
 with SC_Obligations;
@@ -547,27 +548,42 @@ package body Instrument is
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 
-      procedure Add_Instrumented_Unit
-        (Project     : GNATCOLL.Projects.Project_Type;
-         Source_File : GNATCOLL.Projects.File_Info);
-      --  Wrapper for the eponym procedure in Instrument.Common
+      procedure Find_Units_Wrapper
+        (Ignored_Project : GNATCOLL.Projects.Project_Type;
+         Source_File     : GNATCOLL.Projects.File_Info);
+      --  Wrapper for Find_Units, callback for Enumerate_Ada_Sources
 
       procedure Instrument_Unit
         (CU_Name   : Compilation_Unit_Name;
          Unit_Info : in out Instrumented_Unit_Info);
       --  Instrument a single source file of interest from the project
 
-      ---------------------------
-      -- Add_Instrumented_Unit --
-      ---------------------------
+      ------------------------
+      -- Find_Units_Wrapper --
+      ------------------------
 
-      procedure Add_Instrumented_Unit
-        (Project     : GNATCOLL.Projects.Project_Type;
-         Source_File : GNATCOLL.Projects.File_Info)
+      procedure Find_Units_Wrapper
+        (Ignored_Project : GNATCOLL.Projects.Project_Type;
+         Source_File     : GNATCOLL.Projects.File_Info)
       is
+         procedure Add_Instrumented_Unit (Info : GNATCOLL.Projects.File_Info);
+         --  Wrapper for Instrument.Common.Add_Instrumented_Unit
+
+         ---------------------------
+         -- Add_Instrumented_Unit --
+         ---------------------------
+
+         procedure Add_Instrumented_Unit (Info : GNATCOLL.Projects.File_Info)
+         is
+         begin
+            Add_Instrumented_Unit (IC, Info.Project, Info);
+         end Add_Instrumented_Unit;
+
+      --  Start of processing for Find_Units_Wrapper
+
       begin
-         Add_Instrumented_Unit (IC, Project, Source_File);
-      end Add_Instrumented_Unit;
+         Find_Units (Context, Source_File, Add_Instrumented_Unit'Access);
+      end Find_Units_Wrapper;
 
       ---------------------
       -- Instrument_Unit --
@@ -609,7 +625,7 @@ package body Instrument is
    begin
       --  First get the list of all units of interest
 
-      Project.Enumerate_Ada_Sources (Add_Instrumented_Unit'Access);
+      Project.Enumerate_Ada_Sources (Find_Units_Wrapper'Access);
 
       --  If we need to instrument all Ada mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.

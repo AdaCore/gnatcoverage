@@ -1164,33 +1164,6 @@ package body Instrument.Tree is
 
       procedure Traverse_One (N : Ada_Node) is
       begin
-         --  Subunits must be instrumented along with the unit that contains
-         --  the corresponding stub. To do this, schedule the instrumentation
-         --  of the subunit when we find a stub (see the IF block below) and of
-         --  the unit that contains the subunit when we find a subunit (see the
-         --  Is_Subunit IF block in processing for Ada_Compilation_Unit below).
-
-         if N.Kind in Ada_Body_Stub then
-            begin
-               declare
-                  Stub        : constant Body_Stub := N.As_Body_Stub;
-                  Subunit_FQN : constant Unbounded_Text_Type_Array :=
-                     Stub.P_Fully_Qualified_Name_Array;
-                  Subunit_Name : constant Compilation_Unit_Name :=
-                    (Unit => To_Qualified_Name (Subunit_FQN),
-                     Part => Unit_Separate);
-               begin
-                  Add_Instrumented_Unit (IC, Subunit_Name);
-               end;
-            exception
-               when Property_Error =>
-                  Report
-                    (UIC, N,
-                     "failed to locate the subunit for this stub",
-                     Kind => Warning);
-            end;
-         end if;
-
          --  Initialize or extend current statement sequence. Note that for
          --  special cases such as IF and Case statements we will modify
          --  the range to exclude internal statements that should not be
@@ -1211,17 +1184,20 @@ package body Instrument.Tree is
                      then Basic_Decl (CUN_Body.As_Subunit.F_Body)
                      else CUN_Body.As_Library_Item.F_Item);
                begin
-                  --  If we found a subunit, make sure we also instrument the
-                  --  unit that contains the corresponding stub.
+                  --  If we found a subunit, assert that the corresponding
+                  --  body/parent subunit is also instrumented.
 
                   if Is_Subunit then
                      declare
-                        Body_Name : constant Compilation_Unit_Name :=
-                          (Unit => To_Qualified_Name
-                                     (CUN_Body.As_Subunit.F_Name),
-                           Part => Unit_Separate);
+                        Body_Name : constant Ada_Qualified_Name :=
+                           Canonicalize
+                             (To_Qualified_Name (CUN_Body.As_Subunit.F_Name));
                      begin
-                        Add_Instrumented_Unit (IC, Body_Name);
+                        pragma Assert
+                          (IC.Instrumented_Units.Contains
+                             ((Body_Name, Unit_Body))
+                           or else IC.Instrumented_Units.Contains
+                             ((Body_Name, Unit_Separate)));
                      end;
 
                   --  For a library unit, scan context clause
