@@ -145,8 +145,7 @@ package Checkpoints is
    procedure Checkpoint_Save
      (Filename : String;
       Context  : access Coverage.Context;
-      Purpose  : Checkpoint_Purpose;
-      Version  : Checkpoint_Version := Default_Checkpoint_Version);
+      Purpose  : Checkpoint_Purpose);
    --  Dump internal data structures to a checkpoint file
 
    procedure SID_Load (Filename : String);

@@ -566,9 +566,6 @@ package body Instrument is
 
       --  Finally, emit an SID file to contain mappings between bits in
       --  coverage buffers and SCOs.
-      --
-      --  TODO??? Remove the explicit version argument for Checkpoint_Save once
-      --  the default includes support for source instrumentation.
 
       declare
          Context : aliased Coverage.Context := Coverage.Get_Context;
