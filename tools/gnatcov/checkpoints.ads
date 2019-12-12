@@ -148,6 +148,9 @@ package Checkpoints is
       Purpose  : Checkpoint_Purpose);
    --  Dump internal data structures to a checkpoint file
 
+   procedure Checkpoint_Clear;
+   --  Clear the internal data structures used to create checkpoints
+
    procedure SID_Load (Filename : String);
    --  Load an SID file into internal data structures
 

@@ -230,6 +230,15 @@ package body Coverage.Source is
       SCI_Vector_Vectors.Vector'Write (CSS.Stream, SCI_Vector);
    end Checkpoint_Save;
 
+   ----------------------
+   -- Checkpoint_Clear --
+   ----------------------
+
+   procedure Checkpoint_Clear is
+   begin
+      SCI_Vector.Clear;
+   end Checkpoint_Clear;
+
    ---------------------
    -- Checkpoint_Load --
    ---------------------

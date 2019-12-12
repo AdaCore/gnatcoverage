@@ -82,6 +82,9 @@ package Coverage.Source is
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State);
    --  Save the current coverage state to S
 
+   procedure Checkpoint_Clear;
+   --  Clear the internal data structures used to create checkpoints
+
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State);
    --  Load checkpointed coverage state from S and merge into current state
 

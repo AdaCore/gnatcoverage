@@ -1604,6 +1604,20 @@ package body Files_Table is
       Source_File_Index'Write (S, No_Source_File);
    end Checkpoint_Save;
 
+   ----------------------
+   -- Checkpoint_Clear --
+   ----------------------
+
+   procedure Checkpoint_Clear is
+   begin
+      Files_Table.Clear;
+      Files_Table_Frozen := False;
+      Sorted_Files_Table.Clear;
+
+      Simple_Name_Map.Clear;
+      Full_Name_Map.Clear;
+   end Checkpoint_Clear;
+
    ---------------------
    -- Checkpoint_Load --
    ---------------------

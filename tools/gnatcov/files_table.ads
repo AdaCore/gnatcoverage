@@ -459,6 +459,9 @@ package Files_Table is
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State);
    --  Save the current files table to S
 
+   procedure Checkpoint_Clear;
+   --  Clear the internal data structures used to create checkpoints
+
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State);
    --  Load checkpointed files table from S and merge in current state
 

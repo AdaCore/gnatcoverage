@@ -194,6 +194,15 @@ package body Traces_Files_List is
       String'Output (CSS, "");
    end Checkpoint_Save;
 
+   ----------------------
+   -- Checkpoint_Clear --
+   ----------------------
+
+   procedure Checkpoint_Clear is
+   begin
+      Files.Clear;
+   end Checkpoint_Clear;
+
    ---------------------
    -- Checkpoint_Load --
    ---------------------

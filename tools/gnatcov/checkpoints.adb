@@ -95,6 +95,19 @@ package body Checkpoints is
       Close (SF);
    end Checkpoint_Save;
 
+   ----------------------
+   -- Checkpoint_Clear --
+   ----------------------
+
+   procedure Checkpoint_Clear is
+   begin
+      Files_Table.Checkpoint_Clear;
+      SC_Obligations.Checkpoint_Clear;
+      Instrument.Common.Checkpoint_Clear;
+      Coverage.Source.Checkpoint_Clear;
+      Traces_Files_List.Checkpoint_Clear;
+   end Checkpoint_Clear;
+
    --------------
    -- SID_Load --
    --------------

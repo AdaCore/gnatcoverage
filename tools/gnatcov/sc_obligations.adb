@@ -1045,6 +1045,19 @@ package body SC_Obligations is
       end;
    end Checkpoint_Load;
 
+   ----------------------
+   -- Checkpoint_Clear --
+   ----------------------
+
+   procedure Checkpoint_Clear is
+   begin
+      CU_Vector.Clear;
+      ALI_Annotations.Clear;
+      Inst_Vector.Clear;
+      BDD_Vector.Clear;
+      SCO_Vector.Clear;
+   end Checkpoint_Clear;
+
    ---------------------
    -- Checkpoint_Save --
    ---------------------

@@ -82,6 +82,9 @@ package Traces_Files_List is
       Context : access Coverage.Context);
    --  Save the current list of trace files to S
 
+   procedure Checkpoint_Clear;
+   --  Clear the internal data structures used to create checkpoints
+
    procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
    --  Load list of trace files from S
 

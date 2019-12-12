@@ -625,6 +625,15 @@ package body Instrument.Common is
         (CSS.Stream, Instrumented_Unit_CUs);
    end Checkpoint_Save;
 
+   ----------------------
+   -- Checkpoint_Clear --
+   ----------------------
+
+   procedure Checkpoint_Clear is
+   begin
+      Instrumented_Unit_CUs.Clear;
+   end Checkpoint_Clear;
+
    ---------------------
    -- Checkpoint_Load --
    ---------------------

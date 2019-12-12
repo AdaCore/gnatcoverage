@@ -402,6 +402,9 @@ package Instrument.Common is
    procedure Checkpoint_Save (CSS : access Checkpoints.Checkpoint_Save_State);
    --  Save the current instrumented units map to stream
 
+   procedure Checkpoint_Clear;
+   --  Clear the internal data structures used to create checkpoints
+
    procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed instrumented unit map from stream and merge them in
    --  current state.
