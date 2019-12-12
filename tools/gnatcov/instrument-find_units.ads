@@ -23,8 +23,12 @@ with Instrument.Common; use Instrument.Common;
 
 procedure Instrument.Find_Units
   (Context      : Libadalang.Analysis.Analysis_Context;
+   CU_Name      : Compilation_Unit_Name;
    Info         : GNATCOLL.Projects.File_Info;
-   Process_Unit : access procedure (Info : GNATCOLL.Projects.File_Info));
---  Consider that Info is a source file to instrument (i.e. a unit of interest)
---  and call Process_Unit for all compilation units that must be instrumented
---  with it (i.e. related subunits, if present).
+   Process_Unit : access procedure
+     (CU_Name : Compilation_Unit_Name;
+      Info    : GNATCOLL.Projects.File_Info));
+--  Consider that Info is a source file to instrument (i.e. a unit of interest,
+--  CU_Name being the name of its compilation unit) and call Process_Unit for
+--  all compilation units that must be instrumented with it (i.e. related
+--  subunits, if present).

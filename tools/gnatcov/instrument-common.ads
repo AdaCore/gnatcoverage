@@ -48,7 +48,6 @@
 --    units are replacements for the original units. They fill the coverage
 --    buffers for the unit.
 
-with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
@@ -284,9 +283,6 @@ package Instrument.Common is
      (Key_Type     => Compilation_Unit_Name,
       Element_Type => Instrumented_Unit_Info_Access);
 
-   package Compilation_Unit_Lists is new Ada.Containers.Doubly_Linked_Lists
-     (Element_Type => Compilation_Unit_Name);
-
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
@@ -303,14 +299,6 @@ package Instrument.Common is
       --  If present, instrumentation will ignore files whose names match the
       --  accessed pattern.
 
-      Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
-      --  List of mains to instrument *which are not units of interest*. Always
-      --  empty when Dump_Method is Manual.
-      --
-      --  We need a separate list for these as mains which are units of
-      --  interest are instrumented to dump coverage buffers at the same time
-      --  they are instrumented to fill coverage buffers.
-
       Instrumented_Units : Instrumented_Unit_Maps.Map;
       --  Mapping from instrumented unit names to information used during
       --  instrumentation.
@@ -318,20 +306,6 @@ package Instrument.Common is
       Project_Info_Map : Project_Info_Maps.Map;
       --  For each project that contains units of interest, this tracks a
       --  Project_Info record.
-
-      Instrumentation_Queue : Compilation_Unit_Lists.List;
-      --  Queue (push at the back, pop the front) of compilation units to
-      --  instrument (excluding those for mains: see below).
-
-      Mains_Instrumentation_Queue : Compilation_Unit_Lists.List;
-      --  Queue (push at the back, pop the front) of compilation units for
-      --  mains to instrument.
-
-      Mains_Instrumentation_Started : Boolean;
-      --  Whether instrumentation started to process main units. Since the
-      --  instrumentation of mains uses the list of instrumented units, it is
-      --  an error to add a unit to instrument while we have started to
-      --  instrument mains.
    end record;
 
    function Create_Context
@@ -363,18 +337,20 @@ package Instrument.Common is
 
    procedure Register_Main_To_Instrument
      (Context : in out Inst_Context;
+      Mains   : in out Main_To_Instrument_Vectors.Vector;
       File    : GNATCOLL.VFS.Virtual_File;
       Project : Project_Type)
       with Pre => Context.Dump_Method /= Manual;
-   --  Register a main to be instrumented so that it dumps coverage buffers.
-   --  File is the source file for this main, and Project is the project that
-   --  owns this main.
+   --  Register in Mains a main to be instrumented so that it dumps coverage
+   --  buffers. File is the source file for this main, and Project is the
+   --  project that owns this main. If File is actually a unit of interest in
+   --  Context, do nothing.
 
    procedure Add_Instrumented_Unit
      (Context     : in out Inst_Context;
       Project     : GNATCOLL.Projects.Project_Type;
       Source_File : GNATCOLL.Projects.File_Info);
-   --  Add the given source file to the queue of units to instrument
+   --  Add the given source file to the list of units to instrument
 
    procedure Create_File
      (Info : in out Project_Info;

@@ -19,6 +19,7 @@
 --  Source instrumentation
 
 with Ada.Characters.Handling;
+with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
@@ -48,6 +49,26 @@ with Text_Files;
 
 package body Instrument is
 
+   package CU_Name_Vectors is new Ada.Containers.Vectors
+     (Positive, Compilation_Unit_Name);
+
+   type Library_Unit_Info is record
+      CU_Names : CU_Name_Vectors.Vector;
+   end record;
+   type Library_Unit_Info_Access is access Library_Unit_Info;
+
+   package Library_Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (String, Library_Unit_Info_Access);
+   --  Map to associate a list of compilation units to instrument to library
+   --  units (indexed by library unit name).
+
+   procedure Get_Or_Create
+     (Map          : in out Library_Unit_Maps.Map;
+      Library_Unit : String;
+      Info         : out Library_Unit_Info_Access);
+   --  Look for the info corresponding to Library_Unit in Map. Create it if
+   --  it does not exist yet and put it in Info.
+
    procedure Prepare_Output_Dirs (IC : Inst_Context);
    --  Make sure we have the expected tree of directories for the
    --  instrumentation output.
@@ -67,13 +88,34 @@ package body Instrument is
    --  Emit in the root project a unit to contain the list of coverage buffers
    --  for all units of interest.
 
-   procedure Auto_Dump_Buffers_In_Ada_Mains (IC : in out Inst_Context);
-   --  Instrument source files for Ada mains that are not units of interest to
-   --  add a dump of coverage buffers.
+   procedure Auto_Dump_Buffers_In_Ada_Mains
+     (IC    : in out Inst_Context;
+      Mains : Main_To_Instrument_Vectors.Vector);
+   --  Instrument source files in Mains to add a dump of coverage buffers
 
    procedure Remove_Old_Instr_Files (IC : Inst_Context);
    --  Remove sources in output directories that were not generated during this
    --  instrumentation process.
+
+   -------------------
+   -- Get_Or_Create --
+   -------------------
+
+   procedure Get_Or_Create
+     (Map          : in out Library_Unit_Maps.Map;
+      Library_Unit : String;
+      Info         : out Library_Unit_Info_Access)
+   is
+      use Library_Unit_Maps;
+      Cur : constant Cursor := Map.Find (Library_Unit);
+   begin
+      if Has_Element (Cur) then
+         Info := Element (Cur);
+      else
+         Info := new Library_Unit_Info;
+         Map.Insert (Library_Unit, Info);
+      end if;
+   end Get_Or_Create;
 
    -------------------------
    -- Prepare_Output_Dirs --
@@ -317,9 +359,12 @@ package body Instrument is
    -- Auto_Dump_Buffers_In_Ada_Mains --
    ------------------------------------
 
-   procedure Auto_Dump_Buffers_In_Ada_Mains (IC : in out Inst_Context) is
+   procedure Auto_Dump_Buffers_In_Ada_Mains
+     (IC    : in out Inst_Context;
+      Mains : Main_To_Instrument_Vectors.Vector)
+   is
    begin
-      for Main of IC.Main_To_Instrument_Vector loop
+      for Main of Mains loop
          declare
             use type GNATCOLL.VFS.Filesystem_String;
 
@@ -541,6 +586,20 @@ package body Instrument is
       Context  : constant Analysis_Context :=
          Create_Context (Unit_Provider => Provider);
 
+      --  Create a map from library units to lists of compilation units to
+      --  instrument for them.
+
+      LU_Map            : Library_Unit_Maps.Map;
+      Current_LU_Info : Library_Unit_Info_Access;
+
+      Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
+      --  List of mains to instrument *which are not units of interest*. Always
+      --  empty when Dump_Method is Manual.
+      --
+      --  We need a separate list for these as mains which are units of
+      --  interest are instrumented to dump coverage buffers at the same time
+      --  they are instrumented to fill coverage buffers.
+
       --  Then create the instrumenter's own context, based on Libadalang's
 
       IC                : Inst_Context := Create_Context
@@ -566,23 +625,43 @@ package body Instrument is
         (Ignored_Project : GNATCOLL.Projects.Project_Type;
          Source_File     : GNATCOLL.Projects.File_Info)
       is
-         procedure Add_Instrumented_Unit (Info : GNATCOLL.Projects.File_Info);
+         procedure Add_Instrumented_Unit
+           (CU_Name : Compilation_Unit_Name;
+            Info    : GNATCOLL.Projects.File_Info);
          --  Wrapper for Instrument.Common.Add_Instrumented_Unit
 
          ---------------------------
          -- Add_Instrumented_Unit --
          ---------------------------
 
-         procedure Add_Instrumented_Unit (Info : GNATCOLL.Projects.File_Info)
+         procedure Add_Instrumented_Unit
+           (CU_Name : Compilation_Unit_Name;
+            Info    : GNATCOLL.Projects.File_Info)
          is
+            use GNATCOLL.VFS;
          begin
+            --  Skip this file if we were told to ignore it
+
+            if Is_Ignored_Source_File (IC, +Info.File.Base_Name) then
+               return;
+            end if;
+
+            Current_LU_Info.CU_Names.Append (CU_Name);
             Add_Instrumented_Unit (IC, Info.Project, Info);
          end Add_Instrumented_Unit;
+
+         CU_Name : constant Compilation_Unit_Name :=
+            To_Compilation_Unit_Name (Source_File);
 
       --  Start of processing for Find_Units_Wrapper
 
       begin
-         Find_Units (Context, Source_File, Add_Instrumented_Unit'Access);
+         --  Get the vector in which we will record the compilation units that
+         --  the following call to Find_Units will list.
+         Get_Or_Create (LU_Map, To_Ada (CU_Name.Unit), Current_LU_Info);
+
+         Find_Units
+           (Context, CU_Name, Source_File, Add_Instrumented_Unit'Access);
       end Find_Units_Wrapper;
 
       ---------------------
@@ -632,7 +711,8 @@ package body Instrument is
 
       if Dump_Method /= Manual then
          for Main of Project.Enumerate_Ada_Mains loop
-            Register_Main_To_Instrument (IC, Main.File, Main.Project);
+            Register_Main_To_Instrument
+              (IC, Main_To_Instrument_Vector, Main.File, Main.Project);
          end loop;
       end if;
 
@@ -641,25 +721,18 @@ package body Instrument is
 
       Prepare_Output_Dirs (IC);
 
-      --  Instrument all units of interest that are not mains
+      --  Instrument all units of interest
 
-      while not IC.Instrumentation_Queue.Is_Empty loop
+      for Cur in LU_Map.Iterate loop
          declare
-            use Instrumented_Unit_Maps;
-
-            CU  : constant Compilation_Unit_Name :=
-               IC.Instrumentation_Queue.First_Element;
+            LU_Info : constant Library_Unit_Info_Access :=
+               Library_Unit_Maps.Element (Cur);
          begin
-            IC.Instrumentation_Queue.Delete_First;
-            Instrument_Unit (CU, IC.Instrumented_Units.Element (CU).all);
+            for CU of LU_Info.CU_Names loop
+               Instrument_Unit
+                 (CU, IC.Instrumented_Units.Element (CU).all);
+            end loop;
          end;
-      end loop;
-
-      --  Then instrument all units of interest that are mains
-
-      IC.Mains_Instrumentation_Started := True;
-      for CU of IC.Mains_Instrumentation_Queue loop
-         Instrument_Unit (CU, IC.Instrumented_Units.Element (CU).all);
       end loop;
 
       Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
@@ -668,7 +741,7 @@ package body Instrument is
       --  dump of coverage buffers: Instrument_Unit already took care of mains
       --  that are units of interest.
 
-      Auto_Dump_Buffers_In_Ada_Mains (IC);
+      Auto_Dump_Buffers_In_Ada_Mains (IC, Main_To_Instrument_Vector);
 
       --  Remove sources in IC.Output_Dir that we did not generate this time.
       --  They are probably left overs from previous instrumentations for units

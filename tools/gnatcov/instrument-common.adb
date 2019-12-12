@@ -687,8 +687,6 @@ package body Instrument.Common is
          if Ignored_Source_Files /= null then
             IC.Ignored_Source_Files := Ignored_Source_Files.all;
          end if;
-
-         IC.Mains_Instrumentation_Started := False;
       end return;
    end Create_Context;
 
@@ -804,6 +802,7 @@ package body Instrument.Common is
 
    procedure Register_Main_To_Instrument
      (Context : in out Inst_Context;
+      Mains   : in out Main_To_Instrument_Vectors.Vector;
       File    : GNATCOLL.VFS.Virtual_File;
       Project : Project_Type)
    is
@@ -823,7 +822,7 @@ package body Instrument.Common is
          Prj_Info  : constant Project_Info_Access :=
             Get_Or_Create_Project_Info (Context, Project);
       begin
-         Context.Main_To_Instrument_Vector.Append
+         Mains.Append
            ((Unit     => CU_Name.Unit,
              File     => File,
              Prj_Info => Prj_Info));
@@ -843,15 +842,7 @@ package body Instrument.Common is
 
       SF_Basename : constant Filesystem_String := Source_File.File.Base_Name;
    begin
-      --  See documentation for Mains_Instrumentation_Started
-
-      pragma Assert (not Context.Mains_Instrumentation_Started);
-
-      --  Skip this file if we were told to ignore it
-
-      if Is_Ignored_Source_File (Context, +SF_Basename) then
-         return;
-      end if;
+      pragma Assert (not (Is_Ignored_Source_File (Context, +SF_Basename)));
 
       declare
          CU_Name : constant Compilation_Unit_Name :=
@@ -873,14 +864,6 @@ package body Instrument.Common is
                                (Project, Source_File.File.Base_Name));
          begin
             Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
-
-            --  Add the unit to the appropriate instrumentation queue
-
-            if Project.Is_Main_File (SF_Basename) then
-               Context.Mains_Instrumentation_Queue.Append (CU_Name);
-            else
-               Context.Instrumentation_Queue.Append (CU_Name);
-            end if;
          end;
       end;
    end Add_Instrumented_Unit;

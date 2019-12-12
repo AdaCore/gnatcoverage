@@ -23,8 +23,11 @@ with Outputs; use Outputs;
 
 procedure Instrument.Find_Units
   (Context      : Libadalang.Analysis.Analysis_Context;
+   CU_Name      : Compilation_Unit_Name;
    Info         : GNATCOLL.Projects.File_Info;
-   Process_Unit : access procedure (Info : GNATCOLL.Projects.File_Info))
+   Process_Unit : access procedure
+     (CU_Name : Compilation_Unit_Name;
+      Info    : GNATCOLL.Projects.File_Info))
 is
    package LAL renames Libadalang.Analysis;
    package GPR renames GNATCOLL.Projects;
@@ -51,7 +54,8 @@ is
                if Subunit_FQN'Length = 0 then
                   raise Property_Error;
                elsif Unit_Info (Subunit_Name, Subunit_Info) then
-                  Find_Units (Context, Subunit_Info, Process_Unit);
+                  Find_Units
+                    (Context, Subunit_Name, Subunit_Info, Process_Unit);
                else
                   Warn ("cannot instrument " & Image (Subunit_Name)
                         & ": this unit does not belong to this project");
@@ -99,7 +103,7 @@ begin
    declare
       CU : constant LAL.Compilation_Unit := Unit.Root.As_Compilation_Unit;
    begin
-      Process_Unit (Info);
+      Process_Unit (CU_Name, Info);
       CU.Traverse (Process_Node'Access);
    end;
 end Instrument.Find_Units;
