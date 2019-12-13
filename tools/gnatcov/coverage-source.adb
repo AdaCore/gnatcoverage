@@ -20,6 +20,7 @@ with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Ada.Streams; use Ada.Streams;
 with Ada.Tags;
+with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
@@ -1291,8 +1292,21 @@ package body Coverage.Source is
 
    begin
       CU := Find_Instrumented_Unit (Unit_Name, Unit_Part);
+
       if CU = No_CU_Id then
-         Fatal_Error ("unknown instrumented unit: " & Unit_Image);
+
+         --  When using a single instrumented program to compute separate
+         --  coverage for all units (common in unit testing), it is legitimate
+         --  to process source trace files that contain entries relating to
+         --  units not of interest. So in this case, do not even warn about it:
+         --  just log the fact that we skip this trace entry in the verbose
+         --  about, just in case.
+
+         if Verbose then
+            Put_Line ("discarding source trace entry for unknown instrumented"
+                      & " unit: " & Unit_Image);
+         end if;
+         return;
 
       elsif Provider (CU) /= Instrumenter then
 
