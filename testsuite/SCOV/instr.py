@@ -9,7 +9,7 @@ from gnatpython.fileutils import mkdir
 
 from SUITE.tutils import XCOV, exepath_to, xcov
 
-def xcov_instrument(gprsw, covlevel, sid_file, extra_args=[],
+def xcov_instrument(gprsw, covlevel, extra_args=[],
                     dump_method='atexit', gpr_obj_dir=None, out=None, err=None,
                     register_failure=True):
     """
@@ -18,7 +18,6 @@ def xcov_instrument(gprsw, covlevel, sid_file, extra_args=[],
     :param GPRswitches gprsw: Project file command line switches to honor.
     :param None|str covlevel: Coverage level for the instrumentation
         (--level argument). Not passed if None.
-    :param str sid_file: Name of the SID file to create.
     :param list[str] extra_args: Extra arguments to append to the command line.
     :param str dump_method: Method to dump coverage buffers (--dump-method)
         argument.
@@ -37,5 +36,5 @@ def xcov_instrument(gprsw, covlevel, sid_file, extra_args=[],
     covlevel_args = [] if covlevel is None else ['--level', covlevel]
     args = (['instrument'] + covlevel_args + ['--dump-method', dump_method] +
             gprsw.as_strings +
-            extra_args + [sid_file])
+            extra_args)
     xcov(args, out=out, err=err, register_failure=register_failure)

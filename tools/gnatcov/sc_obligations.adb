@@ -1051,6 +1051,7 @@ package body SC_Obligations is
 
    procedure Checkpoint_Clear is
    begin
+      CU_Map.Clear;
       CU_Vector.Clear;
       ALI_Annotations.Clear;
       Inst_Vector.Clear;

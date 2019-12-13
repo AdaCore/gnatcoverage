@@ -113,6 +113,16 @@ package Project is
    --  Output a warning for all units of interest for which we saw no library
    --  information file.
 
+   procedure Enumerate_SIDs (Callback : access procedure (SID_Name : String))
+      with Pre  => Is_Project_Loaded and then not SIDs_Enumerated,
+           Post => SIDs_Enumerated;
+   --  Invoke Callback once for every SID file corresponding to a unit of
+   --  interest. This emits a warning for all units of interest that have no
+   --  SID file.
+
+   function SIDs_Enumerated return Boolean with Pre => Is_Project_Loaded;
+   --  Return whether Enumerate_SIDs was called
+
    procedure Enumerate_Ada_Sources
      (Callback       : access procedure
         (Project : GNATCOLL.Projects.Project_Type;

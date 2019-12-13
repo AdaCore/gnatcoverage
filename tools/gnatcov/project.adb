@@ -161,6 +161,9 @@ package body Project is
    Are_LIs_Enumerated : Boolean := False;
    --  Return whether Enumerate_LIs was called
 
+   Are_SIDs_Enumerated : Boolean := False;
+   --  Return whether Enumerate_SIDs was called
+
    procedure Initialize
      (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
       with Pre => (Target = null and then Runtime = null)
@@ -456,6 +459,58 @@ package body Project is
          end if;
       end loop;
    end Report_Units_Without_LI;
+
+   --------------------
+   -- Enumerate_SIDs --
+   --------------------
+
+   procedure Enumerate_SIDs (Callback : access procedure (SID_Name : String))
+   is
+      Lib_Info : Library_Info_List;
+   begin
+      --  Go through all SID files in all projects of interest
+
+      for Prj_Info of Prj_Map loop
+         Prj_Info.Project.Library_Files
+           (List => Lib_Info, ALI_Ext => "^.*\.sid$");
+         for LI of Lib_Info loop
+
+            --  If the unit for this SID file is in Unit_Map, this is a unit of
+            --  interest, so use it.
+
+            declare
+               use Unit_Maps;
+
+               Cur : constant Cursor := Unit_Map.Find (LI.Source.Unit_Name);
+            begin
+               if Has_Element (Cur) then
+                  Callback.all (+LI.Library_File.Full_Name);
+                  Unit_Map.Reference (Cur).LI_Seen := True;
+               end if;
+            end;
+         end loop;
+         Lib_Info.Clear;
+      end loop;
+
+      --  Now warn about units of interest that have no SID
+
+      for UI of Unit_Map loop
+         if not UI.Is_Subunit and then not UI.LI_Seen then
+            Warn_Missing_Info (UI);
+         end if;
+      end loop;
+
+      Are_SIDs_Enumerated := True;
+   end Enumerate_SIDs;
+
+   ---------------------
+   -- SIDs_Enumerated --
+   ---------------------
+
+   function SIDs_Enumerated return Boolean is
+   begin
+      return Are_SIDs_Enumerated;
+   end SIDs_Enumerated;
 
    ---------------------------
    -- Enumerate_Ada_Sources --

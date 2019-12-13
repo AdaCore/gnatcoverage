@@ -115,6 +115,9 @@ procedure GNATcov is
    SCOs_Loaded : Boolean := False;
    --  Whether we loaded SCOs from ALI files
 
+   SIDs_Loaded : Boolean := False;
+   --  Whether we loaded SID files for units of interest
+
    function Command_Name return String is
      (Command_Line.Parser.Command_Name (Arg_Parser, Args.Command));
 
@@ -179,6 +182,10 @@ procedure GNATcov is
    procedure Load_All_ALIs (Check_SCOs : Boolean);
    --  Load all listed ALI files and initialize source coverage data structure
    --  (if appropriate). If Check_SCOs is True, call Check_User_Provided_SCOs.
+
+   procedure Load_All_SIDs;
+   --  Load all SID files for units of interest (if no --sid option is passed)
+   --  or all explicitly passed SID files.
 
    procedure Create_Ignored_Source_Files_Matcher
      (Matcher     : out GNAT.Regexp.Regexp;
@@ -315,14 +322,21 @@ procedure GNATcov is
 
    procedure Check_User_Provided_SCOs is
    begin
+      --  As long as the user requested source coverage, they need to provide
+      --  a set of units for which we will compute code coverage. Passing a
+      --  project file, checkpoints, SID or ALI files are all ways to convey
+      --  that. If the user provided no such set of units, we cannot compute
+      --  anything useful, so we need to ask for that and stop.
+
       if Source_Coverage_Enabled
          and then Inputs.Length (Checkpoints_Inputs) = 0
          and then Inputs.Length (SID_Inputs) = 0
+         and then Inputs.Length (ALIs_Inputs) = 0
+         and then not Args.String_Args (Opt_Project).Present
       then
-         Check_Argument_Available
-           (ALIs_Inputs,
-            "SCOs",
-            ", specifying Units in project or using --units/--scos");
+         Report_Missing_Argument
+           ("SCOs",
+            ", specifying Units in project or using --units/--scos/--sid");
       end if;
    end Check_User_Provided_SCOs;
 
@@ -386,6 +400,42 @@ procedure GNATcov is
          Inputs.Iterate (ALIs_Inputs, ALI_Files.Load_ALI'Access);
       end if;
    end Load_All_ALIs;
+
+   -------------------
+   -- Load_All_SIDs --
+   -------------------
+
+   procedure Load_All_SIDs is
+
+      procedure Add_SID_File (SID_Name : String);
+      --  Callback for Enumerate_SIDs. Add SID_Name to SID_Inputs
+
+      ------------------
+      -- Add_SID_File --
+      ------------------
+
+      procedure Add_SID_File (SID_Name : String) is
+      begin
+         Inputs.Add_Input (SID_Inputs, SID_Name);
+      end Add_SID_File;
+
+   --  Start of processing for Load_All_SIDs
+
+   begin
+      if SIDs_Loaded then
+         return;
+      end if;
+      SIDs_Loaded := True;
+
+      --  If no --sid option is present, enumerate all available SID for units
+      --  of interest. This requires a project file.
+
+      if Is_Project_Loaded and then Inputs.Length (SID_Inputs) = 0 then
+         Enumerate_SIDs (Add_SID_File'Access);
+      end if;
+
+      Inputs.Iterate (SID_Inputs, Checkpoints.SID_Load'Access);
+   end Load_All_SIDs;
 
    ----------------------------
    -- Load_Project_Arguments --
@@ -1049,11 +1099,11 @@ procedure GNATcov is
                Report_Missing_Argument ("a source coverage level");
             end if;
 
-            if Args.Remaining_Args.Length /= 1 then
-               Fatal_Error ("exactly one argument is allowed: a filename for"
-                            & " the output checkpoint");
+            if Args.Remaining_Args.Length > 0 then
+               Fatal_Error
+                 ("Invalid extra argument: "
+                  & (+Args.Remaining_Args.First_Element));
             end if;
-            Output := new String'(+Args.Remaining_Args.First_Element);
 
          when others =>
             null;
@@ -1385,8 +1435,7 @@ begin
             end if;
 
             Instrument.Instrument_Units_Of_Interest
-              (SID_Filename         => Output.all,
-               Dump_Method          => Dump_Method,
+              (Dump_Method          => Dump_Method,
                Language_Version     => Language_Version,
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null));
@@ -1720,11 +1769,11 @@ begin
               ("Dynamic HTML report format support is not installed.");
          end if;
 
-         --  Check that the user specified units of interest. We'll load ALIs
-         --  only when necessary, i.e. only the first time we process a binary
-         --  trace file. This will avoid conflicts between incompatible source
-         --  obligations (instrumentation-based SCOs from an SID, ALIs from a
-         --  rebuilt project, ...).
+         --  Check that the user specified units of interest. We'll load SCOs
+         --  from ALIs/SIDs only when necessary, i.e. only the first time we
+         --  process a binary trace file. This will avoid conflicts between
+         --  incompatible source obligations (instrumentation-based SCOs from
+         --  an SID, ALIs from a rebuilt project, ...).
 
          Check_User_Provided_SCOs;
 
@@ -1755,10 +1804,6 @@ begin
                Fatal_Error ("Routine list not allowed for source coverage.");
             end if;
          end if;
-
-         --  Read source instrumentation data to decode source traces
-
-         Inputs.Iterate (SID_Inputs, Checkpoints.SID_Load'Access);
 
          --  Read and process traces
 
@@ -1935,6 +1980,11 @@ begin
             --  Start of processing for Process_Source_Trace
 
             begin
+               --  Make sure SID files (to decode source trace files) are
+               --  loaded.
+
+               Load_All_SIDs;
+
                --  Register the trace file, so it is included in coverage
                --  reports.
 

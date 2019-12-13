@@ -298,9 +298,8 @@ package Command_Line is
          Internal    => True),
       Cmd_Instrument => Create
         (Name        => "instrument",
-         Pattern     => "[SID-FILE]",
          Description => ("Instrument the given project and produce the"
-                         & " associated Source Instrumentation Data file."),
+                         & " associated Source Instrumentation Data files."),
          Internal    => Instrument_Experimental));
 
    Bool_Infos : constant Bool_Option_Info_Array :=

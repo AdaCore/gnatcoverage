@@ -48,11 +48,17 @@ with Text_Files;
 
 package body Instrument is
 
+   package GPR renames GNATCOLL.Projects;
+
    package CU_Name_Vectors is new Ada.Containers.Vectors
      (Positive, Compilation_Unit_Name);
 
    type Library_Unit_Info is record
       CU_Names : CU_Name_Vectors.Vector;
+      --  List of compilation unit implementing this library unit
+
+      Body_Project, Spec_Project : GPR.Project_Type;
+      --  Projects that own the body/spec for this library unit
    end record;
    type Library_Unit_Info_Access is access Library_Unit_Info;
 
@@ -67,6 +73,9 @@ package body Instrument is
       Info         : out Library_Unit_Info_Access);
    --  Look for the info corresponding to Library_Unit in Map. Create it if
    --  it does not exist yet and put it in Info.
+
+   function SID_Filename (Cur : Library_Unit_Maps.Cursor) return String;
+   --  Return the filename of the SID file to create for the given library unit
 
    procedure Prepare_Output_Dirs (IC : Inst_Context);
    --  Make sure we have the expected tree of directories for the
@@ -108,9 +117,47 @@ package body Instrument is
          Info := Element (Cur);
       else
          Info := new Library_Unit_Info;
+         Info.Body_Project := GPR.No_Project;
+         Info.Spec_Project := GPR.No_Project;
          Map.Insert (Library_Unit, Info);
       end if;
    end Get_Or_Create;
+
+   ------------------
+   -- SID_Filename --
+   ------------------
+
+   function SID_Filename (Cur : Library_Unit_Maps.Cursor) return String is
+      use GNATCOLL.VFS;
+      use type GPR.Project_Type;
+      use Library_Unit_Maps;
+
+      LU_Name : String := Key (Cur);
+      Info    : Library_Unit_Info renames Element (Cur).all;
+
+      --  Determine in which project we will put this SID file. Mimic GNAT: use
+      --  the project of the main source of the library unit.
+
+      Project : constant GPR.Project_Type :=
+        (if Info.Body_Project = GPR.No_Project
+         then Info.Spec_Project
+         else Info.Body_Project);
+      pragma Assert (Project /= GPR.No_Project);
+
+      Object_Dir : constant String := +Project.Object_Dir.Full_Name;
+
+   begin
+      --  Replace dots with dashes to build the file name out of the library
+      --  unit name.
+
+      for C of LU_Name loop
+         if C = '.' then
+            C := '-';
+         end if;
+      end loop;
+
+      return Object_Dir / LU_Name & ".sid";
+   end SID_Filename;
 
    -------------------------
    -- Prepare_Output_Dirs --
@@ -153,9 +200,9 @@ package body Instrument is
 
          Unit_Part : constant String :=
            (case UIC.Instrumented_Unit.Part is
-            when GNATCOLL.Projects.Unit_Spec     => "Unit_Spec",
-            when GNATCOLL.Projects.Unit_Body     => "Unit_Body",
-            when GNATCOLL.Projects.Unit_Separate => "Unit_Separate");
+            when GPR.Unit_Spec     => "Unit_Spec",
+            when GPR.Unit_Body     => "Unit_Body",
+            when GPR.Unit_Separate => "Unit_Separate");
          --  Do not use 'Image so that we use the original casing for the
          --  enumerators, and thus avoid compilation warnings/errors.
 
@@ -289,7 +336,7 @@ package body Instrument is
      (IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info)
    is
-      use GNATCOLL.Projects;
+      use GPR;
 
       CU_Name : Compilation_Unit_Name := (Sys_Buffers_Lists, Unit_Spec);
       File    : Text_Files.File_Type;
@@ -382,8 +429,7 @@ package body Instrument is
    ----------------------------------
 
    procedure Instrument_Units_Of_Interest
-     (SID_Filename         : String;
-      Dump_Method          : Any_Dump_Method;
+     (Dump_Method          : Any_Dump_Method;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
@@ -422,8 +468,7 @@ package body Instrument is
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 
       procedure Find_Units_Wrapper
-        (Ignored_Project : GNATCOLL.Projects.Project_Type;
-         Source_File     : GNATCOLL.Projects.File_Info);
+        (Project : GPR.Project_Type; Source_File : GPR.File_Info);
       --  Wrapper for Find_Units, callback for Enumerate_Ada_Sources
 
       procedure Instrument_Unit
@@ -436,12 +481,11 @@ package body Instrument is
       ------------------------
 
       procedure Find_Units_Wrapper
-        (Ignored_Project : GNATCOLL.Projects.Project_Type;
-         Source_File     : GNATCOLL.Projects.File_Info)
+        (Project : GPR.Project_Type; Source_File : GPR.File_Info)
       is
          procedure Add_Instrumented_Unit
            (CU_Name : Compilation_Unit_Name;
-            Info    : GNATCOLL.Projects.File_Info);
+            Info    : GPR.File_Info);
          --  Wrapper for Instrument.Common.Add_Instrumented_Unit
 
          ---------------------------
@@ -450,7 +494,7 @@ package body Instrument is
 
          procedure Add_Instrumented_Unit
            (CU_Name : Compilation_Unit_Name;
-            Info    : GNATCOLL.Projects.File_Info)
+            Info    : GPR.File_Info)
          is
             use GNATCOLL.VFS;
          begin
@@ -472,7 +516,23 @@ package body Instrument is
       begin
          --  Get the vector in which we will record the compilation units that
          --  the following call to Find_Units will list.
+
          Get_Or_Create (LU_Map, To_Ada (CU_Name.Unit), Current_LU_Info);
+
+         --  Keep track of projects that own this library unit's source files
+         --  for its spec/body.
+
+         case Source_File.Unit_Part is
+            when GPR.Unit_Body => Current_LU_Info.Body_Project := Project;
+            when GPR.Unit_Spec => Current_LU_Info.Spec_Project := Project;
+
+            --  Subunits cannot be units of interest, so Enumerate_Ada_Sources
+            --  should not be able to call Find_Units_Wrapper with a subunit.
+            --  Hence, the following should be unreachable.
+
+            when GPR.Unit_Separate =>
+               raise Program_Error with "unreachable code";
+         end case;
 
          Find_Units
            (Context, CU_Name, Source_File, Add_Instrumented_Unit'Access);
@@ -535,9 +595,13 @@ package body Instrument is
 
       Prepare_Output_Dirs (IC);
 
-      --  Instrument all units of interest
+      --  For each library unit...
 
       for Cur in LU_Map.Iterate loop
+
+         --  Instrument compilation units (only the ones this library unit
+         --  owns).
+
          declare
             LU_Info : constant Library_Unit_Info_Access :=
                Library_Unit_Maps.Element (Cur);
@@ -547,6 +611,24 @@ package body Instrument is
                  (CU, IC.Instrumented_Units.Element (CU).all);
             end loop;
          end;
+
+         --  Emit a SID file to contain mappings between bits in coverage
+         --  buffers and SCOs.
+
+         declare
+            Context : aliased Coverage.Context := Coverage.Get_Context;
+         begin
+            Checkpoints.Checkpoint_Save
+              (SID_Filename (Cur),
+               Context'Access,
+               Purpose => Checkpoints.Instrumentation);
+         end;
+
+         if Switches.Verbose then
+            SC_Obligations.Dump_All_SCOs;
+         end if;
+
+         Checkpoints.Checkpoint_Clear;
       end loop;
 
       Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
@@ -563,22 +645,6 @@ package body Instrument is
       --  of next builds.
 
       Clean_Objdirs (IC);
-
-      --  Finally, emit an SID file to contain mappings between bits in
-      --  coverage buffers and SCOs.
-
-      declare
-         Context : aliased Coverage.Context := Coverage.Get_Context;
-      begin
-         Checkpoints.Checkpoint_Save
-           (SID_Filename,
-            Context'Access,
-            Purpose => Checkpoints.Instrumentation);
-      end;
-
-      if Switches.Verbose then
-         SC_Obligations.Dump_All_SCOs;
-      end if;
    end Instrument_Units_Of_Interest;
 
 end Instrument;

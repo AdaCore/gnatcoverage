@@ -402,12 +402,6 @@ class SCOV_helper:
         """
         raise NotImplementedError
 
-    def mode_coverage_sco_options(self):
-        """Return the gnatcov options to use to convey how SCOs should
-        be retrieved at gnatcov coverage analysis time.
-        """
-        raise NotImplementedError
-
     def mode_scofile_for(self, source):
         """The _base_ file name of a file that would contain SCOs for the
         provide source file name. This is used as a candidate file name to
@@ -833,7 +827,7 @@ class SCOV_helper:
         # don't want to pass SCO options when using checkpoints as inputs.
 
         sco_options = (
-            [] if use_checkpoint_inputs else self.mode_coverage_sco_options())
+            [] if use_checkpoint_inputs else self.coverage_sco_options())
 
         save_checkpoint_options = (
             ["--save-checkpoint=%s" % ckptname_for(single_driver)]
@@ -1080,6 +1074,81 @@ class SCOV_helper:
         """Switch to this test's homedir."""
         cd(self.homedir)
 
+    # --------------------------
+    # -- coverage_sco_options --
+    # --------------------------
+    def coverage_sco_options(self):
+        """The list of options to pass to gnatcov coverage to convey
+        SCOs to be discharged for the test at hand."""
+
+        # If we have a request for specific options, honor that.
+
+        if self.covctl and self.covctl.gprsw:
+            return self.covctl.gprsw.as_strings
+
+        # Otherwise, if we are requested to convey unit of interest through
+        # project file attributes and this is not a consolidation test, use
+        # our build project file which has been amended for that.
+
+        # ??? Situations where we need to reuse artifacts from the object
+        # directory of previous tests (e.g. for consolidation or mcdc
+        # variation tests) would require crafting a project file referring to
+        # the projects of interest for those previous tests, which isn't
+        # implemented yet.
+
+        elif self.gprmode and self.singletest() and not self.wdctl.reuse_bin:
+            return ["-P%s" % self.gpr]
+
+        # Fallback to --scos/--sid with a list of files we compute here:
+
+        else:
+            return ["%s=@%s" % (
+                self.mode_scofiles_switch(),
+                list_to_file(self._scofiles_list(), "scos.list"))]
+
+    def _locate_scofile(self,source):
+        """Return the fullpath of the ali file corresponding to the given
+        SOURCE file.  Return None if none was found.
+        """
+
+        # Whatever the kind of test we are (single or consolidation), we
+        # expect every ALI file of interest to be associated with at least
+        # one single test, and to be present in the "obj" subdirectory of
+        # the associated binary dir.
+
+        # Compute the local path from single test bindir and iterate over
+        # binary dir for all our drivers until we find. There might actually
+        # be several instances in the consolidation case. We assume they are
+        # all identical, and they should be for typical situations where the
+        # same sources were exercised by multiple drivers:
+
+        lpath = "obj/" + self.mode_scofile_for(source)
+        for main in self.drivers:
+            tloc = self.abdir_for(no_ext(main)) + lpath
+            if os.path.exists(tloc):
+                return tloc
+
+        return None
+
+    def _scofiles_list(self):
+        """Return a set of ali or sid files corresponding to the list of
+        sources specified in this tests's UXset.
+        """
+
+        # It is legitimate for some sources to not have an associated ali, for
+        # example Ada separate sub-units compiled as part of their parent. We
+        # just skip those and will fail matching expectations if the SCOs are
+        # nowhere else.
+
+        # We might also have expectations for different sources that map to
+        # the same ali, as for example with the spec and body of the same
+        # package.  We make our result a set to prevent duplicates and xcov
+        # warnings later on.
+
+        return set (
+            [scof for scof in
+             (self._locate_scofile(soi) for soi in self.sources_of_interest())
+             if scof])
 
 class SCOV_helper_bin_traces(SCOV_helper):
     """SCOV_helper specialization for the binary execution trace based mode."""
@@ -1096,8 +1165,8 @@ class SCOV_helper_bin_traces(SCOV_helper):
     #
     # * Consolidation is achieved by either
     #
-    #   - Passing all the traces and the global SCOS of interest via -P
-    #     or --scos to gnatcov coverage, or
+    #   - Passing all the binary traces and the global SCOS of interest
+    #     via -P or --scos to gnatcov coverage, or
     #
     #   - Combining coverage checkpoints produced for each program right
     #     after their execution to generate a trace.
@@ -1125,24 +1194,10 @@ class SCOV_helper_bin_traces(SCOV_helper):
         # further checks that are bound to fail if the execution doesn't
         # proceed as expected somehow (e.g. not producing a trace).
         xrun([main_path, "--level=%s" % self.xcovlevel] +
-             self.mode_coverage_sco_options(),
+             self.coverage_sco_options(),
              out=out_file, register_failure=not self.testcase.expect_failures)
 
         return out_file
-
-    def mode_coverage_sco_options(self):
-        # If we have a request for specific options, honor that.  Otherwise,
-        # if we are requested to convey unit of interest through project file
-        # attributes, use our build project file which has been amended for
-        # that. Otherwise, fallback to --scos with a list of ALIs we compute
-        # here:
-
-        if self.covctl and self.covctl.gprsw:
-            return self.covctl.gprsw.as_strings
-        elif self.gprmode:
-            return ["-P%s" % self.gpr]
-        else:
-            return ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
 
     def mode_scofile_for(self, source):
         return language_info(source).scofile_for(os.path.basename(source))
@@ -1153,61 +1208,16 @@ class SCOV_helper_bin_traces(SCOV_helper):
     def mode_tracename_for(self, pgm):
         return tracename_for(pgm)
 
-    def locate_ali(self,source):
-        """Return the fullpath of the ali file corresponding to the given
-        SOURCE file.  Return None if none was found.
-        """
-
-        # Whatever the kind of test we are (single or consolidation), we
-        # expect every ALI file of interest to be associated with at least
-        # one single test, and to be present in the "obj" subdirectory of
-        # the associated binary dir.
-
-        # Compute the local path from single test bindir and iterate over
-        # binary dir for all our drivers until we find. There might actually
-        # be several instances in the consolidation case. We assume they are
-        # all identical, and they should be for typical situations where the
-        # same sources were exercised by multiple drivers:
-
-        lang_info = language_info(source)
-        lali="obj/"+lang_info.scofile_for(os.path.basename(source))
-        for main in self.drivers:
-            tloc=self.abdir_for(no_ext(main))+lali
-            if os.path.exists(tloc):
-                return tloc
-
-        return None
-
-    def ali_list(self):
-        """Return a set of ali files corresponding to the list of sources
-        specified in this tests's UXset.
-        """
-
-        # It is legitimate for some sources to not have an associated ali, for
-        # example Ada separate sub-units compiled as part of their parent. We
-        # just skip those and will fail matching expectations if the SCOs are
-        # nowhere else.
-
-        # We might also have expectations for different sources that map to
-        # the same ali, as for example with the spec and body of the same
-        # package.  We make our result a set to prevent duplicates and xcov
-        # warnings later on.
-
-        return set (
-            [ali for ali in (self.locate_ali(source)
-                             for source in self.sources_of_interest()) if ali]
-            )
-
 
 class SCOV_helper_src_traces(SCOV_helper):
     """SCOV_helper specialization for the source instrumentation mode."""
 
     # Outline of the source instrumentation based scheme:
     #
-    # * Instrumentation produces instrumented sources and a so called
-    #   "Source Instrumentation Data" (SID) file, holding SCOs and data
-    #   required to decode source traces later on, similar to executable files
-    #   for binary traces.
+    # * Instrumentation produces instrumented sources and a so called "Source
+    #   Instrumentation Data" (SID) file for each source, holding SCOs and
+    #   data required to decode source traces later on (similar to ALI and
+    #   and executable files for binary traces).
     #
     #   Units of interest must be conveyed at this stage, through project
     #   file attributes, as they control which units are instrumented.
@@ -1216,28 +1226,26 @@ class SCOV_helper_src_traces(SCOV_helper):
     #   trace" file.
     #
     # * Analysis for a single program proceeds by providing gnatcov coverage
-    #   with the source trace file and the corresponding SID file.
+    #   with the source trace file and the corresponding SID files, either
+    #   through project files or with a --sid option as for --scos for binary
+    #   traces.
     #
     # * Consolidation is achieved by either
     #
-    #   - Providing the set or source traces and the corresponding SID files
-    #     to gnatcov coverage, or
+    #   - Passing all the source traces and the global SCOS of interest
+    #     via -P or --sid to gnatcov coverage, or
     #
     #   - Combining coverage checkpoints produced for each program right
     #     after their execution to generate a trace.
     #
     # The main differences with the binary trace based scheme are:
     #
-    # * Units of interest are conveyed at instrumentation time (even prior
-    #   to build) for the instrumentation scheme vs at analysis time for the
-    #   binary trace case,
+    # * Units of interest are conveyed at instrumentation time (even prior to
+    #   build) as well as at analysis time for the instrumentation scheme.
     #
-    # * SID files must be provided to gnatcov coverage together with the
-    #   source traces. Unlike executables for binary traces, SID files are not
-    #   necessarily visible at program execution time so can't be recorded in
-    #   the traces.
-
-    SID_FILE = 'instr.sid'
+    # * Internally, the information needed to decode trace info is located
+    #   in SID files for source traces and in executables (as debug info) for
+    #   binary traces.
 
     def mode_build(self):
 
@@ -1266,7 +1274,7 @@ class SCOV_helper_src_traces(SCOV_helper):
 
         out = 'xinstr.out'
         xcov_instrument(
-            covlevel=self.xcovlevel, sid_file=self.SID_FILE,
+            covlevel=self.xcovlevel,
             extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
             gprsw=instrument_gprsw,
             gpr_obj_dir=self.gpr_obj_dir,
@@ -1293,19 +1301,6 @@ class SCOV_helper_src_traces(SCOV_helper):
         cmdrun([main_path], out=out_file,
                register_failure=not self.testcase.expect_failures)
         return out_file
-
-    def mode_coverage_sco_options(self):
-
-        # Units of interest are conveyed at instrumentation time
-        # and the corresponding SCOs are held by the instrumentation
-        # checkpoints.
-
-        instr_checkpoints_opt = "--sid=@%s" % list_to_file(
-            [self.abdir_for(pgm) + self.SID_FILE
-             for pgm in self.programs()],
-            "sid-files.list")
-
-        return [instr_checkpoints_opt]
 
     def mode_scofile_for(self, source):
         return language_info(source).sidfile_for(os.path.basename(source))

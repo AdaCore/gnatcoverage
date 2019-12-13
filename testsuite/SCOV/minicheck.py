@@ -131,12 +131,19 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     if separate_coverage:
         cov_or_instr_args.extend(['-S', separate_coverage])
 
+    # Compute arguments to specify units of interest
     if trace_mode == 'bin':
-        # Compute arguments to specify units of interest
-        scos = (['--scos={}.ali'.format(abspath(a)) for a in scos]
-                if scos else
-                gprsw.as_strings)
+        scos_arg = '--scos'
+        scos_ext = 'ali'
+    else:
+        scos_arg = '--sid'
+        scos_ext = 'sid'
+    scos = (['{}={}.{}'.format(scos_arg, abspath(a), scos_ext)
+             for a in scos]
+            if scos else
+            gprsw.as_strings)
 
+    if trace_mode == 'bin':
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
         run_args = covlevel_args + extra_args
@@ -148,18 +155,11 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
         xcov_args.extend(cov_or_instr_args)
 
-        if gprsw_for_coverage:
-            xcov_args.extend(gprsw_for_coverage.as_strings)
-        elif scos:
-            xcov_args.extend(scos)
-
     elif trace_mode == 'src':
         # Instrument the project and build the result
-        sid_file = abspath('instr.sid')
-        xcov_instrument(gprsw, covlevel, sid_file,
-                        extra_args=cov_or_instr_args, gpr_obj_dir=gpr_obj_dir,
-                        dump_method=dump_method, out='instrument.log')
-        xcov_args.extend(['--sid', sid_file])
+        xcov_instrument(gprsw, covlevel, extra_args=cov_or_instr_args,
+                        gpr_obj_dir=gpr_obj_dir, dump_method=dump_method,
+                        out='instrument.log')
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
 
@@ -168,18 +168,17 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
             cmdrun([exepath(m)])
         trace_files = [abspath(srctracename_for(m)) for m in mains]
 
-        # If we would have passed the project to "gnatcov coverage" in binary
-        # trace mode, pass it here too. This is necessary for instance to
-        # select the default output directory for coverage reports.
-        if gprsw_for_coverage:
-            xcov_args.extend(['-P', gprsw_for_coverage.root_project])
-        elif not scos:
-            xcov_args.extend(['-P', gprsw.root_project])
-
         xcov_args.extend(extra_args)
 
     else:
         assert False, 'Unknown trace mode: {}'.format(trace_mode)
+
+    # If provided, pass "gnatcov coverage"-specific project arguments, which
+    # replace the list of SCOS.
+    if gprsw_for_coverage:
+        xcov_args.extend(gprsw_for_coverage.as_strings)
+    elif scos:
+        xcov_args.extend(scos)
 
     return xcov_args + extra_coverage_args + trace_files
 
