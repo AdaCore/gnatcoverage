@@ -76,7 +76,7 @@ environment variable designating the GNAT installation root.
 3.  Build & install Libadalang: please refer to
     [Libadalang's instructions](https://github.com/adacore/libadalang#quick-guide-to-use-libadalang).
 
-3.  Build & install a base Valgrind:
+4.  Build & install a base Valgrind:
 
     Best is to use a Valgrind release for this, for example 3.10.1 or
     3.13 which are known to work.
@@ -86,7 +86,7 @@ environment variable designating the GNAT installation root.
     valgrind-3.13 $ make install
     ```
 
-4.  Build & install the gnatcov front-end per se, plus the Valgrind trace
+5.  Build & install the gnatcov front-end per se, plus the Valgrind trace
     plugin:
 
     ```shell
