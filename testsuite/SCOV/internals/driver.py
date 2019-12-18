@@ -408,6 +408,14 @@ class SCOV_helper:
         """
         raise NotImplementedError
 
+    def mode_scofile_for(self, source):
+        """The _base_ file name of a file that would contain SCOs for the
+        provide source file name. This is used as a candidate file name to
+        be searched in a set of possible object directories for the current
+        test.
+        """
+        raise NotImplementedError
+
     def mode_scofiles_switch(self):
         """The command line switch to pass to convey the name of a file
         containing SCOs, expected to support the '@' response file syntax
@@ -1136,6 +1144,9 @@ class SCOV_helper_bin_traces(SCOV_helper):
         else:
             return ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
 
+    def mode_scofile_for(self, source):
+        return language_info(source).scofile_for(os.path.basename(source))
+
     def mode_scofiles_switch(self):
         return "--scos"
 
@@ -1295,6 +1306,9 @@ class SCOV_helper_src_traces(SCOV_helper):
             "sid-files.list")
 
         return [instr_checkpoints_opt]
+
+    def mode_scofile_for(self, source):
+        return language_info(source).sidfile_for(os.path.basename(source))
 
     def mode_scofiles_switch(self):
         return "--sid"
