@@ -408,6 +408,14 @@ class SCOV_helper:
         """
         raise NotImplementedError
 
+    def mode_scofiles_switch(self):
+        """The command line switch to pass to convey the name of a file
+        containing SCOs, expected to support the '@' response file syntax
+        as well. This would be passed to gnatcov coverage when units of
+        interest are not to be conveyed by way of project files.
+        """
+        raise NotImplementedError
+
     def mode_tracename_for(self, pgm):
         raise NotImplementedError
 
@@ -1128,6 +1136,9 @@ class SCOV_helper_bin_traces(SCOV_helper):
         else:
             return ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
 
+    def mode_scofiles_switch(self):
+        return "--scos"
+
     def mode_tracename_for(self, pgm):
         return tracename_for(pgm)
 
@@ -1284,6 +1295,9 @@ class SCOV_helper_src_traces(SCOV_helper):
             "sid-files.list")
 
         return [instr_checkpoints_opt]
+
+    def mode_scofiles_switch(self):
+        return "--sid"
 
     def mode_tracename_for(self, pgm):
         return srctracename_for(pgm)
