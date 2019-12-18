@@ -57,23 +57,29 @@ class LangInfo:
            A function which returns the name of the file where SCOs can
            be found for a given SOURCE file name. This is, for example,
            "x.ali" for "x.adb" in Ada or "t.c.gli" for "t.c" in C.
+
+        sidfile_for:
+           A function which returns the name of the SID file for a given SOURCE
+           file name. This is, for example, "x.sid" for "x.adb".
     """
-    def __init__(self, name, src_ext, comment, scofile_for):
+    def __init__(self, name, src_ext, comment, scofile_for, sidfile_for=None):
         self.name = name
         self.src_ext = src_ext
         self.comment = comment
         self.scofile_for = scofile_for
+        self.sidfile_for = sidfile_for
 
 
 # A dictionary mapping a LangInfo instance to each known language
 LANGINFO = {
     "Ada": LangInfo(
         name="Ada", src_ext=[".ads", ".adb"], comment='--',
-        scofile_for=lambda source: (no_ext(source)+'.ali')),
+        scofile_for=lambda source: no_ext(source) + '.ali',
+        sidfile_for=lambda source: no_ext(source) + '.sid'),
 
     "C": LangInfo(
         name="C", src_ext=[".h", ".c"],  comment='//',
-        scofile_for=lambda source: (source+'.gli')),
+        scofile_for=lambda source: source+'.gli'),
 
     "C++": LangInfo(
         name="C++", src_ext=[".hpp", ".cpp", ".cc", ".hh", ".hxx"],
