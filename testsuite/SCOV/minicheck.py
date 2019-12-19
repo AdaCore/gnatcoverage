@@ -46,10 +46,11 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         "gnatcov coverage" command-line returned. This is just for convenience:
         one can pass an empty list here and manually append extra arguments to
         the result.
-    :param None|list[str] scos: Optional list of SCOs to pass to gnatcov, if
-        the current trace mode is binary. If absent, we pass "-P" to "gnatcov
+    :param None|list[str] scos: Optional list of SCOs files (ALI or SID) must
+        be passed to gnatcov. These files must have no extension (for instance:
+        'obj/foo' instead of 'obj/foo.ali'. If absent, we pass "-P" to "gnatcov
         coverage"/"gnatcov instrument" so that it automatically discovers the
-        units of interest.
+        units of interest from projects.
     :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
         will create build artifacts. If left to None, assume they are produced
         in "$gpr_exe_dir/obj".
@@ -132,7 +133,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
     if trace_mode == 'bin':
         # Compute arguments to specify units of interest
-        scos = (['--scos={}'.format(abspath(a)) for a in scos]
+        scos = (['--scos={}.ali'.format(abspath(a)) for a in scos]
                 if scos else
                 gprsw.as_strings)
 
