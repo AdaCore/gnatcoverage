@@ -6,7 +6,7 @@ include ../../host.mk
 #########
 
 VALGRIND_INCLUDE=$(VALGRIND_PREFIX)/include/valgrind
-VALGRIND_LIBS=$(VALGRIND_PREFIX)/lib/valgrind
+VALGRIND_LIBS=$(wildcard $(VALGRIND_PREFIX)/lib*/valgrind)
 
 CPP_FLAGS=-I. -I$(VALGRIND_INCLUDE) \
           -DVGA_$(VALGRIND_ARCH)=1 -DVGO_linux=1 \
