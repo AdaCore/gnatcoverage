@@ -149,12 +149,6 @@ package body Instrument.Tree is
      Index (Ada_Defining_Name, Defining_Name_F_Name);
    I_Handled_Stmts_F_Stmts : constant Integer :=
      Index (Ada_Handled_Stmts, Handled_Stmts_F_Stmts);
-   I_Subp_Spec_F_Subp_Name : constant Integer :=
-     Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Name);
-   I_Subp_Spec_F_Subp_Params : constant Integer :=
-     Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Params);
-   I_Params_F_Params : constant Integer :=
-     Index (Ada_Params, Params_F_Params);
 
    -----------------
    -- Diagnostics --
@@ -621,6 +615,9 @@ package body Instrument.Tree is
       ------------------------------------------
       -- Utility functions for node synthesis --
       ------------------------------------------
+
+      No_Children : constant Node_Rewriting_Handle_Array :=
+        (1 .. 0 => No_Node_Rewriting_Handle);
 
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
 
@@ -1306,9 +1303,10 @@ package body Instrument.Tree is
          end loop;
       end Traverse_Aspects;
 
-      ------------------------------------
-      -- Traverse_Degenerate_Subprogram --
-      ------------------------------------
+      ------------------------------------------------
+      -- Degenerate subprograms                     --
+      -- (null procedures and expression functions) --
+      ------------------------------------------------
 
       --  Degenerate subprograms require special handling because we need a
       --  place to insert witness calls for statement coverage, and in the case
@@ -1358,6 +1356,21 @@ package body Instrument.Tree is
       --        [Witness call];
       --     end;
 
+      type Expr_Func_MCDC_State_Inserter is new Root_MCDC_State_Inserter with
+         record
+            Call_Params   : Node_Rewriting_Handle;
+            Formal_Params : Node_Rewriting_Handle;
+         end record;
+
+      overriding function Insert_MCDC_State
+        (Inserter : Expr_Func_MCDC_State_Inserter;
+         UIC      : in out Unit_Inst_Context;
+         Name     : String) return String;
+
+      ------------------------------------
+      -- Traverse_Degenerate_Subprogram --
+      ------------------------------------
+
       procedure Traverse_Degenerate_Subprogram
         (N      : Basic_Decl;
          N_Spec : Subp_Spec)
@@ -1387,22 +1400,13 @@ package body Instrument.Tree is
                              Subp_Decl_F_Aspects            =>
                                Detach (N.F_Aspects));
 
-         N_Subp_Name : constant Defining_Name := N_Spec.F_Subp_Name;
-         --  Node for the original subprogram name. For an expression
-         --  function, will be changed to be used as the name for the
-         --  augmented expression function.
-
-         Orig_Name   : constant Node_Rewriting_Handle :=
-           Detach (N_Subp_Name.F_Name);
-
          N_Params    : constant Param_Spec_List :=
            N_Spec.F_Subp_Params.F_Params;
 
-         Gen_Formals : constant Node_Rewriting_Handle :=
-           Make (Ada_Ada_Node_List);
-
-         Gen_Subp_Param_Specs : constant Node_Rewriting_Handle :=
-           Make (Ada_Param_Spec_List);
+         Call_Params : constant Node_Rewriting_Handle :=
+           (if Is_Expr_Function
+            then Make (Ada_Assoc_List)
+            else No_Node_Rewriting_Handle);
 
          Gen_Names_Prefix : constant Wide_Wide_String :=
            To_Wide_Wide_String
@@ -1415,54 +1419,84 @@ package body Instrument.Tree is
          Wrapper_Pkg_Name : constant Node_Rewriting_Handle :=
            Make_Identifier (Gen_Names_Prefix & "Pkg");
 
+         --  The augmented expression function, taking supplementary
+         --  parameters for state buffers, and the generic instantiation,
+         --  must be wrapped in a package so that they do not create
+         --  additional primitive operations.
+
+         Wrapper_Pkg_Decls : constant Node_Rewriting_Handle :=
+           Create_Regular_Node (RC, Ada_Ada_Node_List, No_Children);
+
+         Wrapper_Pkg : constant Node_Rewriting_Handle :=
+           Create_Package_Decl
+             (RC,
+              Base_Package_Decl_F_Package_Name => Wrapper_Pkg_Name,
+              Base_Package_Decl_F_Aspects      =>
+                No_Node_Rewriting_Handle,
+              Base_Package_Decl_F_Public_Part  =>
+                Create_Public_Part
+                  (RC,
+                   Declarative_Part_F_Decls => Wrapper_Pkg_Decls),
+              Base_Package_Decl_F_Private_Part =>
+                No_Node_Rewriting_Handle,
+              Base_Package_Decl_F_End_Name     =>
+                No_Node_Rewriting_Handle);
+
+         N_Subp_Name : constant Defining_Name := N_Spec.F_Subp_Name;
+         --  Node for the original subprogram name. For an expression
+         --  function, will be changed to be used as the name for the
+         --  augmented expression function.
+
+         Orig_Name   : constant Node_Rewriting_Handle :=
+           (if Is_Expr_Function and then not MCDC_Coverage_Enabled
+            then No_Node_Rewriting_Handle
+            else Detach (N_Subp_Name.F_Name));
+
+         Saved_Insertion_Info : constant Insertion_Info_Access :=
+           UIC.Current_Insertion_Info;
+
+         procedure Insert (New_Node : Node_Rewriting_Handle);
+         --  Insert New_Node in sequence at original location of the
+         --  degenerate subprogram.
+
+         --  Additional declarations for expression functions only
+
+         Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
+           UIC.MCDC_State_Inserter;
+         --  Save location where MC/DC state objects are inserted
+
+         EF_Inserter : aliased Expr_Func_MCDC_State_Inserter :=
+           (Call_Params   => Call_Params,
+            Formal_Params => Handle (N_Params));
+
+         --  Additional declarations for null procedures only
+
+         Gen_Formals : constant Node_Rewriting_Handle :=
+           (if Is_Expr_Function
+            then No_Node_Rewriting_Handle
+            else Make (Ada_Ada_Node_List));
+
+         Gen_Subp_Param_Specs : constant Node_Rewriting_Handle :=
+           (if Is_Expr_Function
+            then No_Node_Rewriting_Handle
+            else Make (Ada_Param_Spec_List));
+
          Gen_Subp_Name : constant Wide_Wide_String :=
            Gen_Names_Prefix & "Gen";
 
-         Formal_Subp_Name : constant Wide_Wide_String :=
-           Gen_Names_Prefix & "With_States";
-
-         Formal_Subp_Spec   : Node_Rewriting_Handle;
-         Formal_Subp_Params : Node_Rewriting_Handle;
-         Formal_Subp_Decl   : Node_Rewriting_Handle;
-
-         --  Parameters for call to augmented expression function:
-         --  all original parameters, plus MC/DC states.
-
-         Call_Params : constant Node_Rewriting_Handle :=
-           (if Is_Expr_Function
-            then Make (Ada_Assoc_List)
-            else No_Node_Rewriting_Handle);
-
          Gen_Body_Stmt : constant Node_Rewriting_Handle :=
            (if Is_Expr_Function
-            then Create_Return_Stmt
-              (RC,
-               Return_Stmt_F_Return_Expr =>
-                 Create_Call_Expr
-                   (RC,
-                    Call_Expr_F_Name   =>
-                      Make_Identifier (Formal_Subp_Name),
-                    Call_Expr_F_Suffix => Call_Params))
+            then No_Node_Rewriting_Handle
             else Make (Ada_Null_Stmt));
 
          Gen_Body_Stmt_List : constant Node_Rewriting_Handle :=
            Create_Regular_Node
              (RC, Ada_Stmt_List, (1 => Gen_Body_Stmt));
 
-         Gen_Subp_Kind : constant Node_Rewriting_Handle :=
-           Make ((if Is_Expr_Function
-                 then Ada_Subp_Kind_Function
-                 else Ada_Subp_Kind_Procedure));
-
-         Gen_Subp_Return_Type : constant Node_Rewriting_Handle :=
-           (if Is_Expr_Function
-            then Make_Identifier ("Ret")
-            else No_Node_Rewriting_Handle);
-
          Gen_Subp_Spec : constant Node_Rewriting_Handle :=
            Create_Subp_Spec
              (RC,
-              Subp_Spec_F_Subp_Kind    => Gen_Subp_Kind,
+              Subp_Spec_F_Subp_Kind    => Make (Ada_Subp_Kind_Procedure),
               Subp_Spec_F_Subp_Name    =>
                 Make_Defining_Name (Gen_Subp_Name),
 
@@ -1471,8 +1505,7 @@ package body Instrument.Tree is
                   (RC,
                    Params_F_Params => Gen_Subp_Param_Specs),
 
-              Subp_Spec_F_Subp_Returns =>
-                Gen_Subp_Return_Type);
+              Subp_Spec_F_Subp_Returns => No_Node_Rewriting_Handle);
 
          Gen_Decl : constant Node_Rewriting_Handle :=
            Create_Generic_Subp_Decl
@@ -1492,40 +1525,6 @@ package body Instrument.Tree is
          Gen_Body_Decls : constant Node_Rewriting_Handle :=
            Make (Ada_Ada_Node_List);
 
-         Gen_Body_Inserter : aliased Default_MCDC_State_Inserter :=
-           (Local_Decls => Gen_Body_Decls);
-
-         Gen_Body : Node_Rewriting_Handle;
-         --  The generic body is created later on, once the spec of the
-         --  degenerate subprogram has been traversed, and the generic
-         --  declaration has been constructed (it a deep copy of the
-         --  generic declaration's spec).
-
-         --  The augmented expression function, taking supplementary
-         --  parameters for state buffers, and the generic instantiation,
-         --  must be wrapped in a package so that they do not create
-         --  additional primitive operations.
-
-         Wrapper_Pkg_Decls : constant Node_Rewriting_Handle :=
-           Create_Regular_Node
-             (RC,
-              Ada_Ada_Node_List,
-              (1 .. 0 => No_Node_Rewriting_Handle));
-         Wrapper_Pkg : constant Node_Rewriting_Handle :=
-           Create_Package_Decl
-             (RC,
-              Base_Package_Decl_F_Package_Name => Wrapper_Pkg_Name,
-              Base_Package_Decl_F_Aspects      =>
-                No_Node_Rewriting_Handle,
-              Base_Package_Decl_F_Public_Part  =>
-                Create_Public_Part
-                  (RC,
-                   Declarative_Part_F_Decls => Wrapper_Pkg_Decls),
-              Base_Package_Decl_F_Private_Part =>
-                No_Node_Rewriting_Handle,
-              Base_Package_Decl_F_End_Name     =>
-                No_Node_Rewriting_Handle);
-
          Inst_Name : constant Node_Rewriting_Handle := Orig_Name;
 
          Inst_Params : constant Node_Rewriting_Handle :=
@@ -1538,29 +1537,14 @@ package body Instrument.Tree is
             Witness_Use_Statement => True,
             Parent                => null);
 
-         First_Source_Decision : constant Natural :=
-           UIC.Source_Decisions.Last_Index + 1;
-         --  Index of first decision in expression function
-
          Saved_Dominant : constant Dominant_Info := Current_Dominant;
          --  Save last statement in current sequence as dominant
-
-         Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
-           UIC.MCDC_State_Inserter;
-         --  Save location where MC/DC state objects are inserted
-
-         Saved_Insertion_Info : constant Insertion_Info_Access :=
-           UIC.Current_Insertion_Info;
 
          Orig_Subp_Index : constant Positive :=
            Saved_Insertion_Info.Index +
              Saved_Insertion_Info.Rewriting_Offset;
          --  Original position of the degenerate subprogram in the rewritten
          --  tree.
-
-         procedure Insert (New_Node : Node_Rewriting_Handle);
-         --  Insert New_Node in sequence at original location of the
-         --  degenerate subprogram.
 
          ------------
          -- Insert --
@@ -1585,154 +1569,101 @@ package body Instrument.Tree is
          -- 0. Preparation steps --
          --------------------------
 
-         UIC.Degenerate_Subprogram_Index :=
-           UIC.Degenerate_Subprogram_Index + 1;
+         if MCDC_Coverage_Enabled or else not Is_Expr_Function then
+            UIC.Degenerate_Subprogram_Index :=
+              UIC.Degenerate_Subprogram_Index + 1;
 
-         --  Remove the original declaration from the tree
+            --  Remove the original declaration from the tree
 
-         pragma Assert
-           (Orig_Subp =
-              Child
-                (Saved_Insertion_Info.RH_List,
-                 Orig_Subp_Index));
-         Remove_Child
-           (Saved_Insertion_Info.RH_List,
-            Orig_Subp_Index);
-         Saved_Insertion_Info.Rewriting_Offset :=
-           Saved_Insertion_Info.Rewriting_Offset - 1;
+            pragma Assert
+              (Orig_Subp =
+                 Child
+                   (Saved_Insertion_Info.RH_List,
+                    Orig_Subp_Index));
+            Remove_Child
+              (Saved_Insertion_Info.RH_List,
+               Orig_Subp_Index);
+            Saved_Insertion_Info.Rewriting_Offset :=
+              Saved_Insertion_Info.Rewriting_Offset - 1;
 
-         --  If there is no previous declaration, generate one, keeping the
-         --  original aspects and default parameters. Then make sure that the
-         --  original null procedure or expression function is detached from
-         --  the tree.
+            --  If there is no previous declaration, generate one, keeping the
+            --  original aspects and default parameters. Then make sure that
+            --  the original null procedure or expression function is detached
+            --  from the tree.
 
-         if N.As_Base_Subp_Body.P_Previous_Part.Is_Null then
-            Insert (New_Subp_Decl);
+            if N.As_Base_Subp_Body.P_Previous_Part.Is_Null then
+               Insert (New_Subp_Decl);
+            end if;
+
+            --  For an expression function, insert wrapper package now.
+            --  For a null procedure it, push it down to the end of this list
+            --  of declarations.
+
+            if Is_Expr_Function then
+               Insert (Wrapper_Pkg);
+            else
+               Append_Child (Saved_Insertion_Info.RH_List, Wrapper_Pkg);
+            end if;
+
+            -----------------------------------------------------
+            -- 1. Analysis of the degenerate subprogram's spec --
+            -----------------------------------------------------
+
+            for J in 1 .. N_Params.Children_Count loop
+               declare
+                  P_Spec : constant Param_Spec :=
+                    N_Params.Children (J).As_Param_Spec;
+                  P_Type : constant Type_Expr := P_Spec.F_Type_Expr;
+                  Formal_Type_Name : constant Wide_Wide_String :=
+                    "Par" & To_Wide_Wide_String (Img (J));
+               begin
+                  if Is_Expr_Function then
+                     declare
+                        Param_Ids : constant Defining_Name_List :=
+                          P_Spec.F_Ids;
+                     begin
+                        --  Pass parameter in call
+
+                        for J in 1 .. Param_Ids.Children_Count loop
+                           Append_Child
+                             (Call_Params,
+                              Make_Identifier (Param_Ids.Child (J).Text));
+                        end loop;
+                     end;
+
+                  else
+                     --  Add formal type
+
+                     Append_Child
+                       (Gen_Formals,
+                        Make_Formal_Type (Formal_Type_Name, P_Type));
+
+                     --  Add formal parameter to generic subprogram spec
+
+                     Append_Child
+                       (Gen_Subp_Param_Specs,
+                        Create_Param_Spec
+                          (RC,
+                           Param_Spec_F_Ids          =>
+                             Clone (P_Spec.F_Ids),
+                           Param_Spec_F_Has_Aliased  =>
+                             Clone (P_Spec.F_Has_Aliased),
+                           Param_Spec_F_Mode         =>
+                             Clone (P_Spec.F_Mode),
+                           Param_Spec_F_Type_Expr    =>
+                             Make_Identifier (Formal_Type_Name),
+                           Param_Spec_F_Default_Expr =>
+                             No_Node_Rewriting_Handle,
+                           Param_Spec_F_Aspects      =>
+                             No_Node_Rewriting_Handle));
+
+                     --  Add actual type to instantiation
+
+                     Append_Child (Inst_Params, Clone (P_Type));
+                  end if;
+               end;
+            end loop;
          end if;
-         Append_Child (Saved_Insertion_Info.RH_List, Wrapper_Pkg);
-
-         -----------------------------------------------------
-         -- 1. Analysis of the degenerate subprogram's spec --
-         -----------------------------------------------------
-
-         for J in 1 .. N_Params.Children_Count loop
-            declare
-               P_Spec : constant Param_Spec :=
-                 N_Params.Children (J).As_Param_Spec;
-               P_Type : constant Type_Expr := P_Spec.F_Type_Expr;
-               Formal_Type_Name : constant Wide_Wide_String :=
-                 "Par" & To_Wide_Wide_String (Img (J));
-            begin
-               --  Add formal type
-
-               Append_Child
-                 (Gen_Formals,
-                  Make_Formal_Type (Formal_Type_Name, P_Type));
-
-               --  Add formal parameter to generic subprogram spec
-
-               Append_Child
-                 (Gen_Subp_Param_Specs,
-                  Create_Param_Spec
-                    (RC,
-                     Param_Spec_F_Ids          =>
-                       Clone (P_Spec.F_Ids),
-                     Param_Spec_F_Has_Aliased  =>
-                       Clone (P_Spec.F_Has_Aliased),
-                     Param_Spec_F_Mode         =>
-                       Clone (P_Spec.F_Mode),
-                     Param_Spec_F_Type_Expr    =>
-                       Make_Identifier (Formal_Type_Name),
-                     Param_Spec_F_Default_Expr =>
-                       No_Node_Rewriting_Handle,
-                     Param_Spec_F_Aspects      =>
-                       No_Node_Rewriting_Handle));
-
-               --  Add actual type to instantiation
-
-               Append_Child (Inst_Params, Clone (P_Type));
-
-               --  Pass parameter in call
-
-               if Is_Expr_Function then
-                  declare
-                     Param_Ids : constant Defining_Name_List :=
-                       P_Spec.F_Ids;
-                  begin
-                     for J in 1 .. Param_Ids.Children_Count loop
-                        Append_Child
-                          (Call_Params,
-                           Make_Identifier (Param_Ids.Child (J).Text));
-                     end loop;
-                  end;
-               end if;
-            end;
-         end loop;
-
-         if Is_Expr_Function then
-            --  Add formal type for return type
-
-            Append_Child
-              (Gen_Formals,
-               Make_Formal_Type ("Ret", N_Spec.F_Subp_Returns));
-
-            --  Add actual return type to instantiation
-
-            Append_Child (Inst_Params, Clone (N_Spec.F_Subp_Returns));
-
-            --  Prepare augmented spec for the instrumented expression function
-            --  (additional parameters will be added to Formal_Subp_Params
-            --  providing the MC/DC local state variables).
-
-            Formal_Subp_Spec := Clone (Gen_Subp_Spec);
-            Set_Text
-              (Child
-                 (Child
-                      (Formal_Subp_Spec,
-                       I_Subp_Spec_F_Subp_Name),
-                  I_Defining_Name_F_Name),
-               Formal_Subp_Name);
-            Formal_Subp_Params :=
-              Child
-                (Child (Formal_Subp_Spec, I_Subp_Spec_F_Subp_Params),
-                 I_Params_F_Params);
-
-            --  Add formal subprogram
-
-            Formal_Subp_Decl :=
-              Create_Concrete_Formal_Subp_Decl
-                (RC,
-                 Classic_Subp_Decl_F_Overriding  =>
-                   No_Node_Rewriting_Handle,
-                 Classic_Subp_Decl_F_Subp_Spec   =>
-                   Formal_Subp_Spec,
-                 Formal_Subp_Decl_F_Default_Expr =>
-                   No_Node_Rewriting_Handle,
-                 Formal_Subp_Decl_F_Aspects      =>
-                   No_Node_Rewriting_Handle);
-            Append_Child (Gen_Formals, Formal_Subp_Decl);
-         end if;
-
-         --  Now the generic declaration has been constructed, we can clone
-         --  its spec to create that of the generic body.
-
-         Gen_Body :=
-           Create_Subp_Body
-             (RC,
-              Base_Subp_Body_F_Overriding => No_Node_Rewriting_Handle,
-              Base_Subp_Body_F_Subp_Spec  => Clone (Gen_Subp_Spec),
-              Subp_Body_F_Aspects         => No_Node_Rewriting_Handle,
-              Subp_Body_F_Decls           =>
-                Create_Declarative_Part
-                  (RC,
-                   Declarative_Part_F_Decls => Gen_Body_Decls),
-              Subp_Body_F_Stmts           =>
-                Create_Handled_Stmts
-                  (RC,
-                   Handled_Stmts_F_Stmts      =>
-                     Gen_Body_Stmt_List,
-                   Handled_Stmts_F_Exceptions => No_Node_Rewriting_Handle),
-              Subp_Body_F_End_Name        => No_Node_Rewriting_Handle);
 
          ----------------------------------
          -- 2. Statement instrumentation --
@@ -1752,16 +1683,16 @@ package body Instrument.Tree is
          --  spec node to provide a sloc.
 
          Current_Dominant := No_Dominant;
-         Extend_Statement_Sequence
-           (N           =>
-              (if not N_Expr.Is_Null then N_Expr else N),
-            Typ         => 'X',
-            Insertion_N => Gen_Body_Stmt);
+         if Is_Expr_Function then
+            Extend_Statement_Sequence (N_Expr, 'X');
+         else
+            Extend_Statement_Sequence
+              (N           => N,
+               Typ         => 'X',
+               Insertion_N => Gen_Body_Stmt);
+         end if;
 
-         --  Collect decisions in the expression, creating any required MC/DC
-         --  state variable in the generic subprogram body.
-
-         UIC.MCDC_State_Inserter := Gen_Body_Inserter'Unchecked_Access;
+         UIC.MCDC_State_Inserter := EF_Inserter'Unchecked_Access;
 
          if Is_Expr_Function then
             Process_Decisions_Defer (N_Expr, 'X');
@@ -1770,54 +1701,23 @@ package body Instrument.Tree is
 
          UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
 
-         ----------------------------------------
-         -- 3. Additional processing for MC/DC --
-         ----------------------------------------
+         --  Restore current dominant information designating last statement
+         --  in previous sequence (i.e. make the dominance chain skip over
+         --  the degenerate body).
+
+         Current_Dominant := Saved_Dominant;
+
+         UIC.Current_Insertion_Info := Saved_Insertion_Info;
+
+         if Is_Expr_Function and then not MCDC_Coverage_Enabled then
+            return;
+         end if;
 
          if Is_Expr_Function then
-            --  Decisions in the expression functions have been appended
-            --  to Source_Decisions. Insert parameters for their MC/DC
-            --  state buffers, if necessary.
 
-            if MCDC_Coverage_Enabled then
-               for J in First_Source_Decision
-                 .. UIC.Source_Decisions.Last_Index
-               loop
-                  declare
-                     State_Identifier : constant Node_Rewriting_Handle :=
-                       Make_Identifier
-                         (To_Wide_Wide_String
-                            (To_String (UIC.Source_Decisions (J).State)));
-                     State_Formal : constant Node_Rewriting_Handle :=
-                       Create_Defining_Name (RC, State_Identifier);
-                     State_Param_Spec : constant Node_Rewriting_Handle :=
-                       Create_Param_Spec
-                         (RC,
-                          Param_Spec_F_Ids          =>
-                            Create_Regular_Node
-                              (RC,
-                               Ada_Defining_Name_List,
-                               Children => (1 => State_Formal)),
-                          Param_Spec_F_Has_Aliased  =>
-                            No_Node_Rewriting_Handle,
-                          Param_Spec_F_Mode         =>
-                            No_Node_Rewriting_Handle,
-                          Param_Spec_F_Type_Expr    =>
-                            Make_Identifier ("System.Address"),
-                          Param_Spec_F_Default_Expr =>
-                            No_Node_Rewriting_Handle,
-                          Param_Spec_F_Aspects      =>
-                            No_Node_Rewriting_Handle);
-
-                  begin
-                     Append_Child (Formal_Subp_Params, State_Param_Spec);
-                     Append_Child
-                       (Handle (N_Params), Clone (State_Param_Spec));
-
-                     Append_Child (Call_Params, Clone (State_Identifier));
-                  end;
-               end loop;
-            end if;
+            -------------------------------------------
+            -- 3(ef). Insert new expression function --
+            -------------------------------------------
 
             declare
                Orig_Name_Text : constant Wide_Wide_String :=
@@ -1827,8 +1727,29 @@ package body Instrument.Tree is
 
                Augmented_Expr_Func_Name : constant Wide_Wide_String :=
                  (if Is_Op_Symbol then
-                     Op_Symbol_To_Name (N_Subp_Name.F_Name) & "_Inst_Op"
-                  else Orig_Name_Text & "_Inst");
+                     Op_Symbol_To_Name (N_Subp_Name.F_Name) & "_Op"
+                  else Orig_Name_Text) & "_With_State";
+
+               Call_Expr : constant Node_Rewriting_Handle :=
+                 Create_Call_Expr
+                   (RC,
+                    Call_Expr_F_Name   =>
+                      Create_Dotted_Name
+                        (RC,
+                         Dotted_Name_F_Prefix =>
+                           Clone (Wrapper_Pkg_Name),
+                         Dotted_Name_F_Suffix =>
+                           Make_Identifier (Augmented_Expr_Func_Name)),
+                    Call_Expr_F_Suffix => Call_Params);
+
+               New_Expr_Func : constant Node_Rewriting_Handle :=
+                 Create_Expr_Function
+                   (RC,
+                    Base_Subp_Body_F_Overriding => Clone (Orig_Overriding),
+                    Base_Subp_Body_F_Subp_Spec  => Clone (Orig_Spec),
+                    Expr_Function_F_Expr        =>
+                      Create_Paren_Expr (RC, Call_Expr),
+                    Expr_Function_F_Aspects     => Detach (N.F_Aspects));
 
             begin
                --  Set new name for original expression function
@@ -1842,82 +1763,168 @@ package body Instrument.Tree is
 
                Append_Child (Wrapper_Pkg_Decls, Orig_Subp);
 
-               --  ... and pass it as generic actual
+               --  Insert new expression function calling instrumented one
 
-               Append_Child
-                 (Inst_Params, Make_Identifier (Augmented_Expr_Func_Name));
+               Insert (New_Expr_Func);
+            end;
+
+         else
+
+            --------------------------------------------------------
+            -- 3(np). Insert procedure instantiation and renaming --
+            --------------------------------------------------------
+
+            declare
+               Gen_Body : constant Node_Rewriting_Handle :=
+                 Create_Subp_Body
+                   (RC,
+                    Base_Subp_Body_F_Overriding => No_Node_Rewriting_Handle,
+                    Base_Subp_Body_F_Subp_Spec  => Clone (Gen_Subp_Spec),
+                    Subp_Body_F_Aspects         => No_Node_Rewriting_Handle,
+
+                    Subp_Body_F_Decls           =>
+                      Create_Declarative_Part
+                        (RC,
+                         Declarative_Part_F_Decls => Gen_Body_Decls),
+
+                    Subp_Body_F_Stmts           =>
+                      Create_Handled_Stmts
+                        (RC,
+                         Handled_Stmts_F_Stmts      =>
+                           Gen_Body_Stmt_List,
+                         Handled_Stmts_F_Exceptions =>
+                           No_Node_Rewriting_Handle),
+                    Subp_Body_F_End_Name        => No_Node_Rewriting_Handle);
+
+               Instance : constant Node_Rewriting_Handle :=
+                 Create_Generic_Subp_Instantiation
+                   (RC,
+                    Generic_Subp_Instantiation_F_Overriding        =>
+                      No_Node_Rewriting_Handle,
+                    Generic_Subp_Instantiation_F_Kind              =>
+                      Make (Ada_Subp_Kind_Procedure),
+                    Generic_Subp_Instantiation_F_Subp_Name         =>
+                      Create_Defining_Name (RC, Inst_Name),
+                    Generic_Subp_Instantiation_F_Generic_Subp_Name =>
+                      Create_Dotted_Name
+                        (RC,
+                         Dotted_Name_F_Prefix =>
+                           Clone (E.Unit_Buffers),
+                         Dotted_Name_F_Suffix =>
+                           Make_Identifier (Gen_Subp_Name)),
+                    Generic_Subp_Instantiation_F_Params            =>
+                      Inst_Params,
+                    Generic_Subp_Instantiation_F_Aspects           =>
+                      No_Node_Rewriting_Handle);
+
+               Renaming_Decl : constant Node_Rewriting_Handle :=
+                 Create_Subp_Renaming_Decl
+                   (RC,
+                    Base_Subp_Body_F_Subp_Spec   =>
+                      Clone (Orig_Spec),
+                    Base_Subp_Body_F_Overriding  =>
+                      Clone (Orig_Overriding),
+                    Subp_Renaming_Decl_F_Renames =>
+                      Create_Renaming_Clause
+                        (RC,
+                         Renaming_Clause_F_Renamed_Object =>
+                           Create_Dotted_Name
+                             (RC,
+                              Dotted_Name_F_Prefix =>
+                                Clone (Wrapper_Pkg_Name),
+                              Dotted_Name_F_Suffix =>
+                                Clone (Inst_Name))),
+                    Subp_Renaming_Decl_F_Aspects =>
+                      No_Node_Rewriting_Handle);
+
+            begin
+               Append_Child (Wrapper_Pkg_Decls, Instance);
+               Append_Child (Saved_Insertion_Info.RH_List, Renaming_Decl);
+
+               --  Unparse the generic now, for later insertion in the pure
+               --  buffers unit (at which time the rewriting context will no
+               --  longer be available).
+
+               UIC.Degenerate_Subprogram_Generics.Append
+                 ((Generic_Subp_Decl =>
+                       To_Unbounded_Wide_Wide_String (Unparse (Gen_Decl)),
+                   Generic_Subp_Body =>
+                     To_Unbounded_Wide_Wide_String (Unparse (Gen_Body))));
             end;
          end if;
-
-         ------------------------------------------------
-         -- 4. Insertion of instantiation and renaming --
-         ------------------------------------------------
-
-         UIC.Current_Insertion_Info := Saved_Insertion_Info;
-
-         declare
-            Instance : constant Node_Rewriting_Handle :=
-              Create_Generic_Subp_Instantiation
-                (RC,
-                 Generic_Subp_Instantiation_F_Overriding        =>
-                   No_Node_Rewriting_Handle,
-                 Generic_Subp_Instantiation_F_Kind              =>
-                   Clone (Gen_Subp_Kind),
-                 Generic_Subp_Instantiation_F_Subp_Name         =>
-                   Create_Defining_Name (RC, Inst_Name),
-                 Generic_Subp_Instantiation_F_Generic_Subp_Name =>
-                   Create_Dotted_Name
-                     (RC,
-                      Dotted_Name_F_Prefix =>
-                        Clone (E.Unit_Buffers),
-                      Dotted_Name_F_Suffix =>
-                        Make_Identifier (Gen_Subp_Name)),
-                 Generic_Subp_Instantiation_F_Params            =>
-                   Inst_Params,
-                 Generic_Subp_Instantiation_F_Aspects           =>
-                   No_Node_Rewriting_Handle);
-
-            Renaming_Decl : constant Node_Rewriting_Handle :=
-              Create_Subp_Renaming_Decl
-                (RC,
-                 Base_Subp_Body_F_Subp_Spec   =>
-                   Clone (Orig_Spec),
-                 Base_Subp_Body_F_Overriding  =>
-                   Clone (Orig_Overriding),
-                 Subp_Renaming_Decl_F_Renames =>
-                   Create_Renaming_Clause
-                     (RC,
-                      Renaming_Clause_F_Renamed_Object =>
-                        Create_Dotted_Name
-                          (RC,
-                           Dotted_Name_F_Prefix =>
-                             Clone (Wrapper_Pkg_Name),
-                           Dotted_Name_F_Suffix =>
-                             Clone (Inst_Name))),
-                 Subp_Renaming_Decl_F_Aspects =>
-                   No_Node_Rewriting_Handle);
-
-         begin
-            Append_Child (Wrapper_Pkg_Decls, Instance);
-            Append_Child (Saved_Insertion_Info.RH_List, Renaming_Decl);
-
-            --  Unparse the generic now, for later insertion in the pure
-            --  buffers unit (at which time the rewriting context will no
-            --  longer be available).
-
-            UIC.Degenerate_Subprogram_Generics.Append
-              ((Generic_Subp_Decl =>
-                    To_Unbounded_Wide_Wide_String (Unparse (Gen_Decl)),
-                Generic_Subp_Body =>
-                  To_Unbounded_Wide_Wide_String (Unparse (Gen_Body))));
-         end;
-
-         --  Restore current dominant information designating last statement
-         --  in previous sequence (i.e. make the dominance chain skip over
-         --  the degenerate body).
-
-         Current_Dominant := Saved_Dominant;
       end Traverse_Degenerate_Subprogram;
+
+      -----------------------
+      -- Insert_MCDC_State --
+      -----------------------
+
+      overriding function Insert_MCDC_State
+        (Inserter : Expr_Func_MCDC_State_Inserter;
+         UIC      : in out Unit_Inst_Context;
+         Name     : String) return String
+      is
+         pragma Unreferenced (UIC);
+
+         Holder_Type : constant Wide_Wide_String :=
+           "GNATcov_RTS.Buffers.MCDC_State_Holder";
+
+         State_Identifier : constant Node_Rewriting_Handle :=
+           Make_Identifier (To_Wide_Wide_String (Name));
+
+         State_Formal : constant Node_Rewriting_Handle :=
+           Create_Defining_Name (RC, State_Identifier);
+
+         State_Param_Spec : constant Node_Rewriting_Handle :=
+           Create_Param_Spec
+             (RC,
+              Param_Spec_F_Ids          =>
+                Create_Regular_Node
+                  (RC,
+                   Ada_Defining_Name_List,
+                   Children => (1 => State_Formal)),
+              Param_Spec_F_Has_Aliased  =>
+                No_Node_Rewriting_Handle,
+              Param_Spec_F_Mode         =>
+                No_Node_Rewriting_Handle,
+              Param_Spec_F_Type_Expr    =>
+                Make_Identifier (Holder_Type),
+              Param_Spec_F_Default_Expr =>
+                No_Node_Rewriting_Handle,
+              Param_Spec_F_Aspects      =>
+                No_Node_Rewriting_Handle);
+
+         State_Actual : constant Node_Rewriting_Handle :=
+           Create_Qual_Expr
+             (RC,
+              Qual_Expr_F_Prefix =>
+                Make_Identifier (Holder_Type),
+              Qual_Expr_F_Suffix =>
+                Create_Aggregate
+                  (RC,
+                   Base_Aggregate_F_Ancestor_Expr => No_Node_Rewriting_Handle,
+                   Base_Aggregate_F_Assocs        =>
+                     Create_Regular_Node
+                       (RC,
+                        Kind     => Ada_Assoc_List,
+                        Children =>
+                          (1 => Create_Aggregate_Assoc
+                             (RC,
+                              Aggregate_Assoc_F_Designators =>
+                                Create_Regular_Node
+                                  (RC, Ada_Alternatives_List,
+                                   (1 => Create_Regular_Node
+                                           (RC, Ada_Others_Designator,
+                                            No_Children))),
+                              Aggregate_Assoc_F_R_Expr =>
+                                Create_Regular_Node
+                                  (RC, Ada_Box_Expr, No_Children))))));
+
+      begin
+         Append_Child (Inserter.Formal_Params, State_Param_Spec);
+         Append_Child (Inserter.Call_Params, State_Actual);
+
+         return Name & ".State'Address";
+      end Insert_MCDC_State;
 
       --------------------------------
       -- Traverse_Subp_Decl_Or_Stub --

@@ -90,6 +90,14 @@ package GNATcov_RTS.Buffers is
 
    subtype MCDC_State_Type is Any_Bit_Id;
 
+   --  When instrumenting expression functions, we need to conjure up storage
+   --  for MC/DC state as limited aggregates. The following type provides for
+   --  this use case.
+
+   type MCDC_State_Holder is limited record
+      State : aliased MCDC_State_Type;
+   end record;
+
    function Witness
      (Buffer_Address      : System.Address;
       False_Bit, True_Bit : Bit_Id;
