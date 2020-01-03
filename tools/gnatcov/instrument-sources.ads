@@ -156,6 +156,9 @@ private package Instrument.Sources is
       --  Insertion_Info for the upper enclosing list
    end record;
 
+   type Root_MCDC_State_Inserter is abstract tagged null record;
+   type Any_MCDC_State_Inserter is access all Root_MCDC_State_Inserter'Class;
+
    type Unit_Inst_Context is record
       Instrumented_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit being instrumented
@@ -186,8 +189,8 @@ private package Instrument.Sources is
       Rewriting_Context : Rewriting_Handle;
       --  Rewriting handle for the instrumentation process
 
-      Local_Decls : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
-      --  Declarative part where to insert temporary MC/DC state
+      MCDC_State_Inserter : Any_MCDC_State_Inserter;
+      --  Service supporting insertion of temporary MC/DC state variables
 
       Unit_Bits : LL_Unit_Bit_Allocs;
       --  Record of allocation of coverage buffer bits for low-level SCOs
@@ -202,6 +205,15 @@ private package Instrument.Sources is
       Current_Insertion_Info : Insertion_Info_Access;
       --  Insertion_Info for the list being traversed
    end record;
+
+   function Insert_MCDC_State
+     (Inserter : Root_MCDC_State_Inserter;
+      UIC      : in out Unit_Inst_Context;
+      Name     : String) return String
+     is abstract;
+   --  Create and insert the declaration of an MC/DC state temporary object.
+   --  Returns a System.Address expression denoting the declared state, for
+   --  use in witness calls.
 
    procedure Initialize_Rewriting
      (IC                : out Unit_Inst_Context;

@@ -160,9 +160,14 @@ package body Instrument.Tree is
    --  Return the name of the MC/DC state local variable for the given
    --  decision SCO.
 
-   procedure Insert_MCDC_State (UIC : in out Unit_Inst_Context; Name : String);
-   --  Create and insert the declaration of an MC/DC state local variable
-   --  and of a constant, with the given Name, denoting its address.
+   type Default_MCDC_State_Inserter is new Root_MCDC_State_Inserter with record
+      Local_Decls : Node_Rewriting_Handle;
+   end record;
+
+   overriding function Insert_MCDC_State
+     (Inserter : Default_MCDC_State_Inserter;
+      UIC      : in out Unit_Inst_Context;
+      Name     : String) return String;
 
    ------------
    -- Report --
@@ -232,7 +237,10 @@ package body Instrument.Tree is
    -- Insert_MCDC_State --
    -----------------------
 
-   procedure Insert_MCDC_State (UIC : in out Unit_Inst_Context; Name : String)
+   function Insert_MCDC_State
+     (Inserter : Default_MCDC_State_Inserter;
+      UIC      : in out Unit_Inst_Context;
+      Name     : String) return String
    is
       E             : Instrumentation_Entities renames UIC.Entities;
       Var_Decl_Img  : constant String :=
@@ -244,19 +252,21 @@ package body Instrument.Tree is
    begin
       Ensure_With_System (UIC);
       Insert_Child
-        (UIC.Local_Decls, 1,
+        (Inserter.Local_Decls, 1,
          Create_From_Template
           (UIC.Rewriting_Context,
            Template  => To_Wide_Wide_String (Var_Decl_Img),
            Arguments => (1 => E.Common_Buffers),
            Rule      => Object_Decl_Rule));
       Insert_Child
-        (UIC.Local_Decls, 2,
+        (Inserter.Local_Decls, 2,
          Create_From_Template
           (UIC.Rewriting_Context,
            Template  => To_Wide_Wide_String (Addr_Decl_Img),
            Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
            Rule      => Object_Decl_Rule));
+
+      return Name;
    end Insert_MCDC_State;
 
    ----------------
@@ -2269,7 +2279,9 @@ package body Instrument.Tree is
       HSS      : Handled_Stmts;
       Dom_Info : Dominant_Info    := D;
 
-      Saved_Local_Decls : constant Node_Rewriting_Handle := UIC.Local_Decls;
+      Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
+        UIC.MCDC_State_Inserter;
+      Local_Inserter : aliased Default_MCDC_State_Inserter;
 
    begin
       case Kind (N) is
@@ -2301,7 +2313,8 @@ package body Instrument.Tree is
             raise Program_Error;
       end case;
 
-      UIC.Local_Decls := Handle (Decls.F_Decls);
+      Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
+      UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       --  If declarations are present, the first statement is dominated by the
       --  last declaration.
@@ -2311,7 +2324,7 @@ package body Instrument.Tree is
 
       Traverse_Handled_Statement_Sequence (IC, UIC, N => HSS, D => Dom_Info);
 
-      UIC.Local_Decls := Saved_Local_Decls;
+      UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
    end Traverse_Subprogram_Or_Task_Body;
 
    -----------------------
@@ -2586,16 +2599,15 @@ package body Instrument.Tree is
             if MCDC_Coverage_Enabled then
                Condition_Count := 0;
 
-               if UIC.Local_Decls = No_Node_Rewriting_Handle then
+               if UIC.MCDC_State_Inserter = null then
                   Report (UIC, N,
                           "gnatcov limitation: "
                           & "cannot find local declarative part for MC/DC",
                           Kind => Diagnostics.Error);
                else
-                  MCDC_State :=
-                    To_Unbounded_String
-                      (Make_MCDC_State_Name (SCOs.SCO_Table.Last));
-                  Insert_MCDC_State (UIC, To_String (MCDC_State));
+                  MCDC_State := To_Unbounded_String
+                    (UIC.MCDC_State_Inserter.Insert_MCDC_State
+                       (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last)));
                end if;
             end if;
 
