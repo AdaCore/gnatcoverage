@@ -155,9 +155,9 @@ class Struct(object):
             raise ValueError('{} fields expected, got {}'
                              .format(len(fields), len(field_values)))
 
-        print(field_values)
         for value, (_, structure) in zip(field_values, fields):
-            fp.write(structure.pack(value))
+            pack_args = value if isinstance(value, tuple) else (value, )
+            fp.write(structure.pack(*pack_args))
 
 
 if __name__ == '__main__':

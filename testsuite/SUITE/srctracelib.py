@@ -66,10 +66,40 @@ def read_aligned(fp, count, alignment):
     return content
 
 
+def write_aligned(fp, data, alignment):
+    """
+    Assuming that the number of bytes already written to the `fp` file is a
+    multiple of `alignment`, write the given `data` to `fp`, plus the required
+    padding bytes to maintain this alignment.
+    """
+    # If `data` is empty, there is no need for padding bytes as the alignment
+    # is already correct.
+    if not data:
+        return
+
+    fp.write(data)
+
+    # Write padding bytes
+    padding_count = alignment - len(data) % alignment
+    if padding_count != alignment:
+        padding = '\x00' * padding_count
+        fp.write(padding)
+
+
 class SrcTraceFile(object):
     """
     In-memory representation of a source trace file.
     """
+
+    MAGIC = 'GNATcov source trace file' + '\x00' * 7
+
+    FORMAT_VERSION = 0
+
+    ENDIANITY_NAMES = {
+        0: 'little-endian',
+        1: 'big-endian',
+    }
+    ENDIANITY_CODES = {value: key for key, value in ENDIANITY_NAMES.items()}
 
     def __init__(self, alignment, endianity, info_entries, entries):
         self.alignment = alignment
@@ -87,11 +117,10 @@ class SrcTraceFile(object):
         header = trace_file_header_struct.read(fp)
 
         magic = header['magic']
-        if magic != 'GNATcov source trace file' + '\x00' * 7:
+        if magic != cls.MAGIC:
             raise ValueError('Invalid magic: {}'.format(magic))
 
-        endianity = header['endianity']
-        endianity = {0: 'little-endian', 1: 'big-endian'}[endianity]
+        endianity = cls.ENDIANITY_NAMES[header['endianity']]
 
         format_version = header['format_version']
 
@@ -101,7 +130,7 @@ class SrcTraceFile(object):
         # actually big endian.
         if endianity == 'big-endian':
             format_version = swap_bytes(format_version, 4)
-        if format_version != 0:
+        if format_version != cls.FORMAT_VERSION:
             raise ValueError('Unsupported format version: {}'
                              .format(format_version))
 
@@ -126,6 +155,25 @@ class SrcTraceFile(object):
             entries.append(entry)
 
         return result
+
+    def write(self, fp):
+        """Write this source trace to the `fp` file."""
+        big_endian = self.endianity == 'big-endian'
+
+        trace_file_header_struct.write(fp, {
+            'magic': self.MAGIC,
+            'format_version': self.FORMAT_VERSION,
+            'alignment': self.alignment,
+            'endianity': self.ENDIANITY_CODES[self.endianity],
+            'padding': 0,
+        }, big_endian=big_endian)
+
+        for entry in self.info_entries:
+            entry.write(fp, big_endian, self.alignment)
+        TraceInfoEntry('end', None).write(fp, big_endian, self.alignment)
+
+        for entry in self.entries:
+            entry.write(fp, big_endian, self.alignment)
 
     def dump(self):
         def format_buffer(b):
@@ -154,6 +202,14 @@ class TraceInfoEntry(object):
     In-memory representation of a trace info entry.
     """
 
+    KIND_NAMES = {
+        0: 'end',
+        1: 'program-name',
+        2: 'exec-date',
+        3: 'user-data',
+    }
+    KIND_CODES = {value: key for key, value in KIND_NAMES.items()}
+
     def __init__(self, kind, data):
         self.kind = kind
         self.data = data
@@ -169,12 +225,7 @@ class TraceInfoEntry(object):
             if not header:
                 return None
 
-            kind = {
-                0: 'end',
-                1: 'program-name',
-                2: 'exec-date',
-                3: 'user-data',
-            }[header['kind']]
+            kind = cls.KIND_NAMES[header['kind']]
 
             if kind == 'end' and header['length']:
                 raise ValueError('invalid "end" marker')
@@ -184,11 +235,33 @@ class TraceInfoEntry(object):
 
         return cls(kind, data)
 
+    def write(self, fp, big_endian, alignment):
+        """Write this trace info entry to the `fp` file."""
+        trace_info_header_struct.write(fp, {
+            'kind': self.KIND_CODES[self.kind],
+            'length': len(self.data) if self.data else 0,
+        }, big_endian=big_endian)
+        if self.data:
+            write_aligned(fp, self.data, alignment)
+
 
 class TraceEntry(object):
     """
     In-memory representation of a trace entry.
     """
+
+    UNIT_PART_NAMES = {
+        0: 'body',
+        1: 'spec',
+        2: 'separate'
+    }
+    UNIT_PART_CODES = {value: key for key, value in UNIT_PART_NAMES.items()}
+
+    BIT_BUFFER_ENCODING_NAMES = {
+        0: 'lsb_first_bytes'
+    }
+    BIT_BUFFER_ENCODING_CODES = {
+        value: key for key, value in BIT_BUFFER_ENCODING_NAMES.items()}
 
     def __init__(self, unit_part, unit_name, fingerprint, stmt_buffer,
                  dc_buffer, mcdc_buffer):
@@ -209,23 +282,19 @@ class TraceEntry(object):
             if not header:
                 return None
 
-            unit_part = {
-                0: 'body',
-                1: 'spec',
-                2: 'separate'
-            }[header['unit_part']]
+            unit_part = cls.UNIT_PART_NAMES[header['unit_part']]
 
             if header['padding'] != (0, ) * 2:
                 raise ValueError('Invalid padding: {}'
                                  .format(header['padding']))
 
-            bit_buffer_encoding = {
-               0: 'lsb_first_bytes'
-            }[header['bit_buffer_encoding']]
+            bit_buffer_encoding = cls.BIT_BUFFER_ENCODING_NAMES[
+                header['bit_buffer_encoding']]
 
             with fp.label_context('unit name'):
                 unit_name = read_aligned(
                     fp, header['unit_name_length'], trace_file.alignment)
+
             with fp.label_context('stmt buffer'):
                 stmt_buffer = TraceBuffer.read(
                     fp, trace_file, bit_buffer_encoding,
@@ -242,6 +311,26 @@ class TraceEntry(object):
         return cls(unit_part, unit_name, header['fingerprint'], stmt_buffer,
                    dc_buffer, mcdc_buffer)
 
+    def write(self, fp, big_endian, alignment):
+        """Write this trace info entry to the `fp` file."""
+        trace_entry_header_struct.write(fp, {
+            'unit_name_length': len(self.unit_name),
+            'stmt_bit_count': len(self.stmt_buffer.bits),
+            'dc_bit_count': len(self.dc_buffer.bits),
+            'mcdc_bit_count': len(self.mcdc_buffer.bits),
+            'unit_part': self.UNIT_PART_CODES[self.unit_part],
+            'bit_buffer_encoding':
+                self.BIT_BUFFER_ENCODING_CODES['lsb_first_bytes'],
+            'fingerprint': self.fingerprint,
+            'padding': (0, 0),
+        }, big_endian=big_endian)
+
+        write_aligned(fp, self.unit_name, alignment)
+
+        self.stmt_buffer.write(fp, alignment)
+        self.dc_buffer.write(fp, alignment)
+        self.mcdc_buffer.write(fp, alignment)
+
 
 class TraceBuffer(object):
     """
@@ -251,14 +340,22 @@ class TraceBuffer(object):
     def __init__(self, bits):
         self.bits = bits
 
+    @staticmethod
+    def byte_count(bit_count):
+        """
+        Return the number of bytes required to represent the given number of
+        bits.
+        """
+        bytes_count = bit_count // 8
+        if bit_count % 8:
+            bytes_count += 1
+        return bytes_count
+
     @classmethod
     def read(cls, fp, trace_file, bit_buffer_encoding, bit_count):
         assert bit_buffer_encoding == 'lsb_first_bytes'
 
-        bytes_count = bit_count // 8
-        if bit_count % 8:
-            bytes_count += 1
-
+        bytes_count = cls.byte_count(bit_count)
         bytes_and_padding = read_aligned(fp, bytes_count, trace_file.alignment)
 
         bits = []
@@ -273,6 +370,20 @@ class TraceBuffer(object):
                 byte = byte >> 1
 
         return cls(bits)
+
+    def write(self, fp, alignment):
+        """Write this coverage buffer to the `fp` file."""
+        bit_count = len(self.bits)
+        bytes_count = self.byte_count(bit_count)
+        buffer = [0] * bytes_count
+
+        for global_bit_index, bit in enumerate(self.bits):
+            byte_index = global_bit_index // 8
+            bit_index = global_bit_index % 8
+            bit_value = int(bit) << bit_index
+            buffer[byte_index] |= bit_value
+
+        write_aligned(fp, ''.join(chr(byte) for byte in buffer), alignment)
 
 
 parser = argparse.ArgumentParser('Decode a source trace file')
