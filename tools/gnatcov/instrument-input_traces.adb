@@ -26,7 +26,8 @@ with Interfaces;
 with System;
 with System.Storage_Elements;
 
-with GNAT.OS_Lib; use GNAT.OS_Lib;
+with GNAT.OS_Lib;        use GNAT.OS_Lib;
+with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
 with GNATcov_RTS.Buffers;
 with GNATcov_RTS.Traces; use GNATcov_RTS.Traces;
@@ -43,6 +44,9 @@ package body Instrument.Input_Traces is
      (GNATcov_RTS.Traces.Unit_Body     => GNATCOLL.Projects.Unit_Body,
       GNATcov_RTS.Traces.Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
       GNATcov_RTS.Traces.Unit_Separate => GNATCOLL.Projects.Unit_Separate);
+
+   Native_Endianity : constant Supported_Endianity :=
+      GNATcov_RTS.Traces.Native_Endianity;
 
    subtype Read_Result is Traces_Files.Read_Result;
    procedure Create_Error (Result : out Read_Result; Error : String)
@@ -341,12 +345,20 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid magic");
             return;
 
-         elsif Raw_Header.Endianity /= Native_Endianity then
-            raise Program_Error
-               with "unimplemented support for non-native endianity";
-            --  TODO???
+         elsif Raw_Header.Endianity not in Little_Endian | Big_Endian then
+            Create_Error (Result, "invalid endianity");
+            return;
+         end if;
 
-         elsif Raw_Header.Format_Version /= Current_Version then
+         --  Now that the endianity is known, swap bytes if needed
+
+         if Raw_Header.Endianity /= Native_Endianity then
+            Swap4 (Raw_Header.Format_Version'Address);
+         end if;
+
+         --  Go on checking fields...
+
+         if Raw_Header.Format_Version /= Current_Version then
             Create_Error (Result, "unsupported format version");
             return;
 
@@ -358,8 +370,6 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid file header padding");
             return;
          end if;
-
-         --  TODO??? Handle non-native endianity
 
          File_Header := Raw_Header;
       end;
@@ -397,6 +407,13 @@ package body Instrument.Input_Traces is
          Header : Trace_Info_Header
             with Import, Address => Buffer_Address (Stream);
       begin
+         --  Swap bytes if needed, according to the file endianity
+
+         if File_Header.Endianity /= Native_Endianity then
+            Swap4 (Header.Kind'Address);
+            Swap4 (Header.Length'Address);
+         end if;
+
          if Header.Kind not in Supported_Info_Kind then
             Create_Error (Result, "invalid trace info kind");
             return;
@@ -460,6 +477,15 @@ package body Instrument.Input_Traces is
          Raw_Header : Trace_Entry_Header
             with Import, Address => Buffer_Address (Stream);
       begin
+         --  Swap bytes if needed, according to the file endianity
+
+         if File_Header.Endianity /= Native_Endianity then
+            Swap4 (Raw_Header.Unit_Name_Length'Address);
+            Swap4 (Raw_Header.Statement_Bit_Count'Address);
+            Swap4 (Raw_Header.Decision_Bit_Count'Address);
+            Swap4 (Raw_Header.MCDC_Bit_Count'Address);
+         end if;
+
          if Raw_Header.Unit_Part not in Supported_Unit_Part then
             Create_Error (Result, "invalid unit part");
             return False;
@@ -474,8 +500,6 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid entry header padding");
             return False;
          end if;
-
-         --  TODO??? Handle non-native endianity
 
          Entry_Header := Raw_Header;
       end;
