@@ -11,7 +11,7 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 
-from SUITE.stream_decoder import ByteStreamDecoder, Struct
+from SUITE.stream_decoder import ByteStreamDecoder, Struct, swap_bytes
 
 
 trace_file_header_struct = Struct(
@@ -71,6 +71,8 @@ class SrcTraceFile(object):
         self.info_entries = info_entries
         self.entries = entries
 
+        self.big_endian = endianity == 'big-endian'
+
     @classmethod
     def read(cls, fp):
         """
@@ -82,7 +84,17 @@ class SrcTraceFile(object):
         if magic != 'GNATcov source trace file' + '\x00' * 7:
             raise ValueError('Invalid magic: {}'.format(magic))
 
+        endianity = header['endianity']
+        endianity = {0: 'little-endian', 1: 'big-endian'}[endianity]
+
         format_version = header['format_version']
+
+        # We read the header as little-endian before knowing the trace file
+        # endianity. This matters for the only multi-bytes field in this
+        # header: the format version. Swap its bytes if the endianity is
+        # actually big endian.
+        if endianity == 'big-endian':
+            format_version = swap_bytes(format_version, 4)
         if format_version != 0:
             raise ValueError('Unsupported format version: {}'
                              .format(format_version))
@@ -91,21 +103,18 @@ class SrcTraceFile(object):
         if alignment not in (1, 2, 4, 8):
             raise ValueError('Invalid alignment: {}'.format(alignment))
 
-        endianity = header['endianity']
-        endianity = {0: 'little-endian', 1: 'big-endian'}[endianity]
-
         info_entries = []
         entries = []
         result = cls(alignment, endianity, info_entries, entries)
 
         while True:
-            entry = TraceInfoEntry.read(fp, result)
+            entry = TraceInfoEntry.read(fp, result, result.big_endian)
             if entry.kind == 'end':
                 break
             info_entries.append(entry)
 
         while True:
-            entry = TraceEntry.read(fp, result)
+            entry = TraceEntry.read(fp, result, result.big_endian)
             if not entry:
                 break
             entries.append(entry)
@@ -144,13 +153,13 @@ class TraceInfoEntry(object):
         self.data = data
 
     @classmethod
-    def read(cls, fp, trace_file):
+    def read(cls, fp, trace_file, big_endian):
         """
         Read a trace info entry from the `fp` file. Return a TraceInfoEntry
         instance.
         """
         with fp.label_context('trace info'):
-            header = trace_info_header_struct.read(fp)
+            header = trace_info_header_struct.read(fp, big_endian=big_endian)
             if not header:
                 return None
 
@@ -185,12 +194,12 @@ class TraceEntry(object):
         self.mcdc_buffer = mcdc_buffer
 
     @classmethod
-    def read(cls, fp, trace_file):
+    def read(cls, fp, trace_file, big_endian):
         """
         Read a trace entry from the `fp` file. Return a TraceFile instance.
         """
         with fp.label_context('trace entry'):
-            header = trace_entry_header_struct.read(fp)
+            header = trace_entry_header_struct.read(fp, big_endian=big_endian)
             if not header:
                 return None
 
