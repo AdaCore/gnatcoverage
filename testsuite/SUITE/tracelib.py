@@ -206,7 +206,7 @@ def unpack_from_file(fp, struct):
     fields = struct.read(fp)
     if fields is None:
         return None
-    return [fields[name] for name, _ in struct.fields]
+    return [fields[name] for name, _ in struct.be_fields]
 
 
 class TraceFile(object):

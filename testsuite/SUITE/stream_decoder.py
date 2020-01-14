@@ -2,6 +2,15 @@ from contextlib import contextmanager
 import struct
 
 
+def swap_bytes(number, size):
+    """Swap bytes in ``number``, assumed to be ``size``-bytes large."""
+    result = 0
+    for _ in range(size):
+        result = (result << 8) | (number & 0xff)
+        number = number >> 8
+    return result
+
+
 class ByteStreamDecoder(object):
     """
     Debug helper to analyze the process of decoding a binary stream.
@@ -99,19 +108,27 @@ class Struct(object):
         :type fields: list[(str, str)]
         """
         self.label = label
-        self.fields = [(name, struct.Struct(fmt)) for name, fmt in fields]
+        self.le_fields = [(name, struct.Struct('<' + fmt))
+                          for name, fmt in fields]
+        self.be_fields = [(name, struct.Struct('>' + fmt))
+                          for name, fmt in fields]
 
-    def read(self, fp):
+    def _fields(self, big_endian=False):
+        return (self.be_fields if big_endian else self.le_fields)
+
+    def read(self, fp, big_endian=False):
         """
         Read bytes from ``fp`` and decode these bytes according to the format
         of this structure.
 
         :param ByteStreamDecoder fp: Stream from which to read and decode this
             structure.
+        :param bool big_endian: Whether to decode structure fields as big
+            endian (consider little endian by default).
         """
         with fp.label_context(self.label):
             result = {}
-            for i, (name, structure) in enumerate(self.fields):
+            for i, (name, structure) in enumerate(self._fields(big_endian)):
                 with fp.label_context(name):
                     buf = fp.read(structure.size)
                     assert (not buf and i == 0) or len(buf) == structure.size
@@ -123,20 +140,30 @@ class Struct(object):
                     result[name] = field
             return result
 
-    def write(self, fp, field_values):
+    def write(self, fp, field_values, big_endian=False):
+        fields = self._fields(big_endian)
+
         if isinstance(field_values, dict):
             dict_field_values = field_values
-            field_values = [dict_field_values.pop(name)
-                            for name, _ in self.fields]
+            field_values = [dict_field_values.pop(name) for name, _ in fields]
             unknown_fields = sorted(dict_field_values)
             if unknown_fields:
                 raise ValueError('Unknown fields: {}'
                                  .format(' '.join(unknown_fields)))
 
-        if len(field_values) != len(self.fields):
+        if len(field_values) != len(fields):
             raise ValueError('{} fields expected, got {}'
-                             .format(len(self.fields), len(field_values)))
+                             .format(len(fields), len(field_values)))
 
         print(field_values)
-        for value, (_, structure) in zip(field_values, self.fields):
+        for value, (_, structure) in zip(field_values, fields):
             fp.write(structure.pack(value))
+
+
+if __name__ == '__main__':
+    assert swap_bytes(0, 1) == 0
+    assert swap_bytes(0, 2) == 0
+    assert swap_bytes(1, 1) == 1
+    assert swap_bytes(1, 2) == 0x100
+    assert swap_bytes(0xff, 2) == 0xff00
+    assert swap_bytes(-1, 2) == 0xffff
