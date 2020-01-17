@@ -149,6 +149,10 @@ package body Instrument.Tree is
      Index (Ada_Defining_Name, Defining_Name_F_Name);
    I_Handled_Stmts_F_Stmts : constant Integer :=
      Index (Ada_Handled_Stmts, Handled_Stmts_F_Stmts);
+   I_Subp_Spec_F_Subp_Params : constant Integer :=
+     Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Params);
+   I_Params_F_Params : constant Integer :=
+     Index (Ada_Params, Params_F_Params);
 
    -----------------
    -- Diagnostics --
@@ -183,7 +187,7 @@ package body Instrument.Tree is
    end record;
 
    overriding function Insert_MCDC_State
-     (Inserter : Default_MCDC_State_Inserter;
+     (Inserter : in out Default_MCDC_State_Inserter;
       UIC      : in out Unit_Inst_Context;
       Name     : String) return String;
 
@@ -256,7 +260,7 @@ package body Instrument.Tree is
    -----------------------
 
    function Insert_MCDC_State
-     (Inserter : Default_MCDC_State_Inserter;
+     (Inserter : in out Default_MCDC_State_Inserter;
       UIC      : in out Unit_Inst_Context;
       Name     : String) return String
    is
@@ -1358,12 +1362,18 @@ package body Instrument.Tree is
 
       type Expr_Func_MCDC_State_Inserter is new Root_MCDC_State_Inserter with
          record
+            N_Spec        : Node_Rewriting_Handle;
             Call_Params   : Node_Rewriting_Handle;
-            Formal_Params : Node_Rewriting_Handle;
+
+            Formal_Params : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+            --  Formal parameter list where new parameters are added to hold
+            --  MC/DC temporary buffers. This is set lazily from N_Spec.
+            --  This can therefore be tested for No_Node_Rewriting_Handle to
+            --  determine if any parameter was inserted.
          end record;
 
       overriding function Insert_MCDC_State
-        (Inserter : Expr_Func_MCDC_State_Inserter;
+        (Inserter : in out Expr_Func_MCDC_State_Inserter;
          UIC      : in out Unit_Inst_Context;
          Name     : String) return String;
 
@@ -1386,22 +1396,19 @@ package body Instrument.Tree is
 
          Orig_Subp : constant Node_Rewriting_Handle := Handle (N);
 
-         Orig_Overriding : constant Node_Rewriting_Handle :=
-           Detach (N.As_Base_Subp_Body.F_Overriding);
+         Orig_Overriding : constant Overriding_Node :=
+           N.As_Base_Subp_Body.F_Overriding;
 
          Orig_Spec : constant Node_Rewriting_Handle := Clone (N_Spec);
          --  Saved copy of the original spec before it is augmented
          --  with additional parameters for MC/DC states.
 
-         New_Subp_Decl : constant Node_Rewriting_Handle :=
-           Create_Subp_Decl (RC,
-                             Classic_Subp_Decl_F_Overriding => Orig_Overriding,
-                             Classic_Subp_Decl_F_Subp_Spec  => Orig_Spec,
-                             Subp_Decl_F_Aspects            =>
-                               Detach (N.F_Aspects));
+         New_Subp_Decl : Node_Rewriting_Handle;
 
-         N_Params    : constant Param_Spec_List :=
-           N_Spec.F_Subp_Params.F_Params;
+         N_Params : constant Param_Spec_List :=
+           (if N_Spec.F_Subp_Params.Is_Null
+            then No_Param_Spec_List
+            else N_Spec.F_Subp_Params.F_Params);
 
          Call_Params : constant Node_Rewriting_Handle :=
            (if Is_Expr_Function
@@ -1447,10 +1454,7 @@ package body Instrument.Tree is
          --  function, will be changed to be used as the name for the
          --  augmented expression function.
 
-         Orig_Name   : constant Node_Rewriting_Handle :=
-           (if Is_Expr_Function and then not MCDC_Coverage_Enabled
-            then No_Node_Rewriting_Handle
-            else Detach (N_Subp_Name.F_Name));
+         Orig_Name : constant Libadalang.Analysis.Name := N_Subp_Name.F_Name;
 
          Saved_Insertion_Info : constant Insertion_Info_Access :=
            UIC.Current_Insertion_Info;
@@ -1466,8 +1470,9 @@ package body Instrument.Tree is
          --  Save location where MC/DC state objects are inserted
 
          EF_Inserter : aliased Expr_Func_MCDC_State_Inserter :=
-           (Call_Params   => Call_Params,
-            Formal_Params => Handle (N_Params));
+           (N_Spec      => Handle (N_Spec),
+            Call_Params => Call_Params,
+            others      => <>);
 
          --  Additional declarations for null procedures only
 
@@ -1525,8 +1530,6 @@ package body Instrument.Tree is
          Gen_Body_Decls : constant Node_Rewriting_Handle :=
            Make (Ada_Ada_Node_List);
 
-         Inst_Name : constant Node_Rewriting_Handle := Orig_Name;
-
          Inst_Params : constant Node_Rewriting_Handle :=
            Make (Ada_Assoc_List);
 
@@ -1573,43 +1576,14 @@ package body Instrument.Tree is
             UIC.Degenerate_Subprogram_Index :=
               UIC.Degenerate_Subprogram_Index + 1;
 
-            --  Remove the original declaration from the tree
-
-            pragma Assert
-              (Orig_Subp =
-                 Child
-                   (Saved_Insertion_Info.RH_List,
-                    Orig_Subp_Index));
-            Remove_Child
-              (Saved_Insertion_Info.RH_List,
-               Orig_Subp_Index);
-            Saved_Insertion_Info.Rewriting_Offset :=
-              Saved_Insertion_Info.Rewriting_Offset - 1;
-
-            --  If there is no previous declaration, generate one, keeping the
-            --  original aspects and default parameters. Then make sure that
-            --  the original null procedure or expression function is detached
-            --  from the tree.
-
-            if N.As_Base_Subp_Body.P_Previous_Part.Is_Null then
-               Insert (New_Subp_Decl);
-            end if;
-
-            --  For an expression function, insert wrapper package now.
-            --  For a null procedure it, push it down to the end of this list
-            --  of declarations.
-
-            if Is_Expr_Function then
-               Insert (Wrapper_Pkg);
-            else
-               Append_Child (Saved_Insertion_Info.RH_List, Wrapper_Pkg);
-            end if;
-
             -----------------------------------------------------
             -- 1. Analysis of the degenerate subprogram's spec --
             -----------------------------------------------------
 
-            for J in 1 .. N_Params.Children_Count loop
+            for J in 1 .. (if N_Params.Is_Null
+                           then 0
+                           else N_Params.Children_Count)
+            loop
                declare
                   P_Spec : constant Param_Spec :=
                     N_Params.Children (J).As_Param_Spec;
@@ -1692,6 +1666,8 @@ package body Instrument.Tree is
                Insertion_N => Gen_Body_Stmt);
          end if;
 
+         EF_Inserter.Call_Params := Call_Params;
+
          UIC.MCDC_State_Inserter := EF_Inserter'Unchecked_Access;
 
          if Is_Expr_Function then
@@ -1709,12 +1685,58 @@ package body Instrument.Tree is
 
          UIC.Current_Insertion_Info := Saved_Insertion_Info;
 
-         if Is_Expr_Function and then not MCDC_Coverage_Enabled then
+         --  Now see if we need to generate an instrumented subprogram
+
+         if Is_Expr_Function
+              and then
+             (not MCDC_Coverage_Enabled
+                or else
+              EF_Inserter.Formal_Params = No_Node_Rewriting_Handle)
+         then
             return;
          end if;
 
-         if Is_Expr_Function then
+         --  Remove the original declaration from the tree
 
+         pragma Assert
+           (Orig_Subp =
+              Child
+                (Saved_Insertion_Info.RH_List,
+                 Orig_Subp_Index));
+         Remove_Child
+           (Saved_Insertion_Info.RH_List,
+            Orig_Subp_Index);
+         Saved_Insertion_Info.Rewriting_Offset :=
+           Saved_Insertion_Info.Rewriting_Offset - 1;
+
+         --  If there is no previous declaration, generate one, keeping the
+         --  original aspects and default parameters. Then make sure that
+         --  the original null procedure or expression function is detached
+         --  from the tree.
+
+         if N.As_Base_Subp_Body.P_Previous_Part.Is_Null then
+            New_Subp_Decl :=
+              Create_Subp_Decl (RC,
+                                Classic_Subp_Decl_F_Overriding =>
+                                  Detach (Orig_Overriding),
+                                Classic_Subp_Decl_F_Subp_Spec  =>
+                                  Orig_Spec,
+                                Subp_Decl_F_Aspects            =>
+                                  Detach (N.F_Aspects));
+            Insert (New_Subp_Decl);
+         end if;
+
+         --  For an expression function, insert wrapper package now.
+         --  For a null procedure it, push it down to the end of this list
+         --  of declarations.
+
+         if Is_Expr_Function then
+            Insert (Wrapper_Pkg);
+         else
+            Append_Child (Saved_Insertion_Info.RH_List, Wrapper_Pkg);
+         end if;
+
+         if Is_Expr_Function then
             -------------------------------------------
             -- 3(ef). Insert new expression function --
             -------------------------------------------
@@ -1804,7 +1826,7 @@ package body Instrument.Tree is
                     Generic_Subp_Instantiation_F_Kind              =>
                       Make (Ada_Subp_Kind_Procedure),
                     Generic_Subp_Instantiation_F_Subp_Name         =>
-                      Create_Defining_Name (RC, Inst_Name),
+                      Create_Defining_Name (RC, Detach (Orig_Name)),
                     Generic_Subp_Instantiation_F_Generic_Subp_Name =>
                       Create_Dotted_Name
                         (RC,
@@ -1833,7 +1855,7 @@ package body Instrument.Tree is
                               Dotted_Name_F_Prefix =>
                                 Clone (Wrapper_Pkg_Name),
                               Dotted_Name_F_Suffix =>
-                                Clone (Inst_Name))),
+                                Clone (Orig_Name))),
                     Subp_Renaming_Decl_F_Aspects =>
                       No_Node_Rewriting_Handle);
 
@@ -1859,7 +1881,7 @@ package body Instrument.Tree is
       -----------------------
 
       overriding function Insert_MCDC_State
-        (Inserter : Expr_Func_MCDC_State_Inserter;
+        (Inserter : in out Expr_Func_MCDC_State_Inserter;
          UIC      : in out Unit_Inst_Context;
          Name     : String) return String
       is
@@ -1920,6 +1942,23 @@ package body Instrument.Tree is
                                   (RC, Ada_Box_Expr, No_Children))))));
 
       begin
+         if Inserter.Formal_Params = No_Node_Rewriting_Handle then
+            if Child (Inserter.N_Spec, I_Subp_Spec_F_Subp_Params)
+              = No_Node_Rewriting_Handle
+            then
+               Set_Child
+                 (Inserter.N_Spec,
+                  I_Subp_Spec_F_Subp_Params,
+                  Create_Params
+                    (Handle          => RC,
+                     Params_F_Params => Make (Ada_Param_Spec_List)));
+            end if;
+            Inserter.Formal_Params :=
+              Child
+                (Child (Inserter.N_Spec, I_Subp_Spec_F_Subp_Params),
+                 I_Params_F_Params);
+         end if;
+
          Append_Child (Inserter.Formal_Params, State_Param_Spec);
          Append_Child (Inserter.Call_Params, State_Actual);
 

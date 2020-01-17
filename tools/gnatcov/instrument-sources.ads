@@ -231,7 +231,7 @@ private package Instrument.Sources is
    end record;
 
    function Insert_MCDC_State
-     (Inserter : Root_MCDC_State_Inserter;
+     (Inserter : in out Root_MCDC_State_Inserter;
       UIC      : in out Unit_Inst_Context;
       Name     : String) return String
      is abstract;
