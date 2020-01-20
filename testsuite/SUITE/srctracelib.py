@@ -44,19 +44,25 @@ trace_entry_header_struct = Struct(
 
 def read_aligned(fp, count, alignment):
     """
-    Read the given number of bytes from the given stream, plus the required
-    padding according to the given alignment. Return the bytes that were read,
-    without the padding.
+    Read `count` bytes from the `fp` file, plus the required padding according
+    to `alignment`. Return the bytes that were read, without the padding, or
+    None if `count` is zero.
     """
-    content = fp.read(count)
-    if not content:
+    # If there was no payload bytes to read, there is no padding byte to read,
+    # as the file offset, and thus the alignment, are preserved.
+    if not count:
         return None
+
+    content = fp.read(count)
     assert len(content) == count
+
+    # Read padding bytes and ensure they are null
     padding_count = alignment - count % alignment
     if padding_count != alignment:
         padding = fp.read(padding_count)
         assert (len(padding) == padding_count and
                 all(c == '\x00' for c in padding))
+
     return content
 
 
