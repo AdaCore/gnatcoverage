@@ -2775,9 +2775,9 @@ package body Traces_Elf is
       Exec.Inlined_Subprograms := Inlined_Subprogram_Vectors.Empty_Vector;
    end Build_Debug_Lines;
 
-   ---------------------
-   --  Build_Sections --
-   ---------------------
+   --------------------
+   -- Build_Sections --
+   --------------------
 
    procedure Build_Sections (Exec : in out Elf_Exe_File_Type) is
       Shdr     : Elf_Shdr_Acc;
