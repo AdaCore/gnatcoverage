@@ -704,16 +704,6 @@ package SC_Obligations is
           Pragma_Storage_Size => False,
           Pragma_Storage_Unit => False,
 
-          --  OpenACC support: as of today, GNATcoverage is not ready to assess
-          --  the coverage of code that is offloaded to external devices. This
-          --  means we support only compiling with OpenACC pragmas disabled, so
-          --  we can safely assume they don't generate code.
-
-          Pragma_Acc_Data => False,
-          Pragma_Acc_Kernels => False,
-          Pragma_Acc_Loop => False,
-          Pragma_Acc_Parallel => False,
-
           --  Special case for pre/postcondition: these do not generate code
           --  at their normal point of occurrence in the instruction flow,
           --  and in the case of instrumentation based coverage, they cannot
