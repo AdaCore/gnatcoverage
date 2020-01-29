@@ -3,7 +3,8 @@
 with Ada.Calendar;
 with Ada.Command_Line;
 
-with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
+with GNATcov_RTS.Buffers.Lists;         use GNATcov_RTS.Buffers.Lists;
+with GNATcov_RTS.Traces.Generic_Output; use GNATcov_RTS.Traces.Generic_Output;
 
 package GNATcov_RTS.Traces.Output is
 
@@ -17,6 +18,9 @@ package GNATcov_RTS.Traces.Output is
    --  This returns the content of the GNATCOV_TRACE_FILE environment variable.
    --  If this environment variable is not defined or empty, fallback to
    --  "PROGRAM.srctrace", where PROGRAM is the name of the running program.
+
+   function Format_Date (Date : Ada.Calendar.Time) return Serialized_Timestamp;
+   --  Return Date represented as a little-endian 64-bit Unix timestamp
 
    procedure Write_Trace_File
      (Buffers      : Unit_Coverage_Buffers_Array;

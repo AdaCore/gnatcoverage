@@ -4,8 +4,8 @@
 --  buffers and for the format of GNATcoverage's source trace files.
 --
 --  If you need to use GNATcoverage's own implementation of the writer for
---  source traces files (System.GNATcov.Traces.Output), please use the
---  gnatcov_rts_full project instead.
+--  source traces files (GNATcov_RTS.Traces.Output), please use the
+--  gnatcov_rts_full.gpr project instead.
 
 project GNATcov_RTS is
    for Source_Files use
@@ -13,6 +13,8 @@ project GNATcov_RTS is
       "gnatcov_rts-buffers.ads",
       "gnatcov_rts-buffers.adb",
       "gnatcov_rts-traces.ads",
-      "gnatcov_rts-traces.adb");
+      "gnatcov_rts-traces.adb",
+      "gnatcov_rts-traces-generic_output.ads",
+      "gnatcov_rts-traces-generic_output.adb");
    for Object_Dir use "obj-gnatcov_rts";
 end GNATcov_RTS;
