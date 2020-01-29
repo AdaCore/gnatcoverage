@@ -32,4 +32,12 @@ package GNATcov_RTS.Traces.Generic_Output is
    --  Program_Name, Exec_Date, and User_Data are used to fill the
    --  corresponding metadata in the written trace file.
 
+   procedure Write_Trace_File_Base64
+     (Buffers      : Unit_Coverage_Buffers_Array;
+      Program_Name : String;
+      Exec_Date    : Serialized_Timestamp;
+      User_Data    : String := "");
+   --  Write a Base64-encoded trace file to the standard output
+   --  (Ada.Text_IO.Standard_Output).
+
 end GNATcov_RTS.Traces.Generic_Output;
