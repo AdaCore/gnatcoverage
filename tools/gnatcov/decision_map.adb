@@ -2280,6 +2280,13 @@ package body Decision_Map is
    -- Analyze_Routine --
    ---------------------
 
+   --  Code for interface thunks must be ignored altogether for coverage
+   --  purposes. It is identified by matching the symbol name against a regular
+   --  expression, and looking at whether the first instruction in the symbol
+   --  has the sloc of a type declaration.
+
+   Thunk_Matcher : constant GNAT.Regexp.Regexp := Compile (".*__T[0-9]+[bs]");
+
    procedure Analyze_Routine
      (Name  : String_Access;
       Exec  : Exe_File_Acc;
@@ -2431,6 +2438,27 @@ package body Decision_Map is
             --  Properties of Insn
 
          begin
+            --  Check if this is a thunk
+
+            if PC = Insns.First and then Match (Subp_Name, Thunk_Matcher) then
+               for Tsloc of Tslocs loop
+                  LI := Get_Line (Tsloc.Sloc);
+                  if LI /= null and then LI.SCOs /= null then
+                     for SCO of LI.SCOs.all loop
+                        if Kind (SCO) = Statement
+                          and then S_Kind (SCO) = Type_Declaration
+                        then
+                           Report (Exec, PC,
+                                   Msg  => "ignoring thunk " & Subp_Name,
+                                   SCO  => SCO,
+                                   Kind => Notice);
+                           return;
+                        end if;
+                     end loop;
+                  end if;
+               end loop;
+            end if;
+
             --  Find lines for this PC, and mark relevant statement SCOs as
             --  as having code: if the PC has no column information, this
             --  is done for all SCOs on the line, else only for those that
