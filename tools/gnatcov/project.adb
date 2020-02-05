@@ -61,6 +61,7 @@ package body Project is
    subtype String_Attribute is
      Attribute range Units_List .. Ignored_Source_Files_List;
 
+   function "+" (A : Attribute) return String;
    function "+" (A : String_Attribute) return Attribute_Pkg_String;
    function "+" (A : List_Attribute) return Attribute_Pkg_List;
    --  Build identifiers for attributes in package Coverage
@@ -152,8 +153,9 @@ package body Project is
    --  Add an entry to Units. See Unit_Info's members for the semantics of
    --  arguments.
 
-   procedure Warn_Missing_Info (Unit : in out Unit_Info);
-   --  If we haven't alredy, warn that we miss information about Unit
+   procedure Warn_Missing_Info (What_Info : String; Unit : in out Unit_Info);
+   --  If we haven't already, warn that we miss information (ALI or SID) about
+   --  Unit.
 
    Unit_Map : Unit_Maps.Map;
    --  Map lower-case unit names to Unit_Info records for all units of interest
@@ -179,9 +181,9 @@ package body Project is
 
    procedure List_From_Project
      (Prj            : Project_Type;
-      List_Attr      : Attribute_Pkg_List;
-      List_File_Attr : Attribute_Pkg_String;
-      Process_Item   : access procedure (Item : String);
+      List_Attr      : List_Attribute;
+      List_File_Attr : String_Attribute;
+      Process_Item   : access procedure (Attr, Item : String);
       Defined        : out Boolean);
    --  If List_Attr, an attribute that can contain a list of strings, is
    --  defined in Prj, call Process_Item on each of the strings and set
@@ -192,8 +194,8 @@ package body Project is
 
    procedure Units_From_Project
      (Prj            : Project_Type;
-      List_Attr      : Attribute_Pkg_List;
-      List_File_Attr : Attribute_Pkg_String;
+      List_Attr      : List_Attribute;
+      List_File_Attr : String_Attribute;
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean);
    --  Build a map of units from project attributes.
@@ -221,6 +223,11 @@ package body Project is
    ---------
    -- "+" --
    ---------
+
+   function "+" (A : Attribute) return String is
+   begin
+      return Coverage_Package & "." & To_Lower (A'Image);
+   end "+";
 
    function "+" (A : String_Attribute) return Attribute_Pkg_String is
    begin
@@ -260,13 +267,13 @@ package body Project is
    -- Warn_Missing_Info --
    -----------------------
 
-   procedure Warn_Missing_Info (Unit : in out Unit_Info) is
+   procedure Warn_Missing_Info (What_Info : String; Unit : in out Unit_Info) is
    begin
       if Unit.Warned_About_Missing_Info then
          return;
       end if;
 
-      Warn ("no information found for unit "
+      Warn ("no " & What_Info & " file found for unit "
             & To_String (Unit.Original_Name));
       Unit.Warned_About_Missing_Info := True;
    end Warn_Missing_Info;
@@ -455,7 +462,7 @@ package body Project is
    begin
       for UI of Unit_Map loop
          if not UI.Is_Subunit and then not UI.LI_Seen then
-            Warn_Missing_Info (UI);
+            Warn_Missing_Info ("ALI", UI);
          end if;
       end loop;
    end Report_Units_Without_LI;
@@ -496,7 +503,7 @@ package body Project is
 
       for UI of Unit_Map loop
          if not UI.Is_Subunit and then not UI.LI_Seen then
-            Warn_Missing_Info (UI);
+            Warn_Missing_Info ("SID", UI);
          end if;
       end loop;
 
@@ -820,8 +827,8 @@ package body Project is
 
             Units_From_Project
               (Project,
-               List_Attr      => +Units,
-               List_File_Attr => +Units_List,
+               List_Attr      => Units,
+               List_File_Attr => Units_List,
                Units          => Inc_Units,
                Defined        => Inc_Units_Defined);
 
@@ -830,8 +837,8 @@ package body Project is
             begin
                Units_From_Project
                  (Project,
-                  List_Attr       => +Excluded_Units,
-                  List_File_Attr  => +Excluded_Units_List,
+                  List_Attr       => Excluded_Units,
+                  List_File_Attr  => Excluded_Units_List,
                   Units           => Exc_Units,
                   Defined         => Exc_Units_Defined);
 
@@ -920,12 +927,20 @@ package body Project is
          Warn ("no unit of interest");
       end if;
 
+      --  Warn about units of interest that don't belong to any project of
+      --  interest. Given that we check that units exist when processing
+      --  project attributes (Units, Excluded_Units, etc.), this can only
+      --  happen for unit names from Override_Units, i.e. from the --units
+      --  command-line argument.
+
       for Cur in Unit_Map.Iterate loop
          declare
             Info : Unit_Info renames Unit_Map.Reference (Cur);
          begin
             if not Info.Present_In_Projects then
-               Warn_Missing_Info (Info);
+               Warn ("no unit " & To_String (Info.Original_Name) & " (from"
+                     & " --units) in the projects of interest");
+               Info.Warned_About_Missing_Info := True;
             end if;
          end;
       end loop;
@@ -952,42 +967,60 @@ package body Project is
 
    procedure List_From_Project
      (Prj            : Project_Type;
-      List_Attr      : Attribute_Pkg_List;
-      List_File_Attr : Attribute_Pkg_String;
-      Process_Item   : access procedure (Item : String);
-      Defined        : out Boolean) is
+      List_Attr      : List_Attribute;
+      List_File_Attr : String_Attribute;
+      Process_Item   : access procedure (Attr, Item : String);
+      Defined        : out Boolean)
+   is
+      LA  : constant Attribute_Pkg_List := +List_Attr;
+      LFA : constant Attribute_Pkg_String := +List_File_Attr;
    begin
       --  We check each attribute in sequence and the set we're filling
       --  is "defined" as soon as one is set explicitly.
 
       Defined := False;
 
-      if Has_Attribute (Prj, List_Attr) then
+      if Has_Attribute (Prj, LA) then
          Defined := True;
          declare
+            Attr            : constant String := +List_Attr;
             List_Attr_Value : String_List_Access :=
-              Attribute_Value (Prj, List_Attr);
+              Attribute_Value (Prj, LA);
          begin
             for J in List_Attr_Value'Range loop
-               Process_Item (List_Attr_Value (J).all);
+               Process_Item (Attr, List_Attr_Value (J).all);
                Free (List_Attr_Value (J));
             end loop;
             Free (List_Attr_Value);
          end;
       end if;
 
-      if Has_Attribute (Prj, List_File_Attr) then
+      if Has_Attribute (Prj, LFA) then
          Defined := True;
          declare
+            Attr                 : constant String := +List_File_Attr;
             List_File_Attr_Value : constant String :=
-              Attribute_Value (Prj, List_File_Attr);
+              Attribute_Value (Prj, LFA);
+
+            procedure Process_Item_Wrapper (Item : String);
+            --  Wrapper around Process_Item for each file item
+
+            --------------------------
+            -- Process_Item_Wrapper --
+            --------------------------
+
+            procedure Process_Item_Wrapper (Item : String) is
+            begin
+               Process_Item.all (Attr, Item);
+            end Process_Item_Wrapper;
+
          begin
             Read_List_From_File
               (+Full_Name
                  (Create_From_Base
                     (Base_Name => +List_File_Attr_Value,
                      Base_Dir  => Dir_Name (Project_Path (Prj)))),
-               Process_Item);
+               Process_Item_Wrapper'Access);
          end;
       end if;
    end List_From_Project;
@@ -998,35 +1031,35 @@ package body Project is
 
    procedure Units_From_Project
      (Prj            : Project_Type;
-      List_Attr      : Attribute_Pkg_List;
-      List_File_Attr : Attribute_Pkg_String;
+      List_Attr      : List_Attribute;
+      List_File_Attr : String_Attribute;
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
       Units_Present : Unit_Name_Sets.Set;
       --  Set of units present in Prj
 
-      procedure Add_Line (S : String);
-      --  Add S to Units
+      procedure Add_Unit (Attr, Item : String);
+      --  Add Item to Units
 
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
       --  Add Unit_Name to Units_Present
 
       --------------
-      -- Add_Line --
+      -- Add_Unit --
       --------------
 
-      procedure Add_Line (S : String) is
-         Unit_Name   : constant String := To_Lower (S);
+      procedure Add_Unit (Attr, Item : String) is
+         Unit_Name   : constant String := To_Lower (Item);
          Ignored_Cur : Unit_Maps.Cursor;
       begin
          if Units_Present.Contains (Unit_Name) then
-            Add_Unit (Units, Ignored_Cur, S);
+            Add_Unit (Units, Ignored_Cur, Item);
          else
-            Warn ("no information found for unit " & S
-                  & " in project " & Prj.Name);
+            Warn ("no unit " & Item & " in project " & Prj.Name
+                  & " (" & Attr & " attribute)");
          end if;
-      end Add_Line;
+      end Add_Unit;
 
       -------------------------
       -- Process_Source_File --
@@ -1051,7 +1084,7 @@ package body Project is
       --  Now go through all units referenced by project attributes
 
       List_From_Project
-        (Prj, List_Attr, List_File_Attr, Add_Line'Access, Defined);
+        (Prj, List_Attr, List_File_Attr, Add_Unit'Access, Defined);
    end Units_From_Project;
 
    -----------------------
@@ -1302,6 +1335,9 @@ package body Project is
       --  Call Process on all ignored source files referenced by the
       --  Ignored_Source_Files(_List) project attributes.
 
+      procedure Process_Wrapper (Attr, Source_File : String);
+      --  Wrapper fo Process
+
       Dummy : Boolean;
 
       ---------------
@@ -1312,11 +1348,21 @@ package body Project is
       begin
          List_From_Project
            (Prj,
-            +Ignored_Source_Files,
-            +Ignored_Source_Files_List,
-            Process,
+            Ignored_Source_Files,
+            Ignored_Source_Files_List,
+            Process_Wrapper'Access,
             Dummy);
       end Enumerate;
+
+      ---------------------
+      -- Process_Wrapper --
+      ---------------------
+
+      procedure Process_Wrapper (Attr, Source_File : String) is
+         pragma Unreferenced (Attr);
+      begin
+         Process.all (Source_File);
+      end Process_Wrapper;
 
    --  Start of processing for Enumerate_Ignored_Source_Files
 
