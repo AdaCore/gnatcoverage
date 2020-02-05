@@ -1572,6 +1572,16 @@ package body Instrument.Tree is
          -- 0. Preparation steps --
          --------------------------
 
+         --  Cannot instrument a (null procedure) primitive of an interface
+         --  type, because it must be either abstract or null.
+
+         if not Is_Expr_Function
+           and then not N_Spec.P_Primitive_Subp_Tagged_Type.Is_Null
+           and then N_Spec.P_Primitive_Subp_Tagged_Type.P_Is_Interface_Type
+         then
+            return;
+         end if;
+
          if MCDC_Coverage_Enabled or else not Is_Expr_Function then
             UIC.Degenerate_Subprogram_Index :=
               UIC.Degenerate_Subprogram_Index + 1;
