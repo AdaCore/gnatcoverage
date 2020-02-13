@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 Expose the topology definition and instanciation engine.
 
 A topology is used to specify the pattern of a decision: X and (not Y or Z),
@@ -9,35 +9,30 @@ placeholders.
 
 Once a topology is defined, it can be instanciated to a full decision
 expression: to do so, placeholders are replaced by "operand" expressions.
-'''
+"""
 
 import SCOV.expgen.ast as ast
 
 
 class OperandPlaceholder(object):
-    '''
-    Placeholder to be put in expressions to specify a topology.
-    '''
+    """Placeholder to be put in expressions to specify a topology."""
     pass
 
 
 class Topology(object):
-    '''
+    """
     Decision expression pattern that can be instanciated to fill the pattern
     with actual operands.
-    '''
+    """
 
     def __init__(self, expression):
-        '''
-        Create a new topology using `expression` as its pattern.
-        '''
+        """Create a new topology using `expression` as its pattern."""
         self.expression = expression
         self.arity = self.get_arity(expression)
 
     def get_arity(self, expression):
-        '''
-        Return the number of operand placeholders in the given expression.
-        '''
+        """Return the number of operand placeholders in the given
+        expression."""
         if isinstance(expression, OperandPlaceholder):
             return 1
         else:
@@ -47,18 +42,18 @@ class Topology(object):
             )
 
     def instanciate(self, operands, formal_names, context):
-        '''
+        """
         Instanciate the expression pattern tree replacing the placeholders with
         the given expressions, which are tagged with the given `formal_names`
         and with the given `context` (tags depend on the context).
-        '''
+        """
 
         def helper(expression, i):
-            '''
+            """
             Likewise, helper to process sub-expressions in a recursive fashion.
             `i` is the first operand to replace. Return the instanciated
             expression and the index of the next operand to replace.
-            '''
+            """
 
             # If we find a placeholder, return the next operand after tagging
             # it.
@@ -92,18 +87,15 @@ class Topology(object):
 
         return expr
 
-
     def evaluate(self, operands):
-        '''
-        Evaluate the boolean expression using the given `operands`.
-        '''
+        """Evaluate the boolean expression using the given `operands`."""
 
         def helper(expression, i):
-            '''
+            """
             Likewise, helper to process sub-expressions in a recursive fashion.
             `i` is the first `operand` to use. Return the result of the given
             `expression` evaluation and the index of the next operand to use.
-            '''
+            """
 
             # If we find a placeholder, return the next operand.
             if isinstance(expression, OperandPlaceholder):
@@ -136,7 +128,6 @@ class Topology(object):
         assert next_operand == self.arity
 
         return result
-
 
     def __str__(self):
 

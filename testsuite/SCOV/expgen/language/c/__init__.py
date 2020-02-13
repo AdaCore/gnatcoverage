@@ -25,9 +25,7 @@ BUILTIN_TYPES = {
 
 
 class HeaderGuard(object):
-    '''
-    Output C header guards on entry and exit.
-    '''
+    """Output C header guards on entry and exit."""
 
     def __init__(self, language, module_name):
         self.language = language
@@ -51,7 +49,6 @@ class Language(language.Language):
 
     RUN_MODULE = 'run_body'
 
-
     #
     # Filename generators
     #
@@ -61,7 +58,6 @@ class Language(language.Language):
 
     def get_implementation_filename(self, module_name):
         return '{}.c'.format(module_name)
-
 
     #
     # Serialization entry points
@@ -86,7 +82,8 @@ class Language(language.Language):
                 self.get_run_procedure_name(truth_vector),
                 None, [], [], False
             )
-            self.write('{'); self.newline()
+            self.write('{')
+            self.newline()
             with self.indent(self.INDENT):
                 call_to_run = ast.Call(
                     ast.VariableUsage(self.ENTRY_POINT_NAME),
@@ -104,8 +101,10 @@ class Language(language.Language):
                         ast.LitteralBoolean(truth_vector[-1])
                     )]
                 ))
-                self.write(';'); self.newline()
-            self.write('}'); self.newline()
+                self.write(';')
+                self.newline()
+            self.write('}')
+            self.newline()
 
     def serialize_specification_types(
         self, stream, types
@@ -149,10 +148,11 @@ class Language(language.Language):
             formal_names, formal_types,
             False
         )
-        self.write('{'); self.newline()
+        self.write('{')
+        self.newline()
         self.handle(program)
-        self.write('}'); self.newline()
-
+        self.write('}')
+        self.newline()
 
     #
     # Various helpers
@@ -162,16 +162,13 @@ class Language(language.Language):
         self.write('#include "{}.h"'.format(module_name))
         self.newline()
 
-    def add_subprogram_signature(self,
-        name, return_type, formal_names, formal_types,
-        declaration
-    ):
-        '''
-        Add a subprogram signature to the output.
+    def add_subprogram_signature(self, name, return_type, formal_names,
+                                 formal_types, declaration):
+        """Add a subprogram signature to the output.
 
         If `return_type` is None, the subprogram is considered as a procedure.
         It is a function otherwise.
-        '''
+        """
         # Add subprogram return type, prepend subprogram linkage if needed.
         if declaration:
             self.write('extern ')
@@ -213,8 +210,6 @@ class Language(language.Language):
         self.write('{} '.format(op))
         self.handle_composite_expr(right)
 
-
-
     def format_comment(self, string):
         return '// {}'.format(string)
 
@@ -222,12 +217,11 @@ class Language(language.Language):
         with self.indent(self.INDENT):
             for name, type_ in program.local_vars:
                 self.handle(type_)
-                self.write(' {};'.format(name));
+                self.write(' {};'.format(name))
                 self.newline()
 
             for stmt in program.statements:
                 self.handle(stmt)
-
 
     #
     # Serialization for types
@@ -259,7 +253,6 @@ class Language(language.Language):
         self.handle(member_decl.type)
         self.write(' {};'.format(member_decl.name))
         self.newline()
-
 
     #
     # Serialization for expressions
@@ -300,7 +293,6 @@ class Language(language.Language):
                     self.newline()
         self.write(')')
 
-
     #
     # Serialization for topology expressions
     #
@@ -328,7 +320,6 @@ class Language(language.Language):
         if is_composite:
             self.write(')')
 
-
     #
     # Serialization for statements
     #
@@ -337,29 +328,38 @@ class Language(language.Language):
         self.write('if (')
         with self.indent():
             self.handle(stmt.condition)
-        self.write(')'); self.newline()
+        self.write(')')
+        self.newline()
 
-        self.write('{'); self.newline()
+        self.write('{')
+        self.newline()
         with self.indent(self.INDENT):
             self.handle(stmt.true_stmt)
-        self.write('}'); self.newline()
+        self.write('}')
+        self.newline()
 
-        self.write('else'); self.newline()
-        self.write('{'); self.newline()
+        self.write('else')
+        self.newline()
+        self.write('{')
+        self.newline()
         with self.indent(self.INDENT):
             self.handle(stmt.false_stmt)
-        self.write('}'); self.newline()
+        self.write('}')
+        self.newline()
 
     def handle_while_stmt(self, stmt):
         self.write('while (')
         with self.indent():
             self.handle(stmt.condition)
-        self.write(')'); self.newline()
+        self.write(')')
+        self.newline()
 
-        self.write('{'); self.newline()
+        self.write('{')
+        self.newline()
         with self.indent(self.INDENT):
             self.handle(stmt.stmt)
-        self.write('}'); self.newline()
+        self.write('}')
+        self.newline()
 
     def handle_return_stmt(self, stmt):
         self.write('return ')

@@ -25,9 +25,7 @@ BUILTIN_TYPES = {
 
 
 def conv_name(name):
-    '''
-    Convert a name to an Ada-style casing.
-    '''
+    """Convert a name to an Ada-style casing."""
     result = []
     up_next = True
     for c in name:
@@ -71,7 +69,6 @@ class Language(language.Language):
     NAME = 'Ada'
     INDENT = 3
 
-
     #
     # Filename generators
     #
@@ -81,7 +78,6 @@ class Language(language.Language):
 
     def get_implementation_filename(self, module_name):
         return '{}.adb'.format(module_name)
-
 
     #
     # Serialization entry points
@@ -107,7 +103,8 @@ class Language(language.Language):
                 self.add_subprogram_signature(
                     procedure_name, None, [], [], False
                 )
-                self.write('begin'); self.newline()
+                self.write('begin')
+                self.newline()
                 with self.indent(self.INDENT):
                     call_to_run = ast.Call(
                         ast.VariableUsage(self.ENTRY_POINT_NAME),
@@ -125,7 +122,8 @@ class Language(language.Language):
                             ast.LitteralBoolean(truth_vector[-1])
                         )]
                     ))
-                    self.write(';'); self.newline()
+                    self.write(';')
+                    self.newline()
                 self.write('end {};'.format(conv_name(procedure_name)))
                 self.newline()
 
@@ -157,7 +155,6 @@ class Language(language.Language):
                         conv_name(procedure_name), procedure_name
                     ))
                     self.newline()
-
 
     def serialize_specification_types(
         self, stream, types
@@ -202,7 +199,6 @@ class Language(language.Language):
             )
             self.handle(program)
 
-
     #
     # Various helpers
     #
@@ -213,16 +209,13 @@ class Language(language.Language):
         )
         self.newline()
 
-    def add_subprogram_signature(self,
-        name, return_type, formal_names, formal_types,
-        declaration
-    ):
-        '''
-        Add a subprogram signature to the output.
+    def add_subprogram_signature(self, name, return_type, formal_names,
+                                 formal_types, declaration):
+        """Add a subprogram signature to the output.
 
         If `return_type` is None, the subprogram is considered as a procedure.
         It is a function otherwise.
-        '''
+        """
         # Add the type of subprogram and its name.
         self.write('{} {}'.format(
             'function' if return_type else 'procedure',
@@ -264,25 +257,24 @@ class Language(language.Language):
         self.write('{} '.format(op))
         self.handle_composite_expr(right)
 
-
-
     def format_comment(self, string):
         return '-- {}'.format(string)
 
     def handle_program(self, program, declaration=False):
         with self.indent(self.INDENT):
             for name, type_ in program.local_vars:
-                self.write('{} : '.format(conv_name(name)));
+                self.write('{} : '.format(conv_name(name)))
                 self.handle(type_)
                 self.write(';')
                 self.newline()
 
-        self.write('begin'); self.newline()
+        self.write('begin')
+        self.newline()
         with self.indent(self.INDENT):
             for stmt in program.statements:
                 self.handle(stmt)
-        self.write('end;'); self.newline()
-
+        self.write('end;')
+        self.newline()
 
     #
     # Serialization for types
@@ -313,7 +305,6 @@ class Language(language.Language):
         self.handle(member_decl.type)
         self.write(';')
         self.newline()
-
 
     #
     # Serialization for expressions
@@ -356,7 +347,6 @@ class Language(language.Language):
                         self.newline()
             self.write(')')
 
-
     #
     # Serialization for topology expressions
     #
@@ -384,7 +374,6 @@ class Language(language.Language):
         if is_composite:
             self.write(')')
 
-
     #
     # Serialization for statements
     #
@@ -393,26 +382,31 @@ class Language(language.Language):
         self.write('if ')
         with self.indent():
             self.handle(stmt.condition)
-        self.write(' then'); self.newline()
+        self.write(' then')
+        self.newline()
 
         with self.indent(self.INDENT):
             self.handle(stmt.true_stmt)
 
-        self.write('else'); self.newline()
+        self.write('else')
+        self.newline()
         with self.indent(self.INDENT):
             self.handle(stmt.false_stmt)
-        self.write('end if;'); self.newline()
+        self.write('end if;')
+        self.newline()
 
     def handle_while_stmt(self, stmt):
         self.write('while ')
         with self.indent():
             self.handle(stmt.condition)
-        self.write(' loop'); self.newline()
+        self.write(' loop')
+        self.newline()
 
         with self.indent(self.INDENT):
             self.handle(stmt.stmt)
 
-        self.write('end loop;'); self.newline()
+        self.write('end loop;')
+        self.newline()
 
     def handle_return_stmt(self, stmt):
         self.write('return ')

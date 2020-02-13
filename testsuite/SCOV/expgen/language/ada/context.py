@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 
-'''
-Ada-specific contexts
-'''
+"""Ada-specific contexts."""
 
-import SCOV.expgen.ast      as ast
-import SCOV.expgen.context  as context
+import SCOV.expgen.ast as ast
+import SCOV.expgen.context as context
 
 
 class Case(context.LanguageSpecific):
-    '''
+    """
     The decision expression is used as the controlling expression of a case
     statement.
-    '''
-    LANGUAGE    = 'Ada'
+    """
+    LANGUAGE = 'Ada'
     TAG_CONTEXT = ast.TagTypes.EXPRESSION
-    FORMAT      = [
+    FORMAT = [
         'case {decision_expr} is',
         '    when True =>',
         '        return True;  -- # on-true',
@@ -24,13 +22,12 @@ class Case(context.LanguageSpecific):
         'end case;',
     ]
 
+
 class DeclarationInitializer(context.LanguageSpecific):
-    '''
-    The decision expression is used as a local boolean initializer.
-    '''
-    LANGUAGE    = 'Ada'
+    """The decision expression is used as a local boolean initializer."""
+    LANGUAGE = 'Ada'
     TAG_CONTEXT = ast.TagTypes.EXPRESSION
-    FORMAT      = [
+    FORMAT = [
         'declare',
         '    E : Boolean := {decision_expr};'
         'begin',
@@ -38,13 +35,12 @@ class DeclarationInitializer(context.LanguageSpecific):
         'end;',
     ]
 
+
 class Discriminant(context.LanguageSpecific):
-    '''
-    The decision expression is used as a record discriminant.
-    '''
-    LANGUAGE    = 'Ada'
+    """The decision expression is used as a record discriminant."""
+    LANGUAGE = 'Ada'
     TAG_CONTEXT = ast.TagTypes.EXPRESSION
-    FORMAT      = [
+    FORMAT = [
         'declare',
         '    type My_Type (Value : Boolean) is null record;',
         '    R : My_Type (Value => {decision_expr});',
@@ -53,14 +49,15 @@ class Discriminant(context.LanguageSpecific):
         'end;',
     ]
 
+
 class ExitWhen(context.LanguageSpecific):
-    '''
+    """
     The decision expression is used as the condition for an EXIT WHEN
     statement.
-    '''
-    LANGUAGE    = 'Ada'
+    """
+    LANGUAGE = 'Ada'
     TAG_CONTEXT = ast.TagTypes.DECISION
-    FORMAT      = [
+    FORMAT = [
         'loop',
         '    exit when {decision_expr};',
         '    return False;      -- # on-false',
@@ -68,14 +65,15 @@ class ExitWhen(context.LanguageSpecific):
         'return True;           -- # on-true',
     ]
 
+
 class For(context.LanguageSpecific):
-    '''
+    """
     The decision expression is used as the controlling expression of a for
     statement.
-    '''
-    LANGUAGE    = 'Ada'
+    """
+    LANGUAGE = 'Ada'
     TAG_CONTEXT = ast.TagTypes.EXPRESSION
-    FORMAT      = [
+    FORMAT = [
         'declare',
         '    E : Boolean := False;',
         'begin',
@@ -86,13 +84,12 @@ class For(context.LanguageSpecific):
         'end;',
     ]
 
+
 class Index(context.LanguageSpecific):
-    '''
-    The decision expression is used as an array subscript.
-    '''
-    LANGUAGE    = 'Ada'
+    """The decision expression is used as an array subscript."""
+    LANGUAGE = 'Ada'
     TAG_CONTEXT = ast.TagTypes.EXPRESSION
-    FORMAT      = [
+    FORMAT = [
         'declare',
         '    Values : array (Boolean) of Boolean := (',
         '        False => False,',

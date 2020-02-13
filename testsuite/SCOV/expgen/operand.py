@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
 
-
-'''
-Expose operand kinds suitable for condition expressions.
-'''
-
+"""Expose operand kinds suitable for condition expressions."""
 
 import SCOV.expgen.ast as ast
 
 
 class Operand(object):
-    '''
+    """
     A kind of operand for conditions: a variable, a comparison with an integer,
     a function call, etc.
-    '''
+    """
 
     def __init__(self, used_types, param_type, actuals):
         # Set for all the types used by the operand kind. They will be used by
@@ -27,14 +23,12 @@ class Operand(object):
         self.actuals = actuals
 
     def get_operand(self, param):
-        '''
-        Turn some parameter name into an abstract tree for the operand.
-        '''
+        """Turn some parameter name into an abstract tree for the operand."""
         raise NotImplementedError()
 
 
 class LanguageSpecific(Operand):
-    '''
+    """
     Language-specific operand, shortcuts the AST with text substitution.
 
     The name of the language the operand is specific to must be set in the
@@ -49,14 +43,14 @@ class LanguageSpecific(Operand):
     `ACTUALS` attributes.
 
     TODO: document more deeply those attributes.
-    '''
+    """
 
-    LANGUAGE    = None
+    LANGUAGE = None
 
-    FORMAT      = None
-    USED_TYPES  = None
-    PARAM_TYPE  = None
-    ACTUALS     = None
+    FORMAT = None
+    USED_TYPES = None
+    PARAM_TYPE = None
+    ACTUALS = None
 
     def __init__(self):
         self.language = self.LANGUAGE
@@ -88,7 +82,6 @@ class LanguageSpecific(Operand):
     def get_operand(self, param):
         return ast.XOperand(self.LANGUAGE, self.FORMAT, param)
 
-
     # Mapping: type_tuple id -> ast.XType
     # This is global since a type can be used in more than one operand kind,
     # and each operand kind that contain this type can appear in the same
@@ -106,11 +99,8 @@ class LanguageSpecific(Operand):
         return xtype
 
 
-
 class Variable(Operand):
-    '''
-    The operand is just the usage of a boolean argument.
-    '''
+    """The operand is just the usage of a boolean argument."""
 
     ACTUALS = {
         False: ast.LitteralBoolean(False),
@@ -127,10 +117,9 @@ class Variable(Operand):
     def get_operand(self, param):
         return ast.VariableUsage(param)
 
+
 class IntegerComparison(Operand):
-    '''
-    Operand that compares the parameter with a given integer.
-    '''
+    """Operand that compares the parameter with a given integer."""
 
     # Provide a factory for the actuals for each relationnal operator.
     # Each factory takes the compared integer and returns (a false actual, a
@@ -156,8 +145,8 @@ class IntegerComparison(Operand):
             (ast.IntegerType, ),
             ast.IntegerType,
             {
-                False:  ast.LitteralInteger(actual_false),
-                True:   ast.LitteralInteger(actual_true),
+                False: ast.LitteralInteger(actual_false),
+                True: ast.LitteralInteger(actual_true),
             }
         )
         self.operator = operator
