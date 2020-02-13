@@ -650,7 +650,7 @@ package body Instrument.Tree is
       --  instantiation with TE as the actual type.
 
       function Clone (N : Ada_Node'Class) return Node_Rewriting_Handle is
-        (Clone (Handle (N)));
+        (if N.Is_Null then No_Node_Rewriting_Handle else Clone (Handle (N)));
 
       function Detach (N : Ada_Node'Class) return Node_Rewriting_Handle;
       --  Replace N with No_Node_Rewriting_Handle, and return its previous
@@ -1391,6 +1391,8 @@ package body Instrument.Tree is
          N_Spec : Subp_Spec)
       is
          Is_Expr_Function : constant Boolean := N.Kind = Ada_Expr_Function;
+         Ctrl_Type        : constant Base_Type_Decl :=
+           N_Spec.P_Primitive_Subp_Tagged_Type;
 
          N_Expr : constant Expr :=
            (if Is_Expr_Function
@@ -1487,7 +1489,7 @@ package body Instrument.Tree is
             else Make (Ada_Ada_Node_List));
 
          Gen_Subp_Param_Specs : constant Node_Rewriting_Handle :=
-           (if Is_Expr_Function
+           (if Is_Expr_Function or else N_Spec.F_Subp_Params.Is_Null
             then No_Node_Rewriting_Handle
             else Make (Ada_Param_Spec_List));
 
@@ -1511,9 +1513,10 @@ package body Instrument.Tree is
                 Make_Defining_Name (Gen_Subp_Name),
 
               Subp_Spec_F_Subp_Params  =>
-                Create_Params
-                  (RC,
-                   Params_F_Params => Gen_Subp_Param_Specs),
+                (if Gen_Subp_Param_Specs = No_Node_Rewriting_Handle
+                 then No_Node_Rewriting_Handle
+                 else Create_Params
+                        (RC, Params_F_Params => Gen_Subp_Param_Specs)),
 
               Subp_Spec_F_Subp_Returns => No_Node_Rewriting_Handle);
 
@@ -1555,6 +1558,12 @@ package body Instrument.Tree is
          --  Original position of the degenerate subprogram in the rewritten
          --  tree.
 
+         Append_List : constant Node_Rewriting_Handle :=
+            (if Saved_Insertion_Info.RH_Private_List
+                  /= No_Node_Rewriting_Handle
+             then Saved_Insertion_Info.RH_Private_List
+             else Saved_Insertion_Info.RH_List);
+
          ------------
          -- Insert --
          ------------
@@ -1582,8 +1591,8 @@ package body Instrument.Tree is
          --  type, because it must be either abstract or null.
 
          if not Is_Expr_Function
-           and then not N_Spec.P_Primitive_Subp_Tagged_Type.Is_Null
-           and then N_Spec.P_Primitive_Subp_Tagged_Type.P_Is_Interface_Type
+           and then not Ctrl_Type.Is_Null
+           and then Ctrl_Type.P_Is_Interface_Type
          then
             return;
          end if;
@@ -1606,6 +1615,23 @@ package body Instrument.Tree is
                   P_Type : constant Type_Expr := P_Spec.F_Type_Expr;
                   Formal_Type_Name : constant Wide_Wide_String :=
                     "Par" & To_Wide_Wide_String (Img (J));
+
+                  Is_Anonymous_Access : constant Boolean :=
+                    P_Type.Kind = Ada_Anonymous_Type;
+
+                  Formal_Subtype_Indication : constant Subtype_Indication :=
+                    (if Is_Anonymous_Access
+                     then P_Type.As_Anonymous_Type
+                         .F_Type_Decl
+                         .F_Type_Def.As_Type_Access_Def
+                         .F_Subtype_Indication
+                     else P_Type.As_Subtype_Indication);
+
+                  Subp_Param_Type : Node_Rewriting_Handle :=
+                    Make_Identifier (Formal_Type_Name);
+                  --  In the case of an anonymous access parameter, this is
+                  --  subsequently wrapped in an access definition.
+
                begin
                   if Is_Expr_Function then
                      declare
@@ -1626,9 +1652,60 @@ package body Instrument.Tree is
 
                      Append_Child
                        (Gen_Formals,
-                        Make_Formal_Type (Formal_Type_Name, P_Type));
+                        Make_Formal_Type
+                          (Formal_Type_Name,
+                           Formal_Subtype_Indication.As_Type_Expr));
 
                      --  Add formal parameter to generic subprogram spec
+
+                     if Is_Anonymous_Access then
+                        declare
+                           Anon_Type_Def : constant Type_Access_Def :=
+                             P_Type.As_Anonymous_Type
+                               .F_Type_Decl
+                               .F_Type_Def.As_Type_Access_Def;
+
+                           --  Determine if this is a controlling access
+                           --  parameter, in which case the corresponding
+                           --  formal in the generic subprogram must be
+                           --  explicitly null excluding.
+
+                           Formal_Subt_Decl : constant Base_Type_Decl :=
+                             Formal_Subtype_Indication.P_Designated_Type_Decl;
+                           Is_Controlling : constant Boolean :=
+                             (if Ctrl_Type.Is_Null
+                              then False
+                              else
+                                Formal_Subt_Decl = Ctrl_Type
+                                  or else
+                                Formal_Subt_Decl = Ctrl_Type.P_Full_View);
+
+                        begin
+                           Subp_Param_Type :=
+                             Create_Anonymous_Type_Decl
+                               (RC,
+                                Base_Type_Decl_F_Name                =>
+                                  No_Node_Rewriting_Handle,
+                                Type_Decl_F_Discriminants            =>
+                                  No_Node_Rewriting_Handle,
+                                Type_Decl_F_Type_Def                 =>
+                                  Create_Type_Access_Def
+                                    (RC,
+                                     Access_Def_F_Has_Not_Null            =>
+                                       (if Is_Controlling
+                                        then Make (Ada_Not_Null_Present)
+                                        else Clone
+                                               (Anon_Type_Def.F_Has_Not_Null)),
+                                     Type_Access_Def_F_Has_All            =>
+                                       No_Node_Rewriting_Handle,
+                                     Type_Access_Def_F_Has_Constant       =>
+                                       Clone (Anon_Type_Def.F_Has_Constant),
+                                     Type_Access_Def_F_Subtype_Indication =>
+                                       Subp_Param_Type),
+                                Type_Decl_F_Aspects                  =>
+                                  No_Node_Rewriting_Handle);
+                        end;
+                     end if;
 
                      Append_Child
                        (Gen_Subp_Param_Specs,
@@ -1641,7 +1718,7 @@ package body Instrument.Tree is
                            Param_Spec_F_Mode         =>
                              Clone (P_Spec.F_Mode),
                            Param_Spec_F_Type_Expr    =>
-                             Make_Identifier (Formal_Type_Name),
+                             Subp_Param_Type,
                            Param_Spec_F_Default_Expr =>
                              No_Node_Rewriting_Handle,
                            Param_Spec_F_Aspects      =>
@@ -1649,7 +1726,8 @@ package body Instrument.Tree is
 
                      --  Add actual type to instantiation
 
-                     Append_Child (Inst_Params, Clone (P_Type));
+                     Append_Child
+                       (Inst_Params, Clone (Formal_Subtype_Indication));
                   end if;
                end;
             end loop;
@@ -1749,7 +1827,7 @@ package body Instrument.Tree is
          if Is_Expr_Function then
             Insert (Wrapper_Pkg);
          else
-            Append_Child (Saved_Insertion_Info.RH_List, Wrapper_Pkg);
+            Append_Child (Append_List, Wrapper_Pkg);
          end if;
 
          if Is_Expr_Function then
@@ -1877,7 +1955,7 @@ package body Instrument.Tree is
 
             begin
                Append_Child (Wrapper_Pkg_Decls, Instance);
-               Append_Child (Saved_Insertion_Info.RH_List, Renaming_Decl);
+               Append_Child (Append_List, Renaming_Decl);
 
                --  Unparse the generic now, for later insertion in the pure
                --  buffers unit (at which time the rewriting context will no
