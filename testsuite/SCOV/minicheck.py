@@ -18,7 +18,7 @@ from SUITE.tutils import (cmdrun, exepath_to, gprbuild, srctracename_for,
                           thistest, tracename_for, xcov, xrun)
 
 
-COV_RE = re.compile('^ *(\d+) (.):.*$')
+COV_RE = re.compile(r'^ *(\d+) (.):.*$')
 
 
 def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
