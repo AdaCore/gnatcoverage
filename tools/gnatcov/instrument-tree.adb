@@ -327,7 +327,8 @@ package body Instrument.Tree is
       Preelab                    : Boolean       := False;
       D                          : Dominant_Info := No_Dominant;
       P                          : Ada_Node      := No_Ada_Node;
-      Is_Select_Stmt_Alternative : Boolean       := False)
+      Is_Select_Stmt_Alternative : Boolean       := False;
+      Priv_Part                  : Private_Part  := No_Private_Part)
       return Dominant_Info
      with Post => UIC.Current_Insertion_Info = UIC'Old.Current_Insertion_Info;
    --  Process L, a list of statements or declarations dominated by D. If P is
@@ -339,6 +340,8 @@ package body Instrument.Tree is
    --  triggering_alternative: the witness for the first statement must
    --  be inserted after it, not before as we do usually. Returns dominant
    --  information corresponding to the last node with SCO in L.
+   --  If L is the list of declarations for a public part, Priv_Part is the
+   --  corresponding private part (if any).
    --
    --  The postcondition ensures that the Current_Insertion_Info has been
    --  correctly reset to its value upon entry.
@@ -554,7 +557,9 @@ package body Instrument.Tree is
       Preelab                    : Boolean       := False;
       D                          : Dominant_Info := No_Dominant;
       P                          : Ada_Node      := No_Ada_Node;
-      Is_Select_Stmt_Alternative : Boolean       := False) return Dominant_Info
+      Is_Select_Stmt_Alternative : Boolean       := False;
+      Priv_Part                  : Private_Part  := No_Private_Part)
+     return Dominant_Info
    is
       Current_Dominant : Dominant_Info := D;
       --  Dominance information for the current basic block
@@ -1535,6 +1540,7 @@ package body Instrument.Tree is
 
          Gen_Body_Insertion_Info : aliased Insertion_Info :=
            (RH_List               => Gen_Body_Stmt_List,
+            RH_Private_List       => No_Node_Rewriting_Handle,
             Index                 => 1,
             Rewriting_Offset      => 0,
             Witness_Use_Statement => True,
@@ -2802,6 +2808,11 @@ package body Instrument.Tree is
         and then not Preelab
       then
          Current_Insertion_Info.RH_List := Handle (L);
+         if not Priv_Part.Is_Null then
+            Current_Insertion_Info.RH_Private_List :=
+              Handle (Priv_Part.F_Decls);
+         end if;
+
          Current_Insertion_Info.Witness_Use_Statement :=
            L.Kind = Ada_Stmt_List;
       end if;
@@ -2964,7 +2975,8 @@ package body Instrument.Tree is
    is
       Private_Part_Dominant : constant Dominant_Info :=
          Traverse_Declarations_Or_Statements
-           (IC, UIC, N.F_Public_Part.F_Decls, Preelab, D);
+           (IC, UIC, N.F_Public_Part.F_Decls, Preelab, D,
+            Priv_Part => N.F_Private_Part);
    begin
       if not N.F_Private_Part.Is_Null then
 
@@ -3046,7 +3058,8 @@ package body Instrument.Tree is
 
       if not Vis_Decl.Is_Null then
          Dom_Info := Traverse_Declarations_Or_Statements
-           (IC, UIC, L => Vis_Decl.F_Decls, D => Dom_Info);
+           (IC, UIC, L => Vis_Decl.F_Decls, D => Dom_Info,
+            Priv_Part => Priv_Decl);
       end if;
 
       if not Priv_Decl.Is_Null then

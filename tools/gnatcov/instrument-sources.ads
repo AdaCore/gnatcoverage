@@ -161,6 +161,10 @@ private package Instrument.Sources is
       RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
       --  If traversing a list, rewriting handle for the list
 
+      RH_Private_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  If RH_List is the declarations of a public part, and there is
+      --  a corresponding private part, declarations list of the private part.
+
       Index : Natural := 0;
       --  Index of the element in RH_List being traversed
 
