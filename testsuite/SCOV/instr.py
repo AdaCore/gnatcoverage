@@ -1,13 +1,9 @@
-"""
-Helpers to test instrumentation-based source coverage.
-"""
-
-import collections
-import os.path
+"""Helpers to test instrumentation-based source coverage."""
 
 from gnatpython.fileutils import mkdir
 
-from SUITE.tutils import XCOV, exepath_to, xcov
+from SUITE.tutils import xcov
+
 
 def xcov_instrument(gprsw, covlevel, extra_args=[],
                     dump_method='atexit', gpr_obj_dir=None, out=None, err=None,
