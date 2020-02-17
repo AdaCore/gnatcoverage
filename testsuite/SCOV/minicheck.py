@@ -25,7 +25,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
                   separate_coverage=None, extra_args=[],
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
-                  absolute_paths=False, subdirs=None, dump_trigger='atexit',
+                  absolute_paths=False, subdirs=None, dump_trigger=None,
                   check_gprbuild_output=False, trace_mode=None,
                   gprsw_for_coverage=None, scos_for_run=True):
     """
@@ -70,8 +70,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :param bool absolute_paths: If true, use absolute paths in the result.
     :param None|str subdirs: If passed, name of the subdirectory to pass to
         gprbuild and gnatcov.
-    :param str dump_trigger: Trigger to dump coverage buffers (--dump-trigger
-        argument).
+    :param None|str dump_trigger: Trigger to dump coverage buffers
+        (--dump-trigger argument). If left to None,
+        use SCOV.instr.default_dump_trigger.
     :param bool check_gprbuild_output: If true, check that gprbuild's output is
         empty.
     :param None|str trace_mode: If None, use the testsuite's trace mode.
