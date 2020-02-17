@@ -42,19 +42,24 @@ package Instrument is
 
    subtype Auto_Dump_Trigger is Any_Dump_Trigger range At_Exit .. Main_End;
 
+   type Any_Dump_Channel is (Binary_File, Base64_Standard_Output);
+   --  Channel where to dump coverage buffers. See the user documentation for
+   --  the --dump-channel command-line option.
+
    type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012);
 
    procedure Instrument_Units_Of_Interest
      (Dump_Trigger         : Any_Dump_Trigger;
+      Dump_Channel         : Any_Dump_Channel;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs for each
    --  library units to SID files (one per library unit).
    --
-   --  Depending on Dump_Trigger, instrument mains to schedule a call to the
-   --  dump procedure for the list of coverage buffers in all mains in the
-   --  project.
+   --  Depending on Dump_Trigger and Dump_Channel, instrument mains to schedule
+   --  a call to the dump procedure for the list of coverage buffers in all
+   --  mains in the project.
    --
    --  Language_Version restricts what source constructs the instrumenter is
    --  allowed to use. For instance, if Ada_2005 (or a lower version) is

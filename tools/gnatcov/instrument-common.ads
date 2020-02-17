@@ -291,6 +291,7 @@ package Instrument.Common is
       --  Libadalang context to load all units to rewrite
 
       Dump_Trigger     : Any_Dump_Trigger;
+      Dump_Channel     : Any_Dump_Channel;
       Language_Version : Any_Language_Version;
       --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
 
@@ -311,6 +312,7 @@ package Instrument.Common is
    function Create_Context
      (Context              : Libadalang.Analysis.Analysis_Context;
       Dump_Trigger         : Any_Dump_Trigger;
+      Dump_Channel         : Any_Dump_Channel;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project

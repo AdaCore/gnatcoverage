@@ -104,6 +104,7 @@ package Command_Line is
       Opt_Save_Checkpoint,
       Opt_Report_Title,
       Opt_Dump_Trigger,
+      Opt_Dump_Channel,
       Opt_Ada);
    --  Set of string options we support. More complete descriptions below.
 
@@ -603,13 +604,34 @@ package Command_Line is
                          & "Except for ""manual"", these methods inject code"
                          & " in all mains in the project closure to dump"
                          & " coverage buffers for all units of interest in the"
-                         & " main closure. This is done calling the"
-                         & " GNATcov_RTS.Traces.Output.Write_Trace_File"
-                         & " subprogram.",
+                         & " main closure. The --dump-channel option"
+                         & " determines the dump procedure.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
          Internal     => Instrument_Experimental,
          Pattern      => "manual|atexit|main-end"),
+      Opt_Dump_Channel => Create
+        (Long_Name    => "--dump-channel",
+         Help         => "Select a channel to dump coverage buffers in the"
+                         & " instrumented program. Note that this option"
+                         & " matters only when --dump-trigger is not"
+                         & " ""manual""."
+                         & ASCII.LF & ASCII.LF
+                         & """bin-file"" (the default) uses the"
+                         & " GNATcov_RTS.Traces.Output.Write_Trace_File"
+                         & " subprogram, from the gnatcov_rts_full.gpr project"
+                         & " in order to create a binary trace file. This is"
+                         & " the preferred channel for native programs."
+                         & ASCII.LF & ASCII.LF
+                         & """base64-stdout"" uses the GNATcov_RTS.Traces"
+                         & ".Generic_Output.Write_Trace_File_Base64 procedure"
+                         & " to dump a base64 trace on the standard output"
+                         & " using Ada.Text_IO. This is the preferred channel"
+                         & " for non-native programs.",
+         Commands     => (Cmd_Instrument => True, others => False),
+         At_Most_Once => False,
+         Internal     => Instrument_Experimental,
+         Pattern      => "bin-file|base64-stdout"),
 
       Opt_Ada => Create
         (Long_Name    => "--ada",

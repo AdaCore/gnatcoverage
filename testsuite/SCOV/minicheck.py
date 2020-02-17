@@ -12,7 +12,8 @@ import glob
 import os.path
 import re
 
-from SCOV.instr import xcov_instrument
+from SCOV.instr import (default_dump_channel, xcov_convert_base64,
+                        xcov_instrument)
 from SUITE.cutils import contents_of, indent
 from SUITE.tutils import (cmdrun, exepath_to, gprbuild, srctracename_for,
                           thistest, tracename_for, xcov, xrun)
@@ -26,8 +27,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   separate_coverage=None, extra_args=[],
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
                   absolute_paths=False, subdirs=None, dump_trigger=None,
-                  check_gprbuild_output=False, trace_mode=None,
-                  gprsw_for_coverage=None, scos_for_run=True):
+                  dump_channel=None, check_gprbuild_output=False,
+                  trace_mode=None, gprsw_for_coverage=None, scos_for_run=True):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -73,6 +74,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :param None|str dump_trigger: Trigger to dump coverage buffers
         (--dump-trigger argument). If left to None,
         use SCOV.instr.default_dump_trigger.
+    :param None|str dump_channel: Channel to dump coverage buffers
+        (--dump-channel argument). If left to None,
+        use SCOV.instr.default_dump_channel.
     :param bool check_gprbuild_output: If true, check that gprbuild's output is
         empty.
     :param None|str trace_mode: If None, use the testsuite's trace mode.
@@ -157,17 +161,32 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         xcov_args.extend(cov_or_instr_args)
 
     elif trace_mode == 'src':
+        dump_channel = dump_channel or default_dump_channel()
+
         # Instrument the project and build the result
         xcov_instrument(gprsw, covlevel, extra_args=cov_or_instr_args,
                         gpr_obj_dir=gpr_obj_dir, dump_trigger=dump_trigger,
-                        out='instrument.log')
+                        dump_channel=dump_channel, out='instrument.log')
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
 
-        # Then execute each main
+        # Then execute each main and collect trace files
+        trace_files = []
         for m in mains:
-            cmdrun([exepath(m)])
-        trace_files = [abspath(srctracename_for(m)) for m in mains]
+            out_file = '{}_output.txt'.format(m)
+            trace_file = abspath(srctracename_for(m))
+            cmdrun([exepath(m)], out=out_file)
+            trace_files.append(trace_file)
+
+            # Depending on the dump channel, we also may have to create the
+            # trace file.
+            if dump_channel == 'bin-file':
+                pass
+            elif dump_channel == 'base64-stdout':
+                xcov_convert_base64(out_file, trace_file)
+            else:
+                raise ValueError('Invalid dump channel: {}'
+                                 .format(dump_channel))
 
         xcov_args.extend(extra_args)
 

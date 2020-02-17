@@ -430,6 +430,7 @@ package body Instrument is
 
    procedure Instrument_Units_Of_Interest
      (Dump_Trigger         : Any_Dump_Trigger;
+      Dump_Channel         : Any_Dump_Channel;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
@@ -463,7 +464,8 @@ package body Instrument is
       --  Then create the instrumenter's own context, based on Libadalang's
 
       IC                : Inst_Context := Create_Context
-         (Context, Dump_Trigger, Language_Version, Ignored_Source_Files);
+         (Context, Dump_Trigger, Dump_Channel, Language_Version,
+          Ignored_Source_Files);
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 

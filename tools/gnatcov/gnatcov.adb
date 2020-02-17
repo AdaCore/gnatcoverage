@@ -1392,9 +1392,13 @@ begin
             Matcher     : aliased GNAT.Regexp.Regexp;
             Has_Matcher : Boolean;
 
-            Dump_Opt     : String_Option renames
+            Dump_Trigger_Opt : String_Option renames
                Args.String_Args (Opt_Dump_Trigger);
-            Dump_Trigger : Any_Dump_Trigger := Manual;
+            Dump_Trigger     : Any_Dump_Trigger := Manual;
+
+            Dump_Channel_Opt : String_Option renames
+               Args.String_Args (Opt_Dump_Channel);
+            Dump_Channel     : Any_Dump_Channel := Binary_File;
 
             Language_Version_Opt : String_Option renames
                Args.String_Args (Opt_Ada);
@@ -1402,9 +1406,9 @@ begin
          begin
             Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
 
-            if Dump_Opt.Present then
+            if Dump_Trigger_Opt.Present then
                declare
-                  Value : constant String := +Dump_Opt.Value;
+                  Value : constant String := +Dump_Trigger_Opt.Value;
                begin
                   if Value = "manual" then
                      Dump_Trigger := Manual;
@@ -1416,6 +1420,33 @@ begin
                      Fatal_Error ("Bad buffers dump trigger: " & Value);
                   end if;
                end;
+            end if;
+
+            if Dump_Channel_Opt.Present then
+               declare
+                  Value : constant String := +Dump_Channel_Opt.Value;
+               begin
+                  if Value = "bin-file" then
+                     Dump_Channel := Binary_File;
+                  elsif Value = "base64-stdout" then
+                     Dump_Channel := Base64_Standard_Output;
+                  else
+                     Fatal_Error ("Bad buffers dump channel: " & Value);
+                  end if;
+               end;
+            end if;
+
+            --  Reject invalid combinations of --dump-trigger and
+            --  --dump-channel.
+
+            if Dump_Trigger = At_Exit
+               and then Dump_Channel = Base64_Standard_Output
+            then
+               --  When atexit handlers are triggered, the runtime finalized
+               --  Ada.Text_IO, so Standard_Output is closed.
+
+               Fatal_Error ("--dump-trigger=atexit is not compatible with"
+                            & " --dump-channel=base64-stdout");
             end if;
 
             if Language_Version_Opt.Present then
@@ -1436,6 +1467,7 @@ begin
 
             Instrument.Instrument_Units_Of_Interest
               (Dump_Trigger         => Dump_Trigger,
+               Dump_Channel         => Dump_Channel,
                Language_Version     => Language_Version,
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null));

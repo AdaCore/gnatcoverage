@@ -337,10 +337,17 @@ package body Instrument.Sources is
 
       Output_Unit := Sys_Prefix;
       Output_Unit.Append (To_Unbounded_String ("Traces"));
-      Output_Unit.Append (To_Unbounded_String ("Output"));
 
-      Output_Proc := Output_Unit;
-      Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
+      case IC.Dump_Channel is
+      when Binary_File =>
+         Output_Unit.Append (To_Unbounded_String ("Output"));
+         Output_Proc := Output_Unit;
+         Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
+      when Base64_Standard_Output =>
+         Output_Unit.Append (To_Unbounded_String ("Generic_Output"));
+         Output_Proc := Output_Unit;
+         Output_Proc.Append (To_Unbounded_String ("Write_Trace_File_Base64"));
+      end case;
 
       declare
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
@@ -421,9 +428,23 @@ package body Instrument.Sources is
             end;
          end loop;
 
-         File.Put_Line ("         Filename => "
-                        & To_Ada (Output_Unit) & ".Default_Trace_Filename"
-                        & ");");
+         case IC.Dump_Channel is
+         when Binary_File =>
+            File.Put ("         Filename => "
+                      & To_Ada (Output_Unit) & ".Default_Trace_Filename");
+
+         when Base64_Standard_Output =>
+
+            --  Configurations using this channel generally run on embedded
+            --  targets and have a small runtime, so our best guess for the
+            --  program name is the name of the main, and there is no way to
+            --  get the current execution time.
+
+            File.Put_Line
+              ("         Program_Name => """ & To_Ada (Main) & """,");
+            File.Put ("         Exec_Date => (others => ASCII.NUL)");
+         end case;
+         File.Put_Line (");");
 
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;
