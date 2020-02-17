@@ -319,9 +319,9 @@ package body Instrument.Sources is
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
 
-      Dump_Method : constant Auto_Dump_Method := IC.Dump_Method;
-      --  Shortcut to avoid repeatedly restricting the dump method to the
-      --  Auto_Dump_Method subtype.
+      Dump_Trigger : constant Auto_Dump_Trigger := IC.Dump_Trigger;
+      --  Shortcut to avoid repeatedly restricting the dump trigger to the
+      --  Auto_Dump_Trigger subtype.
 
    --  Start of processing for Emit_Dump_Helper_Unit
 
@@ -362,7 +362,7 @@ package body Instrument.Sources is
          File.Put_Line ("   pragma Export (C, " & Dump_Procedure & ");");
          File.New_Line;
 
-         case Dump_Method is
+         case Dump_Trigger is
             when At_Exit =>
                File.Put_Line
                  ("procedure "
@@ -385,7 +385,7 @@ package body Instrument.Sources is
             Put_With (Buffer_Unit);
          end loop;
 
-         case Dump_Method is
+         case Dump_Trigger is
             when At_Exit  =>
                File.Put_Line ("with Interfaces.C;");
             when Main_End =>
@@ -428,9 +428,9 @@ package body Instrument.Sources is
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;
 
-         --  Emit method-specific procedures
+         --  Emit trigger-specific procedures
 
-         case Dump_Method is
+         case Dump_Trigger is
             when At_Exit =>
 
                --  Emit a procedure to schedule a trace dump with atexit
@@ -584,10 +584,10 @@ package body Instrument.Sources is
          Append_Child (New_Stmt_List, Nested_Block);
       end;
 
-      --  Depending on the chosen coverage buffers dump method, insert the
+      --  Depending on the chosen coverage buffers dump trigger, insert the
       --  appropriate code.
 
-      case Auto_Dump_Method (IC.Dump_Method) is
+      case Auto_Dump_Trigger (IC.Dump_Trigger) is
 
       when At_Exit =>
 
@@ -899,7 +899,7 @@ package body Instrument.Sources is
 
       --  Insert automatic buffer dump calls, if requested
 
-      if IC.Dump_Method /= Manual and then Unit_Info.Is_Main then
+      if IC.Dump_Trigger /= Manual and then Unit_Info.Is_Main then
          Add_Auto_Dump_Buffers
            (IC   => IC,
             Info => Prj_Info,

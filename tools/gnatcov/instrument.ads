@@ -36,26 +36,25 @@ package Instrument is
    No_Bit_Id : constant Any_Bit_Id := -1;
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
 
-   type Any_Dump_Method is (Manual, At_Exit, Main_End);
-   --  Method to use in order to automatically dump coverage buffers in
-   --  instrumented programs. See the user documentation for the --dump-method
-   --  command-line option.
+   type Any_Dump_Trigger is (Manual, At_Exit, Main_End);
+   --  Trigger to dump coverage buffers in instrumented programs. See the user
+   --  documentation for the --dump-trigger command-line option.
 
-   subtype Auto_Dump_Method is Any_Dump_Method range At_Exit .. Main_End;
+   subtype Auto_Dump_Trigger is Any_Dump_Trigger range At_Exit .. Main_End;
 
    type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012);
 
    procedure Instrument_Units_Of_Interest
-     (Dump_Method          : Any_Dump_Method;
+     (Dump_Trigger         : Any_Dump_Trigger;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs for each
    --  library units to SID files (one per library unit).
    --
-   --  Depending on Dump_Method, instrument mains to schedule a call to
-   --  System.GNATcov.Traces.Output.Write_Trace_File for list of coverage
-   --  buffers in all mains in the project.
+   --  Depending on Dump_Trigger, instrument mains to schedule a call to the
+   --  dump procedure for the list of coverage buffers in all mains in the
+   --  project.
    --
    --  Language_Version restricts what source constructs the instrumenter is
    --  allowed to use. For instance, if Ada_2005 (or a lower version) is

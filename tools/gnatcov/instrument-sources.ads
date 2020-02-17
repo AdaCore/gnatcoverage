@@ -219,7 +219,7 @@ private package Instrument.Sources is
    --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
    --  Record instrumentation information in IC.
    --
-   --  If the unit to instrument is also a main and the buffers dumping method
+   --  If the unit to instrument is also a main and the buffers dump trigger
    --  is not manual, instrumented code will also dump the coverage buffers.
 
    procedure Add_Auto_Dump_Buffers
@@ -227,7 +227,7 @@ private package Instrument.Sources is
       Info : in out Project_Info;
       Main : Ada_Qualified_Name;
       URH  : Unit_Rewriting_Handle)
-      with Pre => IC.Dump_Method /= Manual;
+      with Pre => IC.Dump_Trigger /= Manual;
    --  Try to insert in the sources of Main (a main subprogram) a call to dump
    --  the list of coverage buffers for all units of interest in Main's
    --  closure. Return without doing anything if unsuccessful.

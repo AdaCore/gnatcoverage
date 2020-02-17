@@ -39,9 +39,9 @@
 --    of the root project). This unit contains a list of access to buffers for
 --    the coverage buffers of all units of interest.
 --
---  * When the buffers dumping method is not manual (see the --dump-method
+--  * When the buffers dump trigger is not manual (see the --dump-trigger
 --    switch), "gnatcov_rts-buffers-D<SLUG>.ads" for all mains in all projects.
---    This unit contains method-dependent routines to implement the automatic
+--    This unit contains trigger-dependent routines to implement the automatic
 --    dump of coverage buffers.
 --
 --  * An instrumented version of all compilation units of interest. These new
@@ -290,7 +290,7 @@ package Instrument.Common is
       Context : Libadalang.Analysis.Analysis_Context;
       --  Libadalang context to load all units to rewrite
 
-      Dump_Method      : Any_Dump_Method;
+      Dump_Trigger     : Any_Dump_Trigger;
       Language_Version : Any_Language_Version;
       --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
 
@@ -310,7 +310,7 @@ package Instrument.Common is
 
    function Create_Context
      (Context              : Libadalang.Analysis.Analysis_Context;
-      Dump_Method          : Any_Dump_Method;
+      Dump_Trigger         : Any_Dump_Trigger;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
@@ -340,7 +340,7 @@ package Instrument.Common is
       Mains   : in out Main_To_Instrument_Vectors.Vector;
       File    : GNATCOLL.VFS.Virtual_File;
       Project : Project_Type)
-      with Pre => Context.Dump_Method /= Manual;
+      with Pre => Context.Dump_Trigger /= Manual;
    --  Register in Mains a main to be instrumented so that it dumps coverage
    --  buffers. File is the source file for this main, and Project is the
    --  project that owns this main. If File is actually a unit of interest in

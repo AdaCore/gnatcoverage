@@ -1392,9 +1392,9 @@ begin
             Matcher     : aliased GNAT.Regexp.Regexp;
             Has_Matcher : Boolean;
 
-            Dump_Opt    : String_Option renames
-               Args.String_Args (Opt_Dump_Method);
-            Dump_Method : Any_Dump_Method := Manual;
+            Dump_Opt     : String_Option renames
+               Args.String_Args (Opt_Dump_Trigger);
+            Dump_Trigger : Any_Dump_Trigger := Manual;
 
             Language_Version_Opt : String_Option renames
                Args.String_Args (Opt_Ada);
@@ -1407,13 +1407,13 @@ begin
                   Value : constant String := +Dump_Opt.Value;
                begin
                   if Value = "manual" then
-                     Dump_Method := Manual;
+                     Dump_Trigger := Manual;
                   elsif Value = "atexit" then
-                     Dump_Method := At_Exit;
+                     Dump_Trigger := At_Exit;
                   elsif Value = "main-end" then
-                     Dump_Method := Main_End;
+                     Dump_Trigger := Main_End;
                   else
-                     Fatal_Error ("Bad buffers dumping method: " & Value);
+                     Fatal_Error ("Bad buffers dump trigger: " & Value);
                   end if;
                end;
             end if;
@@ -1435,7 +1435,7 @@ begin
             end if;
 
             Instrument.Instrument_Units_Of_Interest
-              (Dump_Method          => Dump_Method,
+              (Dump_Trigger         => Dump_Trigger,
                Language_Version     => Language_Version,
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null));

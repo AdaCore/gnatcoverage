@@ -6,8 +6,8 @@ from SUITE.tutils import xcov
 
 
 def xcov_instrument(gprsw, covlevel, extra_args=[],
-                    dump_method='atexit', gpr_obj_dir=None, out=None, err=None,
-                    register_failure=True):
+                    dump_trigger='atexit', gpr_obj_dir=None, out=None,
+                    err=None, register_failure=True):
     """
     Run "gnatcov instrument" on a project.
 
@@ -15,8 +15,8 @@ def xcov_instrument(gprsw, covlevel, extra_args=[],
     :param None|str covlevel: Coverage level for the instrumentation
         (--level argument). Not passed if None.
     :param list[str] extra_args: Extra arguments to append to the command line.
-    :param str dump_method: Method to dump coverage buffers (--dump-method)
-        argument.
+    :param str dump_trigger: Trigger to dump coverage buffers (--dump-trigger
+        argument).
     :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
         will create build artifacts. If left to None, assume they are produced
         in the current directory.
@@ -30,7 +30,7 @@ def xcov_instrument(gprsw, covlevel, extra_args=[],
         mkdir(gpr_obj_dir)
 
     covlevel_args = [] if covlevel is None else ['--level', covlevel]
-    args = (['instrument'] + covlevel_args + ['--dump-method', dump_method] +
+    args = (['instrument'] + covlevel_args + ['--dump-trigger', dump_trigger] +
             gprsw.as_strings +
             extra_args)
     xcov(args, out=out, err=err, register_failure=register_failure)

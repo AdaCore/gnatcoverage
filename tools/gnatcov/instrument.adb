@@ -429,7 +429,7 @@ package body Instrument is
    ----------------------------------
 
    procedure Instrument_Units_Of_Interest
-     (Dump_Method          : Any_Dump_Method;
+     (Dump_Trigger         : Any_Dump_Trigger;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
@@ -454,7 +454,7 @@ package body Instrument is
 
       Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
       --  List of mains to instrument *which are not units of interest*. Always
-      --  empty when Dump_Method is Manual.
+      --  empty when Dump_Trigger is Manual.
       --
       --  We need a separate list for these as mains which are units of
       --  interest are instrumented to dump coverage buffers at the same time
@@ -463,7 +463,7 @@ package body Instrument is
       --  Then create the instrumenter's own context, based on Libadalang's
 
       IC                : Inst_Context := Create_Context
-         (Context, Dump_Method, Language_Version, Ignored_Source_Files);
+         (Context, Dump_Trigger, Language_Version, Ignored_Source_Files);
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 
@@ -583,7 +583,7 @@ package body Instrument is
       --  If we need to instrument all Ada mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.
 
-      if Dump_Method /= Manual then
+      if Dump_Trigger /= Manual then
          for Main of Project.Enumerate_Ada_Mains loop
             Register_Main_To_Instrument
               (IC, Main_To_Instrument_Vector, Main.File, Main.Project);

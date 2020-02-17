@@ -102,7 +102,7 @@ package Command_Line is
       Opt_Trace_Source,
       Opt_Save_Checkpoint,
       Opt_Report_Title,
-      Opt_Dump_Method,
+      Opt_Dump_Trigger,
       Opt_Ada);
    --  Set of string options we support. More complete descriptions below.
 
@@ -578,31 +578,31 @@ package Command_Line is
          At_Most_Once => False,
          Internal     => False),
 
-      Opt_Dump_Method => Create
-        (Long_Name    => "--dump-method",
-         Help         => "Select a method to dump coverage buffers in the"
+      Opt_Dump_Trigger => Create
+        (Long_Name    => "--dump-trigger",
+         Help         => "Select a trigger to dump coverage buffers in the"
                          & " instrumented program."
                          & ASCII.LF & ASCII.LF
                          & """manual"" (the default) does nothing specific,"
-                         & " leaving the responsibility to call"
-                         & " System.GNATcov.Traces.Output.Write_Trace_File"
+                         & " leaving the responsibility to schedule the dump"
                          & " when appropriate."
                          & ASCII.LF & ASCII.LF
                          & """atexit"" uses the libc's atexit() routine to"
                          & " schedule the dump."
                          & ASCII.LF & ASCII.LF
-                         & """main-end"" instructs to append a call to"
-                         & " Write_Trace_File at the end of the main"
-                         & " subprogram."
+                         & """main-end"" instructs to append a call to the"
+                         & " dump routine at the end of the main subprogram."
                          & ASCII.LF & ASCII.LF
                          & "Except for ""manual"", these methods inject code"
                          & " in all mains in the project closure to dump"
                          & " coverage buffers for all units of interest in the"
-                         & " main closure.",
+                         & " main closure. This is done calling the"
+                         & " GNATcov_RTS.Traces.Output.Write_Trace_File"
+                         & " subprogram.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
          Internal     => Instrument_Experimental,
-         Pattern      => "atexit|main-end"),
+         Pattern      => "manual|atexit|main-end"),
 
       Opt_Ada => Create
         (Long_Name    => "--ada",
