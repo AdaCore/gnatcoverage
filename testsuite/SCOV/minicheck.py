@@ -29,7 +29,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
                   absolute_paths=False, subdirs=None, dump_trigger=None,
                   dump_channel=None, check_gprbuild_output=False,
-                  trace_mode=None, gprsw_for_coverage=None, scos_for_run=True):
+                  trace_mode=None, gprsw_for_coverage=None, scos_for_run=True,
+                  register_failure=True):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -87,6 +88,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         in "gnatcov coverage". If left to None, use "gprsw".
     :param bool scos_for_run: Whether to pass SCOs/project information to
         "gnatcov run".
+    :param bool register_failure: If true and the execution of one of the mains
+        exits with a non-zero status code, stop with a FatalError.
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -156,7 +159,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         if scos_for_run:
             run_args.extend(scos)
         for m in mains:
-            xrun(run_args + [exepath(m)], out='run.log')
+            xrun(run_args + [exepath(m)], out='run.log',
+                 register_failure=register_failure)
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
         xcov_args.extend(cov_or_instr_args)
@@ -176,7 +180,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         for m in mains:
             out_file = '{}_output.txt'.format(m)
             trace_file = abspath(srctracename_for(m))
-            run_cov_program(exepath(m), out=out_file)
+            run_cov_program(exepath(m), out=out_file,
+                            register_failure=register_failure)
             trace_files.append(trace_file)
 
             # Depending on the dump channel, we also may have to create the
@@ -184,7 +189,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
             if dump_channel == 'bin-file':
                 pass
             elif dump_channel == 'base64-stdout':
-                xcov_convert_base64(out_file, trace_file)
+                xcov_convert_base64(out_file, trace_file,
+                                    register_failure=register_failure)
             else:
                 raise ValueError('Invalid dump channel: {}'
                                  .format(dump_channel))
@@ -215,7 +221,7 @@ def build_run_and_coverage(out='coverage.log', err=None, register_failure=True,
     `out`, `err` and `register_failure` are forwarded to `xcov`, other
     arguments are forwarded to `build_and_run`.
     """
-    xcov_args = build_and_run(**kwargs)
+    xcov_args = build_and_run(register_failure=register_failure, **kwargs)
     xcov(xcov_args, out=out, err=err, register_failure=register_failure)
 
 
