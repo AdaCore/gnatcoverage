@@ -12,6 +12,7 @@ project GNATcov_RTS is
      ("gnatcov_rts.ads",
       "gnatcov_rts-buffers.ads",
       "gnatcov_rts-buffers.adb",
+      "gnatcov_rts-buffers-lists.ads",
       "gnatcov_rts-traces.ads",
       "gnatcov_rts-traces.adb",
       "gnatcov_rts-traces-generic_output.ads",
