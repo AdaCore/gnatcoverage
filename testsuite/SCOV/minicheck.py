@@ -15,8 +15,9 @@ import re
 from SCOV.instr import (default_dump_channel, xcov_convert_base64,
                         xcov_instrument)
 from SUITE.cutils import contents_of, indent
-from SUITE.tutils import (cmdrun, exepath_to, gprbuild, srctracename_for,
-                          thistest, tracename_for, xcov, xrun)
+from SUITE.tutils import (exepath_to, gprbuild, run_cov_program,
+                          srctracename_for, thistest, tracename_for, xcov,
+                          xrun)
 
 
 COV_RE = re.compile(r'^ *(\d+) (.):.*$')
@@ -175,7 +176,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         for m in mains:
             out_file = '{}_output.txt'.format(m)
             trace_file = abspath(srctracename_for(m))
-            cmdrun([exepath(m)], out=out_file)
+            run_cov_program(exepath(m), out=out_file)
             trace_files.append(trace_file)
 
             # Depending on the dump channel, we also may have to create the

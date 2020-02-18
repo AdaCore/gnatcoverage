@@ -2,18 +2,25 @@
 
 from gnatpython.fileutils import mkdir
 
-from SUITE.tutils import xcov
-
+from SUITE.tutils import RUNTIME_INFO, xcov
 
 
 def default_dump_trigger():
     """Return the default dump trigger to use in testcases."""
-    return 'atexit'
+    if RUNTIME_INFO.has_full_runtime:
+        return 'atexit'
+    elif RUNTIME_INFO.has_ravenscar_runtime:
+        return 'ravenscar-task-termination'
+    else:
+        return 'main-end'
 
 
 def default_dump_channel():
     """Return the default dump channel to use in testcases."""
-    return 'bin-file'
+    if RUNTIME_INFO.has_full_runtime:
+        return 'bin-file'
+    else:
+        return 'base64-stdout'
 
 
 def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,

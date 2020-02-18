@@ -211,28 +211,63 @@ class BUILDER:
         rm(tempgpr.name)
 
 
-def need_libsupport():
-    """
-    Libsupport considerations.
+class RuntimeInfo(object):
+    """Gather runtime-specific information and behaviors."""
 
-    We rely on our support lib to provide a common last chance handler in every
-    configuration where this makes sense, in particular with ZFP and Ravenscar
-    RTS libraries.
+    def __init__(self, runtime_name=None):
+        self.runtime_name = runtime_name
 
-    * ZFP profiles because some of these don't provide a handler at all.
+        # Categorize the runtime we have. The selection of the instrumentation
+        # strategy depends on it.
+        self.has_full_runtime = False
+        self.has_ravenscar_runtime = False
+        self.has_kernel_runtime = False
+        self.has_zfp_runtime = False
 
-    * Ravenscar because some handlers fallthrough to a infinite idle loop,
-      unfriendly wrt testcase termination in automated nightly executions.
+        if not self.runtime_name:
+            self.has_full_runtime = True
+        elif self.runtime_name.startswith('ravenscar-'):
+            self.has_ravenscar_runtime = True
+        elif self.runtime_name.startswith('zfp-'):
+            self.has_zfp_runtime = True
+        elif self.runtime_name == 'kernel':
+            self.has_kernel_runtime = True
+        else:
+            assert False, 'Unknown runtime: {}'.format(runtime_name)
 
-    In addition, providing our last chance handler ensures we get consistent
-    output on unexpected exception, on any target configuration.
+    @property
+    def need_libsupport(self):
+        """Libsupport considerations.
 
-    We can't override "last chance" handling and don't really need to for full
-    runtimes (which terminate on exceptions), native or cross.
+        We rely on our support lib to provide a common last chance handler in
+        every configuration where this makes sense, in particular with ZFP and
+        Ravenscar RTS libraries.
 
-    This function controls whether we build the library and link with it.
-    """
-    return re.search("zfp|ravenscar", env.main_options.RTS)
+        * ZFP profiles because some of these don't provide a handler at all.
+
+        * Ravenscar because some handlers fallthrough to a infinite idle loop,
+          unfriendly wrt testcase termination in automated nightly executions.
+
+        In addition, providing our last chance handler ensures we get
+        consistent output on unexpected exception, on any target configuration.
+
+        We can't override "last chance" handling and don't really need to for
+        full runtimes (which terminate on exceptions), native or cross.
+
+        This function controls whether we build the library and link with it.
+        """
+        return self.has_ravenscar_runtime or self.has_zfp_runtime
+
+    @property
+    def gnatcov_rts_project(self):
+        """Name of the gnatcov_rts project to use in instrumented projects."""
+        return 'gnatcov_rts_full' if self.has_full_runtime else 'gnatcov_rts'
+
+
+def runtime_info(runtime=None):
+    if runtime is None:
+        runtime = env.main_options.RTS
+    return RuntimeInfo(runtime)
 
 
 # Target specificities

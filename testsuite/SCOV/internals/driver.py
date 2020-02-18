@@ -26,7 +26,8 @@ import os
 
 from SCOV.tctl import CAT, CovControl
 
-from SCOV.instr import xcov_instrument
+from SCOV.instr import (default_dump_channel, xcov_convert_base64,
+                        xcov_instrument)
 
 from SUITE.context import thistest
 from SUITE.control import language_info
@@ -36,7 +37,8 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, cmdrun, xrun, xcov, frame
 from SUITE.tutils import gprbuild_cargs_with
 from SUITE.tutils import exename_for
-from SUITE.tutils import srctracename_for, tracename_for, ckptname_for
+from SUITE.tutils import (srctracename_for, tracename_for, ckptname_for,
+                          run_cov_program)
 
 from gnatpython.fileutils import cd, mkdir, ls
 
@@ -1276,6 +1278,7 @@ class SCOV_helper_src_traces(SCOV_helper):
         xcov_instrument(
             covlevel=self.xcovlevel,
             extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
+            dump_channel=self.dump_channel,
             gprsw=instrument_gprsw,
             gpr_obj_dir=self.gpr_obj_dir,
             out=out)
@@ -1296,10 +1299,20 @@ class SCOV_helper_src_traces(SCOV_helper):
             gargs='--src-subdirs=gnatcov-instr')
 
     def mode_execute(self, main):
+        register_failure = not self.testcase.expect_failures
+
+        # Run the program itself
         out_file = 'cmdrun_{}.out'.format(main)
         main_path = self.abdir_for(main) + exename_for(main)
-        cmdrun([main_path], out=out_file,
-               register_failure=not self.testcase.expect_failures)
+        run_cov_program(main_path, out=out_file,
+                        register_failure=register_failure)
+
+        # If the dump channel just writes text on stdout, extract traces from
+        # it.
+        if self.dump_channel == 'base64-stdout':
+            xcov_convert_base64(out_file, self.mode_tracename_for(main),
+                                register_failure=register_failure)
+
         return out_file
 
     def mode_scofile_for(self, source):
@@ -1310,3 +1323,8 @@ class SCOV_helper_src_traces(SCOV_helper):
 
     def mode_tracename_for(self, pgm):
         return srctracename_for(pgm)
+
+    @property
+    def dump_channel(self):
+        """Return the dump channel to use when instrumenting programs."""
+        return default_dump_channel()

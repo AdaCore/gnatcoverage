@@ -15,8 +15,8 @@ import time
 # Expose a few other items as a test util-facilities as well
 
 from SUITE import control
-from SUITE.control import language_info, KNOWN_LANGUAGES
-from SUITE.control import BUILDER, env, xcov_pgm
+from SUITE.control import (BUILDER, KNOWN_LANGUAGES, env, language_info,
+                           xcov_pgm)
 from SUITE.context import ROOT_DIR, thistest
 
 
@@ -30,13 +30,13 @@ from gnatpython.fileutils import touch, unixpath, which
 # Precompute some values we might be using repeatedly
 
 TARGET_INFO = control.target_info()
+RUNTIME_INFO = control.runtime_info()
 
 XCOV = xcov_pgm(thistest.options.auto_arch)
 VALGRIND = 'valgrind' + env.host.os.exeext
 
 MEMCHECK_LOG = 'memcheck.log'
 CALLGRIND_LOG = 'callgrind-{}.log'
-
 
 run_processes = []
 """
@@ -91,7 +91,8 @@ def gprbuild_gargs_with(thisgargs, trace_mode=None):
     # gnatcov_full_rts to that instrumented programs are compilable in the
     # generated projects.
     if trace_mode == 'src':
-        result.append('--implicit-with=gnatcov_rts_full.gpr')
+        result.append('--implicit-with={}.gpr'
+                      .format(RUNTIME_INFO.gnatcov_rts_project))
 
     return result
 
@@ -277,7 +278,7 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     # from the project contents. This provides a default last chance handler
     # on which we rely to detect termination on exception occurrence.
     basegpr = (("%s/support/base" % ROOT_DIR)
-               if control.need_libsupport() else None)
+               if RUNTIME_INFO.need_libsupport else None)
 
     # If we have specific flags for the mains, append them. This is
     # typically something like:
@@ -601,6 +602,27 @@ def xrun(args, out=None, register_failure=True, auto_config_args=True,
                 register_failure=register_failure,
                 auto_config_args=auto_config_args,
                 auto_target_args=auto_target_args)
+
+
+def run_cov_program(executable, out=None, register_failure=True):
+    """
+    Assuming that `executable` was instrumented, run it according to the
+    current target.
+    """
+    args = []
+
+    # If we are in a cross configuration, run the program using GNATemulator
+    if thistest.options.target:
+        kernel = thistest.options.kernel
+        board = thistest.options.board or env.target.machine
+        args.append('{}-gnatemu'.format(env.target.triplet))
+        if kernel:
+            args.append('--kernel=' + kernel)
+        if board:
+            args.append('--board=' + board)
+
+    args.append(executable)
+    return cmdrun(args, out=out, register_failure=register_failure)
 
 
 def do(command):

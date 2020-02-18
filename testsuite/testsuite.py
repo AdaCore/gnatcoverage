@@ -565,7 +565,7 @@ class TestSuite(object):
 
         # Build support library as needed
 
-        if control.need_libsupport():
+        if control.runtime_info().need_libsupport:
 
             targetargs = ["TARGET=%s" % self.env.target.triplet]
             if self.options.board:
