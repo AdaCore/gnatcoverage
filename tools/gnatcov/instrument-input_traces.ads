@@ -56,4 +56,9 @@ package Instrument.Input_Traces is
    --  Read the given Filename source trace file and dump its content on the
    --  standard output. Emit a fatal error if the file is invalid.
 
+   procedure Extract_Base64_Trace (Input_File, Output_File : String);
+   --  Read the file at Input and extract Base64-encoded traces from it (see
+   --  GNATcov_RTS.Traces.Generic_Output.Write_Trace_File_Base64). Then write a
+   --  source trace file to the file at Output with our binary format.
+
 end Instrument.Input_Traces;

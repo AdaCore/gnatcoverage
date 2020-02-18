@@ -42,3 +42,16 @@ def xcov_instrument(gprsw, covlevel, extra_args=[],
             gprsw.as_strings +
             extra_args)
     xcov(args, out=out, err=err, register_failure=register_failure)
+
+
+def xcov_convert_base64(base64_file, output_trace_file, out=None, err=None,
+                        register_failure=True):
+    """Extract a trace file out of a Base64 file.
+
+    :param str base64_file: Name of the file to read.
+    :param str output_trace_file: Name of the file to write.
+
+    See SUITE.tutils.xcov for the other supported options.
+    """
+    xcov(['extract-base64-trace', base64_file, output_trace_file],
+         out=out, err=err, register_failure=register_failure)

@@ -34,6 +34,7 @@ package Command_Line is
       Cmd_Run,
       Cmd_Convert,
       Cmd_Coverage,
+      Cmd_Extract_Base64_Trace,
       Cmd_Scan_Decisions,
 
       Cmd_Disp_Routines,
@@ -164,6 +165,12 @@ package Command_Line is
                          & "  INPUT_TRACE is file containing trace data to be"
                          & " converted."),
          Internal    => False),
+      Cmd_Extract_Base64_Trace => Create
+        (Name        => "extract-base64-trace",
+         Pattern     => ("[OPTIONS] INPUT_BASE64_FILE OUTPUT_TRACE_FILE"),
+         Description => ("Extract a trace file from a log file that contains"
+                         & " Base64-encoded traces."),
+         Internal    => Instrument_Experimental),
       Cmd_Coverage => Create
         (Name        => "coverage",
          Pattern     => ("[OPTIONS] TRACE_FILEs"),

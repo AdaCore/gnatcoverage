@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Direct_IO;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
@@ -858,5 +859,176 @@ package body Instrument.Input_Traces is
          Outputs.Fatal_Error (Ada.Strings.Unbounded.To_String (Result.Error));
       end if;
    end Dump_Source_Trace_File;
+
+   --------------------------
+   -- Extract_Base64_Trace --
+   --------------------------
+
+   procedure Extract_Base64_Trace (Input_File, Output_File : String) is
+      use Interfaces;
+
+      package TIO renames Ada.Text_IO;
+      package BIO is new Ada.Direct_IO (Interfaces.Unsigned_8);
+
+      subtype Whitespace is Character with Static_Predicate =>
+         Whitespace in ' ' | ASCII.HT | ASCII.CR | ASCII.LF;
+
+      function Trim (S : String) return String;
+      --  Return S without its leading/trailing whitespaces, tabs, carriage
+      --  returns and newline characters (if any).
+
+      function Base64_Digit (C : Character) return Unsigned_8;
+      --  Return the 6-bit number that the C Base64 digit means
+
+      Had_One_Trace : Boolean := False;
+      --  Whether we found at least one trace in the input file
+
+      Input  : TIO.File_Type;
+      Output : BIO.File_Type;
+
+      ----------
+      -- Trim --
+      ----------
+
+      function Trim (S : String) return String is
+         First : Positive := S'First;
+         Last  : Natural := S'Last;
+      begin
+         while First in S'Range and then S (First) in Whitespace loop
+            First := First + 1;
+         end loop;
+         while Last in S'Range and then S (Last) in Whitespace loop
+            Last := Last - 1;
+         end loop;
+         return S (First .. Last);
+      end Trim;
+
+      ------------------
+      -- Base64_Digit --
+      ------------------
+
+      function Base64_Digit (C : Character) return Unsigned_8 is
+         C_Pos : constant Unsigned_8 := Character'Pos (C);
+
+         subtype Upper is Character range 'A' .. 'Z';
+         Upper_A_Pos  : constant Unsigned_8 := Character'Pos ('A');
+         Upper_Offset : constant Unsigned_8 := 0;
+
+         subtype Lower is Character range 'a' .. 'z';
+         Lower_A_Pos  : constant Unsigned_8 := Character'Pos ('a');
+         Lower_Offset : constant Unsigned_8 := Upper_Offset + 26;
+
+         subtype Digit is Character range '0' .. '9';
+         Digit_0_Pos  : constant Unsigned_8 := Character'Pos ('0');
+         Digit_Offset : constant Unsigned_8 := Lower_Offset + 26;
+
+         Plus_Offset : constant Unsigned_8 := Digit_Offset + 10;
+
+      begin
+         case C is
+            when Upper =>
+               return C_Pos - Upper_A_Pos + Upper_Offset;
+            when Lower =>
+               return C_Pos - Lower_A_Pos + Lower_Offset;
+            when Digit =>
+               return C_Pos - Digit_0_Pos + Digit_Offset;
+            when '+' =>
+               return Plus_Offset;
+            when '/' =>
+               return Plus_Offset + 1;
+            when others =>
+               Outputs.Fatal_Error ("Invalid Base64 digit: " & C);
+         end case;
+      end Base64_Digit;
+
+      Start_Marker : constant String := "== GNATcoverage source trace file ==";
+      End_Marker   : constant String := "== End ==";
+
+   --  Start of processing for Extract_Base64_Trace
+
+   begin
+      --  Read the input file line by line. We use gotos to Read_Next_Line as a
+      --  way to "continue" the loop (i.e. skip to the next iteration), which
+      --  simplifies the loop body.
+      --
+      --  Each time we come across a Start_Marker line, create the output trace
+      --  file, so that if there are several start/end couples in the input
+      --  file, we consider only the last one. This is convenient when running
+      --  GNATcoverage's testsuite, as we may have one trace per task
+      --  termination and this also makes sense in real life: the last trace
+      --  should be the one with the final coverage state.
+
+      TIO.Open (Input, TIO.In_File, Input_File);
+      <<Read_Next_Line>>
+      while not TIO.End_Of_File (Input) loop
+         declare
+            Line : constant String := Trim (TIO.Get_Line (Input));
+         begin
+            if BIO.Is_Open (Output) then
+               if Line = End_Marker then
+                  BIO.Close (Output);
+                  goto Read_Next_Line;
+               end if;
+
+               --  Expect groups of 4 characters
+
+               if Line'Length mod 4 /= 0 then
+                  Outputs.Fatal_Error
+                    ("Invalid Base64 trace: incomplete group of 4 characters");
+               end if;
+
+               --  Now process each group
+
+               declare
+                  Next : Positive := Line'First;
+
+                  function D (Index : Natural) return Unsigned_8
+                  is (Base64_Digit (Line (Next + Index)));
+
+               begin
+                  while Next <= Line'Last loop
+                     --  Here, process the Base64 digits in the slice:
+                     --
+                     --    Line (Next .. Next + 3)
+                     --
+                     --  This slice contains 4 Base64 digits, and each digit
+                     --  encodes 6 bits (total: 24 bits), so we can decode 3
+                     --  bytes (3 * 8 bits).  The actual number of bytes to
+                     --  decode depends on the amount of padding characters
+                     --  ('=' character).
+
+                     BIO.Write
+                       (Output,
+                        Shift_Left (D (0), 2) or Shift_Right (D (1), 4));
+                     if Line (Next + 2) /= '=' then
+                        BIO.Write
+                          (Output,
+                           Shift_Left (D (1), 4) or Shift_Right (D (2), 2));
+                        if Line (Next + 3) /= '=' then
+                           BIO.Write (Output, Shift_Left (D (2), 6) or D (3));
+                        end if;
+                     end if;
+
+                     Next := Next + 4;
+                  end loop;
+               end;
+
+            elsif Line = Start_Marker then
+               Had_One_Trace := True;
+               BIO.Create (Output, BIO.Out_File, Output_File);
+            end if;
+         end;
+      end loop;
+      TIO.Close (Input);
+
+      --  Make sure we had at least one trace, and a matching "end" marker for
+      --  the last trace.
+
+      if not Had_One_Trace then
+         Outputs.Fatal_Error ("No Base64 trace found");
+      elsif BIO.Is_Open (Output) then
+         Outputs.Fatal_Error ("Incomplete Base64 trace");
+      end if;
+   end Extract_Base64_Trace;
 
 end Instrument.Input_Traces;

@@ -2378,6 +2378,15 @@ begin
             Convert.Run_Convert (Exec'Unrestricted_Access, Output,
                                  Histmap'Unrestricted_Access, Tag);
          end;
+
+      when Cmd_Extract_Base64_Trace =>
+         if Args.Remaining_Args.Length /= 2 then
+            Fatal_Error ("Exactly two arguments expected");
+         end if;
+         Instrument.Input_Traces.Extract_Base64_Trace
+           (Input_File  => +Args.Remaining_Args (0),
+            Output_File => +Args.Remaining_Args (1));
+
    end case;
 
    Destroy (Arg_Parser);
