@@ -26,7 +26,8 @@ import os
 
 from SCOV.tctl import CAT, CovControl
 
-from SCOV.instr import (default_dump_channel, xcov_convert_base64,
+from SCOV.instr import (add_last_chance_handler, default_dump_channel,
+                        default_dump_trigger, xcov_convert_base64,
                         xcov_instrument)
 
 from SUITE.context import thistest
@@ -1282,6 +1283,20 @@ class SCOV_helper_src_traces(SCOV_helper):
             gprsw=instrument_gprsw,
             gpr_obj_dir=self.gpr_obj_dir,
             out=out)
+
+        # When exception propagation is not available, the "main-end" dump
+        # trigger will not work when the test driver ends with an unhandled
+        # exception. To workaround that, force the dump in the last chance
+        # handler.
+        if default_dump_trigger() == 'main-end':
+            # The only tests with multiple drivers are consolidation ones,
+            # which compute consolidated coverage reports from data obtained
+            # in previously executed tests (trace files or checkpoints). These
+            # tests are not built, so we can assume here that there is only one
+            # driver to build.
+            assert len(self.drivers) == 1
+            add_last_chance_handler('obj', no_ext(self.drivers[0]),
+                                    silent=not self.testcase.expect_failures)
 
         # Standard output might contain warnings indicating instrumentation
         # issues. This should not happen, so simply fail as soon as the output
