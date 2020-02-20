@@ -338,16 +338,16 @@ package body Instrument.Sources is
       Output_Unit := Sys_Prefix;
       Output_Unit.Append (To_Unbounded_String ("Traces"));
 
-      case IC.Dump_Channel is
-      when Binary_File =>
-         Output_Unit.Append (To_Unbounded_String ("Output"));
-         Output_Proc := Output_Unit;
-         Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
-      when Base64_Standard_Output =>
-         Output_Unit.Append (To_Unbounded_String ("Generic_Output"));
-         Output_Proc := Output_Unit;
-         Output_Proc.Append (To_Unbounded_String ("Write_Trace_File_Base64"));
-      end case;
+      Output_Unit.Append (To_Unbounded_String ("Output"));
+      declare
+         Unit : constant String := (case IC.Dump_Channel is
+                                    when Binary_File            => "Files",
+                                    when Base64_Standard_Output => "Base64");
+      begin
+         Output_Unit.Append (To_Unbounded_String (Unit));
+      end;
+      Output_Proc := Output_Unit;
+      Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
 
       declare
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);

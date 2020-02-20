@@ -15,7 +15,9 @@ project GNATcov_RTS is
       "gnatcov_rts-buffers-lists.ads",
       "gnatcov_rts-traces.ads",
       "gnatcov_rts-traces.adb",
-      "gnatcov_rts-traces-generic_output.ads",
-      "gnatcov_rts-traces-generic_output.adb");
+      "gnatcov_rts-traces-output.ads",
+      "gnatcov_rts-traces-output.adb",
+      "gnatcov_rts-traces-output-base64.ads",
+      "gnatcov_rts-traces-output-base64.adb");
    for Object_Dir use "obj-gnatcov_rts";
 end GNATcov_RTS;
