@@ -36,7 +36,8 @@ package Instrument is
    No_Bit_Id : constant Any_Bit_Id := -1;
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
 
-   type Any_Dump_Trigger is (Manual, At_Exit, Main_End);
+   type Any_Dump_Trigger is
+     (Manual, At_Exit, Ravenscar_Task_Termination, Main_End);
    --  Trigger to dump coverage buffers in instrumented programs. See the user
    --  documentation for the --dump-trigger command-line option.
 

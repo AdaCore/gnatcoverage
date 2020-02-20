@@ -601,6 +601,10 @@ package Command_Line is
                          & """main-end"" instructs to append a call to the"
                          & " dump routine at the end of the main subprogram."
                          & ASCII.LF & ASCII.LF
+                         & """ravenscar-task-termination"" uses the Ravenscar"
+                         & "-specific Ada.Task_Termination to schedule the"
+                         & " dump on task termination."
+                         & ASCII.LF & ASCII.LF
                          & "Except for ""manual"", these methods inject code"
                          & " in all mains in the project closure to dump"
                          & " coverage buffers for all units of interest in the"

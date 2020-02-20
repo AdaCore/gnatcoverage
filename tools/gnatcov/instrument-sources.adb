@@ -370,7 +370,7 @@ package body Instrument.Sources is
          File.New_Line;
 
          case Dump_Trigger is
-            when At_Exit =>
+            when At_Exit | Ravenscar_Task_Termination =>
                File.Put_Line
                  ("procedure "
                   & To_String (Register_Dump_Procedure_Name) & ";");
@@ -395,6 +395,9 @@ package body Instrument.Sources is
          case Dump_Trigger is
             when At_Exit  =>
                File.Put_Line ("with Interfaces.C;");
+            when Ravenscar_Task_Termination  =>
+               File.Put_Line ("with Ada.Task_Identification;");
+               File.Put_Line ("with Ada.Task_Termination;");
             when Main_End =>
                null;
          end case;
@@ -469,6 +472,39 @@ package body Instrument.Sources is
                File.Put_Line ("     atexit (" & Dump_Procedure & "'Access);");
                File.Put_Line ("begin");
                File.Put_Line ("   null;");
+               File.Put_Line
+                 ("end " & To_String (Register_Dump_Procedure_Name) & ";");
+               File.New_Line;
+
+            when Ravenscar_Task_Termination =>
+
+               --  Emit a protected object for the callback
+
+               File.Put_Line ("  protected Wrapper is");
+               File.Put_Line ("     procedure Do_Dump"
+                              & " (T : Ada.Task_Identification.Task_Id);");
+               File.Put_Line ("  end Wrapper;");
+               File.New_Line;
+               File.Put_Line ("  protected body Wrapper is");
+               File.Put_Line ("     procedure Do_Dump"
+                              & " (T : Ada.Task_Identification.Task_Id) is");
+               File.Put_Line ("        pragma Unreferenced (T);");
+               File.Put_Line ("     begin");
+               File.Put_Line ("        " & Dump_Procedure & ";");
+               File.Put_Line ("     end Do_Dump;");
+               File.Put_Line ("  end Wrapper;");
+               File.New_Line;
+
+               --  Emit a procedure to schedule a trace dump with
+               --  Ada.Task_Termination.
+
+               File.Put_Line
+                 ("procedure "
+                  & To_String (Register_Dump_Procedure_Name) & " is");
+               File.Put_Line ("begin");
+               File.Put_Line ("   Ada.Task_Termination"
+                              & ".Set_Dependents_Fallback_Handler"
+                              & " (Wrapper.Do_Dump'Access);");
                File.Put_Line
                  ("end " & To_String (Register_Dump_Procedure_Name) & ";");
                File.New_Line;
@@ -610,7 +646,7 @@ package body Instrument.Sources is
 
       case Auto_Dump_Trigger (IC.Dump_Trigger) is
 
-      when At_Exit =>
+      when At_Exit | Ravenscar_Task_Termination =>
 
          --  Build the call to the registration procedure and insert it in
          --  New_Stmt_List, right before the old list of statements.

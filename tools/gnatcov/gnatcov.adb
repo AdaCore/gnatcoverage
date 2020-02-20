@@ -1414,6 +1414,8 @@ begin
                      Dump_Trigger := Manual;
                   elsif Value = "atexit" then
                      Dump_Trigger := At_Exit;
+                  elsif Value = "ravenscar-task-termination" then
+                     Dump_Trigger := Ravenscar_Task_Termination;
                   elsif Value = "main-end" then
                      Dump_Trigger := Main_End;
                   else
