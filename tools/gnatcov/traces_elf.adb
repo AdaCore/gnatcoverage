@@ -26,6 +26,8 @@ with Interfaces.C.Strings; use Interfaces.C, Interfaces.C.Strings;
 
 with System.Storage_Elements; use System.Storage_Elements;
 
+with GNATCOLL.Utils; use GNATCOLL.Utils;
+
 with Coff;
 with Coverage;        use Coverage;
 with Coverage.Object; use Coverage.Object;
@@ -5085,6 +5087,10 @@ package body Traces_Elf is
       if Is_PE and then Is_32bit then
          pragma Assert (Name'Length > 0 and then Name (Name'First) = '_');
          return Name (Name'First + 1 .. Name'Last);
+
+      elsif Ends_With (Name, "@plt") then
+         return Name (Name'First .. Name'Last - 4);
+
       else
          return Name;
       end if;
