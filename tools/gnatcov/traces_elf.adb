@@ -22,6 +22,8 @@ with Ada.Unchecked_Deallocation;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
+with Interfaces.C.Strings; use Interfaces.C, Interfaces.C.Strings;
+
 with System.Storage_Elements; use System.Storage_Elements;
 
 with Coff;
@@ -3622,6 +3624,71 @@ package body Traces_Elf is
       end loop;
 
       Free (Strtabs_Section);
+
+      --  Query libbfd for synthetic symbols
+
+      declare
+         procedure For_Each_Synthetic_Symbol
+           (Filename : chars_ptr;
+            Callback : access procedure (Sym_Name  : chars_ptr;
+                                         Sym_Value : Elf_Addr);
+            Warn_Callback : access procedure (C_Msg : chars_ptr;
+                                              C_BFD_Msg : chars_ptr));
+         pragma Import (C, For_Each_Synthetic_Symbol,
+                        "_gnatcov_for_each_synthetic_symbol");
+
+         procedure Enter_Synthetic_Symbol
+           (Sym_Name  : chars_ptr;
+            Sym_Value : Elf_Addr) with Convention => C;
+         --  Callback to enter a synthetic symbol into the symbol table
+
+         procedure Warn (C_Msg : chars_ptr; C_BFD_Msg : chars_ptr)
+           with Convention => C;
+         --  Callback to process a warning from the BFD helpers
+
+         ----------------------------
+         -- Enter_Synthetic_Symbol --
+         ----------------------------
+
+         procedure Enter_Synthetic_Symbol
+           (Sym_Name  : chars_ptr;
+            Sym_Value : Elf_Addr)
+         is
+         begin
+            Sym := new Address_Info'
+              (Kind          => Symbol_Addresses,
+               First         => Sym_Value,
+               Last          => Sym_Value,
+               Parent        => null,
+               Symbol_Name   => new String'(Value (Sym_Name)),
+               others        => <>);
+
+            Address_Info_Sets.Insert
+              (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
+         end Enter_Synthetic_Symbol;
+
+         ----------
+         -- Warn --
+         ----------
+
+         procedure Warn (C_Msg : chars_ptr; C_BFD_Msg : chars_ptr) is
+            use Diagnostics;
+         begin
+            Report
+              (Value (C_Msg) & ": " & Value (C_BFD_Msg),
+               Exe  => Exec'Unchecked_Access,
+               Kind => Notice);
+         end Warn;
+
+         C_Filename : aliased Interfaces.C.char_array :=
+           To_C (Exec.Get_Filename);
+
+      begin
+         For_Each_Synthetic_Symbol
+           (To_Chars_Ptr (C_Filename'Unchecked_Access),
+            Enter_Synthetic_Symbol'Access,
+            Warn'Access);
+      end;
    end Build_Symbols;
 
    -------------------
