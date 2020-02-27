@@ -335,19 +335,18 @@ package body Instrument.Sources is
 
       --  Compute the qualified names we need for instrumentation
 
-      Output_Unit := Sys_Prefix;
-      Output_Unit.Append (To_Unbounded_String ("Traces"));
-
-      Output_Unit.Append (To_Unbounded_String ("Output"));
       declare
+         use type Ada_Qualified_Name;
          Unit : constant String := (case IC.Dump_Channel is
                                     when Binary_File            => "Files",
                                     when Base64_Standard_Output => "Base64");
       begin
-         Output_Unit.Append (To_Unbounded_String (Unit));
+         Output_Unit := Sys_Prefix
+                        & To_Unbounded_String ("Traces")
+                        & To_Unbounded_String ("Output")
+                        & To_Unbounded_String (Unit);
+         Output_Proc := Output_Unit & To_Unbounded_String ("Write_Trace_File");
       end;
-      Output_Proc := Output_Unit;
-      Output_Proc.Append (To_Unbounded_String ("Write_Trace_File"));
 
       declare
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
