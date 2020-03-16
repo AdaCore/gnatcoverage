@@ -176,6 +176,9 @@ private package Instrument.Sources is
    end record;
 
    type Root_MCDC_State_Inserter is abstract tagged null record;
+   --  Abstract interface for a mechanism that allows the insertion of
+   --  MC/DC state variables in a given context.
+
    type Any_MCDC_State_Inserter is access all Root_MCDC_State_Inserter'Class;
 
    type Unit_Inst_Context is record

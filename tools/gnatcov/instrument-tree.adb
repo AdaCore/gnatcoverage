@@ -182,6 +182,9 @@ package body Instrument.Tree is
    --  Return the name of the MC/DC state local variable for the given
    --  decision SCO.
 
+   --  The default MC/DC state inserter inserts MC/DC state buffers as
+   --  variable declarations in the nearest enclosing subprogram.
+
    type Default_MCDC_State_Inserter is new Root_MCDC_State_Inserter with record
       Local_Decls : Node_Rewriting_Handle;
    end record;
@@ -1364,6 +1367,11 @@ package body Instrument.Tree is
       --     begin
       --        [Witness call];
       --     end;
+
+      --  The expression function MC/DC state inserter inserts MC/DC state
+      --  buffers as variable declartions in the generic body, and ensures
+      --  that references to these variables are passed to the instrumented
+      --  expression function.
 
       type Expr_Func_MCDC_State_Inserter is new Root_MCDC_State_Inserter with
          record
