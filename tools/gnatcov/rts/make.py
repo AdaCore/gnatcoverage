@@ -55,7 +55,7 @@ def main(args):
             for lib_type in ('static', 'static-pic', 'relocatable'):
                 build_and_install(
                     project,
-                    common_argv + ['-XLIBRARY_TYPES={}'.format(lib_type)],
+                    common_argv + ['-XLIBRARY_TYPE={}'.format(lib_type)],
                     install_argv + ['--build-name={}'.format(lib_type)])
 
     except subprocess.CalledProcessError:
