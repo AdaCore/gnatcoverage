@@ -71,6 +71,7 @@ def OPT_info_from(options):
     """Context data for the command line options info of relevance."""
     return {'target': options.target,
             'board': options.board,
+            'trace_mode': options.trace_mode,
             'dolevel': options.qualif_level,
             'cargs': options.cargs,
             'cargs_Ada': options.cargs_Ada,
