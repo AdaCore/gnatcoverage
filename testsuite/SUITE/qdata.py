@@ -33,7 +33,7 @@ QROOTDIR = 'Qualif'
 
 # Extension of datafiles dumped for the purpose of the STR document
 # production
-STREXT = 'dump'
+STREXT = '.dump'
 
 # Name of a directory where context data aimed at the STR production engine
 # will be dropped by the testsuite execution driver
