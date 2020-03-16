@@ -123,6 +123,10 @@ class BUILDER:
         """
         Compilation args needed by tests exercising source coverage, passed by
         default to build invocations issued through the gprbuild() API.
+
+        These depend on the (provided) toplevel testsuite command line
+        options, indicating for example whether we do a run based on binary
+        traces or on source instrumentation.
         """
 
         # Working from binary traces relies on specific properties:

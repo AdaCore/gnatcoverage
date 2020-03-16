@@ -1004,7 +1004,10 @@ class QDreport(object):
             {itemno: "s1",
              item: "compiler switches - language independent",
              value: literal(' '.join(
-                 BUILDER.SCOV_CARGS(suite_options) +
+                 BUILDER.SCOV_CARGS(
+                     collections.namedtuple(
+                         'SuiteOptions', suite_options.keys())
+                     (*suite_options.values())) +
                  [suite_options['cargs']]))
              })
 
