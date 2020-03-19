@@ -25,16 +25,17 @@ _gnatcov_for_each_synthetic_symbol(char *fn, void (*cb)(const char *, long unsig
   storage = bfd_get_dynamic_symtab_upper_bound(abfd);
   CHECK(storage >= 0, "bfd_get_dynamic_symtab_upper_bound");
 
-  if (storage == 0 ||
-      bfd_get_dynamic_reloc_upper_bound (abfd) == 0)
-    /* No dynamic symbols/relocations, nothing to do.  */
+  if (storage == 0)
+    /* No dynamic symbols, nothing to do.  */
     return;
 
   dyn_syms = (asymbol **) bfd_alloc(abfd, storage);
   CHECK(dyn_syms != NULL, "bfd_alloc");
 
   dyn_count = bfd_canonicalize_dynamic_symtab(abfd, dyn_syms);
-  CHECK(dyn_count > 0, "bfd_canonicalize_dynamic_symtab");
+  if (dyn_count <= 0)
+    /* No dynamic symbols, nothing to do.  */
+    return;
 
   synth_count = bfd_get_synthetic_symtab
                   (abfd, /*static_count*/ 0, /*static_syms*/ NULL,
