@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2019, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -358,6 +358,9 @@ package SC_Obligations is
    function Is_Assertion (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Assert/Pre/Postcondition/Check, or an
    --  equivalent aspect.
+
+   function Is_If_Expression (SCO : SCO_Id) return Boolean;
+   --  True if SCO is the decision of an IF expression
 
    function Path_Count (SCO : SCO_Id) return Natural;
    --  Return count of paths through decision's BDD from root condition to

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2019, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -1708,6 +1708,24 @@ package body SC_Obligations is
                      S_SCOD.Pragma_Name = Pragma_Postcondition);
       end;
    end Is_Expression;
+
+   ----------------------
+   -- Is_If_Expression --
+   ----------------------
+
+   function Is_If_Expression (SCO : SCO_Id) return Boolean is
+      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+      pragma Assert (SCOD.Kind = Decision);
+      Enclosing_S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
+   begin
+      return SCOD.D_Kind = If_Statement
+        and then not
+          (Enclosing_S_SCO /= No_SCO_Id
+             and then
+           S_Kind (Enclosing_S_SCO) = If_Statement
+             and then
+           First_Sloc (Enclosing_S_SCO) = SCOD.Control_Location);
+   end Is_If_Expression;
 
    ----------------------------------
    -- Is_Pragma_Pre_Post_Condition --
