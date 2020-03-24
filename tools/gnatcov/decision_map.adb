@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2018, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -2115,7 +2115,7 @@ package body Decision_Map is
                (S_SCO /= No_SCO_Id
                   and then
                 (if Next_PC_SCO /= No_SCO_Id then
-                   S_SCO /= Enclosing_Statement (Next_PC_SCO)
+                   S_SCO /= Next_PC_SCO
                  elsif Next_PC_Sloc /= No_Location then
                    not In_Range (Next_PC_Sloc, Sloc_Range (S_SCO))
                  else
