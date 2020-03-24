@@ -4,7 +4,7 @@
 
 with Pack;    use Pack;
 with Support; use Support;
-procedure Test_Propagation_Blocks_No_Exception is
+procedure Test_No_Exception is
   I, J, K : My_Int;
 begin
    I := 2;
@@ -14,7 +14,7 @@ begin
    Proc_With_Blocks (I, J, K);
 
    Assert (I = 61 and then J = 60 and then  K = 10);
-end Test_Propagation_Blocks_No_Exception;
+end Test_No_Exception;
 
 --#  pack.adb
 -- /if1/            l+ ## 0

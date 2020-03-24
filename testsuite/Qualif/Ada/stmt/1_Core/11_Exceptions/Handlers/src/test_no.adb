@@ -4,10 +4,10 @@
 
 with Pack;    use Pack;
 with Support; use Support;
-procedure Test_Handlers_No is
+procedure Test_No is
 begin
    Assert (True);
-end Test_Handlers_No;
+end Test_No;
 
 --#  pack.adb
 -- /proc1/                          l- ## s-

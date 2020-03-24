@@ -4,7 +4,7 @@
 
 with Pack;    use Pack;
 with Support; use Support;
-procedure Test_Handlers_No_Exception_Raise is
+procedure Test_No_Raise is
    Int : My_Int := 0;
 begin
    Proc1 (Int);
@@ -29,7 +29,7 @@ begin
 
    Assert (Fun4 (0) = 11);
 
-end Test_Handlers_No_Exception_Raise;
+end Test_No_Raise;
 
 --#  pack.adb
 -- /proc1/                          l+ ## 0

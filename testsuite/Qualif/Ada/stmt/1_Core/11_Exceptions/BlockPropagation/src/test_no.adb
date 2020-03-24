@@ -4,10 +4,10 @@
 
 with Pack;    use Pack;
 with Support; use Support;
-procedure Test_Propagation_Blocks_No is
+procedure Test_No is
 begin
    Assert (True);
-end Test_Propagation_Blocks_No;
+end Test_No;
 
 --#  pack.adb
 -- /if1/            l- ## s-
