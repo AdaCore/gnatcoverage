@@ -1891,6 +1891,9 @@ package body CFG_Dump is
 
       begin
          Close (Context.Output);
+         --  ??? In subprocess mode this will immediately send SIGKILL to the
+         --  subprocess, not waiting for it to complete, so output will likely
+         --  be missing or truncated.
       exception
          when Error : Program_Error =>
             Fatal_Error
