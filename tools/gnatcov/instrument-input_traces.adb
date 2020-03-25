@@ -311,11 +311,19 @@ package body Instrument.Input_Traces is
 
    procedure Reserve
      (Buffer : in out Coverage_Buffer_Access;
-      Size   : Any_Bit_Count) is
+      Size   : Any_Bit_Count)
+   is
+      Last_Bit : constant Any_Bit_Id := Any_Bit_Id (Size) - 1;
+
+      --  ??? Due to a compiler bug, we should avoid slices on empty
+      --  packed arrays (T325-007), so make sure our packed arrays are never
+      --  empty.
+
+      Actual_Last_Bit : constant Bit_Id := Any_Bit_Id'Max (0, Last_Bit);
    begin
-      if Buffer = null or else Size > Buffer.all'Length then
+      if Buffer = null or else Actual_Last_Bit > Buffer.all'Last then
          Free (Buffer);
-         Buffer := new Coverage_Buffer (0 .. Any_Bit_Id (Size) - 1);
+         Buffer := new Coverage_Buffer (0 .. Actual_Last_Bit);
       end if;
    end Reserve;
 
