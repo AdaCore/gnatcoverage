@@ -1963,9 +1963,9 @@ package body Decision_Map is
          S_SCO : constant SCO_Id := Enclosing_Statement (D_SCO);
          --  SCOs for the decision being evaluated, and its enclosing statement
 
-         Leaves_Decision : Boolean := False;
+         Leaves_Statement : Boolean := False;
          --  True if the edge is known to branch to code outside of the
-         --  decision being evaluated.
+         --  current statement.
 
          function Is_Visited_BB (Pc : Pc_Type) return Boolean;
          --  Return if the given address starts an already visited basic block
@@ -2109,8 +2109,8 @@ package body Decision_Map is
          --  correspond to any SCO (this may be the case e.g. for a NOP
          --  generated to carry the sloc of an END).
 
-         Leaves_Decision :=
-           Leaves_Decision
+         Leaves_Statement :=
+           Leaves_Statement
              or else
                (S_SCO /= No_SCO_Id
                   and then
@@ -2126,9 +2126,9 @@ package body Decision_Map is
          D_SCO_For_Jump := Decision_Of_Jump (BB.To_PC);
 
          --  If in an IF-expression, and we're branching into a decision other
-         --  than a nested one (or outside of any decision), then we also
-         --  leave the current decision. To determine this, check whether
-         --  D_SCO_For_Jump is equal to D_SCO or any nested decision.
+         --  than a nested one (or outside of any decision), then have reached
+         --  an outcome of the current decision. To determine this, check
+         --  whether D_SCO_For_Jump is equal to D_SCO or any nested decision.
 
          declare
             Nested_D_SCO : SCO_Id := D_SCO_For_Jump;
@@ -2137,12 +2137,10 @@ package body Decision_Map is
                Nested_D_SCO := Parent (Nested_D_SCO);
             end loop;
 
-            Leaves_Decision :=
-              Leaves_Decision
-              or else
-                (Is_If_Expression (D_SCO)
-                   and then
-                 Nested_D_SCO /= D_SCO);
+            if Is_If_Expression (D_SCO) and then Nested_D_SCO /= D_SCO then
+               Edge_Info.Dest_Kind := Outcome;
+               return;
+            end if;
          end;
 
          --  Note: there are cases (e.g. for Pre/Post aspects) where there
@@ -2157,7 +2155,7 @@ package body Decision_Map is
                if BB.Cond then
                   if BB.Condition /= No_SCO_Id
                     and then Enclosing_Decision (BB.Condition) = D_Occ.Decision
-                    and then not Leaves_Decision
+                    and then not Leaves_Statement
                   then
                      --  Edge proceeds to evaluate a condition in the current
                      --  decision.
@@ -2229,13 +2227,6 @@ package body Decision_Map is
             when others =>
                null;
          end case;
-
-         --  If this destination is known for certain to leave the current
-         --  statement, then it must correspond to a decision outcome.
-
-         if Leaves_Decision then
-            Edge_Info.Dest_Kind := Outcome;
-         end if;
       end Trace_Destination;
 
    --  Start of processing for Analyze_Decision_Occurrence
