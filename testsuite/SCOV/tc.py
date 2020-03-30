@@ -8,7 +8,7 @@ A typical use, using default parameters, is TestCase_Here().run().
 
 Roughly:
 
-* The instance initialization locates the  applicable test_ drivers, then
+* The instance initialization locates the applicable test_ drivers, then
 
 * run() exercises them all (for each: build, emulate, analyze, match reports
   vs expectations), and evaluates associated consolidation requests, if any.
