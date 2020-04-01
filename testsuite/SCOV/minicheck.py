@@ -171,7 +171,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         # Instrument the project and build the result
         xcov_instrument(gprsw, covlevel, extra_args=cov_or_instr_args,
                         gpr_obj_dir=gpr_obj_dir, dump_trigger=dump_trigger,
-                        dump_channel=dump_channel, out='instrument.log')
+                        dump_channel=dump_channel, out='instrument.log',
+                        register_failure=register_failure)
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
 
