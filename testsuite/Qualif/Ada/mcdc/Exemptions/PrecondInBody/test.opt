@@ -1,1 +1,1 @@
-src-traces XFAIL Testcase update pending the resolution of S606-037
+src-traces XFAIL S606-037: src-traces and contracts

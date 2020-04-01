@@ -1,2 +1,4 @@
 p55-elf XFAIL Machine_Overflows True, no raise on overflow
-bin-traces,RTS_ZFP XFAIL investigation on PB15-008, no urgent need for support
+
+--  No urgent need for support
+bin-traces,RTS_ZFP XFAIL PB15-008: inaccurate decision coverage for floating-point overflow check on ZFP

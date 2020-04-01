@@ -1,1 +1,1 @@
-src-traces XFAIL Testcase update pending the resolution of S711-049
+src-traces XFAIL S711-049: src-traces and assertion/check policy
