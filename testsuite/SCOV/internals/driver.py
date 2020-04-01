@@ -1264,7 +1264,7 @@ class SCOV_helper_src_traces(SCOV_helper):
             # the top-level project (i.e. the one that contains the main) to
             # "gnatcov instrument", so pass --projects if needed.
             projects = self.covctl.gprsw.projects
-            if not projects and not self.covctl.gprsw.units:
+            if not projects:
                 projects = [os.path.basename(self.covctl.gprsw.root_project)]
 
             instrument_gprsw = GPRswitches(
