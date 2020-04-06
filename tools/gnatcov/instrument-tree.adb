@@ -355,12 +355,13 @@ package body Instrument.Tree is
    --  declaration or statement within N.
 
    procedure Traverse_Context_Clause
-     (UIC : in out Unit_Inst_Context;
-      L   : Ada_Node_List);
+     (UIC             : in out Unit_Inst_Context;
+      L               : Ada_Node_List;
+      Process_Pragmas : Boolean);
    --  Traverse the context clause of a library item. No SCOs are generated,
-   --  but information is extracted to govern further processing:
-   --  presence of a language version configuration pragma, presence of a
-   --  dependency on System.
+   --  but information is extracted to govern further processing: presence of
+   --  a language version configuration pragma (if Process_Pragmas is True),
+   --  and semantic dependencies.
 
    procedure Traverse_Generic_Package_Declaration
      (IC      : in out Inst_Context;
@@ -2105,15 +2106,17 @@ package body Instrument.Tree is
 
             when Ada_Compilation_Unit =>
                declare
-                  CUN        : constant Compilation_Unit :=
+                  CUN          : constant Compilation_Unit :=
                     N.As_Compilation_Unit;
-                  CUN_Body   : constant Ada_Node := CUN.F_Body;
-                  Is_Subunit : constant Boolean :=
-                     CUN_Body.Kind /= Ada_Library_Item;
-                  CU_Decl    : constant Basic_Decl :=
+                  CUN_Body     : constant Ada_Node := CUN.F_Body;
+                  Is_Subunit   : constant Boolean :=
+                    CUN_Body.Kind /= Ada_Library_Item;
+                  CU_Decl      : constant Basic_Decl :=
                     (if Is_Subunit
                      then Basic_Decl (CUN_Body.As_Subunit.F_Body)
                      else CUN_Body.As_Library_Item.F_Item);
+                  CU_Prev_Decl : constant Basic_Decl :=
+                    CU_Decl.P_Previous_Part_For_Decl;
                begin
                   --  If we found a subunit, assert that the corresponding
                   --  body/parent subunit is also instrumented.
@@ -2131,10 +2134,40 @@ package body Instrument.Tree is
                              ((Body_Name, Unit_Separate)));
                      end;
 
-                  --  For a library unit, scan context clause
+                  --  For a library unit, scan context clause. If this is a
+                  --  body, also obtain WITH clauses from the spec. Also
+                  --  record implicit WITHs for the unit itself and all of
+                  --  its parents.
 
                   else
-                     Traverse_Context_Clause (UIC, CUN.F_Prelude);
+                     Traverse_Context_Clause
+                       (UIC, CUN.F_Prelude, Process_Pragmas => True);
+                     if not CU_Prev_Decl.Is_Null then
+                        Traverse_Context_Clause
+                          (UIC,
+                           CU_Prev_Decl
+                           .Unit.Root
+                           .As_Compilation_Unit
+                           .F_Prelude,
+                           Process_Pragmas => False);
+                     end if;
+
+                     declare
+                        Std : constant Analysis_Unit := N.P_Standard_Unit;
+                        AUN : Analysis_Unit := N.Unit;
+                     begin
+                        while AUN /= Std loop
+                           declare
+                              Item : constant Library_Item :=
+                                AUN.Root.As_Compilation_Unit
+                                  .F_Body.As_Library_Item;
+                           begin
+                              UIC.Withed_Units.Include
+                                (Item.F_Item.P_Canonical_Fully_Qualified_Name);
+                              AUN := Item.P_Parent_Basic_Decl.Unit;
+                           end;
+                        end loop;
+                     end;
                   end if;
 
                   --  Note: we do not traverse the context clause or generate
@@ -2931,8 +2964,9 @@ package body Instrument.Tree is
    -----------------------------
 
    procedure Traverse_Context_Clause
-     (UIC : in out Unit_Inst_Context;
-      L   : Ada_Node_List)
+     (UIC             : in out Unit_Inst_Context;
+      L               : Ada_Node_List;
+      Process_Pragmas : Boolean)
    is
    begin
       for J in 1 .. L.Children_Count loop
@@ -2941,17 +2975,19 @@ package body Instrument.Tree is
          begin
             case N.Kind is
                when Ada_Pragma_Node =>
-                  declare
-                     use Ada.Strings.Wide_Wide_Fixed;
+                  if Process_Pragmas then
+                     declare
+                        use Ada.Strings.Wide_Wide_Fixed;
 
-                     Pragma_Name : constant Wide_Wide_String :=
-                       To_Lower (Text (N.As_Pragma_Node.F_Id));
-                  begin
-                     if Index (Pragma_Name, "ada_") = Pragma_Name'First then
-                        UIC.Language_Version_Pragma :=
-                          To_Unbounded_Wide_Wide_String (Pragma_Name);
-                     end if;
-                  end;
+                        Pragma_Name : constant Wide_Wide_String :=
+                          To_Lower (Text (N.As_Pragma_Node.F_Id));
+                     begin
+                        if Index (Pragma_Name, "ada_") = Pragma_Name'First then
+                           UIC.Language_Version_Pragma :=
+                             To_Unbounded_Wide_Wide_String (Pragma_Name);
+                        end if;
+                     end;
+                  end if;
 
                when Ada_With_Clause =>
                   declare

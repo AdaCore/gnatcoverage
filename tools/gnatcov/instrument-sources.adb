@@ -77,8 +77,18 @@ package body Instrument.Sources is
    -- Generation of witness fragments --
    -------------------------------------
 
+   function Convert_To
+     (IC                 : in out Unit_Inst_Context;
+      From_Type, To_Type : Base_Type_Decl;
+      RH_N               : Node_Rewriting_Handle)
+      return Node_Rewriting_Handle;
+   --  Given an expression RH_N of type From_Type, return an expression of type
+   --  To_Type, introducing a type conversion if needed. Both types are
+   --  expected to be boolean types (i.e. Standard.Boolean or any of its
+   --  descendants).
+
    function Make_Decision_Witness
-     (IC         : Unit_Inst_Context;
+     (IC         : in out Unit_Inst_Context;
       Bits       : Decision_Bit_Ids;
       MCDC_State : Unbounded_String;
       Decision   : Node_Rewriting_Handle) return Node_Rewriting_Handle;
@@ -88,7 +98,7 @@ package body Instrument.Sources is
    --  is the empty string.
 
    function Make_Condition_Witness
-     (IC         : Unit_Inst_Context;
+     (IC         : in out Unit_Inst_Context;
       MCDC_State : Unbounded_String;
       Condition  : Node_Rewriting_Handle;
       Offset     : Natural;
@@ -110,12 +120,44 @@ package body Instrument.Sources is
    --  For use when decision coverage or MC/DC is requested. Insert witness
    --  function call for the identified condition.
 
+   ----------------
+   -- Convert_To --
+   ----------------
+
+   function Convert_To
+     (IC                 : in out Unit_Inst_Context;
+      From_Type, To_Type : Base_Type_Decl;
+      RH_N               : Node_Rewriting_Handle)
+      return Node_Rewriting_Handle
+   is
+   begin
+      if From_Type = To_Type then
+         return RH_N;
+      else
+         if To_Type /= To_Type.P_Bool_Type then
+            Ensure_With
+              (IC,
+               To_Type
+               .P_Top_Level_Decl (To_Type.Unit)
+               .P_Canonical_Fully_Qualified_Name);
+         end if;
+
+         return Create_Call_Expr
+           (IC.Rewriting_Context,
+            Call_Expr_F_Name   =>
+              Create_Identifier
+                (IC.Rewriting_Context,
+                 To_Type.P_Canonical_Fully_Qualified_Name),
+            Call_Expr_F_Suffix => RH_N);
+      end if;
+   end Convert_To;
+
    ---------------------------
    -- Make_Decision_Witness --
    ---------------------------
 
    function Make_Decision_Witness
-     (IC         : Unit_Inst_Context;
+     (IC         : in out Unit_Inst_Context;
       Bits       : Decision_Bit_Ids;
       MCDC_State : Unbounded_String;
       Decision   : Node_Rewriting_Handle) return Node_Rewriting_Handle
@@ -152,6 +194,10 @@ package body Instrument.Sources is
                            else (1 .. 0 => No_Node_Rewriting_Handle)),
            Rule      => Expr_Rule);
 
+      D_Node : constant Expr := Node (Decision).As_Expr;
+      D_Type : constant Base_Type_Decl := D_Node.P_Expression_Type;
+      B_Type : constant Base_Type_Decl := D_Node.P_Bool_Type.As_Base_Type_Decl;
+
    begin
       --  Wrap decisions with parens if their syntax requires. We can't always
       --  move the parens that wrap the decision in sources because they can
@@ -162,11 +208,12 @@ package body Instrument.Sources is
       if Expr_Needs_Parens (Kind (D)) then
          D := Create_Paren_Expr (IC.Rewriting_Context, D);
       end if;
+      D := Convert_To (IC, D_Type, B_Type, D);
 
       --  The second child of RH_Call is its list of actual parameters
 
       Append_Child (Child (RH_Call, 2), D);
-      return RH_Call;
+      return Convert_To (IC, B_Type, D_Type, RH_Call);
    end Make_Decision_Witness;
 
    ----------------------------
@@ -174,7 +221,7 @@ package body Instrument.Sources is
    ----------------------------
 
    function Make_Condition_Witness
-     (IC         : Unit_Inst_Context;
+     (IC         : in out Unit_Inst_Context;
       MCDC_State : Unbounded_String;
       Condition  : Node_Rewriting_Handle;
       Offset     : Natural;
@@ -192,11 +239,16 @@ package body Instrument.Sources is
            Arguments => (1 => E.Common_Buffers),
            Rule      => Expr_Rule);
 
+      C_Node : constant Expr := Node (Condition).As_Expr;
+      C_Type : constant Base_Type_Decl := C_Node.P_Expression_Type;
+      B_Type : constant Base_Type_Decl := C_Node.P_Bool_Type.As_Base_Type_Decl;
+
    begin
       --  The second child of RH_Call is its list of actual parameters
 
-      Append_Child (Child (RH_Call, 2), Condition);
-      return RH_Call;
+      Append_Child
+        (Child (RH_Call, 2), Convert_To (IC, C_Type, B_Type, Condition));
+      return Convert_To (IC, B_Type, C_Type, RH_Call);
    end Make_Condition_Witness;
 
    --------------
