@@ -275,7 +275,7 @@ package body Instrument.Tree is
         & Name & "_Var'Address;";
 
    begin
-      Ensure_With_System (UIC);
+      Ensure_With (UIC, "system");
       Insert_Child
         (Inserter.Local_Decls, 1,
          Create_From_Template
@@ -2960,11 +2960,12 @@ package body Instrument.Tree is
                        With_N.F_Packages;
                   begin
                      if not With_N.F_Has_Limited then
-                        for Pkg in 1 .. With_P.Children_Count loop
-                           if To_Lower (Text (With_P.Child (Pkg))) = "system"
-                           then
-                              UIC.Has_With_System := True;
-                           end if;
+                        for J in 1 .. With_P.Children_Count loop
+                           UIC.Withed_Units.Include
+                             (With_P.Child (J)
+                              .As_Name
+                              .P_Referenced_Decl
+                              .P_Canonical_Fully_Qualified_Name);
                         end loop;
                      end if;
                   end;

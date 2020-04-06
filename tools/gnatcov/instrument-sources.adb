@@ -21,7 +21,6 @@ with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with GNATCOLL.Projects;       use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Langkit_Support.Text;    use Langkit_Support.Text;
 with Libadalang.Common;       use Libadalang.Common;
 
 with SCOs;
@@ -968,14 +967,14 @@ package body Instrument.Sources is
       Rewriter.Apply;
    end Instrument_Source_File;
 
-   ------------------------
-   -- Ensure_With_System --
-   ------------------------
+   -----------------
+   -- Ensure_With --
+   -----------------
 
-   procedure Ensure_With_System (UIC : in out Unit_Inst_Context) is
+   procedure Ensure_With (UIC : in out Unit_Inst_Context; Unit : Text_Type) is
       RH : Rewriting_Handle renames UIC.Rewriting_Context;
    begin
-      if UIC.Has_With_System then
+      if UIC.Withed_Units.Contains (Unit) then
          return;
       end if;
 
@@ -983,11 +982,11 @@ package body Instrument.Sources is
         (Handle (UIC.Root_Unit.F_Prelude),
          Create_From_Template
            (RH,
-            Template  => "with System;",
+            Template  => "with " & Unit & ";",
             Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
             Rule      => With_Clause_Rule));
 
-      UIC.Has_With_System := True;
-   end Ensure_With_System;
+      UIC.Withed_Units.Include (Unit);
+   end Ensure_With;
 
 end Instrument.Sources;

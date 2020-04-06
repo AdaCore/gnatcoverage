@@ -18,10 +18,13 @@
 
 --  Generate SCOs and source code instrumentation
 
+with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
+with Ada.Strings.Wide_Wide_Hash;
 
+with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
@@ -181,6 +184,12 @@ private package Instrument.Sources is
 
    type Any_MCDC_State_Inserter is access all Root_MCDC_State_Inserter'Class;
 
+   package FQN_Sets is
+     new Ada.Containers.Indefinite_Hashed_Sets
+       (Text_Type, Ada.Strings.Wide_Wide_Hash, "=");
+   --  Hashed set of fully qualified names (stored in normalized form:
+   --  lower case, period separated, fully qualified).
+
    type Unit_Inst_Context is record
       Instrumented_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit being instrumented
@@ -188,8 +197,8 @@ private package Instrument.Sources is
       Root_Unit : Compilation_Unit;
       --  Node of compilation unit
 
-      Has_With_System : Boolean := False;
-      --  Set True if Instrumented_Unit has a dependency on System
+      Withed_Units : FQN_Sets.Set;
+      --  Set of units for which we have WITH clauses
 
       Language_Version_Pragma : Unbounded_Wide_Wide_String;
       --  Language version configuration pragma for unit, if any
@@ -281,7 +290,9 @@ private package Instrument.Sources is
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));
 
-   procedure Ensure_With_System (UIC : in out Unit_Inst_Context);
-   --  Ensure that the unit being instrumented has a dependency on System
+   procedure Ensure_With (UIC : in out Unit_Inst_Context; Unit : Text_Type);
+   --  Ensure that the unit being instrumented has a dependency on the named
+   --  Unit, which must be specified in the normalized form expected for
+   --  FQN_Sets (lower case, period separated, fully qualified).
 
 end Instrument.Sources;
