@@ -21,6 +21,7 @@
 
 with Libadalang.Analysis; use Libadalang.Analysis;
 
+with Diagnostics;        use Diagnostics;
 with Instrument.Common;  use Instrument.Common;
 with Instrument.Sources; use Instrument.Sources;
 with Text_Files;
@@ -43,6 +44,16 @@ private package Instrument.Tree is
    --  is True if L is a list of preelaborable declarations (which do not
    --  allow elaboration code, so do not require any SCOs, and wouldn't allow
    --  insertion of witnesses).
+
+   -----------------
+   -- Diagnostics --
+   -----------------
+
+   procedure Report
+     (UIC  : Unit_Inst_Context;
+      Node : Ada_Node'Class;
+      Msg  : String;
+      Kind : Report_Kind := Error);
 
 private
 

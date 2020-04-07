@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Conversions; use Ada.Characters.Conversions;
+with Ada.Exceptions;
 
 with GNATCOLL.Projects;       use GNATCOLL.Projects;
 with GNATCOLL.VFS;
@@ -72,6 +73,12 @@ package body Instrument.Sources is
    --  coverage buffers for the given Main unit. Info must be the project that
    --  owns this main. Upon return, the name of this helper unit is stored in
    --  Helper_Unit.
+
+   function Expression_Type
+     (UIC : Unit_Inst_Context;
+      E   : Expr) return Base_Type_Decl;
+   --  Wrapper around E.P_Expression_Type, logging a warning and returning
+   --  Standard.Boolean if unable to determine the type.
 
    -------------------------------------
    -- Generation of witness fragments --
@@ -131,10 +138,18 @@ package body Instrument.Sources is
       return Node_Rewriting_Handle
    is
    begin
-      if From_Type = To_Type then
+      --  Guard against failure to type some expression, and return node
+      --  unchanged if no conversion is required.
+
+      if From_Type.Is_Null
+           or else
+         To_Type.Is_Null
+           or else
+         From_Type = To_Type
+      then
          return RH_N;
       else
-         if To_Type /= To_Type.P_Bool_Type then
+         if To_Type /= To_Type.P_Bool_Type.As_Base_Type_Decl then
             Ensure_With
               (IC,
                To_Type
@@ -195,7 +210,7 @@ package body Instrument.Sources is
            Rule      => Expr_Rule);
 
       D_Node : constant Expr := Node (Decision).As_Expr;
-      D_Type : constant Base_Type_Decl := D_Node.P_Expression_Type;
+      D_Type : constant Base_Type_Decl := Expression_Type (IC, D_Node);
       B_Type : constant Base_Type_Decl := D_Node.P_Bool_Type.As_Base_Type_Decl;
 
    begin
@@ -240,7 +255,7 @@ package body Instrument.Sources is
            Rule      => Expr_Rule);
 
       C_Node : constant Expr := Node (Condition).As_Expr;
-      C_Type : constant Base_Type_Decl := C_Node.P_Expression_Type;
+      C_Type : constant Base_Type_Decl := Expression_Type (IC, C_Node);
       B_Type : constant Base_Type_Decl := C_Node.P_Bool_Type.As_Base_Type_Decl;
 
    begin
@@ -567,6 +582,42 @@ package body Instrument.Sources is
          File.Close;
       end;
    end Emit_Dump_Helper_Unit;
+
+   ---------------------
+   -- Expression_Type --
+   ---------------------
+
+   function Expression_Type
+     (UIC : Unit_Inst_Context;
+      E   : Expr) return Base_Type_Decl
+   is
+      ET : Base_Type_Decl;
+   begin
+      begin
+         ET := E.P_Expression_Type;
+
+         if ET.Is_Null then
+            Report
+              (UIC, E,
+               "failed to determine expression type (got null type)",
+               Warning);
+         end if;
+
+      exception
+         when Exc : Property_Error =>
+            Report
+              (UIC, E,
+               "failed to determine expression type: "
+                 & Ada.Exceptions.Exception_Information (Exc),
+               Warning);
+      end;
+
+      if not ET.Is_Null then
+         return ET;
+      else
+         return E.P_Bool_Type.As_Base_Type_Decl;
+      end if;
+   end Expression_Type;
 
    ---------------------------
    -- Add_Auto_Dump_Buffers --

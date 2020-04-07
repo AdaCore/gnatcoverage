@@ -42,7 +42,6 @@ with Table;
 
 with ALI_Files;
 with Coverage;       use Coverage;
-with Diagnostics;    use Diagnostics;
 with SC_Obligations; use SC_Obligations;
 with Strings;        use Strings;
 with Types;          use Types;
@@ -153,16 +152,6 @@ package body Instrument.Tree is
      Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Params);
    I_Params_F_Params : constant Integer :=
      Index (Ada_Params, Params_F_Params);
-
-   -----------------
-   -- Diagnostics --
-   -----------------
-
-   procedure Report
-     (UIC  : Unit_Inst_Context;
-      Node : Ada_Node'Class;
-      Msg  : String;
-      Kind : Report_Kind := Diagnostics.Error);
 
    -------------------------------------
    -- Generation of witness fragments --
