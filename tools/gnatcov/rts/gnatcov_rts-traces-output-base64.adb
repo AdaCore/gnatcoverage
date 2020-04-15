@@ -57,7 +57,17 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    procedure Flush (Output : in out Base64_Buffer) is
       use Interfaces;
 
-      function "+" (Bits : Uint6) return Character is (Base64_Alphabet (Bits));
+      function "+" (Bits : Uint6) return Character;
+      --  Shortcut to get the ASCII representation of the given 6 bits
+
+      ---------
+      -- "+" --
+      ---------
+
+      function "+" (Bits : Uint6) return Character is
+      begin
+         return Base64_Alphabet (Bits);
+      end "+";
 
       --  Split In_Bytes (3 bytes = 24 bits) into 4 groups of 6 bits
 
