@@ -191,7 +191,7 @@ package body Rundrv.Config is
       Cmd    : constant String :=
          Bundled_Or_Plain (What => "valgrind", Where => "bin");
       Result : constant Command_Access := new Command_Type'
-        (Command => +Cmd, others => <>);
+        (Command => +Cmd, Native => True, others => <>);
    begin
       if not Verbose then
          Append_Arg (Result, "--quiet");
@@ -224,7 +224,7 @@ package body Rundrv.Config is
       Drclient : constant String :=
          Bundled_Or_Plain (What => "qtrace.dll", Where => "lib" & Bits);
       Result : constant Command_Access := new Command_Type'
-        (Command => +Drrun, others => <>);
+        (Command => +Drrun, Native => True, others => <>);
    begin
       --  -quiet silences the warnings emitted by DynamoRIO on the assumption
       --  that it is invoked from an official release install tree.
@@ -247,7 +247,9 @@ package body Rundrv.Config is
      (Context : Context_Type; Matches : Match_Array) return Command_Access
    is
       Result : constant Command_Access := new Command_Type'
-        (Command => +"../libexec/gnatcoverage/isys_drv", others => <>);
+        (Command => +"../libexec/gnatcoverage/isys_drv",
+         Native  => False,
+         others  => <>);
       System : constant String :=
         Context.Target_Family.all (Matches (1).First .. Matches (1).Last);
    begin
@@ -268,7 +270,9 @@ package body Rundrv.Config is
       pragma Unreferenced (Context);
 
       Result : constant Command_Access := new Command_Type'
-        (Command => +"", others => <>);
+        (Command => +"",
+         Native  => False,
+         others  => <>);
    begin
       return Result;
    end Prepare;
@@ -283,7 +287,9 @@ package body Rundrv.Config is
       pragma Unreferenced (Matches);
 
       Result : constant Command_Access := new Command_Type'
-        (Command => +"visium-elf-run", others => <>);
+        (Command => +"visium-elf-run",
+         Native  => False,
+         others  => <>);
    begin
       Append_Arg (Result, "--trace=" & Context.Trace_File.all);
       Append_Arg (Result, Context.Exe_File.all);
@@ -300,6 +306,7 @@ package body Rundrv.Config is
         (Context.Target_Family.all & "-gnatemu");
       Result  : Command_Access := new Command_Type;
    begin
+      Result.Native := False;
 
       if Gnatemu = null then
          Free (Result);

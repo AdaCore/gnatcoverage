@@ -190,6 +190,12 @@ class Test (object):
         # number of times it has been used in order to generate multiple logs.
         self.callgrind_count = 0
 
+        # By default, hide the warning that says that non-instrumented native
+        # coverage is deprecated, as it would make all tests fail. Testcases
+        # that check the presence of this warning can just remove this
+        # environment variable.
+        os.environ['GNATCOV_NO_NATIVE_WARNING'] = '1'
+
     def cleanup(self, project):
         """Cleanup possible remnants of previous builds."""
         Run([GPRCLEAN, "-P%s" % project] +
