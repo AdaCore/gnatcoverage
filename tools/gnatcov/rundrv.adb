@@ -18,6 +18,7 @@
 
 with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Directories;  use Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
@@ -27,6 +28,7 @@ with GNAT.OS_Lib;
 
 with Binary_Files;
 with Execs_Dbase;
+with Outputs;
 with Qemu_Traces;
 with Rundrv.Config; use Rundrv.Config;
 with Switches;      use Switches;
@@ -34,6 +36,20 @@ with Traces_Elf;
 with Traces_Files;  use Traces_Files;
 
 package body Rundrv is
+
+   package Env renames Ada.Environment_Variables;
+
+   Native_Warning : constant String :=
+      "Support for coverage of non-instrumented native programs is deprecated"
+      & " and will disappear after GNATcoverage 21 releases. You are"
+      & " encouraged to migrate to instrumentation-based coverage: you can"
+      & " read more about it in our documentation:"
+      & " <http://docs.adacore.com/gnatcoverage-docs/html/gnatcov.html>";
+   --  Warning to emit when running native programs
+
+   Native_Warning_Envvar : constant String := "GNATCOV_NO_NATIVE_WARNING";
+   --  Name of the environment variable to define in order to disable this
+   --  warning.
 
    --  Variables set by the command line.
 
@@ -110,6 +126,11 @@ package body Rundrv is
             Error ("No builtin or GNATemulator execution driver found for"
                    & " target: " & Context.Target_Family.all);
             return;
+
+         elsif Run_Cmd.Native
+               and then Env.Value (Native_Warning_Envvar, "") = ""
+         then
+            Outputs.Warn (Native_Warning);
          end if;
 
          --  And now create the trace file itself.

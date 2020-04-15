@@ -78,14 +78,17 @@ package Rundrv.Config is
       Equivalent_Keys => Ada.Strings.Unbounded."=");
 
    type Command_Type is record
-      Command     : Ada.Strings.Unbounded.Unbounded_String;
+      Command : Ada.Strings.Unbounded.Unbounded_String;
       --  Command to run or empty string if there is no command to run
 
-      Arguments   : String_Vectors.Vector;
+      Arguments : String_Vectors.Vector;
       --  Arguments to pass to this command
 
       Environment : String_Maps.Map;
       --  Environment variables to set for this command
+
+      Native : Boolean;
+      --  Whether this command will run a native program
    end record;
    --  Simple holder for a command to run
 
