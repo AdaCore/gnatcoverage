@@ -1217,7 +1217,7 @@ class TestSuite(object):
         # failures get visibility:
 
         if test.status != 'FAILED' and self.options.do_post_run_cleanups:
-            test.do_post_run_cleanups()
+            test.do_post_run_cleanups(ts_options=self.options)
 
         if self.options.qualif_level:
             test.latch_status()
@@ -1661,9 +1661,10 @@ class TestCase(object):
 
         return Run([handle_path, '/AcceptEULA', '-a', '-u', path]).out
 
-    def do_post_run_cleanups(self):
-        """Cleanup temporary artifacts from the testcase directory. Append
-        removal failure info to the test error log."""
+    def do_post_run_cleanups(self, ts_options):
+        """Cleanup temporary artifacts from the testcase directory.
+        Append removal failure info to the test error log. TS_OPTIONS
+        are the testsuite command line options."""
 
         comments = []
 
@@ -1673,25 +1674,83 @@ class TestCase(object):
         # these correctly can only be done from here. Doing the rest as well
         # is just simpler and more efficient.
 
+        # Beware that some artifacts need to be preserved for qualification
+        # runs. In particular, test execution logs and coverage reports which
+        # might reside in temporary directories.
+
+        # List of paths to filesystem entities we will want to remove, which
+        # may hold file or directory names (to be removed entirely):
+        cleanup_q = []
+
+        def cleanup_on_match(subdirs, prefixes, parent):
+            """
+            Helper for the filesystem walking code below, to facilitate the
+            processing of subdirectories. Queue for removal the subdirectories
+            of ``parent`` in ``subdirs`` which have a name starting with one
+            of the provided ``prefixes``, removing them from ``subdirs``.
+            """
+            to_clear = []
+            for sd in subdirs:
+                for prefix in prefixes:
+                    if sd.startswith(prefix):
+                        to_clear.append(sd)
+                        break
+            for sd in to_clear:
+                cleanup_q.append(os.path.join(parent, sd))
+                subdirs.remove(sd)
+
+        # Perform a filesystem walk to craft the list of items we
+        # can/should remove. Make it topdown so we can arrange not to
+        # recurse within subirectories we cleanup as a whole.
+        for dirpath, dirnames, filenames in (
+                os.walk(self.atestdir, topdown=True)):
+
+            # Nothing in "obj" dirs ever needs to be preserved
+            cleanup_on_match(
+                subdirs=dirnames, prefixes=['tmp', 'obj'],
+                parent=dirpath)
+
+            # We can also always get rid of all the pure binary artifacts,
+            # wherever they are produced. Files without extension, most often
+            # executables, are considered never of interest.
+            for fn in filenames:
+                if (fn.endswith('.trace')
+                      or fn.endswith('.obj')
+                      or fn.endswith('.o')
+                      or fn.endswith('.exe')
+                      or '.' not in fn):
+                    cleanup_q.append(os.path.join(dirpath, fn))
+
+            # Then for regular runs, we can remove test execution logs and the
+            # scov test temp dirs as a whole. We can't remove these dirs in
+            # qualification runs because they hold subcommand execution logs
+            # and coverage reports which need to be preserved in qualification
+            # packages.
+            if not ts_options.qualif_level:
+                for fn in filenames:
+                    if (fn == 'test.py.log'):
+                        cleanup_q.append(os.path.join(dirpath, fn))
+
+                cleanup_on_match(
+                    subdirs=dirnames,
+                    prefixes=['st_', 'dc_', 'mc_', 'uc_'],
+                    parent=dirpath)
+
         # Deal with occasional removal failures presumably caused by stray
         # handles. Expand glob patterns locally, issue separate rm requests
         # for distinct filesystem entries and turn exceptions from rm into
         # test failures.
+        for path in set(cleanup_q):
+            try:
+                rm(path, recursive=True)
+            except Exception:
+                handle_comment = self.__handle_info_for(path)
+                self.passed = False
+                self.status = 'RMFAILED'
 
-        for globp in ('tmp_*', 'st_*', 'dc_*', 'mc_*', 'uc_*', 'obj', 'obj_*',
-                      '[0-9]', '*.adb.*', 'test.py.log', '*.dump'):
-
-            for path in set(ls(os.path.join(self.atestdir, globp))):
-                try:
-                    rm(path, recursive=True)
-                except Exception:
-                    handle_comment = self.__handle_info_for(path)
-                    self.passed = False
-                    self.status = 'RMFAILED'
-
-                    comments.append(
-                        "Removal of %s failed\nHandle info follows:" % path)
-                    comments.append(handle_comment)
+                comments.append(
+                    "Removal of %s failed\nHandle info follows:" % path)
+                comments.append(handle_comment)
 
         with open(self.errf(), 'a') as f:
             f.write('\n'.join(comments))
