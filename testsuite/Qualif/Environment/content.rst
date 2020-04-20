@@ -26,12 +26,11 @@ matching process.
    :widths: 5, 30, 60
    :delim:  |
 
-   e1 | Host Operating System name and version | Windows XP
-   e2 | GNATcoverage executable name and version | gnatcov p.q.r
-   e3 | GNAT Pro compiler executable name and version | powerpc-elf-gcc a.b.c (stamp)
-   e4 | GNATemulator executable name and version | powerpc-elf-gnatemu x.y.t
-   s1 | GNAT Pro compilation switches | -g -fpreserve-control-flow -fdump-scos -gnat05
-   s2 | GNAT Pro Runtime Library Profile | --RTS=<qualification-rts-name>
+   e1 | Host Operating System name and version | Linux Redhat 7
+   e2 | GNATcoverage executable name and version | GNATcoverage 19.3 (20200318)
+   e3 | GNAT Pro compiler executable name and version | gcc (GCC) 7.3.1 20180924 (for GNAT Pro 19lts 20200331) [i686-pc-linux-gnu]
+   s1 | GNAT Pro compilation switches | -g -fpreserve-control-flow -fdump-scos -gnat12
+   s2 | GNAT Pro Runtime Library Profile | No --RTS switch expected. Programs shall honor the :ref:`language-scope` restrictions, nevertheless.
 
 For the GNAT Pro compilation switches, additional options which do not
 influence code generation are allowed. This may, for example, include options
@@ -68,6 +67,8 @@ installation.  For qualified use more specifically, the Tool User shall also
 conform to the rules described in the *Qualified Interface* section of the
 qualification |plans_doc| document.
 
+
+.. _language-scope:
 
 Language Version and Scope
 --------------------------
