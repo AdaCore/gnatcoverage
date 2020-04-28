@@ -60,6 +60,5 @@ GNATcoverage - |standard| Qualification Material: |tor_doc_title|
 .. qmlink:: ToplevelIndexImporter
 
    Index
-   Traceability_to_LRM
    Appendix
 

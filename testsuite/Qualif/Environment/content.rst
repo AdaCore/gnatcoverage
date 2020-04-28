@@ -72,11 +72,10 @@ qualification |plans_doc| document.
 Language Version and Scope
 --------------------------
 
-Except for the :ref:`lrm-traceability` chapter, the general contents
-of this document is not tailored for a particular version of the Ada
-language. The requirements and testcases sections might contain items
-matching up to Ada 2012 even if the intended qualified use is for an
-Ada 95 or Ada 2005 project.
+The general contents of this document is not tailored for a particular
+version of the Ada language. The requirements and testcases sections
+might contain items matching up to Ada 2012 even if the intended
+qualified use is for an Ada 95 or Ada 2005 project.
 
 Nevertheless, to make sure there is no ambiguity on the intended use of the
 tool for a given project:

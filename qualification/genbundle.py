@@ -1138,7 +1138,7 @@ def check_valid(options, args):
         "request to pull from current origin"
         )
 
-    # Now that we produce TOR/LRM traceability matrixes ...
+    # In case we produce TOR/LRM traceability matrixes ...
 
     exit_if (
         not options.languages,

@@ -63,10 +63,6 @@ Section |testproc_section_title_ref| of the |tor_doc| document
 provides more details on how Tests are composed, and in particular on how
 expected results are stated.
 
-Completeness of the TORs with respect to language features of relevance for
-the project is tracked through an LRM-to-TORs-and-Test-Cases traceability
-matrix provided as part of the |tor_doc| document.
-
 Additional TORs are introduced or existing TORs are adjusted on a case by case
 basis when the scope of possible uses of the tool widens somehow, most
 commonly when the set of source language constructs for which the tool needs
