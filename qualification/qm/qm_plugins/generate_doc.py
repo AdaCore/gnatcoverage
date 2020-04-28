@@ -36,7 +36,7 @@ def _generate(name, path, generator):
         if artifact.name == name:
             root = artifact
             break
-    if root == None:
+    if root is None:
         qm.log_error("Cannot find an artifact named " + name)
     else:
         full = os.path.abspath(path)
