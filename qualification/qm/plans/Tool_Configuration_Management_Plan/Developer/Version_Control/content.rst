@@ -18,7 +18,7 @@ controlled in AdaCore's configuration management system, in particular:
 Plans and documentation
 -----------------------
 
-All the documentation artefacts and the framework to generate documents are
+All the documentation artifacts and the framework to generate documents are
 also under Configuration Management Control, with distinct files for different
 sections or chapters of each document to permit fine grain automatic tracking.
 
