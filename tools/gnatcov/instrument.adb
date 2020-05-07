@@ -499,7 +499,7 @@ package body Instrument is
       --  Create a map from library units to lists of compilation units to
       --  instrument for them.
 
-      LU_Map            : Library_Unit_Maps.Map;
+      LU_Map          : Library_Unit_Maps.Map;
       Current_LU_Info : Library_Unit_Info_Access;
 
       Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
