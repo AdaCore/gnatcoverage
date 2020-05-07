@@ -2957,6 +2957,40 @@ package body Instrument.Tree is
       L               : Ada_Node_List;
       Process_Pragmas : Boolean)
    is
+      function Withed_Unit_Normalized_Name
+        (N : Libadalang.Analysis.Name)
+         return Text_Type;
+      --  Return the normalized name (see FQN_Sets) of N, a name for a withed
+      --  unit.
+
+      ---------------------------------
+      -- Withed_Unit_Normalized_Name --
+      ---------------------------------
+
+      function Withed_Unit_Normalized_Name
+        (N : Libadalang.Analysis.Name)
+         return Text_Type
+      is
+      begin
+         case N.Kind is
+            when Ada_Base_Id =>
+               return Canonicalize (N.Text).Symbol;
+
+            when Ada_Dotted_Name =>
+               declare
+                  DN : constant Dotted_Name := N.As_Dotted_Name;
+               begin
+                  return (Withed_Unit_Normalized_Name (DN.F_Prefix) & "."
+                          & Withed_Unit_Normalized_Name (DN.F_Suffix.As_Name));
+               end;
+
+            when others =>
+               raise Program_Error with "unreachable code";
+         end case;
+      end Withed_Unit_Normalized_Name;
+
+   --  Start of processing for Traverse_Context_Clause
+
    begin
       for J in 1 .. L.Children_Count loop
          declare
@@ -2987,10 +3021,8 @@ package body Instrument.Tree is
                      if not With_N.F_Has_Limited then
                         for J in 1 .. With_P.Children_Count loop
                            UIC.Withed_Units.Include
-                             (With_P.Child (J)
-                              .As_Name
-                              .P_Referenced_Decl
-                              .P_Canonical_Fully_Qualified_Name);
+                             (Withed_Unit_Normalized_Name
+                                (With_P.Child (J).As_Name));
                         end loop;
                      end if;
                   end;
