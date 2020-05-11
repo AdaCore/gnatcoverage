@@ -220,6 +220,8 @@ def project_settings():
 latex_preamble = project_settings() + r"""
 \RequirePackage{lastpage}
 
+\addtocontents{toc}{\protect\thispagestyle{mytoc}}
+
 % Arrange to have explicit notifications on pages
 % intentionally left blank
 \makeatletter
@@ -278,6 +280,14 @@ latex_preamble = project_settings() + r"""
   \fancypagestyle{normal}{
     \fancyhf{}
     \fancyfoot[LE,RO]{{\py@HeaderFamily\thepage\ of \pageref*{LastPage}}}
+    \fancyfoot[LO,RE]{{\py@HeaderFamily \QMFullDocumentName}}
+    \fancyhead[LE,RO]{{\py@HeaderFamily \@title\ \QMVersion}}
+    \renewcommand{\headrulewidth}{0.0pt}
+    \renewcommand{\footrulewidth}{0.4pt}
+  }
+  % Use \pagestyle{mytoc} as the pagestyle for Table Of Contents.
+  \fancypagestyle{mytoc}{
+    \fancyhf{}
     \fancyfoot[LO,RE]{{\py@HeaderFamily \QMFullDocumentName}}
     \fancyhead[LE,RO]{{\py@HeaderFamily \@title\ \QMVersion}}
     \renewcommand{\headrulewidth}{0.0pt}
