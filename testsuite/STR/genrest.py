@@ -974,14 +974,34 @@ class QDreport(object):
         if sepfile:
             self.rstf.close()
 
-    # -----------------
-    # -- gen_envinfo --
-    # -----------------
+    # -----------------------------
+    # -- gen_envinfo and helpers --
+    # -----------------------------
 
     def gen_suite_options(self):
 
         def literal(text):
             return ":literal:`" + text.strip() + "`"
+
+        def str_relevant_switches_from(switches_string):
+            """The list of individual pieces in `switches_string`
+            which are of relevance to this STR document.  These are
+            all the switches except --log-file and --old-res + their
+            argument, of interest to gaia only."""
+
+            result = []
+            skip = False
+            for sw in switches_string.split():
+                if skip:
+                    skip = False
+                    continue
+                elif sw in ('--log-file', '--old-res'):
+                    skip = True
+                    continue
+                else:
+                    result.append(sw)
+
+            return result
 
         def switches_with_eq_from(switches_string):
             """Return a <switch>: <value> dictionary of all the switches
@@ -1011,6 +1031,13 @@ class QDreport(object):
         suite_options = self.suitedata['options']
         suite_cmdline = self.suitedata['cmdline']
         csv_contents = []
+
+        # Filter from the command line switches which have no
+        # qualification context value per se and would display badly
+        # within the table.
+
+        suite_cmdline = ' '.join(
+            str_relevant_switches_from(suite_cmdline))
 
         csv_contents.append(
             {itemno: "N/A",
