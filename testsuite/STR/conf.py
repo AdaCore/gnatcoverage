@@ -220,6 +220,26 @@ def project_settings():
 latex_preamble = project_settings() + r"""
 \RequirePackage{lastpage}
 
+% Arrange to have explicit notifications on pages
+% intentionally left blank
+\makeatletter
+    \def\cleardoublepage{\clearpage%
+        \if@twoside
+            \ifodd\c@page\else
+                \vspace*{\fill}
+                \hfill
+                \begin{center}
+                \textit{This page intentionally left blank.}
+                \end{center}
+                \vspace{\fill}
+                \thispagestyle{empty}
+                \newpage
+                \if@twocolumn\hbox{}\newpage\fi
+            \fi
+        \fi
+    }
+\makeatother
+
 \makeatletter
 \renewcommand{\maketitle}{%
   \begin{titlepage}%
