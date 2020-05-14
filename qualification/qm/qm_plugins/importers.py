@@ -1034,135 +1034,118 @@ class TestCasesImporter(ArtifactImporter):
 
         return result
 
+    def tc_pdf_for(self, toplevel, subdirs, links):
+        """
+        String to emit in the PDF output for testcases (or sets)
+        found in the ``links`` list underneath the list of candidate
+        ``subdirs`` of the ``toplevel`` directory within the Qualif
+        tree (eg. toplevel='Ada', subdirs=['stmt', 'decision', 'mcdc']).
+
+        :param toplevel: Name of toplevel subdirectory within the
+            Qualif hierarchy, such as 'Ada' or 'Common'.
+        :type toplevel: string
+
+        :param subdirs: List of immediate subdirectories of ``toplevel``
+            where we should be searching for testcases, possiby through
+            intermediate sets. There may be no testcase in any of these.
+        :type subdirs: list[str]
+
+        :param links:  List of (artifact, importer) tuples for actual
+            tc_or_set artifacts to include in the document we're generating.
+        :type links: list[(artifact,importer)]
+        """
+
+        pdf_output = ''
+
+        for subdir in subdirs:
+            subdir_output = self.tc_pdf_for_subdir(
+                toplevel=toplevel, subdir=subdir, links=links)
+
+            if subdir_output:
+                if len(pdf_output) == 0:
+                    pdf_output += writer.section(
+                        '%s Testcases' % toplevel) + '\n'
+                else:
+                    pdf_output += writer.role(
+                        'raw-latex', r'\newpage') + '\n\n'
+
+                pdf_output += subdir_output
+
+        return pdf_output
+
+    def tc_pdf_for_subdir(self, toplevel, subdir, links):
+        """
+        Helper for tc_pdf_for, doing the work for a single subdir.
+        """
+
+        subdir_links = [
+            sdl for sdl in links
+            if sdl[0].full_name.startswith('/TOR/%s/%s' % (toplevel, subdir))]
+
+        if not subdir_links:
+            return ''
+
+        links_dict = OrderedDict()
+        for sdl in subdir_links:
+            main_desc, desc = self.short_descs_of_main_ancestors(sdl[0],
+                                                                 subdir)
+            if desc not in links_dict:
+                links_dict[desc] = []
+            links_dict[desc].append(sdl)
+
+        pdf_output = ''
+        pdf_output += writer.subsection('%s' % main_desc) + '\n'
+
+        for desc in links_dict.keys():
+            pdf_output += writer.subsubsection(desc) + '\n'
+            pdf_output += writer.toctree(
+                ['/%s/content' % artifact_hash(*l)
+                 for l in links_dict[desc]],
+                hidden=True)
+
+        return pdf_output
+
     def qmlink_to_rest(self, parent, artifacts):
-
-        items = []
-        for a in artifacts:
-            items += self.get_testcases(a)
-            items += self.get_sources(a)
-
-        links = []
-        for a in items:
-            if is_tc(a):
-                links.append((a, TestCaseImporter()))
-            elif is_source(a):
-                links.append((a, SourceCodeImporter()))
-            else:
-                links.append((a, default_importer(a)))
-
-        html_output = writer.toctree(['/%s/content' % artifact_hash(*l)
-                                      for l in links], hidden=True)
-
-        # We don't include the tests sources in the pdf version
-        pdf_output = writer.section('Ada Testcases') + '\n'
 
         # cleanup missingTRfile
         with open(MISSING_TR_LOG, 'w') as fd:
             fd.write("")
 
-        # stmt
-        links_stmt = [l for l in links
-                      if not is_source(l[0]) and "stmt" in l[0].full_name]
+        # Precompute sets of (artifact, importer) pairs of relevance
+        # to our outputs.
 
-        if links_stmt:
+        tc_or_set_links = []
+        src_links = []
+        for a in artifacts:
+            for suba in self.get_testcases(a) + self.get_sources(a):
+                if is_tc(suba):
+                    tc_or_set_links.append((suba, TestCaseImporter()))
+                elif is_tcset(suba):
+                    tc_or_set_links.append((suba, TCSetImporter()))
+                elif is_source(suba):
+                    src_links.append((suba, SourceCodeImporter()))
 
-            links_dict = OrderedDict()
+        mixed_links = src_links + tc_or_set_links
 
-            for l in links_stmt:
-                main_desc, desc = self.short_descs_of_main_ancestors(l[0],
-                                                                     "stmt")
+        # Build the html output
 
-                if desc not in links_dict:
-                    links_dict[desc] = []
+        html_output = writer.toctree(
+            ['/%s/content' % artifact_hash(*l)
+             for l in mixed_links], hidden=True)
 
-                links_dict[desc].append(l)
+        # Then the PDF variant. A bit more work as we need to output
+        # intermediate section titles ourselves and we don't want to
+        # include the sources there.
 
-            pdf_output += writer.subsection('%s' % main_desc) + '\n'
-
-            for desc in links_dict.keys():
-
-                pdf_output += writer.subsubsection(desc) + '\n'
-
-                pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                             for l in links_dict[desc]],
-                                             hidden=True)
-
-        # decision
-        links_dec = [l for l in links
-                     if not is_source(l[0]) and "decision" in l[0].full_name]
-
-        if links_dec:
-
-            links_dict = OrderedDict()
-
-            for l in links_dec:
-                main_desc, desc = self.short_descs_of_main_ancestors(l[0],
-                                                                     "decision"
-                                                                     )
-
-                if desc not in links_dict:
-                    links_dict[desc] = []
-
-                links_dict[desc].append(l)
-
-            pdf_output += writer.role('raw-latex', r'\newpage') + '\n\n'
-            pdf_output += writer.subsection('%s' % main_desc) + '\n\n'
-
-            for desc in links_dict.keys():
-
-                pdf_output += writer.subsubsection(desc) + '\n\n'
-
-                pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                             for l in links_dict[desc]],
-                                             hidden=True)
-
-        links_mcdc = [l for l in links
-                      if not is_source(l[0]) and "mcdc" in l[0].full_name]
-
-        if links_mcdc:
-
-            links_dict = OrderedDict()
-
-            for l in links_mcdc:
-                main_desc, desc = self.short_descs_of_main_ancestors(l[0],
-                                                                     "mcdc")
-
-                if desc not in links_dict:
-                    links_dict[desc] = []
-
-                links_dict[desc].append(l)
-
-            pdf_output += writer.role('raw-latex', r'\newpage') + '\n\n'
-            pdf_output += writer.subsection('%s' % main_desc) + '\n\n'
-
-            for desc in links_dict.keys():
-
-                pdf_output += writer.subsubsection(desc) + '\n\n'
-
-                pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                             for l in links_dict[desc]],
-                                             hidden=True)
-
-        links_rep = [l for l in links
-                     if not is_source(l[0]) and "Report" in l[0].full_name]
-
-        if links_rep:
-
-            for l in links_rep:
-                main_desc, desc = self.short_descs_of_main_ancestors(l[0],
-                                                                     "Report")
-                break
-
-            section = "Language-independent Testcases"
-
-            pdf_output += writer.section('%s' % section) + '\n\n'
-            pdf_output += writer.subsection('%s' % main_desc) + '\n\n'
-
-            pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                         for l in links_rep],
-                                         hidden=True)
+        pdf_output = ''
+        pdf_output += self.tc_pdf_for(
+            toplevel='Ada', subdirs=['stmt', 'decision', 'mcdc'],
+            links=tc_or_set_links)
+        pdf_output += self.tc_pdf_for(
+            toplevel='Common', subdirs=['Report'],
+            links=tc_or_set_links)
 
         output = writer.only(html_output, "html")
         output += writer.only(pdf_output, "latex")
 
-        return output, links
+        return output, mixed_links
