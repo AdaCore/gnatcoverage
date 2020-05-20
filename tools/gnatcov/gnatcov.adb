@@ -2366,14 +2366,40 @@ begin
             ---------
 
             procedure Run (Exe_File : String) is
-               Histmap : String_Access := null;
+               package OS renames GNAT.OS_Lib;
+               use type OS.File_Descriptor;
+
+               Dmap_FD       : OS.File_Descriptor := OS.Null_FD;
+               Dmap_Filename : OS.Temp_File_Name;
+               Success       : Boolean;
+               Histmap       : String_Access;
             begin
                if MCDC_Coverage_Enabled then
                   if Length (ALIs_Inputs) = 0 then
                      Warn ("No SCOs specified for MC/DC level.");
 
                   else
-                     Histmap := new String'(Exe_File & ".dmap");
+                     --  Create a temporary file to hold the decision map
+
+                     OS.Create_Temp_File (Dmap_FD, Dmap_Filename);
+                     if Dmap_FD = OS.Invalid_FD then
+                        Fatal_Error ("Cannot open a temporary file for the"
+                                     & "decision map");
+                     end if;
+                     OS.Close (Dmap_FD, Success);
+                     if not Success then
+                        Fatal_Error ("Cannot close the decision map temporary"
+                                     & " file: " & Dmap_Filename);
+                     end if;
+
+                     --  For some reason, Create_Temp_File leaves a NUL byte at
+                     --  the end of Dmap_Filename. We need to get rid of it.
+
+                     pragma Assert
+                       (Dmap_Filename (OS.Temp_File_Name'Last) = ASCII.NUL);
+                     Histmap := new String'
+                       (Dmap_Filename (1 ..  OS.Temp_File_Len - 1));
+
                      Load_All_ALIs (Check_SCOs => False);
                      Build_Decision_Map (Exe_File, Text_Start, Histmap.all);
                   end if;
@@ -2382,6 +2408,19 @@ begin
                Rundrv.Driver (Exe_File, Target_Family, Target_Board, Tag,
                               Output, Histmap, Kernel, Vector_To_List (Eargs),
                               SO_Inputs);
+
+               --  Now that we are done with the decision map file, make sure
+               --  we remove it to avoid polluting users' filesystems.
+
+               if Histmap /= null then
+                  OS.Delete_File (Histmap.all, Success);
+                  if not Success then
+                     Warn
+                       ("Could not delete the temporary decision map file: "
+                        & Histmap.all);
+                  end if;
+                  Free (Histmap);
+               end if;
             end Run;
          begin
             Inputs.Iterate (Exe_Inputs, Run'Access);
