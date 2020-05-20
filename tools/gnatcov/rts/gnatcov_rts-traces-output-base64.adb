@@ -1,4 +1,4 @@
---  This unit needs to be compilable with Ada 2005 compilers
+--  This unit needs to be compilable with Ada 95 compilers
 
 package body GNATcov_RTS.Traces.Output.Base64 is
 
@@ -126,7 +126,10 @@ package body GNATcov_RTS.Traces.Output.Base64 is
       User_Data    : String := "")
    is
       procedure Helper is new Generic_Write_Trace_File (Base64_Buffer);
-      Buffer : Base64_Buffer := (others => <>);
+      Buffer : Base64_Buffer :=
+        (Bytes   => (others => 0),
+         Next    => 1,
+         Columns => 0);
    begin
       Ada.Text_IO.New_Line;
       Ada.Text_IO.Put_Line ("== GNATcoverage source trace file ==");

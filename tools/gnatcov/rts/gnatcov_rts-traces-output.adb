@@ -1,4 +1,4 @@
---  This unit needs to be compilable with Ada 2005 compilers
+--  This unit needs to be compilable with Ada 95 compilers
 
 with Interfaces;
 
