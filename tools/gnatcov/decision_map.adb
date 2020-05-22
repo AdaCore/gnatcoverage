@@ -1574,10 +1574,23 @@ package body Decision_Map is
          Edge           : Edge_Kind)
       is
          use Known_Destination_Maps;
+
+         CBE_Dest : Dest;
+
          CBE : Cond_Edge_Info renames CBI.Edges (Edge);
-         Cur : constant Cursor := Known_Destinations.Find (CBE.Destination);
+         Cur : Cursor;
+         BB  : Basic_Block;
+
       begin
-         if CBE.Origin = Unknown then
+         if CBE.Origin /= Unknown then
+            return;
+         end if;
+
+         CBE_Dest := CBE.Destination;
+
+         loop
+            Cur := Known_Destinations.Find (CBE_Dest);
+            BB := Find_Basic_Block (Ctx.Basic_Blocks, CBE_Dest.Target);
 
             --  First look for an edge that has the same destination
 
@@ -1589,70 +1602,81 @@ package body Decision_Map is
 
                   pragma Assert
                     (CBE.Dest_Kind = Unknown
-                        or else
+                     or else
                      CBE.Dest_Kind = Other_CBE.Dest_Kind);
 
                   CBE.Dest_Kind      := Other_CBE.Dest_Kind;
                   CBE.Outcome        := Other_CBE.Outcome;
                   CBE.Next_Condition := Other_CBE.Next_Condition;
                end;
+               exit;
+
+            --  If edge is not found but branches immediately to a further
+            --  unconditional jump, then follow that jump.
+
+            elsif BB.Branch = Br_Jmp
+              and then BB.From = BB.To_PC
+              and then not BB.Cond
+            then
+               CBE_Dest := BB.Branch_Dest;
+
+            else
+               exit;
             end if;
+         end loop;
 
-            --  Test whether to enable an additional heuristic for control-flow
-            --  topologies thare are specific to the use of stack manipulation
-            --  x87-FPU instructions (applies only for x86)...
+         --  Test whether to enable an additional heuristic for control-flow
+         --  topologies thare are specific to the use of stack manipulation
+         --  x87-FPU instructions (applies only for x86)...
 
-            if Get_Machine (Exe.all) /= Elf_Common.EM_386 then
+         if Get_Machine (Exe.all) /= Elf_Common.EM_386 then
+            return;
+         end if;
+
+         --  ...and it is used to label only edges that target a basic block
+         --  which starts with a x87-FPU instruction.
+
+         declare
+            Sec      : constant Address_Info_Acc := Get_Address_Info
+              (Exe.all, Section_Addresses, BB.From);
+            Buffer   : Highlighting.Buffer_Type (1);
+            Line_Len : Natural;
+         begin
+            Disa_For_Machine (Machine, Default).Disassemble_Insn
+              (Slice (Sec.Section_Content, BB.From, BB.To),
+               BB.From,
+               Buffer,
+               Line_Len,
+               Disa_Symbolize.Nul_Symbolizer);
+
+            --  x87-FPU instructions mnemonics are those starting with "f"
+
+            if Buffer.Get_Raw /= "f" then
                return;
             end if;
+         end;
 
-            --  ...and it is used to label only edges that target a basic block
-            --  which starts with a x87-FPU instruction.
+         --  Here, for the case of x87-FPU instructions only (see above): if
+         --  we still have an unqualified outcome, try to qualify it from
+         --  another edge branching somewhere before in the same basic
+         --  block.
 
+         if CBE.Dest_Kind = Outcome and then CBE.Outcome = Unknown then
             declare
-               BB       : constant Basic_Block := Find_Basic_Block
-                 (Ctx.Basic_Blocks, CBE.Destination.Target);
-               Sec      : constant Address_Info_Acc := Get_Address_Info
-                 (Exe.all, Section_Addresses, BB.From);
-               Buffer   : Highlighting.Buffer_Type (1);
-               Line_Len : Natural;
+               Opposite_Edge : constant Edge_Kind :=
+                 Edge_Kind'Val (1 - Edge_Kind'Pos (Edge));
+               CBE_Outcome : constant Tristate := Label_From_BB
+                 (Cond_Branch_PC, CBI, Edge);
+               Opposite_Outcome : constant Tristate := Label_From_BB
+                 (Cond_Branch_PC, CBI, Opposite_Edge);
             begin
-               Disa_For_Machine (Machine, Default).Disassemble_Insn
-                 (Slice (Sec.Section_Content, BB.From, BB.To),
-                  BB.From,
-                  Buffer,
-                  Line_Len,
-                  Disa_Symbolize.Nul_Symbolizer);
+               --  Accept the estimated outcome value only if the opposite
+               --  one is different.
 
-               --  x87-FPU instructions mnemonics are those starting with "f"
-
-               if Buffer.Get_Raw /= "f" then
-                  return;
+               if CBE_Outcome /= Opposite_Outcome then
+                  CBE.Outcome := CBE_Outcome;
                end if;
             end;
-
-            --  Here, for the case of x87-FPU instructions only (see above): if
-            --  we still have an unqualified outcome, try to qualify it from
-            --  another edge branching somewhere before in the same basic
-            --  block.
-
-            if CBE.Dest_Kind = Outcome and then CBE.Outcome = Unknown then
-               declare
-                  Opposite_Edge : constant Edge_Kind :=
-                     Edge_Kind'Val (1 - Edge_Kind'Pos (Edge));
-                  CBE_Outcome : constant Tristate := Label_From_BB
-                    (Cond_Branch_PC, CBI, Edge);
-                  Opposite_Outcome : constant Tristate := Label_From_BB
-                    (Cond_Branch_PC, CBI, Opposite_Edge);
-               begin
-                  --  Accept the estimated outcome value only if the opposite
-                  --  one is different.
-
-                  if CBE_Outcome /= Opposite_Outcome then
-                     CBE.Outcome := CBE_Outcome;
-                  end if;
-               end;
-            end if;
          end if;
       end Label_From_Other;
 
