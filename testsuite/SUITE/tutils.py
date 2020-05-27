@@ -334,11 +334,6 @@ def srctracename_for(pgmname):
     return exename_for(pgmname) + ".srctrace"
 
 
-def dmapname_for(pgmname):
-    """Decision map name"""
-    return exename_for(pgmname) + ".dmap"
-
-
 def ckptname_for(pgmname):
     """Coverage checkpoint name"""
     return exename_for(pgmname) + ".ckpt"
