@@ -1271,7 +1271,7 @@ class SCOV_helper_src_traces(SCOV_helper):
                 root_project=self.gpr,
                 projects=projects,
                 units=self.covctl.gprsw.units,
-                recursive=self.covctl.gprsw.recursive)
+                no_subprojects=self.covctl.gprsw.no_subprojects)
         else:
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 

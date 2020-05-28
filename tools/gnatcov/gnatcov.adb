@@ -542,7 +542,7 @@ procedure GNATcov is
          Project.Add_Project (+Arg);
       end loop;
 
-      Switches.Recursive_Projects := Args.Bool_Args (Opt_Recursive);
+      Switches.Recursive_Projects := not Args.Bool_Args (Opt_No_Subprojects);
       Copy_Arg_List (Opt_Units, Units_Inputs);
 
       --  All -X command line switches have now been processed: initialize the
@@ -677,6 +677,11 @@ procedure GNATcov is
       Keep_Edges             := Args.Bool_Args (Opt_Keep_Edges);
       Pretty_Print           := Args.Bool_Args (Opt_Pretty_Print);
       Keep_Reading_Traces    := Args.Bool_Args (Opt_Keep_Reading_Traces);
+
+      if Args.Bool_Args (Opt_Recursive) then
+         Warn ("--recursive is deprecated. Recursive is now the default"
+               & " behavior.");
+      end if;
 
       Load_Target_Option (Default_Target => True);
       Copy_Arg (Opt_Runtime, Runtime);

@@ -69,6 +69,7 @@ package Command_Line is
    type Bool_Options is
      (Opt_Verbose,
       Opt_Recursive,
+      Opt_No_Subprojects,
       Opt_All_Decisions,
       Opt_All_Messages,
       Opt_Include,
@@ -317,9 +318,19 @@ package Command_Line is
          Internal  => True),
       Opt_Recursive => Create
         (Long_Name  => "--recursive",
-         Help       => ("In addition to those designated by -P/--projects,"
-                        & " consider units from any transitively imported"
-                        & " project."),
+         Help       => ("DEPRECATED: In addition to those designated by"
+                        & " -P/--projects, consider units from any"
+                        & " transitively imported project."),
+         Commands   => (Cmd_Run | Cmd_Coverage | Cmd_Instrument
+                           | Cmd_Dump_CFG => True,
+                        others => False),
+         Internal   => False),
+      Opt_No_Subprojects => Create
+        (Long_Name  => "--no-subprojects",
+         Help       => ("Consider only units designated by the project"
+                        & " designated by -P/--projects. Units from any"
+                        & " transitively imported projects are not"
+                        & " considered."),
          Commands   => (Cmd_Run | Cmd_Coverage | Cmd_Instrument
                            | Cmd_Dump_CFG => True,
                         others => False),

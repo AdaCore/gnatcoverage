@@ -138,20 +138,21 @@ class GPRswitches:
                  root_project,
                  projects=None,
                  units=None,
-                 recursive=False):
+                 no_subprojects=False):
         """
         :param str root_project: Root project to consider (-P argument).
         :param list[str] projects: Optional list of projects for units of
            interest (--project argument).
         :param list[str] units: Optional list of names of units of interest
            (--units argument).
-        :param bool recursive: Whether to process closures of project
-           dependencies (not done by default, --recursive option).
+        :param bool no_subprojects: Whether to process only projects specified
+            through -P/--projects (--no-subprojects option). Otherwise, process
+            closures of project dependencies.
         """
         self.root_project = root_project
         self.projects = projects or []
         self.units = units or []
-        self.recursive = recursive
+        self.no_subprojects = no_subprojects
 
     @property
     def as_strings(self):
@@ -167,7 +168,7 @@ class GPRswitches:
         for u in self.units:
             switches.append('--units={}'.format(u))
 
-        if self.recursive:
-            switches.append('--recursive')
+        if self.no_subprojects:
+            switches.append('--no-subprojects')
 
         return switches
