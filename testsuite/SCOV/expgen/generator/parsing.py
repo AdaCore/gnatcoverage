@@ -67,11 +67,9 @@ def parse_topology(topo_dir, driver, line_no, tokens):
         elif tokens[i] == '(':
             result, i = parse_or(i + 1)
             if i >= len(tokens):
-                raise error(
-                    'expected ")" but found end of line'.format(tokens[i]))
+                raise error('expected ")" but found end of line')
             elif tokens[i] != ')':
-                raise error(
-                    'expected ")" but found {}'.format(tokens[i]))
+                raise error('expected ")" but found {}'.format(tokens[i]))
             return (result, i + 1)
         else:
             raise error(

@@ -136,35 +136,36 @@
 # Annotations lower than strictNote won't trigger an unexpected annotation
 # failure if they appear in a place where they are not explicitly expected.
 
-lNoCode, lFullCov, \
-strictNote, \
-r0, r0c, lx0, lx1, \
-deviationNote, \
-lNoCov, lPartCov, lNotCoverable, \
-sNoCov, sPartCov, sNotCoverable, \
-dtAlways, dfAlways, \
-dtNoCov, dfNoCov, dNoCov, dPartCov, \
-etNoCov, efNoCov, eNoCov, ePartCov, \
-otNoCov, ofNoCov, oNoCov, oPartCov, \
-cPartCov, \
-blockNote, \
-xBlock0, xBlock1 = range(32)
+(lNoCode, lFullCov,
+ strictNote,
+ r0, r0c, lx0, lx1,
+ deviationNote,
+ lNoCov, lPartCov, lNotCoverable,
+ sNoCov, sPartCov, sNotCoverable,
+ dtAlways, dfAlways,
+ dtNoCov, dfNoCov, dNoCov, dPartCov,
+ etNoCov, efNoCov, eNoCov, ePartCov,
+ otNoCov, ofNoCov, oNoCov, oPartCov,
+ cPartCov,
+ blockNote,
+ xBlock0, xBlock1) = range(32)
 
-NK_image  = {None: "None",
-             lNoCode: "lNoCode", lNotCoverable: "lNotCoverable",
-             lFullCov: "lFullCov", lNoCov: "lNoCov", lPartCov: "lPartCov",
-             r0 : "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1",
-             sNoCov: "sNoCov", sPartCov: "sPartCov",
-             sNotCoverable: "sNotCoverable",
-             dtAlways: "dtAlways", dfAlways: "dfAlways",
-             dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
-             dPartCov: "dPartCov",
-             etNoCov: "etNoCov", efNoCov: "efNoCov", eNoCov: "eNoCov",
-             ePartCov: "ePartCov",
-             otNoCov: "otNoCov", ofNoCov: "ofNoCov", oNoCov: "oNoCov",
-             oPartCov: "oPartCov",
-             xBlock0: "xBlock0", xBlock1: "xBlock1",
-             cPartCov: "cPartCov"}
+NK_image = {None: "None",
+            lNoCode: "lNoCode", lNotCoverable: "lNotCoverable",
+            lFullCov: "lFullCov", lNoCov: "lNoCov", lPartCov: "lPartCov",
+            r0: "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1",
+            sNoCov: "sNoCov", sPartCov: "sPartCov",
+            sNotCoverable: "sNotCoverable",
+            dtAlways: "dtAlways", dfAlways: "dfAlways",
+            dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
+            dPartCov: "dPartCov",
+            etNoCov: "etNoCov", efNoCov: "efNoCov", eNoCov: "eNoCov",
+            ePartCov: "ePartCov",
+            otNoCov: "otNoCov", ofNoCov: "ofNoCov", oNoCov: "oNoCov",
+            oPartCov: "oPartCov",
+            xBlock0: "xBlock0", xBlock1: "xBlock1",
+            cPartCov: "cPartCov"}
+
 
 # ===============================
 # == Useful sets of note kinds ==
@@ -179,20 +180,23 @@ xlNoteKinds = elNoteKinds
 # Report notes (=report), which feature anti-expectations that
 # explicitely state expection of absence of emitted notes
 
-sNoteKinds = ( # SC indications
-    sNoCov, sPartCov, sNotCoverable)
+# SC indications
+sNoteKinds = (sNoCov, sPartCov, sNotCoverable)
 
-dNoteKinds = ( # DC indications
-    dtNoCov, dfNoCov, dPartCov, dNoCov, dtAlways, dfAlways)
+# DC indications
+dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov, dtAlways, dfAlways)
 
-cNoteKinds = ( # MCDC violations
-    etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov)
+# MCDC violations
+cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov)
 
-xNoteKinds = (xBlock0, xBlock1)                     # Exemption regions
+# Exemption regions
+xNoteKinds = (xBlock0, xBlock1)
 
-rAntiKinds = (r0, r0c)                              # Anti-expectations
+# Anti-expectations
+rAntiKinds = (r0, r0c)
 
-tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)   # Transient kinds
+# Transient kinds
+tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)
 
 # Even though they are expected never to be emitted, we include the transient
 # kinds in the Emitted Report Notes set because we do want to handle them as
@@ -201,74 +205,77 @@ tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)   # Transient kinds
 erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds+tNoteKinds
 xrNoteKinds = erNoteKinds+rAntiKinds
 
+
 # ==========================
 # == Note Kind Predicates ==
 # ==========================
 
-# DEVIATION notes are those representing violations of a coverage mandate
-# associated with a general criterion.
-
 def deviation_p(nkind):
+    """
+    DEVIATION notes are those representing violations of a coverage mandate
+    associated with a general criterion.
+    """
     return nkind > deviationNote and nkind < blockNote
 
-# POSITIVE notes are those representing a positive statement about a
-# coverage mandate, only present in =xcov outputs.
 
 def positive_p(nkind):
+    """
+    POSITIVE notes are those representing a positive statement about a coverage
+    mandate, only present in =xcov outputs.
+    """
     return nkind == lFullCov
 
-# BLOCK notes are those emitted as a single note for a block of code in
-# =report outputs,
 
 def block_p(nkind):
+    """
+    BLOCK notes are those emitted as a single note for a block of code in
+    =report outputs,
+    """
     return nkind > blockNote
 
-# STRICT notes are those for which an exact match between reports and
-# expectations is required: an expected note should be reported (errout
-# otherwise, unless the expectation is explicitely tagged weak), and a
-# reported note should be expected (errout otherwise).
-
-# !STRICT notes should also be reported when expected (or err unless weak
-# expectation), but trigger no err when reported eventhough not expected.
 
 def strict_p(nkind):
+    """
+    STRICT notes are those for which an exact match between reports and
+    expectations is required: an expected note should be reported (errout
+    otherwise, unless the expectation is explicitely tagged weak), and a
+    reported note should be expected (errout otherwise).
+
+    !STRICT notes should also be reported when expected (or err unless weak
+    expectation), but trigger no err when reported eventhough not expected.
+    """
     return nkind > strictNote
 
-# ANTI expectations are those that explicitly state that we expect absence
-# of emitted indications
 
 def anti_p(nkind):
+    """
+    ANTI expectations are those that explicitly state that we expect absence of
+    emitted indications.
+    """
     return nkind in rAntiKinds
+
 
 # ===========================
 # == Coverage Note Classes ==
 # ===========================
 
-# -----------
-# -- Block --
-# -----------
-
-# Almost empty class that helps materialize source regions to which expected
-# coverage note instances belong. Instanciated while reading sources when
-# expected note patterns are processed. Our purpose is only to associate notes
-# with regions, for which an object id is enough + a parent link to represent
-# nesting trees.
-
 class Block:
+    """
+    Source regions to which expected coverage note instances belong.
+
+    Instanciated while reading sources when expected note patterns are
+    processed. Our purpose is only to associate notes with regions, for which
+    an object id is enough + a parent link to represent nesting trees.
+    """
     def __init__(self, parent):
         self.parent = parent
 
-# -----------
-# -- Cnote --
-# -----------
-
-# Some precise coverage note, either expected or reported:
 
 class Cnote:
+    """Some precise coverage note, either expected or reported."""
+
     def __init__(self, kind):
-
-        # Kind of note, line segment and report section id.
-
+        # Kind of note, line segment and report section id
         self.kind = kind
         self.segment = None
 
@@ -280,28 +287,24 @@ class Cnote:
         # In addition, any note might have an associated "separation tag" to
         # provide finer grained diagnostics in presence of inlining or generic
         # instances.
-
         self.stag = None
 
-    def image (self):
-        return (
-            "%s%s mark at %s" % (
-                NK_image[self.kind],
-                "(from %s)" % self.stag.text if self.stag else "",
-                str(self.segment))
-            )
+    def image(self):
+        return "%s%s mark at %s" % (
+            NK_image[self.kind],
+            "(from %s)" % self.stag.text if self.stag else "",
+            self.segment
+        )
 
-# -----------
-# -- Xnote --
-# -----------
 
-# Expected note, as instanciated by an expectation pattern over a real
-# source line:
-
-class Xnote (Cnote):
+class Xnote(Cnote):
+    """
+    Expected note, as instanciated by an expectation pattern over a real source
+    line.
+    """
 
     def __init__(self, xnp, block, kind):
-        Cnote.__init__ (self, kind)
+        Cnote.__init__(self, kind)
         self.weak = xnp.weak
         self.block = block
 
@@ -312,29 +315,25 @@ class Xnote (Cnote):
         self.discharger = None  # The Enote that discharged this
 
     def register_match(self, segment):
-        """Register that this instance matched SEGMENT for a source line.
-        Increase the number of such matches and remember only the last."""
-
+        """
+        Register that this instance matched SEGMENT for a source line.
+        Increase the number of such matches and remember only the last.
+        """
         self.nmatches += 1
         self.segment = segment
 
     def satisfied(self):
         """Tell whether this [anti-]expectation is satisfied at this point."""
-
         if anti_p(self.kind):
-            return self.discharger == None
+            return self.discharger is None
         else:
-            return self.discharger != None
+            return self.discharger is not None
 
-# -----------
-# -- Enote --
-# -----------
-
-# Emitted note, as extracted from an xcov report:
 
 class Enote(Cnote):
-    def __init__(self, kind, segment, source, stag=None):
+    """Emitted note, as extracted from an xcov report."""
 
+    def __init__(self, kind, segment, source, stag=None):
         self.kind = kind        # The kind of emitted note
         self.segment = segment  # The line segment it designates
         self.source = source    # The corresponding source name
@@ -342,17 +341,12 @@ class Enote(Cnote):
 
         self.discharges = None  # The Xnote it discharges
 
-# ---------------
-# -- KnoteDict --
-# ---------------
-
-# Dictionary of coverage notes indexed by note kind:
 
 class KnoteDict(dict):
+    """Dictionary of coverage notes indexed by note kind."""
+
     def __init__(self, possible_keys):
         self.update((key, []) for key in possible_keys)
 
     def register(self, note):
-        self[note.kind].append (note)
-
-
+        self[note.kind].append(note)

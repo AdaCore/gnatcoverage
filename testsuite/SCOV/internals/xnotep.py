@@ -1,75 +1,85 @@
-# ***************************************************************************
-# **                          EXPECTED NOTE PATTERNS                       **
-# ***************************************************************************
+"""
+EXPECTED NOTE PATTERNS
 
-# Expectation pattern, materializing the user level representation of a note
-# expectation in drivers (text like "l+"). These get instanciated into a set
-# of actual expected indications for precise segments when the line regular
-# expressions are matched.
+Expectation pattern, materializing the user level representation of a note
+expectation in drivers (text like "l+"). These get instanciated into a set of
+actual expected indications for precise segments when the line regular
+expressions are matched.
 
-# This depends on the thittest instance.
+This depends on the thittest instance.
+"""
 
-# ***************************************************************************
+import re
 
+from .cnotes import (
+    Xnote, block_p, cPartCov, dNoCov, dPartCov, dfAlways, dfNoCov, dtAlways,
+    dtNoCov, ePartCov, eNoCov, efNoCov, etNoCov, lFullCov, lNoCode, lNoCov,
+    lNotCoverable, lPartCov, lx0, lx1, oNoCov, oPartCov, ofNoCov, otNoCov, r0,
+    r0c, sNoCov, sNotCoverable, sPartCov, xBlock0, xBlock1, xNoteKinds
+)
+from .segments import Line, Section, Segment
+from .stags import Stag_from
 from SUITE.context import thistest
+from SUITE.cutils import FatalError
 
-from SUITE.cutils import lines_of, FatalError
-
-from . stags import Stag_from
-
-from . cnotes import *
-from . segments import *
-from . tfiles import Tfile
 
 # Different kind of expectations instanciate differently on a given source
 # line. We introduce specialized note factories for this purpose:
 
-# Block notes are relevant for a general section. Eventhough the block is
-# matched line by line, we need to materialize a single note for the whole
-# block.
 
 class _XnoteP_block:
+    """
+    Block notes are relevant for a general section. Eventhough the block is
+    matched line by line, we need to materialize a single note for the whole
+    block.
+    """
 
     def __init__(self, notep):
-        self.notep  = notep
-        self.lastni = None    # The last note instance we returned
+        self.notep = notep
+
+        # The last note instance we returned
+        self.lastni = None
 
     def instanciate_over(self, tline, block, kind):
 
         # We create a single instance the first time around, then expand the
         # section over subsequence matches.
-
         if self.lastni:
             thisni = None
-            self.lastni.segment.sp1.l = tline.lno
+            self.lastni.segment.sp1.lineno = tline.lno
 
         else:
-            thisni = Xnote (xnp=self.notep, block=block, kind=kind)
-            thisni.register_match (Section(
-                    l0 = tline.lno, c0 = 0, l1 = tline.lno, c1 = 0))
+            thisni = Xnote(xnp=self.notep, block=block, kind=kind)
+            thisni.register_match(
+                Section(l0=tline.lno, c0=0, l1=tline.lno, c1=0))
 
-        if thisni: self.lastni = thisni
+        if thisni:
+            self.lastni = thisni
         return thisni
 
-# !block notes without a specific segment text are relevant to entire lines
 
 class _XnoteP_line:
+    """
+    !block notes without a specific segment text are relevant to entire lines.
+    """
 
     def __init__(self, notep):
         self.notep = notep
 
     def instanciate_over(self, tline, block, kind):
 
-        thisni = Xnote (xnp=self.notep, block=block, kind=kind)
-        thisni.register_match (Line(tline.lno))
+        thisni = Xnote(xnp=self.notep, block=block, kind=kind)
+        thisni.register_match(Line(tline.lno))
 
         return thisni
 
-# !block notes with a specific segment subtext are relevant to that segment:
-# we'll expect a reported note to designate a point within that subtext (most
-# often, the beginning of it)
 
 class _XnoteP_segment:
+    """
+    !block notes with a specific segment subtext are relevant to that segment:
+    we'll expect a reported note to designate a point within that subtext (most
+    often, the beginning of it).
+    """
 
     def __init__(self, notep, stext):
         self.notep = notep
@@ -79,22 +89,23 @@ class _XnoteP_segment:
     # subtext of the form "(bla*)" designates the entire operand, outer parens
     # included.
 
-    # Compute the extended segment end for a provided BM (base match) object,
-    # matching the base specified subtext in TLINE, opening paren included and
-    # up to the '*' character.
-
     def __extended_segend_for(self, tline, bm):
+        """
+        Compute the extended segment end for a provided BM (base match) object,
+        xmatching the base specified subtext in TLINE, opening paren included
+        and xup to the '*' character.
+        """
 
         # Start with the end of the base match. Operate in string index units
         # first:
 
-        segend = bm.end()-1
+        segend = bm.end() - 1
 
         # Fetch characters up to the first closing paren that is not
         # closing an inner one. Guard against the case where this paren is
         # not on the line.
 
-        linend = len(tline.text)-1
+        linend = len(tline.text) - 1
         pnest = 0
 
         while segend <= linend and pnest >= 0:
@@ -113,43 +124,43 @@ class _XnoteP_segment:
 
     def instanciate_over(self, tline, block, kind):
 
-        thisni = Xnote (xnp=self.notep, block=block, kind=kind)
+        thisni = Xnote(xnp=self.notep, block=block, kind=kind)
 
         # Register matches for Segments corresponding to all the instances of
         # the subtext we find, possibly extended.  Error out if too few or too
         # many.
 
         # Compute a base subtext to start from and whether we should extend or
-        # not. If we should, include the opening paren as part of the base, escaped
-        # as we're going to use RE services to test for multiple occurrences.
+        # not. If we should, include the opening paren as part of the base,
+        # escaped as we're going to use RE services to test for multiple
+        # occurrences.
 
-        if self.stext.startswith ('(') and self.stext.endswith ('*)'):
-            base = '\\'+self.stext[0:-2]
+        if self.stext.startswith('(') and self.stext.endswith('*)'):
+            base = '\\' + self.stext[0:-2]
             extend = True
         else:
             base = self.stext
             extend = False
 
-        [thisni.register_match (
-                Segment (
-                    tline.lno, bm.start()+1,
-                    self.__extended_segend_for (bm = bm, tline = tline)
-                    if extend else bm.end()
-                    )
-                )
-         for bm in re.finditer (pattern=base, string=tline.text)]
+        for bm in re.finditer(pattern=base, string=tline.text):
+            thisni.register_match(
+                Segment(
+                    tline.lno, bm.start() + 1,
+                    self.__extended_segend_for(bm=bm, tline=tline)
+                    if extend else bm.end()))
 
-        thistest.stop_if (
-            thisni.nmatches == 0, FatalError (
-                "couldn't find subtext '%s' in line '%s'"
-                % (self.stext, tline.text)))
+        thistest.stop_if(
+            thisni.nmatches == 0,
+            FatalError("couldn't find subtext '%s' in line '%s'"
+                       % (self.stext, tline.text)))
 
-        thistest.stop_if (
-            thisni.nmatches > 1, FatalError (
-                "multiple matches of subtext '%s' in line '%s'"
-                % (self.stext, tline.text)))
+        thistest.stop_if(
+            thisni.nmatches > 1,
+            FatalError("multiple matches of subtext '%s' in line '%s'"
+                       % (self.stext, tline.text)))
 
         return thisni
+
 
 class XnoteP:
 
@@ -172,7 +183,8 @@ class XnoteP:
         # emitted note.
 
         self.weak = text[0] == '~'
-        if self.weak: text = text[1:]
+        if self.weak:
+            text = text[1:]
 
         # KIND is the kind of note this expectation stands for
 
@@ -196,9 +208,9 @@ class XnoteP:
         # We could require and use stext to store expected justification text
         # for exemptions. We don't handle that as of today.
 
-        thistest.stop_if (
-            False and self.stext == None and self.kind in xNoteKinds,
-            FatalError ("expected justification text required for %s" % text))
+        thistest.stop_if(
+            False and self.stext is None and self.kind in xNoteKinds,
+            FatalError("expected justification text required for %s" % text))
 
         # STAG is the separation tag that we must find on an emitted note to
         # discharge expectations produced from this pattern. Initially, at this
@@ -210,25 +222,22 @@ class XnoteP:
         # required test only once:
 
         self.factory = (
-            _XnoteP_block (notep=self) if block_p (self.kind)
-            else
-            _XnoteP_line (notep=self) if not self.stext
-            else
-            _XnoteP_segment (notep=self, stext=stext)
-            )
+            _XnoteP_block(notep=self)
+            if block_p(self.kind) else
+            _XnoteP_line(notep=self)
+            if not self.stext else
+            _XnoteP_segment(notep=self, stext=stext))
 
-    def instantiate_stag (self):
-        self.stag = Stag_from (self.stag, False)
+    def instantiate_stag(self):
+        self.stag = Stag_from(self.stag, False)
 
-    def instanciate_over (self, tline, block, srules):
+    def instanciate_over(self, tline, block, srules):
 
-        kind = (
-            srules.__getitem__ (self.kind) if srules and self.kind in srules
-            else self.kind
-            )
+        kind = (srules[self.kind]
+                if srules and self.kind in srules
+                else self.kind)
 
-        return (
-            None if kind is None
-            else self.factory.instanciate_over (
-                tline=tline, block=block, kind=kind))
-
+        return (None
+                if kind is None
+                else self.factory.instanciate_over(tline=tline, block=block,
+                                                   kind=kind))

@@ -70,7 +70,7 @@ class HarnessTestCase(TestCase):
                              "expectation check failed - %s" % expected.text)
 
         for i in self.reported_diags:
-            print i.__dict__
+            print(i.__dict__)
 
         for reported in self.reported_diags:
             thistest.fail_if(reported.nmatches != 1,
