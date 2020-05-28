@@ -3,7 +3,6 @@ Testsuite control
 """
 
 import os.path
-import re
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
