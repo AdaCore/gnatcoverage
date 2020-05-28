@@ -734,8 +734,26 @@ package body Project is
       ---------------------
 
       procedure Process_Project (Project : Project_Type) is
+         use Project_Maps;
+
+         Success : Boolean;
+         Cur     : Cursor;
       begin
-         Prj_Map.Insert (Project.Name, (Project => Project, others => False));
+         --  In recursive mode or when users pass the same project several
+         --  times to --projects, Process_Project can be called on the same
+         --  project multiple times. In theory, all projects are supposed to
+         --  have a unique name, though: check this.
+
+         Prj_Map.Insert
+           (Project.Name,
+            (Project => Project, others => False),
+            Cur,
+            Success);
+         if not Success and then Prj_Map.Reference (Cur).Project /= Project
+         then
+            raise Program_Error with
+               "homonym projects detected: " & Project.Name;
+         end if;
       end Process_Project;
 
    --  Start of processing for Build_Prj_Map
