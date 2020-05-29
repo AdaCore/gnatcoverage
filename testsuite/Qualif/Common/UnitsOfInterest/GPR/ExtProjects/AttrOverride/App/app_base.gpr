@@ -1,0 +1,10 @@
+project App_Base is
+   for languages use ("Ada");
+   for Source_Dirs use (".");
+   for Object_Dir use "obj-base";
+
+   package compiler is
+     for default_switches ("Ada")
+      use ("-fdump-scos", "-fpreserve-control-flow", "-g");
+   end compiler;
+end App_Base;

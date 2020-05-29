@@ -1,0 +1,8 @@
+project App extends "app_base" is
+   for languages use ("Ada");
+   for Object_Dir use "obj";
+   package Coverage is
+     for Switches ("*") use ("--level=stmt");
+     for Units use ("Values");
+   end Coverage;
+end App;

@@ -1,0 +1,22 @@
+with "../counters/counters.gpr";
+
+project boolOps is
+   for languages use ("Ada");
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+
+   package compiler is
+     for default_switches ("Ada") use ("-fdump-scos");
+     --  -fpreserve-control-flow is part of the common build options
+     --  always enforced
+   end compiler;
+
+   -- Stick an explicit "units" specification here, with all the
+   -- units included. This should behave as-if the attribute wasn't
+   -- there in absence of --units on the command line and allows
+   -- verifying that --units prevails when provided.
+
+   package Coverage is
+     for units use ("boolops", "boolops.andthen", "boolops.orelse");
+   end coverage;
+end boolOps;
