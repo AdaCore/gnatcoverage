@@ -23,19 +23,24 @@ use GNATcoverage as follows:
 
 .. code-block:: text 
  
- gnatcov run --target=<TARGET> --level=<LVL> <APP1> -o <TRACE>
+ gnatcov run --target=<TARGET> --level=<LVL> <APP1> -o <TRACE> [<UNITS>]
  ...
- gnatcov run --target=<TARGET> --level=<LVL> <APPn> -o <TRACE>
+ gnatcov run --target=<TARGET> --level=<LVL> <APPn> -o <TRACE> [<UNITS>]
 
+
+ The <UNITS> arguments is required for mcdc analysis only and shall
+ designate at least the units of <APPi> that will be of interest to
+ the analysis step. See the analysis command description for the form
+ this argument should take.
 
 * Optionally, produce a single <REPORT> file (format documented in the
   GNATcoverage User's Guide), consolidating the coverage outcome for the list
   of execution traces stored in the <traces.list> file, and querying results
-  for the list of source units designated in the <alis.list> file:
+  for the list of source units designated by the specified <UNITS> of interest:
 
 .. code-block:: text
 
- gnatcov coverage --annotate=report --level=<LVL> --scos=@<alis.list> @<traces.list> -o <REPORT>
+ gnatcov coverage --annotate=report --level=<LVL> <UNITS> @<traces.list> -o <REPORT>
 
 In the sample commands above:
 
@@ -55,8 +60,11 @@ In the sample commands above:
 * <TARGET> identifies the target platform (as in the GNAT Pro toolchain
   prefixes, e.g.  powerpc-elf);
 * <TRACE> is the output file containing the execution trace
-* <alis.list> is a text file containing the list of GNAT Pro ALI file names
-  associated with the units for which coverage is assessed
+* <UNITS> is a specification of the units for which coverage is to be
+  assessed (so called *Units Of Interest*), with a
+  :option:`--scos=@<alis.list>` switch, where <alis.list> is a text
+  file containing the list of GNAT Pro ALI file names associated with
+  these units.
 * <traces.list> is a text file containing the list of execution traces to
   operate on.
 
