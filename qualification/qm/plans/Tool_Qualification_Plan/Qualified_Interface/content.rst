@@ -61,10 +61,15 @@ In the sample commands above:
   prefixes, e.g.  powerpc-elf);
 * <TRACE> is the output file containing the execution trace
 * <UNITS> is a specification of the units for which coverage is to be
-  assessed (so called *Units Of Interest*), with a
-  :option:`--scos=@<alis.list>` switch, where <alis.list> is a text
-  file containing the list of GNAT Pro ALI file names associated with
-  these units.
+  assessed (so called *Units Of Interest*), with either
+
+  * A :option:`--scos=@<alis.list>` switch, where <alis.list> is a text
+    file containing the list of GNAT Pro ALI file names associated with
+    the units of interest; *or*
+
+  * GPR project file facilities, as documented in the tool User's Guide and
+    summarized in the |tor_doc| document.
+
 * <traces.list> is a text file containing the list of execution traces to
   operate on.
 
