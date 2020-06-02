@@ -3,9 +3,10 @@
 Language-independent TORs
 =========================
 
-
 .. qmlink:: SubsetIndexImporter
 
-   *
+   Report
+   UnitsOfInterest
+   GprFacilities
 
 

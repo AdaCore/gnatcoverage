@@ -1141,10 +1141,12 @@ class TestCasesImporter(ArtifactImporter):
 
         pdf_output = ''
         pdf_output += self.tc_pdf_for(
-            toplevel='Ada', subdirs=['stmt', 'decision', 'mcdc'],
+            toplevel='Ada',
+            subdirs=['stmt', 'decision', 'mcdc'],
             links=tc_or_set_links)
         pdf_output += self.tc_pdf_for(
-            toplevel='Common', subdirs=['Report'],
+            toplevel='Common',
+            subdirs=['Report', 'UnitsOfInterest', 'GprFacilities'],
             links=tc_or_set_links)
 
         output = writer.only(html_output, "html")
