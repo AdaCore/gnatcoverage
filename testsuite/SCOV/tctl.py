@@ -41,7 +41,14 @@ class CovControl:
         # Extra options to gnatcov coverage only, typically for "-S" variants.
         self.covoptions = covoptions
 
-        # To control Units related attributes in the GPR Coverage package:
+        # To control Units related attributes in the GPR Coverage package.
+        #
+        # None is taken to mean "no attribute at all", which differs from
+        # [] for units_in, which conveys
+        #
+        #   for Units use ();
+        #
+        # for projects we want to exclude from the analysis entirely.
         self.units_in = units_in
         self.units_out = units_out
         self.ulist_in = ulist_in
@@ -70,10 +77,10 @@ class CovControl:
         """
         return (self.deps
                 or self.gprsw
-                or self.units_in
-                or self.units_out
-                or self.ulist_in
-                or self.ulist_out)
+                or self.units_in is not None
+                or self.units_out is not None
+                or self.ulist_in is not None
+                or self.ulist_out is not None)
 
     def gpr(self):
         """
