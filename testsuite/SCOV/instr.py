@@ -57,7 +57,7 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
     args = (['instrument'] + covlevel_args +
             ['--dump-trigger', dump_trigger or default_dump_trigger(),
              '--dump-channel', dump_channel or default_dump_channel()] +
-            gprsw.as_strings +
+            gprsw.cov_switches +
             extra_args)
     xcov(args, out=out, err=err, register_failure=register_failure)
 

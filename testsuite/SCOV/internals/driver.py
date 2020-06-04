@@ -616,7 +616,7 @@ class SCOV_helper:
             objdir = self.gpr_obj_dir,
             srcdirs = [
                 "../"*n + "src" for n in range (1, this_depth)],
-            exedir = self.abdir(),
+            exedir = self.abdir(attribute=True),
             main_cargs = "-fno-inline",
             langs = ["Ada", "C"],
             deps = self.covctl.deps if self.covctl else [],
@@ -662,6 +662,23 @@ class SCOV_helper:
     # well, and need access to each of the single directories to retrieve
     # execution traces and binaries.
 
+    # On top of this, we might be operating with specific GPR switches which
+    # request the use of --subdirs. For this, we need to distinguish the case
+    # where a directory name computation for binaries is meant to be used as a
+    # project file attribute, such as Exec_Dir, and the case where we just
+    # need to locate the binary file ourselves. The effect of --subdirs is
+    # achieved by gprbuild or gnatcov in the former case, while we need to
+    # account for it explicitly ourselves in the latter case.
+
+    def maybe_subdirs(self, path):
+        """
+        If we are operating with specific GPR switches which request
+        the use of --subdirs, append the subdir to the provided PATH.
+        """
+        if self.covctl and self.covctl.gprsw and self.covctl.gprsw.subdirs:
+            path = os.path.join(path, self.covctl.gprsw.subdirs)
+        return path
+
     def rdir_for(self, base, main):
         """Relative path to Working or Binary Directory for single MAIN."""
 
@@ -670,27 +687,35 @@ class SCOV_helper:
 
         return base + main.replace ("test_", "", 1) + "/"
 
-    def rwdir_for(self,main):
+    def rwdir_for(self, main):
         """Relative path to Working Directory for single MAIN."""
-
         return self.rdir_for (base = self.wdctl.wdbase, main = main)
 
-    def rbdir_for(self,main):
-        """Relative path to Binary Directory for single MAIN."""
+    def rbdir_for(self, main, attribute):
+        """
+        Relative path to Binary Directory for single MAIN. If ATTRIBUTE
+        is True, this is meant to be stored as an attribute within a project
+        file (e.g. Exec_Dir). Otherwise, this is meant for our testsuite
+        to locate an artifact.
+        """
 
-        return self.rdir_for (base = self.wdctl.bdbase, main = main)
+        # If this is for an attribute value, the effects of a possible
+        # --subdirs switch will be performed by the tools. Otherwise,
+        # we need to apply them ourselves:
+        attr_value = self.rdir_for (base=self.wdctl.bdbase, main=main)
+        return attr_value if attribute else self.maybe_subdirs(attr_value)
 
     def adir_for(self, rdir):
         """Absolute path from relative dir."""
         return self.homedir + rdir
 
-    def awdir_for(self,main):
+    def awdir_for(self, main):
         """Absolute path to Working Directory for single MAIN."""
         return self.adir_for (self.rwdir_for(main))
 
-    def abdir_for(self,main):
+    def abdir_for(self, main, attribute=False):
         """Absolute path to Binary Directory for single MAIN."""
-        return self.adir_for (self.rbdir_for(main))
+        return self.adir_for (self.rbdir_for(main, attribute))
 
     def main(self):
 
@@ -711,13 +736,13 @@ class SCOV_helper:
         """Absolute path to Working Directory for current instance."""
         return self.adir_for (self.rwdir())
 
-    def rbdir(self):
-        """Relative path to Working Directory for current instance."""
-        return self.rbdir_for(self.main())
+    def rbdir(self, attribute):
+        """Relative path to Binary Directory for current instance."""
+        return self.rbdir_for(self.main(), attribute)
 
-    def abdir(self):
-        """Absolute path to Working Directory for current instance."""
-        return self.adir_for (self.rbdir())
+    def abdir(self, attribute=False):
+        """Absolute path to Binary Directory for current instance."""
+        return self.adir_for (self.rbdir(attribute))
 
     # --------------
     # -- run_test --
@@ -1077,6 +1102,22 @@ class SCOV_helper:
         """Switch to this test's homedir."""
         cd(self.homedir)
 
+    # -----------------------
+    # - common_build_gargs --
+    # -----------------------
+    def common_build_gargs(self):
+        """Mode agnostic gargs switches to pass to gprbuild commands."""
+
+        gargs = []
+
+        # If we have general options to honor when interpreting
+        # project files for coverage purposes (e.g. --subdirs or -X),
+        # the builds must be performed accordingly:
+        if self.covctl and self.covctl.gprsw:
+            gargs.extend(self.covctl.gprsw.build_switches)
+
+        return gargs
+
     # --------------------------
     # -- coverage_sco_options --
     # --------------------------
@@ -1087,7 +1128,7 @@ class SCOV_helper:
         # If we have a request for specific options, honor that.
 
         if self.covctl and self.covctl.gprsw:
-            return self.covctl.gprsw.as_strings
+            return self.covctl.gprsw.cov_switches
 
         # Otherwise, if we are requested to convey unit of interest through
         # project file attributes and this is not a consolidation test, use
@@ -1125,9 +1166,9 @@ class SCOV_helper:
         # all identical, and they should be for typical situations where the
         # same sources were exercised by multiple drivers:
 
-        lpath = "obj/" + self.mode_scofile_for(source)
+        lpath = os.path.join('obj', self.mode_scofile_for(source))
         for main in self.drivers:
-            tloc = self.abdir_for(no_ext(main)) + lpath
+            tloc = os.path.join(self.abdir_for(no_ext(main)), lpath)
             if os.path.exists(tloc):
                 return tloc
 
@@ -1179,7 +1220,9 @@ class SCOV_helper_bin_traces(SCOV_helper):
     # from traces or when producing intermediate coverage checkpoints.
 
     def mode_build(self):
-        gprbuild(self.gpr, extracargs=self.extracargs)
+        gprbuild(
+            self.gpr, extracargs=self.extracargs,
+            gargs=self.common_build_gargs())
 
     def mode_execute(self, main):
 
@@ -1188,7 +1231,7 @@ class SCOV_helper_bin_traces(SCOV_helper):
         # Feed xcov run with full path (absolute dir) of the program so we
         # can directly get to the binary from the trace when reading it from
         # a different directory, such as in consolidation tests.
-        main_path = self.abdir_for(main) + exename_for(main)
+        main_path = os.path.join(self.abdir_for(main), exename_for(main))
 
         # Some execution engines (e.g. valgrind) do not let us distinguish
         # executed program errors from engine errors. Because of them, we
@@ -1271,7 +1314,9 @@ class SCOV_helper_src_traces(SCOV_helper):
                 root_project=self.gpr,
                 projects=projects,
                 units=self.covctl.gprsw.units,
-                no_subprojects=self.covctl.gprsw.no_subprojects)
+                no_subprojects=self.covctl.gprsw.no_subprojects,
+                xvars=self.covctl.gprsw.xvars,
+                subdirs=self.covctl.gprsw.subdirs)
         else:
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
@@ -1311,14 +1356,14 @@ class SCOV_helper_src_traces(SCOV_helper):
         # sources in their dedicated subdir:
         gprbuild(
             self.gpr, extracargs=self.extracargs,
-            gargs='--src-subdirs=gnatcov-instr')
+            gargs=self.common_build_gargs() + ['--src-subdirs=gnatcov-instr'])
 
     def mode_execute(self, main):
         register_failure = not self.testcase.expect_failures
 
         # Run the program itself
         out_file = 'cmdrun_{}.out'.format(main)
-        main_path = self.abdir_for(main) + exename_for(main)
+        main_path = os.path.join(self.abdir_for(main), exename_for(main))
         run_cov_program(main_path, out=out_file,
                         register_failure=register_failure)
 

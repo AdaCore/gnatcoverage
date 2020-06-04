@@ -132,6 +132,9 @@ class GPRswitches:
     state variables instead of option strings, which facilitates the
     development of tests where computed variations of some of the controls
     need to be exercised.
+
+    Facilities are provided to expose the switches that require coordination
+    with the build step that precedes the gnatcov invocations (e.g. --subdirs).
     """
 
     def __init__(self,
@@ -139,7 +142,9 @@ class GPRswitches:
                  projects=None,
                  units=None,
                  no_subprojects=False,
-                 externally_built_projects=False):
+                 externally_built_projects=False,
+                 xvars=None,
+                 subdirs=None):
         """
         :param str root_project: Root project to consider (-P argument).
         :param list[str] projects: Optional list of projects for units of
@@ -151,18 +156,38 @@ class GPRswitches:
             closures of project dependencies.
         :param bool externally_built_projects: Whether to process externally
             built projects (--externally-built-projects).
+        :param list[(str,str)] xvars: Optional list of (varname, value) tuples
+            for scenario variables (--X arguments).
+        :param str units: Optional --subdirs argument.
         """
         self.root_project = root_project
         self.projects = projects or []
         self.units = units or []
         self.no_subprojects = no_subprojects
         self.externally_built_projects = externally_built_projects
+        self.xvars = xvars or []
+        self.subdirs = subdirs
 
     @property
-    def as_strings(self):
+    def build_switches(self):
         """
-        List of GPR related gnatcov command line option strings
-        this object represents.
+        Switches that would be valid for gprbuild as well and which
+        should be used in coordination, as a list of strings.
+        """
+        switches = []
+
+        for v in self.xvars:
+            switches.append('-X{}={}'.format(v[0], v[1]))
+
+        if self.subdirs:
+            switches.append('--subdirs={}'.format(self.subdirs))
+
+        return switches
+
+    @property
+    def cov_switches(self):
+        """
+        The switches for gnatcov commands, as a list of strings.
         """
         switches = ['-P{}'.format(self.root_project)]
 
@@ -178,4 +203,4 @@ class GPRswitches:
         if self.externally_built_projects:
             switches.append('--externally-built-projects')
 
-        return switches
+        return switches + self.build_switches

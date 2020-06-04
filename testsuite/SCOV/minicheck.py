@@ -27,7 +27,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
                   separate_coverage=None, extra_args=[],
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
-                  absolute_paths=False, subdirs=None, dump_trigger=None,
+                  absolute_paths=False, dump_trigger=None,
                   dump_channel=None, check_gprbuild_output=False,
                   trace_mode=None, gprsw_for_coverage=None, scos_for_run=True,
                   register_failure=True):
@@ -71,8 +71,6 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :param list[str] extra_gprbuild_cargs: List of arguments to pass to
         gprbuild's -cargs section.
     :param bool absolute_paths: If true, use absolute paths in the result.
-    :param None|str subdirs: If passed, name of the subdirectory to pass to
-        gprbuild and gnatcov.
     :param None|str dump_trigger: Trigger to dump coverage buffers
         (--dump-trigger argument). If left to None,
         use SCOV.instr.default_dump_trigger.
@@ -103,14 +101,17 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     def exepath(main):
         main = os.path.join(
             gpr_exe_dir,
-            (os.path.join(subdirs, m) if subdirs else m))
+            (os.path.join(gprsw.subdirs, m) if gprsw.subdirs else m))
         return abspath(exepath_to(main))
 
-    def gprbuild_wrapper(root_project, gargs=[]):
+    def gprbuild_wrapper(root_project, gargs):
+
+        # Honor build relevant switches from gprsw here
         gprbuild(root_project,
-                 gargs=gargs + extra_gprbuild_args,
+                 gargs=gprsw.build_switches + gargs + extra_gprbuild_args,
                  extracargs=extra_gprbuild_cargs,
                  trace_mode=trace_mode)
+
         if check_gprbuild_output:
             gprbuild_out = contents_of('gprbuild.out')
             thistest.fail_if(
@@ -118,13 +119,12 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                 "gprbuild's output (gprbuild.out) is not empty:\n{}"
                 .format(indent(gprbuild_out)))
 
+    # When instrumenting, we expect units of interest to be provided
+    # through GPR switches:
+    assert not (scos and trace_mode == 'src')
+
     gpr_exe_dir = gpr_exe_dir or '.'
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, 'obj')
-
-    if subdirs:
-        subdirs_args = ['--subdirs={}'.format(subdirs)]
-        extra_args = list(extra_args) + subdirs_args
-        extra_gprbuild_args = list(extra_gprbuild_args) + subdirs_args
 
     trace_mode = trace_mode or thistest.options.trace_mode
     covlevel_args = [] if covlevel is None else ['--level', covlevel]
@@ -132,7 +132,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     trace_files = []
 
     # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
-    # instrument" (src trace mode).
+    # instrument" (src trace mode), in addition to those conveyed by gprsw.
     cov_or_instr_args = (
         extra_args +
         ['--ignore-source-files={}'.format(pattern)
@@ -140,7 +140,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     if separate_coverage:
         cov_or_instr_args.extend(['-S', separate_coverage])
 
-    # Compute arguments to specify units of interest
+    # Compute arguments to specify units of interest.
     if trace_mode == 'bin':
         scos_arg = '--scos'
         scos_ext = 'ali'
@@ -150,11 +150,11 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     scos = (['{}={}.{}'.format(scos_arg, abspath(a), scos_ext)
              for a in scos]
             if scos else
-            gprsw.as_strings)
+            gprsw.cov_switches)
 
     if trace_mode == 'bin':
         # Build and run each main
-        gprbuild_wrapper(gprsw.root_project)
+        gprbuild_wrapper(gprsw.root_project, gargs=[])
         run_args = covlevel_args + extra_args
         if scos_for_run:
             run_args.extend(scos)
@@ -204,7 +204,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     # If provided, pass "gnatcov coverage"-specific project arguments, which
     # replace the list of SCOS.
     if gprsw_for_coverage:
-        xcov_args.extend(gprsw_for_coverage.as_strings)
+        xcov_args.extend(gprsw_for_coverage.cov_switches)
     elif scos:
         xcov_args.extend(scos)
 
