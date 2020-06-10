@@ -12,6 +12,8 @@ rm -rf $(find -type d -name '[0-9]')
 rm -rf $(find -type d -name 'obj')
 rm -rf $(find -type d -name 'obj_*')
 
+rm -rf $(find -type f -name 'tmp*.list')
+
 rm -rf $(find -type f -name '*~')
 rm -rf $(find -type f -name 'test.py.???' | grep -v svn)
 rm -rf $(find -type f -name '*.adb.*' | grep -v svn)
