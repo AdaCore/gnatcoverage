@@ -1,2 +1,7 @@
-**Check the processing of extended projects**
+Check the processing of extended projects
+=========================================
+
+.. qmlink:: TCIndexImporter
+
+   *
 

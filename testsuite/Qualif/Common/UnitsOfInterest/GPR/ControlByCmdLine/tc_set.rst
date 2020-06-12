@@ -34,4 +34,6 @@ The variety of checks is achieved with various combinations
 of :option: `-P`, :option:`--projects`, :option:`--no-subprojects` and
 :option:`--units`.
 
+.. qmlink:: TCIndexImporter
 
+   *

@@ -11,3 +11,6 @@ units from the set "of interest" and verify for each case that
 
 - No other report is there.
 
+.. qmlink:: TCIndexImporter
+
+   *
