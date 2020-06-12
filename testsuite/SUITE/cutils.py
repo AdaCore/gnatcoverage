@@ -191,23 +191,24 @@ class Wdir:
     Simple helper to handle working directories.
     """
 
-    def __init__(self, subdir=None, clean=False):
+    def __init__(self, subdir=None, clean=True):
         """
         If `subdir` is passed, create a subdirectory with this name and move
         there. If `clean`, make sure it's removed first.
         """
         self.homedir = os.getcwd()
         if subdir:
-            if clean and os.path.exists(subdir):
-                shutil.rmtree(subdir)
-            self.to_subdir(subdir)
+            self.to_subdir(subdir, clean)
 
-    def to_subdir(self, dir):
+    def to_subdir(self, dir, clean=True):
         """
-        Change the current directory to `dir` (a path relative to `self`'s home
-        directory). Create it if needed.
+        Change the current directory to `dir`, relative to `self`'s home
+        directory. Create it if needed, after first removing it if requested
+        to be `clean`.
         """
         self.to_homedir()
+        if clean and os.path.exists(dir):
+            shutil.rmtree(dir)
         mkdir(dir)
         cd(dir)
 
