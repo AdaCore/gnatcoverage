@@ -13,7 +13,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir('tmp_', clean=True)
+tmp = Wdir('wd_', clean=True)
 mkdir('obj-helper')
 mkdir('obj-main')
 

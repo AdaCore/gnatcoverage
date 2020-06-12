@@ -5,7 +5,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import exepath_to, gprbuild, gprfor, xcov, xrun
 
 
-wd = Wdir('tmp_')
+wd = Wdir('wd_')
 
 # We have two candidate main drivers. Craft a gpr
 # with a Main attribute listing only the first one.

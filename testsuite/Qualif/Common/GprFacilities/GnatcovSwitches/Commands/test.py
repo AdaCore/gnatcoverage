@@ -9,7 +9,7 @@ from SUITE.gprutils import Csw, gprcov_for
 # Check correctness of transmission from Switches to commands for a few
 # particular commands. Check that Switches ("*") comes before Switches (cmd).
 
-wd = Wdir('tmp_')
+wd = Wdir('wd_')
 
 
 # We will be exercising combinations of run/coverage operations with option

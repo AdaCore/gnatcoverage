@@ -5,7 +5,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import exepath_to, gprbuild, gprfor, xcov, xrun
 
 
-wd = Wdir('tmp_')
+wd = Wdir('wd_')
 
 # GPR without a main.
 #

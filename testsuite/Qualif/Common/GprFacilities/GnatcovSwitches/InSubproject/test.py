@@ -9,7 +9,7 @@ from SUITE.tutils import gprfor
 
 
 pgm = 'test_lt0'
-wd = Wdir('tmp_', clean=True)
+wd = Wdir('wd_', clean=True)
 
 # Build and run the single test program, which volontarily performs stmt and
 # decision coverage violations.

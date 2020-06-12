@@ -10,7 +10,7 @@ from SUITE.tutils import gprfor, xcov
 
 
 pgm = 'test_lt0'
-wd = Wdir('tmp_', clean=True)
+wd = Wdir('wd_', clean=True)
 
 gpr = gprfor(mains=[pgm + '.adb'],
              srcdirs=['../src'],

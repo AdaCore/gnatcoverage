@@ -12,7 +12,7 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir('tmp_', clean=True)
+tmp = Wdir('wd_', clean=True)
 
 # The "orig" project contains two units: "main" and "helper". The "ext" project
 # extends "orig" and overrides only the "helper" unit.

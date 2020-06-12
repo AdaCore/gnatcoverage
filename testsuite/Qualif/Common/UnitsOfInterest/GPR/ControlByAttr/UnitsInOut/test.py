@@ -12,7 +12,7 @@ wd = Wdir()
 # Out empty (In only) out is another testcase
 
 # Out overlaps In
-wd.to_subdir("tmp_1")
+wd.to_subdir("wd_1")
 TestCase(category=None).run(covcontrol=CovControl(
     units_in=["ops", "ops.andthen"],
     units_out=["ops.andthen"],
@@ -24,7 +24,7 @@ TestCase(category=None).run(covcontrol=CovControl(
     xreports=["ops-orelse.adb"]))
 
 # Out does not overlap In
-wd.to_subdir("tmp_2")
+wd.to_subdir("wd_2")
 
 TestCase(category=None).run(covcontrol=CovControl(
     units_in=["ops", "ops.orelse"],

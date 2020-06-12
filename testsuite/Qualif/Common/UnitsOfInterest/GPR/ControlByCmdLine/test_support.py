@@ -81,9 +81,9 @@ def check(root_project, recurse,
     # passing a unique --subdirs prevent mixups across test variants
     # within the shared projects.
 
-    # Start with 'tmp_foo' from .../.../foo.gpr or a project short
+    # Start with 'wd_foo' from .../.../foo.gpr or a project short
     # name intended for -P.
-    tmpdir = 'tmp_' + os.path.basename(root_project).split('.')[0]
+    tmpdir = 'wd_' + os.path.basename(root_project).split('.')[0]
 
     # Append the first letter of each project name will pass through
     # --project, if any:

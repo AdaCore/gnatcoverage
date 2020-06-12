@@ -12,7 +12,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir('tmp_', clean=True)
+tmp = Wdir('wd_', clean=True)
 
 
 class ProjectConfig(object):
@@ -54,7 +54,7 @@ def run_test(label, slug, main, helper, recursive, projects=[], units=[],
     :param expected_cov: List of expected coverage reports.
     """
     thistest.log('== [{}] {} =='.format(slug, label))
-    tmp.to_subdir('tmp_/{}'.format(slug))
+    tmp.to_subdir('wd_/{}'.format(slug))
 
     expected_output = '\n'.join(
         'warning: project {} provides no unit of interest'
