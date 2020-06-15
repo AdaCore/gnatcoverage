@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2012-2017, AdaCore                     --
+--                     Copyright (C) 2012-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -134,7 +134,7 @@ package body Project is
       Is_Subunit : Boolean;
       --  Whether this unit is actually a subunit. We consider that subunits
       --  are not units of their own (in particular they don't have their own
-      --  LI ifle), but we still allow them to appear in unit lists.
+      --  LI file), but we still allow them to appear in unit lists.
 
       LI_Seen : Boolean;
       --  Set true if the LI file for this unit has been seen
