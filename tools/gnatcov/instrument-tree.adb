@@ -1215,9 +1215,9 @@ package body Instrument.Tree is
                --  to which a witness call can be attached.  Likewise for a
                --  top-level declaration in a Preelaborate package.
 
-               if Current_Insertion_Info.Preelab
+               if UIC.Current_Insertion_Info.Preelab
                  or else
-                  Current_Insertion_Info.RH_List = No_Node_Rewriting_Handle
+                  UIC.Current_Insertion_Info.RH_List = No_Node_Rewriting_Handle
                then
                   null;
 
