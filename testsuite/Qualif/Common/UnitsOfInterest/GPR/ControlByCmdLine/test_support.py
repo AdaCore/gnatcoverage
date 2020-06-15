@@ -90,9 +90,13 @@ def check(root_project, recurse,
     if projects:
         tmpdir += '-' + ''.join(prj[0] for prj in projects)
 
-    # Append -r if recursive:
+    # Append indication on recursion request:
     if recurse:
-        tmpdir += '-r'
+        tmpdir += '-rt'
+    elif recurse is None:
+        tmpdir += '-rn'
+    else:
+        tmpdir += '-rf'
 
     # For the --subdirs argument, relative to each subproject's object dir,
     # prepend our testcase local directory name:
