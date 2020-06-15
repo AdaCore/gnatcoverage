@@ -1212,10 +1212,12 @@ package body Instrument.Tree is
                   Pragma_Aspect_Name => Pragma_Aspect_Name);
 
                --  Can't instrument statement if there is no enclosing list
-               --  to which a witness call can be attached.
+               --  to which a witness call can be attached.  Likewise for a
+               --  top-level declaration in a Preelaborate package.
 
-               if Current_Insertion_Info.RH_List
-                    = No_Node_Rewriting_Handle
+               if Current_Insertion_Info.Preelab
+                 or else
+                  Current_Insertion_Info.RH_List = No_Node_Rewriting_Handle
                then
                   null;
 
@@ -1545,6 +1547,13 @@ package body Instrument.Tree is
             Index                 => 1,
             Rewriting_Offset      => 0,
             Witness_Use_Statement => True,
+
+            --  Even if the current package has elaboration restrictions, this
+            --  Insertion_Info is used to insert a witness call in the
+            --  procedure in the generic body, so it has no elaboration
+            --  restriction itself, hence Preelab set to False.
+            Preelab               => False,
+
             Parent                => null);
 
          Saved_Dominant : constant Dominant_Info := Current_Dominant;
@@ -2908,13 +2917,10 @@ package body Instrument.Tree is
          Traverse_One (P);
       end if;
 
-      --  Set up rewriting for the list case, if L is a list where witnesses
-      --  can be inserted.
+      --  Set up rewriting for lists of declarations/statements
 
-      if not L.Is_Null
-        and then L.Kind /= Ada_Pragma_Node_List
-        and then not Preelab
-      then
+      Current_Insertion_Info.Preelab := Preelab;
+      if not L.Is_Null and then L.Kind /= Ada_Pragma_Node_List then
          Current_Insertion_Info.RH_List := Handle (L);
          if not Priv_Part.Is_Null then
             Current_Insertion_Info.RH_Private_List :=

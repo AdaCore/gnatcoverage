@@ -161,6 +161,11 @@ private package Instrument.Sources is
       --  Set False when traversing a list of declarations,
       --  True when traversing a list of statements.
 
+      Preelab : Boolean := False;
+      --  Whether we are traversing a list of top-level declarations in a
+      --  preelaborate package. In this context, we cannot insert witness
+      --  calls, precisely because of the preelaborate restriction.
+
       RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
       --  If traversing a list, rewriting handle for the list
 
