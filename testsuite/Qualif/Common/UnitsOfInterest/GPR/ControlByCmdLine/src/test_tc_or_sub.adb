@@ -1,7 +1,7 @@
 
 with Support, Boolops, Intops; use Intops, Boolops, Support;
 
-procedure Test_Or_Sub is
+procedure Test_TC_Or_Sub is
 begin
    Assert (Boolops.Eval (Op_Orelse, False, True) = True);
    Assert (Intops.Eval (Op_Sub, 4, 3) = 1);
