@@ -37,11 +37,11 @@ with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with Checkpoints;
 with Coverage;
-with Diagnostics;        use Diagnostics;
 with Instrument.Clean_Objdirs;
 with Instrument.Common;  use Instrument.Common;
 with Instrument.Find_Units;
 with Instrument.Sources; use Instrument.Sources;
+with Outputs;
 with Project;
 with SC_Obligations;
 with Strings;
@@ -617,11 +617,10 @@ package body Instrument is
          Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
       exception
          when E : Libadalang.Common.Property_Error =>
-            Report
+            Outputs.Fatal_Error
               ("internal error while instrumenting "
                & To_String (Unit_Info.Filename) & ": "
-               & Ada.Exceptions.Exception_Information (E),
-               Kind => Diagnostics.Error);
+               & Ada.Exceptions.Exception_Information (E));
       end Instrument_Unit;
 
    --  Start of processing for Instrument_Units_Of_Interest
