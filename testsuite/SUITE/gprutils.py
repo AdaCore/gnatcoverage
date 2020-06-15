@@ -138,7 +138,8 @@ class GPRswitches:
                  root_project,
                  projects=None,
                  units=None,
-                 no_subprojects=False):
+                 no_subprojects=False,
+                 externally_built_projects=False):
         """
         :param str root_project: Root project to consider (-P argument).
         :param list[str] projects: Optional list of projects for units of
@@ -148,11 +149,14 @@ class GPRswitches:
         :param bool no_subprojects: Whether to process only projects specified
             through -P/--projects (--no-subprojects option). Otherwise, process
             closures of project dependencies.
+        :param bool externally_built_projects: Whether to process externally
+            built projects (--externally-built-projects).
         """
         self.root_project = root_project
         self.projects = projects or []
         self.units = units or []
         self.no_subprojects = no_subprojects
+        self.externally_built_projects = externally_built_projects
 
     @property
     def as_strings(self):
@@ -170,5 +174,8 @@ class GPRswitches:
 
         if self.no_subprojects:
             switches.append('--no-subprojects')
+
+        if self.externally_built_projects:
+            switches.append('--externally-built-projects')
 
         return switches
