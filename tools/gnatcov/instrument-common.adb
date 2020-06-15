@@ -776,8 +776,9 @@ package body Instrument.Common is
 
          declare
             Result : constant Project_Info_Access := new Project_Info'
-              (Output_Dir  => +Project_Output_Dir (Project),
-               Instr_Files => <>);
+              (Externally_Built => Project.Externally_Built,
+               Output_Dir       => +Project_Output_Dir (Project),
+               Instr_Files      => <>);
          begin
             Context.Project_Info_Map.Insert (Project_Name, Result);
             return Result;

@@ -34,6 +34,7 @@ with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with Inputs;   use Inputs;
 with Outputs;  use Outputs;
+with Strings;
 with Switches; use Switches;
 
 package body Project is
@@ -883,6 +884,14 @@ package body Project is
                is
                   Cur : Unit_Maps.Cursor;
                begin
+                  --  Never try to perform coverage on our coverage runtime
+                  --  library (in one of the gnatcov_rts*.gpr projects) or on
+                  --  our coverage buffer units (in user projects).
+
+                  if Strings.Has_Prefix (Unit_Name, "gnatcov_rts.") then
+                     return;
+                  end if;
+
                   if not Units_Specified
                      or else Requested_Units.Contains (To_Lower (Unit_Name))
                   then

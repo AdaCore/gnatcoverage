@@ -231,6 +231,10 @@ package Instrument.Common is
       Hash                => Ada.Strings.Unbounded.Hash);
 
    type Project_Info is record
+      Externally_Built : Boolean;
+      --  Whether this project is externaly built. In that case, we assume its
+      --  units of interest have already been instrumented.
+
       Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
       --  Subdirectory in the project file's object directory. All we generate
       --  for this project must land in it.

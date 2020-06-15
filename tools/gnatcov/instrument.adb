@@ -170,10 +170,17 @@ package body Instrument is
    begin
       for Cur in IC.Project_Info_Map.Iterate loop
          declare
+            Prj_Info   : Project_Info renames Element (Cur).all;
             Output_Dir : constant String :=
                +(Element (Cur).Output_Dir);
          begin
-            if not Ada.Directories.Exists (Output_Dir) then
+            --  Do not create output directories for externally built projects:
+            --  we don't instrument them and we may not have filesystem
+            --  permissions to create directories there.
+
+            if not Prj_Info.Externally_Built
+               and then not Ada.Directories.Exists (Output_Dir)
+            then
                Ada.Directories.Create_Path (Output_Dir);
             end if;
          end;
@@ -600,6 +607,12 @@ package body Instrument is
          Prj_Info : Project_Info renames Unit_Info.Prj_Info.all;
          UIC      : Unit_Inst_Context;
       begin
+         --  Do not instrument units from externally built projects
+
+         if Unit_Info.Prj_Info.Externally_Built then
+            return;
+         end if;
+
          --  Instrument the source file and create a unit to contain its
          --  coverage buffers.
 

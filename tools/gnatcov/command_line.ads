@@ -401,9 +401,13 @@ package Command_Line is
 
       Opt_Externally_Built_Projects => Create
         (Long_Name => "--externally-built-projects",
-         Help      => "Process projects marked as externally built.",
-         Commands  => (Cmd_Run | Cmd_Coverage | Cmd_Dump_CFG => True,
-                       others                                => False),
+         Help      => "Look into projects marked as externally built when"
+                      & " computing the list of units of interest (they are"
+                      & " ignored by default). For the ""instrument"" command,"
+                      & " this only influences the instrumentation of mains.",
+         Commands  => (Cmd_Run | Cmd_Instrument | Cmd_Coverage
+                        | Cmd_Dump_CFG => True,
+                       others          => False),
          Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
