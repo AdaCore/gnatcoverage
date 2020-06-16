@@ -1,4 +1,4 @@
-Requirements regarding Target and Runtime attributes
+Requirements for Target and Runtime attributes
 ====================================================
 
 %REQ_ID%

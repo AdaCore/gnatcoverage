@@ -1,4 +1,4 @@
-Requirements regarding gnatcov command switches in project files
+Requirements for gnatcov command switches in project files
 ================================================================
 
 %REQ_ID%

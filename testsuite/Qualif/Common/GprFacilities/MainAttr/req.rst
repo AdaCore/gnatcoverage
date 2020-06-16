@@ -1,4 +1,4 @@
-Requirements regarding Main attributes in project files
+Requirements for Main attributes in project files
 =======================================================
 
 %REQ_ID%

@@ -1,4 +1,4 @@
-Requirements regarding the :option:`--subdirs` switch
+Requirements for the :option:`--subdirs` switch
 =====================================================
 
 %REQ_ID%
