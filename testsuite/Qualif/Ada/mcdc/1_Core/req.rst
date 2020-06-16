@@ -1,7 +1,7 @@
 Core MCDC requirements
 ======================
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 For MCDC assessments, the tool focuses on decisions used to influence
 control-flow languages constructs as well as on those with more than one

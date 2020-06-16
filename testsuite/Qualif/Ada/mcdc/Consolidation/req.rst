@@ -1,7 +1,7 @@
 MCDC requirements for the combination of multiple execution traces
 ==================================================================
 
-.. rubric:: Requirement
+%REQ_ID%
 
 When the coverage achieved by multiple execution traces is evaluated, an mcdc
 violation shall only be reported when it would have been for all the traces

@@ -1,7 +1,7 @@
 MCDC requirements for exemption regions
 =======================================
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 Exemption regions shall operate over MCDC violations as they do for statement
 coverage violations.

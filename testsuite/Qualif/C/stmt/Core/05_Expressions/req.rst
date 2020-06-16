@@ -4,7 +4,7 @@ SC requirements for chapter 6, section 5: Expressions
 SC requirements regarding chapter 6, section 5: Expressions
 
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 
 

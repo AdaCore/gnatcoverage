@@ -1,7 +1,7 @@
 MCDC requirements for mixed statement and decision constructs
 =============================================================
 
-.. rubric:: Requirement(s)
+%REQ_ID%
 
 The Core requirements are honored on programs mixing arbitrary Ada constructs
 together, with arbitrary levels of syntactic nesting (such as loops within
