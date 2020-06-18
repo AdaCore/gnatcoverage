@@ -4,9 +4,16 @@ Core MCDC requirements
 %REQ_ID%
 
 For MCDC assessments, the tool focuses on decisions used to influence
-control-flow languages constructs as well as on those with more than one
+control-flow language constructs as well as on those with more than one
 condition anywhere they might appear. Only short circuit operators are
 allowed to combine conditions.
+
+The use of *if-expressions* is allowed and the tool shall consider
+them as a control flow language construct. The controlling expression
+shall always be considered as a decision regardless of its arity. The
+expression then-value or else-value, when Boolean (or derived
+thereof), shall be considered as a decision as soon as it combines
+more than one condition.
 
 All the DC rules apply unchanged to the full set of decisions considered
 here. Rule #3, about decisions evaluated both True and False, is complemented
@@ -21,10 +28,13 @@ Rule #  Description
         particular condition source location.
 ======  =====================================================================
 
-
 .. rubric:: Testing Strategy
 
-As for DC, we validate al the rules with three main groups of testscase:
+We validate all the rules with similar groups of testscase as for
+Decision Coverage requirements. The processing of if-expressions is
+verified by instances of such expressions in the tests for expressions
+in general, and by a dedicated group of testcases specifically designed
+to validate each aspect of the requirements stated above.
 
 .. qmlink:: SubsetIndexImporter
 
