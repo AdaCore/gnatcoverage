@@ -6,6 +6,11 @@ project_name_it = '*%s*' % project_name
 owner = 'AdaCore'
 
 users = {
+    'unassigned': {'name': 'Unassigned',
+                   'company': '',
+                   'email': '',
+                   'team': ''},
+
     'hainque': {'name': 'Olivier Hainque',
                 'company': owner,
                 'email': 'hainque@adacore.com',
@@ -15,6 +20,11 @@ users = {
                 'company': owner,
                 'email': 'guitton@adacore.com',
                 'team': 'Qualification'},
+
+    'leguillou': {'name': 'Erwan Leguillou',
+                  'company': owner,
+                  'email': 'leguillou@adacore.com',
+                  'team': 'Qualification'},
 
     'fofanov': {'name': 'Vasily Fofanov',
                 'company': owner,
@@ -27,7 +37,7 @@ roles = OrderedDict(
 
 assignments = {
     'authors':   ['hainque'],
-    'reviewers': ['guitton']
+    'reviewers': ['unassigned']
 }
 
 release = 'DRAFT 0.0'
