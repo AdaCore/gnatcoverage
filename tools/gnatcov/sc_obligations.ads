@@ -696,6 +696,8 @@ package SC_Obligations is
           Pragma_Weak_External => False,
 
           Pragma_CPU => False,
+          Pragma_CUDA_Execute => False,
+          Pragma_CUDA_Global => False,
           Pragma_Default_Scalar_Storage_Order => False,
           Pragma_Dispatching_Domain => False,
           Pragma_Fast_Math => False,
