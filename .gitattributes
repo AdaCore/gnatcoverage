@@ -1,0 +1,2 @@
+testsuite/Qualif/**/*.adb no-precommit-check
+testsuite/Qualif/**/*.ads no-precommit-check
