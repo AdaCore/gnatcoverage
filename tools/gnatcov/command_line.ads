@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2015, AdaCore                       --
+--                     Copyright (C) 2015-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -106,7 +106,8 @@ package Command_Line is
       Opt_Report_Title,
       Opt_Dump_Trigger,
       Opt_Dump_Channel,
-      Opt_Ada);
+      Opt_Ada,
+      Opt_Dump_Units_To);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -663,7 +664,19 @@ package Command_Line is
                          & " version by default.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
-         Internal     => Instrument_Experimental));
+         Internal     => Instrument_Experimental),
+
+      Opt_Dump_Units_To => Create
+        (Long_Name    => "--dump-units-to",
+         Pattern      => "-|FILE",
+         Help         => "Dump the list of names for all units of interest"
+                         & " to the standard output or the report output"
+                         & " (""-"") or to the given FILE. Using this is valid"
+                         & " only when units of interest are selected through"
+                         & " project files facilities (not --scos or --sid).",
+         Commands     => (Cmd_Coverage => True, others => False),
+         At_Most_Once => True,
+         Internal     => False));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Debug => Create

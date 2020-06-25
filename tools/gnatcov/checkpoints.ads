@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2016, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -30,13 +30,14 @@ with SC_Obligations; use SC_Obligations;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 2;
-   Default_Checkpoint_Version : constant Checkpoint_Version := 2;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 3;
+   Default_Checkpoint_Version : constant Checkpoint_Version := 3;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
    --  1 -- initial version of checkpoint support
    --  2 -- support for source instrumentation
+   --  3 -- support for dumping names for units of interest
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:
@@ -101,6 +102,9 @@ package Checkpoints is
    type Stateful_Stream (Stream : access Root_Stream_Type'Class) is abstract
      new Root_Stream_Type with
       record
+         Filename : Unbounded_String;
+         --  Name of the checkpoint being written/read
+
          Version : Checkpoint_Version;
          --  Format version for the checkpoint being written/read
 

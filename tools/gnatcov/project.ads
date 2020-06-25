@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2012-2013, AdaCore                     --
+--                     Copyright (C) 2012-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -99,6 +99,12 @@ package Project is
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------
+
+   procedure Enumerate_Units_Of_Interest
+     (Callback : access procedure (Name : String; Is_Subunit : Boolean));
+   --  Call Callback once for every unit of interest. Name is the lower-case
+   --  unit name, and Is_Subunit corresponds to the Unit_Info.Is_Subunit field
+   --  (see project.adb).
 
    procedure Enumerate_LIs (LI_Cb : access procedure (LI_Name : String))
       with Pre  => Is_Project_Loaded and then not LIs_Enumerated,

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -134,6 +134,9 @@ package body Annotations.Report is
 
       Summary : String_Vectors.Vector;
       --  Lines for SUMMARY chapter
+
+      Dump_Units : Boolean;
+      --  Whether to add a section for the list of names for units of interest
    end record;
 
    procedure Chapter
@@ -224,11 +227,13 @@ package body Annotations.Report is
 
    procedure Generate_Report
      (Context           : Coverage.Context_Access;
-      Final_Report_Name : String_Access)
+      Final_Report_Name : String_Access;
+      Dump_Units        : Boolean)
    is
       Pp : Report_Pretty_Printer :=
         (Need_Sources => False,
          Context      => Context,
+         Dump_Units   => Dump_Units,
          others       => <>);
    begin
       if Final_Report_Name /= null then
@@ -585,6 +590,26 @@ package body Annotations.Report is
          Put_Line
            (Output.all,
             Pluralize (Total_Exempted_Regions, "exempted region") & ".");
+      end if;
+
+      if Pp.Dump_Units then
+         Pp.Chapter ("UNITS OF INTEREST");
+         New_Line (Output.all);
+         declare
+            procedure Print_Unit_Name (Name : String);
+            --  Print Name on the report
+
+            ---------------------
+            -- Print_Unit_Name --
+            ---------------------
+
+            procedure Print_Unit_Name (Name : String) is
+            begin
+               Put_Line (Output.all, Name);
+            end Print_Unit_Name;
+         begin
+            Iterate_On_Unit_List (Print_Unit_Name'Access);
+         end;
       end if;
 
       New_Line (Output.all);

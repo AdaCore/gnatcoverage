@@ -401,6 +401,24 @@ package body Project is
       Requested_Projects.Include (Prj_Name);
    end Add_Project;
 
+   ---------------------------------
+   -- Enumerate_Units_Of_Interest --
+   ---------------------------------
+
+   procedure Enumerate_Units_Of_Interest
+     (Callback : access procedure (Name : String; Is_Subunit : Boolean))
+   is
+      use Unit_Maps;
+   begin
+      for Cur in Unit_Map.Iterate loop
+         declare
+            Info : Unit_Info renames Reference (Unit_Map, Cur);
+         begin
+            Callback (Key (Cur), Info.Is_Subunit);
+         end;
+      end loop;
+   end Enumerate_Units_Of_Interest;
+
    -------------------
    -- Enumerate_LIs --
    -------------------

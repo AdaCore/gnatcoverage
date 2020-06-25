@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -22,8 +22,10 @@ package Annotations.Report is
 
    procedure Generate_Report
      (Context           : Coverage.Context_Access;
-      Final_Report_Name : String_Access);
+      Final_Report_Name : String_Access;
+      Dump_Units        : Boolean);
    --  Generate the final report, source-wise. If Final_Report_Name is
-   --  null, dump it on stdout.
+   --  null, dump it on stdout. If Dump_Units, add a section to describe the
+   --  list of units of interest considered.
 
 end Annotations.Report;

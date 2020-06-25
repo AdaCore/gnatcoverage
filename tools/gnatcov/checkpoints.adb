@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2016, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -67,9 +67,10 @@ package body Checkpoints is
 
          CSS              : aliased Checkpoint_Save_State :=
            (Root_Stream_Type with
-            Stream  => Stream (SF),
-            Version => Default_Checkpoint_Version,
-            Purpose => Purpose);
+            Stream   => Stream (SF),
+            Filename => To_Unbounded_String (Filename),
+            Version  => Default_Checkpoint_Version,
+            Purpose  => Purpose);
          Supported_Levels : Levels_Type := Current_Levels;
       begin
          Checkpoint_Header'Write
@@ -141,9 +142,10 @@ package body Checkpoints is
       declare
          CLS : aliased Checkpoint_Load_State :=
            (Root_Stream_Type with
-            Stream  => Stream (SF),
-            Purpose => Purpose,
-            others  => <>);
+            Stream   => Stream (SF),
+            Filename => To_Unbounded_String (Filename),
+            Purpose  => Purpose,
+            others   => <>);
       begin
          CLS.Relocations.Filename := To_Unbounded_String (Filename);
 

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2017, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -60,6 +60,7 @@ with Rundrv;            use Rundrv;
 with SC_Obligations;    use SC_Obligations;
 with Strings;           use Strings;
 with Switches;          use Switches;
+with Text_Files;
 with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
 with Traces_Files_List; use Traces_Files_List;
@@ -111,6 +112,12 @@ procedure GNATcov is
    Pretty_Print         : Boolean := False;
    SO_Inputs            : SO_Set_Type;
    Keep_Reading_Traces  : Boolean := False;
+
+   Dump_Units_Filename  : String_Access := null;
+   --  If null, dump the list of units of interest as a section in the report
+   --  annotation format (if "-a report") or on the standard output
+   --  (otherwise). When non-null, dump the list of units to the designated
+   --  file.
 
    SCOs_Loaded : Boolean := False;
    --  Whether we loaded SCOs from ALI files
@@ -677,6 +684,7 @@ procedure GNATcov is
       Keep_Edges             := Args.Bool_Args (Opt_Keep_Edges);
       Pretty_Print           := Args.Bool_Args (Opt_Pretty_Print);
       Keep_Reading_Traces    := Args.Bool_Args (Opt_Keep_Reading_Traces);
+      Dump_Units             := Args.String_Args (Opt_Dump_Units_To).Present;
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"
@@ -695,10 +703,18 @@ procedure GNATcov is
       Copy_Arg (Opt_Save_Checkpoint, Save_Checkpoint);
 
       Copy_Arg_List (Opt_Scos, ALIs_Inputs);
+      if Inputs.Length (ALIs_Inputs) /= 0 then
+         Invalidate_Unit_List ("--scos is present");
+      end if;
+
+      Copy_Arg_List (Opt_SID, SID_Inputs);
+      if Inputs.Length (SID_Inputs) /= 0 then
+         Invalidate_Unit_List ("--sid is present");
+      end if;
+
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
-      Copy_Arg_List (Opt_SID, SID_Inputs);
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
 
       if Args.String_Args (Opt_Coverage_Level).Present then
@@ -927,6 +943,21 @@ procedure GNATcov is
             end if;
          end;
       end loop;
+
+      if Args.String_Args (Opt_Dump_Units_To).Present then
+         if Object_Coverage_Enabled then
+            Fatal_Error ("--dump-units-to works in source coverage only");
+         end if;
+
+         declare
+            Arg : constant String :=
+               +Args.String_Args (Opt_Dump_Units_To).Value;
+         begin
+            if Arg /= "-" then
+               Dump_Units_Filename := new String'(Arg);
+            end if;
+         end;
+      end if;
 
       --  ... then, handle remaning arguments, which have subcommand-specific
       --  meanings.
@@ -1816,6 +1847,25 @@ begin
 
          Check_User_Provided_SCOs;
 
+         --  Build the list of units of interest from project files option
+
+         declare
+            procedure Add_Unit (Name : String; Is_Subunit : Boolean);
+            --  Add Name to the list of names for units of interest
+
+            --------------
+            -- Add_Unit --
+            --------------
+
+            procedure Add_Unit (Name : String; Is_Subunit : Boolean) is
+               pragma Unreferenced (Is_Subunit);
+            begin
+               Add_Unit_Name (Name);
+            end Add_Unit;
+         begin
+            Enumerate_Units_Of_Interest (Add_Unit'Access);
+         end;
+
          --  Load routines from command line
 
          if Object_Coverage_Enabled then
@@ -2306,7 +2356,52 @@ begin
 
          declare
             Context : aliased Coverage.Context := Get_Context;
+
+            Dump_Units_In_Report : constant Boolean :=
+               Dump_Units
+               and then Dump_Units_Filename = null
+               and then Annotation = Annotate_Report;
+            --  Whether the list of units of interest should be dumped in the
+            --  coverage report itself.
          begin
+            --  If the dump of the list of units of interest is requested, make
+            --  sure we can do it.
+
+            if Dump_Units and not Unit_List_Is_Valid then
+               Fatal_Error ("Cannot dump the list of names for units of"
+                            & " interest: see above.");
+            end if;
+
+            --  If we must dump the list of units of interest in a dedicated
+            --  file or on the standard output, do it now.
+
+            if Dump_Units and then not Dump_Units_In_Report then
+               if Dump_Units_Filename = null then
+                  Iterate_On_Unit_List (Put_Line'Access);
+               else
+                  declare
+                     File : Text_Files.File_Type;
+                     --  Output file for the list of names for units of
+                     --  interest.
+
+                     procedure Print_Unit_Name (Name : String);
+                     --  Print Name to File
+
+                     ---------------------
+                     -- Print_Unit_Name --
+                     ---------------------
+
+                     procedure Print_Unit_Name (Name : String) is
+                     begin
+                        File.Put_Line (Name);
+                     end Print_Unit_Name;
+                  begin
+                     File.Create (Dump_Units_Filename.all);
+                     Iterate_On_Unit_List (Print_Unit_Name'Access);
+                  end;
+               end if;
+            end if;
+
             --  Generate annotated reports
 
             case Annotation is
@@ -2341,7 +2436,7 @@ begin
 
             when Annotate_Report =>
                Annotations.Report.Generate_Report
-                 (Context'Unchecked_Access, Output);
+                 (Context'Unchecked_Access, Output, Dump_Units_In_Report);
 
             when Annotate_Unknown =>
                pragma Assert (Save_Checkpoint /= null);

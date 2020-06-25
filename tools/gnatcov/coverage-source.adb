@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2018, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -19,6 +19,7 @@
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Ada.Streams; use Ada.Streams;
+with Ada.Strings.Unbounded;
 with Ada.Tags;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
@@ -204,6 +205,17 @@ package body Coverage.Source is
    --  Merge the given checkpointed coverage information with current coverage
    --  info for SCO.
 
+   Unit_List_Invalidated : Boolean := False;
+   --  Keeps track of whether Invalidate_Unit_List was called
+
+   package US renames Ada.Strings.Unbounded;
+   package String_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => US.Unbounded_String);
+
+   Unit_List : String_Sets.Set;
+   --  List of names for units of interest. Store it as an ordered set so that
+   --  the order of dump depends on its content, not on the way it was created.
+
    --------------------------
    -- Basic_Block_Has_Code --
    --------------------------
@@ -212,6 +224,58 @@ package body Coverage.Source is
    begin
       return Get_SCI (SCO, Tag).Basic_Block_Has_Code;
    end Basic_Block_Has_Code;
+
+   ------------------------
+   -- Unit_List_Is_Valid --
+   ------------------------
+
+   function Unit_List_Is_Valid return Boolean is
+   begin
+      return not Unit_List_Invalidated;
+   end Unit_List_Is_Valid;
+
+   --------------------------
+   -- Invalidate_Unit_List --
+   --------------------------
+
+   procedure Invalidate_Unit_List (Reason : String) is
+   begin
+      --  Log that we can't dump the list of units of interest only the first
+      --  time.
+
+      if Dump_Units and then not Unit_List_Invalidated then
+         Put_Line
+           ("We will not be able to dump the list of units of interest: "
+            & Reason);
+      end if;
+
+      Unit_List_Invalidated := True;
+      Unit_List := String_Sets.Empty_Set;
+   end Invalidate_Unit_List;
+
+   -------------------
+   -- Add_Unit_Name --
+   -------------------
+
+   procedure Add_Unit_Name (Name : String) is
+   begin
+      if not Unit_List_Invalidated then
+         Unit_List.Include (US.To_Unbounded_String (Name));
+      end if;
+   end Add_Unit_Name;
+
+   --------------------------
+   -- Iterate_On_Unit_List --
+   --------------------------
+
+   procedure Iterate_On_Unit_List
+     (Callback : not null access procedure (Name : String))
+   is
+   begin
+      for S of Unit_List loop
+         Callback.all (US.To_String (S));
+      end loop;
+   end Iterate_On_Unit_List;
 
    ---------------------
    -- Checkpoint_Save --
@@ -229,6 +293,21 @@ package body Coverage.Source is
          Ada.Tags.Tag'Write (CSS, Tag_Provider'Tag);
       end if;
       SCI_Vector_Vectors.Vector'Write (CSS.Stream, SCI_Vector);
+
+      --  Before version 3, we did not stream the list of names for units of
+      --  interest. Note that this is for checkpoints only (not SID files).
+
+      if not Checkpoints.Version_Less (CSS, Than => 3)
+         and then CSS.Purpose = Consolidation
+      then
+         Boolean'Output (CSS, Unit_List_Invalidated);
+         if not Unit_List_Invalidated then
+            Ada.Containers.Count_Type'Output (CSS, Unit_List.Length);
+            for N of Unit_List loop
+               US.Unbounded_String'Output (CSS, N);
+            end loop;
+         end if;
+      end if;
    end Checkpoint_Save;
 
    ----------------------
@@ -238,6 +317,8 @@ package body Coverage.Source is
    procedure Checkpoint_Clear is
    begin
       SCI_Vector.Clear;
+      Unit_List_Invalidated := False;
+      Unit_List := String_Sets.Empty_Set;
    end Checkpoint_Clear;
 
    ---------------------
@@ -331,6 +412,37 @@ package body Coverage.Source is
             end;
          end Process_One_SCO;
       end loop;
+
+      --  For checkpoints only (not SID files), load the list of names for
+      --  units of interest.
+
+      if CLS.Purpose = Consolidation then
+
+         --  Before version 3, this list was not streamed. In this case, be
+         --  conservative and consider that we don't have a valid list.
+
+         if Checkpoints.Version_Less (CLS, Than => 3) then
+            Invalidate_Unit_List
+              (US.To_String (CLS.Filename)
+               & " does not contain the list of units (obsolete format)");
+         else
+            declare
+               Invalidated : constant Boolean := Boolean'Input (CLS);
+            begin
+               if Invalidated then
+                  Invalidate_Unit_List
+                    (US.To_String (CLS.Filename)
+                     & " does not contain the list of units (produced with"
+                     & " --scos or --sid)");
+               else
+                  for I in 1 ..  Ada.Containers.Count_Type'Input (CLS) loop
+                     pragma Unreferenced (I);
+                     Unit_List.Include (US.Unbounded_String'Input (CLS));
+                  end loop;
+               end if;
+            end;
+         end if;
+      end if;
    end Checkpoint_Load;
 
    ------------------------

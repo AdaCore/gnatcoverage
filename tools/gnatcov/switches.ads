@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2015, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -45,6 +45,10 @@ package Switches is
    Excluded_SCOs : Boolean := False;
    --  If True, report SCOs whose coverage cannot be established due to
    --  absence of executable code.
+
+   Dump_Units : Boolean := False;
+   --  If True, try to dump the list of names for units of interest. This
+   --  corresponds to the --dump-units-to command-line option.
 
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;

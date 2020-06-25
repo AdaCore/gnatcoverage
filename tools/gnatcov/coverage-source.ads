@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2013, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -74,6 +74,36 @@ package Coverage.Source is
    procedure Set_Basic_Block_Has_Code (SCO : SCO_Id; Tag : SC_Tag);
    --  Set Basic_Block_Has_Code for SCO (a Statement SCO) as well as all
    --  previous SCOs in its basic block, for the given tag.
+
+   ---------------------------------------------------------
+   -- Handling of the list of names for units of interest --
+   ---------------------------------------------------------
+
+   --  The two procedures below allow to manage a list of names for units of
+   --  interest, which the --dump-units-to command-line option will dump.
+
+   function Unit_List_Is_Valid return Boolean;
+   --  Return whether the list of names for units of interest is valid. As soon
+   --  as users explicitly pass files that contain SCOs/SID (though
+   --  --scos/--sid, as opposed to selecting units of interest through our
+   --  project file facilities), the list isn't valid and we are not able to
+   --  dump it.
+
+   procedure Invalidate_Unit_List (Reason : String)
+      with Post => not Unit_List_Is_Valid;
+   --  Set the list of names for units of interest as invalid. The Reason
+   --  message is used for logging purposes, so that users can find out why we
+   --  cannot dump the list of units of interest.
+
+   procedure Add_Unit_Name (Name : String);
+   --  Add Name to the list of names for units of interest. For convenience, do
+   --  nothing if it is invalid.
+
+   procedure Iterate_On_Unit_List
+     (Callback : not null access procedure (Name : String))
+      with Pre => Unit_List_Is_Valid;
+   --  Call Callback for each unit of interest, passing to it the name of the
+   --  unit.
 
    -----------------
    -- Checkpoints --
