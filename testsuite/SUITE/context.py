@@ -355,3 +355,9 @@ class Test (object):
 
 # Instantiate a Test object for the individual test module that imports us
 thistest = Test()
+
+# Allow import of a common "test_support" module from test.py when
+# there is a test_support.py available uptree.
+__parent_dir = os.path.dirname(os.getcwd())
+if (os.path.exists(os.path.join(__parent_dir, 'test_support.py'))):
+    sys.path.append(__parent_dir)
