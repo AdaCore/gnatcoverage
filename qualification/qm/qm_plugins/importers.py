@@ -115,8 +115,7 @@ def is_consolidation(a):
 
 
 def is_helper(source_resource):
-    return not(is_driver(source_resource)
-               or is_functional(source_resource))
+    return not(is_driver(source_resource) or is_functional(source_resource))
 
 
 def is_driver(source_resource):
@@ -784,6 +783,9 @@ class TestCaseImporter(ArtifactImporter):
         consolidation_list = []
         consolidation_list_qmref = []
 
+        # Whether we will output sources for the PDF version
+        do_pdf = False
+
         for item in self.get_sources(artifact):
 
             if is_consolidation(item):
@@ -858,12 +860,12 @@ class TestCaseImporter(ArtifactImporter):
         html_content = writer.csv_table([k for k in for_table_qmref],
                                         headers)
 
-        latex_content = writer.csv_table([k for k in for_table],
-                                         headers).strip()
-
         result += writer.only(html_content, "html")
 
-        # result += writer.only(latex_content, "latex")
+        if (do_pdf):
+            latex_content = writer.csv_table([k for k in for_table],
+                                             headers).strip()
+            result += writer.only(latex_content, "latex")
 
         output = '\n\n' + writer.minipage(result, r'\linewidth') + "|\n\n"
 
@@ -910,7 +912,7 @@ class IndexImporter(ArtifactImporter):
             kind_text = writer.strong("(%s)" % class_to_string(art))
             id_text = writer.strong(
                 "%s" % art.full_name.replace("/TOR", ""))
-            
+
         elif is_tc(art):
             kind_text = "(%s)" % class_to_string(art)
 
@@ -921,11 +923,10 @@ class IndexImporter(ArtifactImporter):
             id_text = \
                 "[...]" + art.full_name.replace(common_prefix_parent_req, "")
 
-        self.items.append (
+        self.items.append(
             [kind_text, id_text,
              write_artifact_ref(art.full_name, get_short_description(art))])
-            
-        
+
     def handle(self, art, depth):
 
         if is_req(art) or is_tc(art):
@@ -933,29 +934,29 @@ class IndexImporter(ArtifactImporter):
 
         for child in art.relatives:
             self.handle(art=child, depth=depth+1)
-    
+
     def qmlink_to_rest(self, parent, artifacts):
 
         self.items = []
 
         def sortkey_for(art):
-            
+
             # Arrange for stmt requirements to come first, before decision and
             # mcdc. Work from locations, which contain the explicit ordering
             # requests in the names (numeric prefixes like 1_).
-            
+
             return str(art.location).replace("/stmt", "/a")
-            
+
         artifacts.sort(key=sortkey_for)
-        
+
         for art in artifacts:
             self.handle(art=art, depth=0)
 
         pdf_table = writer.csv_table(
             self.items,
             headers=["Kind", "Identification", "Description"],
-            latex_format=\
-            '|p{0.05\linewidth}|p{0.47\linewidth}||p{0.37\linewidth}|')
+            latex_format=(
+                '|p{0.05\linewidth}|p{0.47\linewidth}||p{0.37\linewidth}|'))
 
         html_table = writer.csv_table(
             self.items,
@@ -969,7 +970,8 @@ class IndexImporter(ArtifactImporter):
         output += "\n\n"
 
         return output, []
-            
+
+
 class TestCasesImporter(ArtifactImporter):
 
     def short_descs_of_main_ancestors(self, artifact, head):
