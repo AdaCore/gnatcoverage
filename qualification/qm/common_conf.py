@@ -2,7 +2,7 @@ from collections import OrderedDict
 from datetime import date
 
 project_name = 'GNATcoverage'
-project_name_it = '*%s*'% project_name
+project_name_it = '*%s*' % project_name
 owner = 'AdaCore'
 
 users = {
@@ -26,14 +26,13 @@ roles = OrderedDict(
      ('reviewers', {'description': 'the reviewers of the document'})])
 
 assignments = {
-    'authors'   : ['hainque'],
-    'reviewers' : ['guitton']
+    'authors':   ['hainque'],
+    'reviewers': ['guitton']
 }
 
-release='DRAFT 0.0'
-version='(%s)' % release
+release = 'DRAFT 0.0'
+version = '(%s)' % release
 
 copyright = '%s, %d' % (owner, date.today().year)
 
 extensions = ['sphinx.ext.ifconfig']
-
