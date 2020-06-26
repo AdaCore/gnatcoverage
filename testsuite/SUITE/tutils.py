@@ -220,6 +220,11 @@ def gprinstall(project, prefix=None):
     args = ['gprinstall', '-P', project, '-p']
     if prefix:
         args.append('--prefix={}'.format(prefix))
+
+    # Add mandatory options, such as target and RTS info
+    args.extend(thistest.gprconfoptions)
+    args.extend(thistest.gprvaroptions)
+
     p = run_and_log(args, output=ofile, timeout=thistest.options.timeout)
     thistest.stop_if(p.status != 0,
                      FatalError('gprinstall exit in error', ofile))
