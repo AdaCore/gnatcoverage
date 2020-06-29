@@ -525,7 +525,6 @@ package SC_Obligations is
           Pragma_Overriding_Renamings => False,
           Pragma_Partition_Elaboration_Policy => False,
           Pragma_Persistent_BSS => False,
-          Pragma_Polling => False,
           Pragma_Prefix_Exception_Messages => False,
           Pragma_Priority_Specific_Dispatching => False,
           Pragma_Profile => False,
