@@ -1184,7 +1184,7 @@ listed by these options are considered of interest. The root project designated
 by :option:`-P` needs to be listed in the :option:`--projects` set to be
 considered of interest as well. With a lone :option:`-P` or with
 :option:`--projects` in addition, projects imported by the listed ones are also
-considered recursively if :option:`--recursive` is used.
+considered recursively by default, unless :option:`--no-subprojects` is used.
 
 We will illustrate the effect of various combinations, assuming an example
 project tree depicted below:
@@ -1201,28 +1201,28 @@ explicitly, as in :ref:`fig-Proot-root-ss_a`.
 .. figure:: Proot.*
   :align: center
 
-  ``-Proot``
+  ``-Proot --no-subprojects``
 
 .. _fig-Proot-ss_a:
 .. figure:: Proot-ss_a.*
   :align: center
 
-  ``-Proot --projects=subsystem_a``
+  ``-Proot --projects=subsystem_a --no-subprojects``
 
 .. _fig-Proot-root-ss_a:
 .. figure:: Proot-root-ss_a.*
   :align: center
 
-  ``-Proot --projects=root --projects=ss_a``
+  ``-Proot --projects=root --projects=ss_a --no-subprojects``
 
-:option:`--recursive` lets you consider all the projects transitevely imported
-by the designated ones. For example:
+Removing :option:`--no-subprojects` lets you consider all the projects
+transitively imported by the designated ones. For example:
 
 .. _fig-Proot-ss_a-recursive:
 .. figure:: Proot-ss_a-recursive.*
   :align: center
 
-  ``-Proot --projects=subsystem_a --recursive``
+  ``-Proot --projects=subsystem_a``
 
 By default, all the units encompassed by a project of interest are considered
 of interest. This can be tailored thanks to specific attributes in package

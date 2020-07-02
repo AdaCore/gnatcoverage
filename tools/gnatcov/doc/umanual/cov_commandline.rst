@@ -88,24 +88,28 @@ The available options are as follows:
 
 :option:`-P`:
    Use the indicated project file as the root project to select the units of
-   interest for this analysis and find default options. Default options are
-   taken only from this project. In absence of :option:`--recursive` and
-   :option:`--projects`, the units of interest are those designated by this
-   project only.
+   interest for the analysis and find default options. Default options are
+   taken only from this project. In absence of :option:`--projects` and of
+   :option:`--no-subprojects`, the units of interest are those designated by
+   this project and all it's transitive dependencies, minus those
+   advertised as externally-built.
 
 :option:`--non-coverable`:
    For source coverage analysis specifically, report about language
    statements for which no object code could be found in the surrounding
    suprogram (typically out of optimization).
    
-:option:`--projects`, |rarg|:
-   When using :option:`-P`, use the provided projects to select units of
-   interest. These projects must all be part of the import transitive closure
-   reachable from the root project designated by :option:`-P`.
+:option:`--projects`, |rarg|: When using :option:`-P`, use the provided
+   projects to select units of interest, together with their transitive
+   dependencies unless :option:`--no-subprojects` is provided as well. The
+   projects designated by :option:`--projects` must all be part of the import
+   transitive closure reachable from the root project designated by
+   :option:`-P`.
 
-:option:`--recursive`:      
-   In addition to those designated by :option:`-P` / :option:`--projects`,
-   consider units from any transtively imported project.
+:option:`--no-subprojects`:
+  Consider only the projects (and units) encompassed by the :option:`-P`
+  / :option:`--projects` options as of-interest. Don't include any project
+  imported from there.
 
 :option:`--units`, |rarg|:
    When using project files, override the list of units of interest for
@@ -180,9 +184,10 @@ following sections::
   # Same report, with t1 and t2 listed in the "mytraces" text file
 
   gnatcov coverage --level=stmt -Papp.gpr --annotate=html @mytraces
-  # Same kind of report, focused on source units owned by the "app.gpr" only
+  # Same kind of report, for Statement coverage only, on source units owned
+  # by "app.gpr" and its transitive closure of project dependencies.
 
-  gnatcov coverage --level=stmt -Papp.gpr --recursive --annotate=html @mytraces
-  # Likewise, considering all the projects transitively imported by app.gpr
+  gnatcov coverage --level=stmt -Papp.gpr --no-subprojects --annotate=html @mytraces
+  # Likewise, considering only the units owned by app.gpr
 
 
