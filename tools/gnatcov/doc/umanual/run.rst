@@ -12,5 +12,4 @@ native Linux/Windows configurations or cross environments operating within
 
    run_commandline
    run_control
-   trace_control
    trace_format

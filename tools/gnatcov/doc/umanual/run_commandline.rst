@@ -36,8 +36,11 @@ Then the available :option:`[OPTIONS]` are:
 
 :option:`--level` :
   Convey the most precise kind of analysis that is intended from the produced
-  traces later on. This defaults to `stmt+decision` and is best combined with
-  :option:`-P` or :option:`--scos` for efficiency when set to `stmt+mcdc`.
+  traces later on. This defaults to `stmt+decision` and must be set to
+   `stmt+mcdc` if you intend to perform MCDC analysis. In this case, it is
+  highly recommended, for efficiency purposes, to also state the units on
+  which you will perform such analysis with :option:`-P` or :option:`--scos`,
+  as described in :ref:`sunits`.
 
 :option:`-t`, :option:`--target` :
   State the target architecture/board/abi for which the analyzed program was
