@@ -19,7 +19,8 @@ gprname = 'p'
 mainbase = 'foo'
 mainunit = mainbase + '.adb'
 
-target = Env().target.triplet
+env = Env()
+target = env.target.triplet
 
 Wdir('wd_')
 
@@ -53,14 +54,22 @@ for mode in ('no_arg', 'with_arg'):
     instantiate_gpr(target)
     gprbuild(os.path.abspath(gpr_basename))
 
+    argv = ['-P{}'.format(gprname), '-o', trace, exe]
+
     # Run with a bad target as the Target attribute in order to check that the
     # --target argument actually takes precedence.
-    if mode == 'with_arg':
+    with_target_arg = mode == 'with_arg'
+    if with_target_arg:
         instantiate_gpr('this_target_does_not_exist')
 
-    xrun(['-P{}'.format(gprname), '-o', trace, exe],
+        # Force the passing of --target in the native case, as xrun() does not
+        # pass it when it is the default.
+        if not env.is_cross:
+            argv.append('--target={}'.format(target))
+
+    xrun(argv,
          auto_config_args=False,
-         auto_target_args=(mode == 'with_arg'))
+         auto_target_args=with_target_arg)
 
     dump = 'dump.txt'
     xcov('dump-trace {}'.format(trace), out=dump)
