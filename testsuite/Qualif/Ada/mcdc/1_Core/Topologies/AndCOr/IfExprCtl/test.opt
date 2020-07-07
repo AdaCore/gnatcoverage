@@ -1,1 +1,1 @@
-bin-traces,O1 XFAIL T706-019: decision map issue
+bin-traces,CARGS_O1 XFAIL T706-019: decision map issue
