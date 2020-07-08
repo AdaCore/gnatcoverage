@@ -1,1 +1,0 @@
-src-traces,!native XFAIL T317-055: bad objdir computation in testsuite framework

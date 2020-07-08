@@ -75,7 +75,7 @@ def xcov_convert_base64(base64_file, output_trace_file, out=None, err=None,
          out=out, err=err, register_failure=register_failure)
 
 
-def add_last_chance_handler(obj_dir, main_unit, silent):
+def add_last_chance_handler(obj_dir, subdirs, main_unit, silent):
     """
     Add a unit to instrumented sources to hold a last chance handler.
 
@@ -93,18 +93,25 @@ def add_last_chance_handler(obj_dir, main_unit, silent):
 
     In instrumentation mode, we need the last chance handler to dump coverage
     buffers, and to do that we want to call the procedure that dumps coverage
-    for the test driver closure. So we generate in the project instrumented
-    source directory ($obj_dir/gnatcov-instr) a last chance handler. Which one
-    precisely depends on the ``silent`` argument.
+    for the test driver closure. So we generate in the actual project
+    instrumented source directory ($obj_dir/gnatcov-instr or
+    $obj_dir/$subdirs/gnatcov-instr) a last chance handler. Which one precisely
+    depends on the ``silent`` argument.
 
     :param str obj_dir: Path to the object directory of the instrumented
         project.
+    :param None|str subdirs: Value of --subdirs passed to gnatcov and gprbuild.
+        None if this argument is not passed.
     :param str main_unit: Name of the main unit for which the handler will call
         the coverage buffers dump routine.
     :param bool silent: Whether the last chance handler should be silent. If
         not, it will print a "!!! ERROR !!!"-like pattern that the testsuite
         will detect as an error.
     """
+    # Amend obj_dir according to subdirs, if applicable
+    if subdirs:
+        obj_dir = os.path.join(obj_dir, subdirs)
+
     # Unit that contain helper routines to dump coverage bufers. There is one
     # such unit per main. See instrument-common.ads to know more about the slug
     # computation.

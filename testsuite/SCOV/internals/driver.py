@@ -1258,14 +1258,16 @@ class SCOV_helper_src_traces(SCOV_helper):
             if not projects:
                 projects = [os.path.basename(self.covctl.gprsw.root_project)]
 
+            subdirs = self.covctl.gprsw.subdirs
             instrument_gprsw = GPRswitches(
                 root_project=self.gpr,
                 projects=projects,
                 units=self.covctl.gprsw.units,
                 no_subprojects=self.covctl.gprsw.no_subprojects,
                 xvars=self.covctl.gprsw.xvars,
-                subdirs=self.covctl.gprsw.subdirs)
+                subdirs=subdirs)
         else:
+            subdirs = None
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
         out = 'xinstr.out'
@@ -1288,8 +1290,11 @@ class SCOV_helper_src_traces(SCOV_helper):
             # tests are not built, so we can assume here that there is only one
             # driver to build.
             assert len(self.drivers) == 1
-            add_last_chance_handler('obj', no_ext(self.drivers[0]),
-                                    silent=not self.testcase.expect_failures)
+            add_last_chance_handler(
+                self.gpr_obj_dir,
+                subdirs,
+                no_ext(self.drivers[0]),
+                silent=not self.testcase.expect_failures)
 
         # Standard output might contain warnings indicating instrumentation
         # issues. This should not happen, so simply fail as soon as the output
