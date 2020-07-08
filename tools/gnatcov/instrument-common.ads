@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2019, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -367,6 +367,17 @@ package Instrument.Common is
    --
    --  Name can be a basename, a relative name or an absolute one: in all
    --  cases, the basename is taken and the file is created in IC.Output_Dir.
+
+   procedure Put_Warnings_And_Style_Checks_Pragmas
+     (File : in out Text_Files.File_Type);
+   --  Code generation helper: write "pragma Style_Checks (Off); pragma
+   --  Warnings (Off);" to File.
+   --
+   --  This is useful when writing instrumented sources, as they may introduce
+   --  warnings and break the original codebase's coding style, and since some
+   --  projects are built with "warnings-as-errors" (GNAT's -gnatwe option),
+   --  this could mean that instrumentation breaks the build. When written at
+   --  the very beginning of each written source, these pragmas avoid this.
 
    -------------------------
    -- Source instrumenter --

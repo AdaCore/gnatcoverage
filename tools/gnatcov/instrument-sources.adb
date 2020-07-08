@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2018, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -428,6 +428,7 @@ package body Instrument.Sources is
          --  trace file.
 
          Create_File (Info, File, To_Filename ((Helper_Unit, Unit_Spec)));
+         Put_Warnings_And_Style_Checks_Pragmas (File);
          File.Put_Line ("package " & Helper_Unit_Name & " is");
          File.New_Line;
          File.Put_Line ("   procedure " & Dump_Procedure & ";");
@@ -451,6 +452,7 @@ package body Instrument.Sources is
          --  Emit the package body
 
          Create_File (Info, File, To_Filename ((Helper_Unit, Unit_Body)));
+         Put_Warnings_And_Style_Checks_Pragmas (File);
 
          Put_With (Output_Unit);
          for Buffer_Unit of Buffer_Units loop

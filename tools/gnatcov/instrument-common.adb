@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2019, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -53,9 +53,9 @@ package body Instrument.Common is
    --  Helper for Create_File and Start_Rewriting: compute the path to the file
    --  to create and register it to Info.Instr_Files.
 
-   procedure Disable_Warnings_And_Style_Checks (Rewriter : Source_Rewriter);
-   --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit and prepend
-   --  pragmas to disable both.
+   procedure Remove_Warnings_And_Style_Checks_Pragmas
+     (Rewriter : Source_Rewriter);
+   --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
 
    -----------------------
    -- To_Qualified_Name --
@@ -442,27 +442,22 @@ package body Instrument.Common is
       return Self.Unit;
    end Rewritten_Unit;
 
-   ---------------------------------------
-   -- Disable_Warnings_And_Style_Checks --
-   ---------------------------------------
+   ----------------------------------------------
+   -- Remove_Warnings_And_Style_Checks_Pragmas --
+   ----------------------------------------------
 
-   procedure Disable_Warnings_And_Style_Checks (Rewriter : Source_Rewriter) is
-      use Langkit_Support.Text;
+   procedure Remove_Warnings_And_Style_Checks_Pragmas
+     (Rewriter : Source_Rewriter)
+   is
       use Libadalang.Common;
       use Libadalang.Sources;
 
       function Should_Remove (Node : Node_Rewriting_Handle) return Boolean;
       --  Return whether Node is a pragma Warnings or Style_Checks
 
-      function Create_Pragma (Name : Text_Type) return Node_Rewriting_Handle;
-      --  Helper to create nodes for "pragma <Name> (Off);"
-
       procedure Process (Node : Node_Rewriting_Handle);
-      --  Recursive traversal subprogram for all nodes in Rewriter's unit.
-      --
       --  Remove all pragma Warnings/Style_Checks statements from Node and its
-      --  children. Once this is done, if Node is a compilation unit, prepend
-      --  pragmas to disable all warnings and style checks to its prelude.
+      --  children.
 
       -------------------
       -- Should_Remove --
@@ -482,19 +477,6 @@ package body Instrument.Common is
                     and then Symbol.Symbol in "warnings" | "style_checks");
          end;
       end Should_Remove;
-
-      -------------------
-      -- Create_Pragma --
-      -------------------
-
-      function Create_Pragma (Name : Text_Type) return Node_Rewriting_Handle is
-      begin
-         return Create_From_Template
-           (Handle    => Rewriter.Handle,
-            Template  => "pragma " & Name & " (Off);",
-            Arguments => (1 .. 0 => <>),
-            Rule      => Libadalang.Common.Stmt_Rule);
-      end Create_Pragma;
 
       -------------
       -- Process --
@@ -523,25 +505,13 @@ package body Instrument.Common is
                end if;
             end;
          end loop;
-
-         --  Disable warnings and pragmas on compilation units
-
-         if Kind (Node) = Ada_Compilation_Unit then
-            declare
-               Prelude : constant Node_Rewriting_Handle :=
-                  Child (Node, 1);
-            begin
-               Insert_Child (Prelude, 1, Create_Pragma ("Warnings"));
-               Insert_Child (Prelude, 2, Create_Pragma ("Style_Checks"));
-            end;
-         end if;
       end Process;
 
-   --  Start of processing for Disable_Warnings_And_Style_Checks
+   --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
 
    begin
       Process (Handle (Rewriter.Unit.Root));
-   end Disable_Warnings_And_Style_Checks;
+   end Remove_Warnings_And_Style_Checks_Pragmas;
 
    -----------
    -- Apply --
@@ -554,7 +524,7 @@ package body Instrument.Common is
       --  instrumentation generate warning-free or well-formatted
       --  code.
 
-      Disable_Warnings_And_Style_Checks (Self);
+      Remove_Warnings_And_Style_Checks_Pragmas (Self);
 
       declare
          use Ada.Strings.Wide_Wide_Unbounded;
@@ -578,6 +548,7 @@ package body Instrument.Common is
       begin
          Abort_Rewriting (Self.Handle);
          Out_File.Create (To_String (Self.Output_Filename));
+         Put_Warnings_And_Style_Checks_Pragmas (Out_File);
 
          Get_Wide_Wide_String (Source, Source_Access, Length);
          Position := Source_Access.all'First;
@@ -909,6 +880,17 @@ package body Instrument.Common is
    begin
       File.Create (Filename);
    end Create_File;
+
+   -------------------------------------------
+   -- Put_Warnings_And_Style_Checks_Pragmas --
+   -------------------------------------------
+
+   procedure Put_Warnings_And_Style_Checks_Pragmas
+     (File : in out Text_Files.File_Type)
+   is
+   begin
+      File.Put_Line ("pragma Style_Checks (Off); pragma Warnings (Off);");
+   end Put_Warnings_And_Style_Checks_Pragmas;
 
    ----------------------------
    -- Find_Instrumented_Unit --
