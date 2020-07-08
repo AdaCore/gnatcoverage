@@ -2,9 +2,15 @@
 Check interactions of --units with -P / --projects.
 """
 
-from SUITE.cutils import list_to_tmp
+from SUITE.cutils import Wdir, list_to_tmp
 from SUITE.context import thistest
 from test_support import check
+
+
+# Create a directory to hold temporary files, so that we do not accumulate
+# uncleaned temporary files across testsuite runs.
+temp_file_dir = Wdir('tmp_files', clean=True)
+temp_file_dir.to_homedir()
 
 # Note that intops involves sub-units while boolops involves child-units,
 
@@ -29,7 +35,7 @@ check(
 
 check(
     root_project='boolops',
-    units=['@%s' % list_to_tmp(['boolops'])],
+    units=['@%s' % list_to_tmp(['boolops'], dir='tmp_files')],
     recurse=True,
     xreports=['boolops.ads', 'boolops.adb'])
 

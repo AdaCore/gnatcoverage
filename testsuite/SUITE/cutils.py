@@ -93,18 +93,19 @@ def list_to_file(l, filename='tmp.list'):
     return text_to_file('\n'.join(l) + '\n', filename)
 
 
-def list_to_tmp(l):
+def list_to_tmp(l, dir=None):
     """
-    Write list L to a temporary file in the current directory, one item per
-    line. Return the temporary file name, chosen not to conflict with already
-    exisiting files.
+    Write list L to a temporary file in DIR (or the current directory), one
+    item per line. Return the temporary file name, chosen not to conflict with
+    already exisiting files.
     """
-    # Creation in the current directory is of interest since this
-    # is expected to take place from a temporary work dir cleaned up
-    # afterwards, so most callers don't have to bother deleting the
-    # temp files themselves.
+    # By default, create the temporary file in the current working directory.
+    # Make sure the returned path is absolute, so that the result can be used
+    # even after the current working directory changes (which happens often in
+    # testcases).
+    dir = os.getcwd() if dir is None else os.path.abspath(dir)
     return text_to_file(
-        '\n'.join(l) + '\n', tempfile.mktemp(dir=os.getcwd(), suffix='.list'))
+        '\n'.join(l) + '\n', tempfile.mktemp(dir=dir, suffix='.list'))
 
 
 def match(pattern, filename, flags=0):
