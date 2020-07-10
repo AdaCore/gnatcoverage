@@ -9,4 +9,9 @@ project Counters is
      --  -fpreserve-control-flow is part of the common build options
      --  always enforced
    end compiler;
+
+   Board := external ("BOARD", "");
+   package Emulator is
+      for Board use Board;
+   end Emulator;
 end Counters;

@@ -19,4 +19,9 @@ project boolOps is
    package Coverage is
      for units use ("boolops", "boolops.andthen", "boolops.orelse");
    end coverage;
+
+   Board := external ("BOARD", "");
+   package Emulator is
+      for Board use Board;
+   end Emulator;
 end boolOps;

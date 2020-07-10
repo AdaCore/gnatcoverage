@@ -4,10 +4,11 @@ Expose a "check" conveniency function to all testcases.
 
 import os
 
-from SUITE.gprutils import GPRswitches
-from SUITE.cutils import to_list, Wdir
 from SCOV.tc import TestCase
 from SCOV.tctl import CovControl
+from SUITE.control import env
+from SUITE.cutils import to_list, Wdir
+from SUITE.gprutils import GPRswitches
 
 # Helpers for the common "check" function below
 
@@ -135,7 +136,8 @@ def check(root_project, recurse,
                 projects=gprsw_projects,
                 units=gprsw_units,
                 no_subprojects=gprsw_no_subprojects,
-                subdirs=gprsw_subdirs),
+                subdirs=gprsw_subdirs,
+                xvars=[('BOARD', env.target.machine)]),
 
             xreports=ctl_xreports,
 
