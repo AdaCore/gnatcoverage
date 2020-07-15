@@ -668,6 +668,7 @@ package SC_Obligations is
           Pragma_Source_Reference => False,
           Pragma_Static_Elaboration_Desired => False,
           Pragma_Stream_Convert => False,
+          Pragma_Subprogram_Variant => False,
           Pragma_Subtitle => False,
           Pragma_Suppress_All => False,
           Pragma_Suppress_Debug_Info => False,
