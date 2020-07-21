@@ -200,6 +200,31 @@ This will yield an expected section of the report output such as::
       in_range.adb:8:7: statement not executed
       2 violations
 
+In rare circumstances, we need to state variations on expectations
+depending on the kind of coverage criteria being assessed, for
+instance full statement coverage but only partial coverage for
+stmt+decision. To this effect, each expected note indication can be
+preceded by an ``<applicable-level> =>`` prefix where
+``<applicable-level>`` is a set of letters each denoting a possible
+level for which the note is expected, as in the following table:
+
+  ======  =======================
+  Letter  Denotes --level=...
+  ======  =======================
+  s       stmt
+  d       stmt+decision
+  m       stmt+mcdc
+  u       stmt+uc_mcdc
+  ======  =======================
+
+We can then have, say, .xcov expectations like ``s => l+, dmu => l!``
+to state that we expect full coverage (l+) for a line if we're running
+with ``--level=stmt`` (s), and partial coverage (l!) on that line for
+the other levels (dmu). This selection mechanism works the same for
+expected report notes, for which we could have, say, ``s => 0, dmu =>
+dF-`` on a line where we expect a statement to be executed but
+containing a decision evaluated True only.
+
 Extra details on semantics
 --------------------------
 
