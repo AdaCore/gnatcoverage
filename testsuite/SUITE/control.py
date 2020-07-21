@@ -3,6 +3,7 @@ Testsuite control
 """
 
 import os.path
+import re
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
@@ -273,7 +274,8 @@ def runtime_info(runtime=None):
     return RuntimeInfo(runtime)
 
 
-# Target specificities
+# Target specificities. We don't have many variants but need to match each
+# against a few possible triplets.
 
 class TargetInfo:
     """
@@ -295,22 +297,37 @@ class TargetInfo:
             to_platform_specific_symbol or (lambda x: x))
 
 
+# For each family of targets we need to distinguish, a regexp to match against
+# the actual target triplet and the corresponding TargetInfo data:
+
 TARGETINFO = {
-    'powerpc-wrs-vxworks': TargetInfo(exeext='.out', partiallinks=True),
-    'e500v2-wrs-vxworks': TargetInfo(exeext='.out', partiallinks=True),
-    'i686-pc-mingw32': TargetInfo(
+    # VxWorks targets
+    '.*-vxworks': TargetInfo(exeext='.out', partiallinks=True),
+
+    # x86-windows targets
+    'i686.*-mingw': TargetInfo(
         exeext='.exe', partiallinks=False,
         to_platform_specific_symbol=lambda x: '_{}'.format(x)),
-    'x86_64-pc-mingw32': TargetInfo(exeext='.exe', partiallinks=False),
-    'default': TargetInfo(exeext='', partiallinks=False)}
+
+    # x86_64-windows targets
+    'x86_64.*mingw': TargetInfo(exeext='.exe', partiallinks=False),
+
+    # default
+    '.': TargetInfo(exeext='', partiallinks=False)}
 
 
 def target_info(target=None):
+    """
+    The TargetInfo data for the provided `target` triplet. If `target` is None,
+    use the testsuite target.
+    """
+
     if target is None:
         target = env.target.triplet
-    return (
-        TARGETINFO[target] if target in TARGETINFO
-        else TARGETINFO["default"])
+
+    for re_target in TARGETINFO:
+        if re.match(pattern=re_target, string=target):
+            return TARGETINFO[re_target]
 
 
 # Allowed pairs for the --gnatcov-<cmd> family of command line options:
