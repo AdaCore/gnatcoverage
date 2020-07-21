@@ -11,7 +11,7 @@ itself and the called subprogram code.
 
 Check correctness of the tool behavior for a panel of calls issued through
 operational attributes, with variations of the achieved coverage at both the
-call sites and within the called suprograms. Note that the operational Stream
+call sites and within the called subprograms. Note that the operational Stream
 attributes are only available in environments where the runtime profile
 features Ada.Streams.
 

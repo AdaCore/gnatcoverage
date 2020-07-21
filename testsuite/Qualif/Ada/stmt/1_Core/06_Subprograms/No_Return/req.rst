@@ -1,5 +1,5 @@
-SC requirements for No_Return pragmas on suprograms
-===================================================
+SC requirements for No_Return pragmas on subprograms
+====================================================
 
 
 %REQ_ID%
