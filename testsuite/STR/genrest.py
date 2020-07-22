@@ -804,7 +804,7 @@ class QDreport(object):
                 "executed, with their execution status and a set of "
                 "expectation counters."
                 "\n\n"
-                "*Expectations* there refers to expected coverage assessment "
+                "*Expectations* there refer to expected coverage assessment "
                 "diagnostics stated as embedded comments within the test "
                 "sources. *Violations* refer to "
                 "deviations with respect to a given coverage criterion, "
