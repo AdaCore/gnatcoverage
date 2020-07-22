@@ -1092,11 +1092,12 @@ class QDreport(object):
         opts_with_eq = switches_with_eq_from(suite_cmdline)
         rts = opts_with_eq.get('--RTS', None)
 
-        if rts:
-            csv_contents.append(
-                {itemno: "s2",
-                 item: "runtime profile",
-                 value: literal("--RTS=%s" % rts)})
+        csv_contents.append(
+            {itemno: "s2",
+             item: "runtime profile",
+             value: literal(
+                 ("--RTS=%s" % rts)) if rts
+                 else rest.emph("no --RTS switch")})
 
         CSVtable(
             title=None, text=None,
