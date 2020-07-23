@@ -4,7 +4,8 @@
 ======================
 
 This chapter describes rules on which the correctness of the source coverage
-assessments performed by GNATcoverage depends.
+assessments performed by GNATcoverage depends. This instance of the document
+is valid for use in a certification context no stricter than DAL |dolevel|.
 
 .. _operational-context:
 

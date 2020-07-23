@@ -1,3 +1,4 @@
+import os
 
 opcond_section_title = "Operational Conditions of Use"
 torintro_section_title = "Document Purpose and Organization"
@@ -54,3 +55,8 @@ rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.macro('standard', 'DO-178C/ED-12C') \
     + writer.macro('tool_standard', 'DO-330/ED-215') \
     + writer.macro('client', '`GENERIC CLIENT`')
+
+# We expect to be called through genbundle.py, which should export an
+# environment variable stating what --dolevel it was passed ('doA', 'doB',
+# or 'doC'). Expose the significant letter to documents:
+rst_prolog += writer.macro('dolevel', os.environ.get('GENBUNDLE_DOLEVEL')[-1])
