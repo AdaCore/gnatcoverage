@@ -41,7 +41,7 @@ assignments = {
 }
 
 release = 'DRAFT 0.0'
-version = '(%s)' % release
+version = '(version %s)' % release
 
 copyright = '%s, %d' % (owner, date.today().year)
 
