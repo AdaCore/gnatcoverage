@@ -16,23 +16,22 @@ contents.
 Reading the |plans_doc| document
 ********************************
 
-**objectives:** 
+**Objectives:**
 
   * Assess the compliance with qualification objectives.
 
 Inspection of Tool Operational Requirements (by sampling)
 *********************************************************
 
-**objectives:** 
+**Objectives:**
 
   * Check the accuracy, completeness and consistency with respect to the
     qualification objectives.
 
-
 Inspection of Test Cases (by sampling)
 **************************************
 
-**objectives:** 
+**Objectives:**
 
   * Check the accuracy of test cases, in particular whether the tests exercise
     their target Ada constructs.
@@ -41,7 +40,7 @@ Inspection of Test Cases (by sampling)
 Inspection of test execution results
 ************************************
 
-**objectives:** 
+**Objectives:**
 
   * Check that the Verification Environment reported in the |str_doc| report
     is equivalent to the Operational Environment described in the |tor_doc|
