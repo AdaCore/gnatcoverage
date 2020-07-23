@@ -16,16 +16,12 @@ GNATcoverage - |standard| Qualification Material: |tor_doc_title|
    Ada 95 LRM ; Ada 1995 Reference Manual. Language and Standard Libraries. International Standard ISO/IEC 8652:1995 Technical Corrigendum 1 (ISO/IEC 8652:1995:TC1:2000)
    Tool User's Guide ; *GNATcoverage User's Guide*, part of the GNATcoverage 19.3 release documentation
 
-.. rubric:: Revision history
-
-.. tabularcolumns:: |p{0.1\textwidth}|p{0.90\textwidth}|
-
+.. rubric:: Revision History
 .. csv-table::
    :delim: |
-   :header: "Version #", "Comment"
-   :widths: 10, 90
+   :header: "Version #", "Date", "Comment"
 
-   1.0|First version submitted to customer review, pre internal QA cycle
+   DRAFT 0.0 | <date> | Draft for interim delivery, pre internal QA
 
 .. only:: html
 
