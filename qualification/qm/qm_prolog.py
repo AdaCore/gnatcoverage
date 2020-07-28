@@ -35,9 +35,9 @@ rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.macro('tor_doc', r'*TOR*') \
     + writer.macro('str_doc', r'*STR*') \
     + writer.macro('tqa_doc', '|tqa_doc_title|') \
-    + writer.macro('plans_doc_id', r'*TEC.????-???*') \
-    + writer.macro('tor_doc_id', r'*TEC.????-???*') \
-    + writer.macro('str_doc_id', r'*TEC.????-???*') \
+    + writer.macro('plans_doc_id', r'*' + plans_doc_id + r'*') \
+    + writer.macro('tor_doc_id', r'*' + tor_doc_id + r'*') \
+    + writer.macro('str_doc_id', r'*' + str_doc_id + r'*') \
     + writer.macro('opcond_section_title', r'%s' % opcond_section_title) \
     + writer.macro('opcond_section_title_ref', r'*%s*' % opcond_section_title) \
     + writer.macro('torintro_section_title', r'%s' % torintro_section_title) \

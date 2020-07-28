@@ -46,3 +46,7 @@ version = '(version %s)' % release
 copyright = '%s, %d' % (owner, date.today().year)
 
 extensions = ['sphinx.ext.ifconfig']
+
+tor_doc_id = 'PE.<TOR-DOC-TN>'
+str_doc_id = 'PE.<STR-DOC-TN>'
+plans_doc_id = 'PE.<PLANS-DOC-TN>'
