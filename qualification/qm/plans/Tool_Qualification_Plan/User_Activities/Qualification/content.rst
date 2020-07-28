@@ -10,9 +10,19 @@
    * Include references to the |project_name| qualification kit documents that
      were received to support this particular use of the tool.
 
-2. **Delivery Acceptance.** On delivery of |project_name| and its
-   qualification kit, the user shall assess whether the qualified Operational
-   Environment is representative of the user's Operational Environment.
+#. **Delivery Acceptance.** On delivery of |project_name| and its
+   qualification kit, the user shall
+
+   * Assess whether the qualified Operational Environment is
+     representative of the user's Operational Environment;
+
+   * Assess whether the structural coverage analysis performed
+     by GNATcoverage satisfies the goals specified in the
+     :ref:`certification-credit` section;
+
+   * Assess whether the Tool Operational Requirements include suitable
+     artifacts for specific language constructs expected to be of relevance
+     for a given coverage criterion.
 
 #. **Configuration management of qualification data**. The user needs to place
    all qualification data under configuration management.
