@@ -8,7 +8,7 @@ provided DOTXCOV_PATTERN (*.xcov for example).
 
 import re
 
-from gnatpython.fileutils import ls
+from e3.fs import ls
 
 from .cnotes import (KnoteDict, Enote, elNoteKinds, lNoCode, lFullCov,
                      lPartCov, lNoCov, lNotCoverable, lx0, lx1)

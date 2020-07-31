@@ -11,8 +11,9 @@ import shutil
 import sys
 import tempfile
 
-from gnatpython.ex import Run
-from gnatpython.fileutils import cd, mkdir, which
+from e3.fs import mkdir
+from e3.os.fs import cd, which
+from e3.os.process import Run
 
 
 def strip_prefix(prefix, string):
@@ -85,17 +86,17 @@ def text_to_file(text, filename='tmp.list'):
     return filename
 
 
-def list_to_file(l, filename='tmp.list'):
+def list_to_file(lines, filename='tmp.list'):
     """
-    Write list L to file FILENAME, one item per line. Typical use is to
+    Write list LINES to file FILENAME, one item per line. Typical use is to
     generate response files. Return FILENAME.
     """
-    return text_to_file('\n'.join(l) + '\n', filename)
+    return text_to_file('\n'.join(lines) + '\n', filename)
 
 
-def list_to_tmp(l, dir=None):
+def list_to_tmp(lines, dir=None):
     """
-    Write list L to a temporary file in DIR (or the current directory), one
+    Write list LINES to a temporary file in DIR (or the current directory), one
     item per line. Return the temporary file name, chosen not to conflict with
     already exisiting files.
     """
@@ -105,7 +106,7 @@ def list_to_tmp(l, dir=None):
     # testcases).
     dir = os.getcwd() if dir is None else os.path.abspath(dir)
     return text_to_file(
-        '\n'.join(l) + '\n', tempfile.mktemp(dir=dir, suffix='.list'))
+        '\n'.join(lines) + '\n', tempfile.mktemp(dir=dir, suffix='.list'))
 
 
 def match(pattern, filename, flags=0):
@@ -113,9 +114,9 @@ def match(pattern, filename, flags=0):
     return re.search(pattern, contents_of(filename), flags) is not None
 
 
-def re_filter(l, pattern=''):
-    """Compute the list of entries in L that match the PATTERN regexp."""
-    return [t for t in l if re.search(pattern, t)]
+def re_filter(strings, pattern=''):
+    """Compute the list of entries in STRINGS that match the PATTERN regexp."""
+    return [t for t in strings if re.search(pattern, t)]
 
 
 def clear(f):
@@ -154,7 +155,7 @@ def version(tool, nlines=1):
 
     tool_version_output = Run([tool, '--version']).out.split('\n')
     version_info = '\n'.join(
-        [version_on_line(l) for l in tool_version_output[0:nlines]])
+        [version_on_line(line) for line in tool_version_output[0:nlines]])
 
     if tool == 'gcc':
         gcc_target = Run([tool, '-dumpmachine']).out.strip()
@@ -240,7 +241,7 @@ def exit_if(t, comment):
     error status code.
     """
     if t:
-        print >> sys.stderr, comment
+        sys.stderr.write(comment + '\n')
         exit(1)
 
 

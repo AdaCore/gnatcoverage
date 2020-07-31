@@ -4,7 +4,7 @@ outside of the set of projects selected through --projects is properly
 reported.
 """
 
-from gnatpython.fileutils import mkdir
+from e3.fs import mkdir
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest

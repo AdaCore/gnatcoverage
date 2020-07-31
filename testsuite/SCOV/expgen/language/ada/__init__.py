@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import itertools
-
 import SCOV.expgen.ast as ast
 import SCOV.expgen.utils as utils
 import SCOV.expgen.language as language
@@ -111,7 +109,7 @@ class Language(language.Language):
                         [
                             op_kind.actuals[op_truth]
                             for op_kind, op_truth
-                            in itertools.izip(operand_kinds, truth_vector)
+                            in zip(operand_kinds, truth_vector)
                         ]
                     )
                     self.handle(ast.Call(

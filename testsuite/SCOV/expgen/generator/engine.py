@@ -39,7 +39,7 @@ def run(group_py):
         with env.get_dir(group_py_dir):
             generate_all(env)
     except GenerationError as e:
-        print >> sys.stderr, '{}: error: {}'.format(e.context, e.message)
+        sys.stderr.write('{}: error: {}\n'.format(e.context, e.message))
         sys.exit(1)
 
 
@@ -238,3 +238,8 @@ from SCOV.tctl import CAT
 [TestCase(category=cat).run() for cat in CAT.critcats]
 thistest.result()
 """)
+
+    # Properly tag it as generated, so that the testsuite framework does not
+    # treat it as a regular testcase next time.
+    with open('.generated', 'w'):
+        pass

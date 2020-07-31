@@ -3,7 +3,7 @@
 import collections
 import re
 
-from gnatpython.fileutils import mkdir
+from e3.fs import mkdir
 
 from SUITE.context import thistest
 import SUITE.control
@@ -38,7 +38,7 @@ class TestCase(object):
         self.test_drivers = test_drivers
         self.coverage_expectations = {
             TARGET_INFO.to_platform_specific_symbol(symbol): data
-            for symbol, data in coverage_expectations.iteritems()
+            for symbol, data in coverage_expectations.items()
         }
         self.extra_sourcedirs = extra_sourcedirs
         self.level = level
@@ -100,7 +100,7 @@ class TestCase(object):
                  ' Compiler\'Default_Switches ("C") & ({});').format(
                     cu, self.fmt_list(switches)
                 )
-                for cu, switches in compile_unit_switches.iteritems()
+                for cu, switches in compile_unit_switches.items()
             )
         )
 

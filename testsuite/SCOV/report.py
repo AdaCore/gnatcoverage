@@ -14,7 +14,7 @@ Intended mode of use is like:
 import os.path
 import re
 
-from gnatpython.fileutils import ls
+from e3.fs import ls
 
 from SCOV.internals.cnotes import xNoteKinds
 from SCOV.internals.tfiles import Tfile

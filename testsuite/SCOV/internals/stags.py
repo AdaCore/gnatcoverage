@@ -14,8 +14,6 @@ We have two kinds of separation tags:
   triggered by the use of "gnatcov coverage -S routines"
 """
 
-import itertools
-
 import SUITE.control
 from .segments import Sloc_from
 
@@ -74,7 +72,7 @@ class Itag(Stag):
 
         # Check whether any component pair is found not to match:
 
-        for c1, c2 in itertools.izip(self.components, other.components):
+        for c1, c2 in zip(self.components, other.components):
             if (
                 c1.filename != c2.filename
                 or c1.section.sp0.lineno != c2.section.sp0.lineno

@@ -897,7 +897,7 @@ class XnotesExpander:
         Called whe the first level parsing is done for UXG, prior to instance
         name resolution and group closing.
         """
-        uxg.lxset = uxg.lxset.values() + self.__builtin_lcxs_for(uxg)
+        uxg.lxset = list(uxg.lxset.values()) + self.__builtin_lcxs_for(uxg)
         return uxg
 
     # Builtin markers support: to let test writers put things like

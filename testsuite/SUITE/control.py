@@ -5,9 +5,9 @@ Testsuite control
 import os.path
 import re
 
-from gnatpython.env import Env
-from gnatpython.ex import Run
-from gnatpython.fileutils import rm
+from e3.env import Env
+from e3.fs import rm
+from e3.os.process import Run
 
 from SUITE.cutils import no_ext
 
@@ -358,7 +358,7 @@ def cargs_attr_for(lang):
     return "cargs" + ('_%s' % lang if lang else "")
 
 
-def add_shared_options_to(o, toplevel):
+def add_shared_options_to(parser, toplevel):
     """
     Shared command line options.
 
@@ -367,87 +367,85 @@ def add_shared_options_to(o, toplevel):
     """
     # --gnatcov_<cmd> family
     for pgm, cmd in ALTRUN_GNATCOV_PAIRS:
-        o.add_option(
+        parser.add_argument(
             '--%s' % altrun_opt_for(pgm, cmd), dest=altrun_attr_for(pgm, cmd),
-            default=None, help='Use CMD instead of "%s %s"' % (pgm, cmd),
-            metavar="CMD")
+            metavar="CMD",
+            help='Use CMD instead of "%s %s"' % (pgm, cmd))
 
     # Valgrind control
-    o.add_option(
+    parser.add_argument(
         '--enable-valgrind', dest='enable_valgrind',
         choices='memcheck callgrind'.split(),
-        default=None,
-        help=('Enable the use of Valgrind (memcheck or callgrind)'
-              'during the test execution.'))
+        help='Enable the use of Valgrind (memcheck or callgrind) during the'
+             ' test execution.')
 
     # RTS for tested programs. Defaulting to "" instead of None lets us
     # perform RE searches unconditionally to determine profile.
-    o.add_option(
+    parser.add_argument(
         '--RTS', dest='RTS', metavar='RTS', default="",
-        help=('--RTS option to pass to gprbuild, if any. '
-              'Assume "full" profile by default.'))
+        help='--RTS option to pass to gprbuild, if any. Assume "full" profile'
+             ' by default.')
 
     # --board
-    o.add_option(
+    parser.add_argument(
         '--board', dest='board', metavar='BOARD',
-        help='Specific target board to exercize')
+        help='Specific target board to exercize.')
 
     # --gprmode
-    o.add_option(
+    parser.add_argument(
         '--gprmode', dest='gprmode', action='store_true',
-        default=False,
-        help='Use -P instead of --scos for analysis on source coverage tests')
+        help='Use -P instead of --scos for analysis on source coverage tests.')
 
     # --kernel
-    o.add_option(
+    parser.add_argument(
         '--kernel', dest='kernel', metavar='KERNEL',
-        help='KERNEL to pass to gnatcov run in addition to exe')
+        help='KERNEL to pass to gnatcov run in addition to exe.')
 
     # --trace-mode
-    o.add_option(
+    parser.add_argument(
         '--trace-mode', dest='trace_mode', metavar='TRACE_MODE',
         choices=('bin', 'src'), default='bin',
-        help=('Kind of execution traces to use for SCOV driven tests. '
-              '"bin" for binary traces out of valgrind or qemu, '
-              '"src" for source traces out of source level instrumentation.'))
+        help='Kind of execution traces to use for SCOV driven tests.'
+             ' "bin" for binary traces out of valgrind or qemu,'
+             ' "src" for source traces out of source level instrumentation.')
 
     # --trace-size-limit
-    o.add_option(
+    parser.add_argument(
         '--trace-size-limit', dest='trace_size_limit', metavar='TRSZ_LIMIT',
-        help=('Best effort request to the execution environment to stop when '
-              'the execution trace would grow beyond the provided size. Only '
-              'effective for qemu based executions, with values like "10M".'))
+        help='Best effort request to the execution environment to stop when'
+             ' the execution trace would grow beyond the provided size. Only'
+             ' effective for qemu based executions, with values like "10M".')
 
     # --toolchain
-    o.add_option(
+    parser.add_argument(
         '--toolchain', dest='toolchain', metavar='TOOLCHAIN', default='',
-        help=('Prefix of the toolchain to use to compile tests'
-              if toplevel else 'Toolchain discriminant'))
+        help=('Prefix of the toolchain to use to compile tests.'
+              if toplevel else 'Toolchain discriminant.'))
 
     # --largs
-    o.add_option(
+    parser.add_argument(
         '--largs', dest='largs', metavar='LARGS', default='',
-        help=('-largs to pass to gprbuild'))
+        help='-largs to pass to gprbuild.')
 
     # --cargs[:<lang>] family: a common, language agnostic, one + one for each
     # language we support. --cargs "" should be kept semantically equivalent
     # to absence of --cargs at all, and forcing a string allows simpler code
     # downstream.
     for lang in [None] + KNOWN_LANGUAGES:
-        o.add_option(
+        parser.add_argument(
             '--%s' % cargs_opt_for(lang), dest=cargs_attr_for(lang),
             metavar='CARGS', default='',
-            help='Additional arguments to pass to the %scompiler when '
-                 'building test programs.' % ('%s ' % lang if lang else ''))
+            help='Additional arguments to pass to the %scompiler when'
+                 ' building test programs.' % ('%s ' % lang if lang else ''))
 
     # --auto-arch
 
-    o.add_option(
+    parser.add_argument(
         '--auto-arch', action='store_true',
-        help='Autodetect which "gnatcov" to use (32-bit or 64-bit one)')
+        help='Autodetect which "gnatcov" to use (32-bit or 64-bit one).')
 
     # --consolidate
-    o.add_option(
+    parser.add_argument(
         '--consolidate', dest='consolidate', default="traces",
-        help=("artefacts to be used for consolidation specs"),
+        help="Artifacts to be used for consolidation specs.",
         choices=('traces', 'checkpoints'))

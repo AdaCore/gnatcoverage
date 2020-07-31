@@ -119,7 +119,7 @@ class TraceSpecial(Enum):
     RANGE = (1, 3)
 
 
-TRACE_MAGIC = '#QEMU-Traces'
+TRACE_MAGIC = b'#QEMU-Traces'
 """
 Exepected value of the Magic header field. See Qemu_Trace_Magic in
 qemu_traces.ads.
@@ -333,6 +333,8 @@ class TraceInfo(object):
         :param str data: Raw data (bytes) for this entry.
         """
         InfoKind.check(kind)
+        assert isinstance(kind, int)
+        assert isinstance(data, bytes)
         self.kind = kind
         self.data = data
 
@@ -374,7 +376,7 @@ class TraceInfo(object):
                         padding_size, len(padding)
                     )
                 )
-                assert padding == ('\x00' * padding_size), (
+                assert padding == (b'\x00' * padding_size), (
                     'Some padding bytes are non-null: {}'.format(repr(padding))
                 )
 
@@ -386,7 +388,7 @@ class TraceInfo(object):
         """
         TraceInfoHeaderStruct.write(fp, (self.kind, len(self.data)))
         fp.write(self.data)
-        fp.write('\x00' * self.padding_size(len(self.data)))
+        fp.write(b'\x00' * self.padding_size(len(self.data)))
 
 
 class TraceInfoList(object):
@@ -521,14 +523,18 @@ def create_exec_infos(filename, code_size=None):
         int(stat.st_mtime)
     )
 
+    def create_trace_info(kind, data_str):
+        return TraceInfo(kind, data_str.encode('utf-8'))
+
     infos = [
-        TraceInfo(InfoKind.ExecFileName, filename),
-        TraceInfo(InfoKind.ExecFileSize, ' ' + str(stat.st_size)),
-        TraceInfo(InfoKind.ExecTimeStamp, mtime.isoformat(' ')),
-        TraceInfo(InfoKind.ExecFileCRC32, ' ' + str(crc32)),
+        create_trace_info(InfoKind.ExecFileName, filename),
+        create_trace_info(InfoKind.ExecFileSize, ' ' + str(stat.st_size)),
+        create_trace_info(InfoKind.ExecTimeStamp, mtime.isoformat(' ')),
+        create_trace_info(InfoKind.ExecFileCRC32, ' ' + str(crc32)),
     ]
     if code_size:
-        infos.append(TraceInfo(InfoKind.ExecCodeSize, ' ' + str(code_size)))
+        infos.append(create_trace_info(InfoKind.ExecCodeSize,
+                                       ' ' + str(code_size)))
 
     return TraceInfoList({info.kind: info for info in infos})
 

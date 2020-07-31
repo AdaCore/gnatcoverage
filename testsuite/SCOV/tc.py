@@ -25,7 +25,7 @@ import os
 import os.path
 import re
 
-from gnatpython.fileutils import ls
+from e3.fs import ls
 
 from SCOV.internals.driver import (SCOV_helper_bin_traces,
                                    SCOV_helper_src_traces)
@@ -90,8 +90,10 @@ class TestCase:
 
     def __category_from_dir(self):
         """Compute test category from directory location."""
+        # Canonicalize directory separators to simplify the maching logic
+        test_dir = TEST_DIR.replace('\\', '/')
         for cat in CAT.critcats:
-            if re.search(r"/%s" % cat.name, TEST_DIR):
+            if re.search(r"/%s" % cat.name, test_dir):
                 return cat
 
         raise FatalError("Unable to infer test category from subdir '%s'"

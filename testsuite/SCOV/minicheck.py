@@ -350,7 +350,7 @@ def check_xcov_reports(xcov_filename_pattern, expected_cov):
     xcov_files = {canonicalize_file(filename)
                   for filename in glob.glob(xcov_filename_pattern)}
     expected_cov = {canonicalize_file(filename): cov_data
-                    for filename, cov_data in expected_cov.iteritems()}
+                    for filename, cov_data in expected_cov.items()}
 
     thistest.fail_if(
         xcov_files != set(expected_cov),

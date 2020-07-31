@@ -23,6 +23,9 @@ __all__ = ["SCOV_helper"]
 from collections import defaultdict
 import os
 
+from e3.fs import mkdir, ls
+from e3.os.fs import cd
+
 from SCOV.tctl import CAT, CovControl
 
 from SCOV.instr import (add_last_chance_handler, default_dump_channel,
@@ -39,8 +42,6 @@ from SUITE.tutils import gprbuild_cargs_with
 from SUITE.tutils import exename_for
 from SUITE.tutils import (srctracename_for, tracename_for, ckptname_for,
                           run_cov_program)
-
-from gnatpython.fileutils import cd, mkdir, ls
 
 from .cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
 from .cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds

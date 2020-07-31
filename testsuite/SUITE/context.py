@@ -13,13 +13,15 @@ import re
 import sys
 import time
 
-from gnatpython.ex import Run
-from gnatpython.fileutils import cd, rm
-from gnatpython.main import Main
+from e3.fs import rm
+from e3.os.fs import cd
+from e3.os.process import Run
+from e3.main import Main
 
 from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, env
-from SUITE.cutils import indent, indent_after_first_line, lines_of, ndirs_in
+from SUITE.cutils import (exit_if, indent, indent_after_first_line, lines_of,
+                          ndirs_in)
 
 
 # This module is loaded as part of a Run operation for a test.py
@@ -97,7 +99,7 @@ class _ReportOutput(object):
         if print_diff is True).  Reset print_diff to False as well.
         """
         if self.print_diff:
-            print self.output,
+            sys.stdout.write(self.output + ' ')
         self.output = ""
         self.print_diff = False
         self.report_fd.flush()
@@ -294,45 +296,41 @@ class Test (object):
 
     def __cmdline_options(self):
         """Return an options object to represent the command line options"""
-        main = Main(require_docstring=False, add_targets_options=True)
-        main.add_option('--timeout', dest='timeout', type=int,
-                        default=None)
-        main.add_option('--trace_dir', dest='trace_dir', metavar='DIR',
-                        help='Traces location. No bootstrap if not specified.',
-                        default=None)
-        main.add_option('--report-file', dest='report_file', metavar='FILE',
-                        help='The filename where to store the test report '
-                             '[required]')
-        main.add_option('--qualif-level', dest='qualif_level',
-                        metavar='QUALIF_LEVEL',
-                        help='The target qualification level when we are '
-                             'running in qualification mode.')
+        main = Main(platform_args=True)
+        parser = main.argument_parser
+        parser.add_argument('--timeout', type=int, default=None)
+        parser.add_argument('--report-file', metavar='FILE',
+                            help='The filename where to store the test report'
+                                 ' [required]')
+        parser.add_argument('--qualif-level', metavar='QUALIF_LEVEL',
+                            help='The target qualification level when we are'
+                                 ' running in qualification mode.')
 
-        main.add_option('--xcov-level', dest='xcov_level',
-                        help='Force the --level argument passed to xcov '
-                             'instead of deducing it from the test category '
-                             'when that normally happens.')
+        parser.add_argument('--xcov-level',
+                            help='Force the --level argument passed to xcov'
+                                 'instead of deducing it from the test'
+                                 ' category when that normally happens.')
 
-        main.add_option('--tags', dest='tags', default="")
+        parser.add_argument('--tags', default="")
 
-        control.add_shared_options_to(main, toplevel=False)
+        control.add_shared_options_to(parser, toplevel=False)
 
         main.parse_args()
-        if main.options.report_file is None:
-            # This is a required "option" which is a bit self-contradictory,
-            # but it's easy to do it that way.
-            main.error("The report file must be specified with --report-file")
+
+        # "--report-file" is a required "option" which is a bit
+        # self-contradictory, but it's easy to do it that way.
+        exit_if(
+            main.args.report_file is None,
+            "The report file must be specified with --report-file")
 
         # Get our tags set as a list. Fetch contents from file if needed
         # first:
-        if main.options.tags and main.options.tags.startswith('@'):
-            main.options.tags = ' '.join(
-                lines_of(main.options.tags[1:])
-                )
-        if main.options.tags:
-            main.options.tags = main.options.tags.split()
+        if main.args.tags and main.args.tags.startswith('@'):
+            main.args.tags = ' '.join(lines_of(main.args.tags[1:]))
+        if main.args.tags:
+            main.args.tags = main.args.tags.split()
 
-        return main.options
+        return main.args
 
     def suite_cargs_for(self, lang):
         """

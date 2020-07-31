@@ -12,6 +12,10 @@ import os
 import time
 
 
+from e3.os.fs import touch, unixpath
+from e3.os.process import Run
+
+
 # Expose a few other items as a test util-facilities as well
 
 from SUITE import control
@@ -23,8 +27,6 @@ from SUITE.context import ROOT_DIR, thistest
 # Then mind our own buisness
 
 from SUITE.cutils import FatalError, contents_of, text_to_file, to_list
-from gnatpython.ex import Run
-from gnatpython.fileutils import touch, unixpath, which
 
 
 # Precompute some values we might be using repeatedly
@@ -48,7 +50,7 @@ List of processes run through run_and_log. Useful for debugging.
 
 def run_and_log(*args, **kwargs):
     """
-    Wrapper around gnatpython.ex.Run to collect all processes that are run.
+    Wrapper around e3.os.process.Run to collect all processes that are run.
     """
     start = time.time()
     p = Run(*args, **kwargs)
@@ -277,7 +279,7 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
 
     # Determine the language(s) from the mains.
     languages_l = langs or set(language_info(main).name for main in mains)
-    languages = ', '.join('"%s"' % l for l in languages_l)
+    languages = ', '.join('"%s"' % lang for lang in languages_l)
 
     # The base project file we need to extend, and the way to refer to it
     # from the project contents. This provides a default last chance handler
@@ -517,17 +519,6 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
     args = to_list(args)
     covcmd = args[0]
     covargs = args[1:]
-
-    if thistest.options.trace_dir is not None:
-        # Bootstrap - run xcov under xcov
-
-        if covcmd == 'coverage':
-            thistest.current_test_index += 1
-            args = ['run', '-t', 'i686-pc-linux-gnu',
-                    '-o', os.path.join(thistest.options.trace_dir,
-                                       str(thistest.current_test_index)
-                                       + '.trace'),
-                    which(XCOV), '-eargs'] + args
 
     covargs = xcov_suite_args(covcmd, covargs, auto_config_args,
                               auto_target_args) + covargs

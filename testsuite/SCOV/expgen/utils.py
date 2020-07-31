@@ -26,7 +26,7 @@ def format_tag(tag):
 def contains_tag(node):
     """Return if the given `node` tree contains a tagged node."""
     return (
-        not isinstance(node, (basestring, bool, int)) and
+        not isinstance(node, (str, bool, int)) and
         (
             isinstance(node, ast.TaggedNode) or
             any(contains_tag(subnode) for subnode in node)

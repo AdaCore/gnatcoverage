@@ -1,6 +1,6 @@
 import re
 
-from gnatpython.fileutils import mkdir
+from e3.fs import mkdir
 
 from SCOV.minicheck import build_and_run
 from SUITE.context import thistest

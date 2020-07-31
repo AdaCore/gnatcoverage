@@ -4,7 +4,7 @@
 Expose the base class for Language serializers and some formatting helpers.
 """
 
-import StringIO
+import io
 
 import SCOV.expgen.ast as ast
 import SCOV.expgen.context as context
@@ -129,7 +129,7 @@ class Language(object):
         the serialization as a string plus the resulting tag, if any.
         """
         # Save the current formatter and replace it with a buffer one.
-        output_buffer = StringIO.StringIO()
+        output_buffer = io.StringIO()
         formatter = self.formatter
         self.set_formatter(formatter.sub(output_buffer))
 

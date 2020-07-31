@@ -3,7 +3,7 @@ Check that warnings about projects not contributing to the selection of units
 of interest are emitted when expected.
 """
 
-from gnatpython.fileutils import mkdir
+from e3.fs import mkdir
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest

@@ -61,7 +61,7 @@ def read_aligned(fp, count, alignment):
     if padding_count != alignment:
         padding = fp.read(padding_count)
         assert (len(padding) == padding_count and
-                all(c == '\x00' for c in padding))
+                all(c == 0 for c in padding))
 
     return content
 
@@ -82,7 +82,7 @@ def write_aligned(fp, data, alignment):
     # Write padding bytes
     padding_count = alignment - len(data) % alignment
     if padding_count != alignment:
-        padding = '\x00' * padding_count
+        padding = b'\x00' * padding_count
         fp.write(padding)
 
 
@@ -91,7 +91,7 @@ class SrcTraceFile(object):
     In-memory representation of a source trace file.
     """
 
-    MAGIC = 'GNATcov source trace file' + '\x00' * 7
+    MAGIC = b'GNATcov source trace file' + b'\x00' * 7
 
     FORMAT_VERSION = 0
 
@@ -184,8 +184,8 @@ class SrcTraceFile(object):
             return '{} {}'.format(bounds, content)
 
         print('Source trace file:')
-        print('  Alignment:', self.alignment)
-        print('  Endianity:', self.endianity)
+        print('  Alignment: {}'.format(self.alignment))
+        print('  Endianity: {}'.format(self.endianity))
         print('')
         for e in self.entries:
             print('  Unit {} ({}, fingerprint={})'.format(
@@ -360,7 +360,7 @@ class TraceBuffer(object):
 
         bits = []
         for byte_index in range(bytes_count):
-            byte = ord(bytes_and_padding[byte_index])
+            byte = bytes_and_padding[byte_index]
             for bit_index in range(8):
                 global_bit_index = 8 * byte_index + bit_index
                 if global_bit_index >= bit_count:
@@ -383,7 +383,7 @@ class TraceBuffer(object):
             bit_value = int(bit) << bit_index
             buffer[byte_index] |= bit_value
 
-        write_aligned(fp, ''.join(chr(byte) for byte in buffer), alignment)
+        write_aligned(fp, bytes(byte for byte in buffer), alignment)
 
 
 parser = argparse.ArgumentParser('Decode a source trace file')

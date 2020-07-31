@@ -7,7 +7,7 @@ over the Target attribute.
 import os.path
 import re
 
-from gnatpython.env import Env
+from e3.env import Env
 
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of

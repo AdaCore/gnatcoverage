@@ -160,8 +160,8 @@ expr = EXPR_Ada_AndThen(op0_class=OP_Ada_Bool,
 
 for ctx in [CTX_AdaIf, CTX_AdaReturn]:
     aev = Ada_Evaluator(expr=expr, context=ctx())
-    print aev.package_spec()
-    print aev.package_body()
+    print(aev.package_spec())
+    print(aev.package_body())
 
 
 # Vector triggers in target language as well

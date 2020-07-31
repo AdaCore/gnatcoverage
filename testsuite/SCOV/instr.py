@@ -2,7 +2,7 @@
 
 import os.path
 
-from gnatpython.fileutils import mkdir
+from e3.fs import mkdir
 
 from SUITE.tutils import RUNTIME_INFO, xcov
 

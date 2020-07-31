@@ -24,11 +24,11 @@ test.py.*
 /tools/gnatcov/share/obj-gnatcov_rts
 /tools/gnatcov/share/obj-gnatcov_rts_full.*
 /testsuite/install
-/testsuite/output
-/testsuite/rep_gnatcov
+/testsuite/out
 /testsuite/suite.cgpr
 /testsuite/support
 /testsuite/tests
+/testsuite/tmp
 gnatcov-loc.xml
 gnatinspect.db
 README.html

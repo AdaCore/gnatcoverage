@@ -13,7 +13,7 @@ a missing information file.
 
 import os.path
 
-from gnatpython.fileutils import rm
+from e3.fs import rm
 
 from SCOV.minicheck import build_and_run, check_xcov_reports
 from SUITE.context import thistest

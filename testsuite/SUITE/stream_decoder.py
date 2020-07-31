@@ -82,11 +82,11 @@ class ByteStreamDecoder(object):
                 bytes_slice = bytes[start_byte:end_byte]
 
                 bytes_part = ' '.join(
-                    '{:02x}'.format(ord(b)) for b in bytes_slice
+                    '{:02x}'.format(b) for b in bytes_slice
                 ).ljust(bytes_part_size)
 
                 ascii_part = ''.join(
-                    '.' if b < ' ' or b > '~' else b
+                    chr(ord('.') if b < ord(' ') or b > ord('~') else b)
                     for b in bytes_slice
                 )
 
