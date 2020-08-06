@@ -2765,8 +2765,8 @@ package body SC_Obligations is
             Natural'Output             (S, V.Path_Count);
 
          when Operator =>
-            Operator_Kind'Output (S, V.Op_Kind);
             Operand_Pair'Output  (S, V.Operands);
+            Operator_Kind'Output (S, V.Op_Kind);
 
          when others =>
             null;
