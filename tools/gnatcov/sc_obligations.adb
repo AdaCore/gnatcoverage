@@ -499,12 +499,78 @@ package body SC_Obligations is
       Cur_Source_File : Source_File_Index := No_Source_File;
       Last_Line       : Natural := 0;
 
+      procedure Remap_BDD (Decision_BDD : in out BDD.BDD_Type);
+      --  Remap a sequence of BDD nodes, for a whole decision BDD
+
       procedure Remap_BDD_Node (B : in out BDD_Node_Id);
       --  Remap a BDD node id
 
       procedure Remap_SCO_Id (S : in out SCO_Id);
       --  Remap a SCO_Id. Note: this assumes possible forward references, and
       --  does not rely on SCO_Map.
+
+      ---------------
+      -- Remap_BDD --
+      ---------------
+
+      procedure Remap_BDD (Decision_BDD : in out BDD.BDD_Type) is
+      begin
+         --  Import the relevant BDD nodes from CP_Vectors.BDD_Vector
+
+         for Old_BDD_Node_Id in Decision_BDD.First_Node
+                             .. Decision_BDD.Last_Node
+         loop
+            declare
+               New_BDD_Node : BDD.BDD_Node :=
+                 CP_Vectors.BDD_Vector.Element (Old_BDD_Node_Id);
+
+               procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id);
+               --  Remap a BDD node id
+
+               -----------------------
+               -- Remap_BDD_Node_Id --
+               -----------------------
+
+               procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id) is
+               begin
+                  if S /= No_BDD_Node_Id then
+                     S := New_First_BDD_Node
+                       + S
+                       - CP_Vectors.BDD_Vector.First_Index;
+                  end if;
+               end Remap_BDD_Node_Id;
+
+            begin
+               case New_BDD_Node.Kind is
+                  when BDD.Condition =>
+                     Remap_BDD_Node_Id (New_BDD_Node.Parent);
+                     for Valuation in New_BDD_Node.Dests'Range loop
+                        Remap_BDD_Node_Id
+                          (New_BDD_Node.Dests (Valuation));
+                     end loop;
+
+                  when BDD.Jump =>
+                     Remap_BDD_Node_Id (New_BDD_Node.Dest);
+
+                  when others =>
+                     null;
+               end case;
+
+               BDD_Vector.Append (New_BDD_Node);
+               Relocs.BDD_Map (Old_BDD_Node_Id) :=
+                 BDD_Vector.Last_Index;
+            end;
+         end loop;
+
+         --  Remap IDs in Decision_BDD
+
+         Remap_SCO_Id (Decision_BDD.Decision);
+
+         Remap_BDD_Node (Decision_BDD.Root_Condition);
+         Remap_BDD_Node (Decision_BDD.First_Node);
+         Remap_BDD_Node (Decision_BDD.Last_Node);
+         Remap_BDD_Node (Decision_BDD.First_Multipath_Condition);
+      end Remap_BDD;
 
       --------------------
       -- Remap_BDD_Node --
@@ -514,6 +580,7 @@ package body SC_Obligations is
       begin
          if B /= No_BDD_Node_Id then
             B := Relocs.BDD_Map (B);
+            pragma Assert (B /= No_BDD_Node_Id);
          end if;
       end Remap_BDD_Node;
 
@@ -576,56 +643,20 @@ package body SC_Obligations is
          end Remap_Inst;
       end loop;
 
-      --  Remap BDD node ids
+      --  Allocate the BDD node ID remapping table, if needed
 
+      if Relocs.BDD_Map = null then
+         Relocs.BDD_Map :=
+           new BDD_Node_Id_Map_Array (CP_Vectors.BDD_Vector.First_Index
+                                      .. CP_Vectors.BDD_Vector.Last_Index);
+         for Id of Relocs.BDD_Map.all loop
+            Id := No_BDD_Node_Id;
+         end loop;
+      end if;
       New_First_BDD_Node := BDD_Vector.Last_Index + 1;
-      Relocs.BDD_Map :=
-        new BDD_Node_Id_Map_Array (CP_Vectors.BDD_Vector.First_Index
-                                   .. CP_Vectors.BDD_Vector.Last_Index);
-      for Old_BDD_Node_Id in Relocs.BDD_Map'Range loop
-         declare
-            New_BDD_Node : BDD.BDD_Node :=
-              CP_Vectors.BDD_Vector.Element (Old_BDD_Node_Id);
 
-            procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id);
-            --  Remap a BDD node id
-
-            -----------------------
-            -- Remap_BDD_Node_Id --
-            -----------------------
-
-            procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id) is
-            begin
-               if S /= No_BDD_Node_Id then
-                  S := New_First_BDD_Node
-                    + S
-                    - CP_Vectors.BDD_Vector.First_Index;
-               end if;
-            end Remap_BDD_Node_Id;
-
-         begin
-            case New_BDD_Node.Kind is
-               when BDD.Condition =>
-                  Remap_BDD_Node_Id (New_BDD_Node.Parent);
-                  for Valuation in New_BDD_Node.Dests'Range loop
-                     Remap_BDD_Node_Id
-                       (New_BDD_Node.Dests (Valuation));
-                  end loop;
-
-               when BDD.Jump =>
-                  Remap_BDD_Node_Id (New_BDD_Node.Dest);
-
-               when others =>
-                  null;
-            end case;
-
-            BDD_Vector.Append (New_BDD_Node);
-            Relocs.BDD_Map (Old_BDD_Node_Id) :=
-              BDD_Vector.Last_Index;
-         end;
-      end loop;
-
-      --  Remap SCO ids
+      --  Remap SCO ids. Note thaht BDD nodes are imported (and remapped) as
+      --  needed during the process.
 
       New_First_SCO := SCO_Vector.Last_Index + 1;
       for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
@@ -673,16 +704,8 @@ package body SC_Obligations is
 
                when Decision =>
                   Remap_SCO_Id (New_SCOD.Expression);
-
                   Remap_SFI (Relocs, New_SCOD.Control_Location.Source_File);
-
-                  Remap_SCO_Id (New_SCOD.Decision_BDD.Decision);
-
-                  Remap_BDD_Node (New_SCOD.Decision_BDD.Root_Condition);
-                  Remap_BDD_Node (New_SCOD.Decision_BDD.First_Node);
-                  Remap_BDD_Node (New_SCOD.Decision_BDD.Last_Node);
-                  Remap_BDD_Node
-                    (New_SCOD.Decision_BDD.First_Multipath_Condition);
+                  Remap_BDD (New_SCOD.Decision_BDD);
 
                when Operator =>
                   for Op_SCO in New_SCOD.Operands'Range loop
