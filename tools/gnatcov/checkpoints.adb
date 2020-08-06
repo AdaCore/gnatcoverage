@@ -23,7 +23,7 @@ with Coverage.Source;
 with Files_Table;
 with Instrument.Common;
 with Outputs;           use Outputs;
-with Traces_Files_List;
+with Traces_Files_Registry;
 
 package body Checkpoints is
 
@@ -90,7 +90,7 @@ package body Checkpoints is
          SC_Obligations.Checkpoint_Save (CSS'Access);
          Instrument.Common.Checkpoint_Save (CSS'Access);
          Coverage.Source.Checkpoint_Save (CSS'Access);
-         Traces_Files_List.Checkpoint_Save (CSS'Access, Context);
+         Traces_Files_Registry.Checkpoint_Save (CSS'Access, Context);
       end;
 
       Close (SF);
@@ -106,7 +106,7 @@ package body Checkpoints is
       SC_Obligations.Checkpoint_Clear;
       Instrument.Common.Checkpoint_Clear;
       Coverage.Source.Checkpoint_Clear;
-      Traces_Files_List.Checkpoint_Clear;
+      Traces_Files_Registry.Checkpoint_Clear;
    end Checkpoint_Clear;
 
    --------------
@@ -193,7 +193,7 @@ package body Checkpoints is
                Instrument.Common.Checkpoint_Load (CLS'Access);
             end if;
             Coverage.Source.Checkpoint_Load (CLS'Access);
-            Traces_Files_List.Checkpoint_Load (CLS'Access);
+            Traces_Files_Registry.Checkpoint_Load (CLS'Access);
 
             Free (CLS.Relocations);
          end if;

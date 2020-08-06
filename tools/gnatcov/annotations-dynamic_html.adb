@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2013-2017, AdaCore                     --
+--                     Copyright (C) 2013-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -291,23 +291,17 @@ package body Annotations.Dynamic_Html is
       ------------------------
 
       procedure Append_Traces_List is
-         use Traces_Files_Lists;
-
-         procedure Process_Trace (Position : Cursor);
-         --  Generate the record from the trace file at Position and append it
-         --  to the JSON array Traces
+         procedure Process_Trace (TF : Trace_File_Element);
+         --  Generate the record from the TF trace file and append it to the
+         --  JSON array Traces.
 
          -------------------
          -- Process_Trace --
          -------------------
 
-         procedure Process_Trace (Position : Cursor) is
-            TF           : constant Trace_File_Element_Acc :=
-              Element (Position);
-            Orig_Context : constant String :=
-              Original_Processing_Context (TF.all);
-
-            Trace : constant JSON_Value := Create_Object;
+         procedure Process_Trace (TF : Trace_File_Element) is
+            Orig_Context : constant String := Original_Processing_Context (TF);
+            Trace        : constant JSON_Value := Create_Object;
 
          begin
             Trace.Set_Field ("filename", TF.Filename);
@@ -327,7 +321,7 @@ package body Annotations.Dynamic_Html is
          end Process_Trace;
 
       begin
-         Files.Iterate (Process_Trace'Access);
+         Iterate_On_Traces_Files (Process_Trace'Access);
          Pp.JSON.Set_Field ("traces", Traces);
       end Append_Traces_List;
 

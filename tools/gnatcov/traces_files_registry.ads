@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,8 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
+with Ada.Unchecked_Deallocation;
 
 with Checkpoints;
 with Coverage;
@@ -25,9 +26,9 @@ with Traces_Files; use Traces_Files;
 
 with GNATcov_RTS.Traces;
 
---  The list of all processed trace files
+--  This package keeps track of all processed trace files
 
-package Traces_Files_List is
+package Traces_Files_Registry is
 
    type Trace_File_Element is limited record
       Filename : Ada.Strings.Unbounded.Unbounded_String;
@@ -55,6 +56,16 @@ package Traces_Files_List is
 
    type Trace_File_Element_Acc is access Trace_File_Element;
 
+   --  The following comparison/hashing functions consider Trace_File_Element
+   --  records as a tuple: comparisons implement structual equivalence.
+
+   function Equivalent (Left, Right : Trace_File_Element_Acc) return Boolean;
+   function "<" (Left, Right : Trace_File_Element_Acc) return Boolean;
+   function Hash
+     (Element : Trace_File_Element_Acc) return Ada.Containers.Hash_Type;
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Trace_File_Element, Trace_File_Element_Acc);
+
    function Create_Trace_File_Element
      (Filename : String;
       Kind     : Trace_File_Kind) return Trace_File_Element_Acc;
@@ -72,10 +83,20 @@ package Traces_Files_List is
    --  Initialize Element fields using a trace info entry from a source trace
    --  file.
 
-   package Traces_Files_Lists is
-      new Ada.Containers.Doubly_Linked_Lists (Trace_File_Element_Acc);
+   package Traces_Files_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Trace_File_Element_Acc);
 
-   Files : Traces_Files_Lists.List;
+   procedure Add_Traces_File (TF : in out Trace_File_Element_Acc);
+   --  Add TF to the list of known traces files. If TF was already known, free
+   --  it.
+
+   function Sorted_Traces_Files return Traces_Files_Vectors.Vector;
+   --  Return a sorted vector for all traces files
+
+   procedure Iterate_On_Traces_Files
+     (Callback : access procedure (Element : Trace_File_Element));
+   --  Iterate on the sorted list of all traces files
 
    procedure Checkpoint_Save
      (CSS     : access Checkpoints.Checkpoint_Save_State;
@@ -88,4 +109,4 @@ package Traces_Files_List is
    procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
    --  Load list of trace files from S
 
-end Traces_Files_List;
+end Traces_Files_Registry;

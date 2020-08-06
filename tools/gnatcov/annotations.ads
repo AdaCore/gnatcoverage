@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -18,20 +18,20 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
-with Binary_Files;      use Binary_Files;
+with Binary_Files;          use Binary_Files;
 with Coverage;
-with Diagnostics;       use Diagnostics;
-with Disa_Symbolize;    use Disa_Symbolize;
-with Elf_Disassemblers; use Elf_Disassemblers;
-with Files_Table;       use Files_Table;
-with SC_Obligations;    use SC_Obligations;
-with Slocs;             use Slocs;
-with Traces;            use Traces;
-with Traces_Elf;        use Traces_Elf;
-with Traces_Files_List; use Traces_Files_List;
-with Traces_Lines;      use Traces_Lines;
-with Traces_Stats;      use Traces_Stats;
-with Types;             use Types;
+with Diagnostics;           use Diagnostics;
+with Disa_Symbolize;        use Disa_Symbolize;
+with Elf_Disassemblers;     use Elf_Disassemblers;
+with Files_Table;           use Files_Table;
+with SC_Obligations;        use SC_Obligations;
+with Slocs;                 use Slocs;
+with Traces;                use Traces;
+with Traces_Elf;            use Traces_Elf;
+with Traces_Files_Registry; use Traces_Files_Registry;
+with Traces_Lines;          use Traces_Lines;
+with Traces_Stats;          use Traces_Stats;
+with Types;                 use Types;
 
 package Annotations is
 

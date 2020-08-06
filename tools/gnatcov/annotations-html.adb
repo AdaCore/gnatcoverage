@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2017, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -418,7 +418,6 @@ package body Annotations.Html is
    ------------------------
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer) is
-      use Traces_Files_Lists;
 
       procedure Pi (S : String);
       --  Print S to Pp's index file; new line at the end
@@ -431,11 +430,6 @@ package body Annotations.Html is
       begin
          Put_Line (Pp.Index_File, S);
       end Pi;
-
-      --  Local variables
-
-      Cur : Traces_Files_Lists.Cursor;
-      El  : Trace_File_Element_Acc;
 
       --  Start of processing for Pretty_Print_Start
 
@@ -477,9 +471,7 @@ package body Annotations.Html is
       Pi ("      <td>Tag</td>");
       Pi ("    </tr>");
 
-      Cur := Files.First;
-      while Has_Element (Cur) loop
-         El := Element (Cur);
+      for El of Sorted_Traces_Files loop
          Pi ("    <tr>");
          Pi ("      <td>" & To_String (El.Filename) & "</td>");
          Pi ("      <td>" & Image (El.Kind) & "</td>");
@@ -487,7 +479,6 @@ package body Annotations.Html is
          Pi ("      <td>" & To_String (El.Time) & "</td>");
          Pi ("      <td>" & To_String (El.User_Data) & "</td>");
          Pi ("    </tr>");
-         Next (Cur);
       end loop;
 
       Pi ("  </table>");

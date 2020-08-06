@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -588,19 +588,17 @@ package body Annotations.Xml is
    ----------------------
 
    procedure Print_Trace_Info (Pp : in out Xml_Pretty_Printer'Class) is
-      use Traces_Files_Lists;
 
-      procedure Process_One_Trace (Position : Cursor);
-      --  Print the data attached to the trace file at Position to trace.xml
+      procedure Process_One_Trace (TF : Trace_File_Element);
+      --  Print the data attached to the TF trace file to trace.xml
 
       -----------------------
       -- Process_One_Trace --
       -----------------------
 
-      procedure Process_One_Trace (Position : Cursor) is
+      procedure Process_One_Trace (TF : Trace_File_Element) is
          use Ada.Strings.Unbounded;
 
-         TF         : constant Trace_File_Element_Acc := Element (Position);
          Attributes : Unbounded_String;
       begin
          Append (Attributes,
@@ -619,7 +617,7 @@ package body Annotations.Xml is
       Pp.P (Xml_Header, Dest_Trace_Info);
       Pp.P (Doctype_Trace_Header, Dest_Trace_Info);
       Pp.ST ("traces", Dest_Trace_Info);
-      Files.Iterate (Process_One_Trace'Access);
+      Iterate_On_Traces_Files (Process_One_Trace'Access);
       Pp.ET ("traces", Dest_Trace_Info);
       Close (Pp.Files (Dest_Trace_Info));
    end Print_Trace_Info;

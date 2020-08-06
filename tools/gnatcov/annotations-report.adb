@@ -673,27 +673,24 @@ package body Annotations.Report is
       use Ada.Calendar.Formatting;
       use Ada.Strings.Unbounded;
 
-      use Traces_Files_Lists;
-
       Output : constant File_Access := Get_Output;
 
-      procedure Display_Trace_File_Info (Position : Cursor);
-      --  Print info from trace file at Position
+      procedure Process_One_Trace (TF : Trace_File_Element);
+      --  Print info from the TF trace file
 
-      -----------------------------
-      -- Display_Trace_File_Info --
-      -----------------------------
+      -----------------------
+      -- Process_One_Trace --
+      -----------------------
 
-      procedure Display_Trace_File_Info (Position : Cursor) is
-         E            : constant Trace_File_Element_Acc := Element (Position);
-         Orig_Context : constant String := Original_Processing_Context (E.all);
+      procedure Process_One_Trace (TF : Trace_File_Element) is
+         Orig_Context : constant String := Original_Processing_Context (TF);
       begin
          New_Line (Output.all);
-         Put_Line (Output.all, To_String (E.Filename));
-         Put_Line (Output.all, "  kind     : " & Image (E.Kind));
-         Put_Line (Output.all, "  program  : " & To_String (E.Program_Name));
-         Put_Line (Output.all, "  date     : " & To_String (E.Time));
-         Put_Line (Output.all, "  tag      : " & To_String (E.User_Data));
+         Put_Line (Output.all, To_String (TF.Filename));
+         Put_Line (Output.all, "  kind     : " & Image (TF.Kind));
+         Put_Line (Output.all, "  program  : " & To_String (TF.Program_Name));
+         Put_Line (Output.all, "  date     : " & To_String (TF.Time));
+         Put_Line (Output.all, "  tag      : " & To_String (TF.User_Data));
 
          --  For a trace that has been processed in an earlier run, provide
          --  information on original coverage assessment context.
@@ -701,7 +698,7 @@ package body Annotations.Report is
          if Orig_Context /= "" then
             Put_Line (Output.all, "  processed: " & Orig_Context);
          end if;
-      end Display_Trace_File_Info;
+      end Process_One_Trace;
 
    --  Start of processing for Pretty_Print_Start
 
@@ -726,7 +723,7 @@ package body Annotations.Report is
       New_Line (Output.all);
 
       Put_Line (Output.all, "Trace files:");
-      Files.Iterate (Display_Trace_File_Info'Access);
+      Iterate_On_Traces_Files (Process_One_Trace'Access);
    end Pretty_Print_Start;
 
    -----------------------------

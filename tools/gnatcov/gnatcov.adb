@@ -28,7 +28,7 @@ with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
 with ALI_Files;
-with Annotations;       use Annotations;
+with Annotations;           use Annotations;
 with Annotations.Dynamic_Html;
 with Annotations.Html;
 with Annotations.Xcov;
@@ -37,37 +37,37 @@ with Annotations.Report;
 with CFG_Dump;
 with Check_SCOs;
 with Checkpoints;
-with Command_Line;      use Command_Line;
+with Command_Line;          use Command_Line;
 use Command_Line.Parser;
 with Convert;
-with Coverage;          use Coverage;
-with Coverage.Source;   use Coverage.Source;
-with Coverage.Tags;     use Coverage.Tags;
-with Decision_Map;      use Decision_Map;
+with Coverage;              use Coverage;
+with Coverage.Source;       use Coverage.Source;
+with Coverage.Tags;         use Coverage.Tags;
+with Decision_Map;          use Decision_Map;
 with Disassemble_Insn_Properties;
 with Binary_Files;
-with Execs_Dbase;       use Execs_Dbase;
-with Files_Table;       use Files_Table;
-with Inputs;            use Inputs;
+with Execs_Dbase;           use Execs_Dbase;
+with Files_Table;           use Files_Table;
+with Inputs;                use Inputs;
 with Instrument;
 with Instrument.Input_Traces;
 with Object_Locations;
-with Outputs;           use Outputs;
+with Outputs;               use Outputs;
 with Perf_Counters;
-with Project;           use Project;
+with Project;               use Project;
 with Qemu_Traces;
-with Rundrv;            use Rundrv;
-with SC_Obligations;    use SC_Obligations;
-with Strings;           use Strings;
-with Switches;          use Switches;
+with Rundrv;                use Rundrv;
+with SC_Obligations;        use SC_Obligations;
+with Strings;               use Strings;
+with Switches;              use Switches;
 with Text_Files;
-with Traces;            use Traces;
-with Traces_Elf;        use Traces_Elf;
-with Traces_Files_List; use Traces_Files_List;
-with Traces_Names;      use Traces_Names;
+with Traces;                use Traces;
+with Traces_Elf;            use Traces_Elf;
+with Traces_Files_Registry; use Traces_Files_Registry;
+with Traces_Names;          use Traces_Names;
 with Traces_Dump;
-with Traces_Files;      use Traces_Files;
-with Traces_Dbase;      use Traces_Dbase;
+with Traces_Files;          use Traces_Files;
+with Traces_Dbase;          use Traces_Dbase;
 with Traces_Disa;
 with Version;
 
@@ -2079,7 +2079,6 @@ begin
 
                Trace_File := Create_Trace_File_Element
                  (Trace_File_Name, Source_Trace_File);
-               Traces_Files_List.Files.Append (Trace_File);
 
                --  We can now read it and import its data
 
@@ -2087,6 +2086,8 @@ begin
                if not Result.Success then
                   Report_Bad_Trace (Trace_File_Name, Result);
                end if;
+
+               Add_Traces_File (Trace_File);
             end Process_Source_Trace;
 
             --------------------------
@@ -2104,7 +2105,6 @@ begin
                if Trace_File_Name /= "" then
                   Trace_File := Create_Trace_File_Element
                     (Trace_File_Name, Binary_Trace_File);
-                  Traces_Files_List.Files.Append (Trace_File);
                else
                   pragma Assert (Exec_Name_Override /= "");
                end if;
@@ -2115,6 +2115,10 @@ begin
                else
                   Process_Trace_For_Src_Coverage
                     (Trace_File, Exec_Name_Override);
+               end if;
+
+               if Trace_File /= null then
+                  Add_Traces_File (Trace_File);
                end if;
             end Process_Binary_Trace;
 

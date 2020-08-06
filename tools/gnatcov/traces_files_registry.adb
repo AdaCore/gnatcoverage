@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -18,15 +18,106 @@
 
 with Ada.Calendar;
 with Ada.Calendar.Conversions;
+with Ada.Containers.Generic_Sort;
+with Ada.Containers.Hashed_Sets;
+with Ada.Strings.Unbounded.Hash;
 
 with Interfaces.C;
 
 with Outputs;
 with Qemu_Traces; use Qemu_Traces;
 
-package body Traces_Files_List is
+package body Traces_Files_Registry is
 
    use Ada.Strings.Unbounded;
+
+   package Traces_Files_Sets is new Ada.Containers.Hashed_Sets
+     (Element_Type        => Trace_File_Element_Acc,
+      Hash                => Hash,
+      Equivalent_Elements => Equivalent);
+
+   Files : Traces_Files_Sets.Set;
+
+   procedure Sort (V : in out Traces_Files_Vectors.Vector);
+   --  Sort elements in V according to the "<" predicate
+
+   ----------------
+   -- Equivalent --
+   ----------------
+
+   function Equivalent (Left, Right : Trace_File_Element_Acc) return Boolean is
+   begin
+      return
+        Left.Filename = Right.Filename
+        and then Left.Kind = Right.Kind
+        and then Left.Context = Right.Context
+        and then Left.Program_Name = Right.Program_Name
+        and then Left.Time = Right.Time
+        and then Left.User_Data = Right.User_Data;
+   end Equivalent;
+
+   ---------
+   -- "<" --
+   ---------
+
+   function "<" (Left, Right : Trace_File_Element_Acc) return Boolean is
+   begin
+      if Left.Filename < Right.Filename then
+         return True;
+      elsif Left.Filename > Right.Filename then
+         return False;
+      end if;
+
+      if Left.Kind < Right.Kind then
+         return True;
+      elsif Left.Kind > Right.Kind then
+         return False;
+      end if;
+
+      if Left.Context < Right.Context then
+         return True;
+      elsif Left.Context > Right.Context then
+         return False;
+      end if;
+
+      if Left.Program_Name < Right.Program_Name then
+         return True;
+      elsif Left.Program_Name > Right.Program_Name then
+         return False;
+      end if;
+
+      if Left.Time < Right.Time then
+         return True;
+      elsif Left.Time > Right.Time then
+         return False;
+      end if;
+
+      if Left.User_Data < Right.User_Data then
+         return True;
+      elsif Left.User_Data > Right.User_Data then
+         return False;
+      end if;
+
+      return False;
+   end "<";
+
+   ----------
+   -- Hash --
+   ----------
+
+   function Hash
+     (Element : Trace_File_Element_Acc) return Ada.Containers.Hash_Type
+   is
+      use type Ada.Containers.Hash_Type;
+   begin
+      return
+        Hash (Element.Filename)
+        + Trace_File_Kind'Pos (Element.Kind)
+        + Hash (Element.Context)
+        + Hash (Element.Program_Name)
+        + Hash (Element.Time)
+        + Hash (Element.User_Data);
+   end Hash;
 
    -------------------------------
    -- Create_Trace_File_Element --
@@ -133,6 +224,79 @@ package body Traces_Files_List is
    end Update_From_Source_Trace;
 
    ---------------------
+   -- Add_Traces_File --
+   ---------------------
+
+   procedure Add_Traces_File (TF : in out Trace_File_Element_Acc) is
+      Dummy_Cur : Traces_Files_Sets.Cursor;
+      Inserted  : Boolean;
+   begin
+      Files.Insert (TF, Dummy_Cur, Inserted);
+      if not Inserted then
+         Free (TF);
+      end if;
+   end Add_Traces_File;
+
+   ----------
+   -- Sort --
+   ----------
+
+   procedure Sort (V : in out Traces_Files_Vectors.Vector) is
+      function Before (Left, Right : Positive) return Boolean is
+        (V (Left) < V (Right));
+
+      procedure Swap (Left, Right : Positive);
+      --  Swap elements at positions Left and Right in V
+
+      procedure Sort_Helper is new Ada.Containers.Generic_Sort
+        (Positive, Before, Swap);
+
+      ----------
+      -- Swap --
+      ----------
+
+      procedure Swap (Left, Right : Positive) is
+         Temp : constant Trace_File_Element_Acc := V (Left);
+      begin
+         V (Left) := V (Right);
+         V (Right) := Temp;
+      end Swap;
+
+   --  Start of processing for Sort
+
+   begin
+      Sort_Helper (V.First_Index, V.Last_Index);
+   end Sort;
+
+   -------------------------
+   -- Sorted_Traces_Files --
+   -------------------------
+
+   function Sorted_Traces_Files return Traces_Files_Vectors.Vector is
+   begin
+      return Result : Traces_Files_Vectors.Vector do
+         for Cur in Files.Iterate loop
+            Result.Append (Traces_Files_Sets.Element (Cur));
+         end loop;
+         Sort (Result);
+      end return;
+   end Sorted_Traces_Files;
+
+   -----------------------------
+   -- Iterate_On_Traces_Files --
+   -----------------------------
+
+   procedure Iterate_On_Traces_Files
+     (Callback : access procedure (Element : Trace_File_Element))
+   is
+      Files : constant Traces_Files_Vectors.Vector := Sorted_Traces_Files;
+   begin
+      for F of Files loop
+         Callback.all (F.all);
+      end loop;
+   end Iterate_On_Traces_Files;
+
+   ---------------------
    -- Checkpoint_Save --
    ---------------------
 
@@ -219,7 +383,6 @@ package body Traces_Files_List is
             exit when Length (Name) = 0;
             CP_File := new Trace_File_Element;
             CP_File.Filename := Name;
-            Files.Append (CP_File);
 
             if Checkpoints.Version_Less (CLS, Than => 2) then
 
@@ -271,8 +434,10 @@ package body Traces_Files_List is
                Unbounded_String'Read (CLS, CP_File.Time);
                Unbounded_String'Read (CLS, CP_File.User_Data);
             end if;
+
+            Add_Traces_File (CP_File);
          end;
       end loop;
    end Checkpoint_Load;
 
-end Traces_Files_List;
+end Traces_Files_Registry;
