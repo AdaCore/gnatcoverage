@@ -496,8 +496,8 @@ package body SC_Obligations is
       New_First_BDD_Node : BDD_Node_Id;
       New_First_SCO      : SCO_Id;
 
-      Cur_Source_File    : Source_File_Index := No_Source_File;
-      Last_Line          : Natural := 0;
+      Cur_Source_File : Source_File_Index := No_Source_File;
+      Last_Line       : Natural := 0;
 
       procedure Remap_BDD_Node (B : in out BDD_Node_Id);
       --  Remap a BDD node id
