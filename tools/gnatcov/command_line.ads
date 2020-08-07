@@ -62,10 +62,6 @@ package Command_Line is
       Cmd_Instrument);
    --  Set of commands we support. More complete descriptions below.
 
-   Instrument_Experimental : constant Boolean := True;
-   --  Remove this once we consider that instrumentation is officially
-   --  supported.
-
    type Bool_Options is
      (Opt_Verbose,
       Opt_Recursive,
@@ -173,7 +169,7 @@ package Command_Line is
          Pattern     => ("[OPTIONS] INPUT_BASE64_FILE OUTPUT_TRACE_FILE"),
          Description => ("Extract a trace file from a log file that contains"
                          & " Base64-encoded traces."),
-         Internal    => Instrument_Experimental),
+         Internal    => False),
       Cmd_Coverage => Create
         (Name        => "coverage",
          Pattern     => ("[OPTIONS] TRACE_FILEs"),
@@ -310,7 +306,7 @@ package Command_Line is
         (Name        => "instrument",
          Description => ("Instrument the given project and produce the"
                          & " associated Source Instrumentation Data files."),
-         Internal    => Instrument_Experimental));
+         Internal    => False));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
      (Opt_Verbose => Create
@@ -628,7 +624,7 @@ package Command_Line is
                          & " determines the dump procedure.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
-         Internal     => Instrument_Experimental,
+         Internal     => False,
          Pattern      => "manual|atexit|main-end"),
       Opt_Dump_Channel => Create
         (Long_Name    => "--dump-channel",
@@ -650,7 +646,7 @@ package Command_Line is
                          & " for non-native programs.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
-         Internal     => Instrument_Experimental,
+         Internal     => False,
          Pattern      => "bin-file|base64-stdout"),
 
       Opt_Ada => Create
@@ -664,7 +660,7 @@ package Command_Line is
                          & " version by default.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
-         Internal     => Instrument_Experimental),
+         Internal     => False),
 
       Opt_Dump_Units_To => Create
         (Long_Name    => "--dump-units-to",
@@ -737,7 +733,7 @@ package Command_Line is
                          & " LISTFILE."),
          Commands    => (Cmd_Coverage => True,
                          others       => False),
-         Internal    => Instrument_Experimental),
+         Internal    => False),
       Opt_Routines => Create
         (Long_Name   => "--routines",
          Pattern     => "[ROUTINE|@LISTFILE]",
