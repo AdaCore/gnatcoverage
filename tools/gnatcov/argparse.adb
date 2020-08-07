@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2015, AdaCore                       --
+--                     Copyright (C) 2015-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -395,7 +395,7 @@ package body Argparse is
 
          First := True;
          for Info of Parser.Command_Infos loop
-            if not Info.Internal or else With_Internal then
+            if not Info.Internal or else With_Internal_Options then
                if First then
                   New_Line;
                   First := False;
@@ -461,7 +461,7 @@ package body Argparse is
                        and then
                          (not Parser.Command_Infos (Cmd).Internal
                           or else
-                          With_Internal)
+                          With_Internal_Options)
                      then
                         if not First then
                            Append (Set_Image, ", ");
