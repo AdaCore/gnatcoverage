@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2018, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -41,6 +41,10 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
    --  same object directory: we must be aware of all uses of each object
    --  directory (and in particular of all the instrumented source files to
    --  keep in them) before starting to remove files.
+   --
+   --  Note that we never delete anything from the object directory of
+   --  externally built projects. It's the users' responsibility to instrument
+   --  them appropriately (or not instrument them).
 
    type File_Set is access all File_Sets.Set;
    procedure Free is new Ada.Unchecked_Deallocation
@@ -58,14 +62,10 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
    --  Schedule the removal of files in Output_Dir and return the set of
    --  files to preserve associated to it.
 
-   procedure Register_Output_Dir (Project : Project_Type);
-   --  Callback for Project.Iterate_Projects. Schedule the removal of files
-   --  from the "gnatcov-instr" folder in Project's object directory.
-
-   procedure Preserve_Files
-     (Output_Dir : Unbounded_String; Files : File_Sets.Set);
-   --  Schedule the removal of files in Output_Dir and remember that while
-   --  cleaning it, we must not remove the given Files.
+   procedure Register_Project (Project : Project_Type);
+   --  Callback for Project.Iterate_Projects. If Project is not externally
+   --  built, schedule the removal of files from the "gnatcov-instr" folder in
+   --  Project's object directory.
 
    procedure Remove_Files
      (Output_Dir      : String;
@@ -92,30 +92,46 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
       end if;
    end Register_Output_Dir;
 
-   -------------------------
-   -- Register_Output_Dir --
-   -------------------------
+   ----------------------
+   -- Register_Project --
+   ----------------------
 
-   procedure Register_Output_Dir (Project : Project_Type) is
-      Output_Dir : constant Unbounded_String := To_Unbounded_String
-        (Project_Output_Dir (Project));
-      Dummy      : constant File_Set := Register_Output_Dir (Output_Dir);
+   procedure Register_Project (Project : Project_Type) is
    begin
-      null;
-   end Register_Output_Dir;
+      --  Leave externally built projects out of the picture
 
-   --------------------
-   -- Preserve_Files --
-   --------------------
+      if Project.Externally_Built then
+         return;
+      end if;
 
-   procedure Preserve_Files
-     (Output_Dir : Unbounded_String; Files : File_Sets.Set)
-   is
-      Preserved_Files : constant File_Set :=
-         Register_Output_Dir (Output_Dir);
-   begin
-      Preserved_Files.Union (Files);
-   end Preserve_Files;
+      --  Plan to clean this project's output directory
+
+      declare
+         Output_Dir : constant Unbounded_String :=
+            To_Unbounded_String (Project_Output_Dir (Project));
+         Preserved_Files : constant File_Set :=
+            Register_Output_Dir (Output_Dir);
+
+         --  Lookup instrumentation information about this project
+
+         Name : constant Unbounded_String :=
+            To_Unbounded_String (Project.Name);
+         Cur  : constant Cursor := IC.Project_Info_Map.Find (Name);
+      begin
+         if Has_Element (Cur) then
+
+            --  We just instrumented sources for this project: preserve the
+            --  generated source files (i.e. remove only obsolete instrumented
+            --  sources).
+
+            declare
+               Prj_Info : Project_Info renames Element (Cur).all;
+            begin
+               Preserved_Files.Union (Prj_Info.Instr_Files);
+            end;
+         end if;
+      end;
+   end Register_Project;
 
    ------------------
    -- Remove_Files --
@@ -166,23 +182,12 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
 --  Start of processing for Instrument.Clean_Objdirs
 
 begin
-   --  Plan to remove files that this run did not create in the
-   --  "gnatcov-instr" directory for projects of interest.
-
-   for Cur in IC.Project_Info_Map.Iterate loop
-      declare
-         Prj_Info : Project_Info renames Element (Cur).all;
-      begin
-         Preserve_Files (Prj_Info.Output_Dir, Prj_Info.Instr_Files);
-      end;
-   end loop;
-
-   --  Plan to remove all files in the "gnatcov-instr" directory for other
-   --  projects.
+   --  Look for source files we should remove in all loaded projects'
+   --  "gnatcov-instr" directory.
 
    Project.Iterate_Projects
      (Root_Project => Project.Project.Root_Project,
-      Process      => Register_Output_Dir'Access,
+      Process      => Register_Project'Access,
       Recursive    => True);
 
    --  We can now remove these files
