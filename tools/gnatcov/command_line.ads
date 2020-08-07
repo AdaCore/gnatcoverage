@@ -529,7 +529,7 @@ package Command_Line is
          Commands     => (Cmd_Coverage => True,
                           others => False),
          At_Most_Once => False,
-         Internal     => True),
+         Internal     => False),
       Opt_Final_Report => Create
         (Long_Name    => "--report",
          Pattern      => "[FILE]",
