@@ -131,7 +131,7 @@ package body GNATcov_RTS.Traces.Output.Base64 is
                                 or Uint6 (In_Bytes (2) / 16));
             Out_Digits (3) := +(Uint6 (In_Bytes (2) mod 16) * 4
                                 or Uint6 (In_Bytes (3) / 64));
-            Out_Digits (4) := +(Uint6'Mod (In_Bytes (3)));
+            Out_Digits (4) := +(Uint6 (In_Bytes (3) mod 64));
       end case;
 
       --  Output the 4 characters corresponding to each group of 6 bits.

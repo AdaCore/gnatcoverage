@@ -227,9 +227,13 @@ package body GNATcov_RTS.Traces.Output is
          Buffer_Address : System.Address;
          Last_Bit       : Any_Bit_Id)
       is
-         Buffer : constant Coverage_Buffer_Type (0 .. Last_Bit);
+         Buffer : Coverage_Buffer_Type (0 .. Last_Bit);
          for Buffer'Address use Buffer_Address;
          pragma Import (Ada, Buffer);
+
+         --  Buffer could be declared constant in theory, but would then be
+         --  wrongly flagged as an incorrectly placed deferred constant
+         --  declaration by some old toolchains (as observed with 5.04).
       begin
          Write_Buffer (Output, Buffer);
       end Write_Buffer;
