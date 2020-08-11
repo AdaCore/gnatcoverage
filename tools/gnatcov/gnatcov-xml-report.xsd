@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+    attributeFormDefault="unqualified"
+    elementFormDefault="qualified"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- Entry point -->
+
+    <xs:element name="document">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="coverage_report"
+                    type="coverage_report_type"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Common types -->
+
+    <xs:simpleType name="upper_boolean">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="FALSE"/>
+            <xs:enumeration value="TRUE"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="coverage_level_type">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="branch"/>
+            <xs:enumeration value="insn"/>
+            <xs:enumeration value="stmt"/>
+            <xs:enumeration value="stmt+decision"/>
+            <xs:enumeration value="stmt+mcdc"/>
+            <xs:enumeration value="stmt+uc_mcdc"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Index-specific types -->
+
+    <xs:complexType name="coverage_report_type">
+        <xs:sequence>
+            <xs:element name="coverage_info" type="coverage_info_type"
+                minOccurs="0" maxOccurs="1"/>
+            <xs:element name="coverage_summary" type="coverage_summary_type"
+                minOccurs="0" maxOccurs="1"/>
+            <xs:element name="sources" type="sources_type"
+                minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
+        <xs:attribute name="coverage_level" type="coverage_level_type"
+            use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="coverage_info_type">
+        <xs:sequence>
+            <xs:element name="traces" type="traces_type"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="coverage_summary_type">
+        <xs:sequence>
+            <xs:element name="metric" type="metric_type"
+                minOccurs="6" maxOccurs="6"/>
+            <xs:element name="file" type="file_type"
+                minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="metric_type">
+        <xs:attribute name="kind" type="metric_kind_type"/>
+        <xs:attribute name="count" type="xs:integer"/>
+        <xs:attribute name="ratio" type="xs:integer"/>
+    </xs:complexType>
+
+    <xs:simpleType name="metric_kind_type">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="total_lines_of_relevance"/>
+            <xs:enumeration value="fully_covered"/>
+            <xs:enumeration value="partially_covered"/>
+            <xs:enumeration value="not_covered"/>
+            <xs:enumeration value="exempted_no_violation"/>
+            <xs:enumeration value="exempted"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="file_type">
+        <xs:sequence>
+            <xs:element name="metric" type="metric_type"
+                minOccurs="6" maxOccurs="6"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="sources_type">
+        <xs:sequence>
+            <xs:element name="source" type="source_type"
+                minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Traces-specific types -->
+
+    <xs:complexType name="traces_type">
+        <xs:sequence>
+            <xs:element name="trace" type="trace_type"
+                minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="trace_type">
+        <xs:attribute name="filename" type="xs:string" use="required"/>
+        <xs:attribute name="kind" type="trace_kind_type" use="required"/>
+        <xs:attribute name="program" type="xs:string" use="required"/>
+        <xs:attribute name="date" type="xs:string" use="required"/>
+        <xs:attribute name="tag" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="trace_kind_type">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="binary"/>
+            <xs:enumeration value="source"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Annotated source-specific types -->
+
+    <xs:complexType name="source_type">
+        <xs:sequence>
+            <xs:element name="src_mapping" type="src_mapping_type"
+                minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="file" type="xs:string"/>
+        <xs:attribute name="coverage_level" type="coverage_level_type"/>
+    </xs:complexType>
+
+    <xs:complexType name="src_mapping_type">
+        <xs:sequence>
+            <xs:element name="src" type="src_type"/>
+            <xs:element name="instruction_set" type="instruction_set_type"
+                minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="statement" type="statement_type"
+                minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="decision" type="decision_type"
+                minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="message" type="message_type"
+                minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="coverage" type="coverage_type"/>
+    </xs:complexType>
+
+    <xs:simpleType name="coverage_type">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="."/>
+            <xs:enumeration value="+"/>
+            <xs:enumeration value="-"/>
+            <xs:enumeration value="!"/>
+            <xs:enumeration value="#"/>
+            <xs:enumeration value="*"/>
+            <xs:enumeration value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="src_type">
+        <xs:sequence>
+            <xs:element name="line" type="line_type"
+                minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="line_type">
+        <xs:attribute name="num" type="xs:integer" use="required"/>
+        <xs:attribute name="src" type="xs:string"/>
+        <xs:attribute name="column_begin" type="xs:integer"/>
+        <xs:attribute name="column_end" type="xs:integer"/>
+        <xs:attribute name="exempted" type="upper_boolean"/>
+    </xs:complexType>
+
+    <xs:complexType name="instruction_set_type">
+        <xs:sequence>
+            <xs:element name="instruction_block" type="instruction_block_type"
+                minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="coverage" type="coverage_type" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="instruction_block_type">
+        <xs:sequence>
+            <xs:element name="instruction" type="instruction_type"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="offset" type="xs:string" use="required"/>
+        <xs:attribute name="coverage" type="coverage_type" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="instruction_type">
+        <xs:attribute name="address" type="xs:string" use="required"/>
+        <xs:attribute name="coverage" type="coverage_type" use="required"/>
+        <xs:attribute name="assembly" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="statement_type">
+        <xs:sequence>
+            <xs:element name="src" type="src_type"
+                minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
+        <xs:attribute name="coverage" type="coverage_type" use="required"/>
+        <xs:attribute name="id" type="xs:integer" use="required"/>
+        <xs:attribute name="text" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="decision_type">
+        <xs:sequence>
+            <xs:element name="src" type="src_type"
+                minOccurs="0" maxOccurs="1"/>
+            <xs:element name="condition" type="condition_type"
+                minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="coverage" type="coverage_type" use="required"/>
+        <xs:attribute name="id" type="xs:integer" use="required"/>
+        <xs:attribute name="text" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="condition_type">
+        <xs:sequence>
+            <xs:element name="src" type="src_type"
+                minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
+        <xs:attribute name="coverage" type="coverage_type" use="required"/>
+        <xs:attribute name="id" type="xs:integer" use="required"/>
+        <xs:attribute name="text" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="message_kind_type">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="notice"/>
+            <xs:enumeration value="warning"/>
+            <xs:enumeration value="error"/>
+            <xs:enumeration value="violation"/>
+            <xs:enumeration value="exclusion"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="message_type">
+        <xs:attribute name="kind" type="message_kind_type" use="required"/>
+        <xs:attribute name="SCO" type="xs:string"/>
+        <xs:attribute name="message" type="xs:string" use="required"/>
+    </xs:complexType>
+
+</xs:schema>

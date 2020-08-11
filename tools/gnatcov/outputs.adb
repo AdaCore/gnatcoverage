@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -27,10 +27,6 @@ package body Outputs is
    Report_Output_Dir : String_Access := null;
    --  Name of the output directory. The reports will be generated
    --  in this directory.
-
-   function Get_Output_Dir return String;
-   --  Return the output dir. If Report_Output_Dir is null, initialize it
-   --  to current dir.
 
    -------------------------
    --  Create_Output_File --

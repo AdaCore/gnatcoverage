@@ -1830,14 +1830,24 @@ begin
             end;
          end if;
 
-         --  Validate availability of the output format
+         --  Check the availability of the output format
 
-         if Annotation = Annotate_Dynamic_Html and then
-            not Annotations.Dynamic_Html.Installed
-         then
-            Fatal_Error
-              ("Dynamic HTML report format support is not installed.");
-         end if;
+         case Annotation is
+            when Annotate_Xml =>
+               if not Annotations.Xml.Installed then
+                  Fatal_Error
+                    ("XML report format support is not installed.");
+               end if;
+
+            when Annotate_Dynamic_Html =>
+               if not Annotations.Dynamic_Html.Installed then
+                  Fatal_Error
+                    ("Dynamic HTML report format support is not installed.");
+               end if;
+
+            when others =>
+               null;
+         end case;
 
          --  Check that the user specified units of interest. We'll load SCOs
          --  from ALIs/SIDs only when necessary, i.e. only the first time we

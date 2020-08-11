@@ -17,20 +17,27 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Strings.Unbounded;
 with Interfaces;
 
-with Coverage;     use Coverage;
-with Hex_Images;   use Hex_Images;
-with Outputs;      use Outputs;
-with Strings;      use Strings;
-with Traces_Disa;  use Traces_Disa;
-with Traces_Files; use Traces_Files;
+with GNAT.OS_Lib;
+
+with Coverage;      use Coverage;
+with Hex_Images;    use Hex_Images;
+with Outputs;       use Outputs;
+with Strings;       use Strings;
+with Support_Files;
+with Traces_Disa;   use Traces_Disa;
+with Traces_Files;  use Traces_Files;
 
 package body Annotations.Xml is
 
    package ASU renames Ada.Strings.Unbounded;
+
+   XSD_Basename : constant String := "gnatcov-xml-report.xsd";
+   XSD_Filename : constant String := Support_Files.In_Lib_Dir (XSD_Basename);
 
    type Printing_Destination is
      --  Classes of possible output destinations for an XML pretty printer
@@ -69,14 +76,7 @@ package body Annotations.Xml is
    -- XML generation --
    --------------------
 
-   Xml_Header            : constant String := "<?xml version=""1.0"" ?>";
-   Doctype_Index_Header  : constant String :=
-     "<!DOCTYPE document SYSTEM ""annotations-xml.dtd"">";
-   Doctype_Source_Header : constant String :=
-     "<!DOCTYPE source SYSTEM ""annotations-xml.dtd"">";
-   Doctype_Trace_Header  : constant String :=
-     "<!DOCTYPE traces SYSTEM ""annotations-xml.dtd"">";
-
+   Xml_Header      : constant String := "<?xml version=""1.0"" ?>";
    Index_File_Name : constant String := "index.xml";
    Trace_File_Name : constant String := "trace.xml";
 
@@ -193,6 +193,15 @@ package body Annotations.Xml is
    procedure Print_Coverage_Stats
      (Pp : in out Xml_Pretty_Printer'Class; Stats : Stat_Array);
    --  Emit a series of <metric> tags to Pp to describe the given statistics
+
+   ---------------
+   -- Installed --
+   ---------------
+
+   function Installed return Boolean is
+   begin
+      return Ada.Directories.Exists (XSD_Filename);
+   end Installed;
 
    -----------------------------
    -- Shortcut for Put_Line's --
@@ -411,13 +420,27 @@ package body Annotations.Xml is
    ------------------------
 
    procedure Pretty_Print_Start (Pp : in out Xml_Pretty_Printer) is
+      Success : Boolean;
    begin
+      --  Copy the XML Schema to the output directory
+
+      GNAT.OS_Lib.Copy_File
+        (Name     => XSD_Filename,
+         Pathname => Get_Output_Dir,
+         Success  => Success);
+      if not Success then
+         Fatal_Error
+           ("Error while copying " & XSD_Filename
+            & " to the output directory");
+      end if;
+
       Create_Output_File (Pp.Files (Dest_Index), Index_File_Name);
 
       Pp.P (Xml_Header, Dest_Index);
-      Pp.P (Doctype_Index_Header, Dest_Index);
       Pp.ST ("document",
-             A ("xmlns:xi", "http://www.w3.org/2001/XInclude"),
+             A ("xmlns:xi", "http://www.w3.org/2001/XInclude")
+             & A ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+             & A ("xsi:noNamespaceSchemaLocation", "gnatcov-xml-report.xsd"),
              Dest_Index);
       Pp.ST ("coverage_report",
              A ("coverage_level", Coverage_Option_Value), Dest_Index);
@@ -501,7 +524,6 @@ package body Annotations.Xml is
       Skip := False;
       Create_Output_File (Pp.Files (Dest_Compilation_Unit), Xml_File_Name);
       Pp.P (Xml_Header);
-      Pp.P (Doctype_Source_Header);
       Pp.ST ("source",
              A ("file", Simple_Source_Filename)
              & A ("coverage_level", Coverage_Option_Value));
@@ -615,7 +637,6 @@ package body Annotations.Xml is
    begin
       Create_Output_File (Pp.Files (Dest_Trace_Info), Trace_File_Name);
       Pp.P (Xml_Header, Dest_Trace_Info);
-      Pp.P (Doctype_Trace_Header, Dest_Trace_Info);
       Pp.ST ("traces", Dest_Trace_Info);
       Iterate_On_Traces_Files (Process_One_Trace'Access);
       Pp.ET ("traces", Dest_Trace_Info);

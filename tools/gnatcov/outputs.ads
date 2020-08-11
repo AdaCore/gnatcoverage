@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -60,6 +60,10 @@ package Outputs is
    --  (presumably when parsing xcov's options). The default output dir is
    --  the root project's object directory if using a project, or the current
    --  directory if not.
+
+   function Get_Output_Dir return String;
+   --  Return the output dir. If Report_Output_Dir is null, initialize it
+   --  to current dir.
 
    procedure Create_Output_File
      (File      : out File_Type;

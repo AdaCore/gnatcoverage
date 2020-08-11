@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -533,6 +533,10 @@ package Annotations.Xml is
 
    function To_Xml_String (S : String) return String;
    --  Return the string S with '>', '<' and '&' replaced by XML entities
+
+   function Installed return Boolean;
+   --  Return whether the XML Schema is installed, i.e. the required
+   --  resource files are installed in lib/gnatcoverage/.
 
    procedure Generate_Report (Context : Coverage.Context_Access);
 
