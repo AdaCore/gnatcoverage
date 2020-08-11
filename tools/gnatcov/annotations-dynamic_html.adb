@@ -17,9 +17,8 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
-with Ada.Command_Line;                 use Ada.Command_Line;
 with Ada.Containers.Vectors;
-with Ada.Directories;                  use Ada.Directories;
+with Ada.Directories;         use Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -28,20 +27,19 @@ pragma Warnings (Off, "* is an internal GNAT unit");
    with Ada.Strings.Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
 
-with GNAT.OS_Lib;
-with GNATCOLL.JSON;                    use GNATCOLL.JSON;
+with GNATCOLL.JSON; use GNATCOLL.JSON;
 
 with Annotations.Html;
 with Annotations.Xml;
-
 with Hex_Images;
 with Interfaces;
 with Project;
 with Outputs;
 with Strings;
+with Support_Files;
 with Switches;
 with Traces_Disa;
-with Traces_Files; use Traces_Files;
+with Traces_Files;     use Traces_Files;
 
 --  This package generates a dynamic HTML report, i.e. an HTML document heavily
 --  relying on JavaScript for presenting advanced graphical components.
@@ -61,15 +59,10 @@ with Traces_Files; use Traces_Files;
 
 package body Annotations.Dynamic_Html is
 
-   Bin_Dir : constant String :=
-               (Containing_Directory
-                 (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all));
-
-   Prefix  : constant String := Containing_Directory (Bin_Dir);
-   Lib_Dir : constant String := Prefix & "/lib/gnatcoverage/";
-
-   DHTML_JS_Filename  : constant String := Lib_Dir & "gnatcov-dhtml.min.js";
-   DHTML_CSS_Filename : constant String := Lib_Dir & "gnatcov-dhtml.min.css";
+   DHTML_JS_Filename  : constant String :=
+      Support_Files.In_Lib_Dir ("gnatcov-dhtml.min.js");
+   DHTML_CSS_Filename : constant String :=
+      Support_Files.In_Lib_Dir ("gnatcov-dhtml.min.css");
 
    package Source_Vectors is new Ada.Containers.Vectors (Natural, JSON_Value);
 

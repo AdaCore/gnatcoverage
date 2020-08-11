@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2016, AdaCore                       --
+--                     Copyright (C) 2016-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line;  use Ada.Command_Line;
 with Ada.Directories;   use Ada.Directories;
 with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
@@ -27,6 +26,7 @@ with GNAT.OS_Lib;
 with Arch;
 with Coverage; use Coverage;
 with Files_Table;
+with Support_Files;
 with Switches; use Switches;
 
 package body Rundrv.Config is
@@ -97,14 +97,6 @@ package body Rundrv.Config is
    -- Command formatting helpers --
    --------------------------------
 
-   Gnatcov_Dir : constant String := Containing_Directory
-     (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all);
-
-   Gnatcov_Prefix : constant String
-     := Containing_Directory (Gnatcov_Dir);
-
-   Libexec_Dir : constant String := Gnatcov_Prefix & "/libexec/gnatcoverage";
-
    procedure Append_Arg (Cmd : Command_Access; Arg : String);
    procedure Append_Arg (Cmd : Command_Access; Opt, Arg : String);
 
@@ -154,7 +146,7 @@ package body Rundrv.Config is
 
    function Bundled_Or_Plain (What, Where : String) return String is
       Dir     : constant String :=
-         Files_Table.Build_Filename (Libexec_Dir, Where);
+         Files_Table.Build_Filename (Support_Files.Libexec_Dir, Where);
       Bundled : constant String :=
          Files_Table.Build_Filename (Dir, What);
    begin
@@ -204,8 +196,9 @@ package body Rundrv.Config is
       --  accordingly.
 
       if Cmd /= "valgrind" then
-         Result.Environment.Insert (+"VALGRIND_LIB",
-                                    +(Libexec_Dir & "/lib/valgrind/"));
+         Result.Environment.Insert
+           (+"VALGRIND_LIB",
+            +Support_Files.In_Libexec_Dir ("lib/valgrind/"));
       end if;
       return Result;
    end Native_Linux;
