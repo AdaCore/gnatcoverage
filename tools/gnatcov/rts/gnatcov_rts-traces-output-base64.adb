@@ -1,3 +1,21 @@
+------------------------------------------------------------------------------
+--                                                                          --
+--                               GNATcoverage                               --
+--                                                                          --
+--                     Copyright (C) 2019-2020, AdaCore                     --
+--                                                                          --
+-- GNATcoverage is free software; you can redistribute it and/or modify it  --
+-- under terms of the GNU General Public License as published by the  Free  --
+-- Software  Foundation;  either version 3,  or (at your option) any later  --
+-- version. This software is distributed in the hope that it will be useful --
+-- but WITHOUT ANY WARRANTY;  without even the implied warranty of MERCHAN- --
+-- TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public --
+-- License for  more details.  You should have  received  a copy of the GNU --
+-- General  Public  License  distributed  with  this  software;   see  file --
+-- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
+-- of the license.                                                          --
+------------------------------------------------------------------------------
+
 --  This unit needs to be compilable with Ada 95 compilers
 
 package body GNATcov_RTS.Traces.Output.Base64 is
@@ -15,10 +33,20 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    type Base64_Buffer_Index is range 1 .. 4;
    subtype Valid_Base64_Buffer_Index is Base64_Buffer_Index range 1 .. 3;
    type Base64_Buffer_Array is array (Valid_Base64_Buffer_Index) of Unsigned_8;
+
    type Base64_Buffer is record
-      Bytes   : Base64_Buffer_Array := (others => 0);
-      Next    : Base64_Buffer_Index := 1;
+      Bytes : Base64_Buffer_Array := (others => 0);
+      --  We output base64 content by groups of 4 digits, which encode for 3
+      --  input bytes. This buffer is used to accumulate input bytes.
+
+      Next : Base64_Buffer_Index := 1;
+      --  Index of the next cell in Bytes where to store an input byte. This
+      --  means that a given time, only the Bytes (1 .. Next - 1) slice contain
+      --  input bytes.
+
       Columns : Natural := 0;
+      --  Number of output digits on the current line. We keep track of this to
+      --  break lines at 80 digits.
    end record;
 
    procedure Write_Bytes
@@ -69,7 +97,7 @@ package body GNATcov_RTS.Traces.Output.Base64 is
          return Base64_Alphabet (Bits);
       end "+";
 
-      --  Split In_Bytes (3 bytes = 24 bits) into 4 groups of 6 bits
+      --  Split input bytes (3 bytes = 24 bits) into 4 groups of 6 bits
 
       In_Bytes   : Base64_Buffer_Array renames Output.Bytes;
       Out_Digits : String (1 .. 4);
