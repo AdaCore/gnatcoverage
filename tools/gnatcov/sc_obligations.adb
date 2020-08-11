@@ -34,6 +34,7 @@ with Interfaces;
 with Namet;         use Namet;
 with Outputs;       use Outputs;
 with SCOs;
+with Snames;
 with Strings;       use Strings;
 with Switches;      use Switches;
 with Traces_Elf;    use Traces_Elf;
@@ -3415,16 +3416,29 @@ package body SC_Obligations is
    function Case_Insensitive_Get_Pragma_Id
      (Pragma_Name : Name_Id) return Pragma_Id
    is
-      Name : Name_Id := Pragma_Name;
    begin
-      if Name /= No_Name then
-         Get_Name_String (Name);
-         Name_Buffer (1 .. Name_Len) :=
-           To_Lower (Name_Buffer (1 .. Name_Len));
-         Name := Name_Find;
+      if Pragma_Name = No_Name then
+         return Unknown_Pragma;
       end if;
 
-      return Get_Pragma_Id (Name);
+      --  Retrieve the pragma name as a string
+
+      Get_Name_String (Pragma_Name);
+      Name_Buffer (1 .. Name_Len) :=
+        To_Lower (Name_Buffer (1 .. Name_Len));
+
+      --  Try to get the Pragma_Id value corresponding to that name. If there
+      --  is no such value, return Unknown_Pragma.
+
+      declare
+         Enum_Name : constant String :=
+            "Pragma_" & Name_Buffer (1 .. Name_Len);
+      begin
+         return Pragma_Id'Value (Enum_Name);
+      exception
+         when Constraint_Error =>
+            return Unknown_Pragma;
+      end;
    end Case_Insensitive_Get_Pragma_Id;
 
 begin

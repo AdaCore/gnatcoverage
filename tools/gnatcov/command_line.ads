@@ -53,6 +53,7 @@ package Command_Line is
       Cmd_Dump_Inlined_Subprograms,
       Cmd_Dump_Lines,
       Cmd_Dump_CFG,
+      Cmd_Dump_Pragmas,
 
       Cmd_Disassemble_Insn_Properties,
       Cmd_Disassemble_Raw,
@@ -75,7 +76,8 @@ package Command_Line is
       Opt_Keep_Edges,
       Opt_Pretty_Print,
       Opt_Keep_Reading_Traces,
-      Opt_Externally_Built_Projects);
+      Opt_Externally_Built_Projects,
+      Opt_GNAT_Pragmas);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -286,6 +288,13 @@ package Command_Line is
                          & " tokens and instruction properties. See SELECTORs"
                          & " in the dump-cfg command for details."),
          Internal    => True),
+      Cmd_Dump_Pragmas => Create
+        (Name          => "dump-pragmas",
+         Pattern       => "",
+         Description   => "Dump the list of names for Ada pragmas that gnatcov"
+                          & " knows, or that GNAT knows (through gnat_util) if"
+                          & " --gnat-pragmas is passed.",
+         Internal      => True),
       Cmd_Disassemble_Raw => Create
         (Name        => "disassemble-raw",
          Pattern     => "[EXEs]",
@@ -405,7 +414,13 @@ package Command_Line is
          Commands  => (Cmd_Run | Cmd_Instrument | Cmd_Coverage
                         | Cmd_Dump_CFG => True,
                        others          => False),
-         Internal  => False));
+         Internal  => False),
+
+      Opt_GNAT_Pragmas => Create
+        (Long_Name => "--gnat-pragmas",
+         Help      => "Dump the list of GNAT pragmas, from gnat_util.",
+         Commands  => (Cmd_Dump_Pragmas => True, others => False),
+         Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

@@ -30,14 +30,15 @@ with SC_Obligations; use SC_Obligations;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 3;
-   Default_Checkpoint_Version : constant Checkpoint_Version := 3;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 4;
+   Default_Checkpoint_Version : constant Checkpoint_Version := 4;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
    --  1 -- initial version of checkpoint support
    --  2 -- support for source instrumentation
    --  3 -- support for dumping names for units of interest
+   --  4 -- gnatcov's own Pragma_Id type
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:

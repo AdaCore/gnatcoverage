@@ -58,6 +58,7 @@ with Project;               use Project;
 with Qemu_Traces;
 with Rundrv;                use Rundrv;
 with SC_Obligations;        use SC_Obligations;
+with Snames;
 with Strings;               use Strings;
 with Switches;              use Switches;
 with Text_Files;
@@ -1028,6 +1029,17 @@ procedure GNATcov is
                end if;
             end;
 
+         when Cmd_Dump_Pragmas =>
+            if Args.Bool_Args (Opt_GNAT_Pragmas) then
+               for P in Snames.Pragma_Id loop
+                  Put_Line (P'Image);
+               end loop;
+            else
+               for P in Pragma_Id loop
+                  Put_Line (P'Image);
+               end loop;
+            end if;
+
          when Cmd_Map_Routines =>
             --  Set MC/DC coverage level in order to generate a complete
             --  decision map.
@@ -1790,6 +1802,9 @@ begin
                Keep_Edges);
          end if;
          Free (Executable_Path);
+
+      when Cmd_Dump_Pragmas =>
+         null;
 
       when Cmd_Coverage =>
 
