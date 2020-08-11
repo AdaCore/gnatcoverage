@@ -12,6 +12,8 @@ test.py.*
 *.dump
 *.qm
 /extra
+/tools/gnatcov/doc/html
+/tools/gnatcov/doc/pdf
 /tools/gnatcov/obj32/
 /tools/gnatcov/obj64/
 /tools/gnatcov/obj-gnatcov_rts/
