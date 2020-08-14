@@ -101,14 +101,37 @@ package GNATcov_RTS.Buffers is
 
    --  Statements and declarations
 
-   type Witness_Dummy_Type is null record;
+   --  The following Witness subprograms set the Boolean corresponding to Bit
+   --  to True in Buffer in various context.
+
+   procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id);
+   --  This variant is used as part of sequence of statements, to witness
+   --  that we have reached a specific point in the sequence.
+
+   type Witness_Dummy_Type is record
+      Data : Boolean;
+   end record;
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id) return Witness_Dummy_Type;
+   --  This variant is used in contexts where statements are not allowed
+   --  but declarations are, for example ahead of library level declarations
+   --  to witness their elaboration.
+
+   --  Use a dummy type of minimal but non-zero size to prevent the compiler
+   --  from optimizing calls away, as this unit is Pure. Use a composite type
+   --  to prevent ambiguities in contexts where the Boolean variant below
+   --  might be used, for example in constructs like
+   --
+   --    case Witness (Buffer, Bit) is
+   --      when others => ...
+   --    end case;
+   --
+   --  used for some kinds of expression functions.
+
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id) return Boolean;
-   procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id);
-   --  Set the boolean corresponding to Bit to True in Buffer. The Boolean
-   --  version always returns True.
+   --  This variant is used in Boolean expression contexts and always returns
+   --  True.
 
    --  Decisions
 

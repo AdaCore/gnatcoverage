@@ -45,7 +45,7 @@ package body GNATcov_RTS.Buffers is
    is
    begin
       Witness (Buffer_Address, Bit);
-      return (null record);
+      return (Data => True);
    end Witness;
 
    function Witness
