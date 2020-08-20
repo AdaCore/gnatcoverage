@@ -57,7 +57,7 @@ package body Instrument is
 
    type Library_Unit_Info is record
       CU_Names : CU_Name_Vectors.Vector;
-      --  List of compilation unit implementing this library unit
+      --  List of compilation units implementing this library unit
 
       Body_Project, Spec_Project : GPR.Project_Type;
       --  Projects that own the body/spec for this library unit
