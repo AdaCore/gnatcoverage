@@ -4,9 +4,11 @@ Specifying *Units Of Interest*
 ==============================
 
 This chapter describes the means available to convey the set of units on which
-coverage should be assessed for source coverage criteria, which we commonly
-refer to as the :dfn:`units of interest`, and which are relevant to |gcvins|,
-|gcvrun| and |gcvcov|.
+coverage should be assessed, which we commonly refer to as the :dfn:`units of
+interest`, and which are relevant to |gcvins|, |gcvrun| and |gcvcov|. There
+are two main families of such means: users would either provide the set of
+files which hold the coverage obligations for the units of interest, or rely
+on project files facilities to designate the set of units.
 
 .. _passing_scos:
 
@@ -53,15 +55,11 @@ convention::
 
     # Build executable and produce the corresponding list of ALI files. Pass
     # -A to gnatbind through gprbuild -bargs then filter out the test units:
-
     gprbuild -p --target=powerpc-elf --RTS=zfp-prep -Pmy.gpr
      test_divmod0.adb -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
 
-
     # Run and analyse all units except the test harness:
-
     grep -v 'test_[^/]*.ali' all.alis > divmod0.alis
-
     gnatcov run --level=stmt+mcdc --scos=@divmod0.alis
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
 
@@ -187,6 +185,45 @@ this option is used, the project files attributes are ignored.
 
 Each occurrence of this switch indicates one unit to focus on, or with the @
 syntax the name of a file containing a list of units to focus on.
+
+Conveying source files to ignore within units
+*********************************************
+
+Two attributes in the ``Coverage`` package make it possible to specify
+specific source files to ignore, where the designated sources are part of a
+unit otherwise of interest. This is intended to for situations where the
+sources of a unit of interest encompass (part of) the unit testing sources
+(which provides visibility on internal subprograms to the testing code).
+
+Both attributes gather a list of globbing patterns (as in Unix shells). All
+source files whose name matches one pattern are excluded from the analysis and
+from the output report.
+
+The first attribute, ``Ignored_Source_Files``, expects a list of patterns::
+
+    package Coverage is
+        for Ignored_Source_Files use ("*-test.adb", "logger-*.adb");
+    end Coverage;
+
+The second one, ``Ignored_Source_Files_List``, corresponds to the use of
+:term:`@listfile argument`. In the following example, the ``ignore.list`` text
+file is expected to contain a list of globbing patterns, each separated by line
+breaks::
+
+    package Coverage is
+        for Ignored_Source_Files_List use "ignore.list";
+    end Coverage;
+
+The forms above are equivalent to :option:`--ignore-source-files` options on
+the command line, namely
+``--ignore-source-files=*-test.adb --ignore-source-files=logger-*.adb`` for
+the first example, and ``--ignore-source-files=@ignore.list`` for the second
+one.
+
+Note that the command-line arguments have precedence over the project files
+attributes. In other words, as soon as the ``--ignore-source-files`` argument
+is present on the command-line, both of the attributes described above are
+ignored.
 
 .. _gpr_context:
 

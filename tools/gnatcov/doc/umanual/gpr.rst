@@ -14,61 +14,32 @@ development, from the IDE to build and analysis tools.
 |gcp| takes full advantage of GNAT projects for various aspects of the
 coverage analysis activity, in particular:
 
-1. Specify default switches for the various |gcv| commands,
-
-2. Select units of interest and retrieve Source Coverage Obligations
+#. Select units of interest and retrieve Source Coverage Obligations
    for source coverage analysis,
 
-3. Retrieve exemption regions for source and object coverage analysis,
+#. Retrieve exemption regions for source and object coverage analysis,
 
-4. Specify the target architecture for which the analyzed program was built.
-  
-A common set of rules apply in all cases:
+#. Specify default switches for the various |gcv| commands,
 
-* A single root project file is specified on the command line using
-  :option:`-P`,
+#. Specify the target architecture and runtime profile for which the analyzed
+   program was built.
 
-* :option:`--projects` options might be added to designate specific projects
-  to operate on within the root dependency closure. As soon as one such option
-  is used, the root project itself needs to be listed explicitly as well to
-  be considered.
-
-* With :option:`--recursive` anywhere in addition, the set of projects to be
-  processed includes the transitive closure of all the projects designated by
-  :option:`-P` and :option:`--projects` if any.
-
-If only the root project file is specified using :option:`-P` and if this
-project has an ``Origin_Project`` attribute, the project that is actually
-considered for coverage assessment is the one designated by this attribute.
-``Origin_Project`` is ignored in all other cases.
-
-A ``Coverage`` package is allowed in every project file to provide attributes
-guiding the analysis in different possible ways. Two families of attributes
-are available today:
-
-* A ``Switches`` family allowing the specification of options to apply for the
-  various |gcv| commands involved in an execution/analysis sequence. This is
-  the core facility regarding point 1 above, covered in the :ref:`switches_attr`
-  section below.
-
-* A ``Units`` family, allowing fine grain selection of source units to
-  consider within a project tree, an additional item to help fulfill point 2
-  above.
-
-The project selection facilities are illustrated together with the fine grain
-unit selection devices in the :ref:`sunits` section, focused on source coverage
-perspectives.
+The project selection and units-of-interest designation facilities are
+described in the :ref:`sunits` chapter of this manual, with a focus on source
+coverage perspectives. In the root project, a ``Coverage`` package may be used
+to specify the arguments for |gcv| commands and the target/runtime profile may
+be set using toplevel attributes.
 
 .. _switches_attr:
 
-Specifying command Switches from project files
-==============================================
+Specifying |gcv| command Switches
+=================================
 
-``Switches`` attributes in the root project file are treated as lists of
-command line switches for |gcv| commands. Each attribute specification
-requires an index indicating what |gcv| operation the switches apply to.  Each
-attribute value is expected to be a list of options for this operation.  Here
-is a first basic example::
+``Switches`` attributes in ``Coverage`` package of the root project file are
+treated as lists of command line switches for |gcv| commands. Each attribute
+specification requires an index indicating what |gcv| operation the switches
+apply to.  Each attribute value is expected to be a list of options for this
+operation.  Here is a first basic example::
 
     package Coverage is
        level := "--level=stmt"; -- to be reused in different contexts
@@ -107,60 +78,23 @@ specified in the project file.
 
 .. _target_attr:
 
-Specifying the Target from project files
-========================================
+Specifying the Target and language Runtime
+==========================================
 
-Similarly to other tools, |gcv| uses any existing ``Target`` attribute in the
-root project file in order to detect what target architecture to consider. This
-can be done instead of providing the :option:`--target` option both for correct
-processing of project files and to run the appropriate execution environment in
-|gcvrun|.  Here is a simple example::
+Similarly to other tools, |gcv| uses any existing ``Target`` or ``Runtime``
+attribute in the root project file to detect what target architecture and
+associated language runtime profile to consider. This can be done instead of
+providing the :option:`--target` and :option:`--RTS` options both for correct
+processing of project files and to run the appropriate execution environment
+in |gcvrun|.  Here is a simple example::
 
     project My_Program is
        for Languages use ("Ada");
        for Main use ("my_program.adb");
 
        for Target use "powerpc-elf";
-
-       package Compiler is
-          for Default_Switches ("Ada") use
-            ("-g", "-fdump-scos", "-fpreserve-control-flow");
-       end Compiler;
+       for Runtime use "zfp-mpc8641";
     end My_Program;
 
-When the root project provides a ``Target`` attribute and |gcv| is passed a
-:option:`--target` option on the command line, the option takes precedence over
-the attribute.
-
-Specifying source files to ignore from project files
-====================================================
-
-Two attributes in the ``Coverage`` package make it possible to specify source
-files to ignore. They both gather a list of globbing patterns (as in Unix or
-DOS shells). All source files whose name matches one pattern are excluded from
-the analysis, and from the output report.
-
-The first attribute, ``Ignored_Source_Files``, expects the list of patterns::
-
-    package Coverage is
-        for Ignored_Source_Files use ("*-test.adb", "logger-*.adb");
-    end Coverage;
-
-The above is equivalent to ``--ignore-source-files=*-test.adb
---ignore-source-files=logger-*.adb``.
-
-The second one, ``Ignored_Source_Files_List``, corresponds to the use of
-:term:`@listfile argument`. In the following example, the ``ignore.list`` text
-file is expected to contain a list of globbing patterns, each separated by line
-breaks::
-
-    pacakage Coverage is
-        for Ignored_Source_Files_List use "ignore.list";
-    end Coverage;
-
-The above is equivalent to ``--ignore-source-files=@ignore.list``.
-
-Note that the command-line arguments have precedence over the project files
-attributes. In other words, as soon as the ``--ignore-source-files`` argument
-is present on the command-line, both of the attributes described above are
-ignored.
+When a :option:`--target` or a :option:`--RTS` option is provided on the
+command line, the option takes precedence over the corresponding attribute.
