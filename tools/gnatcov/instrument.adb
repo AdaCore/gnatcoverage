@@ -610,12 +610,6 @@ package body Instrument is
          Prj_Info : Project_Info renames Unit_Info.Prj_Info.all;
          UIC      : Unit_Inst_Context;
       begin
-         --  Do not instrument units from externally built projects
-
-         if Unit_Info.Prj_Info.Externally_Built then
-            return;
-         end if;
-
          --  Instrument the source file and create a unit to contain its
          --  coverage buffers.
 
@@ -669,30 +663,44 @@ package body Instrument is
          --  owns).
 
          declare
-            LU_Info : constant Library_Unit_Info_Access :=
+            LU_Info              : constant Library_Unit_Info_Access :=
                Library_Unit_Maps.Element (Cur);
+            All_Externally_Built : Boolean := True;
          begin
             for CU of LU_Info.CU_Names loop
-               Instrument_Unit
-                 (CU, IC.Instrumented_Units.Element (CU).all);
+               declare
+                  Unit_Info : Instrumented_Unit_Info renames
+                     IC.Instrumented_Units.Element (CU).all;
+               begin
+                  --  Do not instrument units from externally built projects
+
+                  if not Unit_Info.Prj_Info.Externally_Built then
+                     All_Externally_Built := False;
+                     Instrument_Unit (CU, Unit_Info);
+                  end if;
+               end;
             end loop;
+
+            --  Except for units entirely externally built (the spec, the body,
+            --  and potential subunits all belong to externally built
+            --  projects), emit a SID file to contain mappings between bits in
+            --  coverage buffers and SCOs.
+
+            if not All_Externally_Built then
+               declare
+                  Context : aliased Coverage.Context := Coverage.Get_Context;
+               begin
+                  Checkpoints.Checkpoint_Save
+                    (SID_Filename (Cur),
+                     Context'Access,
+                     Purpose => Checkpoints.Instrumentation);
+               end;
+
+               if Switches.Verbose then
+                  SC_Obligations.Dump_All_SCOs;
+               end if;
+            end if;
          end;
-
-         --  Emit a SID file to contain mappings between bits in coverage
-         --  buffers and SCOs.
-
-         declare
-            Context : aliased Coverage.Context := Coverage.Get_Context;
-         begin
-            Checkpoints.Checkpoint_Save
-              (SID_Filename (Cur),
-               Context'Access,
-               Purpose => Checkpoints.Instrumentation);
-         end;
-
-         if Switches.Verbose then
-            SC_Obligations.Dump_All_SCOs;
-         end if;
 
          Checkpoints.Checkpoint_Clear;
       end loop;
