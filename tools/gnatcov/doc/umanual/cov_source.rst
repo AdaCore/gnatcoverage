@@ -118,6 +118,15 @@ The available options are as follows:
    files to be excluded from the analysis and from the output report.
    See the :ref:`ada_subunits` section for more information.
 
+:option:`--dump-units-to`:
+   For source coverage analysis specifically, output the names of units
+   that are considered of-interest to the requested assessment, that is,
+   for which a report or checkpoint is going to be produced. The argument
+   may be either the name of a file, clobbered it if it already exists,
+   or '-' to request displaying the list on standard output. In the latter
+   case, when a ``report`` output is also requested, the list of units is
+   displayed as an additional report section.
+
 :option:`--save-checkpoint`:
     Save the resulting coverage analysis to the named checkpoint file.
 
@@ -326,6 +335,11 @@ three sections in between: Assessment Context, Coverage Violations, and
 Analysis Summary.  A few variations are introduced when :term:`exemption
 regions` are in scope.  See the :ref:`exemptions` section for more details on
 their use and effect on the output reports.
+
+If :option:`--dump-units-to -` is also on the command line, a *UNITS OF
+INTEREST* section is produced, which contains the list of units considered
+of-interest for the reported assessment.
+
 
 Assessment Context
 ^^^^^^^^^^^^^^^^^^
