@@ -427,7 +427,8 @@ package body Annotations.Xml is
       GNAT.OS_Lib.Copy_File
         (Name     => XSD_Filename,
          Pathname => Get_Output_Dir,
-         Success  => Success);
+         Success  => Success,
+         Mode     => GNAT.OS_Lib.Overwrite);
       if not Success then
          Fatal_Error
            ("Error while copying " & XSD_Filename
