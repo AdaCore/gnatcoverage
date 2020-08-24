@@ -27,6 +27,8 @@ with Ada.Exceptions;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Unbounded;
 
+with GNAT.OS_Lib;
+
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
@@ -76,8 +78,13 @@ package body Instrument is
    --  Look for the info corresponding to Library_Unit in Map. Create it if
    --  it does not exist yet and put it in Info.
 
-   function SID_Filename (Cur : Library_Unit_Maps.Cursor) return String;
-   --  Return the filename of the SID file to create for the given library unit
+   function SID_Filename
+     (Cur            : Library_Unit_Maps.Cursor;
+      In_Library_Dir : Boolean) return String;
+   --  Return the filename of the SID file to create for the given library
+   --  unit. If In_Library_Dir is true, then return a filename located in the
+   --  project library directory. Otherwise, the filename is located in the
+   --  object directory.
 
    procedure Prepare_Output_Dirs (IC : Inst_Context);
    --  Make sure we have the expected tree of directories for the
@@ -129,7 +136,10 @@ package body Instrument is
    -- SID_Filename --
    ------------------
 
-   function SID_Filename (Cur : Library_Unit_Maps.Cursor) return String is
+   function SID_Filename
+     (Cur            : Library_Unit_Maps.Cursor;
+      In_Library_Dir : Boolean) return String
+   is
       use GNATCOLL.VFS;
       use type GPR.Project_Type;
       use Library_Unit_Maps;
@@ -146,7 +156,10 @@ package body Instrument is
          else Info.Body_Project);
       pragma Assert (Project /= GPR.No_Project);
 
-      Object_Dir : constant String := +Project.Object_Dir.Full_Name;
+      Output_Directory : constant Virtual_File :=
+        (if In_Library_Dir
+         then Project.Library_Ali_Directory
+         else Project.Object_Dir);
 
    begin
       --  Replace dots with dashes to build the file name out of the library
@@ -158,7 +171,7 @@ package body Instrument is
          end if;
       end loop;
 
-      return Object_Dir / LU_Name & ".sid";
+      return String'(+Output_Directory.Full_Name) / LU_Name & ".sid";
    end SID_Filename;
 
    -------------------------
@@ -689,11 +702,49 @@ package body Instrument is
             if not All_Externally_Built then
                declare
                   Context : aliased Coverage.Context := Coverage.Get_Context;
+                  Obj_SID : constant String :=
+                     SID_Filename (Cur, In_Library_Dir => False);
+                  Lib_SID : constant String :=
+                     SID_Filename (Cur, In_Library_Dir => True);
+                  Success : Boolean;
                begin
                   Checkpoints.Checkpoint_Save
-                    (SID_Filename (Cur),
+                    (Obj_SID,
                      Context'Access,
                      Purpose => Checkpoints.Instrumentation);
+
+                  --  If the object directory is different from the library
+                  --  directory, copy the SID file to the library directory.
+                  --  This allows "gnatcov coverage" to automatically pick it
+                  --  up if the project is later made externally built.
+
+                  if Obj_SID /= Lib_SID then
+
+                     --  Unlike the object directory, which GNATCOLL.Project
+                     --  creates automatically, the library directory may not
+                     --  exist: create it if needed.
+
+                     declare
+                        use GNATCOLL.VFS;
+                     begin
+                        Create (Create (+Lib_SID).Dir_Name).Make_Dir;
+                     exception
+                        when Exc : VFS_Directory_Error =>
+                           Outputs.Fatal_Error
+                             (Ada.Exceptions.Exception_Message (Exc));
+                     end;
+
+                     GNAT.OS_Lib.Copy_File
+                       (Name     => Obj_SID,
+                        Pathname => Lib_SID,
+                        Success  => Success,
+                        Mode     => GNAT.OS_Lib.Overwrite);
+                     if not Success then
+                        Outputs.Fatal_Error
+                          ("Error while copying " & Obj_SID
+                           & " to the library directory: " & Lib_SID);
+                     end if;
+                  end if;
                end;
 
                if Switches.Verbose then
