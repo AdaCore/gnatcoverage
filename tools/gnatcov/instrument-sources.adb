@@ -427,7 +427,8 @@ package body Instrument.Sources is
          --  which dumps all coverage buffers in Main's closure to the source
          --  trace file.
 
-         Create_File (Info, File, To_Filename ((Helper_Unit, Unit_Spec)));
+         Create_File
+           (Info, File, To_Filename (Info.Project, (Helper_Unit, Unit_Spec)));
          Put_Warnings_And_Style_Checks_Pragmas (File);
          File.Put_Line ("package " & Helper_Unit_Name & " is");
          File.New_Line;
@@ -451,7 +452,8 @@ package body Instrument.Sources is
 
          --  Emit the package body
 
-         Create_File (Info, File, To_Filename ((Helper_Unit, Unit_Body)));
+         Create_File
+           (Info, File, To_Filename (Info.Project, (Helper_Unit, Unit_Body)));
          Put_Warnings_And_Style_Checks_Pragmas (File);
 
          Put_With (Output_Unit);

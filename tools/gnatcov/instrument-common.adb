@@ -187,24 +187,27 @@ package body Instrument.Common is
    -- To_Filename --
    -----------------
 
-   function To_Filename (CU_Name : Compilation_Unit_Name) return String is
-      Result : Unbounded_String;
+   function To_Filename
+     (Project : Project_Type; CU_Name : Compilation_Unit_Name) return String
+   is
+      Unit_Name : Unbounded_String;
    begin
       for Id of CU_Name.Unit loop
-         if Length (Result) > 0 then
-            Append (Result, "-");
+         if Length (Unit_Name) > 0 then
+            Append (Unit_Name, ".");
          end if;
-         Append (Result, Ada.Characters.Handling.To_Lower (To_String (Id)));
+         Append (Unit_Name, Ada.Characters.Handling.To_Lower (To_String (Id)));
       end loop;
 
-      case CU_Name.Part is
-         when Unit_Spec =>
-            Append (Result, ".ads");
-         when Unit_Body | Unit_Separate =>
-            Append (Result, ".adb");
-      end case;
-
-      return +Result;
+      declare
+         use GNATCOLL.VFS;
+      begin
+         return +Project.File_From_Unit
+           (Unit_Name       => +Unit_Name,
+            Part            => CU_Name.Part,
+            Language        => "Ada",
+            File_Must_Exist => False);
+      end;
    end To_Filename;
 
    -----------
@@ -747,7 +750,8 @@ package body Instrument.Common is
 
          declare
             Result : constant Project_Info_Access := new Project_Info'
-              (Externally_Built => Project.Externally_Built,
+              (Project          => Project,
+               Externally_Built => Project.Externally_Built,
                Output_Dir       => +Project_Output_Dir (Project),
                Instr_Files      => <>);
          begin

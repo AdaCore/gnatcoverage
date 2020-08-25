@@ -159,9 +159,10 @@ package Instrument.Common is
    --  Return the compilation unit name corresponding to the unit in
    --  Source_File.
 
-   function To_Filename (CU_Name : Compilation_Unit_Name) return String;
-   --  Return the name of the file to contain the given compilation unit. This
-   --  assumes standard GNAT naming scheme.
+   function To_Filename
+     (Project : Project_Type; CU_Name : Compilation_Unit_Name) return String;
+   --  Return the name of the file to contain the given compilation unit,
+   --  according to Project's naming scheme.
 
    function Image (CU_Name : Compilation_Unit_Name) return String;
    --  Return a string representation of CU_Name for use in diagnostics
@@ -231,6 +232,9 @@ package Instrument.Common is
       Hash                => Ada.Strings.Unbounded.Hash);
 
    type Project_Info is record
+      Project : Project_Type;
+      --  Project that this record describes
+
       Externally_Built : Boolean;
       --  Whether this project is externaly built. In that case, we assume its
       --  units of interest have already been instrumented.

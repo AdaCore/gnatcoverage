@@ -24,6 +24,7 @@ with Ada.Characters.Conversions;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Unbounded;
 
@@ -142,36 +143,41 @@ package body Instrument is
    is
       use GNATCOLL.VFS;
       use type GPR.Project_Type;
+      use all type GPR.Unit_Parts;
       use Library_Unit_Maps;
 
-      LU_Name : String := Key (Cur);
+      LU_Name : constant String := Key (Cur);
       Info    : Library_Unit_Info renames Element (Cur).all;
 
-      --  Determine in which project we will put this SID file. Mimic GNAT: use
-      --  the project of the main source of the library unit.
+      --  Determine in which project we will put this SID file, and the
+      --  basename for the SID file to create. Mimic how GNAT creates ALI
+      --  files: use the project of the main source of the library unit, start
+      --  from the basename of that source file, replace the last extension
+      --  with ".sid".
 
-      Project : constant GPR.Project_Type :=
-        (if Info.Body_Project = GPR.No_Project
+      Use_Spec : constant Boolean := Info.Body_Project = GPR.No_Project;
+      Project  : constant GPR.Project_Type :=
+        (if Use_Spec
          then Info.Spec_Project
          else Info.Body_Project);
       pragma Assert (Project /= GPR.No_Project);
+
+      Src_Basename  : constant String := +Project.File_From_Unit
+        (Unit_Name       => LU_Name,
+         Part            => (if Use_Spec then Unit_Spec else Unit_Body),
+         Language        => "Ada",
+         File_Must_Exist => False);
+      Src_Ext_Index : constant Positive :=
+         Ada.Strings.Fixed.Index (Src_Basename, ".", Ada.Strings.Backward);
+      SID_Basename  : constant String :=
+         Src_Basename (Src_Basename'First ..  Src_Ext_Index) & "sid";
 
       Output_Directory : constant Virtual_File :=
         (if In_Library_Dir
          then Project.Library_Ali_Directory
          else Project.Object_Dir);
-
    begin
-      --  Replace dots with dashes to build the file name out of the library
-      --  unit name.
-
-      for C of LU_Name loop
-         if C = '.' then
-            C := '-';
-         end if;
-      end loop;
-
-      return String'(+Output_Directory.Full_Name) / LU_Name & ".sid";
+      return String'(+Output_Directory.Full_Name) / SID_Basename;
    end SID_Filename;
 
    -------------------------
@@ -210,7 +216,7 @@ package body Instrument is
       CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
       File    : Text_Files.File_Type;
    begin
-      Create_File (Info, File, To_Filename (CU_Name));
+      Create_File (Info, File, To_Filename (Info.Project, CU_Name));
       Put_Warnings_And_Style_Checks_Pragmas (File);
 
       declare
@@ -348,7 +354,7 @@ package body Instrument is
    --  Start of processing for Emit_Pure_Buffer_Unit
 
    begin
-      Create_File (Info, File, To_Filename (CU_Name));
+      Create_File (Info, File, To_Filename (Info.Project, CU_Name));
 
       Put_Warnings_And_Style_Checks_Pragmas (File);
       Put_Language_Version_Pragma;
@@ -384,7 +390,7 @@ package body Instrument is
       if not UIC.Degenerate_Subprogram_Generics.Is_Empty then
          CU_Name.Part := GNATCOLL.Projects.Unit_Body;
 
-         Create_File (Info, File, To_Filename (CU_Name));
+         Create_File (Info, File, To_Filename (Info.Project, CU_Name));
 
          Put_Language_Version_Pragma;
          File.Put_Line ("package body " & Pkg_Name & " is");
@@ -440,7 +446,10 @@ package body Instrument is
          Unit_Name : constant String := To_Ada (CU_Name.Unit);
          First     : Boolean := True;
       begin
-         Create_File (Root_Project_Info, File, To_Filename (CU_Name));
+         Create_File
+           (Root_Project_Info,
+            File,
+            To_Filename (Root_Project_Info.Project, CU_Name));
          Put_Warnings_And_Style_Checks_Pragmas (File);
          for Unit of Buffer_Units loop
             File.Put_Line ("with " & To_String (Unit) & ";");
