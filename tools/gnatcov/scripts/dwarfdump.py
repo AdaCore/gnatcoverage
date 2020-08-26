@@ -10,7 +10,7 @@ import sys
 import slocinfo
 
 
-OBJDUMP_ADDR = re.compile(b'^ *([0-9a-f]+):')
+OBJDUMP_ADDR = re.compile('^ *([0-9a-f]+):')
 
 
 def do_dump(sloc_info, cmd):
@@ -18,10 +18,11 @@ def do_dump(sloc_info, cmd):
     print('Executing: {}'.format(cmd))
     print('')
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    outs, errs = proc.communicate()
+    outs, _ = proc.communicate()
+    outs = outs.decode()
 
     last_slocs = []
-    for line in outs.split(b'\n'):
+    for line in outs.split('\n'):
         m = OBJDUMP_ADDR.match(line)
         if m:
             addr = int(m.group(1), 16)
@@ -33,6 +34,7 @@ def do_dump(sloc_info, cmd):
                 last_slocs = slocs
         sys.stdout.flush()
         print(line)
+
 
 if __name__ == '__main__':
     import errno
