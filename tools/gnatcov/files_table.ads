@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -471,10 +471,7 @@ private
    package Source_Line_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Line_Info_Access);
-
    type Source_Lines is new Source_Line_Vectors.Vector with null record;
-   type Source_Line_Array is array (Positive range <>) of aliased Line_Info;
-   type Source_Line_Array_Acc is access all Source_Line_Array;
 
    Empty_Line_Info : constant Line_Info_Access := new Line_Info;
 

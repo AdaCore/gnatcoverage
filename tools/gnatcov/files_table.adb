@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2017, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -37,6 +37,14 @@ with Switches;
 
 package body Files_Table is
 
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Object_Coverage_Info_Array, Object_Coverage_Info_Array_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (SCO_Id_Array, SCO_Id_Array_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Sloc_To_SCO_Map_Array, Sloc_To_SCO_Map_Array_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Message_Array, Message_Array_Acc);
    procedure Free is new Ada.Unchecked_Deallocation
      (File_Info, File_Info_Access);
 
@@ -133,6 +141,43 @@ package body Files_Table is
    --  Executable search prefix
 
    Exec_Search_Prefix : Virtual_File;
+
+   ----------------------------
+   --  Line info allocations --
+   ----------------------------
+   --
+   --  We generally need to allocate lots of Line_Info records. For performance
+   --  and to avoid memory fragmentation, we allocate them in chunks. We then
+   --  need to keep track of all allocated chunks so that we can free them in
+   --  Checkpoint_Clear: each chunk remembers what was the previous allocated
+   --  one.
+
+   Line_Info_Chunk_Size : constant := 512;
+   --  Number of Line_Info records allocated at once
+
+   type Line_Info_Chunk;
+   type Line_Info_Chunk_Access is access all Line_Info_Chunk;
+   type Line_Info_Array is array (Positive range <>) of aliased Line_Info;
+   type Line_Info_Chunk is record
+      Lines : Line_Info_Array (1 .. Line_Info_Chunk_Size);
+      --  Individual Line_Info records
+
+      Previous_Chunk : Line_Info_Chunk_Access;
+      --  Line_Info_Chunk that was allocated right before this one. This makes
+      --  a linked list, easy to use for deallocion.
+   end record;
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Line_Info_Chunk, Line_Info_Chunk_Access);
+
+   Current_LI_Chunk_Next_Line : Positive := 1;
+   --  Index of the next available cell in Current_LI_Chunk.Lines
+
+   Current_LI_Chunk : Line_Info_Chunk_Access := null;
+   --  Last allocated chunk, if we allocated at least one chunk, null
+   --  otherwise.
+
+   function Create_Line_Info return Line_Info_Access;
+   --  Return a new Line_Info record
 
    ---------------------
    -- Append_To_Array --
@@ -484,33 +529,55 @@ package body Files_Table is
       return Result;
    end End_Lex_Element;
 
+   ----------------------
+   -- Create_Line_Info --
+   ----------------------
+
+   function Create_Line_Info return Line_Info_Access is
+   begin
+      --  Allocate a new chunk if there was no chunk or if there is no room
+      --  left in the current one.
+
+      if Current_LI_Chunk = null
+         or else Current_LI_Chunk_Next_Line > Current_LI_Chunk.Lines'Last
+      then
+         --  Allocate the record first and then initialize the Lines array.
+         --  Don't do it in one single statement as this would create a big
+         --  aggregate on the stack, triggering a stack overflow when the
+         --  number of line is too high.
+
+         Current_LI_Chunk := new Line_Info_Chunk'
+           (Lines => <>, Previous_Chunk => Current_LI_Chunk);
+         for Line of Current_LI_Chunk.Lines loop
+            Line := (State => (others => No_Code), others => <>);
+         end loop;
+         Current_LI_Chunk_Next_Line := Current_LI_Chunk.Lines'First;
+
+         Bump (Line_Table_Alloc);
+         Bump (Line_Table_Alloc_Size,
+               How_Many => Current_LI_Chunk.Lines'Length);
+      end if;
+
+      return Result : constant Line_Info_Access :=
+         Current_LI_Chunk.Lines (Current_LI_Chunk_Next_Line)'Access
+      do
+         Current_LI_Chunk_Next_Line := Current_LI_Chunk_Next_Line + 1;
+      end return;
+   end Create_Line_Info;
+
    -----------------------
    -- Expand_Line_Table --
    -----------------------
 
    procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive) is
-      New_Lines : Source_Line_Array_Acc;
-
    begin
       if Line <= FI.Lines.Last_Index then
          return;
       end if;
 
-      --  Allocate the array first and then initialize it. Don't do it in one
-      --  single statement as this would create a big aggregate on the stack,
-      --  triggering a stack overflow when the number of line is too high.
-
-      New_Lines := new Source_Line_Array (FI.Lines.Last_Index + 1 .. Line);
-      for Line of New_Lines.all loop
-         Line := (State => (others => No_Code), others => <>);
-      end loop;
-
-      Bump (Line_Table_Alloc);
-      Bump (Line_Table_Alloc_Size, How_Many => New_Lines'Length);
-
       FI.Lines.Reserve_Capacity (Ada.Containers.Count_Type (Line));
-      for J in New_Lines'Range loop
-         FI.Lines.Append (New_Lines (J)'Access);
+      for J in FI.Lines.Last_Index + 1 .. Line loop
+         FI.Lines.Append (Create_Line_Info);
       end loop;
    end Expand_Line_Table;
 
@@ -1610,9 +1677,42 @@ package body Files_Table is
 
    procedure Checkpoint_Clear is
    begin
+      Sorted_Files_Table.Clear;
+      for FI of Files_Table loop
+         Free (FI.Full_Name);
+         Free (FI.Simple_Name);
+         if FI.Kind = Source_File then
+
+            --  Line_Info records are allocated in chunks, so we free them
+            --  separately: see below
+
+            Free (FI.Sloc_To_SCO_Maps);
+         end if;
+         Free (FI);
+      end loop;
       Files_Table.Clear;
       Files_Table_Frozen := False;
-      Sorted_Files_Table.Clear;
+
+      --  Free Line_Info records
+
+      declare
+         Next : Line_Info_Chunk_Access;
+      begin
+         while Current_LI_Chunk /= null loop
+            Next := Current_LI_Chunk.Previous_Chunk;
+            for LI of Current_LI_Chunk.Lines
+              (Current_LI_Chunk.Lines'First .. Current_LI_Chunk_Next_Line - 1)
+            loop
+               Free (LI.Obj_Infos);
+               Free (LI.SCOs);
+               Free (LI.Messages);
+               Free (LI.Line_Cache);
+            end loop;
+            Free (Current_LI_Chunk);
+            Current_LI_Chunk := Next;
+            Current_LI_Chunk_Next_Line := Line_Info_Chunk_Size;
+         end loop;
+      end;
 
       Simple_Name_Map.Clear;
       Full_Name_Map.Clear;
