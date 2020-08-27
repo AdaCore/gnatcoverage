@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2019, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -3726,6 +3726,7 @@ package body Instrument.Tree is
       end if;
       Hash_Entries.Init;
       N.Traverse (Process_Node'Access);
+      Hash_Entries.Free;
    end Process_Decisions;
 
    ------------------
