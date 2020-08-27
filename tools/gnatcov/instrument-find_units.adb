@@ -46,7 +46,7 @@ is
             declare
                Stub         : constant LAL.Body_Stub := N.As_Body_Stub;
                Subunit_FQN  : constant LAL.Unbounded_Text_Type_Array :=
-                  Stub.P_Fully_Qualified_Name_Array;
+                  Stub.P_Syntactic_Fully_Qualified_Name;
                Subunit_Name : constant Compilation_Unit_Name :=
                  (Unit => To_Qualified_Name (Subunit_FQN),
                   Part => GPR.Unit_Separate);
