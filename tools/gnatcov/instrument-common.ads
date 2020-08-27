@@ -291,12 +291,34 @@ package Instrument.Common is
      (Key_Type     => Compilation_Unit_Name,
       Element_Type => Instrumented_Unit_Info_Access);
 
+   Max_Get_From_File_Count : constant := 50;
+   --  In addition to nodes and text buffers for each loaded unit, Libadalang
+   --  maintains caches in Analysis_Context objects so that semantic queries
+   --  are fast. This means that if we keep the same context to process a lot
+   --  of units, we end up with excessive memory consumption, which can trigger
+   --  heap exhaustion on big projects.
+   --
+   --  Replacing an analysis context with a new one clears all the caches, but
+   --  makes semantic queries slower, as the units are re-loaded and caches are
+   --  re-populated as needed.
+   --
+   --  To compromise between memory consumption and performance, we reset the
+   --  analysis context each Max_Get_From_File_Count number of calls to
+   --  Libadalang's Get_From_File function.
+
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
 
+      Provider : Libadalang.Analysis.Unit_Provider_Reference;
+      --  Unit provider to create an analysis context (Context member below)
+
       Context : Libadalang.Analysis.Analysis_Context;
       --  Libadalang context to load all units to rewrite
+
+      Get_From_File_Count : Natural;
+      --  Count how many times we called Context.Get_From_File. See the
+      --  Max_Get_From_File_Count constant.
 
       Dump_Trigger     : Any_Dump_Trigger;
       Dump_Channel     : Any_Dump_Channel;
@@ -318,7 +340,7 @@ package Instrument.Common is
    end record;
 
    function Create_Context
-     (Context              : Libadalang.Analysis.Analysis_Context;
+     (Provider             : Libadalang.Analysis.Unit_Provider_Reference;
       Dump_Trigger         : Any_Dump_Trigger;
       Dump_Channel         : Any_Dump_Channel;
       Language_Version     : Any_Language_Version;
@@ -327,6 +349,11 @@ package Instrument.Common is
 
    procedure Destroy_Context (Context : in out Inst_Context);
    --  Free dynamically allocated resources in Context
+
+   function Get_From_File
+     (IC       : in out Inst_Context;
+      Filename : String) return Libadalang.Analysis.Analysis_Unit;
+   --  Fetch the analysis unit for the given filename
 
    function Is_Ignored_Source_File
      (Context : Inst_Context; Filename : String) return Boolean;
@@ -392,7 +419,7 @@ package Instrument.Common is
 
    procedure Start_Rewriting
      (Self           : out Source_Rewriter;
-      IC             : Inst_Context;
+      IC             : in out Inst_Context;
       Info           : in out Project_Info;
       Input_Filename : String);
    --  Start a rewriting session for the given Input_Filename. If the rewriting

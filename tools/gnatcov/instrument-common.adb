@@ -407,7 +407,7 @@ package body Instrument.Common is
 
    procedure Start_Rewriting
      (Self           : out Source_Rewriter;
-      IC             : Inst_Context;
+      IC             : in out Inst_Context;
       Info           : in out Project_Info;
       Input_Filename : String)
    is
@@ -416,7 +416,7 @@ package body Instrument.Common is
       Output_Filename : constant String :=
          To_String (Info.Output_Dir) / Base_Filename;
       Unit            : constant Analysis_Unit :=
-         Get_From_File (IC.Context, Input_Filename);
+         Get_From_File (IC, Input_Filename);
    begin
       if Unit.Has_Diagnostics then
          Error ("instrumentation failed for " & Input_Filename);
@@ -651,7 +651,7 @@ package body Instrument.Common is
    --------------------
 
    function Create_Context
-     (Context              : Libadalang.Analysis.Analysis_Context;
+     (Provider             : Libadalang.Analysis.Unit_Provider_Reference;
       Dump_Trigger         : Any_Dump_Trigger;
       Dump_Channel         : Any_Dump_Channel;
       Language_Version     : Any_Language_Version;
@@ -662,7 +662,10 @@ package body Instrument.Common is
            (Project.Root_Project_Filename);
          --  TODO??? Get the original casing for the project name
 
-         IC.Context := Context;
+         IC.Provider := Provider;
+         IC.Context := Libadalang.Analysis.Create_Context
+           (Unit_Provider => Provider);
+         IC.Get_From_File_Count := 0;
 
          IC.Dump_Trigger := Dump_Trigger;
          IC.Dump_Channel := Dump_Channel;
@@ -711,6 +714,27 @@ package body Instrument.Common is
       end loop;
       Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
    end Destroy_Context;
+
+   -------------------
+   -- Get_From_File --
+   -------------------
+
+   function Get_From_File
+     (IC       : in out Inst_Context;
+      Filename : String) return Libadalang.Analysis.Analysis_Unit
+   is
+   begin
+      --  If we exceeded the maximum number of calls to Get_From_File, start
+      --  with a new context.
+
+      if IC.Get_From_File_Count >= Max_Get_From_File_Count then
+         IC.Context := Create_Context (Unit_Provider => IC.Provider);
+         IC.Get_From_File_Count := 0;
+      end if;
+      IC.Get_From_File_Count := IC.Get_From_File_Count + 1;
+
+      return IC.Context.Get_From_File (Filename);
+   end Get_From_File;
 
    ----------------------------
    -- Is_Ignored_Source_File --

@@ -525,8 +525,6 @@ package body Instrument is
             Project          => Project.Project.Root_Project,
             Env              => null,
             Is_Project_Owner => False);
-      Context  : constant Analysis_Context :=
-         Create_Context (Unit_Provider => Provider);
 
       --  Create a map from library units to lists of compilation units to
       --  instrument for them.
@@ -542,10 +540,10 @@ package body Instrument is
       --  interest are instrumented to dump coverage buffers at the same time
       --  they are instrumented to fill coverage buffers.
 
-      --  Then create the instrumenter's own context, based on Libadalang's
+      --  Then create the instrumenter context
 
       IC                : Inst_Context := Create_Context
-         (Context, Dump_Trigger, Dump_Channel, Language_Version,
+         (Provider, Dump_Trigger, Dump_Channel, Language_Version,
           Ignored_Source_Files);
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
@@ -618,7 +616,7 @@ package body Instrument is
          end case;
 
          Find_Units
-           (Context, CU_Name, Source_File, Add_Instrumented_Unit'Access);
+           (IC, CU_Name, Source_File, Add_Instrumented_Unit'Access);
       end Find_Units_Wrapper;
 
       ---------------------

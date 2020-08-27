@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2019, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,12 +17,13 @@
 ------------------------------------------------------------------------------
 
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
+with Libadalang.Analysis;
 with Libadalang.Common; use Libadalang.Common;
 
 with Outputs; use Outputs;
 
 procedure Instrument.Find_Units
-  (Context      : Libadalang.Analysis.Analysis_Context;
+  (IC           : in out Inst_Context;
    CU_Name      : Compilation_Unit_Name;
    Info         : GNATCOLL.Projects.File_Info;
    Process_Unit : access procedure
@@ -55,7 +56,7 @@ is
                   raise Property_Error;
                elsif Unit_Info (Subunit_Name, Subunit_Info) then
                   Find_Units
-                    (Context, Subunit_Name, Subunit_Info, Process_Unit);
+                    (IC, Subunit_Name, Subunit_Info, Process_Unit);
                else
                   Warn ("cannot instrument " & Image (Subunit_Name)
                         & ": this unit does not belong to this project");
@@ -74,7 +75,7 @@ is
 
    Input_Filename : constant String := +Info.File.Full_Name;
    Unit           : constant LAL.Analysis_Unit :=
-      Context.Get_From_File (Input_Filename);
+      Get_From_File (IC, Input_Filename);
 
 --  Start of processing for Instrument.Find_Units
 

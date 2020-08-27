@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2019, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,12 +17,11 @@
 ------------------------------------------------------------------------------
 
 with GNATCOLL.Projects;
-with Libadalang.Analysis;
 
 with Instrument.Common; use Instrument.Common;
 
 procedure Instrument.Find_Units
-  (Context      : Libadalang.Analysis.Analysis_Context;
+  (IC           : in out Inst_Context;
    CU_Name      : Compilation_Unit_Name;
    Info         : GNATCOLL.Projects.File_Info;
    Process_Unit : access procedure
