@@ -25,10 +25,10 @@ project Gnatcov is
    package Compiler is
 
       common_switches :=
-        ("-gnat12", "-gnatwae", "-gnatyg");
+        ("-gnat12", "-gnatwa", "-gnatyg");
 
       c_common_switches :=
-        ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-Werror", "-std=c99",
+        ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-std=c99",
          "-I" & Binutils_Build_Dir & "/bfd",
          "-I" & Binutils_Src_Dir & "/include",
          "-I" & Binutils_Src_Dir & "/bfd");
@@ -40,7 +40,8 @@ project Gnatcov is
       case Build_Mode is
          when "dev" =>
             mode_switches := ("-O0", "-g");
-            ada_mode_switches := ("-gnata");
+            ada_mode_switches := ("-gnata", "-gnatwe");
+            c_mode_switches := ("-Werror");
 
          when "prod" =>
             mode_switches := ("-O2");
