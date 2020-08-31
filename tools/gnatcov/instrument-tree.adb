@@ -18,13 +18,11 @@
 
 with Ada.Wide_Wide_Characters.Handling; use Ada.Wide_Wide_Characters.Handling;
 with Ada.Characters.Conversions;        use Ada.Characters.Conversions;
-with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;             use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Fixed;
 with Ada.Strings.Wide_Wide_Unbounded;   use Ada.Strings.Wide_Wide_Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
-with GNATCOLL.VFS;
 
 with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
@@ -118,11 +116,6 @@ package body Instrument.Tree is
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a new entry to the low-level SCO table
-
-   package Ada_Qualified_Name_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Ada_Qualified_Name,
-      "="          => Ada_Identifier_Vectors."=");
 
    function Sloc (N : Ada_Node'Class) return Source_Location is
      (Start_Sloc (N.Sloc_Range));

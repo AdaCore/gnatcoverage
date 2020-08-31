@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2018, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -24,7 +24,6 @@ with Libadalang.Analysis; use Libadalang.Analysis;
 with Diagnostics;        use Diagnostics;
 with Instrument.Common;  use Instrument.Common;
 with Instrument.Sources; use Instrument.Sources;
-with Text_Files;
 
 private package Instrument.Tree is
 

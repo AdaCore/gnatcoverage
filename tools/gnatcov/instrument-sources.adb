@@ -19,10 +19,9 @@
 with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with Ada.Exceptions;
 
-with GNATCOLL.Projects;       use GNATCOLL.Projects;
-with GNATCOLL.VFS;
+with GNATCOLL.Projects; use GNATCOLL.Projects;
 
-with Libadalang.Common;       use Libadalang.Common;
+with Libadalang.Common; use Libadalang.Common;
 
 with SCOs;
 
