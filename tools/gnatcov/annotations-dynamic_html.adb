@@ -17,9 +17,8 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
-with Ada.Containers.Vectors;
 with Ada.Directories;         use Ada.Directories;
-with Ada.Exceptions;
+with Ada.Exceptions;          use Ada.Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -63,8 +62,6 @@ package body Annotations.Dynamic_Html is
       Support_Files.In_Lib_Dir ("gnatcov-dhtml.min.js");
    DHTML_CSS_Filename : constant String :=
       Support_Files.In_Lib_Dir ("gnatcov-dhtml.min.css");
-
-   package Source_Vectors is new Ada.Containers.Vectors (Natural, JSON_Value);
 
    type Dynamic_Html is new Pretty_Printer with record
       --  Pretty printer type for the Dynamic HTML annotation format
@@ -126,8 +123,8 @@ package body Annotations.Dynamic_Html is
       Current_Source      : JSON_Value;
       --  The current source being processed by the builder
 
-      Source_List         : Source_Vectors.Vector;
-      --  The sources array, containing all source mappings
+      Source_List         : JSON_Array;
+      --  The sources array in the index, containing all source mappings
 
       Title_Prefix        : Ada.Strings.Unbounded.Unbounded_String;
       --  Prefix to use for titles in generated HTML documents
@@ -200,6 +197,45 @@ package body Annotations.Dynamic_Html is
       Insn_Set : Insn_Set_Type;
       Sym      : Symbolizer'Class);
 
+   -------------------------------------------------
+   -- Wrappers for efficient unbounded string I/O --
+   -------------------------------------------------
+
+   --  These wrappers around New_Line and Write use GNAT-specific unbounded
+   --  string APIs to avoid copying full strings over the secondary stack.
+
+   procedure NL (Output : Ada.Text_IO.File_Type)
+   with Pre => Ada.Text_IO.Is_Open (Output);
+   --  Write a New_Line into Output
+
+   procedure W
+     (Item     : String;
+      Output   : Ada.Text_IO.File_Type;
+      New_Line : Boolean := True)
+   with Pre => Ada.Text_IO.Is_Open (Output);
+   --  Write Item (String) into Output
+
+   procedure W
+     (Item     : Ada.Strings.Unbounded.Unbounded_String;
+      Output   : Ada.Text_IO.File_Type;
+      New_Line : Boolean := True)
+   with Pre => Ada.Text_IO.Is_Open (Output);
+   --  Write Item (Unbounded String) into Output
+
+   procedure W
+     (Item     : JSON_Value;
+      Output   : Ada.Text_IO.File_Type;
+      New_Line : Boolean := True)
+   with Pre => Ada.Text_IO.Is_Open (Output);
+   --  Write Item (JSON value) into Output
+
+   procedure I
+     (Filename : String;
+      Indent   : Natural := 0;
+      Output   : Ada.Text_IO.File_Type)
+   with Pre => Ada.Text_IO.Is_Open (Output);
+   --  Inline the content of Filename into Output
+
    ----------------------
    -- Internal Helpers --
    ----------------------
@@ -221,10 +257,7 @@ package body Annotations.Dynamic_Html is
    --  Return the name of the file containing the coverage data for the
    --  given source file.
 
-   procedure Write_Full_Report
-     (Pp     : Dynamic_Html'Class;
-      Report : JSON_Value;
-      Hunks  : Source_Vectors.Vector);
+   procedure Write_Full_Report (Pp : Dynamic_Html'Class);
    --  Dump the HTML file into Filename, inlining both JS and CSS resources
    --  (see JS_Source and CSS_Source) and embedding the JSON object as well.
 
@@ -328,36 +361,9 @@ package body Annotations.Dynamic_Html is
    ----------------------
 
    procedure Pretty_Print_End (Pp : in out Dynamic_Html) is
-      Sources : JSON_Array;
    begin
-      for Source of Pp.Source_List loop
-         declare
-            Simplified : constant JSON_Value := Create_Object;
-            Filename   : constant String := Source.Get ("filename");
-         begin
-            Simplified.Set_Field ("filename", Filename);
-            Simplified.Set_Field
-              ("stats", JSON_Value'(Source.Get ("stats")));
-            Simplified.Set_Field
-              ("coverage_level", String'(Source.Get ("coverage_level")));
-            Simplified.Set_Field
-              ("hunk_filename", String'(Source.Get ("hunk_filename")));
-            Simplified.Set_Field
-              ("missing_source", Boolean'(Source.Get ("missing_source")));
-
-            if Source.Has_Field ("project") then
-               --  Project name is optional. Add it only when relevant
-
-               Simplified.Set_Field
-                 ("project", String'(Source.Get ("project")));
-            end if;
-
-            Append (Sources, Simplified);
-         end;
-      end loop;
-
-      Pp.JSON.Set_Field ("sources", Sources);
-      Write_Full_Report (Pp, Pp.JSON, Pp.Source_List);
+      Pp.JSON.Set_Field ("sources", Pp.Source_List);
+      Write_Full_Report (Pp);
    end Pretty_Print_End;
 
    -----------------------------
@@ -416,12 +422,65 @@ package body Annotations.Dynamic_Html is
    ---------------------------
 
    procedure Pretty_Print_End_File (Pp : in out Dynamic_Html) is
+      use Ada.Text_IO;
+      use Ada.Strings.Unbounded;
+
+      use Outputs;
+
+      Source        : JSON_Value renames Pp.Current_Source;
+      Filename      : constant String := Source.Get ("filename");
+      Hunk_Filename : constant String := Source.Get ("hunk_filename");
+
+      Output : File_Type;
+
+      Simplified : constant JSON_Value := Create_Object;
    begin
       if not Is_Empty (Pp.Current_Mappings) then
-         Pp.Current_Source.Set_Field ("mappings", Pp.Current_Mappings);
+         Source.Set_Field ("mappings", Pp.Current_Mappings);
       end if;
 
-      Pp.Source_List.Append (Pp.Current_Source);
+      --  Dump the JSON object containing the full coverage data for a specific
+      --  source file, wrapping it into a function call.
+
+      begin
+         Create_Output_File (Output, Hunk_Filename);
+         Put (Output, "gnatcov.load_hunk(");
+         W
+           (Item     => Unbounded_String'(Write (Source, Compact => True)),
+            Output   => Output,
+            New_Line => False);
+         Put_Line (Output, ");");
+         Close (Output);
+
+      exception
+         when Ex : others =>
+            if Is_Open (Output) then
+               Close (Output);
+            end if;
+
+            Warn
+              ("hunk generation failed: " & Filename & ": " &
+               Exception_Information (Ex));
+      end;
+
+      --  Append a simplified "reference" entry to the index
+
+      Simplified.Set_Field ("filename", Filename);
+      Simplified.Set_Field ("stats", JSON_Value'(Source.Get ("stats")));
+      Simplified.Set_Field ("coverage_level",
+                            String'(Source.Get ("coverage_level")));
+      Simplified.Set_Field ("hunk_filename", Hunk_Filename);
+      Simplified.Set_Field ("missing_source",
+                            Boolean'(Source.Get ("missing_source")));
+
+      if Source.Has_Field ("project") then
+         --  Project name is optional. Add it only when relevant
+
+         Simplified.Set_Field
+           ("project", String'(Source.Get ("project")));
+      end if;
+
+      Append (Pp.Source_List, Simplified);
    end Pretty_Print_End_File;
 
    -----------------------------
@@ -670,6 +729,105 @@ package body Annotations.Dynamic_Html is
       Pp.Current_Mapping.Set_Field ("message", Message);
    end Pretty_Print_Message;
 
+   -------
+   -- W --
+   -------
+
+   procedure W
+     (Item     : String;
+      Output   : Ada.Text_IO.File_Type;
+      New_Line : Boolean := True)
+   is
+      use Ada.Text_IO;
+   begin
+      Put (File => Output, Item => Item);
+
+      if New_Line then
+         NL (Output => Output);
+      end if;
+   end W;
+
+   procedure W
+     (Item     : Ada.Strings.Unbounded.Unbounded_String;
+      Output   : Ada.Text_IO.File_Type;
+      New_Line : Boolean := True)
+   is
+      use Ada.Text_IO;
+      use Ada.Strings.Unbounded;
+
+      Buffer : Aux.Big_String_Access;
+      Last   : Natural;
+      First  : constant Natural := Aux.Big_String'First;
+
+   begin
+      Aux.Get_String (Item, Buffer, Last);
+      Put (File => Output, Item => Buffer (First .. Last));
+
+      if New_Line then
+         NL (Output => Output);
+      end if;
+   end W;
+
+   procedure W
+     (Item     : JSON_Value;
+      Output   : Ada.Text_IO.File_Type;
+      New_Line : Boolean := True)
+   is
+      use Ada.Strings.Unbounded;
+
+      Item_US : constant Unbounded_String := Item.Write (Compact => True);
+   begin
+      W (Item_US, Output, New_Line);
+   end W;
+
+   --------
+   -- NL --
+   --------
+
+   procedure NL (Output : Ada.Text_IO.File_Type) is
+      use Ada.Text_IO;
+   begin
+      New_Line (File => Output);
+   end NL;
+
+   -------
+   -- I --
+   -------
+
+   procedure I
+     (Filename : String;
+      Indent   : Natural := 0;
+      Output   : Ada.Text_IO.File_Type)
+   is
+      use Ada.Text_IO;
+
+      Input : File_Type;
+      Space : constant String (1 .. Indent) := (others => ' ');
+
+   begin
+      Open (File => Input, Mode => In_File, Name => Filename);
+
+      while not End_Of_File (Input) loop
+         declare
+            Line : constant String := Get_Line (Input);
+         begin
+            W (Space & Line, Output => Output);
+         end;
+      end loop;
+
+      Close (Input);
+
+   exception
+      when Ex : others =>
+         if Is_Open (Input) then
+            Close (Input);
+         end if;
+
+         Outputs.Fatal_Error
+           ("inlining failed: " & Filename & ": " &
+            Exception_Information (Ex));
+   end I;
+
    --------------------
    -- Set_SCO_Fields --
    --------------------
@@ -728,178 +886,59 @@ package body Annotations.Dynamic_Html is
    -- Write_Full_Report --
    -----------------------
 
-   procedure Write_Full_Report
-     (Pp     : Dynamic_Html'Class;
-      Report : JSON_Value;
-      Hunks  : Source_Vectors.Vector)
-   is
-      use Ada.Exceptions;
+   procedure Write_Full_Report (Pp : Dynamic_Html'Class) is
       use Ada.Strings.Unbounded;
       use Ada.Text_IO;
 
       use Outputs;
+
+      Report : JSON_Value renames Pp.JSON;
 
       HTML : File_Type;
       --  The HTML report. The procedure Write_Report is in charge of opening
       --  and closing this file. It is declared here for praticality of use of
       --  helper functions in Write_Report (see definitions below).
 
-      procedure NL (Output : File_Type := HTML)
-      with Pre => Is_Open (Output);
-      --  Write a New_Line into Output
-
-      procedure W
-        (Item     : String;
-         Output   : File_Type := HTML;
-         New_Line : Boolean   := True)
-      with Pre => Is_Open (Output);
-      --  Write Item (String) into Output
-
-      procedure W
-        (Item     : Unbounded_String;
-         Output   : File_Type := HTML;
-         New_Line : Boolean   := True)
-      with Pre => Is_Open (Output);
-      --  Write Item (Unbounded String) into Output
-
-      procedure W
-        (Item     : JSON_Value;
-         Output   : File_Type := HTML;
-         New_Line : Boolean := True);
-      --  Write Item (JSON value) into Output
-
-      procedure I
-        (Filename : String;
-         Indent   : Natural   := 0;
-         Output   : File_Type := HTML)
-      with Pre => Is_Open (Output);
-      --  Inline the content of Filename into Output
-
-      procedure Write_Hunk (Hunk : JSON_Value);
-      --  Dump the JSON object containing the full coverage data for a specific
-      --  source file, wrapping it into a function call.
+      --  Wrappers to simplify code to write to HTML
+      procedure NL;
+      procedure W (Item : String; New_Line : Boolean := True);
+      procedure W (Item : JSON_Value; New_Line : Boolean := True);
+      procedure I (Filename : String; Indent : Natural := 0);
 
       procedure Write_Report (Filename : String);
       --  Dump the HTML report.
-
-      -------
-      -- W --
-      -------
-
-      procedure W
-        (Item     : String;
-         Output   : File_Type := HTML;
-         New_Line : Boolean   := True) is
-      begin
-         Put (File => Output, Item => Item);
-
-         if New_Line then
-            NL (Output => Output);
-         end if;
-      end W;
-
-      procedure W
-        (Item     : Unbounded_String;
-         Output   : File_Type := HTML;
-         New_Line : Boolean   := True)
-      is
-         Buffer : Aux.Big_String_Access;
-         Last   : Natural;
-         First  : constant Natural := Aux.Big_String'First;
-
-      begin
-         Aux.Get_String (Item, Buffer, Last);
-         Put (File => Output, Item => Buffer (First .. Last));
-
-         if New_Line then
-            NL (Output => Output);
-         end if;
-      end W;
-
-      procedure W
-        (Item     : JSON_Value;
-         Output   : File_Type := HTML;
-         New_Line : Boolean := True)
-      is
-         Item_US : constant Unbounded_String := Item.Write (Compact => True);
-      begin
-         W (Item_US, Output, New_Line);
-      end W;
 
       --------
       -- NL --
       --------
 
-      procedure NL (Output : File_Type := HTML) is
+      procedure NL is
       begin
-         New_Line (File => Output);
+         NL (HTML);
       end NL;
+
+      -------
+      -- W --
+      -------
+
+      procedure W (Item : String; New_Line : Boolean := True) is
+      begin
+         W (Item, HTML, New_Line);
+      end W;
+
+      procedure W (Item : JSON_Value; New_Line : Boolean := True) is
+      begin
+         W (Item, HTML, New_Line);
+      end W;
 
       -------
       -- I --
       -------
 
-      procedure I
-        (Filename : String;
-         Indent   : Natural   := 0;
-         Output   : File_Type := HTML)
-      is
-         Input : File_Type;
-         Space : constant String (1 .. Indent) := (others => ' ');
-
+      procedure I (Filename : String; Indent : Natural := 0) is
       begin
-         Open (File => Input, Mode => In_File, Name => Filename);
-
-         while not End_Of_File (Input) loop
-            declare
-               Line : constant String := Get_Line (Input);
-            begin
-               W (Space & Line, Output => Output);
-            end;
-         end loop;
-
-         Close (Input);
-
-      exception
-         when Ex : others =>
-            if Is_Open (Input) then
-               Close (Input);
-            end if;
-
-            Fatal_Error
-              ("inlining failed: " & Filename & ": " &
-               Exception_Information (Ex));
+         I (Filename, Indent, HTML);
       end I;
-
-      ----------------
-      -- Write_Hunk --
-      ----------------
-
-      procedure Write_Hunk (Hunk : JSON_Value) is
-         Filename : constant String := Hunk.Get ("hunk_filename");
-         Output   : File_Type;
-
-      begin
-         Create_Output_File (Output, Filename);
-         Put (Output, "gnatcov.load_hunk(");
-         W
-           (Item     => Unbounded_String'(Write (Hunk, Compact => True)),
-            Output   => Output,
-            New_Line => False);
-         Put_Line (Output, ");");
-         Close (Output);
-
-      exception
-         when Ex : others =>
-            if Is_Open (Output) then
-               Close (Output);
-            end if;
-
-            Warn
-              ("hunk generation failed: " & Filename & ": " &
-               Exception_Information (Ex));
-
-      end Write_Hunk;
 
       ------------------
       -- Write_Report --
@@ -1017,10 +1056,6 @@ package body Annotations.Dynamic_Html is
       end Write_Report;
 
    begin
-      for Hunk of Hunks loop
-         Write_Hunk (Hunk);
-      end loop;
-
       Write_Report ("index.html");
    end Write_Full_Report;
 
