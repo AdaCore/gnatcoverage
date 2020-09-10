@@ -27,7 +27,7 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
 with Langkit_Support.Text;     use Langkit_Support.Text;
-with Langkit_Support.Symbols;
+with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
 with Libadalang.Common;        use Libadalang.Common;
 with Libadalang.Rewriting;     use Libadalang.Rewriting;
 with Libadalang.Sources;       use Libadalang.Sources;
@@ -74,20 +74,26 @@ package body Instrument.Tree is
 
       Xcov);
 
-   function Precomputed_Symbol_Text (S : All_Symbols) return Text_Type is
-      (Canonicalize (To_Wide_Wide_String (S'Img)).Symbol);
-
-   package Symbols_Pkg is
-     new Langkit_Support.Symbols
-       (All_Symbols, Precomputed_Symbol_Text);
-
-   use Symbols_Pkg;
-
    Symbols : constant Symbol_Table := Create_Symbol_Table;
    --  Holder for name singletons
 
+   function Precompute_Symbol (S : All_Symbols) return Symbol_Type is
+     (Find (Symbols, Canonicalize (To_Wide_Wide_String (S'Image)).Symbol));
+
+   Precomputed_Symbols : constant array (All_Symbols) of Symbol_Type :=
+     (Dynamic_Predicate => Precompute_Symbol (Dynamic_Predicate),
+      Invariant         => Precompute_Symbol (Invariant),
+      Post              => Precompute_Symbol (Post),
+      Postcondition     => Precompute_Symbol (Postcondition),
+      Pre               => Precompute_Symbol (Pre),
+      Precondition      => Precompute_Symbol (Precondition),
+      Predicate         => Precompute_Symbol (Predicate),
+      Static_Predicate  => Precompute_Symbol (Static_Predicate),
+      Type_Invariant    => Precompute_Symbol (Type_Invariant),
+      Xcov              => Precompute_Symbol (Xcov));
+
    function As_Symbol (S : All_Symbols) return Symbol_Type is
-      (Precomputed_Symbol (Symbols, S));
+     (Precomputed_Symbols (S));
 
    function As_Symbol (Id : Identifier) return Symbol_Type;
    function As_Name (Id : Identifier) return Name_Id;
