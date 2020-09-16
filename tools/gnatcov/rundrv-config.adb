@@ -158,16 +158,22 @@ package body Rundrv.Config is
    -----------------
 
    function Trace_Input (Context : Context_Type) return String is
+
+      --  Normalize the trace path name we are going to provide, as
+      --  some trace adapters have IO services not dealing well with
+      --  possible references to relative directories within the path.
+
+      Trace_Name : constant String :=
+         GNAT.OS_Lib.Normalize_Pathname (Context.Trace_File.all);
    begin
       if Context.Histmap /= null then
-         return ("histmap=" & Context.Histmap.all
-                 & ',' & Context.Trace_File.all);
+         return "histmap=" & Context.Histmap.all & ',' & Trace_Name;
 
       elsif MCDC_Coverage_Enabled then
-         return "history," & Context.Trace_File.all;
+         return "history," & Trace_Name;
 
       else
-         return Context.Trace_File.all;
+         return Trace_Name;
       end if;
    end Trace_Input;
 
