@@ -494,7 +494,6 @@ package body SC_Obligations is
 
    is
       New_First_Instance : Inst_Id;
-      New_First_BDD_Node : BDD_Node_Id;
       New_First_SCO      : SCO_Id;
 
       Cur_Source_File : Source_File_Index := No_Source_File;
@@ -515,13 +514,20 @@ package body SC_Obligations is
       ---------------
 
       procedure Remap_BDD (Decision_BDD : in out BDD.BDD_Type) is
+         CP_First  : constant BDD_Node_Id := Decision_BDD.First_Node;
+         CP_Last   : constant BDD_Node_Id := Decision_BDD.Last_Node;
+         New_First : constant BDD_Node_Id := BDD_Vector.Last_Index + 1;
       begin
          --  Import the relevant BDD nodes from CP_Vectors.BDD_Vector
 
-         for Old_BDD_Node_Id in Decision_BDD.First_Node
-                             .. Decision_BDD.Last_Node
-         loop
+         for Old_BDD_Node_Id in CP_First .. CP_Last loop
             declare
+               --  We are supposed to remap individual BDD nodes only once
+
+               New_BDD_Node_Id : BDD_Node_Id renames
+                  Relocs.BDD_Map (Old_BDD_Node_Id);
+               pragma Assert (New_BDD_Node_Id = No_BDD_Node_Id);
+
                New_BDD_Node : BDD.BDD_Node :=
                  CP_Vectors.BDD_Vector.Element (Old_BDD_Node_Id);
 
@@ -535,9 +541,7 @@ package body SC_Obligations is
                procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id) is
                begin
                   if S /= No_BDD_Node_Id then
-                     S := New_First_BDD_Node
-                       + S
-                       - CP_Vectors.BDD_Vector.First_Index;
+                     S := S - CP_First + New_First;
                   end if;
                end Remap_BDD_Node_Id;
 
@@ -558,8 +562,7 @@ package body SC_Obligations is
                end case;
 
                BDD_Vector.Append (New_BDD_Node);
-               Relocs.BDD_Map (Old_BDD_Node_Id) :=
-                 BDD_Vector.Last_Index;
+               New_BDD_Node_Id := BDD_Vector.Last_Index;
             end;
          end loop;
 
@@ -654,9 +657,8 @@ package body SC_Obligations is
             Id := No_BDD_Node_Id;
          end loop;
       end if;
-      New_First_BDD_Node := BDD_Vector.Last_Index + 1;
 
-      --  Remap SCO ids. Note thaht BDD nodes are imported (and remapped) as
+      --  Remap SCO ids. Note that BDD nodes are imported (and remapped) as
       --  needed during the process.
 
       New_First_SCO := SCO_Vector.Last_Index + 1;
