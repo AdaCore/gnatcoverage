@@ -554,6 +554,10 @@ package body SC_Obligations is
                           (New_BDD_Node.Dests (Valuation));
                      end loop;
 
+                     --  Note that we leave New_BDD_Node.C_SCO unremapped here:
+                     --  the loading of the corresponding SCO condition will
+                     --  take care of it (see below).
+
                   when BDD.Jump =>
                      Remap_BDD_Node_Id (New_BDD_Node.Dest);
 
