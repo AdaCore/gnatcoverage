@@ -8,8 +8,14 @@ regardless of the actual criteria to be assessed afterwards, sources must be
 compiled with :option:`-g -fpreserve-control-flow -fdump-scos` to control
 optimizations and allow mapping trace info to source constructs.
 :option:`-gno-strict-dwarf` is required in addition for VxWorks targets,
-together with :option:`-mlongcall` for PowerPC targets.  Optimization is
+together with :option:`-mlongcall` for PowerPC configurations.  Optimization is
 supported up to :option:`-O1`, with inlining allowed.
+
+The :option:`-fprofile-arcs` compilation switch, intended for analysis with
+the gcov tool, is incompatible with the needs of |gcp| and must not be
+used. Likewise for the :option:`-gnatV` family of GNAT Pro switches requesting
+data validity checks other than those mandated by the Ada RM (special case of
+:option:`-gnatVd`).
 
 For object coverage assessments, only :option:`-g` is of possible use, if you
 intend to produce annotated sources as coverage reports. If source coverage
