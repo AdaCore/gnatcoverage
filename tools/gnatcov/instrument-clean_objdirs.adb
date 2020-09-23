@@ -16,10 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Ordered_Maps;
 with Ada.Directories;       use Ada.Directories;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Unchecked_Deallocation;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
@@ -28,75 +26,21 @@ with Project;
 procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
    use Project_Info_Maps;
 
-   --  The removal happens in two steps:
-   --
-   --  * First we list all directories in the project tree that can contain
-   --    instrumented sources from previous runs of "gnatcov instrument".
-   --    During this step, we also take note of which files this run
-   --    generated (obviously we must not remove these).
-   --
-   --  * Then we go through these directories and remove all other files.
-   --
-   --  Having these steps is necessary since multiple projects can use the
-   --  same object directory: we must be aware of all uses of each object
-   --  directory (and in particular of all the instrumented source files to
-   --  keep in them) before starting to remove files.
-   --
-   --  Note that we never delete anything from the object directory of
-   --  externally built projects. It's the users' responsibility to instrument
-   --  them appropriately (or not instrument them).
-
-   type File_Set is access all File_Sets.Set;
-   procedure Free is new Ada.Unchecked_Deallocation
-     (File_Sets.Set, File_Set);
-
-   package Preserved_Files_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Unbounded_String,
-      Element_Type => File_Set);
-   Preserved_Files_Map : Preserved_Files_Maps.Map;
-   --  Map object directories to the list of files in these directories not
-   --  to be removed.
-
-   function Register_Output_Dir
-     (Output_Dir : Unbounded_String) return File_Set;
-   --  Schedule the removal of files in Output_Dir and return the set of
-   --  files to preserve associated to it.
-
-   procedure Register_Project (Project : Project_Type);
+   procedure Clean_Subdir (Project : Project_Type);
    --  Callback for Project.Iterate_Projects. If Project is not externally
-   --  built, schedule the removal of files from the "gnatcov-instr" folder in
-   --  Project's object directory.
+   --  built, remove all files from the "$project_name-gnatcov-instr" folder in
+   --  Project's object directory that we did not just instrument.
 
    procedure Remove_Files
-     (Output_Dir      : String;
-      Preserved_Files : File_Sets.Set);
+     (Output_Dir : String; Preserved_Files : File_Sets.Set);
    --  Remove all files in Output_Dir which are not present in
    --  Preserved_Files.
 
-   -------------------------
-   -- Register_Output_Dir --
-   -------------------------
+   ------------------
+   -- Clean_Subdir --
+   ------------------
 
-   function Register_Output_Dir
-     (Output_Dir : Unbounded_String) return File_Set
-   is
-      Cur : constant Preserved_Files_Maps.Cursor :=
-         Preserved_Files_Map.Find (Output_Dir);
-   begin
-      if Preserved_Files_Maps.Has_Element (Cur) then
-         return Preserved_Files_Maps.Element (Cur);
-      else
-         return Preserved_Files : constant File_Set := new File_Sets.Set do
-            Preserved_Files_Map.Insert (Output_Dir, Preserved_Files);
-         end return;
-      end if;
-   end Register_Output_Dir;
-
-   ----------------------
-   -- Register_Project --
-   ----------------------
-
-   procedure Register_Project (Project : Project_Type) is
+   procedure Clean_Subdir (Project : Project_Type) is
    begin
       --  Leave externally built projects out of the picture
 
@@ -107,10 +51,7 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
       --  Plan to clean this project's output directory
 
       declare
-         Output_Dir : constant Unbounded_String :=
-            To_Unbounded_String (Project_Output_Dir (Project));
-         Preserved_Files : constant File_Set :=
-            Register_Output_Dir (Output_Dir);
+         Output_Dir : constant String := Project_Output_Dir (Project);
 
          --  Lookup instrumentation information about this project
 
@@ -124,22 +65,19 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
             --  generated source files (i.e. remove only obsolete instrumented
             --  sources).
 
-            declare
-               Prj_Info : Project_Info renames Element (Cur).all;
-            begin
-               Preserved_Files.Union (Prj_Info.Instr_Files);
-            end;
+            Remove_Files (Output_Dir, Element (Cur).Instr_Files);
+         else
+            Remove_Files (Output_Dir, File_Sets.Empty_Set);
          end if;
       end;
-   end Register_Project;
+   end Clean_Subdir;
 
    ------------------
    -- Remove_Files --
    ------------------
 
    procedure Remove_Files
-     (Output_Dir      : String;
-      Preserved_Files : File_Sets.Set)
+     (Output_Dir : String; Preserved_Files : File_Sets.Set)
    is
       To_Delete : File_Sets.Set;
       Search    : Search_Type;
@@ -182,24 +120,8 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
 --  Start of processing for Instrument.Clean_Objdirs
 
 begin
-   --  Look for source files we should remove in all loaded projects'
-   --  "gnatcov-instr" directory.
-
    Project.Iterate_Projects
      (Root_Project => Project.Project.Root_Project,
-      Process      => Register_Project'Access,
+      Process      => Clean_Subdir'Access,
       Recursive    => True);
-
-   --  We can now remove these files
-
-   for Cur in Preserved_Files_Map.Iterate loop
-      declare
-         use Preserved_Files_Maps;
-         Output_Dir : constant String := To_String (Key (Cur));
-         Files      : File_Set := Element (Cur);
-      begin
-         Remove_Files (Output_Dir, Files.all);
-         Free (Files);
-      end;
-   end loop;
 end Instrument.Clean_Objdirs;

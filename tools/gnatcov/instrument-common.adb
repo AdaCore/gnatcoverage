@@ -397,7 +397,12 @@ package body Instrument.Common is
       if Obj_Dir'Length = 0 then
          return "";
       else
-         return Obj_Dir / "gnatcov-instr";
+         declare
+            Prj_Name : constant String :=
+               Ada.Characters.Handling.To_Lower (Project.Name);
+         begin
+            return Obj_Dir / Prj_Name & "-gnatcov-instr";
+         end;
       end if;
    end Project_Output_Dir;
 
