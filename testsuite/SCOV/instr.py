@@ -75,7 +75,7 @@ def xcov_convert_base64(base64_file, output_trace_file, out=None, err=None,
          out=out, err=err, register_failure=register_failure)
 
 
-def add_last_chance_handler(obj_dir, subdirs, main_unit, silent):
+def add_last_chance_handler(project, obj_dir, subdirs, main_unit, silent):
     """
     Add a unit to instrumented sources to hold a last chance handler.
 
@@ -98,6 +98,8 @@ def add_last_chance_handler(obj_dir, subdirs, main_unit, silent):
     $obj_dir/$subdirs/gnatcov-instr) a last chance handler. Which one precisely
     depends on the ``silent`` argument.
 
+    :param str project: Instrumented project. This can be either the name of
+        the project file, or the name of the project.
     :param str obj_dir: Path to the object directory of the instrumented
         project.
     :param None|str subdirs: Value of --subdirs passed to gnatcov and gprbuild.
@@ -112,6 +114,11 @@ def add_last_chance_handler(obj_dir, subdirs, main_unit, silent):
     if subdirs:
         obj_dir = os.path.join(obj_dir, subdirs)
 
+    # Make sure we have a lowe-cased project *name* (not a filename)
+    project = os.path.basename(project).lower()
+    if project.endswith('.gpr'):
+        project = project[:-4]
+
     # Unit that contain helper routines to dump coverage bufers. There is one
     # such unit per main. See instrument-common.ads to know more about the slug
     # computation.
@@ -119,11 +126,12 @@ def add_last_chance_handler(obj_dir, subdirs, main_unit, silent):
     auto_dump_unit = 'GNATcov_RTS.Buffers.DB_{}'.format(main_unit_slug)
     handler_unit = 'Silent_Last_Chance' if silent else 'Last_Chance'
 
-    def filename(ext):
-        return os.path.join(obj_dir, 'gnatcov-instr',
-                            '{}.{}'.format(handler_unit.lower(), ext))
+    def filename(prefix, ext):
+        return os.path.join(obj_dir, '{}-gnatcov-instr'.format(project),
+                            '{}.{}'.format(prefix, ext))
 
-    with open(filename('ads'), 'w') as f:
+    unit_prefix = handler_unit.lower()
+    with open(filename(unit_prefix, 'ads'), 'w') as f:
         f.write("""
         with System;
 
@@ -135,7 +143,7 @@ def add_last_chance_handler(obj_dir, subdirs, main_unit, silent):
            pragma No_Return (Last_Chance_Handler);
         end {unit_name};
         """.format(unit_name=handler_unit))
-    with open(filename('adb'), 'w') as f:
+    with open(filename(unit_prefix, 'adb'), 'w') as f:
         f.write("""
         with System;
         with GNAT.IO;
@@ -166,8 +174,7 @@ def add_last_chance_handler(obj_dir, subdirs, main_unit, silent):
 
     # Add a "with" to this handler in the main to make sure the handler unit is
     # included in the link.
-    main_file = os.path.join(obj_dir, 'gnatcov-instr',
-                             '{}.adb'.format(main_unit))
+    main_file = filename(main_unit, 'adb')
     with open(main_file, 'r') as f:
         lines = f.read().splitlines()
 

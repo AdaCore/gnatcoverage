@@ -1292,6 +1292,7 @@ class SCOV_helper_src_traces(SCOV_helper):
             # driver to build.
             assert len(self.drivers) == 1
             add_last_chance_handler(
+                instrument_gprsw.root_project,
                 self.gpr_obj_dir,
                 subdirs,
                 no_ext(self.drivers[0]),
