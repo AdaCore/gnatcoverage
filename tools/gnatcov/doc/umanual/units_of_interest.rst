@@ -74,10 +74,10 @@ Using project files (:option:`-P`, :option:`--projects`, :option:`--units`)
 ---------------------------------------------------------------------------
 
 As an alternative to providing the complete list of coverage obligation files
-with :option:`--scos`, you can use project files to specify units of
-interest. When both :option:`--scos` and project file options are on the
-command line, :option:`--scos` prevails and the project files are only used
-for switches or the determination of the target and runtime configuration.
+with :option:`--scos` or :option:`--sid`, you can use project files to specify
+units of interest. When both obligation files and project file options are on
+the command line, the former prevail and the project files are only used for
+switches or the determination of the target and runtime configuration.
 
 The units of interest designation with project files incurs two levels of
 selection: first, specify the set of :dfn:`projects of interest` where the
@@ -86,18 +86,30 @@ units of interest reside, then specify units of interest therein.
 Conveying :term:`projects of interest`
 **************************************
 
-For starters, a single :dfn:`root project` must be specified using the
-:option:`-P` option, then projects of interest within the tree rooted from
-there may be specified with :option:`--projects` options.  If :option:`-P` is
-used alone, the root project itself is considered of interest, unless this
-root project defines a ``Origin_Project`` attribute, in which case the project
-of interest will be the one this attribute designates.  With
-:option:`--projects` options, the projects listed by these options are
-considered of interest. The root project designated by :option:`-P` needs to
-be listed in the :option:`--projects` set to be considered of interest as
-well. The transitive closure of projects imported by those designated by
-:option:`-P`/:option:`--projects` is also considered of interest by default,
-unless :option:`--no-subprojects` is used.
+The set of projects of interest is computed by the following rules:
+
+- A set of *base* projects is first selected from the recursive
+  dependency closure of a root project;
+
+- A set of *candidate* projects of interest is established, as the union of
+  the dependency closures of all the base projects by default, or as the mere
+  set of base projects alone if the :option:`--no-subprojects` switch is used;
+
+- The actual projects of interest are the candidate ones minus those
+  with an ``Externally_Built`` attribute set to ``"True"``.
+
+For the determination of the base projects set, a single :dfn:`root project`
+must first be specified using the :option:`-P` option. The set may then be
+refined according to the following rules with an optional list of
+:option:`--projects` switches naming projects within the dependency closure of
+the root:
+
+- Without :option:`--projects`, the base projects set is the root project
+  designated by :option:`-P` alone, or the project designated by the
+  ``Origin_Project`` attribute therein if there is such an attribute;
+
+- With :option:`--projects` options, the listed projects are taken as the base
+  and the root project needs to be listed as well to be included.
 
 We will illustrate the effect of various combinations, assuming an example
 project tree depicted below:
@@ -105,35 +117,46 @@ project tree depicted below:
 .. image:: prjtree.*
   :align: center
 
-On this tree, :ref:`fig-Proot` restricts the analysis to units in the root
-project only:
+Assuming none of the projects is flagged ``Externally_Built``:
 
-.. _fig-Proot:
-.. figure:: Proot.*
+- :ref:`fig-Proot-nosub` restricts the analysis to units in the root project
+  only;
+
+- :ref:`fig-Proot-ss_a-nosub` focuses on Subsystem A alone;
+
+- If the root project is also of interest, it must be listed explicitly,
+  as in :ref:`fig-Proot-root-ss_a-nosub`;
+
+- Removing :option:`--no-subprojects` as in :ref:`fig-Proot-ss_a`, lets you
+  consider all the projects transitively imported by the base ones;
+
+``Externally_Built`` attributes don't influence the processing of dependency
+closures and only prune individual projects from the final selection. In the
+last example above, if project ``A1`` had the attribute set to ``"True"``,
+``Common`` would remain of interest to the assessment even though it was
+dragged as a dependency of ``A1``.
+
+
+.. _fig-Proot-nosub:
+.. figure:: Proot-nosub.*
   :align: center
 
   ``-Proot --no-subprojects``
 
-:ref:`fig-Proot-ss_a` focuses on Subsystem A alone. If the root project is
-also of interest, it must be listed explicitly, as in
-:ref:`fig-Proot-root-ss_a`. Then removing :option:`--no-subprojects` lets you
-consider all the projects transitively imported by the designated ones.
-
-
-.. _fig-Proot-ss_a:
-.. figure:: Proot-ss_a.*
+.. _fig-Proot-ss_a-nosub:
+.. figure:: Proot-ss_a-nosub.*
   :align: center
 
   ``-Proot --projects=subsystem_a --no-subprojects``
 
-.. _fig-Proot-root-ss_a:
-.. figure:: Proot-root-ss_a.*
+.. _fig-Proot-root-ss_a-nosub:
+.. figure:: Proot-root-ss_a-nosub.*
   :align: center
 
   ``-Proot --projects=root --projects=ss_a --no-subprojects``
 
-.. _fig-Proot-ss_a-recursive:
-.. figure:: Proot-ss_a-recursive.*
+.. _fig-Proot-ss_a:
+.. figure:: Proot-ss_a.*
   :align: center
 
   ``-Proot --projects=subsystem_a``
@@ -206,7 +229,7 @@ from the output report.
 The first attribute, ``Ignored_Source_Files``, expects a list of patterns::
 
     package Coverage is
-        for Ignored_Source_Files use ("*-test.adb", "logger-*.adb");
+      for Ignored_Source_Files use ("*-test.adb", "logger-*.adb");
     end Coverage;
 
 The second one, ``Ignored_Source_Files_List``, corresponds to the use of
@@ -215,7 +238,7 @@ file is expected to contain a list of globbing patterns, each separated by line
 breaks::
 
     package Coverage is
-        for Ignored_Source_Files_List use "ignore.list";
+      for Ignored_Source_Files_List use "ignore.list";
     end Coverage;
 
 The forms above are equivalent to :option:`--ignore-source-files` options on
