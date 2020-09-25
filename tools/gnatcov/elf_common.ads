@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2013, AdaCore                     --
+--                     Copyright (C) 2006-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -52,6 +52,7 @@ package Elf_Common is
    EM_ARM         : constant Elf_Half := 40; --  ARM
    EM_X86_64      : constant Elf_Half := 62; --  Intel 64 Architecture
    EM_LMP         : constant Elf_Half := 16#6240#; --  AEC GR5/GR6
+   EM_AARCH64     : constant Elf_Half := 183;  --  ARM 64 bits
    EM_VISIUM      : constant Elf_Half := 221;  -- VISIUMcore
    --  RESERVED : constant Elf_Half := 11; -- -16 Reserved for future use
 
@@ -286,5 +287,9 @@ package Elf_Common is
 
    --  For LMP
    R_LMP_32     : constant Elf_Word := 3;
+
+   --  For AArch64
+   R_AARCH64_ABS64 : constant Elf_Word := 257; -- word64 (S + A)
+   R_AARCH64_ABS32 : constant Elf_Word := 258; -- word32 (S + A)
 
 end Elf_Common;

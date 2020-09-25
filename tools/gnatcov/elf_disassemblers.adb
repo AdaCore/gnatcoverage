@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2013, AdaCore                     --
+--                     Copyright (C) 2006-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -25,6 +25,7 @@ with Disa_Ppc;
 with Disa_Sparc;
 with Disa_Thumb;
 with Disa_X86;
+with Disa_AArch64;
 
 package body Elf_Disassemblers is
 
@@ -40,6 +41,7 @@ package body Elf_Disassemblers is
    Disa_For_Thumb  : aliased Disa_Thumb.Thumb_Disassembler;
    Disa_For_Visium : aliased Disa_Lmp.LMP_Disassembler;
    Disa_For_X86    : aliased Disa_X86.X86_Disassembler;
+   Disa_For_AArch64 : aliased Disa_AArch64.AArch64_Disassembler;
 
    ----------------------
    -- Disa_For_Machine --
@@ -76,6 +78,8 @@ package body Elf_Disassemblers is
             return Disa_For_Visium'Access;
          when X86 | X86_64 =>
             return Disa_For_X86'Access;
+         when AArch64 =>
+            return Disa_For_AArch64'Access;
       end case;
    end Disa_For_Machine;
 

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -87,6 +87,12 @@ package Dis_Opcodes is
           Convention    => C,
           External_Name => "create_sparc_disassembler";
    --  Returns a handle to disassemble SPARC binary code
+
+   function Create_AArch64_Disassembler return Disassemble_Handle
+     with Import        => True,
+          Convention    => C,
+          External_Name => "create_aarch64_disassembler";
+   --  Returns a handle to disassemble Aarch64 binary code
 
    procedure Delete_Disassembler (DH : Disassemble_Handle)
      with Import        => True,

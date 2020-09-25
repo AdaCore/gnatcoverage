@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -53,7 +53,8 @@ package Traces is
    --  Target machine as conveyed by the EM field in the ELF file. Set to 0
    --  when unknown.
 
-   type Machine_Type is (Unknown, ARM, E500, PPC, SPARC, Visium, X86, X86_64);
+   type Machine_Type is (Unknown, ARM, E500, PPC, SPARC, Visium, X86, X86_64,
+                         AArch64);
    Machine : Machine_Type := Unknown;
    --  Refined target machine, computed from ELF_Machine and refined using
    --  other sources of information. This is the case for processor variants
@@ -68,6 +69,7 @@ package Traces is
       when EM_SPARC           => SPARC,
       when EM_X86_64          => X86_64,
       when EM_LMP | EM_VISIUM => Visium,
+      when EM_AARCH64         => AArch64,
       when others             => Unknown);
    --  Turn the EM field of an ELF file into a known machine type, hence
    --  without variant information. Return Unknown otherwise.

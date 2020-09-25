@@ -3,7 +3,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -41,6 +41,8 @@ extern disassemble_handle *create_thumb_disassembler (void);
 extern disassemble_handle *create_x86_disassembler (void);
 
 extern disassemble_handle *create_visium_disassembler (void);
+
+extern disassemble_handle *create_aarch64_disassembler (void);
 
 extern void delete_disassembler (disassemble_handle *const dh);
 

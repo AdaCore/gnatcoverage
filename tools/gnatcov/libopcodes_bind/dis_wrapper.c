@@ -3,7 +3,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -214,6 +214,12 @@ disassemble_handle *
 create_sparc_disassembler (void)
 {
   return _create_base_disassembler (bfd_arch_sparc, NULL);
+}
+
+disassemble_handle *
+create_aarch64_disassembler (void)
+{
+  return _create_base_disassembler (bfd_arch_aarch64, NULL);
 }
 
 /* Frees the memory allocated for the disassembler represented by DH.  */

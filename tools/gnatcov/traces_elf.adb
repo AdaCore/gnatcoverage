@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2018, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -1374,6 +1374,24 @@ package body Traces_Elf is
                                     + Elf_Addr (R.R_Addend)));
                   when others =>
                      raise Program_Error with "unhandled LMP relocation";
+               end case;
+            when EM_AARCH64 =>
+               case Elf_R_Type (R.R_Info) is
+                  when R_AARCH64_ABS32 =>
+                     Write_Word4 (Exec,
+                                  Address_Of (Data, 0),
+                                  Storage_Offset (R.R_Offset),
+                                  Unsigned_32 (Offset
+                                    + Elf_Addr (R.R_Addend)));
+                  when R_AARCH64_ABS64 =>
+                     Write_Word8 (Exec,
+                                  Address_Of (Data, 0),
+                                  Storage_Offset (R.R_Offset),
+                                  Unsigned_64 (Offset
+                                    + Elf_Addr (R.R_Addend)));
+                  when others =>
+                     raise Program_Error with "unhandled AARCH64 relocation" &
+                     Elf_Word'Image (Elf_R_Type (R.R_Info));
                end case;
             when others =>
                Outputs.Fatal_Error
