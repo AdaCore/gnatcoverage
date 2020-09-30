@@ -351,10 +351,11 @@ For our intended target environment, this would be something like::
   # we won't be emitting source trace files directly:
 
   cd <gnatcov_rts-build-dir>
-  gprbuild -Pgnatcov_rts.gpr -f -p --target=powerpc-wrs-vxworks7r2 --RTS=rtp
+  gprbuild -Pgnatcov_rts.gpr --target=powerpc-wrs-vxworks7r2 --RTS=rtp -f -p
 
   rm -rf <gnatcov_rts-ppc-install-dir>
-  gprinstall -Pgnatcov_rts.gpr -p --prefix=<gnatcov_rts-ppc-install-dir>
+  gprinstall -Pgnatcov_rts.gpr --target=powerpc-wrs-vxworks7r2 --RTS=rtp \
+    -p --prefix=<gnatcov_rts-ppc-install-dir>
 
   # Allow references to the coverage runtime project from other project files:
   export GPR_PROJECT_PATH=<gnatcov_rts-ppc-install-dir>
@@ -457,11 +458,11 @@ the default full Ada runtime (no specific :option:`--RTS` option)::
   cd <gnatcov_rts-build-dir>
   gprbuild -Pgnatcov_rts_full.gpr -f -p
 
-  rm -rf <gnatcov_rts-ppc-install-dir>
-  gprinstall -Pgnatcov_rts_full.gpr -p --prefix=<gnatcov_rts-ppc-install-dir>
+  rm -rf <gnatcov_rts-install-dir>
+  gprinstall -Pgnatcov_rts_full.gpr -p --prefix=<gnatcov_rts-install-dir>
 
   # Allow references to the coverage runtime project from other project files:
-  export GPR_PROJECT_PATH=<gnatcov_rts-ppc-install-dir>
+  export GPR_PROJECT_PATH=<gnatcov_rts-install-dir>
 
 Project file architecture
 *************************
