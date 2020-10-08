@@ -212,10 +212,6 @@ package body Disa_AArch64 is
    is
       pragma Unreferenced (Self, Insn_Bin, Pc);
    begin
-      --  We don't need to implement this on all platforms (i.e. we have no
-      --  padding problem on native Linux for instance), so let disassemblers
-      --  override this if needed.
-
       return False;
    end Is_Padding;
 

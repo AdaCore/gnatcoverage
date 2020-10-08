@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2017, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -80,6 +80,9 @@ package Disassemblers is
       Pc       : Pc_Type) return Boolean is abstract;
    --  Return whether the given instruction, located at PC, is a potential
    --  padding (NOP) instruction.
+   --
+   --  For most platforms, this can unconditionally return False, since
+   --  instructions are always aligned, and thus there is no need for padding.
 
    procedure Abort_Disassembler_Error
      (PC       : Pc_Type;

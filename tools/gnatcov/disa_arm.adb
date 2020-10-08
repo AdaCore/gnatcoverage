@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2016, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -218,10 +218,6 @@ package body Disa_ARM is
    is
       pragma Unreferenced (Self, Insn_Bin, Pc);
    begin
-      --  We don't need to implement this on all platforms (i.e. we have no
-      --  padding problem on native Linux for instance), so let disassemblers
-      --  override this if needed.
-
       return False;
    end Is_Padding;
 
