@@ -1,0 +1,9 @@
+with "b1.gpr";
+
+project ssb is
+  for source_dirs use ("src-" & project'name);
+  for object_dir use "obj_" & project'name;
+
+  ssb_x := external("SSB_X", "False");
+  for externally_built use ssb_x;
+end ssb;

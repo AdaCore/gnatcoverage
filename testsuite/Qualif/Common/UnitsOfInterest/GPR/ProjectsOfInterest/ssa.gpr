@@ -1,0 +1,9 @@
+with "a1.gpr";
+
+project ssa is
+  for source_dirs use ("src-" & project'name);
+  for object_dir use "obj_" & project'name;
+
+  ssa_x := external("SSA_X", "False");
+  for externally_built use ssa_x;
+end ssa;

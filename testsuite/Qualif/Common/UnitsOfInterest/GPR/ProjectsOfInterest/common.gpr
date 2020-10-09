@@ -1,0 +1,4 @@
+project common is
+  for source_dirs use ("src-" & project'name);
+  for object_dir use "obj_" & project'name;
+end common;
