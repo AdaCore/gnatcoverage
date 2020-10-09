@@ -8,13 +8,22 @@ let users designate Units Of Interest for an analysis, as a replacement
 of the mechanism where users would instead provide an explicit list
 of files where the coverage obligations could be found.
 
-Command line switches :option:`-P`, :option:`--project`,
-:option:`--no-subprojects`, and their associated optional Coverage package
-define a first set of Units Of Interest, which :option:`--units`
-switches may override (subset).
+The full set of rules is described in the *Specifying Units Of Interest*
+chapter of the User Manual. To summarize here:
 
-The tool operates in recursive mode by default, extended projects
-are allowed.
+Command line switches :option:`-P`, :option:`--projects`, and
+:option:`--no-subprojects` first select a set of *projects of interest*,
+from which those flagged ``Externally_Built`` are pruned.
+
+The tool operates in recursive mode by default, extended projects are allowed.
+
+In absence of :option:`--units` switches, the *units of interest* is the union
+of the units of interest attached to the projects of interest. For each
+project, this is all the project's units by default, and this can be controled
+with attributes in an optional ``Coverage`` package.
+
+:option:`--units` switches on the command line override that selection
+entirely, allowing to specify a subset of actual interest.
 
 .. rubric:: Testing Strategy
 
