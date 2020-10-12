@@ -8,6 +8,7 @@ rm -rf $(find -type d -name 'dc_*')
 rm -rf $(find -type d -name 'mc_*')
 rm -rf $(find -type d -name 'uc_*')
 rm -rf $(find -type d -name '[0-9]')
+rm -rf $(find -type d -name 'wd_*')
 
 rm -rf $(find -type d -name 'obj')
 rm -rf $(find -type d -name 'obj_*')
