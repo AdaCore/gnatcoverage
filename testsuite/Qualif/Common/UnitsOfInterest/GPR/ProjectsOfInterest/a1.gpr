@@ -1,5 +1,6 @@
 with "common.gpr";
-project a1 is
-  for source_dirs use ("src-" & project'name);
-  for object_dir use "obj_" & project'name;
-end a1;
+
+project A1 is
+   for Source_Dirs use ("src-" & Project'Name);
+   for Object_Dir use "obj_" & Project'Name;
+end A1;

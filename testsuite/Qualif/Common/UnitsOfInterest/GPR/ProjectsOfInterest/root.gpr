@@ -1,8 +1,8 @@
 with "ssa.gpr", "ssb.gpr";
 
-project root is
-  for source_dirs use (".");
-  for object_dir use "obj";
-  for main use ("root.adb");
-  for exec_dir use ".";
-end root;
+project Root is
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Main use ("root.adb");
+   for Exec_Dir use ".";
+end Root;
