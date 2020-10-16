@@ -5,12 +5,16 @@ Check the selection of projects of interest, with combinations of
 
 from SCOV.minicheck import build_and_run
 from SUITE.context import thistest
-from SUITE.cutils import lines_of
-from SUITE.tutils import xcov
+from SUITE.cutils import Wdir, lines_of
 from SUITE.gprutils import GPRswitches
+from SUITE.tutils import xcov
 
 import os
 import e3.fs
+
+
+root_project = os.path.abspath('root.gpr')
+wd = Wdir('wd_')
 
 # Every project of interest is setup to feature a single unit named after the
 # project. Dumping the units of interest for a given analysis, with
@@ -21,9 +25,10 @@ import e3.fs
 # --dump-units-to tests we need.
 
 cov_cmdline = build_and_run(
-    gprsw=GPRswitches(root_project='root.gpr'),
+    gprsw=GPRswitches(root_project=root_project),
     mains=['root'],
     covlevel='stmt',
+    gpr_exe_dir='../obj',
     extra_coverage_args=[])
 
 trace = cov_cmdline[-1]
@@ -42,6 +47,7 @@ def check(options, xunits):
     opt_str = ''.join(
         [opt.
          replace('--projects=', '').
+         replace('../', '').
          replace('.gpr', '').
          replace('_X=True', '').
          replace('--no-subprojects', 'nos').
@@ -91,21 +97,21 @@ def check(options, xunits):
 
 # No externally built
 
-check(options=['-P', 'root.gpr'],
+check(options=['-P', '../root.gpr'],
       xunits=['root', 'ssa', 'a1', 'ssb', 'b1', 'common'])
 
-check(options=['-P', 'root.gpr', '--no-subprojects'],
+check(options=['-P', '../root.gpr', '--no-subprojects'],
       xunits=['root'])
 
-check(options=['-P', 'ssa.gpr'],
+check(options=['-P', '../ssa.gpr'],
       xunits=['ssa', 'a1', 'common'])
 
-check(options=['-P', 'ssa.gpr', '--no-subprojects'],
+check(options=['-P', '../ssa.gpr', '--no-subprojects'],
       xunits=['ssa'])
 
 # ssa externally built
 
-check(options=['-P', 'root.gpr', '-XSSA_X=True'],
+check(options=['-P', '../root.gpr', '-XSSA_X=True'],
       xunits=['root', 'a1', 'ssb', 'b1', 'common'])
 
 
@@ -115,39 +121,39 @@ check(options=['-P', 'root.gpr', '-XSSA_X=True'],
 # No externally built
 
 # Recursive from single child of root, not including root
-check(options=['-P', 'root.gpr', '--projects=ssa'],
+check(options=['-P', '../root.gpr', '--projects=ssa'],
       xunits=['ssa', 'a1', 'common'])
 
-check(options=['-P', 'root.gpr', '--projects=ssb'],
+check(options=['-P', '../root.gpr', '--projects=ssb'],
       xunits=['ssb', 'b1', 'common'])
 
 # Non recursive from single child of root, not including root
-check(options=['-P', 'root.gpr', '--projects=ssa', '--no-subprojects'],
+check(options=['-P', '../root.gpr', '--projects=ssa', '--no-subprojects'],
       xunits=['ssa'])
 
-check(options=['-P', 'root.gpr', '--projects=ssb', '--no-subprojects'],
+check(options=['-P', '../root.gpr', '--projects=ssb', '--no-subprojects'],
       xunits=['ssb'])
 
 # Non recursive from multiple children of root, not including root
-check(options=['-P', 'root.gpr',
+check(options=['-P', '../root.gpr',
                '--projects=ssa', '--projects=ssb',
                '--no-subprojects'],
       xunits=['ssa', 'ssb'])
 
-check(options=['-P', 'root.gpr',
+check(options=['-P', '../root.gpr',
                '--projects=ssa', '--projects=b1',
                '--no-subprojects'],
       xunits=['ssa', 'b1'])
 
 # Non recursive including root
-check(options=['-P', 'root.gpr',
+check(options=['-P', '../root.gpr',
                '--projects=root', '--projects=ssb',
                '--no-subprojects'],
       xunits=['root', 'ssb'])
 
 # ssb externally built
 
-check(options=['-P', 'root.gpr',
+check(options=['-P', '../root.gpr',
                '--projects=ssb', '-XSSB_X=True'],
       xunits=['b1', 'common'])
 
