@@ -5,6 +5,7 @@ Check the selection of projects of interest, with combinations of
 
 from SCOV.minicheck import build_and_run
 from SUITE.context import thistest
+from SUITE.control import env
 from SUITE.cutils import Wdir, lines_of
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import xcov
@@ -14,6 +15,7 @@ import e3.fs
 
 
 root_project = os.path.abspath('root.gpr')
+board_arg = '-XBOARD={}'.format(env.target.machine)
 wd = Wdir('wd_')
 
 # Every project of interest is setup to feature a single unit named after the
@@ -29,6 +31,7 @@ cov_cmdline = build_and_run(
     mains=['root'],
     covlevel='stmt',
     gpr_exe_dir='../obj',
+    extra_args=[board_arg],
     extra_coverage_args=[])
 
 trace = cov_cmdline[-1]
@@ -59,7 +62,8 @@ def check(options, xunits):
 
     xcov(['coverage', trace, '--level=stmt', '--annotate=xcov',
           '--output-dir={}'.format(odir),
-          '--dump-units-to={}'.format(ofile)] + options,
+          '--dump-units-to={}'.format(ofile),
+          board_arg] + options,
          out='cov-' + opt_str + '.log')
 
     # Primary check, from the list of units reported by --dump-units-to

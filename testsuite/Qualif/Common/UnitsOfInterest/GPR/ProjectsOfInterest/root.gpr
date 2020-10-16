@@ -4,4 +4,8 @@ project Root is
    for Source_Dirs use (".");
    for Object_Dir use "obj";
    for Main use ("root.adb");
+
+   package Emulator is
+      for Board use external ("BOARD");
+   end Emulator;
 end Root;
