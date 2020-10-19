@@ -50,10 +50,11 @@ def check(options, xunits):
     opt_str = ''.join(
         [opt.
          replace('--projects=', '').
+         replace('root', 'r').
          replace('../', '').
          replace('.gpr', '').
          replace('_X=True', '').
-         replace('--no-subprojects', 'nos').
+         replace('--no-subprojects', 'ns').
          strip('-')
          for opt in options])
 
