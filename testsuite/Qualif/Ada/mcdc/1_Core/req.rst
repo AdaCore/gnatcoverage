@@ -3,17 +3,12 @@ Core MCDC requirements
 
 %REQ_ID%
 
-For MCDC assessments, the tool focuses on decisions used to influence
-control-flow language constructs as well as on those with more than one
-condition anywhere they might appear. Only short circuit operators are
-allowed to combine conditions.
-
-The use of *if-expressions* is allowed and the tool shall consider
-them as a control flow language construct. The controlling expression
-shall always be considered as a decision regardless of its arity. The
-expression then-value or else-value, when Boolean (or derived
-thereof), shall be considered as a decision as soon as it combines
-more than one condition.
+For MCDC assessments, the tool processes as decisions all the expressions
+processed as such for Decision Coverage (Boolean expressions used to influence
+control flow constructs), as well as all the Boolean expressions with more than
+one condition anywhere they might appear. Only short circuit operators are
+allowed to combine conditions, regardless of the context where the expression
+is used.
 
 All the DC rules apply unchanged to the full set of decisions considered
 here. Rule #3, about decisions evaluated both True and False, is complemented

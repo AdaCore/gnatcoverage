@@ -6,10 +6,11 @@ Core expectations for Decision Coverage
 
 %REQ_ID%
 
-For Decision Coverage assessments, the tool focuses on decisions used to
-influence control-flow language constructs. The types involved need not be
-restricted to the standard Boolean type; they may be subtypes or types derived
-from Boolean.
+For Decision Coverage assessments, the tool processes as decisions all the
+Boolean expressions used to influence control-flow language constructs,
+including the controlling test of Ada2012 *if-expressions*. The types
+involved need not be restricted to the standard Boolean type; they may be
+subtypes or types derived from Boolean.
 
 In this context, the following set of rules shall be obeyed on top of the
 requirements governing Statement Coverage:
@@ -66,4 +67,3 @@ ways, always including:
 
 Rules #4 and #5 are addressed by the organization of the set of testcase groups
 presented in the table above.
-

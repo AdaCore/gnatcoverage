@@ -10,3 +10,9 @@ end;
 -- /returnTrue/  l+ ## 0
 -- /returnFalse/ l- ## s-
 -- /returnVal/   l+ ## 0
+
+-- %opts: --trace-mode=src
+-- /ifx-eval/    l! ## dF-
+
+-- %opts: --trace-mode=bin
+-- /ifx-eval/    l! ## d!

@@ -11,3 +11,5 @@ end;
 -- /returnTrue/  l- ## s-
 -- /returnFalse/ l- ## s-
 -- /returnVal/   l- ## s-
+
+-- /ifx-eval/    l- ## s-
