@@ -976,11 +976,6 @@ package body Instrument.Sources is
          Kind                => Files_Table.Source_File,
          Indexed_Simple_Name => True);
 
-      --  In the instrumentation case, the origin of SCO information is
-      --  the original source file.
-
-      UIC.CU := Allocate_CU (Provider => Instrumenter, Origin => UIC.SFI);
-
       --  Then run SCOs generation. This inserts calls to witness
       --  procedures/functions in the same pass.
 
@@ -1003,14 +998,21 @@ package body Instrument.Sources is
       --  This creates BDDs for every decision.
 
       declare
-         SCO_Map  : aliased LL_HL_SCO_Map :=
+         SCO_Map       : aliased LL_HL_SCO_Map :=
            (SCOs.SCO_Table.First .. SCOs.SCO_Table.Last => No_SCO_Id);
-         Bit_Maps : CU_Bit_Maps;
+         Bit_Maps      : CU_Bit_Maps;
+         Created_Units : Created_Unit_Maps.Map;
       begin
          Process_Low_Level_SCOs
-           (UIC.CU,
-            UIC.SFI,
-            SCO_Map => SCO_Map'Access);
+           (Provider      => Instrumenter,
+            Origin        => UIC.SFI,
+            Created_Units => Created_Units,
+            SCO_Map       => SCO_Map'Access);
+
+         --  In the instrumentation case, the origin of SCO information is
+         --  the original source file.
+
+         UIC.CU := Created_Units.Element (UIC.SFI);
 
          --  Import annotations in our internal tables
 

@@ -72,24 +72,20 @@ package SC_Obligations is
    --      to (2) for Ada (designated by Ada-like unit name, for instance
    --      "Foo.Bar", case insensitive) and to C source files passed to "gcc"
    --      in order to produce object files (designated by base file name).
-   --      These units are directly mappped to GNATcoverage's internals
-   --      (CU_Unit/CU_Info in this package).
    --
    --  (4) In low-level SCOs (gnatutil's scos.ads), a unit is a sequence of
    --      SCOs that relate to the same source file. Note that in that case,
    --      there can be several units that relate to the same source file.
+   --
+   --  (5) In GNATcoverage's internals (CU_Unit/CU_Info in this package), a
+   --      unit maps to a source file, regardless of the language for this
+   --      source file, and there is at most one unit for a given source file.
 
    type SCO_Provider is (Compiler, Instrumenter);
 
    type CU_Id is new Natural;
    No_CU_Id : constant CU_Id := 0;
    subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
-
-   function Allocate_CU
-     (Provider : SCO_Provider;
-      Origin   : Source_File_Index := No_Source_File) return CU_Id;
-   --  Allocate a new element in the compilation units table, optionally
-   --  setting the CU's origin information.
 
    function Provider (CU : CU_Id) return SCO_Provider;
    --  Return the SCO provider corresponding to the given compilation unit
@@ -175,16 +171,47 @@ package SC_Obligations is
    type LL_HL_SCO_Map is array (Nat range <>) of SCO_Id;
    --  Map of low level SCOs to high level SCOs
 
+   package Created_Unit_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Source_File_Index,
+      Element_Type => CU_Id);
+   --  Map source files to corresponding compilation unit. Each such map
+   --  relates to a single LI file.
+   --
+   --  For instance, the Created_Unit_Maps.Map instance for "foo.ali" may
+   --  contain associations for "foo.ads", "foo.adb" and "foo-subunit.adb", but
+   --  not for "bar.adb".
+
    procedure Process_Low_Level_SCOs
-     (CU_Index     : CU_Id;
-      Main_Source  : Source_File_Index;
-      Deps         : SFI_Vector := SFI_Vectors.Empty_Vector;
-      SCO_Map      : access LL_HL_SCO_Map := null);
-   --  Populate high level SCO tables from low level ones, which have been
-   --  populated either from an LI file, or directly by the instrumenter.
-   --  Low-level SCOs come from global tables in package SCOs. Bit maps are
-   --  provided in the case of source instrumentation. If SCO_Map is provided,
-   --  it is set with the mapping of low level SCOs to high level SCOs.
+     (Provider      : SCO_Provider;
+      Origin        : Source_File_Index;
+      Deps          : SFI_Vector := SFI_Vectors.Empty_Vector;
+      Created_Units : out Created_Unit_Maps.Map;
+      SCO_Map       : access LL_HL_SCO_Map := null);
+   --  Populate high level SCO tables (SC_Vectors, CU_Vector, ... in
+   --  SC_Obligations' body) from low level ones (global tables from the SCOs
+   --  unit).
+   --
+   --  Provider determines whether low level SCOs come from the compiler (i.e.
+   --  a LI file that the compiler generated) or the source instrumenter (i.e.
+   --  a SID file that "gnatcov instrument" created).
+   --
+   --  Origin must be the file (source file or LI file) that triggered the
+   --  creation of the SCOs: this is the LI file whose parsing populated low
+   --  level tables for compiler SCOs and the instrumented source file
+   --  otherwise.
+   --
+   --  Deps provides the source files that correspond to each dependency number
+   --  in low level tables (SCO_Unit_Table_Entry.Dep_Num). When this mapping is
+   --  missing (case of empty vector), use the file name present in low level
+   --  tables (SCO_Unit_Table_Entry.File_Name).
+   --
+   --  This updates Created_Units to map source file to the corresponding CU
+   --  for all CU that this procedure creates.
+   --
+   --  When not null, this procedure fills SCO_Map table with the mapping of
+   --  low level SCOs to high level SCOs. Note that in practice, callers should
+   --  pass null iff we are not performing source instrumentation, as the SCOs
+   --  mapping is always used for SID file production.
 
    procedure Load_SCOs
      (ALI_Filename         : String;
