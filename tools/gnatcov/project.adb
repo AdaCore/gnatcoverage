@@ -68,14 +68,18 @@ package body Project is
    --  Build identifiers for attributes in package Coverage
 
    procedure Iterate_Source_Files
-     (Root_Project : Project_Type;
-      Process      : access procedure (Info : File_Info; Unit_Name : String);
-      Recursive    : Boolean);
+     (Root_Project     : Project_Type;
+      Process          : access procedure
+        (Info : File_Info; Unit_Name : String);
+      Recursive        : Boolean;
+      Include_Subunits : Boolean := False);
    --  Call Process on all source files in Root_Project (recursively
    --  considering source files of sub-projects if Recursive is true).
    --
    --  This passes the name of the unit as Unit_Name for languages featuring
    --  this notion (Ada) and the base file name otherwise (i.e. for C sources).
+   --  If Include_Subunits is false (default), then skip all files that
+   --  implement subunits.
 
    Env : Project_Environment_Access;
    --  Environment in which we load the project tree
@@ -333,9 +337,11 @@ package body Project is
    --------------------------
 
    procedure Iterate_Source_Files
-     (Root_Project : Project_Type;
-      Process      : access procedure (Info : File_Info; Unit_Name : String);
-      Recursive    : Boolean)
+     (Root_Project     : Project_Type;
+      Process          : access procedure
+        (Info : File_Info; Unit_Name : String);
+      Recursive        : Boolean;
+      Include_Subunits : Boolean := False)
    is
       --  If Root_Project is extending some project P, consider for coverage
       --  purposes that source files in P also belong to Root_Project. For
@@ -376,7 +382,8 @@ package body Project is
                      --  C), and don't consider subunits as independent units.
 
                      if To_Lower (Info.Language) in "ada" | "c"
-                        and then Info.Unit_Part /= Unit_Separate
+                       and then (Include_Subunits
+                                 or else Info.Unit_Part /= Unit_Separate)
                      then
                         Process.all
                           (Info      => Info,
@@ -543,9 +550,10 @@ package body Project is
    ---------------------------
 
    procedure Enumerate_Ada_Sources
-     (Callback       : access procedure
+     (Callback         : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
-         File    : GNATCOLL.Projects.File_Info))
+         File    : GNATCOLL.Projects.File_Info);
+      Include_Subunits : Boolean := False)
    is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
       --  Callback for Iterate_Source_File. If Unit_Name is a unit of interest,
@@ -558,7 +566,9 @@ package body Project is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
       begin
          if To_Lower (Info.Language) = "ada"
-            and then Unit_Map.Contains (To_Lower (Unit_Name))
+           and then
+             (Include_Subunits
+              or else Unit_Map.Contains (To_Lower (Unit_Name)))
          then
             Callback (Info.Project, Info);
          end if;
@@ -569,7 +579,10 @@ package body Project is
 
       for Prj_Info of Prj_Map loop
          Iterate_Source_Files
-           (Prj_Info.Project, Process_Source_File'Access, Recursive => False);
+           (Prj_Info.Project,
+            Process_Source_File'Access,
+            Recursive        => False,
+            Include_Subunits => Include_Subunits);
       end loop;
    end Enumerate_Ada_Sources;
 

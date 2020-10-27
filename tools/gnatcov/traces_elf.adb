@@ -1770,7 +1770,12 @@ package body Traces_Elf is
                            Kind   => Source_File,
                            Insert => False);
                   begin
-                     if Unit_File /= No_Source_File then
+
+                     --  Do not load info for files that are always ignored
+
+                     if Unit_File /= No_Source_File
+                       and then Get_File (Unit_File).Ignore_Status /= Always
+                     then
                         Unit_File := Get_Index_From_Generic_Name
                           (Name   => Unit_Filename.all,
                            Kind   => Source_File,

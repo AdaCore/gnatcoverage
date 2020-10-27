@@ -130,13 +130,17 @@ package Project is
    --  Return whether Enumerate_SIDs was called
 
    procedure Enumerate_Ada_Sources
-     (Callback       : access procedure
+     (Callback         : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
-         File    : GNATCOLL.Projects.File_Info))
-      with Pre => Is_Project_Loaded;
+         File    : GNATCOLL.Projects.File_Info);
+      Include_Subunits : Boolean := False)
+     with Pre => Is_Project_Loaded;
    --  Call Callback once for every Ada source file mentionned in a previous
    --  Add_Project call. Override_Units has the same semantics as in
    --  Enumerate_LIs.
+   --
+   --  If Include_Subunits is false (the default) then Callback will skip
+   --  sources that are subunits.
 
    type Main_Source_File is record
       File    : GNATCOLL.VFS.Virtual_File;

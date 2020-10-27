@@ -21,12 +21,15 @@ with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Streams; use Ada.Streams;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Tags;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
+
+with GNATCOLL.VFS;
 
 with Binary_Files;      use Binary_Files;
 with Coverage.Tags;     use Coverage.Tags;
@@ -36,6 +39,7 @@ with Elf_Disassemblers; use Elf_Disassemblers;
 with Instrument.Common; use Instrument.Common;
 with MC_DC;             use MC_DC;
 with Outputs;           use Outputs;
+with Project;
 with Slocs;             use Slocs;
 with Strings;           use Strings;
 with Switches;          use Switches;
@@ -218,6 +222,30 @@ package body Coverage.Source is
    --  List of names for units of interest. Store it as an ordered set so that
    --  the order of dump depends on its content, not on the way it was created.
 
+   package Unit_To_Ignored_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type        => US.Unbounded_String,
+      Element_Type    => Ignored_Sources_Vector_Access,
+      "<"             => US."<");
+   --  Map units of interest to the list of associated ignored source files
+
+   Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
+
+   function Unit_Name_For_Subunit (Qualified_Name : String) return String;
+   --  Return the unit name for the subunit whose name is Qualified_Name.
+   --  For instance, if foo-test.adb is a subunit for package Foo,
+   --  GNATCOLL.Projects should give us Foo.Test as a unit name, and this
+   --  function will return Foo.
+   --
+   --  As a safeguard, this checks that the result is the name of a unit of
+   --  interest: subunits cannot be units of interest.
+   --
+   --  If it can't be determined that the source file belongs to a unit of
+   --  interest, the empty string will be returned, and a warning will be
+   --  emitted.
+   --
+   --  Note that the Ada language rules guarantee that the name of the owning
+   --  unit is a prefix of the name of its subunits.
+
    --------------------------
    -- Basic_Block_Has_Code --
    --------------------------
@@ -266,16 +294,152 @@ package body Coverage.Source is
       end if;
    end Add_Unit_Name;
 
+   ---------------------------
+   -- Unit_Name_For_Subunit --
+   ---------------------------
+
+   function Unit_Name_For_Subunit (Qualified_Name : String) return String
+   is
+      use Ada.Strings.Fixed;
+      First : constant Natural := Qualified_Name'First;
+      Sep   : Natural := Qualified_Name'Last;
+   begin
+      loop
+         Sep := Index (Source  => Qualified_Name,
+                       Pattern => ".",
+                       From    => Sep,
+                       Going   => Ada.Strings.Backward);
+         if Unit_List.Contains
+           (US.To_Unbounded_String (Qualified_Name (First .. Sep - 1)))
+         then
+            return Qualified_Name (First .. Sep - 1);
+         end if;
+         exit when Sep = 0;
+
+         --  Move past '.' character to start searching again
+
+         Sep := Sep - 1;
+      end loop;
+
+      --  If we got here, then there is no unit of interest whose name is a
+      --  prefix of the name of the subunit we are processing.
+
+      Report (Msg  => "Could not find the name of the owning unit of subunit "
+              & Qualified_Name & " among the units of interest",
+              Kind => Warning);
+      return "";
+   end Unit_Name_For_Subunit;
+
+   -------------------------------------------
+   -- Compute_Unit_Name_For_Ignored_Sources --
+   -------------------------------------------
+
+   procedure Compute_Unit_Name_For_Ignored_Sources
+   is
+      use Project;
+      use Types;
+
+      procedure Callback
+        (Project : GNATCOLL.Projects.Project_Type;
+         File    : GNATCOLL.Projects.File_Info);
+      --  If the file is a (sometimes) ignored file, compute its unit name and
+      --  store it in the file table.
+
+      --------------
+      -- Callback --
+      --------------
+
+      procedure Callback
+        (Project : GNATCOLL.Projects.Project_Type;
+         File    : GNATCOLL.Projects.File_Info)
+      is
+         use GNATCOLL.VFS;
+         pragma Unreferenced (Project);
+         SFI : constant Source_File_Index := Get_Index_From_Generic_Name
+           (+File.File.Full_Name, Source_File, Insert => False);
+         FI  : constant File_Info_Access := (if SFI /= No_Source_File
+                                             then Get_File (SFI)
+                                             else null);
+      begin
+         if FI /= null and then not FI.Unit.Known then
+            declare
+               use GNATCOLL.Projects;
+               Unit_Name : constant String :=
+                 (if File.Unit_Part = Unit_Separate
+                  then Unit_Name_For_Subunit (File.Unit_Name)
+                  else File.Unit_Name);
+            begin
+               Consolidate_Source_File_Unit (SFI, Unit_Name);
+            end;
+         end if;
+      end Callback;
+
+   --  Start of processing for Compute_Unit_Name_For_Ignored_Sources
+
+   begin
+      Enumerate_Ada_Sources (Callback'Access, Include_Subunits => True);
+   end Compute_Unit_Name_For_Ignored_Sources;
+
+   -------------------------
+   -- Fill_Ignored_SF_Map --
+   -------------------------
+
+   procedure Fill_Ignored_SF_Map
+   is
+      use Unit_To_Ignored_Maps;
+
+      procedure Callback (SFI : Types.Source_File_Index);
+      --  If SFI is a source file that is ignored, register it in
+      --  Ignored_SF_Map under its unit name. Do nothing otherwise.
+
+      --------------
+      -- Callback --
+      --------------
+
+      procedure Callback (SFI : Types.Source_File_Index)
+      is
+         FI  : constant File_Info_Access := Get_File (SFI);
+         Vec : Ignored_Sources_Vector_Access;
+      begin
+         if FI.Kind = Source_File
+           and then FI.Ignore_Status in Always .. Sometimes
+         then
+            pragma Assert
+              (FI.Unit.Known and then Unit_List.Contains (FI.Unit.Name));
+
+            if not Ignored_SF_Map.Contains (FI.Unit.Name) then
+               Vec := new Ignored_Sources_Vector.Vector;
+               Ignored_SF_Map.Insert (FI.Unit.Name, Vec);
+            else
+               Vec := Ignored_SF_Map.Element (FI.Unit.Name);
+            end if;
+            Vec.Append_One (FI);
+         end if;
+      end Callback;
+
+   --  Start of processing for Fill_Ignored_SF_Map
+
+   begin
+      Files_Table_Iterate (Callback'Access);
+   end Fill_Ignored_SF_Map;
+
    --------------------------
    -- Iterate_On_Unit_List --
    --------------------------
 
    procedure Iterate_On_Unit_List
-     (Callback : not null access procedure (Name : String))
+     (Process_Unit        : not null access procedure (Name : String);
+      Process_Source_File : not null access procedure (FI : File_Info))
    is
    begin
       for S of Unit_List loop
-         Callback.all (US.To_String (S));
+         Process_Unit.all (US.To_String (S));
+
+         if Ignored_SF_Map.Contains (S) then
+            for FI of Ignored_SF_Map.Element (S).all loop
+               Process_Source_File (FI.all);
+            end loop;
+         end if;
       end loop;
    end Iterate_On_Unit_List;
 

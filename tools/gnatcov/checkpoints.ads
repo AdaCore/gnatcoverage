@@ -42,6 +42,7 @@ package Checkpoints is
    --  3 -- support for dumping names for units of interest
    --  4 -- gnatcov's own Pragma_Id type
    --  5 -- one CU_Info per source file and revamped fingerprint computation
+   --       and support for listing ignored source files with --dump-units-to
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:

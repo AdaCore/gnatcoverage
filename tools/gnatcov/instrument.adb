@@ -19,14 +19,16 @@
 --  Source instrumentation
 
 with Ada.Characters.Handling;
-with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Characters.Conversions;
+with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Unbounded;
+with Ada.Unchecked_Deallocation;
 
 with GNAT.OS_Lib;
 
@@ -40,6 +42,7 @@ with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with Checkpoints;
 with Coverage;
+with Files_Table;
 with Instrument.Clean_Objdirs;
 with Instrument.Common;  use Instrument.Common;
 with Instrument.Find_Units;
@@ -55,8 +58,13 @@ package body Instrument is
 
    package GPR renames GNATCOLL.Projects;
 
+   type CU_Name_With_Ignore is record
+      Name    : Compilation_Unit_Name;
+      Ignored : Boolean;
+   end record;
+
    package CU_Name_Vectors is new Ada.Containers.Vectors
-     (Positive, Compilation_Unit_Name);
+     (Positive, CU_Name_With_Ignore);
 
    type Library_Unit_Info is record
       CU_Names : CU_Name_Vectors.Vector;
@@ -66,6 +74,23 @@ package body Instrument is
       --  Projects that own the body/spec for this library unit
    end record;
    type Library_Unit_Info_Access is access Library_Unit_Info;
+
+   type Ignored_Unit_Info is record
+      Filename : Unbounded_String;
+      --  Name of the source file for this unit
+
+      Prj_Info : Project_Info_Access;
+      --  Reference to the Project_Info record corresponding to the project
+      --  that owns the source file for this unit.
+   end record;
+
+   type Ignored_Unit_Info_Access is access all Ignored_Unit_Info;
+
+   package Ignored_Units_Maps is new Ada.Containers.Ordered_Maps
+     (Compilation_Unit_Name, Ignored_Unit_Info_Access);
+
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Ignored_Unit_Info, Ignored_Unit_Info_Access);
 
    package Library_Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (String, Library_Unit_Info_Access);
@@ -537,6 +562,7 @@ package body Instrument is
 
       LU_Map          : Library_Unit_Maps.Map;
       Current_LU_Info : Library_Unit_Info_Access;
+      Ignored_Units   : Ignored_Units_Maps.Map;
 
       Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
       --  List of mains to instrument *which are not units of interest*. Always
@@ -584,15 +610,22 @@ package body Instrument is
             Info    : GPR.File_Info)
          is
             use GNATCOLL.VFS;
+            Should_Ignore : constant Boolean :=
+              Is_Ignored_Source_File (IC, +Info.File.Base_Name);
          begin
-            --  Skip this file if we were told to ignore it
-
-            if Is_Ignored_Source_File (IC, +Info.File.Base_Name) then
-               return;
+            Current_LU_Info.CU_Names.Append
+              ((Name    => CU_Name,
+                Ignored => Should_Ignore));
+            if Should_Ignore then
+               Ignored_Units.Insert
+                 (CU_Name,
+                  new Ignored_Unit_Info'
+                    (Filename => To_Unbounded_String (+Info.File.Base_Name),
+                     Prj_Info => Get_Or_Create_Project_Info
+                       (IC, Info.Project)));
+            else
+               Add_Instrumented_Unit (IC, Info.Project, Info);
             end if;
-
-            Current_LU_Info.CU_Names.Append (CU_Name);
-            Add_Instrumented_Unit (IC, Info.Project, Info);
          end Add_Instrumented_Unit;
 
          CU_Name : constant Compilation_Unit_Name :=
@@ -694,17 +727,50 @@ package body Instrument is
             All_Externally_Built : Boolean := True;
          begin
             for CU of LU_Info.CU_Names loop
-               declare
-                  Unit_Info : Instrumented_Unit_Info renames
-                     IC.Instrumented_Units.Element (CU).all;
-               begin
-                  --  Do not instrument units from externally built projects
+               if CU.Ignored then
+                  declare
+                     Unit_Info : Ignored_Unit_Info renames
+                       Ignored_Units.Element (CU.Name).all;
+                     Filename  : constant String := To_String
+                       (Unit_Info.Filename);
+                  begin
 
-                  if not Unit_Info.Prj_Info.Externally_Built then
-                     All_Externally_Built := False;
-                     Instrument_Unit (CU, Unit_Info);
-                  end if;
-               end;
+                     --  Simply add the unit to the file table if it is not
+                     --  externally built.
+
+                     if not Unit_Info.Prj_Info.Externally_Built then
+                        All_Externally_Built := False;
+                        Files_Table.Consolidate_Ignore_Status
+                          (Index  => Files_Table.Get_Index_From_Generic_Name
+                             (Name => Filename,
+                              Kind => Files_Table.Source_File),
+                           Status => Files_Table.Always);
+                     end if;
+                  end;
+               else
+                  declare
+                     Unit_Info : Instrumented_Unit_Info renames
+                       IC.Instrumented_Units.Element (CU.Name).all;
+                     Filename  : constant String := To_String
+                       (Unit_Info.Filename);
+                  begin
+                     --  Do not process units from externally built projects
+
+                     if not Unit_Info.Prj_Info.Externally_Built then
+                        All_Externally_Built := False;
+                        Instrument_Unit (CU.Name, Unit_Info);
+
+                        --  Update the Ignore_Status of the CU we instrumented
+
+                        Files_Table.Consolidate_Ignore_Status
+                          (Index  => Files_Table.Get_Index_From_Generic_Name
+                             (Name                => Filename,
+                              Kind                => Files_Table.Source_File,
+                              Indexed_Simple_Name => True),
+                        Status => Files_Table.Never);
+                     end if;
+                  end;
+               end if;
             end loop;
 
             --  Except for units entirely externally built (the spec, the body,
@@ -783,6 +849,12 @@ package body Instrument is
       --  of next builds.
 
       Clean_Objdirs (IC);
+
+      --  Deallocate Ignored_Unit_Infos
+      for IU of Ignored_Units loop
+         Free (IU);
+      end loop;
+      Ignored_Units := Ignored_Units_Maps.Empty_Map;
    end Instrument_Units_Of_Interest;
 
 end Instrument;

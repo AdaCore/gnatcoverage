@@ -181,6 +181,16 @@ package body Files_Table is
    function Create_Line_Info return Line_Info_Access;
    --  Return a new Line_Info record
 
+   procedure Consolidate_Source_File_Unit
+     (Index    : Valid_Source_File_Index;
+      New_Unit : Ada.Strings.Unbounded.Unbounded_String) with
+     Pre => Get_File (Index).Kind = Source_File;
+   --  Update the unit name info for the source file represented by Index.
+   --  Does nothing if the new unit name is the empty string.
+   --
+   --  Calling this procedure is valid iff the source file at Index has no
+   --  owning unit already, or that it is the same as New_Unit.
+
    ---------------------
    -- Append_To_Array --
    ---------------------
@@ -619,6 +629,60 @@ package body Files_Table is
    begin
       return Files_Table.Last_Index;
    end Last_File;
+
+   -------------------------------
+   -- Consolidate_Ignore_Status --
+   -------------------------------
+
+   procedure Consolidate_Ignore_Status
+     (Index  : Valid_Source_File_Index;
+      Status : Any_Ignore_Status)
+   is
+      FI : File_Info renames Files_Table.Element (Index).all;
+   begin
+      if FI.Kind /= Source_File then
+         return;
+      end if;
+      if Status = Sometimes then
+         FI.Ignore_Status := Sometimes;
+      elsif FI.Ignore_Status = Unknown then
+         FI.Ignore_Status := Status;
+      elsif Status /= Unknown and then FI.Ignore_Status /= Status then
+         FI.Ignore_Status := Sometimes;
+      end if;
+
+   end Consolidate_Ignore_Status;
+
+   ----------------------------------
+   -- Consolidate_Source_File_Unit --
+   ----------------------------------
+
+   procedure Consolidate_Source_File_Unit
+     (Index    : Valid_Source_File_Index;
+      New_Unit : Ada.Strings.Unbounded.Unbounded_String)
+   is
+      use Ada.Strings.Unbounded;
+      FI : File_Info renames Files_Table.Element (Index).all;
+   begin
+      if FI.Kind /= Source_File or else New_Unit = Null_Unbounded_String then
+         return;
+      end if;
+      if not FI.Unit.Known then
+         FI.Unit := (Known => True,
+                     Name  => New_Unit);
+      elsif FI.Unit.Known then
+         pragma Assert (FI.Unit.Name = New_Unit);
+      end if;
+   end Consolidate_Source_File_Unit;
+
+   procedure Consolidate_Source_File_Unit
+     (Index    : Valid_Source_File_Index;
+      New_Unit : String)
+   is
+   begin
+      Consolidate_Source_File_Unit
+        (Index, Ada.Strings.Unbounded.To_Unbounded_String (New_Unit));
+   end Consolidate_Source_File_Unit;
 
    ---------------------
    -- Fill_Line_Cache --
@@ -1282,6 +1346,7 @@ package body Files_Table is
       Result.Indexed_Simple_Name := Indexed_Simple_Name;
       if Result.Kind = Source_File then
          Result.Lines := (Source_Line_Vectors.Empty_Vector with null record);
+         Result.Unit := (Known => False);
       end if;
       return Result;
    end Create_File_Info;
@@ -1634,6 +1699,9 @@ package body Files_Table is
    --     * [Indexed_Simple_Name : Boolean], whether the simple name for this
    --       file was indexed in the simple name map.
    --     * if Kind = Library_File, [Main_Source : Source_File_Index]
+   --     * if Kind = Source_Files, [Ignore_Status : Ignores_Status]
+   --                               [Unit.Known : Boolean]
+   --                if Unit.Known, [Unit.Name : String]
 
    ---------------------
    -- Checkpoint_Save --
@@ -1664,6 +1732,13 @@ package body Files_Table is
             if FI.Kind = Library_File then
                pragma Assert (FI.Main_Source /= No_Source_File);
                Source_File_Index'Write (S, FI.Main_Source);
+            elsif FI.Kind = Source_File then
+               Any_Ignore_Status'Write (S, FI.Ignore_Status);
+               Boolean'Write (S, FI.Unit.Known);
+               if FI.Unit.Known then
+                  String'Output
+                    (S, Ada.Strings.Unbounded.To_String (FI.Unit.Name));
+               end if;
             end if;
          end;
       end loop;
@@ -1745,10 +1820,13 @@ package body Files_Table is
          Name                : String_Access;
          Indexed_Simple_Name : Boolean;
          case Kind is
-            when Stub_File | Source_File =>
+            when Stub_File =>
                null;
             when Library_File =>
                Main_Source : Source_File_Index;
+            when Source_File =>
+               Ignore_Status : Any_Ignore_Status;
+               Unit          : Owning_Unit;
          end case;
       end record;
 
@@ -1784,6 +1862,28 @@ package body Files_Table is
                   FE := (Kind => Stub_File, others => <>);
                when Source_File =>
                   FE := (Kind => Source_File, others => <>);
+                  if not Checkpoints.Version_Less (CLS, Than => 5) then
+
+                  --  Dumping ingored source files is only supported from
+                  --  Checkpoint version 5.
+
+                     FE.Ignore_Status := Any_Ignore_Status'Input (S);
+                     declare
+                        use Ada.Strings.Unbounded;
+                        Unit_Known : constant Boolean := Boolean'Input (S);
+                     begin
+                        if Unit_Known then
+                           FE.Unit :=
+                             (Known => True,
+                              Name  => To_Unbounded_String (String'Input (S)));
+                        else
+                           FE.Unit := (Known => False);
+                        end if;
+                     end;
+                  else
+                     FE.Ignore_Status := Unknown;
+                     FE.Unit := (Known => False);
+                  end if;
                when Library_File =>
                   FE := (Kind => Library_File, others => <>);
                   FE.Main_Source := Source_File_Index'Input (S);
@@ -1813,6 +1913,25 @@ package body Files_Table is
                             & " (" & FE.Name.all & ")");
                end if;
                Ignore_SFI (Relocs, CP_SFI);
+
+               --  Still insert this source file in the files table to keep
+               --  track of all the files that were ignored.
+
+               if FE.Indexed_Simple_Name then
+                  SFI := Get_Index_From_Generic_Name
+                     (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);
+               else
+                  SFI := Get_Index_From_Full_Name
+                     (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
+               end if;
+
+               --  But mark it as always ignored
+
+               Consolidate_Ignore_Status (SFI, Always);
+               if FE.Unit.Known then
+                  Consolidate_Source_File_Unit (SFI, FE.Unit.Name);
+               end if;
+
             else
                if FE.Kind = Library_File then
                   --  Optimization:  If we can find a source file that matches
@@ -1851,6 +1970,14 @@ package body Files_Table is
                   else
                      SFI := Get_Index_From_Full_Name
                        (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
+                  end if;
+               end if;
+
+               Set_SFI_Map (Relocs, CP_SFI, SFI);
+               if FE.Kind = Source_File then
+                  Consolidate_Ignore_Status (SFI, FE.Ignore_Status);
+                  if FE.Unit.Known then
+                     Consolidate_Source_File_Unit (SFI, FE.Unit.Name);
                   end if;
                end if;
 

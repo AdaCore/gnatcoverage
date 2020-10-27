@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2019, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -114,9 +114,14 @@ package body ALI_Files is
               (if Deps_Present
                then Get_Simple_Name (Deps.Element (U.Dep_Num))
                else U.File_Name.all);
+            SFI  : constant Source_File_Index :=
+              Get_Index_From_Generic_Name (Name, Source_File);
          begin
             if GNAT.Regexp.Match (Name, Ignored_Source_Files.all) then
+               Consolidate_Ignore_Status (SFI, Always);
                U.Dep_Num := Missing_Dep_Num;
+            else
+               Consolidate_Ignore_Status (SFI, Never);
             end if;
          end;
       end loop;

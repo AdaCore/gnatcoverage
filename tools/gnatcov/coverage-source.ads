@@ -99,10 +99,22 @@ package Coverage.Source is
    --  Add Name to the list of names for units of interest. For convenience, do
    --  nothing if it is invalid.
 
+   procedure Compute_Unit_Name_For_Ignored_Sources;
+   --  Compute the name of the owning unit for each known source file that is
+   --  (sometimes or always) ignored.
+
+   procedure Fill_Ignored_SF_Map;
+   --  Iterate over all ignored source files to create a map indexed by
+   --  unit names, linking them to the list of ignored source files.
+
    procedure Iterate_On_Unit_List
-     (Callback : not null access procedure (Name : String))
-      with Pre => Unit_List_Is_Valid;
-   --  Call Callback for each unit of interest, passing to it the name of the
+     (Process_Unit        : not null access procedure (Name : String);
+      Process_Source_File : not null access procedure (FI : File_Info))
+   with Pre => Unit_List_Is_Valid;
+   --  Call Unit_Callback for each unit of interest, passing to it the name of
+   --  the unit, and call File_Callback for each (sometimes or always) ignored
+   --  source file in the unit.
+   --  Unit_Callback is called before iterating on the ignored files for that
    --  unit.
 
    -----------------

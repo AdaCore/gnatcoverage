@@ -26,6 +26,7 @@ with ALI_Files;
 with Coverage;        use Coverage;
 with Coverage.Source; use Coverage.Source;
 with Coverage.Tags;   use Coverage.Tags;
+with Files_Table;
 with Switches;
 with Traces_Files;    use Traces_Files;
 
@@ -604,8 +605,29 @@ package body Annotations.Report is
          Pp.Chapter ("UNITS OF INTEREST");
          New_Line (Output.all);
          declare
+
+            procedure Print_Ignored_File
+              (FI : Files_Table.File_Info);
+            --  Print the name of the file and its ignore status on the report
+
             procedure Print_Unit_Name (Name : String);
             --  Print Name on the report
+
+            ------------------------
+            -- Print_Ignored_File --
+            ------------------------
+
+            procedure Print_Ignored_File
+              (FI : Files_Table.File_Info) is
+            begin
+               if FI.Ignore_Status = Files_Table.Sometimes then
+                  Put_Line (Output.all,
+                            "   " & FI.Unique_Name.all & " sometimes ignored");
+               elsif FI.Ignore_Status = Files_Table.Always then
+                  Put_Line (Output.all,
+                            "   " & FI.Unique_Name.all & " always ignored");
+               end if;
+            end Print_Ignored_File;
 
             ---------------------
             -- Print_Unit_Name --
@@ -616,7 +638,8 @@ package body Annotations.Report is
                Put_Line (Output.all, Name);
             end Print_Unit_Name;
          begin
-            Iterate_On_Unit_List (Print_Unit_Name'Access);
+            Iterate_On_Unit_List
+              (Print_Unit_Name'Access, Print_Ignored_File'Access);
          end;
       end if;
 

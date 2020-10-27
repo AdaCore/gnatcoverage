@@ -2189,9 +2189,10 @@ package body SC_Obligations is
          else Deps.Element (Unit.Dep_Num));
 
       --  We are going to add coverage obligations for this file, so mark it as
-      --  a Source_File in the file table.
+      --  a Source_File in the file table, and mark it as never ignored.
 
       Consolidate_File_Kind (Result, Source_File);
+      Consolidate_Ignore_Status (Result, Never);
       return Result;
    end Main_Source_For;
 

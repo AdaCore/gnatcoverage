@@ -61,7 +61,6 @@ with SC_Obligations;        use SC_Obligations;
 with Snames;
 with Strings;               use Strings;
 with Switches;              use Switches;
-with Text_Files;
 with Traces;                use Traces;
 with Traces_Elf;            use Traces_Elf;
 with Traces_Files_Registry; use Traces_Files_Registry;
@@ -2381,6 +2380,17 @@ begin
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
          end;
 
+         --  Reconstruct unit names for ignored source files.
+         --  This is done before loading checkpoints, because this will already
+         --  have been done for the files in the checkpoints when creating
+         --  them.
+
+         if Project.Is_Project_Loaded
+           and then Coverage.Source.Unit_List_Is_Valid
+         then
+            Compute_Unit_Name_For_Ignored_Sources;
+         end if;
+
          --  Read checkpointed coverage data from previous executions
 
          Inputs.Iterate
@@ -2400,6 +2410,13 @@ begin
 
          if Source_Coverage_Enabled and then Verbose then
             SC_Obligations.Report_Units_Without_Code;
+         end if;
+
+         --  Now that the list of files is final, we can create the map from
+         --  units to ignored source files, if needed.
+
+         if Dump_Units and then Coverage.Source.Unit_List_Is_Valid then
+            Fill_Ignored_SF_Map;
          end if;
 
          declare
@@ -2424,30 +2441,48 @@ begin
             --  file or on the standard output, do it now.
 
             if Dump_Units and then not Dump_Units_In_Report then
-               if Dump_Units_Filename = null then
-                  Iterate_On_Unit_List (Put_Line'Access);
-               else
-                  declare
-                     File : Text_Files.File_Type;
-                     --  Output file for the list of names for units of
-                     --  interest.
+               declare
+                  File : aliased File_Type;
+                  --  Output file for the list of names for units of interest
 
-                     procedure Print_Unit_Name (Name : String);
-                     --  Print Name to File
+                  Output : constant access File_Type :=
+                    (if Dump_Units_Filename = null
+                     then Standard_Output
+                     else File'Access);
 
-                     ---------------------
-                     -- Print_Unit_Name --
-                     ---------------------
+                  procedure Print_Unit_Name (Name : String);
+                  --  Print the name of the file and if it was always or
+                  --  sometimes ignored on the report, if it was ignored at
+                  --  some point during the coverage analysis.
 
-                     procedure Print_Unit_Name (Name : String) is
-                     begin
-                        File.Put_Line (Name);
-                     end Print_Unit_Name;
+                  procedure Print_Ignored_File
+                    (FI : Files_Table.File_Info);
+
+                  procedure Print_Ignored_File
+                    (FI : Files_Table.File_Info) is
                   begin
-                     File.Create (Dump_Units_Filename.all);
-                     Iterate_On_Unit_List (Print_Unit_Name'Access);
-                  end;
-               end if;
+                     if FI.Ignore_Status = Files_Table.Sometimes then
+                        Put_Line (Output.all, "   " & FI.Unique_Name.all
+                                  & " sometimes ignored");
+                     elsif FI.Ignore_Status = Files_Table.Always then
+                        Put_Line (Output.all, "   " & FI.Unique_Name.all
+                                  & " always ignored");
+
+                     end if;
+                  end Print_Ignored_File;
+
+                  procedure Print_Unit_Name (Name : String) is
+                  begin
+                     Put_Line (Output.all, Name);
+                  end Print_Unit_Name;
+
+               begin
+                  if Dump_Units_Filename /= null then
+                     Create (File, Name => Dump_Units_Filename.all);
+                  end if;
+                  Iterate_On_Unit_List
+                    (Print_Unit_Name'Access, Print_Ignored_File'Access);
+               end;
             end if;
 
             --  Generate annotated reports

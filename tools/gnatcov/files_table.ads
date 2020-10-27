@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO;  use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
@@ -287,8 +288,24 @@ package Files_Table is
 
    type Source_Lines is private;
 
+   type Any_Ignore_Status is (Unknown, Always, Sometimes, Never);
+   --  Represents the different states a source file can be regarding the
+   --  option --ignore-source-files. Consolidation rules are described in
+   --  procedure Consolidate_Ignore_Status.
+
+   type Owning_Unit (Known : Boolean := False) is record
+      case Known is
+         when True =>
+            Name : Ada.Strings.Unbounded.Unbounded_String;
+         when False =>
+            null;
+      end case;
+   end record;
+   --  Whether the unit of a file is known or not. If it is, stores the name of
+   --  the unit.
+
    type File_Info (Kind : File_Kind := Source_File) is record
-      --  Source file information.
+      --  Source file information
 
       Full_Name : String_Access;
       --  Full path name
@@ -342,6 +359,13 @@ package Files_Table is
             --  True if object coverage information has been registered for
             --  this source file.
 
+            Ignore_Status : Any_Ignore_Status := Unknown;
+            --  How often this source file has been ignored for the coverage
+            --  report.
+
+            Unit : Owning_Unit;
+            --  Information about the unit this source file belongs to
+
          when Library_File =>
             Main_Source : Source_File_Index := No_Source_File;
             --  Main source file. For Ada, this is a simple name; for C this
@@ -365,8 +389,39 @@ package Files_Table is
    function Last_File return Source_File_Index;
    --  Return the last valid source file index
 
+   procedure Consolidate_Ignore_Status
+     (Index : Valid_Source_File_Index; Status : Any_Ignore_Status);
+   --  Consolidate the ignore status of the file represented by Index
+   --  with the new status.
+   --
+   --    Sometimes      Consolidation is done according to this hierarchy.
+   --     /     \       The consolidation result between A and B is the
+   --  Never    Always  lowest status that is a parent to both A and B (this
+   --     \     /       can be A or B).
+   --     Unknown
+   --
+   --  Does nothing if the file represented by index is not tagged as
+   --  Source_File.
+
+   package Ignored_Sources_Vector is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => File_Info_Access);
+   --  Vector of source files, used mainly to group ignored source files
+
+   type Ignored_Sources_Vector_Access is access Ignored_Sources_Vector.Vector;
+
    function Get_File
      (Index : Source_File_Index) return File_Info_Access;
+
+   procedure Consolidate_Source_File_Unit
+     (Index     : Valid_Source_File_Index;
+      New_Unit  : String) with
+     Pre => Get_File (Index).Kind = Source_File;
+   --  Update the unit name info for the source file represented by Index.
+   --  Does nothing if the new unit name is the empty string.
+   --
+   --  Calling this procedure is valid iff the source file at Index has no
+   --  owning unit already, or that it is the same as New_Unit.
 
    procedure Iterate_On_Lines
      (File    : File_Info_Access;
