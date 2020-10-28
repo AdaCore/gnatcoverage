@@ -20,6 +20,7 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
+with Ada.Streams;
 with Ada.Unchecked_Deallocation;
 
 with System;
@@ -30,6 +31,7 @@ with Osint;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
+with Checkpoints; use Checkpoints;
 with Outputs;
 with Perf_Counters; use Perf_Counters;
 with Project;
@@ -1722,7 +1724,12 @@ package body Files_Table is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
+   procedure Checkpoint_Load
+     (CLS                  : access Checkpoint_Load_State;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp)
+   is
+      pragma Assert
+        (CLS.Purpose = Instrumentation or else Ignored_Source_Files = null);
       S      : access Ada.Streams.Root_Stream_Type'Class renames CLS.Stream;
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
@@ -1753,8 +1760,7 @@ package body Files_Table is
       --  Kill bogus infinite loop warning (P324-050)
 
    begin
-      Relocs.SFI_Map :=
-        new SFI_Map_Array'(CP_First_SFI .. CP_Last_SFI => No_Source_File);
+      Allocate_SFI_Maps (Relocs, CP_First_SFI, CP_Last_SFI);
 
       --  We first load all file entries, and then import them into the
       --  current context. The reason for this two pass design is that
@@ -1794,8 +1800,20 @@ package body Files_Table is
          declare
             FE  : File_Entry renames CP_Entries (CP_SFI);
             SFI : Source_File_Index := No_Source_File;
+
          begin
-            if FE.Name /= null then
+            if FE.Name /= null
+              and then FE.Kind = Source_File
+              and then Ignored_Source_Files /= null
+              and then GNAT.Regexp.Match (+Create (+FE.Name.all).Base_Name,
+                                          Ignored_Source_Files.all)
+            then
+               if Switches.Verbose then
+                  Put_Line ("Ignored SFI from SID file:" & CP_SFI'Image
+                            & " (" & FE.Name.all & ")");
+               end if;
+               Ignore_SFI (Relocs, CP_SFI);
+            else
                if FE.Kind = Library_File then
                   --  Optimization:  If we can find a source file that matches
                   --  the main unit for the library file to import, consider
@@ -1806,12 +1824,12 @@ package body Files_Table is
 
                   declare
                      Main_Entry : File_Entry renames
-                        CP_Entries (FE.Main_Source);
+                       CP_Entries (FE.Main_Source);
                      Main_SFI         : constant Source_File_Index :=
-                        Get_Index_From_Generic_Name
-                          (Name   => Main_Entry.Name.all,
-                           Kind   => Source_File,
-                           Insert => False);
+                       Get_Index_From_Generic_Name
+                         (Name   => Main_Entry.Name.all,
+                          Kind   => Source_File,
+                          Insert => False);
                   begin
                      if Main_SFI /= No_Source_File then
                         SFI := Get_File (Main_SFI).LI;
@@ -1836,10 +1854,10 @@ package body Files_Table is
                   end if;
                end if;
 
-               Relocs.SFI_Map (CP_SFI) := SFI;
+               Set_SFI_Map (Relocs, CP_SFI, SFI);
                if Switches.Verbose then
                   Put_Line ("Remap " & FE.Name.all & ":" & CP_SFI'Img
-                            & " ->" & Relocs.SFI_Map (CP_SFI)'Img);
+                            & " ->" & Remap_SFI (Relocs, CP_SFI)'Img);
                end if;
             end if;
          end;
@@ -1850,11 +1868,13 @@ package body Files_Table is
       --  information.
 
       for CP_SFI in CP_Entries'Range loop
-         declare
-            FE : File_Entry renames CP_Entries (CP_SFI);
-            FI : File_Info renames Get_File (Relocs.SFI_Map (CP_SFI)).all;
-         begin
-            case FE.Kind is
+         if not SFI_Ignored (Relocs, CP_SFI) then
+            declare
+               FE : File_Entry renames CP_Entries (CP_SFI);
+               FI : File_Info renames Get_File
+                 (Remap_SFI (Relocs, CP_SFI)).all;
+            begin
+               case FE.Kind is
                when Stub_File | Source_File =>
                   null;
 
@@ -1863,8 +1883,9 @@ package body Files_Table is
                      FI.Main_Source := FE.Main_Source;
                      Remap_SFI (Relocs, FI.Main_Source);
                   end if;
-            end case;
-         end;
+               end case;
+            end;
+         end if;
       end loop;
 
       --  Release the names table

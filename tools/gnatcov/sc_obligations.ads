@@ -240,6 +240,11 @@ package SC_Obligations is
    type BDD_Node_Id is new Natural;
    No_BDD_Node_Id : constant BDD_Node_Id := 0;
 
+   --  Outgoing arcs from a BDD node
+
+   subtype Valid_BDD_Node_Id is BDD_Node_Id
+   range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
+
    ----------------------------
    -- Accessors for SCO info --
    ----------------------------

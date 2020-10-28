@@ -20,8 +20,9 @@ with Ada.Containers.Vectors;
 with Ada.Text_IO;  use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
+with GNAT.Regexp;
 
-with Checkpoints;    use Checkpoints;
+limited with Checkpoints;
 with Coverage;       use Coverage;
 with Diagnostics;    use Diagnostics;
 with SC_Obligations; use SC_Obligations;
@@ -456,14 +457,18 @@ package Files_Table is
    -- Checkpoints --
    -----------------
 
-   procedure Checkpoint_Save (CSS : access Checkpoint_Save_State);
+   procedure Checkpoint_Save (CSS : access Checkpoints.Checkpoint_Save_State);
    --  Save the current files table to S
 
    procedure Checkpoint_Clear;
    --  Clear the internal data structures used to create checkpoints
 
-   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State);
-   --  Load checkpointed files table from S and merge in current state
+   procedure Checkpoint_Load
+     (CLS                  : access Checkpoints.Checkpoint_Load_State;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp);
+   --  Load checkpointed files table from S and merge in current state.
+   --  Ignore_Source_Files should be null if the checkpoint purpose is
+   --  Consolidation.
 
 private
    --  Describe a source file - one element per line

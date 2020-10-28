@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2014, AdaCore                     --
+--                     Copyright (C) 2006-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -42,7 +42,7 @@ package Disa_Lmp is
       Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class);
-   --  Disassemble the instruction at Pc in Insn_Bin and put the text
+   --  Disassemble the instruction at Pc in Insn_Bin and put the text
    --  disassembly in Line/Line_Pos. Line_Pos is the index of the next
    --  character to be written (i.e. line length if Line'First = 1).
 

@@ -488,10 +488,10 @@ package body SC_Obligations is
                      Real_CU.Last_SCO - Real_CU.First_SCO);
 
       for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
-         Relocs.SCO_Map (Old_SCO_Id) :=
-           Old_SCO_Id
-             + Real_CU.First_SCO
-           - CP_CU.First_SCO;
+         Set_SCO_Id_Map (Relocs, Old_SCO_Id,
+                         Old_SCO_Id
+                         + Real_CU.First_SCO
+                         - CP_CU.First_SCO);
       end loop;
 
       --  Instances
@@ -504,10 +504,10 @@ package body SC_Obligations is
       for Old_Inst_Id in CP_CU.First_Instance
         .. CP_CU.Last_Instance
       loop
-         Relocs.Inst_Map (Old_Inst_Id) :=
-           Old_Inst_Id
-             + Real_CU.First_Instance
-           - CP_CU.First_Instance;
+         Set_Inst_Id_Map (Relocs, Old_Inst_Id,
+                          Old_Inst_Id
+                          + Real_CU.First_Instance
+                          - CP_CU.First_Instance);
       end loop;
 
       --  Has_Code indication
@@ -558,10 +558,6 @@ package body SC_Obligations is
             declare
                --  We are supposed to remap individual BDD nodes only once
 
-               New_BDD_Node_Id : BDD_Node_Id renames
-                  Relocs.BDD_Map (Old_BDD_Node_Id);
-               pragma Assert (New_BDD_Node_Id = No_BDD_Node_Id);
-
                New_BDD_Node : BDD.BDD_Node :=
                  CP_Vectors.BDD_Vector.Element (Old_BDD_Node_Id);
 
@@ -600,7 +596,8 @@ package body SC_Obligations is
                end case;
 
                BDD_Vector.Append (New_BDD_Node);
-               New_BDD_Node_Id := BDD_Vector.Last_Index;
+               Set_BDD_Node_Id_Map
+                 (Relocs, Old_BDD_Node_Id, BDD_Vector.Last_Index);
             end;
          end loop;
 
@@ -621,7 +618,7 @@ package body SC_Obligations is
       procedure Remap_BDD_Node (B : in out BDD_Node_Id) is
       begin
          if B /= No_BDD_Node_Id then
-            B := Relocs.BDD_Map (B);
+            B := Remap_BDD_Node_Id (Relocs, B);
             pragma Assert (B /= No_BDD_Node_Id);
          end if;
       end Remap_BDD_Node;
@@ -681,20 +678,9 @@ package body SC_Obligations is
             New_Inst.Comp_Unit := New_CU_Id;
 
             Inst_Vector.Append (New_Inst);
-            Relocs.Inst_Map (Old_Inst_Id) := Inst_Vector.Last_Index;
+            Set_Inst_Id_Map (Relocs, Old_Inst_Id, Inst_Vector.Last_Index);
          end Remap_Inst;
       end loop;
-
-      --  Allocate the BDD node ID remapping table, if needed
-
-      if Relocs.BDD_Map = null then
-         Relocs.BDD_Map :=
-           new BDD_Node_Id_Map_Array (CP_Vectors.BDD_Vector.First_Index
-                                      .. CP_Vectors.BDD_Vector.Last_Index);
-         for Id of Relocs.BDD_Map.all loop
-            Id := No_BDD_Node_Id;
-         end loop;
-      end if;
 
       --  Remap SCO ids. Note that BDD nodes are imported (and remapped) as
       --  needed during the process.
@@ -706,6 +692,7 @@ package body SC_Obligations is
               CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
          begin
             if New_SCOD.Kind = Removed then
+               Ignore_SCO (Relocs, Old_SCO_Id);
                goto Next_SCO;
             end if;
 
@@ -765,7 +752,7 @@ package body SC_Obligations is
             --  Append new SCOD and record mapping
 
             SCO_Vector.Append (New_SCOD);
-            Relocs.SCO_Map (Old_SCO_Id) := SCO_Vector.Last_Index;
+            Set_SCO_Id_Map (Relocs, Old_SCO_Id, SCO_Vector.Last_Index);
             if Verbose then
                Put_Line
                  ("Loaded from checkpoint: "
@@ -860,8 +847,9 @@ package body SC_Obligations is
          --  introduces clashes between stubbed units and the real
          --  one, so they are excluded from checkpoints. Hence, allow
          --  them to be missing here.
-
-         Remap_SFI (Relocs, Dep_SFI, Require_Valid_File => False);
+         if not SFI_Ignored (Relocs, Dep_SFI) then
+            Remap_SFI (Relocs, Dep_SFI);
+         end if;
       end loop;
 
       --  Next check whether this unit is already known
@@ -902,7 +890,7 @@ package body SC_Obligations is
 
             function CU_Image return String is
               (Get_Simple_Name (CP_CU.Origin)
-               & " (from " & To_String (Relocs.Filename) & ")");
+               & " (from " & To_String (CP_Filename (Relocs)) & ")");
             --  Helper to refer to the compilation unit in an error message
 
          begin
@@ -1049,17 +1037,20 @@ package body SC_Obligations is
       BDD.BDD_Vectors.Vector'Read   (S, CP_Vectors.BDD_Vector);
       SCO_Vectors.Vector'Read       (S, CP_Vectors.SCO_Vector);
 
-      --  Allocate mapping tables for SCOs and instance identifiers
+      --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 
-      Relocs.CU_Map := new CU_Id_Map_Array'
-        (CP_Vectors.CU_Vector.First_Index
-      .. CP_Vectors.CU_Vector.Last_Index => No_CU_Id);
-      Relocs.SCO_Map := new SCO_Id_Map_Array'
-        (CP_Vectors.SCO_Vector.First_Index
-      .. CP_Vectors.SCO_Vector.Last_Index => No_SCO_Id);
-      Relocs.Inst_Map := new Inst_Id_Map_Array'
-        (CP_Vectors.Inst_Vector.First_Index
-      .. CP_Vectors.Inst_Vector.Last_Index => No_Inst_Id);
+      Allocate_CU_Id_Maps (Relocs,
+                           CP_Vectors.CU_Vector.First_Index,
+                           CP_Vectors.CU_Vector.Last_Index);
+      Allocate_SCO_Id_Map (Relocs,
+                           CP_Vectors.SCO_Vector.First_Index,
+                           CP_Vectors.SCO_Vector.Last_Index);
+      Allocate_Inst_Id_Map (Relocs,
+                            CP_Vectors.Inst_Vector.First_Index,
+                            CP_Vectors.Inst_Vector.Last_Index);
+      Allocate_BDD_Node_Id_Map (Relocs,
+                                CP_Vectors.BDD_Vector.First_Index,
+                                CP_Vectors.BDD_Vector.Last_Index);
 
       declare
          Last_Existing_CU_Id : constant CU_Id := CU_Vector.Last_Index;
@@ -1071,15 +1062,30 @@ package body SC_Obligations is
             declare
                use CU_Info_Vectors;
 
-               CP_CU_Id : constant CU_Id := To_Index (Cur);
-               CP_CU    : CU_Info := Element (Cur);
+               CP_CU_Id  : constant CU_Id := To_Index (Cur);
+               CP_CU     : CU_Info := Element (Cur);
+               New_CU_Id : CU_Id := No_CU_Id;
             begin
-               Checkpoint_Load_Unit
-                 (Relocs,
-                  CP_Vectors,
-                  CP_CU,
-                  CP_CU_Id  => CP_CU_Id,
-                  New_CU_Id => Relocs.CU_Map (CP_CU_Id));
+               if not SFI_Ignored (Relocs, CP_CU.Origin) then
+                  Checkpoint_Load_Unit
+                    (Relocs,
+                     CP_Vectors,
+                     CP_CU,
+                     CP_CU_Id  => CP_CU_Id,
+                     New_CU_Id => New_CU_Id);
+                  Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
+               else
+                  Put_Line ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
+
+                  --  Ignoring compilation units from a checkpoint file should
+                  --  only be possible when loading a SID file. In this case,
+                  --  CP_CU.Main_Source and CP_CU.Origin should be the same.
+                  --  Otherwise there is some weird things going on that we'd
+                  --  like to be aware of.
+
+                  pragma Assert (SFI_Ignored (Relocs, CP_CU.Main_Source));
+                  Ignore_CU_Id (Relocs, CP_CU_Id);
+               end if;
             end;
          end loop;
 
@@ -1092,17 +1098,20 @@ package body SC_Obligations is
                Annotation      : ALI_Annotation  := Element (Cur);
 
             begin
-               --  If this annotation comes from a compilation unit whose data
-               --  is being imported from this checkpoint (i.e. whose CU id
-               --  is higher than the last existing one upon entry), add it
-               --  now (else it is assumed to be already present in the
-               --  ALI_Annotation map).
+               if not CU_Id_Ignored (Relocs, Annotation.CU) then
+                  --  If this annotation comes from a compilation unit whose
+                  --  data is being imported from this checkpoint (i.e. whose
+                  --  CU id is higher than the last existing one upon entry),
+                  --  add it now (else it is assumed to be already present in
+                  --  the ALI_Annotation map).
 
-               pragma Assert (Relocs.CU_Map (Annotation.CU) /= No_CU_Id);
-               Annotation.CU := Relocs.CU_Map (Annotation.CU);
-               if Annotation.CU > Last_Existing_CU_Id then
-                  Remap_SFI (Relocs, Annotation_Sloc.Source_File);
-                  ALI_Annotations.Insert (Annotation_Sloc, Element (Cur));
+                  pragma Assert
+                    (Remap_CU_Id (Relocs, Annotation.CU) /= No_CU_Id);
+                  Annotation.CU := Remap_CU_Id (Relocs, Annotation.CU);
+                  if Annotation.CU > Last_Existing_CU_Id then
+                     Remap_SFI (Relocs, Annotation_Sloc.Source_File);
+                     ALI_Annotations.Insert (Annotation_Sloc, Element (Cur));
+                  end if;
                end if;
             end;
          end loop;
@@ -2684,7 +2693,7 @@ package body SC_Obligations is
       if CP_Tag = No_SC_Tag then
          return No_SC_Tag;
       else
-         return SC_Tag (Relocs.Inst_Map (Inst_Id (CP_Tag)));
+         return SC_Tag (Remap_Inst_Id (Relocs, Inst_Id (CP_Tag)));
       end if;
    end Map_Tag;
 

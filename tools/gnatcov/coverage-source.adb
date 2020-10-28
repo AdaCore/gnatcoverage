@@ -353,8 +353,9 @@ package body Coverage.Source is
             CP_Tag_Provider := To_Unbounded_String (Tag_Providers.Name (Tag));
          exception
             when Constraint_Error =>
-               Warn ("cannot read " & To_String (Relocs.Filename) & ", it was"
-                     & " produced with an incompatible version of gnatcov");
+               Warn ("cannot read " & To_String (CP_Filename (Relocs))
+                     & ", it was produced with an incompatible version of "
+                     & "gnatcov");
                CP_Tag_Provider := To_Unbounded_String ("<unknown>");
          end;
       end if;
@@ -363,7 +364,7 @@ package body Coverage.Source is
         and then Tag_Provider_Name /= To_String (CP_Tag_Provider)
       then
          Warn ("cannot merge coverage information from "
-               & To_String (CLS.Relocations.Filename)
+               & To_String (CP_Filename (Relocs))
                & " as it is separated by " & To_String (CP_Tag_Provider));
          Do_Merge := False;
       end if;
@@ -384,10 +385,12 @@ package body Coverage.Source is
 
       for SCO_Cur in CP_SCI_Vector.Iterate loop
          Process_One_SCO : declare
-            CP_SCO : constant SCO_Id := To_Index (SCO_Cur);
-            SCO    : constant SCO_Id := Relocs.SCO_Map (CP_SCO);
+            CP_SCO  : constant SCO_Id := To_Index (SCO_Cur);
+            Removed : constant Boolean := SCO_Ignored (Relocs, CP_SCO);
+            SCO     : constant SCO_Id :=
+              (if Removed then No_SCO_Id else Remap_SCO_Id (Relocs, CP_SCO));
          begin
-            if SCO /= No_SCO_Id then
+            if not Removed then
                for CP_SCI of Element (SCO_Cur) loop
                   if CP_SCI /= null then
                      Merge_Checkpoint_SCI
@@ -1770,7 +1773,7 @@ package body Coverage.Source is
                   declare
                      E : Evaluation := Evaluation_Sets.Element (Cur);
                   begin
-                     E.Decision := Relocs.SCO_Map (E.Decision);
+                     E.Decision := Remap_SCO_Id (Relocs, E.Decision);
                      SCI.Evaluations.Include (E);
                   end;
                end loop;

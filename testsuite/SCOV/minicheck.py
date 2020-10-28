@@ -196,7 +196,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                 raise ValueError('Invalid dump channel: {}'
                                  .format(dump_channel))
 
-        xcov_args.extend(extra_args)
+        xcov_args.extend(cov_or_instr_args)
 
     else:
         assert False, 'Unknown trace mode: {}'.format(trace_mode)

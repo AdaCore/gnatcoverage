@@ -22,6 +22,7 @@ with Ada.Strings.Wide_Wide_Unbounded;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
+with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Langkit_Support.Text;
@@ -30,6 +31,7 @@ with Libadalang.Sources;
 
 with Outputs; use Outputs;
 with Project;
+with Switches;
 
 package body Instrument.Common is
 
@@ -621,31 +623,45 @@ package body Instrument.Common is
      (CLS : access Checkpoints.Checkpoint_Load_State)
    is
       use Instrumented_Unit_To_CU_Maps;
+      use Checkpoints;
 
       CP_IU_Map : Map;
-      Relocs    : Checkpoints.Checkpoint_Relocations renames CLS.Relocations;
+      Relocs    : Checkpoint_Relocations renames CLS.Relocations;
    begin
       Map'Read (CLS.Stream, CP_IU_Map);
 
       for Cur in CP_IU_Map.Iterate loop
          declare
             CP_Unit_Name : constant Compilation_Unit_Name := Key (Cur);
-
-            Existing_Cur   : constant Cursor :=
+            Existing_Cur : constant Cursor :=
               Instrumented_Unit_CUs.Find (CP_Unit_Name);
+            CU_Ignored   : constant Boolean :=
+              CU_Id_Ignored (Relocs, Element (Cur));
+
             Existing_CU_Id : constant CU_Id :=
               (if Existing_Cur = No_Element
                then No_CU_Id
                else Element (Existing_Cur));
-            New_CU_Id      : constant CU_Id := Relocs.CU_Map (Element (Cur));
+            New_CU_Id      : constant CU_Id :=
+              (if CU_Ignored
+               then No_CU_Id
+               else Remap_CU_Id (Relocs, Element (Cur)));
 
          begin
-            if Existing_CU_Id = No_CU_Id then
-               Instrumented_Unit_CUs.Insert (CP_Unit_Name, New_CU_Id);
+            if not CU_Ignored then
+               if Existing_CU_Id = No_CU_Id then
+                  Instrumented_Unit_CUs.Insert (CP_Unit_Name, New_CU_Id);
 
-            elsif Existing_CU_Id /= New_CU_Id then
-               Warn ("inconsistent information for instrumented unit "
+               elsif Existing_CU_Id /= New_CU_Id then
+                  Warn ("inconsistent information for instrumented unit "
                      & Image (CP_Unit_Name));
+               end if;
+            else
+               if Switches.Verbose then
+                  Put_Line
+                    ("Ignored Instrumented Unit from SID file: "
+                     & Image (CP_Unit_Name));
+               end if;
             end if;
          end;
       end loop;

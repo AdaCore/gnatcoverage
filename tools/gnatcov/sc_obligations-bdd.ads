@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2019, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -21,11 +21,6 @@
 with Ada.Streams; use Ada.Streams;
 
 private package SC_Obligations.BDD is
-
-   --  Outgoing arcs from a BDD node
-
-   subtype Valid_BDD_Node_Id is BDD_Node_Id
-     range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
 
    type Destinations is array (Boolean) of BDD_Node_Id;
 

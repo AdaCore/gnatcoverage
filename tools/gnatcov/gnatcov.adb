@@ -415,8 +415,14 @@ procedure GNATcov is
 
    procedure Load_All_SIDs is
 
+      Has_Matcher : Boolean;
+      Matcher     : aliased GNAT.Regexp.Regexp;
+
       procedure Add_SID_File (SID_Name : String);
       --  Callback for Enumerate_SIDs. Add SID_Name to SID_Inputs
+
+      procedure SID_Load_Wrapper (Filename : String);
+      --  Wrapper for SID_Load to include the ignored source file regexp
 
       ------------------
       -- Add_SID_File --
@@ -426,6 +432,16 @@ procedure GNATcov is
       begin
          Inputs.Add_Input (SID_Inputs, SID_Name);
       end Add_SID_File;
+
+      ----------------------
+      -- SID_Load_Wrapper --
+      ----------------------
+
+      procedure SID_Load_Wrapper (Filename : String) is
+      begin
+         Checkpoints.SID_Load
+           (Filename, (if Has_Matcher then Matcher'Access else null));
+      end SID_Load_Wrapper;
 
    --  Start of processing for Load_All_SIDs
 
@@ -442,7 +458,11 @@ procedure GNATcov is
          Enumerate_SIDs (Add_SID_File'Access);
       end if;
 
-      Inputs.Iterate (SID_Inputs, Checkpoints.SID_Load'Access);
+      --  Now load the SID files, applying the Ignore_Source_Files filter,
+      --  if present.
+
+      Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
+      Inputs.Iterate (SID_Inputs, SID_Load_Wrapper'Access);
    end Load_All_SIDs;
 
    ----------------------------

@@ -20,7 +20,6 @@ with Ada.Streams.Stream_IO; use Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 
 with Coverage.Source;
-with Files_Table;
 with Instrument.Common;
 with Outputs;           use Outputs;
 with Traces_Files_Registry;
@@ -44,8 +43,338 @@ package body Checkpoints is
      (BDD_Node_Id_Map_Array, BDD_Node_Id_Map_Acc);
    procedure Free is new Ada.Unchecked_Deallocation
      (SCO_Id_Map_Array, SCO_Id_Map_Acc);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (SFI_Ignored_Map_Array, SFI_Ignored_Map_Access);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (CU_Id_Ignored_Map_Array, CU_Id_Ignored_Access);
+   procedure Free is new Ada.Unchecked_Deallocation
+     (SCO_Ignored_Map_Array, SCO_Ignored_Map_Access);
 
-   procedure Checkpoint_Load (Filename : String; Purpose : Checkpoint_Purpose);
+   -----------------
+   -- CP_Filename --
+   -----------------
+
+   function CP_Filename
+     (Relocs : Checkpoint_Relocations) return Unbounded_String is
+   begin
+      return Relocs.Filename;
+   end CP_Filename;
+
+   -----------------------
+   -- Allocate_SFI_Maps --
+   -----------------------
+
+   procedure Allocate_SFI_Maps
+     (Relocs      : in out Checkpoint_Relocations;
+      First, Last : Source_File_Index)
+   is
+   begin
+      pragma Assert
+        (Relocs.SFI_Map = null and then Relocs.Ignored_SFIs = null);
+
+      Relocs.SFI_Map :=
+        new SFI_Map_Array'(First .. Last => No_Source_File);
+      Relocs.Ignored_SFIs :=
+        new SFI_Ignored_Map_Array'(First .. Last => False);
+   end Allocate_SFI_Maps;
+
+   -------------------------
+   -- Allocate_CU_Id_Maps --
+   -------------------------
+
+   procedure Allocate_CU_Id_Maps
+     (Relocs      : in out Checkpoint_Relocations;
+      First, Last : CU_Id)
+   is
+   begin
+      pragma Assert (Relocs.CU_Map = null and then Relocs.Ignored_CUs = null);
+
+      Relocs.CU_Map :=
+        new CU_Id_Map_Array'(First .. Last => No_CU_Id);
+      Relocs.Ignored_CUs :=
+        new CU_Id_Ignored_Map_Array'(First  .. Last => False);
+   end Allocate_CU_Id_Maps;
+
+   ---------------------------
+   -- Allocate_Inst_Id_Maps --
+   ---------------------------
+
+   procedure Allocate_Inst_Id_Map
+     (Relocs      : in out Checkpoint_Relocations;
+      First, Last : Inst_Id)
+   is
+   begin
+      pragma Assert (Relocs.Inst_Map = null);
+      Relocs.Inst_Map :=
+        new Inst_Id_Map_Array'(First .. Last => No_Inst_Id);
+   end Allocate_Inst_Id_Map;
+
+   -------------------------------
+   -- Allocate_BDD_Node_Id_Maps --
+   -------------------------------
+
+   procedure Allocate_BDD_Node_Id_Map
+     (Relocs      : in out Checkpoint_Relocations;
+      First, Last : BDD_Node_Id)
+   is
+   begin
+      pragma Assert (Relocs.BDD_Map = null);
+      Relocs.BDD_Map :=
+        new BDD_Node_Id_Map_Array'(First .. Last => No_BDD_Node_Id);
+   end Allocate_BDD_Node_Id_Map;
+
+   --------------------------
+   -- Allocate_SCO_Id_Maps --
+   --------------------------
+
+   procedure Allocate_SCO_Id_Map
+     (Relocs      : in out Checkpoint_Relocations;
+      First, Last : SCO_Id)
+   is
+   begin
+      pragma Assert
+        (Relocs.SCO_Map = null and then Relocs.Ignored_SCOs = null);
+      Relocs.SCO_Map :=
+        new SCO_Id_Map_Array'(First .. Last => No_SCO_Id);
+      Relocs.Ignored_SCOs :=
+        new SCO_Ignored_Map_Array'(First .. Last => False);
+   end Allocate_SCO_Id_Map;
+
+   ----------------
+   -- Ignore_SFI --
+   ----------------
+
+   procedure Ignore_SFI
+     (Relocs : in out Checkpoint_Relocations;
+      CP_SFI : Source_File_Index)
+   is
+   begin
+      pragma Assert (Relocs.SFI_Map (CP_SFI) = No_Source_File);
+      Relocs.Ignored_SFIs (CP_SFI) := True;
+   end Ignore_SFI;
+
+   ------------------
+   -- Ignore_CU_Id --
+   ------------------
+
+   procedure Ignore_CU_Id
+     (Relocs   : in out Checkpoint_Relocations;
+      CP_CU_Id : CU_Id)
+   is
+   begin
+      pragma Assert (Relocs.CU_Map (CP_CU_Id) = No_CU_Id);
+      Relocs.Ignored_CUs (CP_CU_Id) := True;
+   end Ignore_CU_Id;
+
+   ----------------
+   -- Ignore_SCO --
+   ----------------
+
+   procedure Ignore_SCO
+     (Relocs    : in out Checkpoint_Relocations;
+      CP_SCO_Id : SCO_Id)
+   is
+   begin
+      pragma Assert (Relocs.SCO_Map (CP_SCO_Id) = No_SCO_Id);
+      Relocs.Ignored_SCOs (CP_SCO_Id) := True;
+   end Ignore_SCO;
+
+   -----------------
+   -- SFI_Ignored --
+   -----------------
+
+   function SFI_Ignored
+     (Relocs : Checkpoint_Relocations;
+      CP_SFI : Source_File_Index) return Boolean
+   is
+   begin
+      return CP_SFI /= No_Source_File and then Relocs.Ignored_SFIs (CP_SFI);
+   end SFI_Ignored;
+
+   -------------------
+   -- CU_Id_Ignored --
+   -------------------
+
+   function CU_Id_Ignored
+     (Relocs   : Checkpoint_Relocations;
+      CP_CU_Id : CU_Id) return Boolean
+   is
+   begin
+      return CP_CU_Id /= No_CU_Id and then Relocs.Ignored_CUs (CP_CU_Id);
+   end CU_Id_Ignored;
+
+   -----------------
+   -- SCO_Ignored --
+   -----------------
+
+   function SCO_Ignored
+     (Relocs    : Checkpoint_Relocations;
+      CP_SCO_Id : SCO_Id) return Boolean
+   is
+   begin
+      return CP_SCO_Id /= No_SCO_Id and then Relocs.Ignored_SCOs (CP_SCO_Id);
+   end SCO_Ignored;
+
+   -----------------
+   -- Set_SFI_Map --
+   -----------------
+
+   procedure Set_SFI_Map
+     (Relocs                 : in out Checkpoint_Relocations;
+      Source_SFI, Target_SFI : Valid_Source_File_Index)
+   is
+   begin
+      Relocs.SFI_Map (Source_SFI) := Target_SFI;
+   end Set_SFI_Map;
+
+   -------------------
+   -- Set_CU_Id_Map --
+   -------------------
+
+   procedure Set_CU_Id_Map
+     (Relocs                     : in out Checkpoint_Relocations;
+      Source_CU_Id, Target_CU_Id : Valid_CU_Id)
+   is
+   begin
+      Relocs.CU_Map (Source_CU_Id) := Target_CU_Id;
+   end Set_CU_Id_Map;
+
+   ---------------------
+   -- Set_Inst_Id_Map --
+   ---------------------
+
+   procedure Set_Inst_Id_Map
+     (Relocs                         : in out Checkpoint_Relocations;
+      Source_Inst_Id, Target_Inst_Id : Valid_Inst_Id)
+   is
+   begin
+      Relocs.Inst_Map (Source_Inst_Id) := Target_Inst_Id;
+   end Set_Inst_Id_Map;
+
+   -------------------------
+   -- Set_BDD_Node_Id_Map --
+   -------------------------
+
+   procedure Set_BDD_Node_Id_Map
+     (Relocs                                 : in out Checkpoint_Relocations;
+      Source_BDD_Node_Id, Target_BDD_Node_Id : Valid_BDD_Node_Id)
+   is
+   begin
+      Relocs.BDD_Map (Source_BDD_Node_Id) := Target_BDD_Node_Id;
+   end Set_BDD_Node_Id_Map;
+
+   --------------------
+   -- Set_SCO_Id_Map --
+   --------------------
+
+   procedure Set_SCO_Id_Map
+     (Relocs                       : in out Checkpoint_Relocations;
+      Source_SCO_Id, Target_SCO_Id : Valid_SCO_Id)
+   is
+   begin
+      Relocs.SCO_Map (Source_SCO_Id) := Target_SCO_Id;
+   end Set_SCO_Id_Map;
+
+   ---------------
+   -- Remap_SFI --
+   ---------------
+
+   procedure Remap_SFI
+     (Relocs : Checkpoint_Relocations;
+      CP_SFI : in out Source_File_Index)
+   is
+   begin
+      if CP_SFI /= No_Source_File then
+         CP_SFI := Relocs.SFI_Map (CP_SFI);
+         pragma Assert (CP_SFI /= No_Source_File);
+      end if;
+   end Remap_SFI;
+
+   ---------------
+   -- Remap_SFI --
+   ---------------
+
+   function Remap_SFI
+     (Relocs : Checkpoint_Relocations;
+      CP_SFI : Source_File_Index) return Source_File_Index
+   is
+   begin
+      if CP_SFI /= No_Source_File then
+         pragma Assert (Relocs.SFI_Map (CP_SFI) /= No_Source_File);
+         return Relocs.SFI_Map (CP_SFI);
+      end if;
+      return CP_SFI;
+   end Remap_SFI;
+
+   -----------------
+   -- Remap_CU_Id --
+   -----------------
+
+   function Remap_CU_Id
+     (Relocs   : Checkpoint_Relocations;
+      CP_CU_Id : CU_Id) return CU_Id
+   is
+   begin
+      if CP_CU_Id /= No_CU_Id then
+         pragma Assert (Relocs.CU_Map (CP_CU_Id) /= No_CU_Id);
+         return Relocs.CU_Map (CP_CU_Id);
+      end if;
+      return CP_CU_Id;
+   end Remap_CU_Id;
+
+   -------------------
+   -- Remap_Inst_Id --
+   -------------------
+
+   function Remap_Inst_Id
+     (Relocs     : Checkpoint_Relocations;
+      CP_Inst_Id : Inst_Id) return Inst_Id
+   is
+   begin
+      if CP_Inst_Id /= No_Inst_Id then
+         pragma Assert (Relocs.Inst_Map (CP_Inst_Id) /= No_Inst_Id);
+         return Relocs.Inst_Map (CP_Inst_Id);
+      end if;
+      return CP_Inst_Id;
+   end Remap_Inst_Id;
+
+   -----------------------
+   -- Remap_BDD_Node_Id --
+   -----------------------
+
+   function Remap_BDD_Node_Id
+     (Relocs         : Checkpoint_Relocations;
+      CP_BDD_Node_Id : BDD_Node_Id) return BDD_Node_Id
+   is
+   begin
+      if CP_BDD_Node_Id /= No_BDD_Node_Id then
+         pragma Assert (Relocs.BDD_Map (CP_BDD_Node_Id) /= No_BDD_Node_Id);
+         return Relocs.BDD_Map (CP_BDD_Node_Id);
+      end if;
+      return CP_BDD_Node_Id;
+   end Remap_BDD_Node_Id;
+
+   ------------------
+   -- Remap_SCO_Id --
+   ------------------
+
+   function Remap_SCO_Id
+     (Relocs    : Checkpoint_Relocations;
+      CP_SCO_Id : SCO_Id) return SCO_Id
+   is
+   begin
+      if CP_SCO_Id /= No_SCO_Id then
+         pragma Assert (Relocs.SCO_Map (CP_SCO_Id) /= No_SCO_Id);
+         return Relocs.SCO_Map (CP_SCO_Id);
+      end if;
+      return CP_SCO_Id;
+   end Remap_SCO_Id;
+
+   procedure Checkpoint_Load
+     (Filename             : String;
+      Purpose              : Checkpoint_Purpose;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp) with
+      Pre => Purpose = Instrumentation or else Ignored_Source_Files = null;
    --  Common implementation for SID_Load and Checkpoint_Load
 
    ---------------------
@@ -113,9 +442,11 @@ package body Checkpoints is
    -- SID_Load --
    --------------
 
-   procedure SID_Load (Filename : String) is
+   procedure SID_Load
+     (Filename             : String;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp) is
    begin
-      Checkpoint_Load (Filename, Instrumentation);
+      Checkpoint_Load (Filename, Instrumentation, Ignored_Source_Files);
    end SID_Load;
 
    ---------------------
@@ -124,14 +455,17 @@ package body Checkpoints is
 
    procedure Checkpoint_Load (Filename : String) is
    begin
-      Checkpoint_Load (Filename, Consolidation);
+      Checkpoint_Load (Filename, Consolidation, null);
    end Checkpoint_Load;
 
    ---------------------
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (Filename : String; Purpose : Checkpoint_Purpose)
+   procedure Checkpoint_Load
+     (Filename             : String;
+      Purpose              : Checkpoint_Purpose;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
       SF        : Ada.Streams.Stream_IO.File_Type;
       CP_Header : Checkpoint_Header;
@@ -187,7 +521,7 @@ package body Checkpoints is
                end if;
             end;
 
-            Files_Table.Checkpoint_Load (CLS'Access);
+            Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
             SC_Obligations.Checkpoint_Load (CLS'Access);
             if not Version_Less (CLS'Access, Than => 2) then
                Instrument.Common.Checkpoint_Load (CLS'Access);
@@ -226,24 +560,10 @@ package body Checkpoints is
       Free (Relocs.Inst_Map);
       Free (Relocs.BDD_Map);
       Free (Relocs.SCO_Map);
+      Free (Relocs.Ignored_SFIs);
+      Free (Relocs.Ignored_CUs);
+      Free (Relocs.Ignored_SCOs);
    end Free;
-
-   ---------------
-   -- Remap_SFI --
-   ---------------
-
-   procedure Remap_SFI
-     (Relocs             : Checkpoint_Relocations;
-      CP_SFI             : in out Source_File_Index;
-      Require_Valid_File : Boolean := True)
-   is
-   begin
-      if CP_SFI /= No_Source_File then
-         CP_SFI := Relocs.SFI_Map (CP_SFI);
-         pragma Assert
-           (not Require_Valid_File or else CP_SFI /= No_Source_File);
-      end if;
-   end Remap_SFI;
 
    -----------
    -- Write --
