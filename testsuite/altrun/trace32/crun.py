@@ -23,7 +23,7 @@ altrun_dir_path = os.path.dirname(os.path.realpath(__file__))
 # -- log --
 # ---------
 def log(str):
-    print "trace32/crun.py:" + str
+    print("trace32/crun.py:" + str)
 
 
 # -------------
@@ -230,7 +230,7 @@ class Runner:
         return self.get_gnatcov_trace_filename() + '.t32_branchflow'
 
     def run_with_trace32(self):
-        print "=============== RUN ON TRACE32 ==================="
+        print("=============== RUN ON TRACE32 ===================")
         if not self.args:
             log("trace32: missing EXE for run")
             sys.exit(1)
@@ -238,7 +238,7 @@ class Runner:
 
         handled_targets = ['trace32-stm32f7']
         if self.options.target not in handled_targets:
-            print "unknown target %s" % self.options.target
+            print("unknown target %s" % self.options.target)
             return
 
         t32api.connect()
@@ -253,14 +253,14 @@ class Runner:
         t32api.export_trace(os.path.abspath(self.get_t32_trace_filename()))
 
         if t32api.CPU_stopped_at_symbol("__gnat_last_chance_handler"):
-            print "!!! EXCEPTION RAISED !!!"
+            print("!!! EXCEPTION RAISED !!!")
 
-        print "=================================================="
+        print("==================================================")
 
     def run_gnatcov_convert(self):
-        print "============== GNATCOV CONVERT ==================="
+        print("============== GNATCOV CONVERT ===================")
         do("gnatcov convert " + " ".join(self.convert_command_line()))
-        print "=================================================="
+        print("==================================================")
 
 
 runner = Runner()

@@ -171,7 +171,7 @@ def get_cpu_state():
         # Safeguard the little trick
         systemstate.value = (systemstate.value) & 0x3
 
-        print "CPU current state:" + states[systemstate.value]
+        print("CPU current state:" + states[systemstate.value])
         return states[systemstate.value]
     else:
         return "error"
@@ -196,7 +196,7 @@ def run_until(symbol, timeout_sec):
     if get_cpu_state() == "running":
         # Stop the CPU
         cmd_wrapper(b"Break.direct")
-        print "!!! TIMEOUT !!!"
+        print("!!! TIMEOUT !!!")
 
 
 # --------------------
