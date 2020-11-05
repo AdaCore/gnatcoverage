@@ -24,16 +24,21 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Ada.Calendar;
 with Ada.Command_Line;
 
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
 package GNATcov_RTS.Traces.Output.Files is
 
+   type Time is new Interfaces.Unsigned_64;
+   --  Derived type to represent timestamps (as a number of seconds elapsed).
+
    GNATCOV_TRACE_FILE : constant String := "GNATCOV_TRACE_FILE";
    --  Name of the environment variable to contain the default file name for
    --  output trace files.
+
+   function Clock return Time;
+   --  Returns the number of seconds since the UNIX epoch.
 
    function Default_Trace_Filename return String;
    --  Return the default name of the trace file to write.
@@ -42,14 +47,15 @@ package GNATcov_RTS.Traces.Output.Files is
    --  If this environment variable is not defined or empty, fallback to
    --  "PROGRAM.srctrace", where PROGRAM is the name of the running program.
 
-   function Format_Date (Date : Ada.Calendar.Time) return Serialized_Timestamp;
+   function Format_Date
+     (Timestamp : Time) return Serialized_Timestamp;
    --  Return Date represented as a little-endian 64-bit Unix timestamp
 
    procedure Write_Trace_File
      (Buffers      : Unit_Coverage_Buffers_Array;
       Program_Name : String := Ada.Command_Line.Command_Name;
       Filename     : String := "";
-      Exec_Date    : Ada.Calendar.Time := Ada.Calendar.Clock;
+      Exec_Date    : Time := Clock;
       User_Data    : String := "");
    --  Write a trace file in Filename to contain the data in Buffers.
    --
@@ -57,5 +63,8 @@ package GNATcov_RTS.Traces.Output.Files is
    --
    --  Program_Name, Exec_Date, and User_Data are used to fill the
    --  corresponding metadata in the written trace file.
+   --
+   --  Exec_Date is given to produce the Timestamp. Use the current
+   --  time by default.
 
 end GNATcov_RTS.Traces.Output.Files;

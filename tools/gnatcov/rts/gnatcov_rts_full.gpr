@@ -15,4 +15,6 @@ library project GNATcov_RTS_Full is
    package Compiler is
       for Default_Switches ("Ada") use ("-O2", "-g");
    end Compiler;
+
+   for Languages use ("Ada", "C");
 end GNATcov_RTS_Full;

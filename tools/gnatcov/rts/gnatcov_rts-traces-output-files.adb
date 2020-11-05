@@ -24,17 +24,11 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Ada.Calendar.Conversions;
 with Ada.Command_Line;
 with Ada.Direct_IO;
-
-with Interfaces;
-with Interfaces.C;
+with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces.C.Strings;
-
 with System;
-
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 
 package body GNATcov_RTS.Traces.Output.Files is
 
@@ -76,7 +70,7 @@ package body GNATcov_RTS.Traces.Output.Files is
          function getenv (Name : chars_ptr) return chars_ptr;
          pragma Import (C, getenv);
 
-         C_Name : chars_ptr := New_String (Name);
+         C_Name : chars_ptr          := New_String (Name);
          Result : constant chars_ptr := getenv (C_Name);
       begin
          Free (C_Name);
@@ -102,7 +96,7 @@ package body GNATcov_RTS.Traces.Output.Files is
       end Basename;
 
       Env_Trace_Filename : constant String :=
-         Environment_Variable (GNATCOV_TRACE_FILE);
+        Environment_Variable (GNATCOV_TRACE_FILE);
 
    begin
       if Env_Trace_Filename /= "" then
@@ -112,20 +106,28 @@ package body GNATcov_RTS.Traces.Output.Files is
       end if;
    end Default_Trace_Filename;
 
+   -----------
+   -- Clock --
+   -----------
+
+   function Clock return Time is
+      function time return Time;
+      pragma Import (C, time, "gnatcov_rts_time_to_uint64");
+   begin
+      return time;
+   end Clock;
+
    -----------------
    -- Format_Date --
    -----------------
 
-   function Format_Date (Date : Ada.Calendar.Time) return Serialized_Timestamp
-   is
-      use Ada.Calendar;
-      use Interfaces.C;
-      Timestamp : long := Ada.Calendar.Conversions.To_Unix_Time (Date);
-      Result    : Serialized_Timestamp;
+   function Format_Date (Timestamp : Time) return Serialized_Timestamp is
+      Result : Serialized_Timestamp;
+      TS     : Time := Timestamp;
    begin
       for I in Result'Range loop
-         Result (I) := Character'Val (Timestamp mod 2 ** 8);
-         Timestamp := Timestamp / 2 ** 8;
+         Result (I) := Character'Val (TS mod 2**8);
+         TS         := TS / 2**8;
       end loop;
       return Result;
    end Format_Date;
@@ -151,7 +153,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    end Write_Bytes;
 
    procedure Write_Trace_File is new
-      GNATcov_RTS.Traces.Output.Generic_Write_Trace_File (Bytes_IO.File_Type);
+     GNATcov_RTS.Traces.Output.Generic_Write_Trace_File (Bytes_IO.File_Type);
 
    ----------------------
    -- Write_Trace_File --
@@ -161,7 +163,7 @@ package body GNATcov_RTS.Traces.Output.Files is
      (Buffers      : Unit_Coverage_Buffers_Array;
       Program_Name : String := Ada.Command_Line.Command_Name;
       Filename     : String := "";
-      Exec_Date    : Ada.Calendar.Time := Ada.Calendar.Clock;
+      Exec_Date    : Time := Clock;
       User_Data    : String := "")
    is
       File : Bytes_IO.File_Type;

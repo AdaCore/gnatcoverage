@@ -309,7 +309,7 @@ install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 install-gnatcov_rts:
 	$(RM) -r $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
 	$(MKDIR) $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
-	$(CP) -r rts/*.gpr rts/*.ad* $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
+	$(CP) -r rts/*.gpr rts/*.ad* rts/*.c rts/*.h $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
 
 install-lib:
 	$(MKDIR) $(PREFIX)/lib/gnatcoverage
