@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2017, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -18,6 +18,8 @@
 
 with Ada.Calendar.Formatting;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Characters.Latin_1;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Interfaces;
@@ -588,10 +590,16 @@ package body Annotations is
    begin
       if M.SCO /= No_SCO_Id then
          return To_Lower (SCO_Kind'Image (Kind (M.SCO)))
-           & " """ & SCO_Text (M.SCO) & '"'
+           & (if Switches.Show_MCDC_Vectors and then Kind (M.SCO) = Condition
+              then Index (M.SCO)'Image & " ("
+              else " ")
+           & """" & SCO_Text (M.SCO) & '"'
            & " at "
            & Img (First_Sloc (M.SCO).L.Line) & ":"
            & Img (First_Sloc (M.SCO).L.Column)
+           & (if Switches.Show_MCDC_Vectors and then Kind (M.SCO) = Condition
+              then ")"
+              else "")
            & (if M.Tag = No_SC_Tag
               then ""
               else " (from " & Tag_Provider.Tag_Name (M.Tag) & ")")
@@ -688,5 +696,51 @@ package body Annotations is
          return Annotate_Unknown;
       end if;
    end To_Annotation_Format;
+
+   --------------------------
+   -- Output_Multiline_Msg --
+   --------------------------
+
+   procedure Output_Multiline_Msg
+     (Output           : Ada.Text_IO.File_Type;
+      Text             : String) is
+      use Ada.Text_IO;
+      use Ada.Strings.Fixed;
+
+      Line_First : Positive := Text'First;
+      --  Index of the first charcter of the current line being handled
+
+      Line_Last : Natural;
+      --  Index of the LF character terminating the current line being handled
+
+      EOL : constant String := "" & Ada.Characters.Latin_1.LF;
+   begin
+      loop
+         --  Find the index of the next LF character
+
+         Line_Last := Index
+           (Source => Text,
+            Pattern => EOL,
+            From => Line_First);
+
+         if Line_Last = 0 then
+            --  No LF found, so there is only one line remaining.
+            --  Print the whole string.
+
+            Put (Output, Text (Line_First .. Text'Last));
+         else
+            --  LF found at index Line_Last, print until Line_Last - 1 since
+            --  we dont want to print the LF character itself.
+
+            Put (Output, Text (Line_First .. Line_Last - 1));
+            New_Line (Output);
+
+            --  Move past LF character to get first character of the next line
+
+            Line_First := Line_Last + 1;
+         end if;
+         exit when Line_Last = 0 or else Line_First > Text'Last;
+      end loop;
+   end Output_Multiline_Msg;
 
 end Annotations;

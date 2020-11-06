@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Text_IO;
+
 with GNAT.Strings; use GNAT.Strings;
 
 with Binary_Files;          use Binary_Files;
@@ -192,5 +194,11 @@ private
 
    procedure Inc_Exemption_Count (Sloc : Source_Location);
    --  Increment the exempted line/message counter for exemption at sloc
+
+   procedure Output_Multiline_Msg
+     (Output : Ada.Text_IO.File_Type;
+      Text   : String);
+   --  Output the given Text on Output, replacing all
+   --  Ada.Characters.Latin_1.LF by a call to Ada.Text_IO.Newline.
 
 end Annotations;

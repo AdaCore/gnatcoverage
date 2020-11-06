@@ -77,7 +77,8 @@ package Command_Line is
       Opt_Pretty_Print,
       Opt_Keep_Reading_Traces,
       Opt_Externally_Built_Projects,
-      Opt_GNAT_Pragmas);
+      Opt_GNAT_Pragmas,
+      Opt_Show_MCDC_Vectors);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -420,7 +421,15 @@ package Command_Line is
         (Long_Name => "--gnat-pragmas",
          Help      => "Dump the list of GNAT pragmas, from gnat_util.",
          Commands  => (Cmd_Dump_Pragmas => True, others => False),
-         Internal  => True));
+         Internal  => True),
+
+      Opt_Show_MCDC_Vectors => Create
+        (Long_Name => "--show-mcdc-vectors",
+         Help      => "If set, show MCDC evaluation vectors encountered for"
+                      & " decisions where there is at least a MCDC"
+                      & " violation on one of the conditions.",
+         Commands  => (Cmd_Coverage => True, others => False),
+         Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

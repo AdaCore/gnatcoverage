@@ -50,6 +50,10 @@ package Switches is
    --  If True, try to dump the list of names for units of interest. This
    --  corresponds to the --dump-units-to command-line option.
 
+   Show_MCDC_Vectors : Boolean := False;
+   --  If True, show the evaluation vectors for each decision where there is
+   --  an MCDC violation.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

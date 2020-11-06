@@ -447,7 +447,7 @@ package body Annotations.Report is
          procedure Output_Message (C : Message_Vectors.Cursor) is
             M     : Message renames Message_Vectors.Element (C);
             Msg   : constant String := To_String (M.Msg);
-            First : Natural         := Msg'First;
+            First : Natural := Msg'First;
 
          begin
             if M.SCO /= No_SCO_Id then
@@ -459,7 +459,12 @@ package body Annotations.Report is
                else
                   Put
                     (Output.all,
-                     To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
+                     To_Lower (SCO_Kind'Image (Kind (M.SCO)))
+                     & (if Switches.Show_MCDC_Vectors
+                       and then Kind (M.SCO) = Condition
+                       then Index (M.SCO)'Image
+                       & " (""" & SCO_Text (M.SCO) & """) "
+                       else " "));
                end if;
 
             else
@@ -467,7 +472,10 @@ package body Annotations.Report is
                Put (Output.all, ": ");
             end if;
 
-            Put (Output.all, Msg (First .. Msg'Last));
+            Output_Multiline_Msg
+              (Output => Output.all,
+               Text   => Msg (First .. Msg'Last));
+
             if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
                Put (Output.all,
                     " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");

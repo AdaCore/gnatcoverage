@@ -1302,42 +1302,33 @@ package body SC_Obligations is
       end if;
    end Dominant;
 
-   -------------------
-   -- Dump_Decision --
-   -------------------
+   ----------------------
+   -- Expression_Image --
+   ----------------------
 
-   procedure Dump_Decision (SCO : SCO_Id) is
+   function Expression_Image (Op_SCO : SCO_Id) return Unbounded_String is
+   begin
+      case Kind (Op_SCO) is
+         when Condition =>
+            return To_Unbounded_String ('C' & Img (Integer (Index (Op_SCO))));
 
-      procedure Visit (Op_SCO : SCO_Id);
-      --  Recursively visit Op_SCO and display expression
+         when Decision =>
+            return Expression_Image (SCO_Vector.Reference (Op_SCO).Expression);
 
-      -----------
-      -- Visit --
-      -----------
-
-      procedure Visit (Op_SCO : SCO_Id) is
-         Binary : Boolean;
-      begin
-         case Kind (Op_SCO) is
-            when Condition =>
-               Put ('C' & Img (Integer (Index (Op_SCO))));
-
-            when Decision =>
-               Visit (SCO_Vector.Reference (Op_SCO).Expression);
-
-            when Operator =>
-               Put ('(');
-               Binary := Op_Kind (Op_SCO) /= Op_Not;
-
+         when Operator =>
+            declare
+               Result : Unbounded_String := To_Unbounded_String ("(");
+               Binary : constant Boolean := Op_Kind (Op_SCO) /= Op_Not;
+            begin
                for J in Operand_Position'Range loop
                   declare
                      Opnd_SCO : constant SCO_Id := Operand (Op_SCO, J);
                   begin
                      if J = Right then
                         case Op_Kind (Op_SCO) is
-                           when Op_Not      => Put ("not ");
-                           when Op_And_Then => Put (" and then ");
-                           when Op_Or_Else  => Put (" or else ");
+                        when Op_Not      => Append (Result, "not ");
+                        when Op_And_Then => Append (Result, " and then ");
+                        when Op_Or_Else  => Append (Result, " or else ");
                         end case;
                      end if;
 
@@ -1346,24 +1337,29 @@ package body SC_Obligations is
                         null;
                      else
                         pragma Assert (J = Right or else Binary);
-                        Visit (Opnd_SCO);
+                        Append (Result, Expression_Image (Opnd_SCO));
                      end if;
                   end;
                end loop;
 
-               Put (')');
+               return Result & ')';
+            end;
 
-            when others =>
-               raise Program_Error;
-         end case;
-      end Visit;
+         when others =>
+            return To_Unbounded_String
+              ("Expected expression SCO kind (Decision, Condition or Operator)"
+               & ", but got " & SCO_Kind'Image (Kind (Op_SCO)));
+      end case;
+   end Expression_Image;
 
-   --  Start of processing for Dump_Decision
+   -------------------
+   -- Dump_Decision --
+   -------------------
 
+   procedure Dump_Decision (SCO : SCO_Id) is
    begin
       Put_Line ("Reconstructed expression for " & Image (SCO));
-      Visit (SCO);
-      New_Line;
+      Put_Line (To_String (Expression_Image (SCO)));
    end Dump_Decision;
 
    ---------------

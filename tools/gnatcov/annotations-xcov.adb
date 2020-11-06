@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -127,7 +127,7 @@ package body Annotations.Xcov is
      (Pp : in out Xcov_Pretty_Printer;
       M  : Message) is
    begin
-      Put (Pp.Xcov_File, Message_Annotation (M));
+      Output_Multiline_Msg (Pp.Xcov_File, Message_Annotation (M));
       New_Line (Pp.Xcov_File);
    end Pretty_Print_Message;
 

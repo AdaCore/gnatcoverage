@@ -16,8 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Latin_1;
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
+with Ada.Containers.Ordered_Maps;
 with Ada.Streams; use Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Tags;
@@ -776,11 +778,78 @@ package body Coverage.Source is
       --  Condition whose independent influence is shown by the vector pair
       --  being considered.
 
+      package Condition_Set is new
+        Ada.Containers.Ordered_Sets (Any_Condition_Index);
+
+      type Cond_Set_Access is access Condition_Set.Set;
+
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Condition_Set.Set, Cond_Set_Access);
+
+      package Evaluation_to_Cond_Set_Map is new Ada.Containers.Ordered_Maps
+        (Key_Type => Evaluation, Element_Type => Cond_Set_Access);
+
+      Eval_Cond_Set_Map : Evaluation_to_Cond_Set_Map.Map;
+      --  Map between evaluations and the conditions for which they are in a
+      --  pair demonstrating independent influence.
+
       SCO_State : Line_State := No_Code;
 
       E1, E2 : Cursor;
 
+      Last_Cond_No_Pair : Condition_Index;
+      --  Condition index for which to dump the message. As the DHTML output
+      --  only displays the last registered violation for a line, we must
+      --  emit the evaluation vectors on the last violation to report.
+
+      function Emit_Evaluation_Vector_Message return String;
+      --  List all the evaluation vectors, along with the conditions for which
+      --  they are in a pair demonstrating independent influence.
+
+      ------------------------------------
+      -- Emit_Evaluation_Vector_Message --
+      ------------------------------------
+
+      function Emit_Evaluation_Vector_Message return String is
+         Msg         : Unbounded_String;
+         No_Pair_Msg : Unbounded_String;
+         EOL         : constant String := "" & Ada.Characters.Latin_1.LF;
+      begin
+         Msg := To_Unbounded_String (EOL & "Decision of the form ")
+           & Expression_Image (SCO) & EOL;
+         Append (Msg, "Evaluation vectors found:" & EOL);
+
+         for Eval of SCI.Evaluations loop
+            declare
+               Cond_Set : Condition_Set.Set renames
+                 Eval_Cond_Set_Map.Element (Eval).all;
+            begin
+               if not Cond_Set.Is_Empty then  --  This evaluation is in a pair
+                  Append (Msg, "    " & Image (Eval)
+                          & "  In a pair for ");
+                  for Cond of Cond_Set loop
+                     Append (Msg, 'C' & Img (Integer (Cond)));
+                     if Cond < Cond_Set.Last_Element then
+                        Append (Msg, ", ");
+                     end if;
+                  end loop;
+                  Append (Msg, EOL);
+               else
+                  Append
+                    (No_Pair_Msg,
+                     "    " & Image (Eval) & "  Not part of any pair" & EOL);
+               end if;
+            end;
+         end loop;
+
+         return To_String (Msg & No_Pair_Msg);
+      end Emit_Evaluation_Vector_Message;
+
    begin
+      for Cur of SCI.Evaluations loop
+         Eval_Cond_Set_Map.Include (Cur, new Condition_Set.Set);
+      end loop;
+
       E1 := SCI.Evaluations.First;
       while E1 /= No_Element loop
          E2 := Next (E1);
@@ -789,9 +858,17 @@ package body Coverage.Source is
               (Element (E1),
                Element (E2),
                Unique_Cause => MCDC_Level = UC_MCDC);
-
             --  Record and report the first eval pair that shows independent
             --  influence of Influent_Condition.
+
+            if Switches.Show_MCDC_Vectors
+              and then Influent_Condition /= No_Condition_Index
+            then
+               Eval_Cond_Set_Map.Element
+                 (Element (E1)).Include (Influent_Condition);
+               Eval_Cond_Set_Map.Element
+                 (Element (E2)).Include (Influent_Condition);
+            end if;
 
             if Influent_Condition /= No_Condition_Index
                  and then
@@ -812,9 +889,20 @@ package body Coverage.Source is
          Next (E1);
       end loop;
 
+      --  Find the last condition which has a violation
+
+      if Switches.Show_MCDC_Vectors then
+         for J in reverse Indep'Range loop
+            if not Indep (J) then
+               Last_Cond_No_Pair := J;
+               exit;
+            end if;
+         end loop;
+      end if;
+
       --  Iterate over conditions and report
 
-      for J in 0 .. Indep'Last loop
+      for J in Indep'Range loop
          if not Indep (J) then
             Update_State
               (SCO_State,
@@ -823,13 +911,19 @@ package body Coverage.Source is
             Report_Violation
               (SCO => Condition (SCO, J),
                Tag => SCI.Tag,
-               Msg => "has no independent influence pair, MC/DC not achieved");
+               Msg => "has no independent influence pair, MC/DC not achieved"
+               & (if Switches.Show_MCDC_Vectors and then J = Last_Cond_No_Pair
+                 then Emit_Evaluation_Vector_Message else ""));
          else
             Update_State
               (SCO_State,
                Condition (SCO, J), SCI.Tag,
                MCDC_Level, Covered);
          end if;
+      end loop;
+
+      for Cur of SCI.Evaluations loop
+         Free (Eval_Cond_Set_Map (Cur));
       end loop;
 
       --  If we have degraded origins for SCO but we computed MC/DC coverage

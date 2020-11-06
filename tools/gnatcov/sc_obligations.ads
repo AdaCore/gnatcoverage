@@ -20,6 +20,7 @@
 
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
 
 with GNAT.Regexp;
 with GNAT.SHA1;
@@ -415,6 +416,10 @@ package SC_Obligations is
    procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
    --  Flag SCO to indicate that the value of its (only) condition is known
    --  only modulo an arbitrary negation.
+
+   function Expression_Image
+     (Op_SCO : SCO_Id) return Ada.Strings.Unbounded.Unbounded_String;
+   --  Pretty_print the expression represented by the SCO.
 
    --------------------------
    -- Sloc -> SCO_Id index --

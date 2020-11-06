@@ -706,6 +706,9 @@ procedure GNATcov is
       Pretty_Print           := Args.Bool_Args (Opt_Pretty_Print);
       Keep_Reading_Traces    := Args.Bool_Args (Opt_Keep_Reading_Traces);
       Dump_Units             := Args.String_Args (Opt_Dump_Units_To).Present;
+      Show_MCDC_Vectors      := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
+                                 or else All_Messages
+                                 or else Verbose);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"
