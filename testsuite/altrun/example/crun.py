@@ -20,7 +20,7 @@
 import os
 import optparse
 
-import gnatpython.ex
+import e3.os.process
 
 
 class Runner:
@@ -99,7 +99,7 @@ class Runner:
             print("gnatcov: missing EXE for run")
             os.exit(1)
 
-        gnatpython.ex.Run(
+        e3.os.process.Run(
             ['gnatcov', 'run'] + self.run_command_line() + self.args)
 
         print("==============================================")

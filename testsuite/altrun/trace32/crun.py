@@ -14,7 +14,7 @@ import t32api
 import sys
 import optparse
 import os
-import gnatpython.ex
+import e3.os.process
 
 altrun_dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -57,7 +57,7 @@ def do(command):
     otherwise."""
 
     ofile = "cmd_.out"
-    p = gnatpython.ex.Run(to_list(command), output=ofile)
+    p = e3.os.process.Run(to_list(command), output=ofile)
 
     if p.status != 0:
         log("command '%s' failed" % command)
