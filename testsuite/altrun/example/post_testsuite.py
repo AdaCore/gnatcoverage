@@ -3,5 +3,5 @@
 
 import os
 
-print "Post Testsuite example hook running !!"
-print "Current directory is " + os.getcwd()
+print("Post Testsuite example hook running !!")
+print("Current directory is " + os.getcwd())
