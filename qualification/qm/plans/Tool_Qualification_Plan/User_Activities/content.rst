@@ -7,7 +7,6 @@ perform a set of activities, described hereafter:
 
 .. qmlink::
 
-   Verification_Results_Analysis
    Qualification
    Usage
    Archiving

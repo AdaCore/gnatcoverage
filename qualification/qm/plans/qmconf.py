@@ -21,4 +21,4 @@ else:
     print common_file
     print "from: %s" % __file__
 
-doc_id="TEC.????-???"
+doc_id = plans_doc_id

@@ -129,8 +129,8 @@ In the optional sequence at the end of driver sources:
   ``c!:"B"`` to denote the second condition on a line with ``V := A and then
   B;``.
 
-The following example consists of functional code (``in_range.adb``)
-and a driver::
+The following example illustrates, with a single functional unit
+``in_range.adb`` and an associated driver::
 
     1:  function In_Range (X , Min, Max : Integer) return Boolean is
     2:  begin
@@ -162,7 +162,7 @@ the referenced lines in the functional code::
       --  /Xin/      l- ## s-
 
 The ``<expected .xcov note>`` (2nd) column for ``in_range.adb`` states
-that we expect a ``--annotate=xcov`` output with::
+that we expect a ``--annotate=xcov`` output like::
 
       expected notes here
         v
@@ -176,6 +176,9 @@ that we expect a ``--annotate=xcov`` output with::
       8 -:       return True;     -- # Xin
       9 .:    end if;
      10 .: end;
+
+... with a '+' (l+) on line 3, selected by /XcmpMin/, a '-' (l-) on
+line 4 selected by /XoutMin/ etc.
 
 The ``<expected report notes>`` (3rd) column indicates what we're expecting
 from the qualified output out of ``gnatcov --annotate=report`` :
@@ -196,6 +199,31 @@ This will yield an expected section of the report output such as::
       in_range.adb:4:7: statement not executed
       in_range.adb:8:7: statement not executed
       2 violations
+
+In rare circumstances, we need to state variations on expectations
+depending on the kind of coverage criteria being assessed, for
+instance full statement coverage but only partial coverage for
+stmt+decision. To this effect, each expected note indication can be
+preceded by an ``<applicable-level> =>`` prefix where
+``<applicable-level>`` is a set of letters each denoting a possible
+level for which the note is expected, as in the following table:
+
+  ======  =======================
+  Letter  Denotes --level=...
+  ======  =======================
+  s       stmt
+  d       stmt+decision
+  m       stmt+mcdc
+  u       stmt+uc_mcdc
+  ======  =======================
+
+We can then have, say, .xcov expectations like ``s => l+, dmu => l!``
+to state that we expect full coverage (l+) for a line if we're running
+with ``--level=stmt`` (s), and partial coverage (l!) on that line for
+the other levels (dmu). This selection mechanism works the same for
+expected report notes, for which we could have, say, ``s => 0, dmu =>
+dF-`` on a line where we expect a statement to be executed but
+containing a decision evaluated True only.
 
 Extra details on semantics
 --------------------------

@@ -1,3 +1,4 @@
+import os
 
 opcond_section_title = "Operational Conditions of Use"
 torintro_section_title = "Document Purpose and Organization"
@@ -34,9 +35,9 @@ rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.macro('tor_doc', r'*TOR*') \
     + writer.macro('str_doc', r'*STR*') \
     + writer.macro('tqa_doc', '|tqa_doc_title|') \
-    + writer.macro('plans_doc_id', r'*TEC.????-???*') \
-    + writer.macro('tor_doc_id', r'*TEC.????-???*') \
-    + writer.macro('str_doc_id', r'*TEC.????-???*') \
+    + writer.macro('plans_doc_id', r'*' + plans_doc_id + r'*') \
+    + writer.macro('tor_doc_id', r'*' + tor_doc_id + r'*') \
+    + writer.macro('str_doc_id', r'*' + str_doc_id + r'*') \
     + writer.macro('opcond_section_title', r'%s' % opcond_section_title) \
     + writer.macro('opcond_section_title_ref', r'*%s*' % opcond_section_title) \
     + writer.macro('torintro_section_title', r'%s' % torintro_section_title) \
@@ -54,3 +55,8 @@ rst_prolog = writer.macro('project_command', '``gnatcov``') \
     + writer.macro('standard', 'DO-178C/ED-12C') \
     + writer.macro('tool_standard', 'DO-330/ED-215') \
     + writer.macro('client', '`GENERIC CLIENT`')
+
+# We expect to be called through genbundle.py, which should export an
+# environment variable stating what --dolevel it was passed ('doA', 'doB',
+# or 'doC'). Expose the significant letter to documents:
+rst_prolog += writer.macro('dolevel', os.environ.get('GENBUNDLE_DOLEVEL')[-1])

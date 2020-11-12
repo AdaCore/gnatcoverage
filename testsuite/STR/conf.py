@@ -204,7 +204,7 @@ latex_documents = [
 
 # Additional stuff for the LaTeX preamble, in the QM fashion
 
-doc_id = "TEC.????-???"
+doc_id = str_doc_id
 
 def project_settings():
     full_document_name = project_name
@@ -219,6 +219,28 @@ def project_settings():
 
 latex_preamble = project_settings() + r"""
 \RequirePackage{lastpage}
+
+\addtocontents{toc}{\protect\thispagestyle{mytoc}}
+
+% Arrange to have explicit notifications on pages
+% intentionally left blank
+\makeatletter
+    \def\cleardoublepage{\clearpage%
+        \if@twoside
+            \ifodd\c@page\else
+                \vspace*{\fill}
+                \hfill
+                \begin{center}
+                \textit{This page intentionally left blank.}
+                \end{center}
+                \vspace{\fill}
+                \thispagestyle{empty}
+                \newpage
+                \if@twocolumn\hbox{}\newpage\fi
+            \fi
+        \fi
+    }
+\makeatother
 
 \makeatletter
 \renewcommand{\maketitle}{%
@@ -258,6 +280,14 @@ latex_preamble = project_settings() + r"""
   \fancypagestyle{normal}{
     \fancyhf{}
     \fancyfoot[LE,RO]{{\py@HeaderFamily\thepage\ of \pageref*{LastPage}}}
+    \fancyfoot[LO,RE]{{\py@HeaderFamily \QMFullDocumentName}}
+    \fancyhead[LE,RO]{{\py@HeaderFamily \@title\ \QMVersion}}
+    \renewcommand{\headrulewidth}{0.0pt}
+    \renewcommand{\footrulewidth}{0.4pt}
+  }
+  % Use \pagestyle{mytoc} as the pagestyle for Table Of Contents.
+  \fancypagestyle{mytoc}{
+    \fancyhf{}
     \fancyfoot[LO,RE]{{\py@HeaderFamily \QMFullDocumentName}}
     \fancyhead[LE,RO]{{\py@HeaderFamily \@title\ \QMVersion}}
     \renewcommand{\headrulewidth}{0.0pt}

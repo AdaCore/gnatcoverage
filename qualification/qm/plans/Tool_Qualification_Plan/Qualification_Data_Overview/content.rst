@@ -3,8 +3,11 @@
 Qualification Data Overview
 ===========================
 
-GNATcoverage is qualified as a COTS tool according to guidance of section
-11.3 of [DO-330/ED-215].
+GNATcoverage is qualified as a COTS tool according to guidance of
+section 11.3 of [DO-330/ED-215]. This qualification kit documents the
+activities required for the Tool Developer, and provides
+recommendations for the Tool User to fulfill his part of the required
+activities.
 
 The qualification data that comes with the tool, composing the tool
 *qualification kit*, consists of the following components:

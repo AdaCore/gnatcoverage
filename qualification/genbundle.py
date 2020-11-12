@@ -216,11 +216,13 @@ def warn_if (p, msg):
     if p:
         print "\n!!! WARNING: %s !!!\n" % msg
 
-def run_list (cmd, dir=None):
+def run_list (cmd, dir=None, env=None):
     """Execute the provided CMD command-list (command name + arguments),
     temporarily switching to the DIR directory unless None, dumping a .log
     file tracking the command output in the directory where the command
-    executes."""
+    executes. ENV, if not none, is expected to hold a dictionary of
+    environment variable values to be made visible to the executed command, on
+    top of os.environ."""
 
     oriwd = os.getcwd()
     print "from : %s" % oriwd
@@ -232,15 +234,16 @@ def run_list (cmd, dir=None):
     print "run  : %s" % ' '.join(cmd)
 
     out = os.path.basename(cmd[0])+".log"
-    p = Run (cmd, output=out, env=None)
+    p = Run (cmd, output=out, env=env, ignore_environ=False)
+
     fail_if (
         p.status != 0, "execution failed\n"
         + "log was:\n" + contents_of(out))
 
     os.chdir (oriwd)
 
-def run (s, dir=None):
-    run_list (s.split(), dir)
+def run (s, dir=None, env=None):
+    run_list (s.split(), dir, env=env)
 
 def announce (s):
     print "=========== " + s
@@ -554,7 +557,8 @@ class QMAT:
 
         mkdir ("build")
         run ("qmachine model.xml -l scripts/generate_%s_%s.py" \
-                 % (part, self.this_docformat))
+                 % (part, self.this_docformat),
+             env={'GENBUNDLE_DOLEVEL': self.o.dolevel})
 
         self.__latch_into (
                 dir=self.itemsdir(), part=part, toplevel=False)
