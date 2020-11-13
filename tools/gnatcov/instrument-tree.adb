@@ -1610,9 +1610,9 @@ package body Instrument.Tree is
                            else N_Params.Children_Count)
             loop
                declare
-                  P_Spec : constant Param_Spec :=
+                  P_Spec           : constant Param_Spec :=
                     N_Params.Children (J).As_Param_Spec;
-                  P_Type : constant Type_Expr := P_Spec.F_Type_Expr;
+                  P_Type           : constant Type_Expr := P_Spec.F_Type_Expr;
                   Formal_Type_Name : constant Wide_Wide_String :=
                     "Par" & To_Wide_Wide_String (Img (J));
 
@@ -1672,7 +1672,7 @@ package body Instrument.Tree is
 
                            Formal_Subt_Decl : constant Base_Type_Decl :=
                              Formal_Subtype_Indication.P_Designated_Type_Decl;
-                           Is_Controlling : constant Boolean :=
+                           Is_Controlling   : constant Boolean :=
                              (if Ctrl_Type.Is_Null
                               then False
                               else
