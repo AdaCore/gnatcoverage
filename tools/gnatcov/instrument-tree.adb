@@ -1558,12 +1558,6 @@ package body Instrument.Tree is
          Saved_Dominant : constant Dominant_Info := Current_Dominant;
          --  Save last statement in current sequence as dominant
 
-         Orig_Subp_Index : constant Positive :=
-           Saved_Insertion_Info.Index +
-             Saved_Insertion_Info.Rewriting_Offset;
-         --  Original position of the degenerate subprogram in the rewritten
-         --  tree.
-
          Append_List : constant Node_Rewriting_Handle :=
             (if Saved_Insertion_Info.RH_Private_List
                   /= No_Node_Rewriting_Handle
@@ -1796,16 +1790,13 @@ package body Instrument.Tree is
             return;
          end if;
 
-         --  Remove the original declaration from the tree
+         --  Remove the original declaration (N) from the tree. Note that since
+         --  .RH_List (the instrumented list of declarations from which N must
+         --  be removed) may contain more elements than before instrumenting.
+         --  So in order to remove it, we must recompute N's index in .RH_List.
 
-         pragma Assert
-           (Orig_Subp =
-              Child
-                (Saved_Insertion_Info.RH_List,
-                 Orig_Subp_Index));
          Remove_Child
-           (Saved_Insertion_Info.RH_List,
-            Orig_Subp_Index);
+           (Saved_Insertion_Info.RH_List, Index_In_Rewriting_Tree (N));
          Saved_Insertion_Info.Rewriting_Offset :=
            Saved_Insertion_Info.Rewriting_Offset - 1;
 

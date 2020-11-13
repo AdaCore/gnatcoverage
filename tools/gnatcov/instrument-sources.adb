@@ -622,6 +622,27 @@ package body Instrument.Sources is
       end if;
    end Expression_Type;
 
+   -----------------------------
+   -- Index_In_Rewriting_Tree --
+   -----------------------------
+
+   function Index_In_Rewriting_Tree (N : Ada_Node'Class) return Positive is
+      RH : constant Node_Rewriting_Handle := Handle (N);
+      P  : constant Node_Rewriting_Handle := Parent (RH);
+   begin
+      pragma Assert (P /= No_Node_Rewriting_Handle);
+      for I in 1 .. Children_Count (P) loop
+         if Child (P, I) = RH then
+            return I;
+         end if;
+      end loop;
+
+      --  If we reach this point, this means the rewriting tree is corrupted (a
+      --  node does not belong to its parent's children).
+
+      return (raise Program_Error with "corrupted rewriting tree");
+   end Index_In_Rewriting_Tree;
+
    ---------------------------
    -- Add_Auto_Dump_Buffers --
    ---------------------------

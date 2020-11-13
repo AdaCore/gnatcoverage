@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2019, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -299,5 +299,9 @@ private package Instrument.Sources is
    --  Ensure that the unit being instrumented has a dependency on the named
    --  Unit, which must be specified in the normalized form expected for
    --  FQN_Sets (lower case, period separated, fully qualified).
+
+   function Index_In_Rewriting_Tree (N : Ada_Node'Class) return Positive;
+   --  Assuming that the rewriting node for N has a parent, return its index in
+   --  that parent's list of children.
 
 end Instrument.Sources;
