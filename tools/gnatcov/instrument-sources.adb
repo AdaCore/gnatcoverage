@@ -17,7 +17,9 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Conversions; use Ada.Characters.Conversions;
+with Ada.Containers;
 with Ada.Exceptions;
+with Ada.Strings;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
@@ -76,6 +78,13 @@ package body Instrument.Sources is
       E   : Expr) return Base_Type_Decl;
    --  Wrapper around E.P_Expression_Type, logging a warning and returning
    --  Standard.Boolean if unable to determine the type.
+
+   function Referenced_Defining_Name
+     (Main_Name : Ada_Qualified_Name;
+      N         : LAL.Name) return Defining_Name;
+   --  Wrapper around Name.P_Referenced_Defining_Name, logging a warning and
+   --  returning No_Defining_Name if unable to determine the referenced
+   --  defining name.
 
    -------------------------------------
    -- Generation of witness fragments --
@@ -620,6 +629,42 @@ package body Instrument.Sources is
       end if;
    end Expression_Type;
 
+   ------------------------------
+   -- Referenced_Defining_Name --
+   ------------------------------
+
+   function Referenced_Defining_Name
+     (Main_Name : Ada_Qualified_Name;
+      N         : LAL.Name) return Defining_Name
+   is
+      DF : Defining_Name;
+   begin
+      begin
+         DF := N.P_Referenced_Defining_Name;
+
+         if DF.Is_Null then
+            Report
+              (Kind => Warning,
+               Msg  => "Failed to determine referenced defining name while "
+               & "processing the main " & To_Ada (Main_Name) & " (got null "
+               & "defining name)");
+         end if;
+
+      exception
+         when Exc : Property_Error =>
+            Report
+              (Kind => Warning,
+               Msg  => "Failed to determine referenced defining name while "
+               & "processing the main " & To_Ada (Main_Name) & ": "
+               & Ada.Exceptions.Exception_Information (Exc));
+      end;
+      if not DF.Is_Null then
+         return DF;
+      else
+         return No_Defining_Name;
+      end if;
+   end Referenced_Defining_Name;
+
    -----------------------------
    -- Index_In_Rewriting_Tree --
    -----------------------------
@@ -745,6 +790,51 @@ package body Instrument.Sources is
          Nested_Block : Node_Rewriting_Handle;
          Nested_Decls : Node_Rewriting_Handle;
 
+         Main_Name  : constant LAL.Defining_Name :=
+           Subp_Body.F_Subp_Spec.F_Subp_Name;
+         Block_Name : constant Node_Rewriting_Handle :=
+           Create_Identifier (RH, "GNATcov_Original_Main");
+
+         function Replace_FQNs
+           (Node : LAL.Ada_Node'Class) return Visit_Status;
+         --  Callback for Libadalang's Traverse. If Node is a dotted name whose
+         --  prefix refers to Main, rewrite the prefix to refer to the named
+         --  block we create here.
+
+         -----------------
+         -- Replace_FQN --
+         -----------------
+
+         function Replace_FQNs
+           (Node : LAL.Ada_Node'Class) return Visit_Status
+         is
+            Name : Dotted_Name;
+         begin
+            if Node.Kind /= Ada_Dotted_Name then
+               return Into;
+            end if;
+            Name := Node.As_Dotted_Name;
+            if Referenced_Defining_Name (Main, Name.F_Prefix) = Main_Name then
+               declare
+                  Old_Prefix : constant Node_Rewriting_Handle :=
+                    Handle (Name.F_Prefix);
+                  New_Node   : constant Node_Rewriting_Handle :=
+                    Create_Regular_Node
+                      (RH,
+                       Ada_Dotted_Name,
+                       (No_Node_Rewriting_Handle,
+                        Clone (Block_Name)));
+               begin
+                  Replace (Old_Prefix, New_Node);
+                  Set_Child (Handle => New_Node,
+                             Index  => 1,
+                             Child  => Old_Prefix);
+                  return Over;
+               end;
+            end if;
+            return Into;
+         end Replace_FQNs;
+
       begin
          --  Extract the original statements (Old_Stmts) and replace it in the
          --  subprogram body with the new statements.
@@ -755,10 +845,10 @@ package body Instrument.Sources is
          Replace (Old_Stmts, New_Stmts);
 
          --  If the original subprogram has declarations or exception handlers,
-         --  wrap the original statements in a declare block to hold them.
+         --  wrap the original statements in a named block to hold them.
 
          if Subp_Body.F_Decls.F_Decls.Children_Count = 0
-            and then Subp_Body.F_Stmts.F_Exceptions.Children_Count = 0
+           and then Subp_Body.F_Stmts.F_Exceptions.Children_Count = 0
          then
             Nested_Block := Old_Stmts;
          else
@@ -769,13 +859,25 @@ package body Instrument.Sources is
                  (RH, Ada_Declarative_Part,
                   (1 => Create_Node (RH, Ada_Ada_Node_List))));
 
-            Nested_Block := Create_Regular_Node
-              (RH, Ada_Decl_Block,
-               (Nested_Decls, --  F_Decls
-                Old_Stmts,    --  F_Stmts
-                No_Node));    --  F_End_Name
-         end if;
+            Nested_Block := Create_Named_Stmt
+              (RH,
+               Named_Stmt_F_Decl => Create_Named_Stmt_Decl
+                 (RH,
+                  Create_Defining_Name
+                    (RH, Clone (Block_Name)),
+                  No_Node),
+               Named_Stmt_F_Stmt => Create_Regular_Node
+                 (RH, Ada_Decl_Block,
+                  (Nested_Decls,
+                   Old_Stmts,
+                   Clone (Block_Name))));
 
+            --  Change the Qualified names in the Main's declarations and
+            --  statements to be compatible ith the new nested block.
+            Subp_Body.F_Stmts.Traverse (Replace_FQNs'Access);
+            Subp_Body.F_Decls.Traverse (Replace_FQNs'Access);
+
+         end if;
          Append_Child (New_Stmt_List, Nested_Block);
       end;
 
