@@ -150,6 +150,40 @@ package body SC_Obligations is
    --  Return a string representation of the instantiation location denoted
    --  by Inst_Index, which must be in Comp_Unit's instance range.
 
+   type CU_Load_State is record
+      Current_Decision : SCO_Id := No_SCO_Id;
+      --  Decision whose conditions are being processed
+
+      Current_Condition_Index : Any_Condition_Index;
+      --  Index of current condition within the current decision (0-based, set
+      --  to No_Condition_Index, i.e. -1, before the first condition of the
+      --  decision is seen).
+
+      Current_BDD : BDD.BDD_Type;
+      --  BDD of current decision
+
+      Dom_SCO               : SCO_Id          := No_SCO_Id;
+      Dom_Sloc              : Source_Location := No_Location;
+      Dom_Val               : Tristate        := Unknown;
+      Current_Handler_Range : Source_Location_Range := No_Range;
+      --  Dominant information for basic block chaining
+   end record;
+   --  State for the loading of SCOs for a specific CU. Process_Low_Level_SCOs
+   --  creates one instance for each CU, and passes it to each call to
+   --  Process_Low_Level_Entry for that CU.
+
+   procedure Process_Low_Level_Entry
+     (CU          : CU_Id;
+      Source_File : Source_File_Index;
+      SCO_Index   : Nat;
+      State       : in out CU_Load_State;
+      SCO_Map     : access LL_HL_SCO_Map := null);
+   --  Load the low level SCO at SCO_Index into our Internal table, to be part
+   --  of the CU compilation unit for the given source file.
+   --
+   --  Use and update State according to the semantics of its members. See
+   --  Process_Low_Level_SCOs for the semantics of SCO_Map.
+
    -------------------------------
    -- Main SCO descriptor table --
    -------------------------------
@@ -1984,6 +2018,275 @@ package body SC_Obligations is
       Process_Low_Level_SCOs (CU_Index, Main_Source, Deps);
    end Load_SCOs;
 
+   -----------------------------
+   -- Process_Low_Level_Entry --
+   -----------------------------
+
+   procedure Process_Low_Level_Entry
+     (CU          : CU_Id;
+      Source_File : Source_File_Index;
+      SCO_Index   : Nat;
+      State       : in out CU_Load_State;
+      SCO_Map     : access LL_HL_SCO_Map := null)
+   is
+      SCOE : SCOs.SCO_Table_Entry renames SCOs.SCO_Table.Table (SCO_Index);
+
+      function Make_Condition_Value return Tristate;
+      --  Map condition value code (t/f/c) in SCOE.C2 to Tristate
+
+      function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id;
+      --  Allocate a new SCO for an operator
+
+      procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor);
+      --  Set BDD of decision to Current_BDD
+
+      procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor);
+      --  Update the slocs of a decision SCOD from those of the condition in
+      --  the current SCOE.
+
+      function Make_Sloc
+        (SCO_Source_Loc : SCOs.Source_Location)
+         return Local_Source_Location;
+      --  Build a Slocs.Source_Location record from the low-level SCO Sloc info
+
+      function Add_SCO (SCOD : SCO_Descriptor) return SCO_Id;
+      --  Add a high level SCO descriptor for this low level SCO
+
+      -------------
+      -- Add_SCO --
+      -------------
+
+      function Add_SCO (SCOD : SCO_Descriptor) return SCO_Id is
+         New_SCO : SCO_Id;
+      begin
+         SCO_Vector.Append (SCOD);
+         New_SCO := SCO_Vector.Last_Index;
+         if SCO_Map /= null then
+            SCO_Map (SCO_Index) := New_SCO;
+         end if;
+         return New_SCO;
+      end Add_SCO;
+
+      ---------------
+      -- Make_Sloc --
+      ---------------
+
+      function Make_Sloc
+        (SCO_Source_Loc : SCOs.Source_Location)
+         return Local_Source_Location
+      is
+         use type SCOs.Source_Location;
+      begin
+         if SCO_Source_Loc = SCOs.No_Source_Location then
+            return No_Local_Location;
+         end if;
+
+         return
+           (Line   => Natural (SCO_Source_Loc.Line),
+            Column => Natural (SCO_Source_Loc.Col));
+      end Make_Sloc;
+
+      From_Sloc : constant Local_Source_Location := Make_Sloc (SCOE.From);
+      To_Sloc   : constant Local_Source_Location := Make_Sloc (SCOE.To);
+      SCO_Range : constant Source_Location_Range :=
+                    (Source_File, (From_Sloc, To_Sloc));
+
+      --------------------------
+      -- Make_Condition_Value --
+      --------------------------
+
+      function Make_Condition_Value return Tristate is
+      begin
+         case SCOE.C2 is
+            when 'f' => return False;
+            when 't' => return True;
+            when 'c' => return Unknown;
+
+            when others => raise Program_Error with
+                 "invalid SCO condition value code: " & SCOE.C2;
+         end case;
+      end Make_Condition_Value;
+
+      ----------------------
+      -- New_Operator_SCO --
+      ----------------------
+
+      function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id is
+      begin
+         pragma Assert (State.Current_Decision /= No_SCO_Id);
+         return Add_SCO ((Kind       => Operator,
+                          Origin     => CU,
+                          Sloc_Range => SCO_Range,
+                          Op_Kind    => Kind,
+                          others     => <>));
+      end New_Operator_SCO;
+
+      -------------------------
+      -- Update_Decision_BDD --
+      -------------------------
+
+      procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor) is
+      begin
+         SCOD.Decision_BDD    := State.Current_BDD;
+         SCOD.Last_Cond_Index := State.Current_Condition_Index;
+      end Update_Decision_BDD;
+
+      --------------------------
+      -- Update_Decision_Sloc --
+      --------------------------
+
+      procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor) is
+      begin
+         if SCOD.Sloc_Range.Source_File = No_Source_File then
+            SCOD.Sloc_Range.Source_File := Source_File;
+         end if;
+
+         if SCOD.Sloc_Range.L.First_Sloc = No_Local_Location then
+            SCOD.Sloc_Range.L.First_Sloc := From_Sloc;
+         end if;
+
+         if SCOD.Sloc_Range.L.Last_Sloc = No_Local_Location
+           or else SCOD.Sloc_Range.L.Last_Sloc < To_Sloc
+         then
+            SCOD.Sloc_Range.L.Last_Sloc := To_Sloc;
+         end if;
+      end Update_Decision_Sloc;
+
+      New_SCO : SCO_Id;
+
+   --  Start of processing for Process_Low_Level_Entry
+
+   begin
+      case SCOE.C1 is
+         when '>' =>
+            --  Dominance marker: processed in conjunction with following 'S'
+            --  entry.
+
+            pragma Assert (State.Dom_SCO = No_SCO_Id);
+            if SCOE.Last then
+               --  Ignore dominance marker because all S entries in its
+               --  sequence have been suppressed.
+
+               null;
+
+            else
+               case SCOE.C2 is
+                  when 'S' =>
+                     State.Dom_Sloc := Slocs.To_Sloc (Source_File, From_Sloc);
+                     State.Dom_Val  := Unknown;
+
+                  when 'T' | 'F' =>
+                     State.Dom_Sloc := Slocs.To_Sloc (Source_File, From_Sloc);
+                     State.Dom_Val  := To_Tristate (SCOE.C2 = 'T');
+
+                  when 'E' =>
+                     State.Current_Handler_Range := SCO_Range;
+
+                  when others =>
+                     raise Program_Error;
+               end case;
+            end if;
+
+         when 'S' | 's' =>
+            pragma Assert (State.Current_Decision = No_SCO_Id);
+
+            New_SCO := Add_SCO
+              (SCO_Descriptor'
+                 (Kind           => Statement,
+                  Origin         => CU,
+                  Sloc_Range     => SCO_Range,
+                  S_Kind         => To_Statement_Kind (SCOE.C2),
+                  Dominant       => State.Dom_SCO,
+                  Dominant_Sloc  => State.Dom_Sloc,
+                  Dominant_Value => State.Dom_Val,
+                  Handler_Range  => State.Current_Handler_Range,
+                  Pragma_Name    => Case_Insensitive_Get_Pragma_Id
+                    (SCOE.Pragma_Aspect_Name),
+                  others         => <>));
+
+            State.Current_Handler_Range := No_Range;
+            State.Dom_Val  := Unknown;
+            State.Dom_Sloc := No_Location;
+            if SCOE.Last then
+               State.Dom_SCO := No_SCO_Id;
+            else
+               State.Dom_SCO := SCO_Vector.Last_Index;
+            end if;
+
+         when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' | 'A' =>
+            --  Decision
+
+            pragma Assert (State.Current_Decision = No_SCO_Id);
+            State.Current_Decision := Add_SCO
+              (SCO_Descriptor'
+                 (Kind                => Decision,
+                  Origin              => CU,
+                  Control_Location    =>
+                     Slocs.To_Sloc (Source_File, From_Sloc),
+                  D_Kind              => To_Decision_Kind (SCOE.C1),
+                  Last_Cond_Index     => 0,
+                  Aspect_Name         =>
+                     Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
+                  others              => <>));
+            pragma Assert (not SCOE.Last);
+
+            State.Current_BDD :=
+               BDD.Create (BDD_Vector, State.Current_Decision);
+            State.Current_Condition_Index := No_Condition_Index;
+
+         when ' ' =>
+            --  Condition
+
+            pragma Assert (State.Current_Decision /= No_SCO_Id);
+
+            SCO_Vector.Update_Element
+              (Index   => State.Current_Decision,
+               Process => Update_Decision_Sloc'Access);
+
+            State.Current_Condition_Index := State.Current_Condition_Index + 1;
+
+            New_SCO := Add_SCO
+              (SCO_Descriptor'(Kind       => Condition,
+                               Origin     => CU,
+                               Sloc_Range => SCO_Range,
+                               Value      => Make_Condition_Value,
+                               Index      => State.Current_Condition_Index,
+                               others     => <>));
+            BDD.Process_Condition (BDD_Vector, State.Current_BDD, New_SCO);
+
+            if SCOE.Last then
+               BDD.Completed (BDD_Vector, State.Current_BDD);
+               SCO_Vector.Update_Element
+                 (State.Current_BDD.Decision, Update_Decision_BDD'Access);
+
+               if Verbose then
+                  Dump_Decision (State.Current_Decision);
+               end if;
+               State.Current_Decision := No_SCO_Id;
+            end if;
+
+         when '!' =>
+            BDD.Process_Not (New_Operator_SCO (Op_Not), State.Current_BDD);
+
+         when '&' =>
+            BDD.Process_And_Then
+              (BDD_Vector, New_Operator_SCO (Op_And_Then), State.Current_BDD);
+
+         when '|' =>
+            BDD.Process_Or_Else
+              (BDD_Vector, New_Operator_SCO (Op_Or_Else), State.Current_BDD);
+
+         when 'H' =>
+            --  Chaining indicator: not used yet
+
+            null;
+
+         when others =>
+            raise Program_Error
+              with "unexpected SCO entry code: " & SCOE.C1;
+      end case;
+   end Process_Low_Level_Entry;
+
    ----------------------------
    -- Process_Low_Level_SCOs --
    ----------------------------
@@ -2000,35 +2303,27 @@ package body SC_Obligations is
 
       Last_Instance_Upon_Entry : constant Inst_Id := Inst_Vector.Last_Index;
       Last_SCO_Upon_Entry      : constant SCO_Id  := SCO_Vector.Last_Index;
+      Last_Entry_Last_Line     : Natural := 0;
+      --  Highest line number involved in SCOs for this unit
 
       Cur_Source_File        : Source_File_Index := No_Source_File;
       Cur_SCO_Unit           : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
-      Last_Entry_Last_Line   : Natural := 0;
-      --  Line number of high bound of sloc range of last processed entry
 
       Skip_Current_File : Boolean := False;
       --  Whether the SCOs referring to the current source file should be
       --  ignored.
 
-      Dom_SCO               : SCO_Id          := No_SCO_Id;
-      Dom_Sloc              : Source_Location := No_Location;
-      Dom_Val               : Tristate        := Unknown;
-      Current_Handler_Range : Source_Location_Range := No_Range;
-      --  Dominant information for basic block chaining
-
-      Current_Decision : SCO_Id := No_SCO_Id;
-      --  Decision whose conditions are being processed
-
-      Current_Condition_Index : Any_Condition_Index;
-      --  Index of current condition within the current decision (0-based, set
-      --  to No_Condition_Index, i.e. -1, before the first condition of the
-      --  decision is seen).
-
-      Current_BDD : BDD.BDD_Type;
-      --  BDD of current decision
-
       Deps_Present : constant Boolean := not Deps.Is_Empty;
+
+      State : CU_Load_State :=
+        (Current_Decision        => <>,
+         Current_Condition_Index => <>,
+         Current_BDD             => <>,
+         Dom_SCO                 => <>,
+         Dom_Sloc                => <>,
+         Dom_Val                 => <>,
+         Current_Handler_Range   => <>);
 
    --  Start of processing for Process_Low_Level_SCOs
 
@@ -2104,275 +2399,8 @@ package body SC_Obligations is
          end if;
 
          pragma Assert (Cur_Source_File /= No_Source_File);
-         Process_Entry : declare
-            SCOE : SCOs.SCO_Table_Entry renames
-                                     SCOs.SCO_Table.Table (Cur_SCO_Entry);
-
-            function Make_Condition_Value return Tristate;
-            --  Map condition value code (t/f/c) in SCOE.C2 to Tristate
-
-            function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id;
-            --  Allocate a new SCO for an operator
-
-            procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor);
-            --  Set BDD of decision to Current_BDD
-
-            procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor);
-            --  Update the slocs of a decision SCOD from those of the condition
-            --  in the current SCOE.
-
-            function Make_Sloc
-              (SCO_Source_Loc : SCOs.Source_Location)
-               return Local_Source_Location;
-            --  Build a Slocs.Source_Location record from the low-level
-            --  SCO Sloc info.
-
-            function Add_SCO (SCOD : SCO_Descriptor) return SCO_Id;
-            --  Add a high level SCO descriptor for this low level SCO
-
-            -------------
-            -- Add_SCO --
-            -------------
-
-            function Add_SCO (SCOD : SCO_Descriptor) return SCO_Id is
-               New_SCO : SCO_Id;
-            begin
-               SCO_Vector.Append (SCOD);
-               New_SCO := SCO_Vector.Last_Index;
-               if SCO_Map /= null then
-                  SCO_Map (Cur_SCO_Entry) := New_SCO;
-               end if;
-               return New_SCO;
-            end Add_SCO;
-
-            ---------------
-            -- Make_Sloc --
-            ---------------
-
-            function Make_Sloc
-              (SCO_Source_Loc : SCOs.Source_Location)
-               return Local_Source_Location
-            is
-            begin
-               if SCO_Source_Loc = SCOs.No_Source_Location then
-                  return No_Local_Location;
-               end if;
-
-               return
-                 (Line   => Natural (SCO_Source_Loc.Line),
-                  Column => Natural (SCO_Source_Loc.Col));
-            end Make_Sloc;
-
-            From_Sloc : constant Local_Source_Location :=
-                          Make_Sloc (SCOE.From);
-            To_Sloc   : constant Local_Source_Location :=
-                          Make_Sloc (SCOE.To);
-            SCO_Range : constant Source_Location_Range :=
-                          (Cur_Source_File, (From_Sloc, To_Sloc));
-
-            --------------------------
-            -- Make_Condition_Value --
-            --------------------------
-
-            function Make_Condition_Value return Tristate is
-            begin
-               case SCOE.C2 is
-                  when 'f' => return False;
-                  when 't' => return True;
-                  when 'c' => return Unknown;
-
-                  when others => raise Program_Error with
-                       "invalid SCO condition value code: " & SCOE.C2;
-               end case;
-            end Make_Condition_Value;
-
-            ----------------------
-            -- New_Operator_SCO --
-            ----------------------
-
-            function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id is
-            begin
-               pragma Assert (Current_Decision /= No_SCO_Id);
-               return Add_SCO ((Kind       => Operator,
-                                Origin     => CU_Index,
-                                Sloc_Range => SCO_Range,
-                                Op_Kind    => Kind,
-                                others     => <>));
-            end New_Operator_SCO;
-
-            -------------------------
-            -- Update_Decision_BDD --
-            -------------------------
-
-            procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor) is
-            begin
-               SCOD.Decision_BDD    := Current_BDD;
-               SCOD.Last_Cond_Index := Current_Condition_Index;
-            end Update_Decision_BDD;
-
-            --------------------------
-            -- Update_Decision_Sloc --
-            --------------------------
-
-            procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor) is
-            begin
-               if SCOD.Sloc_Range.Source_File = No_Source_File then
-                  SCOD.Sloc_Range.Source_File := Cur_Source_File;
-               end if;
-
-               if SCOD.Sloc_Range.L.First_Sloc = No_Local_Location then
-                  SCOD.Sloc_Range.L.First_Sloc := From_Sloc;
-               end if;
-
-               if SCOD.Sloc_Range.L.Last_Sloc = No_Local_Location
-                 or else SCOD.Sloc_Range.L.Last_Sloc < To_Sloc
-               then
-                  SCOD.Sloc_Range.L.Last_Sloc := To_Sloc;
-               end if;
-            end Update_Decision_Sloc;
-
-            New_SCO : SCO_Id;
-
-         --  Start of processing for Process_Entry
-
-         begin
-            if To_Sloc.Line > Last_Entry_Last_Line then
-               Last_Entry_Last_Line := To_Sloc.Line;
-            end if;
-
-            case SCOE.C1 is
-               when '>' =>
-                  --  Dominance marker: processed in conjunction with following
-                  --  'S' entry.
-
-                  pragma Assert (Dom_SCO = No_SCO_Id);
-                  if SCOE.Last then
-                     --  Ignore dominance marker because all S entries in its
-                     --  sequence have been suppressed.
-
-                     null;
-
-                  else
-                     case SCOE.C2 is
-                        when 'S' =>
-                           Dom_Sloc := Slocs.To_Sloc
-                                         (Cur_Source_File, From_Sloc);
-                           Dom_Val  := Unknown;
-
-                        when 'T' | 'F' =>
-                           Dom_Sloc := Slocs.To_Sloc
-                                         (Cur_Source_File, From_Sloc);
-                           Dom_Val  := To_Tristate (SCOE.C2 = 'T');
-
-                        when 'E' =>
-                           Current_Handler_Range := SCO_Range;
-
-                        when others =>
-                           raise Program_Error;
-                     end case;
-                  end if;
-
-               when 'S' | 's' =>
-                  pragma Assert (Current_Decision = No_SCO_Id);
-
-                  New_SCO := Add_SCO
-                    (SCO_Descriptor'
-                       (Kind           => Statement,
-                        Origin         => CU_Index,
-                        Sloc_Range     => SCO_Range,
-                        S_Kind         =>
-                           To_Statement_Kind (SCOE.C2),
-                        Dominant       => Dom_SCO,
-                        Dominant_Sloc  => Dom_Sloc,
-                        Dominant_Value => Dom_Val,
-                        Handler_Range  => Current_Handler_Range,
-                        Pragma_Name    => Case_Insensitive_Get_Pragma_Id
-                          (SCOE.Pragma_Aspect_Name),
-                        others         => <>));
-
-                  Current_Handler_Range := No_Range;
-                  Dom_Val  := Unknown;
-                  Dom_Sloc := No_Location;
-                  if SCOE.Last then
-                     Dom_SCO := No_SCO_Id;
-                  else
-                     Dom_SCO := SCO_Vector.Last_Index;
-                  end if;
-
-               when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' | 'A' =>
-                  --  Decision
-
-                  pragma Assert (Current_Decision = No_SCO_Id);
-                  Current_Decision := Add_SCO
-                    (SCO_Descriptor'
-                       (Kind                => Decision,
-                        Origin              => CU_Index,
-                        Control_Location    =>
-                           Slocs.To_Sloc
-                          (Cur_Source_File, From_Sloc),
-                        D_Kind              =>
-                           To_Decision_Kind (SCOE.C1),
-                        Last_Cond_Index     => 0,
-                        Aspect_Name         =>
-                           Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
-                        others              => <>));
-                  pragma Assert (not SCOE.Last);
-
-                  Current_BDD := BDD.Create (BDD_Vector, Current_Decision);
-                  Current_Condition_Index := No_Condition_Index;
-
-               when ' ' =>
-                  --  Condition
-
-                  pragma Assert (Current_Decision /= No_SCO_Id);
-
-                  SCO_Vector.Update_Element
-                    (Index   => Current_Decision,
-                     Process => Update_Decision_Sloc'Access);
-
-                  Current_Condition_Index := Current_Condition_Index + 1;
-
-                  New_SCO := Add_SCO
-                    (SCO_Descriptor'(Kind       => Condition,
-                                     Origin     => CU_Index,
-                                     Sloc_Range => SCO_Range,
-                                     Value      => Make_Condition_Value,
-                                     Index      => Current_Condition_Index,
-                                     others     => <>));
-                  BDD.Process_Condition (BDD_Vector, Current_BDD, New_SCO);
-
-                  if SCOE.Last then
-                     BDD.Completed (BDD_Vector, Current_BDD);
-                     SCO_Vector.Update_Element
-                       (Current_BDD.Decision, Update_Decision_BDD'Access);
-
-                     if Verbose then
-                        Dump_Decision (Current_Decision);
-                     end if;
-                     Current_Decision := No_SCO_Id;
-                  end if;
-
-               when '!' =>
-                  BDD.Process_Not (New_Operator_SCO (Op_Not), Current_BDD);
-
-               when '&' =>
-                  BDD.Process_And_Then
-                    (BDD_Vector, New_Operator_SCO (Op_And_Then), Current_BDD);
-
-               when '|' =>
-                  BDD.Process_Or_Else
-                    (BDD_Vector, New_Operator_SCO (Op_Or_Else), Current_BDD);
-
-               when 'H' =>
-                  --  Chaining indicator: not used yet
-
-                  null;
-
-               when others =>
-                  raise Program_Error
-                    with "unexpected SCO entry code: " & SCOE.C1;
-            end case;
-         end Process_Entry;
+         Process_Low_Level_Entry
+           (CU_Index, Cur_Source_File, Cur_SCO_Entry, State, SCO_Map);
 
          <<Skip_Entry>>
       end loop;
