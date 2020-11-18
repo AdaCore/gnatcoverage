@@ -27,6 +27,7 @@ with Ada.Strings.Wide_Wide_Hash;
 with Langkit_Support.Slocs; use Langkit_Support.Slocs;
 with Langkit_Support.Text;  use Langkit_Support.Text;
 with Libadalang.Analysis;   use Libadalang.Analysis;
+with Libadalang.Common;     use Libadalang.Common;
 with Libadalang.Rewriting;  use Libadalang.Rewriting;
 
 with ALI_Files;         use ALI_Files;
@@ -57,7 +58,6 @@ private package Instrument.Sources is
       MCDC_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
       --  Qualified name for the buffer corresponding to paths in decision
       --  BDDs.
-
    end record;
 
    -----------------------------
@@ -351,5 +351,41 @@ private package Instrument.Sources is
    function Index_In_Rewriting_Tree (N : Ada_Node'Class) return Positive;
    --  Assuming that the rewriting node for N has a parent, return its index in
    --  that parent's list of children.
+
+   ---------------------------------
+   -- Helpers to synthetize nodes --
+   ---------------------------------
+
+   function Clone (N : Ada_Node'Class) return Node_Rewriting_Handle is
+     (if N.Is_Null then No_Node_Rewriting_Handle else Clone (Handle (N)));
+   --  Simple wrapper around Libadalang's Clone, except that it works on parse
+   --  nodes, and accepts null nodes.
+
+   function Detach (N : Ada_Node'Class) return Node_Rewriting_Handle;
+   --  Replace N with No_Node_Rewriting_Handle, and return its previous
+   --  handle for possible reuse elsewhere in the tree.
+
+   No_Children : constant Node_Rewriting_Handle_Array :=
+     (1 .. 0 => No_Node_Rewriting_Handle);
+
+   function Make
+     (UIC : Unit_Inst_Context;
+      K   : Ada_Node_Kind_Type) return Node_Rewriting_Handle
+   is (Create_Node (UIC.Rewriting_Context, K));
+   --  Shortcut to create a node of the given kind
+
+   function Make_Identifier
+     (UIC : Unit_Inst_Context;
+      Id  : Wide_Wide_String) return Node_Rewriting_Handle
+   is (Create_Token_Node
+         (UIC.Rewriting_Context, Libadalang.Common.Ada_Identifier, Id));
+   --  Shortcut to create an identifier node
+
+   function Make_Defining_Name
+     (UIC    : Unit_Inst_Context;
+      D_Name : Wide_Wide_String) return Node_Rewriting_Handle
+   is (Create_Defining_Name (UIC.Rewriting_Context,
+                             Make_Identifier (UIC, D_Name)));
+   --  Shortcut to create a defining identifier tree
 
 end Instrument.Sources;

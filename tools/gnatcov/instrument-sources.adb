@@ -21,8 +21,6 @@ with Ada.Exceptions;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
-with Libadalang.Common; use Libadalang.Common;
-
 with SCOs;
 
 with Coverage;        use Coverage;
@@ -643,6 +641,21 @@ package body Instrument.Sources is
 
       return (raise Program_Error with "corrupted rewriting tree");
    end Index_In_Rewriting_Tree;
+
+   ------------
+   -- Detach --
+   ------------
+
+   function Detach (N : Ada_Node'Class) return Node_Rewriting_Handle is
+   begin
+      if N.Is_Null then
+         return No_Node_Rewriting_Handle;
+      end if;
+
+      return H : constant Node_Rewriting_Handle := Handle (N) do
+         Replace (H, No_Node_Rewriting_Handle);
+      end return;
+   end Detach;
 
    ---------------------------
    -- Add_Auto_Dump_Buffers --
