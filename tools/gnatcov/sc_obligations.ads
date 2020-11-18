@@ -56,6 +56,28 @@ package SC_Obligations is
    -- Compilation units --
    -----------------------
 
+   --  Depending on the context, "unit" may mean different things.
+   --
+   --  (1) "Compilation unit" has a specific definition in Ada: it can be a
+   --      (generic) package/subprogram spec/body, or a subunit.
+   --
+   --  (2) For GCC/GNAT, there is the notion of "main compilation unit": the
+   --      one compilation unit mentionned when running "gcc" that compiles a
+   --      group of compilation units (for instance: foo.adb to compile both
+   --      foo.ads and foo.adb) into an object file/LI file.
+   --
+   --  (3) For its user interface ("units of interest", --units, Units
+   --      project file attribute, ...), GNATcoverage considers that units map
+   --      to (2) for Ada (designated by Ada-like unit name, for instance
+   --      "Foo.Bar", case insensitive) and to C source files passed to "gcc"
+   --      in order to produce object files (designated by base file name).
+   --      These units are directly mappped to GNATcoverage's internals
+   --      (CU_Unit/CU_Info in this package).
+   --
+   --  (4) In low-level SCOs (gnatutil's scos.ads), a unit is a sequence of
+   --      SCOs that relate to the same source file. Note that in that case,
+   --      there can be several units that relate to the same source file.
+
    type SCO_Provider is (Compiler, Instrumenter);
 
    type CU_Id is new Natural;
@@ -100,6 +122,19 @@ package SC_Obligations is
    ---------------------------------
    -- Source Coverage Obligations --
    ---------------------------------
+
+   --  One one side, gnatutil's scos.ads defines data structures for low level
+   --  SCO tables: this is SCO_Unit_Table and SCO_Table from the SCOs unit,
+   --  i.e. tables to hold the parsing of SCOs from LI files or SCOs that the
+   --  source instrumenter creates;
+   --
+   --  On the other hand, this file defines data structures for high level
+   --  tables: SC_Obligations.CU_Vector, .SCO_Vector, etc. Basically, high
+   --  level tables are populated only through the importation of data in low
+   --  level tables (see Process_Low_Level_SCOs below).
+   --
+   --  We do this two-step process to keep SCO production simple and to
+   --  factorize code as much as possible.
 
    type SCO_Id is new Natural;
    No_SCO_Id : constant SCO_Id := 0;
