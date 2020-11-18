@@ -343,7 +343,7 @@ package Files_Table is
 
          when Library_File =>
             Main_Source : Source_File_Index := No_Source_File;
-            --  Main source file. For Ada, this is a simple C name; for C this
+            --  Main source file. For Ada, this is a simple name; for C this
             --  is either a simple name or a full name, depending on whether
             --  the information is available. In any case, it must be a valid
             --  source file (not No_Source_File).
