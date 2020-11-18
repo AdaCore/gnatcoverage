@@ -24,10 +24,12 @@ with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Strings.Wide_Wide_Hash;
 
-with Langkit_Support.Text; use Langkit_Support.Text;
-with Libadalang.Analysis;  use Libadalang.Analysis;
-with Libadalang.Rewriting; use Libadalang.Rewriting;
+with Langkit_Support.Slocs; use Langkit_Support.Slocs;
+with Langkit_Support.Text;  use Langkit_Support.Text;
+with Libadalang.Analysis;   use Libadalang.Analysis;
+with Libadalang.Rewriting;  use Libadalang.Rewriting;
 
+with ALI_Files;         use ALI_Files;
 with SC_Obligations;    use SC_Obligations;
 with Instrument.Common; use Instrument.Common;
 with Strings;
@@ -195,6 +197,22 @@ private package Instrument.Sources is
    --  Hashed set of fully qualified names (stored in normalized form:
    --  lower case, period separated, fully qualified).
 
+   type Annotation_Couple is record
+      Sloc       : Source_Location;
+      Annotation : ALI_Annotation;
+   end record;
+   --  When instrumenting sources, annotations are registred in two steps:
+   --
+   --  * collect couples of sloc/annotations during the tree traversal;
+   --  * once the CU_Id for the instrumented file is known, fill in the
+   --    Annotation.CU component and add the sloc/annotation couple to
+   --    ALI_Files.ALI_Annotation map.
+   --
+   --  This record type is just a helper to hold data between these two steps.
+
+   package Annotation_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Annotation_Couple);
+
    type Unit_Inst_Context is record
       Instrumented_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit being instrumented
@@ -249,6 +267,11 @@ private package Instrument.Sources is
       Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
       --  Generics to be generated in the pure buffers unit to support
       --  instrumentation of degenerate subprograms.
+
+      Annotations : Annotation_Vectors.Vector;
+      --  Annotations created during the instrumentation process, to insert in
+      --  ALI_Files.ALI_Annotations afterwards, when the compilation unit
+      --  (SC_Obligations.CU_Info) for this annotation is ready.
    end record;
 
    function Insert_MCDC_State

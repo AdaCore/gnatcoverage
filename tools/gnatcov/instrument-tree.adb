@@ -2704,13 +2704,13 @@ package body Instrument.Tree is
                            declare
                               use ALI_Files;
 
-                              Ann_Sloc : constant Source_Location := Sloc (N);
                               Ann_Kind : constant Symbol_Type :=
                                 As_Symbol (Prag_Arg_Expr (2).As_Identifier);
-                              Ann : ALI_Annotation;
+                              Ann      : ALI_Annotation;
                            begin
                               Ann.Kind :=
                                 ALI_Annotation_Kind'Value (Image (Ann_Kind));
+                              Ann.CU := No_CU_Id;
 
                               if Ann.Kind = Exempt_On
                                 and then Prag_Args.Children_Count >= 3
@@ -2723,14 +2723,7 @@ package body Instrument.Tree is
                                                  .As_String_Literal.Text));
                               end if;
 
-                              Ann.CU := UIC.CU;
-                              ALI_Annotations.Insert
-                                (Key => (Source_File => UIC.SFI,
-                                         L => (Line   =>
-                                                 Positive (Ann_Sloc.Line),
-                                               Column =>
-                                                 Positive (Ann_Sloc.Column))),
-                                 New_Item => Ann);
+                              UIC.Annotations.Append ((Sloc (N), Ann));
 
                            exception
                               when Constraint_Error =>

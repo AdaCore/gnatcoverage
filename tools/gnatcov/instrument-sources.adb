@@ -29,6 +29,7 @@ with Coverage;        use Coverage;
 with Diagnostics;     use Diagnostics;
 with Files_Table;     use Files_Table;
 with Instrument.Tree; use Instrument.Tree;
+with Slocs;
 with Strings;         use Strings;
 with Text_Files;
 
@@ -1002,7 +1003,7 @@ package body Instrument.Sources is
       --  This creates BDDs for every decision.
 
       declare
-         SCO_Map : aliased LL_HL_SCO_Map :=
+         SCO_Map  : aliased LL_HL_SCO_Map :=
            (SCOs.SCO_Table.First .. SCOs.SCO_Table.Last => No_SCO_Id);
          Bit_Maps : CU_Bit_Maps;
       begin
@@ -1011,8 +1012,24 @@ package body Instrument.Sources is
             UIC.SFI,
             SCO_Map => SCO_Map'Access);
 
-         if Coverage.Enabled (Coverage.Decision)
-           or else MCDC_Coverage_Enabled
+         --  Import annotations in our internal tables
+
+         for Couple of UIC.Annotations loop
+            declare
+               Sloc : constant Slocs.Source_Location :=
+                 (Source_File => UIC.SFI,
+                  L           => (Line   => Positive (Couple.Sloc.Line),
+                                  Column => Positive (Couple.Sloc.Column)));
+            begin
+               Couple.Annotation.CU := UIC.CU;
+               ALI_Annotations.Insert
+                 (Key => Sloc, New_Item => Couple.Annotation);
+            end;
+         end loop;
+
+         --  Insert calls to condition/decision witnesses
+
+         if Coverage.Enabled (Coverage.Decision) or else MCDC_Coverage_Enabled
          then
             for SD of UIC.Source_Decisions loop
                Insert_Decision_Witness
