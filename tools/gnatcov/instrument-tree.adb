@@ -563,9 +563,7 @@ package body Instrument.Tree is
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
 
-      Current_Insertion_Info : aliased Insertion_Info :=
-        (Parent => UIC.Current_Insertion_Info,
-         others => <>);
+      Current_Insertion_Info : aliased Insertion_Info := (Method => None);
 
       procedure Extend_Statement_Sequence
         (N           : Ada_Node'Class;
@@ -838,7 +836,10 @@ package body Instrument.Tree is
              From                => F,
              To                  => T,
              Typ                 => Typ,
-             Index               => UIC.Current_Insertion_Info.Index,
+             Index               => (case UIC.Current_Insertion_Info.Method is
+                                     when Statement | Declaration =>
+                                       UIC.Current_Insertion_Info.Index,
+                                     when others => 0),
              Instrument_Location =>
                --  See discussion in comment for declaration of
                --  Instrument_Location_Type.
@@ -871,7 +872,13 @@ package body Instrument.Tree is
 
          procedure Insert_Statement_Witness (SCE : SC_Entry; LL_SCO_Id : Nat)
            with Pre =>
-             UIC.Current_Insertion_Info.RH_List /= No_Node_Rewriting_Handle;
+             (case UIC.Current_Insertion_Info.Method is
+              when Statement | Declaration =>
+                not UIC.Current_Insertion_Info.Preelab
+                  and then
+                UIC.Current_Insertion_Info.RH_List /= No_Node_Rewriting_Handle,
+              when Expression_Function     => True,
+              when None                    => False);
          --  Insert statement witness call for the given SCE
 
          ------------------------------
@@ -894,51 +901,164 @@ package body Instrument.Tree is
             UIC.Unit_Bits.Statement_Bits.Append
               ((LL_SCO_Id, Executed => UIC.Unit_Bits.Last_Statement_Bit));
 
-            if SCE.N.Kind = Ada_Elsif_Stmt_Part then
-               declare
-                  Old_Cond : Node_Rewriting_Handle :=
-                    Handle (SCE.N.As_Elsif_Stmt_Part.F_Cond_Expr);
-                  New_Cond : constant Node_Rewriting_Handle :=
-                    Create_Regular_Node
-                      (RC,
-                       Ada_Bin_Op,
-                       Children =>
-                         (1 => Make_Statement_Witness
-                            (UIC,
-                             Bit    => UIC.Unit_Bits.Last_Statement_Bit,
-                             Flavor => Function_Call),
+            case Insert_Info.Method is
 
-                          2 => Make (Ada_Op_And_Then),
+            when Statement | Declaration =>
 
-                          --  Placeholder for relocation of old condition after
-                          --  it is detached from the tree.
+               if SCE.N.Kind = Ada_Elsif_Stmt_Part then
+                  declare
+                     Old_Cond : Node_Rewriting_Handle :=
+                       Handle (SCE.N.As_Elsif_Stmt_Part.F_Cond_Expr);
+                     New_Cond : constant Node_Rewriting_Handle :=
+                       Create_Regular_Node
+                         (RC,
+                          Ada_Bin_Op,
+                          Children =>
+                            (1 => Make_Statement_Witness
+                               (UIC,
+                                Bit    => UIC.Unit_Bits.Last_Statement_Bit,
+                                Flavor => Function_Call),
 
-                          3 => No_Node_Rewriting_Handle));
+                             2 => Make (Ada_Op_And_Then),
 
-               begin
-                  --  Detach old condition from tree and replace it with
-                  --  AND THEN node.
+                             --  Placeholder for relocation of old condition
+                             --  after it is detached from the tree.
 
-                  Replace (Old_Cond, New_Cond);
+                             3 => No_Node_Rewriting_Handle));
 
-                  --  Now reattach old condition in new AND THEN node. If it
-                  --  is AND, OR, XOR or OR ELSE binary operation, we need to
-                  --  wrap it in parens to generate valid code.
+                  begin
+                     --  Detach old condition from tree and replace it with
+                     --  AND THEN node.
 
-                  if Kind (Old_Cond) = Ada_Bin_Op
-                     and then Kind (Child (Old_Cond, 2)) in
-                        Ada_Op_And | Ada_Op_Or | Ada_Op_Xor | Ada_Op_Or_Else
+                     Replace (Old_Cond, New_Cond);
+
+                     --  Now reattach old condition in new AND THEN node. If it
+                     --  is AND, OR, XOR or OR ELSE binary operation, we need
+                     --  to wrap it in parens to generate valid code.
+
+                     if Kind (Old_Cond) = Ada_Bin_Op
+                        and then Kind (Child (Old_Cond, 2)) in
+                           Ada_Op_And | Ada_Op_Or | Ada_Op_Xor | Ada_Op_Or_Else
+                     then
+                        Old_Cond := Create_Regular_Node
+                          (RC,
+                           Ada_Paren_Expr,
+                           Children => (1 => Old_Cond));
+                     end if;
+
+                     Set_Child (New_Cond, 3, Old_Cond);
+                  end;
+
+               else
+                  if Kind (SCE.Insertion_N) = Ada_Accept_Stmt_With_Stmts
+                    and then SCE.Instrument_Location = After
                   then
-                     Old_Cond := Create_Regular_Node
-                       (RC,
-                        Ada_Paren_Expr,
-                        Children => (1 => Old_Cond));
+                     --  In the case of an accept_statement containing a
+                     --  sequence of statements, if Instrument_Location is
+                     --  After, we want to call the witness after the entry has
+                     --  been accepted, but before the enclosed statements are
+                     --  executed, so insert the witness call in the inner
+                     --  statement list at first position.
+
+                     Insert_List :=
+                       Child
+                         (Child
+                            (SCE.Insertion_N,
+                             I_Accept_Stmt_With_Stmts_F_Stmts),
+                          I_Handled_Stmts_F_Stmts);
+
+                     Insert_Pos  := 1;
+
+                  else
+                     if SCE.Instrument_Location = Before_Parent then
+                        Insert_Info := Insert_Info.Parent;
+                        Insert_Pos := Insert_Info.Index;
+                     else
+                        Insert_Pos := SCE.Index;
+                     end if;
+
+                     Insert_List := Insert_Info.RH_List;
+
+                     --  Adjust insertion to account for any insertion
+                     --  performed outside of the processing of the current
+                     --  list (case of the above special processing for accept
+                     --  statements).  Note that SCE.N might not be a direct
+                     --  element of the enclosing list (e.g. in the case where
+                     --  it is a named statement), so we must first go up to
+                     --  the parent of SCE.N that *is* an element of that list,
+                     --  and *then* scan forward to determine the current
+                     --  position of that parent note within the list.
+
+                     declare
+                        RH_Element_Node : Node_Rewriting_Handle :=
+                          SCE.Insertion_N;
+                        RH_Children_Count : constant Natural :=
+                          Children_Count (Insert_Info.RH_List);
+                     begin
+                        --  Find the parent of SCE.N that is an element of the
+                        --  enclosing list.
+
+                        while Parent (RH_Element_Node)
+                          /= Insert_Info.RH_List
+                        loop
+                           RH_Element_Node := Parent (RH_Element_Node);
+                        end loop;
+
+                        --  Scan forward in enclosing list for adjusted
+                        --  position of the element node.
+
+                        while Child
+                          (Insert_Info.RH_List,
+                           Integer (Insert_Pos
+                             + Insert_Info.Rewriting_Offset))
+                          /= RH_Element_Node
+                        loop
+                           Insert_Info.Rewriting_Offset :=
+                             Insert_Info.Rewriting_Offset + 1;
+                           pragma Assert
+                             (Insert_Pos + Insert_Info.Rewriting_Offset
+                              <= RH_Children_Count);
+                        end loop;
+                     end;
+
+                     --  The witness is inserted at the current location of the
+                     --  statement, so that it will occur immediately *before*
+                     --  it in the instrumented sources. This is necessary
+                     --  because we want to mark a statement as executed
+                     --  anytime it has commenced execution (including in cases
+                     --  it raises an exception or otherwise transfers
+                     --  control). However in some special cases we have to
+                     --  insert after the statement, see comment for
+                     --  Instrument_Location_Type.
+
+                     Insert_Pos := Insert_Pos
+                       + Insert_Info.Rewriting_Offset
+                       + (case SCE.Instrument_Location is
+                             when Before | Before_Parent => 0,
+                             when After  => 1);
                   end if;
 
-                  Set_Child (New_Cond, 3, Old_Cond);
-               end;
+                  --  Insert witness statement or declaration
 
-            elsif SCE.N.Parent.Kind = Ada_Expr_Function then
+                  Insert_Child
+                    (Handle => Insert_List,
+                     Index  => Insert_Pos,
+                     Child  =>
+                       Make_Statement_Witness
+                         (UIC,
+                          Bit    => UIC.Unit_Bits.Last_Statement_Bit,
+                          Flavor =>
+                            (case Insert_Info.Method is
+                             when Statement => Procedure_Call,
+                             when Declaration => Declaration,
+                             when Expression_Function | None =>
+                                    raise Program_Error)));
+
+                  Insert_Info.Rewriting_Offset :=
+                    Insert_Info.Rewriting_Offset + 1;
+               end if;
+
+            when Expression_Function =>
 
                --  Wrap the expression in the following construct:
                --
@@ -1056,110 +1176,9 @@ package body Instrument.Tree is
                          2 => Expr)));
                end Witness_For_Expr_Function;
 
-            else
-               if Kind (SCE.Insertion_N) = Ada_Accept_Stmt_With_Stmts
-                 and then SCE.Instrument_Location = After
-               then
-                  --  In the case of an accept_statement containing a sequence
-                  --  of statements, if Instrument_Location is After, we want
-                  --  to call the witness after the entry has been accepted,
-                  --  but before the enclosed statements are executed, so
-                  --  insert the witness call in the inner statement list
-                  --  at first position.
-
-                  Insert_List :=
-                    Child
-                      (Child
-                         (SCE.Insertion_N,
-                          I_Accept_Stmt_With_Stmts_F_Stmts),
-                       I_Handled_Stmts_F_Stmts);
-
-                  Insert_Pos  := 1;
-
-               else
-                  if SCE.Instrument_Location = Before_Parent then
-                     Insert_Info := Insert_Info.Parent;
-                     Insert_Pos := Insert_Info.Index;
-                  else
-                     Insert_Pos := SCE.Index;
-                  end if;
-
-                  Insert_List := Insert_Info.RH_List;
-
-                  --  Adjust insertion to account for any insertion performed
-                  --  outside of the processing of the current list (case of
-                  --  the above special processing for accept statements).
-                  --  Note that SCE.N might not be a direct element of the
-                  --  enclosing list (e.g. in the case where it is a named
-                  --  statement), so we must first go up to the parent of
-                  --  SCE.N that *is* an element of that list, and *then* scan
-                  --  forward to determine the current position of that parent
-                  --  note within the list.
-
-                  declare
-                     RH_Element_Node : Node_Rewriting_Handle :=
-                       SCE.Insertion_N;
-                     RH_Children_Count : constant Natural :=
-                       Children_Count (Insert_Info.RH_List);
-                  begin
-                     --  Find the parent of SCE.N that is an element of the
-                     --  enclosing list.
-
-                     while Parent (RH_Element_Node)
-                       /= Insert_Info.RH_List
-                     loop
-                        RH_Element_Node := Parent (RH_Element_Node);
-                     end loop;
-
-                     --  Scan forward in enclosing list for adjusted position
-                     --  of the element node.
-
-                     while Child
-                       (Insert_Info.RH_List,
-                        Integer (Insert_Pos
-                          + Insert_Info.Rewriting_Offset))
-                       /= RH_Element_Node
-                     loop
-                        Insert_Info.Rewriting_Offset :=
-                          Insert_Info.Rewriting_Offset + 1;
-                        pragma Assert
-                          (Insert_Pos + Insert_Info.Rewriting_Offset
-                           <= RH_Children_Count);
-                     end loop;
-                  end;
-
-                  --  The witness is inserted at the current location of the
-                  --  statement, so that it will occur immediately *before*
-                  --  it in the instrumented sources. This is necessary because
-                  --  we want to mark a statement as executed anytime it has
-                  --  commenced execution (including in cases it raises an
-                  --  exception or otherwise transfers control). However in
-                  --  some special cases we have to insert after the statement,
-                  --  see comment for Instrument_Location_Type.
-
-                  Insert_Pos := Insert_Pos
-                    + Insert_Info.Rewriting_Offset
-                    + (case SCE.Instrument_Location is
-                          when Before | Before_Parent => 0,
-                          when After  => 1);
-               end if;
-
-               --  Insert witness statement or declaration
-
-               Insert_Child
-                 (Handle => Insert_List,
-                  Index  => Insert_Pos,
-                  Child  =>
-                    Make_Statement_Witness
-                      (UIC,
-                       Bit    => UIC.Unit_Bits.Last_Statement_Bit,
-                       Flavor => (if Insert_Info.Witness_Use_Statement
-                                  then Procedure_Call
-                                  else Declaration)));
-
-               Insert_Info.Rewriting_Offset :=
-                 Insert_Info.Rewriting_Offset + 1;
-            end if;
+            when None =>
+               raise Program_Error;
+            end case;
          end Insert_Statement_Witness;
 
       --  Start of processing for Set_Statement_Entry
@@ -1210,24 +1229,31 @@ package body Instrument.Tree is
                   Last               => (J = SC_Last),
                   Pragma_Aspect_Name => Pragma_Aspect_Name);
 
-               --  Can't instrument statement if there is no enclosing list
-               --  to which a witness call can be attached.  Likewise for a
-               --  top-level declaration in a Preelaborate package.
+               --  Insert a witness call for this statement obligation
+               --  unless...
 
-               if UIC.Current_Insertion_Info.Preelab
-                 or else
-                  UIC.Current_Insertion_Info.RH_List = No_Node_Rewriting_Handle
-               then
-                  null;
+               if
+                  --  ... there is no enclosing list to which a witness call
+                  --  can be attached.
 
-               --  Do not attempt to instrument a pragma that we know for
-               --  certain will not generate code (such as Annotate or
-               --  elaboration control pragmas).
+                  UIC.Current_Insertion_Info.Method /= None
 
-               elsif not Is_Pragma
-                 or else Pragma_Might_Generate_Code
-                           (Case_Insensitive_Get_Pragma_Id
-                              (Pragma_Aspect_Name))
+                  --  ... this is a top-level declaration in a Preelaborate
+                  --  package.
+
+                  and then (UIC.Current_Insertion_Info.Method
+                              not in Statement | Declaration
+                            or else not UIC.Current_Insertion_Info.Preelab)
+
+                  --  ... this is a pragma that we know for certain will not
+                  --  generate code (such as Annotate or elaboration control
+                  --  pragmas).
+
+                  and then (not Is_Pragma
+                              or else
+                            Pragma_Might_Generate_Code
+                              (Case_Insensitive_Get_Pragma_Id
+                                 (Pragma_Aspect_Name)))
                then
                   Insert_Statement_Witness (SCE, SCOs.SCO_Table.Last);
                end if;
@@ -1540,20 +1566,9 @@ package body Instrument.Tree is
          Inst_Params : constant Node_Rewriting_Handle :=
            Make (Ada_Assoc_List);
 
-         Gen_Body_Insertion_Info : aliased Insertion_Info :=
-           (RH_List               => Gen_Body_Stmt_List,
-            RH_Private_List       => No_Node_Rewriting_Handle,
-            Index                 => 1,
-            Rewriting_Offset      => 0,
-            Witness_Use_Statement => True,
-
-            --  Even if the current package has elaboration restrictions, this
-            --  Insertion_Info is used to insert a witness call in the
-            --  procedure in the generic body, so it has no elaboration
-            --  restriction itself, hence Preelab set to False.
-            Preelab               => False,
-
-            Parent                => null);
+         New_Insertion_Info : aliased Insertion_Info;
+         --  Witness insertion info for statements (for both null procedures
+         --  and expression functions).
 
          Saved_Dominant : constant Dominant_Info := Current_Dominant;
          --  Save last statement in current sequence as dominant
@@ -1742,7 +1757,7 @@ package body Instrument.Tree is
          --  generic body.
 
          UIC.Current_Insertion_Info :=
-           Gen_Body_Insertion_Info'Unchecked_Access;
+           New_Insertion_Info'Unchecked_Access;
 
          --  Output statement SCO for degenerate subprogram body (null
          --  statement or freestanding expression) outside of the dominance
@@ -1752,8 +1767,24 @@ package body Instrument.Tree is
 
          Current_Dominant := No_Dominant;
          if Is_Expr_Function then
+            New_Insertion_Info := (Method => Expression_Function);
             Extend_Statement_Sequence (N_Expr, 'X');
          else
+            New_Insertion_Info :=
+              (Method                => Statement,
+               RH_List               => Gen_Body_Stmt_List,
+               Index                 => 1,
+               Rewriting_Offset      => 0,
+
+               --  Even if the current package has elaboration restrictions,
+               --  this Insertion_Info is used to insert a witness call in the
+               --  procedure in the generic body: the elaboration restriction
+               --  does not apply there.
+
+               Preelab               => False,
+
+               Parent                => null);
+
             Extend_Statement_Sequence
               (N           => N,
                Typ         => 'X',
@@ -2884,6 +2915,9 @@ package body Instrument.Tree is
          end case;
       end Traverse_One;
 
+      Saved_Insertion_Info : constant Insertion_Info_Access :=
+         UIC.Current_Insertion_Info;
+
       Items_Count : constant Natural :=
         (if L.Is_Null then 0 else L.Children_Count);
 
@@ -2902,16 +2936,29 @@ package body Instrument.Tree is
 
       --  Set up rewriting for lists of declarations/statements
 
-      Current_Insertion_Info.Preelab := Preelab;
-      if not L.Is_Null and then L.Kind /= Ada_Pragma_Node_List then
-         Current_Insertion_Info.RH_List := Handle (L);
-         if not Priv_Part.Is_Null then
-            Current_Insertion_Info.RH_Private_List :=
-              Handle (Priv_Part.F_Decls);
-         end if;
+      if not (L.Is_Null or else L.Kind = Ada_Pragma_Node_List) then
+         declare
+            Method : constant Insertion_Method :=
+              (if L.Kind = Ada_Stmt_List
+               then Statement
+               else Declaration);
+            II : Insertion_Info (Method);
+         begin
+            II.RH_List := Handle (L);
+            II.Index := 0;
+            II.Rewriting_Offset := 0;
+            II.Preelab := Preelab;
+            II.Parent := Saved_Insertion_Info;
 
-         Current_Insertion_Info.Witness_Use_Statement :=
-           L.Kind = Ada_Stmt_List;
+            if Method = Declaration then
+               II.RH_Private_List :=
+                 (if Priv_Part.Is_Null
+                  then No_Node_Rewriting_Handle
+                  else Handle (Priv_Part.F_Decls));
+            end if;
+
+            Current_Insertion_Info := II;
+         end;
       end if;
 
       --  Loop through statements or declarations
@@ -2933,7 +2980,7 @@ package body Instrument.Tree is
 
       --  Pop insertion info
 
-      UIC.Current_Insertion_Info := Current_Insertion_Info.Parent;
+      UIC.Current_Insertion_Info := Saved_Insertion_Info;
       return Current_Dominant;
    end Traverse_Declarations_Or_Statements;
 

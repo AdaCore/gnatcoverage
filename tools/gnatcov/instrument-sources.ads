@@ -158,31 +158,56 @@ private package Instrument.Sources is
    type Insertion_Info;
    type Insertion_Info_Access is access all Insertion_Info;
 
-   type Insertion_Info is record
-      Witness_Use_Statement : Boolean := False;
-      --  Set False when traversing a list of declarations,
-      --  True when traversing a list of statements.
+   type Insertion_Method is
+     (None, Statement, Declaration, Expression_Function);
+   --  Describe how to insert a call to a witness subprogram:
+   --
+   --  * None: no insertion method yet.
+   --
+   --  * Statement: insert a witness call statement.
+   --
+   --  * Declaration: insert a dummy declaration whose initialization
+   --    expression is a witness call.
+   --
+   --  * Expression_Function: wrap the expression in an expression function
+   --    in a case expression whose controlling expr is a witness call.
 
-      Preelab : Boolean := False;
-      --  Whether we are traversing a list of top-level declarations in a
-      --  preelaborate package. In this context, we cannot insert witness
-      --  calls, precisely because of the preelaborate restriction.
+   type Insertion_Info (Method : Insertion_Method := None) is record
 
-      RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
-      --  If traversing a list, rewriting handle for the list
+      case Method is
+         when Statement | Declaration =>
+            RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+            --  Rewriting handle for the statement/declaration list
 
-      RH_Private_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
-      --  If RH_List is the declarations of a public part, and there is
-      --  a corresponding private part, declarations list of the private part.
+            Index : Natural := 0;
+            --  Index of the element in RH_List being traversed
 
-      Index : Natural := 0;
-      --  Index of the element in RH_List being traversed
+            Rewriting_Offset : Integer := 0;
+            --  Count of nodes inserted/removed in current list so far
 
-      Rewriting_Offset : Integer := 0;
-      --  Count of nodes inserted/removed in current list so far
+            Preelab : Boolean := False;
+            --  Whether we are traversing a list of top-level declarations in a
+            --  preelaborate package. In this context, we cannot insert witness
+            --  calls, precisely because of the preelaborate restriction.
 
-      Parent : Insertion_Info_Access;
-      --  Insertion_Info for the upper enclosing list
+            Parent : Insertion_Info_Access;
+            --  Insertion_Info for the upper enclosing list
+
+            case Method is
+               when Declaration =>
+                  RH_Private_List : Node_Rewriting_Handle :=
+                     No_Node_Rewriting_Handle;
+                  --  If RH_List is the declarations of a public part, and
+                  --  there is a corresponding private part, declarations
+                  --  list of the private part.
+
+               when others =>
+                  null;
+            end case;
+
+         when others =>
+            null;
+      end case;
    end record;
 
    type Root_MCDC_State_Inserter is abstract tagged null record;
