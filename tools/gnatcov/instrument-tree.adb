@@ -710,6 +710,15 @@ package body Instrument.Tree is
       --     access ParN
       --  See Make_Formal_Type for the meaning of ParN.
 
+      function Gen_Type_Expr_For_Access_To_Subp
+        (Access_Def : Access_To_Subp_Def) return Node_Rewriting_Handle;
+      --  Helper for Gen_Type_Expr, specifically for access to subprogram
+      --  types. For instance, given:
+      --     access function (S : String) return Natural
+      --  This will return:
+      --     access function (S : ParN) return ParM
+      --  See Make_Formal_Type for the meaning of Par*.
+
       Next_Formal_Index : Positive := 1;
       --  Unique index for each generic procedure formal type we generate (thus
       --  increased each time we add a formal type). Index unicity allows us to
@@ -775,9 +784,8 @@ package body Instrument.Tree is
                     (TD.As_Type_Access_Def);
 
                when Ada_Access_To_Subp_Def =>
-                  raise Program_Error with
-                    "access to subprograms not handled yet for null"
-                    & " procedures";
+                  return Gen_Type_Expr_For_Access_To_Subp
+                    (TD.As_Access_To_Subp_Def);
 
                when others =>
                   raise Program_Error with
@@ -830,6 +838,78 @@ package body Instrument.Tree is
                Type_Access_Def_F_Subtype_Indication =>
                  Make_Formal_Type (Formal_Subtype_Indication)));
       end Gen_Type_Expr_For_Simple_Access_Type;
+
+      --------------------------------------
+      -- Gen_Type_Expr_For_Access_To_Subp --
+      --------------------------------------
+
+      function Gen_Type_Expr_For_Access_To_Subp
+        (Access_Def : Access_To_Subp_Def) return Node_Rewriting_Handle
+      is
+         Orig_Spec : constant Subp_Spec := Access_Def.F_Subp_Spec;
+         Subp_Kind : constant Ada_Node_Kind_Type := Orig_Spec.F_Subp_Kind.Kind;
+
+         Orig_Params      : constant Param_Spec_List :=
+           (if Orig_Spec.F_Subp_Params.Is_Null
+            then No_Param_Spec_List
+            else Orig_Spec.F_Subp_Params.F_Params);
+         Param_Spec_Count : constant Natural :=
+           (if Orig_Params.Is_Null
+            then 0
+            else Orig_Params.Children_Count);
+
+         New_Params : Node_Rewriting_Handle_Array (1 .. Param_Spec_Count);
+         --  List of param spec for the returned access to subprogram type
+
+         New_Return_Type : Node_Rewriting_Handle;
+         --  Return type for the returned access to subprogram type, or
+         --  No_Node_Rewriting_Handle if this is a procedure.
+
+         New_F_Subp_Params : Node_Rewriting_Handle;
+         Subp_Spec         : Node_Rewriting_Handle;
+         --  Intermediate nodes to create the access to subprogram type
+         --  definition.
+      begin
+         --  Create param specs for the returned access to subprogram type
+
+         for J in 1 .. Param_Spec_Count loop
+            New_Params (J) := Gen_Proc_Param_For
+              (Orig_Params.Child (J).As_Param_Spec);
+         end loop;
+
+         New_F_Subp_Params :=
+           (if Param_Spec_Count > 0
+            then Create_Params
+                   (RC,
+                    Create_Regular_Node (RC, Ada_Param_Spec_List, New_Params))
+            else No_Node_Rewriting_Handle);
+
+         --  Create its return type (if it is a function)
+
+         New_Return_Type :=
+           (if Subp_Kind = Ada_Subp_Kind_Function
+            then Gen_Type_Expr (Orig_Spec.F_Subp_Returns)
+            else No_Node_Rewriting_Handle);
+
+         --  We can now create the whole subprogram spec, and then the
+         --  anonymous type.
+
+         Subp_Spec := Create_Subp_Spec
+           (RC,
+            Subp_Spec_F_Subp_Kind    => Create_Node (RC, Subp_Kind),
+            Subp_Spec_F_Subp_Name    => No_Node_Rewriting_Handle,
+            Subp_Spec_F_Subp_Params  => New_F_Subp_Params,
+            Subp_Spec_F_Subp_Returns => New_Return_Type);
+
+         return Make_Anonymous_Type_Decl
+           (Create_Access_To_Subp_Def
+              (RC,
+               Access_Def_F_Has_Not_Null          =>
+                 Clone (Access_Def.F_Has_Not_Null),
+               Access_To_Subp_Def_F_Has_Protected =>
+                 Clone (Access_Def.F_Has_Protected),
+               Access_To_Subp_Def_F_Subp_Spec     => Subp_Spec));
+      end Gen_Type_Expr_For_Access_To_Subp;
 
       ----------------------
       -- Make_Formal_Type --
