@@ -683,56 +683,215 @@ package body Instrument.Tree is
    is
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
 
+      function Gen_Type_Expr (TE : Type_Expr) return Node_Rewriting_Handle;
+      --  Return the type expression to use in the generic procedure spec for a
+      --  parameter of the given type.
+
+      function Gen_Proc_Param_For
+        (Spec : Param_Spec) return Node_Rewriting_Handle
+      is (Create_Param_Spec
+            (RC,
+             Param_Spec_F_Ids          => Clone (Spec.F_Ids),
+             Param_Spec_F_Has_Aliased  => Clone (Spec.F_Has_Aliased),
+             Param_Spec_F_Mode         => Clone (Spec.F_Mode),
+             Param_Spec_F_Type_Expr    => Gen_Type_Expr (Spec.F_Type_Expr),
+             Param_Spec_F_Default_Expr => No_Node_Rewriting_Handle,
+             Param_Spec_F_Aspects      => No_Node_Rewriting_Handle));
+      --  Create and return the param spec to be used in the generic procedure
+      --  parameters for Spec (a parameter spec for the null procedure to
+      --  instrument).
+
+      function Gen_Type_Expr_For_Simple_Access_Type
+        (Access_Def : Type_Access_Def) return Node_Rewriting_Handle;
+      --  Helper for Gen_Type_Expr, specifically for simple access types. For
+      --  instance, given:
+      --     access Integer
+      --  This will return:
+      --     access ParN
+      --  See Make_Formal_Type for the meaning of ParN.
+
+      Next_Formal_Index : Positive := 1;
+      --  Unique index for each generic procedure formal type we generate (thus
+      --  increased each time we add a formal type). Index unicity allows us to
+      --  generate unique formal type names. This is used exclusively in
+      --  Make_Formal_Type.
+
       function Make_Formal_Type
-        (FT_Name : Wide_Wide_String;
-         TE      : Type_Expr) return Node_Rewriting_Handle;
-      --  Create a formal type with the given name, suitable for instantiation
-      --  with TE as the actual type.
+        (TE : Type_Expr'Class) return Node_Rewriting_Handle;
+      --  Create a formal type for the given type expression and return a
+      --  reference to it. This function takes care of adding the formal type
+      --  declaration to NP_Nodes.Formals and the actual type (TE) to
+      --  NP_Nodes.Inst_Params.
+      --
+      --  For instance, given:
+      --     Integer
+      --  This inserts the following to NP_Nodes.Formals:
+      --     type ParN (<>) is limited private;
+      --  plus the following to NP_Nodes.Param_Specs:
+      --     Integer
+      --  and finally returns:
+      --     ParN
+
+      function Make_Anonymous_Type_Decl
+        (Type_Def : Node_Rewriting_Handle) return Node_Rewriting_Handle
+      is (Create_Anonymous_Type_Decl
+            (RC,
+             Base_Type_Decl_F_Name     => No_Node_Rewriting_Handle,
+             Type_Decl_F_Discriminants => No_Node_Rewriting_Handle,
+             Type_Decl_F_Type_Def      => Type_Def,
+             Type_Decl_F_Aspects       => No_Node_Rewriting_Handle));
+      --  Shortcut for Gen_Type_Expr_For_* subprograms. Create and return an
+      --  anonymous type declaration for the given type definition.
+
+      -------------------
+      -- Gen_Type_Expr --
+      -------------------
+
+      function Gen_Type_Expr (TE : Type_Expr) return Node_Rewriting_Handle is
+      begin
+         --  Compute the type for the returned param spec. In the case of
+         --  anonymous access types, we must deconstruct type accessed type.
+         --  For instance, we must turn the following type expression:
+         --
+         --     not null access procedure (Line : in out String := "")
+         --
+         --  into the following:
+         --
+         --     not null access function
+         --       (Line : in out [formalX])
+         --        return [formalY];
+
+         if TE.Kind = Ada_Anonymous_Type then
+            declare
+               TD : constant Type_Def :=
+                 TE.As_Anonymous_Type.F_Type_Decl.F_Type_Def;
+            begin
+               --  There are two kinds of anonymous types: "simple" access
+               --  types, and access to subprogram types.
+
+               case TD.Kind is
+               when Ada_Type_Access_Def =>
+                  return Gen_Type_Expr_For_Simple_Access_Type
+                    (TD.As_Type_Access_Def);
+
+               when Ada_Access_To_Subp_Def =>
+                  raise Program_Error with
+                    "access to subprograms not handled yet for null"
+                    & " procedures";
+
+               when others =>
+                  raise Program_Error with
+                    "unexpected anonymous type definition: " & TD.Kind'Image;
+               end case;
+            end;
+
+         else
+            return Make_Formal_Type (TE);
+         end if;
+      end Gen_Type_Expr;
+
+      ------------------------------------------
+      -- Gen_Type_Expr_For_Simple_Access_Type --
+      ------------------------------------------
+
+      function Gen_Type_Expr_For_Simple_Access_Type
+        (Access_Def : Type_Access_Def) return Node_Rewriting_Handle
+      is
+         Formal_Subtype_Indication : constant Subtype_Indication :=
+           Access_Def.F_Subtype_Indication;
+         --  Accessed type
+
+         --  Determine if this is a controlling access parameter, in which case
+         --  the corresponding formal in the generic subprogram must be
+         --  explicitly null excluding.
+
+         Formal_Subt_Decl : constant Base_Type_Decl :=
+           Formal_Subtype_Indication.P_Designated_Type_Decl;
+         Ctrl_Type        : Base_Type_Decl renames
+           Common_Nodes.Ctrl_Type;
+         Is_Controlling   : constant Boolean :=
+           (if Ctrl_Type.Is_Null
+            then False
+            else Formal_Subt_Decl = Ctrl_Type
+                 or else Formal_Subt_Decl = Ctrl_Type.P_Full_View);
+         Has_Not_Null : constant Node_Rewriting_Handle :=
+           (if Is_Controlling
+            then Make (UIC, Ada_Not_Null_Present)
+            else Clone (Access_Def.F_Has_Not_Null));
+      begin
+         return Make_Anonymous_Type_Decl
+           (Create_Type_Access_Def
+              (RC,
+               Access_Def_F_Has_Not_Null            => Has_Not_Null,
+               Type_Access_Def_F_Has_All            =>
+                 No_Node_Rewriting_Handle,
+               Type_Access_Def_F_Has_Constant       =>
+                 Clone (Access_Def.F_Has_Constant),
+               Type_Access_Def_F_Subtype_Indication =>
+                 Make_Formal_Type (Formal_Subtype_Indication)));
+      end Gen_Type_Expr_For_Simple_Access_Type;
 
       ----------------------
       -- Make_Formal_Type --
       ----------------------
 
       function Make_Formal_Type
-        (FT_Name : Wide_Wide_String;
-         TE      : Type_Expr) return Node_Rewriting_Handle
+        (TE : Type_Expr'Class) return Node_Rewriting_Handle
       is
+         Formal_Type_Name : constant Wide_Wide_String :=
+           "Par" & To_Wide_Wide_String (Img (Next_Formal_Index));
+         --  We are going to add a formal type in the generic procedure for the
+         --  type of this argument: this is the name of this formal.
+
          Is_Tagged : constant Boolean :=
            TE.P_Designated_Type_Decl.P_Is_Tagged_Type;
-
       begin
-         return
-           Create_Generic_Formal_Type_Decl
-             (RC,
-              Generic_Formal_F_Decl    =>
-                Create_Type_Decl
-                  (RC,
-                   Base_Type_Decl_F_Name     =>
-                     Make_Defining_Name (UIC, FT_Name),
+         Next_Formal_Index := Next_Formal_Index + 1;
 
-                   Type_Decl_F_Discriminants =>
-                     Make (UIC, Ada_Unknown_Discriminant_Part),
+         --  Create the generic formal type node and add it to the list of
+         --  generic formals.
 
-                   Type_Decl_F_Type_Def      =>
-                     Create_Private_Type_Def
-                       (RC,
-                        Private_Type_Def_F_Has_Abstract =>
-                          (if Is_Tagged
-                           then Make (UIC, Ada_Abstract_Present)
-                           else No_Node_Rewriting_Handle),
+         Append_Child
+           (NP_Nodes.Formals,
+            Create_Generic_Formal_Type_Decl
+              (RC,
+               Generic_Formal_F_Decl    =>
+                 Create_Type_Decl
+                   (RC,
+                    Base_Type_Decl_F_Name     =>
+                      Make_Defining_Name (UIC, Formal_Type_Name),
 
-                        Private_Type_Def_F_Has_Tagged   =>
-                          (if Is_Tagged
-                           then Make (UIC, Ada_Tagged_Present)
-                           else No_Node_Rewriting_Handle),
+                    Type_Decl_F_Discriminants =>
+                      Make (UIC, Ada_Unknown_Discriminant_Part),
 
-                        Private_Type_Def_F_Has_Limited  =>
-                          Make (UIC, Ada_Limited_Present)),
+                    Type_Decl_F_Type_Def      =>
+                      Create_Private_Type_Def
+                        (RC,
+                         Private_Type_Def_F_Has_Abstract =>
+                           (if Is_Tagged
+                            then Make (UIC, Ada_Abstract_Present)
+                            else No_Node_Rewriting_Handle),
 
-                   Type_Decl_F_Aspects       =>
-                     No_Node_Rewriting_Handle),
+                         Private_Type_Def_F_Has_Tagged   =>
+                           (if Is_Tagged
+                            then Make (UIC, Ada_Tagged_Present)
+                            else No_Node_Rewriting_Handle),
 
-              Generic_Formal_F_Aspects => No_Node_Rewriting_Handle);
+                         Private_Type_Def_F_Has_Limited  =>
+                           Make (UIC, Ada_Limited_Present)),
+
+                    Type_Decl_F_Aspects       =>
+                      No_Node_Rewriting_Handle),
+
+               Generic_Formal_F_Aspects => No_Node_Rewriting_Handle));
+
+         --  Add the actual type to the instantiation
+
+         Append_Child (NP_Nodes.Inst_Params, Clone (TE));
+
+         --  Return a reference to this formal
+
+         return Make_Identifier (UIC, Formal_Type_Name);
       end Make_Formal_Type;
 
    --  Start of processing for Collect_Null_Proc_Formals
@@ -744,119 +903,10 @@ package body Instrument.Tree is
          return;
       end if;
       for J in 1 .. Common_Nodes.N_Params.Children_Count loop
-         declare
-            P_Spec : constant Param_Spec :=
-              Common_Nodes.N_Params.Child (J).As_Param_Spec;
-            P_Type : constant Type_Expr := P_Spec.F_Type_Expr;
-
-            Formal_Type_Name : constant Wide_Wide_String :=
-              "Par" & To_Wide_Wide_String (Img (J));
-            --  We are going to add a formal type in the generic procedure for
-            --  the type of this argument: this is the name of this formal.
-
-            Is_Anonymous_Access : constant Boolean :=
-              P_Type.Kind = Ada_Anonymous_Type;
-            --  If P_Type is an anonymous type, the formal type will be the
-            --  "accessed" type, so that we can preserve the anonymous access
-            --  pattern in the generic procedure argument.
-
-            Formal_Subtype_Indication : constant Subtype_Indication :=
-              (if Is_Anonymous_Access
-               then P_Type.As_Anonymous_Type
-                   .F_Type_Decl
-                   .F_Type_Def.As_Type_Access_Def
-                   .F_Subtype_Indication
-               else P_Type.As_Subtype_Indication);
-            --  Accessed type (for anonymous access argument) or type (other
-            --  cases) for the generic procedure argument.
-
-            Subp_Param_Type : Node_Rewriting_Handle :=
-              Make_Identifier (UIC, Formal_Type_Name);
-            --  In the case of an anonymous access parameter, this is
-            --  subsequently wrapped in an access definition.
-
-         begin
-            --  Add formal type
-
-            Append_Child
-              (NP_Nodes.Formals,
-               Make_Formal_Type
-                 (Formal_Type_Name,
-                  Formal_Subtype_Indication.As_Type_Expr));
-
-            --  Add formal parameter to generic subprogram spec
-
-            if Is_Anonymous_Access then
-               declare
-                  Anon_Type_Def : constant Type_Access_Def :=
-                    P_Type.As_Anonymous_Type
-                      .F_Type_Decl
-                      .F_Type_Def.As_Type_Access_Def;
-
-                  --  Determine if this is a controlling access
-                  --  parameter, in which case the corresponding
-                  --  formal in the generic subprogram must be
-                  --  explicitly null excluding.
-
-                  Formal_Subt_Decl : constant Base_Type_Decl :=
-                    Formal_Subtype_Indication.P_Designated_Type_Decl;
-                  Is_Controlling   : constant Boolean :=
-                    (if Common_Nodes.Ctrl_Type.Is_Null
-                     then False
-                     else
-                       Formal_Subt_Decl = Common_Nodes.Ctrl_Type
-                         or else
-                       Formal_Subt_Decl = Common_Nodes.Ctrl_Type.P_Full_View);
-
-               begin
-                  Subp_Param_Type :=
-                    Create_Anonymous_Type_Decl
-                      (RC,
-                       Base_Type_Decl_F_Name                =>
-                         No_Node_Rewriting_Handle,
-                       Type_Decl_F_Discriminants            =>
-                         No_Node_Rewriting_Handle,
-                       Type_Decl_F_Type_Def                 =>
-                         Create_Type_Access_Def
-                           (RC,
-                            Access_Def_F_Has_Not_Null            =>
-                              (if Is_Controlling
-                               then Make (UIC, Ada_Not_Null_Present)
-                               else Clone
-                                      (Anon_Type_Def.F_Has_Not_Null)),
-                            Type_Access_Def_F_Has_All            =>
-                              No_Node_Rewriting_Handle,
-                            Type_Access_Def_F_Has_Constant       =>
-                              Clone (Anon_Type_Def.F_Has_Constant),
-                            Type_Access_Def_F_Subtype_Indication =>
-                              Subp_Param_Type),
-                       Type_Decl_F_Aspects                  =>
-                         No_Node_Rewriting_Handle);
-               end;
-            end if;
-
-            Append_Child
-              (NP_Nodes.Param_Specs,
-               Create_Param_Spec
-                 (RC,
-                  Param_Spec_F_Ids          =>
-                    Clone (P_Spec.F_Ids),
-                  Param_Spec_F_Has_Aliased  =>
-                    Clone (P_Spec.F_Has_Aliased),
-                  Param_Spec_F_Mode         =>
-                    Clone (P_Spec.F_Mode),
-                  Param_Spec_F_Type_Expr    =>
-                    Subp_Param_Type,
-                  Param_Spec_F_Default_Expr =>
-                    No_Node_Rewriting_Handle,
-                  Param_Spec_F_Aspects      =>
-                    No_Node_Rewriting_Handle));
-
-            --  Add actual type to instantiation
-
-            Append_Child
-              (NP_Nodes.Inst_Params, Clone (Formal_Subtype_Indication));
-         end;
+         Append_Child
+           (NP_Nodes.Param_Specs,
+            Gen_Proc_Param_For
+              (Common_Nodes.N_Params.Child (J).As_Param_Spec));
       end loop;
    end Collect_Null_Proc_Formals;
 
