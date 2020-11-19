@@ -151,6 +151,9 @@ package body SC_Obligations is
    --  by Inst_Index, which must be in Comp_Unit's instance range.
 
    type CU_Load_State is record
+      Last_Line : Natural := 0;
+      --  Highest line number involved in SCOs for this unit
+
       Current_Decision : SCO_Id := No_SCO_Id;
       --  Decision whose conditions are being processed
 
@@ -2166,6 +2169,10 @@ package body SC_Obligations is
    --  Start of processing for Process_Low_Level_Entry
 
    begin
+      if To_Sloc.Line > State.Last_Line then
+         State.Last_Line := To_Sloc.Line;
+      end if;
+
       case SCOE.C1 is
          when '>' =>
             --  Dominance marker: processed in conjunction with following 'S'
@@ -2312,8 +2319,6 @@ package body SC_Obligations is
 
       Last_Instance_Upon_Entry : constant Inst_Id := Inst_Vector.Last_Index;
       Last_SCO_Upon_Entry      : constant SCO_Id  := SCO_Vector.Last_Index;
-      Last_Entry_Last_Line     : Natural := 0;
-      --  Highest line number involved in SCOs for this unit
 
       Cur_Source_File        : Source_File_Index := No_Source_File;
       Cur_SCO_Unit           : SCO_Unit_Index;
@@ -2326,7 +2331,8 @@ package body SC_Obligations is
       Deps_Present : constant Boolean := not Deps.Is_Empty;
 
       State : CU_Load_State :=
-        (Current_Decision        => <>,
+        (Last_Line               => <>,
+         Current_Decision        => <>,
          Current_Condition_Index => <>,
          Current_BDD             => <>,
          Dom_SCO                 => <>,
@@ -2354,7 +2360,7 @@ package body SC_Obligations is
          if Cur_SCO_Entry > Last_Entry_In_Cur_Unit then
             --  Prealloc line table entries for previous units
 
-            Prealloc_Lines (Cur_Source_File, Last_Entry_Last_Line);
+            Prealloc_Lines (Cur_Source_File, State.Last_Line);
 
             --  Enter new unit
 
@@ -2437,7 +2443,7 @@ package body SC_Obligations is
 
       --  Prealloc line table entries for last unit
 
-      Prealloc_Lines (Cur_Source_File, Last_Entry_Last_Line);
+      Prealloc_Lines (Cur_Source_File, State.Last_Line);
 
       --  Build Sloc -> SCO index and set up Parent links
 
