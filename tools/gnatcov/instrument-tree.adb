@@ -275,8 +275,6 @@ package body Instrument.Tree is
    --  We generate the following declarations in the instrumented unit,
    --  replacing the original declaration:
    --
-   --     function Foo (Arg1 : Arg1_Type; Arg2 : Arg2_Type) return Boolean;
-   --
    --     --  See Degenerate_Subp_Common_Nodes.Wrapper_Pkg
    --     package Func_Expr_[Subprogram_Index](S|B|U) is
    --        --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
@@ -2403,12 +2401,22 @@ package body Instrument.Tree is
          Saved_Insertion_Info.Rewriting_Offset :=
            Saved_Insertion_Info.Rewriting_Offset - 1;
 
-         --  If there is no previous declaration, generate one, keeping the
-         --  original aspects and default parameters. Then make sure that
-         --  the original null procedure or expression function is detached
-         --  from the tree.
+         --  For null procedures, if there is no previous declaration, generate
+         --  one, keeping the original aspects and default parameters. Then
+         --  make sure that the original null procedure is detached from the
+         --  tree.
+         --
+         --  Note that we must not do this for expression functions, as having
+         --  both a function declaration and the completing function expression
+         --  in the same scope triggers early freezing for controlling types
+         --  involved. This means that instrumenting would move the freezing
+         --  point, which can produce invalid Ada sources (for instance
+         --  primitives cannot be declared after the freezing point, and
+         --  primitives could be declared after this expression function).
 
-         if N.As_Base_Subp_Body.P_Previous_Part.Is_Null then
+         if not Is_Expr_Function
+           and then N.As_Base_Subp_Body.P_Previous_Part.Is_Null
+         then
             Insert (Create_Subp_Decl
               (RC,
                Classic_Subp_Decl_F_Overriding =>
