@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2019, AdaCore                       --
+--                     Copyright (C) 2019-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -24,7 +24,7 @@ package body Text_Files is
    -- Is_Open --
    -------------
 
-   function Is_Open (Self : in out File_Type) return Boolean is
+   function Is_Open (Self : File_Type) return Boolean is
    begin
       return Is_Open (Self.File);
    end Is_Open;
@@ -33,7 +33,7 @@ package body Text_Files is
    -- Mode --
    ----------
 
-   function Mode (Self : in out File_Type) return File_Mode is
+   function Mode (Self : File_Type) return File_Mode is
    begin
       return Mode (Self.File);
    end Mode;

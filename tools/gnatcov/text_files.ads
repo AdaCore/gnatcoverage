@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2019, AdaCore                       --
+--                     Copyright (C) 2019-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -29,12 +29,12 @@ package Text_Files is
    --  Reference to a text file. On destruction, the file is automatically
    --  closed if open.
 
-   function Is_Open (Self : in out File_Type) return Boolean
+   function Is_Open (Self : File_Type) return Boolean
       with Inline;
    --  Return whether Self references an open file. By default, files are
    --  closed.
 
-   function Mode (Self : in out File_Type) return File_Mode
+   function Mode (Self : File_Type) return File_Mode
       with Pre => Self.Is_Open,
            Inline;
    --  Return the opening mode for Self. See the Open primitive.
