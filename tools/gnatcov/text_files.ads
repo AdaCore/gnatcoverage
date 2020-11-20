@@ -19,6 +19,7 @@
 --  Convenience wrapper around Ada.Text_IO.
 
 private with Ada.Finalization;
+private with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 package Text_Files is
@@ -95,12 +96,18 @@ package Text_Files is
            Inline;
    --  Close the text file that Self references
 
+   procedure Run_GNATpp (Self : File_Type)
+      with Pre => not Self.Is_Open;
+   --  Run "gnatpp" on the given file (i.e. reformat/pretty-print it)
+
 private
 
    use Ada.Text_IO;
+   package US renames Ada.Strings.Unbounded;
 
    type File_Type is new Ada.Finalization.Limited_Controlled with record
-      File : Ada.Text_IO.File_Type;
+      File     : Ada.Text_IO.File_Type;
+      Filename : US.Unbounded_String;
    end record;
 
    overriding procedure Finalize (Self : in out File_Type);

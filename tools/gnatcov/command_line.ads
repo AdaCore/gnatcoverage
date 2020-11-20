@@ -391,9 +391,13 @@ package Command_Line is
          Internal  => True),
       Opt_Pretty_Print => Create
         (Long_Name => "--pretty-print",
-         Help      => "Output a pretty-printed JSON to ease debugging.",
+         Help      => "For the disassemble-insn-properties command, output a"
+                      & " pretty-printed JSON to ease debugging. For the"
+                      & " instrument command, run gnatpp on the generated"
+                      & " sources.",
          Commands  => (Cmd_Disassemble_Insn_Properties => True,
-                       others => False),
+                       Cmd_Instrument                  => True,
+                       others                          => False),
          Internal  => True),
 
       Opt_Keep_Reading_Traces => Create

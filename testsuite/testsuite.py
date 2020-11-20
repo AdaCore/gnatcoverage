@@ -553,6 +553,9 @@ class TestPyRunner:
         if mopt.consolidate:
             testcase_cmd.append('--consolidate=%s' % mopt.consolidate)
 
+        if mopt.pretty_print:
+            testcase_cmd.append('--pretty-print')
+
         # --gnatcov_<cmd> family
 
         for pgm, cmd in control.ALTRUN_GNATCOV_PAIRS:

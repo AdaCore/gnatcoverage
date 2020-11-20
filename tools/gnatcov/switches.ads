@@ -54,6 +54,9 @@ package Switches is
    --  If True, show the evaluation vectors for each decision where there is
    --  an MCDC violation.
 
+   Pretty_Print : Boolean := False;
+   --  If true, run "gnatpp" on the generate sources
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

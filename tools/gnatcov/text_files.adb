@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.OS_Lib;
+
 with Outputs;
 
 package body Text_Files is
@@ -49,6 +51,7 @@ package body Text_Files is
       return Boolean is
    begin
       Open (Self.File, Mode, Name);
+      Self.Filename := US.To_Unbounded_String (Name);
       return True;
    exception
       when Use_Error | Name_Error =>
@@ -66,6 +69,7 @@ package body Text_Files is
       return Boolean is
    begin
       Create (Self.File, Mode, Name);
+      Self.Filename := US.To_Unbounded_String (Name);
       return True;
    exception
       when Use_Error | Name_Error =>
@@ -146,5 +150,28 @@ package body Text_Files is
          Close (Self.File);
       end if;
    end Finalize;
+
+   ----------------
+   -- Run_GNATpp --
+   ----------------
+
+   procedure Run_GNATpp (Self : Text_Files.File_Type) is
+      use GNAT.OS_Lib;
+
+      Filename : constant String := US.To_String (Self.Filename);
+      Args     : constant Argument_List := (1 => Filename'Unrestricted_Access);
+      GNATpp   : String_Access := Locate_Exec_On_Path ("gnatpp");
+      Success  : Boolean;
+   begin
+      if GNATpp = null then
+         Put_Line ("gnatpp not available");
+         return;
+      end if;
+      Spawn (GNATpp.all, Args, Success);
+      Free (GNATpp);
+      if not Success then
+         Put_Line ("pretty-printing " & Filename & " failed!");
+      end if;
+   end Run_GNATpp;
 
 end Text_Files;

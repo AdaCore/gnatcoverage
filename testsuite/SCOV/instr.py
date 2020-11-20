@@ -4,6 +4,7 @@ import os.path
 
 from e3.fs import mkdir
 
+from SUITE.context import thistest
 from SUITE.tutils import RUNTIME_INFO, xcov
 
 
@@ -59,6 +60,10 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
              '--dump-channel', dump_channel or default_dump_channel()] +
             gprsw.cov_switches +
             extra_args)
+
+    if thistest.options.pretty_print:
+        args.append('--pretty-print')
+
     xcov(args, out=out, err=err, register_failure=register_failure)
 
 

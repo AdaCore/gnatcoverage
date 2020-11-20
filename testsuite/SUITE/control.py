@@ -449,3 +449,9 @@ def add_shared_options_to(parser, toplevel):
         '--consolidate', dest='consolidate', default="traces",
         help="Artifacts to be used for consolidation specs.",
         choices=('traces', 'checkpoints'))
+
+    # --pretty-print
+    parser.add_argument(
+        '--pretty-print', action='store_true',
+        help='Whether to pretty-print generated sources (for "gnatcov'
+             ' instrument".')

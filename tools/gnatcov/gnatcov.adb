@@ -110,7 +110,6 @@ procedure GNATcov is
    Locations_Inputs     : Object_Locations.User_Locations;
    CFG_Output_Format    : CFG_Dump.Output_Format := CFG_Dump.None;
    Keep_Edges           : Boolean := False;
-   Pretty_Print         : Boolean := False;
    SO_Inputs            : SO_Set_Type;
    Keep_Reading_Traces  : Boolean := False;
 

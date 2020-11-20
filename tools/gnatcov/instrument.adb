@@ -386,6 +386,9 @@ package body Instrument is
       File.Put_Line ("end " & Pkg_Name & ";");
 
       Text_Files.Close (File);
+      if Switches.Pretty_Print then
+         Text_Files.Run_GNATpp (File);
+      end if;
 
       if not UIC.Degenerate_Subprogram_Generics.Is_Empty then
          CU_Name.Part := GNATCOLL.Projects.Unit_Body;
@@ -402,6 +405,9 @@ package body Instrument is
          File.Put_Line ("end " & Pkg_Name & ";");
 
          Text_Files.Close (File);
+         if Switches.Pretty_Print then
+            Text_Files.Run_GNATpp (File);
+         end if;
       end if;
    end Emit_Pure_Buffer_Unit;
 

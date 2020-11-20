@@ -554,10 +554,11 @@ package body Instrument.Common is
          Chunk_Size : constant := 4096;
          Position   : Natural;
 
+         Filename : constant String := To_String (Self.Output_Filename);
          Out_File : Text_Files.File_Type;
       begin
          Abort_Rewriting (Self.Handle);
-         Out_File.Create (To_String (Self.Output_Filename));
+         Out_File.Create (Filename);
          Put_Warnings_And_Style_Checks_Pragmas (Out_File);
 
          Get_Wide_Wide_String (Source, Source_Access, Length);
@@ -578,6 +579,11 @@ package body Instrument.Common is
                Position := Chunk_Last + 1;
             end;
          end loop;
+
+         Out_File.Close;
+         if Switches.Pretty_Print then
+            Text_Files.Run_GNATpp (Out_File);
+         end if;
       end;
 
       Self.Finalize;
