@@ -21,6 +21,11 @@ A typical prefix is the root of your compilation toolchain install tree, where
 you can copy the subdirectory contents by other means if you don't have a bash
 like environment available.
 
+You can also install this package in non-interactive mode by specifying
+the installation directory as the parameter to doinstall:
+
+  ./doinstall /path/to/gnatcoverage/install
+
 =========================================================
 == INSTALL - source distribution                       ==
 == (repo, zip or tar.gz archive with -src in the name) ==

@@ -1,7 +1,7 @@
 #! /bin/sh
 #
 # GNATcoverage binary distribution installation script
-# Copyright (c) 2011, Free Software Foundation
+# Copyright (c) 2011-2020, Free Software Foundation
 #
 
 ####################
@@ -47,7 +47,7 @@ check_env () {
 	if [ $type_rv -ne 0 ]; then
 	    command_not_found $cmd
 	fi
-    done 
+    done
 }
 
 ###################################
@@ -81,7 +81,7 @@ EOF
 #####################################
 
 standard_installation () {
- 
+
    # Makes the real installation
    mkdir -p $prefix
    (tar cf - bin lib libexec share \
@@ -119,16 +119,16 @@ EOF
 EOF
       exit 1
    fi
-   
+
    case $machine in
-      *) clear ;; 
+      *) clear ;;
    esac
 
    cat << EOF
 
 
    $qualifier is now installed. To launch it, you must put
-      $prefix/bin 
+      $prefix/bin
    in front of your PATH environment variable. The following
    commands enable you to do this:
       PATH=$prefix/bin:\$PATH; export PATH  (Bourne shell)
@@ -151,11 +151,27 @@ check_env
 # is defined
 unset CDPATH
 
+if [ $# -eq 1 ]; then
+  if [ "$1" = "--help" ]; then
+    cat << EOF
+   Usage: $0 [install_dir]
+
+   When no argument is specified, runs the GNATcoverage installer
+   interactively, otherwise installs automatically under install_dir.
+EOF
+  else
+    echo "   installing GNATcoverage under $1"
+    prefix="$1"
+    standard_installation
+  fi
+  exit 0
+fi
+
 clear
 cat << EOF
-                                                                                
-                                                                                
-   This script is provided to perform the installation of the 
+
+
+   This script is provided to perform the installation of the
    binary version of the $qualifier package identified as
 
    $version for $machine
@@ -179,15 +195,15 @@ while [ "x$confirm" != "xOK" ]; do
     # Ask the base directory for installation
     clear
     cat << EOF
-									    
-   									    
-    To install $qualifier, you need to specify a base directory.  
+
+
+    To install $qualifier, you need to specify a base directory.
     All the files will be installed in subdirectories of this base.
 
     Important Note: You should not use ~ or ~username wildcards
     when specifying this directory name.
 EOF
-    ask_base_prefix                                                                           
+    ask_base_prefix
     while [ "$prefix" = "$curdir" ]; do
        #target base directory cannot be the same as the current dir
        cat << EOF
@@ -224,15 +240,15 @@ done
 # Ask confirmation
 clear
 cat << EOF
-                                                                                
-                                                                                
-   $long_qualifier is now about to be installed in 
+
+
+   $long_qualifier is now about to be installed in
       $prefix.
    Type 'Y' if you want to proceed with installation or any other key
    if you wish to abort.
 
    Do you want to proceed with installation ? [yY|nN]:
-                                                                                
+
 EOF
 read proceed
 case $proceed in
@@ -246,5 +262,3 @@ esac
 
 # Do the real installation
 standard_installation
-
-
