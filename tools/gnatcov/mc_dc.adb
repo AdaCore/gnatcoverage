@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2017, AdaCore                     --
+--                     Copyright (C) 2009-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -15,6 +15,8 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
+with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 package body MC_DC is
 
@@ -56,23 +58,24 @@ package body MC_DC is
                                 - E.Values.Last_Index);
       --  Count of masked conditions after the last non-masked one.
 
-      Masked_Values : constant String (1 .. Masked_Len) := (others => '-');
+      Masked_Values : constant String := Masked_Len * "X ";
    begin
       return Image (E.Values) & Masked_Values & " -> " & E.Outcome'Img;
    end Image;
 
    function Image (EV : Condition_Evaluation_Vectors.Vector) return String is
-      Cond_Vector : String (1 .. Integer (EV.Length));
+      Cond_Vector : String (1 .. (2 * Integer (EV.Length)));
    begin
       for J in EV.First_Index .. EV.Last_Index loop
          case EV.Element (J) is
             when False   =>
-               Cond_Vector (1 + Integer (J - EV.First_Index)) := 'F';
+               Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := 'F';
             when True    =>
-               Cond_Vector (1 + Integer (J - EV.First_Index)) := 'T';
+               Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := 'T';
             when Unknown =>
-               Cond_Vector (1 + Integer (J - EV.First_Index)) := '-';
+               Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := 'X';
          end case;
+         Cond_Vector (2 * (Integer (J - EV.First_Index) + 1)) := ' ';
       end loop;
 
       return Cond_Vector;
