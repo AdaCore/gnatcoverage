@@ -189,6 +189,9 @@ procedure GNATcov is
    procedure Load_All_ALIs (Check_SCOs : Boolean);
    --  Load all listed ALI files and initialize source coverage data structure
    --  (if appropriate). If Check_SCOs is True, call Check_User_Provided_SCOs.
+   --
+   --  If no ALI Files are specified, try to enumerate them from a given
+   --  project file.
 
    procedure Load_All_SIDs;
    --  Load all SID files for units of interest (if no --sid option is passed)
@@ -355,9 +358,21 @@ procedure GNATcov is
       Matcher     : aliased GNAT.Regexp.Regexp;
       Has_Matcher : Boolean;
 
+      procedure Add_LI (S : String);
+      --  Callback to add items to ALIs_Inputs
+
       procedure Load_SCOs_Wrapper (ALI_Filename : String);
       --  Wrapper for SC_Obligations.Load_SCOs that uses Ignored to ignore
       --  source files.
+
+      ------------
+      -- Add_LI --
+      ------------
+
+      procedure Add_LI (S : String) is
+      begin
+         Inputs.Add_Input (ALIs_Inputs, S);
+      end Add_LI;
 
       -----------------------
       -- Load_SCOs_Wrapper --
@@ -383,6 +398,18 @@ procedure GNATcov is
          return;
       end if;
       SCOs_Loaded := True;
+
+      --  Set defaults for options identifying the entities of interest
+      --  coverage analysis if they have not been identified on the command
+      --  line.
+      --
+      --  Load_All_ALIs is called after filling the ALI_Inputs container from
+      --  command line options, so if it is empty at that point, it means SCOs
+      --  have to be enumerated from a project file.
+
+      if Inputs.Length (ALIs_Inputs) = 0 and then Is_Project_Loaded then
+         Enumerate_LIs (Add_LI'Access);
+      end if;
 
       --  When appropriate, warn about units of interest with no LI
 
@@ -1179,40 +1206,10 @@ procedure GNATcov is
             null;
       end case;
 
-      if Is_Project_Loaded then
-         --  Set defaults for options identifying the entities of interest
-         --  coverage analysis if they have not been identified on the command
-         --  line.
-
-         if Object_Coverage_Enabled then
-            --  Set routines from project, not supported yet???
-            null;
-
-         elsif Args.Command = Cmd_Instrument then
-            --  Instrumentation does not rely on ALI files, so no need to do
-            --  anything in this case.
-            null;
-
-         elsif Inputs.Length (ALIs_Inputs) = 0 then
-            declare
-               procedure Add_LI (S : String);
-               --  Callback to add items to ALIs_Inputs
-
-               ------------
-               -- Add_LI --
-               ------------
-
-               procedure Add_LI (S : String) is
-               begin
-                  Inputs.Add_Input (ALIs_Inputs, S);
-               end Add_LI;
-            begin
-               Enumerate_LIs (Add_LI'Access);
-            end;
-         end if;
-
-      elsif not Args.String_List_Args (Opt_Projects).Is_Empty then
-         Fatal_Error ("--projects requires -P");
+      if not Is_Project_Loaded
+         and then not Args.String_List_Args (Opt_Projects).Is_Empty
+      then
+            Fatal_Error ("--projects requires -P");
       end if;
 
       if Inputs.Length (Ignored_Source_Files) = 0 and then Is_Project_Loaded
@@ -2526,6 +2523,7 @@ begin
                Histmap       : String_Access;
             begin
                if MCDC_Coverage_Enabled then
+                  Load_All_ALIs (Check_SCOs => False);
                   if Length (ALIs_Inputs) = 0 then
                      Warn ("No SCOs specified for MC/DC level.");
 
@@ -2551,7 +2549,6 @@ begin
                      Histmap := new String'
                        (Dmap_Filename (1 ..  OS.Temp_File_Len - 1));
 
-                     Load_All_ALIs (Check_SCOs => False);
                      Build_Decision_Map (Exe_File, Text_Start, Histmap.all);
                   end if;
                end if;
@@ -2585,11 +2582,11 @@ begin
               Exec & ".dmap";
          begin
             if MCDC_Coverage_Enabled then
+               Load_All_ALIs (Check_SCOs => False);
                if Length (ALIs_Inputs) = 0 then
                   Warn ("No SCOs specified for MC/DC level.");
 
                else
-                  Load_All_ALIs (Check_SCOs => False);
                   Build_Decision_Map (Exec, Text_Start, Histmap);
                end if;
             end if;
