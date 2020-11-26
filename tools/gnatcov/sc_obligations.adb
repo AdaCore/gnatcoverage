@@ -1201,7 +1201,9 @@ package body SC_Obligations is
                      New_CU_Id => New_CU_Id);
                   Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
                else
-                  Put_Line ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
+                  if Switches.Verbose then
+                     Put_Line ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
+                  end if;
 
                   --  Ignoring compilation units from a checkpoint file should
                   --  only be possible when loading a SID file. In this case,
