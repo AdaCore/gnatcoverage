@@ -1763,7 +1763,7 @@ package body Instrument.Tree is
                                 Bit    => UIC.Unit_Bits.Last_Statement_Bit,
                                 Flavor => Function_Call),
 
-                             2 => Make (UIC, Ada_Op_And_Then),
+                             2 => Make (UIC, Ada_Op_Or_Else),
 
                              --  Placeholder for relocation of old condition
                              --  after it is detached from the tree.
@@ -1782,7 +1782,10 @@ package body Instrument.Tree is
 
                      if Kind (Old_Cond) = Ada_Bin_Op
                         and then Kind (Child (Old_Cond, 2)) in
-                           Ada_Op_And | Ada_Op_Or | Ada_Op_Xor | Ada_Op_Or_Else
+                                 Ada_Op_And
+                               | Ada_Op_Or
+                               | Ada_Op_Xor
+                               | Ada_Op_And_Then
                      then
                         Old_Cond := Create_Regular_Node
                           (RC,
