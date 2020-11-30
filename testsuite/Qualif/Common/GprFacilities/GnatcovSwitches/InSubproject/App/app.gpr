@@ -3,10 +3,6 @@ project App is
    for Source_Dirs use (".");
    for Object_Dir use "obj";
 
-   package compiler is
-     for default_switches ("Ada") use
-      ("-fdump-scos", "-fpreserve-control-flow", "-g");
-   end compiler;
    package Coverage is
       for Switches ("*") use ("--level=stmt");
    end Coverage;
