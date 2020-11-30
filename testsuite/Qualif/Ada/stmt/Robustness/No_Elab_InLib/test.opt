@@ -1,2 +1,3 @@
 7.1.2 DEAD relies on compiler change introduced post 7.4
 src-traces XFAIL T331-040: src-traces and No_Elaboration_Code restriction
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
