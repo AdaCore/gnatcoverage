@@ -1344,6 +1344,9 @@ class TestSuite(e3.testsuite.Testsuite):
 
         gcc_version = version(self.tool("gcc"))
         m = re.search(r"GNAT Pro (\d\.\d\.\d)", gcc_version)
+        # Different version numbering for old GNAT versions
+        m = m if m else re.search(r"GNAT Pro (5.04a1)", gcc_version)
+
         return [m.group(1)] if m else []
 
     # --------------------------
