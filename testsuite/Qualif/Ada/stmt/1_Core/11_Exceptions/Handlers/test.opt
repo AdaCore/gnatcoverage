@@ -1,1 +1,2 @@
 RTS_RAVENSCAR,powerpc,7.1.2 SKIP !zfp sjlj eh issue fixed post 7.0, K316-021
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04

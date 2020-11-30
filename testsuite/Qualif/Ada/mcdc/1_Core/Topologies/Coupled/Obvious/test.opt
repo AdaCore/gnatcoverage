@@ -1,1 +1,2 @@
 7.1.2,CARGS_O1 SKIP harmless inaccuracy from opt on obvious coupling, fixed post 7.0
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04

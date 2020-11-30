@@ -1,2 +1,3 @@
 RTS_ZFP DEAD no support for unbounded strings in ZFP runtimes
 CARGS_O1,7.1.2 XFAIL requires stronger CFG analysis (PA25-046, Q103-025)
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04

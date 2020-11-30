@@ -1,1 +1,2 @@
 7.1.2 XFAIL relies on specific debug info for untangling multiple inlined instances, fixed post 7.0
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
