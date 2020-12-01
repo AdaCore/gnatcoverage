@@ -363,6 +363,41 @@ distrib-without-doc: distrib-common install-without-doc
 distrib-with-doc: distrib-common install-with-doc
 distrib: distrib-with-doc
 
+#############
+# GNAT_UTIL #
+#############
+
+# To support build from sources with toolchains which don't
+# provide gnat_util:
+
+# The name of the subdir where we will setup the gnat_util
+# source files, which should match the source dir designated
+# by gnat_util.gpr:
+GU_SUBDIR=gnat_util-src
+
+.PHONY: gnat_util gnat_util_src gnat_util.gpr
+
+# The name of the target referenced in the README file:
+gnat_util: gnat_util_src gnat_util.gpr
+
+gnat_util_src:
+	@if [ -z "$(GNAT_SRC_DIR)" ]; then \
+		echo "!! Please define the GNAT_SRC_DIR variable !!"; \
+	fi
+	$(MKDIR) $(GU_SUBDIR)
+	for src in $$(cat $(GNAT_SRC_DIR)/MANIFEST.gnat_util); do \
+	  $(CP) $(GNAT_SRC_DIR)/$$src $(GU_SUBDIR); \
+	done
+	(cd $(GU_SUBDIR) && \
+           gnatmake -gnatf -gnatwae -gnatyg -gnatyS xsnamest && \
+           ./xsnamest && mv snames.ns snames.ads && mv snames.nb snames.adb)
+	$(CP) $(GNAT_SRC_DIR)/sdefault_adb.gnat_util $(GU_SUBDIR)/sdefault.adb
+
+gnat_util.gpr:
+	@echo "project gnat_util is" > $@
+	@echo "  for source_dirs use (\"$(GU_SUBDIR)\");" >> $@
+	@echo "end gnat_util;" >> $@
+
 .PHONY: force
 
 force:
