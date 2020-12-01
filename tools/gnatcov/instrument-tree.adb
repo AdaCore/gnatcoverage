@@ -3376,7 +3376,9 @@ package body Instrument.Tree is
          declare
             N : constant Ada_Node := L.Child (J);
          begin
-            Current_Insertion_Info.Index := J;
+            if Current_Insertion_Info.Method in Statement | Declaration then
+               Current_Insertion_Info.Index := J;
+            end if;
             Traverse_One (N);
          end;
       end loop;
