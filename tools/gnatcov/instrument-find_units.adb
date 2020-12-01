@@ -91,9 +91,16 @@ begin
       raise Xcov_Exit_Exc;
    end if;
 
-   --  Abort if we have several compilation units per file
+   --  We cannot instrument files that contain only pragmas, but they are still
+   --  valid sources in the context of the GNAT runtime (for instance
+   --  g-os_lib.adb), so just ignore them.
 
-   if Unit.Root.Kind = Ada_Compilation_Unit_List then
+   if Unit.Root.Kind = Ada_Pragma_Node_List then
+      return;
+
+   --  Abort if a source file does not contain exactly one compilation unit
+
+   elsif Unit.Root.Kind = Ada_Compilation_Unit_List then
       Error ("instrumentation failed for " & Input_Filename);
       Error ("source files containing multiple compilation units are not"
              & " supported");
