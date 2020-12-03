@@ -3416,15 +3416,28 @@ package body SC_Obligations is
    -------------------------------
 
    procedure Report_Units_Without_Code is
+
+      package SFI_Sets is new Ada.Containers.Ordered_Sets
+        (Valid_Source_File_Index);
+      Reported_Origins : SFI_Sets.Set;
+      --  Keep track of origins that we reported, so that we don't report the
+      --  same origin twice. This happens when multiple compilation units share
+      --  the same origin.
+
    begin
       for CU_Id in CU_Vector.First_Index .. CU_Vector.Last_Index loop
          declare
-            CUI : CU_Info renames CU_Vector.Reference (CU_Id);
+            CUI    : CU_Info renames CU_Vector.Reference (CU_Id);
+            Origin : constant Valid_Source_File_Index := CUI.Origin;
          begin
-            if not CUI.Has_Code and then Has_SCOs (CUI) then
+            if not CUI.Has_Code
+              and then Has_SCOs (CUI)
+              and then not Reported_Origins.Contains (Origin)
+            then
                Report
-                 (Msg  => "no object code for " & Get_Simple_Name (CUI.Origin),
+                 (Msg  => "no object code for " & Get_Simple_Name (Origin),
                   Kind => Diagnostics.Error);
+               Reported_Origins.Insert (Origin);
             end if;
          end;
       end loop;
