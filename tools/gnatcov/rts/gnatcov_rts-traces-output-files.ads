@@ -31,14 +31,14 @@ with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 package GNATcov_RTS.Traces.Output.Files is
 
    type Time is new Interfaces.Unsigned_64;
-   --  Derived type to represent timestamps (as a number of seconds elapsed).
+   --  Derived type to represent timestamps (as a number of seconds elapsed)
 
    GNATCOV_TRACE_FILE : constant String := "GNATCOV_TRACE_FILE";
    --  Name of the environment variable to contain the default file name for
    --  output trace files.
 
    function Clock return Time;
-   --  Returns the number of seconds since the UNIX epoch.
+   --  Returns the number of seconds since the UNIX epoch
 
    function Default_Trace_Filename return String;
    --  Return the default name of the trace file to write.
