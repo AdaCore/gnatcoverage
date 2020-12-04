@@ -16,11 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Wide_Wide_Characters.Handling; use Ada.Wide_Wide_Characters.Handling;
 with Ada.Characters.Conversions;        use Ada.Characters.Conversions;
+with Ada.Exceptions;
 with Ada.Strings.Unbounded;             use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Fixed;
 with Ada.Strings.Wide_Wide_Unbounded;   use Ada.Strings.Wide_Wide_Unbounded;
+with Ada.Wide_Wide_Characters.Handling; use Ada.Wide_Wide_Characters.Handling;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
@@ -275,6 +276,10 @@ package body Instrument.Tree is
    --  We generate the following declarations in the instrumented unit,
    --  replacing the original declaration:
    --
+   --     --  Sometimes we don't emit this forward declaration (see
+   --     --  Traverse_Degenerate_Subprogram).
+   --     function Foo (Arg1 : Arg1_Type; Arg2 : Arg2_Type) return Boolean;
+   --
    --     --  See Degenerate_Subp_Common_Nodes.Wrapper_Pkg
    --     package Func_Expr_[Subprogram_Index](S|B|U) is
    --        --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
@@ -457,6 +462,13 @@ package body Instrument.Tree is
    --  (Augmented_Expr_Function) and create the expression function
    --  (New_Expr_Function) that will serve as a replacement to the original
    --  one.
+
+   function Is_Self_Referencing
+     (UIC : Unit_Inst_Context;
+      EF  : Expr_Function) return Boolean;
+   --  Return if EF is a self-referencing expression function, i.e. if its
+   --  expression has a reference to itself (for instance: it's a recursive
+   --  function).
 
    ------------
    -- Report --
@@ -1215,6 +1227,53 @@ package body Instrument.Tree is
          I_Subp_Spec_F_Subp_Params,
          Create_Params (RC, Formal_Params));
    end Create_Augmented_Expr_Function;
+
+   -------------------------
+   -- Is_Self_Referencing --
+   -------------------------
+
+   function Is_Self_Referencing
+     (UIC : Unit_Inst_Context;
+      EF  : Expr_Function) return Boolean
+   is
+      EF_Decl : constant Basic_Decl := EF.As_Basic_Decl;
+
+      function Process_Node (N : Ada_Node'Class) return Visit_Status;
+      --  If N is a reference to EF_Decl, return Stop
+
+      ------------------
+      -- Process_Node --
+      ------------------
+
+      function Process_Node (N : Ada_Node'Class) return Visit_Status is
+         Is_Self_Reference : constant Boolean :=
+           (N.Kind in Ada_Single_Tok_Node
+            and then N.As_Single_Tok_Node.P_Referenced_Decl = EF_Decl);
+      begin
+         return (if Is_Self_Reference then Stop else Into);
+      exception
+         when Exc : Property_Error =>
+
+            --  If Libadalang cannot determine what N is a reference to, emit a
+            --  warning and consider it's not a self-reference.
+
+            Report
+              (UIC,
+               EF,
+               "failed to determine referenced declaration: "
+               & Ada.Exceptions.Exception_Information (Exc),
+               Warning);
+            return Into;
+      end Process_Node;
+
+   --  Start of processing for Is_Self_Referencing
+
+   begin
+      --  Return whether we can find at least on enode in EF's expression that
+      --  is a referenc to EF itself.
+
+      return EF.F_Expr.Traverse (Process_Node'Access) = Stop;
+   end Is_Self_Referencing;
 
    ----------------
    -- Append_SCO --
@@ -2416,9 +2475,14 @@ package body Instrument.Tree is
          --  point, which can produce invalid Ada sources (for instance
          --  primitives cannot be declared after the freezing point, and
          --  primitives could be declared after this expression function).
+         --
+         --  ... except for self-referencing expression functions (for instance
+         --  recursive ones), as the generated code requires the declaration to
+         --  be legal Ada.
 
-         if not Is_Expr_Function
-           and then N.As_Base_Subp_Body.P_Previous_Part.Is_Null
+         if N.As_Base_Subp_Body.P_Previous_Part.Is_Null
+            and then (not Is_Expr_Function
+                      or else Is_Self_Referencing (UIC, N.As_Expr_Function))
          then
             Insert (Create_Subp_Decl
               (RC,
