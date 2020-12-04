@@ -284,13 +284,12 @@ package body Instrument.Tree is
    --     package Func_Expr_[Subprogram_Index](S|B|U) is
    --        --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
    --        function Foo_With_State
-   --          (Arg1         : Arg1_Type;
-   --           Arg2         : Arg2_Type;
-   --           MCDC_State_2 : GNATcov_RTS.Buffers.MCDC_State_Holder)
+   --          (Arg1                 : Arg1_Type;
+   --           Arg2                 : Arg2_Type;
+   --           MCDC_State_2         : GNATcov_RTS.Buffers.MCDC_State_Holder;
+   --           Dummy_Witness_Result : Boolean)
    --           return Boolean
-   --        is (case [Witness call] is
-   --            when others =>
-   --            [decision with Witness calls using MCDC_State_2]);
+   --        is ([origin expression plus Witness calls using MCDC_State_2]);
    --     end Func_Expr_[Subprogram_Index](S|B|U);
    --
    --     --  See Create_Augmented_Expr_Function.New_Expr_Function
@@ -298,10 +297,8 @@ package body Instrument.Tree is
    --     is (Func_Expr_[Subprogram_Index](S|B|U).Foo_With_State
    --           (Arg1,
    --            Arg2,
-   --            GNATcov_RTS.Buffers.MCDC_State_Holder'(others => <>)));
-   --
-   --  Without MC/DC, we just insert the case expression+Witness call inside
-   --  the expression function.
+   --            GNATcov_RTS.Buffers.MCDC_State_Holder'(others => <>),
+   --            <witness call for stmt coverage of the expr func>));
 
    --  The following record tracks several parse and rewriting nodes that are
    --  useful for both the instrumentation of null subprograms and expression
@@ -431,6 +428,12 @@ package body Instrument.Tree is
    --  instantiation declaration (Instance) and the renaming for this instance
    --  (Renaming_Decl).
 
+   function Clone_Params
+     (UIC    : Unit_Inst_Context;
+      N_Spec : Subp_Spec) return Node_Rewriting_Handle;
+   --  Create a list of formal parameters as a copy of N_Spec's. If N_Spec has
+   --  no formals, return an empty list.
+
    type Expr_Func_MCDC_State_Inserter is new Root_MCDC_State_Inserter with
       record
          N_Spec : Subp_Spec;
@@ -441,9 +444,7 @@ package body Instrument.Tree is
 
          Formal_Params : Node_Rewriting_Handle;
          --  Formal parameter list where new parameters are added to hold MC/DC
-         --  temporary buffers. This is set lazily from N_Spec. This can
-         --  therefore be tested for No_Node_Rewriting_Handle to determine if
-         --  any parameter was inserted.
+         --  temporary buffers.
       end record;
 
    overriding function Insert_MCDC_State
@@ -1073,6 +1074,21 @@ package body Instrument.Tree is
          Subp_Renaming_Decl_F_Aspects => No_Node_Rewriting_Handle);
    end Complete_Null_Proc_Decls;
 
+   ------------------
+   -- Clone_Params --
+   ------------------
+
+   function Clone_Params
+     (UIC    : Unit_Inst_Context;
+      N_Spec : Subp_Spec) return Node_Rewriting_Handle
+   is
+      P : constant Params := N_Spec.F_Subp_Params;
+   begin
+      return (if P.Is_Null
+              then Make (UIC, Ada_Param_Spec_List)
+              else Clone (P.F_Params));
+   end Clone_Params;
+
    -----------------------
    -- Insert_MCDC_State --
    -----------------------
@@ -1191,21 +1207,19 @@ package body Instrument.Tree is
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
 
-      Call_Expr : constant Node_Rewriting_Handle :=
-        Create_Call_Expr
-          (RC,
-           Call_Expr_F_Name   =>
-             Create_Dotted_Name
-               (RC,
-                Dotted_Name_F_Prefix =>
-                  Clone (Common_Nodes.Wrapper_Pkg_Name),
-                Dotted_Name_F_Suffix =>
-                  Make_Identifier (UIC, Augmented_Expr_Func_Name)),
-           Call_Expr_F_Suffix => Call_Params);
+      Callee    : constant Node_Rewriting_Handle := Create_Dotted_Name
+        (RC,
+         Dotted_Name_F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
+         Dotted_Name_F_Suffix => Make_Identifier
+                                   (UIC, Augmented_Expr_Func_Name));
+      Call_Expr : constant Node_Rewriting_Handle := Create_Call_Expr
+        (RC,
+         Call_Expr_F_Name   => Callee,
+         Call_Expr_F_Suffix => Call_Params);
 
    begin
-      --  Now create New_Expr_Function, which will go right after the wrapper
-      --  package. Move all aspecs from the original function to the new one.
+      --  Create New_Expr_Function, which will go right after the wrapper
+      --  package. Move all aspects from the original function to the new one.
 
       New_Expr_Function :=
         Create_Expr_Function
@@ -1215,10 +1229,16 @@ package body Instrument.Tree is
            Expr_Function_F_Expr        => Create_Paren_Expr (RC, Call_Expr),
            Expr_Function_F_Aspects     => Detach (Common_Nodes.N.F_Aspects));
 
-      --  The original expression function becomes the augmented one. Replace
-      --  its name and formal parameter list it a new name.
+      --  The original expression function becomes the augmented one. Make sure
+      --  it is not overriding (only the wrapper can be overriding), replace
+      --  its name with the new one, and use the "augmented formal params"
+      --  (i.e. original formals plus the witness one and the MC/DC state
+      --  holders).
 
       Augmented_Expr_Function := Handle (Common_Nodes.N);
+      Replace
+        (Handle (Common_Nodes.N_Overriding),
+         Create_Node (RC, Ada_Overriding_Unspecified));
       Replace
         (Handle (Common_Nodes.N_Name),
          Make_Identifier (UIC, Augmented_Expr_Func_Name));
@@ -1966,121 +1986,36 @@ package body Instrument.Tree is
 
             when Expression_Function =>
 
-               --  Wrap the expression in the following construct:
-               --
-               --     (case [WITNESS_CALL] is
-               --        when others => [SCE.N])
-               --
-               --  So that the witness call is executed before the original
-               --  expression is evaluated.
+               --  Create both the witness call and a formal parameter to
+               --  accept it as an actual.
 
-               Witness_For_Expr_Function : declare
-                  Ctx           : constant Rewriting_Handle :=
-                     UIC.Rewriting_Context;
-                  Expr_Function : constant Node_Rewriting_Handle :=
-                     Handle (SCE.N.Parent);
-                  Expr          : Node_Rewriting_Handle := Handle (SCE.N);
+               declare
+                  RC : constant Rewriting_Handle := UIC.Rewriting_Context;
 
-                  Witness_Call : constant Node_Rewriting_Handle :=
-                    Make_Statement_Witness
-                      (UIC,
-                       Bit    => UIC.Unit_Bits.Last_Statement_Bit,
-                       Flavor => Function_Call);
-
-                  Case_Alternatives : constant Node_Rewriting_Handle :=
-                     Create_Node (Ctx, Ada_Case_Expr_Alternative_List);
-
-                  Choices : constant Node_Rewriting_Handle :=
-                     Create_Node (Ctx, Ada_Alternatives_List);
-
-                  Wrapping_Expr : constant Node_Rewriting_Handle :=
-                     Create_Regular_Node
-                       (Ctx, Ada_Paren_Expr,
-                        (1 => Create_Regular_Node
-                                (Ctx, Ada_Case_Expr,
-                                 (1 => Witness_Call,
-                                  2 => Case_Alternatives))));
-
-                  procedure Qualify_Aggregate
-                    (Expr : in out Node_Rewriting_Handle);
-                  --  Assuming Expr is Expr_Function's return expression, if
-                  --  Expr is an aggregate (possibly wrapped in paren
-                  --  expressions), wrap it in a qualified expression. If Expr
-                  --  is the aggregate, update it to point to the qualifying
-                  --  expression.
-
-                  -----------------------
-                  -- Qualify_Aggregate --
-                  -----------------------
-
-                  procedure Qualify_Aggregate
-                    (Expr : in out Node_Rewriting_Handle)
-                  is
-                  begin
-                     case Kind (Expr) is
-                        when Ada_Aggregate =>
-
-                           --  We can deduce from this aggregate that this
-                           --  function returns an array or a record. Hence,
-                           --  the type expression after the "return" keyword
-                           --  is a name, and thus we can get a fully qualified
-                           --  name for the return type.
-
-                           declare
-                              Return_Type_Name : Text_Type renames
-                                 Node (Expr_Function).As_Expr_Function
-                                 .F_Subp_Spec.F_Subp_Returns.Text;
-                              Return_Type      : Node_Rewriting_Handle;
-                              Qual_Expr        : Node_Rewriting_Handle;
-                           begin
-                              Return_Type := Create_From_Template
-                                (UIC.Rewriting_Context,
-                                 Template  => Return_Type_Name,
-                                 Arguments =>  (1 .. 0 => <>),
-                                 Rule      => Name_Rule);
-                              Qual_Expr := Create_Regular_Node
-                                (Ctx, Ada_Qual_Expr,
-                                 (1 => Return_Type,
-                                  2 => No_Node_Rewriting_Handle));
-                              Replace (Expr, Qual_Expr);
-                              Set_Child (Qual_Expr, 2, Expr);
-                              Expr := Qual_Expr;
-                           end;
-
-                        when Ada_Paren_Expr =>
-                           declare
-                              Subexpr : Node_Rewriting_Handle :=
-                                 Child (Expr, 1);
-                           begin
-                              Qualify_Aggregate (Subexpr);
-                           end;
-
-                        when others =>
-                           null;
-                     end case;
-                  end Qualify_Aggregate;
-
-               --  Start of processing for Witness_For_Expr_Function
-
+                  Formal_Name   : constant Node_Rewriting_Handle :=
+                    Make_Identifier (UIC, "Dummy_Witness_Result");
+                  Formal_Def_Id : constant Node_Rewriting_Handle :=
+                    Create_Regular_Node
+                      (RC,
+                       Ada_Defining_Name_List,
+                       Children => (1 => Create_Defining_Name
+                                           (RC, Formal_Name)));
                begin
-                  --  Workaround a GNAT bug that is known to be present at
-                  --  least up to GNAT Pro 20.0 (S924-014): if this expression
-                  --  function returns an aggregate, qualify it.
+                  Insert_Info.Witness_Actual := Make_Statement_Witness
+                    (UIC,
+                     Bit    => UIC.Unit_Bits.Last_Statement_Bit,
+                     Flavor => Function_Call);
 
-                  Qualify_Aggregate (Expr);
-
-                  Set_Child (Expr_Function, 3, Wrapping_Expr);
-                  Append_Child
-                    (Choices,
-                     Create_Regular_Node (Ctx, Ada_Others_Designator,
-                                          (1 .. 0 => <>)));
-                  Append_Child
-                    (Case_Alternatives,
-                     Create_Regular_Node
-                       (Ctx, Ada_Case_Expr_Alternative,
-                        (1 => Choices,
-                         2 => Expr)));
-               end Witness_For_Expr_Function;
+                  Insert_Info.Witness_Formal := Create_Param_Spec
+                    (RC,
+                     Param_Spec_F_Ids          => Formal_Def_Id,
+                     Param_Spec_F_Has_Aliased  => No_Node_Rewriting_Handle,
+                     Param_Spec_F_Mode         => No_Node_Rewriting_Handle,
+                     Param_Spec_F_Type_Expr    =>
+                       Make_Identifier (UIC, "Boolean"),
+                     Param_Spec_F_Default_Expr => No_Node_Rewriting_Handle,
+                     Param_Spec_F_Aspects      => No_Node_Rewriting_Handle);
+               end;
 
             when None =>
                raise Program_Error;
@@ -2298,6 +2233,13 @@ package body Instrument.Tree is
          --  List of formal/actual associations for the call to the augmented
          --  function. Unused if we are not processing an expression function.
 
+         Formal_Params : constant Node_Rewriting_Handle :=
+           (if Is_Expr_Function
+            then Clone_Params (UIC, N_Spec)
+            else No_Node_Rewriting_Handle);
+         --  List of formal parameters for the augmented function. Unused if we
+         --  are not processing an expression function.
+
          ------------------------------------
          -- Collection of various nodes... --
          ------------------------------------
@@ -2324,7 +2266,7 @@ package body Instrument.Tree is
          EF_Inserter : aliased Expr_Func_MCDC_State_Inserter :=
            (N_Spec        => N_Spec,
             Call_Params   => Call_Params,
-            Formal_Params => No_Node_Rewriting_Handle);
+            Formal_Params => Formal_Params);
          --   MC/DC state inserter for this expression function (unused if
          --   instrumenting a null procedure).
 
@@ -2350,25 +2292,27 @@ package body Instrument.Tree is
 
          if Is_Expr_Function then
 
-            if MCDC_Coverage_Enabled then
+            --  Pass all expression function parameters to the augmented
+            --  expression function call.
 
-               --  Pass all expression function paramaters to the augmented
-               --  expression function call.
-
-               for J in 1 .. (if Common_Nodes.N_Params.Is_Null
-                              then 0
-                              else Common_Nodes.N_Params.Children_Count)
+            for J in 1 .. (if Common_Nodes.N_Params.Is_Null
+                           then 0
+                           else Common_Nodes.N_Params.Children_Count)
+            loop
+               for Id of Common_Nodes.N_Params.Child (J)
+                        .As_Param_Spec.F_Ids.Children
                loop
-                  for Id of Common_Nodes.N_Params.Child (J)
-                           .As_Param_Spec.F_Ids.Children
-                  loop
-                     Append_Child
-                       (Call_Params, Make_Identifier (UIC, Id.Text));
-                  end loop;
+                  Append_Child (Call_Params, Make_Identifier (UIC, Id.Text));
                end loop;
-            end if;
+            end loop;
 
-            New_Insertion_Info := (Method => Expression_Function);
+            --  The statement instrumentation below will take care of assigning
+            --  .Witness_* components to their definitive values.
+
+            New_Insertion_Info :=
+              (Method         => Expression_Function,
+               Witness_Actual => No_Node_Rewriting_Handle,
+               Witness_Formal => No_Node_Rewriting_Handle);
 
          else
             --  Null procedure handling: create all the nodes for the
@@ -2438,15 +2382,12 @@ package body Instrument.Tree is
          UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
          UIC.Current_Insertion_Info := Saved_Insertion_Info;
 
-         --  If we are instrumenting an expression function but are not going
-         --  to instrument a decision in it, there is no need to generate the
-         --  augmented expression function: stop there.
+         if Is_Expr_Function then
 
-         if Is_Expr_Function
-              and then
-            EF_Inserter.Formal_Params = No_Node_Rewriting_Handle
-         then
-            return;
+            --  Pass the witness call to the augmented expression function
+
+            Append_Child (Call_Params, New_Insertion_Info.Witness_Actual);
+            Append_Child (Formal_Params, New_Insertion_Info.Witness_Formal);
          end if;
 
          ----------------------------
@@ -2503,7 +2444,7 @@ package body Instrument.Tree is
                Create_Augmented_Expr_Function
                  (UIC,
                   Common_Nodes,
-                  EF_Inserter.Formal_Params,
+                  Formal_Params,
                   Call_Params,
                   Augmented_Expr_Function,
                   New_Expr_Function);
