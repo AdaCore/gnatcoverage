@@ -79,6 +79,8 @@ environment variable designating the GNAT installation root.
 
 3.  Build or install Libadalang: please refer to
     [Libadalang's instructions](https://github.com/adacore/libadalang#quick-guide-to-use-libadalang).
+    Note that when building GNATcoverage's `master` branch, you should use
+    Libadalang and Langkit's `stable` branches as well.
 
 4.  If your GNAT toolchain does not come with a `gnat_util` library
     (search for `gnat_util.gpr`), create one within the gnatcov source tree
