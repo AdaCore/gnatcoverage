@@ -54,6 +54,9 @@ package Switches is
    --  If True, show the evaluation vectors for each decision where there is
    --  an MCDC violation.
 
+   Use_Local_Time : Boolean := False;
+   --  If True, use local time rather than UTC time for traces date
+
    Pretty_Print : Boolean := False;
    --  If true, run "gnatpp" on the generate sources
 

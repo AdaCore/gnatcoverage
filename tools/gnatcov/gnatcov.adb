@@ -734,6 +734,7 @@ procedure GNATcov is
       Show_MCDC_Vectors      := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
                                  or else All_Messages
                                  or else Verbose);
+      Use_Local_Time         := Args.Bool_Args (Opt_Local_Time);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"

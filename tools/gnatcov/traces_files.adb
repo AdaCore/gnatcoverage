@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,6 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Calendar;
+with Ada.Calendar.Formatting;
+with Ada.Calendar.Time_Zones;
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Exceptions; use Ada.Exceptions;
@@ -30,6 +33,7 @@ with Inputs;     use Inputs;
 with Outputs;    use Outputs;
 with Qemu_Traces_Entries;
 with Swaps;
+with Switches;
 with Traces;     use Traces;
 
 package body Traces_Files is
@@ -1599,7 +1603,18 @@ package body Traces_Files is
 
    function Format_Date_Info (Raw_String : String) return String
    is
+      use Ada.Calendar;
+      use Ada.Calendar.Formatting;
+      use Ada.Calendar.Time_Zones;
+      use Switches;
+
       Date_Info  : Trace_Info_Date;
+      Date       : Time;
+      Sub_Second : Second_Duration;
+      Time_Zone  : constant Time_Offset := (if Use_Local_Time
+                                            then Local_Time_Offset
+                                            else 0);
+
       subtype String_8 is String (1 .. 8);
       function Str_To_Date_Info is new Ada.Unchecked_Conversion
         (String_8, Trace_Info_Date);
@@ -1626,6 +1641,30 @@ package body Traces_Files is
          return "";
       end if;
       Date_Info := Str_To_Date_Info (Raw_String);
+
+      --  Convert Trace_Date_Info (interpreted as UTC) to an Ada.Calendar.Time
+      --  value.
+
+      Date := Time_Of (Year   => Integer (Date_Info.Year),
+                       Month  => Integer (Date_Info.Month),
+                       Day    => Integer (Date_Info.Day),
+                       Hour   => Integer (Date_Info.Hour),
+                       Minute => Integer (Date_Info.Min),
+                       Second => Integer (Date_Info.Sec));
+
+      --  Then, retrieve the date in the wanted timezone, local if specified
+      --  by the user, UTC otherwise.
+
+      Split (Date       => Date,
+             Year       => Integer (Date_Info.Year),
+             Month      => Integer (Date_Info.Month),
+             Day        => Integer (Date_Info.Day),
+             Hour       => Integer (Date_Info.Hour),
+             Minute     => Integer (Date_Info.Min),
+             Second     => Integer (Date_Info.Sec),
+             Sub_Second => Sub_Second,
+             Time_Zone  => Time_Zone);
+
       Put_Pad (Natural (Date_Info.Year), Res (1 .. 4));
       Put_Pad (Natural (Date_Info.Month), Res (6 .. 7));
       Put_Pad (Natural (Date_Info.Day), Res (9 .. 10));

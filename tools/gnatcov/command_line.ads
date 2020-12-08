@@ -78,7 +78,8 @@ package Command_Line is
       Opt_Keep_Reading_Traces,
       Opt_Externally_Built_Projects,
       Opt_GNAT_Pragmas,
-      Opt_Show_MCDC_Vectors);
+      Opt_Show_MCDC_Vectors,
+      Opt_Local_Time);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -433,7 +434,14 @@ package Command_Line is
                       & " decisions where there is at least a MCDC"
                       & " violation on one of the conditions.",
          Commands  => (Cmd_Coverage => True, others => False),
-         Internal  => False));
+         Internal  => False),
+
+      Opt_Local_Time => Create
+        (Long_Name => "--local-time",
+         Help      => "Output trace date in local time rather than UTC time.",
+         Commands  => (Cmd_Coverage => True, others => False),
+         Internal  => False)
+     );
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create
