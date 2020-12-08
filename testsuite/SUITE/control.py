@@ -416,12 +416,6 @@ def add_shared_options_to(parser, toplevel):
              ' the execution trace would grow beyond the provided size. Only'
              ' effective for qemu based executions, with values like "10M".')
 
-    # --toolchain
-    parser.add_argument(
-        '--toolchain', dest='toolchain', metavar='TOOLCHAIN', default='',
-        help=('Prefix of the toolchain to use to compile tests.'
-              if toplevel else 'Toolchain discriminant.'))
-
     # --largs
     parser.add_argument(
         '--largs', dest='largs', metavar='LARGS', default='',

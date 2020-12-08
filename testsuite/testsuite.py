@@ -534,11 +534,6 @@ class TestPyRunner:
             testcase_cmd.append(
                 '--trace-size-limit=%s' % mopt.trace_size_limit)
 
-        if mopt.toolchain:
-            testcase_cmd.append(
-                '--toolchain=%s' % self._toolchain_discriminants()[0]
-                )
-
         if mopt.RTS:
             testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
@@ -1109,7 +1104,7 @@ class TestSuite(e3.testsuite.Testsuite):
         # to run and the toolchain doesn't do it automatically in some cases
         # (e.g. C only programs). This is a workaround:
 
-        if (not args.toolchain) and args.target and '-elf' in args.target:
+        if args.target and '-elf' in args.target:
             args.largs += " -lgnat"
 
         # e3.testsuite forces the writing of the "comment" file at the end of
