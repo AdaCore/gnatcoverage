@@ -413,7 +413,7 @@ package body Coverage.Source is
             else
                Vec := Ignored_SF_Map.Element (FI.Unit.Name);
             end if;
-            Vec.Append_One (FI);
+            Vec.Append (FI);
          end if;
       end Callback;
 
