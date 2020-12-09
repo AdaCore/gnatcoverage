@@ -33,6 +33,14 @@ package Coverage.Source is
    --  This can be called multiple times if SCO information is loaded in chunks
    --  (case of loading checkpointed coverage information).
 
+   procedure Initialize_SCI_For_Instrumented_CU (CU : CU_Id);
+   --  Initialize source coverage information vectors for obligations in CU,
+   --  assumed to come from source instrumentation.
+   --
+   --  A particularity here is that we automatically consider CU's statements
+   --  which have an allocated bit in trace buffers (see
+   --  SC_Obligations.Statement_Bit_Map) as having code.
+
    procedure Compute_Source_Coverage
      (Subp_Key  : Subprogram_Key;
       Subp_Info : Subprogram_Info;
