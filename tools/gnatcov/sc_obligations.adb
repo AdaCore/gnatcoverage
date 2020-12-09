@@ -1028,7 +1028,7 @@ package body SC_Obligations is
 
             function CU_Image return String is
               (Get_Simple_Name (CP_CU.Origin)
-               & " (from " & To_String (CP_Filename (Relocs)) & ")");
+               & " (from " & To_String (CLS.Filename) & ")");
             --  Helper to refer to the compilation unit in an error message
 
          begin

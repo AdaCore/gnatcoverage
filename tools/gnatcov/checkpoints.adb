@@ -50,16 +50,6 @@ package body Checkpoints is
    procedure Free is new Ada.Unchecked_Deallocation
      (SCO_Ignored_Map_Array, SCO_Ignored_Map_Access);
 
-   -----------------
-   -- CP_Filename --
-   -----------------
-
-   function CP_Filename
-     (Relocs : Checkpoint_Relocations) return Unbounded_String is
-   begin
-      return Relocs.Filename;
-   end CP_Filename;
-
    -----------------------
    -- Allocate_SFI_Maps --
    -----------------------
@@ -481,8 +471,6 @@ package body Checkpoints is
             Purpose  => Purpose,
             others   => <>);
       begin
-         CLS.Relocations.Filename := To_Unbounded_String (Filename);
-
          Checkpoint_Header'Read (CLS.Stream, CP_Header);
          if CP_Header.Magic /= Checkpoint_Magic then
             Fatal_Error ("invalid checkpoint file " & Filename);

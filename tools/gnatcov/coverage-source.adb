@@ -519,7 +519,7 @@ package body Coverage.Source is
             CP_Tag_Provider := To_Unbounded_String (Tag_Providers.Name (Tag));
          exception
             when Constraint_Error =>
-               Warn ("cannot read " & To_String (CP_Filename (Relocs))
+               Warn ("cannot read " & To_String (CLS.Filename)
                      & ", it was produced with an incompatible version of "
                      & "gnatcov");
                CP_Tag_Provider := To_Unbounded_String ("<unknown>");
@@ -530,7 +530,7 @@ package body Coverage.Source is
         and then Tag_Provider_Name /= To_String (CP_Tag_Provider)
       then
          Warn ("cannot merge coverage information from "
-               & To_String (CP_Filename (Relocs))
+               & To_String (CLS.Filename)
                & " as it is separated by " & To_String (CP_Tag_Provider));
          Do_Merge := False;
       end if;

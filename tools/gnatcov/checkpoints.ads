@@ -60,10 +60,6 @@ package Checkpoints is
 
    type Checkpoint_Relocations is private;
 
-   function CP_Filename
-     (Relocs : Checkpoint_Relocations) return Unbounded_String;
-   --  Name of the file whose loading created this checkpoint
-
    procedure Allocate_SFI_Maps
      (Relocs      : in out Checkpoint_Relocations;
       First, Last : Source_File_Index);
@@ -305,9 +301,6 @@ private
    type CU_Id_Ignored_Access is access all CU_Id_Ignored_Map_Array;
 
    type Checkpoint_Relocations is  record
-      Filename : Unbounded_String;
-      --  Name of the file whose loading created this checkpoint
-
       SFI_Map  : SFI_Map_Acc;
       CU_Map   : CU_Id_Map_Acc;
       Inst_Map : Inst_Id_Map_Acc;
