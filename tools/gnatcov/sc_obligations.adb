@@ -27,6 +27,7 @@ with Ada.Text_IO;             use Ada.Text_IO;
 with ALI_Files;     use ALI_Files;
 with Aspects;       use Aspects;
 with Checkpoints;   use Checkpoints;
+with Coverage.Source;
 with Coverage.Tags; use Coverage, Coverage.Tags;
 with Diagnostics;   use Diagnostics;
 with Files_Table;   use Files_Table;
@@ -352,14 +353,14 @@ package body SC_Obligations is
    -----------------------------------------
 
    procedure Checkpoint_Load_Merge_Unit
-     (Relocs     : in out Checkpoint_Relocations;
+     (CLS        : access Checkpoint_Load_State;
       CP_CU      : CU_Info;
       Real_CU_Id : CU_Id);
    --  Load CU from checkpoint that corresponds to a current unit of interest
    --  whose ID is Real_CU_Id.
 
    procedure Checkpoint_Load_New_Unit
-     (Relocs     : in out Checkpoint_Relocations;
+     (CLS        : access Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -368,7 +369,7 @@ package body SC_Obligations is
    --  interest. The newly assigned CU_Id is returned in New_CU_Id.
 
    procedure Checkpoint_Load_Unit
-     (Relocs     : in out Checkpoint_Relocations;
+     (CLS        : access Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -435,12 +436,12 @@ package body SC_Obligations is
    --------------------------------
 
    procedure Checkpoint_Load_Merge_Unit
-     (Relocs     : in out Checkpoint_Relocations;
+     (CLS        : access Checkpoint_Load_State;
       CP_CU      : CU_Info;
       Real_CU_Id : CU_Id)
    is
+      Relocs  : Checkpoint_Relocations renames CLS.Relocations;
       Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
-
    begin
       --  Here we already have loaded full SCO information for this CU, so
       --  all we need to do is to populate the tables mapping the SCO and
@@ -486,13 +487,14 @@ package body SC_Obligations is
    ------------------------------
 
    procedure Checkpoint_Load_New_Unit
-     (Relocs     : in out Checkpoint_Relocations;
+     (CLS        : access Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
       New_CU_Id  : out CU_Id)
-
    is
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
+
       New_First_Instance : Inst_Id;
       New_First_SCO      : SCO_Id;
 
@@ -797,6 +799,15 @@ package body SC_Obligations is
       CP_CU.First_SCO := New_First_SCO;
 
       CU_Vector.Append (CP_CU);
+
+      --  If we are loading a SID file, create source coverage data structures.
+      --  There is no need to do it when loading a checkpoint: that checkpoint
+      --  was created loading a SID file, and thus already has the
+      --  corresponding SCI tables populated.
+
+      if CLS.Purpose = Instrumentation then
+         Coverage.Source.Initialize_SCI_For_Instrumented_CU (New_CU_Id);
+      end if;
    end Checkpoint_Load_New_Unit;
 
    --------------------------
@@ -804,12 +815,13 @@ package body SC_Obligations is
    --------------------------
 
    procedure Checkpoint_Load_Unit
-     (Relocs     : in out Checkpoint_Relocations;
+     (CLS        : access Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
       New_CU_Id  : out CU_Id)
    is
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
    begin
       if CP_CU.Provider = Instrumenter then
          Instrumented_Units_Present := True;
@@ -845,7 +857,7 @@ package body SC_Obligations is
 
       if New_CU_Id = No_CU_Id then
          Checkpoint_Load_New_Unit
-           (Relocs,
+           (CLS,
             CP_Vectors,
             CP_CU,
             CP_CU_Id  => CP_CU_Id,
@@ -888,7 +900,7 @@ package body SC_Obligations is
 
             else
                Checkpoint_Load_Merge_Unit
-                 (Relocs,
+                 (CLS,
                   CP_CU      => CP_CU,
                   Real_CU_Id => New_CU_Id);
             end if;
@@ -1041,7 +1053,7 @@ package body SC_Obligations is
                CP_CU    : CU_Info := Element (Cur);
             begin
                Checkpoint_Load_Unit
-                 (Relocs,
+                 (CLS,
                   CP_Vectors,
                   CP_CU,
                   CP_CU_Id  => CP_CU_Id,

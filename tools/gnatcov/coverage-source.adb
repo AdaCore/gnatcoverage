@@ -1451,13 +1451,6 @@ package body Coverage.Source is
 
       for J in Stmt_Buffer'Range loop
 
-         --  TODO??? Currently we hard-code No_SC_Tag.
-         --  Need to add support for per-instance coverage
-
-         --  Mark SCO as coverable (there is a bit referencing it)
-
-         Set_Basic_Block_Has_Code (BM.Statement_Bits (J), No_SC_Tag);
-
          --  If bit is set, statement has been executed
 
          if Stmt_Buffer (J) then
@@ -1715,6 +1708,42 @@ package body Coverage.Source is
          Default_SCIs_Initialized := True;
       end if;
    end Initialize_SCI;
+
+   ----------------------------------------
+   -- Initialize_SCI_For_Instrumented_CU --
+   ----------------------------------------
+
+   procedure Initialize_SCI_For_Instrumented_CU (CU : CU_Id) is
+
+      procedure Process_SCI (SCI : in out Source_Coverage_Info);
+      --  Callback for Update_SCI. Set SCI (assumed to be a statement SCI) as
+      --  having code.
+
+      -----------------
+      -- Process_SCI --
+      -----------------
+
+      procedure Process_SCI (SCI : in out Source_Coverage_Info) is
+      begin
+         SCI.Basic_Block_Has_Code := True;
+      end Process_SCI;
+
+      Stmt_Bit_Map : Statement_Bit_Map renames
+        Bit_Maps (CU).Statement_Bits.all;
+
+   --  Start of processing for Initialize_SCI_For_Instrumented_CU
+
+   begin
+      --  Only create tag-less SCIs (No_SC_Tag) as per-instance coverage of
+      --  generics is not supported (see S628-011).
+
+      Initialize_SCI;
+      for Bit in Stmt_Bit_Map'Range loop
+         Update_SCI (SCO     => Stmt_Bit_Map (Bit),
+                     Tag     => No_SC_Tag,
+                     Process => Process_SCI'Access);
+      end loop;
+   end Initialize_SCI_For_Instrumented_CU;
 
    --------------------------
    -- Merge_Checkpoint_SCI --
