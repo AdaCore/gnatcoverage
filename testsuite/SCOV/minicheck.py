@@ -30,7 +30,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   absolute_paths=False, dump_trigger=None,
                   dump_channel=None, check_gprbuild_output=False,
                   trace_mode=None, gprsw_for_coverage=None, scos_for_run=True,
-                  register_failure=True):
+                  register_failure=True, program_env=None):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -88,6 +88,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         "gnatcov run".
     :param bool register_failure: If true and the execution of one of the mains
         exits with a non-zero status code, stop with a FatalError.
+    :param None|dict[str, str] program_env: If not none, environment variables
+        for the program to run.
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -159,7 +161,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         if scos_for_run:
             run_args.extend(scos)
         for m in mains:
-            xrun(run_args + [exepath(m)], out='run.log',
+            xrun(run_args + [exepath(m)], out='run.log', env=program_env,
                  register_failure=register_failure)
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
@@ -181,7 +183,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         for m in mains:
             out_file = '{}_output.txt'.format(m)
             trace_file = abspath(srctracename_for(m))
-            run_cov_program(exepath(m), out=out_file,
+            run_cov_program(exepath(m), out=out_file, env=program_env,
                             register_failure=register_failure)
             trace_files.append(trace_file)
 

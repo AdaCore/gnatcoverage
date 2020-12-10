@@ -476,12 +476,13 @@ def xcov_suite_args(covcmd, covargs,
     return result
 
 
-def cmdrun(cmd, inp=None, out=None, err=None, register_failure=True):
+def cmdrun(cmd, inp=None, out=None, err=None, env=None, register_failure=True):
     """
     Execute the command+args list in CMD, redirecting its input, output and
-    error streams to INP, OUT and ERR when not None, respectively. Stop with a
-    FatalError if the execution status is not zero and REGISTER_FAILURE is
-    True. Return the process descriptor otherwise.
+    error streams to INP, OUT and ERR when not None, respectively. If ENV is
+    not None, pass it as the subprocess environment. Stop with a FatalError if
+    the execution status is not zero and REGISTER_FAILURE is True. Return the
+    process descriptor otherwise.
     """
 
     # Setup a dictionary of Run input/output/error arguments for which a
@@ -489,7 +490,8 @@ def cmdrun(cmd, inp=None, out=None, err=None, register_failure=True):
 
     kwargs = {
         key: value
-        for key, value in [('input', inp), ('output', out), ('error', err)]
+        for key, value in [('input', inp), ('output', out), ('error', err),
+                           ('env', env)]
         if value
     }
 
@@ -503,7 +505,7 @@ def cmdrun(cmd, inp=None, out=None, err=None, register_failure=True):
     return p
 
 
-def xcov(args, out=None, err=None, inp=None, register_failure=True,
+def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
          auto_config_args=True, auto_target_args=True):
     """
     Run xcov with arguments ARGS, timeout control, valgrind control if
@@ -535,7 +537,7 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
     # The gprvar options are only needed for the "libsupport" part of our
     # projects. They are pointless wrt coverage run or analysis activities
     # so we don't include them here.
-    p = cmdrun(cmd=covpgm + covargs, inp=inp, out=out, err=err,
+    p = cmdrun(cmd=covpgm + covargs, inp=inp, out=out, err=err, env=env,
                register_failure=register_failure)
 
     if thistest.options.enable_valgrind == 'memcheck':
@@ -549,8 +551,8 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True,
     return p
 
 
-def xrun(args, out=None, register_failure=True, auto_config_args=True,
-         auto_target_args=True):
+def xrun(args, out=None, env=None, register_failure=True,
+         auto_config_args=True, auto_target_args=True):
     """
     Run <xcov run> with arguments ARGS for the current target, performing
     operations only relevant to invocations intended to execute a program (for
@@ -589,13 +591,13 @@ def xrun(args, out=None, register_failure=True, auto_config_args=True,
         runargs.extend(["-exec-trace-limit",
                         thistest.options.trace_size_limit])
 
-    return xcov(['run'] + runargs, inp=nulinput, out=out,
+    return xcov(['run'] + runargs, inp=nulinput, out=out, env=env,
                 register_failure=register_failure,
                 auto_config_args=auto_config_args,
                 auto_target_args=auto_target_args)
 
 
-def run_cov_program(executable, out=None, register_failure=True):
+def run_cov_program(executable, out=None, env=None, register_failure=True):
     """
     Assuming that `executable` was instrumented, run it according to the
     current target.
@@ -613,7 +615,7 @@ def run_cov_program(executable, out=None, register_failure=True):
             args.append('--board=' + board)
 
     args.append(executable)
-    return cmdrun(args, out=out, register_failure=register_failure)
+    return cmdrun(args, out=out, env=env, register_failure=register_failure)
 
 
 def do(command):
