@@ -321,8 +321,7 @@ package Instrument.Common is
       --  Count how many times we called Context.Get_From_File. See the
       --  Max_Get_From_File_Count constant.
 
-      Dump_Trigger     : Any_Dump_Trigger;
-      Dump_Channel     : Any_Dump_Channel;
+      Dump_Config      : Any_Dump_Config;
       Language_Version : Any_Language_Version;
       --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
 
@@ -342,8 +341,7 @@ package Instrument.Common is
 
    function Create_Context
      (Provider             : Libadalang.Analysis.Unit_Provider_Reference;
-      Dump_Trigger         : Any_Dump_Trigger;
-      Dump_Channel         : Any_Dump_Channel;
+      Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
@@ -378,7 +376,7 @@ package Instrument.Common is
       Mains   : in out Main_To_Instrument_Vectors.Vector;
       File    : GNATCOLL.VFS.Virtual_File;
       Project : Project_Type)
-      with Pre => Context.Dump_Trigger /= Manual;
+      with Pre => Context.Dump_Config.Trigger /= Manual;
    --  Register in Mains a main to be instrumented so that it dumps coverage
    --  buffers. File is the source file for this main, and Project is the
    --  project that owns this main. If File is actually a unit of interest in

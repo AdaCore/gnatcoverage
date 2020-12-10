@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2018, AdaCore                     --
+--                     Copyright (C) 2008-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -47,20 +47,26 @@ package Instrument is
    --  Channel where to dump coverage buffers. See the user documentation for
    --  the --dump-channel command-line option.
 
+   type Any_Dump_Config (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
+   is record
+      Trigger : Any_Dump_Trigger;
+   end record;
+   --  Bundle for all configuration related to automatic dump of coverage
+   --  buffers.
+
    type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012);
 
    procedure Instrument_Units_Of_Interest
-     (Dump_Trigger         : Any_Dump_Trigger;
-      Dump_Channel         : Any_Dump_Channel;
+     (Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs for each
    --  library units to SID files (one per library unit).
    --
-   --  Depending on Dump_Trigger and Dump_Channel, instrument mains to schedule
-   --  a call to the dump procedure for the list of coverage buffers in all
-   --  mains in the project.
+   --  Depending on Dump_Config, instrument mains to schedule a call to the
+   --  dump procedure for the list of coverage buffers in all mains in the
+   --  project.
    --
    --  Language_Version restricts what source constructs the instrumenter is
    --  allowed to use. For instance, if Ada_2005 (or a lower version) is

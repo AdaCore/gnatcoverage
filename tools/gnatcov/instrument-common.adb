@@ -679,8 +679,7 @@ package body Instrument.Common is
 
    function Create_Context
      (Provider             : Libadalang.Analysis.Unit_Provider_Reference;
-      Dump_Trigger         : Any_Dump_Trigger;
-      Dump_Channel         : Any_Dump_Channel;
+      Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
    begin
@@ -694,8 +693,7 @@ package body Instrument.Common is
            (Unit_Provider => Provider);
          IC.Get_From_File_Count := 0;
 
-         IC.Dump_Trigger := Dump_Trigger;
-         IC.Dump_Channel := Dump_Channel;
+         IC.Dump_Config := Dump_Config;
          IC.Language_Version := Language_Version;
 
          IC.Ignored_Source_Files_Present := Ignored_Source_Files /= null;

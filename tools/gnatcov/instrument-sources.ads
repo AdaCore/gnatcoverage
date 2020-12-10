@@ -333,7 +333,7 @@ private package Instrument.Sources is
       Info : in out Project_Info;
       Main : Ada_Qualified_Name;
       URH  : Unit_Rewriting_Handle)
-      with Pre => IC.Dump_Trigger /= Manual;
+      with Pre => IC.Dump_Config.Trigger /= Manual;
    --  Try to insert in the sources of Main (a main subprogram) a call to dump
    --  the list of coverage buffers for all units of interest in Main's
    --  closure. Return without doing anything if unsuccessful.
