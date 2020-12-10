@@ -1162,7 +1162,9 @@ class TestSuite(e3.testsuite.Testsuite):
         # it here once both factorizes the work for all testcases and prevents
         # cache effects if PATH changes between testsuite runs.
 
-        BUILDER.RUN_CONFIG_SEQUENCE(self.main.args)
+        BUILDER.RUN_CONFIG_SEQUENCE(
+            toplev_options=self.main.args,
+            toolchain_discriminant=self._toolchain_discriminants()[0])
 
         # Build support library as needed
 
@@ -1332,15 +1334,14 @@ class TestSuite(e3.testsuite.Testsuite):
 
     def _toolchain_discriminants(self):
         """
-        Compute the list of discriminants that reflects the version of the
-        particular toolchain in use. The match is on the sequence of three
-        single digits separated by dots after GNAT Pro.
+        Compute the discriminant that reflects the version of the
+        particular toolchain in use.
         """
 
         gcc_version = version(self.tool("gcc"))
-        m = re.search(r"GNAT Pro (\d\.\d\.\d)", gcc_version)
         # Different version numbering for old GNAT versions
-        m = m if m else re.search(r"GNAT Pro (5.04a1)", gcc_version)
+        m = (re.search(r"GNAT Pro (\d\.\d\.\d)", gcc_version) or
+             re.search(r"GNAT Pro (5.04a1)", gcc_version))
 
         return [m.group(1)] if m else []
 

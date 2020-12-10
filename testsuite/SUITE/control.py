@@ -169,7 +169,7 @@ class BUILDER:
     SUITE_CGPR = "suite.cgpr"
 
     @staticmethod
-    def RUN_CONFIG_SEQUENCE(toplev_options):
+    def RUN_CONFIG_SEQUENCE(toplev_options, toolchain_discriminant):
         """Arrange to generate the SUITE_CONFIG configuration file"""
 
         # In principle, this would be something like
@@ -187,11 +187,24 @@ class BUILDER:
         # We build a temporary dummy project file in the current directory,
         # specifying languages only.
         with open("suite.gpr", "w") as tempgpr:
+
+            # Given GNAT 5.04a1 does not come with a C++ compiler, we'd
+            # resort to the system one to link if C++ is in the list of
+            # languages, causing compatibility issues with the toolchain.
+
+            # We just don't add C++ to the list of languages for such
+            # toolchain.
+
+            added_languages = (
+                ', "C++"' if toolchain_discriminant != "5.04a1"
+                else '')
+
             tempgpr.write("""
                 project %(prjname)s is
-                   for Languages use ("Asm", "C", "Ada", "C++");
+                   for Languages use ("Asm", "C", "Ada" %(added_languages)s);
                 end %(prjname)s;
-            """ % {'prjname': os.path.basename(tempgpr.name).split('.')[0]})
+            """ % {'prjname': os.path.basename(tempgpr.name).split('.')[0],
+                   'added_languages': added_languages})
 
         # We now run gprbuild -Ptemp.gpr --target=bla --RTS=blo, which
         # will complain about missing sources, but only after producing
