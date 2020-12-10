@@ -12,7 +12,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir('wd_', clean=True)
+tmp = Wdir('wd_')
 
 
 class ProjectConfig(object):

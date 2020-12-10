@@ -285,6 +285,9 @@ package Argparse is
    --  not appear on the command-line and the case when the option specified an
    --  empty value. This is specified thanks to the Present distriminant.
 
+   function Value_Or_Null (Opt : String_Option) return Unbounded_String;
+   --  If Opt is present, return its value. Return the empty string otherwise.
+
    type Bool_Array is array (Bool_Options) of Boolean;
    type String_Array is array (String_Options) of String_Option;
    type String_List_Array is

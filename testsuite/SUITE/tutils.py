@@ -8,6 +8,7 @@
 
 # ***************************************************************************
 
+import glob
 import os
 import time
 
@@ -336,9 +337,40 @@ def tracename_for(pgmname):
     return exename_for(pgmname) + ".trace"
 
 
-def srctracename_for(pgmname):
-    """Name for the source trace file for the given program name"""
-    return exename_for(pgmname) + ".srctrace"
+def srctrace_pattern_for(pgmname):
+    """Glob pattern for the source trace file for the given program name"""
+    return exename_for(pgmname) + "-*.srctrace"
+
+
+def srctracename_for(pgmname, register_failure=True):
+    """
+    Name for the source trace file for the given program name.
+
+    Since source trace files is not predictible, we need to do produce the
+    source trace file first and then look for a file matching a pattern to find
+    it.
+
+    If we find zero or multiple traces and "register_failure" is True, this
+    stops the testcase. If "register_failure" is False, we just return None in
+    that case.
+    """
+    pattern = srctrace_pattern_for(pgmname)
+    trace_files = glob.glob(pattern)
+
+    if len(trace_files) == 1:
+        return trace_files[0]
+
+    elif register_failure:
+        thistest.stop(
+            FatalError(
+                "Exactly one trace expected matching:"
+                f"\n  {pattern}"
+                f"\nBut got {len(trace_files)} traces instead"
+            )
+        )
+
+    else:
+        return None
 
 
 def ckptname_for(pgmname):

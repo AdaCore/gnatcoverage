@@ -9,7 +9,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir('wd_', clean=True)
+tmp = Wdir('wd_')
 
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(

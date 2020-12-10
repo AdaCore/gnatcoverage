@@ -1464,6 +1464,13 @@ begin
             Dump_Channel_Opt : String_Option renames
                Args.String_Args (Opt_Dump_Channel);
 
+            Dump_Filename_Simple      : Boolean renames
+               Args.Bool_Args (Opt_Dump_Filename_Simple);
+            Dump_Filename_Env_Var_Opt : String_Option renames
+               Args.String_Args (Opt_Dump_Filename_Env_Var);
+            Dump_Filename_Prefix_Opt  : String_Option renames
+               Args.String_Args (Opt_Dump_Filename_Prefix);
+
             Language_Version_Opt : String_Option renames
                Args.String_Args (Opt_Ada);
 
@@ -1478,8 +1485,13 @@ begin
                begin
                   if Value = "bin-file" then
                      Dump_Config :=
-                       (Channel => Binary_File,
-                        Trigger => <>);
+                       (Channel          => Binary_File,
+                        Trigger          => <>,
+                        Filename_Simple  => Dump_Filename_Simple,
+                        Filename_Env_Var =>
+                           Value_Or_Null (Dump_Filename_Env_Var_Opt),
+                        Filename_Prefix  =>
+                           Value_Or_Null (Dump_Filename_Prefix_Opt));
                   elsif Value = "base64-stdout" then
                      Dump_Config :=
                        (Channel => Base64_Standard_Output,
@@ -1535,6 +1547,22 @@ begin
                      Language_Version := Ada_2012;
                   end if;
                end;
+            end if;
+
+            if Dump_Config.Channel /= Binary_File then
+               if Dump_Filename_Simple then
+                  Fatal_Error
+                    ("--dump-filename-simple requires"
+                     & " --dump-channel=bin-file");
+               elsif Dump_Filename_Env_Var_Opt.Present then
+                  Fatal_Error
+                    ("--dump-filename-env-var requires"
+                     & " --dump-channel=bin-file");
+               elsif Dump_Filename_Env_Var_Opt.Present then
+                  Fatal_Error
+                    ("--dump-filename-prefix requires"
+                     & " --dump-channel=bin-file");
+               end if;
             end if;
 
             Instrument.Instrument_Units_Of_Interest

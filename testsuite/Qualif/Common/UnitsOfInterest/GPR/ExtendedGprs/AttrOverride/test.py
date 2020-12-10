@@ -6,7 +6,7 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 
 
-wd = Wdir('wd_', clean=True)
+wd = Wdir('wd_')
 
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(mains=['test_lt0.adb'],

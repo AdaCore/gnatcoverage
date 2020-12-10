@@ -79,7 +79,8 @@ package Command_Line is
       Opt_Externally_Built_Projects,
       Opt_GNAT_Pragmas,
       Opt_Show_MCDC_Vectors,
-      Opt_Local_Time);
+      Opt_Local_Time,
+      Opt_Dump_Filename_Simple);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -106,6 +107,8 @@ package Command_Line is
       Opt_Report_Title,
       Opt_Dump_Trigger,
       Opt_Dump_Channel,
+      Opt_Dump_Filename_Env_Var,
+      Opt_Dump_Filename_Prefix,
       Opt_Ada,
       Opt_Dump_Units_To);
    --  Set of string options we support. More complete descriptions below.
@@ -440,8 +443,15 @@ package Command_Line is
         (Long_Name => "--local-time",
          Help      => "Output trace date in local time rather than UTC time.",
          Commands  => (Cmd_Coverage => True, others => False),
-         Internal  => False)
-     );
+         Internal  => False),
+
+      Opt_Dump_Filename_Simple => Create
+        (Long_Name => "--dump-filename-simple",
+         Help      => "Valid only when --dump-channel=bin-file. Create simple"
+                      & " filenames for source trace files (no PID/timestamp"
+                      & " variations).",
+         Commands  => (Cmd_Instrument => True, others => False),
+         Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create
@@ -684,6 +694,21 @@ package Command_Line is
          At_Most_Once => False,
          Internal     => False,
          Pattern      => "bin-file|base64-stdout"),
+      Opt_Dump_Filename_Env_Var => Create
+        (Long_Name    => "--dump-filename-env-var",
+         Help         => "Valid only when --dump-channel=bin-file. Name of the"
+                         & " environment variable which, if set, contains the"
+                         & " filename for created source traces.",
+         Commands     => (Cmd_Instrument => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+      Opt_Dump_Filename_Prefix => Create
+        (Long_Name    => "--dump-filename-prefix",
+         Help         => "Valid only when --dump-channel=bin-file. Select a"
+                         & " filename prefix for created source traces.",
+         Commands     => (Cmd_Instrument => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
 
       Opt_Ada => Create
         (Long_Name    => "--ada",

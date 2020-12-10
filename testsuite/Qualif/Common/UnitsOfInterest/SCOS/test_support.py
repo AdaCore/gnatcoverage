@@ -49,7 +49,7 @@ def _tryone(sco_args, odir):
 
     # Create the output dir and execute the commands from there
 
-    wsd = Wdir(subdir=odir, clean=True)
+    wsd = Wdir(subdir=odir)
 
     _run_and_cov(pgm='../test_ab', level='stmt+mcdc', sco_args=sco_args)
 
