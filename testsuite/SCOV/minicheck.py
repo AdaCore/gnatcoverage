@@ -12,12 +12,15 @@ import glob
 import os.path
 import re
 
+from e3.fs import rm
+
 from SCOV.instr import (default_dump_channel, xcov_convert_base64,
                         xcov_instrument)
 from SUITE.cutils import contents_of, indent
-from SUITE.tutils import (exepath_to, gprbuild, run_cov_program,
-                          srctracename_for, thistest, tracename_for, xcov,
-                          xrun)
+from SUITE.tutils import (
+    exepath_to, gprbuild, run_cov_program, srctrace_pattern_for,
+    srctracename_for, thistest, tracename_for, xcov, xrun
+)
 
 
 COV_RE = re.compile(r'^ *(\d+) (.):.*$')
@@ -25,7 +28,7 @@ COV_RE = re.compile(r'^ *(\d+) (.):.*$')
 
 def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
-                  separate_coverage=None, extra_args=[],
+                  separate_coverage=None, extra_args=[], extra_instr_args=None,
                   extra_gprbuild_args=[], extra_gprbuild_cargs=[],
                   absolute_paths=False, dump_trigger=None,
                   dump_channel=None, check_gprbuild_output=False,
@@ -66,6 +69,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         to gnatcov using the -S option.
     :param list[str] extra_args: List of arguments to pass to any
         execution of gnatcov (gnatcov run|instrument|coverage).
+    :param list[str] extra_instr_args: List of arguments to pass to all
+        executions of "gnatcov instrument".
     :param list[str] extra_gprbuild_args: List of arguments to pass to
         gprbuild.
     :param list[str] extra_gprbuild_cargs: List of arguments to pass to
@@ -171,7 +176,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         dump_channel = dump_channel or default_dump_channel()
 
         # Instrument the project and build the result
-        xcov_instrument(gprsw, covlevel, extra_args=cov_or_instr_args,
+        extra_instr_args = cov_or_instr_args + list(extra_instr_args or [])
+        xcov_instrument(gprsw, covlevel, extra_args=extra_instr_args,
                         gpr_obj_dir=gpr_obj_dir, dump_trigger=dump_trigger,
                         dump_channel=dump_channel, out='instrument.log',
                         register_failure=register_failure)
@@ -181,22 +187,35 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         # Then execute each main and collect trace files
         trace_files = []
         for m in mains:
+            # Remove potential existing source trace files: the name is
+            # non-deterministic by default, so we want to avoid getting
+            # multiple traces in the current directory.
+            rm(srctrace_pattern_for(m))
+
             out_file = '{}_output.txt'.format(m)
-            trace_file = abspath(srctracename_for(m))
             run_cov_program(exepath(m), out=out_file, env=program_env,
                             register_failure=register_failure)
-            trace_files.append(trace_file)
 
             # Depending on the dump channel, we also may have to create the
             # trace file.
             if dump_channel == 'bin-file':
-                pass
+                trace_file = srctracename_for(m,
+                                              register_failure=register_failure)
+                if trace_file is None:
+                    continue
+
             elif dump_channel == 'base64-stdout':
+                # Create a trace name that is compatible with srctracename_for
+                trace_file = srctrace_pattern_for(m).replace("*", "unique")
+
                 xcov_convert_base64(out_file, trace_file,
                                     register_failure=register_failure)
+
             else:
                 raise ValueError('Invalid dump channel: {}'
                                  .format(dump_channel))
+
+            trace_files.append(abspath(trace_file))
 
         xcov_args.extend(extra_args)
 

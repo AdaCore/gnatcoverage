@@ -118,7 +118,7 @@ def check(root_project, recurse,
     # in requesting not to pass --no-subprojects.
     gprsw_no_subprojects = False if recurse is None else not recurse
 
-    wd = Wdir(clean=True)
+    wd = Wdir()
     wd.to_subdir(tmpdir)
 
     TestCase(category=None).run(

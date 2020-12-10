@@ -508,8 +508,32 @@ package body Instrument.Sources is
 
          case IC.Dump_Config.Channel is
          when Binary_File =>
-            File.Put ("         Filename => "
-                      & To_Ada (Output_Unit) & ".Default_Trace_Filename");
+            declare
+               U       : constant String := To_Ada (Output_Unit);
+               Indent1 : constant String := "         ";
+               Indent2 : constant String := Indent1 & "  ";
+
+               Env_Var : constant String :=
+                 (if Length (IC.Dump_Config.Filename_Env_Var) = 0
+                  then U & ".Default_Trace_Filename_Env_Var"
+                  else """" & To_String (IC.Dump_Config.Filename_Env_Var)
+                       & """");
+               Prefix  : constant String :=
+                 (if Length (IC.Dump_Config.Filename_Prefix) = 0
+                  then U & ".Default_Trace_Filename_Prefix"
+                  else """" & To_String (IC.Dump_Config.Filename_Prefix)
+                       & """");
+               Simple  : constant String :=
+                 (if IC.Dump_Config.Filename_Simple
+                  then "True"
+                  else "False");
+            begin
+               File.Put_Line
+                 (Indent1 & "Filename => " & U & ".Default_Trace_Filename");
+               File.Put_Line (Indent2 & "(Env_Var => " & Env_Var & ",");
+               File.Put_Line (Indent2 & " Prefix => " & Prefix & ",");
+               File.Put (Indent2 & " Simple => " & Simple & ")");
+            end;
 
          when Base64_Standard_Output =>
 

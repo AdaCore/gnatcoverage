@@ -18,9 +18,13 @@
 
 --  Support for source instrumentation
 
+with Ada.Strings.Unbounded;
+
 with GNAT.Regexp;
 
 package Instrument is
+
+   package US renames Ada.Strings.Unbounded;
 
    ---------------------------------------------
    -- Mapping of coverage buffer bits to SCOs --
@@ -50,6 +54,31 @@ package Instrument is
    type Any_Dump_Config (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
    is record
       Trigger : Any_Dump_Trigger;
+
+      case Channel is
+         when Binary_File =>
+            Filename_Simple : Boolean;
+            --  Whether to generate source traces with simple filenames.
+            --
+            --  Controlled by --dump-filename-simple.
+
+            Filename_Env_Var : US.Unbounded_String;
+            --  Name of the environment variable which, if set, contains the
+            --  default filename for created source traces. If empty, use the
+            --  default one (see Default_Trace_Filename_Env_Var in
+            --  GNATcov_RTS.Traces.Output.Files).
+            --
+            --  Controlled by --dump-filename-env-var.
+
+            Filename_Prefix  : US.Unbounded_String;
+            --  Prefix for the source trace filename. If empty, use the
+            --  program's basename (see Default_Trace_Filename_Prefix in
+            --  GNATcov_RTS.Traces.Output.Files).
+            --
+            --  Controlled by --dump-filename-prefix.
+         when others =>
+            null;
+      end case;
    end record;
    --  Bundle for all configuration related to automatic dump of coverage
    --  buffers.

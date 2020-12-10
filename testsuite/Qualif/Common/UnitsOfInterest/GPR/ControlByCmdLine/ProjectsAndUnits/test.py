@@ -9,7 +9,7 @@ from test_support import check
 
 # Create a directory to hold temporary files, so that we do not accumulate
 # uncleaned temporary files across testsuite runs.
-temp_file_dir = Wdir('tmp_files', clean=True)
+temp_file_dir = Wdir('tmp_files')
 temp_file_dir.to_homedir()
 
 # Note that intops involves sub-units while boolops involves child-units,

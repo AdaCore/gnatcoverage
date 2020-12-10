@@ -23,7 +23,7 @@ __all__ = ["SCOV_helper"]
 from collections import defaultdict
 import os
 
-from e3.fs import mkdir, ls
+from e3.fs import mkdir, ls, rm
 from e3.os.fs import cd
 
 from SCOV.tctl import CAT, CovControl
@@ -807,7 +807,7 @@ class SCOV_helper:
 
         inputs = "%s@%s" % (
             input_opt,
-            list_to_file([self.awdir_for(pgm) + input_fn(pgm)
+            list_to_file([input_fn(os.path.join(self.awdir_for(pgm), pgm))
                           for pgm in self.programs()],
                          "inputs.list")
         )
@@ -1041,6 +1041,7 @@ class SCOV_helper:
         expected to be either absolute or relative from the homedir."""
 
         self.to_homedir()
+        rm(wdir, recursive=True)
         mkdir(wdir)
         cd(wdir)
 

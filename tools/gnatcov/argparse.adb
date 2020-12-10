@@ -178,6 +178,19 @@ package body Argparse is
       return +Result;
    end Option_Name;
 
+   -------------------
+   -- Value_Or_Null --
+   -------------------
+
+   function Value_Or_Null (Opt : String_Option) return Unbounded_String is
+   begin
+      if Opt.Present then
+         return Opt.Value;
+      else
+         return Null_Unbounded_String;
+      end if;
+   end Value_Or_Null;
+
    ----------------
    -- Is_Present --
    ----------------
