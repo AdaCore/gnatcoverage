@@ -17,14 +17,28 @@
  *                                                                          *
  ****************************************************************************/
 
-#include <stdint.h>
+#include <time.h>
+#include <stdlib.h>
 
-/* The C "time" function can return integers of
-   different size depending on the platform.
-   Here, we ensure that the returned result will be an
-   expected long long (a 64 bit integer). It will thus
-   be compatible with 32 bit as well as 64 bit architectures.
-   It also ensures compatibility with Ada Long_Long_Integer
-   standard type. */
-extern uint64_t
-gnatcov_rts_time_to_uint64 (void);
+#if defined (_WIN32)
+#  include <processthreadsapi.h>
+#else
+#  include <sys/types.h>
+#  include <unistd.h>
+#endif
+
+#include "gnatcov_rts_c_interface.h"
+
+uint64_t
+gnatcov_rts_time_to_uint64 (void) {
+  return (uint64_t) time (NULL);
+}
+
+uint64_t
+gnatcov_rts_getpid (void) {
+#if defined (_WIN32)
+  return (uint64_t) GetCurrentProcessId ();
+#else
+  return (uint64_t) getpid();
+#endif
+}

@@ -33,19 +33,31 @@ package GNATcov_RTS.Traces.Output.Files is
    type Time is new Interfaces.Unsigned_64;
    --  Derived type to represent timestamps (as a number of seconds elapsed)
 
-   GNATCOV_TRACE_FILE : constant String := "GNATCOV_TRACE_FILE";
-   --  Name of the environment variable to contain the default file name for
-   --  output trace files.
+   Default_Trace_Filename_Env_Var : constant String := "GNATCOV_TRACE_FILE";
+   --  Default name of the environment variable which, if set, contains the
+   --  default traces filename in Default_Trace_Filename.
 
    function Clock return Time;
    --  Returns the number of seconds since the UNIX epoch
 
-   function Default_Trace_Filename return String;
+   function Default_Trace_Filename_Prefix return String;
+   --  Return the basename for the current program
+
+   function Default_Trace_Filename
+     (Env_Var : String := Default_Trace_Filename_Env_Var;
+      Prefix  : String := Default_Trace_Filename_Prefix;
+      Simple  : Boolean := False) return String;
    --  Return the default name of the trace file to write.
    --
-   --  This returns the content of the GNATCOV_TRACE_FILE environment variable.
-   --  If this environment variable is not defined or empty, fallback to
-   --  "PROGRAM.srctrace", where PROGRAM is the name of the running program.
+   --  This returns the content of the Env_Var environment variable.
+   --  If this environment variable is not defined or empty, fallback to:
+   --
+   --  * "PROGRAM.srctrace" if Simple is True (PROGRAM is the name of the
+   --    running program).
+   --
+   --  * "PROGRAM-PID-CLOCK.srctrace" if Simple is False (PID is the current
+   --    process ID and CLOCK is the result of the Clock function in decimal
+   --    representation.
 
    function Format_Date
      (Timestamp : Time) return Serialized_Timestamp;
@@ -53,13 +65,11 @@ package GNATcov_RTS.Traces.Output.Files is
 
    procedure Write_Trace_File
      (Buffers      : Unit_Coverage_Buffers_Array;
+      Filename     : String := Default_Trace_Filename;
       Program_Name : String := Ada.Command_Line.Command_Name;
-      Filename     : String := "";
       Exec_Date    : Time := Clock;
       User_Data    : String := "");
    --  Write a trace file in Filename to contain the data in Buffers.
-   --
-   --  If Filename is not provided, use Default_Trace_Filename.
    --
    --  Program_Name, Exec_Date, and User_Data are used to fill the
    --  corresponding metadata in the written trace file.
