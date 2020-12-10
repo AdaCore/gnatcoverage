@@ -17,11 +17,18 @@
  *                                                                          *
  ****************************************************************************/
 
-#include "gnatcov_rts_time_handling.h"
-#include <time.h>
-#include <stdio.h>
+#include <stdint.h>
 
-uint64_t
-gnatcov_rts_time_to_uint64 (void) {
-  return (uint64_t) time (NULL);
-}
+/* The C "time" function can return integers of
+   different size depending on the platform.
+   Here, we ensure that the returned result will be an
+   expected long long (a 64 bit integer). It will thus
+   be compatible with 32 bit as well as 64 bit architectures.
+   It also ensures compatibility with Ada Long_Long_Integer
+   standard type. */
+extern uint64_t
+gnatcov_rts_time_to_uint64 (void);
+
+/* Return the current process ID as an unsigned 64-bit integer. */
+extern uint64_t
+gnatcov_rts_getpid (void);
