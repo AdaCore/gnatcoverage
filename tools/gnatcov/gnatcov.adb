@@ -1442,46 +1442,49 @@ begin
 
             Dump_Trigger_Opt : String_Option renames
                Args.String_Args (Opt_Dump_Trigger);
-            Dump_Trigger     : Any_Dump_Trigger := Manual;
-
             Dump_Channel_Opt : String_Option renames
                Args.String_Args (Opt_Dump_Channel);
-            Dump_Channel     : Any_Dump_Channel := Binary_File;
 
             Language_Version_Opt : String_Option renames
                Args.String_Args (Opt_Ada);
+
+            Dump_Config      : Any_Dump_Config;
             Language_Version : Any_Language_Version := Ada_2012;
          begin
             Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
-
-            if Dump_Trigger_Opt.Present then
-               declare
-                  Value : constant String := +Dump_Trigger_Opt.Value;
-               begin
-                  if Value = "manual" then
-                     Dump_Trigger := Manual;
-                  elsif Value = "atexit" then
-                     Dump_Trigger := At_Exit;
-                  elsif Value = "ravenscar-task-termination" then
-                     Dump_Trigger := Ravenscar_Task_Termination;
-                  elsif Value = "main-end" then
-                     Dump_Trigger := Main_End;
-                  else
-                     Fatal_Error ("Bad buffers dump trigger: " & Value);
-                  end if;
-               end;
-            end if;
 
             if Dump_Channel_Opt.Present then
                declare
                   Value : constant String := +Dump_Channel_Opt.Value;
                begin
                   if Value = "bin-file" then
-                     Dump_Channel := Binary_File;
+                     Dump_Config :=
+                       (Channel => Binary_File,
+                        Trigger => <>);
                   elsif Value = "base64-stdout" then
-                     Dump_Channel := Base64_Standard_Output;
+                     Dump_Config :=
+                       (Channel => Base64_Standard_Output,
+                        Trigger => <>);
                   else
                      Fatal_Error ("Bad buffers dump channel: " & Value);
+                  end if;
+               end;
+            end if;
+
+            if Dump_Trigger_Opt.Present then
+               declare
+                  Value : constant String := +Dump_Trigger_Opt.Value;
+               begin
+                  if Value = "manual" then
+                     Dump_Config.Trigger := Manual;
+                  elsif Value = "atexit" then
+                     Dump_Config.Trigger := At_Exit;
+                  elsif Value = "ravenscar-task-termination" then
+                     Dump_Config.Trigger := Ravenscar_Task_Termination;
+                  elsif Value = "main-end" then
+                     Dump_Config.Trigger := Main_End;
+                  else
+                     Fatal_Error ("Bad buffers dump trigger: " & Value);
                   end if;
                end;
             end if;
@@ -1489,8 +1492,8 @@ begin
             --  Reject invalid combinations of --dump-trigger and
             --  --dump-channel.
 
-            if Dump_Trigger = At_Exit
-               and then Dump_Channel = Base64_Standard_Output
+            if Dump_Config.Trigger = At_Exit
+               and then Dump_Config.Channel = Base64_Standard_Output
             then
                --  When atexit handlers are triggered, the runtime finalized
                --  Ada.Text_IO, so Standard_Output is closed.
@@ -1516,8 +1519,7 @@ begin
             end if;
 
             Instrument.Instrument_Units_Of_Interest
-              (Dump_Trigger         => Dump_Trigger,
-               Dump_Channel         => Dump_Channel,
+              (Dump_Config          => Dump_Config,
                Language_Version     => Language_Version,
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null));

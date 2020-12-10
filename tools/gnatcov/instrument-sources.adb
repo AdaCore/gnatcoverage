@@ -391,7 +391,7 @@ package body Instrument.Sources is
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
 
-      Dump_Trigger : constant Auto_Dump_Trigger := IC.Dump_Trigger;
+      Dump_Trigger : constant Auto_Dump_Trigger := IC.Dump_Config.Trigger;
       --  Shortcut to avoid repeatedly restricting the dump trigger to the
       --  Auto_Dump_Trigger subtype.
 
@@ -409,7 +409,7 @@ package body Instrument.Sources is
 
       declare
          use type Ada_Qualified_Name;
-         Unit : constant String := (case IC.Dump_Channel is
+         Unit : constant String := (case IC.Dump_Config.Channel is
                                     when Binary_File            => "Files",
                                     when Base64_Standard_Output => "Base64");
       begin
@@ -506,7 +506,7 @@ package body Instrument.Sources is
             end;
          end loop;
 
-         case IC.Dump_Channel is
+         case IC.Dump_Config.Channel is
          when Binary_File =>
             File.Put ("         Filename => "
                       & To_Ada (Output_Unit) & ".Default_Trace_Filename");
@@ -900,7 +900,7 @@ package body Instrument.Sources is
       --  Depending on the chosen coverage buffers dump trigger, insert the
       --  appropriate code.
 
-      case Auto_Dump_Trigger (IC.Dump_Trigger) is
+      case Auto_Dump_Trigger (IC.Dump_Config.Trigger) is
 
       when At_Exit | Ravenscar_Task_Termination =>
 
@@ -1212,7 +1212,7 @@ package body Instrument.Sources is
 
       --  Insert automatic buffer dump calls, if requested
 
-      if IC.Dump_Trigger /= Manual and then Unit_Info.Is_Main then
+      if IC.Dump_Config.Trigger /= Manual and then Unit_Info.Is_Main then
          Add_Auto_Dump_Buffers
            (IC   => IC,
             Info => Prj_Info,
