@@ -49,7 +49,7 @@ package GNATcov_RTS.Traces.Output.Files is
 
    function Format_Date
      (Timestamp : Time) return Serialized_Timestamp;
-   --  Return Date represented as a little-endian 64-bit Unix timestamp
+   --  Return Timestamp represented as a little-endian 64-bit Unix timestamp
 
    procedure Write_Trace_File
      (Buffers      : Unit_Coverage_Buffers_Array;
