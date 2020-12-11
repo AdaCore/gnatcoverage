@@ -205,20 +205,6 @@ private package Instrument.Sources is
                   null;
             end case;
 
-         when Expression_Function =>
-            Witness_Actual, Witness_Formal : Node_Rewriting_Handle;
-            --  Before creating the witness call, both components are
-            --  uninitialized.
-            --
-            --  After the insertion, Witness_Actual is a call to the Witness
-            --  function expression to discharge the statement obligation for
-            --  this expression function. Witness_Formal is the augmented
-            --  function formal to which the Witness_Actual is meant to be
-            --  passed.
-            --
-            --  See the explanation about "Degenerate subprograms" in
-            --  instrument-tree.adb for a description of the bigger plan.
-
          when others =>
             null;
       end case;
