@@ -26,11 +26,11 @@ common_file = os.path.join(
     "qualification", "qm", "common_conf.py")
 
 if os.path.isfile(common_file):
-    execfile(common_file)
+    exec(open(common_file).read())
 else:
-    print "Couldn't find common configuration file"
-    print common_file
-    print "from: %s" % __file__
+    print("Couldn't find common configuration file")
+    print(common_file)
+    print("from: %s" % __file__)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -87,7 +87,7 @@ exclude_patterns = []
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = None
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
