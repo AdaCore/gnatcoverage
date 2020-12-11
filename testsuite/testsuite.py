@@ -1162,9 +1162,14 @@ class TestSuite(e3.testsuite.Testsuite):
         # it here once both factorizes the work for all testcases and prevents
         # cache effects if PATH changes between testsuite runs.
 
+        toolchain_discriminants = self._toolchain_discriminants()
+        toolchain_discriminant = (
+            toolchain_discriminants[0] if toolchain_discriminants
+            else None)
+
         BUILDER.RUN_CONFIG_SEQUENCE(
             toplev_options=self.main.args,
-            toolchain_discriminant=self._toolchain_discriminants()[0])
+            toolchain_discriminant=toolchain_discriminant)
 
         # Build support library as needed
 
