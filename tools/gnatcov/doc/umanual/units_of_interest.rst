@@ -11,7 +11,8 @@ There are two main families of such means: users would either provide the set
 of files which hold the coverage obligations for the units of interest, or
 rely on project files facilities to designate the set of units. At analysis
 time, the actual list of unit names for which a report or checkpoint is
-produced can be displayed with the :option:`--dump-units-to` option of the
+produced as well as the list of individually ignored source files for each unit
+can be displayed with the :option:`--dump-units-to` option of the
 |gcvcov| command.
 
 .. _passing_scos:

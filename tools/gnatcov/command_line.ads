@@ -701,11 +701,16 @@ package Command_Line is
       Opt_Dump_Units_To => Create
         (Long_Name    => "--dump-units-to",
          Pattern      => "-|FILE",
-         Help         => "Dump the list of names for all units of interest"
-                         & " to the standard output or the report output"
-                         & " (""-"") or to the given FILE. Using this is valid"
-                         & " only when units of interest are selected through"
-                         & " project files facilities (not --scos or --sid).",
+         Help         => "Ouput the list of names for all units of interest"
+                         & " and, for each unit of interest, the list of"
+                         & " source files individually ignored with the"
+                         & " ""Ignored_Source_Files"" project attribute or"
+                         & " corresponding command-line option." & ASCII.LF
+                         & "For ""-"", the option dumps the list to standard"
+                         & " output or in an additional dedicated section of a"
+                         & " ""report"" result when that annotation format is"
+                         & " requested. The list is written to the given FILE"
+                         & " otherwise.",
          Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => True,
          Internal     => False));

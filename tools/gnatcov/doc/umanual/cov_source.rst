@@ -121,7 +121,14 @@ The available options are as follows:
 :option:`--dump-units-to`:
    For source coverage analysis specifically, output the names of units
    that are considered of-interest to the requested assessment, that is,
-   for which a report or checkpoint is going to be produced. The argument
+   for which a report or checkpoint is going to be produced. This also
+   outputs, for each unit of interest, the list of files that were individually
+   ignored using the ``Ignored_Source_Files`` project attribute or corresponding
+   command-line option. Ignored source files listed with :option:`--dump-units-to`
+   will be either marked as ``always ignored``, if they were ignored in all
+   the inputs (traces or checkpoints) that were used to produce this report,
+   or as ``sometimes ignored``, if the source files were ignored in at least
+   one of the inputs of this report, but not all of them. The argument
    may be either the name of a file, clobbered it if it already exists,
    or '-' to request displaying the list on standard output. In the latter
    case, when a ``report`` output is also requested, the list of units is
@@ -338,7 +345,9 @@ their use and effect on the output reports.
 
 If :option:`--dump-units-to -` is also on the command line, a *UNITS OF
 INTEREST* section is produced, which contains the list of units considered
-of-interest for the reported assessment.
+of-interest for the reported assessment, as well as the list of source files
+individually ignored with the ``Ignored_Source_Files`` project attribute and
+corresponding command-line option.
 
 
 Assessment Context
