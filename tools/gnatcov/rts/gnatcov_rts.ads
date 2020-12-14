@@ -28,5 +28,13 @@
 --  This unit needs to be compilable with Ada 95 compilers
 
 package GNATcov_RTS is
+
    pragma Pure;
+
+   Version : constant := 1;
+   --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
+   --  versioned.
+   --
+   --  1 -- initial runtime version
+
 end GNATcov_RTS;

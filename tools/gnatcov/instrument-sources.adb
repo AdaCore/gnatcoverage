@@ -775,8 +775,24 @@ package body Instrument.Sources is
                Arguments => (1 => To_Nodes (RH, Helper_Unit)),
                Rule      => With_Clause_Rule);
 
+         With_RTS_Clause : constant Node_Rewriting_Handle :=
+            Create_From_Template
+               (RH,
+                Template  => "with GNATcov_RTS;",
+                Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+                Rule      => With_Clause_Rule);
+
+         Runtime_Version_Check_Node : constant Node_Rewriting_Handle :=
+            Create_From_Template
+               (RH,
+                Template  => To_Wide_Wide_String (Runtime_Version_Check),
+                Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+                Rule      => Pragma_Rule);
+
       begin
          Append_Child (Prelude, With_Clause);
+         Append_Child (Prelude, With_RTS_Clause);
+         Append_Child (Prelude, Runtime_Version_Check_Node);
       end;
 
       --  Wrap the previous subprogram body content (declarations, handled

@@ -359,6 +359,10 @@ package body Instrument is
       Put_Warnings_And_Style_Checks_Pragmas (File);
       Put_Language_Version_Pragma;
       File.Put_Line ("with System;");
+
+      File.Put_Line ("with GNATcov_RTS;");
+      File.Put_Line (Runtime_Version_Check);
+
       File.New_Line;
       File.Put_Line ("package " & Pkg_Name & " is");
       File.New_Line;
