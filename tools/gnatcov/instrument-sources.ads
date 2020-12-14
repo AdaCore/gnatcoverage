@@ -31,8 +31,9 @@ with Libadalang.Common;     use Libadalang.Common;
 with Libadalang.Rewriting;  use Libadalang.Rewriting;
 
 with ALI_Files;         use ALI_Files;
-with SC_Obligations;    use SC_Obligations;
+with GNATcov_RTS;
 with Instrument.Common; use Instrument.Common;
+with SC_Obligations;    use SC_Obligations;
 with Strings;
 with Types;             use Types;
 
@@ -339,6 +340,15 @@ private package Instrument.Sources is
    --
    --  Info must be the project that owns the Main unit, and URH must be a
    --  rewriting handle for the body unit that contains Main's sources.
+
+   Runtime_Version_Check : constant String :=
+     "pragma Compile_Time_Error (GNATcov_RTS.Version /="
+     & GNATcov_RTS.Version'Image
+     & ",""Incompatible GNATcov_RTS version, please use"
+     & " the GNATcov_RTS project provided with your"
+     & " GNATcoverage distribution."");";
+   --  Check to be inserted in instrumented units to verify that they are
+   --  built with the version of GNATcov_RTS the instrumenter expects.
 
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));
