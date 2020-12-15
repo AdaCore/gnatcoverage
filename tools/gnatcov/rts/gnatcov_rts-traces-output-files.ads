@@ -34,8 +34,9 @@ package GNATcov_RTS.Traces.Output.Files is
    --  Derived type to represent timestamps (as a number of seconds elapsed)
 
    Default_Trace_Filename_Env_Var : constant String := "GNATCOV_TRACE_FILE";
-   --  Default name of the environment variable which, if set, contains the
-   --  default traces filename in Default_Trace_Filename.
+   --  Default name of the environment variable which controls the default
+   --  filename for source traces: see the Default_Trace_Filename function
+   --  below.
 
    function Clock return Time;
    --  Returns the number of seconds since the UNIX epoch
@@ -49,8 +50,7 @@ package GNATcov_RTS.Traces.Output.Files is
       Simple  : Boolean := False) return String;
    --  Return the default name of the trace file to write.
    --
-   --  This returns the content of the Env_Var environment variable.
-   --  If this environment variable is not defined or empty, fallback to:
+   --  If the Env_Var environment variable is not defined or empty, return:
    --
    --  * "PROGRAM.srctrace" if Simple is True (PROGRAM is the name of the
    --    running program).
@@ -58,6 +58,20 @@ package GNATcov_RTS.Traces.Output.Files is
    --  * "PROGRAM-PID-CLOCK.srctrace" if Simple is False (PID is the current
    --    process ID and CLOCK is the result of the Clock function in decimal
    --    representation.
+   --
+   --  If the Env_Var environment variable is defined and not empty, then:
+   --
+   --  * if it ends with "/" or "\", consider it contains the name of a
+   --    directory: use the algorithm described above to compute the basename
+   --    and return the filename in that directory;
+   --
+   --  * otherwise, just return the content of that environment variable.
+   --
+   --  Note that since this unit needs to be compilable with Ada 95 compilers,
+   --  and that there was no standard Ada.Directories package in Ada 95, we
+   --  have no easy access to a predicate checking if a path is a valid
+   --  directory. This is why we use the kludgy separator-ending heuristic here
+   --  instead.
 
    function Format_Date
      (Timestamp : Time) return Serialized_Timestamp;
