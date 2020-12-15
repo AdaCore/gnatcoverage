@@ -63,6 +63,13 @@ package body GNATcov_RTS.Traces.Output.Files is
    --  is a good enough replacement of Ada.Environment_Variables (introduced in
    --  Ada 2005).
 
+   function Default_Trace_Basename
+     (Prefix : String := Default_Trace_Filename_Prefix;
+      Simple : Boolean := False) return String;
+   --  Helper for Default_Trace_Filename, to be called when the environment
+   --  variable does not provide the source trace filename. Return the basename
+   --  for the source trace file.
+
    --------------------
    -- Stripped_Image --
    --------------------
@@ -123,6 +130,27 @@ package body GNATcov_RTS.Traces.Output.Files is
    end Default_Trace_Filename_Prefix;
 
    ----------------------------
+   -- Default_Trace_Basename --
+   ----------------------------
+
+   function Default_Trace_Basename
+     (Prefix : String := Default_Trace_Filename_Prefix;
+      Simple : Boolean := False) return String
+   is
+      Extension : constant String := ".srctrace";
+   begin
+      if Simple then
+         return Prefix & Extension;
+      else
+         return
+           Prefix
+           & "-" & Stripped_Image (Process_Id'Image (Current_Process_Id))
+           & "-" & Stripped_Image (Time'Image (Clock))
+           & Extension;
+      end if;
+   end Default_Trace_Basename;
+
+   ----------------------------
    -- Default_Trace_Filename --
    ----------------------------
 
@@ -132,20 +160,17 @@ package body GNATcov_RTS.Traces.Output.Files is
       Simple  : Boolean := False) return String
    is
       Env_Trace_Filename : constant String := Environment_Variable (Env_Var);
-      Extension          : constant String := ".srctrace";
    begin
-      if Env_Trace_Filename /= "" then
-         return Env_Trace_Filename;
+      if Env_Trace_Filename = "" then
+         return Default_Trace_Basename (Prefix, Simple);
 
-      elsif Simple then
-         return Prefix & Extension;
+      elsif Env_Trace_Filename (Env_Trace_Filename'Last) = '/'
+        or else Env_Trace_Filename (Env_Trace_Filename'Last) = '\'
+      then
+         return Env_Trace_Filename & Default_Trace_Basename (Prefix, Simple);
 
       else
-         return
-           Prefix
-           & "-" & Stripped_Image (Process_Id'Image (Current_Process_Id))
-           & "-" & Stripped_Image (Time'Image (Clock))
-           & Extension;
+         return Env_Trace_Filename;
       end if;
    end Default_Trace_Filename;
 
