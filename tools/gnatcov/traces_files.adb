@@ -1608,18 +1608,13 @@ package body Traces_Files is
       use Ada.Calendar.Time_Zones;
       use Switches;
 
-      Date_Info  : Trace_Info_Date;
-      Date       : Time;
-      Sub_Second : Second_Duration;
-      Time_Zone  : constant Time_Offset := (if Use_Local_Time
-                                            then Local_Time_Offset
-                                            else 0);
+      Date_Info : Trace_Info_Date;
+      Date      : Time;
 
       subtype String_8 is String (1 .. 8);
       function Str_To_Date_Info is new Ada.Unchecked_Conversion
         (String_8, Trace_Info_Date);
 
-      Res : String (1 .. 19) := "YYYY-MM-DD HH:MM:SS";
       procedure Put_Pad (Num : Natural; S : out String);
 
       -------------
@@ -1655,23 +1650,33 @@ package body Traces_Files is
       --  Then, retrieve the date in the wanted timezone, local if specified
       --  by the user, UTC otherwise.
 
-      Split (Date       => Date,
-             Year       => Integer (Date_Info.Year),
-             Month      => Integer (Date_Info.Month),
-             Day        => Integer (Date_Info.Day),
-             Hour       => Integer (Date_Info.Hour),
-             Minute     => Integer (Date_Info.Min),
-             Second     => Integer (Date_Info.Sec),
-             Sub_Second => Sub_Second,
-             Time_Zone  => Time_Zone);
+      if Use_Local_Time then
+         declare
+            Time_Zone      : constant Time_Offset := Local_Time_Offset;
+            Time_Zone_Sign : constant String :=
+              (if Time_Zone >= 0 then "+" else "-");
+            --  Even if Local_Time_Offset is 0, we will put a + sign to avoid
+            --  ambiguities.
 
-      Put_Pad (Natural (Date_Info.Year), Res (1 .. 4));
-      Put_Pad (Natural (Date_Info.Month), Res (6 .. 7));
-      Put_Pad (Natural (Date_Info.Day), Res (9 .. 10));
-      Put_Pad (Natural (Date_Info.Hour), Res (12 .. 13));
-      Put_Pad (Natural (Date_Info.Min), Res (15 .. 16));
-      Put_Pad (Natural (Date_Info.Sec), Res (18 .. 19));
-      return Res;
+            Serialized_Offset : String (1 .. 6) := Time_Zone_Sign & "HH:MM";
+            --  Time_Offset can be more than a day (up to 28 hours, according
+            --  to the type specification), but we will always express it in
+            --  hours and minutes for clarity purposes.
+
+            Hours   : constant Natural :=
+              Natural (abs Time_Zone) / 60;
+            Minutes : constant Natural :=
+              Natural (abs Time_Zone) mod 60;
+         begin
+            Put_Pad (Hours, Serialized_Offset (2 .. 3));
+            Put_Pad (Minutes, Serialized_Offset (5 .. 6));
+            return Local_Image (Date) & " " & Serialized_Offset;
+         end;
+
+      else
+         return Image (Date) & " UTC";
+      end if;
+
    end Format_Date_Info;
 
    ---------------------
