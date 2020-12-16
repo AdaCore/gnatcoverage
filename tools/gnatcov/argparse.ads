@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2015, AdaCore                       --
+--                     Copyright (C) 2015-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -168,7 +168,8 @@ package Argparse is
      with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
    --  Create a single string option description. Long_Name and Short_Name are
    --  |-separated lists of options names. If At_Most_Once is true, the command
-   --  cannot appear multiple times on the command-line.
+   --  cannot appear multiple times on the command-line; otherwise, the
+   --  retained value is the one from the last occurence on the command line.
 
    function Create
      (Long_Name, Short_Name, Help : String := "";
