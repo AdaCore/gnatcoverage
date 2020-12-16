@@ -237,7 +237,7 @@ class RuntimeInfo(object):
 
         if not self.runtime_name:
             self.has_full_runtime = True
-        elif self.runtime_name.startswith('ravenscar-'):
+        elif 'ravenscar' in self.runtime_name:
             self.has_ravenscar_runtime = True
         elif self.runtime_name.startswith('zfp-'):
             self.has_zfp_runtime = True
