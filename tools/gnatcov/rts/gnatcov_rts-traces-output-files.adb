@@ -44,10 +44,6 @@ package body GNATcov_RTS.Traces.Output.Files is
       Count : Natural);
    --  Callback for GNATcov_RTS.Traces.Output.Generic_Write_Trace_File
 
-   function Stripped_Image (Number_Image : String) return String;
-   --  Assuming Number_Image is the image of a number, return it stripped from
-   --  its leading space (if present).
-
    function Basename (Name : String) return String;
    --  Return the base name of the Name file.
    --
@@ -63,27 +59,17 @@ package body GNATcov_RTS.Traces.Output.Files is
    --  is a good enough replacement of Ada.Environment_Variables (introduced in
    --  Ada 2005).
 
+   Hex_Digits : constant array (0 .. 15) of Character := "0123456789abcdef";
+   function Hex_Image (Value : Unsigned_64) return String;
+   --  Return Timestamp as an hexadecimal string
+
    function Default_Trace_Basename
      (Prefix : String := Default_Trace_Filename_Prefix;
+      Tag    : String := "";
       Simple : Boolean := False) return String;
    --  Helper for Default_Trace_Filename, to be called when the environment
    --  variable does not provide the source trace filename. Return the basename
    --  for the source trace file.
-
-   --------------------
-   -- Stripped_Image --
-   --------------------
-
-   function Stripped_Image (Number_Image : String) return String is
-   begin
-      if Number_Image'Length > 0
-        and then Number_Image (Number_Image'First) = ' '
-      then
-         return Number_Image (Number_Image'First + 1 .. Number_Image'Last);
-      else
-         return Number_Image;
-      end if;
-   end Stripped_Image;
 
    --------------
    -- Basename --
@@ -129,25 +115,59 @@ package body GNATcov_RTS.Traces.Output.Files is
       return Basename (Ada.Command_Line.Command_Name);
    end Default_Trace_Filename_Prefix;
 
+   ---------------
+   -- Hex_Image --
+   ---------------
+
+   function Hex_Image (Value : Unsigned_64) return String is
+      Remaining  : Unsigned_64 := Value;
+      Result     : String (1 .. 16);
+      Next_Digit : Positive := Result'Last;
+   begin
+      --  Store the actual result in Result (Next_Digit - 1 .. Result'Last),
+      --  updating Next_Digit as we progress (Remaining is updated each time
+      --  we add a digit).
+
+      if Value = 0 then
+         return "0";
+      end if;
+
+      while Remaining /= 0 loop
+         Result (Next_Digit) :=
+            Hex_Digits (Natural (Remaining mod 16));
+         Remaining := Remaining / 16;
+         Next_Digit := Next_Digit - 1;
+      end loop;
+      return Result (Next_Digit + 1 .. Result'Last);
+   end Hex_Image;
+
    ----------------------------
    -- Default_Trace_Basename --
    ----------------------------
 
    function Default_Trace_Basename
      (Prefix : String := Default_Trace_Filename_Prefix;
+      Tag    : String := "";
       Simple : Boolean := False) return String
    is
       Extension : constant String := ".srctrace";
    begin
       if Simple then
          return Prefix & Extension;
-      else
-         return
-           Prefix
-           & "-" & Stripped_Image (Process_Id'Image (Current_Process_Id))
-           & "-" & Stripped_Image (Time'Image (Clock))
-           & Extension;
       end if;
+
+      declare
+         Suffix : constant String :=
+           "-" & Hex_Image (Unsigned_64 (Current_Process_Id))
+           & "-" & Hex_Image (Unsigned_64 (Clock))
+           & Extension;
+      begin
+         if Tag = "" then
+            return Prefix & Suffix;
+         else
+            return Prefix & "-" & Tag & Suffix;
+         end if;
+      end;
    end Default_Trace_Basename;
 
    ----------------------------
@@ -157,17 +177,19 @@ package body GNATcov_RTS.Traces.Output.Files is
    function Default_Trace_Filename
      (Env_Var : String := Default_Trace_Filename_Env_Var;
       Prefix  : String := Default_Trace_Filename_Prefix;
+      Tag     : String := "";
       Simple  : Boolean := False) return String
    is
       Env_Trace_Filename : constant String := Environment_Variable (Env_Var);
    begin
       if Env_Trace_Filename = "" then
-         return Default_Trace_Basename (Prefix, Simple);
+         return Default_Trace_Basename (Prefix, Tag, Simple);
 
       elsif Env_Trace_Filename (Env_Trace_Filename'Last) = '/'
         or else Env_Trace_Filename (Env_Trace_Filename'Last) = '\'
       then
-         return Env_Trace_Filename & Default_Trace_Basename (Prefix, Simple);
+         return Env_Trace_Filename
+                & Default_Trace_Basename (Prefix, Tag, Simple);
 
       else
          return Env_Trace_Filename;

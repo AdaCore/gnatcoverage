@@ -311,6 +311,18 @@ package Instrument.Common is
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
 
+      Tag : Ada.Strings.Unbounded.Unbounded_String;
+      --  String which allows differentiating trace files produced by a
+      --  specific program instrumentation from the ones produced by other
+      --  instrumentations.
+      --
+      --  To achieve this, Tag is based on the date/time at which the
+      --  instrumentation takes place. Automatic coverage buffer dumps (in
+      --  instrumented mains) will pass this string to
+      --  GNATcov_RTS.Traces.Output.Files.Default_Trace_Name (unless the
+      --  --dump-trace-filename-simple option is passed to "gnatcov
+      --  instrument").
+
       Provider : Libadalang.Analysis.Unit_Provider_Reference;
       --  Unit provider to create an analysis context (Context member below)
 
