@@ -47,6 +47,7 @@ package GNATcov_RTS.Traces.Output.Files is
    function Default_Trace_Filename
      (Env_Var : String := Default_Trace_Filename_Env_Var;
       Prefix  : String := Default_Trace_Filename_Prefix;
+      Tag     : String := "";
       Simple  : Boolean := False) return String;
    --  Return the default name of the trace file to write.
    --
@@ -55,9 +56,10 @@ package GNATcov_RTS.Traces.Output.Files is
    --  * "PROGRAM.srctrace" if Simple is True (PROGRAM is the name of the
    --    running program).
    --
-   --  * "PROGRAM-PID-CLOCK.srctrace" if Simple is False (PID is the current
-   --    process ID and CLOCK is the result of the Clock function in decimal
-   --    representation.
+   --  * "PROGRAM-TAG-PID-CLOCK.srctrace" if Simple is False (PID is the
+   --    current process ID and CLOCK is the result of the Clock function in
+   --    decimal representation). The "-TAG" part is omitted if Tag is the
+   --    empty string.
    --
    --  If the Env_Var environment variable is defined and not empty, then:
    --

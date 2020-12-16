@@ -523,6 +523,7 @@ package body Instrument.Sources is
                   then U & ".Default_Trace_Filename_Prefix"
                   else """" & To_String (IC.Dump_Config.Filename_Prefix)
                        & """");
+               Tag     : constant String := """" & To_String (IC.Tag) & """";
                Simple  : constant String :=
                  (if IC.Dump_Config.Filename_Simple
                   then "True"
@@ -532,6 +533,7 @@ package body Instrument.Sources is
                  (Indent1 & "Filename => " & U & ".Default_Trace_Filename");
                File.Put_Line (Indent2 & "(Env_Var => " & Env_Var & ",");
                File.Put_Line (Indent2 & " Prefix => " & Prefix & ",");
+               File.Put_Line (Indent2 & " Tag => " & Tag & ",");
                File.Put (Indent2 & " Simple => " & Simple & ")");
             end;
 

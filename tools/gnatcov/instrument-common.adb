@@ -23,11 +23,15 @@ pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
 with Ada.Unchecked_Deallocation;
+with Interfaces;
+
+with GNAT.OS_Lib;
 
 with Langkit_Support.Text;
 with Libadalang.Common;
 with Libadalang.Sources;
 
+with Hex_Images;
 with Outputs; use Outputs;
 with Project;
 
@@ -665,6 +669,21 @@ package body Instrument.Common is
          IC.Project_Name := +Ada.Directories.Base_Name
            (Project.Root_Project_Filename);
          --  TODO??? Get the original casing for the project name
+
+         --  Compute the tag for default source trace filenames. Use the
+         --  current time as a mostly unique identifier. Put it in hexadecimal
+         --  form without leading zeros to avoid too long names.
+
+         declare
+            use Interfaces;
+
+            Time : constant Unsigned_64 :=
+              Unsigned_64 (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
+            Tag  : constant String :=
+               Hex_Images.Strip_Zero_Padding (Hex_Images.Hex_Image (Time));
+         begin
+            IC.Tag := +Tag;
+         end;
 
          IC.Provider := Provider;
          IC.Context := Libadalang.Analysis.Create_Context
