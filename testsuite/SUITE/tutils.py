@@ -607,8 +607,8 @@ def run_cov_program(executable, out=None, env=None, register_failure=True):
     # If we are in a cross configuration, run the program using GNATemulator
     if thistest.options.target:
         kernel = thistest.options.kernel
-        board = thistest.options.board or env.target.machine
-        args.append('{}-gnatemu'.format(env.target.triplet))
+        board = thistest.options.board or thistest.env.target.machine
+        args.append('{}-gnatemu'.format(thistest.env.target.triplet))
         if kernel:
             args.append('--kernel=' + kernel)
         if board:

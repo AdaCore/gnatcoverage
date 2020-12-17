@@ -138,6 +138,9 @@ class Test (object):
         line options, reset the failures counter and precompute gprbuild
         options we'll have to pass on every call to convey config options.
         """
+        # Shortcut for SUITE.control.env
+        self.env = env
+
         self.start_time = time.time()
 
         # Compute the depth of this test wrt testsuite root. We join ROOT and
