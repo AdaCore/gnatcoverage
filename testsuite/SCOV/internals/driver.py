@@ -40,8 +40,8 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 from SUITE.tutils import gprbuild_cargs_with
 from SUITE.tutils import exename_for
-from SUITE.tutils import (srctracename_for, tracename_for, ckptname_for,
-                          run_cov_program)
+from SUITE.tutils import (srctrace_pattern_for, srctracename_for,
+                          tracename_for, ckptname_for, run_cov_program)
 
 from .cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
 from .cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds
@@ -414,6 +414,10 @@ class SCOV_helper:
         raise NotImplementedError
 
     def mode_tracename_for(self, pgm):
+        """Name of the trace file for the given program name.
+
+        Due to specificities of the source trace files in native contexts, this
+        method should be called only once the trace file has been created."""
         raise NotImplementedError
 
     def __init__(self, testcase, drivers, xfile, xcovlevel, covctl, wdctl):
@@ -1326,7 +1330,11 @@ class SCOV_helper_src_traces(SCOV_helper):
         # If the dump channel just writes text on stdout, extract traces from
         # it.
         if self.dump_channel == 'base64-stdout':
-            xcov_convert_base64(out_file, self.mode_tracename_for(main),
+            # The mode_tracename_for method works only after the trace file has
+            # been created: create a trace file that srctracename_for (called
+            # in mode_tracename_for) will pick up.
+            trace_file = srctrace_pattern_for(main).replace("*", "unique")
+            xcov_convert_base64(out_file, trace_file,
                                 register_failure=register_failure)
 
         return out_file
