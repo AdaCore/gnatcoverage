@@ -38,4 +38,4 @@ p = e3.os.process.Run([PATH_TO_T32,
                       output="t32.out",
                       bg=True)
 
-sleep(2)
+sleep(20)
