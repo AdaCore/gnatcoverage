@@ -190,6 +190,27 @@ package Traces_Elf is
    --  with the same start address and length, compare names (for sections,
    --  subprograms or symbols) or slocs (for sloc info), with unset (null /
    --  No_Location) values sorting higher than any specific set value.
+   --
+   --  With the assumption that for two given Address_Info, then they are
+   --  either disjoint or one contains the other, this order give a set of
+   --  Address_Info a structure of set of trees.
+   --
+   --  For instance the set of Address_Info of ranges [1 .. 10], [1 .. 2],
+   --  [6 .. 10], [6 .. 6], [7 .. 10], [11 .. 20], [11 .. 13], [15 .. 16],
+   --  [30 .. 40], [33 .. 40] make up 3 trees as follows:
+   --
+   --  [1 .. 10          (TL)] | [11 .. 20       (TL)] | [30 .. 40 (TL)]
+   --  [1 .. 2 ][6 .. 10     ] | [11 .. 13] [15 .. 16] |      [33 .. 40]
+   --           [6..6][7..10 ] |                       |
+   --
+   --  Storing a set of Address_Infos was originally implemented using Ordered
+   --  Sets, but this makes looking up an Address_Info containing a certain
+   --  address quite costly. To solve this issue, Address_Info now has a
+   --  Top_Level field which should reflect whether the Address_Info is a top
+   --  level one, i.e. is the root of the tree in which it is located.
+   --
+   --  The order "<" defines ensures that the first Address_Info of a tree will
+   --  be the root when iterating over an Ordered Set.
 
    package Address_Info_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Address_Info_Acc);
@@ -214,6 +235,10 @@ package Traces_Elf is
       --    Parent of a subprogram is a section as well
       --    Parent of an inlined subprogram is a section as well
       --    Parent of a line is a subprogram or a CU.
+
+      Top_Level : Boolean := False;
+      --  True if this Address_Info is a top level one, i.e. is the root of the
+      --  Address_Info tree in which it belongs. See "<" for more details.
 
       case Kind is
          when Compilation_Unit_Addresses =>
@@ -298,6 +323,24 @@ package Traces_Elf is
       Innermost_Only : Boolean := False) return Address_Info_Arr;
    --  Same as Get_Address_Info, but if Innermost_Only is False, return all
    --  enclosing matches, from outermost to innermost.
+
+   procedure Insert_With_Top_Level_Update
+     (Set      : in out Address_Info_Sets.Set;
+      Item     : Address_Info_Acc;
+      Pos      : out Address_Info_Sets.Cursor;
+      Inserted : out Boolean);
+   --  Inserts Item in Set. Pos and Inserted are passed directly from
+   --  Address_Info_Sets.Insert. This will update the field Top_Value of the
+   --  elements of Set to make searching more efficient. The value of the field
+   --  Top_Level of Item has no impact and will be overwritten.
+
+   procedure Insert_With_Top_Level_Update
+     (Set  : in out Address_Info_Sets.Set;
+      Item : Address_Info_Acc);
+   --  Inserts Item in Set while updating the field Top_Level of the elements
+   --  of Set to make searching for an item more efficient. The value of the
+   --  field Top_Level of Item has no impact and will be overwritten.
+   --  Raises Constraint_Error if the insertion is not successful.
 
    function Get_Symbol
      (Exec : Exe_File_Type;

@@ -196,6 +196,12 @@ package body Traces_Elf is
    --  file name used in Actual_File_Name (to be free'd by the caller). If
    --  unsuccessful, raise a Binary_Files.Error exception.
 
+   function Tree_Assumption_Respected
+     (Set  : Address_Info_Sets.Set;
+      Item : Address_Info_Acc) return Boolean;
+   --  Return whether, for all elements E of Set, E and Item are either
+   --  disjoint or one contains the other.
+
    -------------------------
    -- Has_Decision_Mapped --
    -------------------------
@@ -404,10 +410,6 @@ package body Traces_Elf is
          Next (Cur);
       end loop;
    end Disp_Compilation_Units;
-
-   procedure Insert
-     (Set : in out Address_Info_Sets.Set;
-      El  : Address_Info_Acc) renames Address_Info_Sets.Insert;
 
    ------------------
    -- Open_Exec_Fd --
@@ -702,7 +704,10 @@ package body Traces_Elf is
       Kind : Address_Info_Kind;
       PC   : Pc_Type) return Address_Info_Sets.Cursor
    is
-      PC_Addr : aliased Address_Info (Kind);
+      use Address_Info_Sets;
+      PC_Addr   : aliased Address_Info (Kind);
+      Candidate : Address_Info_Sets.Cursor;
+      Addr_Info : Address_Info_Acc;
    begin
       --  Empty range with default values sorts higher than any empty range
       --  with non-default values, and higher than any non-empty range,
@@ -711,7 +716,40 @@ package body Traces_Elf is
       PC_Addr.First := PC;
       PC_Addr.Last  := PC - 1;
 
-      return Set.Floor (PC_Addr'Unchecked_Access);
+      --  Set.Floor is a good initial guess, but needs to be refined to get the
+      --  immediatly enclosing Address_Info.
+      --
+      --  Given the order on Address_Info, PC_Addr will always be greater than
+      --  the Address_Info we are looking for (if it exists), so we go through
+      --  Set in reverse starting from Set.Floor until we find the Adress_Info
+      --  of interest, or until we can conclude that there is no such
+      --  Addres_Info.
+      --
+      --  We can conclude that PC is contained in an Addres_Info or not as soon
+      --  as we reach a top level Info. If PC is not contained in that top
+      --  level Address_Info, then PC isn't contained in any of those.
+
+      Candidate := Set.Floor (PC_Addr'Unchecked_Access);
+
+      loop
+         if not Has_Element (Candidate) then
+            return No_Element;
+         end if;
+
+         Addr_Info := Element (Candidate);
+         if PC in Addr_Info.First .. Addr_Info.Last
+           or else PC = Addr_Info.First
+         then
+            return Candidate;
+         end if;
+
+         if Addr_Info.Top_Level then
+            return No_Element;
+         end if;
+
+         Candidate := Previous (Candidate);
+      end loop;
+
    end Find_Address_Info;
 
    -----------------------
@@ -1551,7 +1589,7 @@ package body Traces_Elf is
         (Index_Type   => Natural,
          Element_Type => Call_Target);
 
-      Subprg_To_PC : Subprg_DIE_To_PC_Maps.Map;
+      Subprg_To_PC        : Subprg_DIE_To_PC_Maps.Map;
       Call_Site_To_Target : Call_Site_To_Target_Maps.Vector;
 
    --  Start of processing for Build_Debug_Compile_Units
@@ -1805,13 +1843,17 @@ package body Traces_Elf is
                   Current_DIE_CU := DIE_CU_Id (Exec.Compile_Units.Length);
 
                   if At_High_Pc > At_Low_Pc then
-                     Exec.Desc_Sets (Compilation_Unit_Addresses).Insert
-                       (new Address_Info'
-                          (Kind   => Compilation_Unit_Addresses,
-                           First  => Exec.Exe_Text_Start + Pc_Type (At_Low_Pc),
-                           Last   => Pc_Type (At_High_Pc - 1),
-                           Parent => null,
-                           DIE_CU => Current_DIE_CU));
+
+                     Insert_With_Top_Level_Update
+                       (Exec.Desc_Sets (Compilation_Unit_Addresses),
+                        new Address_Info'
+                          (Kind      => Compilation_Unit_Addresses,
+                           First     => Exec.Exe_Text_Start
+                           + Pc_Type (At_Low_Pc),
+                           Last      => Pc_Type (At_High_Pc - 1),
+                           Top_Level => <>,
+                           Parent    => null,
+                           DIE_CU    => Current_DIE_CU));
                   end if;
 
                   Current_Stmt_List := At_Stmt_List;
@@ -1868,13 +1910,16 @@ package body Traces_Elf is
                              Last              =>
                                Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
                              Parent            => Current_Sec,
+                             Top_Level         => <>,
                              Subprogram_Name   =>
                                 new String'(Read_String (At_Name)),
                              Subprogram_CU     => Current_CU,
                              Subprogram_DIE_CU => Current_DIE_CU,
                              Lines             => Address_Info_Sets.Empty_Set);
-                        Exec.Desc_Sets (Subprogram_Addresses).
-                          Insert (Current_Subprg);
+                        Insert_With_Top_Level_Update
+                          (Exec.Desc_Sets (Subprogram_Addresses),
+                           Current_Subprg);
+
                         Subprg_To_PC.Insert (Tag_Off, Pc_Type (At_Low_Pc));
                      end if;
 
@@ -2211,7 +2256,8 @@ package body Traces_Elf is
                   New_Line.First := Insn_1_Last_PC + 1;
                   New_Line.Last := Insn_N_Last_PC;
                   New_Line.Is_Non_Empty := True;
-                  Subprg.Lines.Insert (New_Line);
+                  Insert_With_Top_Level_Update (Subprg.Lines, New_Line);
+
                end if;
             end;
          end if;
@@ -2232,6 +2278,7 @@ package body Traces_Elf is
          Sloc       : Source_Location;
 
          Saved_Line : constant Address_Info_Acc := Last_Line;
+
       begin
 
          --  Discard 0-relative entries in exec files, corresponding to
@@ -2259,12 +2306,14 @@ package body Traces_Elf is
                    (Kind         => Line_Addresses,
                     First        => Exec.Exe_Text_Start + Pc,
                     Last         => Exec.Exe_Text_Start + Pc,
+                    Top_Level    => <>,
                     Parent       => (if Subprg /= null then Subprg else Sec),
                     Sloc         => Sloc,
                     Disc         => Disc,
                     Is_Non_Empty => False);
+               Insert_With_Top_Level_Update
+                 (Subprg.Lines, Last_Line, Pos, Inserted);
 
-               Subprg.Lines.Insert (Last_Line, Pos, Inserted);
                if not Inserted then
 
                   --  An empty line has already been inserted at PC. Merge it
@@ -2417,6 +2466,7 @@ package body Traces_Elf is
                      First             => Symbol.First,
                      Last              => Symbol.Last,
                      Parent            => Sec,
+                     Top_Level         => <>,
                      Subprogram_Name   =>
                         new String'("<None@" & Symbol.Symbol_Name.all & ">"),
                      Subprogram_CU     => No_CU_Id,
@@ -2427,8 +2477,11 @@ package body Traces_Elf is
                   --  because there was none for this PC, so inserting must
                   --  work.
 
-                  Exec.Desc_Sets (Subprogram_Addresses).Insert
-                    (Subprg, Cur_Subprg, Inserted);
+                  Insert_With_Top_Level_Update
+                    (Exec.Desc_Sets (Subprogram_Addresses),
+                     Subprg,
+                     Cur_Subprg,
+                     Inserted);
                   pragma Assert (Inserted);
 
                end if;
@@ -2748,6 +2801,7 @@ package body Traces_Elf is
                     (Kind      => Inlined_Subprogram_Addresses,
                      First     => Inlined_Subp.First,
                      Last      => Inlined_Subp.Last,
+                     Top_Level => <>,
                      Parent    => Inlined_Subp.Section,
                      Call_Sloc =>
                        (Source_File => File,
@@ -2762,8 +2816,12 @@ package body Traces_Elf is
                --  crash in this case, so just do best effort and ignore such
                --  "duplicates".
 
-               Exec.Desc_Sets (Inlined_Subprogram_Addresses).Insert
-                 (Info, Position, Inserted);
+               Insert_With_Top_Level_Update
+                 (Exec.Desc_Sets (Inlined_Subprogram_Addresses),
+                  Info,
+                  Position,
+                  Inserted);
+
                if not Inserted then
                   Free (Info);
                end if;
@@ -2848,17 +2906,19 @@ package body Traces_Elf is
                  and not (Shdr.Sh_Addralign - 1);
             end if;
 
-            Insert (Exec.Desc_Sets (Section_Addresses),
-                    new Address_Info'
-                    (Kind            => Section_Addresses,
-                     First           => Addr,
-                     Last            => Last,
-                     Parent          => null,
-                     Section_Name    => new String'(
-                                          Get_Shdr_Name (Exec.Elf_File, Idx)),
-                     Section_Sec_Idx => Section_Index (Idx),
-                     Section_Content => Invalid_Binary_Content,
-                     Section_LS      => No_Loaded_Section));
+            Insert_With_Top_Level_Update
+              (Exec.Desc_Sets (Section_Addresses),
+               new Address_Info'
+                 (Kind            => Section_Addresses,
+                  First           => Addr,
+                  Last            => Last,
+                  Top_Level       => <>,
+                  Parent          => null,
+                  Section_Name    => new String'(
+                    Get_Shdr_Name (Exec.Elf_File, Idx)),
+                  Section_Sec_Idx => Section_Index (Idx),
+                  Section_Content => Invalid_Binary_Content,
+                  Section_LS      => No_Loaded_Section));
          end if;
       end loop;
    end Build_Sections;
@@ -2888,18 +2948,19 @@ package body Traces_Elf is
             Addr := Pc_Type (Scn.S_Vaddr) + Get_Image_Base (Exec.PE_File);
             Last := Addr + Get_Section_Length (Exec.PE_File, Idx) - 1;
 
-            Insert
+            Insert_With_Top_Level_Update
               (Exec.Desc_Sets (Section_Addresses),
                new Address_Info'
-               (Kind            => Section_Addresses,
-                First           => Addr,
-                Last            => Last,
-                Parent          => null,
-                Section_Name    => new String'(
-                                      Get_Section_Name (Exec.PE_File, Idx)),
-                Section_Sec_Idx => Section_Index (Idx),
-                Section_Content => Invalid_Binary_Content,
-                Section_LS      => No_Loaded_Section));
+                 (Kind            => Section_Addresses,
+                  First           => Addr,
+                  Last            => Last,
+                  Top_Level       => <>,
+                  Parent          => null,
+                  Section_Name    => new String'(
+                    Get_Section_Name (Exec.PE_File, Idx)),
+                  Section_Sec_Idx => Section_Index (Idx),
+                  Section_Content => Invalid_Binary_Content,
+                  Section_LS      => No_Loaded_Section));
          end if;
       end loop;
    end Build_Sections;
@@ -3553,7 +3614,7 @@ package body Traces_Elf is
                Sym.Last := Sym.Last - 1;
             end if;
 
-            Address_Info_Sets.Insert
+            Insert_With_Top_Level_Update
               (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
          end if;
 
@@ -3684,11 +3745,12 @@ package body Traces_Elf is
               (Kind          => Symbol_Addresses,
                First         => Sym_Value,
                Last          => Sym_Value,
+               Top_Level     => <>,
                Parent        => null,
                Symbol_Name   => new String'(Value (Sym_Name)),
                others        => <>);
 
-            Address_Info_Sets.Insert
+            Insert_With_Top_Level_Update
               (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
          end Enter_Synthetic_Symbol;
 
@@ -3780,7 +3842,7 @@ package body Traces_Elf is
                         (Get_Symbol_Name (Exec.PE_File, S)),
                         others      => <>);
 
-                     Address_Info_Sets.Insert
+                     Insert_With_Top_Level_Update
                        (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
                   end if;
 
@@ -3983,6 +4045,212 @@ package body Traces_Elf is
    is
      (Get_Address_Infos
         (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC, Innermost_Only));
+
+   -------------------------------
+   -- Tree_Assumption_Respected --
+   -------------------------------
+
+   function Tree_Assumption_Respected
+     (Set  : Address_Info_Sets.Set;
+      Item : Address_Info_Acc) return Boolean
+   is
+      use Address_Info_Sets;
+
+      Init : constant Cursor := Set.Floor (Item);
+      Cur : Cursor;
+
+      function Contains (Outer, Inner : Address_Info_Acc) return Boolean
+      is (Outer.First <= Inner.First and then Outer.Last >= Inner.Last);
+      --  Returns whether the PC range of Outer contains the PC range of Inner
+
+      function Nested_Or_Disjoint
+        (Item, Other : Address_Info_Acc) return Boolean
+      is
+        (Empty_Range (Item.all)
+         or else Empty_Range (Other.all)
+         or else Contains (Item, Other)
+         or else Contains (Other, Item)
+         or else Item.First > Other.Last
+         or else Item.Last < Other.First);
+      --  Return whether Item and Other respect the assumption that either one
+      --  contains the other, or the are disjoint. If one of the Address_Info
+      --  has an empty range, we consider the assumption to be true.
+
+   begin
+      --  Thanks to the fact that all the couples of elements from Set satisfy
+      --  the Tree_Assumption/Nested_Or_Disjoint, we don't need to check that
+      --  Item satisfies it for every element in Set. Just check the predicate
+      --  with the elements between the two top level entries surrounding Item
+      --  is enough.
+
+      if Empty_Range (Item.all) then
+         return True;
+      end if;
+
+      --  Position Cur next to the actual position of Item
+
+      Cur := Init;
+
+      --  First check that for every Address_Info_Acc between Set.Floor(Item)
+      --  and the previous top level entry, it is either disjoint from Item or
+      --  one contains the other.
+
+      while Has_Element (Cur) loop
+
+         if not Nested_Or_Disjoint (Item, Element (Cur)) then
+            return False;
+         end if;
+
+         exit when Element (Cur).Top_Level;
+         Previous (Cur);
+
+      end loop;
+
+      --  Now do the same for all then entries after the actual position of
+      --  Item. If Init has no element, this means that Item would be the first
+      --  item of the set. In that case, start checking from Set.First.
+
+      if Has_Element (Init) then
+         Cur := Next (Init);
+      else
+         Cur := Set.First;
+      end if;
+
+      while Has_Element (Cur) loop
+
+         if not Nested_Or_Disjoint (Item, Element (Cur)) then
+            return False;
+         end if;
+
+         exit when Element (Cur).Top_Level;
+         Next (Cur);
+
+      end loop;
+
+      return True;
+
+   end Tree_Assumption_Respected;
+
+   -----------------------------------
+   -- Insert_With_Top_Level_Update --
+   -----------------------------------
+
+   procedure Insert_With_Top_Level_Update
+     (Set      : in out Address_Info_Sets.Set;
+      Item     : Address_Info_Acc;
+      Pos      : out Address_Info_Sets.Cursor;
+      Inserted : out Boolean)
+   is
+      use Address_Info_Sets;
+
+      Prev_TL_Cur  : Cursor;
+      Prev_TL_Info : Address_Info_Acc;
+      Next_Item    : Address_Info_Acc;
+   begin
+      if not Tree_Assumption_Respected (Set, Item) then
+         Outputs.Fatal_Error
+           ("Unexpected address range for a "
+            & (case Item.Kind is
+                 when Compilation_Unit_Addresses   => "compilation Unit",
+                 when Section_Addresses            => "section",
+                 when Subprogram_Addresses         => "subprogram",
+                 when Inlined_Subprogram_Addresses => "inlined subprogram",
+                 when Symbol_Addresses             => "symbol",
+                 when Line_Addresses               => "debug line")
+            & " between " & Hex_Image (Item.First) & " and "
+            & Hex_Image (Item.Last));
+      end if;
+
+      --  Start by inserting the new item in the set
+
+      Set.Insert (Item, Pos, Inserted);
+
+      if not Inserted then
+         return;
+      end if;
+
+      --  Then, from the position of insertion of the new item, search for the
+      --  previous top level entry, if it exists.
+
+      Prev_TL_Cur := Previous (Pos);
+
+      loop
+         --  If we reach the begining of the set before finding a top level
+         --  item (which should only happen if the item got inserted in the
+         --  first position) then we must flag it as top level.
+
+         if not Has_Element (Prev_TL_Cur) then
+            pragma Assert (Item = Set.First_Element);
+            Item.Top_Level := True;
+            exit;
+         end if;
+
+         Prev_TL_Info := Element (Prev_TL_Cur);
+
+         --  If we find a top level Address_Info, then we can check if our item
+         --  is top level or not. Prev_TL_Info and Item are either nested
+         --  or disjoint (I.E. Prev_TL_Info is the root of the tree of Item, or
+         --  it is in another tree than Item). We have Prev_TL_Info <= Item
+         --  thus we are in one of the two following situations :
+         --
+         --  [Prev_TL_Info ]    or  [Prev_TL_Info ]  [Item]
+         --    [Item  ]
+         --
+         --  In the first case, the top level Address_Info of the tree of Item
+         --  is indeed Prev_TL_Info, and Item must not be marked as Top_Level.
+         --  In the second case, Prev_TL_Info is not in the same tree as Item,
+         --  which means that Item is the root of its treee, and must be marked
+         --  as Top_Level.
+
+         if Prev_TL_Info.Top_Level then
+            Item.Top_Level := Prev_TL_Info.Last < Item.First;
+            exit;
+         end if;
+
+         --  We haven't found a top level Address_Info yet, keep iterating over
+         --  the set.
+
+         Previous (Prev_TL_Cur);
+      end loop;
+
+      Next_Item := (if Has_Element (Next (Pos))
+                    then Element (Next (Pos))
+                    else null);
+
+      --  If the Address_Info we are inserting is top level, we may need to
+      --  update the next element in the set depending on the nesting:
+      --  we either have Next_Item included in Item or they are disjoint.
+      --
+      --  [Item          ]   or  [Item    ]  [Next_Item    ]
+      --    [Next_Item ]
+      --
+      --  In the first case we need to make sure that Next_Item is not tagged
+      --  as top level anymore.
+
+      if Item.Top_Level
+        and then Next_Item /= null
+        and then Item.Last >= Next_Item.Last
+      then
+         Next_Item.Top_Level := False;
+      end if;
+
+   end Insert_With_Top_Level_Update;
+
+   procedure Insert_With_Top_Level_Update
+     (Set      : in out Address_Info_Sets.Set;
+      Item     : Address_Info_Acc)
+   is
+      Pos      : Address_Info_Sets.Cursor;
+      Inserted : Boolean;
+   begin
+      pragma Unreferenced (Pos);
+
+      Insert_With_Top_Level_Update (Set, Item, Pos, Inserted);
+
+      if not Inserted then
+         raise Constraint_Error;
+      end if;
+   end Insert_With_Top_Level_Update;
 
    ----------------
    -- Get_Symbol --
@@ -4584,7 +4852,7 @@ package body Traces_Elf is
                   --  Non-empy symbol. Latch into our local container for
                   --  processing downstream.
 
-                  Address_Info_Sets.Insert
+                  Insert_With_Top_Level_Update
                     (Shdr_Sets (A_Sym.St_Shndx).all,
                      new Address_Info'
                        (Kind        => Symbol_Addresses,
