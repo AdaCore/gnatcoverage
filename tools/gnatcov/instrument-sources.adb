@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -166,11 +166,10 @@ package body Instrument.Sources is
 
          return Create_Call_Expr
            (IC.Rewriting_Context,
-            Call_Expr_F_Name   =>
-              Create_Identifier
-                (IC.Rewriting_Context,
-                 To_Type.P_Canonical_Fully_Qualified_Name),
-            Call_Expr_F_Suffix => RH_N);
+            F_Name   => Create_Identifier
+                          (IC.Rewriting_Context,
+                           To_Type.P_Canonical_Fully_Qualified_Name),
+            F_Suffix => RH_N);
       end if;
    end Convert_To;
 
@@ -904,16 +903,13 @@ package body Instrument.Sources is
 
             Nested_Block := Create_Named_Stmt
               (RH,
-               Named_Stmt_F_Decl => Create_Named_Stmt_Decl
+               F_Decl => Create_Named_Stmt_Decl
+                 (RH, Create_Defining_Name (RH, Clone (Block_Name)), No_Node),
+               F_Stmt => Create_Decl_Block
                  (RH,
-                  Create_Defining_Name
-                    (RH, Clone (Block_Name)),
-                  No_Node),
-               Named_Stmt_F_Stmt => Create_Regular_Node
-                 (RH, Ada_Decl_Block,
-                  (Nested_Decls,
-                   Old_Stmts,
-                   Clone (Block_Name))));
+                  F_Decls    => Nested_Decls,
+                  F_Stmts    => Old_Stmts,
+                  F_End_Name => Clone (Block_Name)));
 
             --  Change the Qualified names in the Main's declarations and
             --  statements to be compatible ith the new nested block.

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -608,17 +608,12 @@ package body Instrument.Tree is
          Result.Wrapper_Pkg :=
            Create_Package_Decl
              (RC,
-              Base_Package_Decl_F_Package_Name => Result.Wrapper_Pkg_Name,
-              Base_Package_Decl_F_Aspects      =>
-                No_Node_Rewriting_Handle,
-              Base_Package_Decl_F_Public_Part  =>
-                Create_Public_Part
-                  (RC,
-                   Declarative_Part_F_Decls => Result.Wrapper_Pkg_Decls),
-              Base_Package_Decl_F_Private_Part =>
-                No_Node_Rewriting_Handle,
-              Base_Package_Decl_F_End_Name     =>
-                No_Node_Rewriting_Handle);
+              F_Package_Name => Result.Wrapper_Pkg_Name,
+              F_Aspects      => No_Node_Rewriting_Handle,
+              F_Public_Part  => Create_Public_Part
+                                  (RC, F_Decls => Result.Wrapper_Pkg_Decls),
+              F_Private_Part => No_Node_Rewriting_Handle,
+              F_End_Name     => No_Node_Rewriting_Handle);
       end return;
    end Create_Degenerate_Subp_Common_Nodes;
 
@@ -653,31 +648,26 @@ package body Instrument.Tree is
       Nodes.Subp_Spec :=
          Create_Subp_Spec
            (RC,
-            Subp_Spec_F_Subp_Kind => Make (UIC, Ada_Subp_Kind_Procedure),
-            Subp_Spec_F_Subp_Name => Create_Defining_Name (RC, Nodes.Name),
+            F_Subp_Kind    => Make (UIC, Ada_Subp_Kind_Procedure),
+            F_Subp_Name    => Create_Defining_Name (RC, Nodes.Name),
 
-            Subp_Spec_F_Subp_Params =>
+            F_Subp_Params  =>
               (if No_Param
                then No_Node_Rewriting_Handle
-               else Create_Params (RC, Params_F_Params => Nodes.Param_Specs)),
+               else Create_Params (RC, F_Params => Nodes.Param_Specs)),
 
-            Subp_Spec_F_Subp_Returns => No_Node_Rewriting_Handle);
+            F_Subp_Returns => No_Node_Rewriting_Handle);
 
       Nodes.Subp_Decl :=
          Create_Generic_Subp_Decl
            (RC,
-            Generic_Decl_F_Formal_Part =>
-               Create_Generic_Formal_Part
-                 (RC, Generic_Formal_Part_F_Decls => Nodes.Formals),
-
-            Generic_Subp_Decl_F_Subp_Decl =>
-               Create_Generic_Subp_Internal
-                 (RC,
-                  Generic_Subp_Internal_F_Subp_Spec => Nodes.Subp_Spec,
-                  Generic_Subp_Internal_F_Aspects   =>
-                     No_Node_Rewriting_Handle),
-
-            Generic_Subp_Decl_F_Aspects => No_Node_Rewriting_Handle);
+            F_Formal_Part => Create_Generic_Formal_Part
+                               (RC, F_Decls => Nodes.Formals),
+            F_Subp_Decl   => Create_Generic_Subp_Internal
+                               (RC,
+                                F_Subp_Spec => Nodes.Subp_Spec,
+                                F_Aspects   => No_Node_Rewriting_Handle),
+            F_Aspects     => No_Node_Rewriting_Handle);
 
       Nodes.Inst_Params := Make (UIC, Ada_Assoc_List);
    end Create_Null_Proc_Nodes;
@@ -701,12 +691,12 @@ package body Instrument.Tree is
         (Spec : Param_Spec) return Node_Rewriting_Handle
       is (Create_Param_Spec
             (RC,
-             Param_Spec_F_Ids          => Clone (Spec.F_Ids),
-             Param_Spec_F_Has_Aliased  => Clone (Spec.F_Has_Aliased),
-             Param_Spec_F_Mode         => Clone (Spec.F_Mode),
-             Param_Spec_F_Type_Expr    => Gen_Type_Expr (Spec.F_Type_Expr),
-             Param_Spec_F_Default_Expr => No_Node_Rewriting_Handle,
-             Param_Spec_F_Aspects      => No_Node_Rewriting_Handle));
+             F_Ids          => Clone (Spec.F_Ids),
+             F_Has_Aliased  => Clone (Spec.F_Has_Aliased),
+             F_Mode         => Clone (Spec.F_Mode),
+             F_Type_Expr    => Gen_Type_Expr (Spec.F_Type_Expr),
+             F_Default_Expr => No_Node_Rewriting_Handle,
+             F_Aspects      => No_Node_Rewriting_Handle));
       --  Create and return the param spec to be used in the generic procedure
       --  parameters for Spec (a parameter spec for the null procedure to
       --  instrument).
@@ -755,10 +745,10 @@ package body Instrument.Tree is
         (Type_Def : Node_Rewriting_Handle) return Node_Rewriting_Handle
       is (Create_Anonymous_Type_Decl
             (RC,
-             Base_Type_Decl_F_Name     => No_Node_Rewriting_Handle,
-             Type_Decl_F_Discriminants => No_Node_Rewriting_Handle,
-             Type_Decl_F_Type_Def      => Type_Def,
-             Type_Decl_F_Aspects       => No_Node_Rewriting_Handle));
+             F_Name          => No_Node_Rewriting_Handle,
+             F_Discriminants => No_Node_Rewriting_Handle,
+             F_Type_Def      => Type_Def,
+             F_Aspects       => No_Node_Rewriting_Handle));
       --  Shortcut for Gen_Type_Expr_For_* subprograms. Create and return an
       --  anonymous type declaration for the given type definition.
 
@@ -840,13 +830,11 @@ package body Instrument.Tree is
          return Make_Anonymous_Type_Decl
            (Create_Type_Access_Def
               (RC,
-               Access_Def_F_Has_Not_Null            => Has_Not_Null,
-               Type_Access_Def_F_Has_All            =>
-                 No_Node_Rewriting_Handle,
-               Type_Access_Def_F_Has_Constant       =>
-                 Clone (Access_Def.F_Has_Constant),
-               Type_Access_Def_F_Subtype_Indication =>
-                 Make_Formal_Type (Formal_Subtype_Indication)));
+               F_Has_Not_Null       => Has_Not_Null,
+               F_Has_All            => No_Node_Rewriting_Handle,
+               F_Has_Constant       => Clone (Access_Def.F_Has_Constant),
+               F_Subtype_Indication => Make_Formal_Type
+                                         (Formal_Subtype_Indication)));
       end Gen_Type_Expr_For_Simple_Access_Type;
 
       --------------------------------------
@@ -906,19 +894,17 @@ package body Instrument.Tree is
 
          Subp_Spec := Create_Subp_Spec
            (RC,
-            Subp_Spec_F_Subp_Kind    => Create_Node (RC, Subp_Kind),
-            Subp_Spec_F_Subp_Name    => No_Node_Rewriting_Handle,
-            Subp_Spec_F_Subp_Params  => New_F_Subp_Params,
-            Subp_Spec_F_Subp_Returns => New_Return_Type);
+            F_Subp_Kind    => Create_Node (RC, Subp_Kind),
+            F_Subp_Name    => No_Node_Rewriting_Handle,
+            F_Subp_Params  => New_F_Subp_Params,
+            F_Subp_Returns => New_Return_Type);
 
          return Make_Anonymous_Type_Decl
            (Create_Access_To_Subp_Def
               (RC,
-               Access_Def_F_Has_Not_Null          =>
-                 Clone (Access_Def.F_Has_Not_Null),
-               Access_To_Subp_Def_F_Has_Protected =>
-                 Clone (Access_Def.F_Has_Protected),
-               Access_To_Subp_Def_F_Subp_Spec     => Subp_Spec));
+               F_Has_Not_Null  => Clone (Access_Def.F_Has_Not_Null),
+               F_Has_Protected => Clone (Access_Def.F_Has_Protected),
+               F_Subp_Spec     => Subp_Spec));
       end Gen_Type_Expr_For_Access_To_Subp;
 
       ----------------------
@@ -945,35 +931,34 @@ package body Instrument.Tree is
            (NP_Nodes.Formals,
             Create_Generic_Formal_Type_Decl
               (RC,
-               Generic_Formal_F_Decl    =>
+               F_Decl    =>
                  Create_Type_Decl
                    (RC,
-                    Base_Type_Decl_F_Name     =>
+                    F_Name          =>
                       Make_Defining_Name (UIC, Formal_Type_Name),
 
-                    Type_Decl_F_Discriminants =>
+                    F_Discriminants =>
                       Make (UIC, Ada_Unknown_Discriminant_Part),
 
-                    Type_Decl_F_Type_Def      =>
+                    F_Type_Def      =>
                       Create_Private_Type_Def
                         (RC,
-                         Private_Type_Def_F_Has_Abstract =>
+                         F_Has_Abstract =>
                            (if Is_Tagged
                             then Make (UIC, Ada_Abstract_Present)
                             else No_Node_Rewriting_Handle),
 
-                         Private_Type_Def_F_Has_Tagged   =>
+                         F_Has_Tagged   =>
                            (if Is_Tagged
                             then Make (UIC, Ada_Tagged_Present)
                             else No_Node_Rewriting_Handle),
 
-                         Private_Type_Def_F_Has_Limited  =>
+                         F_Has_Limited  =>
                            Make (UIC, Ada_Limited_Present)),
 
-                    Type_Decl_F_Aspects       =>
-                      No_Node_Rewriting_Handle),
+                    F_Aspects       => No_Node_Rewriting_Handle),
 
-               Generic_Formal_F_Aspects => No_Node_Rewriting_Handle));
+               F_Aspects => No_Node_Rewriting_Handle));
 
          --  Add the actual type to the instantiation
 
@@ -1019,58 +1004,50 @@ package body Instrument.Tree is
 
       Subp_Body := Create_Subp_Body
         (RC,
-         Base_Subp_Body_F_Overriding => No_Node_Rewriting_Handle,
-         Base_Subp_Body_F_Subp_Spec  => Clone (NP_Nodes.Subp_Spec),
-         Subp_Body_F_Aspects         => No_Node_Rewriting_Handle,
+         F_Overriding => No_Node_Rewriting_Handle,
+         F_Subp_Spec  => Clone (NP_Nodes.Subp_Spec),
+         F_Aspects    => No_Node_Rewriting_Handle,
 
-         Subp_Body_F_Decls =>
-           Create_Declarative_Part
-             (RC,
-              Declarative_Part_F_Decls => Make (UIC, Ada_Ada_Node_List)),
+         F_Decls      => Create_Declarative_Part
+                           (RC, F_Decls => Make (UIC, Ada_Ada_Node_List)),
 
-         Subp_Body_F_Stmts =>
-           Create_Handled_Stmts
-             (RC,
-              Handled_Stmts_F_Stmts      => NP_Nodes.Stmt_List,
-              Handled_Stmts_F_Exceptions => No_Node_Rewriting_Handle),
-         Subp_Body_F_End_Name => No_Node_Rewriting_Handle);
+         F_Stmts      => Create_Handled_Stmts
+                           (RC,
+                            F_Stmts      => NP_Nodes.Stmt_List,
+                            F_Exceptions => No_Node_Rewriting_Handle),
+         F_End_Name   => No_Node_Rewriting_Handle);
 
       --  Create an instantiation for this generic subprogram
 
       Instance := Create_Generic_Subp_Instantiation
         (RC,
-         Generic_Subp_Instantiation_F_Overriding => No_Node_Rewriting_Handle,
-
-         Generic_Subp_Instantiation_F_Kind =>
-           Make (UIC, Ada_Subp_Kind_Procedure),
-
-         Generic_Subp_Instantiation_F_Subp_Name =>
-           Make_Defining_Name (UIC, Text (Common_Nodes.N_Name)),
-
-         Generic_Subp_Instantiation_F_Generic_Subp_Name => Create_Dotted_Name
-           (RC,
-            Dotted_Name_F_Prefix => Clone (E.Unit_Buffers),
-            Dotted_Name_F_Suffix => Clone (NP_Nodes.Name)),
-
-         Generic_Subp_Instantiation_F_Params  => NP_Nodes.Inst_Params,
-         Generic_Subp_Instantiation_F_Aspects => No_Node_Rewriting_Handle);
+         F_Overriding        => No_Node_Rewriting_Handle,
+         F_Kind              => Make (UIC, Ada_Subp_Kind_Procedure),
+         F_Subp_Name         => Make_Defining_Name
+                                  (UIC, Text (Common_Nodes.N_Name)),
+         F_Generic_Subp_Name => Create_Dotted_Name
+                                  (RC,
+                                   F_Prefix => Clone (E.Unit_Buffers),
+                                   F_Suffix => Clone (NP_Nodes.Name)),
+         F_Params            => NP_Nodes.Inst_Params,
+         F_Aspects           => No_Node_Rewriting_Handle);
 
       --  Finally, create the declaration that renames the instantiated generic
       --  subprogram.
 
       Renaming_Decl := Create_Subp_Renaming_Decl
         (RC,
-         Base_Subp_Body_F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
-         Base_Subp_Body_F_Overriding => Clone (Common_Nodes.N_Overriding),
+         F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
+         F_Overriding => Clone (Common_Nodes.N_Overriding),
 
-         Subp_Renaming_Decl_F_Renames => Create_Renaming_Clause
+         F_Renames    => Create_Renaming_Clause
            (RC,
-            Renaming_Clause_F_Renamed_Object => Create_Dotted_Name
+            F_Renamed_Object => Create_Dotted_Name
               (RC,
-               Dotted_Name_F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
-               Dotted_Name_F_Suffix => Clone (Common_Nodes.N_Name))),
+               F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
+               F_Suffix => Clone (Common_Nodes.N_Name))),
 
-         Subp_Renaming_Decl_F_Aspects => No_Node_Rewriting_Handle);
+         F_Aspects    => No_Node_Rewriting_Handle);
    end Complete_Null_Proc_Decls;
 
    -----------------------
@@ -1096,45 +1073,39 @@ package body Instrument.Tree is
       State_Param_Spec : constant Node_Rewriting_Handle :=
         Create_Param_Spec
           (RC,
-           Param_Spec_F_Ids          =>
+           F_Ids          =>
              Create_Regular_Node
                (RC,
                 Ada_Defining_Name_List,
                 Children => (1 => State_Formal)),
-           Param_Spec_F_Has_Aliased  =>
-             No_Node_Rewriting_Handle,
-           Param_Spec_F_Mode         =>
-             No_Node_Rewriting_Handle,
-           Param_Spec_F_Type_Expr    =>
-             Make_Identifier (UIC, Holder_Type),
-           Param_Spec_F_Default_Expr =>
-             No_Node_Rewriting_Handle,
-           Param_Spec_F_Aspects      =>
-             No_Node_Rewriting_Handle);
+           F_Has_Aliased  => No_Node_Rewriting_Handle,
+           F_Mode         => No_Node_Rewriting_Handle,
+           F_Type_Expr    => Make_Identifier (UIC, Holder_Type),
+           F_Default_Expr => No_Node_Rewriting_Handle,
+           F_Aspects      => No_Node_Rewriting_Handle);
 
       State_Actual : constant Node_Rewriting_Handle :=
         Create_Qual_Expr
           (RC,
-           Qual_Expr_F_Prefix =>
-             Make_Identifier (UIC, Holder_Type),
-           Qual_Expr_F_Suffix =>
+           F_Prefix => Make_Identifier (UIC, Holder_Type),
+           F_Suffix =>
              Create_Aggregate
                (RC,
-                Base_Aggregate_F_Ancestor_Expr => No_Node_Rewriting_Handle,
-                Base_Aggregate_F_Assocs        =>
+                F_Ancestor_Expr => No_Node_Rewriting_Handle,
+                F_Assocs        =>
                   Create_Regular_Node
                     (RC,
                      Kind     => Ada_Assoc_List,
                      Children =>
                        (1 => Create_Aggregate_Assoc
                           (RC,
-                           Aggregate_Assoc_F_Designators =>
+                           F_Designators =>
                              Create_Regular_Node
                                (RC, Ada_Alternatives_List,
                                 (1 => Create_Regular_Node
                                         (RC, Ada_Others_Designator,
                                          No_Children))),
-                           Aggregate_Assoc_F_R_Expr =>
+                           F_R_Expr =>
                              Create_Regular_Node
                                (RC, Ada_Box_Expr, No_Children))))));
 
@@ -1194,14 +1165,12 @@ package body Instrument.Tree is
       Call_Expr : constant Node_Rewriting_Handle :=
         Create_Call_Expr
           (RC,
-           Call_Expr_F_Name   =>
+           F_Name   =>
              Create_Dotted_Name
                (RC,
-                Dotted_Name_F_Prefix =>
-                  Clone (Common_Nodes.Wrapper_Pkg_Name),
-                Dotted_Name_F_Suffix =>
-                  Make_Identifier (UIC, Augmented_Expr_Func_Name)),
-           Call_Expr_F_Suffix => Call_Params);
+                F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
+                F_Suffix => Make_Identifier (UIC, Augmented_Expr_Func_Name)),
+           F_Suffix => Call_Params);
 
    begin
       --  Now create New_Expr_Function, which will go right after the wrapper
@@ -1210,10 +1179,10 @@ package body Instrument.Tree is
       New_Expr_Function :=
         Create_Expr_Function
           (RC,
-           Base_Subp_Body_F_Overriding => Clone (Common_Nodes.N_Overriding),
-           Base_Subp_Body_F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
-           Expr_Function_F_Expr        => Create_Paren_Expr (RC, Call_Expr),
-           Expr_Function_F_Aspects     => Detach (Common_Nodes.N.F_Aspects));
+           F_Overriding => Clone (Common_Nodes.N_Overriding),
+           F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
+           F_Expr       => Create_Paren_Expr (RC, Call_Expr),
+           F_Aspects    => Detach (Common_Nodes.N.F_Aspects));
 
       --  The original expression function becomes the augmented one. Replace
       --  its name and formal parameter list it a new name.
@@ -2486,10 +2455,9 @@ package body Instrument.Tree is
          then
             Insert (Create_Subp_Decl
               (RC,
-               Classic_Subp_Decl_F_Overriding =>
-                 Detach (Common_Nodes.N_Overriding),
-               Classic_Subp_Decl_F_Subp_Spec  => Clone (N_Spec),
-               Subp_Decl_F_Aspects            => Detach (N.F_Aspects)));
+               F_Overriding => Detach (Common_Nodes.N_Overriding),
+               F_Subp_Spec  => Clone (N_Spec),
+               F_Aspects    => Detach (N.F_Aspects)));
          end if;
 
          if Is_Expr_Function then
