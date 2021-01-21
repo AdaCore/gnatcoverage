@@ -4,7 +4,7 @@
 /*--------------------------------------------------------------------*/
 
 /*
-   Copyright (C) 2013-2016, AdaCore
+   Copyright (C) 2013-2021, AdaCore
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -23,6 +23,8 @@
 
    The GNU General Public License is contained in the file COPYING.
 */
+
+#include "valgrind.h" /* __VALGRIND_MINOR__ */
 
 #include "pub_tool_basics.h"
 #include "pub_tool_tooliface.h"
@@ -332,9 +334,14 @@ static IRSB* cov_instrument (VgCallbackClosure* closure,
 static void cov_post_clo_init(void)
 {
     /* Try a closer approximation of basic blocks  */
-    /* This is the same as the command line option */
-    /* --vex-guest-chase-thresh=0                  */
+
+#if __VALGRIND_MINOR__ < 16
+    /* --vex-guest-chase-thresh=0 */
     VG_(clo_vex_control).guest_chase_thresh = 0;
+#else
+    /* --vex-guest-chase=no */
+    VG_(clo_vex_control).guest_chase = False;
+#endif
 
     trace_init(clo_cov_exec_file);
 }

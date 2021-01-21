@@ -6,7 +6,15 @@ include ../../host.mk
 #########
 
 VALGRIND_INCLUDE=$(VALGRIND_PREFIX)/include/valgrind
-VALGRIND_LIBS=$(wildcard $(VALGRIND_PREFIX)/lib*/valgrind)
+
+# Figure out the place from which we need to fetch the valgrind
+# libraries to craft our coverage tool. We rely on this expanding into
+# a single dir. We use of a wildcard expansion to find either
+# prefix/lib or prefix/lib64, then need to watch out for a possible
+# prefix/libexec.
+
+VALGRIND_LIBDIRS=$(wildcard $(VALGRIND_PREFIX)/lib*/valgrind)
+VALGRIND_LIBS=$(filter-out %/libexec/valgrind, $(VALGRIND_LIBDIRS))
 
 CPP_FLAGS=-I. -I$(VALGRIND_INCLUDE) \
           -DVGA_$(VALGRIND_ARCH)=1 -DVGO_linux=1 \
