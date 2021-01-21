@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2013-2021, AdaCore                     --
+--                     Copyright (C) 2013-2020, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,8 +17,9 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
+with Ada.Directories;         use Ada.Directories;
 with Ada.Exceptions;          use Ada.Exceptions;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 pragma Warnings (Off, "* is an internal GNAT unit");
@@ -28,16 +29,16 @@ pragma Warnings (On, "* is an internal GNAT unit");
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
 with Annotations.Html;
+with Annotations.Xml;
 with Hex_Images;
 with Interfaces;
 with Project;
 with Outputs;
 with Strings;
+with Support_Files;
 with Switches;
 with Traces_Disa;
 with Traces_Files;     use Traces_Files;
-with Ada.Directories;  use Ada.Directories;
-with Support_Files;    use Support_Files;
 
 --  This package generates a dynamic HTML report, i.e. an HTML document heavily
 --  relying on JavaScript for presenting advanced graphical components.
@@ -57,7 +58,10 @@ with Support_Files;    use Support_Files;
 
 package body Annotations.Dynamic_Html is
 
-   JS_CSS_Dir : constant String := Support_Files.In_Lib_Dir ("gnatquilt");
+   DHTML_JS_Filename  : constant String :=
+      Support_Files.In_Lib_Dir ("gnatcov-dhtml.min.js");
+   DHTML_CSS_Filename : constant String :=
+      Support_Files.In_Lib_Dir ("gnatcov-dhtml.min.css");
 
    type Dynamic_Html is new Pretty_Printer with record
       --  Pretty printer type for the Dynamic HTML annotation format
@@ -263,7 +267,7 @@ package body Annotations.Dynamic_Html is
 
    function Installed return Boolean is
    begin
-      return Exists (JS_CSS_Dir);
+      return Exists (DHTML_JS_Filename) and then Exists (DHTML_CSS_Filename);
    end Installed;
 
    ---------------------
@@ -305,7 +309,7 @@ package body Annotations.Dynamic_Html is
       procedure Append_Coverage_Info is
          use Coverage;
       begin
-         Pp.JSON.Set_Field ("coverageLevel", Coverage_Option_Value);
+         Pp.JSON.Set_Field ("coverage_level", Coverage_Option_Value);
       end Append_Coverage_Info;
 
       ------------------------
@@ -387,23 +391,23 @@ package body Annotations.Dynamic_Html is
 
       Skip := False;
 
-      Source.Set_Field ("missingSource", not Info.Has_Source);
+      Source.Set_Field ("missing_source", not Info.Has_Source);
       --  Compute the coverage stats and store them into a JSON dictionary
-      Stats.Set_Field ("noCode", Info.Stats (No_Code));
+      Stats.Set_Field ("no_code", Info.Stats (No_Code));
       Stats.Set_Field ("covered", Info.Stats (Covered));
-      Stats.Set_Field ("partiallyCovered", Info.Stats (Partially_Covered));
-      Stats.Set_Field ("notCovered", Info.Stats (Not_Covered));
-      Stats.Set_Field ("notCoverable", Info.Stats (Not_Coverable));
+      Stats.Set_Field ("partially_covered", Info.Stats (Partially_Covered));
+      Stats.Set_Field ("not_covered", Info.Stats (Not_Covered));
+      Stats.Set_Field ("not_coverable", Info.Stats (Not_Coverable));
       Stats.Set_Field
-        ("exemptedNoViolation", Info.Stats (Exempted_No_Violation));
+        ("exempted_no_violation", Info.Stats (Exempted_No_Violation));
       Stats.Set_Field
-        ("exemptedWithViolation", Info.Stats (Exempted_With_Violation));
+        ("exempted_with_violation", Info.Stats (Exempted_With_Violation));
 
       --  Generate the JSON object for this source file
 
       Source.Set_Field ("filename", Get_Unique_Name (File));
-      Source.Set_Field ("hunkFilename", Get_Hunk_Filename (File));
-      Source.Set_Field ("coverageLevel", Coverage_Option_Value);
+      Source.Set_Field ("hunk_filename", Get_Hunk_Filename (File));
+      Source.Set_Field ("coverage_level", Coverage_Option_Value);
       Source.Set_Field ("stats", Stats);
 
       if Switches.Root_Project /= null then
@@ -419,12 +423,13 @@ package body Annotations.Dynamic_Html is
 
    procedure Pretty_Print_End_File (Pp : in out Dynamic_Html) is
       use Ada.Text_IO;
+      use Ada.Strings.Unbounded;
 
       use Outputs;
 
       Source        : JSON_Value renames Pp.Current_Source;
       Filename      : constant String := Source.Get ("filename");
-      Hunk_Filename : constant String := Source.Get ("hunkFilename");
+      Hunk_Filename : constant String := Source.Get ("hunk_filename");
 
       Output : File_Type;
 
@@ -439,11 +444,12 @@ package body Annotations.Dynamic_Html is
 
       begin
          Create_Output_File (Output, Hunk_Filename);
-         Put (Output, "REPORT[""" & Hunk_Filename & """] = ");
+         Put (Output, "gnatcov.load_hunk(");
          W
            (Item     => Unbounded_String'(Write (Source, Compact => True)),
             Output   => Output,
             New_Line => False);
+         Put_Line (Output, ");");
          Close (Output);
 
       exception
@@ -461,11 +467,11 @@ package body Annotations.Dynamic_Html is
 
       Simplified.Set_Field ("filename", Filename);
       Simplified.Set_Field ("stats", JSON_Value'(Source.Get ("stats")));
-      Simplified.Set_Field ("coverageLevel",
-                            String'(Source.Get ("coverageLevel")));
-      Simplified.Set_Field ("hunkFilename", Hunk_Filename);
-      Simplified.Set_Field ("missingSource",
-                            Boolean'(Source.Get ("missingSource")));
+      Simplified.Set_Field ("coverage_level",
+                            String'(Source.Get ("coverage_level")));
+      Simplified.Set_Field ("hunk_filename", Hunk_Filename);
+      Simplified.Set_Field ("missing_source",
+                            Boolean'(Source.Get ("missing_source")));
 
       if Source.Has_Field ("project") then
          --  Project name is optional. Add it only when relevant
@@ -487,11 +493,12 @@ package body Annotations.Dynamic_Html is
       Info     : Line_Info_Access;
       Line     : String)
    is
+      use Annotations.Xml;
       use Strings;
 
       Coverage_State : constant String :=
                          (1 => State_Char (Aggregated_State (Info.all)));
-      Exempted       : constant Boolean := Info.Exemption /= Slocs.No_Location;
+      Exempted : constant Boolean := Info.Exemption /= Slocs.No_Location;
 
       Mapping  : constant JSON_Value := Create_Object;
       Line_Obj : constant JSON_Value := Create_Object;
@@ -501,9 +508,9 @@ package body Annotations.Dynamic_Html is
       Clear (Pp.Current_Decisions);
       Clear (Pp.Current_Conditions);
 
-      Line_Obj.Set_Field ("lineNumber", Img (Line_Num));
+      Line_Obj.Set_Field ("number", Img (Line_Num));
       Line_Obj.Set_Field ("exempted", Exempted'Img);
-      Line_Obj.Set_Field ("src", Line);
+      Line_Obj.Set_Field ("src", To_Xml_String (Line));
 
       Mapping.Set_Field ("coverage", Coverage_State);
       Mapping.Set_Field ("line", Line_Obj);
@@ -685,10 +692,10 @@ package body Annotations.Dynamic_Html is
    begin
       if not Is_Empty (Pp.Current_Insn_Blocks) then
          Pp.Current_Insn_Set.Set_Field
-           ("instructionBlocks", Pp.Current_Insn_Blocks);
+           ("instruction_blocks", Pp.Current_Insn_Blocks);
       end if;
 
-      Pp.Current_Mapping.Set_Field ("instructionSet", Pp.Current_Insn_Set);
+      Pp.Current_Mapping.Set_Field ("instruction_set", Pp.Current_Insn_Set);
    end Pretty_Print_End_Instruction_Set;
 
    --------------------------
@@ -700,6 +707,7 @@ package body Annotations.Dynamic_Html is
       M  : Message)
    is
       use Ada.Characters.Handling;
+      use Ada.Strings.Unbounded;
 
       use Hex_Images;
       use Interfaces;
@@ -714,7 +722,7 @@ package body Annotations.Dynamic_Html is
       end if;
 
       if M.SCO /= No_SCO_Id then
-         Message.Set_Field ("sco", Image (M.SCO, With_Sloc => False));
+         Message.Set_Field ("SCO", Image (M.SCO, With_Sloc => False));
       end if;
 
       Message.Set_Field ("message", To_String (M.Msg));
@@ -745,6 +753,7 @@ package body Annotations.Dynamic_Html is
       New_Line : Boolean := True)
    is
       use Ada.Text_IO;
+      use Ada.Strings.Unbounded;
 
       Buffer : Aux.Big_String_Access;
       Last   : Natural;
@@ -764,6 +773,7 @@ package body Annotations.Dynamic_Html is
       Output   : Ada.Text_IO.File_Type;
       New_Line : Boolean := True)
    is
+      use Ada.Strings.Unbounded;
 
       Item_US : constant Unbounded_String := Item.Write (Compact => True);
    begin
@@ -877,6 +887,7 @@ package body Annotations.Dynamic_Html is
    -----------------------
 
    procedure Write_Full_Report (Pp : Dynamic_Html'Class) is
+      use Ada.Strings.Unbounded;
       use Ada.Text_IO;
 
       use Outputs;
@@ -884,25 +895,38 @@ package body Annotations.Dynamic_Html is
       Report : JSON_Value renames Pp.JSON;
 
       HTML : File_Type;
-      --  The HTML index page
-
-      JS_Report : File_Type;
-      --  The JS report. The procedure Write_Report is in charge of opening
+      --  The HTML report. The procedure Write_Report is in charge of opening
       --  and closing this file. It is declared here for praticality of use of
       --  helper functions in Write_Report (see definitions below).
 
       --  Wrappers to simplify code to write to HTML
+      procedure NL;
       procedure W (Item : String; New_Line : Boolean := True);
+      procedure W (Item : JSON_Value; New_Line : Boolean := True);
       procedure I (Filename : String; Indent : Natural := 0);
 
       procedure Write_Report (Filename : String);
       --  Dump the HTML report.
+
+      --------
+      -- NL --
+      --------
+
+      procedure NL is
+      begin
+         NL (HTML);
+      end NL;
 
       -------
       -- W --
       -------
 
       procedure W (Item : String; New_Line : Boolean := True) is
+      begin
+         W (Item, HTML, New_Line);
+      end W;
+
+      procedure W (Item : JSON_Value; New_Line : Boolean := True) is
       begin
          W (Item, HTML, New_Line);
       end W;
@@ -941,12 +965,6 @@ package body Annotations.Dynamic_Html is
          --  Callback for Map_JSON_Object: called to output an attribute pair
          --  for the Report JSON object.
 
-         procedure Inline_JS (Directory_Entry : Directory_Entry_Type);
-         --  Inline a JS file in the HTML file
-
-         procedure Inline_CSS (Directory_Entry : Directory_Entry_Type);
-         --  Inline a CSS file in the HTML file
-
          ---------------------
          -- Write_JSON_Item --
          ---------------------
@@ -955,14 +973,14 @@ package body Annotations.Dynamic_Html is
          begin
             if First_JSON_Item then
                First_JSON_Item := False;
-               NL (JS_Report);
+               NL;
             else
-               W (",", JS_Report);
+               W (",");
             end if;
 
             --  Output the attribute name
 
-            W ("""" & Name & """: ", JS_Report, New_Line => False);
+            W ("""" & Name & """: ", New_Line => False);
 
             --  Then output the attribute value. If the attribute is an array,
             --  output one array item per line to avoid too long lines,
@@ -972,102 +990,62 @@ package body Annotations.Dynamic_Html is
                declare
                   Items : constant JSON_Array := Value.Get;
                begin
-                  W ("[", JS_Report, New_Line => False);
+                  W ("[", New_Line => False);
                   for J in 1 .. Length (Items) loop
                      if J > 1 then
-                        W (",", JS_Report);
+                        W (",");
                      end if;
-                     W (Get (Items, J), JS_Report, New_Line => False);
+                     W (Get (Items, J), New_Line => False);
                   end loop;
-                  W ("]", JS_Report, New_Line => False);
+                  W ("]", New_Line => False);
                end;
             else
-               W (Value, JS_Report, New_Line => False);
+               W (Value, New_Line => False);
             end if;
          end Write_JSON_Item;
 
-         ---------------
-         -- Inline_JS --
-         ---------------
-
-         procedure Inline_JS (Directory_Entry : Directory_Entry_Type) is
-         begin
-            Put_Line (Full_Name (Directory_Entry));
-            W ("  <script>");
-            I (Full_Name (Directory_Entry), Indent => 3);
-            W ("  </script>");
-         end Inline_JS;
-
-         ----------------
-         -- Inline_CSS --
-         ----------------
-
-         procedure Inline_CSS (Directory_Entry : Directory_Entry_Type) is
-         begin
-            W ("  <style>");
-            I (Full_Name (Directory_Entry), Indent => 3);
-            W ("  </style>");
-         end Inline_CSS;
-
       begin
-         Create_Output_File (JS_Report, "report.js");
-         W ("var REPORT = {};", JS_Report);
-         W ("REPORT [""report.js""] = {", JS_Report);
-         Report.Map_JSON_Object (Write_JSON_Item'Access);
-         W ("}", JS_Report);
-
-         Close (JS_Report);
-
          Create_Output_File (HTML, Filename);
 
          W ("<!doctype html>");
+         NL;
          W ("<html>");
          W (" <head>");
-         W ("  <meta charset=""utf-8"">");
-         W ("<title>Gnatquilt</title>");
-         W ("<script>document.write(""<base href='""" &
-            "+window.location.href+""'/>"") </script>");
-         W ("<meta name=""viewport""" &
-              "content=""width=device-width, initial-scale=1"">");
-         Search (Directory => JS_CSS_Dir,
-                 Pattern   => "*.css",
-                 Process   => Inline_CSS'Access);
+         W ("  <meta http-equiv=""content-type"" content=""text/html;");
+         W ("        charset=UTF-8"">");
+         NL;
+         W ("  <title>" & To_String (Pp.Title_Prefix)
+            & "GNATcoverage Report</title>");
+         NL;
+         W ("  <style>");
+         I (DHTML_CSS_Filename, Indent => 3);
          W ("  </style>");
+         NL;
+         W ("  <script type=""text/javascript"">");
+         I (DHTML_JS_Filename, Indent => 3);
+         W ("  </script>");
          W (" </head>");
+         NL;
          W (" <body>");
+         NL;
          W ("  <noscript>");
          W ("   <div class=""gnatcov-noscript"">");
          W ("    Your web browser must have JavaScript enabled");
          W ("    in order for this report to display correctly.");
          W ("   </div>");
          W ("  </noscript>");
-         W ("<app-root></app-root>");
-
-         --  The order of execution of angular's js files must be specific
-         --  or it will crash.
-         --
-         --  Cannot specify exact name of JS files as it changes every time
-         --  the angular application is rebuilt
-
-         Search (Directory => JS_CSS_Dir,
-                 Pattern   => "runtime*.js",
-                 Process   => Inline_JS'Access);
-         Search (Directory => JS_CSS_Dir,
-                 Pattern   => "polyfills*.js",
-                 Process   => Inline_JS'Access);
-         Search (Directory => JS_CSS_Dir,
-                 Pattern   => "main*.js",
-                 Process   => Inline_JS'Access);
+         NL;
+         W ("  <script>gnatcov.load_report({");
+         Report.Map_JSON_Object (Write_JSON_Item'Access);
+         W ("});</script>");
+         NL;
          W (" </body>");
          W ("</html>");
+
          Close (HTML);
 
       exception
          when Ex : others =>
-            if Is_Open (JS_Report) then
-               Close (JS_Report);
-            end if;
-
             if Is_Open (HTML) then
                Close (HTML);
             end if;
