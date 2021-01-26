@@ -251,39 +251,6 @@ within the same environment, the variable name for a program can actually be
 tailored by passing a :option:`--dump-filename-env-var` switch to |gcvins|,
 providing the variable name to use.
 
-.. _instr-compose:
-
-Composed instrumentation
-------------------------
-
-To prevent unnecessary re-instrumentation and re-build of components which
-don't change, |gcp| allows partial instrumentations to be combined together. A
-common use case would be the testing of library components, where the library
-doesn't change and its coverage needs to be assessed incrementally as new
-tests get developed.
-
-In such situations, the process would become something like:
-
-#. Setup or reuse a separate project file for the library, which normally
-   wouldn't have any main unit;
-#. Instrument the library using this project as the root project;
-#. Build the instrumented library;
-
-Then for each new test:
-
-#. Setup or reuse a separate project file for the test, designating the main
-   unit if you wish to leverage the instrumenter's ability to insert the
-   coverage coverage data output code. Setup a dependency from this project on
-   the library project, with an ``Externally_Built`` attribute set to ``"True"``;
-#. Instrument the testing code main unit alone;
-#. Build a program combining the library (instrumented for coverage
-   measurement) and the testing code (instrumented to output the gathered
-   coverage data);
-#. Execute the program to produce a trace.
-
-The following sections provide details on the build and execution steps, then
-a couple of illustrated use cases.
-
 
 .. _instr-build:
 
@@ -343,6 +310,38 @@ extraction command line simply is::
 
 The captured output may be used directly, there is no need to first extract
 the trace data section.
+
+.. _instr-compose:
+
+Composed instrumentation
+========================
+
+To prevent unnecessary re-instrumentation and re-build of components which
+don't change, |gcp| allows partial instrumentations to be combined together. A
+common use case would be the testing of library components, where the library
+doesn't change and its coverage needs to be assessed incrementally as new
+tests get developed.
+
+In such situations, the process would become something like:
+
+#. Setup or reuse a separate project file for the library, which normally
+   wouldn't have any main unit;
+#. Instrument the library using this project as the root project;
+#. Build the instrumented library;
+
+Then for each new test:
+
+#. Setup or reuse a separate project file for the test, designating the main
+   unit if you wish to leverage the instrumenter's ability to insert the
+   coverage coverage data output code. Setup a dependency from this project on
+   the library project, with an ``Externally_Built`` attribute set to ``"True"``;
+#. Instrument the testing code main unit alone;
+#. Build a program combining the library (instrumented for coverage
+   measurement) and the testing code (instrumented to output the gathered
+   coverage data);
+#. Execute the program to produce a trace.
+
+The following section illustrates such a use case.
 
 Example use cases
 =================
