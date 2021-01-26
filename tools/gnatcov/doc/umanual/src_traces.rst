@@ -6,18 +6,18 @@ Producing source traces with |gcvins|
 
 The production of :term:`source traces` is performed by an instrumented
 version of the original program running in its regular execution
-environment. Alternative sources are generated for units of interest, with additional
-data structures and code statements solely aimed at tracking coverage related
-information. Coverage data is output in accordance with a user selectable
-policy, for example upon exit of the program, for which the program main unit
-gets instrumented as well.
+environment. A |gcvins| command produces alternative sources for units of
+interest, with additional data structures and code statements solely aimed at
+tracking coverage related information. Coverage data is output in accordance
+with a user selectable policy, for example upon exit of the program, for which
+the program main unit gets instrumented as well.
 
 To gather coverage data while the program is running and to output this data
 in the form of a source trace file eventually, the instrumented code relies on
 common data types and subprograms provided by a :term:`coverage runtime`
 library.  The first thing to do for a given project is then to build and
 install the coverage runtime so it becomes available to the instrumented
-sources afterwards, as we will describe in the :ref:`instr-setup-rts` section
+sources afterwards, as we will describe in the :ref:`instr-rts` section
 of this chapter.
 
 Once the coverage runtime is setup, the simplest possible use of the
@@ -117,7 +117,7 @@ involve two distinct kinds of operations:
 - Modify the code in units-of-interest so the program records, while it is
   running, facts of relevance to the coverage metrics to be assessed,
 
-- Possibly modify the main unit(s) to output the so gathered coverage data to
+- Modify the main unit(s) to output the so gathered coverage data to
   an externally readable channel, typically either a source trace file or some
   communication port.
 
@@ -134,28 +134,31 @@ will allow assessing afterwards and the :option:`<units-of-interest>` switches
 specify the set of units for which such assessment will be possible. The
 latter may only resort to project file facilities, as described in the
 :ref:`passing_gpr` section of this manual. Projects marked ``Externally_Built``
-In the closure are not instrumented or otherwise modified.
+in the closure are not instrumented or otherwise modified.
 
 The :option:`[OPTIONS]` of particular interest to this manual are those
 controlling the instrumentation of main units, if any are designated by the
 root project:
 
-- :option:`--dump-trigger` selects the execution point at which the output of
-  coverage data should be injected in main units. This is ``manual`` by
-  default, leaving to users the responsibility to emit the coverage data as
-  they see fit. Other possible choices are ``atexit``, ``main-end`` and
-  ``ravenscar-task-termination``.
+:option:`--dump-trigger`
+   selects the execution point at which the output of
+   coverage data should be injected in main units. This is ``manual`` by
+   default, leaving to users the responsibility to emit the coverage data as
+   they see fit. Other possible choices are ``atexit``, ``main-end`` and
+   ``ravenscar-task-termination``.
 
-- :option:`--dump-channel` selects the mechanism used to output coverage data
-  at the selected triggering point, if any. The possible choices are
-  ``bin-file``, to create a source trace file, or ``base64-stdout`` to emit a
-  base64 encoded version of the data through ``Ada.Text_IO``. ``bin-file`` is the
-  default.
+:option:`--dump-channel`
+   selects the mechanism used to output coverage data
+   at the selected triggering point, if any. The possible choices are
+   ``bin-file``, to create a source trace file, or ``base64-stdout`` to emit a
+   base64 encoded version of the data through ``Ada.Text_IO``. ``bin-file`` is
+   the default.
 
-- :option:`--externally-built-projects` instructs the instrumenter to look
-  into projects marked as externally built when computing the list of units of
-  interest (they are ignored by default), for the sole purpose of
-  instrumenting mains.
+:option:`--externally-built-projects`
+   instructs the instrumenter to look into projects marked as externally built
+   when computing the list of units of interest (they are ignored by default),
+   for the sole purpose of instrumenting mains.
+
 
 Output strategies for main units
 --------------------------------
