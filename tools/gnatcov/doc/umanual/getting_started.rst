@@ -273,37 +273,21 @@ with a |gcvins| command like::
   gnatcov instrument --level=<> <units-of-interest>
     [--dump-trigger=<>] [--dump-channel=<>]
 
-- :option:`--dump-trigger` selects the execution point at which the output of
-  coverage data should be injected, if any. This is ``manual`` by default,
-  leaving to users the responsibility to emit the coverage data as they see
-  fit. ``atexit`` is a typically good choice for native environments.
 
-- When the triggering mechanism isn't ``manual``, :option:`--dump-channel`
-  selects the coverage data output medium. This is ``bin-file`` by default,
-  which requests the production of a trace file.  For runtime environments
-  that wouldn't support this, ``base64-stdout`` is a possible alternative where
-  the trace is emitted as base64 text on standard output through ``Ada.Text_IO``.
-  A trace file can be produced from a capture of the complete output in this case,
-  thanks to a ``gnatcov extract-base64-trace`` command.
-
-- The :option:`<units-of-interest>` options may only resort to project file
-  facilities, with at least a :option:`-P<project>` option designating the
-  project file name you would pass to :command:`gprbuild` for building the
-  program.
-
-Note that the instrumentation performed to honor a :option:`dump-trigger`
-option other than ``manual``, intended to output the coverage data, is of a
-different kind than the instrumentation performed on units of interest,
-intended to collect the coverage data in the first place. Main units which are
-not also declared of interest are instrumented only to enable the output of
-coverage data gathered by the units of interest.
+:option:`--dump-trigger` and :option:`--dump-channel` select the execution
+point at which the output of coverage data should be injected and the output
+medium, respectively, with a variety of possibilities to select depending on
+the runtime environment capabilities.  This might involve two kinds of
+instrumentation: one on main units to output the coverage data after it has
+been gathered, and one on the units of interest to collect the coverage data
+in the first place.
 
 After instrumentation, building the program using instrumented source is
 achieved with a :command:`gprbuild` command like::
 
   gprbuild -P<project> --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full.gpr
 
-after having set ``GPR_PROJECT_PATH`` to designate the directory where the
+``GPR_PROJECT_PATH`` should be set to designate the directory where the
 coverage runtime has been installed if that is not a place where
 :command:`gprbuild` would search by default (such that the GNAT installation
 prefix).
@@ -311,17 +295,7 @@ prefix).
 The production of coverage data is then simply achieved by executing the
 program.
 
-When the output takes the form of a trace file, the default behavior is to
-produce a file named ``<executable-name>.srctrace`` in the current
-directory. An alternative name/location can be selected by setting the
-``GNATCOV_TRACE_FILE`` environment variable. For cross configurations, one
-would more likely use a ``base64-stdout`` kind of output and rely on a
-restricted coverage runtime, not including the support for the production of
-trace files (``gnatcov_rts.gpr`` instead of ``gnatcov_rts_full.gpr``). A trace file
-can be produced offline by extracting the base64 coverage data from the
-execution output, thanks to a ``gnatcov extract-base64-trace`` command.
-
-Regardless, a general property of note here is that instrumentation works
+A general property of note here is that instrumentation works
 within the context of an existing project structure, just adding alternate
 versions of the sources in strategically chosen places. We do not replicate
 the entire project tree, not even project files. Instead, the
