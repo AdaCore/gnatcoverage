@@ -136,9 +136,8 @@ latter may only resort to project file facilities, as described in the
 :ref:`passing_gpr` section of this manual. Projects marked ``Externally_Built``
 in the closure are not instrumented or otherwise modified.
 
-The :option:`[OPTIONS]` of particular interest to this manual are those
-controlling the instrumentation of main units, if any are designated by the
-root project:
+A few :option:`[OPTIONS]` allow controlling the instrumentation of main units,
+if any are designated by the root project:
 
 :option:`--dump-trigger`
    selects the execution point at which the output of
@@ -158,6 +157,11 @@ root project:
    instructs the instrumenter to look into projects marked as externally built
    when computing the list of units of interest (they are ignored by default),
    for the sole purpose of instrumenting mains.
+
+In addtion, for trace files produced automatically from a ``bin-file``
+dump-channel, the ``--dump-filename-<>`` family of switches provides control
+over the name of trace files. See :ref:`instr-tracename` for more details on
+the default behavior and possibilities to alter it.
 
 
 Output strategies for main units
@@ -188,6 +192,64 @@ actually add any code to main units for emitting the collected coverage
 data. You will have to emit this data somehow to allow analysing coverage
 afterwards, still, and can of course experiment with other possibilities just
 to get examples of possible ways to proceed.
+
+.. _instr-tracename:
+
+Controlling trace file names
+----------------------------
+
+When an instrumented program produces a trace file through a ``bin-file``
+dump-channel, the file is by default created in the current working directory
+at the data output point (for example, at exit time for an ``atexit``
+dump-trigger), and named as ``<ename>-<istamp>-<pid>-<estamp>.srctrace``,
+where:
+
+- ``<ename>`` is the executable name,
+
+- ``<istamp>`` is the instrumentation time stamp, representing the time at
+  which the instrumentation took place,
+
+- ``<pid>`` is the execution process identifier,
+
+- ``<estamp>`` is an execution time stamp, representing the time at which
+  coverage data was written out to the file.
+
+The ``<estamp>`` and ``<pid>`` components are intented to ensure that parallel
+executions of the program from the same working directory write out to
+different files. The ``<istamp>`` component allows distinguishing traces
+issued from different versions of the program. These three components are
+expressed as hexadecimal integers to limit the growth of file name lengths.
+
+This default behavior can be influenced in several manners. First:
+
+* The :option:`--dump-filename-prefix` switch to |gcvins| requests replacing
+  the ``<ename>`` component by the switch argument;
+
+* The :option:`--dump-filename-simple` switch requests the removal of the
+  variable components (stamps and pid), so only the ``<ename>`` component
+  remains or the replacement provided by :option:`--dump-filename-prefix` if
+  that switch is also used.
+
+
+The use of a specific location for the file, or of a specific file name can be
+requested at run time by setting the ``GNATCOV_TRACE_FILE`` variable in the
+program's environment.
+
+If the variable value ends with a ``/`` or ``\`` character, this value is
+interpreted as the name of a directory where the trace file is to be produced,
+following the rules we have just described for the file base name. The
+directory reference may be a full or a relative path, resolved at the trace
+file creation point and expected to exist at that time.
+
+If the variable value does *not* end with a ``/`` or ``\`` character, the
+value is used directly as the name of the file to create. This name may hold a
+path specification, full or relative, also resolved at the trace file creation
+point and the directories involved are expected to exist at that time.
+
+For specific needs of programs wishing to output to different places from
+within the same environment, the variable name for a program can actually be
+tailored by passing a :option:`--dump-filename-env-var` switch to |gcvins|,
+providing the variable name to use.
 
 .. _instr-compose:
 
@@ -267,41 +329,20 @@ absolutely require :command:`gprbuild` to build the instrumented programs,
 even though we have augmented that builder with a few features to make that
 process very efficient and straightforward.
 
-Obtaining traces from instrumented programs
-===========================================
+Extracting a trace from standard output
+=======================================
 
-As a general principle, instrumented programs output coverage data to the
-requested channel when reaching an execution point where instrumentation
-arranged for it to do so, automatically or with user assistance, per the
-:option:`--dump-channel` and :option:`--dump-trigger` switches.
+With the :option:`base64-stdout` channel, coverage data is emitted
+with ``Ada.Text_IO`` on the program's standard output stream. The actual
+base64 encoded data is framed by start/end-of-coverage-data markers and |gcp|
+provides the |gcvxtr| command to extract this data from a captured output and
+create a trace file offline (outside of the program's execution context). The
+extraction command line simply is::
 
-Some procedural details are of interest, depending on the output channel.
+  gnatcov extract-base64-trace <captured-output> <output-trace-file>
 
-When coverage data is written as a trace file
----------------------------------------------
-
-When an instrumented program produces a trace file directly, the output file
-is by default named ``<executable-name>.srctrace`` and placed in the current
-directory.
-
-This behavior can be influenced by setting the ``GNATCOV_TRACE_FILE`` variable
-in the program's environment, in which case the variable value is used as the
-file name to produce. This value may hold a full path specification and the
-designated directory is expected to exist when the program reaches the file
-creation point.
-
-When coverage data goes to standard output
-------------------------------------------
-
-With the :option:`base64-stdout` channel, coverage data is normally emitted
-with ``Ada.Text_IO`` on the program's standard output stream.
-
-The actual base64 encoded data is framed by start/end-of-coverage-data markers
-and |gcp| provides the |gcvxtr| command to extract this data from a captured
-output and create a trace file offline (outside of the program's execution
-context). The extraction command line simply is::
-
-  gnatcov extract-base64-trace <input-base64-file> <output-trace-file>
+The captured output may be used directly, there is no need to first extract
+the trace data section.
 
 Example use cases
 =================
