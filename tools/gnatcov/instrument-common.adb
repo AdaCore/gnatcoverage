@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -28,6 +28,7 @@ with Interfaces;
 
 with GNAT.OS_Lib;
 
+with Langkit_Support.Symbols;
 with Langkit_Support.Text;
 with Libadalang.Common;
 with Libadalang.Sources;
@@ -463,6 +464,7 @@ package body Instrument.Common is
    procedure Remove_Warnings_And_Style_Checks_Pragmas
      (Rewriter : Source_Rewriter)
    is
+      use Langkit_Support.Symbols;
       use Libadalang.Common;
       use Libadalang.Sources;
 
