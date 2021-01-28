@@ -2,6 +2,9 @@
 # Targets and subtargets of interest to users #
 ###############################################
 
+# Documentation is now handled in a parent subdir, as we get
+# more tightly integrated with gnattest tool.
+
 # ----------------------------------
 # -- To build the excutable stuff --
 # ----------------------------------
@@ -11,15 +14,6 @@
 #   bin        <- default
 #   adapters [ADAPTERS_LIST=dynamorio|valgrind|...]
 
-# --------------------------------
-# -- To build the documentation --
-# --------------------------------
-# (requires sphinx & latex + tools)
-#
-# doc
-#   doc.pdf 
-#   doc.html
-
 # ----------------
 # -- To install --
 # ----------------
@@ -27,7 +21,6 @@
 # install
 #   install-bin
 #   install-examples
-#   install-doc
 #
 # install-adapters [ADAPTERS_LIST=dynamorio|valgrind|...]
 #
@@ -70,7 +63,6 @@ BINUTILS_BUILD_DIR?=$(BINUTILS_SRC_DIR)
 #
 # clean
 #   clean-bin
-#   clean-doc
 #   clean-adapters
 
 ###################
@@ -88,9 +80,6 @@ PGM64PATH=obj64/$(BUILD_MODE)/gnatcov64
 
 # Directory name in the install tree
 DIRNAME=gnatcoverage
-
-# Documentation formats to produce on "make doc"
-DOCFORMATS=pdf html
 
 include host.mk
 
@@ -228,60 +217,16 @@ ppc_genopc:
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@
 
-#################
-# Documentation #
-#################
-
-# We need two kinds of targets for documentation:
-# - One for developers that just builds the docs and leaves
-#   everything in place (e.g. temporary sphinx build subdirs)
-# - One for package production purposes that clears the
-#   intermediate artifacts
-
-# The 'doc' general target builds all the formats and cleans up the build
-# trees afterwards. This is to be used for package construction.
-
-# The 'doc.<format>' targets just builds a format and leaves artifacts
-# around.
-
-# In both cases the constructed user doc elements are copied
-# to the doc/<format> subdir eventually.
-
-UMAN_DOCDIR=doc/umanual
-
-doc-build.%:
-	make -C $(UMAN_DOCDIR) BUILD_MODE=$(BUILD_MODE) $*
-
-doc-copy.%:
-	make -C $(UMAN_DOCDIR) BUILD_MODE=$(BUILD_MODE) COPYDIR=$(shell pwd)/doc/$* copy.$*
-
-.PHONY: doc
-
-doc.%: doc-build.% doc-copy.%
-	@echo $@ done
-
-doc: $(foreach fmt, $(DOCFORMATS), doc.$(fmt)) clean-doc-build
-
 ###################
 # General cleanup #
 ###################
 
-.PHONY: clean-bin clean-doc clean-doc-copy clean-doc-build clean clean-adapters
+.PHONY: clean-bin clean clean-adapters
 
 clean-bin:
 	$(RM) *.o *.ali $(PGMNAME) b~* obj*/*
 
-clean-doc-copy.%:
-	   $(RM) -r doc/$*
-
-clean-doc-copy: $(foreach fmt, $(DOCFORMATS), clean-doc-copy.$(fmt))
-
-clean-doc-build:
-	make -C $(UMAN_DOCDIR) clean
-
-clean-doc: clean-doc-build clean-doc-copy
-
-clean: clean-bin clean-doc clean-adapters
+clean: clean-bin clean-adapters
 
 CLEAN_ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), clean-adapter-$(a))
 .PHONY: $(CLEAN_ADAPTER_TARGETS)
@@ -295,7 +240,7 @@ clean-adapters: $(CLEAN_ADAPTER_TARGETS)
 # Installation #
 ################
 
-.PHONY: install-bin install-examples install-doc install install-adapters \
+.PHONY: install-bin install-examples install install-adapters \
 	install-gnatcov_rts install-lib
 
 install-bin:
@@ -312,12 +257,6 @@ install-examples:
 	$(MKDIR) $(PREFIX)/share/examples/$(DIRNAME)
 	$(CP) -r examples/* $(PREFIX)/share/examples/$(DIRNAME)
 
-install-doc.%:
-	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/$*
-	$(CP) -r doc/$*/* $(PREFIX)/share/doc/$(DIRNAME)/$*
-
-install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
-
 install-gnatcov_rts:
 	$(RM) -r $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
 	$(MKDIR) $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
@@ -329,8 +268,7 @@ install-lib:
 
 install-common: install-bin install-examples install-gnatcov_rts install-lib
 install-without-doc: install-common
-install-with-doc: install-common install-doc
-install: install-with-doc
+install: install-without-doc
 
 INSTALL_ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), install-adapter-$(a))
 .PHONY: $(INSTALL_ADAPTER_TARGETS)
@@ -372,8 +310,7 @@ distrib-windows-extra:
 
 distrib-common: install-adapters distrib-${HOST_OS}-extra
 distrib-without-doc: distrib-common install-without-doc
-distrib-with-doc: distrib-common install-with-doc
-distrib: distrib-with-doc
+distrib: distrib-without-doc
 
 #############
 # GNAT_UTIL #
