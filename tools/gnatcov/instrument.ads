@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -53,7 +53,7 @@ package Instrument is
 
    type Any_Dump_Config (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
    is record
-      Trigger : Any_Dump_Trigger;
+      Trigger : Any_Dump_Trigger := Manual;
 
       case Channel is
          when Binary_File =>
