@@ -53,7 +53,7 @@ package Instrument is
 
    type Any_Dump_Config (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
    is record
-      Trigger : Any_Dump_Trigger;
+      Trigger : Any_Dump_Trigger := Manual;
 
       case Channel is
          when Binary_File =>
