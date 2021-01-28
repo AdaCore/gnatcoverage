@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -60,9 +60,23 @@ package body Traces_Stats is
    -----------
 
    function Ratio (Part : Natural; Total : Natural) return Natural is
-   begin
-      return Natural (Float'Rounding (Float (Part) * 100.0
+      Percentage : Natural := Natural (Float'Rounding (Float (Part) * 100.0
                                       / Float (Total)));
+   begin
+      --  Percentages will be a gross approximation on the extremes, e.g.
+      --  1 line not covered out of 201+ lines will still result in 1% of non
+      --  covered lines.
+
+      if Percentage = 100 and then (Part /= Total) then
+         Percentage := 99;
+      end if;
+
+      if Percentage = 0 and then (Part /= 0) then
+         Percentage := 1;
+      end if;
+
+      return Percentage;
+
    end Ratio;
 
 end Traces_Stats;
