@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -36,5 +36,12 @@ package Traces_Stats is
    function Ratio (Part : Natural; Total : Natural) return Natural;
    --  Total and Part being a number of lines, compute the ratio of the two
    --  quantities (Part / Total) and return this value as a percentage.
+   --
+   --  This function arranges never to round towards 0 or 100 (%).
+   --  This ensures that 100 or 0 are only returned for really complete
+   --  coverage or absence thereof, that is, for Part == Total or Part = 0,
+   --  respectively. This might incur inaccuracies when summing ratios, with
+   --  sum /= 100, really minor against the representativeness of extreme
+   --  values.
 
 end Traces_Stats;
