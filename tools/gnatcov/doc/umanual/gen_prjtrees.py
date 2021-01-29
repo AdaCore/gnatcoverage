@@ -8,14 +8,14 @@ def render(tree):
 
 
 def gen_tree(tmpl, outfile, selected):
-    for l in tmpl:
-        m = re.search('([a-z_0-9]*) \[(.*)\];', l)
+    for line in tmpl:
+        m = re.search(r'([a-z_0-9]*) \[(.*)\];', line)
         if m and m.group(1) in selected:
             outfile.write(
                 "\t\t%s [%s,color=darkslateblue, fontcolor=white ];\n" %
                 (m.group(1), m.group(2)))
         else:
-            outfile.write(l)
+            outfile.write(line)
 
 
 tmpl = open("prjtree.dot").readlines()
