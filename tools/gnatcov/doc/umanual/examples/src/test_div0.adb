@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                              GNATcoverage                                --
---                        Copyright (C) 2012, AdaCore                       --
+--                     Copyright (C) 2012-2021, AdaCore                     --
 ------------------------------------------------------------------------------
 
 with Support, Div_With_Check, Ada.Text_IO; use Support, Ada.Text_IO;
