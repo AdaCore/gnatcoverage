@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2015-2020, AdaCore                     --
+--                     Copyright (C) 2015-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -89,13 +89,13 @@ package body Argparse is
    end record;
 
    procedure Free is new Ada.Unchecked_Deallocation
-     (Parser_Record, Parser_Type);
+     (Parser_Record, Parser_Access);
 
    function Option_Name (Option : Option_Info'Class) return String;
    --  Shortcut for Option_Name (Ref_For_Option)
 
    function Get_Option
-     (Parser : Parser_Type;
+     (Parser : Parser_Access;
       Ref    : Option_Reference)
       return Option_Info_Access;
    --  Return an access to the Option_Info record corresponding to Ref in
@@ -105,12 +105,12 @@ package body Argparse is
    --  Split |-separated lists of option names, return a vector holding option
    --  names.
 
-   procedure Build_Parse_Table (Parser : Parser_Type);
+   procedure Build_Parse_Table (Parser : Parser_Access);
    --  Initialize Parser.Table from Parser.*_Info. Raise a Program_Error if
    --  option names are invalid/conflicting.
 
    function Sorted_Options
-     (Parser        : Parser_Type;
+     (Parser        : Parser_Access;
       With_Internal : Boolean;
       For_Command   : Command_Type := No_Command)
       return Option_Info_Array;
@@ -146,7 +146,7 @@ package body Argparse is
       Command : Valid_Commands)
       return String
    is
-     (To_String (Parser.Command_Infos (Command).Name));
+     (To_String (Parser.Data.Command_Infos (Command).Name));
 
    -----------------
    -- Option_Name --
@@ -157,7 +157,7 @@ package body Argparse is
       Ref    : Option_Reference)
       return String
    is
-     (Option_Name (Get_Option (Parser, Ref).all));
+     (Option_Name (Get_Option (Parser.Data, Ref).all));
 
    -----------------
    -- Option_Name --
@@ -214,7 +214,7 @@ package body Argparse is
    ----------------
 
    function Get_Option
-     (Parser : Parser_Type;
+     (Parser : Parser_Access;
       Ref    : Option_Reference)
       return Option_Info_Access
    is
@@ -293,30 +293,32 @@ package body Argparse is
       Arg_Callback         : Arg_Callback_Type := null)
       return Parser_Type
    is
-      Result : constant Parser_Type := new Parser_Record'
+      Result : constant Parser_Access := new Parser_Record'
         (Command_Infos,
          Bool_Infos, String_Infos, String_List_Infos,
          Bool_Callback, String_Callback, String_List_Callback, Arg_Callback,
          Table => <>);
    begin
       Build_Parse_Table (Result);
-      return Result;
+      return (Ada.Finalization.Limited_Controlled with Data => Result);
    end Create;
 
-   -------------
-   -- Destroy --
-   -------------
+   --------------
+   -- Finalize --
+   --------------
 
-   procedure Destroy (Parser : in out Parser_Type) is
+   overriding procedure Finalize (Self : in out Parser_Type) is
    begin
-      for Ref of Parser.Table.Short_Index loop
-         Free (Ref);
-      end loop;
-      for Ref of Parser.Table.Long_Index loop
-         Free (Ref);
-      end loop;
-      Free (Parser);
-   end Destroy;
+      if Self.Data /= null then
+         for Ref of Self.Data.Table.Short_Index loop
+            Free (Ref);
+         end loop;
+         for Ref of Self.Data.Table.Long_Index loop
+            Free (Ref);
+         end loop;
+         Free (Self.Data);
+      end if;
+   end Finalize;
 
    -----------------
    -- Print_Usage --
@@ -333,11 +335,11 @@ package body Argparse is
 
       With_Internal_Options : constant Boolean :=
         (For_Command /= No_Command
-            and then Parser.Command_Infos (For_Command).Internal)
+            and then Parser.Data.Command_Infos (For_Command).Internal)
          or else With_Internal;
 
       Option_Infos : constant Option_Info_Array :=
-        Sorted_Options (Parser, With_Internal_Options, For_Command);
+        Sorted_Options (Parser.Data, With_Internal_Options, For_Command);
 
       function Get_Pattern (Info : Option_Info'Class) return String;
       --  Return a pattern to be used in the help for the option corresponding
@@ -407,7 +409,7 @@ package body Argparse is
          Put_Line ("ACTION is one of:");
 
          First := True;
-         for Info of Parser.Command_Infos loop
+         for Info of Parser.Data.Command_Infos loop
             if not Info.Internal or else With_Internal_Options then
                if First then
                   New_Line;
@@ -421,7 +423,8 @@ package body Argparse is
 
       else
          declare
-            Info : Command_Info renames Parser.Command_Infos (For_Command);
+            Info : Command_Info renames
+               Parser.Data.Command_Infos (For_Command);
          begin
             Put_Wrapped ("Usage: " & Ada.Command_Line.Command_Name & " "
                          & (+Info.Name) & " " & (+Info.Pattern), 0, 4);
@@ -472,14 +475,15 @@ package body Argparse is
                   for Cmd in Valid_Commands'Range loop
                      if Info.Commands (Cmd)
                        and then
-                         (not Parser.Command_Infos (Cmd).Internal
+                         (not Parser.Data.Command_Infos (Cmd).Internal
                           or else
                           With_Internal_Options)
                      then
                         if not First then
                            Append (Set_Image, ", ");
                         end if;
-                        Append (Set_Image, Parser.Command_Infos (Cmd).Name);
+                        Append
+                          (Set_Image, Parser.Data.Command_Infos (Cmd).Name);
                         First := False;
                      end if;
                   end loop;
@@ -656,7 +660,7 @@ package body Argparse is
       is
       begin
          for Ref of Opt_Vec.all loop
-            if Get_Option (Parser, Ref).Commands (Result.Command) then
+            if Get_Option (Parser.Data, Ref).Commands (Result.Command) then
                return Ref;
             end if;
          end loop;
@@ -685,8 +689,8 @@ package body Argparse is
       procedure Handle_Bool (Opt : Bool_Options)
       is
       begin
-         if Parser.Bool_Callback /= null then
-            Parser.Bool_Callback (Result, Opt);
+         if Parser.Data.Bool_Callback /= null then
+            Parser.Data.Bool_Callback (Result, Opt);
          end if;
 
          Result.Bool_Args (Opt) := True;
@@ -704,11 +708,11 @@ package body Argparse is
          Str_Vec : String_Vectors.Vector renames
            Result.String_List_Args (Opt);
       begin
-         if Parser.String_List_Callback /= null then
-            Parser.String_List_Callback (Result, Opt, +Str);
+         if Parser.Data.String_List_Callback /= null then
+            Parser.Data.String_List_Callback (Result, Opt, +Str);
          end if;
 
-         if Parser.String_List_Info (Opt).Greedy then
+         if Parser.Data.String_List_Info (Opt).Greedy then
             for J in I .. Args'Last loop
                Str_Vec.Append (+Args (J).all);
             end loop;
@@ -732,8 +736,8 @@ package body Argparse is
          declare
             Command : constant GNAT.Strings.String_Access := Args (Args'First);
          begin
-            for Cmd in Parser.Command_Infos'Range loop
-               if +Parser.Command_Infos (Cmd).Name = Command.all then
+            for Cmd in Parser.Data.Command_Infos'Range loop
+               if +Parser.Data.Command_Infos (Cmd).Name = Command.all then
                   Result.Command := Cmd;
                   exit;
 
@@ -785,7 +789,7 @@ package body Argparse is
                --  single dash ('-'), let's first match a long option.
 
                Split_Arg (Arg, Option, Value, Has_Value);
-               Long_Cur := Parser.Table.Long_Index.Find
+               Long_Cur := Parser.Data.Table.Long_Index.Find
                  (+Arg (Option.First .. Option.Last));
 
                if Long_Options_Index.Has_Element (Long_Cur) then
@@ -815,7 +819,7 @@ package body Argparse is
                               else +Consume_Next_Arg (Option, I).all);
                         begin
                            if Opt.Kind = String_Opt then
-                              if Parser.String_Info
+                              if Parser.Data.String_Info
                                    (Opt.String_Option).At_Most_Once
                                  and then Is_Present (Result, Opt)
                               then
@@ -824,8 +828,8 @@ package body Argparse is
                                     & " cannot appear multiple times.");
                               end if;
 
-                              if Parser.String_Callback /= null then
-                                 Parser.String_Callback
+                              if Parser.Data.String_Callback /= null then
+                                 Parser.Data.String_Callback
                                    (Result, Opt.String_Option, +Str);
                               end if;
 
@@ -856,7 +860,7 @@ package body Argparse is
                   J := Arg'First + 1;
                   while J <= Arg'Last loop
                      Short_Cur :=
-                       Parser.Table.Short_Index.Find (Arg (J));
+                       Parser.Data.Table.Short_Index.Find (Arg (J));
 
                      if not Short_Options_Index.Has_Element (Short_Cur) then
                         return Error
@@ -888,8 +892,8 @@ package body Argparse is
                                 +Consume_Value (Option, I, J + 1);
                            begin
                               if Opt.Kind = String_Opt then
-                                 if Parser.String_Callback /= null then
-                                    Parser.String_Callback
+                                 if Parser.Data.String_Callback /= null then
+                                    Parser.Data.String_Callback
                                       (Result, Opt.String_Option, +Str);
                                  end if;
                                  Result.String_Args (Opt.String_Option) :=
@@ -920,8 +924,8 @@ package body Argparse is
             else
                --  This is not an option: add it to remaining arguments
 
-               if Parser.Arg_Callback /= null then
-                  Parser.Arg_Callback (Result, Arg);
+               if Parser.Data.Arg_Callback /= null then
+                  Parser.Data.Arg_Callback (Result, Arg);
                end if;
                Result.Remaining_Args.Append (+Arg);
             end if;
@@ -1003,7 +1007,7 @@ package body Argparse is
    -- Build_Parse_Table --
    -----------------------
 
-   procedure Build_Parse_Table (Parser : Parser_Type) is
+   procedure Build_Parse_Table (Parser : Parser_Access) is
 
       procedure Process_Option (Ref : Option_Reference);
       --  Add Ref to Parser.Table. Raise a Program_Error if Ref has at least
@@ -1167,7 +1171,7 @@ package body Argparse is
    --------------------
 
    function Sorted_Options
-     (Parser        : Parser_Type;
+     (Parser        : Parser_Access;
       With_Internal : Boolean;
       For_Command   : Command_Type := No_Command)
       return Option_Info_Array

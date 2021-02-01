@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -75,7 +75,7 @@ with GNATcov_RTS.Traces;
 
 procedure GNATcov is
 
-   Arg_Parser   : Parser_Type := Command_Line.Create;
+   Arg_Parser   : constant Parser_Type := Command_Line.Create;
    --  Parser for command-line arguments
 
    Args         : Parsed_Arguments;
@@ -2675,8 +2675,6 @@ begin
             Output_File => +Args.Remaining_Args (1));
 
    end case;
-
-   Destroy (Arg_Parser);
 
    if Verbose then
       Perf_Counters.Display;

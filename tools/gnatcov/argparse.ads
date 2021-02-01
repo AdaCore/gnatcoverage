@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2015-2020, AdaCore                     --
+--                     Copyright (C) 2015-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+private with Ada.Finalization;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNAT.Strings;
@@ -205,7 +206,7 @@ package Argparse is
    -- Parsers handling --
    ----------------------
 
-   type Parser_Type is private;
+   type Parser_Type is limited private;
    --  Hold a parser. Parsers must be created with Create and, when done with
    --  them, destroyed with Destroy.
 
@@ -252,9 +253,6 @@ package Argparse is
    --
    --  This will raise a Program_Error if the set of options is not valid
    --  (for instance, invalid or conflicting option names).
-
-   procedure Destroy (Parser : in out Parser_Type);
-   --  Destroy a parser and set it to No_Parser
 
    procedure Print_Usage
      (Parser        : Parser_Type;
@@ -393,8 +391,14 @@ private
    end record;
 
    type Parser_Record;
-   type Parser_Type is access Parser_Record;
+   type Parser_Access is access Parser_Record;
+   type Parser_Type is new Ada.Finalization.Limited_Controlled with record
+      Data : Parser_Access;
+   end record;
 
-   No_Parser : constant Parser_Type := null;
+   overriding procedure Finalize (Self : in out Parser_Type);
+
+   No_Parser : constant Parser_Type := (Ada.Finalization.Limited_Controlled
+                                        with Data => null);
 
 end Argparse;
