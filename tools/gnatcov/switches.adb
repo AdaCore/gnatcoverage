@@ -51,7 +51,7 @@ package body Switches is
    --
    --  In any case, the returned Target_Board may be null.
 
-   procedure Load_Project_Arguments;
+   procedure Load_Project_Arguments (From_Driver : Boolean);
    --  Load the project, if any, specified in Args, get the command-line
    --  arguments it may specify in its Coverage package corresponding to
    --  Args.Command. Then decode them and merge them with Args into Args
@@ -60,6 +60,9 @@ package body Switches is
    --  Note that this also writes Args.String_Args (Opt_Target) (same for
    --  Opt_Runtime) if they are not present to mirror the target/RTS used to
    --  load the project file.
+   --
+   --  From_Driver is passed as Project.Load_Root_Project's From_Driver
+   --  argument.
 
    --------------
    -- Copy_Arg --
@@ -148,7 +151,7 @@ package body Switches is
    -- Load_Project_Arguments --
    ----------------------------
 
-   procedure Load_Project_Arguments is
+   procedure Load_Project_Arguments (From_Driver : Boolean) is
 
       procedure Check_Allowed_Option (Result : in out Parsed_Arguments;
                                       Ref    : Option_Reference);
@@ -256,7 +259,8 @@ package body Switches is
       --  project subsystem and load the root project.
 
       Load_Root_Project
-        (Root_Project.all, Target_Family, Runtime, CGPR_File, Units_Inputs);
+        (Root_Project.all, Target_Family, Runtime, CGPR_File, Units_Inputs,
+         From_Driver);
 
       --  Get common and command-specific switches, decode them (if any) and
       --  store the result in Project_Args, then merge it into Args.
@@ -342,7 +346,7 @@ package body Switches is
    -- Parse_Arguments --
    ---------------------
 
-   procedure Parse_Arguments is
+   procedure Parse_Arguments (From_Driver : Boolean) is
    begin
       --  Require at least one argument
 
@@ -355,7 +359,7 @@ package body Switches is
       --  contain additional arguments.
 
       Args := Parse (Command_Line_Args);
-      Load_Project_Arguments;
+      Load_Project_Arguments (From_Driver);
 
       --  Loading the project may have set a new target/RTS: update our
       --  internal state accordingly.

@@ -26,9 +26,13 @@ with Inputs;
 
 package Switches is
 
-   procedure Parse_Arguments;
+   procedure Parse_Arguments (From_Driver : Boolean);
    --  Load arguments from command-line and from the project file (if any) into
    --  Args (see below). Print usage and exit if there is no argument.
+   --
+   --  If From_Driver is True, do not compute the lists of projects/units of
+   --  interest from project files. This is meant to be used only in the
+   --  gnatcov driver, where we just need to determine the target.
 
    Arg_Parser : constant Command_Line.Parser.Parser_Type :=
       Command_Line.Create;

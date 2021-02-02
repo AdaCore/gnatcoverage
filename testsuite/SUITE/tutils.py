@@ -449,11 +449,6 @@ def xcov_suite_args(covcmd, covargs,
     """
     project_handling_enabled = any(arg.startswith('-P') for arg in covargs)
 
-    # There is no need for target configuration options if this is not
-    # "gnatcov run" or if we don't involve project handling.
-    if covcmd != 'run' and not project_handling_enabled:
-        return []
-
     # If --config is asked and project handling is involved, pass it and stop
     # there. If there is a board, it must be described in the project file
     # (gnatcov's -P argument).
@@ -461,36 +456,45 @@ def xcov_suite_args(covcmd, covargs,
         return ['--config={}'
                 .format(os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR))]
 
-    # Otherwise, handle --target and --board.
-    #
-    # We must pass a --target argument if we are in a cross configuration.
-    #
-    # If we have a specific target board specified with --board, use that:
-    #
-    # --target=p55-elf --board=iSystem-5554
-    # --> gnatcov run --target=iSystem-5554
-    #
-    # (Such board indications are intended for probe based targets)
-    #
-    # Otherwise, pass the target triplet indication, completed by a board
-    # extension if we also have a target "machine":
-    #
-    # --target=p55-elf,,p5566
-    # --> gnatcov run --target=powerpc-eabispe,p5566
-    #
-    # (Such board extensions are intended to request the selection of a
-    #  specific board emulation by gnatemu)
-
+    # Nothing to do if the caller does not want automatic --target/--RTS
+    # arguments.
     if not auto_target_args:
         return []
 
+    # Otherwise, handle target and board information.
+    #
+    # Remember that the testsuite determines the target from the machine that
+    # hosts the testsuite and from its own --host/--build/--target arguments...
+
     result = []
+
+    # If we have a specific target board specified with --board, use that:
+    #
+    #   --target=p55-elf --board=iSystem-5554
+    #   --> gnatcov run --target=iSystem-5554
+    #
+    # Such board indications are intended for probe based targets.
     if thistest.options.board:
         targetarg = thistest.options.board
-    elif thistest.options.target:
+
+    # Otherwise, pass the target triplet indication, completed by a board
+    # extension if we also have a target "machine":
+    #
+    #   --target=p55-elf,,p5566
+    #   --> gnatcov run --target=powerpc-eabispe,p5566
+    #
+    # Such board extensions are intended to request the selection of a specific
+    # board emulation by gnatemu.
+    #
+    # Besides, we now have a single package per host OS (GNU/Linux and Windows,
+    # both 64bit). "gnatcov" needs to know whether it works on 32bit or 64bit
+    # programs, assuming 64bit by default. This means that we must pass a
+    # --target argument to "gnatcov" as soon as we work with a 32bit target.
+    elif thistest.options.target or env.target.cpu.bits != 64:
         targetarg = env.target.triplet
         if env.target.machine and env.target.machine != "unknown":
             targetarg += ",%s" % env.target.machine
+
     else:
         targetarg = None
 

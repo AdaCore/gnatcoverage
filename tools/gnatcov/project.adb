@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2012-2020, AdaCore                     --
+--                     Copyright (C) 2012-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -1152,7 +1152,8 @@ package body Project is
    procedure Load_Root_Project
      (Prj_Name                   : String;
       Target, Runtime, CGPR_File : GNAT.Strings.String_Access;
-      Override_Units             : Inputs.Inputs_Type)
+      Override_Units             : Inputs.Inputs_Type;
+      From_Driver                : Boolean := False)
    is
    begin
       if Prj_Tree /= null then
@@ -1187,6 +1188,13 @@ package body Project is
 
       if Obj_Subdir /= Null_Unbounded_String then
          Env.Set_Object_Subdir (+To_String (Obj_Subdir));
+      end if;
+
+      --  If we were asked only to load the project file, stop there (i.e.
+      --  before computing the list of projects/units of interest).
+
+      if From_Driver then
+         return;
       end if;
 
       if not Externally_Built_Projects_Processing_Enabled

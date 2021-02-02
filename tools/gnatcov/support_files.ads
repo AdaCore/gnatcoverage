@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2020, AdaCore                       --
+--                     Copyright (C) 2020-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,8 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line; use Ada.Command_Line;
-with Ada.Directories; use Ada.Directories;
+with Ada.Command_Line;          use Ada.Command_Line;
+with Ada.Directories;           use Ada.Directories;
+with Ada.Environment_Variables; use Ada.Environment_Variables;
 
 with GNAT.OS_Lib;
 
@@ -26,12 +27,27 @@ package Support_Files is
    --  This package offers various helpers to locate support files in gnatcov's
    --  installation prefix.
 
+   Prefix_Envvar : constant String := "GNATCOV_PREFIX";
+   --  Name of the environment variable which, when defined, provides the
+   --  directory that contains the installation prefix for gnatcov.
+
+   Command_Name_Envvar : constant String := "GNATCOV_CMD";
+   --  Name of the environment variable which, when defined, provides the name
+   --  of the "gnatcov" command that the user ran.
+
+   Gnatcov_Command_Name : String :=
+     (if Value (Command_Name_Envvar, "") = ""
+      then Command_Name
+      else Value (Command_Name_Envvar));
+
    Gnatcov_Dir : constant String := Containing_Directory
      (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all);
-   --  Directory that contains the "gnatcov" program
+   --  Directory that contains the current program
 
    Gnatcov_Prefix : constant String :=
-      Containing_Directory (Gnatcov_Dir);
+      (if Value (Prefix_Envvar, "") = ""
+       then Containing_Directory (Gnatcov_Dir)
+       else Value (Prefix_Envvar));
    --  Installation prefix for gnatcov
 
    Lib_Dir : constant String := Gnatcov_Prefix & "/lib/gnatcoverage";

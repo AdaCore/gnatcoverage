@@ -82,7 +82,9 @@ GPRINSTALL=gprinstall
 
 # Binary program name
 PGMNAME=gnatcov
-PGMPATH=obj$(BITS_ARCH)/$(BUILD_MODE)/$(PGMNAME)
+PGMPATH=obj64/$(BUILD_MODE)/$(PGMNAME)
+PGM32PATH=obj32/$(BUILD_MODE)/gnatcov32
+PGM64PATH=obj64/$(BUILD_MODE)/gnatcov64
 
 # Directory name in the install tree
 DIRNAME=gnatcoverage
@@ -178,12 +180,9 @@ nexus_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 .PHONY: default all adapters bin $(PGMPATH)
 
 default: bin
-
-bin: $(PGMPATH)
-
 all: bin adapters
 
-$(PGMPATH):
+bin:
 # Unlike BINUTILS_BUILD_DIR for which we have a default fallback,
 # BINUTILS_SRC_DIR must be defined explicitely.
 	@if [ -z "$(BINUTILS_SRC_DIR)" ]; then \
@@ -192,11 +191,19 @@ $(PGMPATH):
 		     " source and build directories."; \
 		exit 1; \
 	fi
-	$(GPRBUILD) -Pgnatcov -p -j$(PARALLEL_BUILD) \
-	-XARCH=$(BITS_ARCH) -XBUILD_MODE=$(BUILD_MODE) \
-	-XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
-	-XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
-	$(PGMNAME) $(EXTRA_ADAFLAGS)
+
+# Use "set -e" not to start the second build if the first one failed. Also
+# start with the 64-bit one so that errors in the "gnatcov" main closure show
+# up as soon as possible.
+	set -e && for bits in 64 32; \
+	do \
+	  $(GPRBUILD) -Pgnatcov -p -j$(PARALLEL_BUILD) \
+	    -XARCH=$$bits \
+	    -XBUILD_MODE=$(BUILD_MODE) \
+	    -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
+	    -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
+	    $(EXTRA_ADAFLAGS); \
+	done
 
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
 .PHONY: $(ADAPTERS_TARGETS)
@@ -206,7 +213,7 @@ ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
 # "adapters". Simplest is to make sure that "bin" is done before any of
 # the "adapters" targets may start:
 
-$(ADAPTER_TARGETS): adapter-%: bin
+$(ADAPTER_TARGETS): adapter-%:
 	$(MAKE) -C trace_adapters/$* $($*_ADAPTER_BUILD_VARS)
 
 adapters: $(ADAPTER_TARGETS)
@@ -293,8 +300,13 @@ clean-adapters: $(CLEAN_ADAPTER_TARGETS)
 
 install-bin:
 	$(MKDIR) $(PREFIX)/bin
-	$(CP) $(PGMPATH)$(exeext) $(PREFIX)/bin/$(PGMNAME)$(BITS_ARCH)$(exeext)
-	cd $(PREFIX)/bin && $(RM) $(PGMNAME)$(exeext) && $(LN_S) $(PGMNAME)$(BITS_ARCH)$(exeext) $(PGMNAME)$(exeext)
+	$(CP) $(PGMPATH)$(exeext) $(PREFIX)/bin/
+
+	$(MKDIR) $(PREFIX)/libexec/gnatcoverage
+	$(CP) \
+	   $(PGM32PATH)$(exeext) \
+	   $(PGM64PATH)$(exeext) \
+	   $(PREFIX)/libexec/gnatcoverage
 
 install-examples:
 	$(MKDIR) $(PREFIX)/share/examples/$(DIRNAME)

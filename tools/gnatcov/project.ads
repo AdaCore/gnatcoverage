@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2012-2020, AdaCore                     --
+--                     Copyright (C) 2012-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -64,7 +64,8 @@ package Project is
    procedure Load_Root_Project
      (Prj_Name                   : String;
       Target, Runtime, CGPR_File : String_Access;
-      Override_Units             : Inputs.Inputs_Type)
+      Override_Units             : Inputs.Inputs_Type;
+      From_Driver                : Boolean := False)
       with Pre  => not Is_Project_Loaded
                    and then ((Target = null and then Runtime = null)
                              or else CGPR_File = null),
@@ -81,6 +82,10 @@ package Project is
    --  If Override_Units is present, it overrides the set of units to be
    --  considered, else the set defined by the project through the Units,
    --  Units_List, Exclude_Units, and Exclude_Units_List attributes is used.
+   --
+   --  If From_Driver is True, do not compute the list of projects/units of
+   --  interest. This is meant to be used only in the gnatcov driver, where we
+   --  just need to determine the target.
 
    ----------------------------
    -- Post-loading accessors --

@@ -7,6 +7,7 @@ and check clean output of xcov map-routines on a list of alis and objects.
 import os
 import re
 
+from SUITE.control import env
 from SUITE.cutils import Wdir, match, to_list, list_to_file
 from SUITE.tutils import (XCOV, thistest, gprfor, gprbuild, exename_for, do,
                           maybe_valgrind)
@@ -53,7 +54,7 @@ class MapChecker:
 
         # Run xcov map-routines and check absence of errors
         mapoutput = do(maybe_valgrind([
-            XCOV, 'map-routines', '-v',
+            XCOV, 'map-routines', '-v', f'--target={env.target.triplet}',
             '--scos=@{}'.format(list_to_file(self.alis)),
         ] + self.execs))
 

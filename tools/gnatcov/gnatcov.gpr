@@ -7,6 +7,12 @@ project Gnatcov is
    type Bits_Type is ("32", "64");
    Bits : Bits_Type := external("ARCH", "32");
 
+   Mains := ("gnatcov_bits_specific.adb");
+   case Bits is
+      when "32" => null;
+      when "64" => Mains := Mains & ("gnatcov.adb");
+   end case;
+
    Binutils_Src_Dir := external ("BINUTILS_SRC_DIR");
    Binutils_Build_Dir := external ("BINUTILS_BUILD_DIR", Binutils_Src_Dir);
 
@@ -21,6 +27,10 @@ project Gnatcov is
       for Specification ("Qemu_Traces_Entries")
          use"qemu_traces_entries__" & Bits & ".ads";
    end Naming;
+
+   package Builder is
+      for Executable ("gnatcov_bits_specific.adb") use "gnatcov" & Bits;
+   end Builder;
 
    package Compiler is
 
@@ -88,6 +98,6 @@ project Gnatcov is
    for Source_Dirs use (".", "libopcodes_bind");
    for Object_Dir use "obj" & Bits & "/" & Build_Mode;
    for Languages use ("Ada", "C");
-   for Main use ("gnatcov.adb");
+   for Main use Mains;
 
 end Gnatcov;

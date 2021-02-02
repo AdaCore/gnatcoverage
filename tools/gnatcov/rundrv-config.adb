@@ -63,7 +63,7 @@ package body Rundrv.Config is
       (+"(x86|x86_64)-linux",   Rundrv.Handlers.Native_Linux'Access),
       (+"(x86|x86_64)-windows", Rundrv.Handlers.Native_Windows'Access),
       (+"iSystem-(5554|5634)",  Rundrv.Handlers.ISystem'Access),
-      (+"prepare",              Rundrv.Handlers.Prepare'Access),
+      (+"prepare(32|64)",       Rundrv.Handlers.Prepare'Access),
       (+"visium-elf",           Rundrv.Handlers.Visium_ELF'Access));
    --  For each target category, this table provides a target triples
    --  (without board name) pattern and a function to create the corresponding

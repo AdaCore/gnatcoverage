@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2015, AdaCore                     --
+--                     Copyright (C) 2009-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -22,8 +22,9 @@ with Ada.Containers.Ordered_Maps;
 
 with GNAT.Strings; use GNAT.Strings;
 
-with Strings; use Strings;
-with Version; use Version;
+with Strings;       use Strings;
+with Support_Files; use Support_Files;
+with Version;       use Version;
 
 package body Coverage is
 
@@ -259,8 +260,8 @@ package body Coverage is
    function Get_Context return Context is
       use Ada.Command_Line;
 
-      Command : Unbounded_String := To_Unbounded_String (Command_Name);
-
+      Command : Unbounded_String :=
+         To_Unbounded_String (Support_Files.Gnatcov_Command_Name);
    begin
       for J in 1 .. Argument_Count loop
          Append (Command, ' ' & Argument (J));
