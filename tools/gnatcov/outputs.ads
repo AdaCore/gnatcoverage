@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -43,6 +43,9 @@ package Outputs is
    procedure Fatal_Error (Msg : String);
    pragma No_Return (Fatal_Error);
    --  Same as Error, and cause Xcov to terminate by raising Fatal_Error_Exc
+
+   procedure Fatal_Error_With_Usage (Msg : String);
+   --  Same as Fatal_Error, but print the command-line usage before terminating
 
    procedure Normal_Exit;
    --  Cause Xcov to terminate. exit status OK

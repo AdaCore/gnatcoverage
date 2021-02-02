@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2020, AdaCore                     --
+--                     Copyright (C) 2009-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -20,7 +20,41 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Command_Line;         use Command_Line;
+with Command_Line_Support; use Command_Line_Support;
+with Inputs;
+
 package Switches is
+
+   procedure Parse_Arguments;
+   --  Load arguments from command-line and from the project file (if any) into
+   --  Args (see below). Print usage and exit if there is no argument.
+
+   Arg_Parser : constant Command_Line.Parser.Parser_Type :=
+      Command_Line.Create;
+   --  Parser for command-line arguments
+
+   Args : Command_Line.Parser.Parsed_Arguments;
+   --  Results of the arguments parsing (first only command-line, then also
+   --  arguments from project file).
+
+   --  All the variables below are used to store results of the command line
+   --  parsing and analysis.
+
+   procedure Copy_Arg
+     (Option   : String_Options;
+      Variable : out String_Access);
+   --  Copy the string for Option into Variable. If the option is present, this
+   --  allocates a new string in Variable.
+
+   procedure Copy_Arg_List
+     (Option : String_List_Options;
+      List   : in out Inputs.Inputs_Type);
+   --  Copy the list of strings referenced in Option to the List input list
+
+   ----------------------------
+   -- Miscellaneous switches --
+   ----------------------------
 
    Verbose : Boolean := False;
    --  Verbose informational output
@@ -63,12 +97,31 @@ package Switches is
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 
+   Units_Inputs : Inputs.Inputs_Type;
+   --  List of names for requested units of interest
+
+   ------------------------
+   -- Target information --
+   ------------------------
+
+   Target_Family : String_Access := null;
+   --  Name of the target platform for analyzed programs
+
+   Target_Board : String_Access := null;
+   --  Name of the board on which analyzed programs run
+
    -------------------------------------------------------------
    -- Project related switches that may need to be propagated --
    -------------------------------------------------------------
 
    Root_Project : String_Access := null;
-   --  Project name as specified to the -P option of the command line.
+   --  Project name as specified to the -P option of the command line
+
+   Runtime : String_Access := null;
+   --  Name of the runtime (--RTS or defined in the project file)
+
+   CGPR_File : String_Access := null;
+   --  Name of the configuration project file
 
    package Key_Element_Maps is
      new Ada.Containers.Indefinite_Ordered_Maps
@@ -83,44 +136,8 @@ package Switches is
    -- Debugging switches (-d?) --
    ------------------------------
 
-   type Debug_Type is
-     (None,
-
-      Break_Long_Instructions,
-      --  Break long instructions in disassemblies, a la objdump
-
-      Full_History,
-      --  Keep full historical traces for MC/DC even for decisions that do not
-      --  require it (decisions without multi-path conditions).
-
-      Ignore_Exemptions,
-      --  Exemption pragmas have no effect.
-
-      File_Table);
-      --  Show debugging output for files table management
-
-   --  Set of debug switches to expose on command-line
-
-   subtype Valid_Debug_Type is Debug_Type range
-      Break_Long_Instructions .. File_Table;
-
    Debug_Switches : array (Valid_Debug_Type) of Boolean := (others => False);
    --  For each debug switches, tell whether it's enabled
-
-   Debug_Switches_Map : constant array (Character) of Debug_Type :=
-     ('b'    => Break_Long_Instructions,
-      'h'    => Full_History,
-      'i'    => Ignore_Exemptions,
-      'f'    => File_Table,
-      others => None);
-   --  Map characters to switches. Update this map to make a debug flags
-   --  available through the -d command-line argument (see command_line.ads).
-
-   function Debug_Command_Line_Pattern return String;
-   --  Return a pattern string for the usage of the command-line -d option
-
-   function Debug_Command_Line_Help return String;
-   --  Return a help string for the usage of the command-line -d option
 
    --  Convenience shortcuts:
 

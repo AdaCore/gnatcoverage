@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2014, AdaCore                     --
+--                     Copyright (C) 2009-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -24,9 +24,10 @@ with Ada.Unchecked_Deallocation;
 
 --  Driver selection configuration for Rundrv.
 --
---  This package provides primitives to determine what gnatcov run executes for
+--  This package provides types to determine what gnatcov run executes for
 --  a given target and what "built-in" targets (i.e. non GNATemulator-based)
---  are supported.
+--  are supported. The Rundrv.Handlers package provides the corresponding
+--  constructors.
 
 package Rundrv.Config is
 
@@ -97,6 +98,9 @@ package Rundrv.Config is
    procedure Free is new Ada.Unchecked_Deallocation
      (Command_Type, Command_Access);
 
+   function Available_Targets return String;
+   --  Return a list of available targets
+
    function Lookup_Driver (Context : Context_Type) return Command_Access;
    --  Create a command to run in order to produce a trace for Context.
    --  Return null if we cannot figure out what command to run.
@@ -112,8 +116,5 @@ package Rundrv.Config is
    --  The computation is split across the two helpers below.  TARGET_FAMILY
    --  and TARGET_BOARD are set to the base target and board extension of the
    --  original TARGET input.
-
-   function Available_Targets return String;
-   --  Return a list of available targets
 
 end Rundrv.Config;

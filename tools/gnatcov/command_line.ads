@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2015-2020, AdaCore                     --
+--                     Copyright (C) 2015-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,10 +17,10 @@
 ------------------------------------------------------------------------------
 
 with Argparse;
+with Command_Line_Support; use Command_Line_Support;
 with Coverage;
 with Coverage.Tags;
 with Rundrv.Config;
-with Switches;
 
 package Command_Line is
 
@@ -743,8 +743,8 @@ package Command_Line is
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Debug => Create
         (Short_Name => "-d",
-         Pattern    => Switches.Debug_Command_Line_Pattern,
-         Help       => Switches.Debug_Command_Line_Help,
+         Pattern    => Debug_Command_Line_Pattern,
+         Help       => Debug_Command_Line_Help,
          Internal   => True),
       Opt_Projects => Create
         (Long_Name  => "--projects",

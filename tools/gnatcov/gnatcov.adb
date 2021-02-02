@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line;
 with Ada.Containers;        use Ada.Containers;
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
@@ -39,6 +38,7 @@ with Check_SCOs;
 with Checkpoints;
 with Command_Line;          use Command_Line;
 use Command_Line.Parser;
+with Command_Line_Support;
 with Convert;
 with Coverage;              use Coverage;
 with Coverage.Source;       use Coverage.Source;
@@ -75,15 +75,8 @@ with GNATcov_RTS.Traces;
 
 procedure GNATcov is
 
-   Arg_Parser   : constant Parser_Type := Command_Line.Create;
-   --  Parser for command-line arguments
-
-   Args         : Parsed_Arguments;
-   --  Results of the arguments parsing (first only command-line, then also
-   --  arguments from project file).
-
-   --  Results of the command line parsing. It is filled by Process_Arguments
-   --  once Args reached its final value.
+   --  Results of the command line processing. It is filled by
+   --  Process_Arguments once Switches.Args reached its final state.
 
    Annotation           : Annotation_Format renames Annotations.Annotation;
    Trace_Inputs         : Inputs.Inputs_Type;
@@ -91,15 +84,10 @@ procedure GNATcov is
    Obj_Inputs           : Inputs.Inputs_Type;
    ALIs_Inputs          : Inputs.Inputs_Type;
    Routines_Inputs      : Inputs.Inputs_Type;
-   Units_Inputs         : Inputs.Inputs_Type;
    Checkpoints_Inputs   : Inputs.Inputs_Type;
    SID_Inputs           : Inputs.Inputs_Type;
    Ignored_Source_Files : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
-   Target_Family        : String_Access := null;
-   Target_Board         : String_Access := null;
-   Runtime              : String_Access := null;
-   CGPR_File            : String_Access := null;
    Output               : String_Access := null;
    Tag                  : String_Access := null;
    Kernel               : String_Access := null;
@@ -123,42 +111,6 @@ procedure GNATcov is
 
    SIDs_Loaded : Boolean := False;
    --  Whether we loaded SID files for units of interest
-
-   function Command_Name return String is
-     (Command_Line.Parser.Command_Name (Arg_Parser, Args.Command));
-
-   procedure Fatal_Error_With_Usage (Msg : String);
-   --  Shortcut for Outputs.Fatal_Error_With_Usage
-
-   function Command_Line_Args return String_List_Access;
-   --  Return a dynamically alocated list of arguments to hold arguments from
-   --  Ada.Command_Line.
-
-   function Parse
-     (Argv         : GNAT.Strings.String_List_Access;
-      With_Command : Command_Type := No_Command;
-      Callback     : access procedure (Result : in out Parsed_Arguments;
-                                       Ref    : Option_Reference) := null)
-      return Parsed_Arguments;
-   --  Parse Args using Arg_Parser. Deallocate Args before returning. If there
-   --  is an error, call Fatal_Error with the error message.
-
-   procedure Copy_Arg
-     (Option   : String_Options;
-      Variable : out String_Access);
-   --  Copy Arg into Var. If Arg is not null, this allocates a new string in
-   --  Var.
-
-   procedure Copy_Arg_List
-     (Option : String_List_Options;
-      List   : in out Inputs.Inputs_Type);
-   --  Copy the list of strings referenced in Option to the List input list
-
-   procedure Load_Project_Arguments;
-   --  Load the project, if any, specified in Args, get the command-line
-   --  arguments it may specify in its Coverage package corresponding to
-   --  Args.Command. Then decode them and merge them with Args into Args
-   --  itself.
 
    procedure Process_Arguments;
    --  Process all the arguments present in Args and forward them to local
@@ -203,98 +155,10 @@ procedure GNATcov is
    --  Has_Matcher to False. Otherwise, set it to True and put in Matcher a
    --  pattern for the names of source files to ignore.
 
-   procedure Load_Target_Option (Default_Target : Boolean);
-   --  Split the --target option into its family name (Target_Family) and the
-   --  board name (Target_Board), if any.
-   --
-   --  If Default_Target is True and the target option is not present or empty,
-   --  use the native target. The target has the following format:
-   --  FAMILY[,BOARD]. In this case, the returned Target_Family is never null.
-   --  Otherwise, leave it unmodified.
-   --
-   --  In any case, the returned Target_Board may be null.
-
    procedure Report_Bad_Trace (Trace_Filename : String; Result : Read_Result)
       with Pre => not Result.Success;
    --  Emit the error corresponding to Result with Outputs. If
    --  Keep_Reading_Tracess is false, this is a fatal error.
-
-   ----------------------------
-   -- Fatal_Error_With_Usage --
-   ----------------------------
-
-   procedure Fatal_Error_With_Usage (Msg : String) is
-   begin
-      Error (Msg);
-      Print_Usage (Arg_Parser, False, True, Args.Command);
-      raise Xcov_Exit_Exc;
-   end Fatal_Error_With_Usage;
-
-   -----------------------
-   -- Command_Line_Args --
-   -----------------------
-
-   function Command_Line_Args return String_List_Access is
-      Result : constant String_List_Access :=
-        new String_List (1 .. Ada.Command_Line.Argument_Count);
-   begin
-      for I in Result'Range loop
-         Result (I) := new String'(Ada.Command_Line.Argument (I));
-      end loop;
-      return Result;
-   end Command_Line_Args;
-
-   -----------
-   -- Parse --
-   -----------
-
-   function Parse
-     (Argv         : GNAT.Strings.String_List_Access;
-      With_Command : Command_Type := No_Command;
-      Callback     : access procedure (Result : in out Parsed_Arguments;
-                                       Ref    : Option_Reference) := null)
-      return Parsed_Arguments
-   is
-      Args_Var : GNAT.Strings.String_List_Access := Argv;
-      Result   : constant Parsed_Arguments :=
-        Parse (Arg_Parser, Argv, With_Command, Callback);
-      Error    : constant String := +Result.Error;
-   begin
-      Free (Args_Var);
-      if Error'Length /= 0 then
-         Args.Command := Result.Command;
-         Fatal_Error_With_Usage (Error);
-      end if;
-      return Result;
-   end Parse;
-
-   --------------
-   -- Copy_Arg --
-   --------------
-
-   procedure Copy_Arg
-     (Option   : String_Options;
-      Variable : out String_Access)
-   is
-      Opt : String_Option renames Args.String_Args (Option);
-   begin
-      if Opt.Present then
-         Variable := new String'(+Opt.Value);
-      end if;
-   end Copy_Arg;
-
-   -------------------
-   -- Copy_Arg_List --
-   -------------------
-
-   procedure Copy_Arg_List
-     (Option : String_List_Options;
-      List   : in out Inputs.Inputs_Type) is
-   begin
-      for Arg of Args.String_List_Args (Option) loop
-         Inputs.Add_Input (List, +Arg);
-      end loop;
-   end Copy_Arg_List;
 
    -----------------------------
    -- Report_Missing_Argument --
@@ -490,174 +354,6 @@ procedure GNATcov is
       Inputs.Iterate (SID_Inputs, SID_Load_Wrapper'Access);
    end Load_All_SIDs;
 
-   ----------------------------
-   -- Load_Project_Arguments --
-   ----------------------------
-
-   procedure Load_Project_Arguments is
-
-      procedure Check_Allowed_Option (Result : in out Parsed_Arguments;
-                                      Ref    : Option_Reference);
-      --  Put an error message in Result if Ref is an option that is forbidden
-      --  in project files.
-
-      --------------------------
-      -- Check_Allowed_Option --
-      --------------------------
-
-      procedure Check_Allowed_Option (Result : in out Parsed_Arguments;
-                                      Ref    : Option_Reference)
-      is
-         Complain : Boolean := False;
-      begin
-         case Ref.Kind is
-            when String_Opt =>
-               Complain := Ref.String_Option in
-                 Opt_Project | Opt_Target | Opt_Runtime | Opt_Subdirs;
-            when others =>
-               null;
-         end case;
-         if Complain then
-            Result.Error := +(Option_Name (Arg_Parser, Ref)
-                              & " may not be specified in a project.");
-         end if;
-      end Check_Allowed_Option;
-
-      Project_Args : Parsed_Arguments;
-
-   --  Start of processing for Load_Project_Arguments
-
-   begin
-      if not Args.String_Args (Opt_Project).Present then
-         return;
-      end if;
-
-      --  In order to load the project file we need to set:
-      --    * scenario variables;
-      --    * the object subdir;
-      --    * the target architecture;
-      --    * the runtime system (RTS);
-      --    * the requested list of projects of interest (if any);
-      --    * the requested list of units of interest (if any);
-      --    * whether to process recursively the project tree.
-
-      Root_Project := new String'(+Args.String_Args (Opt_Project).Value);
-
-      for S_Var of Args.String_List_Args (Opt_Scenario_Var) loop
-         --  Get name and value from "-X<name>=<value>"
-
-         declare
-            Str                    : constant String := +S_Var;
-            Name_Last, Value_First : Natural;
-         begin
-            Name_Last := Str'First - 1;
-            while Name_Last < Str'Last
-              and then Str (Name_Last + 1) /= '='
-            loop
-               Name_Last := Name_Last + 1;
-            end loop;
-
-            Value_First := Name_Last + 2;
-
-            S_Variables.Include
-              (Str (Str'First .. Name_Last),
-               Str (Value_First .. Str'Last));
-         end;
-      end loop;
-
-      if Args.String_Args (Opt_Subdirs).Present then
-         Set_Subdirs (+Args.String_Args (Opt_Subdirs).Value);
-      end if;
-
-      if Args.Bool_Args (Opt_Externally_Built_Projects) then
-         Enable_Externally_Built_Projects_Processing;
-      end if;
-
-      --  If the project file does not define a target, loading it needs the
-      --  target information: load it here. Likewise for the runtime system.
-
-      Load_Target_Option (Default_Target => False);
-      Copy_Arg (Opt_Runtime, Runtime);
-
-      if Args.String_Args (Opt_Config).Present
-           and then
-         (Args.String_Args (Opt_Target).Present
-          or else Args.String_Args (Opt_Runtime).Present)
-      then
-         Fatal_Error ("--config cannot be used with --target and --RTS");
-      end if;
-      Copy_Arg (Opt_Config, CGPR_File);
-
-      --  Communicate to our project handling code the list of project files to
-      --  consider.
-
-      for Arg of Args.String_List_Args (Opt_Projects) loop
-         Project.Add_Project (+Arg);
-      end loop;
-
-      Switches.Recursive_Projects := not Args.Bool_Args (Opt_No_Subprojects);
-      Copy_Arg_List (Opt_Units, Units_Inputs);
-
-      --  All -X command line switches have now been processed: initialize the
-      --  project subsystem and load the root project.
-
-      Load_Root_Project
-        (Root_Project.all, Target_Family, Runtime, CGPR_File, Units_Inputs);
-
-      --  Get common and command-specific switches, decode them (if any) and
-      --  store the result in Project_Args, then merge it into Args.
-
-      declare
-         Common_Switches  : constant String_List_Access :=
-           Project.Switches ("*");
-         Command_Switches : constant String_List_Access :=
-           Project.Switches (Command_Name);
-      begin
-         if Common_Switches /= null then
-            Project_Args := Parse
-              (Common_Switches,
-               With_Command => Args.Command,
-               Callback     => Check_Allowed_Option'Access);
-         end if;
-
-         if Command_Switches /= null then
-            Merge
-              (Project_Args,
-               Parse
-                 (Command_Switches,
-                  With_Command => Args.Command,
-                  Callback     => Check_Allowed_Option'Access));
-         end if;
-
-         --  Project_Args have precedence over Args, so merge in Project_Args
-         --  first.
-
-         Merge (Project_Args, Args);
-         Args := Project_Args;
-      end;
-
-      --  Set default output directory, target and runtime from the project
-
-      if not Args.String_Args (Opt_Output_Directory).Present then
-         Args.String_Args (Opt_Output_Directory) :=
-           (Present => True, Value => +Project.Output_Dir);
-      end if;
-
-      if not Args.String_Args (Opt_Target).Present
-        and then Project.Target /= ""
-      then
-         Args.String_Args (Opt_Target) :=
-           (Present => True, Value => +Project.Target);
-      end if;
-
-      if not Args.String_Args (Opt_Runtime).Present
-         and then Project.Runtime /= ""
-      then
-         Args.String_Args (Opt_Runtime) :=
-           (Present => True, Value => +Project.Runtime);
-      end if;
-   end Load_Project_Arguments;
-
    -----------------------
    -- Process_Arguments --
    -----------------------
@@ -741,9 +437,6 @@ procedure GNATcov is
                & " behavior.");
       end if;
 
-      Load_Target_Option (Default_Target => True);
-      Copy_Arg (Opt_Runtime, Runtime);
-      Copy_Arg (Opt_Config, CGPR_File);
       Copy_Arg (Opt_Output, Output);
       Copy_Arg (Opt_Final_Report, Output);
       Copy_Arg (Opt_Tag, Tag);
@@ -884,13 +577,14 @@ procedure GNATcov is
       for Arg of Args.String_List_Args (Opt_Debug) loop
          for Char of Ada.Strings.Unbounded.To_String (Arg) loop
             declare
-               Switch : constant Switches.Debug_Type :=
-                  Debug_Switches_Map (Char);
+               use Command_Line_Support;
+
+               Switch : constant Debug_Type := Debug_Switches_Map (Char);
             begin
-               if Switch = Switches.None then
+               if Switch = None then
                   Fatal_Error ("Invalid debug switch: -d" & Char);
                else
-                  Switches.Debug_Switches (Switch) := True;
+                  Debug_Switches (Switch) := True;
                end if;
             end;
          end loop;
@@ -1290,47 +984,6 @@ procedure GNATcov is
       end if;
    end Create_Ignored_Source_Files_Matcher;
 
-   ------------------------
-   -- Load_Target_Option --
-   ------------------------
-
-   procedure Load_Target_Option (Default_Target : Boolean) is
-      Target_Arg  : String_Option renames Args.String_Args (Opt_Target);
-   begin
-      if not Default_Target and then not Target_Arg.Present then
-
-         --  We have no target information and we are asked not to use a
-         --  default one: do nothing.
-
-         return;
-      end if;
-
-      declare
-         Real_Target : constant String :=
-           (if Target_Arg.Present
-            then +Target_Arg.Value
-            else Standard'Target_Name);
-      begin
-         --  If we find a comma, then we have both a target family and a board
-         --  name.
-
-         for I in Real_Target'Range loop
-            if Real_Target (I) = ',' then
-               Target_Family := new String'
-                 (Real_Target (Real_Target'First .. I - 1));
-               Target_Board  := new String'
-                 (Real_Target (I + 1 .. Real_Target'Last));
-               return;
-            end if;
-         end loop;
-
-         --  Otherwise, it's just a family
-
-         Target_Family := new String'(Real_Target);
-         Target_Board := null;
-      end;
-   end Load_Target_Option;
-
    ----------------------
    -- Report_Bad_Trace --
    ----------------------
@@ -1372,17 +1025,11 @@ procedure GNATcov is
 --  Start of processing for GNATcov
 
 begin
-   --  Require at least one argument
 
-   if Ada.Command_Line.Argument_Count = 0 then
-      Print_Usage (Arg_Parser, False, False);
-      Normal_Exit;
-   end if;
+   --  Load arguments from command-line and from the project file (if any),
+   --  then update our local state according to them.
 
-   --  Load arguments from command-line and from the project file (if any)
-
-   Args := Parse (Command_Line_Args);
-   Load_Project_Arguments;
+   Parse_Arguments;
    Process_Arguments;
 
    if Verbose then

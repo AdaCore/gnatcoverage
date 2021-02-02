@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -20,7 +20,10 @@ with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Directories;
 with Ada.Exceptions;
 
-with GNAT.OS_Lib;      use GNAT.OS_Lib;
+with GNAT.OS_Lib; use GNAT.OS_Lib;
+
+with Command_Line;
+with Switches;
 
 package body Outputs is
 
@@ -68,6 +71,18 @@ package body Outputs is
       Error (Msg);
       raise Xcov_Exit_Exc;
    end Fatal_Error;
+
+   ----------------------------
+   -- Fatal_Error_With_Usage --
+   ----------------------------
+
+   procedure Fatal_Error_With_Usage (Msg : String) is
+   begin
+      Error (Msg);
+      Command_Line.Parser.Print_Usage
+        (Switches.Arg_Parser, False, True, Switches.Args.Command);
+      raise Xcov_Exit_Exc;
+   end Fatal_Error_With_Usage;
 
    ---------------------
    --  Get_Output_Dir --
