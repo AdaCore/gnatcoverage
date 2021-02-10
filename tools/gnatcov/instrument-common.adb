@@ -16,9 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Handling;
 with Ada.Characters.Conversions;
-with Ada.Strings.Wide_Wide_Unbounded;
+with Ada.Characters.Handling;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
@@ -37,10 +36,9 @@ with Hex_Images;
 with Outputs; use Outputs;
 with Project;
 with Switches;
+with SCOs;
 
 package body Instrument.Common is
-
-   use Ada.Strings.Unbounded, Libadalang.Analysis, Libadalang.Rewriting;
 
    function To_Compilation_Unit_Name
      (Unit_Name : String;
@@ -63,6 +61,10 @@ package body Instrument.Common is
    procedure Remove_Warnings_And_Style_Checks_Pragmas
      (Rewriter : Source_Rewriter);
    --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
+
+   function Str_To_Language (Language : String) return Language_Type;
+   --  Return the (supported) language represented by the string.
+   --  Raise a fatal error if the given language is not supported.
 
    -----------------------
    -- To_Qualified_Name --
@@ -111,7 +113,6 @@ package body Instrument.Common is
      (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
       return Ada_Qualified_Name
    is
-      use Ada.Strings.Wide_Wide_Unbounded;
       use Langkit_Support.Text;
    begin
       return Result : Ada_Qualified_Name do
@@ -431,10 +432,11 @@ package body Instrument.Common is
          Get_From_File (IC, Input_Filename);
    begin
       if Unit.Has_Diagnostics then
-         Error ("instrumentation failed for " & Input_Filename);
-         Error ("please make sure the original project can be compiled");
+         Outputs.Error ("instrumentation failed for " & Input_Filename);
+         Outputs.Error ("please make sure the original project can be "
+                          & "compiled");
          for D of Unit.Diagnostics loop
-            Error (Unit.Format_GNU_Diagnostic (D));
+            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
          end loop;
          raise Xcov_Exit_Exc;
       end if;
@@ -543,7 +545,6 @@ package body Instrument.Common is
       Remove_Warnings_And_Style_Checks_Pragmas (Self);
 
       declare
-         use Ada.Strings.Wide_Wide_Unbounded;
          use Ada.Strings.Wide_Wide_Unbounded.Aux;
 
          Unit   : constant Unit_Rewriting_Handle := Handle (Self.Unit);
@@ -853,6 +854,19 @@ package body Instrument.Common is
       return True;
    end Unit_Info;
 
+   ---------------------
+   -- Str_To_Language --
+   ---------------------
+
+   function Str_To_Language (Language : String) return Language_Type is
+      use Ada.Characters.Handling;
+   begin
+      if To_Lower (Language) = "ada" then
+         return Ada_Language;
+      end if;
+      Outputs.Fatal_Error ("Language " & Language & " is not supported");
+   end Str_To_Language;
+
    ---------------------------------
    -- Register_Main_To_Instrument --
    ---------------------------------
@@ -882,7 +896,8 @@ package body Instrument.Common is
          Mains.Append
            ((Unit     => CU_Name.Unit,
              File     => File,
-             Prj_Info => Prj_Info));
+             Prj_Info => Prj_Info,
+             Language => Str_To_Language (File_Info.Language)));
       end;
    end Register_Main_To_Instrument;
 
@@ -918,7 +933,8 @@ package body Instrument.Common is
                                 (+Source_File.File.Full_Name),
                   Prj_Info => Get_Or_Create_Project_Info (Context, Project),
                   Is_Main  => GNATCOLL.Projects.Is_Main_File
-                               (Project, Source_File.File.Base_Name));
+                                (Project, Source_File.File.Base_Name),
+                  Language => Str_To_Language (Source_File.Language));
          begin
             Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
          end;
@@ -985,6 +1001,31 @@ package body Instrument.Common is
          return No_CU_Id;
       end if;
    end Find_Instrumented_Unit;
+
+   ----------------
+   -- Append_SCO --
+   ----------------
+
+   procedure Append_SCO
+     (C1, C2             : Character;
+      From, To           : Source_Location;
+      Last               : Boolean;
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name)
+   is
+   begin
+      SCOs.SCO_Table.Append
+        ((From =>
+              (Line => Logical_Line_Number (From.Line),
+               Col  => Types.Column_Number (From.Column)),
+          To   =>
+              (Line => Logical_Line_Number (To.Line),
+               Col  => Types.Column_Number (To.Column)),
+          C1   => C1,
+          C2   => C2,
+          Last => Last,
+          Pragma_Sloc        => No_Location,
+          Pragma_Aspect_Name => Pragma_Aspect_Name));
+   end Append_SCO;
 
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GNATcov_RTS"));

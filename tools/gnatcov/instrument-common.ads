@@ -54,18 +54,25 @@ with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
-with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
+with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Libadalang.Analysis;
-with Libadalang.Rewriting;
+with Langkit_Support.Slocs; use Langkit_Support.Slocs;
+with Libadalang.Analysis;   use Libadalang.Analysis;
+with Libadalang.Rewriting;  use Libadalang.Rewriting;
 
+with ALI_Files;      use ALI_Files;
 with Checkpoints;
 with SC_Obligations; use SC_Obligations;
 with Text_Files;
+with Types;          use Types;
+with Strings;
+with GNATcov_RTS;    use GNATcov_RTS;
+with Namet;          use Namet;
 
 package Instrument.Common is
 
@@ -259,6 +266,8 @@ package Instrument.Common is
    --  Project_Info records. Project_Info records are owned by this map, and
    --  thus must be deallocated when maps are deallocated.
 
+   type Language_Type is (Ada_Language);
+
    type Main_To_Instrument is record
       Unit : Ada_Qualified_Name;
       --  Name of the main to instrument
@@ -269,6 +278,9 @@ package Instrument.Common is
       Prj_Info : Project_Info_Access;
       --  Reference to the Project_Info record corresponding to the project
       --  that owns the main to instrument.
+
+      Language : Language_Type;
+      --  Language for this main
    end record;
 
    package Main_To_Instrument_Vectors is new Ada.Containers.Vectors
@@ -284,6 +296,9 @@ package Instrument.Common is
 
       Is_Main : Boolean;
       --  Whether this unit is a main
+
+      Language : Language_Type;
+      --  Language for this unit
    end record;
 
    type Instrumented_Unit_Info_Access is access all Instrumented_Unit_Info;
@@ -405,10 +420,10 @@ package Instrument.Common is
       File : in out Text_Files.File_Type;
       Name : String);
    --  Shortcut to Text_Files.Create: create a text file with the given name in
-   --  IC.Output_Dir and register it in IC.Instr_Files.
+   --  Info.Output_Dir and register it in Info.Instr_Files.
    --
    --  Name can be a basename, a relative name or an absolute one: in all
-   --  cases, the basename is taken and the file is created in IC.Output_Dir.
+   --  cases, the basename is taken and the file is created in Info.Output_Dir.
 
    procedure Put_Warnings_And_Style_Checks_Pragmas
      (File : in out Text_Files.File_Type);
@@ -467,6 +482,190 @@ package Instrument.Common is
    procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed instrumented unit map from stream and merge them in
    --  current state.
+
+   ------------------------------------------------------
+   --  Common declarations for Ada / C instrumentation --
+   ------------------------------------------------------
+
+   --  All documentation below refer to "qualified names". This only makes
+   --  sense in Ada.
+   --  TODO??? Adjust the semantics when C instrumentation is implemented.
+
+   type Instrumentation_Entities is record
+      Common_Buffers : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the unit that contains coverage buffer types and
+      --  witness subprograms.
+
+      Unit_Buffers : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the unit that contains addresses to coverage
+      --  buffers (Pure_Buffer_Unit).
+
+      Statement_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the buffer corresponding to statement coverage
+      --  obligations.
+
+      Decision_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the buffer corresponding to decision coverage
+      --  obligations.
+
+      MCDC_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the buffer corresponding to paths in decision
+      --  BDDs.
+   end record;
+
+   -----------------------------
+   -- Bit allocation tracking --
+   -----------------------------
+
+   --  Bitmap information for statements:
+   --  One bit witnessing "statement executed"
+
+   type Statement_Bit_Ids is record
+      LL_S_SCO : Nat;
+      Executed : Bit_Id;
+   end record;
+
+   package LL_Statement_SCO_Bit_Allocs is
+      new Ada.Containers.Vectors (Nat, Statement_Bit_Ids);
+
+   --  Bitmap information for decisions:
+   --  One bit witnessing each outcome
+
+   type Outcome_Bit_Ids is array (Boolean) of Any_Bit_Id;
+   No_Outcome_Bit_Ids : constant Outcome_Bit_Ids := (others => No_Bit_Id);
+
+   type Decision_Bit_Ids is record
+      LL_D_SCO       : Nat;
+
+      Outcome_Bits   : Outcome_Bit_Ids := No_Outcome_Bit_Ids;
+      Path_Bits_Base : Any_Bit_Id := No_Bit_Id;
+   end record;
+
+   package LL_Decision_SCO_Bit_Allocs is
+     new Ada.Containers.Vectors (Nat, Decision_Bit_Ids);
+
+   type LL_Unit_Bit_Allocs is record
+      Statement_Bits     : LL_Statement_SCO_Bit_Allocs.Vector;
+      Last_Statement_Bit : Any_Bit_Id := No_Bit_Id;
+
+      Decision_Bits    : LL_Decision_SCO_Bit_Allocs.Vector;
+      Last_Outcome_Bit : Any_Bit_Id := No_Bit_Id;
+      Last_Path_Bit    : Any_Bit_Id := No_Bit_Id;
+   end record;
+
+   -----------------------------
+   -- Instrumentation context --
+   -----------------------------
+
+   --  This is the global state for the process of instrumenting a compilation
+   --  unit.
+
+   --  Decisions and conditions are not instrumented during the initial tree
+   --  traversal, but after high-level SCOs have been generated, because for
+   --  MC/DC instrumentation depends on BDD information.
+
+   type Source_Decision is record
+      LL_SCO : Nat;
+      --  Low-level SCO id of decision
+
+      Decision : Expr;
+      --  Decision expression
+
+      State : Unbounded_String;
+      --  Name of MC/DC state local variable
+   end record;
+
+   type Source_Condition is record
+      LL_SCO : Nat;
+      --  Low-level SCO id of condition
+
+      Condition : Expr;
+      --  Condition expression
+
+      State : Unbounded_String;
+      --  Name of MC/DC state local variable
+
+      First : Boolean;
+      --  True if this condition is the first one in its decision
+   end record;
+
+   package Source_Decision_Vectors is
+     new Ada.Containers.Vectors (Natural, Source_Decision);
+   package Source_Condition_Vectors is
+     new Ada.Containers.Vectors (Natural, Source_Condition);
+
+   type Annotation_Couple is record
+      Sloc       : Source_Location;
+      Annotation : ALI_Annotation;
+   end record;
+   --  When instrumenting sources, annotations are registred in two steps:
+   --
+   --  * collect couples of sloc/annotations during the tree traversal;
+   --  * once the CU_Id for the instrumented file is known, fill in the
+   --    Annotation.CU component and add the sloc/annotation couple to
+   --    ALI_Files.ALI_Annotation map.
+   --
+   --  This record type is just a helper to hold data between these two steps.
+
+   package Annotation_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Annotation_Couple);
+
+   type Unit_Inst_Context is tagged record
+      Instrumented_Unit : Compilation_Unit_Name;
+      --  Name of the compilation unit being instrumented
+
+      Language_Version_Pragma : Unbounded_Wide_Wide_String;
+      --  Language version configuration pragma for unit, if any
+
+      SFI : Source_File_Index := No_Source_File;
+      --  Source file index of the compilation unit being instrumented
+
+      CU : CU_Id := No_CU_Id;
+      --  SCO identifier of the compilation unit being instrumented
+
+      Buffer_Unit : Compilation_Unit_Name;
+      --  Name of the compilation unit that holds coverage buffers for the
+      --  unit currently being instrumented (see Common.Buffer_Unit).
+
+      Pure_Buffer_Unit : Compilation_Unit_Name;
+      --  Name of the compilation unit that holds addresses for the coverage
+      --  buffers of the unit being instrumented (see Common.Pure_Buffer_Unit).
+
+      Unit_Bits : LL_Unit_Bit_Allocs;
+      --  Record of allocation of coverage buffer bits for low-level SCOs
+
+      Source_Decisions  : Source_Decision_Vectors.Vector;
+      Source_Conditions : Source_Condition_Vectors.Vector;
+      --  Decisions and (for MC/DC) conditions to be instrumented
+
+      Entities : Instrumentation_Entities;
+      --  Bank of nodes to use during instrumentation
+
+      Annotations : Annotation_Vectors.Vector;
+      --  Annotations created during the instrumentation process, to insert in
+      --  ALI_Files.ALI_Annotations afterwards, when the compilation unit
+      --  (SC_Obligations.CU_Info) for this annotation is ready.
+   end record;
+
+   function Img (Bit : Any_Bit_Id) return String is
+     (Strings.Img (Integer (Bit)));
+
+   Runtime_Version_Check : constant String :=
+     "pragma Compile_Time_Error (GNATcov_RTS.Version /="
+     & GNATcov_RTS.Version'Image
+     & ",""Incompatible GNATcov_RTS version, please use"
+     & " the GNATcov_RTS project provided with your"
+     & " GNATcoverage distribution."");";
+   --  Check to be inserted in Ada units generated by the instrumenter to
+   --  verify that they are built with the version of GNATcov_RTS the
+   --  instrumenter expects.
+
+   procedure Append_SCO
+     (C1, C2             : Character;
+      From, To           : Source_Location;
+      Last               : Boolean;
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name);
+   --  Append a new entry to the low-level SCO table
 
 private
 

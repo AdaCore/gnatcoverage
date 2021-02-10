@@ -377,7 +377,10 @@ package body Coverage.Source is
    --  Start of processing for Compute_Unit_Name_For_Ignored_Sources
 
    begin
-      Enumerate_Ada_Sources (Callback'Access, Include_Subunits => True);
+      Enumerate_Sources
+        (Callback'Access,
+         Include_Subunits => True,
+         Language         => "ada");
    end Compute_Unit_Name_For_Ignored_Sources;
 
    -------------------------

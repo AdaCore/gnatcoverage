@@ -380,7 +380,6 @@ package body Project is
                   begin
                      --  Register only units in supported languages (Ada and
                      --  C), and don't consider subunits as independent units.
-
                      if To_Lower (Info.Language) in "ada" | "c"
                        and then (Include_Subunits
                                  or else Info.Unit_Part /= Unit_Separate)
@@ -545,14 +544,15 @@ package body Project is
       return Are_SIDs_Enumerated;
    end SIDs_Enumerated;
 
-   ---------------------------
-   -- Enumerate_Ada_Sources --
-   ---------------------------
+   -----------------------
+   -- Enumerate_Sources --
+   -----------------------
 
-   procedure Enumerate_Ada_Sources
+   procedure Enumerate_Sources
      (Callback         : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
+      Language         : String;
       Include_Subunits : Boolean := False)
    is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
@@ -565,7 +565,7 @@ package body Project is
 
       procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
       begin
-         if To_Lower (Info.Language) = "ada"
+         if To_Lower (Info.Language) = To_Lower (Language)
            and then
              (Include_Subunits
               or else Unit_Map.Contains (To_Lower (Unit_Name)))
@@ -584,7 +584,7 @@ package body Project is
             Recursive        => False,
             Include_Subunits => Include_Subunits);
       end loop;
-   end Enumerate_Ada_Sources;
+   end Enumerate_Sources;
 
    ----------------------
    -- Find_Source_File --
