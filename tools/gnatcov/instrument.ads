@@ -57,7 +57,7 @@ package Instrument is
 
       case Channel is
          when Binary_File =>
-            Filename_Simple : Boolean;
+            Filename_Simple : Boolean := False;
             --  Whether to generate source traces with simple filenames.
             --
             --  Controlled by --dump-filename-simple.
