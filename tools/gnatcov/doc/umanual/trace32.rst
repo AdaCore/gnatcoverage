@@ -59,7 +59,9 @@ Exporting the Trace Data
 ========================
 
 Once the program reached the termination breakpoint, the trace data can be
-exported using the ``Trace.export.BranchFlow <filename>``.
+exported using the ``Trace.export.BranchFlow <filename> /NOSYMBOL /CALLER``
+command. The last two options are required to produce a trace file in a
+format that |gcvcnv| can translate.
 
 The BranchFlow trace should then be converted to |gcp| format using |gcvcnv|
 command (see :ref:`gnatcov_convert-commandline`).
