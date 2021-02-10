@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -57,7 +57,7 @@ package Instrument is
 
       case Channel is
          when Binary_File =>
-            Filename_Simple : Boolean;
+            Filename_Simple : Boolean := False;
             --  Whether to generate source traces with simple filenames.
             --
             --  Controlled by --dump-filename-simple.

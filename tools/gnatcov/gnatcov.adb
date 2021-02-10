@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -1455,7 +1455,7 @@ begin
             Language_Version_Opt : String_Option renames
                Args.String_Args (Opt_Ada);
 
-            Dump_Config      : Any_Dump_Config;
+            Dump_Config      : Any_Dump_Config := (others => <>);
             Language_Version : Any_Language_Version := Ada_2012;
          begin
             Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
