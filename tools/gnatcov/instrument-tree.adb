@@ -1929,8 +1929,17 @@ package body Instrument.Tree is
                              when Expression_Function | None =>
                                     raise Program_Error)));
 
-                  Insert_Info.Rewriting_Offset :=
-                    Insert_Info.Rewriting_Offset + 1;
+                  --  Update the rewriting offset iff we inserted an element in
+                  --  the current rewriting list: that offset specifically
+                  --  refers to that list, whereas we may have inserted an item
+                  --  in a nested list, in which case we will adjust
+                  --  automatically the rewriting offset accordingly when
+                  --  processing that list.
+
+                  if Insert_Info.RH_List = Insert_List then
+                     Insert_Info.Rewriting_Offset :=
+                       Insert_Info.Rewriting_Offset + 1;
+                  end if;
                end if;
 
             when Expression_Function =>
