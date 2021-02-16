@@ -2892,19 +2892,23 @@ package body Traces_Elf is
            and then (Shdr.Sh_Type = SHT_PROGBITS)
            and then Shdr.Sh_Size > 0
          then
-            Addr := Pc_Type (Shdr.Sh_Addr + Offset);
-            Last := Pc_Type (Shdr.Sh_Addr + Offset + Shdr.Sh_Size - 1);
-
             if Do_Reloc then
-               --  Relocate the sections, so that they won't overlap.
-               --  This is when the executable is a partially linked
-               --  with section per function binary (such as VxWorks DKM).
-               --
-               --  Note that section are not slided by Exe_Text_Start ???
-               Shdr.Sh_Addr := Shdr.Sh_Addr + Offset;
-               Offset := (Last + Shdr.Sh_Addralign - 1)
+               --  Relocate the current section, making sure we respect its
+               --  alignment constraint.
+
+               Offset := (Offset + Shdr.Sh_Addralign - 1)
                  and not (Shdr.Sh_Addralign - 1);
+
+               Shdr.Sh_Addr := Shdr.Sh_Addr + Offset;
+
+               --  Adjust offset so that the next section is relocated after
+               --  the current one.
+
+               Offset := Offset + Shdr.Sh_Size;
             end if;
+
+            Addr := Pc_Type (Shdr.Sh_Addr);
+            Last := Pc_Type (Shdr.Sh_Addr + Shdr.Sh_Size - 1);
 
             Insert_With_Top_Level_Update
               (Exec.Desc_Sets (Section_Addresses),
