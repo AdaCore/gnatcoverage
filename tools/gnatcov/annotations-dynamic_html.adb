@@ -27,6 +27,8 @@ pragma Warnings (On, "* is an internal GNAT unit");
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
+with GNAT.Regpat; use GNAT.Regpat;
+
 with Annotations.Html;
 with Hex_Images;
 with Interfaces;
@@ -224,13 +226,6 @@ package body Annotations.Dynamic_Html is
       New_Line : Boolean := True)
    with Pre => Ada.Text_IO.Is_Open (Output);
    --  Write Item (JSON value) into Output
-
-   procedure I
-     (Filename : String;
-      Indent   : Natural := 0;
-      Output   : Ada.Text_IO.File_Type)
-   with Pre => Ada.Text_IO.Is_Open (Output);
-   --  Inline the content of Filename into Output
 
    ----------------------
    -- Internal Helpers --
@@ -779,44 +774,6 @@ package body Annotations.Dynamic_Html is
       New_Line (File => Output);
    end NL;
 
-   -------
-   -- I --
-   -------
-
-   procedure I
-     (Filename : String;
-      Indent   : Natural := 0;
-      Output   : Ada.Text_IO.File_Type)
-   is
-      use Ada.Text_IO;
-
-      Input : File_Type;
-      Space : constant String (1 .. Indent) := (others => ' ');
-
-   begin
-      Open (File => Input, Mode => In_File, Name => Filename);
-
-      while not End_Of_File (Input) loop
-         declare
-            Line : constant String := Get_Line (Input);
-         begin
-            W (Space & Line, Output => Output);
-         end;
-      end loop;
-
-      Close (Input);
-
-   exception
-      when Ex : others =>
-         if Is_Open (Input) then
-            Close (Input);
-         end if;
-
-         Outputs.Fatal_Error
-           ("inlining failed: " & Filename & ": " &
-            Exception_Information (Ex));
-   end I;
-
    --------------------
    -- Set_SCO_Fields --
    --------------------
@@ -890,216 +847,173 @@ package body Annotations.Dynamic_Html is
       --  and closing this file. It is declared here for praticality of use of
       --  helper functions in Write_Report (see definitions below).
 
-      --  Wrappers to simplify code to write to HTML
-      procedure W (Item : String; New_Line : Boolean := True);
-      procedure I (Filename : String; Indent : Natural := 0);
+      --  Report production involves serializing the Report JSON object.
+      --  On the one hand, we want to emit a compact output (no extra line
+      --  breaks and indentation) to avoid output bloat, but on the other
+      --  hand, producing a huge output line is known to create trouble in
+      --  tools processing the HTML output.
+      --
+      --  We adopt a compromise here: we know that huge output lines in the
+      --  compact form are due to "sources" and "traces" array attributes in
+      --  the Report object, so we specifically emit one item per line for
+      --  Report attributes that are arrays, and use the compact formatting
+      --  for all other attributes.
 
-      procedure Write_Report (Filename : String);
-      --  Dump the HTML report.
+      First_JSON_Item : Boolean := True;
+      --  Whether Write_JSON_Item has not been called yet
 
-      -------
-      -- W --
-      -------
+      procedure Write_JSON_Item (Name : UTF8_String; Value : JSON_Value);
+      --  Callback for Map_JSON_Object: called to output an attribute pair
+      --  for the Report JSON object.
 
-      procedure W (Item : String; New_Line : Boolean := True) is
+      procedure Copy_And_Fix_Asset (Directory_Entry : Directory_Entry_Type);
+      --  Copy the given file to the output directory. For the index.html file,
+      --  patch the HTML title according to the --report-title option.
+
+      procedure Replace_Line_In_File
+        (In_Filename  : String;
+         Out_Filename : String;
+         Pattern      : String;
+         Replacement  : String);
+      --  Write the content of In_Filename to Out_Filename and replace all the
+      --  lines containing Pattern in In_Filename by Replacement in
+      --  Out_Filename.
+
+      ---------------------
+      -- Write_JSON_Item --
+      ---------------------
+
+      procedure Write_JSON_Item (Name : UTF8_String; Value : JSON_Value) is
       begin
-         W (Item, HTML, New_Line);
-      end W;
+         if First_JSON_Item then
+            First_JSON_Item := False;
+            NL (JS_Report);
+         else
+            W (",", JS_Report);
+         end if;
 
-      -------
-      -- I --
-      -------
+         --  Output the attribute name
 
-      procedure I (Filename : String; Indent : Natural := 0) is
+         W ("""" & Name & """: ", JS_Report, New_Line => False);
+
+         --  Then output the attribute value. If the attribute is an array,
+         --  output one array item per line to avoid too long lines,
+         --  otherwise use the regular JSON serialization function.
+
+         if Value.Kind = JSON_Array_Type then
+            declare
+               Items : constant JSON_Array := Value.Get;
+            begin
+               W ("[", JS_Report, New_Line => False);
+               for J in 1 .. Length (Items) loop
+                  if J > 1 then
+                     W (",", JS_Report);
+                  end if;
+                  W (Get (Items, J), JS_Report, New_Line => False);
+               end loop;
+               W ("]", JS_Report, New_Line => False);
+            end;
+         else
+            W (Value, JS_Report, New_Line => False);
+         end if;
+      end Write_JSON_Item;
+
+      ------------------------
+      -- Copy_And_Fix_Asset --
+      ------------------------
+
+      procedure Copy_And_Fix_Asset (Directory_Entry : Directory_Entry_Type)
+      is
       begin
-         I (Filename, Indent, HTML);
-      end I;
+         if Kind (Directory_Entry) = Ordinary_File then
+            declare
+               Source_Name : constant String := Full_Name (Directory_Entry);
+               Target_Name : constant String :=
+                 Get_Output_Dir & "/" & Simple_Name (Directory_Entry);
+            begin
+               --  Consider the --report-title option that can change the title
+               --  of the HTML generated page.
 
-      ------------------
-      -- Write_Report --
-      ------------------
+               if Simple_Name (Directory_Entry) = "index.html" then
+                  Replace_Line_In_File
+                    (In_Filename  => Source_Name,
+                     Out_Filename => Target_Name,
+                     Pattern      => "<title>.*</title>",
+                     Replacement  => "  <title>" & To_String (Pp.Title_Prefix)
+                                     & "GNATcoverage Report</title>");
+               else
+                  Copy_File (Source_Name, Target_Name);
+               end if;
+            end;
+         end if;
+      end Copy_And_Fix_Asset;
 
-      procedure Write_Report (Filename : String) is
+      --------------------------
+      -- Replace_Line_In_File --
+      --------------------------
 
-         --  Report production involves serializing the Report JSON object.
-         --  On the one hand, we want to emit a compact output (no extra line
-         --  breaks and indentation) to avoid output bloat, but on the other
-         --  hand, producing a huge output line is known to create trouble in
-         --  tools processing the HTML output.
-         --
-         --  We adopt a compromise here: we know that huge output lines in the
-         --  compact form are due to "sources" and "traces" array attributes in
-         --  the Report object, so we specifically emit one item per line for
-         --  Report attributes that are arrays, and use the compact formatting
-         --  for all other attributes.
-
-         First_JSON_Item : Boolean := True;
-         --  Whether Write_JSON_Item has not been called yet
-
-         procedure Write_JSON_Item (Name : UTF8_String; Value : JSON_Value);
-         --  Callback for Map_JSON_Object: called to output an attribute pair
-         --  for the Report JSON object.
-
-         procedure Inline_JS (Directory_Entry : Directory_Entry_Type);
-         --  Inline a JS file in the HTML file
-
-         procedure Inline_CSS (Directory_Entry : Directory_Entry_Type);
-         --  Inline a CSS file in the HTML file
-
-         procedure Copy_In_Output_Dir (Directory_Entry : Directory_Entry_Type);
-         --  Copy a denominated file in the output directory
-
-         ---------------------
-         -- Write_JSON_Item --
-         ---------------------
-
-         procedure Write_JSON_Item (Name : UTF8_String; Value : JSON_Value) is
-         begin
-            if First_JSON_Item then
-               First_JSON_Item := False;
-               NL (JS_Report);
-            else
-               W (",", JS_Report);
-            end if;
-
-            --  Output the attribute name
-
-            W ("""" & Name & """: ", JS_Report, New_Line => False);
-
-            --  Then output the attribute value. If the attribute is an array,
-            --  output one array item per line to avoid too long lines,
-            --  otherwise use the regular JSON serialization function.
-
-            if Value.Kind = JSON_Array_Type then
-               declare
-                  Items : constant JSON_Array := Value.Get;
-               begin
-                  W ("[", JS_Report, New_Line => False);
-                  for J in 1 .. Length (Items) loop
-                     if J > 1 then
-                        W (",", JS_Report);
-                     end if;
-                     W (Get (Items, J), JS_Report, New_Line => False);
-                  end loop;
-                  W ("]", JS_Report, New_Line => False);
-               end;
-            else
-               W (Value, JS_Report, New_Line => False);
-            end if;
-         end Write_JSON_Item;
-
-         ---------------
-         -- Inline_JS --
-         ---------------
-
-         procedure Inline_JS (Directory_Entry : Directory_Entry_Type) is
-         begin
-            Put_Line (Full_Name (Directory_Entry));
-            W ("  <script>");
-            I (Full_Name (Directory_Entry), Indent => 3);
-            W ("  </script>");
-         end Inline_JS;
-
-         ----------------
-         -- Inline_CSS --
-         ----------------
-
-         procedure Inline_CSS (Directory_Entry : Directory_Entry_Type) is
-         begin
-            W ("  <style>");
-            I (Full_Name (Directory_Entry), Indent => 3);
-            W ("  </style>");
-         end Inline_CSS;
-
-         ------------------------
-         -- Copy_In_Output_Dir --
-         ------------------------
-
-         procedure Copy_In_Output_Dir (Directory_Entry : Directory_Entry_Type)
-         is
-         begin
-            Copy_File (Source_Name => Full_Name (Directory_Entry),
-                       Target_Name => Get_Output_Dir & "/"
-                                      & Simple_Name (Directory_Entry));
-         end Copy_In_Output_Dir;
-
+      procedure Replace_Line_In_File
+        (In_Filename  : String;
+         Out_Filename : String;
+         Pattern      : String;
+         Replacement  : String)
+      is
+         RE          : constant Pattern_Matcher := Compile (Pattern);
+         Matches     : Match_Array (0 .. 0);
+         Input_File  : File_Type;
+         Output_File : File_Type;
       begin
-         --  Populate the output directory with the needed assets
+         Open (File => Input_File,
+               Mode => In_File,
+               Name => In_Filename);
+         Create (File => Output_File,
+                 Mode => Out_File,
+                 Name => Out_Filename);
 
-         Search (Directory => GNATquilt_Dir,
-                 Pattern   => "MaterialIcons-Regular*",
-                 Process   => Copy_In_Output_Dir'Access);
+         while not End_Of_File (Input_File) loop
+            declare
+               Line : constant String := Get_Line (Input_File);
+            begin
+               Match (RE, Line, Matches);
+               if Matches (0) = No_Match then
+                  Put_Line (Output_File, Line);
+               else
+                  Put_Line (Output_File, Replacement);
+               end if;
+            end;
+         end loop;
 
-         Create_Output_File (JS_Report, "report.js");
-         W ("var REPORT = {};", JS_Report);
-         W ("REPORT [""report.js""] = {", JS_Report);
-         Report.Map_JSON_Object (Write_JSON_Item'Access);
-         W ("}", JS_Report);
-
-         Close (JS_Report);
-
-         Create_Output_File (HTML, Filename);
-
-         W ("<!doctype html>");
-         W ("<html>");
-         W (" <head>");
-         W ("  <meta charset=""utf-8"">");
-         W ("<title>Gnatquilt</title>");
-         W ("<script>document.write(""<base href='""" &
-            "+window.location.href+""'/>"") </script>");
-         W ("<meta name=""viewport""" &
-              "content=""width=device-width, initial-scale=1"">");
-         Search (Directory => GNATquilt_Dir,
-                 Pattern   => "*.css",
-                 Process   => Inline_CSS'Access);
-         W ("  </style>");
-         W (" </head>");
-         W (" <body>");
-         W ("  <noscript>");
-         W ("   <div class=""gnatcov-noscript"">");
-         W ("    Your web browser must have JavaScript enabled");
-         W ("    in order for this report to display correctly.");
-         W ("   </div>");
-         W ("  </noscript>");
-         W ("<app-root></app-root>");
-
-         --  In order to properly setup Angular, its sources must be loaded in
-         --  the following order:
-         --  runtime*.js -> polyfills*.js -> main*.js
-         --
-         --  Cannot specify exact name of JS files as they change every time
-         --  the Angular application is rebuilt.
-
-         Search (Directory => GNATquilt_Dir,
-                 Pattern   => "runtime*.js",
-                 Process   => Inline_JS'Access);
-         Search (Directory => GNATquilt_Dir,
-                 Pattern   => "polyfills*.js",
-                 Process   => Inline_JS'Access);
-         Search (Directory => GNATquilt_Dir,
-                 Pattern   => "main*.js",
-                 Process   => Inline_JS'Access);
-         W (" </body>");
-         W ("</html>");
-         Close (HTML);
-
-      exception
-         when Ex : others =>
-            if Is_Open (JS_Report) then
-               Close (JS_Report);
-            end if;
-
-            if Is_Open (HTML) then
-               Close (HTML);
-            end if;
-
-            Fatal_Error
-              ("report generation failed: " & Exception_Information (Ex));
-
-      end Write_Report;
+         Close (Input_File);
+         Close (Output_File);
+      end Replace_Line_In_File;
 
    begin
-      Write_Report ("index.html");
+      Create_Output_File (JS_Report, "report.js");
+      W ("var REPORT = {};", JS_Report);
+      W ("REPORT [""report.js""] = {", JS_Report);
+      Report.Map_JSON_Object (Write_JSON_Item'Access);
+      W ("}", JS_Report);
+      Close (JS_Report);
+
+      --  Populate the output directory with the needed assets
+
+      Search (Directory => GNATquilt_Dir,
+              Pattern   => "*",
+              Process   => Copy_And_Fix_Asset'Access);
+
+   exception
+      when Ex : others =>
+         if Is_Open (JS_Report) then
+            Close (JS_Report);
+         end if;
+
+         if Is_Open (HTML) then
+            Close (HTML);
+         end if;
+
+         Fatal_Error
+           ("report generation failed: " & Exception_Information (Ex));
+
    end Write_Full_Report;
 
 end Annotations.Dynamic_Html;
