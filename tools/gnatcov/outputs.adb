@@ -23,6 +23,7 @@ with Ada.Exceptions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Command_Line;
+with Support_Files;
 with Switches;
 
 package body Outputs is
@@ -58,7 +59,7 @@ package body Outputs is
 
    procedure Error (Msg : String) is
    begin
-      Warning_Or_Error (Command_Name & ": " & Msg);
+      Warning_Or_Error (Support_Files.Gnatcov_Command_Name & ": " & Msg);
       Set_Exit_Status (Failure);
    end Error;
 

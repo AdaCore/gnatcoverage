@@ -95,9 +95,21 @@ begin
       end loop;
 
       GNAT.OS_Lib.Spawn (Exec_Filename, Args, Success);
+
       if not Success then
-         Put_Line ("Could not spawn " & Exec_Filename & ": aborting");
          Set_Exit_Status (Failure);
+
+         --  Spawn's Success argument does not allow us to distinguish between
+         --  "spawning the subprocess failed" (for instance: no such
+         --  executable) and "we could run the executable, yet the subprocess
+         --  exitted with an error". To avoid overly verbose output in the
+         --  latter case (the bits-specific entry point is already supposed to
+         --  print an explicit error message), restrict the following message
+         --  to the verbose mode.
+
+         if not Success then
+            Put_Line ("Could not spawn " & Exec_Filename & ": aborting");
+         end if;
       end if;
    end;
 exception

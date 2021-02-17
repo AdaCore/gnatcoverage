@@ -44,6 +44,7 @@ with Outputs;      use Outputs;
 with Qemu_Traces;
 with SC_Obligations;
 with Strings;
+with Support_Files;
 with Switches;
 with Traces;       use Traces;
 with Traces_Dbase;
@@ -1636,7 +1637,7 @@ package body CFG_Dump is
 
    begin
       Put_Line (F, "// This CFG was generated with the following command:");
-      Put (F, "// " & Ada.Command_Line.Command_Name);
+      Put (F, "// " & Support_Files.Gnatcov_Command_Name);
       for I in 1 .. Ada.Command_Line.Argument_Count loop
          Put (F, " " & Ada.Command_Line.Argument (I));
       end loop;

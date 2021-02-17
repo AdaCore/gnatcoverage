@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line;
 with Ada.Containers;
 with Ada.Containers.Generic_Array_Sort;
 with Ada.Containers.Hashed_Maps;
@@ -27,6 +26,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Outputs;
+with Support_Files;
 
 package body Argparse is
 
@@ -395,12 +395,12 @@ package body Argparse is
          --  Describe commands first, or one command if asked so
 
          Put_Line
-           ("Usage: " & Ada.Command_Line.Command_Name
+           ("Usage: " & Support_Files.Gnatcov_Command_Name
             & " ACTION [OPTIONS ...]");
 
          if Short then
             Put_Line
-              ("Run '" & Ada.Command_Line.Command_Name
+              ("Run '" & Support_Files.Gnatcov_Command_Name
                & " --help' for more information.");
             return;
          end if;
@@ -426,13 +426,13 @@ package body Argparse is
             Info : Command_Info renames
                Parser.Data.Command_Infos (For_Command);
          begin
-            Put_Wrapped ("Usage: " & Ada.Command_Line.Command_Name & " "
+            Put_Wrapped ("Usage: " & Support_Files.Gnatcov_Command_Name & " "
                          & (+Info.Name) & " " & (+Info.Pattern), 0, 4);
 
             if Short then
                Put_Line
-                 ("Run '" & Ada.Command_Line.Command_Name & " " & (+Info.Name)
-                  & " --help' for more information.");
+                 ("Run '" & Support_Files.Gnatcov_Command_Name & " "
+                  & (+Info.Name) & " --help' for more information.");
                return;
             end if;
 
