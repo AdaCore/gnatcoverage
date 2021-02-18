@@ -3840,14 +3840,21 @@ package body Traces_Elf is
                      Sym := new Address_Info'
                        (Kind        => Symbol_Addresses,
                         First       => Sec.First + Pc_Type (S.E_Value),
-                        Last        => Sec.First + Pc_Type (S.E_Value + 1),
+                        Last        => Sec.First + Pc_Type (S.E_Value),
+                        Top_Level   => True,
                         Parent      => Sec,
                         Symbol_Name => new String'
                         (Get_Symbol_Name (Exec.PE_File, S)),
                         others      => <>);
 
-                     Insert_With_Top_Level_Update
-                       (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
+                     --  Address_Info ranges are built "artificially" so that
+                     --  all symbols are contiguous. There is no need to keep
+                     --  track of which one is top level or not since they all
+                     --  are, and the "Tree condition" is automatically
+                     --  respected because the setting of ranges in the
+                     --  following loop ensures that no symbols overlap.
+
+                     Exec.Desc_Sets (Symbol_Addresses).Insert (Sym, Cur, Ok);
                   end if;
 
                end if;
