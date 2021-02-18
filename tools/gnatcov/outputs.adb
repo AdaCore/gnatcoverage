@@ -16,21 +16,69 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Characters.Handling;
+with Ada.Command_Line;          use Ada.Command_Line;
 with Ada.Directories;
-with Ada.Exceptions;
+with Ada.Environment_Variables; use Ada.Environment_Variables;
+with Ada.Exceptions;            use Ada.Exceptions;
+with Ada.Strings.Unbounded;     use Ada.Strings.Unbounded;
 
+with GNAT.Exception_Actions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
+
+with Langkit_Support.Slocs; use Langkit_Support.Slocs;
 
 with Command_Line;
 with Support_Files;
+with Strings; use Strings;
 with Switches;
+with Version;
 
 package body Outputs is
 
-   Report_Output_Dir : String_Access := null;
+   Report_Output_Dir : GNAT.OS_Lib.String_Access := null;
    --  Name of the output directory. The reports will be generated
    --  in this directory.
+
+   --------------------------------------------------------
+   -- Saved information to contexualize internal crashes --
+   --------------------------------------------------------
+
+   --  The following data structures keep track of the "context" information to
+   --  provide to users in case of internal error. The goal is to maintain
+   --  relevant information that the Print_Internal_Error procedure knows what
+   --  gnatcov was doing when a crash occurs.
+   --
+   --  For convenience, we maintain a stack of context information: each time
+   --  gnatcov starts something new, we push info, and each time it ends, we
+   --  pop that information. This nicely maps to gnatcov's recursive
+   --  processings.
+   --
+   --  To avoid constantly deallocating/reallocating data structures, we have
+   --  two stacks: one that contains the currently active stack of context
+   --  information, and another one of free'd entries, available for the next
+   --  context entry to push.
+
+   type Context_Entry;
+   type Context_Entry_Access is access Context_Entry;
+   type Context_Entry is record
+      Info : Unbounded_String;
+      Next : Context_Entry_Access;
+   end record;
+
+   Current_Context : Context_Entry_Access;
+   --  Access to the current context information (that Print_Internal_Error
+   --  must process), or null if there is no context for now.
+   --  Current_Context.Next refers to the context that was active when
+   --  Current_Context was pushed.
+
+   Freed_Context : Context_Entry_Access;
+   --  Linked list (through Context_Entry.Next) of already allocated and
+   --  available Context_Entry records.
+
+   procedure Print_Internal_Error (Exc : Ada.Exceptions.Exception_Occurrence);
+   --  Display the given internal error along with the known context (see the
+   --  previous procedures).
 
    -------------------------
    --  Create_Output_File --
@@ -49,7 +97,7 @@ package body Outputs is
    exception
       when E : Name_Error =>
          Error ("failed to create output file " & Full_Path_Name & ":");
-         Error (Ada.Exceptions.Exception_Information (E));
+         Error (Exception_Information (E));
          raise;
    end Create_Output_File;
 
@@ -108,6 +156,124 @@ package body Outputs is
       raise Xcov_Exit_Exc;
    end Normal_Exit;
 
+   --------------------
+   -- Create_Context --
+   --------------------
+
+   function Create_Context (Message : String) return Context_Handle is
+      Ctx : Context_Entry_Access;
+   begin
+      --  Allocate a Context_Entry record, or use an already allocated one that
+      --  is free.
+
+      if Freed_Context = null then
+         Ctx := new Context_Entry;
+      else
+         Ctx := Freed_Context;
+         Freed_Context := Ctx.Next;
+      end if;
+
+      --  Properly fill it and put it on the current contexts stack
+
+      Set_Unbounded_String (Ctx.Info, Message);
+      Ctx.Next := Current_Context;
+      Current_Context := Ctx;
+
+      return (Ada.Finalization.Limited_Controlled with null record);
+   end Create_Context;
+
+   -------------------------------
+   -- Create_Context_Instrument --
+   -------------------------------
+
+   function Create_Context_Instrument
+     (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle is
+   begin
+      return Create_Context
+        ("Instrumenting " & N.Kind_Name
+         & " at " & N.Unit.Get_Filename & ":" & Image (N.Sloc_Range));
+   end Create_Context_Instrument;
+
+   --------------------------
+   -- Print_Internal_Error --
+   --------------------------
+
+   procedure Print_Internal_Error (Exc : Ada.Exceptions.Exception_Occurrence)
+   is
+   begin
+      New_Line;
+      Put_Line ("== gnatcov bug detected ==");
+      New_Line;
+      Put_Line ("gnatcov just encountered an internal error:");
+      Put_Line (Exception_Information (Exc));
+      New_Line;
+      if Current_Context = null then
+         Put_Line ("No coverage processing context information available.");
+      else
+         Put_Line (+Current_Context.Info);
+      end if;
+      New_Line;
+      Put_Line ("This is gnatcov version " & Version.Xcov_Version);
+   end Print_Internal_Error;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   overriding procedure Finalize (Dummy : in out Context_Handle) is
+
+      --  Pop the Current_Context stack and push the pop'ed item to
+      --  Freed_Context.
+
+      Ctx : constant Context_Entry_Access := Current_Context;
+   begin
+      Current_Context := Ctx.Next;
+      Ctx.Next := Freed_Context;
+      Freed_Context := Ctx;
+   end Finalize;
+
+   ------------------------------
+   -- String_To_Internal_Error --
+   ------------------------------
+
+   function String_To_Internal_Error
+     (Name : String) return Any_Internal_Error_Trigger is
+   begin
+      --  Look for an enumeration value whose lower-case-with-dashes name
+      --  matches Name.
+
+      for Trigger in Any_Internal_Error_Trigger'Range loop
+         declare
+            Trigger_Name : String :=
+              Ada.Characters.Handling.To_Lower (Trigger'Image);
+         begin
+            for C of Trigger_Name loop
+               if C = '_' then
+                  C := '-';
+               end if;
+            end loop;
+
+            if Name = Trigger_Name then
+               return Trigger;
+            end if;
+         end;
+      end loop;
+
+      raise Constraint_Error with "no such internal error trigger: " & Name;
+   end String_To_Internal_Error;
+
+   -----------------------------------
+   -- Raise_Stub_Internal_Error_For --
+   -----------------------------------
+
+   procedure Raise_Stub_Internal_Error_For
+     (Trigger : Any_Internal_Error_Trigger) is
+   begin
+      if Internal_Error_Trigger = Trigger then
+         raise Constraint_Error with Trigger'Image;
+      end if;
+   end Raise_Stub_Internal_Error_For;
+
    ------------------------
    -- Output_Dir_Defined --
    ------------------------
@@ -130,8 +296,7 @@ package body Outputs is
             when Exc : Name_Error | Use_Error =>
                Fatal_Error
                  ("cannot create output path "
-                  & Output_Dir
-                  & ": " & Ada.Exceptions.Exception_Message (Exc));
+                  & Output_Dir & ": " & Exception_Message (Exc));
          end;
       end if;
 
@@ -156,4 +321,9 @@ package body Outputs is
       Put_Line (Standard_Error, Msg);
    end Warning_Or_Error;
 
+begin
+   Internal_Error_Trigger := String_To_Internal_Error
+     (Value ("GNATCOV_INTERNAL_ERROR_TRIGGER", "none"));
+   GNAT.Exception_Actions.Register_Global_Unhandled_Action
+     (Print_Internal_Error'Access);
 end Outputs;

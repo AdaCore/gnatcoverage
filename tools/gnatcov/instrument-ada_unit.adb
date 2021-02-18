@@ -2287,6 +2287,10 @@ package body Instrument.Ada_Unit is
             Insert_Info : Insertion_Info_Access := UIC.Current_Insertion_Info;
 
          begin
+            --  Create an artificial internal error, if requested
+
+            Raise_Stub_Internal_Error_For (Ada_Instrument_Insert_Stmt_Witness);
+
             --  Allocate a bit in the statement coverage buffer, and record
             --  its id in the bitmap.
 
@@ -2532,7 +2536,10 @@ package body Instrument.Ada_Unit is
             end if;
 
             declare
-               SCE                : SC_Entry renames SC.Table (J);
+               SCE       : SC_Entry renames SC.Table (J);
+               Dummy_Ctx : constant Context_Handle :=
+                 Create_Context_Instrument (SCE.N);
+
                Is_Pragma          : constant Boolean :=
                  SCE.N.Kind = Ada_Pragma_Node;
                Pragma_Aspect_Name : constant Name_Id :=
@@ -2794,8 +2801,12 @@ package body Instrument.Ada_Unit is
                Witness_Formal => No_Node_Rewriting_Handle);
 
          else
-            --  Null procedure handling: create all the nodes for the
-            --  declaration to generate.
+            --  Null procedure handling. First create an artificial internal
+            --  error, if requested.
+
+            Raise_Stub_Internal_Error_For (Ada_Instrument_Null_Proc);
+
+            --  Create all the nodes for the declaration to generate
 
             Create_Null_Proc_Nodes (NP_Nodes, UIC, N_Spec, Gen_Names_Prefix);
             Collect_Null_Proc_Formals (Common_Nodes, NP_Nodes, UIC);
@@ -2988,6 +2999,8 @@ package body Instrument.Ada_Unit is
       --------------------------------
 
       procedure Traverse_Subp_Decl_Or_Stub (N : Basic_Decl) is
+         Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
+
          N_Spec : constant Subp_Spec := N.P_Subp_Spec_Or_Null.As_Subp_Spec;
 
       begin
@@ -3010,6 +3023,7 @@ package body Instrument.Ada_Unit is
       ------------------
 
       procedure Traverse_One (N : Ada_Node) is
+         Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
       begin
          --  Initialize or extend current statement sequence. Note that for
          --  special cases such as IF and Case statements we will modify
@@ -5633,8 +5647,10 @@ package body Instrument.Ada_Unit is
       IC        : in out Inst_Context;
       UIC       : out Ada_Unit_Inst_Context)
    is
-      Rewriter : Source_Rewriter;
-      Filename : constant String := To_String (Unit_Info.Filename);
+      Rewriter  : Source_Rewriter;
+      Filename  : constant String := To_String (Unit_Info.Filename);
+      Dummy_Ctx : constant Context_Handle :=
+        Create_Context ("Instrumenting " & Filename);
 
       Root_Analysis_Unit : Analysis_Unit;
 
@@ -5645,7 +5661,6 @@ package body Instrument.Ada_Unit is
       --  any witness calls for elaboration of declarations: they would be
       --  pointless (there is no elaboration code anyway) and, in any case,
       --  illegal.
-
    begin
       Rewriter.Start_Rewriting (IC, Prj_Info, Filename);
 
@@ -5673,6 +5688,10 @@ package body Instrument.Ada_Unit is
       end;
 
       Initialize_Rewriting (UIC, CU_Name, IC.Context);
+
+      --  Create an artificial internal error, if requested
+
+      Raise_Stub_Internal_Error_For (Ada_Instrument_Start_File);
 
       --  Make sure that the simple name of the instrumented source file is
       --  registered in our tables. This is required to properly detect when we
@@ -6056,13 +6075,6 @@ package body Instrument.Ada_Unit is
       --  Track which CU_Id maps to which instrumented unit
 
       Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
-
-   exception
-      when E : Libadalang.Common.Property_Error =>
-         Outputs.Fatal_Error
-           ("internal error while instrumenting "
-            & To_String (Unit_Info.Filename) & ": "
-            & Ada.Exceptions.Exception_Information (E));
    end Instrument_Unit;
 
 end Instrument.Ada_Unit;

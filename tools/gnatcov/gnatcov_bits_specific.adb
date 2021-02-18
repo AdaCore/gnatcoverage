@@ -1048,9 +1048,11 @@ procedure GNATcov_Bits_Specific is
 begin
 
    --  Load arguments from command-line and from the project file (if any),
-   --  then update our local state according to them.
+   --  then update our local state according to them. Create an artificial
+   --  internal error in the middle, if requested.
 
    Parse_Arguments (From_Driver => False);
+   Raise_Stub_Internal_Error_For (Arguments_Loading);
    Process_Arguments;
 
    if Verbose then
@@ -2356,13 +2358,18 @@ begin
    Project.Finalize;
 
 exception
+   --  The following handler is for files that gnatcov could not locate or
+   --  open. Display the corresponding error message.
+
    when Error : Binary_Files.Error
       | Ada.IO_Exceptions.Name_Error =>
       Outputs.Error (Ada.Exceptions.Exception_Message (Error));
       Project.Finalize;
 
-   when Xcov_Exit_Exc =>
-      --  An error message has already been displayed
+   --  Each chunk of code with "raise" statements for Xcov_Exit_Exc exceptions
+   --  is supposed to print an error message and set a failure exit status
+   --  before raising the exception.
 
+   when Xcov_Exit_Exc =>
       Project.Finalize;
 end GNATcov_Bits_Specific;

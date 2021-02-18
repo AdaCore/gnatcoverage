@@ -19,7 +19,10 @@
 --  This packages provides a set of routines to manage xcov's outputs
 --  (error messages and annotated reports).
 
+private with Ada.Finalization;
 with Ada.Text_IO; use Ada.Text_IO;
+
+with Libadalang.Analysis;
 
 package Outputs is
 
@@ -50,6 +53,81 @@ package Outputs is
    procedure Normal_Exit;
    --  Cause Xcov to terminate. exit status OK
 
+   ---------------------
+   -- Internal errors --
+   ---------------------
+
+   --  What we call here internal errors are the unexpected exceptions raised
+   --  during gnatcov's execution. Such exceptions are, by nature, unhandled,
+   --  and thus lead to a crash. The goal of the following API is to provide
+   --  users as much precise context information as possible for them to
+   --  have an idea about what caused the crash, either for debugging purposes,
+   --  or to ease the search for a workaround.
+   --
+   --  The way this works is simple: gnatcov code calls the Create_* functions
+   --  below to create Context_Handle objects. These objects store context
+   --  information during their lifetime (info is discarded when the object is
+   --  finalized). This package registers a callback for unhandled exceptions
+   --  through the GNAT.Exception_Actions runtime unit so that we print the
+   --  last context info created for still living Context_Handle objects (i.e.
+   --  the most recent/relevant info).
+
+   type Context_Handle is limited private;
+   --  Object to host context information to contextualize internal errors.
+   --  That information is discarded when such objects are finalized.
+
+   function Create_Context (Message : String) return Context_Handle;
+   --  Create context information for internal errors. Intended use:
+   --
+   --     declare
+   --        Dummy_Ctx : constant Context_Handle :=
+   --          Create_Context ("Processing foobar");
+   --     begin
+   --        ... process foobar...
+   --     end;
+
+   function Create_Context_Instrument
+     (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle;
+   --  Create a context to show that gnatcov is instrumenting the given node
+
+   --  Internal errors are by nature bound to be fixed, so we need to
+   --  artificially trigger errors to exercize the error handling machinery,
+   --  and thus to check that it works as expected. This is the role of the
+   --  following helpers.
+
+   type Any_Internal_Error_Trigger is (
+      None,
+      --  Do not create an artificial internal error
+
+      Arguments_Loading,
+      --  Raise an error after Argparse's work and before loading arguments
+
+      Ada_Instrument_Start_File,
+      --  Raise an error when starting the instrumentation of a source file
+
+      Ada_Instrument_Null_Proc,
+      --  Raise an error when instrumenting a null procedure
+
+      Ada_Instrument_Insert_Stmt_Witness
+      --  Raise an error when inserting a witness call for a statement
+   );
+
+   Internal_Error_Trigger : Any_Internal_Error_Trigger := None;
+   --  Active trigger for the artificial internal error. Set at elaboration
+   --  from the GNATCOV_INTERNAL_ERROR_TRIGGER environment variable.
+
+   function String_To_Internal_Error
+     (Name : String) return Any_Internal_Error_Trigger;
+   --  Return the internal error trigger corresponding to Name. Raise a
+   --  Constraint_Error if Name does not denote a trigger.
+   --
+   --  Trigger names are the same as enumeration values, but lower case and
+   --  with underscores replaced with dashes.
+
+   procedure Raise_Stub_Internal_Error_For
+     (Trigger : Any_Internal_Error_Trigger);
+   --  If Internal_Error_Trigger = Trigger, raise a Constraint_Error
+
    -----------------------
    -- Output management --
    -----------------------
@@ -76,5 +154,12 @@ package Outputs is
    --  return its file descriptor.
    --  If output dir has not been initialized by Set_Output_Dir, it is
    --  set to the current directory.
+
+private
+
+   type Context_Handle is
+      new Ada.Finalization.Limited_Controlled with null record;
+
+   overriding procedure Finalize (Dummy : in out Context_Handle);
 
 end Outputs;
