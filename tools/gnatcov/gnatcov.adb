@@ -107,7 +107,7 @@ begin
          --  print an explicit error message), restrict the following message
          --  to the verbose mode.
 
-         if not Success then
+         if Verbose then
             Put_Line ("Could not spawn " & Exec_Filename & ": aborting");
          end if;
       end if;
