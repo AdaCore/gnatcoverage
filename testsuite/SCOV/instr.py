@@ -5,6 +5,7 @@ import os.path
 from e3.fs import mkdir
 
 from SUITE.context import thistest
+from SUITE.cutils import contents_of, indent
 from SUITE.tutils import RUNTIME_INFO, xcov
 
 
@@ -28,7 +29,7 @@ def default_dump_channel():
 
 def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
                     dump_channel=None, gpr_obj_dir=None, out=None, err=None,
-                    register_failure=True):
+                    warnings_as_errors=True, register_failure=True):
     """
     Run "gnatcov instrument" on a project.
 
@@ -45,6 +46,8 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
     :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
         will create build artifacts. If left to None, assume they are produced
         in the current directory.
+    :param bool warnings_as_errors: Whether to make the test fail if there are
+        warnings in gnatcov's output.
 
     See SUITE.tutils.xcov for the other supported options.
     """
@@ -64,7 +67,16 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
     if thistest.options.pretty_print:
         args.append('--pretty-print')
 
+    out = out or "instrument.log"
     xcov(args, out=out, err=err, register_failure=register_failure)
+
+    if warnings_as_errors:
+        output = contents_of(out)
+        thistest.fail_if(
+            "!!!" in output,
+            f"Warnings detected in the output of 'gnatcov instrument':"
+            f"\n{indent(output)}"
+        )
 
 
 def xcov_convert_base64(base64_file, output_trace_file, out=None, err=None,

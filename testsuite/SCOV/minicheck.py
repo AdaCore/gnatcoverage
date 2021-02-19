@@ -33,7 +33,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   absolute_paths=False, dump_trigger=None,
                   dump_channel=None, check_gprbuild_output=False,
                   trace_mode=None, gprsw_for_coverage=None, scos_for_run=True,
-                  register_failure=True, program_env=None):
+                  register_failure=True, program_env=None,
+                  instrument_warnings_as_errors=True):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -95,6 +96,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         exits with a non-zero status code, stop with a FatalError.
     :param None|dict[str, str] program_env: If not none, environment variables
         for the program to run.
+    :param bool instrument_warnings_as_errors: Whether to make the test fail if
+        there are warnings in the output of "gnatcov instrument".
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -180,7 +183,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         xcov_instrument(gprsw, covlevel, extra_args=extra_instr_args,
                         gpr_obj_dir=gpr_obj_dir, dump_trigger=dump_trigger,
                         dump_channel=dump_channel, out='instrument.log',
-                        register_failure=register_failure)
+                        register_failure=register_failure,
+                        warnings_as_errors=instrument_warnings_as_errors)
         gprbuild_wrapper(gprsw.root_project,
                          gargs=['--src-subdirs=gnatcov-instr'])
 
