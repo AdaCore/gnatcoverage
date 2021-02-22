@@ -1248,6 +1248,7 @@ package body Instrument.Tree is
       function Process_Node (N : Ada_Node'Class) return Visit_Status is
          Is_Self_Reference : constant Boolean :=
            (N.Kind in Ada_Single_Tok_Node
+            and then N.Parent.Kind not in Ada_Defining_Name
             and then N.As_Single_Tok_Node.P_Referenced_Decl = EF_Decl);
       begin
          return (if Is_Self_Reference then Stop else Into);
