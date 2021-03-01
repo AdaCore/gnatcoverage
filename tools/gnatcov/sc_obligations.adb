@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2020, AdaCore                     --
+--                     Copyright (C) 2009-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -2621,11 +2621,23 @@ package body SC_Obligations is
                else
                   --  Case of >T / >F: dominant SCO is a decision
 
-                  Dom_Sloc_SCO :=
-                    Sloc_To_SCO_Map
-                      (SCOD.Dominant_Sloc.Source_File, Decision)
-                    .Element ((SCOD.Dominant_Sloc.L, No_Local_Location));
-                  pragma Assert (Kind (Dom_Sloc_SCO) = Decision);
+                  if Sloc_To_SCO_Map
+                       (SCOD.Dominant_Sloc.Source_File, Decision)
+                     .Contains ((SCOD.Dominant_Sloc.L, No_Local_Location))
+                  then
+                     Dom_Sloc_SCO :=
+                       Sloc_To_SCO_Map
+                         (SCOD.Dominant_Sloc.Source_File, Decision)
+                       .Element ((SCOD.Dominant_Sloc.L, No_Local_Location));
+                     pragma Assert (Kind (Dom_Sloc_SCO) = Decision);
+                  else
+                     Report
+                       (First_Sloc (SCOD.Sloc_Range),
+                        "dominant decision of statement " & Image (SCO)
+                        & " has no associated SCO"
+                        & ", discarding dominance information");
+                     Dom_Sloc_SCO := No_SCO_Id;
+                  end if;
                end if;
 
                SCOD.Dominant := Dom_Sloc_SCO;
