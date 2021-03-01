@@ -108,8 +108,22 @@ package body Files_Table is
       Equivalent_Keys => "=",
       "="             => "=");
 
+   package Filename_Rebase_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Virtual_File,
+      Element_Type    => Virtual_File,
+      Hash            => Full_Name_Hash,
+      Equivalent_Keys => "=",
+      "="             => "=");
+
    Simple_Name_Map : Simple_Name_Maps.Map;
    Full_Name_Map   : Filename_Maps.Map;
+
+   Renaming_Map : Filename_Rebase_Maps.Map;
+   --  Cache for source rebasing/source search. When a file is successfully
+   --  rebased/seached, an entry will be added to this map with the original
+   --  full path as the key and the rebase full path as the element. This
+   --  limits the number of call to Locate_Source when querying mutliple times
+   --  the file index for one given file.
 
    Current_File_Line_Cache : File_Info_Access := null;
    --  Current file whose lines are cached in the file table. There is
@@ -139,6 +153,18 @@ package body Files_Table is
 
    First_Source_Search_Entry : Source_Search_Entry_Acc := null;
    Last_Source_Search_Entry  : Source_Search_Entry_Acc := null;
+
+   function Use_Renaming_Map return Boolean
+   is (First_Source_Rebase_Entry /= null
+       or else First_Source_Search_Entry /= null);
+   --  Whether we should even try to rebase files using Renaming_Map or not
+
+   function Locate_Source (File : Virtual_File) return Virtual_File;
+   --  Try to find the actual location on disk of File. This returns File if it
+   --  exists in the filesystem. Otherwise, it tries to locate it transforming
+   --  File according to the source rebase/search parameters
+   --  (see --source-rebase and --source-search command line arguments).
+   --  Return No_File if we could not locate the file.
 
    --  Executable search prefix
 
@@ -763,11 +789,15 @@ package body Files_Table is
       Indexed_Simple_Name : Boolean := False) return Source_File_Index
    is
       use Filename_Maps;
+      use Filename_Rebase_Maps;
       use Simple_Name_Maps;
 
-      Full_Path : constant Virtual_File := Create (+Full_Name);
+      Original_Full_Path : constant Virtual_File := Create (+Full_Name);
+      Full_Path          : Virtual_File := Original_Full_Path;
+      --  Full_Path can be modified to hold the result of the source rebase
 
       Cur         : Filename_Maps.Cursor;
+      Rebase_Cur  : Filename_Rebase_Maps.Cursor;
       Res         : Source_File_Index;
       Info_Simple : File_Info_Access;
 
@@ -776,6 +806,32 @@ package body Files_Table is
          Put_Line ("GIFN: <<" & Full_Name & ">> ISN=" & Indexed_Simple_Name'Img
                    & " Insert=" & Insert'Img);
       end if;
+
+      --  First lookup the full path in the Renaming_Map as this file can
+      --  already have been renamed. Otherwise, if we can modify the file
+      --  table, find its location on disk and store the entry in the cache.
+
+      if Use_Renaming_Map then
+         Rebase_Cur := Renaming_Map.Find (Full_Path);
+         if Rebase_Cur /= Filename_Rebase_Maps.No_Element then
+            Full_Path := Element (Rebase_Cur);
+         elsif Insert then
+            Full_Path := Locate_Source (Original_Full_Path);
+            if Full_Path = No_File then
+
+               --  If the file was not found, reset it to his original full
+               --  path. Still make the association in Renaming_Map to avoid
+               --  subsequent calls to Locate_Source. We don't need to update
+               --  the Has_Source field of the corresponding File_Info, this
+               --  will be done when trying to open the source file.
+
+               Full_Path := Original_Full_Path;
+            end if;
+            Renaming_Map.Insert (Original_Full_Path, Full_Path);
+         end if;
+      end if;
+
+      --  Lookup the full name map
 
       Cur := Full_Name_Map.Find (Full_Path);
 
@@ -810,7 +866,7 @@ package body Files_Table is
 
             if Info_Simple.Full_Name = null then
                Info_Simple.Full_Name :=
-                  new String'(+GNATCOLL.VFS.Full_Name (Full_Path));
+                 new String'(+GNATCOLL.VFS.Full_Name (Full_Path));
                Full_Name_Map.Insert (Full_Path, Res);
                goto Do_Return;
 
@@ -1566,56 +1622,87 @@ package body Files_Table is
             end if;
          end if;
 
+         --  If we could not find the source file in his original path or using
+         --  the project information, try to use the rebase and souce search
+         --  mechanism on the simple name.
+
+         if not Success then
+            declare
+               Candidate_File : Virtual_File := Create (+FI.Simple_Name.all);
+            begin
+               Candidate_File := Locate_Source (Candidate_File);
+               if Candidate_File /= No_File then
+                  Try_Open (File, +Candidate_File.Full_Name, Success);
+                  if Success then
+                     FI.Full_Name := new String'(+Candidate_File.Full_Name);
+                  end if;
+               end if;
+            end;
+         end if;
+      end if;
+
+      --  We do not need to use the rebase mechanism on full names, as this was
+      --  done when inserting the file in the file table. If Try_Open does not
+      --  succeed with a full name, then either the file does really not exist,
+      --  even after searching, or there is another problem when openning.
+
+      FI.Has_Source := Success;
+   end Open;
+
+   -------------------
+   -- Locate_Source --
+   -------------------
+
+   function Locate_Source (File : Virtual_File) return Virtual_File is
+      Candidate : Virtual_File;
+   begin
+      --  If the file exists at his original full path then great!
+
+      if File.Is_Regular_File then
+         return File;
       end if;
 
       --  Try to rebase
 
-      if not Success then
-         declare
-            E : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
-            First : constant Positive := Name'First;
-         begin
-            while E /= null loop
-               if Name'Length > E.Old_Prefix'Length
-                 and then (Name (First .. First + E.Old_Prefix'Length - 1)
+      declare
+         E     : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
+         Name  : constant String := +File.Full_Name;
+         First : constant Positive := Name'First;
+      begin
+         while E /= null loop
+            if Name'Length > E.Old_Prefix'Length
+              and then (Name (First .. First + E.Old_Prefix'Length - 1)
                            = E.Old_Prefix.all)
-               then
-                  Try_Open (File,
-                            E.New_Prefix.all
-                            & Name (First + E.Old_Prefix'Length
-                                    .. Name'Last),
-                            Success);
-                  exit when Success;
+            then
+               Candidate := Create
+                 (+(E.New_Prefix.all
+                  & Name (First + E.Old_Prefix'Length .. Name'Last)));
+               if Candidate.Is_Readable then
+                  return Candidate;
                end if;
+            end if;
 
-               E := E.Next;
-            end loop;
-         end;
-      end if;
+            E := E.Next;
+         end loop;
+      end;
 
       --  Try source path
 
-      if not Success then
-         declare
-            E : Source_Search_Entry_Acc := First_Source_Search_Entry;
-         begin
-            while E /= null loop
-               Try_Open (File, E.Prefix.all & '/' & FI.Simple_Name.all,
-                         Success);
+      declare
+         E : Source_Search_Entry_Acc := First_Source_Search_Entry;
+      begin
+         while E /= null loop
+            Candidate := Create ((+(E.Prefix.all & '/')) & File.Base_Name);
+            if Candidate.Is_Readable then
+               return Candidate;
+            end if;
+            E := E.Next;
+         end loop;
+      end;
 
-               if Success then
-                  FI.Full_Name :=
-                    new String'(E.Prefix.all & '/' & FI.Simple_Name.all);
-                  exit;
-               end if;
+      return No_File;
 
-               E := E.Next;
-            end loop;
-         end;
-      end if;
-
-      FI.Has_Source := Success;
-   end Open;
+   end Locate_Source;
 
    -------------------------------
    -- Writeable_Sloc_To_SCO_Map --

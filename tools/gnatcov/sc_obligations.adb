@@ -2280,7 +2280,7 @@ package body SC_Obligations is
                   --  with the name of this unit.
 
                   Append_For_Fingerprint
-                    (Unit_Info.all, Unit_Info.File_Name_Ptr.all);
+                    (Unit_Info.all, Get_File (Source_File).Simple_Name.all);
                end if;
 
                --  Plan to load the range of SCO entries for this low level
