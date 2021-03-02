@@ -536,6 +536,7 @@ package SC_Obligations is
       Pragma_Ada_2005,
       Pragma_Ada_2012,
       Pragma_Ada_2020,
+      Pragma_Ada_2022,
       Pragma_Ada_83,
       Pragma_Ada_95,
       Pragma_Aggregate_Individually_Assign,
@@ -806,6 +807,7 @@ package SC_Obligations is
           Pragma_Ada_12 => False,
           Pragma_Ada_2012 => False,
           Pragma_Ada_2020 => False,
+          Pragma_Ada_2022 => False,
 
           Pragma_Aggregate_Individually_Assign => False,
           Pragma_Allow_Integer_Address => False,
