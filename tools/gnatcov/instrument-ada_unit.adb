@@ -6006,15 +6006,17 @@ package body Instrument.Ada_Unit is
       Unit_Info : in out Instrumented_Unit_Info)
    is
       Prj_Info : Project_Info renames Unit_Info.Prj_Info.all;
-      UIC : Ada_Unit_Inst_Context;
+      UIC      : Ada_Unit_Inst_Context;
    begin
+      --  Instrument the source file and create a unit to contain its coverage
+      --  buffers.
+
       Instrument_Source_File
         (CU_Name   => CU_Name,
          Unit_Info => Unit_Info,
          Prj_Info  => Prj_Info,
          IC        => IC,
          UIC       => UIC);
-
       Emit_Buffer_Unit (Prj_Info, UIC);
       Emit_Pure_Buffer_Unit (Prj_Info, UIC);
 
