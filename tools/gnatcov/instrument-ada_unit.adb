@@ -142,6 +142,12 @@ package body Instrument.Ada_Unit is
    --  returning No_Defining_Name if unable to determine the referenced
    --  defining name.
 
+   function Is_Ghost
+     (UIC : Ada_Unit_Inst_Context;
+      EF  : Expr_Function) return Boolean;
+   --  Return whether the given expression function is ghost (EF or its
+   --  canonical declaration has a Ghost aspect).
+
    function To_Nodes
      (Handle : Rewriting_Handle;
       Name   : Ada_Qualified_Name) return Node_Rewriting_Handle
@@ -197,10 +203,18 @@ package body Instrument.Ada_Unit is
 
    I_Accept_Stmt_With_Stmts_F_Stmts : constant Integer :=
      Index (Ada_Accept_Stmt_With_Stmts, Accept_Stmt_With_Stmts_F_Stmts);
+   I_Expr_Function_F_Aspects : constant Integer :=
+     Index (Ada_Expr_Function, Basic_Decl_F_Aspects);
    I_Handled_Stmts_F_Stmts : constant Integer :=
      Index (Ada_Handled_Stmts, Handled_Stmts_F_Stmts);
    I_Subp_Spec_F_Subp_Params : constant Integer :=
      Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Params);
+
+   ---------------------
+   -- Unbounded texts --
+   ---------------------
+
+   T_Ghost : constant Unbounded_Text_Type := To_Unbounded_Text ("Ghost");
 
    -----------------
    -- Diagnostics --
@@ -1631,24 +1645,49 @@ package body Instrument.Ada_Unit is
            F_Expr       => Create_Paren_Expr (RC, Call_Expr),
            F_Aspects    => Detach (Common_Nodes.N.F_Aspects));
 
-      --  The original expression function becomes the augmented one. We move
-      --  it to the helper package, so it is not a primitive anymore, and thus
-      --  it cannot stay overriding (so if it was, remove the "overriding
-      --  keyword"). Replace its name with the new one, and use the "augmented
-      --  formal params" (i.e. original formals plus the witness one and the
-      --  MC/DC state holders).
+      --  The original expression function becomes the augmented one:
 
       Augmented_Expr_Function := Handle (Common_Nodes.N);
+
+      --  Make sure it is not overriding: since the augmented expression
+      --  function goes to the helper package, it cannot be a primitive and
+      --  thus cannot be overriding.
+
       Replace
         (Handle (Common_Nodes.N_Overriding),
          Create_Node (RC, Ada_Overriding_Unspecified));
+
+      --  Replace its name with the new one
+
       Replace
         (Handle (Common_Nodes.N_Name),
          Make_Identifier (UIC, Augmented_Expr_Func_Name));
+
+      --  Use the "augmented formal params" (i.e. original formals plus the
+      --  witness one and the MC/DC state holders).
+
       Set_Child
         (Handle (Common_Nodes.N_Spec),
          I_Subp_Spec_F_Subp_Params,
          Create_Params (RC, Formal_Params));
+
+      --  If the original expression function is ghost, so must be the
+      --  augmented one.
+
+      if Is_Ghost (UIC, Common_Nodes.N.As_Expr_Function) then
+         declare
+            Ghost_Aspect : constant Node_Rewriting_Handle :=
+              Create_Aspect_Assoc
+                (RC, Make_Identifier (UIC, "Ghost"), No_Node_Rewriting_Handle);
+
+            Aspects : constant Node_Rewriting_Handle :=
+              Create_Regular_Node (RC, Ada_Aspect_Spec, (1 => Ghost_Aspect));
+         begin
+            Set_Child
+              (Handle (Common_Nodes.N), I_Expr_Function_F_Aspects, Aspects);
+         end;
+      end if;
+
    end Create_Augmented_Expr_Function;
 
    -------------------------
@@ -5014,6 +5053,44 @@ package body Instrument.Ada_Unit is
          return No_Defining_Name;
       end if;
    end Referenced_Defining_Name;
+
+   --------------
+   -- Is_Ghost --
+   --------------
+
+   function Is_Ghost
+     (UIC : Ada_Unit_Inst_Context;
+      EF  : Expr_Function) return Boolean
+   is
+      Decl : Basic_Decl := EF.As_Basic_Decl;
+   begin
+      --  We are looking for a Ghost aspect for the given expression function.
+      --  If this expression function has a declaration, the aspect must be
+      --  there.
+
+      begin
+         Decl := Decl.P_Canonical_Part;
+      exception
+         when Exc : Property_Error =>
+            Report
+              (UIC, EF,
+               "Failed to look for a previous declaration of this expression"
+               & " function" & Ada.Exceptions.Exception_Information (Exc),
+               Warning);
+      end;
+
+      begin
+         return Decl.P_Has_Aspect (T_Ghost);
+      exception
+         when Exc : Property_Error =>
+            Report
+              (UIC, Decl,
+               "Failed to look for a Ghost aspect for this declaration"
+               & Ada.Exceptions.Exception_Information (Exc),
+               Warning);
+            return False;
+      end;
+   end Is_Ghost;
 
    ------------
    -- Detach --
