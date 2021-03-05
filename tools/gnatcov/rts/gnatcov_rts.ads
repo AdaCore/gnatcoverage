@@ -31,10 +31,11 @@ package GNATcov_RTS is
 
    pragma Pure;
 
-   Version : constant := 1;
+   Version : constant := 2;
    --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
    --  versioned.
    --
    --  1 -- initial runtime version
+   --  2 -- extend trace entry model to account for C files
 
 end GNATcov_RTS;

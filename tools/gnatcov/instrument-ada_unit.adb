@@ -3106,9 +3106,10 @@ package body Instrument.Ada_Unit is
                      begin
                         pragma Assert
                           (IC.Instrumented_Units.Contains
-                             ((Body_Name, Unit_Body))
+                             (CU_Name_For_Unit (Body_Name, Unit_Body))
                            or else IC.Instrumented_Units.Contains
-                             ((Body_Name, Unit_Separate)));
+                             (CU_Name_For_Unit
+                                (Body_Name, Unit_Separate)));
                      end;
 
                   --  For a library unit, scan context clause. If this is a
@@ -5157,8 +5158,10 @@ package body Instrument.Ada_Unit is
       Context           : Analysis_Context) is
    begin
       IC.Instrumented_Unit := Instrumented_Unit;
-      IC.Buffer_Unit := (Buffer_Unit (Instrumented_Unit), Unit_Spec);
-      IC.Pure_Buffer_Unit := (Pure_Buffer_Unit (Instrumented_Unit), Unit_Spec);
+      IC.Buffer_Unit :=
+        CU_Name_For_Unit (Buffer_Unit (Instrumented_Unit), Unit_Spec);
+      IC.Pure_Buffer_Unit :=
+        CU_Name_For_Unit (Pure_Buffer_Unit (Instrumented_Unit), Unit_Spec);
       IC.Rewriting_Context := Handle (Context);
 
       declare
@@ -5253,7 +5256,7 @@ package body Instrument.Ada_Unit is
       Helper_Unit := Sys_Buffers;
       Helper_Unit.Append
         (To_Unbounded_String ("D")
-         & Instrumented_Unit_Slug ((Main, Unit_Body)));
+         & Instrumented_Unit_Slug (CU_Name_For_Unit (Main, Unit_Body)));
 
       --  Compute the qualified names we need for instrumentation
 
@@ -5285,7 +5288,13 @@ package body Instrument.Ada_Unit is
          --  trace file.
 
          Create_File
-           (Info, File, To_Filename (Info.Project, (Helper_Unit, Unit_Spec)));
+           (Info,
+            File,
+            Name => To_Filename
+                      (Info.Project,
+                       CU_Name_For_Unit (Helper_Unit, Unit_Spec),
+                       Ada_Language));
+
          Put_Warnings_And_Style_Checks_Pragmas (File);
          File.Put_Line ("package " & Helper_Unit_Name & " is");
          File.New_Line;
@@ -5310,7 +5319,13 @@ package body Instrument.Ada_Unit is
          --  Emit the package body
 
          Create_File
-           (Info, File, To_Filename (Info.Project, (Helper_Unit, Unit_Body)));
+           (Info,
+            File,
+            Name => To_Filename
+                      (Info.Project,
+                       CU_Name_For_Unit (Helper_Unit, Unit_Body),
+                       Ada_Language));
+
          Put_Warnings_And_Style_Checks_Pragmas (File);
 
          Put_With (Output_Unit);
@@ -5926,7 +5941,9 @@ package body Instrument.Ada_Unit is
       CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
       File    : Text_Files.File_Type;
    begin
-      Create_File (Info, File, To_Filename (Info.Project, CU_Name));
+      Create_File (Info,
+                   File,
+                   To_Filename (Info.Project, CU_Name, Ada_Language));
       Put_Warnings_And_Style_Checks_Pragmas (File);
 
       declare
@@ -6007,11 +6024,15 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Unit_Name_Length => "
                         & Strings.Img (Unit_Name'Length) & ",");
+         File.Put_Line ("      Project_Name_Length => 0,");
          File.Put_Line ("      Fingerprint => "
                         & To_String (Fingerprint) & ",");
 
-         File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
-         File.Put_Line ("      Unit_Name => """ & Unit_Name & """,");
+         File.Put_Line ("      Language_Kind => Unit_Based_Language,");
+         File.Put_Line ("      Unit_Part     => " & Unit_Part & ",");
+         File.Put_Line ("      Unit_Name     => """ & Unit_Name & """,");
+
+         File.Put_Line ("      Project_Name => """",");
 
          File.Put_Line ("      Statement => Statement_Buffer'Address,");
          File.Put_Line ("      Decision  => Decision_Buffer'Address,");
@@ -6062,7 +6083,9 @@ package body Instrument.Ada_Unit is
    --  Start of processing for Emit_Pure_Buffer_Unit
 
    begin
-      Create_File (Info, File, To_Filename (Info.Project, CU_Name));
+      Create_File (Info,
+                   File,
+                   To_Filename (Info.Project, CU_Name, Ada_Language));
 
       Put_Warnings_And_Style_Checks_Pragmas (File);
       Put_Language_Version_Pragma;
@@ -6106,7 +6129,9 @@ package body Instrument.Ada_Unit is
       if not UIC.Degenerate_Subprogram_Generics.Is_Empty then
          CU_Name.Part := GNATCOLL.Projects.Unit_Body;
 
-         Create_File (Info, File, To_Filename (Info.Project, CU_Name));
+         Create_File (Info,
+                      File,
+                      To_Filename (Info.Project, CU_Name, Ada_Language));
 
          Put_Warnings_And_Style_Checks_Pragmas (File);
          Put_Language_Version_Pragma;

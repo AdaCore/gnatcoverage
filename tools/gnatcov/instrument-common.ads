@@ -65,14 +65,15 @@ with Langkit_Support.Slocs; use Langkit_Support.Slocs;
 with Libadalang.Analysis;   use Libadalang.Analysis;
 with Libadalang.Rewriting;  use Libadalang.Rewriting;
 
-with ALI_Files;      use ALI_Files;
+with ALI_Files;           use ALI_Files;
 with Checkpoints;
-with SC_Obligations; use SC_Obligations;
+with GNATcov_RTS;         use GNATcov_RTS;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Namet;               use Namet;
+with SC_Obligations;      use SC_Obligations;
+with Strings;             use Strings;
 with Text_Files;
-with Types;          use Types;
-with Strings;
-with GNATcov_RTS;    use GNATcov_RTS;
-with Namet;          use Namet;
+with Types;               use Types;
 
 package Instrument.Common is
 
@@ -81,12 +82,20 @@ package Instrument.Common is
    function "/" (Dir, Name : String) return String is
      (Ada.Directories.Compose (Dir, Name));
 
-   function "+" (S : String) return Ada.Strings.Unbounded.Unbounded_String
-      renames Ada.Strings.Unbounded.To_Unbounded_String;
-   function "+" (US : Ada.Strings.Unbounded.Unbounded_String) return String
-      renames Ada.Strings.Unbounded.To_String;
-
    --  TODO??? Handle Unicode file names and source text
+
+   function Str_To_Language (Language : String) return Any_Language;
+   --  Return the (supported) language kind represented by the string (case-
+   --  insensitive). Raise a fatal error if the given language is not
+   --  supported.
+
+   function Language_To_Str (Language : Any_Language) return String;
+   --  Reverse operation of the above function
+
+   function Str_To_Language_Kind
+     (Language : String) return Any_Language_Kind;
+   --  Returns the language kind (unit-based or file-based) for the given
+   --  language.
 
    type Ada_Identifier is new Ada.Strings.Unbounded.Unbounded_String;
    --  Simple Ada identifier
@@ -110,6 +119,9 @@ package Instrument.Common is
      (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
       return Ada_Qualified_Name;
    --  Convert a Libadalang fully qualified name into our format
+
+   function To_Qualified_Name (Name : String) return Ada_Qualified_Name;
+   --  Convert a String qualified name into our format
 
    function Canonicalize (Name : Ada_Qualified_Name) return Ada_Qualified_Name;
    --  Fold casing of Ada identifiers
@@ -151,9 +163,26 @@ package Instrument.Common is
    --  Name of the procedure (in main dump helper packages) that registers the
    --  coverage buffers dump through atexit(3).
 
-   type Compilation_Unit_Name is record
-      Unit : Ada_Qualified_Name;
-      Part : Unit_Parts;
+   type Compilation_Unit_Name
+     (Language_Kind : Any_Language_Kind := Unit_Based_Language)
+   is record
+
+      case Language_Kind is
+         when Unit_Based_Language =>
+            Unit : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector;
+            Part : Unit_Parts         := Unit_Body;
+            --  Identifies an Ada compilation unit (unit-based)
+
+         when File_Based_Language =>
+            Filename : Unbounded_String;
+            --  Fallback for file-based languages (like C). We will use the
+            --  simple filename for now.
+
+            Project_Name : Unbounded_String;
+            --  We also need the project name as different projects can have
+            --  the same file.
+
+      end case;
    end record;
    --  Unique identifier for an instrumented unit
 
@@ -162,30 +191,46 @@ package Instrument.Common is
       Unit_Body     => 'B',
       Unit_Separate => 'U');
 
+   function CU_Name_For_Unit
+     (Unit : Ada_Qualified_Name;
+      Part : Unit_Parts) return Compilation_Unit_Name;
+   --  Return the compilation unit name for the Ada compilation unit
+   --  corresponding to the unit name and the unit part parameters.
+
+   function CU_Name_For_File
+     (Filename     : Unbounded_String;
+      Project_Name : Unbounded_String) return Compilation_Unit_Name;
+   --  Return the compilation unit name for the C translation unit
+   --  corresponding to the filename parameter.
+
    function To_Compilation_Unit_Name
      (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name;
    --  Return the compilation unit name corresponding to the unit in
    --  Source_File.
 
    function To_Filename
-     (Project : Project_Type; CU_Name : Compilation_Unit_Name) return String;
+     (Project  : Project_Type;
+      CU_Name  : Compilation_Unit_Name;
+      Language : Any_Language) return String;
    --  Return the name of the file to contain the given compilation unit,
    --  according to Project's naming scheme.
 
    function Image (CU_Name : Compilation_Unit_Name) return String;
    --  Return a string representation of CU_Name for use in diagnostics
 
-   function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
-   --  Compare qualified name, identifier by identifier. If one is the
-   --  prefix of the other, the shorter is considered to come first. If
-   --  qualified name is the same, compare the kind.
-
    function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Identifier;
+     (Instrumented_Unit : Compilation_Unit_Name) return String;
    --  Given a unit to instrument, return a unique identifier to describe it
    --  (the so called slug).
    --
    --  One can use this slug to generate unique names for this unit.
+
+   function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
+   --  Compare the result of a call to Instrumented_Unit_Slug (which gives
+   --  unique identifiers for each compilation unit name) for both operands.
+
+   function "=" (Left, Right : Compilation_Unit_Name) return Boolean;
+   --  Same as above (but checking for equality)
 
    function Statement_Buffer_Symbol
      (Instrumented_Unit : Compilation_Unit_Name) return String;
@@ -228,8 +273,7 @@ package Instrument.Common is
    --  coverage buffer (or save to a checkpoint).
 
    function Find_Instrumented_Unit
-     (Unit_Name : String;
-      Unit_Part : Unit_Parts) return CU_Id;
+     (CU_Name : Compilation_Unit_Name) return CU_Id;
    --  Return the CU_Id corresponding to the given instrumented unit, or
    --  No_CU_Id if not found.
 
@@ -266,11 +310,9 @@ package Instrument.Common is
    --  Project_Info records. Project_Info records are owned by this map, and
    --  thus must be deallocated when maps are deallocated.
 
-   type Language_Type is (Ada_Language);
-
    type Main_To_Instrument is record
-      Unit : Ada_Qualified_Name;
-      --  Name of the main to instrument
+      CU_Name : Compilation_Unit_Name;
+      --  Compilation unit of the main to instrument
 
       File : GNATCOLL.VFS.Virtual_File;
       --  Source file to instrument
@@ -278,9 +320,6 @@ package Instrument.Common is
       Prj_Info : Project_Info_Access;
       --  Reference to the Project_Info record corresponding to the project
       --  that owns the main to instrument.
-
-      Language : Language_Type;
-      --  Language for this main
    end record;
 
    package Main_To_Instrument_Vectors is new Ada.Containers.Vectors
@@ -297,7 +336,7 @@ package Instrument.Common is
       Is_Main : Boolean;
       --  Whether this unit is a main
 
-      Language : Language_Type;
+      Language : Any_Language;
       --  Language for this unit
    end record;
 

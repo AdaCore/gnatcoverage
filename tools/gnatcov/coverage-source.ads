@@ -16,15 +16,14 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNATCOLL.Projects;
-
-with Checkpoints;    use Checkpoints;
-with Files_Table;    use Files_Table;
+with Checkpoints;             use Checkpoints;
+with Files_Table;             use Files_Table;
+with Instrument.Common;       use Instrument.Common;
 with Instrument.Input_Traces; use Instrument.Input_Traces;
-with Traces;         use Traces;
-with Traces_Names;   use Traces_Names;
-with Traces_Lines;   use Traces_Lines;
-with SC_Obligations; use SC_Obligations;
+with Traces;                  use Traces;
+with Traces_Names;            use Traces_Names;
+with Traces_Lines;            use Traces_Lines;
+with SC_Obligations;          use SC_Obligations;
 
 package Coverage.Source is
 
@@ -51,8 +50,7 @@ package Coverage.Source is
    procedure Compute_Source_Coverage
      (Filename        : String;
       Fingerprint     : SC_Obligations.SCOs_Hash;
-      Unit_Name       : String;
-      Unit_Part       : GNATCOLL.Projects.Unit_Parts;
+      CU_Name         : Compilation_Unit_Name;
       Stmt_Buffer     : Coverage_Buffer;
       Decision_Buffer : Coverage_Buffer;
       MCDC_Buffer     : Coverage_Buffer);

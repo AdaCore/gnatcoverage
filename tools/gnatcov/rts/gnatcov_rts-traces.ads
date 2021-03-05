@@ -48,10 +48,11 @@ package GNATcov_RTS.Traces is
    --  trace entries start and end on byte/half word/word/long word boundaries.
 
    type Trace_File_Format_Version is new Unsigned_32;
-   Current_Version : Trace_File_Format_Version := 0;
+   Current_Version : Trace_File_Format_Version := 1;
    --  Expected value of the Trace_File_Header.Format_Version field.
    --
-   --  TODO??? Bump to 1 once this feature is considered stable.
+   --  0 -- initial version
+   --  1 -- extend trace entry model to account for C files
 
    type Any_Alignment is new Unsigned_8;
    subtype Supported_Alignment is Any_Alignment;
@@ -73,24 +74,43 @@ package GNATcov_RTS.Traces is
    --  Hash type to perform consistency checks
 
    type Any_Unit_Part is new Unsigned_8;
-   Unit_Body     : constant Any_Unit_Part :=
+   Not_Applicable_Part : constant Any_Unit_Part :=
+      Buffers.Any_Unit_Part'Pos (Buffers.Not_Applicable_Part);
+   Unit_Body           : constant Any_Unit_Part :=
       Buffers.Any_Unit_Part'Pos (Buffers.Unit_Body);
-   Unit_Spec     : constant Any_Unit_Part :=
+   Unit_Spec           : constant Any_Unit_Part :=
       Buffers.Any_Unit_Part'Pos (Buffers.Unit_Spec);
-   Unit_Separate : constant Any_Unit_Part :=
+   Unit_Separate       : constant Any_Unit_Part :=
       Buffers.Any_Unit_Part'Pos (Buffers.Unit_Separate);
+   subtype All_Unit_Part is
+      Any_Unit_Part range Not_Applicable_Part .. Unit_Separate;
    subtype Supported_Unit_Part is
       Any_Unit_Part range Unit_Body .. Unit_Separate;
    --  Describe the kind of unit referenced by a trace entry
 
    Unit_Part_Map : constant
-      array (Buffers.Any_Unit_Part) of Supported_Unit_Part :=
-     (Buffers.Unit_Body     => Unit_Body,
-      Buffers.Unit_Spec     => Unit_Spec,
-      Buffers.Unit_Separate => Unit_Separate);
+      array (Buffers.Any_Unit_Part) of All_Unit_Part :=
+     (Buffers.Not_Applicable_Part => Not_Applicable_Part,
+      Buffers.Unit_Body           => Unit_Body,
+      Buffers.Unit_Spec           => Unit_Spec,
+      Buffers.Unit_Separate       => Unit_Separate);
 
    type Any_Bit_Count is new Unsigned_32;
    --  Number of bits contained in a coverage buffer
+
+   type Any_Language_Kind is new Unsigned_8;
+   Unit_Based_Language : constant Any_Language_Kind :=
+     Buffers.Any_Language_Kind'Pos (Buffers.Unit_Based_Language);
+   File_Based_Language : constant Any_Language_Kind :=
+     Buffers.Any_Language_Kind'Pos (Buffers.File_Based_Language);
+   subtype Supported_Language_Kind is
+     Any_Language_Kind range Unit_Based_Language .. File_Based_Language;
+   --  Language kind for a compilation unit
+
+   Any_Language_Kind_Map : constant
+      array (Buffers.Any_Language_Kind) of Supported_Language_Kind :=
+     (Buffers.Unit_Based_Language => Unit_Based_Language,
+      Buffers.File_Based_Language => File_Based_Language);
 
    -----------------------
    -- Trace file header --
@@ -199,15 +219,25 @@ package GNATcov_RTS.Traces is
 
    type Trace_Entry_Header is record
       Unit_Name_Length : Unsigned_32;
-      --  Length of the unit name for the unit this trace entry describes
+      --  Length of the unit name / filename for the unit this trace entry
+      --  describes.
+
+      Project_Name_Length : Unsigned_32;
+      --  For file-based languages, length of the project name this file
+      --  belongs to. For unit-based languages, the unit name is unique so this
+      --  piece of information is not needed (thus will be 0).
 
       Statement_Bit_Count : Any_Bit_Count;
       Decision_Bit_Count  : Any_Bit_Count;
       MCDC_Bit_Count      : Any_Bit_Count;
       --  Number of bits in the statement, decision and MC/DC coverage buffers
 
+      Language_Kind : Any_Language_Kind;
+      --  Language for this unit
+
       Unit_Part : Any_Unit_Part;
-      --  Part of the unit this trace entry describes
+      --  Part of the unit this trace entry describes. Not_Applicable_Part for
+      --  file-based languages.
 
       Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
       --  Encoding used to represent statement and decision coverage buffers
@@ -217,22 +247,24 @@ package GNATcov_RTS.Traces is
       --  coverage obligations and coverage data are consistent. Specific hash
       --  values are computed during instrumentation.
 
-      Padding : String (1 .. 2);
+      Padding : String (1 .. 5);
       --  Padding used only to make the size of this trace entry header a
       --  multiple of 8 bytes. Must be zero.
    end record;
 
    for Trace_Entry_Header use record
       Unit_Name_Length    at  0 range 0 .. 31;
-      Statement_Bit_Count at  4 range 0 .. 31;
-      Decision_Bit_Count  at  8 range 0 .. 31;
-      MCDC_Bit_Count      at 12 range 0 .. 31;
-      Unit_Part           at 16 range 0 .. 7;
-      Bit_Buffer_Encoding at 17 range 0 .. 7;
-      Fingerprint         at 18 range 0 .. 20 * 8 - 1;
-      Padding             at 38 range 0 .. 2 * 8 - 1;
+      Project_Name_Length at  4 range 0 .. 31;
+      Statement_Bit_Count at  8 range 0 .. 31;
+      Decision_Bit_Count  at 12 range 0 .. 31;
+      MCDC_Bit_Count      at 16 range 0 .. 31;
+      Language_Kind       at 20 range 0 .. 7;
+      Unit_Part           at 21 range 0 .. 7;
+      Bit_Buffer_Encoding at 22 range 0 .. 7;
+      Fingerprint         at 23 range 0 .. 20 * 8 - 1;
+      Padding             at 43 range 0 .. 5 * 8 - 1;
    end record;
 
-   for Trace_Entry_Header'Size use 40 * 8;
+   for Trace_Entry_Header'Size use 48 * 8;
 
 end GNATcov_RTS.Traces;

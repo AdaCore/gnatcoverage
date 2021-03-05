@@ -40,12 +40,6 @@ with SCOs;
 
 package body Instrument.Common is
 
-   function To_Compilation_Unit_Name
-     (Unit_Name : String;
-      Unit_Part : Unit_Parts) return Compilation_Unit_Name;
-   --  Create a Compilation_Unit_Name from its two components (name of
-   --  library unit or subunit, and part type).
-
    function Buffer_Symbol
      (Instrumented_Unit : Compilation_Unit_Name;
       Buffer_Name       : String) return String;
@@ -61,10 +55,6 @@ package body Instrument.Common is
    procedure Remove_Warnings_And_Style_Checks_Pragmas
      (Rewriter : Source_Rewriter);
    --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
-
-   function Str_To_Language (Language : String) return Language_Type;
-   --  Return the (supported) language represented by the string.
-   --  Raise a fatal error if the given language is not supported.
 
    -----------------------
    -- To_Qualified_Name --
@@ -126,6 +116,21 @@ package body Instrument.Common is
       end return;
    end To_Qualified_Name;
 
+   function To_Qualified_Name (Name : String) return Ada_Qualified_Name is
+      First : Positive := Name'First;
+      Unit  : Ada_Qualified_Name;
+   begin
+      --  Split Ada qualified name into its components
+
+      for J in Name'First .. Name'Last + 1 loop
+         if J = Name'Last + 1 or else Name (J) = '.' then
+            Unit.Append (To_Unbounded_String (Name (First .. J - 1)));
+            First := J + 1;
+         end if;
+      end loop;
+      return Unit;
+   end To_Qualified_Name;
+
    ------------------
    -- Canonicalize --
    ------------------
@@ -158,37 +163,53 @@ package body Instrument.Common is
       return +Result;
    end To_Ada;
 
+   -------------------------------
+   -- CU_Name_For_Unit --
+   -------------------------------
+
+   function CU_Name_For_Unit
+     (Unit : Ada_Qualified_Name;
+      Part : Unit_Parts) return Compilation_Unit_Name
+   is
+   begin
+      return (Unit_Based_Language, Unit, Part);
+   end CU_Name_For_Unit;
+
+   -----------------------------
+   -- CU_Name_For_File --
+   -----------------------------
+
+   function CU_Name_For_File
+     (Filename     : Unbounded_String;
+      Project_Name : Unbounded_String) return Compilation_Unit_Name
+   is
+   begin
+      return (File_Based_Language, Filename, Project_Name);
+   end CU_Name_For_File;
+
    ------------------------------
    -- To_Compilation_Unit_Name --
    ------------------------------
 
    function To_Compilation_Unit_Name
-     (Unit_Name : String;
-      Unit_Part : Unit_Parts) return Compilation_Unit_Name
-   is
-      First : Positive := Unit_Name'First;
-   begin
-      return Result : Compilation_Unit_Name do
-         --  Split Ada qualified name into its components
-
-         for J in Unit_Name'First .. Unit_Name'Last + 1 loop
-            if J = Unit_Name'Last + 1 or else Unit_Name (J) = '.' then
-               Result.Unit.Append
-                 (To_Unbounded_String (Unit_Name (First .. J - 1)));
-               First := J + 1;
-            end if;
-         end loop;
-
-         Result.Part := Unit_Part;
-      end return;
-   end To_Compilation_Unit_Name;
-
-   function To_Compilation_Unit_Name
      (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name
    is
+      use GNATCOLL.VFS;
+
+      Language : constant Any_Language_Kind :=
+        Str_To_Language_Kind (Source_File.Language);
+
    begin
-      return To_Compilation_Unit_Name
-        (Source_File.Unit_Name, Source_File.Unit_Part);
+      case Language is
+         when Unit_Based_Language =>
+            return CU_Name_For_Unit
+              (Unit => To_Qualified_Name (Source_File.Unit_Name),
+               Part => Source_File.Unit_Part);
+         when File_Based_Language =>
+            return CU_Name_For_File
+              (Filename     => +GNATCOLL.VFS."+" (Source_File.File.Base_Name),
+               Project_Name => +Source_File.Project.Name);
+      end case;
    end To_Compilation_Unit_Name;
 
    -----------------
@@ -196,26 +217,23 @@ package body Instrument.Common is
    -----------------
 
    function To_Filename
-     (Project : Project_Type; CU_Name : Compilation_Unit_Name) return String
+     (Project  : Project_Type;
+      CU_Name  : Compilation_Unit_Name;
+      Language : Any_Language) return String
    is
-      Unit_Name : Unbounded_String;
-   begin
-      for Id of CU_Name.Unit loop
-         if Length (Unit_Name) > 0 then
-            Append (Unit_Name, ".");
-         end if;
-         Append (Unit_Name, Ada.Characters.Handling.To_Lower (To_String (Id)));
-      end loop;
+      use GNATCOLL.VFS;
 
-      declare
-         use GNATCOLL.VFS;
-      begin
-         return +Project.File_From_Unit
-           (Unit_Name       => +Unit_Name,
-            Part            => CU_Name.Part,
-            Language        => "Ada",
-            File_Must_Exist => False);
-      end;
+   begin
+      case CU_Name.Language_Kind is
+         when Unit_Based_Language =>
+            return +Project.File_From_Unit
+              (Unit_Name       => To_Ada (CU_Name.Unit),
+               Part            => CU_Name.Part,
+               Language        => Language_To_Str (Language),
+               File_Must_Exist => False);
+         when File_Based_Language =>
+            return +CU_Name.Filename;
+      end case;
    end To_Filename;
 
    -----------
@@ -224,12 +242,17 @@ package body Instrument.Common is
 
    function Image (CU_Name : Compilation_Unit_Name) return String is
    begin
-      return To_Ada (CU_Name.Unit)
-        & " "
-        & (case CU_Name.Part is
-              when Unit_Spec     => "spec",
-              when Unit_Body     => "body",
-              when Unit_Separate => "subunit");
+      case CU_Name.Language_Kind is
+         when Unit_Based_Language =>
+            return To_Ada (CU_Name.Unit)
+              & " "
+              & (case CU_Name.Part is
+                    when Unit_Spec     => "spec",
+                    when Unit_Body     => "body",
+                    when Unit_Separate => "subunit");
+         when File_Based_Language =>
+            return +CU_Name.Filename;
+      end case;
    end Image;
 
    ---------
@@ -238,84 +261,75 @@ package body Instrument.Common is
 
    function "<" (Left, Right : Compilation_Unit_Name) return Boolean is
    begin
-      for I in 1 .. Left.Unit.Last_Index loop
-
-         if I > Right.Unit.Last_Index then
-
-            --  Here, we know that Left.Unit and Right.Unit are equal up to
-            --  Right.Unit's last index. Left is longer, so it comes after
-            --  Right.
-
-            return False;
-         end if;
-
-         declare
-            Left_Id  : constant Ada_Identifier := Left.Unit (I);
-            Right_Id : constant Ada_Identifier := Right.Unit (I);
-         begin
-            if Left_Id < Right_Id then
-               return True;
-            elsif Left_Id > Right_Id then
-               return False;
-            end if;
-
-            --  Here, Left.Unit and Right.Unit are equal up to I. Continue
-            --  looking for differences.
-         end;
-      end loop;
-
-      --  If Left is longer than Right, the return statement in the loop above
-      --  has bee executed. So at this point Left is either shorter or have the
-      --  same length than Right, and we know that Left is Right's prefix. So:
-      --
-      --  * either they have the same length: proceed to compare the unit kind
-      --  * either not (right is bigger) and Left comes first.
-
-      if Left.Unit.Last_Index /= Right.Unit.Last_Index then
-         return True;
-      end if;
-
-      return Left.Part < Right.Part;
+      return Instrumented_Unit_Slug (Left) < Instrumented_Unit_Slug (Right);
    end "<";
+
+   ---------
+   -- "=" --
+   ---------
+
+   function "=" (Left, Right : Compilation_Unit_Name) return Boolean is
+   begin
+      return Instrumented_Unit_Slug (Left) = Instrumented_Unit_Slug (Right);
+   end "=";
 
    ----------------------------
    -- Instrumented_Unit_Slug --
    ----------------------------
 
    function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Identifier
+     (Instrumented_Unit : Compilation_Unit_Name) return String
    is
       First : Boolean := True;
    begin
-      return Result : Ada_Identifier do
-         --  Add a single letter so that the spec and body of the same unit
-         --  don't conflict.
+      case Instrumented_Unit.Language_Kind is
+         when Unit_Based_Language =>
+            declare
+               Result : Ada_Identifier;
+            begin
+               --  Add a single letter so that the spec and body of the same
+               --  unit don't conflict.
 
-         Append (Result, Part_Tags (Instrumented_Unit.Part) & '_');
+               Append (Result, Part_Tags (Instrumented_Unit.Part) & '_');
 
-         --  Create a unique suffix corresponding to the qualified name of the
-         --  unit to instrument. Replace occurences of 'z' with 'zz' and insert
-         --  '_z_' between identifiers.
+               --  Create a unique suffix corresponding to the qualified name
+               --  of the unit to instrument. Replace occurences of 'z' with
+               --  'zz' and insert '_z_' between identifiers.
 
-         for Id of Instrumented_Unit.Unit loop
-            if First then
-               First := False;
-            else
-               Append (Result, "_z_");
-            end if;
-            for I in 1 .. Length (Id) loop
-               declare
-                  Char : constant Character := Element (Id, I);
-               begin
-                  if Char in 'Z' | 'z' then
-                     Append (Result, "zz");
+               for Id of Instrumented_Unit.Unit loop
+                  if First then
+                     First := False;
                   else
-                     Append (Result, Char);
+                     Append (Result, "_z_");
                   end if;
-               end;
-            end loop;
-         end loop;
-      end return;
+                  for I in 1 .. Length (Id) loop
+                     declare
+                        Char : constant Character := Element (Id, I);
+                     begin
+                        if Char in 'Z' | 'z' then
+                           Append (Result, "zz");
+                        else
+                           Append (Result, Char);
+                        end if;
+                     end;
+                  end loop;
+               end loop;
+               return To_String (Result);
+            end;
+
+         when File_Based_Language =>
+
+            --  For a compilation unit in a file-based language, relying on the
+            --  filename only is not enough, as there can be multiple sources
+            --  with the same name belonging to different projects in a project
+            --  tree. We will thus prepend the name of the owning project to
+            --  the computed slug.
+
+            return +Instrumented_Unit.Project_Name & "_"
+                   & Ada.Directories.Base_Name (+Instrumented_Unit.Filename)
+                   & "_"
+                   & Ada.Directories.Extension (+Instrumented_Unit.Filename);
+      end case;
    end Instrumented_Unit_Slug;
 
    -------------------
@@ -326,10 +340,9 @@ package body Instrument.Common is
      (Instrumented_Unit : Compilation_Unit_Name;
       Buffer_Name       : String) return String
    is
-      Slug : constant Ada_Identifier := Instrumented_Unit_Slug
-        (Instrumented_Unit);
+      Slug : constant String := Instrumented_Unit_Slug (Instrumented_Unit);
    begin
-      return "xcov__buf_" & Buffer_Name & "__" & To_String (Slug);
+      return "xcov__buf_" & Buffer_Name & "__" & Slug;
    end Buffer_Symbol;
 
    -----------------------------
@@ -858,14 +871,42 @@ package body Instrument.Common is
    -- Str_To_Language --
    ---------------------
 
-   function Str_To_Language (Language : String) return Language_Type is
+   function Str_To_Language (Language : String) return Any_Language is
       use Ada.Characters.Handling;
    begin
       if To_Lower (Language) = "ada" then
          return Ada_Language;
+      elsif To_Lower (Language) = "c" then
+         return C_Language;
       end if;
       Outputs.Fatal_Error ("Language " & Language & " is not supported");
    end Str_To_Language;
+
+   ---------------------
+   -- Language_To_Str --
+   ---------------------
+
+   function Language_To_Str (Language : Any_Language) return String is
+   begin
+      case Language is
+         when Ada_Language => return "ada";
+         when C_Language   => return "c";
+      end case;
+   end Language_To_Str;
+
+   --------------------------
+   -- Str_To_Language_Kind --
+   --------------------------
+
+   function Str_To_Language_Kind
+     (Language : String) return Any_Language_Kind
+   is
+   begin
+      case Str_To_Language (Language) is
+         when Ada_Language => return Unit_Based_Language;
+         when C_Language   => return File_Based_Language;
+      end case;
+   end Str_To_Language_Kind;
 
    ---------------------------------
    -- Register_Main_To_Instrument --
@@ -894,10 +935,9 @@ package body Instrument.Common is
             Get_Or_Create_Project_Info (Context, Project);
       begin
          Mains.Append
-           ((Unit     => CU_Name.Unit,
+           ((CU_Name  => CU_Name,
              File     => File,
-             Prj_Info => Prj_Info,
-             Language => Str_To_Language (File_Info.Language)));
+             Prj_Info => Prj_Info));
       end;
    end Register_Main_To_Instrument;
 
@@ -987,13 +1027,11 @@ package body Instrument.Common is
    ----------------------------
 
    function Find_Instrumented_Unit
-     (Unit_Name : String;
-      Unit_Part : Unit_Parts) return CU_Id
+     (CU_Name : Compilation_Unit_Name) return CU_Id
    is
       use Instrumented_Unit_To_CU_Maps;
 
-      Position : constant Cursor := Instrumented_Unit_CUs.Find
-        (To_Compilation_Unit_Name (Unit_Name, Unit_Part));
+      Position : constant Cursor := Instrumented_Unit_CUs.Find (CU_Name);
    begin
       if Has_Element (Position) then
          return Element (Position);

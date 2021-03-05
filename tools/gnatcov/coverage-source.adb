@@ -29,21 +29,22 @@ with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
+with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Binary_Files;      use Binary_Files;
-with Coverage.Tags;     use Coverage.Tags;
-with Decision_Map;      use Decision_Map;
-with Diagnostics;       use Diagnostics;
-with Elf_Disassemblers; use Elf_Disassemblers;
-with Instrument.Common; use Instrument.Common;
-with MC_DC;             use MC_DC;
-with Outputs;           use Outputs;
+with Binary_Files;        use Binary_Files;
+with Coverage.Tags;       use Coverage.Tags;
+with Decision_Map;        use Decision_Map;
+with Diagnostics;         use Diagnostics;
+with Elf_Disassemblers;   use Elf_Disassemblers;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with MC_DC;               use MC_DC;
+with Outputs;             use Outputs;
 with Project;
-with Slocs;             use Slocs;
-with Strings;           use Strings;
-with Switches;          use Switches;
-with Traces_Elf;        use Traces_Elf;
+with Slocs;               use Slocs;
+with Strings;             use Strings;
+with Switches;            use Switches;
+with Traces_Elf;          use Traces_Elf;
 with Types;
 
 package body Coverage.Source is
@@ -1622,8 +1623,7 @@ package body Coverage.Source is
    procedure Compute_Source_Coverage
      (Filename        : String;
       Fingerprint     : SC_Obligations.SCOs_Hash;
-      Unit_Name       : String;
-      Unit_Part       : GNATCOLL.Projects.Unit_Parts;
+      CU_Name         : Compilation_Unit_Name;
       Stmt_Buffer     : Coverage_Buffer;
       Decision_Buffer : Coverage_Buffer;
       MCDC_Buffer     : Coverage_Buffer)
@@ -1638,7 +1638,10 @@ package body Coverage.Source is
       --  Helper to include Part in an error message
 
       function Unit_Image return String is
-        (Part_Image (Unit_Part) & " " & Unit_Name);
+        (case CU_Name.Language_Kind is
+            when Unit_Based_Language =>
+               (Part_Image (CU_Name.Part) & " " & To_Ada (CU_Name.Unit)),
+            when File_Based_Language => +CU_Name.Filename);
       --  Helper to refer to the instrumented unit in an error message
 
       ------------------
@@ -1667,7 +1670,7 @@ package body Coverage.Source is
    --  Start of processing for Compute_Source_Coverage
 
    begin
-      CU := Find_Instrumented_Unit (Unit_Name, Unit_Part);
+      CU := Find_Instrumented_Unit (CU_Name);
 
       if CU = No_CU_Id then
 

@@ -48,8 +48,9 @@ is
                Subunit_FQN  : constant LAL.Unbounded_Text_Type_Array :=
                   Stub.P_Syntactic_Fully_Qualified_Name;
                Subunit_Name : constant Compilation_Unit_Name :=
-                 (Unit => To_Qualified_Name (Subunit_FQN),
-                  Part => GPR.Unit_Separate);
+                 CU_Name_For_Unit
+                   (Unit => To_Qualified_Name (Subunit_FQN),
+                    Part => GPR.Unit_Separate);
                Subunit_Info : GPR.File_Info;
             begin
                if Subunit_FQN'Length = 0 then

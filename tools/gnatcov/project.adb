@@ -523,7 +523,18 @@ package body Project is
             declare
                use Unit_Maps;
 
-               Cur : constant Cursor := Unit_Map.Find (LI.Source.Unit_Name);
+               LI_Source_Unit : constant String := LI.Source.Unit_Name;
+               LI_Source_File : constant String := +LI.Source.File.Base_Name;
+
+               U : constant String :=
+                 (if LI_Source_Unit'Length > 0
+                  then LI_Source_Unit
+                  else LI_Source_File);
+               --  For unit-based languages (Ada), retrieve unit name from SID
+               --  file. For file-based languages (C), fall back to translation
+               --  unit source file name instead.
+
+               Cur : constant Cursor := Unit_Map.Find (U);
             begin
                if Has_Element (Cur) then
                   Callback.all (+LI.Library_File.Full_Name);

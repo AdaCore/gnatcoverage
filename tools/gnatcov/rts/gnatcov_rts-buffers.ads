@@ -45,7 +45,12 @@ package GNATcov_RTS.Buffers is
    --  indicates whether the decision reached the False outcome and another for
    --  the True outcome.
 
-   type Any_Unit_Part is (Unit_Body, Unit_Spec, Unit_Separate);
+   type Any_Unit_Part is
+     (Not_Applicable_Part, Unit_Body, Unit_Spec, Unit_Separate);
+   --  Not_Applicable_Part is a default value used for compilation units in
+   --  languages that are not unit-based.
+
+   type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
 
    type Any_Bit_Id is new Integer;
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
@@ -59,19 +64,38 @@ package GNATcov_RTS.Buffers is
    --  Hash type to perform consistency checks over Source Coverage
    --  Obligations. 20-byte to hold a SHA-1.
 
-   type Unit_Coverage_Buffers (Unit_Name_Length : Positive) is record
+   type Unit_Coverage_Buffers
+     (Unit_Name_Length    : Positive;
+      Project_Name_Length : Natural)
+   is record
       Fingerprint : SCOs_Hash;
       --  Hash of SCO info for this unit, as gnatcov computes it (see
       --  SC_Obligations). Used a fast way to check that coverage obligations
       --  and coverage data are consistent. Specific hash values are computed
       --  during instrumentation.
 
+      Language_Kind : Any_Language_Kind;
+      --  Language kind for this unit
+
       Unit_Part : Any_Unit_Part;
       Unit_Name : String (1 .. Unit_Name_Length);
-      --  Unit kind and name for the instrumented unit. More specifically,
-      --  Unit_Name is the fully qualified name of the compilation unit (or
-      --  subunit) in lower case. For instance: "foo", "ada.text_io" or
-      --  "foo.bar.my_subunit".
+      --  Unit kind and name for the instrumented unit. The Unit_Name field
+      --  accounts both for unit-based languages (such as Ada) and file-based
+      --  languages such as C.
+      --
+      --  The Unit_Part field is only there for unit-based languages and is set
+      --  to Not_Applicable_Part for file-based languages.
+      --
+      --  More specifically, for unit-based languages, Unit_Name is the fully
+      --  qualified name of the compilation unit (or subunit) in lower case.
+      --  For instance: "foo", "ada.text_io" or "foo.bar.my_subunit".
+      --
+      --  For file-based languages, Unit_Name is the simple filename, e.g.
+      --  "foo.c".
+
+      Project_Name : String (1 .. Project_Name_Length);
+      --  Project name for this compilation unit. This is only initialized for
+      --  file-based languages (otherwise, it is an empty string).
 
       Statement, Decision, MCDC : System.Address;
       --  Addresses of coverage buffers for statement obligations, decision
@@ -85,7 +109,7 @@ package GNATcov_RTS.Buffers is
    end record;
 
    -------------------------
-   -- Witness subrpograms --
+   -- Witness subprograms --
    -------------------------
 
    --  The following subprograms are called by generated code to record

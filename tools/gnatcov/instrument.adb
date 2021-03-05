@@ -39,13 +39,15 @@ with Libadalang.Rewriting;
 with Checkpoints;
 with Coverage;
 with Files_Table;
+with GNATcov_RTS.Buffers;      use GNATcov_RTS.Buffers;
 with Instrument.Ada_Unit;
 with Instrument.Clean_Objdirs;
-with Instrument.Common; use Instrument.Common;
+with Instrument.Common;        use Instrument.Common;
 with Instrument.Find_Units;
 with Outputs;
 with Project;
 with SC_Obligations;
+with Strings;                  use Strings;
 with Switches;
 with Text_Files;
 
@@ -67,6 +69,12 @@ package body Instrument is
 
       Body_Project, Spec_Project : GPR.Project_Type;
       --  Projects that own the body/spec for this library unit
+
+      Language_Kind : Any_Language_Kind;
+      --  Higher level representation of a language (unit-based or file-based)
+
+      Language : Any_Language;
+      --  Actual language representation
    end record;
    type Library_Unit_Info_Access is access Library_Unit_Info;
 
@@ -89,8 +97,12 @@ package body Instrument is
 
    package Library_Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (String, Library_Unit_Info_Access);
-   --  Map to associate a list of compilation units to instrument to library
-   --  units (indexed by library unit name).
+   --  Map to associate a list of compilation units to instrument to a library
+   --  unit (indexed by the library unit name).
+   --
+   --  For file-based languages, the library unit only have one compilation
+   --  unit associated to it (that is the library unit itself, for which the
+   --  name is the actual base filename).
 
    procedure Get_Or_Create
      (Map          : in out Library_Unit_Maps.Map;
@@ -166,6 +178,8 @@ package body Instrument is
       --  from the basename of that source file, replace the last extension
       --  with ".sid".
 
+      SID_Basename : US.Unbounded_String;
+
       Use_Spec : constant Boolean := Info.Body_Project = GPR.No_Project;
       Project  : constant GPR.Project_Type :=
         (if Use_Spec
@@ -173,22 +187,35 @@ package body Instrument is
          else Info.Body_Project);
       pragma Assert (Project /= GPR.No_Project);
 
-      Src_Basename  : constant String := +Project.File_From_Unit
-        (Unit_Name       => LU_Name,
-         Part            => (if Use_Spec then Unit_Spec else Unit_Body),
-         Language        => "Ada",
-         File_Must_Exist => False);
-      Src_Ext_Index : constant Positive :=
-         Ada.Strings.Fixed.Index (Src_Basename, ".", Ada.Strings.Backward);
-      SID_Basename  : constant String :=
-         Src_Basename (Src_Basename'First ..  Src_Ext_Index) & "sid";
-
       Output_Directory : constant Virtual_File :=
         (if In_Library_Dir
          then Project.Library_Ali_Directory
          else Project.Object_Dir);
    begin
-      return String'(+Output_Directory.Full_Name) / SID_Basename;
+      case Info.Language_Kind is
+         when Unit_Based_Language =>
+            declare
+
+               Src_Basename  : constant String := +Project.File_From_Unit
+                 (Unit_Name       => LU_Name,
+                  Part            => (if Use_Spec
+                                      then Unit_Spec
+                                      else Unit_Body),
+                  Language        =>  Language_To_Str (Info.Language),
+                  File_Must_Exist => False);
+               Src_Ext_Index : constant Positive :=
+                 Ada.Strings.Fixed.Index
+                   (Src_Basename, ".", Ada.Strings.Backward);
+            begin
+               SID_Basename :=
+                 +(Src_Basename (Src_Basename'First ..  Src_Ext_Index)
+                   & "sid");
+            end;
+         when File_Based_Language =>
+            SID_Basename := +(LU_Name & ".sid");
+      end case;
+
+      return String'(+Output_Directory.Full_Name) / (+SID_Basename);
    end SID_Filename;
 
    -------------------------
@@ -227,7 +254,8 @@ package body Instrument is
    is
       use GPR;
 
-      CU_Name : Compilation_Unit_Name := (Sys_Buffers_Lists, Unit_Spec);
+      CU_Name : Compilation_Unit_Name :=
+        CU_Name_For_Unit (Sys_Buffers_Lists, Unit_Spec);
       File    : Text_Files.File_Type;
 
       package Buffer_Vectors is new Ada.Containers.Vectors
@@ -261,7 +289,10 @@ package body Instrument is
          Create_File
            (Root_Project_Info,
             File,
-            To_Filename (Root_Project_Info.Project, CU_Name));
+            To_Filename
+              (Root_Project_Info.Project,
+               CU_Name,
+               Ada_Language));
          Put_Warnings_And_Style_Checks_Pragmas (File);
          for Unit of Buffer_Units loop
             File.Put_Line ("with " & To_String (Unit) & ";");
@@ -310,7 +341,7 @@ package body Instrument is
             Instrument.Ada_Unit.Add_Auto_Dump_Buffers
               (IC   => IC,
                Info => Main.Prj_Info.all,
-               Main => Main.Unit,
+               Main => Main.CU_Name.Unit,
                URH  => Libadalang.Rewriting.Handle (Rewriter.Rewritten_Unit));
             Rewriter.Apply;
          end;
@@ -359,15 +390,16 @@ package body Instrument is
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 
-      procedure Find_Units_Wrapper
+      procedure Add_Instrumented_Unit_Wrapper
         (Project : GPR.Project_Type; Source_File : GPR.File_Info);
-      --  Wrapper for Find_Units, callback for Enumerate_Sources
+      --  Add this source file to the list of units to instrument. For unit-
+      --  based languages, also add subunits that depend on this source file.
 
-      ------------------------
-      -- Find_Units_Wrapper --
-      ------------------------
+      -----------------------------------
+      -- Add_Instrumented_Unit_Wrapper --
+      -----------------------------------
 
-      procedure Find_Units_Wrapper
+      procedure Add_Instrumented_Unit_Wrapper
         (Project : GPR.Project_Type; Source_File : GPR.File_Info)
       is
          procedure Add_Instrumented_Unit
@@ -405,13 +437,18 @@ package body Instrument is
          CU_Name : constant Compilation_Unit_Name :=
             To_Compilation_Unit_Name (Source_File);
 
+         Unit_Name : constant String :=
+           (case CU_Name.Language_Kind is
+               when Unit_Based_Language => To_Ada (CU_Name.Unit),
+               when File_Based_Language => +CU_Name.Filename);
+
       --  Start of processing for Find_Units_Wrapper
 
       begin
          --  Get the vector in which we will record the compilation units that
          --  the following call to Find_Units will list.
 
-         Get_Or_Create (LU_Map, To_Ada (CU_Name.Unit), Current_LU_Info);
+         Get_Or_Create (LU_Map, Unit_Name, Current_LU_Info);
 
          --  Keep track of projects that own this library unit's source files
          --  for its spec/body.
@@ -428,16 +465,25 @@ package body Instrument is
                raise Program_Error with "unreachable code";
          end case;
 
-         Find_Units
-           (IC, CU_Name, Source_File, Add_Instrumented_Unit'Access);
-      end Find_Units_Wrapper;
+         Current_LU_Info.Language_Kind := CU_Name.Language_Kind;
+         Current_LU_Info.Language := Str_To_Language (Source_File.Language);
+
+         case CU_Name.Language_Kind is
+            when Unit_Based_Language =>
+               Find_Units
+                 (IC, CU_Name, Source_File, Add_Instrumented_Unit'Access);
+            when File_Based_Language =>
+               Add_Instrumented_Unit (CU_Name => CU_Name, Info => Source_File);
+         end case;
+
+      end Add_Instrumented_Unit_Wrapper;
 
    --  Start of processing for Instrument_Units_Of_Interest
 
    begin
       --  First get the list of all units of interest
 
-      Project.Enumerate_Sources (Find_Units_Wrapper'Access, "ada");
+      Project.Enumerate_Sources (Add_Instrumented_Unit_Wrapper'Access, "ada");
 
       --  If we need to instrument all Ada mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.
@@ -499,9 +545,16 @@ package body Instrument is
                         All_Externally_Built := False;
 
                         case Unit_Info.Language is
-                        when Ada_Language =>
-                           Instrument.Ada_Unit.Instrument_Unit
-                             (CU.Name, IC, Unit_Info);
+                           when Ada_Language =>
+                              Instrument.Ada_Unit.Instrument_Unit
+                                (CU.Name, IC, Unit_Info);
+
+                           when others =>
+
+                              --  Not enumerating other languages' sources for
+                              --  now, so this is dead code.
+
+                              raise Program_Error with "unreachable code";
                         end case;
 
                         --  Update the Ignore_Status of the CU we instrumented

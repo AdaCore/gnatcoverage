@@ -32,13 +32,15 @@ trace_info_header_struct = Struct(
 trace_entry_header_struct = Struct(
     'trace entry header',
     ('unit_name_length', 'I'),
+    ('project_name_length', 'I'),
     ('stmt_bit_count', 'I'),
     ('dc_bit_count', 'I'),
     ('mcdc_bit_count', 'I'),
+    ('language', 'B'),
     ('unit_part', 'B'),
     ('bit_buffer_encoding', 'B'),
     ('fingerprint', '20B'),
-    ('padding', '2B'),
+    ('padding', '5B'),
 )
 
 
@@ -93,7 +95,7 @@ class SrcTraceFile(object):
 
     MAGIC = b'GNATcov source trace file' + b'\x00' * 7
 
-    FORMAT_VERSION = 0
+    FORMAT_VERSION = 1
 
     ENDIANITY_NAMES = {
         0: 'little-endian',
@@ -191,6 +193,7 @@ class SrcTraceFile(object):
             print('  Unit {} ({}, fingerprint={})'.format(
                 e.unit_name, e.unit_part,
                 ''.join('{:02x}'.format(b) for b in e.fingerprint)))
+            print('  Project: {}'.format(e.project_name))
             print('  Stmt buffer: {}'.format(format_buffer(e.stmt_buffer)))
             print('  Dc buffer:   {}'.format(format_buffer(e.dc_buffer)))
             print('  MCDC buffer: {}'.format(format_buffer(e.mcdc_buffer)))
@@ -251,11 +254,18 @@ class TraceEntry(object):
     """
 
     UNIT_PART_NAMES = {
-        0: 'body',
-        1: 'spec',
-        2: 'separate'
+        0: 'not_applicable_part',
+        1: 'body',
+        2: 'spec',
+        3: 'separate',
     }
     UNIT_PART_CODES = {value: key for key, value in UNIT_PART_NAMES.items()}
+
+    LANGUAGE_NAMES = {
+        0: 'unit_based',
+        1: 'file_based'
+    }
+    LANGUAGE_CODES = {value: key for key, value in LANGUAGE_NAMES.items()}
 
     BIT_BUFFER_ENCODING_NAMES = {
         0: 'lsb_first_bytes'
@@ -263,10 +273,12 @@ class TraceEntry(object):
     BIT_BUFFER_ENCODING_CODES = {
         value: key for key, value in BIT_BUFFER_ENCODING_NAMES.items()}
 
-    def __init__(self, unit_part, unit_name, fingerprint, stmt_buffer,
-                 dc_buffer, mcdc_buffer):
+    def __init__(self, language, unit_part, unit_name, project_name,
+                 fingerprint, stmt_buffer, dc_buffer, mcdc_buffer):
+        self.language = language
         self.unit_part = unit_part
         self.unit_name = unit_name
+        self.project_name = project_name
         self.fingerprint = fingerprint
         self.stmt_buffer = stmt_buffer
         self.dc_buffer = dc_buffer
@@ -284,7 +296,9 @@ class TraceEntry(object):
 
             unit_part = cls.UNIT_PART_NAMES[header['unit_part']]
 
-            if header['padding'] != (0, ) * 2:
+            language = cls.LANGUAGE_NAMES[header['language']]
+
+            if header['padding'] != (0, ) * 5:
                 raise ValueError('Invalid padding: {}'
                                  .format(header['padding']))
 
@@ -294,6 +308,11 @@ class TraceEntry(object):
             with fp.label_context('unit name'):
                 unit_name = read_aligned(
                     fp, header['unit_name_length'], trace_file.alignment)
+
+            with fp.label_context('project name'):
+                project_name = (read_aligned(fp, header['project_name_length'],
+                                             trace_file.alignment)
+                                or "")
 
             with fp.label_context('stmt buffer'):
                 stmt_buffer = TraceBuffer.read(
@@ -308,24 +327,28 @@ class TraceEntry(object):
                     fp, trace_file, bit_buffer_encoding,
                     header['mcdc_bit_count'])
 
-        return cls(unit_part, unit_name, header['fingerprint'], stmt_buffer,
-                   dc_buffer, mcdc_buffer)
+        return cls(language, unit_part, unit_name, project_name,
+                   header['fingerprint'], stmt_buffer, dc_buffer,
+                   mcdc_buffer)
 
     def write(self, fp, big_endian, alignment):
         """Write this trace info entry to the `fp` file."""
         trace_entry_header_struct.write(fp, {
             'unit_name_length': len(self.unit_name),
+            'project_name_length': len(self.project_name),
             'stmt_bit_count': len(self.stmt_buffer.bits),
             'dc_bit_count': len(self.dc_buffer.bits),
             'mcdc_bit_count': len(self.mcdc_buffer.bits),
+            'language': self.LANGUAGE_CODES[self.language],
             'unit_part': self.UNIT_PART_CODES[self.unit_part],
             'bit_buffer_encoding':
                 self.BIT_BUFFER_ENCODING_CODES['lsb_first_bytes'],
             'fingerprint': self.fingerprint,
-            'padding': (0, 0),
+            'padding': (0, ) * 5,
         }, big_endian=big_endian)
 
         write_aligned(fp, self.unit_name, alignment)
+        write_aligned(fp, self.project_name, alignment)
 
         self.stmt_buffer.write(fp, alignment)
         self.dc_buffer.write(fp, alignment)

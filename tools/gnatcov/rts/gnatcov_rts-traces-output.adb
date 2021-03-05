@@ -138,12 +138,16 @@ package body GNATcov_RTS.Traces.Output is
          Header : constant Trace_Entry_Header :=
            (Unit_Name_Length    =>
                Interfaces.Unsigned_32 (Buffers.Unit_Name_Length),
+            Project_Name_Length =>
+               Interfaces.Unsigned_32 (Buffers.Project_Name_Length),
             Statement_Bit_Count =>
                Traces.Any_Bit_Count (Buffers.Statement_Last_Bit + 1),
             Decision_Bit_Count  =>
                Traces.Any_Bit_Count (Buffers.Decision_Last_Bit + 1),
             MCDC_Bit_Count      =>
                Traces.Any_Bit_Count (Buffers.MCDC_Last_Bit + 1),
+            Language_Kind       =>
+              Any_Language_Kind_Map (Buffers.Language_Kind),
             Unit_Part           => Unit_Part_Map (Buffers.Unit_Part),
             Bit_Buffer_Encoding => LSB_First_Bytes,
             Fingerprint         => Buffers.Fingerprint,
@@ -153,6 +157,9 @@ package body GNATcov_RTS.Traces.Output is
          Write_Bytes (Output, Buffers.Unit_Name'Address,
                       Buffers.Unit_Name'Length);
          Write_Padding (Output, Buffers.Unit_Name'Length);
+         Write_Bytes (Output, Buffers.Project_Name'Address,
+                      Buffers.Project_Name'Length);
+         Write_Padding (Output, Buffers.Project_Name'Length);
          Write_Buffer (Output, Buffers.Statement, Buffers.Statement_Last_Bit);
          Write_Buffer (Output, Buffers.Decision, Buffers.Decision_Last_Bit);
          Write_Buffer (Output, Buffers.MCDC, Buffers.MCDC_Last_Bit);
