@@ -27,6 +27,7 @@ with System;
 with System.Address_To_Access_Conversions;
 
 with GNAT.OS_Lib;
+with GNAT.Regpat;
 with Osint;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
@@ -35,6 +36,7 @@ with Checkpoints; use Checkpoints;
 with Outputs;
 with Perf_Counters; use Perf_Counters;
 with Project;
+with Strings;
 with Switches;
 
 package body Files_Table is
@@ -140,10 +142,12 @@ package body Files_Table is
       Next : Source_Search_Entry_Acc;
    end record;
 
+   type Pattern_Matcher_Acc is access all GNAT.Regpat.Pattern_Matcher;
+
    type Source_Rebase_Entry;
    type Source_Rebase_Entry_Acc is access Source_Rebase_Entry;
    type Source_Rebase_Entry is record
-      Old_Prefix : String_Access;
+      Old_Prefix : Pattern_Matcher_Acc;
       New_Prefix : String_Access;
       Next : Source_Rebase_Entry_Acc;
    end record;
@@ -298,17 +302,28 @@ package body Files_Table is
    -----------------------
 
    procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String) is
+      use GNAT.Regpat;
       E : Source_Rebase_Entry_Acc;
+
+      Regexp : constant String := "^" & Strings.Glob_To_Regexp (Old_Prefix);
+      --  Add a begining of line anchor to the regular expression to make sure
+      --  we are matching a prefix.
+
+      Flags : constant Regexp_Flags :=
+        (if GNAT.OS_Lib.Directory_Separator = '\'
+         then Case_Insensitive
+         else No_Flags);
+      --  Windows paths are canonicalized so use case insensitive regexp to
+      --  make sure the prefix has a chance to match.
+
    begin
-      --  Canonicalize the old/new prefix so that they match the canonicalized
-      --  filenames in the table.
+      --  Canonicalize the new prefix so all absolute paths in the file table
+      --  are canonicalized.
 
-      E := new Source_Rebase_Entry'(Old_Prefix =>
-                                      Canonicalize_Filename (Old_Prefix),
-                                    New_Prefix =>
-                                      Canonicalize_Filename (New_Prefix),
-                                    Next => null);
-
+      E := new Source_Rebase_Entry'
+        (Old_Prefix => new Pattern_Matcher'(Compile (Regexp, Flags)),
+         New_Prefix => Canonicalize_Filename (New_Prefix),
+         Next       => null);
       if First_Source_Rebase_Entry = null then
          First_Source_Rebase_Entry := E;
       else
@@ -325,7 +340,10 @@ package body Files_Table is
    procedure Add_Source_Search (Prefix : String) is
       E : Source_Search_Entry_Acc;
    begin
-      E := new Source_Search_Entry'(Prefix => new String'(Prefix),
+      --  Canonicalize the source search prefix so that all absolute filenames
+      --  in the filetable are canonicalized.
+
+      E := new Source_Search_Entry'(Prefix => Canonicalize_Filename (Prefix),
                                     Next => null);
 
       if First_Source_Search_Entry = null then
@@ -1672,18 +1690,18 @@ package body Files_Table is
       --  Try to rebase
 
       declare
+         use GNAT.Regpat;
          E     : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
          Name  : constant String := +File.Full_Name;
-         First : constant Positive := Name'First;
+
+         Match_Res : GNAT.Regpat.Match_Array (0 .. 0);
       begin
          while E /= null loop
-            if Name'Length > E.Old_Prefix'Length
-              and then (Name (First .. First + E.Old_Prefix'Length - 1)
-                           = E.Old_Prefix.all)
-            then
+            GNAT.Regpat.Match (E.Old_Prefix.all, Name, Match_Res);
+            if Match_Res (0) /= GNAT.Regpat.No_Match then
                Candidate := Create
                  (+(E.New_Prefix.all
-                  & Name (First + E.Old_Prefix'Length .. Name'Last)));
+                    & Name (Match_Res (0).Last + 1 .. Name'Last)));
                if Candidate.Is_Readable then
                   return Candidate;
                end if;

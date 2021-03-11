@@ -90,6 +90,8 @@ procedure GNATcov_Bits_Specific is
    Checkpoints_Inputs   : Inputs.Inputs_Type;
    SID_Inputs           : Inputs.Inputs_Type;
    Ignored_Source_Files : Inputs.Inputs_Type;
+   Source_Rebase_Inputs : Inputs.Inputs_Type;
+   Source_Search_Inputs : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
    Output               : String_Access := null;
    Tag                  : String_Access := null;
@@ -508,13 +510,19 @@ procedure GNATcov_Bits_Specific is
          end;
       end if;
 
-      for Arg_Acc of Args.String_List_Args (Opt_Source_Rebase) loop
-         declare
-            --  Parse source-rebase's argument. This option's form should be:
-            --
-            --  "<OLD_PREFIX>=<NEW_PREFIX>"
+      --  Parse --source-rebase options
 
-            Arg : constant String := +Arg_Acc;
+      declare
+         procedure Process_One_Entry (Arg : String);
+         --  Parse source-rebase's argument. This option's form should be:
+         --
+         --  "<OLD_PREFIX>=<NEW_PREFIX>"
+
+         -----------------------
+         -- Process_One_Entry --
+         -----------------------
+
+         procedure Process_One_Entry (Arg : String) is
             Pos : Natural := 0;
          begin
             for I in Arg'First .. Arg'Last loop
@@ -528,12 +536,17 @@ procedure GNATcov_Bits_Specific is
             end if;
             Add_Source_Rebase (Arg (Arg'First .. Pos - 1),
                                Arg (Pos + 1 .. Arg'Last));
-         end;
-      end loop;
+         end Process_One_Entry;
 
-      for Arg of Args.String_List_Args (Opt_Source_Search) loop
-         Add_Source_Search (+Arg);
-      end loop;
+      begin
+         Copy_Arg_List (Opt_Source_Rebase, Source_Rebase_Inputs);
+         Iterate (Source_Rebase_Inputs, Process_One_Entry'Access);
+      end;
+
+      --  Parse --source-search options
+
+      Copy_Arg_List (Opt_Source_Search, Source_Search_Inputs);
+      Iterate (Source_Search_Inputs, Add_Source_Search'Access);
 
       if Args.String_Args (Opt_Exec_Prefix).Present then
          Set_Exec_Prefix (+Args.String_Args (Opt_Exec_Prefix).Value);
@@ -948,8 +961,16 @@ procedure GNATcov_Bits_Specific is
       Has_Matcher : out Boolean)
    is
       use Ada.Strings.Unbounded;
+
       Pattern : Unbounded_String;
-      First   : Boolean := True;
+      --  Regular expression pattern (using regexp syntax described in
+      --  GNAT.Regexp) to match the name of all the files to ignore.
+      --
+      --  Note that we use Glob_To_Regexp instead of GNAT.Regexp's internal
+      --  globbing pattern support to keep the globbing syntax that gnatcov
+      --  support coherent among all options that accept them.
+
+      First : Boolean := True;
 
       procedure Process (File : String);
       --  Include File in Result
@@ -969,21 +990,18 @@ procedure GNATcov_Bits_Specific is
          if First then
             First := False;
          else
-            Append (Pattern, ",");
+            Append (Pattern, "|");
          end if;
-         Append (Pattern, File);
+         Append (Pattern, Strings.Glob_To_Regexp (File));
       end Process;
 
    --  Start of processing for Create_Ignored_Source_Files_Matcher
 
    begin
-      Append (Pattern, "{");
       Inputs.Iterate (Ignored_Source_Files, Process'Access);
-      Append (Pattern, "}");
       Has_Matcher := not First;
       if Has_Matcher then
-         Matcher := GNAT.Regexp.Compile (Pattern => To_String (Pattern),
-                                         Glob    => True);
+         Matcher := GNAT.Regexp.Compile (Pattern => To_String (Pattern));
       end if;
    end Create_Ignored_Source_Files_Matcher;
 

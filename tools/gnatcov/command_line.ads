@@ -830,15 +830,21 @@ package Command_Line is
          Internal     => True),
       Opt_Source_Rebase => Create
         (Long_Name   => "--source-rebase",
-         Pattern     => "[OLD_PREFIX]=[NEW_PREFIX]",
-         Help        => "Specify alternative path to find source files.",
+         Pattern     => "[OLD_PREFIX]=[NEW_PREFIX]|@[LISTFILE]",
+         Help        => "Specify alternative path to find source files."
+                        & " [OLD_PREFIX] accepts globbing patterns. Each line"
+                        & " in LISTFILE shall be of the form [OLD_PREFIX]="
+                        & "[NEW_PREFIX]. Globbing patterns can also be used in"
+                        & " [OLD_PREFIX] in a response file.",
          Commands    => (Cmd_Coverage => True,
                          others => False),
          Internal    => True),
       Opt_Source_Search => Create
         (Long_Name   => "--source-search",
-         Pattern     => "[PREFIX]",
-         Help        => "Specify an alternative prefix to find source files.",
+         Pattern     => "[PREFIX]|@[LISTFILE]",
+         Help        => "Specify an alternative prefix to find source files,"
+                        & " or add each line of LISTFILE as an alternative"
+                        & " prefix.",
          Commands    => (Cmd_Coverage => True,
                          others => False),
          Internal    => True),

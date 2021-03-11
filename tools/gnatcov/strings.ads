@@ -67,6 +67,9 @@ package Strings is
      (V : String_Vectors.Vector)
       return String_List_Access;
 
+   function Glob_To_Regexp (Pattern : String) return String;
+   --  Translates a globbing pattern into a regular expression
+
    --  The stream type below allows arbitrary objects to be streamed
    --  from/to an unbounded string, which is used as a buffer of bytes.
 
