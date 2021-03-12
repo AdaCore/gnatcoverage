@@ -1610,19 +1610,18 @@ package body Instrument.Ada_Unit is
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
 
-      Call_Expr : constant Node_Rewriting_Handle :=
-        Create_Call_Expr
-          (RC,
-           F_Name   =>
-             Create_Dotted_Name
-               (RC,
-                F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
-                F_Suffix => Make_Identifier (UIC, Augmented_Expr_Func_Name)),
-           F_Suffix => Call_Params);
+      Callee    : constant Node_Rewriting_Handle := Create_Dotted_Name
+        (RC,
+         F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
+         F_Suffix => Make_Identifier (UIC, Augmented_Expr_Func_Name));
+      Call_Expr : constant Node_Rewriting_Handle := Create_Call_Expr
+        (RC,
+         F_Name   => Callee,
+         F_Suffix => Call_Params);
 
    begin
-      --  Now create New_Expr_Function, which will go right after the wrapper
-      --  package. Move all aspecs from the original function to the new one.
+      --  Create New_Expr_Function, which will go right after the wrapper
+      --  package. Move all aspects from the original function to the new one.
 
       New_Expr_Function :=
         Create_Expr_Function
@@ -1632,10 +1631,17 @@ package body Instrument.Ada_Unit is
            F_Expr       => Create_Paren_Expr (RC, Call_Expr),
            F_Aspects    => Detach (Common_Nodes.N.F_Aspects));
 
-      --  The original expression function becomes the augmented one. Replace
-      --  its name and formal parameter list it a new name.
+      --  The original expression function becomes the augmented one. We move
+      --  it to the helper package, so it is not a primitive anymore, and thus
+      --  it cannot stay overriding (so if it was, remove the "overriding
+      --  keyword"). Replace its name with the new one, and use the "augmented
+      --  formal params" (i.e. original formals plus the witness one and the
+      --  MC/DC state holders).
 
       Augmented_Expr_Function := Handle (Common_Nodes.N);
+      Replace
+        (Handle (Common_Nodes.N_Overriding),
+         Create_Node (RC, Ada_Overriding_Unspecified));
       Replace
         (Handle (Common_Nodes.N_Name),
          Make_Identifier (UIC, Augmented_Expr_Func_Name));
