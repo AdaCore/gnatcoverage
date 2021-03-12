@@ -438,7 +438,7 @@ This executes the program within the instrumented execution environment, via
 GNATemulator, producing a ``test_inc.trace`` binary trace in the current
 directory.
 
-Example production of source traces for a native environmment
+Example production of source traces for a native environment
 -------------------------------------------------------------
 
 Assuming the coverage runtime is available, the first step consists in

@@ -38,7 +38,7 @@ assume that compilations are performed with a GNAT Pro toolchain. Parts of the
 effects reach into the coverage runtime, so this also concerns application
 programs which do not have so categorized units.
 
-|gcp| supports two direct ways of outputing coverage data from the program:
+|gcp| supports two direct ways of outputting coverage data from the program:
 
 - Produce a trace file directly, or
 
@@ -158,7 +158,7 @@ if any are designated by the root project:
    when computing the list of units of interest (they are ignored by default),
    for the sole purpose of instrumenting mains.
 
-In addtion, for trace files produced automatically from a ``bin-file``
+In addition, for trace files produced automatically from a ``bin-file``
 dump-channel, the ``--dump-filename-<>`` family of switches provides control
 over the name of trace files. See :ref:`instr-tracename` for more details on
 the default behavior and possibilities to alter it.
@@ -174,7 +174,7 @@ For a native program with access to a full Ada runtime and the associated
 coverage runtime, ``bin-file`` is the recommended channel as it produces a
 trace in the most direct manner and separates the trace data from the regular
 output. ``atexit`` is a natural triggering choice in this case, as it takes
-care of outputing the data automatically at a point where we know the program
+care of outputting the data automatically at a point where we know the program
 is not going to execute more, regardless of how or why the program exits.
 
 The ``main-end`` alternative simply inserts the calls at the end of the main
@@ -214,7 +214,7 @@ where:
 - ``<estamp>`` is an execution time stamp, representing the time at which
   coverage data was written out to the file.
 
-The ``<estamp>`` and ``<pid>`` components are intented to ensure that parallel
+The ``<estamp>`` and ``<pid>`` components are intended to ensure that parallel
 executions of the program from the same working directory write out to
 different files. The ``<istamp>`` component allows distinguishing traces
 issued from different versions of the program. These three components are
@@ -274,7 +274,7 @@ For each project in the closure of-interest, the instrumentation generates the
 alternative sources in the ``gnatcov-instr`` subdirectory of the project's
 object directory.  Giving priority to this subdir when it exists is achieved
 by passing a :option:`--src-subdirs` switch to :command:`gprbuild`, naming
-that particular relative subirectory.
+that particular relative subdirectory.
 
 Then :command:`gprbuild` now supports a :option:`--implicit-with` option which
 requests processing every project as if it started with a ``with`` statement
@@ -286,7 +286,7 @@ one, only adding :option:`--src-subdirs=gnatcov-instr` and
 :option:`--implicit-with=`:option:`<gnatcov_rts_gpr>` to the build options,
 where :option:`<gnatcov_rts_gpr>` would be the coverage runtime project file
 setup beforehand for the project, as described previously in this
-chapter. This project file could be refered to with a full path specification,
+chapter. This project file could be referred to with a full path specification,
 or with a simple basename if the ``GPR_PROJECT_PATH`` environment variable is
 updated to designate the directory where the project file is located, which
 would be the ``share/gpr`` subdirectory of the runtime installation tree.
