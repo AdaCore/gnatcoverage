@@ -233,9 +233,11 @@ package Annotations.Xml is
    --           <line/>: represents a line of source code. It shall have the
    --                    following attributes:
    --
-   --              num : NUM; line number in source code.
-   --              src : TEXT; copy of the line as it appears in the source
-   --                    code.
+   --              num      : NUM; line number in source code.
+   --              src      : TEXT; copy of the line as it appears in the
+   --                         source code.
+   --              exempted : BOOL; TRUE if this line was exempted, FALSE
+   --                         otherwise.
    --
    --
    --
@@ -362,6 +364,7 @@ package Annotations.Xml is
    --  begin
    --     if A and then (B or else F (C
    --                                 and then D))
+   --     then
    --        return 12;
    --     end if;
    --     Pack.Func; return 13;
@@ -370,29 +373,31 @@ package Annotations.Xml is
    --
    --  This coverage of this file can be represented by the report shown below.
    --  Notice in particular:
-   --  * how the two statements at line 14 can be represented;
+   --  * how the two statements at line 16 can be represented;
    --  * how the coverage of the two decisions on line 11-12 are represented.
    --
    --  <?xml version="1.0" ?>
    --  <source file="test.adb" coverage_level="stmt+mcdc">
    --     <src_mapping coverage=".">
    --        <src>
-   --           <line num="1" src="--  file test.adb"/>
-   --           <line num="2" src=""/>
-   --           <line num="3" src="with Pack;"/>
-   --           <line num="4" src=""/>
-   --           <line num="5" src="function Test"/>
-   --           <line num="6" src="  (A : Boolean;"/>
-   --           <line num="7" src="   B : Boolean;"/>
-   --           <line num="8" src="   C : Boolean;"/>
-   --           <line num="9" src="   D : Boolean) return Integer is"/>
-   --           <line num="10" src="begin"/>
+   --           <line num="1" exempted="FALSE" src="--  file test.adb"/>
+   --           <line num="2" exempted="FALSE" src=""/>
+   --           <line num="3" exempted="FALSE" src="with Pack;"/>
+   --           <line num="4" exempted="FALSE" src=""/>
+   --           <line num="5" exempted="FALSE" src="function Test"/>
+   --           <line num="6" exempted="FALSE" src="  (A : Boolean;"/>
+   --           <line num="7" exempted="FALSE" src="   B : Boolean;"/>
+   --           <line num="8" exempted="FALSE" src="   C : Boolean;"/>
+   --           <line num="9" exempted="FALSE"
+   --                 src="   D : Boolean) return Integer is"/>
+   --           <line num="10" exempted="FALSE" src="begin"/>
    --        </src>
    --     <src_mapping>
    --
    --     <src_mapping coverage="!">
    --        <src>
-   --           <line num="11" src="   if A and then (B or else F (C"/>
+   --           <line num="11" exempted="FALSE"
+   --                 src="   if A and then (B or else F (C"/>
    --           # This src_mapping could also contain the line that follows;
    --           # after all, the two decisions that it contains end on line
    --           # 12. It does not matter much at this point. The important
@@ -400,134 +405,139 @@ package Annotations.Xml is
    --           # 11 is defined in this src_mapping.
    --        </src>
    --
-   --        <decision id="1" text="A and th..." coverage="!">
-   --           <src>
-   --             <line num="11" src="   if A and then (B or else F (C"/>
-   --             <line num="12"
-   --                   src="                               and then D))"/>
-   --           </src>
+   --  <statement id="1" text="if A and ..." coverage="+">
+   --     <src>
+   --      <line num="11" column_begin="4"
+   --            src="   if A and then (B or else (C"/>
+   --      <line num="12" column_end="43"
+   --            src="                               and then D))"/>
+   --     </src>
    --
+   --    </statement>
    --
-   --           <condition id="2" text="A" coverage="+">
-   --              <src>
-   --                 <line num="11"
-   --                       column_begin="6"
-   --                       column_end="7"
-   --                       src="A"/>
-   --              </src>
-   --           </condition>
+   --    <decision id="2" text="A and the..." coverage="!">
+   --     <src>
+   --      <line num="11" column_begin="7"
+   --            src="      A and then (B or else (C"/>
+   --      <line num="12" column_end="41"
+   --            src="                               and then D"/>
+   --     </src>
    --
-   --           <condition id="3" text="B" coverage="-">
-   --              <src>
-   --                 <line num="11"
-   --                       column_begin="18"
-   --                       column_end="19"
-   --                       src="B"/>
-   --              </src>
+   --     <condition id="4" text="A" coverage="-">
+   --      <src>
+   --       <line num="11" column_begin="7" column_end="7" src="      A"/>
+   --      </src>
    --
-   --           </condition>
+   --     </condition>
    --
-   --           <condition id="4" text="F (C..." coverage="-">
-   --              <src>
-   --                 <line num="11"
-   --                       column_begin="28"
-   --                       src="F (C"/>
-   --                 <line num="12"
-   --                       src="                            and then D"/>
-   --              </src>
+   --     <condition id="6" text="B" coverage="+">
+   --      <src>
+   --       <line num="11" column_begin="19" column_end="19"
+   --             src="                  B"/>
+   --      </src>
    --
-   --           </condition>
-   --        </decision>
+   --     </condition>
    --
+   --     <condition id="8" text="C" coverage="-">
+   --      <src>
+   --       <line num="11" column_begin="30" column_end="30"
+   --             src="                             C"/>
+   --      </src>
    --
-   --        <decision id="5" text="C..." coverage="-">
-   --           <src>
-   --              <line num="11"
-   --                    column_begin="31"
-   --                    src="C"/>
-   --              <line num="12"
-   --                    column_end="41"
-   --                    src="                            and then D"/>
-   --           </src>
+   --     </condition>
    --
-   --           <condition id="6" text="C" coverage="-">
-   --              <src>
-   --                 <line num="11"
-   --                       column_begin="31"
-   --                       column_end="32"
-   --                       src="C"/>
-   --              </src>
+   --     <condition id="9" text="D" coverage="-">
+   --      <src>
+   --       <line num="12" column_begin="41" column_end="41"
+   --             src="                                        D"/>
+   --      </src>
    --
-   --           </condition>
+   --     </condition>
    --
-   --           <condition id="7" text="D" coverage="-">
-   --              <src>
-   --                 <line num="12"
-   --                       column_begin="40"
-   --                       column_end="41"
-   --                       src="D"/>
-   --              </src>
-   --           </condition>
-   --        </decision>
+   --    </decision>
    --
-   --        <message kind="warning"
-   --                 SCO="SCO #3: CONDITION"
-   --                 message="failed to show independent influence"/>
-   --        <message kind="warning"
-   --                 SCO="SCO #4: CONDITION"
-   --                 message="failed to show independent influence"/>
-   --        <message kind="error"
-   --                 SCO="SCO #5: DECISION"
-   --                 message="statement not covered"/>
+   --    <message kind="violation"
+   --             SCO="SCO #4: CONDITION"
+   --             message="has no independent influence pair,
+   --                      MC/DC not achieved"/>
+   --    <message kind="violation"
+   --             SCO="SCO #8: CONDITION"
+   --             message="has no independent influence pair,
+   --                      MC/DC not achieved"/>
+   --    <message kind="violation"
+   --             SCO="SCO #9: CONDITION"
+   --             message="has no independent influence pair,
+   --                      MC/DC not achieved"/>
+   --   </src_mapping>
    --
-   --     </src_mapping>
+   --   <src_mapping coverage="!">
+   --     # As said previously, this line could have been included in the
+   --     # previous src_mapping.
+   --    <src>
+   --     <line num="12" exempted="FALSE"
+   --           src="                               and then D))"/>
+   --    </src>
    --
-   --     <src_mapping coverage=".">
-   --        # As said previously, this line could have been included in the
-   --        # previous src_mapping.
-   --        <src>
-   --           <line num="12"
-   --                 src="                               and then D))"/>
-   --        </src>
-   --     </src_mapping>
+   --   </src_mapping>
    --
-   --     <src_mapping coverage="+">
-   --        <src>
-   --           <line num="13" src="      return 12;"/>
-   --        </src>
+   --   <src_mapping coverage=".">
+   --    <src>
+   --     <line num="13" exempted="FALSE" src="   then"/>
+   --    </src>
    --
-   --        <statement id="8" text="return 1..." coverage="+"/>
-   --     </src_mapping>
+   --   </src_mapping>
    --
-   --     <src_mapping>
-   --        <src>
-   --           <line num="13" src="   end if;"/>
-   --        </src>
-   --     </src_mapping>
+   --   <src_mapping coverage="+">
+   --    <src>
+   --     <line num="14" exempted="FALSE" src="      return 12;"/>
+   --    </src>
    --
-   --     <src_mapping coverage="+">
-   --        <src>
-   --           <line num="14" src="   Pack.Func; return 13;"/>
-   --        </src>
+   --    <statement id="10" text="return 12..." coverage="+">
+   --     <src>
+   --      <line num="14" column_begin="7" column_end="16"
+   --            src="      return 12;"/>
+   --     </src>
    --
-   --        <statement id="9" text="Pack.Fun..." coverage="+">
-   --           <src>
-   --              <line num="14"
-   --                    column_begin="3"
-   --                    column_end="12"
-   --                    src="Pack.Func;"/>
-   --           </src>
-   --        </statement>
+   --    </statement>
    --
-   --        <statement id="9" text="return 1..." coverage="+">
-   --           <src>
-   --              <line num="14"
-   --                    column_begin="14"
-   --                    column_end="23"
-   --                    src="return 13;"/>
-   --           </src>
-   --        </statement>
-   --     </src_mapping>
+   --   </src_mapping>
+   --
+   --   <src_mapping coverage=".">
+   --    <src>
+   --     <line num="15" exempted="FALSE" src="   end if;"/>
+   --    </src>
+   --
+   --   </src_mapping>
+   --
+   --   <src_mapping coverage="+">
+   --    <src>
+   --     <line num="16" exempted="FALSE" src="   Pack.Func; return 13;"/>
+   --    </src>
+   --
+   --    <statement id="11" text="Pack.Func..." coverage="+">
+   --     <src>
+   --      <line num="16" column_begin="4" column_end="13"
+   --            src="   Pack.Func;"/>
+   --     </src>
+   --
+   --    </statement>
+   --
+   --    <statement id="12" text="return 13..." coverage="+">
+   --     <src>
+   --      <line num="16" column_begin="15" column_end="24"
+   --            src="              return 13;"/>
+   --     </src>
+   --
+   --    </statement>
+   --
+   --   </src_mapping>
+   --
+   --   <src_mapping coverage=".">
+   --    <src>
+   --     <line num="17" exempted="FALSE" src="end Test;"/>
+   --    </src>
+   --
+   --   </src_mapping>
    --
    --  </source>
 

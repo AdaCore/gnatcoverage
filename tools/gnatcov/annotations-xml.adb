@@ -670,36 +670,30 @@ package body Annotations.Xml is
             Src_Start  : Natural := Line'First;
             Src_End    : Natural := Line'Last;
          begin
-            if Sloc_Start /= Sloc_End then
-               if Line_Num = Sloc_Start.L.Line
-                 and then Sloc_Start.L.Column > 1
-               then
-                  Src_Start := Natural'Min (Src_End, Sloc_Start.L.Column);
-                  Attributes := Attributes
-                    & A ("column_begin", Img (Sloc_Start.L.Column));
-               end if;
+            if Line_Num = Sloc_Start.L.Line then
+               Src_Start := Natural'Min (Src_End, Sloc_Start.L.Column);
+               Attributes := Attributes
+                 & A ("column_begin", Img (Sloc_Start.L.Column));
+            end if;
 
-               if Line_Num = Sloc_End.L.Line
-                 and then Sloc_End.L.Column /= 0
-               then
-                  Src_End := Natural'Min (Src_End, Sloc_End.L.Column);
-                  Attributes := Attributes
-                    & A ("column_end", Img (Sloc_Start.L.Column));
-               end if;
+            if Line_Num = Sloc_End.L.Line then
+               Src_End := Natural'Min (Src_End, Sloc_End.L.Column);
+               Attributes := Attributes
+                 & A ("column_end", Img (Sloc_End.L.Column));
+            end if;
 
-               if Line'Length /= 0 then
-                  if Src_Start > 1 then
-                     declare
-                        Spaces : constant String (1 .. Src_Start - 1) :=
-                                   (others => ' ');
-                     begin
-                        Attributes := Attributes
-                          & A ("src", Spaces & Line (Src_Start .. Src_End));
-                     end;
-                  else
+            if Line'Length /= 0 then
+               if Src_Start > 1 then
+                  declare
+                     Spaces : constant String (1 .. Src_Start - 1) :=
+                                (others => ' ');
+                  begin
                      Attributes := Attributes
-                       & A ("src", Line (Src_Start .. Src_End));
-                  end if;
+                       & A ("src", Spaces & Line (Src_Start .. Src_End));
+                  end;
+               else
+                  Attributes := Attributes
+                    & A ("src", Line (Src_Start .. Src_End));
                end if;
             end if;
 
