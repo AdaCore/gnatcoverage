@@ -300,8 +300,13 @@ package body Files_Table is
    procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String) is
       E : Source_Rebase_Entry_Acc;
    begin
-      E := new Source_Rebase_Entry'(Old_Prefix => new String'(Old_Prefix),
-                                    New_Prefix => new String'(New_Prefix),
+      --  Canonicalize the old/new prefix so that they match the canonicalized
+      --  filenames in the table.
+
+      E := new Source_Rebase_Entry'(Old_Prefix =>
+                                      Canonicalize_Filename (Old_Prefix),
+                                    New_Prefix =>
+                                      Canonicalize_Filename (New_Prefix),
                                     Next => null);
 
       if First_Source_Rebase_Entry = null then
@@ -473,7 +478,8 @@ package body Files_Table is
       Filename : String) return String
    is
    begin
-      return Canonicalize_Filename (Dir & '/' & Filename);
+      return Canonicalize_Filename
+        (Dir & GNAT.OS_Lib.Directory_Separator & Filename);
    end Build_Filename;
 
    --------------------
@@ -792,7 +798,8 @@ package body Files_Table is
       use Filename_Rebase_Maps;
       use Simple_Name_Maps;
 
-      Original_Full_Path : constant Virtual_File := Create (+Full_Name);
+      Original_Full_Path : constant Virtual_File :=
+        Create (+Canonicalize_Filename (Full_Name));
       Full_Path          : Virtual_File := Original_Full_Path;
       --  Full_Path can be modified to hold the result of the source rebase
 
@@ -2053,10 +2060,10 @@ package body Files_Table is
 
                   if FE.Indexed_Simple_Name then
                      SFI := Get_Index_From_Generic_Name
-                       (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);
+                        (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);
                   else
                      SFI := Get_Index_From_Full_Name
-                       (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
+                        (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
                   end if;
                end if;
 

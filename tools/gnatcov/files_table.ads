@@ -99,6 +99,9 @@ package Files_Table is
    --
    --  If Indexed_Simple_Name is set to True, register both the full name and
    --  the simple name to our internal maps.
+   --
+   --  Windows-looking absolute filenames are canonicalized by upper casing the
+   --  drive letter and lower casing all other letters.
 
    function Get_Index_From_Generic_Name
      (Name                : String;
@@ -110,6 +113,9 @@ package Files_Table is
    --
    --  Indexed_Simple_Name is passed when calling Get_Index_From_Full_Name and
    --  is ignored otherwise. It can be set True only when loading a checkpoint.
+   --
+   --  Windows-looking absolute filenames are canonicalized by upper casing the
+   --  drive letter and lower casing all other letters.
 
    procedure Consolidate_File_Kind
      (Index : Valid_Source_File_Index;

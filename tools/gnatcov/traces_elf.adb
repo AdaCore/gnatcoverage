@@ -1788,8 +1788,7 @@ package body Traces_Elf is
                      Compilation_Dir := null;
                   end if;
 
-                  Unit_Filename :=
-                    Canonicalize_Filename (Read_String (At_Name));
+                  Unit_Filename := new String'(Read_String (At_Name));
 
                   --  If we have an entry for the unit in the files table at
                   --  this point, we know it is for an unit of interest and it
