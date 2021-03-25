@@ -1423,9 +1423,20 @@ package body Instrument.Ada_Unit is
 
                F_Aspects => No_Node_Rewriting_Handle));
 
-         --  Add the actual type to the instantiation
+         --  Add the actual type to the instantiation. If present, strip "not
+         --  null" decorations, as we need a valid expression to pass to the
+         --  generic instantiation. Not passing subtype constraints is not
+         --  important in this context: the generic subprogram will just happen
+         --  to have less constraints on its arguments.
 
-         Append_Child (NP_Nodes.Inst_Params, Clone (TE));
+         declare
+            Actual : Ada_Node := TE.As_Ada_Node;
+         begin
+            if Actual.Kind = Ada_Subtype_Indication then
+               Actual := TE.As_Subtype_Indication.F_Name.As_Ada_Node;
+            end if;
+            Append_Child (NP_Nodes.Inst_Params, Clone (Actual));
+         end;
 
          --  Return a reference to this formal
 
