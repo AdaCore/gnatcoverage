@@ -403,7 +403,7 @@ package body Instrument.Ada_Unit is
    --        --  See Complete_Null_Proc_Decls.Instance
    --        procedure Foo is new
    --          [Pure_Unit].Null_Proc_[Subprogram_Index](S|B|U)
-   --            --  See Null_Proc_NOdes.Inst_Params
+   --            --  See Null_Proc_Nodes.Inst_Params
    --            (Arg1_Type, Arg2_Type);
    --     end Null_Proc_[Subprogram_Index](S|B|U);
    --
