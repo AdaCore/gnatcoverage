@@ -8,17 +8,19 @@ allows coverage analysis of both object code (instruction and branch coverage),
 and Ada or C language source code (Statement, Decision and Modified
 Condition/Decision Coverage - MC/DC).
 
-Please refer to the dedicated README files for [build
-instructions](tools/gnatcov/) and for [testing](testsuite/).
+Please refer to the dedicated README files for
+[build instructions](tools/gnatcov/) and for [testing](testsuite/).
 
 
 Documentation
 -------------
 
-The [GNATcoverage User manual](http://docs.adacore.com/gnatcoverage-docs/html/gnatcov.html)
-is a Sphinx documentation and is tracked in [this repository](tools/gnatcov/doc/umanual).
+The
+[GNATcoverage User Manual](http://docs.adacore.com/gnatcoverage-docs/html/gnatcov.html)
+is a Sphinx-formatted document and is tracked in
+[this repository](doc/gnatcov/).
 In order to build the HTML view, install Sphinx and run the following command
-from the `tools/gnatcov/` directory:
+from the `doc/` directory:
 
     make doc.html
 
@@ -27,4 +29,4 @@ License
 -------
 
 GNATcoverage is licensed under the terms of the GPLv3 (General Public License
-version 3). See [LICENSE](LICENSE) for more information.
+version 3). See [COPYING3](COPYING3) for more information.
