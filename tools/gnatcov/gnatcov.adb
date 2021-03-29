@@ -1460,28 +1460,33 @@ begin
          begin
             Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
 
-            if Dump_Channel_Opt.Present then
-               declare
-                  Value : constant String := +Dump_Channel_Opt.Value;
-               begin
-                  if Value = "bin-file" then
-                     Dump_Config :=
-                       (Channel          => Binary_File,
-                        Trigger          => <>,
-                        Filename_Simple  => Dump_Filename_Simple,
-                        Filename_Env_Var =>
-                           Value_Or_Null (Dump_Filename_Env_Var_Opt),
-                        Filename_Prefix  =>
-                           Value_Or_Null (Dump_Filename_Prefix_Opt));
-                  elsif Value = "base64-stdout" then
-                     Dump_Config :=
-                       (Channel => Base64_Standard_Output,
-                        Trigger => <>);
-                  else
-                     Fatal_Error ("Bad buffers dump channel: " & Value);
-                  end if;
-               end;
-            end if;
+            --  Create the appropritae dump configuration depending on
+            --  command-line options. Unless --dump-channel is passed, the dump
+            --  channel is "bin-file".
+
+            declare
+               Value : constant String :=
+                 (if Dump_Channel_Opt.Present
+                  then +Dump_Channel_Opt.Value
+                  else "bin-file");
+            begin
+               if Value = "bin-file" then
+                  Dump_Config :=
+                    (Channel          => Binary_File,
+                     Trigger          => <>,
+                     Filename_Simple  => Dump_Filename_Simple,
+                     Filename_Env_Var =>
+                        Value_Or_Null (Dump_Filename_Env_Var_Opt),
+                     Filename_Prefix  =>
+                        Value_Or_Null (Dump_Filename_Prefix_Opt));
+               elsif Value = "base64-stdout" then
+                  Dump_Config :=
+                    (Channel => Base64_Standard_Output,
+                     Trigger => <>);
+               else
+                  Fatal_Error ("Bad buffers dump channel: " & Value);
+               end if;
+            end;
 
             if Dump_Trigger_Opt.Present then
                declare
