@@ -288,8 +288,8 @@ where :option:`<gnatcov_rts_gpr>` would be the coverage runtime project file
 setup beforehand for the project, as described previously in this
 chapter. This project file could be refered to with a full path specification,
 or with a simple basename if the ``GPR_PROJECT_PATH`` environment variable is
-updated to designate the directory where the coverage runtime has been
-installed.
+updated to designate the directory where the project file is located, which
+would be the ``share/gpr`` subdirectory of the runtime installation tree.
 
 While the scheme relies on the use of GNAT project files, it does not
 absolutely require :command:`gprbuild` to build the instrumented programs,
@@ -401,7 +401,7 @@ For our intended target environment, this would be something like::
     -p --prefix=<gnatcov_rts-ppc-install-dir>
 
   # Allow references to the coverage runtime project from other project files:
-  export GPR_PROJECT_PATH=<gnatcov_rts-ppc-install-dir>
+  export GPR_PROJECT_PATH=<gnatcov_rts-ppc-install-dir>/share/gpr
 
 Instrument and build
 ********************
@@ -505,7 +505,7 @@ the default full Ada runtime (no specific :option:`--RTS` option)::
   gprinstall -Pgnatcov_rts_full.gpr -p --prefix=<gnatcov_rts-install-dir>
 
   # Allow references to the coverage runtime project from other project files:
-  export GPR_PROJECT_PATH=<gnatcov_rts-install-dir>
+  export GPR_PROJECT_PATH=<gnatcov_rts-install-dir>/share/gpr
 
 Project file architecture
 *************************
