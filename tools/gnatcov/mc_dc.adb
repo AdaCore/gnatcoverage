@@ -58,7 +58,7 @@ package body MC_DC is
                                 - E.Values.Last_Index);
       --  Count of masked conditions after the last non-masked one.
 
-      Masked_Values : constant String := Masked_Len * "X ";
+      Masked_Values : constant String := Masked_Len * "- ";
    begin
       return Image (E.Values) & Masked_Values & " -> " & E.Outcome'Img;
    end Image;
@@ -73,7 +73,7 @@ package body MC_DC is
             when True    =>
                Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := 'T';
             when Unknown =>
-               Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := 'X';
+               Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := '-';
          end case;
          Cond_Vector (2 * (Integer (J - EV.First_Index) + 1)) := ' ';
       end loop;
