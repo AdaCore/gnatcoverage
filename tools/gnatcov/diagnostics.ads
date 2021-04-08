@@ -16,6 +16,23 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+--  This package is used for multiple kinds of reporting, and uses a somewhat
+--  generic message structure to fill that purpose. It is used to:
+--
+--  * Display verbose messages
+--
+--  * Report warnings / errors during execution
+--
+--  * Report coverage analysis results (e.g. coverage violation messages)
+--
+--  Every message emitted that is attached to a line (i.e. for which a sloc is
+--  reported, most notably: coverage violation messages) is stored into gnatcov
+--  internal tables, and is (in most cases) not displayed by report procedures,
+--  but rather included during coverage report production.
+--
+--  Other messages (most warnings, errors) are simply displayed on the standard
+--  output at the time the report procedure is called.
+
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
@@ -27,8 +44,8 @@ with Traces_Elf;     use Traces_Elf;
 
 package Diagnostics is
 
-   type Report_Kind is (Notice, Warning, Error, Violation, Exclusion);
-   subtype Coverage_Kind is Report_Kind range Violation .. Exclusion;
+   type Report_Kind is (Notice, Warning, Error, Info, Violation, Exclusion);
+   subtype Coverage_Kind is Report_Kind range Info .. Exclusion;
 
    type Message is record
       Kind : Report_Kind;
@@ -54,6 +71,14 @@ package Diagnostics is
      (Sloc : Source_Location;
       Msg  : String;
       Kind : Report_Kind := Error);
+
+   procedure Report_Coverage
+     (SCO  : SCO_Id;
+      Tag  : SC_Tag;
+      Msg  : String;
+      Kind : Coverage_Kind);
+   --  Report coverage messages. Common processing for Report_Violation and
+   --  Report_Exclusion.
 
    procedure Report_Violation
      (SCO : SCO_Id;
@@ -86,6 +111,7 @@ package Diagnostics is
    --     --- notice
    --     *** warning
    --     !!! error
+   --     .C. coverage info
    --     !C! coverage violation
    --     -C- coverage exclusion
    --  The message is also recorded in the source line information for its sloc

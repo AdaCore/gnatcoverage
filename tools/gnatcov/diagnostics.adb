@@ -36,13 +36,6 @@ package body Diagnostics is
    procedure Store_Message (M : Message);
    --  Attach M to the relevant Line_Info structure, if any
 
-   procedure Report_Coverage
-     (SCO  : SCO_Id;
-      Tag  : SC_Tag;
-      Msg  : String;
-      Kind : Coverage_Kind);
-   --  Common processing for Report_Violation and Report_Exclusion
-
    -----------
    -- Image --
    -----------
@@ -53,6 +46,7 @@ package body Diagnostics is
                  (Notice    => "---",
                   Warning   => "***",
                   Error     => "!!!",
+                  Info      => ".C.",
                   Violation => "!C!",
                   Exclusion => "-C-");
 

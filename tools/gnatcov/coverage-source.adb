@@ -983,7 +983,7 @@ package body Coverage.Source is
          No_Pair_Msg : Unbounded_String;
          EOL         : constant String := "" & Ada.Characters.Latin_1.LF;
       begin
-         Msg := To_Unbounded_String (EOL & "Decision of the form ")
+         Msg := To_Unbounded_String ("Decision of the form ")
            & Expression_Image (SCO) & EOL;
          Append (Msg, "Evaluation vectors found:" & EOL);
 
@@ -1079,9 +1079,29 @@ package body Coverage.Source is
             Report_Violation
               (SCO => Condition (SCO, J),
                Tag => SCI.Tag,
-               Msg => "has no independent influence pair, MC/DC not achieved"
-               & (if Switches.Show_MCDC_Vectors and then J = Last_Cond_No_Pair
-                 then Emit_Evaluation_Vector_Message else ""));
+               Msg => "has no independent influence pair, MC/DC not achieved");
+
+            if Switches.Show_MCDC_Vectors and then J = Last_Cond_No_Pair then
+
+               --  We want the MC/DC vector to be displayed with the MC/DC
+               --  violations, after the last MC/DC violation of the decision.
+               --
+               --  As only messages attached to SCO conditions appear in the
+               --  "MCDC COVERAGE" report section, we thus need to attach this
+               --  message to the SCO of the last condition (to have it be
+               --  displayed last).
+               --
+               --  Note that the sloc for the message will still be the
+               --  decision sloc, because Report_Coverage initializes the
+               --  message sloc to the one of the enclosing decision when the
+               --  SCO is a condition.
+
+               Report_Coverage (SCO  => Condition (SCO, J),
+                                Tag  => SCI.Tag,
+                                Msg  => Emit_Evaluation_Vector_Message,
+                                Kind => Info);
+            end if;
+
          else
             Update_State
               (SCO_State,

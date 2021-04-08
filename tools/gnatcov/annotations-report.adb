@@ -27,10 +27,9 @@ with Coverage;        use Coverage;
 with Coverage.Source; use Coverage.Source;
 with Coverage.Tags;   use Coverage.Tags;
 with Files_Table;
+with Strings;         use Strings;
 with Switches;
 with Traces_Files;    use Traces_Files;
-
-with Strings;  use Strings;
 
 package body Annotations.Report is
 
@@ -305,10 +304,6 @@ package body Annotations.Report is
 
       Output : constant File_Access := Get_Output;
 
-      Total_Messages : Natural;
-      --  Total count of output non-exempted messages (both violations and
-      --  other messages).
-
       Total_Exempted_Regions : Natural;
 
       function Has_Exempted_Region return Boolean;
@@ -440,6 +435,12 @@ package body Annotations.Report is
          --  know if the message should be exempted or not.
 
          Item_Count : Natural := 0;
+         --  Count of the number of violation / error messages for the current
+         --  section.
+
+         Msg_Count  : Natural := 0;
+         --  Count of the number of messages (including info messages) for the
+         --  current section.
 
          --------------------
          -- Output_Message --
@@ -451,7 +452,12 @@ package body Annotations.Report is
             First : Natural := Msg'First;
 
          begin
-            if M.SCO /= No_SCO_Id then
+
+            --  For info messages (such as the messages displayed with
+            --  --show-mcdc-vectors), do not display the SCO, as it is only
+            --  used to attach the message to the right report location.
+
+            if M.Kind /= Info and then M.SCO /= No_SCO_Id then
                Put
                  (Output.all, Image (First_Sloc (M.SCO), Unique_Name => True));
                Put (Output.all, ": ");
@@ -482,8 +488,12 @@ package body Annotations.Report is
                     " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
             end if;
 
-            Total_Messages := Total_Messages + 1;
-            Item_Count := Item_Count + 1;
+            Msg_Count := Msg_Count + 1;
+
+            if M.Kind /= Info then
+               Item_Count := Item_Count + 1;
+            end if;
+
             New_Line (Output.all);
          end Output_Message;
 
@@ -496,7 +506,7 @@ package body Annotations.Report is
 
          Pp.Nonexempted_Messages (MC).Iterate (Output_Message'Access);
 
-         if Item_Count > 0 then
+         if Msg_Count > 0 then
             New_Line (Output.all);
          end if;
 
@@ -541,8 +551,6 @@ package body Annotations.Report is
       end if;
 
       Pp.Chapter (To_Upper (Non_Exempted) & "COVERAGE VIOLATIONS");
-
-      Total_Messages := 0;
 
       for L in Coverage_Level loop
          if Enabled (L)
@@ -812,7 +820,7 @@ package body Annotations.Report is
          if M.Kind = Exclusion then
             return Coverage_Exclusions;
          else
-            pragma Assert (M.Kind = Violation);
+            pragma Assert (M.Kind = Violation or else M.Kind = Info);
 
             declare
                S : constant Report_Section := Section_Of_SCO (M.SCO);

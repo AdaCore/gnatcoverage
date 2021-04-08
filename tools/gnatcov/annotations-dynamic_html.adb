@@ -503,6 +503,8 @@ package body Annotations.Dynamic_Html is
       Mapping.Set_Field ("coverage", Coverage_State);
       Mapping.Set_Field ("line", Line_Obj);
 
+      Mapping.Set_Field ("messages", Empty_Array);
+
       Pp.Current_Mapping := Mapping;
    end Pretty_Print_Start_Line;
 
@@ -713,7 +715,7 @@ package body Annotations.Dynamic_Html is
       end if;
 
       Message.Set_Field ("message", To_String (M.Msg));
-      Pp.Current_Mapping.Set_Field ("message", Message);
+      Pp.Current_Mapping.Get ("messages").Append (Message);
    end Pretty_Print_Message;
 
    -------
