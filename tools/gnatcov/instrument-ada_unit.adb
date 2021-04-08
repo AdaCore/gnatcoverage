@@ -148,6 +148,12 @@ package body Instrument.Ada_Unit is
    --  Return whether the given expression function is ghost (EF or its
    --  canonical declaration has a Ghost aspect).
 
+   function Is_Generic
+     (UIC : Ada_Unit_Inst_Context;
+      EF  : Expr_Function) return Boolean;
+   --  Return whether the given expression function is generic (its declaration
+   --  is generic).
+
    function To_Nodes
      (Handle : Rewriting_Handle;
       Name   : Ada_Qualified_Name) return Node_Rewriting_Handle
@@ -2047,7 +2053,8 @@ package body Instrument.Ada_Unit is
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
 
-      Current_Insertion_Info : aliased Insertion_Info := (Method => None);
+      Current_Insertion_Info : aliased Insertion_Info :=
+        (Method => None, Unsupported => False);
 
       procedure Extend_Statement_Sequence
         (N           : Ada_Node'Class;
@@ -2298,6 +2305,13 @@ package body Instrument.Ada_Unit is
               UIC.Unit_Bits.Last_Statement_Bit + 1;
             UIC.Unit_Bits.Statement_Bits.Append
               ((LL_SCO_Id, Executed => UIC.Unit_Bits.Last_Statement_Bit));
+
+            --  If the current code pattern is actually unsupported, do not
+            --  even try to insert the witness call.
+
+            if Insert_Info.Unsupported then
+               return;
+            end if;
 
             case Insert_Info.Method is
 
@@ -2749,6 +2763,9 @@ package body Instrument.Ada_Unit is
          --  Witness insertion info for statements (for both null procedures
          --  and expression functions).
 
+         Unsupported : Boolean := False;
+         --  Temporary to compute New_Insertion_Info.Unsupported
+
          EF_Inserter : aliased Expr_Func_MCDC_State_Inserter :=
            (N_Spec        => N_Spec,
             Call_Params   => Call_Params,
@@ -2778,27 +2795,40 @@ package body Instrument.Ada_Unit is
 
          if Is_Expr_Function then
 
-            --  Pass all expression function parameters to the augmented
-            --  expression function call.
-
-            for J in 1 .. (if Common_Nodes.N_Params.Is_Null
-                           then 0
-                           else Common_Nodes.N_Params.Children_Count)
-            loop
-               for Id of Common_Nodes.N_Params.Child (J)
-                        .As_Param_Spec.F_Ids.Children
-               loop
-                  Append_Child (Call_Params, Make_Identifier (UIC, Id.Text));
-               end loop;
-            end loop;
+            if Is_Generic (UIC, N.As_Expr_Function) then
+               Unsupported := True;
+               Report (UIC, N,
+                       "gnatcov limitation: "
+                       & "cannot instrument generic expression functions."
+                       & " Consider turning it into a regular function body.");
+            end if;
 
             --  The statement instrumentation below will take care of assigning
             --  .Witness_* components to their definitive values.
 
             New_Insertion_Info :=
               (Method         => Expression_Function,
+               Unsupported    => Unsupported,
                Witness_Actual => No_Node_Rewriting_Handle,
                Witness_Formal => No_Node_Rewriting_Handle);
+
+            if not New_Insertion_Info.Unsupported then
+
+               --  Pass all expression function parameters to the augmented
+               --  expression function call.
+
+               for J in 1 .. (if Common_Nodes.N_Params.Is_Null
+                              then 0
+                              else Common_Nodes.N_Params.Children_Count)
+               loop
+                  for Id of Common_Nodes.N_Params.Child (J)
+                           .As_Param_Spec.F_Ids.Children
+                  loop
+                     Append_Child
+                       (Call_Params, Make_Identifier (UIC, Id.Text));
+                  end loop;
+               end loop;
+            end if;
 
          else
             --  Null procedure handling. First create an artificial internal
@@ -2816,6 +2846,7 @@ package body Instrument.Ada_Unit is
 
             New_Insertion_Info :=
               (Method                => Statement,
+               Unsupported           => Unsupported,
                RH_List               => NP_Nodes.Stmt_List,
                Index                 => 1,
                Rewriting_Offset      => 0,
@@ -2847,7 +2878,17 @@ package body Instrument.Ada_Unit is
                N_Expr : constant Expr := N.As_Expr_Function.F_Expr;
             begin
                Extend_Statement_Sequence (N_Expr, 'X');
-               Process_Decisions_Defer (N_Expr, 'X');
+
+               --  For unsupported expression functions, creating a statement
+               --  obligation is enough: it will never be satisfied and thus
+               --  violations regarding conditions/decisions will not be
+               --  displayed, so no need to bother creating them and adding
+               --  special cases in decision processings for unsupported
+               --  expression functions.
+
+               if not New_Insertion_Info.Unsupported then
+                  Process_Decisions_Defer (N_Expr, 'X');
+               end if;
             end;
          else
             --  Even though there is a "null" keyword in the null procedure,
@@ -2873,6 +2914,13 @@ package body Instrument.Ada_Unit is
          UIC.Current_Insertion_Info := Saved_Insertion_Info;
 
          if Is_Expr_Function then
+
+            --  There is nothing else to do if we gave up instrumenting this
+            --  expression function.
+
+            if New_Insertion_Info.Unsupported then
+               return;
+            end if;
 
             --  Pass the witness call to the augmented expression function
 
@@ -3852,6 +3900,7 @@ package body Instrument.Ada_Unit is
                else Declaration);
             II : Insertion_Info (Method);
          begin
+            II.Unsupported := False;
             II.RH_List := Handle (L);
             II.Index := 0;
             II.Rewriting_Offset := 0;
@@ -5055,6 +5104,33 @@ package body Instrument.Ada_Unit is
             return False;
       end;
    end Is_Ghost;
+
+   ----------------
+   -- Is_Generic --
+   ----------------
+
+   function Is_Generic
+     (UIC : Ada_Unit_Inst_Context;
+      EF  : Expr_Function) return Boolean
+   is
+      Decl : Basic_Decl := EF.As_Basic_Decl;
+   begin
+      --  EF is generic iff its declaration is a generic subprogram
+      --  declaration.
+
+      begin
+         Decl := Decl.P_Canonical_Part;
+      exception
+         when Exc : Property_Error =>
+            Report
+              (UIC, EF,
+               "Failed to look for a previous declaration of this expression"
+               & " function" & Ada.Exceptions.Exception_Information (Exc),
+               Warning);
+      end;
+
+      return Decl.Kind = Ada_Generic_Subp_Decl;
+   end Is_Generic;
 
    ------------
    -- Detach --

@@ -74,6 +74,12 @@ private
 
    type Insertion_Info (Method : Insertion_Method := None) is record
 
+      Unsupported : Boolean;
+      --  Whether we gave up on inserting witness calls. This is True when
+      --  processing a code pattern that we do not know how to instrument. Note
+      --  that we still processes such patterns to create the corresponding
+      --  coverage obligations.
+
       case Method is
          when Statement | Declaration =>
             RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
