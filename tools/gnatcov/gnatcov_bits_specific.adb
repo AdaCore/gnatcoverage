@@ -423,19 +423,20 @@ procedure GNATcov_Bits_Specific is
    begin
       --  First, handle all options...
 
-      Verbose                := Args.Bool_Args (Opt_Verbose);
-      Switches.All_Decisions := Args.Bool_Args (Opt_All_Decisions);
-      Switches.All_Messages  := Args.Bool_Args (Opt_All_Messages);
-      Branch_Stats           := Args.Bool_Args (Opt_Branch_Stats);
-      Excluded_SCOs          := Args.Bool_Args (Opt_Excluded_SCOs);
-      Keep_Edges             := Args.Bool_Args (Opt_Keep_Edges);
-      Pretty_Print           := Args.Bool_Args (Opt_Pretty_Print);
-      Keep_Reading_Traces    := Args.Bool_Args (Opt_Keep_Reading_Traces);
-      Dump_Units             := Args.String_Args (Opt_Dump_Units_To).Present;
-      Show_MCDC_Vectors      := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
+      Verbose                  := Args.Bool_Args (Opt_Verbose);
+      Switches.All_Decisions   := Args.Bool_Args (Opt_All_Decisions);
+      Switches.All_Messages    := Args.Bool_Args (Opt_All_Messages);
+      Branch_Stats             := Args.Bool_Args (Opt_Branch_Stats);
+      Excluded_SCOs            := Args.Bool_Args (Opt_Excluded_SCOs);
+      Keep_Edges               := Args.Bool_Args (Opt_Keep_Edges);
+      Pretty_Print             := Args.Bool_Args (Opt_Pretty_Print);
+      Keep_Reading_Traces      := Args.Bool_Args (Opt_Keep_Reading_Traces);
+      Dump_Units               := Args.String_Args (Opt_Dump_Units_To).Present;
+      Show_MCDC_Vectors        := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
                                  or else All_Messages
                                  or else Verbose);
-      Use_Local_Time         := Args.Bool_Args (Opt_Local_Time);
+      Use_Local_Time           := Args.Bool_Args (Opt_Local_Time);
+      Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"
@@ -1240,6 +1241,16 @@ begin
                end if;
             end if;
 
+            --  Even though instrumentation does not create any traces, the
+            --  structure of a SID file is basically a checkpoint, so it has a
+            --  Trace_Kind field in its header. Instead of leaving it to
+            --  Unknown (default value) mark it as Source_Trace_File so that
+            --  when the .sid file is loaded, it will set gnatcov in
+            --  "source trace mode" and it will be rejected if binary traces
+            --  have already been loaded.
+
+            Update_Current_Trace_Kind (Source_Trace_File);
+
             Instrument.Instrument_Units_Of_Interest
               (Dump_Config          => Dump_Config,
                Language_Version     => Language_Version,
@@ -1648,6 +1659,9 @@ begin
          declare
             use Ada.Strings.Unbounded;
 
+            Bin_Traces_Present : Boolean := False;
+            Src_Traces_Present : Boolean := False;
+
             procedure Process_Exec (Exec_Name : String);
             --  Load a consolidated executable
 
@@ -1818,6 +1832,11 @@ begin
             --  Start of processing for Process_Source_Trace
 
             begin
+               --  Reccord we are loading a source trace
+
+               Update_Current_Trace_Kind (Source_Trace_File);
+               Src_Traces_Present := True;
+
                --  Make sure SID files (to decode source trace files) are
                --  loaded.
 
@@ -1849,6 +1868,11 @@ begin
             is
                Trace_File : Trace_File_Element_Acc;
             begin
+               --  Record we are loading a binary trace
+
+               Update_Current_Trace_Kind (Binary_Trace_File);
+               Bin_Traces_Present := True;
+
                Load_All_ALIs (Check_SCOs => False);
 
                if Trace_File_Name /= "" then
@@ -2084,6 +2108,22 @@ begin
             end if;
             Inputs.Iterate (Exe_Inputs,  Process_Exec'Access);
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
+
+            --  Warn when using --scos with source traces or --sid with bin
+            --  traces.
+
+            if Inputs.Length (SID_Inputs) > 0 and then Bin_Traces_Present then
+               Warn ("Using option --sid with binary trace files has no"
+                     & " effect." & ASCII.LF & "Please consider using option"
+                     & " --scos or -P<project file> in conjunction with"
+                     & " --units to specify units of interest.");
+            end if;
+            if Inputs.Length (ALIs_Inputs) > 0 and then Src_Traces_Present then
+               Warn ("Using option --scos with source trace files has no"
+                     & " effect." & ASCII.LF & "Please consider using option"
+                     & " --sid or -P<project file> in conjunction with --units"
+                     & " to specify units of interest.");
+            end if;
          end;
 
          --  Reconstruct unit names for ignored source files.

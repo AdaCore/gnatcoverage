@@ -80,7 +80,8 @@ package Command_Line is
       Opt_GNAT_Pragmas,
       Opt_Show_MCDC_Vectors,
       Opt_Local_Time,
-      Opt_Dump_Filename_Simple);
+      Opt_Dump_Filename_Simple,
+      Opt_Allow_Mix_Trace_Kind);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -451,7 +452,14 @@ package Command_Line is
                       & " filenames for source trace files (no PID/timestamp"
                       & " variations).",
          Commands  => (Cmd_Instrument => True, others => False),
-         Internal  => False));
+         Internal  => False),
+
+      Opt_Allow_Mix_Trace_Kind => Create
+        (Long_Name => "--mix-trace-kind",
+         Help      => "Allow mixing binary and source traces. A warning will"
+                      & " still be emitted",
+         Commands  => (Cmd_Coverage => True, others => False),
+         Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

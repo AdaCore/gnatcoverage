@@ -71,6 +71,13 @@ Glossary of terms & concepts
       for example *statement*, *decision* or *condition*, together with a
       specific unit:line:column source location. Also known as SCO.
 
+   Source Instrumentation Data file
+      A binary file produced by the gnatcov instrumenter as it processes a
+      source unit, containing information about the entities present in the
+      unit; for example: Source Coverage Obligations, annotation pragmas for
+      exempted regions, ... These are ``.sid`` files, produced at the same
+      place object files would be created during the compilation of the unit.
+
    Source Trace
      File(s) containing high level information about the source coverage
      achievements resulting from a program execution. Such traces are

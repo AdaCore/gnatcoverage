@@ -98,6 +98,10 @@ package Switches is
    Pretty_Print : Boolean := False;
    --  If true, run "gnatpp" on the generate sources
 
+   Allow_Mixing_Trace_Kinds : Boolean := False;
+   --  If true, mixing trace kinds (binary and source) will not result in an
+   --  error but only output a warning.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

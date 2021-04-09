@@ -104,8 +104,16 @@ The available options are as follows:
 :option:`--scos`, |rarg|:
    Provide the set of
    :term:`Library Information files` from which Source Coverage Obligations
-   (SCOs) should be loaded. This low-level switch effectively overrides the
-   project based units of interest selection.
+   (SCOs) should be loaded to process **binary** traces. This low-level switch
+   effectively overrides the project based units of interest selection.
+   It only has effect if used with binary traces.
+
+:option:`--sid`, |rarg|:
+   Provide the set of
+   :term:`Source Instrumentation Data files` from which Source Coverage
+   Obligations (SCOs) should be loaded to process **source** traces. This low
+   level switch effectively overrides the project based units of interest
+   selection. It only has effect if used with source traces.
 
 :option:`--ignore-source-files`, |rarg|:
    Provide a list of globbing patterns (as in Unix shells) of source

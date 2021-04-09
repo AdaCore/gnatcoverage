@@ -22,6 +22,7 @@ with Ada.Unchecked_Deallocation;
 with Coverage.Source;
 with Instrument.Common;
 with Outputs;           use Outputs;
+with Traces_Files;
 with Traces_Files_Registry;
 
 package body Checkpoints is
@@ -404,6 +405,8 @@ package body Checkpoints is
             Supported_Levels (MCDC_Coverage_Level'Range) := (others => True);
          end if;
          Coverage.Levels_Type'Write (CSS.Stream, Supported_Levels);
+         Traces_Files.Any_Accepted_Trace_Kind'Write
+           (CSS.Stream, Traces_Files.Currently_Accepted_Trace_Kind);
 
          Files_Table.Checkpoint_Save (CSS'Access);
          SC_Obligations.Checkpoint_Save (CSS'Access);
@@ -508,6 +511,17 @@ package body Checkpoints is
                   Fatal_Error (Error_Msg);
                end if;
             end;
+
+            if not Version_Less (CLS'Access, Than => 6) then
+               declare
+                  use Traces_Files;
+
+                  CP_Trace_Kind : Any_Accepted_Trace_Kind;
+               begin
+                  Any_Accepted_Trace_Kind'Read (CLS.Stream, CP_Trace_Kind);
+                  Update_Current_Trace_Kind (CP_Trace_Kind);
+               end;
+            end if;
 
             Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
             SC_Obligations.Checkpoint_Load (CLS'Access);
