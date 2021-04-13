@@ -353,9 +353,14 @@ package Files_Table is
             Sloc_To_SCO_Maps : Sloc_To_SCO_Map_Array_Acc;
             --  Sloc -> SCO_Id indices for this file
 
-            Stats : Stat_Array := (others => 0);
-            --  Counters associated with the file (e.g total number of lines,
-            --  number of lines that are covered).
+            Li_Stats : Li_Stat_Array := (others => 0);
+            --  Line counters associated with the file (e.g total number of
+            --  lines, number of lines that are covered).
+
+            En_Stats : En_Stat_Array;
+            --  Entitiy counters for each kind of SCO (stmt, decision, mcdc).
+            --  Stores how many statement are covered, how many decisions are
+            --  covered etc.
 
             Has_Source_Coverage_Info : Boolean := False;
             --  True if source coverage information has been registered for

@@ -23,14 +23,14 @@ with Ada.Strings.Unbounded;
 
 with Interfaces;
 
-with ALI_Files; use ALI_Files;
+with ALI_Files;       use ALI_Files;
 with Calendar_Utils;
 with Coverage.Object;
-with Coverage.Source;
+with Coverage.Source; use Coverage.Source;
 with Coverage.Tags;
-with Outputs;   use Outputs;
-with Strings;   use Strings;
-with Switches;  use Switches;
+with Outputs;         use Outputs;
+with Strings;         use Strings;
+with Switches;        use Switches;
 with Traces_Disa;
 
 package body Annotations is
@@ -157,7 +157,7 @@ package body Annotations is
       --  sources with SCOs but no associated code, e.g. generics that are
       --  not instantiated).
 
-      if Get_Total (FI.Stats) = 0 and then not FI.Has_Source then
+      if Get_Total (FI.Li_Stats) = 0 and then not FI.Has_Source then
          return;
       end if;
 
@@ -296,7 +296,6 @@ package body Annotations is
       Line : Natural;
       LI   : Line_Info)
    is
-      use Coverage.Source;
 
       SCO_State : Line_State;
    begin
@@ -366,6 +365,8 @@ package body Annotations is
      (Pp           : in out Pretty_Printer'Class;
       Show_Details : Boolean)
    is
+      use Coverage;
+
       procedure Compute_File_State (File_Index : Source_File_Index);
       --  For all lines in file at Index, compute line state and
       --  update file table accordingly. Compute FI's coverage stats
@@ -382,7 +383,6 @@ package body Annotations is
       ------------------------
 
       procedure Compute_File_State (File_Index : Source_File_Index) is
-         use Coverage;
 
          FI : constant File_Info_Access := Get_File (File_Index);
 
@@ -421,10 +421,11 @@ package body Annotations is
 
             --  First check whether the beginning of the line is exempted. If
             --  not, find the first statement SCO starting on the line, and
-            --  check for exemption at that point.
-
-            --  Note that the first statement SCO for the line may be a
-            --  multi-line statement starting on an earlier line).
+            --  check for exemption at that point. This part is just to exempt
+            --  exemption pragmas themselves, as the exemption starts at the
+            --  specific exemption pragma location. If we were to rely solely
+            --  on the line, we would not exempt the exemption pragma itself,
+            --  as it probably does not start on the column 0.
 
             Sloc := (File_Index, (L, 0));
             LI.Exemption := Get_Exemption (Sloc);
@@ -464,15 +465,77 @@ package body Annotations is
             LI : constant Line_Info_Access := Get_Line (FI, L);
             S  : constant Any_Line_State := Aggregated_State (LI.all);
 
+            procedure Update_Level_Stats
+              (State : SCO_State;
+               Level : Coverage_Level);
+            --  Update the file statistics for the given coverage level
+
+            ------------------------
+            -- Update_Level_Stats --
+            ------------------------
+
+            procedure Update_Level_Stats
+              (State : SCO_State;
+               Level : Coverage_Level)
+            is
+            begin
+               if State = No_Code then
+                  return;
+               end if;
+
+               FI.En_Stats (Level).Total :=
+                 FI.En_Stats (Level).Total + 1;
+
+               if LI.Exemption /= Slocs.No_Location then
+                  if State = Covered or else State = Not_Coverable then
+                     FI.En_Stats (Level).Stats (Exempted_No_Violation) :=
+                       FI.En_Stats (Level).Stats (Exempted_No_Violation) + 1;
+                  else
+                     FI.En_Stats (Level).Stats (Exempted_With_Violation) :=
+                       FI.En_Stats (Level).Stats (Exempted_With_Violation) + 1;
+                  end if;
+               else
+                  FI.En_Stats (Level).Stats (State) :=
+                    FI.En_Stats (Level).Stats (State) + 1;
+               end if;
+            end Update_Level_Stats;
+
          begin
             --  Update counts. Note that No_Code lines are always counted as
             --  No_Code even if they are part of an exempted region.
 
             if LI.State = Line_States'(others => No_Code) then
-               FI.Stats (No_Code) := FI.Stats (No_Code) + 1;
+               FI.Li_Stats (No_Code) := FI.Li_Stats (No_Code) + 1;
             else
-               FI.Stats (S) := FI.Stats (S) + 1;
+               FI.Li_Stats (S) := FI.Li_Stats (S) + 1;
             end if;
+
+            --  Update entities count
+
+            if LI.SCOs = null then
+               return;
+            end if;
+
+            for SCO of LI.SCOs.all loop
+               case Kind (SCO) is
+                  when Statement =>
+                     Update_Level_Stats (Get_Line_State (SCO, Stmt), Stmt);
+                  when Decision  =>
+                     Update_Level_Stats
+                       (Get_Line_State (SCO, Decision), Decision);
+                     if Coverage.MCDC_Coverage_Enabled then
+                        for J in Condition_Index'First .. Last_Cond_Index (SCO)
+                        loop
+                           Update_Level_Stats
+                             (Get_Line_State
+                                (Condition (SCO, J), Coverage.MCDC_Level),
+                              MCDC_Level);
+                        end loop;
+                     end if;
+                  when others    =>
+                     null;
+               end case;
+            end loop;
          end Compute_Stats;
 
       --  Start of processing for Compute_File_State
@@ -482,12 +545,12 @@ package body Annotations is
             return;
          end if;
 
-         FI.Stats := (others => 0);
+         FI.Li_Stats := (others => 0);
          Iterate_On_Lines (FI, Compute_Line_State'Access);
          Iterate_On_Lines (FI, Compute_Stats'Access);
 
          for J in Global_Stats'Range loop
-            Global_Stats (J) := Global_Stats (J) + FI.Stats (J);
+            Global_Stats (J) := Global_Stats (J) + FI.Li_Stats (J);
          end loop;
       end Compute_File_State;
 
@@ -652,7 +715,7 @@ package body Annotations is
       Sloc_Bound := Sloc_Start;
       Sloc_Bound.L.Column := Sloc_Start.L.Column + Length;
 
-      if Sloc_Bound < Sloc_End then
+      if Sloc_Bound <= Sloc_End then
          Col_End := Natural'Min (Line'Last, Sloc_Bound.L.Column);
          return Line (Col_Start .. Col_End) & "...";
       else

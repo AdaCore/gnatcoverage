@@ -16,13 +16,18 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Strings.Fixed;     use Ada.Strings.Fixed;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+
+with Strings; use Strings;
+
 package body Traces_Stats is
 
    ---------------
    -- Get_Total --
    ---------------
 
-   function Get_Total (Stats : Stat_Array) return Natural is
+   function Get_Total (Stats : Li_Stat_Array) return Natural is
       Total : Natural := 0;
    begin
       for J in Stats'Range loop
@@ -33,17 +38,16 @@ package body Traces_Stats is
       return Total;
    end Get_Total;
 
-   ---------------------
-   -- Get_Stat_String --
-   ---------------------
+   --------------------------
+   -- Get_Line_Stat_String --
+   --------------------------
 
-   function Get_Stat_String (Stats : Stat_Array) return String
+   function Get_Line_Stat_String (Stats : Li_Stat_Array) return String
    is
       Total : constant Natural := Get_Total (Stats);
    begin
       if Total = 0 then
          return "no code";
-
       else
          declare
             Res : constant String := Natural'Image (Ratio (Stats (Covered),
@@ -53,7 +57,47 @@ package body Traces_Stats is
             return Res (Res'First + 1 .. Res'Last);
          end;
       end if;
-   end Get_Stat_String;
+   end Get_Line_Stat_String;
+
+   ------------------------------
+   -- Get_Entities_Stat_String --
+   ------------------------------
+
+   function Get_Entities_Stat_String (Stats : En_Stat_Array) return String
+   is
+      SCO_Kind_Repr : constant array (Coverage_Level) of Unbounded_String :=
+        (Stmt     => +"statement",
+         Decision => +"decision",
+         MCDC     => +"MC/DC",
+         UC_MCDC  => +"UC MC/DC",
+         others   => +"");
+      Res : Unbounded_String := +"";
+
+      function Trimmed_Image (N : Natural) return String is
+        (Trim (Natural'Image (N), Ada.Strings.Left));
+
+   begin
+      if Stats (Stmt).Total = 0 then
+         return "no code";
+      else
+         for Level in Stats'Range loop
+            if Stats (Level).Total /= 0 then
+               declare
+                  N_Covered : constant Natural :=
+                    Stats (Level).Stats (Covered);
+                  Total     : constant Natural := Stats (Level).Total;
+                  R         : constant String :=
+                    Trimmed_Image (Ratio (N_Covered, Total));
+               begin
+                  Res := Res & R & "% " & SCO_Kind_Repr (Level)
+                    & " coverage (" & Trimmed_Image (N_Covered) & " out of "
+                    & Trimmed_Image (Total) & ")" & ASCII.LF;
+               end;
+            end if;
+         end loop;
+         return +Res;
+      end if;
+   end Get_Entities_Stat_String;
 
    -----------
    -- Ratio --

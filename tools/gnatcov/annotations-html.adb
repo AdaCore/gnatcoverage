@@ -136,7 +136,9 @@ package body Annotations.Html is
    --  Key_Name is the name of the keys of this table (e.g. file names).
    --  If Display_Keys, Index_Name will be displayed in the first column.
 
-   procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array);
+   procedure Print_Coverage_Stats
+     (F     : in out File_Type;
+      Stats : Li_Stat_Array);
    --  Put the datas of Stats as HTML table cells ("<td>") in F.
 
    -----------------------
@@ -566,7 +568,7 @@ package body Annotations.Html is
       Pi ("</td>"); Ni;
 
       --  Rest of line: coverage stats
-      Print_Coverage_Stats (Pp.Index_File, Info.Stats);
+      Print_Coverage_Stats (Pp.Index_File, Info.Li_Stats);
       Pi ("    </tr>"); Ni;
 
       --  Do not try to process files whose source is not available.
@@ -616,7 +618,7 @@ package body Annotations.Html is
 
       Plh (Pp, "<table class=""SumTable""><tr>");
       Print_Coverage_Header (Pp.Html_File, "", False);
-      Print_Coverage_Stats (Pp.Html_File, Info.Stats);
+      Print_Coverage_Stats (Pp.Html_File, Info.Li_Stats);
       Plh (Pp, "</tr></table>");
 
       Plh (Pp, "<hr/>");
@@ -757,7 +759,10 @@ package body Annotations.Html is
    -- Print_Coverage_Stats --
    --------------------------
 
-   procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array) is
+   procedure Print_Coverage_Stats
+     (F     : in out File_Type;
+      Stats : Li_Stat_Array)
+   is
       use Ada.Integer_Text_IO;
 
       Total : constant Natural := Get_Total (Stats);

@@ -118,6 +118,15 @@ package body Coverage is
       return (L and Levels) /= Levels_Type'(others => False);
    end Any_Coverage_Enabled;
 
+   -------------------------------
+   -- Decision_Coverage_Enabled --
+   -------------------------------
+
+   function Decision_Coverage_Enabled return Boolean is
+   begin
+      return MCDC_Coverage_Enabled or else Enabled (Decision);
+   end Decision_Coverage_Enabled;
+
    ---------------------------
    -- MCDC_Coverage_Enabled --
    ---------------------------

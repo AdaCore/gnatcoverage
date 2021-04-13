@@ -20,17 +20,34 @@
 --  for a set of line (typically, a source file or a procedure).
 
 with Traces_Lines; use Traces_Lines;
+with Coverage;     use Coverage;
 
 package Traces_Stats is
 
-   type Stat_Array is array (Any_Line_State) of Natural;
-   --  Array of stats indexed by the state of a line; it records
-   --  the number of occurrences of each state in a set of lines.
+   type Counter_Array is array (Any_Line_State) of Natural;
+   --  Array of stats indexed by the coverage state (covered, partially
+   --  covered, etc.).
 
-   function Get_Stat_String (Stats : Stat_Array) return String;
-   --  Return a String image of Stats
+   type Li_Stat_Array is new Counter_Array;
+   --  Array of stats for a set of lines
 
-   function Get_Total (Stats : Stat_Array) return Natural;
+   type SCO_Tally is record
+      Total : Natural := 0;
+      Stats : Counter_Array := (others => 0);
+   end record;
+
+   type En_Stat_Array is
+     array (Source_Coverage_Level) of SCO_Tally;
+   --  Array of stats for each coverage level entity (stmt, decision ...), for
+   --  a set of coverage obligations.
+
+   function Get_Line_Stat_String (Stats : Li_Stat_Array) return String;
+   --  Return a String image of line stats
+
+   function Get_Entities_Stat_String (Stats : En_Stat_Array) return String;
+   --  Return a String image of entities stats
+
+   function Get_Total (Stats : Li_Stat_Array) return Natural;
    --  Return total line count, excluding No_Code lines
 
    function Ratio (Part : Natural; Total : Natural) return Natural;

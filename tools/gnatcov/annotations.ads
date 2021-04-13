@@ -69,7 +69,7 @@ private
    function Message_Annotation (M : Message) return String;
    --  Return a representation of M to be associated with an annotated line
 
-   Global_Stats : Stat_Array := (others => 0);
+   Global_Stats : Li_Stat_Array := (others => 0);
    --  Stats associated with the whole set of source files that this package
    --  considers (i.e. total numbers of lines, of partially covered /
    --  not covered / fully covered lines...)

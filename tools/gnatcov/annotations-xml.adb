@@ -191,7 +191,7 @@ package body Annotations.Xml is
       State : Line_State);
 
    procedure Print_Coverage_Stats
-     (Pp : in out Xml_Pretty_Printer'Class; Stats : Stat_Array);
+     (Pp : in out Xml_Pretty_Printer'Class; Stats : Li_Stat_Array);
    --  Emit a series of <metric> tags to Pp to describe the given statistics
 
    ---------------
@@ -465,7 +465,7 @@ package body Annotations.Xml is
          begin
             if FI.Kind = Source_File and then To_Display (FI) then
                Pp.ST ("file", A ("name", FI.Simple_Name.all), Dest_Index);
-               Print_Coverage_Stats (Pp, FI.Stats);
+               Print_Coverage_Stats (Pp, FI.Li_Stats);
                Pp.ET ("file", Dest_Index);
             end if;
          end Process_One_File;
@@ -826,7 +826,7 @@ package body Annotations.Xml is
    --------------------------
 
    procedure Print_Coverage_Stats
-     (Pp : in out Xml_Pretty_Printer'Class; Stats : Stat_Array)
+     (Pp : in out Xml_Pretty_Printer'Class; Stats : Li_Stat_Array)
    is
 
       Total : constant Natural := Get_Total (Stats);

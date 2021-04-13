@@ -40,7 +40,7 @@ package Coverage is
    --  * source coverage at unique cause MC/DC level (UC_MCDC).
 
    --  The terms "instruction", "branch", "statement", "decision" and "MCDC"
-   --  should be undertstood here as they are defined in the DO-178B standard;
+   --  should be understood here as they are defined in the DO-178B standard;
    --  their meaning is also documented in Couverture's documentation.
 
    subtype Object_Coverage_Level is Coverage_Level range Insn .. Branch;
@@ -69,6 +69,9 @@ package Coverage is
 
    function Source_Coverage_Enabled return Boolean;
    --  True if any Source_Coverage_Level is enabled
+
+   function Decision_Coverage_Enabled return Boolean;
+   --  True if decision coverage is enabled (either via decision, or MC/DC)
 
    function MCDC_Coverage_Enabled return Boolean;
    --  True if any MCDC_Coverage_Level is enabled

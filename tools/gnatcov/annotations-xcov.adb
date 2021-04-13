@@ -182,7 +182,8 @@ package body Annotations.Xcov is
       Skip := False;
 
       Put_Line (Pp.Xcov_File, Info.Full_Name.all & ':');
-      Put_Line (Pp.Xcov_File, Get_Stat_String (Info.Stats));
+      Put_Line (Pp.Xcov_File, Get_Line_Stat_String (Info.Li_Stats));
+      Put_Line (Pp.Xcov_File, Get_Entities_Stat_String (Info.En_Stats));
       Put_Line (Pp.Xcov_File, "Coverage level: " & Coverage_Option_Value);
    end Pretty_Print_Start_File;
 

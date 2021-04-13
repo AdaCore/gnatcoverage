@@ -22,6 +22,7 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;
+with Annotations;     use Annotations;
 with Calendar_Utils;  use Calendar_Utils;
 with Coverage;        use Coverage;
 with Coverage.Source; use Coverage.Source;
@@ -95,13 +96,6 @@ package body Annotations.Report is
 
    type Messages_Array is array (Report_Section) of Message_Vectors.Vector;
 
-   type SCO_Tally is record
-      Total   : Natural := 0;
-      Covered : Natural := 0;
-   end record;
-
-   type SCO_Tallies_Array is array (Coverage_Level) of SCO_Tally;
-
    package String_Vectors is
      new Ada.Containers.Vectors
        (Natural,
@@ -129,7 +123,7 @@ package body Annotations.Report is
       --  All output messages, classified by section according to relevant
       --  coverage level.
 
-      SCO_Tallies : SCO_Tallies_Array;
+      SCO_Tallies : En_Stat_Array;
       --  Tally of SCOs for each report section
 
       Summary : String_Vectors.Vector;
@@ -335,12 +329,23 @@ package body Annotations.Report is
          if Section /= Other_Errors then
             L := Coverage_Level'Val (Section);
 
-            State := Get_Line_State (SCO, L);
+            --  Some decision SCOs (complex boolean expressions not in control
+            --  structures) belong to the MC/DC report section. We should still
+            --  get their state according to the Decision Coverage_Level (is
+            --  the decision covered or not), and not according to the MCDC
+            --  coverage level.
+
+            if Kind (SCO) = Decision then
+               State := Get_Line_State (SCO, Decision);
+            else
+               State := Get_Line_State (SCO, L);
+            end if;
 
             if State /= No_Code then
                Pp.SCO_Tallies (L).Total := Pp.SCO_Tallies (L).Total + 1;
                if State = Covered then
-                  Pp.SCO_Tallies (L).Covered := Pp.SCO_Tallies (L).Covered + 1;
+                  Pp.SCO_Tallies (L).Stats (Covered) :=
+                    Pp.SCO_Tallies (L).Stats (Covered) + 1;
                end if;
             end if;
          end if;
@@ -537,7 +542,7 @@ package body Annotations.Report is
                T : SCO_Tally renames Pp.SCO_Tallies (Coverage_Level'Val (MC));
             begin
                Put_Line (Output.all,
-                         Pluralize (T.Covered, "coverage obligation")
+                         Pluralize (T.Stats (Covered), "coverage obligation")
                          & " covered out of" & T.Total'Img & ".");
             end;
          end if;
@@ -775,7 +780,7 @@ package body Annotations.Report is
    is
       Info : constant File_Info_Access := Get_File (File);
    begin
-      if Info.Stats (Covered) /= Get_Total (Info.Stats) then
+      if Info.Li_Stats (Covered) /= Get_Total (Info.Li_Stats) then
 
          --  Some uncovered or partially covered lines are present
 

@@ -180,10 +180,11 @@ package body Annotations.Dynamic_Html is
    procedure Pretty_Print_End_Instruction_Set
      (Pp : in out Dynamic_Html);
 
-   procedure Pretty_Print_Start_Symbol (Pp     : in out Dynamic_Html;
-                                        Name   : String;
-                                        Offset : Pc_Type;
-                                        State  : Line_State);
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Dynamic_Html;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State);
 
    procedure Pretty_Print_End_Symbol (Pp : in out Dynamic_Html);
 
@@ -369,10 +370,45 @@ package body Annotations.Dynamic_Html is
       use Coverage;
       use Project;
 
-      Info   : constant File_Info_Access := Get_File (File);
+      Info                  : constant File_Info_Access := Get_File (File);
+      Source                : constant JSON_Value := Create_Object;
+      Line_Stats            : constant JSON_Value := Create_Object;
+      Entities_Stats_Object : JSON_Array;
 
-      Source : constant JSON_Value := Create_Object;
-      Stats  : constant JSON_Value := Create_Object;
+      procedure Add_En_Stats
+        (Level          : Coverage_Level;
+         Entities_Stats : SCO_Tally);
+      --  Add to Entities_Stats_Object the Entities_Stats that correspond to
+      --  the coverage level Level.
+
+      ------------------
+      -- Add_En_Stats --
+      ------------------
+
+      procedure Add_En_Stats
+        (Level          : Coverage_Level;
+         Entities_Stats : SCO_Tally)
+      is
+         Level_Stats  : constant JSON_Value := Create_Object;
+         Stats_Holder : constant JSON_Value := Create_Object;
+      begin
+         Level_Stats.Set_Field ("covered", Entities_Stats.Stats (Covered));
+         Level_Stats.Set_Field
+           ("notCovered", Entities_Stats.Stats (Not_Covered));
+         Level_Stats.Set_Field
+           ("partiallyCovered", Entities_Stats.Stats (Partially_Covered));
+         Level_Stats.Set_Field
+           ("notCoverable", Entities_Stats.Stats (Not_Coverable));
+         Level_Stats.Set_Field
+           ("exemptedNoViolation",
+            Entities_Stats.Stats (Exempted_No_Violation));
+         Level_Stats.Set_Field
+           ("exemptedWithViolation",
+            Entities_Stats.Stats (Exempted_With_Violation));
+         Stats_Holder.Set_Field ("stats", Level_Stats);
+         Stats_Holder.Set_Field ("level", Coverage_Level'Image (Level));
+         Append (Entities_Stats_Object, Stats_Holder);
+      end Add_En_Stats;
 
    begin
       Clear (Pp.Current_Mappings);
@@ -383,23 +419,43 @@ package body Annotations.Dynamic_Html is
       Skip := False;
 
       Source.Set_Field ("missingSource", not Info.Has_Source);
+
       --  Compute the coverage stats and store them into a JSON dictionary
-      Stats.Set_Field ("noCode", Info.Stats (No_Code));
-      Stats.Set_Field ("covered", Info.Stats (Covered));
-      Stats.Set_Field ("partiallyCovered", Info.Stats (Partially_Covered));
-      Stats.Set_Field ("notCovered", Info.Stats (Not_Covered));
-      Stats.Set_Field ("notCoverable", Info.Stats (Not_Coverable));
-      Stats.Set_Field
-        ("exemptedNoViolation", Info.Stats (Exempted_No_Violation));
-      Stats.Set_Field
-        ("exemptedWithViolation", Info.Stats (Exempted_With_Violation));
+
+      Line_Stats.Set_Field ("noCode", Info.Li_Stats (No_Code));
+      Line_Stats.Set_Field ("covered", Info.Li_Stats (Covered));
+      Line_Stats.Set_Field
+        ("partiallyCovered", Info.Li_Stats (Partially_Covered));
+      Line_Stats.Set_Field ("notCovered", Info.Li_Stats (Not_Covered));
+      Line_Stats.Set_Field ("notCoverable", Info.Li_Stats (Not_Coverable));
+      Line_Stats.Set_Field
+        ("exemptedNoViolation", Info.Li_Stats (Exempted_No_Violation));
+      Line_Stats.Set_Field
+        ("exemptedWithViolation", Info.Li_Stats (Exempted_With_Violation));
+
+      --  Compute entities coverage stats and store them in a dictionary list.
+      --
+      --  Object coverage does not come with coverage obligations on the
+      --  assembly instructions, so there would be no point in enabling
+      --  reporting on entities for object coverage reports.
+
+      if Source_Coverage_Enabled then
+         Add_En_Stats (Stmt, Info.En_Stats (Stmt));
+         if Decision_Coverage_Enabled then
+            Add_En_Stats (Decision, Info.En_Stats (Decision));
+            if MCDC_Coverage_Enabled then
+               Add_En_Stats (MCDC_Level, Info.En_Stats (MCDC_Level));
+            end if;
+         end if;
+      end if;
 
       --  Generate the JSON object for this source file
 
       Source.Set_Field ("filename", Get_Unique_Name (File));
       Source.Set_Field ("hunkFilename", Get_Hunk_Filename (File));
       Source.Set_Field ("coverageLevel", Coverage_Option_Value);
-      Source.Set_Field ("stats", Stats);
+      Source.Set_Field ("liStats", Line_Stats);
+      Source.Set_Field ("enAllStats", Entities_Stats_Object);
 
       if Switches.Root_Project /= null then
          Source.Set_Field ("project", Project_Name (Info.Full_Name.all));
@@ -455,12 +511,14 @@ package body Annotations.Dynamic_Html is
       --  Append a simplified "reference" entry to the index
 
       Simplified.Set_Field ("filename", Filename);
-      Simplified.Set_Field ("stats", JSON_Value'(Source.Get ("stats")));
-      Simplified.Set_Field ("coverageLevel",
-                            String'(Source.Get ("coverageLevel")));
+      Simplified.Set_Field ("liStats", JSON_Value'(Source.Get ("liStats")));
+      Simplified.Set_Field
+        ("enAllStats", JSON_Value'(Source.Get ("enAllStats")));
+      Simplified.Set_Field
+        ("coverageLevel", String'(Source.Get ("coverageLevel")));
       Simplified.Set_Field ("hunkFilename", Hunk_Filename);
-      Simplified.Set_Field ("missingSource",
-                            Boolean'(Source.Get ("missingSource")));
+      Simplified.Set_Field
+        ("missingSource", Boolean'(Source.Get ("missingSource")));
 
       if Source.Has_Field ("project") then
          --  Project name is optional. Add it only when relevant
