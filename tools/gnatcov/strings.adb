@@ -122,6 +122,9 @@ package body Strings is
       --  Directory separator on this OS. Will also be used to determine if we
       --  should canonicalize the pattern (only done on Windows).
 
+      Escaped_Sep : constant String := (if Sep = '\' then "\\" else "" & Sep);
+      --  Same as Sep, but escaped so that we can use it in a regexp
+
       function Canonicalize_Pattern (Pattern : String) return String;
       --  Canonicalizes a globbing pattern under Windows to capitalize the
       --  drive letter (if it exists) and turn all other characters to lower
@@ -182,7 +185,7 @@ package body Strings is
             --  you would expect 'src_*/' to match 'src_1/' and 'src_2/', but
             --  not 'src_1/subdir/'.
 
-            when '*' => Append (Res, "[^" & Sep & "]*");
+            when '*' => Append (Res, "[^" & Escaped_Sep & "]*");
             when '?' => Append (Res, ".");
             when '[' =>
                declare
