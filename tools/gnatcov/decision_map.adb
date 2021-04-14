@@ -978,7 +978,7 @@ package body Decision_Map is
 
       procedure Record_Known_Destination
         (Cond_Branch_PC : Pc_Type;
-         CBI            : Cond_Branch_Info;
+         Destination    : Dest;
          Edge           : Edge_Kind);
       --  Once this destination has been fully qualified, remember it so
       --  that further tests with the same destination can reuse the
@@ -1619,7 +1619,6 @@ package body Decision_Map is
               and then not BB.Cond
             then
                CBE_Dest := BB.Branch_Dest;
-
             else
                exit;
             end if;
@@ -1770,14 +1769,13 @@ package body Decision_Map is
 
       procedure Record_Known_Destination
         (Cond_Branch_PC : Pc_Type;
-         CBI            : Cond_Branch_Info;
+         Destination    : Dest;
          Edge           : Edge_Kind)
       is
-         Edge_Info : Cond_Edge_Info renames CBI.Edges (Edge);
       begin
-         if not Known_Destinations.Contains (Edge_Info.Destination) then
+         if not Known_Destinations.Contains (Destination) then
             Known_Destinations.Insert
-              (Edge_Info.Destination, (Cond_Branch_PC, Edge));
+              (Destination, (Cond_Branch_PC, Edge));
          end if;
       end Record_Known_Destination;
 
@@ -1945,7 +1943,29 @@ package body Decision_Map is
          end if;
 
          if BB.Branch /= Br_Ret then
-            Record_Known_Destination (Cond_Branch_PC, CBI, Edge);
+            declare
+               Destination : Dest := CBI.Edges (Edge).Destination;
+               BB          : Basic_Block :=
+                 Find_Basic_Block (Ctx.Basic_Blocks, Destination.Target);
+            begin
+
+               loop
+                  --  Keep following branches as long as the BB is a one
+                  --  instruction unconditional branching. This is the
+                  --  symetrical logic of what is implemented in the procedure
+                  --  Label_From_Other.
+
+                  exit when BB.Branch /= Br_Jmp
+                    or else BB.From /= BB.To_PC
+                    or else BB.Cond;
+
+                  Destination := BB.Branch_Dest;
+                  BB := Find_Basic_Block (Ctx.Basic_Blocks,
+                                          Destination.Target);
+               end loop;
+               Record_Known_Destination (Cond_Branch_PC, Destination, Edge);
+            end;
+
          end if;
       end Set_Known_Origin;
 
