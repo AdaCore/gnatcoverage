@@ -254,16 +254,26 @@ package body Project is
       Original_Name : String)
    is
       Ignored_Inserted : Boolean;
+      On_Windows       : constant Boolean :=
+        GNAT.OS_Lib.Directory_Separator = '\';
+      Is_C_Header      : constant Boolean :=
+        Strings.Has_Suffix (To_Lower (Original_Name), ".h");
       Orig_Name        : constant Unbounded_String :=
-         To_Unbounded_String (Original_Name);
+        To_Unbounded_String ((if On_Windows and then Is_C_Header
+                             then To_Lower (Original_Name)
+                             else Original_Name));
+
    begin
+      --  Disable warnings for C header units as they do not have a proper
+      --  library file.
+
       Units.Insert
         (Key      => To_Lower (Original_Name),
          New_Item => (Original_Name             => Orig_Name,
                       Present_In_Projects       => False,
                       Is_Subunit                => False,
-                      LI_Seen                   => False,
-                      Warned_About_Missing_Info => False),
+                      LI_Seen                   => Is_C_Header,
+                      Warned_About_Missing_Info => Is_C_Header),
          Position => Cur,
          Inserted => Ignored_Inserted);
    end Add_Unit;
