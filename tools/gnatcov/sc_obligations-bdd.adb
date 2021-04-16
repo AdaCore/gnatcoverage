@@ -212,7 +212,7 @@ package body SC_Obligations.BDD is
          --  Count of paths through each successor to any outcome
       begin
          --  Set Node's parent to Parent_Id. Set C_Value to Node's condition
-         --  value. Also markes outcome as reachable if Node is an outcome.
+         --  value. Also mark Node reachable if it is an outcome.
 
          case Node.Kind is
             when Condition =>
@@ -265,7 +265,7 @@ package body SC_Obligations.BDD is
          end case;
       end Visit;
 
-   --  Start of processing for Check_Reachability
+   --  Start of processing for Enumerate_Paths
 
    begin
       Visit
