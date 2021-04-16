@@ -21,6 +21,7 @@ In absence of :option:`--units` switches, the *units of interest* is the union
 of the units of interest attached to the projects of interest. For each
 project, this is all the project's units by default, and this can be controled
 with attributes in an optional ``Coverage`` package.
+All of these unit specification options support globbing patterns.
 
 :option:`--units` switches on the command line override that selection
 entirely, allowing to specify a subset of actual interest.

@@ -16,7 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Strings.Unbounded;
+with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.CRC32;
 with GNATCOLL.Mmap;
@@ -24,7 +26,6 @@ with GNATCOLL.Mmap;
 with Diagnostics; use Diagnostics;
 with Hex_Images;  use Hex_Images;
 with Outputs;     use Outputs;
-with Strings;     use Strings;
 with Switches;
 
 package body Inputs is
@@ -244,5 +245,88 @@ package body Inputs is
             Kind => Notice);
       end if;
    end Log_File_Open;
+
+   ----------------------
+   -- To_String_Vector --
+   ----------------------
+
+   function To_String_Vector
+     (Inputs : Inputs_Type) return String_Vectors.Vector
+   is
+      use String_Vectors;
+
+      Res : Vector;
+   begin
+      for IE of Inputs loop
+         Res.Append (+IE.Name.all);
+      end loop;
+      return Res;
+   end To_String_Vector;
+
+   --------------------
+   -- Create_Matcher --
+   --------------------
+
+   procedure Create_Matcher
+     (Pattern_List : String_Vectors.Vector;
+      Matcher      : out GNAT.Regexp.Regexp;
+      Has_Matcher  : out Boolean)
+   is
+      use Ada.Strings.Unbounded;
+      use String_Vectors;
+
+      Pattern : Unbounded_String;
+      --  Regular expression pattern (using regexp syntax described in
+      --  GNAT.Regexp) to match the same set of strings as all patterns in
+      --  Pattern_List.
+      --
+      --  Note that we use Glob_To_Regexp instead of GNAT.Regexp's internal
+      --  globbing pattern support to keep the globbing syntax that gnatcov
+      --  support coherent among all options that accept them.
+
+      First : Boolean := True;
+
+      procedure Process (C : Cursor);
+      --  Include the globbing pattern referenced by C into Pattern
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (C : Cursor) is
+         Glob_Pattern : constant String := To_Lower (+Element (C));
+      begin
+         --  Ignore blank lines
+
+         if Glob_Pattern'Length = 0 then
+            return;
+         end if;
+
+         if First then
+            First := False;
+         else
+            Append (Pattern, "|");
+         end if;
+         Append (Pattern, Strings.Glob_To_Regexp (Glob_Pattern));
+      end Process;
+
+   --  Start of processing for Create_Matcher
+
+   begin
+      String_Vectors.Iterate (Pattern_List, Process'Access);
+      Has_Matcher := not First;
+      if Has_Matcher then
+         Matcher := GNAT.Regexp.Compile (Pattern => To_String (Pattern));
+      end if;
+   end Create_Matcher;
+
+   procedure Create_Matcher
+     (Pattern_List : Inputs.Inputs_Type;
+      Matcher      : out GNAT.Regexp.Regexp;
+      Has_Matcher  : out Boolean)
+   is
+   begin
+      Create_Matcher (To_String_Vector (Pattern_List), Matcher, Has_Matcher);
+   end Create_Matcher;
 
 end Inputs;

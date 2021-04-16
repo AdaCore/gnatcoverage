@@ -20,6 +20,7 @@ with Ada.Characters.Handling;
 with Ada.Strings.Hash;
 
 with GNAT.OS_Lib;
+with GNAT.Regexp;
 with GNAT.Regpat;
 
 package body Strings is
@@ -274,5 +275,85 @@ package body Strings is
    begin
       Append (Stream.S.all, Item_S);
    end Write;
+
+   ------------------------
+   -- Match_Pattern_List --
+   ------------------------
+
+   procedure Match_Pattern_List
+     (Patterns_List        : String_Vectors.Vector;
+      Strings_List         : in out String_Vectors.Vector;
+      Patterns_Not_Covered : out String_Vectors.Vector)
+   is
+      use Ada.Characters.Handling;
+      use Ada.Strings.Unbounded;
+      use String_Vectors;
+
+      Pattern_Length : constant Natural := Natural (Patterns_List.Length);
+      Regexps        : array (0 .. Pattern_Length - 1) of GNAT.Regexp.Regexp;
+      --  List of regexps, one for each pattern in Patterns_List
+
+      Regexps_Covered : array (0 .. Pattern_Length - 1) of Boolean :=
+        (others => False);
+      --  Record which Regexp of Regexps matched at least once
+
+      Matching_Strings : String_Vectors.Vector;
+      --  Result holder for Strings_List
+
+      procedure Process_String (C : Cursor);
+      --  Try matching the string in Strings_List referenced by C against each
+      --  pattern. If there is a match, add the String to Matching_Strings.
+      --  Also mark as covered every pattern that matched.
+
+      --------------------
+      -- Process_String --
+      --------------------
+
+      procedure Process_String (C : Cursor)
+      is
+         Str       : constant Unbounded_String := +To_Lower (+Element (C));
+         Str_Added : Boolean := False;
+      begin
+         for I in Regexps'Range loop
+            if GNAT.Regexp.Match (+Str, Regexps (I)) then
+               if not Str_Added then
+                  Matching_Strings.Append (Str);
+                  Str_Added := True;
+               end if;
+
+               --  A unit matching this pattern was found; the pattern is
+               --  covered.
+
+               Regexps_Covered (I) := True;
+
+               --  Continue the search in case other patterns match Str so that
+               --  we can mark them as covered as well.
+
+            end if;
+         end loop;
+      end Process_String;
+
+   --  Start of processing for Match_Pattern_List
+
+   begin
+      for I in Regexps'Range loop
+         Regexps (I) :=
+           GNAT.Regexp.Compile
+             (Glob_To_Regexp (To_Lower (+(Patterns_List.Element (I)))));
+      end loop;
+
+      Strings_List.Iterate (Process_String'Access);
+
+      --  Return the matched strings and the patterns not covered
+
+      Strings_List := Matching_Strings;
+
+      for I in Regexps_Covered'Range loop
+         if not Regexps_Covered (I) then
+            Patterns_Not_Covered.Append (Patterns_List.Element (I));
+         end if;
+      end loop;
+
+   end Match_Pattern_List;
 
 end Strings;

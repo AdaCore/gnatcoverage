@@ -153,13 +153,6 @@ procedure GNATcov_Bits_Specific is
    --  Load all SID files for units of interest (if no --sid option is passed)
    --  or all explicitly passed SID files.
 
-   procedure Create_Ignored_Source_Files_Matcher
-     (Matcher     : out GNAT.Regexp.Regexp;
-      Has_Matcher : out Boolean);
-   --  If Ignored_Source_Files is empty, leave Matcher uninitialized and set
-   --  Has_Matcher to False. Otherwise, set it to True and put in Matcher a
-   --  pattern for the names of source files to ignore.
-
    procedure Report_Bad_Trace (Trace_Filename : String; Result : Read_Result)
       with Pre => not Result.Success;
    --  Emit the error corresponding to Result with Outputs. If
@@ -290,7 +283,7 @@ procedure GNATcov_Bits_Specific is
          --  Load SCOs from ALI files and initialize source coverage data
          --  structures.
 
-         Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
+         Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
          Inputs.Iterate (ALIs_Inputs, Load_SCOs_Wrapper'Access);
          Coverage.Source.Initialize_SCI;
 
@@ -355,7 +348,7 @@ procedure GNATcov_Bits_Specific is
       --  Now load the SID files, applying the Ignore_Source_Files filter,
       --  if present.
 
-      Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
+      Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
       Inputs.Iterate (SID_Inputs, SID_Load_Wrapper'Access);
    end Load_All_SIDs;
 
@@ -953,59 +946,6 @@ procedure GNATcov_Bits_Specific is
       end;
    end Process_Arguments;
 
-   -----------------------------------------
-   -- Create_Ignored_Source_Files_Matcher --
-   -----------------------------------------
-
-   procedure Create_Ignored_Source_Files_Matcher
-     (Matcher     : out GNAT.Regexp.Regexp;
-      Has_Matcher : out Boolean)
-   is
-      use Ada.Strings.Unbounded;
-
-      Pattern : Unbounded_String;
-      --  Regular expression pattern (using regexp syntax described in
-      --  GNAT.Regexp) to match the name of all the files to ignore.
-      --
-      --  Note that we use Glob_To_Regexp instead of GNAT.Regexp's internal
-      --  globbing pattern support to keep the globbing syntax that gnatcov
-      --  support coherent among all options that accept them.
-
-      First : Boolean := True;
-
-      procedure Process (File : String);
-      --  Include File in Result
-
-      -------------
-      -- Process --
-      -------------
-
-      procedure Process (File : String) is
-      begin
-         --  Ignore blank lines
-
-         if File'Length = 0 then
-            return;
-         end if;
-
-         if First then
-            First := False;
-         else
-            Append (Pattern, "|");
-         end if;
-         Append (Pattern, Strings.Glob_To_Regexp (File));
-      end Process;
-
-   --  Start of processing for Create_Ignored_Source_Files_Matcher
-
-   begin
-      Inputs.Iterate (Ignored_Source_Files, Process'Access);
-      Has_Matcher := not First;
-      if Has_Matcher then
-         Matcher := GNAT.Regexp.Compile (Pattern => To_String (Pattern));
-      end if;
-   end Create_Ignored_Source_Files_Matcher;
-
    ----------------------
    -- Report_Bad_Trace --
    ----------------------
@@ -1148,7 +1088,7 @@ begin
             Dump_Config      : Any_Dump_Config := (others => <>);
             Language_Version : Any_Language_Version := Ada_2012;
          begin
-            Create_Ignored_Source_Files_Matcher (Matcher, Has_Matcher);
+            Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
 
             --  Create the appropritae dump configuration depending on
             --  command-line options. Unless --dump-channel is passed, the dump

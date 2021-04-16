@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers;
+with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
@@ -63,6 +64,12 @@ package Strings is
       Element_Type => Ada.Strings.Unbounded.Unbounded_String,
       "="          => Ada.Strings.Unbounded."=");
 
+   package String_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Ada.Strings.Unbounded.Unbounded_String,
+      Element_Type => Ada.Strings.Unbounded.Unbounded_String,
+      "<"          => Ada.Strings.Unbounded."<",
+      "="          => Ada.Strings.Unbounded."=");
+
    function Vector_To_List
      (V : String_Vectors.Vector)
       return String_List_Access;
@@ -72,6 +79,15 @@ package Strings is
 
    --  The stream type below allows arbitrary objects to be streamed
    --  from/to an unbounded string, which is used as a buffer of bytes.
+
+   procedure Match_Pattern_List
+     (Patterns_List        : String_Vectors.Vector;
+      Strings_List         : in out String_Vectors.Vector;
+      Patterns_Not_Covered : out String_Vectors.Vector);
+   --  Try matching each pattern of Patterns_List against each item of
+   --  Strings_List (case-insensitively). Every item not matched is removed
+   --  from Strings_List. Also, each pattern that did not match at least once
+   --  is returned in Patterns_Not_Covered.
 
    type Unbounded_String_Stream
      (S : access Ada.Strings.Unbounded.Unbounded_String)

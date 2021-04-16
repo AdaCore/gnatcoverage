@@ -17,7 +17,10 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Doubly_Linked_Lists;
+with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
+
+with Strings; use Strings;
 
 package Inputs is
    --  This package provides a simple way to accumulate a set of
@@ -71,6 +74,24 @@ package Inputs is
    procedure Log_File_Open (File_Name : String);
    --  When in verbose mode, add a debug message indicating that File_Name is
    --  open. Try to include the CRC32 checksum.
+
+   function To_String_Vector
+     (Inputs : Inputs_Type) return String_Vectors.Vector;
+   --  Convert an inputs list into a String_Vectors.Vector
+
+   procedure Create_Matcher
+     (Pattern_List : String_Vectors.Vector;
+      Matcher      : out GNAT.Regexp.Regexp;
+      Has_Matcher  : out Boolean);
+   --  If Pattern_List is empty, leave Matcher uninitialized and set
+   --  Has_Matcher to False. Otherwise, set it to True and put in Matcher a
+   --  pattern matching each of the globbing patterns in Pattern_List.
+
+   procedure Create_Matcher
+     (Pattern_List : Inputs.Inputs_Type;
+      Matcher      : out GNAT.Regexp.Regexp;
+      Has_Matcher  : out Boolean);
+   --  Overload to work on Inputs.Inputs_Type values
 
 private
 

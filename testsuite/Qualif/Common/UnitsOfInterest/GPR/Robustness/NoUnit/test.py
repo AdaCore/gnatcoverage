@@ -29,7 +29,7 @@ def try_one_gpr(gpr, no_such):
 
     thistest.fail_if(
         expected_warning not in dump,
-        '[{}] missing warning on absence of ALI for unit'.format(label))
+        '[{}] missing warning on absence of specified unit'.format(label))
 
 
 # Empty by specifying a single, non-existing unit in only

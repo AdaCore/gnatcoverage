@@ -10,3 +10,6 @@ Verify that the tool does not warn when a project in the scope carries
 no unit of interest in other situations, such as when the project was
 only brought in the scope implicitly by :option:`--recursive` or when
 the project itself has explicit unit selection attributes.
+
+Verify that the tool support globing patterns for unit specification,
+in :option:`--units` or in project attributes.

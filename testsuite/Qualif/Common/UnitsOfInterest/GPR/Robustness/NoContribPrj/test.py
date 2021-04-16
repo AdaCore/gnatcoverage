@@ -127,15 +127,16 @@ run_test(label='--units present, no UoI in helper', slug='up1',
          expected_cov_list=[main],
          recursive=False)
 
-# Pass both projects to --projects and both "main" and "helper" to --units.
-# Both projects have at least one unit of interest, so we expect no warning.
+# Pass both projects to --projects and both "main" and "h[ea]lper*" to --units.
+# The globbing pattern should match helper and helper_support. Both projects
+# have at least one unit of interest, so we expect no warning.
 run_test(label='--units present, all projects have UoI', slug='up2',
          main=ProjectConfig(),
          helper=ProjectConfig(),
          projects=['main', 'helper'],
-         units=['main', 'helper'],
+         units=['main', 'h[ea]lper*'],
          projects_warned=[],
-         expected_cov_list=[main, helper],
+         expected_cov_list=[main, helper, helper_support],
          recursive=False)
 
 # Only pass the root project (-P) in recursive mode and pass
@@ -164,12 +165,12 @@ run_test(label='--units absent, no UoI in helper with Units', slug='ua1',
          recursive=False)
 
 # Pass both projects to --projects, no --units argument and make "helper" have
-# several units in its Coverage'Units attribute. All projects have units of
+# one unit pattern in its Coverage'Units attribute. All projects have units of
 # interest, so no warning expected.
 run_test(label='--units absent, no UoI in helper with Excluded_Units',
          slug='ua2',
          main=ProjectConfig(),
-         helper=ProjectConfig(units_out=['helper', 'helper_support']),
+         helper=ProjectConfig(units_out=['helper*']),
          projects=['main', 'helper'],
          projects_warned=[],
          expected_cov_list=[main, main_support],

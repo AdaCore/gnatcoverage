@@ -26,6 +26,7 @@ with Ada.Tags;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.OS_Lib;
+with GNAT.Regexp;
 
 with GNATCOLL.Traces;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
@@ -34,7 +35,7 @@ with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with Inputs;   use Inputs;
 with Outputs;  use Outputs;
-with Strings;
+with Strings;  use Strings;
 with Switches; use Switches;
 
 package body Project is
@@ -122,9 +123,6 @@ package body Project is
    --  Map of all projects for which coverage analysis is desired. Populated in
    --  Build_Prj_Map, called from Load_Root_Project.
 
-   package Unit_Name_Sets is new Ada.Containers.Indefinite_Ordered_Sets
-     (Element_Type => String);
-
    type Unit_Info is record
       Original_Name : Unbounded_String;
       --  Units are referenced in unit maps under their lowercased name.
@@ -206,9 +204,9 @@ package body Project is
    --  Build a map of units from project attributes.
    --
    --  This considers that List_Attr is an attribute that can contain a list of
-   --  unit names and that List_File_Attr is an attribute that can contain a
-   --  file name for a text file, and that this file contains one unit name per
-   --  line.
+   --  globbing patterns for unit names and that List_File_Attr is an attribute
+   --  that can contain a file name for a text file, and that this file
+   --  contains one globbing pattern for unit names per line.
    --
    --  If Prj contains at least one of these attributes, set Defined to True
    --  and fill Units with one entry per unit. Set Defined to False otherwise.
@@ -849,27 +847,28 @@ package body Project is
       --  Whether the user requested a specific set of units of interest
       --  through the --units command-line argument.
 
-      Requested_Units : Unit_Name_Sets.Set;
-      --  Lower-cased unit names from Override_Units for efficient lookup
+      Unit_Patterns : String_Vectors.Vector;
+      --  Lower-cased version of Override_Units
 
-      procedure Process_Override_Units (Unit : String);
-      --  Register Unit to Requested_Units and add a filler entry to Unit_Map
-      --  for it.
+      Units_Specified_Matcher : GNAT.Regexp.Regexp;
+      Has_Matcher             : Boolean;
+      --  Matcher for the list of units of interest
+
+      procedure Add_Pattern (Item : String);
+      --  Add the pattern Item lower-cased to Unit_Patterns
 
       procedure Process_Project (Project : Project_Type);
       --  Compute the list of units of interest in Project and call
       --  Enumerate_In_Single_Projects for Project.
 
-      ----------------------------
-      -- Process_Override_Units --
-      ----------------------------
+      -----------------
+      -- Add_Pattern --
+      -----------------
 
-      procedure Process_Override_Units (Unit : String) is
-         Ignored_Cur : Unit_Maps.Cursor;
+      procedure Add_Pattern (Item : String) is
       begin
-         Requested_Units.Include (To_Lower (Unit));
-         Add_Unit (Unit_Map, Ignored_Cur, Unit);
-      end Process_Override_Units;
+         Unit_Patterns.Append (+To_Lower (Item));
+      end Add_Pattern;
 
       ---------------------
       -- Process_Project --
@@ -945,11 +944,14 @@ package body Project is
                   end if;
 
                   if not Units_Specified
-                     or else Requested_Units.Contains (To_Lower (Unit_Name))
+                     or else (Has_Matcher
+                              and then GNAT.Regexp.Match
+                                (To_Lower (Unit_Name),
+                                 Units_Specified_Matcher))
                   then
                      Add_Unit (Inc_Units, Cur, Unit_Name);
                      Inc_Units.Reference (Cur).Is_Subunit :=
-                        Info.Unit_Part = Unit_Separate;
+                       Info.Unit_Part = Unit_Separate;
                   end if;
                end Process_Source_File;
 
@@ -992,9 +994,16 @@ package body Project is
    --  Start of processing for Build_Unit_Map
 
    begin
-      --  Create filler map entries for requested units
+      --  First, lower case all the units / patterns specified on the command
+      --  line.
 
-      Inputs.Iterate (Override_Units, Process_Override_Units'Access);
+      Iterate (Override_Units, Add_Pattern'Access);
+
+      --  Then, create a regexp matching all the patterns specified
+
+      Create_Matcher (Pattern_List => Unit_Patterns,
+                      Matcher      => Units_Specified_Matcher,
+                      Has_Matcher  => Has_Matcher);
 
       --  Now go through all selected projects to find units of interest
 
@@ -1002,27 +1011,44 @@ package body Project is
          Process_Project (Prj_Info.Project);
       end loop;
 
+      --  Compute the coverage of patterns specified with --units to warn if
+      --  some patterns didn't match any unit.
+
+      if Units_Specified then
+         declare
+            Units_Present : String_Vectors.Vector;
+            --  All units that were included
+
+            Patterns_Not_Covered : String_Vectors.Vector;
+            --  Patterns that do not match any of the present units
+
+            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor);
+
+            --------------------------
+            -- Add_To_Unit_Presents --
+            --------------------------
+
+            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor) is
+            begin
+               Units_Present.Append (+Unit_Maps.Key (C));
+            end Add_To_Unit_Presents;
+
+         begin
+            Unit_Map.Iterate (Add_To_Unit_Presents'Access);
+            Match_Pattern_List (Patterns_List        => Unit_Patterns,
+                                Strings_List         => Units_Present,
+                                Patterns_Not_Covered =>
+                                  Patterns_Not_Covered);
+            for Pattern of Patterns_Not_Covered loop
+               Warn ("no unit " & (+Pattern) & " (from --units) in the"
+                     & " projects of interest");
+            end loop;
+         end;
+      end if;
+
       if Unit_Map.Is_Empty then
          Warn ("no unit of interest");
       end if;
-
-      --  Warn about units of interest that don't belong to any project of
-      --  interest. Given that we check that units exist when processing
-      --  project attributes (Units, Excluded_Units, etc.), this can only
-      --  happen for unit names from Override_Units, i.e. from the --units
-      --  command-line argument.
-
-      for Cur in Unit_Map.Iterate loop
-         declare
-            Info : Unit_Info renames Unit_Map.Reference (Cur);
-         begin
-            if not Info.Present_In_Projects then
-               Warn ("no unit " & To_String (Info.Original_Name) & " (from"
-                     & " --units) in the projects of interest");
-               Info.Warned_About_Missing_Info := True;
-            end if;
-         end;
-      end loop;
 
       --  Warn about projects of interest that don't contribute to the
       --  selection of units of interest. Do this only in non-recursive mode as
@@ -1115,30 +1141,35 @@ package body Project is
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
-      Units_Present : Unit_Name_Sets.Set;
-      --  Set of units present in Prj
+      Units_Present : String_Vectors.Vector;
+      --  List of all units in Prj
 
-      procedure Add_Unit (Attr, Item : String);
-      --  Add Item to Units
+      Unit_Patterns    : String_Vectors.Vector;
+      Attr_For_Pattern : String_Maps.Map;
+      --  Patterns identifying unit names and project attribute from which we
+      --  got the pattern. We use Attr_For_Pattern for reporting purposes.
+
+      Patterns_Not_Covered : String_Vectors.Vector;
+      --  Patterns that do not match any of the present unit
+
+      Ignored_Cur : Unit_Maps.Cursor;
+
+      procedure Add_Pattern (Attr, Item : String);
+      --  Add Item to Unit_Patterns. Also save from which project attribute
+      --  (Attr) the pattern comes from in Attr_For_Pattern.
 
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
       --  Add Unit_Name to Units_Present
 
-      --------------
-      -- Add_Unit --
-      --------------
+      -----------------
+      -- Add_Pattern --
+      -----------------
 
-      procedure Add_Unit (Attr, Item : String) is
-         Unit_Name   : constant String := To_Lower (Item);
-         Ignored_Cur : Unit_Maps.Cursor;
+      procedure Add_Pattern (Attr, Item : String) is
       begin
-         if Units_Present.Contains (Unit_Name) then
-            Add_Unit (Units, Ignored_Cur, Item);
-         else
-            Warn ("no unit " & Item & " in project " & Prj.Name
-                  & " (" & Attr & " attribute)");
-         end if;
-      end Add_Unit;
+         Unit_Patterns.Append (+Item);
+         Attr_For_Pattern.Include (+Item, +Attr);
+      end Add_Pattern;
 
       -------------------------
       -- Process_Source_File --
@@ -1147,23 +1178,43 @@ package body Project is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
          pragma Unreferenced (Info);
       begin
-         Units_Present.Include (Unit_Name);
+         Units_Present.Append (+Unit_Name);
       end Process_Source_File;
 
    --  Start of processing for Units_From_Project
 
    begin
-      --  Initialize Units_Present. Use the unit name for languages featuring
-      --  this notion (Ada) and use the source file name otherwise (i.e. for C
-      --  sources).
+      --  Get a list of patterns if List_Attr / List_File_Attr is defined, and
+      --  create a globbing pattern for it. If none is defined, simply exit the
+      --  procedure.
+
+      List_From_Project
+        (Prj, List_Attr, List_File_Attr, Add_Pattern'Access, Defined);
+
+      if not Defined then
+         return;
+      end if;
+
+      --  Now, fill Units with unit names matching Unit_Patterns. For languages
+      --  not featuring the notion of unit (e.g. C), the unit name is the
+      --  source file name.
 
       Iterate_Source_Files
         (Prj, Process_Source_File'Access, Recursive => True);
 
-      --  Now go through all units referenced by project attributes
+      Match_Pattern_List (Patterns_List        => Unit_Patterns,
+                          Strings_List         => Units_Present,
+                          Patterns_Not_Covered => Patterns_Not_Covered);
 
-      List_From_Project
-        (Prj, List_Attr, List_File_Attr, Add_Unit'Access, Defined);
+      for Pattern of Patterns_Not_Covered loop
+         Warn ("no unit " & (+Pattern) & " in project " & Prj.Name & " ("
+               & (+Attr_For_Pattern.Element (Pattern)) & " attribute)");
+      end loop;
+
+      for Unit_Name of Units_Present loop
+         Add_Unit (Units, Ignored_Cur, +Unit_Name);
+      end loop;
+
    end Units_From_Project;
 
    -----------------------
