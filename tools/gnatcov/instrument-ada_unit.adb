@@ -6108,6 +6108,7 @@ package body Instrument.Ada_Unit is
 
          Create_File (Info, File, To_Filename (Info.Project, CU_Name));
 
+         Put_Warnings_And_Style_Checks_Pragmas (File);
          Put_Language_Version_Pragma;
          File.Put_Line ("package body " & Pkg_Name & " is");
          File.New_Line;
