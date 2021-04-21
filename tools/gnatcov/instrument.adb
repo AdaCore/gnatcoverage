@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2020, AdaCore                     --
+--                     Copyright (C) 2008-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -396,6 +396,7 @@ package body Instrument is
 
          Create_File (Info, File, To_Filename (Info.Project, CU_Name));
 
+         Put_Warnings_And_Style_Checks_Pragmas (File);
          Put_Language_Version_Pragma;
          File.Put_Line ("package body " & Pkg_Name & " is");
          File.New_Line;
