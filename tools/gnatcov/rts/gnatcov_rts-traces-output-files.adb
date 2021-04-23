@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2020, AdaCore                     --
+--                     Copyright (C) 2019-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -26,7 +26,6 @@
 
 with Ada.Command_Line;
 with Ada.Direct_IO;
-with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces.C.Strings;
 with System;
 
