@@ -26,7 +26,6 @@
 
 with Ada.Command_Line;
 with Ada.Direct_IO;
-with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces.C.Strings;
 with System;
 
