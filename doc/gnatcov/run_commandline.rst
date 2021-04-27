@@ -43,14 +43,14 @@ Then the available :option:`[OPTIONS]` are:
   options, as described in :ref:`sunits`.
 
 :option:`-t`, :option:`--target` :
-  State the target architecture/board/abi for which the analyzed program was
-  built.  This corresponds to the target prefix of your compilation toolchain,
-  for example ``powerpc-elf`` or ``leon-elf``, and can also be specified as a
-  ``Target`` attribute within the project file designated by -P, if any. This
-  is used to control the underlying execution engine used to run the program,
-  assumed to be the host environment by default. On the command line, a
-  possible ``,<board-name>`` extension is allowed as well. See the
-  :ref:`execution-control` section of this chapter for additional details.
+   .. include:: target_switch_common_text.rst
+
+   This is used to control the underlying execution engine used to run
+   the program, assumed to be the host environment by default. On the
+   command line, a possible ``,<board-name>`` extension is allowed as
+   well. See the :ref:`execution-control` section of this chapter for
+   additional details.
+
 
 :option:`--kernel` :
   Tell the underlying emulator that the executable program actually
