@@ -24,8 +24,6 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Ada.Text_IO;
-
 package GNATcov_RTS.Traces.Output.Base64 is
 
    procedure Write_Trace_File
