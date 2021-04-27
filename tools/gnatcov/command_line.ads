@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2015-2020, AdaCore                     --
+--                     Copyright (C) 2015-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -454,18 +454,16 @@ package Command_Line is
         (Long_Name    => "--target",
          Short_Name   => "-t",
          Pattern      => "[TARGET]",
-         Help         => ("When using projects files, state the target"
-                          & " toolchain prefix used to build the analyzed"
-                          & " programs. If project files don't already set the"
-                          & " target, this is required for correct project"
-                          & " files processing and correct execution target"
-                          & " selection with cross targets."
-                          & ASCII.LF & ASCII.LF
-                          & "Target must either match one of:" & ASCII.LF
-                          & "  " & Rundrv.Config.Available_Targets
-                          & ASCII.LF
-                          & "or there must be a TARGET-gnatemu program"
-                          & " available."),
+         Help         => ("State the target toolchain configuration used"
+                          & " to build the analyzed programs, as provided"
+                          & " to gprbuild. For cross or 32bit native"
+                          & " configurations, this switch, together with"
+                          & " its possible --RTS companion, is required for"
+                          & " all commands using project files unless the"
+                          & " root project provides the information with"
+                          & " ""Target""/""Runtime"" attributes. It is also"
+                          & " needed for ""run"" commands without a project"
+                          & " file."),
          At_Most_Once => True,
          Internal     => False),
       Opt_Runtime => Create

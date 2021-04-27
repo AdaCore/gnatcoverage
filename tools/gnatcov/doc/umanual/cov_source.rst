@@ -63,13 +63,7 @@ The available options are as follows:
 .. include:: cov_common_switches.rst
 
 :option:`-t`, :option:`--target` :
-  State the target architecture/board/ABI for which the analyzed program was
-  built.  This corresponds to the target prefix of your compilation toolchain,
-  for example ``powerpc-elf`` or ``leon-elf``, and can also be specified as a
-  ``Target`` attribute within the project file designated by :option:`-P`, if
-  any. By default, |gcv| assumes that this target is the same as the host
-  environment. Stating the correct target is required for correct processing
-  of project files.
+   .. include:: target_switch_common_text.rst
 
 :option:`--non-coverable`:
    Report about language statements for which no object code could be found in
