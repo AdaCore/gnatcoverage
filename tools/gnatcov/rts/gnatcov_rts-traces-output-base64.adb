@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2020, AdaCore                     --
+--                     Copyright (C) 2019-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -24,7 +24,18 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
+with Ada.Text_IO;
+
 package body GNATcov_RTS.Traces.Output.Base64 is
+
+   --  The IO package used to output trace contents. The use of a renaming
+   --  allows the use of prefix notations for calls, useful to help locate
+   --  spots where actual IO takes place, while making it easier to switch
+   --  to an alternate underlying IO package. A typical case would be a
+   --  swap from Ada.Text_IO to GNAT.IO in configurations where the former
+   --  is not available.
+
+   package TIO renames Ada.Text_IO;
 
    --  Base64-over-stdout stream
 
@@ -138,11 +149,11 @@ package body GNATcov_RTS.Traces.Output.Base64 is
       --  Introduce a newline when needed in order to avoid exceeding 80
       --  characters per line.
 
-      Ada.Text_IO.Put (Out_Digits);
+      TIO.Put (Out_Digits);
       Output.Columns := Output.Columns + 4;
       if Output.Columns >= 80 then
          Output.Columns := 0;
-         Ada.Text_IO.New_Line;
+         TIO.New_Line;
       end if;
 
       Output.Bytes := (others => 0);
@@ -165,15 +176,15 @@ package body GNATcov_RTS.Traces.Output.Base64 is
          Next    => 1,
          Columns => 0);
    begin
-      Ada.Text_IO.New_Line;
-      Ada.Text_IO.Put_Line ("== GNATcoverage source trace file ==");
+      TIO.New_Line;
+      TIO.Put_Line ("== GNATcoverage source trace file ==");
       Helper (Buffer, Buffers, Program_Name, Exec_Date, User_Data);
       Flush (Buffer);
       if Buffer.Columns /= 0 then
-         Ada.Text_IO.New_Line;
+         TIO.New_Line;
       end if;
-      Ada.Text_IO.Put_Line ("== End ==");
-      Ada.Text_IO.New_Line;
+      TIO.Put_Line ("== End ==");
+      TIO.New_Line;
    end Write_Trace_File;
 
 end GNATcov_RTS.Traces.Output.Base64;
