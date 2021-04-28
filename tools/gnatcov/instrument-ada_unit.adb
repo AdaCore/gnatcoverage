@@ -149,10 +149,10 @@ package body Instrument.Ada_Unit is
    --  canonical declaration has a Ghost aspect).
 
    function Is_Generic
-     (UIC : Ada_Unit_Inst_Context;
-      EF  : Expr_Function) return Boolean;
-   --  Return whether the given expression function is generic (its declaration
-   --  is generic).
+     (UIC  : Ada_Unit_Inst_Context;
+      Decl : Basic_Decl) return Boolean;
+   --  Return whether the given declaration is generic (its canonical part is
+   --  generic).
 
    function To_Nodes
      (Handle : Rewriting_Handle;
@@ -2793,15 +2793,29 @@ package body Instrument.Ada_Unit is
          UIC.Degenerate_Subprogram_Index :=
            UIC.Degenerate_Subprogram_Index + 1;
 
-         if Is_Expr_Function then
-
-            if Is_Generic (UIC, N.As_Expr_Function) then
+         if Is_Generic (UIC, N.As_Basic_Decl) then
+            if Is_Expr_Function then
                Unsupported := True;
                Report (UIC, N,
                        "gnatcov limitation: "
                        & "cannot instrument generic expression functions."
                        & " Consider turning it into a regular function body.");
+
+            else
+               --  As Traverse_Degenerate_Subprogram deals only with expression
+               --  functions and null procedures, we are in the case of a
+               --  generic null procedure here.
+
+               Unsupported := True;
+               Report (UIC, N,
+                       "gnatcov limitation:"
+                       & " cannot instrument generic null procedures."
+                       & " Consider turning it into a regular procedure"
+                       & " body.");
             end if;
+         end if;
+
+         if Is_Expr_Function then
 
             --  The statement instrumentation below will take care of assigning
             --  .Witness_* components to their definitive values.
@@ -2913,14 +2927,14 @@ package body Instrument.Ada_Unit is
          UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
          UIC.Current_Insertion_Info := Saved_Insertion_Info;
 
+         --  There is nothing else to do if we gave up instrumenting this
+         --  subprogram.
+
+         if New_Insertion_Info.Unsupported then
+            return;
+         end if;
+
          if Is_Expr_Function then
-
-            --  There is nothing else to do if we gave up instrumenting this
-            --  expression function.
-
-            if New_Insertion_Info.Unsupported then
-               return;
-            end if;
 
             --  Pass the witness call to the augmented expression function
 
@@ -5111,26 +5125,26 @@ package body Instrument.Ada_Unit is
    ----------------
 
    function Is_Generic
-     (UIC : Ada_Unit_Inst_Context;
-      EF  : Expr_Function) return Boolean
+     (UIC  : Ada_Unit_Inst_Context;
+      Decl : Basic_Decl) return Boolean
    is
-      Decl : Basic_Decl := EF.As_Basic_Decl;
+      Canonical_Decl : Basic_Decl;
    begin
-      --  EF is generic iff its declaration is a generic subprogram
+      --  Decl is generic iff its canonical part is a generic subprogram
       --  declaration.
 
       begin
-         Decl := Decl.P_Canonical_Part;
+         Canonical_Decl := Decl.P_Canonical_Part;
       exception
          when Exc : Property_Error =>
             Report
-              (UIC, EF,
-               "Failed to look for a previous declaration of this expression"
-               & " function" & Ada.Exceptions.Exception_Information (Exc),
+              (UIC, Decl,
+               "Failed to look for a canonical part of this declaration"
+               & Ada.Exceptions.Exception_Information (Exc),
                Warning);
       end;
 
-      return Decl.Kind = Ada_Generic_Subp_Decl;
+      return Canonical_Decl.Kind = Ada_Generic_Subp_Decl;
    end Is_Generic;
 
    ------------
