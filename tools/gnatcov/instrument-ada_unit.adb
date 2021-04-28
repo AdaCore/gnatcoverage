@@ -232,6 +232,11 @@ package body Instrument.Ada_Unit is
       Msg  : String;
       Kind : Report_Kind := Diagnostics.Error);
 
+   procedure Report
+     (Node : Ada_Node'Class;
+      Msg  : String;
+      Kind : Report_Kind := Diagnostics.Error);
+
    ------------
    -- Report --
    ------------
@@ -244,11 +249,32 @@ package body Instrument.Ada_Unit is
    is
       LAL_Loc : constant Source_Location := Sloc (Node);
    begin
-      Report ((Source_File => UIC.SFI,
-               L           => (Line   => Integer (LAL_Loc.Line),
-                               Column => Integer (LAL_Loc.Column))),
-              Msg,
-              Kind);
+      Diagnostics.Report ((Source_File => UIC.SFI,
+                           L           => (Line   => Integer (LAL_Loc.Line),
+                                           Column =>
+                                             Integer (LAL_Loc.Column))),
+                          Msg,
+                          Kind);
+   end Report;
+
+   procedure Report
+     (Node : Ada_Node'Class;
+      Msg  : String;
+      Kind : Report_Kind := Diagnostics.Error)
+   is
+      SFI     : constant Source_File_Index :=
+        Get_Index_From_Generic_Name
+          (Node.Unit.Get_Filename,
+           Kind                => Files_Table.Source_File,
+           Indexed_Simple_Name => True);
+      LAL_Loc : constant Source_Location := Sloc (Node);
+   begin
+      Diagnostics.Report ((Source_File => SFI,
+                           L           => (Line   => Integer (LAL_Loc.Line),
+                                           Column =>
+                                             Integer (LAL_Loc.Column))),
+                          Msg,
+                          Kind);
    end Report;
 
    -------------------------------------
@@ -5054,26 +5080,28 @@ package body Instrument.Ada_Unit is
      (Main_Name : Ada_Qualified_Name;
       N         : LAL.Name) return Defining_Name
    is
-      DF : Defining_Name;
+      DF  : Defining_Name;
    begin
       begin
          DF := N.P_Referenced_Defining_Name;
 
          if DF.Is_Null then
             Report
-              (Kind => Warning,
-               Msg  => "Failed to determine referenced defining name while "
+              (N,
+               "Failed to determine referenced defining name while "
                & "processing the main " & To_Ada (Main_Name) & " (got null "
-               & "defining name)");
+               & "defining name)",
+               Warning);
          end if;
 
       exception
          when Exc : Property_Error =>
             Report
-              (Kind => Warning,
-               Msg  => "Failed to determine referenced defining name while "
+              (N,
+               "Failed to determine referenced defining name while "
                & "processing the main " & To_Ada (Main_Name) & ": "
-               & Ada.Exceptions.Exception_Information (Exc));
+               & Ada.Exceptions.Exception_Information (Exc),
+               Warning);
       end;
       if not DF.Is_Null then
          return DF;
