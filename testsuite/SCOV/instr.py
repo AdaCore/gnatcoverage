@@ -57,6 +57,11 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
     if gpr_obj_dir:
         mkdir(gpr_obj_dir)
 
+    # TODO (U430-031) temporary workaround.
+    # Since gpr2clean deletes .sid files for the moment, we need to
+    # clean the project before instrumenting.
+    thistest.cleanup(gprsw.root_project)
+
     covlevel_args = [] if covlevel is None else ['--level', covlevel]
     args = (['instrument'] + covlevel_args +
             ['--dump-trigger', dump_trigger or default_dump_trigger(),
