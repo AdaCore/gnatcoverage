@@ -24,18 +24,11 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Ada.Text_IO;
+with GNATcov_RTS.Traces.Output.Text_IO;
 
 package body GNATcov_RTS.Traces.Output.Base64 is
 
-   --  The IO package used to output trace contents. The use of a renaming
-   --  allows the use of prefix notations for calls, useful to help locate
-   --  spots where actual IO takes place, while making it easier to switch
-   --  to an alternate underlying IO package. A typical case would be a
-   --  swap from Ada.Text_IO to GNAT.IO in configurations where the former
-   --  is not available.
-
-   package TIO renames Ada.Text_IO;
+   package TIO renames Output.Text_IO;  --  Just a shorthand
 
    --  Base64-over-stdout stream
 
