@@ -3135,13 +3135,13 @@ package body Instrument.Ada_Unit is
                      begin
                         while AUN /= Std loop
                            declare
-                              Item : constant Library_Item :=
+                              Root_Decl : constant Basic_Decl :=
                                 AUN.Root.As_Compilation_Unit
-                                  .F_Body.As_Library_Item;
+                                  .F_Body.As_Library_Item.F_Item;
                            begin
                               UIC.Withed_Units.Include
-                                (Item.F_Item.P_Canonical_Fully_Qualified_Name);
-                              AUN := Item.P_Parent_Basic_Decl.Unit;
+                                (Root_Decl.P_Canonical_Fully_Qualified_Name);
+                              AUN := Root_Decl.P_Parent_Basic_Decl.Unit;
                            end;
                         end loop;
                      end;
