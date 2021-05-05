@@ -19,7 +19,6 @@
 with Argparse;
 with Coverage;
 with Coverage.Tags;
-with Rundrv.Config;
 with Switches;
 
 package Command_Line is
