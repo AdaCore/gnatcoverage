@@ -20,7 +20,6 @@ with Argparse;
 with Command_Line_Support; use Command_Line_Support;
 with Coverage;
 with Coverage.Tags;
-with Rundrv.Config;
 
 package Command_Line is
 
