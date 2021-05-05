@@ -1554,30 +1554,19 @@ begin
          --  object coverage.
 
          if Object_Coverage_Enabled then
-            declare
-               procedure Unsupported (Label : String);
-               --  Raise a fatal error saying that Label is supported for
-               --  source coverage only.
+            if Annotation = Annotate_Report then
+               Fatal_Error ("""report"" output format (from --annotate) is"
+                            & " only supported for source coverage criteria"
+                            & " (--level=stmt|stmt+decision|stmt+mcdc),"
+                            & " not for object coverage criteria (--level="
+                            & Coverage_Option_Value (Current_Levels) & ").");
 
-               -----------------
-               -- Unsupported --
-               -----------------
-
-               procedure Unsupported (Label : String) is
-               begin
-                  Fatal_Error
-                    (Label & " is supported for source coverage only.");
-               end Unsupported;
-            begin
-               if Annotation = Annotate_Report then
-                  Unsupported ("Report output");
-
-               elsif Inputs.Length (Checkpoints_Inputs) > 0
-                     or else Save_Checkpoint /= null
-               then
-                  Unsupported ("Incremental coverage");
-               end if;
-            end;
+            elsif Inputs.Length (Checkpoints_Inputs) > 0
+              or else Save_Checkpoint /= null
+            then
+               Fatal_Error ("Incremental coverage is supported for source"
+                            & " coverage only");
+            end if;
          end if;
 
          --  Check the availability of the output format
@@ -2237,7 +2226,10 @@ begin
             when Annotate_Asm =>
                if Source_Coverage_Enabled then
                   Fatal_Error
-                    ("Asm output supported for object coverage only.");
+                    ("""asm"" output (from --annotate) is only supported for"
+                     & " object coverage criteria (--level=insn|branch),"
+                     & " and not for source coverage criteria (--level="
+                     & Coverage_Option_Value (Current_Levels) & ").");
                end if;
                Traces_Dump.Dump_Routines_Traces (Output);
 
