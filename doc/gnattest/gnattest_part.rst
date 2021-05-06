@@ -10,16 +10,13 @@ GNATtest User's Guide
 
 .. index:: ! gnattest
 
-``gnattest`` is an ASIS-based utility that creates unit-test skeletons
+``gnattest`` tool is a utility that creates unit-test skeletons
 as well as a test driver infrastructure (harness). ``gnattest`` creates
 a skeleton for each visible subprogram in the packages under consideration when
 they do not exist already.
 
-``gnattest`` is a project-aware tool.
-(See :ref:`Using_Project_Files_with_GNAT_Tools` for a description of
-the project-related switches but note that ``gnattest`` does not support
-the :switch:`-U`, :switch:`-eL`, :switch:`--subdirs={dir}`, or
-:switch:`--no-objects-dir` switches.)
+``gnattest`` is a project-aware tool. A project file is mandatory for test
+driver generation.
 The project file package that can specify
 ``gnattest`` switches is named ``gnattest``.
 
@@ -39,7 +36,9 @@ In order to process source files from a project, ``gnattest`` has to
 semantically analyze the sources. Therefore, test skeletons can only be
 generated for legal Ada units. If a unit is dependent on other units,
 those units should be among the source files of the project or of other projects
-imported by this one.
+imported by this one. Note that it is no longer necessary to specify the Ada
+language version; ``gnattest`` can process Ada source code written in any
+version from Ada 83 onward without specifying any language version switch.
 
 Generated skeletons and harnesses are based on the AUnit testing framework.
 AUnit is an Ada adaptation of the xxxUnit testing frameworks, similar to JUnit
@@ -66,7 +65,7 @@ In this mode ``gnattest`` has the following command-line interface:
 
   ::
 
-      $ gnattest -Pprojname [ switches ] [ filename ] [ -cargs gcc_switches ]
+      $ gnattest -Pprojname [ switches ] [ filename ]
 
 where
 
@@ -82,11 +81,6 @@ where
 
 * :samp:`{switches}`
     is an optional sequence of switches as described below.
-
-* :samp:`{gcc_switches}`
-    is a list of additional switches for
-    ``gcc`` that will be passed to all compiler invocations
-    made by ``gnattest`` to generate a set of ASIS trees.
 
 
 ``gnattest`` results can be found in two different places.
@@ -157,6 +151,7 @@ Switches for ``gnattest`` in framework generation mode
 :switch:`--strict`
   Return error exit code if there are any compilation errors.
 
+
   .. index:: -q (gnattest)
 
 :switch:`-q`
@@ -170,10 +165,28 @@ Switches for ``gnattest`` in framework generation mode
   When specified alone on the command line, prints tool version and exits.
 
 
+  .. index:: -U (gnattest)
   .. index:: -r (gnattest)
 
-:switch:`-r`
+:switch:`-r, -U`
   Recursively considers all sources from all projects.
+
+
+  .. index:: -U (gnattest)
+
+:switch:`-U {source_file}`
+  Process only those source files for units in the closure of
+  the Ada source contained in ``source_file``. Note that this option
+  expects the source file name but not the Ada unit name as its
+  parameter.
+
+
+  .. index:: -X (gnattest)
+
+:switch:`-X{name}={val}`
+  Indicates that the external variable ``name`` in the project has the
+  value ``val``.
+
 
   .. index:: -files (gnattest)
 
@@ -183,16 +196,17 @@ Switches for ``gnattest`` in framework generation mode
   Each nonempty line should contain the name of an existing file.
   Several such switches may be specified simultaneously.
 
+
   .. index:: --ignore (gnattest)
 
 :switch:`--ignore={filename}`
   Do not process the sources listed in a specified file.
 
+
   .. index:: --RTS (gnattest)
 
 :switch:`--RTS={rts-path}`
-  Specifies the default location of the runtime library. Same meaning as the
-  equivalent ``gnatmake`` flag (:ref:`Switches_for_gnatmake`). For restricted
+  Specifies the default location of the runtime library. For restricted
   profiles, ``gnattest`` takes into account the run-time limitations when
   generating the harness.
 
@@ -245,9 +259,9 @@ Switches for ``gnattest`` in framework generation mode
   project in their object directories and test packages are placed accordingly.
 
 
-  .. index:: --subdir (gnattest)
+  .. index:: --subdirs (gnattest)
 
-:switch:`--subdir={dirname}`
+:switch:`--subdirs={dirname}`
   Test packages are placed in a subdirectory of the corresponding source
   directory, with the name ``dirname``. Thus, each set of unit tests is located
   in a subdirectory of the code under test. If the sources are in separate
@@ -286,9 +300,11 @@ Switches for ``gnattest`` in framework generation mode
   Disables stubbing of units listed in ``filename``. The file should contain
   corresponding spec files, one per line.
 
+
 :switch:`--exclude-from-stubbing:{unit}={filename}`
   Same as above, but corresponding units will not be stubbed only when testing
   specified ``unit``.
+
 
   .. index:: --validate-type-extensions (gnattest)
 
@@ -296,21 +312,25 @@ Switches for ``gnattest`` in framework generation mode
   Enables substitution check: run all tests from all parents in order
   to check substitutability in accordance with the Liskov substitution principle (LSP).
 
+
   .. index:: --inheritance-check (gnattest)
 
 :switch:`--inheritance-check`
   Enables inheritance check: run inherited tests against descendants.
+
 
   .. index:: --no-inheritance-check (gnattest)
 
 :switch:`--no-inheritance-check`
   Disables inheritance check.
 
+
   .. index:: --no-inheritance-check (gnattest)
 
 :switch:`--test-case-only`
   Generates test skeletons only for subprograms that have at least one
   associated pragma or aspect Test_Case.
+
 
   .. index:: --skeleton-default (gnattest)
 
@@ -405,6 +425,12 @@ Switches for ``gnattest`` in test execution mode
 :switch:`--copy-environment={dir}`
   Contents of ``dir`` directory will be copied to temporary directories
   created by gnattest in which individual test drivers are spawned.
+
+  .. index:: --subdirs (gnattest)
+
+:switch:`--subdirs={dirname}`
+  Test driver executables from ``test_drivers.list`` are searched in
+  ``dirname`` subdirectories of specified locations.
 
 
 .. _Project_Attributes_for_gnattest:
@@ -914,5 +940,6 @@ The tool currently has the following limitations:
   adjustments might be necessary to make the test harness compilable;
 * use of some constructs, such as elaboration-control pragmas, Type_Invariant
   aspects, and complex variable initializations that use Subprogram'Access,
-  may result in elaboration circularities in the generated harness.
-
+  may result in elaboration circularities in the generated harness;
+* heavy usage of preprocessor that affects constructs like subprogram profiles
+  or tagged type hierarchies may result in improper test driver generation.
