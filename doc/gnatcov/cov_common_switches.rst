@@ -1,3 +1,8 @@
+:option:`--timezone` :
+   Select the timezone to use when displaying trace creation dates in
+   reports, which could be either ``local`` or ``utc``. The local timezone
+   is used by default.
+
 :option:`--output-dir` :
    Request that the report files (index and annotated sources for the
    ``xcov``, ``html`` and ``dhtml`` output formats) be output in the provided
