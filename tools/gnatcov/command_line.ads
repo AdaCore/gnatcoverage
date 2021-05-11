@@ -80,7 +80,8 @@ package Command_Line is
       Opt_Show_MCDC_Vectors,
       Opt_Local_Time,
       Opt_Dump_Filename_Simple,
-      Opt_Allow_Mix_Trace_Kind);
+      Opt_Allow_Mix_Trace_Kind,
+      Opt_Analyze_Entry_Barriers);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -458,7 +459,17 @@ package Command_Line is
          Help      => "Allow mixing binary and source traces. A warning will"
                       & " still be emitted",
          Commands  => (Cmd_Coverage => True, others => False),
-         Internal  => True));
+         Internal  => True),
+
+      Opt_Analyze_Entry_Barriers => Create
+        (Long_Name => "--analyze-entry-barriers",
+         Help      => "Activate coverage analysis for entry barriers."
+                      & ASCII.LF & "Warning, this option should not be used"
+                      & " in source trace mode and with a ravenscar profile,"
+                      & " as the instrumenter will generate invalid code.",
+         Commands  => (Cmd_Instrument | Cmd_Coverage => True, others => False),
+         Internal  => True)
+     );
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

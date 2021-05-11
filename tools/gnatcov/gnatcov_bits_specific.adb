@@ -430,6 +430,7 @@ procedure GNATcov_Bits_Specific is
                                  or else Verbose);
       Use_Local_Time           := Args.Bool_Args (Opt_Local_Time);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
+      Analyze_Entry_Barriers   := Args.Bool_Args (Opt_Analyze_Entry_Barriers);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"
@@ -1177,6 +1178,14 @@ begin
             --  have already been loaded.
 
             Update_Current_Trace_Kind (Source_Trace_File);
+
+            if Analyze_Entry_Barriers then
+               Warn ("With source traces, entry barrier analysis (enabled"
+                     & " with --analyze-entry-barriers) is only supported when"
+                     & " when using a full runtime profile. In particular,"
+                     & " enabeling this option with a ravenscar profile will"
+                     & " result in invalid code being emitted.");
+            end if;
 
             Instrument.Instrument_Units_Of_Interest
               (Dump_Config          => Dump_Config,

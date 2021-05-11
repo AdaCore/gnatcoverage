@@ -102,6 +102,9 @@ package Switches is
    --  If true, mixing trace kinds (binary and source) will not result in an
    --  error but only output a warning.
 
+   Analyze_Entry_Barriers : Boolean := False;
+   --  If True, instrument and do not discard SCOs from entry barriers.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

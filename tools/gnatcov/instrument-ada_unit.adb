@@ -3295,7 +3295,9 @@ package body Instrument.Ada_Unit is
                begin
                   Set_Statement_Entry;
 
-                  if not Cond.Is_Null then
+                  if Switches.Analyze_Entry_Barriers
+                    and then not Cond.Is_Null
+                  then
                      Process_Decisions_Defer (Cond, 'G');
 
                      --  For an entry body with a barrier, the entry body

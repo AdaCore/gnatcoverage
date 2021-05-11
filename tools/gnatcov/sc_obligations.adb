@@ -274,12 +274,24 @@ package body SC_Obligations is
    --  given Main_Source and Fingerprint, keep track of it in Created_Units,
    --  and return its unit Id.
 
+   package Ignored_Slocs_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Source_Location);
+
    type CU_Load_State is record
       Last_Line : Natural := 0;
       --  Highest line number involved in SCOs for this unit
 
       Current_Decision : SCO_Id := No_SCO_Id;
       --  Decision whose conditions are being processed
+
+      Current_Decision_Ignored : Boolean := False;
+      --  Whether the current decision is ignored or not.
+      --  Used to determine if we should load subsequent low-level entries.
+      --
+      --  Currently, only decision scos from entry barriers are ignored because
+      --  the instrumenter cannot instrument entry barriers for ravenscar
+      --  profiles, and we want to keep some consistency between the two
+      --  coverage modes.
 
       Current_Condition_Index : Any_Condition_Index;
       --  Index of current condition within the current decision (0-based, set
@@ -300,10 +312,11 @@ package body SC_Obligations is
    --  Process_Low_Level_Entry for that CU.
 
    procedure Process_Low_Level_Entry
-     (CU        : CU_Id;
-      SCO_Index : Nat;
-      State     : in out CU_Load_State;
-      SCO_Map   : access LL_HL_SCO_Map := null);
+     (CU            : CU_Id;
+      SCO_Index     : Nat;
+      State         : in out CU_Load_State;
+      Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
+      SCO_Map       : access LL_HL_SCO_Map := null);
    --  Load the low level SCO at SCO_Index into our Internal table, to be part
    --  of the CU compilation unit.
    --
@@ -2447,10 +2460,11 @@ package body SC_Obligations is
    -----------------------------
 
    procedure Process_Low_Level_Entry
-     (CU        : CU_Id;
-      SCO_Index : Nat;
-      State     : in out CU_Load_State;
-      SCO_Map   : access LL_HL_SCO_Map := null)
+     (CU            : CU_Id;
+      SCO_Index     : Nat;
+      State         : in out CU_Load_State;
+      Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
+      SCO_Map       : access LL_HL_SCO_Map := null)
    is
       Unit : CU_Info renames CU_Vector.Reference (CU);
       SCOE : SCOs.SCO_Table_Entry renames SCOs.SCO_Table.Table (SCO_Index);
@@ -2646,28 +2660,56 @@ package body SC_Obligations is
          when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' | 'A' =>
             --  Decision
 
-            pragma Assert (State.Current_Decision = No_SCO_Id);
-            State.Current_Decision := Add_SCO
-              (SCO_Descriptor'
-                 (Kind                => Decision,
-                  Origin              => CU,
-                  Control_Location    =>
-                     Slocs.To_Sloc (Unit.Main_Source, From_Sloc),
-                  D_Kind              => To_Decision_Kind (SCOE.C1),
-                  Last_Cond_Index     => 0,
-                  Aspect_Name         =>
-                     Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
-                  others              => <>));
-            pragma Assert (not SCOE.Last);
+            if SCOE.C1 = 'G' and then not Analyze_Entry_Barriers then
 
-            State.Current_BDD :=
-               BDD.Create (BDD_Vector, State.Current_Decision);
-            State.Current_Condition_Index := No_Condition_Index;
+               --  entry barrier, ignore it as the instrumenter cannot
+               --  instrument it in the Ravenscar profile, and we should keep
+               --  the two coverage modes as coherent as possible.
+
+               State.Current_Decision_Ignored := True;
+               State.Current_Decision := No_SCO_Id;
+               State.Current_Condition_Index := No_Condition_Index;
+               Ignored_Slocs.Insert
+                 (Slocs.To_Sloc (Unit.Main_Source, From_Sloc));
+
+               if Verbose then
+                  Put_Line
+                    ("Ignoring SCO entry: ENTRY BARRIER at "
+                     & Image (Slocs.To_Sloc (Unit.Main_Source, From_Sloc)));
+               end if;
+
+            else
+               pragma Assert (State.Current_Decision = No_SCO_Id);
+               State.Current_Decision_Ignored := False;
+               State.Current_Decision := Add_SCO
+                 (SCO_Descriptor'
+                    (Kind                => Decision,
+                     Origin              => CU,
+                     Control_Location    =>
+                       Slocs.To_Sloc (Unit.Main_Source, From_Sloc),
+                     D_Kind              => To_Decision_Kind (SCOE.C1),
+                     Last_Cond_Index     => 0,
+                     Aspect_Name         =>
+                       Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
+                     others              => <>));
+               pragma Assert (not SCOE.Last);
+
+               State.Current_BDD :=
+                 BDD.Create (BDD_Vector, State.Current_Decision);
+               State.Current_Condition_Index := No_Condition_Index;
+            end if;
 
          when ' ' =>
             --  Condition
 
-            pragma Assert (State.Current_Decision /= No_SCO_Id);
+            pragma Assert (State.Current_Decision /= No_SCO_Id
+                           or else State.Current_Decision_Ignored);
+
+            --  Do not process this entry if the current decision is ignored
+
+            if State.Current_Decision_Ignored then
+               return;
+            end if;
 
             SCO_Vector.Update_Element
               (Index   => State.Current_Decision,
@@ -2696,15 +2738,22 @@ package body SC_Obligations is
             end if;
 
          when '!' =>
-            BDD.Process_Not (New_Operator_SCO (Op_Not), State.Current_BDD);
+            if not State.Current_Decision_Ignored then
+               BDD.Process_Not (New_Operator_SCO (Op_Not), State.Current_BDD);
+            end if;
 
          when '&' =>
-            BDD.Process_And_Then
-              (BDD_Vector, New_Operator_SCO (Op_And_Then), State.Current_BDD);
-
+            if not State.Current_Decision_Ignored then
+               BDD.Process_And_Then (BDD_Vector,
+                                     New_Operator_SCO (Op_And_Then),
+                                     State.Current_BDD);
+            end if;
          when '|' =>
-            BDD.Process_Or_Else
-              (BDD_Vector, New_Operator_SCO (Op_Or_Else), State.Current_BDD);
+            if not State.Current_Decision_Ignored then
+               BDD.Process_Or_Else (BDD_Vector,
+                                    New_Operator_SCO (Op_Or_Else),
+                                    State.Current_BDD);
+            end if;
 
          when 'H' =>
             --  Chaining indicator: not used yet
@@ -2732,6 +2781,8 @@ package body SC_Obligations is
 
       LI_First_SCO : constant SCO_Id := SCO_Vector.Last_Index + 1;
       --  Index of the first high level SCO we are going to create
+
+      Ignored_Slocs_Set : Ignored_Slocs_Sets.Set;
 
       CU_Load_Infos : CU_Load_Info_Vectors.Vector;
    begin
@@ -2773,7 +2824,8 @@ package body SC_Obligations is
                State.Current_Handler_Range := No_Range;
 
                for SCO_Index in SCO_Range.First .. SCO_Range.Last loop
-                  Process_Low_Level_Entry (CU, SCO_Index, State, SCO_Map);
+                  Process_Low_Level_Entry
+                    (CU, SCO_Index, State, Ignored_Slocs_Set, SCO_Map);
                end loop;
             end loop;
 
@@ -3048,6 +3100,12 @@ package body SC_Obligations is
                          (SCOD.Dominant_Sloc.Source_File, Decision)
                        .Element ((SCOD.Dominant_Sloc.L, No_Local_Location));
                      pragma Assert (Kind (Dom_Sloc_SCO) = Decision);
+                  elsif Ignored_Slocs_Set.Contains (SCOD.Dominant_Sloc) then
+
+                     --  If the dominant sloc was purposefully ignored,
+                     --  there is no need to warn about it.
+
+                     Dom_Sloc_SCO := No_SCO_Id;
                   else
                      Report
                        (First_Sloc (SCOD.Sloc_Range),
