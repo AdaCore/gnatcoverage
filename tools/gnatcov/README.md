@@ -58,15 +58,15 @@ environment variable designating the GNAT installation root.
 2.  Build libopcodes, libbfd and libiberty libraries from Binutils, which
     gnatcov needs to support object code disassembling on all platforms.
 
-    Best is to use a Binutils release for this, at least 2.29 which
+    Best is to use a Binutils release for this, at least 2.31 which
     is known to work.
 
     ```shell
-    binutils-2.29 $ ./configure --enable-targets=all \
+    binutils-2.31 $ ./configure --enable-targets=all \
                          --disable-werror --without-zlib --disable-gdb \
                          --disable-sim --disable-ld --disable-libquadmath \
                          --disable-readline
-    binutils-2.29 $ make
+    binutils-2.31 $ make
     ```
 
     These libraries are statically linked, so installation is not required: the
