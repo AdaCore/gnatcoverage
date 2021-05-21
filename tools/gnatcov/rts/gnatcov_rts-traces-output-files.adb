@@ -25,20 +25,21 @@
 --  This unit needs to be compilable with Ada 95 compilers
 
 with Ada.Command_Line;
-with Ada.Direct_IO;
 with Interfaces.C.Strings;
 with System;
 
+with GNATcov_RTS.Traces.Output.Bytes_IO;
+
 package body GNATcov_RTS.Traces.Output.Files is
 
-   package Bytes_IO is new Ada.Direct_IO (Interfaces.Unsigned_8);
+   package BIO renames Output.Bytes_IO;  --  Just a shorthand
 
    type Process_Id is new Interfaces.Unsigned_64;
    function Current_Process_Id return Process_Id;
    pragma Import (C, Current_Process_Id, "gnatcov_rts_getpid");
 
    procedure Write_Bytes
-     (File  : in out Bytes_IO.File_Type;
+     (File  : in out BIO.File_Type;
       Bytes : System.Address;
       Count : Natural);
    --  Callback for GNATcov_RTS.Traces.Output.Generic_Write_Trace_File
@@ -226,7 +227,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    -----------------
 
    procedure Write_Bytes
-     (File  : in out Bytes_IO.File_Type;
+     (File  : in out BIO.File_Type;
       Bytes : System.Address;
       Count : Natural)
    is
@@ -236,13 +237,13 @@ package body GNATcov_RTS.Traces.Output.Files is
       pragma Import (Ada, Content);
    begin
       for I in Content'Range loop
-         Bytes_IO.Write (File, Content (I));
+         BIO.Write (File, Content (I));
       end loop;
       pragma Unreferenced (File);
    end Write_Bytes;
 
    procedure Write_Trace_File is new
-     GNATcov_RTS.Traces.Output.Generic_Write_Trace_File (Bytes_IO.File_Type);
+     GNATcov_RTS.Traces.Output.Generic_Write_Trace_File (BIO.File_Type);
 
    ----------------------
    -- Write_Trace_File --
@@ -255,16 +256,16 @@ package body GNATcov_RTS.Traces.Output.Files is
       Exec_Date    : Time := Clock;
       User_Data    : String := "")
    is
-      File : Bytes_IO.File_Type;
+      File : BIO.File_Type;
    begin
       if Filename = "" then
-         Bytes_IO.Create (File, Name => Default_Trace_Filename);
+         BIO.Create (File, Name => Default_Trace_Filename);
       else
-         Bytes_IO.Create (File, Name => Filename);
+         BIO.Create (File, Name => Filename);
       end if;
       Write_Trace_File
         (File, Buffers, Program_Name, Format_Date (Exec_Date), User_Data);
-      Bytes_IO.Close (File);
+      BIO.Close (File);
    end Write_Trace_File;
 
 end GNATcov_RTS.Traces.Output.Files;

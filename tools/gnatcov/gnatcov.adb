@@ -1506,19 +1506,6 @@ begin
                end;
             end if;
 
-            --  Reject invalid combinations of --dump-trigger and
-            --  --dump-channel.
-
-            if Dump_Config.Trigger = At_Exit
-               and then Dump_Config.Channel = Base64_Standard_Output
-            then
-               --  When atexit handlers are triggered, the runtime finalized
-               --  Ada.Text_IO, so Standard_Output is closed.
-
-               Fatal_Error ("--dump-trigger=atexit is not compatible with"
-                            & " --dump-channel=base64-stdout");
-            end if;
-
             if Language_Version_Opt.Present then
                declare
                   Value : constant String := +Language_Version_Opt.Value;
