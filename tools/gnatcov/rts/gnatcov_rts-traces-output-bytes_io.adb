@@ -32,7 +32,7 @@ package body GNATcov_RTS.Traces.Output.Bytes_IO is
 
    procedure Close (File : in out File_Type) is
    begin
-      OSLIB.Close (FD => File);
+      OSLIB.Close (FD => File.FD);
    end Close;
 
    -------------
@@ -40,10 +40,9 @@ package body GNATcov_RTS.Traces.Output.Bytes_IO is
    -------------
 
    procedure Create (File : in out File_Type; Name : String) is
-      use type OSLIB.File_Descriptor;
    begin
-      File := OSLIB.Create_File (Name => Name, Fmode => OSLIB.Binary);
-      if File = OSLIB.Invalid_FD then
+      File.FD := OSLIB.Create_File (Name => Name, Fmode => OSLIB.Binary);
+      if File.FD = OSLIB.Invalid_FD then
          raise IO_Error;
       end if;
    end Create;
@@ -55,7 +54,7 @@ package body GNATcov_RTS.Traces.Output.Bytes_IO is
    procedure Write (File : File_Type; Byte : U8) is
       N : Integer;
    begin
-      N := OSLIB.Write (FD => File, A => Byte'Address, N => 1);
+      N := OSLIB.Write (FD => File.FD, A => Byte'Address, N => 1);
       if N /= 1 then
          raise IO_Error;
       end if;

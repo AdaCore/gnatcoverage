@@ -41,8 +41,16 @@ with GNAT.OS_Lib;
 private package GNATcov_RTS.Traces.Output.Bytes_IO is
 
    package OSLIB renames GNAT.OS_Lib;
+   use type OSLIB.File_Descriptor;
 
-   subtype File_Type is OSLIB.File_Descriptor;
+   --  Expose File_Type as a limited record type with implicit
+   --  initializers so clients can simply declare a F : File_Type;
+   --  object and call Create as with Direct_IO.
+
+   type File_Type is limited record
+      FD : OSLIB.File_Descriptor := OSLIB.Invalid_FD;
+   end record;
+
    subtype U8 is Interfaces.Unsigned_8;
 
    IO_Error : exception;
