@@ -353,6 +353,13 @@ class Test (object):
     def support_dir(self):
         return os.path.join(ROOT_DIR, 'support')
 
+    def bits(self):
+        """
+        Address size, in bits, for the programs gnatcov is given to analyze
+        this run.
+        """
+        return env.target.cpu.bits
+
 
 # Instantiate a Test object for the individual test module that imports us
 thistest = Test()
