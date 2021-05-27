@@ -837,11 +837,25 @@ package body Instrument.Ada_Unit is
       C_Type : constant Base_Type_Decl := Expression_Type (IC, C_Node);
       B_Type : constant Base_Type_Decl := C_Node.P_Bool_Type.As_Base_Type_Decl;
 
+      RH_Cond : Node_Rewriting_Handle;
+
    begin
+      --  Expressions that needs to be wrapped in a ParenExpr in the
+      --  instrumented code (e.g. quantified expressions, if expressions etc.)
+      --  do not necessarily have an enclosing ParenExpr in the original code
+      --  (when they are the condition of a pragma Assert for instance).
+      --  Rewrap the expression to produce valid instrumented code.
+
+      if Expr_Needs_Parens (C_Node.Kind) then
+         RH_Cond := Create_Paren_Expr (IC.Rewriting_Context, Condition);
+      else
+         RH_Cond := Condition;
+      end if;
+
       --  The second child of RH_Call is its list of actual parameters
 
       Append_Child
-        (Child (RH_Call, 2), Convert_To (IC, C_Type, B_Type, Condition));
+        (Child (RH_Call, 2), Convert_To (IC, C_Type, B_Type, RH_Cond));
       return Convert_To (IC, B_Type, C_Type, RH_Call);
    end Make_Condition_Witness;
 
@@ -914,10 +928,12 @@ package body Instrument.Ada_Unit is
       end if;
 
       --  Special case of conditional and quantified expressions: we need to
-      --  move them along with their enclosing parentheses.
+      --  move them along with their enclosing parentheses, if they exist.
+      --  Otherwise, add the needed parenthesis.
 
-      if Expr_Needs_Parens (N.Kind) then
-         pragma Assert (Kind (N.Parent) = Ada_Paren_Expr);
+      if Expr_Needs_Parens (N.Kind)
+        and then Kind (N.Parent) = Ada_Paren_Expr
+      then
          RH_N := Handle (N.Parent);
       else
          RH_N := Handle (N);
