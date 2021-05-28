@@ -85,7 +85,7 @@ Then switch to the local directory to build the library, and install it
 to another location of your choice::
 
   $ cd gnatcov_rts-build
-  $ gprbuild -P<gnatcov_rts_gpr> [-XLIBRARY_TYPE=<library-type>]
+  $ gprbuild -P<gnatcov_rts_gpr> -p [-XLIBRARY_TYPE=<library-type>]
   $ gprinstall -P<gnatcov_rts_gpr> --prefix=<gnatcov_rts-install>
 
 Here, pick :option:`<gnatcov_rts_gpr>` as one of the two variants introduced
