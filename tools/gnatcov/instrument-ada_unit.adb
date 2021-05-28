@@ -2725,6 +2725,16 @@ package body Instrument.Ada_Unit is
          --  Insert New_Node in sequence at original location of the degenerate
          --  subprogram.
 
+         procedure To_Regular_Subprogram (N : Base_Subp_Body);
+         --  Turns N into an instrumented regular function, by creating a
+         --  function with the same subp_spec as the original expression
+         --  function or null procedure, and a single return statement with the
+         --  original expression, for expression function, or a null statement
+         --  for null subprograms.
+         --
+         --  The SCO associated with the new single statement has the
+         --  sloc of the whole original subprogram.
+
          ------------
          -- Insert --
          ------------
@@ -2740,6 +2750,85 @@ package body Instrument.Ada_Unit is
             Saved_Insertion_Info.Rewriting_Offset :=
               Saved_Insertion_Info.Rewriting_Offset + 1;
          end Insert;
+
+         ---------------------------
+         -- To_Regular_Subprogram --
+         ---------------------------
+
+         procedure To_Regular_Subprogram (N : Base_Subp_Body) is
+
+            Single_Stmt_RH : constant Node_Rewriting_Handle :=
+              (if N.Kind = Ada_Expr_Function
+              then Create_Return_Stmt
+                     (Handle        => UIC.Rewriting_Context,
+                      F_Return_Expr => Detach (N.As_Expr_Function.F_Expr))
+              else Create_Node (Handle => UIC.Rewriting_Context,
+                                Kind   => Ada_Null_Stmt));
+            Stmt_list_RH   : constant Node_Rewriting_Handle :=
+              Create_Regular_Node
+                (Handle   => UIC.Rewriting_Context,
+                 Kind     => Ada_Stmt_List,
+                 Children => (1 => Single_Stmt_RH));
+            Stmts_RH       : constant Node_Rewriting_Handle :=
+              Create_Handled_Stmts
+                (Handle       => UIC.Rewriting_Context,
+                 F_Stmts      => Stmt_list_RH,
+                 F_Exceptions => No_Node_Rewriting_Handle);
+            Proc_Name      : constant Node_Rewriting_Handle :=
+              Create_End_Name
+                (Handle => UIC.Rewriting_Context,
+                 F_Name => Clone (N.F_Subp_Spec.F_Subp_Name.F_Name));
+
+            II : aliased Insertion_Info (Statement);
+            --  We need to change the insertion method to a statement insertion
+            --  method as we are instrumenting a statement list with a single
+            --  statement, and not a list of declarations.
+
+         begin
+
+            II.RH_List := Stmt_list_RH;
+            II.Unsupported := False;
+            II.Index := 1;
+            II.Rewriting_Offset := 0;
+            II.Preelab := False;
+            II.Parent := Saved_Insertion_Info;
+
+            UIC.Current_Insertion_Info := II'Unchecked_Access;
+
+            --  Add witness statement for the single statement
+
+            Extend_Statement_Sequence
+              (N           => N,
+               Typ         => ' ',
+               Insertion_N => Single_Stmt_RH);
+
+            --  Process the returned expression for any decisions if we are
+            --  dealing with an expression function
+
+            if N.Kind = Ada_Expr_Function then
+               Process_Decisions_Defer (N.As_Expr_Function.F_Expr, 'X');
+            end if;
+
+            --  Insert the new regular function in place of the old subprogram
+
+            Replace (Handle (N),
+                     Create_Subp_Body
+                      (Handle       => UIC.Rewriting_Context,
+                       F_Overriding => Detach (N.F_Overriding),
+                       F_Subp_Spec  => Detach (N.F_Subp_Spec),
+                       F_Aspects    => Detach (N.F_Aspects),
+                       F_Decls      => No_Node_Rewriting_Handle,
+                       F_Stmts      => Stmts_RH,
+                       F_End_Name   => Proc_Name));
+
+            --  We are exiting the newly created regular function, so reset
+            --  dominant information.
+
+            Set_Statement_Entry;
+            Current_Dominant := No_Dominant;
+
+            UIC.Current_Insertion_Info := Saved_Insertion_Info;
+         end To_Regular_Subprogram;
 
          Is_Expr_Function : constant Boolean := N.Kind = Ada_Expr_Function;
 
@@ -2839,6 +2928,23 @@ package body Instrument.Ada_Unit is
                        & " Consider turning it into a regular procedure"
                        & " body.");
             end if;
+         end if;
+
+         --  Protected bodies do not allow declarations, so we cannot
+         --  instrument expression functions or null procedures as we usually
+         --  do, by adding an augmented subprogram in a package declared right
+         --  before.
+         --
+         --  Since this is only an issue in a protected body, these degenerate
+         --  subprograms already have a previous declaration, and we can safely
+         --  turn them into regular subprograms, for which we have no
+         --  instrumentation issues.
+
+         if not N.P_Semantic_Parent.Is_Null
+            and then N.P_Semantic_Parent.Kind = Ada_Protected_Body
+         then
+            To_Regular_Subprogram (N.As_Base_Subp_Body);
+            return;
          end if;
 
          if Is_Expr_Function then
