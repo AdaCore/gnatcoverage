@@ -16,9 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers; use Ada.Containers;
-
-with Outputs;      use Outputs;
+with Outputs; use Outputs;
 
 package body Execs_Dbase is
 
