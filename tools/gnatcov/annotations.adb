@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Calendar.Formatting;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Fixed;
@@ -25,6 +24,7 @@ with Ada.Strings.Unbounded;
 with Interfaces;
 
 with ALI_Files; use ALI_Files;
+with Calendar_Utils;
 with Coverage.Object;
 with Coverage.Source;
 with Coverage.Tags;
@@ -615,7 +615,7 @@ package body Annotations is
 
    function Original_Processing_Context (TF : Trace_File_Element) return String
    is
-      use Ada.Calendar.Formatting;
+      use Calendar_Utils;
       use Ada.Strings.Unbounded;
    begin
       if Length (TF.Context) = 0 then
@@ -627,8 +627,7 @@ package body Annotations is
               Coverage.From_String (To_String (TF.Context));
          begin
             return To_String (Orig_Context.Command)
-              & " @ " & Image (Orig_Context.Timestamp,
-                               Include_Time_Fraction => True);
+              & " @ " & Image (Orig_Context.Timestamp);
          end;
       end if;
    end Original_Processing_Context;

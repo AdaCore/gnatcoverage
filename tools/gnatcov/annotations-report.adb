@@ -16,13 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Calendar.Formatting;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;
+with Calendar_Utils;  use Calendar_Utils;
 with Coverage;        use Coverage;
 with Coverage.Source; use Coverage.Source;
 with Coverage.Tags;   use Coverage.Tags;
@@ -709,7 +709,6 @@ package body Annotations.Report is
    ------------------------
 
    procedure Pretty_Print_Start (Pp : in out Report_Pretty_Printer) is
-      use Ada.Calendar.Formatting;
       use Ada.Strings.Unbounded;
 
       Output : constant File_Access := Get_Output;
@@ -748,7 +747,7 @@ package body Annotations.Report is
 
       New_Line (Output.all);
       Put_Line (Output.all, "Date and time of execution: "
-                & Image (Pp.Context.Timestamp, Include_Time_Fraction => True));
+                & Image (Pp.Context.Timestamp));
       Put_Line (Output.all, "Tool version: XCOV "
                 & To_String (Pp.Context.Version));
       New_Line (Output.all);

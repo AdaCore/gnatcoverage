@@ -18,7 +18,6 @@
 
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
-with Ada.Calendar.Time_Zones;
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Exceptions; use Ada.Exceptions;
@@ -28,6 +27,7 @@ with Ada.Unchecked_Deallocation;
 
 with GNATcov_RTS.Traces;
 
+with Calendar_Utils;
 with Hex_Images; use Hex_Images;
 with Inputs;     use Inputs;
 with Outputs;    use Outputs;
@@ -1649,9 +1649,7 @@ package body Traces_Files is
    function Format_Date_Info (Raw_String : String) return String
    is
       use Ada.Calendar;
-      use Ada.Calendar.Formatting;
-      use Ada.Calendar.Time_Zones;
-      use Switches;
+      use Calendar_Utils;
 
       Date_Info : Trace_Info_Date;
       Date      : Time;
@@ -1660,22 +1658,6 @@ package body Traces_Files is
       function Str_To_Date_Info is new Ada.Unchecked_Conversion
         (String_8, Trace_Info_Date);
 
-      procedure Put_Pad (Num : Natural; S : out String);
-
-      -------------
-      -- Put_Pad --
-      -------------
-
-      procedure Put_Pad (Num : Natural; S : out String)
-      is
-         V : Natural := Num;
-      begin
-         for I in reverse S'Range loop
-            S (I) := Character'Val ((V rem 10)
-                                    + Character'Pos ('0'));
-            V := V / 10;
-         end loop;
-      end Put_Pad;
    begin
       if Raw_String = "" then
          return "";
@@ -1685,42 +1667,16 @@ package body Traces_Files is
       --  Convert Trace_Date_Info (interpreted as UTC) to an Ada.Calendar.Time
       --  value.
 
-      Date := Time_Of (Year   => Integer (Date_Info.Year),
-                       Month  => Integer (Date_Info.Month),
-                       Day    => Integer (Date_Info.Day),
-                       Hour   => Integer (Date_Info.Hour),
-                       Minute => Integer (Date_Info.Min),
-                       Second => Integer (Date_Info.Sec));
+      Date :=
+        Ada.Calendar.Formatting.Time_Of
+          (Year   => Integer (Date_Info.Year),
+           Month  => Integer (Date_Info.Month),
+           Day    => Integer (Date_Info.Day),
+           Hour   => Integer (Date_Info.Hour),
+           Minute => Integer (Date_Info.Min),
+           Second => Integer (Date_Info.Sec));
 
-      --  Then, retrieve the date in the wanted timezone, local if specified
-      --  by the user, UTC otherwise.
-
-      if Use_Local_Time then
-         declare
-            Time_Zone      : constant Time_Offset := Local_Time_Offset;
-            Time_Zone_Sign : constant String :=
-              (if Time_Zone >= 0 then "+" else "-");
-            --  Even if Local_Time_Offset is 0, we will put a + sign to avoid
-            --  ambiguities.
-
-            Serialized_Offset : String (1 .. 6) := Time_Zone_Sign & "HH:MM";
-            --  Time_Offset can be more than a day (up to 28 hours, according
-            --  to the type specification), but we will always express it in
-            --  hours and minutes for clarity purposes.
-
-            Hours   : constant Natural :=
-              Natural (abs Time_Zone) / 60;
-            Minutes : constant Natural :=
-              Natural (abs Time_Zone) mod 60;
-         begin
-            Put_Pad (Hours, Serialized_Offset (2 .. 3));
-            Put_Pad (Minutes, Serialized_Offset (5 .. 6));
-            return Local_Image (Date) & " " & Serialized_Offset;
-         end;
-
-      else
-         return Image (Date) & " UTC";
-      end if;
+      return Image (Date);
 
    end Format_Date_Info;
 
