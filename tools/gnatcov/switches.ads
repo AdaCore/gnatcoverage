@@ -20,6 +20,7 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Calendar_Utils;       use Calendar_Utils;
 with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
 with Inputs;
@@ -92,8 +93,8 @@ package Switches is
    --  If True, show the evaluation vectors for each decision where there is
    --  an MCDC violation.
 
-   Use_Local_Time : Boolean := False;
-   --  If True, use local time rather than UTC time for traces date
+   Timezone : Any_Timezone := Local_Time;
+   --  Control the date display format (either in local time, or UTC time)
 
    Pretty_Print : Boolean := False;
    --  If true, run "gnatpp" on the generate sources

@@ -78,7 +78,6 @@ package Command_Line is
       Opt_Externally_Built_Projects,
       Opt_GNAT_Pragmas,
       Opt_Show_MCDC_Vectors,
-      Opt_Local_Time,
       Opt_Dump_Filename_Simple,
       Opt_Allow_Mix_Trace_Kind,
       Opt_Analyze_Entry_Barriers);
@@ -111,7 +110,8 @@ package Command_Line is
       Opt_Dump_Filename_Env_Var,
       Opt_Dump_Filename_Prefix,
       Opt_Ada,
-      Opt_Dump_Units_To);
+      Opt_Dump_Units_To,
+      Opt_Timezone);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -440,12 +440,6 @@ package Command_Line is
          Commands  => (Cmd_Coverage => True, others => False),
          Internal  => False),
 
-      Opt_Local_Time => Create
-        (Long_Name => "--local-time",
-         Help      => "Output trace date in local time rather than UTC time.",
-         Commands  => (Cmd_Coverage => True, others => False),
-         Internal  => False),
-
       Opt_Dump_Filename_Simple => Create
         (Long_Name => "--dump-filename-simple",
          Help      => "Valid only when --dump-channel=bin-file. Create simple"
@@ -754,7 +748,18 @@ package Command_Line is
                          & " otherwise.",
          Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => True,
-         Internal     => False));
+         Internal     => False),
+
+      Opt_Timezone => Create
+        (Long_Name => "--timezone",
+         Pattern   => "local|utc",
+         Help      => "State the reference timezone to use when displaying"
+                      & " dates in reports, either ""local"" or ""utc"". If"
+                      & " not specified, default to ""local"".",
+         Commands  => (Cmd_Coverage => True, others => False),
+         At_Most_Once => True,
+         Internal  => False)
+     );
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Debug => Create

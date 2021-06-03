@@ -19,6 +19,7 @@
 with Ada.Calendar.Formatting; use Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones; use Ada.Calendar.Time_Zones;
 
+with Outputs;  use Outputs;
 with Switches; use Switches;
 
 package body Calendar_Utils is
@@ -45,32 +46,47 @@ package body Calendar_Utils is
       end Put_Pad;
 
    begin
-      if Use_Local_Time then
-         declare
-            Time_Zone      : constant Time_Offset := Local_Time_Offset;
-            Time_Zone_Sign : constant String :=
-              (if Time_Zone >= 0 then "+" else "-");
-            --  Even if Local_Time_Offset is 0, we will put a + sign to avoid
-            --  ambiguities.
+      case Timezone is
+         when UTC_Time =>
+            return Ada.Calendar.Formatting.Image (Date) & " UTC";
+         when Local_Time =>
+            declare
+               Time_Zone      : constant Time_Offset := Local_Time_Offset;
+               Time_Zone_Sign : constant String :=
+                 (if Time_Zone >= 0 then "+" else "-");
+               --  Even if Local_Time_Offset is 0, we will put a + sign to
+               --  avodi ambiguities.
 
-            Serialized_Offset : String (1 .. 6) := Time_Zone_Sign & "HH:MM";
-            --  Time_Offset can be more than a day (up to 28 hours, according
-            --  to the type specification), but we will always express it in
-            --  hours and minutes for clarity purposes.
+               Serialized_Offset : String (1 .. 6) := Time_Zone_Sign & "HH:MM";
+               --  Time_Offset can be more than a day (up to 28 hours,
+               --  according to the type specification), but we will always
+               --  express it in hours and minutes for clarity purposes.
 
-            Hours   : constant Natural :=
-              Natural (abs Time_Zone) / 60;
-            Minutes : constant Natural :=
-              Natural (abs Time_Zone) mod 60;
-         begin
-            Put_Pad (Hours, Serialized_Offset (2 .. 3));
-            Put_Pad (Minutes, Serialized_Offset (5 .. 6));
-            return Local_Image (Date) & " " & Serialized_Offset;
-         end;
-
-      else
-         return Ada.Calendar.Formatting.Image (Date) & " UTC";
-      end if;
+               Hours   : constant Natural :=
+                 Natural (abs Time_Zone) / 60;
+               Minutes : constant Natural :=
+                 Natural (abs Time_Zone) mod 60;
+            begin
+               Put_Pad (Hours, Serialized_Offset (2 .. 3));
+               Put_Pad (Minutes, Serialized_Offset (5 .. 6));
+               return Local_Image (Date) & " " & Serialized_Offset;
+            end;
+      end case;
    end Image;
+
+   -----------------
+   -- To_Timezone --
+   -----------------
+
+   function To_Timezone (Option : String) return Any_Timezone is
+   begin
+      if Option = "local" then
+         return Local_Time;
+      elsif Option = "utc" then
+         return UTC_Time;
+      else
+         Fatal_Error ("Bad timezone " & Option);
+      end if;
+   end To_Timezone;
 
 end Calendar_Utils;

@@ -33,6 +33,7 @@ with Annotations.Html;
 with Annotations.Xcov;
 with Annotations.Xml;
 with Annotations.Report;
+with Calendar_Utils;
 with CFG_Dump;
 with Check_SCOs;
 with Checkpoints;
@@ -428,7 +429,6 @@ procedure GNATcov_Bits_Specific is
       Show_MCDC_Vectors        := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
                                  or else All_Messages
                                  or else Verbose);
-      Use_Local_Time           := Args.Bool_Args (Opt_Local_Time);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
       Analyze_Entry_Barriers   := Args.Bool_Args (Opt_Analyze_Entry_Barriers);
 
@@ -503,6 +503,11 @@ procedure GNATcov_Bits_Specific is
             when Constraint_Error =>
                Fatal_Error ("Failure to parse --text-start");
          end;
+      end if;
+
+      if Args.String_Args (Opt_Timezone).Present then
+         Timezone :=
+           Calendar_Utils.To_Timezone (+Args.String_Args (Opt_Timezone).Value);
       end if;
 
       --  Parse --source-rebase options

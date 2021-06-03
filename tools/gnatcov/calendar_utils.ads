@@ -20,8 +20,13 @@ with Ada.Calendar; use Ada.Calendar;
 
 package Calendar_Utils is
 
+   type Any_Timezone is (Local_Time, UTC_Time);
+
    function Image (Date : Time) return String;
    --  Wrapper for Ada.Calendar.Formatting.Image. If --local-time option is on,
    --  return the date in the local timezone offset.
+
+   function To_Timezone (Option : String) return Any_Timezone;
+   --  Return the timezone designated by the option
 
 end Calendar_Utils;
