@@ -638,12 +638,17 @@ package body Instrument.Ada_Unit is
       Common_Nodes            : Degenerate_Subp_Common_Nodes;
       Formal_Params           : Node_Rewriting_Handle;
       Call_Params             : Node_Rewriting_Handle;
+      Keep_Aspects            : Boolean;
       Augmented_Expr_Function : out Node_Rewriting_Handle;
       New_Expr_Function       : out Node_Rewriting_Handle);
    --  Create the augmented expression function from the original one
    --  (Augmented_Expr_Function) and create the expression function
    --  (New_Expr_Function) that will serve as a replacement to the original
    --  one.
+   --
+   --  If keep_Aspects is set to True, the aspects of the original expression
+   --  function will be propagated to the augmented expression function,
+   --  otherwise the augmented expression function will have no aspects.
 
    function Is_Self_Referencing
      (UIC : Ada_Unit_Inst_Context;
@@ -1662,6 +1667,7 @@ package body Instrument.Ada_Unit is
       Common_Nodes            : Degenerate_Subp_Common_Nodes;
       Formal_Params           : Node_Rewriting_Handle;
       Call_Params             : Node_Rewriting_Handle;
+      Keep_Aspects            : Boolean;
       Augmented_Expr_Function : out Node_Rewriting_Handle;
       New_Expr_Function       : out Node_Rewriting_Handle)
    is
@@ -1702,7 +1708,9 @@ package body Instrument.Ada_Unit is
            F_Overriding => Clone (Common_Nodes.N_Overriding),
            F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
            F_Expr       => Create_Paren_Expr (RC, Call_Expr),
-           F_Aspects    => Detach (Common_Nodes.N.F_Aspects));
+           F_Aspects    => (if Keep_Aspects
+                            then Detach (Common_Nodes.N.F_Aspects)
+                            else No_Node_Rewriting_Handle));
 
       --  The original expression function becomes the augmented one:
 
@@ -2900,6 +2908,12 @@ package body Instrument.Ada_Unit is
          --   MC/DC state inserter for this expression function (unused if
          --   instrumenting a null procedure).
 
+         Keep_Aspects : Boolean := True;
+         --  Whether to keep the aspects of the expression in the augmented
+         --  expression function or not. If we emit a forward declaration for
+         --  the expression function, the aspects need to be attached to the
+         --  declaration and not the augmented expression function.
+
       --  Start of processing for Traverse_Degenerate_Subprogram
 
       begin
@@ -3126,6 +3140,12 @@ package body Instrument.Ada_Unit is
                F_Overriding => Detach (Common_Nodes.N_Overriding),
                F_Subp_Spec  => Clone (N_Spec),
                F_Aspects    => Detach (N.F_Aspects)));
+
+            --  For expression functions, the aspects of the subprogram were
+            --  moved to the newly created declaration, so they should not be
+            --  added to the augmented function later on.
+
+            Keep_Aspects := False;
          end if;
 
          if Is_Expr_Function then
@@ -3141,6 +3161,7 @@ package body Instrument.Ada_Unit is
                   Common_Nodes,
                   Formal_Params,
                   Call_Params,
+                  Keep_Aspects,
                   Augmented_Expr_Function,
                   New_Expr_Function);
 
