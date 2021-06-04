@@ -2778,11 +2778,20 @@ package body Instrument.Ada_Unit is
               Create_End_Name
                 (Handle => UIC.Rewriting_Context,
                  F_Name => Clone (N.F_Subp_Spec.F_Subp_Name.F_Name));
+            Decl_List      : constant Node_Rewriting_Handle :=
+              Create_Node (Handle => UIC.Rewriting_Context,
+                           Kind   => Ada_Decl_List);
+            Proc_Decls     : constant Node_Rewriting_Handle :=
+                Create_Declarative_Part
+                  (Handle  => UIC.Rewriting_Context,
+                   F_Decls => Decl_List);
 
             II : aliased Insertion_Info (Statement);
             --  We need to change the insertion method to a statement insertion
             --  method as we are instrumenting a statement list with a single
             --  statement, and not a list of declarations.
+
+            Local_Inserter : aliased Default_MCDC_State_Inserter;
 
          begin
 
@@ -2794,6 +2803,8 @@ package body Instrument.Ada_Unit is
             II.Parent := Saved_Insertion_Info;
 
             UIC.Current_Insertion_Info := II'Unchecked_Access;
+            Local_Inserter.Local_Decls := Decl_List;
+            UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
             --  Add witness statement for the single statement
 
@@ -2817,7 +2828,7 @@ package body Instrument.Ada_Unit is
                        F_Overriding => Detach (N.F_Overriding),
                        F_Subp_Spec  => Detach (N.F_Subp_Spec),
                        F_Aspects    => Detach (N.F_Aspects),
-                       F_Decls      => No_Node_Rewriting_Handle,
+                       F_Decls      => Proc_Decls,
                        F_Stmts      => Stmts_RH,
                        F_End_Name   => Proc_Name));
 
@@ -2828,6 +2839,7 @@ package body Instrument.Ada_Unit is
             Current_Dominant := No_Dominant;
 
             UIC.Current_Insertion_Info := Saved_Insertion_Info;
+            UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
          end To_Regular_Subprogram;
 
          Is_Expr_Function : constant Boolean := N.Kind = Ada_Expr_Function;
