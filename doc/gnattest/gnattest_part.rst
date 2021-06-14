@@ -397,7 +397,7 @@ Switches for ``gnattest`` in framework generation mode
   Adds time measurements for each test in generated test driver.
 
 
-:switch:`--tests_root`, :switch:`--subdir` and :switch:`--tests-dir` switches are mutually exclusive.
+:switch:`--tests-root`, :switch:`--subdirs` and :switch:`--tests-dir` switches are mutually exclusive.
 
 
 .. _Switches_for_gnattest_in_test_execution_mode:
@@ -448,7 +448,7 @@ package ``Gnattest``. Here is the list of attributes:
      This attribute cannot be used together with ``Subdir`` or ``Tests_Dir``.
 
 * ``Subdir``
-     is used to select the same output mode as with the ``--subdir`` option.
+     is used to select the same output mode as with the ``--subdirs`` option.
      This attribute cannot be used together with ``Tests_Root`` or ``Tests_Dir``.
 
 * ``Tests_Dir``
