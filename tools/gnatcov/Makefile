@@ -82,6 +82,7 @@ PGM64PATH=obj64/$(BUILD_MODE)/gnatcov64
 DIRNAME=gnatcoverage
 
 include host.mk
+include common.mk
 
 #####################################################################
 # Targets to build the core tool and the trace adapters, optionally #
@@ -191,7 +192,9 @@ bin:
 	    -XBUILD_MODE=$(BUILD_MODE) \
 	    -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
 	    -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
-	    $(EXTRA_ADAFLAGS); \
+	    $(EXTRA_ADAFLAGS) \
+	    -largs $(LD_FLAGS) \
+	    -cargs:c++ $(CXXFLAGS); \
 	done
 
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))

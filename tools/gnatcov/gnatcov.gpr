@@ -1,4 +1,4 @@
-with "gnat_util", "gnatcoll", "libadalang";
+with "gnat_util", "gnatcoll", "libadalang", "libclang";
 
 with "rts/gnatcov_rts";
 
@@ -26,6 +26,7 @@ project Gnatcov is
       for Specification ("Arch") use "arch__" & Bits & ".ads";
       for Specification ("Qemu_Traces_Entries")
          use"qemu_traces_entries__" & Bits & ".ads";
+      for Body_Suffix ("C++") use ".cc";
    end Naming;
 
    package Builder is
@@ -46,28 +47,35 @@ project Gnatcov is
       mode_switches := ();
       ada_mode_switches := ();
       c_mode_switches := ();
+      cxx_mode_switches := ();
 
       case Build_Mode is
          when "dev" =>
             mode_switches := ("-O0", "-g");
             ada_mode_switches := ("-gnata", "-gnatwe");
             c_mode_switches := ("-Werror");
+            cxx_mode_switches := ("-Werror");
 
          when "prod" =>
             mode_switches := ("-O2");
             c_mode_switches := ("-DNDEBUG");
+            cxx_mode_switches := ("-DNDEBUG");
 
          when "boot" =>
             mode_switches :=
               ("-O1", "-fdump-scos", "-fpreserve-control-flow", "-g");
             c_mode_switches := ("-DNDEBUG");
+            cxx_mode_switches := ("-DNDEBUG");
        end case;
 
        for Default_Switches ("ada")
           use ada_common_switches & mode_switches & ada_mode_switches;
 
        for Default_Switches ("C")
-         use  c_common_switches & mode_switches & c_mode_switches;
+          use c_common_switches & mode_switches & c_mode_switches;
+
+      for Default_Switches ("C++")
+          use mode_switches & cxx_mode_switches;
 
       for Local_Configuration_Pragmas use "gnat.adc";
 
@@ -97,7 +105,7 @@ project Gnatcov is
 
    for Source_Dirs use (".", "libopcodes_bind");
    for Object_Dir use "obj" & Bits & "/" & Build_Mode;
-   for Languages use ("Ada", "C");
+   for Languages use ("Ada", "C", "C++");
    for Main use Mains;
 
 end Gnatcov;

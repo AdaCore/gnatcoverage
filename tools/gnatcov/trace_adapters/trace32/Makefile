@@ -3,6 +3,7 @@ GPRCLEAN=gprclean
 PREFIX=install
 
 include ../../host.mk
+include ../../common.mk
 
 .PHONY: force
 
@@ -27,6 +28,8 @@ $(EXENAMES): force
 	$(GPRBUILD) -Ptrace32 -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@ \
 	-XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
 	-XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
+  -largs $(LD_FLAGS) \
+  -cargs:c++ $(CXXFLAGS) \
 
 
 ###################
