@@ -26,6 +26,7 @@ with Arch;
 with Coverage;      use Coverage;
 with Files_Table;
 with Support_Files;
+with Strings;       use Strings;
 with Switches;      use Switches;
 
 package body Rundrv.Handlers is
@@ -63,25 +64,6 @@ package body Rundrv.Handlers is
    begin
       return Trim (Integer'Image (Arch.Arch_Addr'Object_Size), Left);
    end Bits;
-
-   ----------------
-   -- Append_Arg --
-   ----------------
-
-   procedure Append_Arg (Cmd : Command_Access; Arg : String) is
-   begin
-      Cmd.Arguments.Append (+Arg);
-   end Append_Arg;
-
-   ----------------
-   -- Append_Arg --
-   ----------------
-
-   procedure Append_Arg (Cmd : Command_Access; Opt, Arg : String) is
-   begin
-      Append_Arg (Cmd, Opt);
-      Append_Arg (Cmd, Arg);
-   end Append_Arg;
 
    -----------------
    -- Trace_Input --

@@ -16,9 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+
 with GNAT.Regpat; use GNAT.Regpat;
 
 with Rundrv.Handlers; use Rundrv.Handlers;
+with Strings;         use Strings;
 
 package body Rundrv.Config is
 
@@ -128,8 +131,6 @@ package body Rundrv.Config is
 
    function Available_Targets return String
    is
-      use Ada.Strings.Unbounded;
-
       Result : Unbounded_String;
       First  : Boolean := True;
    begin

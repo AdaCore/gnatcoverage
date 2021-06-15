@@ -18,7 +18,8 @@
 
 with GNAT.Regpat; use GNAT.Regpat;
 
-with Rundrv.Config; use Rundrv.Config;
+with System_Commands; use System_Commands;
+with Rundrv.Config;   use Rundrv.Config;
 
 package Rundrv.Handlers is
 
@@ -39,12 +40,5 @@ package Rundrv.Handlers is
      (Context : Context_Type; Matches : Match_Array) return Command_Access;
    function Visium_ELF
      (Context : Context_Type; Matches : Match_Array) return Command_Access;
-
-   --------------------------------
-   -- Command formatting helpers --
-   --------------------------------
-
-   procedure Append_Arg (Cmd : Command_Access; Arg : String);
-   procedure Append_Arg (Cmd : Command_Access; Opt, Arg : String);
 
 end Rundrv.Handlers;

@@ -16,11 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Hashed_Maps;
-with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;
-with Ada.Strings.Unbounded.Hash;
-with Ada.Unchecked_Deallocation;
+with System_Commands; use System_Commands;
 
 --  Driver selection configuration for Rundrv.
 --
@@ -59,44 +55,6 @@ package Rundrv.Config is
       --  List of additional arguments to pass to the executable to run
    end record;
    --  Holder for various information used to instantiate a command to run
-
-   function "+" (S : String) return Ada.Strings.Unbounded.Unbounded_String
-      renames Ada.Strings.Unbounded.To_Unbounded_String;
-   function "+" (US : Ada.Strings.Unbounded.Unbounded_String) return String
-      renames Ada.Strings.Unbounded.To_String;
-   --  Unbounded strings conversion shortcuts
-
-   package String_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Ada.Strings.Unbounded.Unbounded_String,
-      "="          => Ada.Strings.Unbounded."=");
-
-   package String_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
-      Element_Type    => Ada.Strings.Unbounded.Unbounded_String,
-      Hash            => Ada.Strings.Unbounded.Hash,
-      "="             => Ada.Strings.Unbounded."=",
-      Equivalent_Keys => Ada.Strings.Unbounded."=");
-
-   type Command_Type is record
-      Command : Ada.Strings.Unbounded.Unbounded_String;
-      --  Command to run or empty string if there is no command to run
-
-      Arguments : String_Vectors.Vector;
-      --  Arguments to pass to this command
-
-      Environment : String_Maps.Map;
-      --  Environment variables to set for this command
-
-      Native : Boolean;
-      --  Whether this command will run a native program
-   end record;
-   --  Simple holder for a command to run
-
-   type Command_Access is access all Command_Type;
-
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Command_Type, Command_Access);
 
    function Available_Targets return String;
    --  Return a list of available targets

@@ -19,7 +19,6 @@
 with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Directories;  use Ada.Directories;
 with Ada.Environment_Variables;
-with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
 with Interfaces;
@@ -30,10 +29,10 @@ with Binary_Files;
 with Execs_Dbase;
 with Outputs;
 with Qemu_Traces;
-with Rundrv.Config; use Rundrv.Config;
-with Switches;      use Switches;
+with System_Commands; use System_Commands;
+with Rundrv.Config;   use Rundrv.Config;
 with Traces_Elf;
-with Traces_Files;  use Traces_Files;
+with Traces_Files;    use Traces_Files;
 
 package body Rundrv is
 
@@ -50,18 +49,6 @@ package body Rundrv is
    Native_Warning_Envvar : constant String := "GNATCOV_NO_NATIVE_WARNING";
    --  Name of the environment variable to define in order to disable this
    --  warning.
-
-   --  Variables set by the command line.
-
-   Exec_Error : exception;
-   --  Raised when subprogram execution failed. The error message shall be
-   --  generated before raising the exception.
-
-   procedure Error (Msg : String);
-   --  Display the message on the error output and set exit status
-
-   procedure Run_Command (Command : Command_Type);
-   --  Spawn a command
 
    ------------
    -- Driver --
@@ -174,94 +161,12 @@ package body Rundrv is
       --  expansions, e.g.  setting environment variables. The expansion is
       --  required, but there's no real command to execute afterwards
 
-      Run_Command (Run_Cmd.all);
+      System_Commands.Run_Command (Run_Cmd.all, "gnatcov run");
       Free (Run_Cmd);
 
    exception
       when Exec_Error =>
          Set_Exit_Status (Failure);
    end Driver;
-
-   -----------
-   -- Error --
-   -----------
-
-   procedure Error (Msg : String) is
-   begin
-      Put_Line (Standard_Error, Msg);
-      Set_Exit_Status (Failure);
-   end Error;
-
-   -----------------
-   -- Run_Command --
-   -----------------
-
-   procedure Run_Command (Command : Command_Type) is
-      use String_Maps;
-      Success : Boolean;
-      Prg     : String_Access;
-      Args    : String_List (1 .. Natural (Command.Arguments.Length));
-
-      Cmd : constant String := +Command.Command;
-   begin
-
-      --  Honor a possible empty command text, meaning no actual
-      --  command to run.
-
-      if Cmd'Length = 0 then
-         return;
-      end if;
-
-      --  Find executable
-
-      Prg := GNAT.OS_Lib.Locate_Exec_On_Path (Cmd);
-      if Prg = null then
-         Error ("gnatcov run: cannot find " & Cmd & " on your path");
-         raise Exec_Error;
-      end if;
-
-      --  Instantiate the argument list
-
-      declare
-         I : Positive := 1;
-      begin
-         for S of Command.Arguments loop
-            Args (I) := new String'(+S);
-            I := I + 1;
-         end loop;
-      end;
-
-      --  Run
-
-      for Env_Var in Command.Environment.Iterate loop
-         if Verbose then
-            Put_Line ("env: " & (+Key (Env_Var))
-                      & "=" & (+Element (Env_Var)));
-         end if;
-         GNAT.OS_Lib.Setenv (+Key (Env_Var), +Element (Env_Var));
-      end loop;
-
-      if Verbose then
-         Put ("exec: ");
-         Put (Prg.all);
-         for S of Command.Arguments loop
-            Put (' ');
-            Put (+S);
-         end loop;
-         New_Line;
-      end if;
-
-      GNAT.OS_Lib.Spawn (Prg.all, Args, Success);
-      if not Success then
-         if Verbose then
-            Error ("gnatcov run failed");
-         end if;
-         raise Exec_Error;
-      end if;
-
-      if Verbose then
-         Put_Line (Cmd & " finished");
-      end if;
-   end Run_Command;
 
 end Rundrv;
