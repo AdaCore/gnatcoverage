@@ -3835,12 +3835,12 @@ package body Instrument.Ada_Unit is
                         | Name_Postcondition
                         | Name_Precondition
                      =>
-                        --  For Assert/Check/Precondition/Postcondition, we
-                        --  must generate a P entry for the decision. Note
-                        --  that this is done unconditionally at this stage.
-                        --  Output for disabled pragmas is suppressed later
-                        --  on when we output the decision line in Put_SCOs,
-                        --  depending on setting by Set_SCO_Pragma_Enabled.
+                        --  For Assert-like pragmas, we always insert a
+                        --  statement witness, but don't instrument the
+                        --  expression as it would create non-coverable SCOs.
+                        --
+                        --  This is in line with what is done for pre/post
+                        --  aspects.
 
                         if Nam = Name_Check then
 
@@ -3849,15 +3849,13 @@ package body Instrument.Ada_Unit is
                            Arg := 2;
                         end if;
 
-                        Process_Decisions_Defer (Prag_Arg_Expr (Arg), 'P');
+                        --  We consider that the assertion policy is dissabled.
+                        --  In the compiler, we initially set the type to 'p'
+                        --  (disabled pragma), and then switch it to 'P'
+                        --  if/when the policy is determined to be enabled
+                        --  later on.
 
-                        --  Note: conservatively assume that the check policy
-                        --  for all pragmas is enabled. In the compiler, we
-                        --  initially set the type to 'p' (disabled pragma),
-                        --  and then switch it to 'P' if/when the policy is
-                        --  determined to be enabled later on.
-
-                        Typ := 'P';
+                        Typ := 'p';
 
                         --  Pre/postconditions can be inherited so SCO should
                         --  never be deactivated???

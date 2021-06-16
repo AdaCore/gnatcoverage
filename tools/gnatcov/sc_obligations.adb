@@ -1945,7 +1945,9 @@ package body SC_Obligations is
                        or else
                      S_SCOD.Pragma_Name = Pragma_Precondition
                        or else
-                     S_SCOD.Pragma_Name = Pragma_Postcondition);
+                     S_SCOD.Pragma_Name = Pragma_Postcondition
+                       or else
+                     S_SCOD.Pragma_Name = Pragma_Loop_Invariant);
       end;
    end Is_Expression;
 
