@@ -860,7 +860,7 @@ package Command_Line is
                         & " [OLD_PREFIX] in a response file.",
          Commands    => (Cmd_Coverage => True,
                          others => False),
-         Internal    => True),
+         Internal    => False),
       Opt_Source_Search => Create
         (Long_Name   => "--source-search",
          Pattern     => "[PREFIX]|@[LISTFILE]",
@@ -869,7 +869,7 @@ package Command_Line is
                         & " prefix.",
          Commands    => (Cmd_Coverage => True,
                          others => False),
-         Internal    => True),
+         Internal    => False),
 
       --  Opt_Trace will receive both trace files arguments, but also
       --  executable names to force the association between trace files and
