@@ -19,6 +19,9 @@ project GNATcov_RTS is
       "gnatcov_rts-traces-output.adb",
       "gnatcov_rts-traces-output-text_io.ads",
       "gnatcov_rts-traces-output-base64.ads",
-      "gnatcov_rts-traces-output-base64.adb");
+      "gnatcov_rts-traces-output-base64.adb",
+      "gnatcov_rts_c_buffers.h",
+      "gnatcov_rts_c_buffers.c");
    for Object_Dir use "obj-gnatcov_rts";
+   for Languages use ("Ada", "C");
 end GNATcov_RTS;
