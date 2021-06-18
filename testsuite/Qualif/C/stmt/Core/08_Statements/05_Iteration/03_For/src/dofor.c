@@ -14,6 +14,15 @@ dofor (int start, int behavior)
 
   --a;                          // # pre-for
 
+  // For binary traces, we will have two coverage obligations here:
+  //   - The initialization statement and the test expression
+  //   - The update statement
+  //
+  // For source traces, we have an obligation for the initialization statement,
+  // and another for the test expression, making it 3 (we still have the one
+  // for the update statement). This means the coverage expectations will be
+  // different.
+
   for (i = start; i < 10; ++i)  // # eval
     {
 in_for:

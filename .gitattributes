@@ -1,5 +1,7 @@
 testsuite/Qualif/**/*.adb no-precommit-check
 testsuite/Qualif/**/*.ads no-precommit-check
+testsuite/Qualif/**/*.c no-precommit-check
+testsuite/Qualif/**/*.h no-precommit-check
 
 # Until converted to python 3 and full style compliance ...
 testsuite/STR/*.py no-precommit-check

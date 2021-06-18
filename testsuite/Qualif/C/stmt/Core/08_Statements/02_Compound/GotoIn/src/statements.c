@@ -8,7 +8,7 @@ run_statements (int full, int arg)
       goto compound_in; // # statements-cond
 
       {
-        arg = 1;
+        arg = 1;        // # statement-non-coverable
 
 compound_in: ;
         ++arg;          // # statements-cond

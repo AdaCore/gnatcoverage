@@ -13,3 +13,6 @@ main (void)
 //  /statements-cond/       l+ ## 0
 //  /statements-aux-cond/   l+ ## 0
 //  /statements-not-cond/   l- ## s-
+
+//%opts: --trace-mode=src
+//  /statement-non-coverable/      l- ## s-

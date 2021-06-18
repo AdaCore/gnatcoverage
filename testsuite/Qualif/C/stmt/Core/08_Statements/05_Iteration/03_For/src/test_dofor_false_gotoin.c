@@ -11,7 +11,11 @@ main (void)
 //  /body/      l+ ## 0
 //  /goto-in/   l+ ## 0
 //  /pre-for/   l- ## s-
-//  /eval/      l+ ## 0
 //  /for/       l+ ## 0
 //  /goto-out/  l- ## s-
 //  /return/    l+ ## 0
+
+//%opts: --trace-mode=bin
+//  /eval/      l+ ## 0
+//%opts: --trace-mode=src
+//  /eval/      l! ## s-
