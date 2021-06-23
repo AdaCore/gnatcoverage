@@ -1976,7 +1976,8 @@ package body Instrument.Ada_Unit is
    --  holding statement and decision entries. These are declared globally
    --  since they are shared by recursive calls to this procedure.
 
-   type Instrument_Location_Type is (Before, After, Before_Parent);
+   type Instrument_Location_Type is
+     (Before, After, Before_Parent, Inside_Expr);
    --  Where to insert the witness call for a statement:
 
    --  Before: common case, insert immediately before the statement in
@@ -1993,6 +1994,11 @@ package body Instrument.Ada_Unit is
    --  evaluation of the delay duration, entry name, or entry call actuals
    --  occurs inconditionally as soon as the enclosing SELECT statement is
    --  executed, so we insert the witness immediately before the SELECT.
+   --
+   --  Inside_Expr: special cases where we cannot insert a witness call as a
+   --  statement, or as a declaration (before or after). Such occurrences are
+   --  elsif statements. In this case, we will insert the witness call inside
+   --  the underlying boolean expression.
    --
    --  SC_Entry is a single entry in the following table, From:To represents
    --  the range of entries in the CS line entry, and typ is the type, with
@@ -2107,18 +2113,31 @@ package body Instrument.Ada_Unit is
         (Method => None, Unsupported => False);
 
       procedure Extend_Statement_Sequence
-        (N           : Ada_Node'Class;
-         Typ         : Character;
-         Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle);
-      --  Extend the current statement sequence to encompass the node N. Typ is
-      --  the letter that identifies the type of statement/declaration that is
-      --  being added to the sequence. N is the original node from user code,
-      --  and controls the source location assigned to the statement SCO.
-      --  In general, this is also where the witness statement is inserted,
-      --  but in some rare cases, it needs to be inserted at a different
-      --  place (case of a degenerated subprogram, which gets rewritten into
-      --  a generic). In that case, Insertion_N indicates where to insert the
+        (N                   : Ada_Node'Class;
+         Typ                 : Character;
+         Insertion_N         : Node_Rewriting_Handle :=
+                                  No_Node_Rewriting_Handle;
+         Instrument_Location : Instrument_Location_Type := Before);
+      --  Extend the current statement sequence to encompass the node N.
+      --
+      --  Typ is the letter that identifies the type of statement/declaration
+      --  that is being added to the sequence.
+      --
+      --  N is the original node from user code, and controls the source
+      --  location assigned to the statement SCO.
+      --
+      --  In general, this is also where the witness statement is inserted, but
+      --  in some rare cases, it needs to be inserted at a different place
+      --  (case of a degenerated subprogram, which gets rewritten into a
+      --  generic). In that case, Insertion_N indicates where to insert the
       --  witness.
+      --
+      --  Instrument_Location gives further information on how the witness call
+      --  should be inserted.
+      --
+      --  ??? Instrument_Location is sometimes ignored, we should
+      --  probably refactor this so the logic for determining it is
+      --  more localized.
 
       procedure Process_Decisions_Defer (N : Ada_Node'Class; T : Character);
       pragma Inline (Process_Decisions_Defer);
@@ -2163,9 +2182,11 @@ package body Instrument.Ada_Unit is
       -------------------------------
 
       procedure Extend_Statement_Sequence
-        (N           : Ada_Node'Class;
-         Typ         : Character;
-         Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle)
+        (N                   : Ada_Node'Class;
+         Typ                 : Character;
+         Insertion_N         : Node_Rewriting_Handle :=
+                                  No_Node_Rewriting_Handle;
+         Instrument_Location : Instrument_Location_Type := Before)
       is
          SR      : constant Source_Location_Range := N.Sloc_Range;
 
@@ -2292,7 +2313,7 @@ package body Instrument.Ada_Unit is
                                        UIC.Current_Insertion_Info.Index,
                                      when others => 0),
              Instrument_Location =>
-               --  See discussion in comment for declaration of
+               --  See the comment attached to the declaration of the
                --  Instrument_Location_Type.
 
                (if Is_Select_Stmt_Alternative
@@ -2301,7 +2322,7 @@ package body Instrument.Ada_Unit is
                         when Ada_Delay_Stmt
                            | Ada_Call_Stmt => Before_Parent,
                         when others        => After)
-                else Before)));
+                else Instrument_Location)));
       end Extend_Statement_Sequence;
 
       -----------------------------
@@ -2367,10 +2388,9 @@ package body Instrument.Ada_Unit is
 
             when Statement | Declaration =>
 
-               if SCE.N.Kind = Ada_Elsif_Stmt_Part then
+               if SCE.Instrument_Location = Inside_Expr then
                   declare
-                     Old_Cond : Node_Rewriting_Handle :=
-                       Handle (SCE.N.As_Elsif_Stmt_Part.F_Cond_Expr);
+                     Old_Cond : Node_Rewriting_Handle := SCE.Insertion_N;
                      New_Cond : constant Node_Rewriting_Handle :=
                        Create_Regular_Node
                          (RC,
@@ -2390,26 +2410,24 @@ package body Instrument.Ada_Unit is
 
                   begin
                      --  Detach old condition from tree and replace it with
-                     --  AND THEN node.
+                     --  OR ELSE node.
 
                      Replace (Old_Cond, New_Cond);
 
-                     --  Now reattach old condition in new AND THEN node. If it
-                     --  is AND, OR, XOR or OR ELSE binary operation, we need
-                     --  to wrap it in parens to generate valid code.
+                     --  Now reattach old condition in new OR ELSE node. If it
+                     --  is AND, OR, XOR, AND THEN binary operation or an IF
+                     --  expression, or a quantified expression (FOR ALL, FOR
+                     --  SOME), we need to wrap it in parens to generate valid
+                     --  code.
 
-                     if Kind (Old_Cond) = Ada_Bin_Op
-                        and then Kind (Child (Old_Cond, 2)) in
-                                 Ada_Op_And
-                               | Ada_Op_Or
-                               | Ada_Op_Xor
-                               | Ada_Op_And_Then
-                     then
-                        Old_Cond := Create_Regular_Node
-                          (RC,
-                           Ada_Paren_Expr,
-                           Children => (1 => Old_Cond));
-                     end if;
+                     --  Now reattach old condition in the new OR ELSE node. We
+                     --  will wrap it in parens to preserve the semantics of
+                     --  the condition.
+
+                     Old_Cond := Create_Regular_Node
+                       (RC,
+                        Ada_Paren_Expr,
+                        Children => (1 => Old_Cond));
 
                      Set_Child (New_Cond, 3, Old_Cond);
                   end;
@@ -2495,12 +2513,18 @@ package body Instrument.Ada_Unit is
                      --  control). However in some special cases we have to
                      --  insert after the statement, see comment for
                      --  Instrument_Location_Type.
+                     --
+                     --  The cases where we need to instrument inside an
+                     --  expression are handled before, as they do not trigger
+                     --  the insertion of a new statement in a statement list.
 
                      Insert_Pos := Insert_Pos
                        + Insert_Info.Rewriting_Offset
                        + (case SCE.Instrument_Location is
                              when Before | Before_Parent => 0,
-                             when After  => 1);
+                             when After                  => 1,
+                             when Inside_Expr            =>
+                                raise Program_Error);
                   end if;
 
                   --  Insert witness statement or declaration
@@ -3573,7 +3597,10 @@ package body Instrument.Ada_Unit is
                            --  construct "ELSIF condition", so that we have
                            --  a statement for the resulting decisions.
 
-                           Extend_Statement_Sequence (Ada_Node (Elif), 'I');
+                           Extend_Statement_Sequence
+                             (Ada_Node (Elif), 'I',
+                              Insertion_N         => Handle (Elif.F_Cond_Expr),
+                              Instrument_Location => Inside_Expr);
                            Process_Decisions_Defer (Elif.F_Cond_Expr, 'I');
                            Set_Statement_Entry;
 
@@ -3995,7 +4022,6 @@ package body Instrument.Ada_Unit is
 
                declare
                   Typ : Character;
-
                begin
                   case N.Kind is
                      when Ada_Base_Type_Decl =>
@@ -4042,9 +4068,6 @@ package body Instrument.Ada_Unit is
                         | Ada_Use_Type_Clause
                      =>
                         Typ := ASCII.NUL;
-
-                     when Ada_Call_Stmt =>
-                        Typ := ' ';
 
                      when others =>
                         if N.Kind in Ada_Stmt then
