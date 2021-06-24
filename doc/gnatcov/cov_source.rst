@@ -118,7 +118,7 @@ The available options are as follows:
 :option:`--ignore-source-files`, |rarg|:
    Provide a list of globbing patterns (as in Unix shells) of source
    files to be excluded from the analysis and from the output report.
-   See the :ref:`ada_subunits` section for more information.
+   See the :ref:`ignore_source_files` section for more information.
 
 :option:`--dump-units-to`:
    For source coverage analysis specifically, output the names of units
@@ -1423,41 +1423,6 @@ condition is short-circuited so its value change is not relevant. The
 condition expressions are such that running vector 4 is not possible,
 however, since we can't have V both < X1 (condition 1 False) and V >
 X2 (condition 2 False) at the same time when X1 < X2.
-
-.. _ada_subunits:
-
-Ada subunits ("separates")
---------------------------
-
-Subunits, declared with a ``separate`` keyword and implemented in a separate
-source file, are compiled as part of their parent and are not considered as
-units on their own. Only the parent name has an effect in the coverage
-analysis scope specifications and it denotes the set of sources involved
-in the entire unit implementation, subunit sources included.
-
-However it is quite common to use subunits as a mean to do unit testing: a
-subunit is physically separated from other sources and can have access to
-implementation internals. Such subunits vary from one test to another and thus
-interfere with the consolidation process. For this specific use case, the
-:option:`--ignore-source-files` command-line argument for |gcvcov| makes it
-possible for the coverage analysis and the report production to ignore source
-files even though they belong to units of interest.
-
-This option can appear multiple times on the command line. Each occurrence
-expects a single argument which is either a globbing pattern for the name of
-source file to ignore, or a :term:`@listfile argument` that contains a list of
-such patterns.
-
-For instance, consider the spec and body for the ``Ops`` unit (``ops.ads`` an
-``ops.adb``) with the body containing a subunit subprogram ``Ops.Test``
-(``ops-test.adb``). In order to perform a coverage analysis on the ``Ops`` unit
-excluding the ``Ops.Test`` subunit, one must run::
-
-  gnatcov coverage [regular options] --units=ops --ignore-source-files=ops-test.adb [trace files]
-
-In order to ignore all files whose name match ``*-test.adb``, you can also run::
-
-  gnatcov coverage [regular options] --units=ops --ignore-source-files=*-test.adb [trace files]
 
 Inlining & Ada generic units
 ============================

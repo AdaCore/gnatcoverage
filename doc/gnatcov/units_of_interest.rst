@@ -235,45 +235,6 @@ and then executing::
 
   gnatcov <command> --units=@units.list
 
-Conveying source files to ignore within units
-*********************************************
-
-Two attributes in the ``Coverage`` package make it possible to specify
-specific source files to ignore, where the designated sources are part of a
-unit otherwise of interest. This is intended to for situations where the
-sources of a unit of interest encompass (part of) the unit testing sources
-(which provides visibility on internal subprograms to the testing code).
-
-Both attributes gather a list of globbing patterns (as in Unix shells). All
-source files whose name matches one pattern are excluded from the analysis and
-from the output report.
-
-The first attribute, ``Ignored_Source_Files``, expects a list of patterns::
-
-    package Coverage is
-      for Ignored_Source_Files use ("*-test.adb", "logger-*.adb");
-    end Coverage;
-
-The second one, ``Ignored_Source_Files_List``, corresponds to the use of
-:term:`@listfile argument`. In the following example, the ``ignore.list`` text
-file is expected to contain a list of globbing patterns, each separated by line
-breaks::
-
-    package Coverage is
-      for Ignored_Source_Files_List use "ignore.list";
-    end Coverage;
-
-The forms above are equivalent to :option:`--ignore-source-files` options on
-the command line, namely
-``--ignore-source-files=*-test.adb --ignore-source-files=logger-*.adb`` for
-the first example, and ``--ignore-source-files=@ignore.list`` for the second
-one.
-
-Note that the command-line arguments have precedence over the project files
-attributes. In other words, as soon as the ``--ignore-source-files`` argument
-is present on the command-line, both of the attributes described above are
-ignored.
-
 .. _gpr_context:
 
 Other switches or attributes of importance
@@ -294,6 +255,152 @@ as the ``-X`` series setting scenarii variables.
 In some cases, such as ``--target`` or ``--RTS``, the effect of the command
 line switch can be achieved with a project file attribute, which |gcp| knows
 how to interepret as well.
+
+.. _ignore_source_files:
+
+Conveying source files to ignore / handling Ada subunits
+--------------------------------------------------------
+
+Two attributes in the ``Coverage`` package make it possible to specify
+specific source file names for which the tool should not generate a
+report eventually, even if the these sources are within units of
+interest. This is intended for situations where the source files for a
+unit of interest encompass some of its testing sources, for example
+when parts of the testing code is implemented with ``separate``
+subunits in Ada.
+
+The dummy example below shows a possible organization of this kind,
+with a ``Data_Processing`` package to be tested which contains a ``Test``
+procedure declared as a ``separate`` entity::
+
+  -- spec and body of a package to test
+
+  package Data_Processing is
+     procedure Process (X : Integer);
+
+     procedure Test;
+  end;
+
+  package body Data_Processing is
+
+     Internal_Data : Integer := 0;
+
+     procedure Process (X : Integer) is
+     begin
+        ...
+     end;
+
+     procedure Test is separate; -- subunit declaration here
+  end;
+
+We can have different implementations of the ``Test`` subprogram body
+in different source files and a project file based mechanism to select
+one or the other based on a scenario variable::
+
+  -- data_processing-test1.adb; test variation #1
+
+  separate (Data_Processing)
+  procedure Test is
+  begin
+     Process (X => 12);
+     pragma Assert (Internal_Data > 0);
+  end;
+
+  -- data_processing-test2.adb; test variation #2
+
+  separate (Data_Processing)
+  procedure Test is
+  begin
+     Process (X => -8);
+     pragma Assert (Internal_Data < 0);
+  end;
+
+  -- Project file with a Body source file name selection in a
+  -- Naming project package:
+
+  project P is
+    TEST := external ("TEST");
+    package Naming is
+      for Body ("data_processing.test") use "data_processing-" & TEST & ".adb";
+    end Naming;
+  end P;
+
+Then we can build one variant or the other with::
+
+  -- run_all.adb
+
+  with Data_Processing;
+  procedure Run_All is
+  begin
+     Data_Processing.Test;
+  end;
+
+  $ gprbuild -Pp.gpr -XTEST=test1 run_all.adb
+  $ gprbuild -Pp.gpr -XTEST=test2 run_all.adb
+  ...
+
+As any testing code, such subunits usually need to be excluded from
+the coverage analysis scope. However, even though implemented in
+separate source files, subunits are technically not units on their
+own, so could not be excluded alone by the unit-based mechanisms
+presented in previous sections.
+
+The two attributes introduced here allow the specification of file
+names to be ignored as a list of globbing patterns akin to those
+allowed in Unix shells. All source files whose *base* name matches any
+of the patterns are excluded from the analysis and from the output
+report. Since only base names are matched, the provided patterns to
+ignore should not include any path or directory component.
+
+The first attribute, ``Ignored_Source_Files``, expects a direct list
+of patterns. Even though intended for subunits, the attribute allows
+file names corresponding to regular units as well. For our dummy
+example, this could be::
+
+    package Coverage is
+      for Ignored_Source_Files use ("*-test*.adb", "run_all.adb");
+    end Coverage;
+
+The second one, ``Ignored_Source_Files_List``, expects the name of
+a text file which contains the list of globbing patterns to ignore,
+one line per pattern.
+
+To achieve the same effect as with the first attribute for our
+example, we could create a text file named ``ignore.list`` which would
+contain::
+
+  *-test.adb
+  run_all.adb
+
+And then have::
+
+    package Coverage is
+      for Ignored_Source_Files_List use "ignore.list";
+    end Coverage;
+
+As a possible alternative to the project file attributes, the |gcvcov| and
+|gcvins| commands accept a :option:`--ignore-source-files` switch on the
+command line.
+
+This option can appear multiple times on the command line. Each
+occurrence expects a single argument which is either a globbing
+pattern for the name of source files to ignore (as for a
+``Ignored_Source_Files`` attribute), or a :term:`@listfile argument`
+that contains a list of such patterns (as for a
+``Ignored_Source_Files_List`` attribute), and the effects of all the
+options accumulate.
+
+The example attributes provided previously would become::
+
+  gnatcov <command> --ignore-source-files=*-test.adb --ignore-source-files=run_all.adb
+
+or::
+
+  gnatcov <command> --ignore-source-files=@ignore.list
+
+When ``--ignore-source-files`` is provided on the command line, all
+the ``Ignored_Source_Files`` and ``Ignored_Source_Files_List``
+attributes are ignored.
 
 .. _unit-names:
 
@@ -365,4 +472,3 @@ analysis scope can be achieved with::
   package Coverage is
      for Excluded_Units use ("foo.c"); /* source file name here  */
   end Coverage;
-
