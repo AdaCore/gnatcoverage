@@ -1083,6 +1083,19 @@ package body Instrument.Ada_Unit is
            Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
            Rule      => Object_Decl_Rule));
 
+      --  If we are adding MCDC state variables to the decls currently being
+      --  instrumented, we need to indicate that we just added two extra
+      --  elements in the list of declarations, so that following insertions
+      --  are made at the correct index in this list.
+
+      if UIC.Current_Insertion_Info /= null
+        and then UIC.Current_Insertion_Info.Method = Declaration
+        and then UIC.Current_Insertion_Info.RH_List = Inserter.Local_Decls
+      then
+         UIC.Current_Insertion_Info.Rewriting_Offset :=
+           UIC.Current_Insertion_Info.Rewriting_Offset + 2;
+      end if;
+
       return Name;
    end Insert_MCDC_State;
 
