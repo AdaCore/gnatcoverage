@@ -22,7 +22,7 @@ import os
 # -- General configuration -------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '3.2'
+needs_sphinx = '1.8'
 # 1.2 for multiple glossary entries
 
 # Add any Sphinx extension module names here, as strings. They can be
