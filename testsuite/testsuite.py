@@ -551,6 +551,9 @@ class TestPyRunner:
         if mopt.pretty_print:
             testcase_cmd.append('--pretty-print')
 
+        if mopt.spark_tests:
+            testcase_cmd.append('--spark-tests=%s' % mopt.spark_tests)
+
         # --gnatcov_<cmd> family
 
         for pgm, cmd in control.ALTRUN_GNATCOV_PAIRS:
@@ -1081,12 +1084,19 @@ class TestSuite(e3.testsuite.Testsuite):
 
         attr_cargs_ada = cargs_attr_for("Ada")
         cargs_ada = getattr(args, attr_cargs_ada)
-        if not re.search("-gnat95|-gnat05|-gnat12", cargs_ada):
+        attr_cargs = cargs_attr_for("")
+        cargs = getattr(args, attr_cargs)
+        if not re.search("-gnat95|-gnat05|-gnat12", cargs_ada + cargs):
             if args.qualif_level:
                 raise FatalError(
                     "Missing -gnat<95|05|12> in cargs:Ada for qualification")
             else:
                 setattr(args, attr_cargs_ada, cargs_ada + " -gnat05")
+
+        # Most SPARK testcases require Ada 2012
+
+        if getattr(args, "spark_tests"):
+            setattr(args, attr_cargs_ada, cargs_ada + " -gnat12")
 
         # Expect an explicit -gnatec if we're running for qualification
 
@@ -1252,6 +1262,9 @@ class TestSuite(e3.testsuite.Testsuite):
         result.append('src-traces'
                       if self.main.args.trace_mode == 'src'
                       else 'bin-traces')
+
+        if self.main.args.spark_tests:
+            result.append('spark-tests')
 
         return result
 

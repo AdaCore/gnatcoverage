@@ -1,0 +1,16 @@
+--  This is the (supposedly) exhaustive list of global restrictions to be
+--  used when building instrumented spark code.
+--
+--  We need to enforce such restrictions, as gnatcov instrumentation
+--  generates constructs incompatible with a SPARK_Mode compilation.
+
+pragma Unevaluated_Use_Of_Old (Allow);
+pragma Ignore_Pragma (SPARK_Mode);
+pragma Ignore_Pragma (Refined_State);
+pragma Ignore_Pragma (Abstract_State);
+pragma Ignore_Pragma (Global);
+pragma Ignore_Pragma (Depends);
+pragma Ignore_Pragma (Part_Of);
+pragma Ignore_Pragma (Initializes);
+pragma Ignore_Pragma (Refined_Global);
+pragma Ignore_Pragma (Refined_Depends);

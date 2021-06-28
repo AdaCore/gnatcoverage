@@ -245,14 +245,17 @@ def gpr_emulator_package():
 
 
 def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
-           main_cargs=None, langs=None, deps=(), compiler_extra="", extra=""):
+           main_cargs=None, langs=None, deps=(), scenario_extra="",
+           compiler_extra="", extra=""):
     """
     Generate a simple PRJID.gpr project file to build executables for each main
     source file in the MAINS list, sources in SRCDIRS. Inexistant directories
     in SRCDIRS are ignored. Assume the set of languages is LANGS when
-    specified; infer from the mains otherwise. Add COMPILER_EXTRA, if any, at
-    the end of the Compiler package contents. Add EXTRA, if any, at the end of
-    the project file contents. Return the gpr file name.
+    specified; infer from the mains otherwise. Add SCENARIO_EXTRA, if any, at
+    the beginning of the project files (for scenario variables). Add
+    COMPILER_EXTRA, if any, at the end of the Compiler package contents. Add
+    EXTRA, if any, at the end of the project file contents. Return the gpr file
+    name.
     """
     deps = '\n'.join('with "%s";' % dep for dep in deps)
 
@@ -307,6 +310,7 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     gprtext = template % {
         'prjname': prjid,
         'extends': ('extends "%s"' % basegpr) if basegpr else "",
+        'scenario': scenario_extra,
         'srcdirs': srcdirs,
         'exedir': exedir,
         'objdir': objdir or (exedir + "/obj"),

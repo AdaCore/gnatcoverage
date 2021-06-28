@@ -462,3 +462,9 @@ def add_shared_options_to(parser, toplevel):
         '--pretty-print', action='store_true',
         help='Whether to pretty-print generated sources (for "gnatcov'
              ' instrument".')
+
+    # --spark-tests
+    parser.add_argument(
+        '--spark-tests', dest="spark_tests", metavar='SPARK_TESTSUITE_PATH',
+        help='Path to the SPARK testsuite. Activate SPARK-specific'
+             ' tests. Implicitly appends -gnat12 to Ada cargs.')
