@@ -5957,7 +5957,9 @@ package body Instrument.Ada_Unit is
       UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
 
       begin
-         Preelab := UIC.Root_Unit.P_Is_Preelaborable
+         Preelab := (UIC.Root_Unit.P_Is_Preelaborable
+                     or else UIC.Root_Unit.P_Has_Restriction
+                       (To_Unbounded_Text ("No_Elaboration_Code")))
            and then UIC.Root_Unit.F_Body.Kind = Ada_Library_Item
            and then UIC.Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
              Ada_Package_Decl
