@@ -3859,6 +3859,7 @@ package body Instrument.Ada_Unit is
                         | Name_Assume
                         | Name_Check
                         | Name_Loop_Invariant
+                        | Name_Type_Invariant
                         | Name_Postcondition
                         | Name_Precondition
                      =>
@@ -3949,8 +3950,7 @@ package body Instrument.Ada_Unit is
                      --  never disabled.
 
                      --  Should generate P decisions (not X) for assertion
-                     --  related pragmas: [Type_]Invariant,
-                     --  [{Static,Dynamic}_]Predicate???
+                     --  related pragmas: [{Static,Dynamic}_]Predicate???
 
                      when others =>
                         Process_Decisions_Defer (N, 'X');
@@ -4917,6 +4917,27 @@ package body Instrument.Ada_Unit is
 
                   Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
                   return Over;
+               end;
+
+            --  Aspects for which we don't want to instrument the decision
+
+            when Ada_Aspect_Assoc =>
+               declare
+                  AN : constant Aspect_Assoc := N.As_Aspect_Assoc;
+               begin
+                  if Aspect_Assoc_Name (AN) in As_Symbol (Dynamic_Predicate)
+                    | As_Symbol (Invariant)
+                    | As_Symbol (Post)
+                    | As_Symbol (Postcondition)
+                    | As_Symbol (Pre)
+                    | As_Symbol (Precondition)
+                    | As_Symbol (Predicate)
+                    | As_Symbol (Static_Predicate)
+                    | As_Symbol (Type_Invariant)
+                  then
+                     return Over;
+                  end if;
+                  return Into;
                end;
 
             --  All other cases, continue scan
