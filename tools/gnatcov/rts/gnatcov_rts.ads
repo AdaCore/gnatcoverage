@@ -27,15 +27,21 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
+with System;
+
 package GNATcov_RTS is
 
    pragma Pure;
 
-   Version : constant := 2;
+   package Std renames Standard;
+   package Sys renames System;
+
+   Version : constant := 3;
    --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
    --  versioned.
    --
    --  1 -- initial runtime version
    --  2 -- extend trace entry model to account for C files
+   --  3 -- add a renaming of the Standard and System packages in GNATcov_RTS
 
 end GNATcov_RTS;

@@ -284,8 +284,7 @@ package body Instrument.Ada_Unit is
    function Convert_To
      (IC                 : in out Ada_Unit_Inst_Context;
       From_Type, To_Type : Base_Type_Decl;
-      RH_N               : Node_Rewriting_Handle)
-      return Node_Rewriting_Handle;
+      RH_N               : Node_Rewriting_Handle) return Node_Rewriting_Handle;
    --  Given an expression RH_N of type From_Type, return an expression of type
    --  To_Type, introducing a type conversion if needed. Both types are
    --  expected to be boolean types (i.e. Standard.Boolean or any of its
@@ -718,9 +717,9 @@ package body Instrument.Ada_Unit is
    function Convert_To
      (IC                 : in out Ada_Unit_Inst_Context;
       From_Type, To_Type : Base_Type_Decl;
-      RH_N               : Node_Rewriting_Handle)
-      return Node_Rewriting_Handle
+      RH_N               : Node_Rewriting_Handle) return Node_Rewriting_Handle
    is
+      To_Type_Indentifier : Node_Rewriting_Handle;
    begin
       --  Guard against failure to type some expression, and return node
       --  unchanged if no conversion is required.
@@ -735,13 +734,24 @@ package body Instrument.Ada_Unit is
                To_Type
                .P_Top_Level_Decl (To_Type.Unit)
                .P_Canonical_Fully_Qualified_Name);
+            To_Type_Indentifier :=
+              Create_Identifier
+                (IC.Rewriting_Context,
+                 To_Type.P_Canonical_Fully_Qualified_Name);
+         else
+            --  The Standard package may be hidden (and the Boolean type might
+            --  very well be). To avoid issues, we have an accessible package
+            --  that renames Standard in GNATcov_RTS.
+
+            To_Type_Indentifier :=
+              Create_Identifier
+                (IC.Rewriting_Context,
+                 To_Text ("GNATcov_RTS.Std.Boolean"));
          end if;
 
          return Create_Call_Expr
            (IC.Rewriting_Context,
-            F_Name   => Create_Identifier
-              (IC.Rewriting_Context,
-               To_Type.P_Canonical_Fully_Qualified_Name),
+            F_Name   => To_Type_Indentifier,
             F_Suffix => RH_N);
       end if;
    end Convert_To;
@@ -1063,11 +1073,10 @@ package body Instrument.Ada_Unit is
       Var_Decl_Img  : constant String :=
         Name & "_Var : aliased {}.MCDC_State_Type;";
       Addr_Decl_Img : constant String :=
-        Name & " : constant Standard.System.Address := "
+        Name & " : constant GNATCov_RTS.Sys.Address := "
         & Name & "_Var'Address;";
 
    begin
-      Ensure_With (UIC, "system");
       Insert_Child
         (Inserter.Local_Decls, 1,
          Create_From_Template
