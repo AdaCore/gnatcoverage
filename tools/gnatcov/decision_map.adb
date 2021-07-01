@@ -2188,7 +2188,7 @@ package body Decision_Map is
          end;
 
          --  Note: there are cases (e.g. for Pre/Post aspects) where there
-         --  is a decision SCO with no enslosing statement SCO, and we have
+         --  is a decision SCO with no enclosing statement SCO, and we have
          --  code associated with the sloc of the decision, but not with the
          --  sloc ranges of any of the conditions. In these cases we need to
          --  look at D_SCO_For_Jump to identify that the code is still part of
@@ -2223,8 +2223,13 @@ package body Decision_Map is
                --  are outcomes: finalization of transient blocks only occurs
                --  after a complete expression has been evaluated (or an
                --  exception was raised).
+               --
+               --  This heuristic is not valid for quantified expressions, so
+               --  we will deactivate it in this case.
 
-               if BB.Call = Finalizer then
+               if BB.Call = Finalizer
+                  and then not Is_Quantified_Expression (CBI.Condition)
+               then
                   Edge_Info.Dest_Kind := Outcome;
 
                --  Case of a call emitted within the same decision, and raising
@@ -2232,8 +2237,7 @@ package body Decision_Map is
                --  or a False outcome for an assertion/pre/post-condition.
 
                elsif BB.Call = Raise_Exception
-                       and then
-                     D_SCO_For_Jump = D_SCO
+                     and then D_SCO_For_Jump = D_SCO
                then
                   --  Call to Raise_Assert_Failure in an Assert/PPC decision:
                   --  False outcome. Note that more than one condition within
@@ -2243,9 +2247,9 @@ package body Decision_Map is
                   --  than SCO (but always within the same enclosing decision).
 
                   if Is_Assertion (D_SCO)
-                    and then Platform_Independent_Symbol (BB.Called_Sym.all,
-                                                          Exe.all)
-                               = "system__assertions__raise_assert_failure"
+                     and then Platform_Independent_Symbol (BB.Called_Sym.all,
+                                                           Exe.all)
+                              = "system__assertions__raise_assert_failure"
                   then
                      Edge_Info.Dest_Kind := Outcome;
                      Edge_Info.Outcome   := False;

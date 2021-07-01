@@ -1970,6 +1970,53 @@ package body SC_Obligations is
            First_Sloc (Enclosing_S_SCO) = SCOD.Control_Location);
    end Is_If_Expression;
 
+   ------------------------------
+   -- Is_Quantified_Expression --
+   ------------------------------
+
+   function Is_Quantified_Expression (SCO : SCO_Id) return Boolean is
+      SCOD            : SCO_Descriptor;
+      Enclosing_C_SCO : SCO_Id;
+      Next_SCO        : SCO_Id := SCO + 1;
+   begin
+      --  Condition SCOS don't discriminate quantified expression specifically.
+      --  They are nevertheless characterized by the mandatory presence of a
+      --  'W' decision sub-SCO for their predicate.
+      --
+      --  We don't have direct links to sub-SCOS. We have enclosing-SCO links
+      --  still, and know that sub-SCOs are listed after their parent.
+      --
+      --  Iterate to see if we find a sub-SCO of our SCO argument (according
+      --  to the enclosing-SCO links) that is a 'W' decision. If the
+      --  immediately enclosing condition of that decision corresponds to the
+      --  SCO argument, then it means that the SCO argument is a quantified
+      --  expression.
+
+      while Next_SCO <= Last_SCO loop
+         SCOD := SCO_Vector.Reference (Next_SCO);
+
+         if SCOD.Kind = Decision and then SCOD.D_Kind = While_Loop then
+
+            --  We found a quantified expression. Now check whether it
+            --  corresponds to the given SCO.
+
+            Enclosing_C_SCO := Enclosing (Condition, SCO);
+
+            if Enclosing_C_SCO = SCO then
+               return True;
+            end if;
+
+         --  We reached the end of the decision
+
+         elsif SCOD.Kind = Statement then
+            return False;
+         end if;
+         Next_SCO := Next_SCO + 1;
+      end loop;
+
+      return False;
+   end Is_Quantified_Expression;
+
    ----------------------------------
    -- Is_Pragma_Pre_Post_Condition --
    ----------------------------------

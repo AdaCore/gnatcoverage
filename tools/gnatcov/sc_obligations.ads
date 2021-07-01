@@ -434,6 +434,9 @@ package SC_Obligations is
    function Is_If_Expression (SCO : SCO_Id) return Boolean;
    --  True if SCO is the decision of an IF expression
 
+   function Is_Quantified_Expression (SCO : SCO_Id) return Boolean;
+   --  True if SCO is a condition that is a quantified expression
+
    function Path_Count (SCO : SCO_Id) return Natural;
    --  Return count of paths through decision's BDD from root condition to
    --  any outcome.
