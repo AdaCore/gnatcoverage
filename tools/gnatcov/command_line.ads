@@ -80,7 +80,8 @@ package Command_Line is
       Opt_Show_MCDC_Vectors,
       Opt_Dump_Filename_Simple,
       Opt_Allow_Mix_Trace_Kind,
-      Opt_Analyze_Entry_Barriers);
+      Opt_Analyze_Entry_Barriers,
+      Opt_Boolean_Short_Circuit_And_Or);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -462,7 +463,17 @@ package Command_Line is
                       & " in source trace mode and with a ravenscar profile,"
                       & " as the instrumenter will generate invalid code.",
          Commands  => (Cmd_Instrument | Cmd_Coverage => True, others => False),
-         Internal  => True)
+         Internal  => True),
+
+      Opt_Boolean_Short_Circuit_And_Or => Create
+        (Long_Name => "--short-circuit-and-or",
+         Help      => "For Ada sources, consider that boolean operators"
+                      & " ""and"" and ""or"" have short-circuit semantics and"
+                      & " instrument them accordingly. This does not modify"
+                      & " the actual semantics of the operators, which needs"
+                      & " to be done with the Short_Circuit_And_Or pragma.",
+        Commands   => (Cmd_Instrument => True, others => False),
+        Internal   => True)
      );
 
    String_Infos : constant String_Option_Info_Array :=

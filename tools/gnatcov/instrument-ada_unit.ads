@@ -178,6 +178,10 @@ private
          --  Index of last processed degenerate subprogram (null procedure or
          --  expression function) in current unit. This is used to assign
          --  unique names for generated constructs.
+
+         Short_Circuit_And_Or : Boolean := False;
+         --  Whether the Standard.Boolean and/or operators should be
+         --  considered as having short-circuit semantics.
       end record;
 
    function Insert_MCDC_State

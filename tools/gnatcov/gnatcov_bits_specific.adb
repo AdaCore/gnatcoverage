@@ -431,6 +431,8 @@ procedure GNATcov_Bits_Specific is
                                  or else Verbose);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
       Analyze_Entry_Barriers   := Args.Bool_Args (Opt_Analyze_Entry_Barriers);
+      Short_Circuit_And_Or     := Args.Bool_Args
+                                    (Opt_Boolean_Short_Circuit_And_Or);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"

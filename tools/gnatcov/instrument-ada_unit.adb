@@ -1972,7 +1972,8 @@ package body Instrument.Ada_Unit is
    -- Internal Subprograms --
    --------------------------
 
-   function Has_Decision (T : Ada_Node'Class) return Boolean;
+   function Has_Decision
+     (UIC : Ada_Unit_Inst_Context; T : Ada_Node'Class) return Boolean;
    --  T is the node for a subtree. Returns True if any (sub)expression in T
    --  contains a nested decision (i.e. either is a logical operator, or
    --  contains a logical operator in its subtree).
@@ -1981,14 +1982,22 @@ package body Instrument.Ada_Unit is
    --  Return the operator node of an unary or binary expression, or No_Op if
    --  not an operator.
 
-   function Is_Logical_Operator (N : Ada_Node'Class) return Boolean;
+   function Is_Logical_Operator
+     (UIC : Ada_Unit_Inst_Context; N : Ada_Node'Class) return Boolean;
    --  Return whether N is an operator that can be part of a decision (NOT or
    --  short circuit AND/OR).
 
-   function Is_Complex_Decision (N : Expr'Class) return Boolean;
+   function Is_Complex_Decision
+     (UIC : Ada_Unit_Inst_Context; N : Expr'Class) return Boolean;
    --  Return whether N is a complex decision, i.e. a tree of
    --  NOT/AND-THEN/OR-ELSE operators that contain at least one AND-THEN or
    --  OR-ELSE operaton.
+
+   function Is_Standard_Boolean_And_Or (N : Op) return Boolean
+     with Pre => N.Kind in Ada_Op_And | Ada_Op_Or;
+   --  Return whether N is a Standard.Boolean and/or operator, i.e. is not an
+   --  overloading operator, both its operands are of Standard.Boolean type
+   --  and its return type is of Standard.Boolean type.
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -3951,7 +3960,7 @@ package body Instrument.Ada_Unit is
             =>
                Extend_Statement_Sequence (N, 'o');
 
-               if Has_Decision (N) then
+               if Has_Decision (UIC, N) then
                   Process_Decisions_Defer (N, 'X');
                end if;
 
@@ -4058,7 +4067,7 @@ package body Instrument.Ada_Unit is
 
                --  Process any embedded decisions
 
-               if Has_Decision (N) then
+               if Has_Decision (UIC, N) then
                   Process_Decisions_Defer (N, 'X');
                end if;
          end case;
@@ -4600,7 +4609,7 @@ package body Instrument.Ada_Unit is
 
          --  Logical operator
 
-         if Is_Logical_Operator (N) then
+         if Is_Logical_Operator (UIC, N) then
             Op_N := Operator (N);
             Op_NK := Op_N.Kind;
 
@@ -4788,7 +4797,7 @@ package body Instrument.Ada_Unit is
       procedure Find_Nested_Decisions (Operand : Expr) is
          N : constant Expr := Unwrap (Operand);
       begin
-         if Is_Logical_Operator (N) then
+         if Is_Logical_Operator (UIC, N) then
             if N.Kind = Ada_Un_Op then
                Find_Nested_Decisions (N.As_Un_Op.F_Expr);
 
@@ -4823,7 +4832,7 @@ package body Instrument.Ada_Unit is
            --  expression involving a logical operator.
 
            (N.Kind in Ada_Expr
-            and then Is_Complex_Decision (N.As_Expr));
+            and then Is_Complex_Decision (UIC, N.As_Expr));
 
       begin
          if Decision_Root then
@@ -4953,7 +4962,9 @@ package body Instrument.Ada_Unit is
    -- Has_Decision --
    ------------------
 
-   function Has_Decision (T : Ada_Node'Class) return Boolean is
+   function Has_Decision
+     (UIC : Ada_Unit_Inst_Context; T : Ada_Node'Class) return Boolean
+   is
       function Visit (N : Ada_Node'Class) return Visit_Status;
       --  If N's kind indicates the presence of a decision, return Stop,
       --  otherwise return Into.
@@ -4968,7 +4979,7 @@ package body Instrument.Ada_Unit is
       function Visit (N : Ada_Node'Class) return Visit_Status is
       begin
          if N.Kind in Ada_Expr
-            and then (Is_Complex_Decision (N.As_Expr)
+            and then (Is_Complex_Decision (UIC, N.As_Expr)
                       or else N.Kind = Ada_If_Expr)
          then
             return Stop;
@@ -4987,7 +4998,9 @@ package body Instrument.Ada_Unit is
    -- Is_Logical_Operator --
    -------------------------
 
-   function Is_Logical_Operator (N : Ada_Node'Class) return Boolean is
+   function Is_Logical_Operator
+     (UIC : Ada_Unit_Inst_Context; N : Ada_Node'Class) return Boolean
+   is
    begin
       if N.Kind not in Ada_Expr then
          return False;
@@ -5009,9 +5022,12 @@ package body Instrument.Ada_Unit is
 
             when Ada_Op_And | Ada_Op_Or =>
 
-               --  TODO??? Handle Short_Circuit_And_Or pragmas
+            --  Only consider Op_N as logical operators if we are told "and"
+            --  and "or" have short circuit semantics, and that it is a
+            --  Standard.Boolean operator.
 
-               return False;
+               return UIC.Short_Circuit_And_Or
+                 and then Is_Standard_Boolean_And_Or (Op_N);
 
             when others =>
                return False;
@@ -5023,7 +5039,9 @@ package body Instrument.Ada_Unit is
    -- Is_Complex_Decision --
    -------------------------
 
-   function Is_Complex_Decision (N : Expr'Class) return Boolean is
+   function Is_Complex_Decision
+     (UIC : Ada_Unit_Inst_Context; N : Expr'Class) return Boolean
+   is
       Op_N : constant Op := Operator (N);
    begin
       if Op_N.Is_Null then
@@ -5043,21 +5061,55 @@ package body Instrument.Ada_Unit is
             --
             --     not A
 
-            return Is_Complex_Decision (N.As_Un_Op.F_Expr);
+            return Is_Complex_Decision (UIC, N.As_Un_Op.F_Expr);
 
          when Ada_Op_And_Then | Ada_Op_Or_Else =>
             return True;
 
          when Ada_Op_And | Ada_Op_Or =>
 
-            --  ??? (S923-012) Maybe we should consider these make up decisions
+            --  Only consider these as decisions if we are told the operators
+            --  have short circuit semantics, and that it is a Standard.Boolean
+            --  operator.
 
-            return False;
+            return UIC.Short_Circuit_And_Or
+              and then Is_Standard_Boolean_And_Or (Op_N);
 
          when others =>
             return False;
       end case;
    end Is_Complex_Decision;
+
+   --------------------------------
+   -- Is_Standard_Boolean_And_Or --
+   --------------------------------
+
+   function Is_Standard_Boolean_And_Or (N : Op) return Boolean is
+      Binop_N                       : Bin_Op;
+      Expr_Typ, Left_Typ, Right_Typ : Base_Type_Decl;
+
+      Std_Bool_Type : constant Type_Decl := N.P_Bool_Type.As_Type_Decl;
+   begin
+      Binop_N := Parent (N).As_Bin_Op;
+      Expr_Typ := Binop_N.As_Expr.P_Expression_Type;
+      Left_Typ := Binop_N.F_Left.P_Expression_Type;
+      Right_Typ := Binop_N.F_Right.P_Expression_Type;
+
+      return N.P_Referenced_Decl.Is_Null
+        and then Expr_Typ /= No_Ada_Node
+        and then Left_Typ /= No_Ada_Node
+        and then Right_Typ /= No_Ada_Node
+        and then Expr_Typ.P_Base_Subtype = Std_Bool_Type
+        and then Left_Typ.P_Base_Subtype = Std_Bool_Type
+        and then Right_Typ.P_Base_Subtype = Std_Bool_Type;
+
+   exception
+      when Property_Error =>
+         Report
+           (N,
+            "Failed to determine if operator is a Standard.Boolean operator");
+         return False;
+   end Is_Standard_Boolean_And_Or;
 
    -----------------------
    -- Op_Symbol_To_Name --
@@ -6014,6 +6066,11 @@ package body Instrument.Ada_Unit is
       end;
 
       Initialize_Rewriting (UIC, CU_Name, IC.Context);
+
+      --  ??? Modify this when libadalang can provide the information about
+      --  global/local configuration pragmas for Short_Circuit_And_Or.
+
+      UIC.Short_Circuit_And_Or := Switches.Short_Circuit_And_Or;
 
       --  Create an artificial internal error, if requested
 

@@ -104,7 +104,12 @@ package Switches is
    --  error but only output a warning.
 
    Analyze_Entry_Barriers : Boolean := False;
-   --  If True, instrument and do not discard SCOs from entry barriers.
+   --  If True, instrument and do not discard SCOs from entry barriers
+
+   Short_Circuit_And_Or : Boolean := False;
+   --  If True, consider that standard boolean operators "and" and "or" have
+   --  short-circuit semantics and instrument the operands of these operators
+   --  as conditions.
 
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
