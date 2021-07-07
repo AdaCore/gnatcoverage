@@ -527,7 +527,7 @@ subprogram it corresponds to. Bodies of test routines are placed in test package
 bodies and are surrounded by special comment sections. Those comment sections
 should not be removed or modified in order for gnattest to be able to regenerate
 test packages and keep already written tests in place.
-The test routine ``Test_Inc_5eaee3`` located at :file:`simple-test_data-tests.adb` contains
+The test routine ``Test_Inc_4f8b9f`` located at :file:`simple-test_data-tests.adb` contains
 a single statement: a call to procedure ``Assert``. It has two arguments:
 the Boolean expression we want to check and the diagnosis message to display if
 the condition is false.
