@@ -49,6 +49,7 @@
 --    units are replacements for the original units. They fill the coverage
 --    buffers for the unit.
 
+with Ada.Characters.Handling;         use Ada.Characters.Handling;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
@@ -130,6 +131,14 @@ package Instrument.Common is
       with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into Ada syntax
 
+   function To_Symbol_Name (Name : Ada_Qualified_Name) return String
+      with Pre => not Name.Is_Empty;
+   --  Lower case each name of the qualified name, and joined them with an
+   --  underscore, to have a C-like syntax.
+   --
+   --  Example: passing the qualified name Foo.Bar will return the string
+   --  "foo_bar".
+
    Sys_Prefix : Ada_Qualified_Name;
    --  Scope for all instrumentation runtime files beyond the instrumented
    --  sources.
@@ -157,6 +166,11 @@ package Instrument.Common is
       To_Unbounded_String ("Dump_Buffers");
    --  Name of the procedure (in main dump helper packages) that dumps all
    --  coverage buffers to the source trace file.
+
+   function Dump_Procedure_Symbol (Main : Ada_Qualified_Name) return String is
+     ("gnatcov_rts_" & To_Symbol_Name (Main) & "_"
+      & To_Lower (To_String (Dump_Procedure_Name)));
+   --  Return the name of the exported symbol for the Dump_Buffers function
 
    Register_Dump_Procedure_Name : constant Ada_Identifier :=
       To_Unbounded_String ("Register_Dump_Buffers");

@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Conversions;
-with Ada.Characters.Handling;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
@@ -137,7 +136,6 @@ package body Instrument.Common is
 
    function Canonicalize (Name : Ada_Qualified_Name) return Ada_Qualified_Name
    is
-      use Ada.Characters.Handling;
    begin
       return Result : Ada_Qualified_Name := Name do
          for N of Result loop
@@ -162,6 +160,23 @@ package body Instrument.Common is
 
       return +Result;
    end To_Ada;
+
+   ----------
+   -- To_C --
+   ----------
+
+   function To_Symbol_Name (Name : Ada_Qualified_Name) return String is
+      Result : Unbounded_String;
+   begin
+      for Id of Name loop
+         if Length (Result) > 0 then
+            Append (Result, "_");
+         end if;
+         Append (Result, To_Lower (To_String (Id)));
+      end loop;
+
+      return +Result;
+   end To_Symbol_Name;
 
    -------------------------------
    -- CU_Name_For_Unit --
@@ -872,7 +887,6 @@ package body Instrument.Common is
    ---------------------
 
    function Str_To_Language (Language : String) return Any_Language is
-      use Ada.Characters.Handling;
    begin
       if To_Lower (Language) = "ada" then
          return Ada_Language;

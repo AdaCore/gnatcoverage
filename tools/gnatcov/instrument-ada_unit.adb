@@ -5496,7 +5496,8 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("package " & Helper_Unit_Name & " is");
          File.New_Line;
          File.Put_Line ("   procedure " & Dump_Procedure & ";");
-         File.Put_Line ("   pragma Export (C, " & Dump_Procedure & ");");
+         File.Put_Line ("   pragma Export (C, " & Dump_Procedure & ", """
+                        & Dump_Procedure_Symbol (Main) & """);");
          File.New_Line;
 
          case Dump_Trigger is
