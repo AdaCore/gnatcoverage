@@ -2669,6 +2669,11 @@ package body Instrument.Ada_Unit is
                             Pragma_Might_Generate_Code
                               (Case_Insensitive_Get_Pragma_Id
                                  (Pragma_Aspect_Name)))
+
+                   --  ... this is a disabled pragma that we assume will not
+                   --  generate code.
+
+                   and then SCE.Typ /= 'p'
                then
                   Insert_Statement_Witness (SCE, SCOs.SCO_Table.Last);
                end if;
