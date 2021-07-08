@@ -2157,9 +2157,6 @@ package body Instrument.Ada_Unit is
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
 
-      procedure Traverse_Aspects (AS : Aspect_Spec);
-      --  Helper for Traverse_One: traverse an Aspect_Spec
-
       procedure Traverse_Subp_Decl_Or_Stub (N : Basic_Decl);
       --  Common code to handle subprogram declarations and subprogram body
       --  stubs. Also calls Traverse_Degenerate_Subprograms for null procedures
@@ -2706,51 +2703,6 @@ package body Instrument.Ada_Unit is
 
          SD.Set_Last (SD_First - 1);
       end Set_Statement_Entry;
-
-      ----------------------
-      -- Traverse_Aspects --
-      ----------------------
-
-      procedure Traverse_Aspects (AS : Aspect_Spec) is
-         AL : Aspect_Assoc_List;
-         AN : Aspect_Assoc;
-         AE : Expr;
-         C1 : Character;
-
-      begin
-         AL := AS.F_Aspect_Assocs;
-         for I in 1 .. AL.Children_Count loop
-            AN := AL.Child (I).As_Aspect_Assoc;
-            AE := AN.F_Expr;
-
-            C1 := ASCII.NUL;
-
-            if Aspect_Assoc_Name (AN) in As_Symbol (Dynamic_Predicate)
-                                       | As_Symbol (Invariant)
-                                       | As_Symbol (Post)
-                                       | As_Symbol (Postcondition)
-                                       | As_Symbol (Pre)
-                                       | As_Symbol (Precondition)
-                                       | As_Symbol (Predicate)
-                                       | As_Symbol (Static_Predicate)
-                                       | As_Symbol (Type_Invariant)
-            then
-               C1 := 'A';
-
-            else
-               --  Other aspects: just process any decision nested in the
-               --  aspect expression.
-
-               if Has_Decision (AE) then
-                  C1 := 'X';
-               end if;
-            end if;
-
-            if C1 /= ASCII.NUL then
-               Process_Decisions_Defer (AE, C1);
-            end if;
-         end loop;
-      end Traverse_Aspects;
 
       ------------------------------------
       -- Traverse_Degenerate_Subprogram --
@@ -3967,11 +3919,6 @@ package body Instrument.Ada_Unit is
 
                   Extend_Statement_Sequence (N, Typ);
                end;
-
-            --  Aspects specification
-
-            when Ada_Aspect_Spec =>
-               Traverse_Aspects (N.As_Aspect_Spec);
 
             --  Object or named number declaration
             --  Generate a single SCO even if multiple defining identifiers
