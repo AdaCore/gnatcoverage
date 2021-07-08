@@ -18,6 +18,8 @@
 
 with Ada.Unchecked_Conversion;
 
+with Dwarf;
+
 package body Dwarf_Handling is
 
    procedure Write_Byte (Addr : Address; Val : Unsigned_8);
@@ -27,10 +29,12 @@ package body Dwarf_Handling is
    ----------------------
 
    procedure Build_Abbrev_Map (Base : Address; Res : out Abbrev_Map_Acc) is
+      use Dwarf;
       Max   : Unsigned_32;
       Off   : Storage_Offset;
       V     : Unsigned_32;
-      V1    : Unsigned_32;
+      Form  : Unsigned_32;
+      Cst   : Unsigned_32;
       N_Res : Abbrev_Map_Acc;
    begin
       Off := 0;
@@ -69,8 +73,15 @@ package body Dwarf_Handling is
 
          loop
             Read_ULEB128 (Base, Off, V);
-            Read_ULEB128 (Base, Off, V1);
-            exit when V = 0 and V1 = 0;
+            Read_ULEB128 (Base, Off, Form);
+
+            --  DW_FORM_implicit_const takes its value from the table
+
+            if Form = DW_FORM_implicit_const then
+               Read_SLEB128 (Base, Off, Cst);
+            end if;
+
+            exit when V = 0 and then Form = 0;
          end loop;
       end loop;
    end Build_Abbrev_Map;

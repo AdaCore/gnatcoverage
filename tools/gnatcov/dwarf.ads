@@ -15,11 +15,10 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
-with Interfaces; use Interfaces;
 
 package Dwarf is
-   --  DWARF encodings for tags, attributes, forms and operations, as defined
-   --  in section 7 (data representation) of the DWARF 3 standard (and in
+   --  Encodings for tags, attributes, forms and operations, as defined
+   --  in Chapter 7 "Data Representation" of the DWARF 5 standard (and in
    --  particular figures 18, 19, 20, 24, 25, 28, 31, 32, 33, 34, 38, 40).
 
    DW_TAG_array_type               : constant := 16#01#;
@@ -78,6 +77,20 @@ package Dwarf is
    DW_TAG_partial_unit             : constant := 16#3c#;
    DW_TAG_imported_unit            : constant := 16#3d#;
    DW_TAG_mutable_type             : constant := 16#3e#;
+   DW_TAG_condition                : constant := 16#3f#;
+   DW_TAG_shared_type              : constant := 16#40#;
+   DW_TAG_type_unit                : constant := 16#41#;
+   DW_TAG_rvalue_reference_type    : constant := 16#42#;
+   DW_TAG_template_alias           : constant := 16#43#;
+   DW_TAG_coarray_type             : constant := 16#44#;
+   DW_TAG_generic_subrange         : constant := 16#45#;
+   DW_TAG_dynamic_type             : constant := 16#46#;
+   DW_TAG_atomic_type              : constant := 16#47#;
+   DW_TAG_call_site                : constant := 16#48#;
+   DW_TAG_call_site_parameter      : constant := 16#49#;
+   DW_TAG_skeleton_unit            : constant := 16#4a#;
+   DW_TAG_immutable_type           : constant := 16#4b#;
+
    DW_TAG_lo_user                  : constant := 16#4080#;
    DW_TAG_GNU_call_site            : constant := 16#4109#;
    DW_TAG_hi_user                  : constant := 16#Ffff#;
@@ -166,16 +179,16 @@ package Dwarf is
    DW_FORM_block2       : constant := 16#03#; -- block
    DW_FORM_block4       : constant := 16#04#; -- block
    DW_FORM_data2        : constant := 16#05#; -- constant
-   DW_FORM_data4        : constant := 16#06#;
+   DW_FORM_data4        : constant := 16#06#; -- constant
    --  constant, lineptr, loclistptr, macptr, rangelistptr
-   DW_FORM_data8        : constant := 16#07#; -- Likewise
+   DW_FORM_data8        : constant := 16#07#; -- constant
    DW_FORM_string       : constant := 16#08#; -- string
    DW_FORM_block        : constant := 16#09#; -- block
    DW_FORM_block1       : constant := 16#0a#; -- block
    DW_FORM_data1        : constant := 16#0b#; -- constant
    DW_FORM_flag         : constant := 16#0c#; -- flag
    DW_FORM_sdata        : constant := 16#0d#; -- constant
-   DW_FORM_strp         : constant := 16#0e#; -- string
+   DW_FORM_strp         : constant := 16#0e#; -- offset
    DW_FORM_udata        : constant := 16#0f#; -- constant
    DW_FORM_ref_addr     : constant := 16#10#; -- reference
    DW_FORM_ref1         : constant := 16#11#; -- reference
@@ -183,12 +196,30 @@ package Dwarf is
    DW_FORM_ref4         : constant := 16#13#; -- reference
    DW_FORM_ref8         : constant := 16#14#; -- reference
    DW_FORM_ref_udata    : constant := 16#15#; -- reference
-   DW_FORM_indirect     : constant := 16#16#; -- (see Section 7.5.3)
-   DW_FORM_sec_offset   : constant := 16#17#;
+   DW_FORM_indirect     : constant := 16#16#; -- indirect form
+   DW_FORM_sec_offset   : constant := 16#17#; -- offset
    --  lineptr, loclistptr, macptr, rangelistptr
    DW_FORM_exprloc      : constant := 16#18#; -- exprloc
    DW_FORM_flag_present : constant := 16#19#; -- flag
    DW_FORM_ref_sig8     : constant := 16#20#; -- reference
+   DW_FORM_strx         : constant := 16#1a#; -- indirect offset
+   DW_FORM_addrx        : constant := 16#1b#; -- indirect index
+   DW_FORM_ref_sup4     : constant := 16#1c#; -- reference
+   DW_FORM_strp_sup     : constant := 16#1d#; -- offset
+   DW_FORM_data16       : constant := 16#1e#; -- constant
+   DW_FORM_line_strp    : constant := 16#1f#; -- offset
+   DW_FORM_implicit_const : constant := 16#21#; -- implicit constant
+   DW_FORM_loclistx     : constant := 16#22#; -- index
+   DW_FORM_rnglistx     : constant := 16#23#; -- index
+   DW_FORM_ref_sup8     : constant := 16#24#; -- reference
+   DW_FORM_strx1        : constant := 16#25#; -- indirect offset
+   DW_FORM_strx2        : constant := 16#26#; -- indirect offset
+   DW_FORM_strx3        : constant := 16#27#; -- indirect offset
+   DW_FORM_strx4        : constant := 16#28#; -- indirect offset
+   DW_FORM_addrx1       : constant := 16#29#; -- indirect index
+   DW_FORM_addrx2       : constant := 16#2a#; -- indirect index
+   DW_FORM_addrx3       : constant := 16#2b#; -- indirect index
+   DW_FORM_addrx4       : constant := 16#2c#; -- indirect index
 
    DW_OP_addr        : constant := 16#03#; -- 1 constant address (target spec)
    DW_OP_deref       : constant := 16#06#; -- 0
@@ -339,25 +370,54 @@ package Dwarf is
    DW_OP_call2               : constant := 16#98#; -- 1 2-byte offset of DIE
    DW_OP_call4       : constant := 16#99#; -- 1 4-byte offset of DIE
    DW_OP_call_ref    : constant := 16#9a#; -- 1 4- or 8-byte offset of DIE
+   DW_OP_form_tls_address : constant := 16#9b#; -- 0
+   DW_OP_call_frame_cfa   : constant := 16#9c#; -- 0
+   DW_OP_bit_piece        : constant := 16#9d#; -- 2 ULEB128 size + offset
+   DW_OP_implicit_value   : constant := 16#9e#; -- 2 ULEB128 size + block
+   DW_OP_stack_value      : constant := 16#9f#; -- 0
+   DW_OP_implicit_pointer : constant := 16#a0#; -- 2 offset + SLEB128 offset
+   DW_OP_addrx            : constant := 16#a1#; -- 1 ULEB128 indirect address
+   DW_OP_constx           : constant := 16#a2#; -- 1 ULEB128 indiret constant
+   DW_OP_entry_value      : constant := 16#a3#; -- 2 ULEB128 size + block
+   DW_OP_const_type       : constant := 16#a4#; -- 3 ULEB128 off +size + value
+   DW_OP_regval_type      : constant := 16#a5#; -- 2 ULEB128 regnum + offset
+   DW_OP_deref_type       : constant := 16#a6#; -- 2 size + ULEB128 offset
+   DW_OP_xderef_type      : constant := 16#a7#; -- 2 size + ULEB128 offset
+   DW_OP_convert          : constant := 16#a8#; -- 1 ULEB128 offset
+   DW_OP_reinterpret      : constant := 16#a9#; -- 1 ULEB128 offset
+
    DW_OP_lo_user     : constant := 16#E0#; --
    DW_OP_hi_user     : constant := 16#ff#; --
 
-   DW_ATE_address         : constant := 16#1#;
-   DW_ATE_boolean         : constant := 16#2#;
-   DW_ATE_complex_float   : constant := 16#3#;
-   DW_ATE_float           : constant := 16#4#;
-   DW_ATE_signed          : constant := 16#5#;
-   DW_ATE_signed_char     : constant := 16#6#;
-   DW_ATE_unsigned        : constant := 16#7#;
-   DW_ATE_unsigned_char   : constant := 16#8#;
-   DW_ATE_imaginary_float : constant := 16#9#;
+   --  Base type attribute
+   DW_ATE_address         : constant := 16#01#;
+   DW_ATE_boolean         : constant := 16#02#;
+   DW_ATE_complex_float   : constant := 16#03#;
+   DW_ATE_float           : constant := 16#04#;
+   DW_ATE_signed          : constant := 16#05#;
+   DW_ATE_signed_char     : constant := 16#06#;
+   DW_ATE_unsigned        : constant := 16#07#;
+   DW_ATE_unsigned_char   : constant := 16#08#;
+   DW_ATE_imaginary_float : constant := 16#09#;
+   DW_ATE_packed_decimal  : constant := 16#0a#;
+   DW_ATE_numeric_string  : constant := 16#0b#;
+   DW_ATE_edited          : constant := 16#0c#;
+   DW_ATE_signed_fixed    : constant := 16#0d#;
+   DW_ATE_unsigned_fixed  : constant := 16#0e#;
+   DW_ATE_decimal_float   : constant := 16#0f#;
+   DW_ATE_UTF             : constant := 16#10#;
+   DW_ATE_UCS             : constant := 16#11#;
+   DW_ATE_ASCII           : constant := 16#12#;
+
    DW_ATE_lo_user         : constant := 16#80#;
    DW_ATE_hi_user         : constant := 16#ff#;
 
+   --  Accessibility codes
    DW_ACCESS_public       : constant := 1;
    DW_ACCESS_protected    : constant := 2;
    DW_ACCESS_private      : constant := 3;
 
+   --  Source languages
    DW_LANG_C89            : constant := 16#0001#;
    DW_LANG_C              : constant := 16#0002#;
    DW_LANG_Ada83          : constant := 16#0003#;
@@ -377,94 +437,132 @@ package Dwarf is
    DW_LANG_ObjC_plus_plus : constant := 16#0011#;
    DW_LANG_UPC            : constant := 16#0012#;
    DW_LANG_D              : constant := 16#0013#;
+   DW_LANG_Python         : constant := 16#0014#;
+   DW_LANG_OpenCL         : constant := 16#0015#;
+   DW_LANG_Go             : constant := 16#0016#;
+   DW_LANG_Modula3        : constant := 16#0017#;
+   DW_LANG_Haskell        : constant := 16#0018#;
+   DW_LANG_C_plus_plus_03 : constant := 16#0019#;
+   DW_LANG_C_plus_plus_11 : constant := 16#001a#;
+   DW_LANG_OCaml          : constant := 16#001b#;
+   DW_LANG_Rust           : constant := 16#001c#;
+   DW_LANG_C11            : constant := 16#001d#;
+   DW_LANG_Swift          : constant := 16#001e#;
+   DW_LANG_Julia          : constant := 16#001f#;
+   DW_LANG_Dylan          : constant := 16#0020#;
+   DW_LANG_C_plus_plus_14 : constant := 16#0021#;
+   DW_LANG_Fortran03      : constant := 16#0022#;
+   DW_LANG_Fortran08      : constant := 16#0023#;
+   DW_LANG_RenderScript   : constant := 16#0024#;
+
    DW_LANG_Lo_User        : constant := 16#8000#;
-   DW_LANG_Assembler      : constant := 16#8001#;
    DW_LANG_Hi_User        : constant := 16#ffff#;
 
-   DW_LANG_MIPS_Assembler : constant := 32769;
+   DW_LANG_MIPS_Assembler : constant := 16#8001#;
    --  This is what binutils seems to use when assembling an ASM source with -g
    --  (even on non-MIPS architectures).
 
+   --  Identifier case
    DW_ID_case_sensitive   : constant := 0;
    DW_ID_up_case          : constant := 1;
    DW_ID_down_case        : constant := 2;
    DW_ID_case_insensitive : constant := 3;
 
+   --  Calling convention
    DW_CC_normal           : constant := 16#1#;
    DW_CC_program          : constant := 16#2#;
    DW_CC_nocall           : constant := 16#3#;
    DW_CC_lo_user          : constant := 16#40#;
    DW_CC_hi_user          : constant := 16#Ff#;
 
+   --  Inline code
    DW_INL_not_inlined          : constant := 0;
    DW_INL_inlined              : constant := 1;
    DW_INL_declared_not_inlined : constant := 2;
    DW_INL_declared_inlined     : constant := 3;
 
-   --  Line number information.
-   --  Line number standard opcode.
-   DW_LNS_copy               : constant Unsigned_8 := 1;
-   DW_LNS_advance_pc         : constant Unsigned_8 := 2;
-   DW_LNS_advance_line       : constant Unsigned_8 := 3;
-   DW_LNS_set_file           : constant Unsigned_8 := 4;
-   DW_LNS_set_column         : constant Unsigned_8 := 5;
-   DW_LNS_negate_stmt        : constant Unsigned_8 := 6;
-   DW_LNS_set_basic_block    : constant Unsigned_8 := 7;
-   DW_LNS_const_add_pc       : constant Unsigned_8 := 8;
-   DW_LNS_fixed_advance_pc   : constant Unsigned_8 := 9;
-   DW_LNS_set_prologue_end   : constant Unsigned_8 := 10;
-   DW_LNS_set_epilogue_begin : constant Unsigned_8 := 11;
-   DW_LNS_set_isa            : constant Unsigned_8 := 12;
+   --  Line number information
 
-   --  Line number extended opcode.
-   DW_LNE_end_sequence       : constant Unsigned_8 := 1;
-   DW_LNE_set_address        : constant Unsigned_8 := 2;
-   DW_LNE_define_file        : constant Unsigned_8 := 3;
-   DW_LNE_set_discriminator  : constant Unsigned_8 := 4;
-   DW_LNE_lo_user            : constant Unsigned_8 := 128;
-   DW_LNE_HP_source_file_correlation : constant Unsigned_8 := 128;
-   DW_LNE_HP_SFC_formfeed            : constant Unsigned_32 := 1;
-   DW_LNE_HP_SFC_set_listing_line    : constant Unsigned_32 := 2;
-   DW_LNE_HP_SFC_associate           : constant Unsigned_32 := 3;
-   DW_LNE_hi_user            : constant Unsigned_8 := 255;
+   --  Line number standard opcode
+   DW_LNS_extended_op        : constant := 0;
+   DW_LNS_copy               : constant := 1;
+   DW_LNS_advance_pc         : constant := 2;
+   DW_LNS_advance_line       : constant := 3;
+   DW_LNS_set_file           : constant := 4;
+   DW_LNS_set_column         : constant := 5;
+   DW_LNS_negate_stmt        : constant := 6;
+   DW_LNS_set_basic_block    : constant := 7;
+   DW_LNS_const_add_pc       : constant := 8;
+   DW_LNS_fixed_advance_pc   : constant := 9;
+   DW_LNS_set_prologue_end   : constant := 10;
+   DW_LNS_set_epilogue_begin : constant := 11;
+   DW_LNS_set_isa            : constant := 12;
 
-   DW_CFA_advance_loc        : constant Unsigned_8 := 16#40#;
-   DW_CFA_advance_loc_min    : constant Unsigned_8 := 16#40#;
-   DW_CFA_advance_loc_max    : constant Unsigned_8 := 16#7f#;
-   DW_CFA_offset             : constant Unsigned_8 := 16#80#;
-   DW_CFA_offset_min         : constant Unsigned_8 := 16#80#;
-   DW_CFA_offset_max         : constant Unsigned_8 := 16#Bf#;
-   DW_CFA_restore            : constant Unsigned_8 := 16#C0#;
-   DW_CFA_restore_min        : constant Unsigned_8 := 16#C0#;
-   DW_CFA_restore_max        : constant Unsigned_8 := 16#FF#;
-   DW_CFA_nop                : constant Unsigned_8 := 16#00#;
-   DW_CFA_set_loc            : constant Unsigned_8 := 16#01#;
-   DW_CFA_advance_loc1       : constant Unsigned_8 := 16#02#;
-   DW_CFA_advance_loc2       : constant Unsigned_8 := 16#03#;
-   DW_CFA_advance_loc4       : constant Unsigned_8 := 16#04#;
-   DW_CFA_offset_extended    : constant Unsigned_8 := 16#05#;
-   DW_CFA_restore_extended   : constant Unsigned_8 := 16#06#;
-   DW_CFA_undefined          : constant Unsigned_8 := 16#07#;
-   DW_CFA_same_value         : constant Unsigned_8 := 16#08#;
-   DW_CFA_register           : constant Unsigned_8 := 16#09#;
-   DW_CFA_remember_state     : constant Unsigned_8 := 16#0a#;
-   DW_CFA_restore_state      : constant Unsigned_8 := 16#0b#;
-   DW_CFA_def_cfa            : constant Unsigned_8 := 16#0c#;
-   DW_CFA_def_cfa_register   : constant Unsigned_8 := 16#0d#;
-   DW_CFA_def_cfa_offset     : constant Unsigned_8 := 16#0e#;
-   DW_CFA_def_cfa_expression : constant Unsigned_8 := 16#0f#;
+   --  Line number extended opcode
+   DW_LNE_end_sequence       : constant := 1;
+   DW_LNE_set_address        : constant := 2;
+   DW_LNE_define_file        : constant := 3;
+   DW_LNE_set_discriminator  : constant := 4;
+   DW_LNE_lo_user            : constant := 16#80#;
+   DW_LNE_hi_user            : constant := 16#ff#;
 
-   DW_EH_PE_omit    : constant Unsigned_8 := 16#Ff#;
-   DW_EH_PE_uleb128 : constant Unsigned_8 := 16#01#;
-   DW_EH_PE_udata2  : constant Unsigned_8 := 16#02#;
-   DW_EH_PE_udata4  : constant Unsigned_8 := 16#03#;
-   DW_EH_PE_udata8  : constant Unsigned_8 := 16#04#;
-   DW_EH_PE_sleb128 : constant Unsigned_8 := 16#09#;
-   DW_EH_PE_sdata2  : constant Unsigned_8 := 16#0A#;
-   DW_EH_PE_sdata4  : constant Unsigned_8 := 16#0B#;
-   DW_EH_PE_sdata8  : constant Unsigned_8 := 16#0C#;
-   DW_EH_PE_absptr  : constant Unsigned_8 := 16#00#;
-   DW_EH_PE_pcrel   : constant Unsigned_8 := 16#10#;
-   DW_EH_PE_datarel : constant Unsigned_8 := 16#30#;
-   DW_EH_PE_format_mask : constant Unsigned_8 := 16#0f#;
+   --  Content type code
+   DW_LNCT_path              : constant := 1;
+   DW_LNCT_directory_index   : constant := 2;
+   DW_LNCT_timestamp         : constant := 3;
+   DW_LNCT_size              : constant := 4;
+   DW_LNCT_MD5               : constant := 5;
+   DW_LNCT_lo_user           : constant := 16#2000#;
+   DW_LNCT_hi_user           : constant := 16#3fff#;
+
+   --  Call frame information
+   DW_CFA_advance_loc        : constant := 16#40#;
+   DW_CFA_advance_loc_min    : constant := 16#40#;
+   DW_CFA_advance_loc_max    : constant := 16#7f#;
+   DW_CFA_offset             : constant := 16#80#;
+   DW_CFA_offset_min         : constant := 16#80#;
+   DW_CFA_offset_max         : constant := 16#Bf#;
+   DW_CFA_restore            : constant := 16#C0#;
+   DW_CFA_restore_min        : constant := 16#C0#;
+   DW_CFA_restore_max        : constant := 16#FF#;
+   DW_CFA_nop                : constant := 16#00#;
+   DW_CFA_set_loc            : constant := 16#01#;
+   DW_CFA_advance_loc1       : constant := 16#02#;
+   DW_CFA_advance_loc2       : constant := 16#03#;
+   DW_CFA_advance_loc4       : constant := 16#04#;
+   DW_CFA_offset_extended    : constant := 16#05#;
+   DW_CFA_restore_extended   : constant := 16#06#;
+   DW_CFA_undefined          : constant := 16#07#;
+   DW_CFA_same_value         : constant := 16#08#;
+   DW_CFA_register           : constant := 16#09#;
+   DW_CFA_remember_state     : constant := 16#0a#;
+   DW_CFA_restore_state      : constant := 16#0b#;
+   DW_CFA_def_cfa            : constant := 16#0c#;
+   DW_CFA_def_cfa_register   : constant := 16#0d#;
+   DW_CFA_def_cfa_offset     : constant := 16#0e#;
+   DW_CFA_def_cfa_expression : constant := 16#0f#;
+
+   --  GNU unwind info
+   DW_EH_PE_omit        : constant := 16#ff#;
+
+   DW_EH_PE_uleb128     : constant := 16#01#;
+   DW_EH_PE_udata2      : constant := 16#02#;
+   DW_EH_PE_udata4      : constant := 16#03#;
+   DW_EH_PE_udata8      : constant := 16#04#;
+   DW_EH_PE_signed      : constant := 16#08#;
+   DW_EH_PE_sleb128     : constant := 16#09#;
+   DW_EH_PE_sdata2      : constant := 16#0a#;
+   DW_EH_PE_sdata4      : constant := 16#0b#;
+   DW_EH_PE_sdata8      : constant := 16#0c#;
+
+   DW_EH_PE_format_mask : constant := 16#0f#;
+
+   DW_EH_PE_absptr      : constant := 16#00#;
+   DW_EH_PE_pcrel       : constant := 16#10#;
+   DW_EH_PE_textrel     : constant := 16#20#;
+   DW_EH_PE_datarel     : constant := 16#30#;
+   DW_EH_PE_funcrel     : constant := 16#40#;
+   DW_EH_PE_aligned     : constant := 16#50#;
+
+   DW_EH_PE_indirect    : constant := 16#80#;
 end Dwarf;

@@ -60,9 +60,6 @@ package body Traces_Elf is
    No_Stmt_List : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_stmt_list
 
-   No_Ranges    : constant Unsigned_32 := Unsigned_32'Last;
-   --  Value indicating there is no AT_ranges
-
    type Mapping_Symbol is record
       Address  : Pc_Type;
       Insn_Set : Insn_Set_Type;
@@ -165,11 +162,25 @@ package body Traces_Elf is
       Sec     : Section_Index;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
-      LS      : in out Loaded_Section);
+      LS      : out Loaded_Section);
    --  Allocate memory for section SEC of EXEC and read it. LEN is the length
    --  of the section. Loaded bytes will be stored in CONTENT, and the mapped
-   --  region it comes from is stored in REGION. It is up to the caller to free
+   --  region it comes from is stored in LS. It is up to the caller to free
    --  it after use. The low bound of CONTENT is 0.
+
+   function Load_Section_Content_And_Address
+     (Exec    : Exe_File_Type'Class;
+      Sec     : Section_Index;
+      Len     : in out Elf_Addr;
+      Content : in out Binary_Content;
+      LS      : in out Loaded_Section;
+      Addr    : in out Address)
+     return Boolean;
+   pragma Inline (Load_Section_Content_And_Address);
+   --  Wrapper around Alloc_And_Load_Section: if CONTENT is not already loaded,
+   --  allocate memory for section SEC of EXEC and then do the same processing
+   --  as Alloc_And_Load_Section. Return True if CONTENT is loaded in the end,
+   --  and False if not (this may happen if SEC is missing in the binary file).
 
    procedure Load_Symtab (Exec : in out Elf_Exe_File_Type);
    --  Load the symbol table (but not the string table) if not already
@@ -503,11 +514,12 @@ package body Traces_Elf is
          elsif Name = ".debug_line" then
             File.Sec_Debug_Line := Index;
 
+         elsif Name = ".debug_line_str" then
+            File.Sec_Debug_Line_Str := Index;
+
          elsif Name = ".debug_str" then
             File.Sec_Debug_Str := Index;
 
-         elsif Name = ".debug_ranges" then
-            File.Sec_Debug_Ranges := Index;
          end if;
       end Set_Debug_Section;
 
@@ -634,28 +646,33 @@ package body Traces_Elf is
 
    procedure Close_Exe_File (Exec : in out Exe_File_Type) is
    begin
+      if Exec.Debug_Str_Section /= No_Loaded_Section then
+         Free (Exec.Debug_Str_Section);
+      end if;
+      Exec.Debug_Str_Base := Null_Address;
+      Exec.Debug_Str_Len := 0;
+
       if Exec.Lines_Section /= No_Loaded_Section then
          Free (Exec.Lines_Section);
       end if;
       Exec.Lines_Len := 0;
+
+      if Exec.Line_Str_Section /= No_Loaded_Section then
+         Free (Exec.Line_Str_Section);
+      end if;
+      Exec.Line_Str_Base := Null_Address;
+      Exec.Line_Str_Len := 0;
 
       if Exec.Symtab_Section /= No_Loaded_Section then
          Free (Exec.Symtab_Section);
       end if;
       Exec.Nbr_Symbols := 0;
 
-      if Exec.Debug_Strs_Section /= No_Loaded_Section then
-         Free (Exec.Debug_Strs_Section);
-      end if;
-
       Exec.Sec_Debug_Abbrev   := No_Section;
       Exec.Sec_Debug_Info     := No_Section;
       Exec.Sec_Debug_Line     := No_Section;
+      Exec.Sec_Debug_Line_Str := No_Section;
       Exec.Sec_Debug_Str      := No_Section;
-      Exec.Sec_Debug_Ranges   := No_Section;
-
-      Exec.Debug_Str_Base := Null_Address;
-      Exec.Debug_Str_Len := 0;
 
       for I_Ranges of Exec.Insn_Set_Ranges loop
          Free (I_Ranges);
@@ -974,20 +991,10 @@ package body Traces_Elf is
       end if;
 
       if Sz = 4 then
-         declare
-            V : Unsigned_32;
-         begin
-            Read_Word4 (Exec, Base, Off, V);
-            Res := Pc_Type (V);
-         end;
+         Read_Word4 (Exec, Base, Off, Unsigned_32 (Res));
 
       elsif Sz = 8 then
-         declare
-            V : Unsigned_64;
-         begin
-            Read_Word8 (Exec, Base, Off, V);
-            Res := Pc_Type (V);
-         end;
+         Read_Word8 (Exec, Base, Off, Unsigned_64 (Res));
 
       else
          raise Program_Error with "unhandled address length";
@@ -1009,65 +1016,69 @@ package body Traces_Elf is
    begin
       case Form is
          when DW_FORM_addr =>
-            declare
-               V : Pc_Type;
-            begin
-               Read_Address (Exec, Base, Off, Exec.Addr_Size, V);
-               Res := Unsigned_64 (V);
-            end;
+            Read_Address (Exec, Base, Off, Exec.Addr_Size, Pc_Type (Res));
 
-         when DW_FORM_flag | DW_FORM_data1 =>
-            declare
-               V : Unsigned_8;
-            begin
-               Read_Byte (Base, Off, V);
-               Res := Unsigned_64 (V);
-            end;
+         when DW_FORM_addrx1
+            | DW_FORM_data1
+            | DW_FORM_flag
+            | DW_FORM_ref1
+            | DW_FORM_strx1 =>
+            Read_Byte (Base, Off, Unsigned_8 (Res));
 
-         when DW_FORM_data2 =>
-            declare
-               V : Unsigned_16;
-            begin
-               Read_Word2 (Exec, Base, Off, V);
-               Res := Unsigned_64 (V);
-            end;
+         when DW_FORM_addrx2
+            | DW_FORM_data2
+            | DW_FORM_ref2
+            | DW_FORM_strx2 =>
+            Read_Word2 (Exec, Base, Off, Unsigned_16 (Res));
 
-         when DW_FORM_data4
+         when DW_FORM_addrx4
+            | DW_FORM_data4
             | DW_FORM_ref4
-            | DW_FORM_sec_offset =>
-            declare
-               V : Unsigned_32;
-            begin
-               Read_Word4 (Exec, Base, Off, V);
-               Res := Unsigned_64 (V);
-            end;
+            | DW_FORM_ref_sup4
+            | DW_FORM_strx4 =>
+            Read_Word4 (Exec, Base, Off, Unsigned_32 (Res));
 
-         when DW_FORM_data8 =>
+         when DW_FORM_data8
+            | DW_FORM_ref8
+            | DW_FORM_ref_sup8
+            | DW_FORM_ref_sig8 =>
             Read_Word8 (Exec, Base, Off, Res);
 
          when DW_FORM_sdata =>
-            declare
-               V : Unsigned_32;
-            begin
-               Read_SLEB128 (Base, Off, V);
-               Res := Unsigned_64 (V);
-            end;
+            Read_SLEB128 (Base, Off, Unsigned_32 (Res));
 
-         when DW_FORM_udata =>
-            declare
-               V : Unsigned_32;
-            begin
-               Read_ULEB128 (Base, Off, V);
-               Res := Unsigned_64 (V);
-            end;
+         when DW_FORM_addrx
+            | DW_FORM_loclistx
+            | DW_FORM_ref_udata
+            | DW_FORM_rnglistx
+            | DW_FORM_strx
+            | DW_FORM_udata =>
+            Read_ULEB128 (Base, Off, Unsigned_32 (Res));
 
-         when DW_FORM_strp
-           | DW_FORM_string
-           | DW_FORM_block1 =>
-            raise Program_Error;
+         when DW_FORM_ref_addr
+            | DW_FORM_sec_offset
+            | DW_FORM_strp
+            | DW_FORM_line_strp
+            | DW_FORM_strp_sup =>
+            --  This must be changed to 8 for 64-bit DWARF
+
+            Read_Word4 (Exec, Base, Off, Unsigned_32 (Res));
+
+         when DW_FORM_data16
+            | DW_FORM_block1
+            | DW_FORM_block2
+            | DW_FORM_block4
+            | DW_FORM_block
+            | DW_FORM_exprloc
+            | DW_FORM_string =>
+            raise Program_Error with "DWARF form too large";
+
+         when DW_FORM_indirect =>
+            raise Program_Error with "DW_FORM_indirect unhandled";
 
          when others =>
-            raise Program_Error;
+            raise Program_Error with
+              "unhandled DWARF 64-bit form #" & Unsigned_32'Image (Form);
       end case;
    end Read_Dwarf_Form_U64;
 
@@ -1082,10 +1093,8 @@ package body Traces_Elf is
       Form : Unsigned_32;
       Res  : out Unsigned_32)
    is
-      R : Unsigned_64;
    begin
-      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, R);
-      Res := Unsigned_32 (R);
+      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, Unsigned_64 (Res));
    end Read_Dwarf_Form_U32;
 
    ----------------------------
@@ -1102,38 +1111,51 @@ package body Traces_Elf is
       use Dwarf;
    begin
       case Form is
+         when DW_FORM_line_strp =>
+            declare
+               V : Unsigned_32;
+            begin
+               Read_Word4 (Exec, Base, Off, V);
+               if Load_Section_Content_And_Address
+                    (Exec,
+                     Exec.Sec_Debug_Line_Str,
+                     Exec.Line_Str_Len,
+                     Exec.Line_Str,
+                     Exec.Line_Str_Section,
+                     Exec.Line_Str_Base)
+               then
+                  Res := Exec.Line_Str_Base + Storage_Offset (V);
+               else
+                  Res := Null_Address;
+               end if;
+            end;
+
          when DW_FORM_strp =>
             declare
                V : Unsigned_32;
             begin
                Read_Word4 (Exec, Base, Off, V);
-               if Exec.Debug_Str_Base = Null_Address then
-                  if Exec.Sec_Debug_Str = No_Section then
-                     return;
-                  end if;
-                  Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Str,
-                                          Exec.Debug_Str_Len,
-                                          Exec.Debug_Strs,
-                                          Exec.Debug_Strs_Section);
-                  Exec.Debug_Str_Base := Address_Of (Exec.Debug_Strs, 0);
+               if Load_Section_Content_And_Address
+                    (Exec,
+                     Exec.Sec_Debug_Str,
+                     Exec.Debug_Str_Len,
+                     Exec.Debug_Str,
+                     Exec.Debug_Str_Section,
+                     Exec.Debug_Str_Base)
+               then
+                  Res := Exec.Debug_Str_Base + Storage_Offset (V);
+               else
+                  Res := Null_Address;
                end if;
-               Res := Exec.Debug_Str_Base + Storage_Offset (V);
             end;
 
          when DW_FORM_string =>
             Res := Base + Off;
-            declare
-               C : Unsigned_8;
-            begin
-               loop
-                  Read_Byte (Base, Off, C);
-                  exit when C = 0;
-               end loop;
-            end;
+            Read_String (Base, Off);
 
          when others =>
-            Put ("???");
-            raise Program_Error;
+            raise Program_Error with
+              "unhandled DWARF string form #" & Unsigned_32'Image (Form);
       end case;
    end Read_Dwarf_Form_String;
 
@@ -1177,21 +1199,46 @@ package body Traces_Elf is
                Off := Off + Storage_Offset (V);
             end;
 
-         when DW_FORM_flag
-           | DW_FORM_data1 =>
+         when DW_FORM_block | DW_FORM_exprloc =>
+            declare
+               V : Unsigned_32;
+            begin
+               Read_ULEB128 (Base, Off, V);
+               Off := Off + Storage_Offset (V);
+            end;
+
+         when DW_FORM_addrx1
+            | DW_FORM_data1
+            | DW_FORM_flag
+            | DW_FORM_ref1
+            | DW_FORM_strx1 =>
             Off := Off + 1;
 
-         when DW_FORM_data2 =>
+         when DW_FORM_addrx2
+            | DW_FORM_data2
+            | DW_FORM_ref2
+            | DW_FORM_strx2 =>
             Off := Off + 2;
 
-         when DW_FORM_data4
+         when DW_FORM_addrx3
+            | DW_FORM_strx3 =>
+            Off := Off + 3;
+
+         when DW_FORM_addrx4
+            | DW_FORM_data4
             | DW_FORM_ref4
-            | DW_FORM_strp
-            | DW_FORM_sec_offset =>
+            | DW_FORM_ref_sup4
+            | DW_FORM_strx4 =>
             Off := Off + 4;
 
-         when DW_FORM_data8 =>
+         when DW_FORM_data8
+            | DW_FORM_ref8
+            | DW_FORM_ref_sup8
+            | DW_FORM_ref_sig8 =>
             Off := Off + 8;
+
+         when DW_FORM_data16 =>
+            Off := Off + 16;
 
          when DW_FORM_sdata =>
             declare
@@ -1200,42 +1247,42 @@ package body Traces_Elf is
                Read_SLEB128 (Base, Off, V);
             end;
 
-         when DW_FORM_udata =>
+         when DW_FORM_addrx
+            | DW_FORM_loclistx
+            | DW_FORM_ref_udata
+            | DW_FORM_rnglistx
+            | DW_FORM_strx
+            | DW_FORM_udata =>
             declare
                V : Unsigned_32;
             begin
                Read_ULEB128 (Base, Off, V);
             end;
 
-         when DW_FORM_string =>
-            declare
-               C : Unsigned_8;
-            begin
-               loop
-                  Read_Byte (Base, Off, C);
-                  exit when C = 0;
-               end loop;
-            end;
-
-         when DW_FORM_exprloc =>
-            --  Skip the bytes count, then "count" bytes
-
-            declare
-               Size : Unsigned_32;
-            begin
-               Read_ULEB128 (Base, Off, Size);
-               Off := Off + Storage_Offset (Size);
-            end;
-
-         when DW_FORM_flag_present =>
+         when DW_FORM_flag_present | DW_FORM_implicit_const =>
             --  This flag is implicitely present, so it is not materialized
             --  outside abbreviations.
 
             null;
 
+         when DW_FORM_ref_addr
+            | DW_FORM_sec_offset
+            | DW_FORM_strp
+            | DW_FORM_line_strp
+            | DW_FORM_strp_sup =>
+            --  This must be changed to 8 for 64-bit DWARF
+
+            Off := Off + 4;
+
+         when DW_FORM_string =>
+            Read_String (Base, Off);
+
+         when DW_FORM_indirect =>
+            raise Program_Error with "DW_FORM_indirect unhandled";
+
          when others =>
-            Put_Line ("Unhandled dwarf form #" & Unsigned_32'Image (Form));
-            raise Program_Error;
+            raise Program_Error with
+              "unhandled DWARF form #" & Unsigned_32'Image (Form);
       end case;
    end Skip_Dwarf_Form;
 
@@ -1264,23 +1311,24 @@ package body Traces_Elf is
       R      : Elf_Rela;
 
    begin
-      --  The only sections on which we have to apply relocations are the
-      --  .debug_info and the .debug_line sections. These sections seem to have
-      --  relocations in object code files only (before linking). In these,
-      --  sections do not have their address assigned yet, and thus we can
-      --  consider that they are located at 0x0.
+      --  The only sections to which we have to apply relocations are the
+      --  .debug_info and the .debug_line sections. These sections have
+      --  relocations in object files only, i.e. before linking. In this
+      --  case, sections do not have their address assigned yet, and thus
+      --  we can consider that they are located at 0x0.
 
-      --  We noticed that in these cases (relocations for debug sections in
-      --  object code files), the symbols targetted by the relocations are
+      --  We noticed that in this case (relocations for debug sections in
+      --  object files), the symbols targeted by the relocations are
       --  sections themselves, and they do not have any addend (.rel.*
       --  relocation sections).
 
       --  So in this particular configuration, there is no need to relocate
-      --  debug sections since it would only add section addresses (= 0) to
+      --  debug sections since it would only add section addresses (= 0x0) to
       --  the offsets already present in the debug sections. Thus, we do not
       --  handle relocation sections without addend.
 
       --  Find relocation section
+
       Sec_Rel := 0;
       for I in 0 .. Get_Nbr_Sections (Exec.Elf_File) - 1 loop
          Shdr := Get_Shdr (Exec.Elf_File, Elf_Half (I));
@@ -1448,7 +1496,8 @@ package body Traces_Elf is
       LS      : in out Loaded_Section;
       Data    : in out Binary_Content) is
    begin
-      --  Not handled for PE Coff
+      --  Not handled for PE-COFF
+
       null;
    end Apply_Relocations;
 
@@ -1461,25 +1510,21 @@ package body Traces_Elf is
       Sec     : Section_Index;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
-      LS      : in out Loaded_Section)
+      LS      : out Loaded_Section)
    is
-      Sec_Len : Arch_Addr;
    begin
       if Sec /= No_Section then
-         Sec_Len := Get_Section_Length (Exec.File.all, Sec);
-         pragma Assert (Sec_Len > 0);
+         Len := Get_Section_Length (Exec.File.all, Sec);
+         pragma Assert (Len > 0);
 
-         Len := Sec_Len;
          LS := Load_Section (Exec.File.all, Sec);
          Content := Binary_Files.Content (LS);
       else
-         Content := Invalid_Binary_Content;
          Len := 0;
+         LS := No_Loaded_Section;
+         Content := Invalid_Binary_Content;
       end if;
    end Alloc_And_Load_Section;
-
-   --  Extract lang, subprogram name and stmt_list (offset in .debug_line).
-   --  What does this comment apply to???
 
    -------------------------------
    -- Build_Debug_Compile_Units --
@@ -1531,8 +1576,9 @@ package body Traces_Elf is
       Aoff                  : Storage_Offset;
 
       Len        : Unsigned_32;
-      Ver        : Unsigned_16;
+      Version    : Unsigned_16;
       Abbrev_Off : Unsigned_32;
+      Unit_Type  : Unsigned_8;
       Ptr_Sz     : Unsigned_8;
       Last       : Storage_Offset;
       Num        : Unsigned_32;
@@ -1540,12 +1586,9 @@ package body Traces_Elf is
       Tag  : Unsigned_32;
       Name : Unsigned_32;
       Form : Unsigned_32;
+      Cst  : Unsigned_32;
 
-      Level : Unsigned_8;
-
-      At_Sib             : Unsigned_64;
       At_Stmt_List       : Unsigned_32;
-      At_Ranges          : Unsigned_32;
       At_Low_Pc          : Unsigned_64;
       At_High_Pc         : Unsigned_64;
       At_Lang            : Unsigned_64;
@@ -1630,7 +1673,6 @@ package body Traces_Elf is
       Off := 0;
       CU_Loop : while Off < Storage_Offset (Info_Len) loop
          --  Read .debug_info header:
-         --    Length, version, offset in .debug_abbrev, pointer size.
 
          Sec_Off := Off;
          Read_Word4 (Exec, Base, Off, Len);
@@ -1643,13 +1685,20 @@ package body Traces_Elf is
          end if;
 
          Last := Off + Storage_Offset (Len);
-         Read_Word2 (Exec, Base, Off, Ver);
-         Read_Word4 (Exec, Base, Off, Abbrev_Off);
-         Read_Byte (Base, Off, Ptr_Sz);
-         if Ver not in 2 .. 4 then
-            Put_Line ("!! DWARF version not supported: " & Ver'Img);
+         Read_Word2 (Exec, Base, Off, Version);
+
+         if Version >= 5 then
+            Read_Byte (Base, Off, Unit_Type);
+            Read_Byte (Base, Off, Ptr_Sz);
+            Read_Word4 (Exec, Base, Off, Abbrev_Off);
+
+         elsif Version >= 2 then
+            Read_Word4 (Exec, Base, Off, Abbrev_Off);
+            Read_Byte (Base, Off, Ptr_Sz);
+
+         else
+            Put_Line ("!! DWARF version not supported: " & Version'Img);
          end if;
-         Level := 0;
 
          Exec.Addr_Size := Natural (Ptr_Sz);
 
@@ -1663,7 +1712,6 @@ package body Traces_Elf is
             Tag_Off := Off;
             Read_ULEB128 (Base, Off, Num);
             if Num = 0 then
-               Level := Level - 1;
                goto Again;
             end if;
             if Num <= Map.all'Last then
@@ -1682,19 +1730,13 @@ package body Traces_Elf is
             Aoff := 0;
             Read_ULEB128 (Abbrev, Aoff, Tag);
 
-            if Read_Byte (Abbrev + Aoff) /= 0 then
-               Level := Level + 1;
-            end if;
-
-            --  Skip child
+            --  Skip child flag
 
             Aoff := Aoff + 1;
 
             --  Read attributes
 
-            At_Sib := 0;
             At_Stmt_List := No_Stmt_List;
-            At_Ranges := No_Ranges;
             At_Low_Pc := 0;
             At_High_Pc := 0;
             At_Lang := 0;
@@ -1711,11 +1753,16 @@ package body Traces_Elf is
             Attr_Loop : loop
                Read_ULEB128 (Abbrev, Aoff, Name);
                Read_ULEB128 (Abbrev, Aoff, Form);
-               exit Attr_Loop when Name = 0 and Form = 0;
+
+               --  DW_FORM_implicit_const takes its value from the table
+
+               if Form = DW_FORM_implicit_const then
+                  Read_SLEB128 (Abbrev, Aoff, Cst);
+               end if;
+
+               exit Attr_Loop when Name = 0 and then Form = 0;
 
                case Name is
-                  when DW_AT_sibling =>
-                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Sib);
                   when DW_AT_name =>
                      Read_Dwarf_Form_String (Exec, Base, Off, Form, At_Name);
                   when DW_AT_comp_dir =>
@@ -1726,8 +1773,6 @@ package body Traces_Elf is
                                              At_Linkage_Name);
                   when DW_AT_stmt_list =>
                      Read_Dwarf_Form_U32 (Exec, Base, Off, Form, At_Stmt_List);
-                  when DW_AT_ranges =>
-                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form, At_Ranges);
                   when DW_AT_low_pc =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Low_Pc);
                   when DW_AT_high_pc =>
@@ -1745,14 +1790,26 @@ package body Traces_Elf is
                      At_Abstract_Origin :=
                         Unsigned_64 (Sec_Off) + At_Abstract_Origin;
                   when DW_AT_call_file =>
-                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
-                                          At_Call_File);
+                     if Form = DW_FORM_implicit_const then
+                        At_Call_File := Cst;
+                     else
+                        Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
+                                             At_Call_File);
+                     end if;
                   when DW_AT_call_line =>
-                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
-                                          At_Call_Line);
+                     if Form = DW_FORM_implicit_const then
+                        At_Call_Line := Cst;
+                     else
+                        Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
+                                             At_Call_Line);
+                     end if;
                   when DW_AT_call_column =>
-                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
-                                          At_Call_Column);
+                     if Form = DW_FORM_implicit_const then
+                        At_Call_Column := Cst;
+                     else
+                        Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
+                                             At_Call_Column);
+                     end if;
                   when others =>
                      Skip_Dwarf_Form (Exec, Base, Off, Form);
                end case;
@@ -1774,8 +1831,12 @@ package body Traces_Elf is
                   --  but also removes the need for us from having to support
                   --  foreign constructs.
 
-                  if At_Lang not in DW_LANG_C89 | DW_LANG_C | DW_LANG_C99
-                                  | DW_LANG_Ada83 | DW_LANG_Ada95
+                  if At_Lang not in DW_LANG_C
+                                  | DW_LANG_C89
+                                  | DW_LANG_C99
+                                  | DW_LANG_C11
+                                  | DW_LANG_Ada83
+                                  | DW_LANG_Ada95
                                   | DW_LANG_MIPS_Assembler
                   then
                      Off := Last;
@@ -1954,7 +2015,7 @@ package body Traces_Elf is
                      end;
                   end if;
 
-               when DW_TAG_GNU_call_site =>
+               when DW_TAG_GNU_call_site | DW_TAG_call_site =>
                   if At_Low_Pc /= 0 and then At_Abstract_Origin /= 0 then
                      Call_Site_To_Target.Append
                        ((Pc_Type (At_Low_Pc),
@@ -2044,14 +2105,16 @@ package body Traces_Elf is
       Exec.Nbr_Symbols := Natural (Symtab_Len) / Elf_Sym_Size;
    end Load_Symtab;
 
+   --  Up to DWARF 4, the current directory and the current compilation file,
+   --  both implicitly referred to by index 0, are not represented resp. in
+   --  the Directories and File_Names fields of the header. But, in DWARF 5,
+   --  they are explicitly represented resp. in them with index 0.
+
    package Filenames_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive,
-      Element_Type => String_Access,
-      "=" => "=");
+     (Index_Type => Natural, Element_Type => String_Access);
 
    package File_Indices_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Source_File_Index);
+     (Index_Type => Natural, Element_Type => Source_File_Index);
 
    ----------------------
    -- Read_Debug_Lines --
@@ -2068,19 +2131,23 @@ package body Traces_Elf is
 
       type Opc_Length_Type is array (Unsigned_8 range <>) of Unsigned_8;
       type Opc_Length_Acc is access Opc_Length_Type;
+
       Opc_Length : Opc_Length_Acc;
 
       procedure Free is
         new Ada.Unchecked_Deallocation (Opc_Length_Type, Opc_Length_Acc);
 
-      Total_Len    : Unsigned_32;
-      Version      : Unsigned_16;
-      Prolog_Len   : Unsigned_32;
-      Min_Insn_Len : Unsigned_8;
-      Dflt_Is_Stmt : Unsigned_8;
-      Line_Base    : Unsigned_8;
-      Line_Range   : Unsigned_8;
-      Opc_Base     : Unsigned_8;
+      Total_Len       : Unsigned_32;
+      Version         : Unsigned_16;
+      Header_Len      : Unsigned_32;
+      Address_Size    : Unsigned_8;
+      Seg_Sel_Size    : Unsigned_8;
+      Min_Insn_Len    : Unsigned_8;
+      Max_Op_Per_Insn : Unsigned_8;
+      Dflt_Is_Stmt    : Unsigned_8;
+      Line_Base       : Unsigned_8;
+      Line_Range      : Unsigned_8;
+      Opc_Base        : Unsigned_8;
 
       B   : Unsigned_8;
       Arg : Unsigned_32;
@@ -2106,15 +2173,39 @@ package body Traces_Elf is
       Line_Base2   : Unsigned_32;
       Disc         : Unsigned_32;
 
-      Nbr_Dirnames  : Unsigned_32;
-      Nbr_Filenames : Unsigned_32;
-      Dirnames      : Filenames_Vectors.Vector;
-      Filenames     : Filenames_Vectors.Vector;
+      type Entry_Format_Pair is record
+         C_Type : Unsigned_32;
+         Form   : Unsigned_32;
+      end record;
 
-      File_Indices    : File_Indices_Vectors.Vector;
-      --  Cached file indices for Filenames. Contains No_Source_File for source
-      --  files that are not considered for coverage and thus that do not
+      type Entry_Format_Array is array (1 .. 5) of Entry_Format_Pair;
+
+      procedure Read_Entry_Format_Array
+        (Base : Address;
+         Off  : in out Storage_Offset;
+         Res  : out Entry_Format_Array;
+         Len  : Unsigned_8);
+      --  Read an entry format array, as specified by 6.2.4.1
+
+      Entry_Format_Count : Unsigned_8;
+      Entry_Format       : Entry_Format_Array;
+      Nbr_Dirnames       : Unsigned_32;
+      Nbr_Filenames      : Unsigned_32;
+      Dirnames           : Filenames_Vectors.Vector;
+      Filenames          : Filenames_Vectors.Vector;
+      Str_Address        : Address;
+      Dir                : String_Access;
+
+      File_Indices : File_Indices_Vectors.Vector;
+      --  Cached file indices for Filenames. The index is set to No_Source_File
+      --  for source files that are not considered for coverage and thus do not
       --  require debug line information.
+
+      No_File_Of_Interest : Boolean := True;
+      --  True when every element of File_Indices is No_Source_File
+
+      procedure Compute_File_Index (Filename : String);
+      --  Compute the element in File_Indices for Filename
 
       Cur_Subprg,
       Cur_Sec    : Address_Info_Sets.Cursor;
@@ -2264,6 +2355,60 @@ package body Traces_Elf is
          Last_Line := null;
       end Close_Source_Line;
 
+      ------------------------
+      -- Compute_File_Index --
+      ------------------------
+
+      procedure Compute_File_Index (Filename : String) is
+         Filter_Lines : constant Boolean := Source_Coverage_Enabled;
+         Kind         : constant Files_Table.File_Kind :=
+                          (if Source_Coverage_Enabled
+                           then Stub_File
+                           else Source_File);
+         --  For source coverage, it's the coverage obligations that
+         --  determine which source files are relevant for coverage
+         --  analysis. In this case, consider that other source files are
+         --  stubs to reduce simple name collisions.
+
+         File_Index : Source_File_Index;
+
+      begin
+         --  Optimization: in source coverage, we do not want to add new
+         --  files to the files table: the ones added when loading SCOs
+         --  are enough. Do not even load debug line information for
+         --  files that don't have statement SCOs.
+
+         File_Index := Get_Index_From_Full_Name
+                         (Filename, Kind, Insert => not Filter_Lines);
+
+         if Filter_Lines and then File_Index /= No_Source_File then
+            declare
+               FI : constant File_Info_Access := Get_File (File_Index);
+
+            begin
+               if FI.Kind /= Source_File
+                 or else not FI.Has_Source_Coverage_Info
+               then
+                  File_Index := No_Source_File;
+               end if;
+            end;
+         end if;
+
+         if File_Index /= No_Source_File then
+            --  This file is of interest. If not already done thanks to the
+            --  first call to Get_Index_From_Full_Name, give a chance to the
+            --  file table entry to get a full path.
+
+            No_File_Of_Interest := False;
+            if Filter_Lines then
+               File_Index := Get_Index_From_Full_Name
+                               (Filename, Kind, Insert => True);
+            end if;
+         end if;
+
+         File_Indices.Append (File_Index);
+      end Compute_File_Index;
+
       ---------------------
       -- New_Source_Line --
       ---------------------
@@ -2279,7 +2424,6 @@ package body Traces_Elf is
          Saved_Line : constant Address_Info_Acc := Last_Line;
 
       begin
-
          --  Discard 0-relative entries in exec files, corresponding to
          --  regions garbage collected by gc-section.
 
@@ -2333,6 +2477,44 @@ package body Traces_Elf is
          end if;
          Disc := 0;
       end New_Source_Line;
+
+      -----------------------------
+      -- Read_Entry_Format_Array --
+      -----------------------------
+
+      procedure Read_Entry_Format_Array
+        (Base : Address;
+         Off  : in out Storage_Offset;
+         Res  : out Entry_Format_Array;
+         Len  : Unsigned_8)
+      is
+         C_Type, Form : Unsigned_32;
+         N            : Integer;
+
+      begin
+         N := Res'First;
+
+         for J in 1 .. Len loop
+            Read_ULEB128 (Base, Off, C_Type);
+            Read_ULEB128 (Base, Off, Form);
+
+            case C_Type is
+               when DW_LNCT_path .. DW_LNCT_MD5 =>
+                  if N not in Res'Range then
+                     raise Program_Error with "duplicate DWARF content type";
+                  end if;
+
+                  Res (N) := (C_Type, Form);
+                  N := N + 1;
+
+               when DW_LNCT_lo_user .. DW_LNCT_hi_user =>
+                  null;
+
+               when others =>
+                  raise Program_Error with "unhandled DWARF content type";
+            end case;
+         end loop;
+      end Read_Entry_Format_Array;
 
       -----------------
       -- Reset_Lines --
@@ -2523,8 +2705,6 @@ package body Traces_Elf is
          end;
       end Last_For_Insn;
 
-      No_File_Of_Interest : Boolean := True;
-
    --  Start of processing for Read_Debug_Lines
 
    begin
@@ -2534,7 +2714,6 @@ package body Traces_Elf is
          Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
                                  Exec.Lines_Len, Exec.Lines,
                                  Exec.Lines_Section);
-         Base := Address_Of (Exec.Lines, 0);
          Apply_Relocations
            (Exec, Exec.Sec_Debug_Line, Exec.Lines_Section, Exec.Lines);
       end if;
@@ -2551,8 +2730,19 @@ package body Traces_Elf is
       Read_Word4 (Exec, Base, Off, Total_Len);
       Last := Off + Storage_Offset (Total_Len);
       Read_Word2 (Exec, Base, Off, Version);
-      Read_Word4 (Exec, Base, Off, Prolog_Len);
+
+      if Version >= 5 then
+         Read_Byte (Base, Off, Address_Size);
+         Read_Byte (Base, Off, Seg_Sel_Size);
+      end if;
+
+      Read_Word4 (Exec, Base, Off, Header_Len);
       Read_Byte (Base, Off, Min_Insn_Len);
+
+      if Version >= 4 then
+         Read_Byte (Base, Off, Max_Op_Per_Insn);
+      end if;
+
       Read_Byte (Base, Off, Dflt_Is_Stmt);
       Read_Byte (Base, Off, Line_Base);
       Read_Byte (Base, Off, Line_Range);
@@ -2561,6 +2751,9 @@ package body Traces_Elf is
       --  Initial state registers
 
       Reset_Lines;
+
+      --  Standard_Opcode_Lengths is an array of Opcode_Base bytes specifying
+      --  the number of LEB128 operands for each of the standard opcodes.
 
       Line_Base2 := Unsigned_32 (Line_Base);
       if (Line_Base and 16#80#) /= 0 then
@@ -2571,108 +2764,164 @@ package body Traces_Elf is
          Read_Byte (Base, Off, Opc_Length (I));
       end loop;
 
-      --  Include directories
+      --  The Directories table follows. Up to DWARF 4, this is a list of null
+      --  terminated strings terminated by a null byte. In DWARF 5, this is a
+      --  sequence of Directories_Count entries which are encoded as described
+      --  by the Directory_Entry_Format field.
 
-      Nbr_Dirnames := 0;
-      Filenames_Vectors.Clear (Dirnames);
-      loop
-         B := Read_Byte (Base + Off);
-         exit when B = 0;
-         Filenames_Vectors.Append
-           (Dirnames, new String'(Read_String (Base + Off)));
-         Read_String (Base, Off);
-         Nbr_Dirnames := Nbr_Dirnames + 1;
-      end loop;
-      Off := Off + 1;
+      Dirnames.Clear;
 
-      --  File names
+      if Version <= 4 then
+         Dirnames.Append (null);  -- implicit current directory
+         Nbr_Dirnames := 1;
 
-      Nbr_Filenames := 0;
-      Filenames_Vectors.Clear (Filenames);
+         loop
+            B := Read_Byte (Base + Off);
+            exit when B = 0;
+
+            Dirnames.Append (new String'(Read_String (Base + Off)));
+            Off := Off + Dirnames.Last_Element.all'Length + 1;
+
+            Nbr_Dirnames := Nbr_Dirnames + 1;
+         end loop;
+
+         Off := Off + 1;
+
+      else
+         Read_Byte (Base, Off, Entry_Format_Count);
+         Read_Entry_Format_Array (Base, Off, Entry_Format, Entry_Format_Count);
+
+         Read_ULEB128 (Base, Off, Nbr_Dirnames);
+
+         for J in 0 .. Nbr_Dirnames - 1 loop
+            for K in 1 .. Integer (Entry_Format_Count) loop
+               if Entry_Format (K).C_Type = DW_LNCT_path then
+                  Read_Dwarf_Form_String
+                    (Exec, Base, Off, Entry_Format (K).Form, Str_Address);
+                  Dirnames.Append (new String'(Read_String (Str_Address)));
+               else
+                  Skip_Dwarf_Form (Exec, Base, Off, Entry_Format (K).Form);
+               end if;
+            end loop;
+         end loop;
+      end if;
+
+      --  The File_Names table is next. Up to DWARF 4, this is a list of record
+      --  containing a null terminated string for the file name, an unsigned
+      --  LEB128 directory index in the Directories table, an unsigned LEB128
+      --  modification time, and an unsigned LEB128 for the file length; the
+      --  table is terminated by a null byte. In DWARF 5, this is a sequence
+      --  of File_Names_Count entries which are encoded as described by the
+      --  File_Name_Entry_Format field.
+
+      Filenames.Clear;
       File_Indices.Clear;
-      loop
-         B := Read_Byte (Base + Off);
-         exit when B = 0;
-         Old_Off := Off;
-         Read_String (Base, Off);
-         Read_ULEB128 (Base, Off, File_Dir);
 
-         declare
-            Filename          : constant String :=
-              Read_String (Base + Old_Off);
-            Dir               : String_Access;
-            File_Index        : Source_File_Index;
-            Filter_Lines      : constant Boolean := Source_Coverage_Enabled;
+      if Version <= 4 then
+         Filenames.Append (null);  -- implicit current compilation file
+         File_Indices.Append (No_Source_File);
+         Nbr_Filenames := 1;
 
-            Kind              : constant Files_Table.File_Kind :=
-              (if Source_Coverage_Enabled
-               then Stub_File
-               else Source_File);
-            --  For source coverage, it's the coverage obligations that
-            --  determine which source files are relevant for coverage
-            --  analysis. In this case, consider that other source files are
-            --  stubs to reduce simple name collisions.
+         loop
+            B := Read_Byte (Base + Off);
+            exit when B = 0;
 
-         begin
-            if File_Dir /= 0
-              and then File_Dir <= Nbr_Dirnames
-            then
-               Dir := Filenames_Vectors.Element (Dirnames, Integer (File_Dir));
+            declare
+               Filename : constant String := Read_String (Base + Off);
 
-            elsif Compilation_Directory /= null
-              and then not Is_Absolute_Path (Filename)
-            then
-               Dir := Compilation_Directory;
+            begin
+               Off := Off + Filename'Length + 1;
+               Read_ULEB128 (Base, Off, File_Dir);
 
-            else
-               Dir := Empty_String_Acc;
-            end if;
+               --  Up to DWARF 4, the current directory is not represented in
+               --  the directory list and a directory index of 0 implicitly
+               --  refers to that directory, as found in the DW_AT_comp_dir
+               --  attribute of the compilation unit entry.
 
-            Filenames_Vectors.Append
-              (Filenames, Build_Filename (Dir.all, Filename));
+               if File_Dir > 0 and then File_Dir < Nbr_Dirnames then
+                  Dir := Dirnames.Element (Integer (File_Dir));
 
-            --  Optimization: in source coverage, we do not want to add new
-            --  files to the files table: the ones added when loading SCOs are
-            --  enough. Do not even load debug line information for files that
-            --  don't have statement SCOs.
+               elsif Compilation_Directory /= null
+                 and then not Is_Absolute_Path (Filename)
+               then
+                  Dir := Compilation_Directory;
 
-            File_Index := Get_Index_From_Full_Name
-              (Full_Name => Filenames.Last_Element.all,
-               Kind      => Kind,
-               Insert    => not Filter_Lines);
+               else
+                  Dir := Empty_String_Acc;
+               end if;
 
-            if Filter_Lines and then File_Index /= No_Source_File then
+               Filenames.Append (Build_Filename (Dir.all, Filename));
+               Compute_File_Index (Filenames.Last_Element.all);
+
+               Read_ULEB128 (Base, Off, File_Time);
+               Read_ULEB128 (Base, Off, File_Len);
+
+               Nbr_Filenames := Nbr_Filenames + 1;
+            end;
+         end loop;
+
+         Off := Off + 1;
+
+      else
+         Read_Byte (Base, Off, Entry_Format_Count);
+         Read_Entry_Format_Array (Base, Off, Entry_Format, Entry_Format_Count);
+
+         Read_ULEB128 (Base, Off, Nbr_Filenames);
+
+         for J in 0 .. Nbr_Filenames - 1 loop
+            Str_Address := Null_Address;
+            File_Dir := 0;
+
+            for K in 1 .. Integer (Entry_Format_Count) loop
+               if Entry_Format (K).C_Type = DW_LNCT_path then
+                  Read_Dwarf_Form_String
+                    (Exec, Base, Off, Entry_Format (K).Form, Str_Address);
+
+               elsif Entry_Format (K).C_Type = DW_LNCT_directory_index then
+                  case Entry_Format (K).Form is
+                     when DW_FORM_data1 =>
+                        Read_Byte (Base, Off, Unsigned_8 (File_Dir));
+
+                     when DW_FORM_data2 =>
+                        Read_Word2 (Exec, Base, Off, Unsigned_16 (File_Dir));
+
+                     when DW_FORM_udata =>
+                        Read_ULEB128 (Base, Off, File_Dir);
+
+                     when others =>
+                        raise Program_Error with
+                          "invalid DWARF form for DW_LNCT_directory_index";
+                  end case;
+
+               else
+                  Skip_Dwarf_Form (Exec, Base, Off, Entry_Format (K).Form);
+               end if;
+            end loop;
+
+            if Str_Address /= Null_Address then
                declare
-                  FI : constant File_Info_Access := Get_File (File_Index);
+                  Filename : constant String := Read_String (Str_Address);
+
                begin
-                  if FI.Kind /= Source_File
-                    or else
-                     not FI.Has_Source_Coverage_Info
-                  then
-                     File_Index := No_Source_File;
+                  --  In DWARF 5, the current directory is explicitly present
+                  --  in the directory list with index 0.
+
+                  if File_Dir > 0 and then File_Dir < Nbr_Dirnames then
+                     Dir := Dirnames.Element (Integer (File_Dir));
+
+                  elsif not Is_Absolute_Path (Filename) then
+                     Dir := Dirnames.Element (0);
+
+                  else
+                     Dir := Empty_String_Acc;
                   end if;
+
+                  Filenames.Append (Build_Filename (Dir.all, Filename));
+                  Compute_File_Index (Filenames.Last_Element.all);
                end;
             end if;
-
-            if File_Index /= No_Source_File then
-               --  This file is of interest. If not already done thanks to the
-               --  first call to Get_Index_From_Full_Name, give a chance to the
-               --  file table entry to get a full path.
-
-               No_File_Of_Interest := False;
-               if Filter_Lines then
-                  File_Index := Get_Index_From_Full_Name
-                    (Filenames.Last_Element.all, Kind, Insert => True);
-               end if;
-            end if;
-            File_Indices.Append (File_Index);
-         end;
-
-         Read_ULEB128 (Base, Off, File_Time);
-         Read_ULEB128 (Base, Off, File_Len);
-         Nbr_Filenames := Nbr_Filenames + 1;
-      end loop;
-      Off := Off + 1;
+         end loop;
+      end if;
 
       --  If there is no source file of interest in this debug information,
       --  do nothing.
@@ -2689,7 +2938,7 @@ package body Traces_Elf is
          Read_Byte (Base, Off, B);
          Old_Off := Off;
 
-         if B = 0 then
+         if B = DW_LNS_extended_op then
 
             --  Extended opcode
 
@@ -3100,6 +3349,33 @@ package body Traces_Elf is
          Relocate (Sec.Section_Content, Sec.First);
       end if;
    end Load_Section_Content;
+
+   --------------------------------------
+   -- Load_Section_Content_And_Address --
+   --------------------------------------
+
+   function Load_Section_Content_And_Address
+     (Exec    : Exe_File_Type'Class;
+      Sec     : Section_Index;
+      Len     : in out Elf_Addr;
+      Content : in out Binary_Content;
+      LS      : in out Loaded_Section;
+      Addr    : in out Address)
+     return Boolean
+   is
+   begin
+      if not Is_Loaded (Content) then
+         Alloc_And_Load_Section (Exec, Sec, Len, Content, LS);
+
+         if not Is_Loaded (Content) then
+            return False;
+         end if;
+
+         Addr := Address_Of (Content, 0);
+      end if;
+
+      return True;
+   end Load_Section_Content_And_Address;
 
    --------------------------
    -- Load_Code_And_Traces --

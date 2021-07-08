@@ -351,7 +351,7 @@ package Traces_Elf is
      (Set            : Address_Info_Sets.Set;
       PC             : Pc_Type;
       Non_Empty_Only : Boolean := False) return Source_Locations;
-   --  Use Exec's debug_lines information to determine the slocs for the
+   --  Use Exec's .debug_line information to determine the slocs for the
    --  instruction at PC.
 
    function Get_Sloc
@@ -545,23 +545,31 @@ private
       Sec_Debug_Abbrev    : Section_Index := No_Section;
       Sec_Debug_Info      : Section_Index := No_Section;
       Sec_Debug_Line      : Section_Index := No_Section;
+      Sec_Debug_Line_Str  : Section_Index := No_Section;  -- DWARF 5
       Sec_Debug_Str       : Section_Index := No_Section;
-      Sec_Debug_Ranges    : Section_Index := No_Section;
 
-      --  FIXME
-      --  What is there to fix???
       Addr_Size           : Natural := 0;
+      --  Size of an address as encoded in the header of .debug_line
+
+      --  .debug_str contents
 
       Debug_Str_Base      : Address := Null_Address;
       Debug_Str_Len       : Elf_Addr;
-      Debug_Strs          : Binary_Content := Invalid_Binary_Content;
-      Debug_Strs_Section  : Loaded_Section := No_Loaded_Section;
+      Debug_Str           : Binary_Content := Invalid_Binary_Content;
+      Debug_Str_Section   : Loaded_Section := No_Loaded_Section;
 
-      --  .debug_lines contents
+      --  .debug_line contents
 
       Lines_Len           : Elf_Addr := 0;
       Lines               : Binary_Content := Invalid_Binary_Content;
       Lines_Section       : Loaded_Section := No_Loaded_Section;
+
+      --  .debug_line_str contents (DWARF 5)
+
+      Line_Str_Base       : Address := Null_Address;
+      Line_Str_Len        : Elf_Addr := 0;
+      Line_Str            : Binary_Content := Invalid_Binary_Content;
+      Line_Str_Section    : Loaded_Section := No_Loaded_Section;
 
       --  Symbol table
 
