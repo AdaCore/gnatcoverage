@@ -29,6 +29,7 @@ with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
 with Libadalang.Common;        use Libadalang.Common;
+with Libadalang.Expr_Eval;
 with Libadalang.Introspection; use Libadalang.Introspection;
 with Libadalang.Sources;       use Libadalang.Sources;
 
@@ -141,6 +142,15 @@ package body Instrument.Ada_Unit is
    --  Wrapper around Name.P_Referenced_Defining_Name, logging a warning and
    --  returning No_Defining_Name if unable to determine the referenced
    --  defining name.
+
+   function Is_Static_Expr (E : Expr) return Boolean;
+   --  Wrapper around E.P_Is_Static_Expr, logging a warning and returning
+   --  False if unable to determine whether the expression is static.
+
+   function Bool_Expr_Eval (E : Expr) return String;
+   --  Wrapper around Libadalang.Expr_Eval.Expr_Eval, for static boolean
+   --  expressions. Log a warning and return an empty string result if unable
+   --  to evaluate the expression.
 
    function Is_Ghost
      (UIC : Ada_Unit_Inst_Context;
@@ -4967,10 +4977,26 @@ package body Instrument.Ada_Unit is
 
       procedure Output_Element (N : Ada_Node) is
          N_SR : constant Source_Location_Range := N.Sloc_Range;
+         C2   : Character := 'c';
       begin
+         if Is_Static_Expr (N.As_Expr) then
+
+            --  This condition is static: record its value in the SCO
+
+            declare
+               Eval : constant String := Bool_Expr_Eval (N.As_Expr);
+            begin
+               if Eval = "True" then
+                  C2 := 't';
+               elsif Eval = "False" then
+                  C2 := 'f';
+               end if;
+            end;
+         end if;
+
          Append_SCO
            (C1   => ' ',
-            C2   => 'c',
+            C2   => C2,
             From => Start_Sloc (N_SR),
             To   => Inclusive_End_Sloc (N_SR),
             Last => False);
@@ -4987,7 +5013,6 @@ package body Instrument.Ada_Unit is
 
          Nam : Name_Id := Namet.No_Name;
          --  For the case of an aspect, aspect name
-
       begin
          case T is
             when 'I' | 'E' | 'W' | 'a' | 'A' =>
@@ -5073,9 +5098,10 @@ package body Instrument.Ada_Unit is
             end if;
 
             UIC.Source_Decisions.Append
-              ((LL_SCO   => Current_Decision,
-                Decision => N.As_Expr,
-                State    => MCDC_State));
+              ((LL_SCO              => Current_Decision,
+                Decision            => N.As_Expr,
+                State               => MCDC_State,
+                Is_Static           => Is_Static_Expr (N.As_Expr)));
          end if;
 
          --  For an aspect specification, which will be rewritten into a
@@ -5652,6 +5678,41 @@ package body Instrument.Ada_Unit is
          return No_Defining_Name;
       end if;
    end Referenced_Defining_Name;
+
+   --------------------
+   -- Is_Static_Expr --
+   --------------------
+
+   function Is_Static_Expr (E : Expr) return Boolean is
+   begin
+      return E.P_Is_Static_Expr;
+   exception
+      when Exc : Property_Error =>
+         Report
+           (E,
+            "failed to determine whether this is a static expression: "
+            & Ada.Exceptions.Exception_Information (Exc),
+            Low_Warning);
+         return False;
+   end Is_Static_Expr;
+
+   --------------------
+   -- Bool_Expr_Eval --
+   --------------------
+
+   function Bool_Expr_Eval (E : Expr) return String is
+      use Libadalang.Expr_Eval;
+   begin
+      return To_String (Libadalang.Expr_Eval.Expr_Eval (E).Enum_Result.Text);
+   exception
+      when Exc : Property_Error =>
+         Report
+           (E,
+            "failed to evaluate the expression: "
+            & Ada.Exceptions.Exception_Information (Exc),
+            Low_Warning);
+         return "";
+   end Bool_Expr_Eval;
 
    --------------
    -- Is_Ghost --
@@ -6446,8 +6507,26 @@ package body Instrument.Ada_Unit is
          if Coverage.Enabled (Coverage.Decision) or else MCDC_Coverage_Enabled
          then
             for SD of UIC.Source_Decisions loop
-               Insert_Decision_Witness
-                 (UIC, SD, Path_Count (SCO_Map (SD.LL_SCO)));
+
+               --  Instrumenting a static decision would make it non-static by
+               --  wrapping it in a Witness call. This transformation would
+               --  trigger legality checks on the originally non-evaluated
+               --  branch, which could result in compilation errors specific to
+               --  the instrumented code, e.g. on:
+               --
+               --   X := (if <config.static-False>
+               --         then <out-of-range-static>
+               --         else <value>);
+               --
+               --  Not instrumenting these decisions (and not allocating bits
+               --  in the coverage buffers for them) will treat them as being
+               --  absent in the code execution, and thus, no SCO violation
+               --  will be emitted.
+
+               if not SD.Is_Static then
+                  Insert_Decision_Witness
+                    (UIC, SD, Path_Count (SCO_Map (SD.LL_SCO)));
+               end if;
             end loop;
 
             if MCDC_Coverage_Enabled then

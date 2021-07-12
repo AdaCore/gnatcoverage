@@ -626,6 +626,10 @@ package Instrument.Common is
 
       State : Unbounded_String;
       --  Name of MC/DC state local variable
+
+      Is_Static : Boolean := False;
+      --  Whether the decision expression is static (according to the RM
+      --  definition of static).
    end record;
 
    type Source_Condition is record
