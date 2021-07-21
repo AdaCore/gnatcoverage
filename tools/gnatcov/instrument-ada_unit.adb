@@ -4386,11 +4386,28 @@ package body Instrument.Ada_Unit is
       end if;
 
       if not Priv_Decl.Is_Null then
-         --  If visible declarations are present, the first private declaration
-         --  is dominated by the last visible declaration.
 
-         Traverse_Declarations_Or_Statements
-           (IC, UIC, L => Priv_Decl.F_Decls, D => Dom_Info);
+         --  We should not instrument component declarations in a protected
+         --  type decl.
+
+         if N.Kind /= Ada_Protected_Type_Decl then
+
+            --  If visible declarations are present, the first private
+            --  declaration is dominated by the last visible declaration.
+
+            Traverse_Declarations_Or_Statements
+              (IC, UIC, L => Priv_Decl.F_Decls, D => Dom_Info);
+
+         else
+            for Decl of Priv_Decl.F_Decls loop
+               if Decl.Kind /= Ada_Component_Decl
+                 and then Has_Decision (Decl)
+               then
+                  Process_Decisions (UIC, Decl, 'X');
+               end if;
+            end loop;
+         end if;
+
       end if;
    end Traverse_Sync_Definition;
 
