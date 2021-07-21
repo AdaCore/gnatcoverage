@@ -209,11 +209,13 @@ package body Instrument.Ada_Unit is
 
    I_Accept_Stmt_With_Stmts_F_Stmts : constant Integer :=
      Index (Ada_Accept_Stmt_With_Stmts, Accept_Stmt_With_Stmts_F_Stmts);
-   I_Expr_Function_F_Aspects : constant Integer :=
+   I_Expr_Function_F_Aspects        : constant Integer :=
      Index (Ada_Expr_Function, Basic_Decl_F_Aspects);
-   I_Handled_Stmts_F_Stmts : constant Integer :=
+   I_Subp_Decl_F_Aspects            : constant Integer :=
+     Index (Ada_Subp_Decl, Basic_Decl_F_Aspects);
+   I_Handled_Stmts_F_Stmts          : constant Integer :=
      Index (Ada_Handled_Stmts, Handled_Stmts_F_Stmts);
-   I_Subp_Spec_F_Subp_Params : constant Integer :=
+   I_Subp_Spec_F_Subp_Params        : constant Integer :=
      Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Params);
 
    ---------------------
@@ -365,28 +367,52 @@ package body Instrument.Ada_Unit is
    ------------------------------------------------
    --  Degenerate subprograms require special handling because we need a place
    --  to insert witness calls for statement coverage, and in the case of
-   --  expression functions, a place to declare temporary local variables for
-   --  the MC/DC state buffer for any decision in the expression.
+   --  expression functions, a place to declare temporary local variables
+   --  for the MC/DC state buffer for any decision in the expression.
    --
    --  We provide these locations by generating a generic subprogram in the
    --  pure buffers unit, and replacing the degenerate subprogram with an
    --  instantiation of that generic subprogram. The statement witness and
    --  MC/DC state variable declarations are inserted in the generic body.
    --
-   --  For expression functions, we then create a new, augmented expression
-   --  function that takes the addresses of the MC/DC states as additional
-   --  formal parameters, and we pass this new function as a generic parameter
-   --  in the instantiation.
+   --  For expression functions, there are three instrumentation strategies,
+   --  depending on its spec and the context in which it is declared.
    --
-   --  Also note that we wrap both the augmented expression function and the
-   --  generic instantiation in a nested package, so that they do not introduce
-   --  unwanted additional primitive operations. We use a renaming-as-body of
-   --  the instantiation to associate it with the original subprogram name,
-   --  while preserving all aspects and default parameters.
+   --  In the first strategy (the "default" and most common one, which applies
+   --  if not in one of the cases described bellow), we create a new augmented
+   --  expression function that takes the addresses of the MC/DC states as
+   --  additional formal parameters, and we pass this new function as a generic
+   --  parameter in the instantiation. If the original expression function is
+   --  a primitive of some type, then the augmented expression function will
+   --  also be one. As such, if the original expression function has a previous
+   --  declaration in the same declarative region, we also need to emit one for
+   --  the augmented expression function next to it to avoid freezing issues
+   --
+   --  The second strategy only deals with expression functions which are
+   --  primitives of their return type, if it is a tagged type. In that case,
+   --  we would need to provide an overriding expression function for each
+   --  augmented expression function that we add, and for each type derivation
+   --  that happens on the return type, which is not manageable. In such cases,
+   --  fall back to putting the expression function in a nested package so
+   --  it's not considered as a primitive and (hopefully) does not trigger
+   --  any compilation bug.
+   --
+   --  The third strategy only applies to expression functions that are located
+   --  in the body of a protected object. The only elements that may appear in
+   --  a protected object body are subprogram declarations, subprogram bodies
+   --  and entry bodies. This prevents us from inserting a nested package
+   --  for the second strategy. To circumvent this, all expression functions
+   --  declared in a protected body are transformed into regular functions.
+   --
+   --  Also note that we wrap the generic instantiation in a nested package,
+   --  so that it does not introduce unwanted additional primitive operations.
+   --  We use a renaming-as-body of the instantiation to associate it with
+   --  the original subprogram name, while preserving all aspects and default
+   --  parameters.
    --
    --  The following examples both provide a compact summary of the
-   --  transformations, and associate names (used in the implementation) to the
-   --  various constructs involved.
+   --  transformations, and associate names (used in the implementation) to
+   --  the various constructs involved.
    --
    --  Null subprogram example
    --  =======================
@@ -444,10 +470,17 @@ package body Instrument.Ada_Unit is
    --        Arg2 : in out Arg2_Type)
    --     renames Null_Proc_[Subprogram_Index](S|B|U).Foo;
    --
-   --  Expression function example (MC/DC)
-   --  ===================================
+   --  Expression function example (MC/DC) (first strategy)
+   --  ====================================================
    --
    --  For the following expression function:
+   --
+   --
+   --     ------------- Public part -------------
+   --
+   --     function Foo (Arg1 : Arg1_Type; Arg2 : Arg2_Type) return Boolean;
+   --
+   --     ------------- Private part ------------
    --
    --     --  See Degenerate_Subp_Common_Nodes.N
    --     function Foo (Arg1 : Arg1_Type; Arg2 : Arg2_Type) return Boolean
@@ -456,30 +489,85 @@ package body Instrument.Ada_Unit is
    --  We generate the following declarations in the instrumented unit,
    --  replacing the original declaration:
    --
-   --     --  Sometimes we don't emit this forward declaration (see
+   --     ------------- Public Part -------------
+   --
+   --     --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
+   --     --
+   --     --  Sometimes, we don't emit this declaration,
+   --     --  see Augmented_Expr_Function_Needs_Decl
+   --     function Foo_With_State_[Subprogram_Index]
+   --       (Arg1                 : Arg1_Type;
+   --        Arg2                 : Arg2_Type;
+   --        MCDC_State_2         : GNATcov_RTS.Buffers.MCDC_State_Holder;
+   --        Dummy_Witness_Result : Boolean)
+   --        return Boolean;
+   --
+   --     --  If there isn't a previous declaration for the original expression
+   --     --  function, we sometimes emit a forward declaration (see
    --     --  Traverse_Degenerate_Subprogram).
    --     function Foo (Arg1 : Arg1_Type; Arg2 : Arg2_Type) return Boolean;
    --
-   --     --  See Degenerate_Subp_Common_Nodes.Wrapper_Pkg
-   --     package Func_Expr_[Subprogram_Index](S|B|U) is
-   --        --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
-   --        function Foo_With_State
-   --          (Arg1                 : Arg1_Type;
-   --           Arg2                 : Arg2_Type;
-   --           MCDC_State_2         : GNATcov_RTS.Buffers.MCDC_State_Holder;
-   --           Dummy_Witness_Result : Boolean)
-   --           return Boolean
-   --        is ([origin expression plus Witness calls using MCDC_State_2]);
-   --     end Func_Expr_[Subprogram_Index](S|B|U);
+   --     ------------ Private part -------------
+   --
+   --     --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
+   --     function Foo_With_State_[Subprogram_Index]
+   --       (Arg1                 : Arg1_Type;
+   --        Arg2                 : Arg2_Type;
+   --        MCDC_State_2         : GNATcov_RTS.Buffers.MCDC_State_Holder;
+   --        Dummy_Witness_Result : Boolean)
+   --        return Boolean
+   --     is ([origin expression plus Witness calls using MCDC_State_2]);;
    --
    --     --  See Create_Augmented_Expr_Function.New_Expr_Function
    --     function Foo (Arg1 : Arg1_Type; Arg2 : Arg2_Type) return Boolean
-   --     is (Func_Expr_[Subprogram_Index](S|B|U).Foo_With_State
+   --     is (Foo_With_State_[Subprogram_Index]
    --           (Arg1,
    --            Arg2,
    --            GNATcov_RTS.Buffers.MCDC_State_Holder'(others => <>),
    --            <witness call for stmt coverage of the expr func>));
-
+   --
+   --  Expression function primitive of its return type example (2nd strategy)
+   --  =======================================================================
+   --
+   --  For the following expression function:
+   --
+   --  function Foo (Arg : Arg_Type) return Ret_Type is (<some expression>);
+   --
+   --  where Ret_Type is a tagged type, and Foo is a primitive of Ret_Type,
+   --  we geenrate the following declarations in the insturmented unit,
+   --  replacing the original declaration:
+   --
+   --  --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
+   --  package Expr_Func_Pkg_[Subprogram_Index] is
+   --    function Foo_With_State_[Subprogram_Index]
+   --      (Arg : Arg_Type;
+   --       Dummy_Witness_Result : Boolean)
+   --       return Ret_Type is (<some expression>);
+   --  end Expr_Func_Pkg_[Subprogram_Index];
+   --
+   --  --  See Create_Augmented_Expr_Function.New_Expr_Function
+   --  function Foo (Arg : Arg_Type] return Ret_Type is
+   --    (Expr_Func_Pkg_[Subprogram_Index].Foo_With_State_[Subprogram_Index]
+   --       (Arg, <witness call for stmt of the expr func>));
+   --
+   --  Expression function in a protected body example (3rd strategy)
+   --  ==============================================================
+   --
+   --  The following expression function (located in a protected body):
+   --
+   --  function Foo (Arg : Arg_Type) return Boolean is (Arg.X or else Arg.Y);
+   --
+   --  Is replaced by the following function body:
+   --
+   --  function Foo (Arg : Arg_Type) return Boolean is
+   --    MCDC_State_2 : GNATcov_RTS.Buffers.MCDC_State_Holder :=
+   --      GNATcov_RTS.Buffers.MCDC_State_Holder'(others => <>);
+   --  begin
+   --    <Witness statement for stmt coverage>
+   --    return ([origin expression plus witness call using MCDC_State_2]);
+   --  end Foo;
+   --
+   --
    --  The following record tracks several parse and rewriting nodes that are
    --  useful for both the instrumentation of null subprograms and expression
    --  functions (see Traverse_Degenerate_Subprogram).
@@ -509,11 +597,11 @@ package body Instrument.Ada_Unit is
       --  Declaration list for the current context. Note that this is always
       --  "private" one if this is a package that has a private part.
 
-      --  The augmented expression function, taking supplementary parameters
-      --  for state buffers, and the generic instantiation, must be wrapped in
-      --  a package so that they do not create additional primitive operations
-      --  for argument/return types. The following Wrapper_Pkg* components
-      --  implement this package.
+      --  The generic instantiation, must be wrapped in a package so that it
+      --  does not create additional primitive operations for argument types.
+      --  The following Wrapper_Pkg* components implement this package.
+      --  This is also used for expression functions which are primitives of
+      --  their return type.
 
       Wrapper_Pkg_Name : Node_Rewriting_Handle;
       --  Name for this wrapper package
@@ -633,21 +721,51 @@ package body Instrument.Ada_Unit is
       Name     : String) return String;
 
    procedure Create_Augmented_Expr_Function
-     (UIC                     : Ada_Unit_Inst_Context;
-      Common_Nodes            : Degenerate_Subp_Common_Nodes;
-      Formal_Params           : Node_Rewriting_Handle;
-      Call_Params             : Node_Rewriting_Handle;
-      Keep_Aspects            : Boolean;
-      Augmented_Expr_Function : out Node_Rewriting_Handle;
-      New_Expr_Function       : out Node_Rewriting_Handle);
+     (UIC                          : Ada_Unit_Inst_Context;
+      Common_Nodes                 : Degenerate_Subp_Common_Nodes;
+      Formal_Params                : Node_Rewriting_Handle;
+      Call_Params                  : Node_Rewriting_Handle;
+      Keep_Aspects                 : Boolean;
+      Augmented_Expr_Function      : out Node_Rewriting_Handle;
+      Augmented_Expr_Function_Decl : out Node_Rewriting_Handle;
+      New_Expr_Function            : out Node_Rewriting_Handle);
    --  Create the augmented expression function from the original one
    --  (Augmented_Expr_Function) and create the expression function
    --  (New_Expr_Function) that will serve as a replacement to the original
-   --  one.
+   --  one. Also create a declaration for the augmented expression function,
+   --  if needed. It should be inserted right before the previous declaration
+   --  of the original expression function (which is guaranteed to exist).
+   --
+   --  If the original expresison function is a primitive of its return type,
+   --  then Agmented_Expr_Function will not be a handle to the expression
+   --  function, but rather to the nested package containing the augmented
+   --  expression function. In such case, Used_Nested_Package will be true.
    --
    --  If keep_Aspects is set to True, the aspects of the original expression
    --  function will be propagated to the augmented expression function,
    --  otherwise the augmented expression function will have no aspects.
+
+   function Augmented_Expr_Function_Needs_Decl
+     (N : Expr_Function) return Boolean;
+   --  Whether the augmented expression function also needs a previous
+   --  declaration.
+   --
+   --  When the original expression function is a primitive of some type, the
+   --  augmented expression function will also be a primitive for that type.
+   --  To avoid freezing issues we need to make sure that if the original
+   --  expression function has a previous declaration, then the augmented
+   --  expression function should have one as well, and it should be inserted
+   --  right before the original expression function's declaration.
+   --
+   --  If the original expression function is not defined in the same
+   --  declarative region as its prefious declaration, then there is no need to
+   --  insert a declaration for the augmented expression function, beause in
+   --  that case it isn't a primitive.
+
+   function Augmented_EF_Needs_Wrapper_Package
+     (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean;
+   --  Returns wether the augmented expression function needs to be wrapped in
+   --  a nested package.
 
    function Is_Self_Referencing
      (UIC : Ada_Unit_Inst_Context;
@@ -1701,18 +1819,18 @@ package body Instrument.Ada_Unit is
    ------------------------------------
 
    procedure Create_Augmented_Expr_Function
-     (UIC                     : Ada_Unit_Inst_Context;
-      Common_Nodes            : Degenerate_Subp_Common_Nodes;
-      Formal_Params           : Node_Rewriting_Handle;
-      Call_Params             : Node_Rewriting_Handle;
-      Keep_Aspects            : Boolean;
-      Augmented_Expr_Function : out Node_Rewriting_Handle;
-      New_Expr_Function       : out Node_Rewriting_Handle)
+     (UIC                          : Ada_Unit_Inst_Context;
+      Common_Nodes                 : Degenerate_Subp_Common_Nodes;
+      Formal_Params                : Node_Rewriting_Handle;
+      Call_Params                  : Node_Rewriting_Handle;
+      Keep_Aspects                 : Boolean;
+      Augmented_Expr_Function      : out Node_Rewriting_Handle;
+      Augmented_Expr_Function_Decl : out Node_Rewriting_Handle;
+      New_Expr_Function            : out Node_Rewriting_Handle)
    is
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
 
-      --  Compute the name of the augmented expression function (it will go in
-      --  the wrapper package).
+      --  Compute the name of the augmented expression function
 
       Orig_Name_Text : constant Wide_Wide_String :=
         Text (Common_Nodes.N_Name);
@@ -1722,23 +1840,42 @@ package body Instrument.Ada_Unit is
       Augmented_Expr_Func_Name : constant Wide_Wide_String :=
         (if Is_Op_Symbol
          then Op_Symbol_To_Name (Common_Nodes.N_Name) & "_Op"
-         else Orig_Name_Text) & "_With_State";
+         else Orig_Name_Text)
+        & "_With_State_"
+        & To_Wide_Wide_String (Img (UIC.Degenerate_Subprogram_Index));
+
+      Need_NP : constant Boolean :=
+        Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
 
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
 
-      Callee    : constant Node_Rewriting_Handle := Create_Dotted_Name
-        (RC,
-         F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
-         F_Suffix => Make_Identifier (UIC, Augmented_Expr_Func_Name));
+      Callee    : constant Node_Rewriting_Handle :=
+        (if Need_NP
+         then Create_Dotted_Name
+           (RC,
+            F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
+            F_Suffix => Create_Identifier
+              (RC,
+               Text => Augmented_Expr_Func_Name))
+         else Create_Identifier
+           (RC, Text => Augmented_Expr_Func_Name));
+
       Call_Expr : constant Node_Rewriting_Handle := Create_Call_Expr
         (RC,
          F_Name   => Callee,
          F_Suffix => Call_Params);
 
+      --  No need for a declaration if we are using a nested package
+
+      Needs_Decl : constant Boolean := not Need_NP
+        and then Augmented_Expr_Function_Needs_Decl
+          (Common_Nodes.N.As_Expr_Function);
+
    begin
-      --  Create New_Expr_Function, which will go right after the wrapper
-      --  package. Move all aspects from the original function to the new one.
+      --  Create New_Expr_Function, which will go right after the augmented
+      --  expression function. Move all aspects from the original function to
+      --  the new one.
 
       New_Expr_Function :=
         Create_Expr_Function
@@ -1754,9 +1891,8 @@ package body Instrument.Ada_Unit is
 
       Augmented_Expr_Function := Handle (Common_Nodes.N);
 
-      --  Make sure it is not overriding: since the augmented expression
-      --  function goes to the helper package, it cannot be a primitive and
-      --  thus cannot be overriding.
+      --  overriding keyword is purely optional, so there is no drawback in
+      --  removing it.
 
       Replace
         (Handle (Common_Nodes.N_Overriding),
@@ -1776,6 +1912,19 @@ package body Instrument.Ada_Unit is
          I_Subp_Spec_F_Subp_Params,
          Create_Params (RC, Formal_Params));
 
+      --  If we also need a declaration for the augmented expression
+      --  function, create it. Otherwise, set it to No_Node_Rewriting_Handle.
+
+      if Needs_Decl then
+         Augmented_Expr_Function_Decl := Create_Subp_Decl
+           (Handle       => UIC.Rewriting_Context,
+            F_Overriding => No_Node_Rewriting_Handle,
+            F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
+            F_Aspects    => No_Node_Rewriting_Handle);
+      else
+         Augmented_Expr_Function_Decl := No_Node_Rewriting_Handle;
+      end if;
+
       --  If the original expression function is ghost, so must be the
       --  augmented one.
 
@@ -1783,17 +1932,138 @@ package body Instrument.Ada_Unit is
          declare
             Ghost_Aspect : constant Node_Rewriting_Handle :=
               Create_Aspect_Assoc
-                (RC, Make_Identifier (UIC, "Ghost"), No_Node_Rewriting_Handle);
+                (RC,
+                 Make_Identifier (UIC, "Ghost"),
+                 No_Node_Rewriting_Handle);
 
             Aspects : constant Node_Rewriting_Handle :=
-              Create_Regular_Node (RC, Ada_Aspect_Spec, (1 => Ghost_Aspect));
+              Create_Regular_Node (RC,
+                                   Ada_Aspect_Spec,
+                                   (1 => Ghost_Aspect));
          begin
-            Set_Child
-              (Handle (Common_Nodes.N), I_Expr_Function_F_Aspects, Aspects);
+            if Needs_Decl then
+               Set_Child
+                 (Augmented_Expr_Function_Decl,
+                  I_Subp_Decl_F_Aspects,
+                  Aspects);
+            else
+               Set_Child
+                 (Handle (Common_Nodes.N),
+                  I_Expr_Function_F_Aspects,
+                  Aspects);
+            end if;
          end;
       end if;
 
+      if Need_NP then
+
+         --  Put the augmented expression function in the wrapper package, and
+         --  return its handle instead of the one of the expression function.
+
+         Append_Child (Common_Nodes.Wrapper_Pkg_Decls,
+                       Child  => Augmented_Expr_Function);
+
+         Augmented_Expr_Function := Common_Nodes.Wrapper_Pkg;
+      end if;
+
    end Create_Augmented_Expr_Function;
+
+   ----------------------------------------
+   -- Augmented_Expr_Function_Needs_Decl --
+   ----------------------------------------
+
+   function Augmented_Expr_Function_Needs_Decl
+     (N : Expr_Function) return Boolean
+   is
+      Previous_Decl   : Basic_Decl;
+      --  Will hold the previous declaration of the expression function,
+      --  if any.
+
+      Semantic_Parent, Prev_Part_Semantic_Parent : Ada_Node;
+   begin
+      --  Check that N is a primitive of some type
+
+      begin
+         if N.F_Subp_Spec.P_Primitive_Subp_Types'Length = 0 then
+            return False;
+         end if;
+      exception
+         when Exc : Property_Error =>
+            Report (Node => N,
+                    Msg  => "Could not determine if expression function is a"
+                    & " primitive: "
+                    & Ada.Exceptions.Exception_Information (Exc),
+                    Kind => Warning);
+            return False;
+      end;
+
+      --  Check that N has a previous declaration
+
+      begin
+         Previous_Decl := N.P_Previous_Part_For_Decl;
+
+         if Previous_Decl.Is_Null or else Previous_Decl = No_Ada_Node then
+            return False;
+         end if;
+      exception
+         when Exc : Property_Error =>
+            Report (Node => N,
+                    Msg  => "Could not determine if expression function"
+                    & " declaration has a previous part or not: "
+                    & Ada.Exceptions.Exception_Information (Exc),
+                    Kind => Warning);
+            return False;
+      end;
+
+      --  Check that N is in a public or private part of a package decl
+      --  or that N and its previous part are declared in the same declarative
+      --  region.
+
+      begin
+         Semantic_Parent := N.P_Semantic_Parent;
+         Prev_Part_Semantic_Parent := Previous_Decl.P_Semantic_Parent;
+
+         if Semantic_Parent.Is_Null
+           or else Prev_Part_Semantic_Parent.Is_Null
+           or else
+             (Semantic_Parent.Kind not in Ada_Public_Part | Ada_Private_Part
+              and then Semantic_Parent /= Prev_Part_Semantic_Parent)
+         then
+            return False;
+         end if;
+      exception
+         when Exc : Property_Error =>
+            Report (Node => N,
+                    Msg  => "Could not determine the semantic parent of the"
+                    & " expression function or the semantic parent of its"
+                    & " previous declaration: "
+                    & Ada.Exceptions.Exception_Information (Exc),
+                    Kind => Warning);
+            return False;
+      end;
+
+      --  If all of the above conditions are met then the new expression
+      --  needs a declaration.
+
+      return True;
+   end Augmented_Expr_Function_Needs_Decl;
+
+   function Augmented_EF_Needs_Wrapper_Package
+     (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean is
+   begin
+      return Common_Nodes.Ctrl_Type /= No_Base_Type_Decl
+        and then (not Common_Nodes.N_Spec.P_Return_Type.Is_Null)
+        and then Common_Nodes.N_Spec.P_Return_Type = Common_Nodes.Ctrl_Type;
+
+   exception
+      when Exc : Property_Error =>
+         Report (Node => Common_Nodes.N,
+                 Msg  => "Could not determine the return type of the"
+                 & " expression function: "
+                 & Ada.Exceptions.Exception_Information (Exc),
+                 Kind => Warning);
+         return False;
+   end Augmented_EF_Needs_Wrapper_Package;
 
    -------------------------
    -- Is_Self_Referencing --
@@ -3178,8 +3448,10 @@ package body Instrument.Ada_Unit is
 
          if Is_Expr_Function then
             declare
-               Augmented_Expr_Function : Node_Rewriting_Handle;
-               New_Expr_Function       : Node_Rewriting_Handle;
+               Augmented_Expr_Function       : Node_Rewriting_Handle;
+               Augmented_Expr_Function_Decl  : Node_Rewriting_Handle;
+               New_Expr_Function             : Node_Rewriting_Handle;
+
             begin
                --  Create the augmented expression function and amend the
                --  original one.
@@ -3191,18 +3463,43 @@ package body Instrument.Ada_Unit is
                   Call_Params,
                   Keep_Aspects,
                   Augmented_Expr_Function,
+                  Augmented_Expr_Function_Decl,
                   New_Expr_Function);
 
-               --  First comes the wrapper package, then the new expression
-               --  function.
+               --  First comes the augmented expression function, then the new
+               --  expression function.
 
-               Insert (Common_Nodes.Wrapper_Pkg);
+               Insert (Augmented_Expr_Function);
                Insert (New_Expr_Function);
 
-               --  The augmented expression function must appear in the
-               --  wrapper package.
+               --  If we need to insert a declaration for the new expression
+               --  function, find the correct spot to add it, and keep track
+               --  of this insertion if it happens in the same list as the
+               --  one currently being instrumented.
 
-               Append_Child (Common_Nodes.Wrapper_Pkg_Decls, Handle (N));
+               if Augmented_Expr_Function_Decl /= No_Node_Rewriting_Handle then
+                  declare
+                     Previous_Decl : constant Basic_Decl :=
+                       N.P_Previous_Part_For_Decl;
+                     --  This property cannot fail because to reach this point
+                     --  we will already have succesfully queried the previous
+                     --  part of N in Augmented_Expr_Function_Needs_Decl.
+
+                     Insert_List  : constant Node_Rewriting_Handle :=
+                       Handle (Previous_Decl.Parent);
+                     Insert_Index : constant Positive :=
+                       Index_In_Rewriting_Tree (Previous_Decl);
+                  begin
+                     Insert_Child (Insert_List,
+                                   Insert_Index,
+                                   Augmented_Expr_Function_Decl);
+                     if Insert_List = Saved_Insertion_Info.RH_List then
+                        Saved_Insertion_Info.Rewriting_Offset :=
+                          Saved_Insertion_Info.Rewriting_Offset + 1;
+                     end if;
+                  end;
+               end if;
+
             end;
 
          else
