@@ -105,6 +105,7 @@ package GNATcov_RTS.Buffers is
    type Witness_Dummy_Type is record
       Data : Boolean;
    end record;
+   pragma Volatile (Witness_Dummy_Type);
 
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id) return Witness_Dummy_Type;
@@ -112,10 +113,10 @@ package GNATcov_RTS.Buffers is
    --  but declarations are, for example ahead of library level declarations
    --  to witness their elaboration.
 
-   --  Use a dummy type of minimal but non-zero size to prevent the compiler
-   --  from optimizing calls away, as this unit is Pure. Use a composite type
-   --  to prevent ambiguities in contexts where the Boolean variant below
-   --  might be used, for example in constructs like
+   --  Use a volatile dummy type of minimal but non-zero size to prevent the
+   --  compiler from optimizing calls away, as this unit is Pure. Use a
+   --  composite type to prevent ambiguities in contexts where the Boolean
+   --  variant below might be used, for example in constructs like
    --
    --    case Witness (Buffer, Bit) is
    --      when others => ...
