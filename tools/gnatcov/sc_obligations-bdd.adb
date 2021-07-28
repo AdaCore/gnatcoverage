@@ -38,8 +38,9 @@ package body SC_Obligations.BDD is
    Arcs_Stack : Arcs_Stacks.Vector;
 
    procedure Enumerate_Paths
-     (BDD_Vector : in out BDD_Vectors.Vector;
-      BDD        : in out BDD_Type);
+     (BDD_Vector  : in out BDD_Vectors.Vector;
+      BDD         : in out BDD_Type;
+      Count_Paths : Boolean);
    --  Enumerate all possible paths through BDD. For each BDD node,
    --  Offset_For_True is assigned, so that the unique index of each path
    --  is the sum of the offsets for each True condition. Also identify
@@ -48,6 +49,8 @@ package body SC_Obligations.BDD is
    --  than one path from the root condition). Note that MC/DC is equivalent
    --  to object branch coverage if, and only if, there is no multi-path
    --  condition.
+   --
+   --  If Count_Paths is True, also set BDD.Path_Count.
 
    --------------
    -- Allocate --
@@ -182,21 +185,33 @@ package body SC_Obligations.BDD is
    ---------------------
 
    procedure Enumerate_Paths
-     (BDD_Vector : in out BDD_Vectors.Vector;
-      BDD        : in out BDD_Type)
+     (BDD_Vector  : in out BDD_Vectors.Vector;
+      BDD         : in out BDD_Type;
+      Count_Paths : Boolean)
    is
       Dummy : constant Outputs.Context_Handle := Outputs.Create_Context
         ("Analyzing decision at "
          & Slocs.Image (Sloc_Range (BDD.Decision)));
 
-      Path_Count : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
-        of Integer := (others => 0);
+      --  Note regarding Count_Paths handling: instead of introducing
+      --  IF blocks everywhere paths are counted (quite verbose and tedious,
+      --  complexity of the BDD traversal is the same anyway), just add a
+      --  condition when setting the path count for outcomes (i.e. leave to 0
+      --  instead of setting to 1). The rest is just making sums, so we will
+      --  get 0 everywhere. BDD.Path_Count is supposed to be set to 0
+      --  initially, so the final assignment will not change anything.
+
+      subtype Valid_Node_Id is
+         BDD_Node_Id range BDD.First_Node ..  BDD.Last_Node;
+
+      Visited    : array (Valid_Node_Id) of Boolean := (others => False);
+      Path_Count : array (Valid_Node_Id) of Integer := (others => 0);
 
       procedure Visit
         (Node_Id      : BDD_Node_Id;
          Origin_Id    : BDD_Node_Id;
          Origin_Value : Boolean)
-        with Post => Path_Count (Node_Id) > 0;
+        with Post => Visited (Node_Id);
       --  Visit one node. If it was already seen, record presence of a
       --  multi-path condition. Sets Path_Count (Node_Id) to total count
       --  of paths from the identified node.
@@ -226,7 +241,7 @@ package body SC_Obligations.BDD is
                --  Record first condition that is reachable through multiple
                --  paths.
 
-               if Path_Count (Node_Id) > 0 then
+               if Visited (Node_Id) then
                   if BDD.First_Multipath_Condition = No_BDD_Node_Id then
                      BDD.First_Multipath_Condition := Node_Id;
                      Parent_Id := No_BDD_Node_Id;
@@ -264,11 +279,15 @@ package body SC_Obligations.BDD is
 
             when Outcome =>
                BDD.Reachable_Outcomes (Node.Decision_Outcome) := True;
-               Path_Count (Node_Id) := 1;
+               if Count_Paths then
+                  Path_Count (Node_Id) := 1;
+               end if;
 
             when others =>
                raise Program_Error;
          end case;
+
+         Visited (Node_Id) := True;
       end Visit;
 
    --  Start of processing for Enumerate_Paths
@@ -286,8 +305,9 @@ package body SC_Obligations.BDD is
    ---------------
 
    procedure Completed
-     (BDD_Vector : in out BDD_Vectors.Vector;
-      BDD        : in out BDD_Type)
+     (BDD_Vector  : in out BDD_Vectors.Vector;
+      BDD         : in out BDD_Type;
+      Count_Paths : Boolean)
    is
       use BDD_Vectors;
 
@@ -344,10 +364,10 @@ package body SC_Obligations.BDD is
          end;
       end loop;
 
-      --  Explore BDD to check for presence of multi-path conditions and
-      --  assign offsets for path index computation.
+      --  Explore BDD to check for presence of multi-path conditions and (if
+      --  Count_Paths is True) assign offsets for path index computation.
 
-      Enumerate_Paths (BDD_Vector, BDD);
+      Enumerate_Paths (BDD_Vector, BDD, Count_Paths);
 
       if Verbose then
          Dump_BDD (BDD_Vector, BDD);

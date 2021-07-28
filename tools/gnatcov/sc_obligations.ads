@@ -186,7 +186,8 @@ package SC_Obligations is
       Origin        : Source_File_Index;
       Deps          : SFI_Vector := SFI_Vectors.Empty_Vector;
       Created_Units : out Created_Unit_Maps.Map;
-      SCO_Map       : access LL_HL_SCO_Map := null);
+      SCO_Map       : access LL_HL_SCO_Map := null;
+      Count_Paths   : Boolean);
    --  Populate high level SCO tables (SC_Vectors, CU_Vector, ... in
    --  SC_Obligations' body) from low level ones (global tables from the SCOs
    --  unit).
@@ -212,6 +213,10 @@ package SC_Obligations is
    --  low level SCOs to high level SCOs. Note that in practice, callers should
    --  pass null iff we are not performing source instrumentation, as the SCOs
    --  mapping is always used for SID file production.
+   --
+   --  If Count_Paths is True, compute the number of BDD evaluation paths for
+   --  all decisions. This is useful only to determine the size of MC/DC
+   --  coverage buffers for source traces.
 
    procedure Load_SCOs
      (ALI_Filename         : String;

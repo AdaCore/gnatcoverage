@@ -6117,7 +6117,8 @@ package body Instrument.Ada_Unit is
            (Provider      => Instrumenter,
             Origin        => UIC.SFI,
             Created_Units => Created_Units,
-            SCO_Map       => SCO_Map'Access);
+            SCO_Map       => SCO_Map'Access,
+            Count_Paths   => True);
 
          --  In the instrumentation case, the origin of SCO information is
          --  the original source file.

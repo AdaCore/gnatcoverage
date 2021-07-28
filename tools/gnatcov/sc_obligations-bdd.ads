@@ -232,8 +232,9 @@ private package SC_Obligations.BDD is
    --  Process condition
 
    procedure Completed
-     (BDD_Vector : in out BDD_Vectors.Vector;
-      BDD        : in out BDD_Type);
+     (BDD_Vector  : in out BDD_Vectors.Vector;
+      BDD         : in out BDD_Type;
+      Count_Paths : Boolean);
    --  Called when all items in decision have been processed
 
    procedure Dump_BDD

@@ -316,7 +316,8 @@ package body SC_Obligations is
       SCO_Index     : Nat;
       State         : in out CU_Load_State;
       Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
-      SCO_Map       : access LL_HL_SCO_Map := null);
+      SCO_Map       : access LL_HL_SCO_Map := null;
+      Count_Paths   : Boolean);
    --  Load the low level SCO at SCO_Index into our Internal table, to be part
    --  of the CU compilation unit.
    --
@@ -2122,10 +2123,16 @@ package body SC_Obligations is
 
          --  For compiler-provided units, the origin of SCO information is the
          --  ALI file.
+
          Origin        => ALI_Index,
 
          Deps          => Deps,
-         Created_Units => Created_Units);
+         Created_Units => Created_Units,
+
+         --  An ALI file is involved: we are in binary traces mode, and so
+         --  there is no need to compute the number of BDD execution paths for
+         --  decisions.
+         Count_Paths   => False);
 
       --  For the units we successfully loaded, copy annotations from the ALI
       --  file to our internal table, filling in the compilation unit.
@@ -2466,7 +2473,8 @@ package body SC_Obligations is
       SCO_Index     : Nat;
       State         : in out CU_Load_State;
       Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
-      SCO_Map       : access LL_HL_SCO_Map := null)
+      SCO_Map       : access LL_HL_SCO_Map := null;
+      Count_Paths   : Boolean)
    is
       Unit : CU_Info renames CU_Vector.Reference (CU);
       SCOE : SCOs.SCO_Table_Entry renames SCOs.SCO_Table.Table (SCO_Index);
@@ -2729,7 +2737,7 @@ package body SC_Obligations is
             BDD.Process_Condition (BDD_Vector, State.Current_BDD, New_SCO);
 
             if SCOE.Last then
-               BDD.Completed (BDD_Vector, State.Current_BDD);
+               BDD.Completed (BDD_Vector, State.Current_BDD, Count_Paths);
                SCO_Vector.Update_Element
                  (State.Current_BDD.Decision, Update_Decision_BDD'Access);
 
@@ -2777,7 +2785,8 @@ package body SC_Obligations is
       Origin        : Source_File_Index;
       Deps          : SFI_Vector := SFI_Vectors.Empty_Vector;
       Created_Units : out Created_Unit_Maps.Map;
-      SCO_Map       : access LL_HL_SCO_Map := null)
+      SCO_Map       : access LL_HL_SCO_Map := null;
+      Count_Paths   : Boolean)
    is
       use SCOs;
 
@@ -2827,7 +2836,12 @@ package body SC_Obligations is
 
                for SCO_Index in SCO_Range.First .. SCO_Range.Last loop
                   Process_Low_Level_Entry
-                    (CU, SCO_Index, State, Ignored_Slocs_Set, SCO_Map);
+                    (CU,
+                     SCO_Index,
+                     State,
+                     Ignored_Slocs_Set,
+                     SCO_Map,
+                     Count_Paths);
                end loop;
             end loop;
 
