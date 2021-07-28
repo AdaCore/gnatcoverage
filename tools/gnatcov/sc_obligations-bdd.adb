@@ -24,6 +24,8 @@ with Ada.Text_IO;       use Ada.Text_IO;
 
 with Checkpoints; use Checkpoints;
 with Diagnostics; use Diagnostics;
+with Outputs;
+with Slocs;
 with Switches;    use Switches;
 
 package body SC_Obligations.BDD is
@@ -183,6 +185,10 @@ package body SC_Obligations.BDD is
      (BDD_Vector : in out BDD_Vectors.Vector;
       BDD        : in out BDD_Type)
    is
+      Dummy : constant Outputs.Context_Handle := Outputs.Create_Context
+        ("Analyzing decision at "
+         & Slocs.Image (Sloc_Range (BDD.Decision)));
+
       Path_Count : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
         of Integer := (others => 0);
 
