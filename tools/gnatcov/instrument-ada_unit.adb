@@ -4419,7 +4419,7 @@ package body Instrument.Ada_Unit is
          else
             for Decl of Priv_Decl.F_Decls loop
                if Decl.Kind /= Ada_Component_Decl
-                 and then Has_Decision (Decl)
+                 and then Has_Decision (UIC, Decl)
                then
                   Process_Decisions (UIC, Decl, 'X');
                end if;
