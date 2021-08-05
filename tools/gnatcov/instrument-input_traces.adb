@@ -183,12 +183,12 @@ package body Instrument.Input_Traces is
       Trace_Entry  : out Trace_Entry_Elements;
       Result       : in out Read_Result) return Boolean
       with Pre => Result.Success;
-   --  Try to read a trace etnry header from Stream. If Stream already reached
-   --  EOF, just return False.
+   --  Try to read a trace entry header from Stream.
    --
-   --  Otherwise, decode it and fill Entry_Header with information from it.
-   --  Then fetch the remaining entry data in Stream.Buffer and make
-   --  Trace_Entry reference this data.
+   --  If Stream already reached EOF, just return False. Otherwise, decode it
+   --  and fill Entry_Header with information from it. Then fetch the
+   --  remaining entry data in Stream.Buffer and make Trace_Entry reference
+   --  this data.
    --
    --  If all goes well, keep Result as it is, otherwise set it to the
    --  corresponding error information.
@@ -545,11 +545,11 @@ package body Instrument.Input_Traces is
             Range_For (File_Header.Alignment, 0,
                        Natural (Entry_Header.Unit_Name_Length));
          Project_Name_Range     : constant Buffer_Range :=
-            Range_For (File_Header.Alignment, 0,
+            Range_For (File_Header.Alignment, Offset_After (Unit_Name_Range),
                        Natural (Entry_Header.Project_Name_Length));
          Statement_Buffer_Range : constant Buffer_Range :=
             Range_For (File_Header.Alignment,
-                       Offset_After (Unit_Name_Range),
+                       Offset_After (Project_Name_Range),
                        Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
                                     Entry_Header.Statement_Bit_Count));
          Decision_Buffer_Range  : constant Buffer_Range :=
