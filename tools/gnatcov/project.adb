@@ -563,6 +563,27 @@ package body Project is
       return Are_SIDs_Enumerated;
    end SIDs_Enumerated;
 
+   ----------------------
+   -- Has_Ada_Language --
+   ----------------------
+
+   function Has_Ada_Language return Boolean is
+   begin
+      for Prj_Info of Prj_Map loop
+         declare
+            Languages : constant String_List :=
+              GNATCOLL.Projects.Languages (Prj_Info.Project);
+         begin
+            if (for all Language of Languages =>
+                  To_Lower (Language.all) /= "ada")
+            then
+               return False;
+            end if;
+         end;
+      end loop;
+      return True;
+   end Has_Ada_Language;
+
    -----------------------
    -- Enumerate_Sources --
    -----------------------
@@ -1387,6 +1408,15 @@ package body Project is
    begin
       return Enumerate_Mains (Prj_Tree.Root_Project, "ada");
    end Enumerate_Ada_Mains;
+
+   -------------------------
+   -- Enumerate_C_Mains --
+   -------------------------
+
+   function Enumerate_C_Mains return Main_Source_File_Array is
+   begin
+      return Enumerate_Mains (Prj_Tree.Root_Project, "c");
+   end Enumerate_C_Mains;
 
    ----------------
    -- Output_Dir --

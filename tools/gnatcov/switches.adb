@@ -16,11 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
 
+with Inputs;   use Inputs;
 with Outputs;  use Outputs;
 with Project;  use Project;
-with Strings;  use Strings;
 with Switches; use Switches;
 
 package body Switches is
@@ -254,6 +255,31 @@ package body Switches is
 
       Switches.Recursive_Projects := not Args.Bool_Args (Opt_No_Subprojects);
       Copy_Arg_List (Opt_Units, Units_Inputs);
+
+      if Is_Present
+        (Args, Option_Reference'(String_List_Opt, Opt_Enabled_Languages))
+      then
+         declare
+            Temp_List : Inputs.Inputs_Type;
+
+            procedure Add_Language (L : String);
+            --  Add a lower-cased language to Enabled_Languages
+
+            ------------------
+            -- Add_Language --
+            ------------------
+
+            procedure Add_Language (L : String) is
+            begin
+               String_Sets.Insert (Enabled_Languages, +(To_Lower (L)));
+            end Add_Language;
+         begin
+            Copy_Arg_List (Opt_Enabled_Languages, Temp_List);
+            Iterate (Temp_List, Add_Language'Access);
+         end;
+      else
+         String_Sets.Insert (Enabled_Languages, +"ada");
+      end if;
 
       --  All -X command line switches have now been processed: initialize the
       --  project subsystem and load the root project.

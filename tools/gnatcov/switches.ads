@@ -24,6 +24,7 @@ with Calendar_Utils;       use Calendar_Utils;
 with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
 with Inputs;
+with Strings;              use Strings;
 
 package Switches is
 
@@ -116,6 +117,9 @@ package Switches is
 
    Units_Inputs : Inputs.Inputs_Type;
    --  List of names for requested units of interest
+
+   Enabled_Languages : String_Sets.Set;
+   --  List of languages for which source files should be instrumented
 
    ------------------------
    -- Target information --

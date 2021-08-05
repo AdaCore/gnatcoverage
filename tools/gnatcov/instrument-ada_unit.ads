@@ -20,6 +20,7 @@
 
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
@@ -28,6 +29,7 @@ with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with Instrument.Common; use Instrument.Common;
+with Types;             use Types;
 
 package Instrument.Ada_Unit is
 
@@ -40,7 +42,7 @@ package Instrument.Ada_Unit is
    procedure Add_Auto_Dump_Buffers
      (IC   : Inst_Context;
       Info : in out Project_Info;
-      Main : Ada_Qualified_Name;
+      Main : Compilation_Unit_Name;
       URH  : Unit_Rewriting_Handle)
      with Pre => IC.Dump_Config.Trigger /= Manual;
    --  Try to insert in the sources of Main (a main subprogram) a call to dump
@@ -130,6 +132,62 @@ private
       end case;
    end record;
 
+   type Source_Decision is record
+      LL_SCO : Nat;
+      --  Low-level SCO id of decision
+
+      Decision : Expr;
+      --  Decision expression
+
+      State : Ada.Strings.Unbounded.Unbounded_String;
+      --  Name of MC/DC state local variable
+
+      Is_Static : Boolean := False;
+      --  Whether the decision expression is static (according to the RM
+      --  definition of static).
+   end record;
+
+   type Source_Condition is record
+      LL_SCO : Nat;
+      --  Low-level SCO id of condition
+
+      Condition : Expr;
+      --  Condition expression
+
+      State : Ada.Strings.Unbounded.Unbounded_String;
+      --  Name of MC/DC state local variable
+
+      First : Boolean;
+      --  True if this condition is the first one in its decision
+   end record;
+
+   package Source_Decision_Vectors is
+     new Ada.Containers.Vectors (Natural, Source_Decision);
+   package Source_Condition_Vectors is
+     new Ada.Containers.Vectors (Natural, Source_Condition);
+
+   type Instrumentation_Entities is record
+      Common_Buffers : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the unit that contains coverage buffer types and
+      --  witness subprograms.
+
+      Unit_Buffers : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the unit that contains addresses to coverage
+      --  buffers (Pure_Buffer_Unit).
+
+      Statement_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the buffer corresponding to statement coverage
+      --  obligations.
+
+      Decision_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the buffer corresponding to decision coverage
+      --  obligations.
+
+      MCDC_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+      --  Qualified name for the buffer corresponding to paths in decision
+      --  BDDs.
+   end record;
+
    type Root_MCDC_State_Inserter is abstract tagged null record;
    --  Abstract interface for a mechanism that allows the insertion of
    --  MC/DC state variables in a given context.
@@ -157,6 +215,13 @@ private
       record
          Root_Unit : Compilation_Unit;
          --  Node of compilation unit
+
+         Source_Decisions  : Source_Decision_Vectors.Vector;
+         Source_Conditions : Source_Condition_Vectors.Vector;
+         --  Decisions and (for MC/DC) conditions to be instrumented
+
+         Entities : Instrumentation_Entities;
+         --  Bank of nodes to use during instrumentation
 
          Withed_Units : FQN_Sets.Set;
          --  Set of units for which we have WITH clauses

@@ -134,6 +134,10 @@ package Project is
    function SIDs_Enumerated return Boolean with Pre => Is_Project_Loaded;
    --  Return whether Enumerate_SIDs was called
 
+   function Has_Ada_Language return Boolean;
+   --  Return whether Ada is part of the language attributes for every
+   --  project of interest.
+
    procedure Enumerate_Sources
      (Callback         : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
@@ -162,6 +166,11 @@ package Project is
    function Enumerate_Ada_Mains return Main_Source_File_Array
       with Pre => Is_Project_Loaded;
    --  Return the list of all Ada main source files recursively found in the
+   --  loaded project tree.
+
+   function Enumerate_C_Mains return Main_Source_File_Array
+      with Pre => Is_Project_Loaded;
+   --  Return the list of all C main source files recursively found in the
    --  loaded project tree.
 
    function Find_Source_File (Simple_Name : String) return String_Access;

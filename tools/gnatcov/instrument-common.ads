@@ -167,11 +167,6 @@ package Instrument.Common is
    --  Name of the procedure (in main dump helper packages) that dumps all
    --  coverage buffers to the source trace file.
 
-   function Dump_Procedure_Symbol (Main : Ada_Qualified_Name) return String is
-     ("gnatcov_rts_" & To_Symbol_Name (Main) & "_"
-      & To_Lower (To_String (Dump_Procedure_Name)));
-   --  Return the name of the exported symbol for the Dump_Buffers function
-
    Register_Dump_Procedure_Name : constant Ada_Identifier :=
       To_Unbounded_String ("Register_Dump_Buffers");
    --  Name of the procedure (in main dump helper packages) that registers the
@@ -245,6 +240,12 @@ package Instrument.Common is
 
    function "=" (Left, Right : Compilation_Unit_Name) return Boolean;
    --  Same as above (but checking for equality)
+
+   function Dump_Procedure_Symbol
+     (Main : Compilation_Unit_Name) return String is
+     ("gnatcov_rts_" & Instrumented_Unit_Slug (Main) & "_"
+      & To_Lower (To_String (Dump_Procedure_Name)));
+   --  Return the name of the exported symbol for the Dump_Buffers function
 
    function Statement_Buffer_Symbol
      (Instrumented_Unit : Compilation_Unit_Name) return String;
@@ -468,6 +469,11 @@ package Instrument.Common is
       Source_File : GNATCOLL.Projects.File_Info);
    --  Add the given source file to the list of units to instrument
 
+   function Register_New_File
+     (Info : in out Project_Info; Name : String) return String;
+   --  Helper for Create_File and Start_Rewriting: compute the path to the file
+   --  to create and register it to Info.Instr_Files.
+
    procedure Create_File
      (Info : in out Project_Info;
       File : in out Text_Files.File_Type;
@@ -540,32 +546,6 @@ package Instrument.Common is
    --  Common declarations for Ada / C instrumentation --
    ------------------------------------------------------
 
-   --  All documentation below refer to "qualified names". This only makes
-   --  sense in Ada.
-   --  TODO??? Adjust the semantics when C instrumentation is implemented.
-
-   type Instrumentation_Entities is record
-      Common_Buffers : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
-      --  Qualified name for the unit that contains coverage buffer types and
-      --  witness subprograms.
-
-      Unit_Buffers : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
-      --  Qualified name for the unit that contains addresses to coverage
-      --  buffers (Pure_Buffer_Unit).
-
-      Statement_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
-      --  Qualified name for the buffer corresponding to statement coverage
-      --  obligations.
-
-      Decision_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
-      --  Qualified name for the buffer corresponding to decision coverage
-      --  obligations.
-
-      MCDC_Buffer : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
-      --  Qualified name for the buffer corresponding to paths in decision
-      --  BDDs.
-   end record;
-
    -----------------------------
    -- Bit allocation tracking --
    -----------------------------
@@ -617,40 +597,6 @@ package Instrument.Common is
    --  traversal, but after high-level SCOs have been generated, because for
    --  MC/DC instrumentation depends on BDD information.
 
-   type Source_Decision is record
-      LL_SCO : Nat;
-      --  Low-level SCO id of decision
-
-      Decision : Expr;
-      --  Decision expression
-
-      State : Unbounded_String;
-      --  Name of MC/DC state local variable
-
-      Is_Static : Boolean := False;
-      --  Whether the decision expression is static (according to the RM
-      --  definition of static).
-   end record;
-
-   type Source_Condition is record
-      LL_SCO : Nat;
-      --  Low-level SCO id of condition
-
-      Condition : Expr;
-      --  Condition expression
-
-      State : Unbounded_String;
-      --  Name of MC/DC state local variable
-
-      First : Boolean;
-      --  True if this condition is the first one in its decision
-   end record;
-
-   package Source_Decision_Vectors is
-     new Ada.Containers.Vectors (Natural, Source_Decision);
-   package Source_Condition_Vectors is
-     new Ada.Containers.Vectors (Natural, Source_Condition);
-
    type Annotation_Couple is record
       Sloc       : Source_Location;
       Annotation : ALI_Annotation;
@@ -691,13 +637,6 @@ package Instrument.Common is
       Unit_Bits : LL_Unit_Bit_Allocs;
       --  Record of allocation of coverage buffer bits for low-level SCOs
 
-      Source_Decisions  : Source_Decision_Vectors.Vector;
-      Source_Conditions : Source_Condition_Vectors.Vector;
-      --  Decisions and (for MC/DC) conditions to be instrumented
-
-      Entities : Instrumentation_Entities;
-      --  Bank of nodes to use during instrumentation
-
       Annotations : Annotation_Vectors.Vector;
       --  Annotations created during the instrumentation process, to insert in
       --  ALI_Files.ALI_Annotations afterwards, when the compilation unit
@@ -723,6 +662,34 @@ package Instrument.Common is
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a new entry to the low-level SCO table
+
+   package CU_Name_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Compilation_Unit_Name);
+
+   package Ada_Qualified_Name_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Ada_Qualified_Name,
+      "="          => Ada_Identifier_Vectors."=");
+
+   function Buffer_Units_For_Closure
+     (IC   : Inst_Context;
+      Main : Compilation_Unit_Name)
+      return Ada_Qualified_Name_Vectors.Vector;
+   --  Return the list of buffer units names for all units of interest in
+   --  Main's closure. If for some reason we cannot get this list, just return
+   --  an empty one.
+
+   procedure Emit_Ada_Dump_Helper_Unit
+     (IC          : Inst_Context;
+      Info        : in out Project_Info;
+      Main        : Compilation_Unit_Name;
+      Language    : Any_Language;
+      Helper_Unit : out Ada_Qualified_Name);
+   --  Emit the unit to contain helpers to implement the automatic dump of
+   --  coverage buffers for the given Main unit. Info must be the project that
+   --  owns this main. Language is the language for this main compilation unit.
+   --  Upon return, the name of this helper unit is stored in Helper_Unit.
 
 private
 

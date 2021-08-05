@@ -133,7 +133,8 @@ package Command_Line is
       Opt_Trace,
       Opt_Checkpoint,
       Opt_Ignore_Source_Files,
-      Opt_Shared_Object);
+      Opt_Shared_Object,
+      Opt_Enabled_Languages);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -490,8 +491,7 @@ package Command_Line is
         (Long_Name => "--all-warnings",
          Help      => "Print low warnings in addition to warnings and errors.",
          Commands  => (others => True),
-         Internal  => True)
-     );
+         Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create
@@ -963,7 +963,22 @@ package Command_Line is
                          & " option."),
          Commands    => (Cmd_Run => True,
                          others => False),
-         Internal    => False));
+         Internal    => False),
+
+      Opt_Enabled_Languages => Create
+        (Long_Name => "--enabled-languages",
+         Pattern   => "[LANGUAGE|@LISTFILE]",
+         Help      => "Activate instrumentation for source files of the"
+                      & " given languages. Supported languages are: Ada, C."
+
+                      --  C instrumentation is a beta feature and not yet
+                      --  fully functional. It will thus not be part of the
+                      --  languages enabled by default.
+
+                      & " Defaults to Ada.",
+         Commands  => (Cmd_Instrument => True,
+                       others => False),
+         Internal  => True));
 
    procedure Bool_Callback
      (Result : in out Parsed_Arguments;

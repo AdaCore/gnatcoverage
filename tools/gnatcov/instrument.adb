@@ -18,13 +18,14 @@
 
 --  Source instrumentation
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 with GNAT.OS_Lib;
@@ -37,18 +38,20 @@ with Libadalang.Project_Provider;
 with Libadalang.Rewriting;
 
 with Checkpoints;
+with Command_Line;        use Command_Line;
 with Coverage;
 with Files_Table;
-with GNATcov_RTS.Buffers;      use GNATcov_RTS.Buffers;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Instrument.Ada_Unit;
 with Instrument.Clean_Objdirs;
-with Instrument.Common;        use Instrument.Common;
+with Instrument.C;
+with Instrument.Common;   use Instrument.Common;
 with Instrument.Find_Units;
 with Outputs;
 with Project;
 with SC_Obligations;
-with Strings;                  use Strings;
-with Switches;
+with Strings;             use Strings;
+with Switches;            use Switches;
 with Text_Files;
 
 package body Instrument is
@@ -132,6 +135,10 @@ package body Instrument is
    procedure Auto_Dump_Buffers_In_Ada_Mains
      (IC    : in out Inst_Context;
       Mains : Main_To_Instrument_Vectors.Vector);
+
+   procedure Auto_Dump_Buffers_In_C_Mains
+     (IC    : in out Inst_Context;
+      Mains : Main_To_Instrument_Vectors.Vector);
    --  Instrument source files in Mains to add a dump of coverage buffers
 
    -------------------
@@ -180,7 +187,8 @@ package body Instrument is
 
       SID_Basename : US.Unbounded_String;
 
-      Use_Spec : constant Boolean := Info.Body_Project = GPR.No_Project;
+      Use_Spec : constant Boolean :=
+        Info.Body_Project = GPR.No_Project;
       Project  : constant GPR.Project_Type :=
         (if Use_Spec
          then Info.Spec_Project
@@ -195,7 +203,6 @@ package body Instrument is
       case Info.Language_Kind is
          when Unit_Based_Language =>
             declare
-
                Src_Basename  : constant String := +Project.File_From_Unit
                  (Unit_Name       => LU_Name,
                   Part            => (if Use_Spec
@@ -341,12 +348,38 @@ package body Instrument is
             Instrument.Ada_Unit.Add_Auto_Dump_Buffers
               (IC   => IC,
                Info => Main.Prj_Info.all,
-               Main => Main.CU_Name.Unit,
+               Main => Main.CU_Name,
                URH  => Libadalang.Rewriting.Handle (Rewriter.Rewritten_Unit));
             Rewriter.Apply;
          end;
       end loop;
    end Auto_Dump_Buffers_In_Ada_Mains;
+
+   ----------------------------------
+   -- Auto_Dump_Buffers_In_C_Mains --
+   ----------------------------------
+
+   procedure Auto_Dump_Buffers_In_C_Mains
+     (IC    : in out Inst_Context;
+      Mains : Main_To_Instrument_Vectors.Vector)
+   is
+   begin
+      for Main of Mains loop
+         declare
+            use type GNATCOLL.VFS.Filesystem_String;
+            Rewriter : Instrument.C.C_Source_Rewriter;
+         begin
+            Rewriter.Start_Rewriting
+              (IC, Main.Prj_Info.all, +Main.File.Full_Name);
+            Instrument.C.Add_Auto_Dump_Buffers
+              (IC   => IC,
+               Info => Main.Prj_Info.all,
+               Main => Main.CU_Name,
+               Rew  => Rewriter);
+            Rewriter.Apply;
+         end;
+      end loop;
+   end Auto_Dump_Buffers_In_C_Mains;
 
    ----------------------------------
    -- Instrument_Units_Of_Interest --
@@ -375,7 +408,8 @@ package body Instrument is
       Current_LU_Info : Library_Unit_Info_Access;
       Ignored_Units   : Ignored_Units_Maps.Map;
 
-      Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
+      Ada_Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
+      C_Main_To_Instrument_Vector   : Main_To_Instrument_Vectors.Vector;
       --  List of mains to instrument *which are not units of interest*. Always
       --  empty when Dump_Config.Trigger is Manual.
       --
@@ -394,6 +428,10 @@ package body Instrument is
         (Project : GPR.Project_Type; Source_File : GPR.File_Info);
       --  Add this source file to the list of units to instrument. For unit-
       --  based languages, also add subunits that depend on this source file.
+
+      function Has_Enabled_Language (Language : String) return Boolean is
+        (Enabled_Languages.Contains (+(To_Lower (Language))));
+      --  Check whether Language is part of the enabled languages
 
       -----------------------------------
       -- Add_Instrumented_Unit_Wrapper --
@@ -485,14 +523,31 @@ package body Instrument is
 
       Project.Enumerate_Sources (Add_Instrumented_Unit_Wrapper'Access, "ada");
 
+      if Has_Enabled_Language ("C") then
+         if not Project.Has_Ada_Language then
+            Outputs.Fatal_Error
+              ("Beta C instrumentation generates Ada files, and thus needs the"
+               & " Ada language to be in the list of languages in the project"
+               & " file.");
+         end if;
+         Project.Enumerate_Sources (Add_Instrumented_Unit_Wrapper'Access, "c");
+      end if;
+
       --  If we need to instrument all Ada mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.
 
       if Dump_Config.Trigger /= Manual then
          for Main of Project.Enumerate_Ada_Mains loop
             Register_Main_To_Instrument
-              (IC, Main_To_Instrument_Vector, Main.File, Main.Project);
+              (IC, Ada_Main_To_Instrument_Vector, Main.File, Main.Project);
          end loop;
+
+         if Has_Enabled_Language ("C") then
+            for Main of Project.Enumerate_C_Mains loop
+               Register_Main_To_Instrument
+                 (IC, C_Main_To_Instrument_Vector, Main.File, Main.Project);
+            end loop;
+         end if;
       end if;
 
       --  Know that we know all the sources we need to instrument, prepare
@@ -549,12 +604,9 @@ package body Instrument is
                               Instrument.Ada_Unit.Instrument_Unit
                                 (CU.Name, IC, Unit_Info);
 
-                           when others =>
-
-                              --  Not enumerating other languages' sources for
-                              --  now, so this is dead code.
-
-                              raise Program_Error with "unreachable code";
+                           when C_Language =>
+                              Instrument.C.Instrument_Unit
+                                (CU.Name, IC, Unit_Info);
                         end case;
 
                         --  Update the Ignore_Status of the CU we instrumented
@@ -638,7 +690,8 @@ package body Instrument is
       --  dump of coverage buffers: Instrument_Unit already took care of mains
       --  that are units of interest.
 
-      Auto_Dump_Buffers_In_Ada_Mains (IC, Main_To_Instrument_Vector);
+      Auto_Dump_Buffers_In_Ada_Mains (IC, Ada_Main_To_Instrument_Vector);
+      Auto_Dump_Buffers_In_C_Mains (IC, C_Main_To_Instrument_Vector);
 
       --  Remove sources in IC.Output_Dir that we did not generate this time.
       --  They are probably left overs from previous instrumentations for units

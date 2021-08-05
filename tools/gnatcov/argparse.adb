@@ -30,12 +30,6 @@ with Support_Files;
 
 package body Argparse is
 
-   function "+" (S : String) return Unbounded_String
-                 renames To_Unbounded_String;
-
-   function "+" (US : Unbounded_String) return String
-                 renames To_String;
-
    type Option_Info_Access is access constant Option_Info'Class;
    type Option_Info_Array is array (Natural range <>) of Option_Info_Access;
 
