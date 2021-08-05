@@ -34,7 +34,7 @@ from SCOV.instr import (add_last_chance_handler, default_dump_channel,
 
 from SUITE.context import thistest
 from SUITE.control import language_info
-from SUITE.cutils import to_list, list_to_file, match, no_ext
+from SUITE.cutils import ext, to_list, list_to_file, match, no_ext
 from SUITE.cutils import contents_of, lines_of
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
@@ -523,10 +523,22 @@ class SCOV_helper:
         standard  use of '-' in filenames for child units or subunits
         (foo-bar.ads for package Foo.Bar). Subunits are excluded from this
         set..
+
+        ??? If a project has an instrument-c ada unit and an instrument.c
+        C source file, the representative string will be the same for both.
         """
-        return {no_ext(os.path.basename(soi)).replace('-', '.')
-                for soi in self.sources_of_interest()
-                if not self.is_subunit(soi)}
+
+        uoi = set()
+
+        for soi in self.sources_of_interest():
+            extension = ext(soi)
+            if extension == ".adb" or extension == ".ads":
+                if not self.is_subunit(soi):
+                    uoi.add(no_ext(os.path.basename(soi)).replace('-', '.'))
+            else:
+                uoi.add(os.path.basename(soi))
+
+        return uoi
 
     def programs(self):
         """List of base binary file names for the test drivers we are

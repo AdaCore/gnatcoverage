@@ -28,13 +28,14 @@ COV_RE = re.compile(r'^ *(\d+) (.):.*$')
 
 def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
-                  separate_coverage=None, extra_args=[], extra_instr_args=None,
-                  extra_gprbuild_args=[], extra_gprbuild_cargs=[],
-                  absolute_paths=False, dump_trigger=None,
-                  dump_channel=None, check_gprbuild_output=False,
-                  trace_mode=None, gprsw_for_coverage=None, scos_for_run=True,
+                  separate_coverage=None, extra_args=[], extra_run_args=None,
+                  extra_instr_args=None, extra_gprbuild_args=[],
+                  extra_gprbuild_cargs=[], absolute_paths=False,
+                  dump_trigger=None, dump_channel=None,
+                  check_gprbuild_output=False, trace_mode=None,
+                  gprsw_for_coverage=None, scos_for_run=True,
                   register_failure=True, program_env=None,
-                  instrument_warnings_as_errors=True):
+                  instrument_warnings_as_errors=True, exec_args=None):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -70,6 +71,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         to gnatcov using the -S option.
     :param list[str] extra_args: List of arguments to pass to any
         execution of gnatcov (gnatcov run|instrument|coverage).
+    :param list[str] extra_run_args: List of arguments to pass to all
+        executions of "gnatcov run".
     :param list[str] extra_instr_args: List of arguments to pass to all
         executions of "gnatcov instrument".
     :param list[str] extra_gprbuild_args: List of arguments to pass to
@@ -98,6 +101,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         for the program to run.
     :param bool instrument_warnings_as_errors: Whether to make the test fail if
         there are warnings in the output of "gnatcov instrument".
+    :param None|list[str] exec_args: List of arguments to pass to the
+        executable. This will only work for native configurations.
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -170,11 +175,19 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project, gargs=[])
         run_args = covlevel_args + extra_args
+
         if scos_for_run:
             run_args.extend(scos)
+        if extra_run_args:
+            run_args.extend(extra_run_args)
+
+        eargs = []
+        if exec_args:
+            eargs = ["-eargs"] + exec_args
+
         for m in mains:
-            xrun(run_args + [exepath(m)], out='run.log', env=program_env,
-                 register_failure=register_failure)
+            xrun(run_args + [exepath(m)] + eargs, out='run.log',
+                 env=program_env, register_failure=register_failure)
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
         xcov_args.extend(cov_or_instr_args)
@@ -202,7 +215,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
             out_file = '{}_output.txt'.format(m)
             run_cov_program(exepath(m), out=out_file, env=program_env,
-                            register_failure=register_failure)
+                            register_failure=register_failure,
+                            exec_args=exec_args)
 
             # Depending on the dump channel, we also may have to create the
             # trace file.

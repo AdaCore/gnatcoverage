@@ -343,7 +343,7 @@ def tracename_for(pgmname):
 
 def srctrace_pattern_for(pgmname):
     """Glob pattern for the source trace file for the given program name"""
-    return exename_for(pgmname) + "-*.srctrace"
+    return exename_for(pgmname) + "*.srctrace"
 
 
 def srctracename_for(pgmname, register_failure=True):
@@ -562,6 +562,11 @@ def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
     covcmd = args[0]
     covargs = args[1:]
 
+    # gnatcov testsuite exercises C instrumentation, which is not activated by
+    # default.
+    if not thistest.options.qualif_level and covcmd == "instrument":
+        covargs = ['--enabled-languages=Ada', '--enabled-languages=C'] + covargs
+
     covargs = xcov_suite_args(covcmd, covargs, auto_config_args,
                               auto_target_args) + covargs
 
@@ -637,12 +642,15 @@ def xrun(args, out=None, env=None, register_failure=True,
                 auto_target_args=auto_target_args)
 
 
-def run_cov_program(executable, out=None, env=None, register_failure=True):
+def run_cov_program(executable, out=None, env=None, exec_args=None,
+                    register_failure=True):
     """
     Assuming that `executable` was instrumented, run it according to the
     current target.
     """
+
     args = []
+    exec_args = exec_args or []
 
     # If we are in a cross configuration, run the program using GNATemulator
     if thistest.options.target:
@@ -655,6 +663,7 @@ def run_cov_program(executable, out=None, env=None, register_failure=True):
             args.append('--board=' + board)
 
     args.append(executable)
+    args.extend(exec_args)
     return cmdrun(args, out=out, env=env, register_failure=register_failure)
 
 

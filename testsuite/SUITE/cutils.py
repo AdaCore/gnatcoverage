@@ -29,6 +29,11 @@ def no_ext(filename):
     return os.path.splitext(filename)[0]
 
 
+def ext(filename):
+    """Return the filename extension"""
+    return os.path.splitext(filename)[1]
+
+
 def contents_of(filename):
     """Return contents of file FILENAME"""
     with open(filename) as fd:
