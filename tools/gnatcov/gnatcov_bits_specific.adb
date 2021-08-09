@@ -1169,7 +1169,7 @@ begin
                   Fatal_Error
                     ("--dump-filename-env-var requires"
                      & " --dump-channel=bin-file");
-               elsif Dump_Filename_Env_Var_Opt.Present then
+               elsif Dump_Filename_Prefix_Opt.Present then
                   Fatal_Error
                     ("--dump-filename-prefix requires"
                      & " --dump-channel=bin-file");

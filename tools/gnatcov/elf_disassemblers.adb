@@ -255,16 +255,16 @@ package body Elf_Disassemblers is
       --  this.
       --
       --  Empty ranges (First = Last) are used when looking for the range
-      --  corrersponding to a single PC, so handle them as well. Make sure
-      --  empty ranges are ordered right after ranges with the same First
-      --  so that Ordered_Sets.Floor return the range.
+      --  corresponding to a single PC, so handle them as well. Make sure empty
+      --  ranges are ordered right after ranges with the same First so that
+      --  Ordered_Sets.Floor return the range.
 
       if L.First < R.First then
          pragma Assert (R.First = R.Last or else L.Last <= R.First);
          return True;
 
       elsif R.First < L.First then
-         pragma Assert (L.First = L.First or else R.Last <= L.First);
+         pragma Assert (L.First = L.Last or else R.Last <= L.First);
          return False;
 
       --  Starting from here, we know that L.First = R.First: check for empty

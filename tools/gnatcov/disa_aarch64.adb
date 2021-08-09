@@ -178,15 +178,8 @@ package body Disa_AArch64 is
                Branch_Dest.Target :=
                  Pc_Type (Get_Target (Get_Imm14'Access, Insn, PC64));
 
-            when 2#0101_010# =>
-               --  Conditional Branch (B.cond)
-               Flag_Cond := True;
-               Branch := Br_Jmp;
-               Branch_Dest.Target :=
-                 Pc_Type (Get_Target (Get_Imm19'Access, Insn, PC64));
-
-            when 2#0011_010# | 2#1011_010# =>
-               --  CBZ / CBNZ
+            when 2#0101_010# | 2#0011_010# | 2#1011_010# =>
+               --  Conditional Branch (B.cond) / CBZ / CBNZ
                Flag_Cond := True;
                Branch := Br_Jmp;
                Branch_Dest.Target :=
