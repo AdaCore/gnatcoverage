@@ -120,6 +120,11 @@ pygments_style = None
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
 
+# Request figure numbering explicitly. Figure numbering is implicit in
+# PDF outputs already, not in html. An explicit request ensures
+# consistency across formats and allows the use of :numref: roles,
+# which is useful at times.
+numfig = True
 
 # -- Options for HTML output ----------------------------------------------
 
