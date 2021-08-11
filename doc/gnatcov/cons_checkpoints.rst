@@ -183,6 +183,8 @@ The individual coverage results are lost, however, and the (heavier) trace
 processing steps cannot be done in parallel since they all read and write a
 common checkpoint file which |gcv| does not lock.
 
+.. _incidental_coverage:
+
 Handle incidental coverage effects
 ==================================
 

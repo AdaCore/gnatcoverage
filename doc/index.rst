@@ -7,3 +7,4 @@ GNATcoverage Manuals [|release|]
 
    gnatcov/gnatcov_part
    gnattest/gnattest_part
+   integration/integration_part

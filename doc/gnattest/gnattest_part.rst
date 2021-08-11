@@ -880,12 +880,7 @@ GNATcoverage, analyze individual trace files, and finally aggregate them:
 
       make coverage
 
-GNATcoverage options, such as coverage criteria and generated report format,
-can be adjusted using Makefile variables provided for this purpose.
-
-Note that coverage targets are not generated in the Makefile when
---separate-drivers=test is passed to gnattest.
-
+For more details about using GNATtest with GNATcoverage see :ref:`Integration_Part`.
 
 .. _Putting_Tests_under_Version_Control:
 

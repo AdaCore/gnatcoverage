@@ -101,6 +101,8 @@ still subject to change, in particular regarding decision or MCDC analysis as
 the criteria definition aren't yet well established for such constructs in
 general.
 
+.. _selecting_trace_kind:
+
 Selecting binary or source traces
 =================================
 

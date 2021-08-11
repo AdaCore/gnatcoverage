@@ -1,0 +1,18 @@
+--  prj.gpr
+project Prj is
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   
+   package Coverage is
+      Cov_Level := ("--level=stmt");
+      for Switches ("instrument") use ("--dump-trigger=main-end") & Cov_Level;
+      for Switches ("run") use Cov_Level;
+      for Switches ("coverage") use ("--annotate=report") & Cov_Level;
+   end Coverage;
+
+   package Gnattest is
+      for Tests_Dir use "../tests";
+      for Harness_Dir use "../harness";
+   end Gnattest;
+
+end Prj;
