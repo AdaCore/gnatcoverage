@@ -63,7 +63,8 @@ convention::
     gprbuild -p --target=powerpc-elf --RTS=zfp-prep -Pmy.gpr
      test_divmod0.adb -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
 
-    # Run and analyse all units except the test harness:
+    # Run and analyse all units except the test harness, filtering out
+    # the correspond ALI files from the list:
     grep -v 'test_[^/]*.ali' all.alis > divmod0.alis
     gnatcov run --level=stmt+mcdc --scos=@divmod0.alis
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
@@ -84,8 +85,8 @@ The units of interest designation with project files incurs two levels of
 selection: first, specify the set of :dfn:`projects of interest` where the
 units of interest reside, then specify units of interest therein.
 
-Conveying :term:`projects of interest`
-**************************************
+Conveying *projects* of interest
+********************************
 
 The set of projects of interest is computed by the following rules:
 
@@ -112,7 +113,7 @@ the root:
 - With :option:`--projects` options, the listed projects are taken as the base
   and the root project needs to be listed as well to be included.
 
-We will illustrate the effect of various combinations, assuming an example
+Let us illustrate the effect of various combinations, assuming an example
 project tree depicted below:
 
 .. image:: prjtree.*
@@ -120,22 +121,26 @@ project tree depicted below:
 
 Assuming none of the projects is flagged ``Externally_Built``:
 
-- :ref:`fig-Proot-nosub` restricts the analysis to units in the root project
-  only;
+- :ref:`fig-Proot-nosub` restricts the analysis to units in the root
+  project only (:numref:`fig-Proot-nosub`);
 
-- :ref:`fig-Proot-ss_a-nosub` focuses on Subsystem A alone;
+- :ref:`fig-Proot-ss_a-nosub` focuses on Subsystem A alone
+  (:numref:`fig-Proot-ss_a-nosub`);
 
-- If the root project is also of interest, it must be listed explicitly,
-  as in :ref:`fig-Proot-root-ss_a-nosub`;
+- If the root project is also of interest, it must be listed
+  explicitly, as in :ref:`fig-Proot-root-ss_a-nosub`
+  (:numref:`fig-Proot-root-ss_a-nosub`);
 
-- Removing :option:`--no-subprojects` as in :ref:`fig-Proot-ss_a`, lets you
-  consider all the projects transitively imported by the base ones;
+- Removing :option:`--no-subprojects` as in :ref:`fig-Proot-ss_a`,
+  lets you consider all the projects transitively imported by the base
+  ones (:numref:`fig-Proot-ss_a`);
 
-``Externally_Built`` attributes don't influence the processing of dependency
-closures and only prune individual projects from the final selection. In the
-last example above, if project ``A1`` had the attribute set to ``"True"``,
-``Common`` would remain of interest to the assessment even though it was
-dragged as a dependency of ``A1``.
+Projects with an ``Externally_Built`` attribute set to ``"True"`` are
+just removed from the set of interest at the end, without influencing
+the processing of dependency closures. In the last example above, if
+project ``A1`` had the attribute set to ``"True"``, ``Common`` would
+remain of interest to the assessment even though it was dragged as a
+dependency of ``A1``.
 
 
 .. _fig-Proot-nosub:
@@ -162,8 +167,8 @@ dragged as a dependency of ``A1``.
 
   ``-Proot --projects=subsystem_a``
 
-Conveying :term:`Units of interest` within projects
-***************************************************
+Conveying *units* of interest within projects
+*********************************************
 
 By default, all the units encompassed by a project of interest are considered
 of interest. This can be tailored first with specific attributes in package
@@ -211,8 +216,24 @@ Finally, the list of units of interest for a given execution of |gcv| can also
 be overriden from the command line using the :option:`--units` switch.  When
 this option is used, the project files attributes are ignored.
 
-Each occurrence of this switch indicates one unit to focus on, or with the @
-syntax the name of a file containing a list of units to focus on.
+The switch may appear multiple times. Each occurrence indicates one
+unit to focus on, or with the @ syntax the name of a text file
+containing a list of units to focus on, one per line. The effect of
+multiple switches accumulate.
+
+The effect of the example attributes provided previously could then
+first be achieved with::
+
+  gnatcov <command> -P... --units=pak1 --units=pak3
+
+or by creating a ``units.list`` file with::
+
+  pak1
+  pak3
+
+and then executing::
+
+  gnatcov <command> --units=@units.list
 
 Conveying source files to ignore within units
 *********************************************
@@ -280,7 +301,7 @@ Compilation unit vs source file names
 -------------------------------------
 
 For Ada, explicit *compilation unit* names are given to library level packages
-or suprograms, case insensitive. This is what must be used in project file
+or subprograms, case insensitive. This is what must be used in project file
 attributes or :option:`--units` arguments to elaborate the set of :dfn:`units
 of interest`, not source file names.
 
