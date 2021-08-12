@@ -105,6 +105,7 @@ procedure GNATcov_Bits_Specific is
    Keep_Edges           : Boolean := False;
    SO_Inputs            : SO_Set_Type;
    Keep_Reading_Traces  : Boolean := False;
+   Emit_Report          : Boolean := True;
 
    Dump_Units_Filename  : String_Access := null;
    --  If null, dump the list of units of interest as a section in the report
@@ -433,6 +434,7 @@ procedure GNATcov_Bits_Specific is
       Analyze_Entry_Barriers   := Args.Bool_Args (Opt_Analyze_Entry_Barriers);
       Short_Circuit_And_Or     := Args.Bool_Args
                                     (Opt_Boolean_Short_Circuit_And_Or);
+      Emit_Report              := not Args.Bool_Args (Opt_Cancel_Annotate);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"
@@ -742,6 +744,18 @@ procedure GNATcov_Bits_Specific is
                  and Save_Checkpoint = null)
             then
                Report_Missing_Argument ("an annotation format");
+            end if;
+
+            --  If --no-cov-report is on the command line, check that
+            --  --save-checkpoint is also present.
+
+            if Args.Command = Cmd_Coverage
+              and then not Emit_Report
+              and then Save_Checkpoint = null
+            then
+               Report_Missing_Argument
+                 ("--save-checkpoint",
+                  " when --cancel-annotate is also specified");
             end if;
 
             --  Remaining arguments are supposed to be copied to Opt_Trace,
@@ -2165,50 +2179,56 @@ begin
 
             --  Generate annotated reports
 
-            case Annotation is
-            when Annotate_Asm =>
-               if Source_Coverage_Enabled then
-                  Fatal_Error
-                    ("""asm"" output (from --annotate) is only supported for"
-                     & " object coverage criteria (--level=insn|branch),"
-                     & " and not for source coverage criteria (--level="
-                     & Coverage_Option_Value (Current_Levels) & ").");
-               end if;
-               Traces_Dump.Dump_Routines_Traces (Output);
+            if Emit_Report then
+               case Annotation is
+               when Annotate_Asm =>
+                  if Source_Coverage_Enabled then
+                     Fatal_Error
+                       ("""asm"" output (from --annotate) is only supported"
+                        & " for object coverage criteria"
+                        & "  (--level=insn|branch), and not for source"
+                        & " coverage criteria (--level="
+                        & Coverage_Option_Value (Current_Levels) & ").");
+                  end if;
+                  Traces_Dump.Dump_Routines_Traces (Output);
 
-            when Annotate_Xml =>
-               Annotations.Xml.Generate_Report
-                 (Context'Unchecked_Access);
+               when Annotate_Xml =>
+                  Annotations.Xml.Generate_Report
+                    (Context'Unchecked_Access);
 
-            when Annotate_Xcov      |
-                 Annotate_Xcov_Plus =>
-               Annotations.Xcov.Generate_Report
-                 (Context'Unchecked_Access,
-                  Show_Details => Annotation = Annotate_Xcov_Plus);
+               when Annotate_Xcov      |
+                    Annotate_Xcov_Plus =>
+                  Annotations.Xcov.Generate_Report
+                    (Context'Unchecked_Access,
+                     Show_Details => Annotation = Annotate_Xcov_Plus);
 
-            when Annotate_Html      |
-                 Annotate_Html_Plus =>
-               Annotations.Html.Generate_Report
-                 (Context'Unchecked_Access,
-                  Show_Details => Annotation = Annotate_Html_Plus,
-                  Report_Title => Args.String_Args (Opt_Report_Title));
+               when Annotate_Html      |
+                    Annotate_Html_Plus =>
+                  Annotations.Html.Generate_Report
+                    (Context'Unchecked_Access,
+                     Show_Details => Annotation = Annotate_Html_Plus,
+                     Report_Title => Args.String_Args (Opt_Report_Title));
 
-            when Annotate_Dynamic_Html =>
-               Annotations.Dynamic_Html.Generate_Report
-                 (Context'Unchecked_Access,
-                  Report_Title => Args.String_Args (Opt_Report_Title));
+               when Annotate_Dynamic_Html =>
+                  Annotations.Dynamic_Html.Generate_Report
+                    (Context'Unchecked_Access,
+                     Report_Title => Args.String_Args (Opt_Report_Title));
 
-            when Annotate_Report =>
-               Annotations.Report.Generate_Report
-                 (Context'Unchecked_Access, Output, Dump_Units_In_Report);
+               when Annotate_Report =>
+                  Annotations.Report.Generate_Report
+                    (Context'Unchecked_Access, Output, Dump_Units_In_Report);
 
-            when Annotate_Unknown =>
+               when Annotate_Unknown =>
+                  pragma Assert (Save_Checkpoint /= null);
+               end case;
+            else
                pragma Assert (Save_Checkpoint /= null);
-            end case;
+            end if;
 
-            --  Generate checkpoint, if requested. Use the last version as soon
-            --  as instrumentation is involved, as the default version does not
-            --  allow us to encode all the information we need to encode.
+            --  Generate checkpoint, if requested. Use the last version as
+            --  soon as instrumentation is involved, as the default version
+            --  does not allow us to encode all the information we need to
+            --  encode.
 
             if Save_Checkpoint /= null then
                Checkpoints.Checkpoint_Save

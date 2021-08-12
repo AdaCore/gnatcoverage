@@ -81,7 +81,8 @@ package Command_Line is
       Opt_Dump_Filename_Simple,
       Opt_Allow_Mix_Trace_Kind,
       Opt_Analyze_Entry_Barriers,
-      Opt_Boolean_Short_Circuit_And_Or);
+      Opt_Boolean_Short_Circuit_And_Or,
+      Opt_Cancel_Annotate);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -473,7 +474,16 @@ package Command_Line is
                       & " the actual semantics of the operators, which needs"
                       & " to be done with the Short_Circuit_And_Or pragma.",
         Commands   => (Cmd_Instrument => True, others => False),
-        Internal   => True)
+        Internal   => True),
+
+      Opt_Cancel_Annotate => Create
+        (Long_Name => "--cancel-annotate",
+         Help      => "Prevent gnatcov from generating a coverage report if"
+                      & "one was requested by --annotate. This option requires"
+                      & " --save-checkpoint to also be specified on the"
+                      & "command line.",
+         Commands  => (Cmd_Coverage => True, others => False),
+         Internal  => True)
      );
 
    String_Infos : constant String_Option_Info_Array :=
