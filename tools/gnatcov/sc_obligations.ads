@@ -565,6 +565,7 @@ package SC_Obligations is
       Pragma_CPP_Virtual,
       Pragma_CPP_Vtable,
       Pragma_CPU,
+      Pragma_CUDA_Device,
       Pragma_CUDA_Execute,
       Pragma_CUDA_Global,
       Pragma_C_Pass_By_Copy,
@@ -1030,6 +1031,7 @@ package SC_Obligations is
           Pragma_Weak_External => False,
 
           Pragma_CPU => False,
+          Pragma_CUDA_Device => False,
           Pragma_CUDA_Execute => False,
           Pragma_CUDA_Global => False,
           Pragma_Default_Scalar_Storage_Order => False,
