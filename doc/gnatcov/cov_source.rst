@@ -1017,12 +1017,9 @@ on line 14 is the statement coverage violation::
 Modified Condition/Decision Coverage analysis (:option:`--level=stmt+mcdc`)
 ===========================================================================
 
-|gcv| performs combined Statement and Modified Condition/Decision Coverage
-analysis with the :option:`--level=stmt+mcdc` option passed to |gcvcov|. In
-addition to this particular :option:`--level` option, you also need to tell
-|gcvrun| the list of units on which MCDC analysis will be performed.  See
-the :ref:`trace-control` section for more details on this aspect of the
-procedure.
+Combined Statement and Modified Condition/Decision Coverage (MCDC) analysis is
+performed by passing the :option:`--level=stmt+mcdc` option to |gcvcov|
+commands.
 
 Compared to Decision Coverage, MCDC analysis incurs two important differences:
 
@@ -1167,7 +1164,7 @@ single case where X1 < V < X2:
 
 Performing MCDC analysis requires the execution step to be told about it,
 by providing both the :option:`--level` and a list of units for which analysis
-is to be performed to |gcvrun| (see the :ref:`trace-control` for details)::
+is to be performed to |gcvrun|::
 
    gnatcov run --level=stmt+mcdc -Pmytest.gpr test_x1vx2
 
