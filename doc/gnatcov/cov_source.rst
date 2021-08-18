@@ -1030,21 +1030,36 @@ Combined Statement and Modified Condition/Decision Coverage (MCDC) analysis is
 performed by passing the :option:`--level=stmt+mcdc` option to |gcvcov|
 commands.
 
-Compared to Decision Coverage, MCDC analysis incurs two important differences:
+In this case, the tool treats as :dfn:`decisions` the following set of
+expressions:
 
-* In addition to expressions that pilot an explicit control-flow construct, we
-  treat as decisions all the Boolean expressions that combine operands with
-  short-circuit logical operators, such as the expression on the right hand
-  side of the assignment in ``X := A and then B;`` More details on the
-  identification of decisions, together with extra examples, are provided in
-  the :ref:`mcdc-decisions` section of this chapter
+* All the Boolean expressions used as the controlling conditional in explicit
+  control flow source constructs such as ``if`` statements or ``while`` loops,
+  as for the simpler decision coverage criterion, then also:
 
-* For each decision in the sources of interest, testing shall demonstrate the
-  :dfn:`independant influence` of every operand (:term:`conditions` in the
-  DO-178 parlance) in addition to just exercising the True/False outcomes of
-  the expression as a whole. The :ref:`mcdc-variants` section that follows
-  expands on the notion of :dfn:`independant influence` and on possible
-  variations of the MCDC criterion definition.
+* The controlling expression of Ada *if-expressions* or C
+  *conditional-operators*;
+
+* All the Boolean expressions which combine operands with *short-circuit*
+  logical operators in other contexts (``&&`` and ``||`` in C, ``and then``
+  and ``or else`` by default in Ada, for example on the right hand side of
+  assignements or in return expressions).
+
+Then for all the decisions in the sources of interest:
+
+* Testing shall exercise both the True and False outcomes of the expression as
+  a whole and demonstrate the :dfn:`independant influence` of :dfn:`conditions`
+  in DO-178 parlance, where ...
+
+* Separate conditions in a decision are identified as the operands of
+  *short-circuit* operators.
+
+The :ref:`mcdc-decisions` section that follows provides a few examples to
+illustrate the identification of decisions and conditions.
+:ref:`non-short-circuit` focuses on the handling of computational Boolean
+operators, then :ref:`mcdc-variants` expands on the notion of
+:dfn:`independant influence` and on possible variations of the MCDC criterion
+definition.
 
 Output-wise, the source annotations for the :option:`=xcov` or :option:`=html`
 formats are the same as for decision coverage, with condition specific cases
@@ -1078,6 +1093,135 @@ or decision level violation.
 
 See the :ref:`mcdc-examples` section of this chapter for a few illustrations
 of these points.
+
+.. _mcdc-decisions:
+
+Example decisions and conditions
+--------------------------------
+
+As described in the previous section, the set of expressions considered as
+*decisions* for MCDC is wider than for decision coverage analysis, which
+encompasses all the expressions used as conditionals in explicit control-flow
+construct, for example:
+
+.. code-block:: ada
+
+  if Check(X) then -- 1 decision (if-stmt control)
+
+.. code-block:: c
+
+  while (x > 12) { // 1 decision (while loop control)
+
+MCDC also includes the conditionals of Ada *if-expressions*
+or they C *conditional-expression* counterpart, as in:
+
+.. code-block:: ada
+
+  Val := (if X > 0 then X else -X); -- 1 decision (if-expr control)
+
+.. code-block:: c
+
+  return (x > y) ? 1 : -1; // 1 decision (cond-expr control)
+
+Then we have logical expressions combining operands with short-circuit
+operators in other contexts, such as:
+
+.. code-block:: ada
+
+  X := A and then B; -- 1 decision (short-circuit and-then)
+  Check (C or else D); -- 1 decision (short-circuit or-else)
+
+.. code-block:: c
+
+  return (x < low || y > high); // 1 decision (short-circuit ||)
+
+This can raise lead to various cases of multiple decisions within
+a single expression, for example:
+
+.. code-block:: ada
+
+    if Check (Arg1 => A and then B, Arg2 => C or else D) then
+    -- 3 decisions here:
+    -- * A and then B (short circuit and-then)
+    -- * C or else D (short circuit or-else)
+    -- * Check (...)  (if-stmt control)
+
+In C as in Ada, logical negation is allowed anywhere and influences
+neither decision boundaries nor the split into conditions:
+
+.. code-block:: c
+
+   if (x && !y) { // 1 decision (if-stmt control)
+                  // 2 conditions (short-circuit &&)
+
+.. code-block:: ada
+
+   if not (A or else B) then -- 1 decision (if-stmt control)
+                             -- 2 conditions (short-circuit or-else)
+
+.. _non-short-circuit:
+
+Handling non short-circuit operators
+------------------------------------
+
+Short-circuit operators are key to instating a decision at all in some
+contexts, and to direct the split of decisions into conditions in all
+contexts. By default, non short-circuit binary operators are taken as regular
+computational devices:
+
+.. code-block:: ada
+
+  if A or B then -- 1 decision (if-statement control)
+                 -- single condition (no short-circuit by default)
+
+  if A or else B then -- 1 decision (if-statement control)
+                      -- 2 conditions (short-circuit or-else)
+
+  X := A and B;  -- no decision (no short-circuit by default)
+
+  X := A and then B;  -- 1 decision (short-circuit and-then)
+                      -- 2 conditions (short-circuit and-then)
+
+This computational view for non short-circuit operators in Ada
+is similar to the C model where bitwise operations on non purely
+Boolean types, yet used as a Boolean result, are extremely common
+as in:
+
+.. code-block:: c
+
+    return (x & 0x3) && (y & 0x3);  // 1 decision (short-circuit &&)
+                                    // 2 conditions, each a & on int
+
+It can also result in splits introducing the possibility of mulitple
+decisions in arguments, as in:
+
+.. code-block:: ada
+
+  if ((A and then not B) == (C or else (D and then E))) then
+  -- 3 decisions here:
+  -- * The toplevel expression as a whole (... == ...), if-stmt control,
+  --   single condition.
+  -- * (A and then not B), short-circuit and-then in the first operand of ==,
+  --   2 conditions.
+  -- * (C or else (D and then E)), short-circuit tree in the second operand,
+  --   3 conditions.
+
+|gnat| compilers offer two devices to mitigate possible issues caused
+by this behavior on non short-circuit Boolean operators for Ada:
+
+* To make sure operators of this kind are not used, e.g. as a coding standard
+  rule, a ``No_Direct_Boolean_Operator`` restriction pragma can be setup in
+  the development environment to trigger compilation errors on such uses;
+  Alternatively:
+
+* The ``Short_Circuit_And_Or`` configuration pragma requests that the
+  non-short circuit ``and`` and ``or`` operators on standard Booleans are
+  compiled as as their short-circuit counterparts, then processed as such for
+  coverage analysis.
+
+There is no equivalent in C, where the allowed operand types are much more
+varied and where the restriction would make the language really much harder to
+use.
 
 .. _mcdc-variants:
 
@@ -1171,14 +1315,14 @@ single case where X1 < V < X2:
       Assert (Between (X1 => 2, X2 => 5, V => 3)); -- X1 < V < X2
    end Test_X1VX2;
 
-Performing MCDC analysis requires the execution step to be told about it,
-by providing both the :option:`--level` and a list of units for which analysis
-is to be performed to |gcvrun|::
+Performing MCDC analysis with binary traces requires telling the execution
+step about it, by providing both the :option:`--level` and a list of units for
+which analysis is to be performed to |gcvrun|::
 
    gnatcov run --level=stmt+mcdc -Pmytest.gpr test_x1vx2
 
-We first request an :option:`=xcov+` report to get a first set of results, in
-the ``ranges.adb.xcov`` annotated source::
+We can then request, say, an :option:`=xcov+` report to get a first set of
+results in the ``ranges.adb.xcov`` annotated source::
 
    gnatcov coverage --level=stmt+mcdc -Pmytest.gpr --annotate=xcov+ test_x1vx2.trace
 
@@ -1279,76 +1423,6 @@ condition is short-circuited so its value change is not relevant. The
 condition expressions are such that running vector 4 is not possible,
 however, since we can't have V both < X1 (condition 1 False) and V >
 X2 (condition 2 False) at the same time when X1 < X2.
-
-.. _mcdc-decisions:
-
-Decision composition rules for MCDC
------------------------------------
-
-For MCDC analysis purposes, we treat as decisions two categories of
-expressions:
-
-- As for the :dfn:`decision coverage` criterion, all the expressions
-  that directly influence control-flow constructs and which we will call
-  :dfn:`control-flow expressions`,
-
-- All the expressions obtained by composition of short-circuit logical
-  operators, ``and-then`` and ``or-else`` for Ada, ``&&`` and ``||`` for C.
-
-The most straightforward examples of non control-flow expressions treated as
-decisions for MCDC are the logical expressions appearing in contexts such as
-the right-hand side of assignments. For example:
-
-.. code-block:: ada
-
-  Valid_Data := Sensor_OK and then Last_Sensor_Update_OK; -- 1 decision here
-
-
-.. code-block:: c
-
-  need_update = (sensor != NULL && sensor->invalid);   /* 1 decision here */
-
-
-Non short-circuit binary operators, when allowed by the coding standard, are
-taken as regular computational devices and may either participate in the
-construction of operands or split an expression into multiple decisions. For
-instance, the following C excerpt:
-
-.. code-block:: c
-
-    return !(x & 0x3) && !(y & 0x3);  /* 1 decision here */
-
-
-produces a single decision with two bitwise ``&`` operands.  And the following
-Ada excerpt:
-
-.. code-block:: ada
-
-  if ((A and then not B) == (C or else (D and then E))) then -- 3 decisions here
-
-
-produces three decisions: ``(A and then not B)``, 2 operands combined with
-short-circuit ``and-then``, ``(C or else (D and then E)))``, 3 operands
-combined with short-circuit ``and-then`` and ``or-else``, and the whole
-toplevel expression controlling the ``if`` statement.
-
-In C as in Ada, logical negation is allowed anywhere and just participates in
-the operands construction without influencing decision boundaries.
-
-Non short-circuit binary operators in logical expressions might complexify the
-identification of decision boundaries for users. |gnat| compilers offer two
-devices to alleviate this for Ada:
-
-* The ``No_Direct_Boolean_Operator`` restriction pragma, which will trigger
-  compilation errors on the use of non short-circuit Boolean operators and
-  facilitates the enforcement of coding standards prohibiting such uses.
-
-* The ``Short_Circuit_And_Or`` pragma, which directs the compiler to translate
-  non-short circuit ``and/or`` operators as their short-circuit counterparts.
-
-There is no equivalent in C, where the allowed operand types are much more
-varied and where the restriction would make the language really much harder to
-use.
 
 .. _ada_subunits:
 
