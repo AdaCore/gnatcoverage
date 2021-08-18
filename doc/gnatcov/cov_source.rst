@@ -598,8 +598,11 @@ sections that precede.
 
 .. _scov-stmt:
 
-Statement Coverage analysis (:option:`--level=stmt`)
-====================================================
+Statement Coverage analysis
+===========================
+
+Core notions and Reporting (:option:`--level=stmt`)
+---------------------------------------------------
 
 |gcv| performs Statement Coverage assessments with the :option:`--level=stmt`
 command line option.
@@ -810,8 +813,11 @@ VIOLATIONS`` part, as only this criterion was to be analyzed per the
 
 .. _scov-dc:
 
-Decision Coverage analysis (:option:`--level=stmt+decision`)
-============================================================
+Decision Coverage analysis
+==========================
+
+Core notions and Reporting (:option:`--level=stmt+decision`)
+------------------------------------------------------------
 
 With the :option:`--level=stmt+decision` command line option, |gcv| performs
 combined Statement and Decision Coverage assessments.
@@ -1014,8 +1020,11 @@ on line 14 is the statement coverage violation::
 
 .. _scov-mcdc:
 
-Modified Condition/Decision Coverage analysis (:option:`--level=stmt+mcdc`)
-===========================================================================
+Modified Condition/Decision Coverage analysis
+=============================================
+
+Core notions and Reporting  (:option:`--level=stmt+mcdc`)
+---------------------------------------------------------
 
 Combined Statement and Modified Condition/Decision Coverage (MCDC) analysis is
 performed by passing the :option:`--level=stmt+mcdc` option to |gcvcov|
