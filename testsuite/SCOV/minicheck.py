@@ -111,7 +111,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     def exepath(main):
         main = os.path.join(
             gpr_exe_dir,
-            (os.path.join(gprsw.subdirs, m) if gprsw.subdirs else m))
+            (os.path.join(gprsw.subdirs, main) if gprsw.subdirs else main))
         return abspath(exepath_to(main))
 
     def gprbuild_wrapper(root_project, gargs):
