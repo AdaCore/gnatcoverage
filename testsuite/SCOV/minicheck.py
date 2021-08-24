@@ -137,7 +137,11 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, 'obj')
 
     trace_mode = trace_mode or thistest.options.trace_mode
-    covlevel_args = [] if covlevel is None else ['--level', covlevel]
+
+    # Use a --level=<l> form for --level to faciliate locating and
+    # replacing the switch at once as a whole if need be.
+    covlevel_args = [] if covlevel is None else ['--level={}'.format(covlevel)]
+
     xcov_args = ['coverage'] + covlevel_args
     trace_files = []
 
