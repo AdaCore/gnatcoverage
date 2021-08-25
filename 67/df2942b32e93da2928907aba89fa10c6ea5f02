@@ -1,0 +1,7 @@
+Code-Review+2: Vasiliy Fofanov <fofanov@adacore.com>
+Code-Review-1: CI Builder <ci-builder@adacore.com>
+Submitted-by: Feodor Rybin <frybin@adacore.com>
+Submitted-at: Wed, 25 Aug 2021 20:08:19 +0200
+Reviewed-on: https://git.adacore.com/c/gnatcoverage/+/100382
+Project: gnatcoverage
+Branch: refs/heads/master
