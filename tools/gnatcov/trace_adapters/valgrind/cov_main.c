@@ -40,7 +40,7 @@
 #include "cov_traces.h"
 
 /* filenames */
-static UChar *clo_cov_exec_file=NULL;
+static const UChar *clo_cov_exec_file=NULL;
 
 //#define DEBUG
 static VG_REGPARM(2) void per_branch(struct trace_entry *te, Word taken)
@@ -93,12 +93,13 @@ static Addr IRConst2Addr(IRConst* con)
     return addr;
 }
 
-static IRSB* cov_instrument (VgCallbackClosure* closure,
-                             IRSB*              sbIn,
-                             VexGuestLayout*    layout,
-                             VexGuestExtents*   vge,
-                             IRType             gWordTy,
-                             IRType             hWordTy)
+static IRSB* cov_instrument (VgCallbackClosure*     closure,
+                             IRSB*                  sbIn,
+                             const VexGuestLayout*  vgl,
+                             const VexGuestExtents* vge,
+                             const VexArchInfo*     vai,
+                             IRType                 gWordTy,
+                             IRType                 hWordTy)
 {
     Int                  i;
     IRStmt*              st;
@@ -346,7 +347,7 @@ static void cov_post_clo_init(void)
     trace_init(clo_cov_exec_file);
 }
 
-static Bool cov_process_cmd_line_option(Char* arg)
+static Bool cov_process_cmd_line_option(const HChar* arg)
 {
    if VG_STR_CLO (arg, "--cov-exec-file", clo_cov_exec_file) {}
    else {
