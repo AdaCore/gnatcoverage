@@ -21,9 +21,19 @@ CPP_FLAGS=-I. -I$(VALGRIND_INCLUDE) \
           -DVGP_$(VALGRIND_ARCH)_linux=1 \
           -DVGPV_$(VALGRIND_ARCH)_linux_vanilla=1
 
-# TODO: where did the -mpreferred-stack-boundary=2 option come from?
+# TODO:where did the -mpreferred-stack-boundary=2 option come from?
+
+# Some versions of valgrind (observed with 3.16) fail loading the tool
+# when it has a .note.gnu.property section, with an error like
+#
+#   valgrind: mmap(0x400000, 12288) failed in UME with error 22
+#
+# -Wa,-mx86-used-note=no is intended to prevent the production of
+# such .note sections.
+
 CFLAGS=-O2 -g \
        -fno-strict-aliasing -fno-builtin  -fno-stack-protector \
+       -Wa,-mx86-used-note=no \
        -Wall -Wmissing-prototypes -Wshadow -Wpointer-arith -Wstrict-prototypes \
        -Wmissing-declarations -Wno-format-zero-length \
        -Wno-long-long  -Wno-pointer-sign
