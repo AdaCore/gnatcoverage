@@ -370,27 +370,6 @@ Switches for ``gnattest`` in framework generation mode
   this capability.
 
 
-  .. index:: --separates (gnattest)
-
-:switch:`--separates`
-  Bodies of all test routines are generated as separates. Note that this mode is
-  kept for compatibility reasons only and it is not advised to use it due to
-  possible problems with hash in names of test skeletons when using an
-  inconsistent casing. Separate test skeletons can be incorporated to monolith
-  test package with improved hash being used by using ``--transition``
-  switch.
-
-
-  .. index:: --transition (gnattest)
-
-:switch:`--transition`
-  This allows transition from separate test routines to monolith test packages.
-  All matching test routines are overwritten with contents of corresponding
-  separates. Note that if separate test routines had any manually added with
-  clauses they will be moved to the test package body as is and have to be moved
-  by hand.
-
-
   .. index:: --test-duration (gnattest)
 
 :switch:`--test-duration`
