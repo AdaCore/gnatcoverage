@@ -237,7 +237,9 @@ class RuntimeInfo(object):
 
         if not self.runtime_name:
             self.has_full_runtime = True
-        elif 'ravenscar' in self.runtime_name:
+        elif 'embedded' in self.runtime_name:
+            self.has_ravenscar_runtime = True
+        elif 'light-tasking' in self.runtime_name:
             self.has_ravenscar_runtime = True
         elif self.runtime_name.startswith('light-'):
             self.has_light_runtime = True

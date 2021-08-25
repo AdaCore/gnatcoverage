@@ -1325,21 +1325,24 @@ class TestSuite(e3.testsuite.Testsuite):
         option.
         """
 
+        # Match light-tasking before light otherwise the wrong discriminant
+        # will be selected.
+
+        # ex --RTS=powerpc-elf/light-tasking or --RTS=light-tasking
+
+        if "light-tasking" in self.main.args.RTS:
+            return ["RTS_RAVENSCAR", "RTS_LIGHT_TASKING"]
+
         # --RTS=light-<board> or --RTS=light (e.g. for VxWorks) correspond to
         # the former zfp-<board> variants
 
-        if re.search("light", self.main.args.RTS):
+        elif "light" in self.main.args.RTS:
             return ["RTS_ZFP"]
 
-        # ex --RTS=powerpc-elf/ravenscar-sfp-prep or --RTS=ravenscar-sfp
+        # ex --RTS=powerpc-elf/embedded or --RTS=embedded or --RTS=ravenscar
 
-        elif re.search("ravenscar.*sfp", self.main.args.RTS):
-            return ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP"]
-
-        # ex --RTS=powerpc-elf/ravenscar-full-prep or --RTS=ravenscar
-
-        elif re.search("ravenscar", self.main.args.RTS):
-            return ["RTS_RAVENSCAR", "RTS_RAVENSCAR_FULL"]
+        elif "embedded" in self.main.args.RTS or "ravenscar" in self.main.args.RTS:
+            return ["RTS_RAVENSCAR", "RTS_EMBEDDED"]
 
         # ex --RTS=native or --RTS=kernel, or no --RTS at all
 
