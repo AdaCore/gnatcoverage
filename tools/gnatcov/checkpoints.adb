@@ -400,9 +400,12 @@ package body Checkpoints is
 
          --  Instrumentation is the same for all MC/DC variants, so a
          --  checkpoint generated for any of them supports all of them.
+         --  Instrumentation for MC/DC also provides evertyhing needed
+         --  for decision coverage analysis.
 
          if Purpose = Instrumentation and then MCDC_Coverage_Enabled then
             Supported_Levels (MCDC_Coverage_Level'Range) := (others => True);
+            Supported_Levels (Decision) := True;
          end if;
          Coverage.Levels_Type'Write (CSS.Stream, Supported_Levels);
          Traces_Files.Any_Accepted_Trace_Kind'Write
