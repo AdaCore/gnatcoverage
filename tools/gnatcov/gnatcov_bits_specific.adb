@@ -1517,11 +1517,13 @@ begin
 
          if Object_Coverage_Enabled then
             if Annotation = Annotate_Report then
-               Fatal_Error ("""report"" output format (from --annotate) is"
-                            & " only supported for source coverage criteria"
-                            & " (--level=stmt|stmt+decision|stmt+mcdc),"
-                            & " not for object coverage criteria (--level="
-                            & Coverage_Option_Value (Current_Levels) & ").");
+               Fatal_Error
+                 ("""report"" output format (from --annotate) is"
+                    & " only for source coverage criteria"
+                    & ASCII.LF
+                    & "  (--level=" & Source_Level_Options ("|")
+                    & ", not --level="
+                    & Coverage_Option_Value (Current_Levels) & ")");
 
             elsif Inputs.Length (Checkpoints_Inputs) > 0
               or else Save_Checkpoint /= null
@@ -2189,11 +2191,12 @@ begin
                when Annotate_Asm =>
                   if Source_Coverage_Enabled then
                      Fatal_Error
-                       ("""asm"" output (from --annotate) is only supported"
-                        & " for object coverage criteria"
-                        & "  (--level=insn|branch), and not for source"
-                        & " coverage criteria (--level="
-                        & Coverage_Option_Value (Current_Levels) & ").");
+                       ("""asm"" output format (from --annotate) is"
+                          & " only for object coverage criteria"
+                          & ASCII.LF
+                          & "  (--level=" & Object_Level_Options ("|")
+                          & ", not --level="
+                          & Coverage_Option_Value (Current_Levels) & ")");
                   end if;
                   Traces_Dump.Dump_Routines_Traces (Output);
 
