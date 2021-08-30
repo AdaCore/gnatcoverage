@@ -1,12 +1,5 @@
 obj
 lib
-mc_*
-uc_*
-dc_*
-st_*
-tmp_*
-wd_*
-test.py.*
 *.pyc
 *.pkl
 *.dump
