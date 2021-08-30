@@ -53,8 +53,13 @@ package Coverage is
    procedure Set_Coverage_Levels (Opt : String);
    --  Set the coverage levels to be assessed by xcov
 
-   function Valid_Coverage_Options return String;
-   --  Return a list of acceptable values for Set_Coverage_Levels
+   function Source_Level_Options (Separator : String) return String;
+   --  Return a string expression listing the valid --level alternatives
+   --  for source coverage, separated by Separator.
+
+   function Object_Level_Options (Separator : String) return String;
+   --  Return a string expression describing valid --level alternatives
+   --  for object coverage, separated by Separator.
 
    function Enabled (Level : Coverage_Level) return Boolean;
    --  True when Level is enabled

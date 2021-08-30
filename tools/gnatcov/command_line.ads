@@ -575,9 +575,20 @@ package Command_Line is
         (Long_Name    => "--level",
          Short_Name   => "-c",
          Pattern      => "[LEVEL]",
-         Help         => ("Specify coverage levels. LEVEL is one of:"
-                          & ASCII.LF
-                          & "  " & Coverage.Valid_Coverage_Options),
+         Help         =>
+           ("Specify coverage levels to assess."
+            & ASCII.LF
+            & "For all commands except ""instrument"", LEVEL is one of:"
+            & ASCII.LF
+            & "  " & Coverage.Object_Level_Options (Separator => ", ")
+            & " (object coverage)"
+            & ASCII.LF
+            & "  " & Coverage.Source_Level_Options (Separator => ", ")
+            & " (source coverage)"
+            & ASCII.LF
+            & "For the ""instrument"" command, "
+            & "a source coverage level is required."
+           ),
          Commands     => (Cmd_Run | Cmd_Coverage | Cmd_Convert
                              | Cmd_Instrument => True,
                           others => False),

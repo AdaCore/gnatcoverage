@@ -916,10 +916,15 @@ procedure GNATcov_Bits_Specific is
 
          when Cmd_Instrument =>
 
-            --  Ensure we have a source coverage level
+            --  Ensure we have a source coverage level. If not, we might have
+            --  either an object level specified, or possibly no --level at
+            --  all.
 
             if not Source_Coverage_Enabled then
-               Report_Missing_Argument ("a source coverage level");
+               Fatal_Error
+                 ("Instrumentation requires a source coverage level"
+                  & ASCII.LF
+                  & "  (--level=" & Source_Level_Options ("|") & ")");
             end if;
 
             if Args.Remaining_Args.Length > 0 then

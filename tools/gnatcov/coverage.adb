@@ -28,39 +28,68 @@ with Version;       use Version;
 
 package body Coverage is
 
-   package Coverage_Option_Maps is
+   Levels : Levels_Type := (others => False);
+   --  Global variable that records the coverage operation that has been asked
+   --  to xcov. Set using Set_Coverage_Levels.
+
+   --  Maps from valid --level string values to internal Levels array,
+   --  such as:
+   --
+   --  "stmt" -> (stmt => True, others => False);
+   --  "stmt+decision" -> (stmt => True, Decision => True, others => False)
+   --  ...
+   --
+   --  One map per family of criteria (source vs object coverage).
+
+   package Levels_Option_Maps is
      new Ada.Containers.Ordered_Maps
        (Key_Type     => GNAT.Strings.String_Access,
         Element_Type => Levels_Type,
         "<"          => Strings."<");
-   Coverage_Option_Map : Coverage_Option_Maps.Map;
-
-   Levels : Levels_Type := (others => False);
-   --  Global variable that records the coverage operation that has been asked
-   --  to xcov. Set using Set_Coverage_Levels.
+   Source_Levels_Option_Map : Levels_Option_Maps.Map;
+   Object_Levels_Option_Map : Levels_Option_Maps.Map;
 
    Object_Coverage_Enabled_Cached : Boolean;
    Source_Coverage_Enabled_Cached : Boolean;
    MCDC_Coverage_Enabled_Cached   : Boolean;
    --  Global variables to hold cached return values for enabled coverage
-   --  levels query functions. These functions can be called very ofter, so
-   --  just returning a boolean revomes any overhead. These globals are updated
+   --  levels query functions. These functions can be called very often, so
+   --  just returning a boolean removes any overhead. These globals are updated
    --  at each call of Set_Coverage_Levels, which is not called very often.
 
-   procedure Add_Coverage_Option (L : Levels_Type);
-   --  Register L as a valid combination of coverage levels
+   procedure Add_Source_Level_Option (L : Levels_Type);
+   --  Register L as a valid combination of source coverage levels
+
+   procedure Add_Object_Level_Option (L : Levels_Type);
+   --  Register L as a valid combination of object coverage levels
+
+   function Level_Options
+     (Map : Levels_Option_Maps.Map; Separator : String) return String;
+   --  Return a string of all the level options registered in the provided
+   --  Map, separated by Separator.
 
    function Any_Coverage_Enabled (L : Levels_Type) return Boolean;
    --  True if any level marked True in L is enabled
 
-   -------------------------
-   -- Add_Coverage_Option --
-   -------------------------
+   -----------------------------
+   -- Add_Source_Level_Option --
+   -----------------------------
 
-   procedure Add_Coverage_Option (L : Levels_Type) is
+   procedure Add_Source_Level_Option (L : Levels_Type) is
    begin
-      Coverage_Option_Map.Insert (new String'(Coverage_Option_Value (L)), L);
-   end Add_Coverage_Option;
+      Source_Levels_Option_Map.Insert
+        (new String'(Coverage_Option_Value (L)), L);
+   end Add_Source_Level_Option;
+
+   -----------------------------
+   -- Add_Object_Level_Option --
+   -----------------------------
+
+   procedure Add_Object_Level_Option (L : Levels_Type) is
+   begin
+      Object_Levels_Option_Map.Insert
+        (new String'(Coverage_Option_Value (L)), L);
+   end Add_Object_Level_Option;
 
    ---------------------------
    -- Coverage_Option_Value --
@@ -153,8 +182,18 @@ package body Coverage is
    -------------------------
 
    procedure Set_Coverage_Levels (Opt : String) is
+      use Levels_Option_Maps;
+      Cur : Cursor;
    begin
-      Levels := Coverage_Option_Map.Element (Opt'Unrestricted_Access);
+      --  Try to match a source level first, more likely
+
+      Cur := Source_Levels_Option_Map.Find (Opt'Unrestricted_Access);
+
+      if Cur = No_Element then
+         Cur := Object_Levels_Option_Map.Find (Opt'Unrestricted_Access);
+      end if;
+
+      Levels := Element (Cur);
 
       Object_Coverage_Enabled_Cached := Any_Coverage_Enabled
         ((Object_Coverage_Level => True, others => False));
@@ -222,14 +261,16 @@ package body Coverage is
       return To_String (Option);
    end Coverage_Option_Value;
 
-   ----------------------------
-   -- Valid_Coverage_Options --
-   ----------------------------
+   -------------------
+   -- Level_Options --
+   -------------------
 
-   function Valid_Coverage_Options return String is
+   function Level_Options
+     (Map : Levels_Option_Maps.Map; Separator : String) return String
+   is
       Options : Unbounded_String;
 
-      use Coverage_Option_Maps;
+      use Levels_Option_Maps;
 
       procedure Put_Option (Cur : Cursor);
       --  Add description of option to Options
@@ -241,17 +282,35 @@ package body Coverage is
       procedure Put_Option (Cur : Cursor) is
       begin
          if Length (Options) /= 0 then
-            Append (Options, ", ");
+            Append (Options, Separator);
          end if;
          Append (Options, Key (Cur).all);
       end Put_Option;
 
-   --  Start of processing for Valid_Coverage_Options
+   --  Start of processing for Level_Options
 
    begin
-      Coverage_Option_Map.Iterate (Put_Option'Access);
+      Map.Iterate (Put_Option'Access);
       return To_String (Options);
-   end Valid_Coverage_Options;
+   end Level_Options;
+
+   --------------------------
+   -- Object_Level_Options --
+   --------------------------
+
+   function Object_Level_Options (Separator : String) return String is
+   begin
+      return Level_Options (Object_Levels_Option_Map, Separator);
+   end Object_Level_Options;
+
+   --------------------------
+   -- Source_Level_Options --
+   --------------------------
+
+   function Source_Level_Options (Separator : String) return String is
+   begin
+      return Level_Options (Source_Levels_Option_Map, Separator);
+   end Source_Level_Options;
 
    -----------------
    -- Get_Context --
@@ -300,10 +359,24 @@ package body Coverage is
 begin
    --  Register command line options for valid combinations of coverage levels
 
-   Add_Coverage_Option ((Insn   => True,                   others => False));
-   Add_Coverage_Option ((Branch => True,                   others => False));
-   Add_Coverage_Option ((Stmt   => True,                   others => False));
-   Add_Coverage_Option ((Stmt   => True, Decision => True, others => False));
-   Add_Coverage_Option ((Stmt   => True, MCDC     => True, others => False));
-   Add_Coverage_Option ((Stmt   => True, UC_MCDC  => True, others => False));
+   --  Object coverage levels
+
+   Add_Object_Level_Option ((Insn   => True,
+                             others => False));
+   Add_Object_Level_Option ((Branch => True,
+                             others => False));
+
+   --  Source coverage levels
+
+   Add_Source_Level_Option ((Stmt     => True,
+                             others   => False));
+   Add_Source_Level_Option ((Stmt     => True,
+                             Decision => True,
+                             others   => False));
+   Add_Source_Level_Option ((Stmt     => True,
+                             MCDC     => True,
+                             others   => False));
+   Add_Source_Level_Option ((Stmt     => True,
+                             UC_MCDC  => True,
+                             others   => False));
 end Coverage;
