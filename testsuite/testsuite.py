@@ -1325,14 +1325,10 @@ class TestSuite(e3.testsuite.Testsuite):
         option.
         """
 
-        # --RTS=zfp is strict zfp, missing malloc, memcmp, memcpy and put
+        # --RTS=light-<board> or --RTS=light (e.g. for VxWorks) correspond to
+        # the former zfp-<board> variants
 
-        if self.main.args.RTS == "zfp":
-            return ["RTS_ZFP_STRICT"]
-
-        # ex --RTS=powerpc-elf/zfp-prep
-
-        elif re.search("zfp", self.main.args.RTS):
+        if re.search("light", self.main.args.RTS):
             return ["RTS_ZFP"]
 
         # ex --RTS=powerpc-elf/ravenscar-sfp-prep or --RTS=ravenscar-sfp

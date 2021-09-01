@@ -233,14 +233,14 @@ class RuntimeInfo(object):
         self.has_full_runtime = False
         self.has_ravenscar_runtime = False
         self.has_kernel_runtime = False
-        self.has_zfp_runtime = False
+        self.has_light_runtime = False
 
         if not self.runtime_name:
             self.has_full_runtime = True
         elif 'ravenscar' in self.runtime_name:
             self.has_ravenscar_runtime = True
-        elif self.runtime_name.startswith('zfp-'):
-            self.has_zfp_runtime = True
+        elif self.runtime_name.startswith('light-'):
+            self.has_light_runtime = True
         elif self.runtime_name == 'kernel':
             self.has_kernel_runtime = True
         else:
@@ -251,10 +251,10 @@ class RuntimeInfo(object):
         """Libsupport considerations.
 
         We rely on our support lib to provide a common last chance handler in
-        every configuration where this makes sense, in particular with ZFP and
+        every configuration where this makes sense, in particular with light and
         Ravenscar RTS libraries.
 
-        * ZFP profiles because some of these don't provide a handler at all.
+        * Light profiles because some of these don't provide a handler at all.
 
         * Ravenscar because some handlers fallthrough to a infinite idle loop,
           unfriendly wrt testcase termination in automated nightly executions.
@@ -267,7 +267,7 @@ class RuntimeInfo(object):
 
         This function controls whether we build the library and link with it.
         """
-        return self.has_ravenscar_runtime or self.has_zfp_runtime
+        return self.has_ravenscar_runtime or self.has_light_runtime
 
     @property
     def gnatcov_rts_project(self):
