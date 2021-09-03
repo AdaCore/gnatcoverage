@@ -16,7 +16,7 @@ end;
 
 --# add.adb
 -- /tover0/  l! ## 0
--- /tover1/  l! ## c!:"Uint_64\(Time'Last\)"
+-- /tover1/  l! ## c!:"Uint_64(Time'Last)"
 -- /retp0/   l+ ## 0
 -- /retp1/   l+ ## 0
 -- /tunder0/ l! ## dF-

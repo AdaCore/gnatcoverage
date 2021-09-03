@@ -131,17 +131,19 @@ class _XnoteP_segment:
         # many.
 
         # Compute a base subtext to start from and whether we should extend or
-        # not. If we should, include the opening paren as part of the base,
-        # escaped as we're going to use RE services to test for multiple
-        # occurrences.
+        # not.
 
+        base = self.stext
         if self.stext.startswith('(') and self.stext.endswith('*)'):
-            base = '\\' + self.stext[0:-2]
+            base = self.stext[0:-2]
             extend = True
         else:
-            base = self.stext
             extend = False
 
+        # As we use RE services to find matches for the string, and their
+        # position in the line, we need to escape it to make sure any special
+        # character is not considered as part of a regexp expression.
+        base = re.escape(base)
         for bm in re.finditer(pattern=base, string=tline.text):
             thisni.register_match(
                 Segment(

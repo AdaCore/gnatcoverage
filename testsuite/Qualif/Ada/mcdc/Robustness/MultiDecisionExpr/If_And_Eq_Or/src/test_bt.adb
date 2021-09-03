@@ -11,4 +11,3 @@ end;
 --  /eval/  l! ## c!:"A", eF-:"C"
 --  /true/  l+ ## 0
 --  /false/ l+ ## 0
-

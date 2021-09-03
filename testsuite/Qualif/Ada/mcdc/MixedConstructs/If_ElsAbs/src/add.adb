@@ -18,4 +18,4 @@ package body Add is
          return (Valid => False, Value => 0); -- # fault
       end if;
    end "+";
-end;
+end Add;

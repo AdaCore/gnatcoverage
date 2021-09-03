@@ -9,7 +9,7 @@ end;
 
 --# halfadd.adb
 --  /sum/  l+ ## 0
---  /carry/ l! ## s-:"Carry .= True"
+--  /carry/ l! ## s-:"Carry := True"
 
 -- %tags: (7.1.2|7.2.2)
 -- =/carry/ l! ## s!

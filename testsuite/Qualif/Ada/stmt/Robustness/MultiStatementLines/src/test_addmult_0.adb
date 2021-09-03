@@ -8,5 +8,5 @@ begin
 end;
 
 --# addmult.adb
---  /compute/ l- ## s-:"S .=", s-:"P .="
+--  /compute/ l- ## s-:"S :=", s-:"P :="
 --  /decl/   ~l- ## ~s-

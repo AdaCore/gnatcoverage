@@ -8,6 +8,7 @@ report notes as expressed by user expectations found in a provided XFILE.
 
 import os
 import re
+import shlex
 
 from SUITE.context import thistest
 from SUITE.control import language_info
@@ -174,6 +175,8 @@ from .xnotep import XnoteP
 # In this example, gnatcov could well point at '<' or '>' to designate a
 # partially covered condition, and specifying c!:"x" or c!:"y" wouldn't
 # work. c!:"(x*)" and c!:"(y*)" could be used instead.
+#
+# Apart from this special form, an exact matching string is expected.
 
 # CONTINUATION LINES (CONT lines)
 # -------------------------------
@@ -1146,14 +1149,28 @@ class XnotesExpander:
     # Note parsing and selection helpers for __parse_lcx
 
     def __parse_expected_rnotes(self, image):
-        if '#' in image:
-            imlist = image.split('#')
-        elif ',' in image:
-            imlist = image.split(',')
-        else:
-            imlist = [image]
+        # We will use shlex (which is useful for parsing quoted strings).
+        # It enables us to split the given string, according a given separator,
+        # but still preserves quoted text altogether (i.e. if there is a
+        # separator in some quoted text, it won't be considered as a separator).
+        #
+        # The separator can be a "#", or a ",", so we will split on them. We
+        # will also remove whitespaces (as when splitting, shlex also skips
+        # the separator characters). This won't be a problem, as quotes will
+        # protect the only spaces we care about.
+        #
+        # Also note that shlex also removes the quotes, so if we pass it the
+        # following string:
+        # c!:"B, " # d!:"C and then D"
+        # Assuming # is a separator, we will get as a result of splitting:
+        # ['c!:B, ', 'd!:C and then D']
+
+        splitter = shlex.shlex(image, posix=True)
+        splitter.whitespace_split = True
+        splitter.whitespace += "#,"
+        imlist = list(splitter)
         return [rnote
-                for rnote in (self.__parse_one_expected_rnote(im.strip())
+                for rnote in (self.__parse_one_expected_rnote(im)
                               for im in imlist)
                 if rnote]
 
@@ -1183,8 +1200,11 @@ class XnotesExpander:
             stag = None
 
         if ':' in ntext:
-            ntext, stext = ntext.split(':"')
-            stext = stext.rstrip('"')
+            # We split only once, as we have occurrences of notes as such:
+            # s-:"P :=" (the string as parsed by shlex would be 's-:P :='),
+            # with a colon inside the quoted string. We don't want to split on
+            # that second colon, as it is part of the source code.
+            ntext, stext = ntext.split(':', 1)
         else:
             stext = None
 
