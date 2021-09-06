@@ -406,7 +406,7 @@ package body Annotations.Dynamic_Html is
            ("exemptedWithViolation",
             Entities_Stats.Stats (Exempted_With_Violation));
          Stats_Holder.Set_Field ("stats", Level_Stats);
-         Stats_Holder.Set_Field ("level", Coverage_Level'Image (Level));
+         Stats_Holder.Set_Field ("level", Image (Level));
          Append (Entities_Stats_Object, Stats_Holder);
       end Add_En_Stats;
 

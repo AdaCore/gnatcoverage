@@ -50,6 +50,16 @@ package Coverage is
    type Levels_Type is array (Coverage_Level) of Boolean;
    --  Set of Coverage_Levels
 
+   function Image (Level : Coverage_Level) return String is
+     (case Level is
+      when Insn     => "Insn",
+      when Branch   => "Branch",
+      when Stmt     => "Stmt",
+      when Decision => "Decision",
+      when MCDC     => "MCDC",
+      when UC_MCDC  => "UC_MCDC");
+   --  Case sensitive version of Coverage_Level'Image
+
    procedure Set_Coverage_Levels (Opt : String);
    --  Set the coverage levels to be assessed by xcov
 
