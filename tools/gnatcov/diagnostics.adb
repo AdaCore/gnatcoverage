@@ -280,8 +280,7 @@ package body Diagnostics is
       --  fine to omit them here.
 
       if Verbose
-           or else
-         (M.SCO = No_SCO_Id and then not Suppress_Message (M))
+         or else (M.Kind < Violation and then not Suppress_Message (M))
       then
          Put_Line (Image (M));
       end if;
