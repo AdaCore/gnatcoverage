@@ -662,6 +662,40 @@ package body Decision_Map is
             DS_Top := null;
          end loop;
 
+         --  Check if we are evaluating part of a parent decision already on
+         --  the decision stack, and point DS_Top at that decision if so. This
+         --  is not necessarily the immediately enclosing decision, in
+         --  particular with complex CFGs resulting from the use of quantified
+         --  expressions.
+         --
+         --  Typically, in the example sketched below:
+         --
+         --                                <  D5  >
+         --       --------------------------------------------------------
+         --  R := (for all x ... => P(x)) and then (for all x ... => Q(x))
+         --                         ^^^^
+         --                         D9
+         --                         C10
+         --       ----------------------           -----------------------
+         --        C7 (1st cond of D5)              C8 (2nd cond of D5)
+         --
+         --  We could well see
+         --  * A first branch for C7, starting D5
+         --  * A branch for C10, starting D9, then
+         --  * Another branch for C7, still for D5, implementing
+         --    part of the first for-all control flow.
+         --
+         --  If we overlook ancestors and start a new decision occurrence
+         --  everytime we encounter a condition not part of the being-analyzed
+         --  decision, then we will start two occurrences of the decision 5,
+         --  which is not what we want.
+
+         for D_Occ of Ctx.Decision_Stack loop
+            if D_Occ.Decision = D_SCO then
+               DS_Top := D_Occ;
+            end if;
+         end loop;
+
          --  Push a new occurrence on the evaluation stack, if needed
 
          if
@@ -669,7 +703,7 @@ package body Decision_Map is
 
            DS_Top = null
 
-           --  Evaluating a new, different decision than the enclosing one
+           --  Evaluating a new, different decision than an enclosing one
 
            or else DS_Top.Decision /= D_SCO
 
