@@ -82,7 +82,8 @@ package Command_Line is
       Opt_Allow_Mix_Trace_Kind,
       Opt_Analyze_Entry_Barriers,
       Opt_Boolean_Short_Circuit_And_Or,
-      Opt_Cancel_Annotate);
+      Opt_Cancel_Annotate,
+      Opt_All_Warnings);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -483,6 +484,12 @@ package Command_Line is
                       & " --save-checkpoint to also be specified on the"
                       & "command line.",
          Commands  => (Cmd_Coverage => True, others => False),
+         Internal  => True),
+
+      Opt_All_Warnings => Create
+        (Long_Name => "--all-warnings",
+         Help      => "Print low warnings in addition to warnings and errors.",
+         Commands  => (others => True),
          Internal  => True)
      );
 

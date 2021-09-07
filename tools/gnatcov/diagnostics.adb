@@ -20,6 +20,7 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
 
+with Command_Line;  use Command_Line;
 with Coverage.Tags; use Coverage.Tags;
 with Files_Table;   use Files_Table;
 with Hex_Images;    use Hex_Images;
@@ -43,12 +44,13 @@ package body Diagnostics is
    function Image (M : Message) return String is
       subtype Prefix_Str is String (1 .. 3);
       Prefix : constant array (Report_Kind) of Prefix_Str :=
-                 (Notice    => "---",
-                  Warning   => "***",
-                  Error     => "!!!",
-                  Info      => ".C.",
-                  Violation => "!C!",
-                  Exclusion => "-C-");
+                 (Notice      => "---",
+                  Low_Warning => "***",
+                  Warning     => "***",
+                  Error       => "!!!",
+                  Info        => ".C.",
+                  Violation   => "!C!",
+                  Exclusion   => "-C-");
 
       function Kind_Image return String;
       --  Text prefix for Kind, empty for the value Error
@@ -312,7 +314,11 @@ package body Diagnostics is
 
    function Suppress_Message (M : Message) return Boolean is
    begin
-      return M.Kind <= Notice;
+      if Args.Bool_Args (Opt_All_Warnings) then
+         return M.Kind <= Notice;
+      else
+         return M.Kind <= Low_Warning;
+      end if;
    end Suppress_Message;
 
 end Diagnostics;
