@@ -21,6 +21,7 @@ with Ada.Calendar.Conversions;
 with Ada.Containers.Generic_Sort;
 with Ada.Containers.Hashed_Sets;
 with Ada.Strings.Unbounded.Hash;
+with Ada.Unchecked_Conversion;
 
 with Interfaces.C;
 
@@ -180,7 +181,17 @@ package body Traces_Files_Registry is
                use Ada.Calendar.Conversions;
                use Interfaces;
                use Interfaces.C;
-               Timestamp : long := 0;
+
+               --  We first read the stamp as an unsigned_64 then unchecked
+               --  convert to long, which the time interpretation services
+               --  expect. Going through unsigned_64 is useful to "support"
+               --  bogus input values that would overflow a long, occasionally
+               --  observed on non-native systems where the time services
+               --  are misconfigured.
+
+               Timestamp : Unsigned_64 := 0;
+               function To_long is new
+                 Ada.Unchecked_Conversion (Unsigned_64, long);
             begin
                --  Turn Data (little-endian 64-bit Unix timestamp) into
                --  Timestamp.
@@ -205,7 +216,8 @@ package body Traces_Files_Registry is
 
                   Year, Month, Day, Hour, Minute, Second : int;
                begin
-                  To_Struct_Tm (To_Ada_Time (Timestamp), Year, Month, Day,
+                  To_Struct_Tm (To_Ada_Time (To_long (Timestamp)),
+                                Year, Month, Day,
                                 Hour, Minute, Second);
                   Info_Date.Year  := Unsigned_16 (1900 + Year);
                   Info_Date.Month := Unsigned_8 (1 + Month);
