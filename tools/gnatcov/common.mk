@@ -14,13 +14,16 @@
 LLVM_INCLUDEDIR=$(shell echo $$(llvm-config --includedir) | sed 's/\\/\//g')
 LLVM_LIBDIR=$(shell echo $$(llvm-config --libdir) | sed 's/\\/\//g')
 
+CLANG_LIBS=\
+	$(filter-out %.dll.a, $(wildcard $(LLVM_LIBDIR)/libclang*.a))
 CLANG_FLAGS=\
-        -Wl,--start-group $(LLVM_LIBDIR)/libclang*.a -Wl,--end-group
+        -Wl,--start-group $(CLANG_LIBS) -Wl,--end-group
 LLVM_FLAGS=\
         $(shell llvm-config --libs all)
 SYSTEM_LIBS=\
         $(shell llvm-config --system-libs)
 LD_FLAGS=\
-        $(shell llvm-config --ldflags) $(CLANG_FLAGS) $(LLVM_FLAGS) $(SYSTEM_LIBS)
+        $(shell llvm-config --ldflags) $(CLANG_FLAGS) $(LLVM_FLAGS) \
+	$(SYSTEM_LIBS) -static-libstdc++
 
 CXXFLAGS=-I$(LLVM_INCLUDEDIR)

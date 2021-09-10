@@ -1249,9 +1249,7 @@ package body Instrument.Common is
 
          if Language /= Ada_Language then
             File.Put_Line ("   procedure adainit;");
-            File.Put_Line ("   procedure adafinal;");
             File.Put_Line ("   pragma Import (C, adainit);");
-            File.Put_Line ("   pragma Import (C, adafinal);");
             File.New_Line;
          end if;
 
@@ -1364,10 +1362,6 @@ package body Instrument.Common is
             File.Put ("         Exec_Date => (others => ASCII.NUL)");
          end case;
          File.Put_Line (");");
-
-         if Language /= Ada_Language then
-            File.Put_Line ("      adafinal;");
-         end if;
 
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;

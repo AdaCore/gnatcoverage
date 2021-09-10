@@ -17,6 +17,11 @@
  *                                                                          *
  ****************************************************************************/
 
+ /* Make sure we refer to the static version of symbols on Windows, not to DLL
+    importers.  */
+
+#define CINDEX_NO_EXPORTS
+
 #include "libclang/CursorVisitor.h"
 #include "libclang/CXCursor.h"
 #include "libclang/CXSourceLocation.h"

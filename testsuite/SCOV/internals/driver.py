@@ -1308,12 +1308,13 @@ class SCOV_helper_src_traces(SCOV_helper):
             # tests are not built, so we can assume here that there is only one
             # driver to build.
             assert len(self.drivers) == 1
-            add_last_chance_handler(
-                instrument_gprsw.root_project,
-                self.gpr_obj_dir,
-                subdirs,
-                no_ext(self.drivers[0]),
-                silent=not self.testcase.expect_failures)
+            if (language_info(self.drivers[0]) == "Ada"):
+                add_last_chance_handler(
+                    instrument_gprsw.root_project,
+                    self.gpr_obj_dir,
+                    subdirs,
+                    no_ext(self.drivers[0]),
+                    silent=not self.testcase.expect_failures)
 
         # Standard output might contain warnings indicating instrumentation
         # issues. This should not happen, so simply fail as soon as the output

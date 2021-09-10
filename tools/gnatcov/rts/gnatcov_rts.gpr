@@ -7,7 +7,9 @@
 --  source traces files (GNATcov_RTS.Traces.Output), please use the
 --  gnatcov_rts_full.gpr project instead.
 
-project GNATcov_RTS is
+library project GNATcov_RTS is
+   for Library_Name use "gnatcov_rts";
+   for Library_Dir use "lib-gnatcov_rts";
    for Source_Files use
      ("gnatcov_rts.ads",
       "gnatcov_rts-buffers.ads",
