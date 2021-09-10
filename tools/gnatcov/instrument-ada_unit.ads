@@ -247,6 +247,12 @@ private
          Short_Circuit_And_Or : Boolean := False;
          --  Whether the Standard.Boolean and/or operators should be
          --  considered as having short-circuit semantics.
+
+         Ghost_Code : Boolean := False;
+         --  Ghost_Code is True if we are in a context of ghost code
+         --  (declarations in a ghost package, assignments to a ghost variable
+         --  etc.). We will not emit any coverage obligation in this context
+         --  and assume ghost code is absent at execution.
       end record;
 
    function Insert_MCDC_State

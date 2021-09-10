@@ -107,6 +107,12 @@ package body Instrument.Ada_Unit is
    --  Return a symbol from Symbols corresponding to the name of the given
    --  A aspect association.
 
+   function Safe_Is_Ghost (N : Basic_Decl'Class) return Boolean;
+   function Safe_Is_Ghost (N : LAL.Stmt'Class) return Boolean;
+   --  Wrappers around P_Is_Ghost_Code to protect ourselves against property
+   --  errors. If the property fails for some reason, consider that the code
+   --  is not ghost.
+
    function Op_Symbol_To_Name
      (Op : Libadalang.Analysis.Name) return Wide_Wide_String;
    --  Given an operator symbol (in its source representation
@@ -768,7 +774,7 @@ package body Instrument.Ada_Unit is
 
    function Augmented_EF_Needs_Wrapper_Package
      (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean;
-   --  Returns wether the augmented expression function needs to be wrapped in
+   --  Returns whether the augmented expression function needs to be wrapped in
    --  a nested package.
 
    function Is_Self_Referencing
@@ -2141,16 +2147,21 @@ package body Instrument.Ada_Unit is
       return Dominant_Info
      with Post => UIC.Current_Insertion_Info = UIC'Old.Current_Insertion_Info;
    --  Process L, a list of statements or declarations dominated by D. If P is
-   --  present, it is processed as though it had been prepended to L. Preelab
-   --  is True if L is a list of preelaborable declarations (which do not
-   --  allow elaboration code, so do not require any SCOs, and wouldn't allow
-   --  insertion of witnesses). If Is_Select_Stmt_Alternative is True,
-   --  then this is for a select_alternative, entry_call_alternative, or
-   --  triggering_alternative: the witness for the first statement must
-   --  be inserted after it, not before as we do usually. Returns dominant
-   --  information corresponding to the last node with SCO in L.
+   --  present, it is processed as though it had been prepended to L.
+   --
+   --  Preelab is True if L is a list of preelaborable declarations (which do
+   --  not allow elaboration code, so do not require any SCOs, and wouldn't
+   --  allow insertion of witnesses).
+   --
+   --  Is_Select_Stmt_Alternative is True if this is a select_alternative,
+   --  entry_call_alternative, or triggering_alternative: the witness for the
+   --  first statement must be inserted after it, not before as we do usually.
+   --
    --  If L is the list of declarations for a public part, Priv_Part is the
    --  corresponding private part (if any).
+   --
+   --  Returns dominant information corresponding to the last node with SCO in
+   --  L.
    --
    --  The postcondition ensures that the Current_Insertion_Info has been
    --  correctly reset to its value upon entry.
@@ -2340,10 +2351,7 @@ package body Instrument.Ada_Unit is
       Typ : Character;
    end record;
    --  Used to store a single entry in the following table. Nod is the node to
-   --  be searched for decisions for the case of Process_Decisions_Defer with a
-   --  node argument (with Lst set to No_Ada_Node. Lst is the list to be
-   --  searched for decisions for the case of Process_Decisions_Defer with a
-   --  List argument (in which case Nod is set to No_Ada_Node).
+   --  be searched for decisions.
 
    package SD is new Table.Table
      (Table_Component_Type => SD_Entry,
@@ -4136,9 +4144,9 @@ package body Instrument.Ada_Unit is
                         | Name_Postcondition
                         | Name_Precondition
                      =>
-                        --  For Assert-like pragmas, we always insert a
-                        --  statement witness, but don't instrument the
-                        --  expression as it would create non-coverable SCOs.
+                        --  For Assert-like pragmas, we insert a statement
+                        --  witness and instrument the decision if the pragma
+                        --  is not disabled.
                         --
                         --  This is in line with what is done for pre/post
                         --  aspects.
@@ -4150,7 +4158,9 @@ package body Instrument.Ada_Unit is
                            Arg := 2;
                         end if;
 
-                        --  We consider that the assertion policy is dissabled.
+                        --  We consider that the assertion policy is
+                        --  "disabled".
+                        --
                         --  In the compiler, we initially set the type to 'p'
                         --  (disabled pragma), and then switch it to 'P'
                         --  if/when the policy is determined to be enabled
@@ -4414,7 +4424,18 @@ package body Instrument.Ada_Unit is
             if Current_Insertion_Info.Method in Statement | Declaration then
                Current_Insertion_Info.Index := J;
             end if;
-            Traverse_One (N);
+
+            --  Only traverse the nodes if they are not ghost entities
+
+            if not (UIC.Ghost_Code
+                    or else
+                      (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
+                    or else
+                      (N.Kind in Ada_Basic_Decl
+                       and then Safe_Is_Ghost (N.As_Basic_Decl)))
+            then
+               Traverse_One (N);
+            end if;
          end;
       end loop;
 
@@ -4578,6 +4599,8 @@ package body Instrument.Ada_Unit is
       Preelab : Boolean)
    is
    begin
+      UIC.Ghost_Code := Safe_Is_Ghost (N);
+
       --  The first statement in the handled sequence of statements is
       --  dominated by the elaboration of the last declaration.
 
@@ -4586,6 +4609,7 @@ package body Instrument.Ada_Unit is
          N => N.F_Stmts,
          D => Traverse_Declarations_Or_Statements
                 (IC, UIC, N.F_Decls.F_Decls, Preelab));
+      UIC.Ghost_Code := False;
    end Traverse_Package_Body;
 
    ----------------------------------
@@ -4599,11 +4623,14 @@ package body Instrument.Ada_Unit is
       Preelab : Boolean;
       D       : Dominant_Info := No_Dominant)
    is
-      Private_Part_Dominant : constant Dominant_Info :=
-         Traverse_Declarations_Or_Statements
-           (IC, UIC, N.F_Public_Part.F_Decls, Preelab, D,
-            Priv_Part => N.F_Private_Part);
+      Private_Part_Dominant : Dominant_Info;
    begin
+      UIC.Ghost_Code := Safe_Is_Ghost (N);
+      Private_Part_Dominant :=
+        Traverse_Declarations_Or_Statements
+          (IC, UIC, N.F_Public_Part.F_Decls, Preelab, D,
+           Priv_Part => N.F_Private_Part);
+
       if not N.F_Private_Part.Is_Null then
 
          --  First private declaration is dominated by last visible declaration
@@ -4614,6 +4641,7 @@ package body Instrument.Ada_Unit is
             Preelab => Preelab,
             D       => Private_Part_Dominant);
       end if;
+      UIC.Ghost_Code := False;
    end Traverse_Package_Declaration;
 
    ------------------------------
@@ -5509,6 +5537,36 @@ package body Instrument.Ada_Unit is
      (As_Symbol (P.F_Id));
    function Pragma_Name (P : Pragma_Node) return Name_Id is
      (As_Name (P.F_Id));
+
+   -------------------
+   -- Safe_Is_Ghost --
+   -------------------
+
+   function Safe_Is_Ghost (N : Basic_Decl'Class) return Boolean is
+   begin
+      return N.P_Is_Ghost_Code;
+   exception
+      when E : Property_Error =>
+         Report (N,
+                 Msg => "Could not determine if decl is ghost: "
+                 & Ada.Exceptions.Exception_Information (E),
+                 Kind => Low_Warning);
+         return False;
+
+   end Safe_Is_Ghost;
+
+   function Safe_Is_Ghost (N : LAL.Stmt'Class) return Boolean is
+   begin
+      return N.P_Is_Ghost_Code;
+   exception
+      when E : Property_Error =>
+         Report (N,
+                 Msg => "Could not determine if stmt is ghost: "
+                 & Ada.Exceptions.Exception_Information (E),
+                 Kind => Low_Warning);
+         return False;
+
+   end Safe_Is_Ghost;
 
    -----------------------
    -- Aspect_Assoc_Name --
