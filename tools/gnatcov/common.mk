@@ -14,16 +14,22 @@
 LLVM_INCLUDEDIR=$(shell echo $$(llvm-config --includedir) | sed 's/\\/\//g')
 LLVM_LIBDIR=$(shell echo $$(llvm-config --libdir) | sed 's/\\/\//g')
 
+# The libclang driver library on Windows uses the system "version" API
+CLANG_SYSTEM_LIBS_windows=-lversion
+CLANG_SYSTEM_LIBS_linux=
+CLANG_SYSTEM_LIBS=$(CLANG_SYSTEM_LIBS_$(HOST_OS))
+
 CLANG_LIBS=\
-	$(filter-out %.dll.a, $(wildcard $(LLVM_LIBDIR)/libclang*.a))
+	$(filter-out %.dll.a, $(wildcard $(LLVM_LIBDIR)/libclang*.a)) \
+	$(CLANG_SYSTEM_LIBS)
 CLANG_FLAGS=\
         -Wl,--start-group $(CLANG_LIBS) -Wl,--end-group
 LLVM_FLAGS=\
         $(shell llvm-config --libs all)
-SYSTEM_LIBS=\
+LLVM_SYSTEM_LIBS=\
         $(shell llvm-config --system-libs)
 LD_FLAGS=\
         $(shell llvm-config --ldflags) $(CLANG_FLAGS) $(LLVM_FLAGS) \
-	$(SYSTEM_LIBS) -static-libstdc++
+	$(LLVM_SYSTEM_LIBS) -static-libstdc++
 
 CXXFLAGS=-I$(LLVM_INCLUDEDIR)
