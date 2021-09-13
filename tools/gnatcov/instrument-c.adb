@@ -2089,11 +2089,15 @@ package body Instrument.C is
          File.Put_Line ("    .project_name_length = "
                         & Strings.Img (Project_Name'Length) & ",");
 
-         File.Put_Line ("    .statement = (uint8_t *)"
-                        & Statement_Buffer & ",");
-         File.Put_Line ("    .decision = (uint8_t *)"
-                        & Decision_Buffer & ",");
-         File.Put_Line ("    .mcdc = (uint8_t *)" & MCDC_Buffer & ",");
+         --  We do not use the created pointer (Statement_Buffer) to initialize
+         --  the buffer fields, as this is rejected by old versions of the
+         --  compiler (up to the 20 version): the initializer element is
+         --  considered not constant. To work around it, we simply use the
+         --  original expression instead of using a wrapper pointer.
+
+         File.Put_Line ("    .statement = &" & Statement_Buffer_Repr & "[0],");
+         File.Put_Line ("    .decision = &" & Decision_Buffer_Repr & "[0],");
+         File.Put_Line ("    .mcdc = &" & MCDC_Buffer_Repr & "[0],");
 
          File.Put_Line ("    .statement_last_bit = " & Statement_Last_Bit
                         & ",");
