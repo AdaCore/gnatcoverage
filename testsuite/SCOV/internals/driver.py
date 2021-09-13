@@ -1308,7 +1308,7 @@ class SCOV_helper_src_traces(SCOV_helper):
             # tests are not built, so we can assume here that there is only one
             # driver to build.
             assert len(self.drivers) == 1
-            if (language_info(self.drivers[0]) == "Ada"):
+            if (language_info(self.drivers[0]).name == "Ada"):
                 add_last_chance_handler(
                     instrument_gprsw.root_project,
                     self.gpr_obj_dir,
