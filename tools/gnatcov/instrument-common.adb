@@ -1291,6 +1291,8 @@ package body Instrument.Common is
          case IC.Dump_Config.Channel is
          when Binary_File =>
             declare
+               use GNATCOLL.VFS;
+
                U       : constant String := To_Ada (Output_Unit);
                Indent1 : constant String := "         ";
                Indent2 : constant String := Indent1 & "  ";
@@ -1302,20 +1304,15 @@ package body Instrument.Common is
                   & """");
                Prefix  : constant String :=
                  (if Length (IC.Dump_Config.Filename_Prefix) = 0
-                  then
-                    (if Language = Ada_Language
-                     then U & ".Default_Trace_Filename_Prefix"
-
-                     --  For compilation units that are not Ada compilation
-                     --  units, the generated arguments are slightly different,
-                     --  as we cannot rely on Ada.Command_Line methods to
-                     --  retrieve the name of the command, and thus the default
-                     --  prefix name.
-                     --
-                     --  For now, we will simply use the filename.
-
-                     else """" & To_Filename (Info.Project, Main, Language)
-                     & """")
+                  then """" & String'(+Info.Project.Executable_Name
+                    (File => +To_Filename
+                         (Project => Info.Project,
+                          CU_Name => Main,
+                          Language =>
+                            (case Main.Language_Kind is
+                                when Unit_Based_Language => Ada_Language,
+                                when File_Based_Language => C_Language)),
+                     Include_Suffix => True)) & """"
                   else """" & To_String (IC.Dump_Config.Filename_Prefix)
                   & """");
                Tag     : constant String := """" & To_String (IC.Tag) & """";
@@ -1326,8 +1323,8 @@ package body Instrument.Common is
             begin
                File.Put_Line
                  (Indent1 & "Filename => " & U & ".Default_Trace_Filename");
-               File.Put_Line (Indent2 & "(Env_Var => " & Env_Var & ",");
-               File.Put_Line (Indent2 & " Prefix => " & Prefix & ",");
+               File.Put_Line (Indent2 & "(Prefix => " & Prefix & ",");
+               File.Put_Line (Indent2 & " Env_Var => " & Env_Var & ",");
                File.Put_Line (Indent2 & " Tag => " & Tag & ",");
                File.Put (Indent2 & " Simple => " & Simple & ")");
 

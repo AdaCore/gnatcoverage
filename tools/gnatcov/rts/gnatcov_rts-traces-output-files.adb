@@ -64,7 +64,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    --  Return Timestamp as an hexadecimal string
 
    function Default_Trace_Basename
-     (Prefix : String := Default_Trace_Filename_Prefix;
+     (Prefix : String;
       Tag    : String := "";
       Simple : Boolean := False) return String;
    --  Helper for Default_Trace_Filename, to be called when the environment
@@ -106,15 +106,6 @@ package body GNATcov_RTS.Traces.Output.Files is
       end if;
    end Environment_Variable;
 
-   -----------------------------------
-   -- Default_Trace_Filename_Prefix --
-   -----------------------------------
-
-   function Default_Trace_Filename_Prefix return String is
-   begin
-      return Basename (Ada.Command_Line.Command_Name);
-   end Default_Trace_Filename_Prefix;
-
    ---------------
    -- Hex_Image --
    ---------------
@@ -146,7 +137,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    ----------------------------
 
    function Default_Trace_Basename
-     (Prefix : String := Default_Trace_Filename_Prefix;
+     (Prefix : String;
       Tag    : String := "";
       Simple : Boolean := False) return String
    is
@@ -176,7 +167,7 @@ package body GNATcov_RTS.Traces.Output.Files is
 
    function Default_Trace_Filename
      (Env_Var : String := Default_Trace_Filename_Env_Var;
-      Prefix  : String := Default_Trace_Filename_Prefix;
+      Prefix  : String := "gnatcov";
       Tag     : String := "";
       Simple  : Boolean := False) return String
    is
@@ -259,7 +250,7 @@ package body GNATcov_RTS.Traces.Output.Files is
       File : BIO.File_Type;
    begin
       if Filename = "" then
-         BIO.Create (File, Name => Default_Trace_Filename);
+         BIO.Create (File, Name => Default_Trace_Filename (Prefix => ""));
       else
          BIO.Create (File, Name => Filename);
       end if;

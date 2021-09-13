@@ -41,22 +41,18 @@ package GNATcov_RTS.Traces.Output.Files is
    function Clock return Time;
    --  Returns the number of seconds since the UNIX epoch
 
-   function Default_Trace_Filename_Prefix return String;
-   --  Return the basename for the current program
-
    function Default_Trace_Filename
      (Env_Var : String := Default_Trace_Filename_Env_Var;
-      Prefix  : String := Default_Trace_Filename_Prefix;
+      Prefix  : String := "gnatcov";
       Tag     : String := "";
       Simple  : Boolean := False) return String;
    --  Return the default name of the trace file to write.
    --
    --  If the Env_Var environment variable is not defined or empty, return:
    --
-   --  * "PROGRAM.srctrace" if Simple is True (PROGRAM is the name of the
-   --    running program).
+   --  * "Prefix.srctrace" if Simple is True.
    --
-   --  * "PROGRAM-TAG-PID-CLOCK.srctrace" if Simple is False (PID is the
+   --  * "Prefix-TAG-PID-CLOCK.srctrace" if Simple is False (PID is the
    --    current process ID and CLOCK is the result of the Clock function in
    --    decimal representation). The "-TAG" part is omitted if Tag is the
    --    empty string.
