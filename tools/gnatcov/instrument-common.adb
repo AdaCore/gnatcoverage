@@ -1241,31 +1241,10 @@ package body Instrument.Common is
          File.Put_Line ("package body " & Helper_Unit_Name & " is");
          File.New_Line;
 
-         --  We need to initialize the Ada runtime if this is not an Ada main,
-         --  before calling any of the function in the Ada runtime. This will
-         --  probably change in the future, as we should have at least a C
-         --  version of this runtime, and not use the same generated unit to
-         --  dump coverage buffers, both for Ada and for C.
-
-         if Language /= Ada_Language then
-            File.Put_Line ("   procedure adainit;");
-            File.Put_Line ("   pragma Import (C, adainit);");
-            File.New_Line;
-         end if;
-
          --  Emit the procedure to write the trace file
 
          File.Put_Line ("   procedure " & Dump_Procedure & " is");
          File.Put_Line ("   begin");
-
-         --  For languages that are not Ada, the Ada runtime needs to be
-         --  initialized, and then finalized before calling the procedure that
-         --  writes the trace file.
-
-         if Language /= Ada_Language then
-            File.Put_Line ("      adainit;");
-         end if;
-
          File.Put_Line ("      " & To_Ada (Output_Proc));
          File.Put      ("        ((");
          for Cur in Buffer_Units.Iterate loop

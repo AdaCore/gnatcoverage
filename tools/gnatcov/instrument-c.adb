@@ -2243,8 +2243,14 @@ package body Instrument.C is
                Statement => Dump_Procedure_Symbol (Main) & "();");
 
          when At_Exit =>
+            Add_Export (Rew.TU, Rew.Rewriter, "extern void adainit(void);");
             Add_Export (Rew.TU, Rew.Rewriter,
                         "extern int atexit( void ( * function ) (void) );");
+
+            --  We need to initialize the Ada runtime as we are still using
+            --  the Ada gnatcov runtime to dump traces.
+
+            Add_Statement_In_Main (Rew.TU, Rew.Rewriter, "adainit();");
             Add_Statement_In_Main
               (Rew.TU, Rew.Rewriter, "atexit ("
                & Dump_Procedure_Symbol (Main) & ");");
