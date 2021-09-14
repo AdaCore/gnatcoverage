@@ -1,19 +1,24 @@
 """Helpers to test instrumentation-based source coverage."""
 
 import os.path
+import re
 
 from e3.fs import mkdir
 
 from SUITE.context import thistest
-from SUITE.cutils import contents_of, indent
+from SUITE.cutils import contents_of, ext, indent
 from SUITE.tutils import RUNTIME_INFO, xcov
 
 
-def default_dump_trigger():
+def default_dump_trigger(mains):
     """Return the default dump trigger to use in testcases."""
     if RUNTIME_INFO.has_full_runtime:
         return 'atexit'
-    elif RUNTIME_INFO.has_ravenscar_runtime:
+
+    # It does not make sense to have a dump-trigger=ravenscar-task-termination
+    # if the main is not an Ada program.
+    elif (all([ext(main) == 'adb' for main in mains])
+          and RUNTIME_INFO.has_ravenscar_runtime):
         return 'ravenscar-task-termination'
     else:
         return 'main-end'
@@ -58,8 +63,23 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
         mkdir(gpr_obj_dir)
 
     covlevel_args = [] if covlevel is None else ['--level', covlevel]
+
+    # We want to get the mains to know which dump-trigger should be passed to
+    # the instrumentation command.
+    #
+    # Capture the list of main file names, double quoted and comma separated.
+    m = re.search(
+        pattern=r"for Main use \((?P<mains>.*)\)",
+        string=contents_of(gprsw.root_project))
+
+    # If found, split then remove whitespaces and double quotes
+    mains = []
+    if m:
+        mains = m.group('mains').split(',')
+        mains = [main.strip(' "') for main in mains]
+
     args = (['instrument'] + covlevel_args +
-            ['--dump-trigger', dump_trigger or default_dump_trigger(),
+            ['--dump-trigger', dump_trigger or default_dump_trigger(mains),
              '--dump-channel', dump_channel or default_dump_channel()] +
             gprsw.cov_switches +
             extra_args)

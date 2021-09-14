@@ -1135,13 +1135,23 @@ package body Instrument.Common is
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
 
-      Dump_Trigger : constant Auto_Dump_Trigger := IC.Dump_Config.Trigger;
+      Dump_Trigger : Auto_Dump_Trigger := IC.Dump_Config.Trigger;
       --  Shortcut to avoid repeatedly restricting the dump trigger to the
       --  Auto_Dump_Trigger subtype.
 
    --  Start of processing for Emit_Dump_Helper_Unit
 
    begin
+
+      if Language /= Ada_Language
+         and then Dump_Trigger = Ravenscar_Task_Termination
+      then
+         Warn ("--dump-trigger=ravenscar-task-termination is not valid for a"
+               & " C main. Defaulting to --dump-trigger=main-end for this"
+               & " main.");
+         Dump_Trigger := Main_End;
+      end if;
+
       --  Create the name of the helper unit
 
       Helper_Unit := Sys_Buffers;

@@ -1301,7 +1301,7 @@ class SCOV_helper_src_traces(SCOV_helper):
         # trigger will not work when the test driver ends with an unhandled
         # exception. To workaround that, force the dump in the last chance
         # handler.
-        if default_dump_trigger() == 'main-end':
+        if default_dump_trigger(self.drivers) == 'main-end':
             # The only tests with multiple drivers are consolidation ones,
             # which compute consolidated coverage reports from data obtained
             # in previously executed tests (trace files or checkpoints). These
