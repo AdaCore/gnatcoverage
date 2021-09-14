@@ -429,8 +429,8 @@ package body Instrument is
       --  Add this source file to the list of units to instrument. For unit-
       --  based languages, also add subunits that depend on this source file.
 
-      function Has_Enabled_Language (Language : String) return Boolean is
-        (Enabled_Languages.Contains (+(To_Lower (Language))));
+      function Is_Language_Enabled (Language : String) return Boolean is
+        (Enable_Languages.Contains (+(To_Lower (Language))));
       --  Check whether Language is part of the enabled languages
 
       -----------------------------------
@@ -521,9 +521,12 @@ package body Instrument is
    begin
       --  First get the list of all units of interest
 
-      Project.Enumerate_Sources (Add_Instrumented_Unit_Wrapper'Access, "ada");
+      if Is_Language_Enabled ("Ada") then
+         Project.Enumerate_Sources
+           (Add_Instrumented_Unit_Wrapper'Access, "ada");
+      end if;
 
-      if Has_Enabled_Language ("C") then
+      if Is_Language_Enabled ("C") then
          if not Project.Has_Ada_Language then
             Outputs.Fatal_Error
               ("Beta C instrumentation generates Ada files, and thus needs the"
@@ -533,16 +536,18 @@ package body Instrument is
          Project.Enumerate_Sources (Add_Instrumented_Unit_Wrapper'Access, "c");
       end if;
 
-      --  If we need to instrument all Ada mains, also go through them now, so
+      --  If we need to instrument all the mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.
 
       if Dump_Config.Trigger /= Manual then
-         for Main of Project.Enumerate_Ada_Mains loop
-            Register_Main_To_Instrument
-              (IC, Ada_Main_To_Instrument_Vector, Main.File, Main.Project);
-         end loop;
+         if Is_Language_Enabled ("Ada") then
+            for Main of Project.Enumerate_Ada_Mains loop
+               Register_Main_To_Instrument
+                 (IC, Ada_Main_To_Instrument_Vector, Main.File, Main.Project);
+            end loop;
+         end if;
 
-         if Has_Enabled_Language ("C") then
+         if Is_Language_Enabled ("C") then
             for Main of Project.Enumerate_C_Mains loop
                Register_Main_To_Instrument
                  (IC, C_Main_To_Instrument_Vector, Main.File, Main.Project);
@@ -686,7 +691,7 @@ package body Instrument is
 
       Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
 
-      --  Instrument all Ada mains that are not unit of interest to add the
+      --  Instrument all the mains that are not unit of interest to add the
       --  dump of coverage buffers: Instrument_Unit already took care of mains
       --  that are units of interest.
 

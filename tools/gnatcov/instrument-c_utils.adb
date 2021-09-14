@@ -300,9 +300,9 @@ package body Instrument.C_Utils is
       begin
          if Is_Statement (Kind (Cursor)) then
             if Kind (Cursor) = Cursor_Return_Stmt then
-               Insert_Text_Before (N    => Cursor,
-                                   Text => Statement,
-                                   Rew  => Rew);
+               Insert_Text_After_Start_Of (N    => Cursor,
+                                           Text => Statement,
+                                           Rew  => Rew);
             else
                return Child_Visit_Recurse;
             end if;
@@ -361,7 +361,10 @@ package body Instrument.C_Utils is
    -- Insert_Text_Before --
    ------------------------
 
-   procedure Insert_Text_Before (N : Cursor_T; Text : String; Rew : Rewriter_T)
+   procedure Insert_Text_After_Start_Of
+     (N    : Cursor_T;
+      Text : String;
+      Rew  : Rewriter_T)
    is
       Location : constant Source_Location_T :=
         Get_Range_Start (Get_Cursor_Extent (N));
@@ -370,14 +373,16 @@ package body Instrument.C_Utils is
         (Rew    => Rew,
          Loc    => Location,
          Insert => Text);
-   end Insert_Text_Before;
+   end Insert_Text_After_Start_Of;
 
    -------------------------------
    -- Insert_Text_Before_Before --
    -------------------------------
 
-   procedure Insert_Text_Before_Before
-     (N : Cursor_T; Text : String; Rew : Rewriter_T)
+   procedure Insert_Text_Before_Start_Of
+     (N    : Cursor_T;
+      Text : String;
+      Rew  : Rewriter_T)
    is
       Location : constant Source_Location_T :=
         Get_Range_Start (Get_Cursor_Extent (N));
@@ -386,7 +391,7 @@ package body Instrument.C_Utils is
         (Rew    => Rew,
          Loc    => Location,
          Insert => Text);
-   end Insert_Text_Before_Before;
+   end Insert_Text_Before_Start_Of;
 
    -----------------------
    -- Insert_Text_After --
@@ -423,7 +428,7 @@ package body Instrument.C_Utils is
                Location_After : constant Source_Location_T :=
                  Get_Range_End (Get_Cursor_Extent (N));
             begin
-               Insert_Text_Before (N, "{", Rew);
+               Insert_Text_After_Start_Of (N, "{", Rew);
                CX_Rewriter_Insert_Text_After_Token (Rew, Location_After, "}");
             end;
       end case;

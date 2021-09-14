@@ -76,7 +76,7 @@ package Instrument.C_Utils is
    function Is_Unit_Of_Interest
      (N        : Cursor_T;
       Filename : String) return Boolean;
-   --  Know if the node N corresponds to code originating from a unit of
+   --  True if the node N corresponds to code originating from a unit of
    --  interest. This is used to avoid instrumenting included code (that comes
    --  from preprocessing).
    --
@@ -110,23 +110,23 @@ package Instrument.C_Utils is
       Rew    : Rewriter_T;
       Export : String);
 
-   procedure Insert_Text_Before
+   procedure Insert_Text_After_Start_Of
      (N    : Cursor_T;
       Text : String;
       Rew  : Rewriter_T);
    --  Inserts the string Text before the starting location of N.
    --
    --  If this procedure is called multiple times with the same N as parameter,
-   --  the string will be inserted after any previously inserted string.
+   --  the string will be inserted _after_ any previously inserted string.
 
-   procedure Insert_Text_Before_Before
+   procedure Insert_Text_Before_Start_Of
      (N    : Cursor_T;
       Text : String;
       Rew  : Rewriter_T);
    --  Inserts the string Text before the starting location of N.
    --
    --  If this procedure is called multiple times with the same N as parameter,
-   --  the string will be inserted before any previously inserted string.
+   --  the string will be inserted _before_ any previously inserted string.
 
    procedure Insert_Text_After
      (N    : Cursor_T;

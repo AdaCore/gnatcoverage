@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
 
 with Inputs;   use Inputs;
@@ -257,28 +256,31 @@ package body Switches is
       Copy_Arg_List (Opt_Units, Units_Inputs);
 
       if Is_Present
-        (Args, Option_Reference'(String_List_Opt, Opt_Enabled_Languages))
+        (Args, Option_Reference'(String_List_Opt, Opt_Enable_Languages))
       then
          declare
-            Temp_List : Inputs.Inputs_Type;
-
-            procedure Add_Language (L : String);
-            --  Add a lower-cased language to Enabled_Languages
+            procedure Add_Language (L : String_Vectors.Cursor);
+            --  Add language to Enabled_Languages
 
             ------------------
             -- Add_Language --
             ------------------
 
-            procedure Add_Language (L : String) is
+            procedure Add_Language (L : String_Vectors.Cursor) is
             begin
-               String_Sets.Insert (Enabled_Languages, +(To_Lower (L)));
+               String_Sets.Insert
+                 (Enable_Languages, String_Vectors.Element (L));
             end Add_Language;
+
          begin
-            Copy_Arg_List (Opt_Enabled_Languages, Temp_List);
-            Iterate (Temp_List, Add_Language'Access);
+            Args.String_List_Args (Opt_Enable_Languages)
+              .Iterate (Add_Language'Access);
          end;
       else
-         String_Sets.Insert (Enabled_Languages, +"ada");
+         --  C instrumentation is a beta feature and not yet fully functional.
+         --  It will thus not be part of the languages enabled by default.
+
+         String_Sets.Insert (Enable_Languages, +"ada");
       end if;
 
       --  All -X command line switches have now been processed: initialize the

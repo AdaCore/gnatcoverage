@@ -216,8 +216,6 @@ package body Coverage.Source is
    --  Keeps track of whether Invalidate_Unit_List was called
 
    package US renames Ada.Strings.Unbounded;
-   package String_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => US.Unbounded_String);
 
    Unit_List : String_Sets.Set;
    --  List of names for units of interest. Store it as an ordered set so that

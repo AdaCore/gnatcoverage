@@ -237,11 +237,12 @@ package body Instrument.C is
          First_Image : constant String :=
            Integer'Image (if SC.First then 1 else 0);
       begin
-         Insert_Text_Before (N    => SC.Condition,
-                             Text => "gnatcov_rts_witness_condition ((void *)"
-                             & US.To_String (SC.State) & ", " & Img (Offset)
-                             & ", " & First_Image & ", ",
-                             Rew  => IC.Rewriter);
+         Insert_Text_After_Start_Of
+           (N    => SC.Condition,
+            Text => "gnatcov_rts_witness_condition" & " ((void *)"
+                    & US.To_String (SC.State) & ", " & Img (Offset) & ", "
+                    & First_Image & ", ",
+            Rew  => IC.Rewriter);
          Insert_Text_After (N    => SC.Condition,
                             Text => ")",
                             Rew  => IC.Rewriter);
@@ -299,24 +300,25 @@ package body Instrument.C is
             then MCDC_Buffer_Symbol (IC.Instrumented_Unit)
             else Decision_Buffer_Symbol (IC.Instrumented_Unit));
       begin
-         Insert_Text_Before (N    => N,
-                             Text => Function_Name & "((void *)"
-                             & Decision_Buffer_Symbol (IC.Instrumented_Unit)
-                             & ", " & Img (Bits.Outcome_Bits (False)) & ", "
-                             & Img (Bits.Outcome_Bits (True)),
-                             Rew  => IC.Rewriter);
+         Insert_Text_After_Start_Of
+           (N    => N,
+            Text => Function_Name & "((void *)"
+                    & Decision_Buffer_Symbol (IC.Instrumented_Unit) & ", "
+                    & Img (Bits.Outcome_Bits (False)) & ", "
+                    & Img (Bits.Outcome_Bits (True)),
+            Rew  => IC.Rewriter);
 
          if Is_MCDC then
-            Insert_Text_Before (N    => N,
-                                Text => ", "
-                                & MCDC_Buffer_Symbol (IC.Instrumented_Unit)
-                                & ", " & Img (Bits.Path_Bits_Base) & ", "
-                                & US.To_String (SD.State),
-                                Rew  => IC.Rewriter);
+            Insert_Text_After_Start_Of
+              (N    => N,
+               Text => ", " & MCDC_Buffer_Symbol (IC.Instrumented_Unit) & ", "
+                       & Img (Bits.Path_Bits_Base) & ", "
+                       & US.To_String (SD.State),
+               Rew  => IC.Rewriter);
          end if;
-         Insert_Text_Before (N    => N,
-                             Text => ", ",
-                             Rew   => IC.Rewriter);
+         Insert_Text_After_Start_Of (N    => N,
+                                     Text => ", ",
+                                     Rew  => IC.Rewriter);
 
          Insert_Text_After (N    => N,
                             Text => ")",
@@ -338,9 +340,9 @@ package body Instrument.C is
         "void *" & Name & " = &" & Name & "_var;";
 
    begin
-      Insert_Text_Before_Before (N    => UIC.MCDC_State_Declaration_Node,
-                                 Text => Var_Decl_Img & Addr_Decl_Img,
-                                 Rew  => UIC.Rewriter);
+      Insert_Text_Before_Start_Of (N    => UIC.MCDC_State_Declaration_Node,
+                                   Text => Var_Decl_Img & Addr_Decl_Img,
+                                   Rew  => UIC.Rewriter);
       return Name;
    end Insert_MCDC_State;
 
@@ -1303,16 +1305,15 @@ package body Instrument.C is
 
             case SCE.Instr_Scheme is
                when Instr_Expr =>
-                  Insert_Text_Before
+                  Insert_Text_After_Start_Of
                     (N    => Cursor,
                      Text => Make_Expr_Witness
                        (UIC => UIC,
-                        Bit => UIC.Unit_Bits.Last_Statement_Bit)
-                        & " && ",
+                        Bit => UIC.Unit_Bits.Last_Statement_Bit) & " && ",
                      Rew  => UIC.Rewriter);
 
                when Instr_Stmt =>
-                  Insert_Text_Before
+                  Insert_Text_After_Start_Of
                     (N    => Cursor,
                      Text => Make_Statement_Witness
                        (UIC => UIC,
@@ -2287,7 +2288,7 @@ package body Instrument.C is
 
       Emit_C_Buffer_Unit (Prj_Info, UIC);
 
-      --  Then, for Ada-compatibity, generate an ada buffer unit that imports
+      --  Then, for Ada-compatibility, generate an ada buffer unit that imports
       --  the symbols defined in the C buffer compilation unit in an Ada unit.
       --  These references will be used to dump coverage buffers (as we rely on
       --  an Ada coverage runtime as of right now).

@@ -134,7 +134,7 @@ package Command_Line is
       Opt_Checkpoint,
       Opt_Ignore_Source_Files,
       Opt_Shared_Object,
-      Opt_Enabled_Languages);
+      Opt_Enable_Languages);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -965,17 +965,11 @@ package Command_Line is
                          others => False),
          Internal    => False),
 
-      Opt_Enabled_Languages => Create
-        (Long_Name => "--enabled-languages",
+      Opt_Enable_Languages => Create
+        (Long_Name => "--enable-languages",
          Pattern   => "[LANGUAGE|@LISTFILE]",
-         Help      => "Activate instrumentation for source files of the"
-                      & " given languages. Supported languages are: Ada, C."
-
-                      --  C instrumentation is a beta feature and not yet
-                      --  fully functional. It will thus not be part of the
-                      --  languages enabled by default.
-
-                      & " Defaults to Ada.",
+         Help      => "Defaults to Ada. C support is still in beta state at"
+                      & " this stage.",
          Commands  => (Cmd_Instrument => True,
                        others => False),
          Internal  => True));

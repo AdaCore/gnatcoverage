@@ -23,7 +23,9 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Equal_Case_Insensitive;
 with Ada.Strings.Unbounded.Hash;
+with Ada.Strings.Unbounded.Less_Case_Insensitive;
 
 with GNAT.Strings; use GNAT.Strings;
 
@@ -82,8 +84,9 @@ package Strings is
 
    package String_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Ada.Strings.Unbounded.Unbounded_String,
-      "<"          => Ada.Strings.Unbounded."<",
-      "="          => Ada.Strings.Unbounded."=");
+      "<"          => Ada.Strings.Unbounded.Less_Case_Insensitive,
+      "="          => Ada.Strings.Unbounded.Equal_Case_Insensitive);
+   --  Case insensitive string set
 
    function Vector_To_List
      (V : String_Vectors.Vector)

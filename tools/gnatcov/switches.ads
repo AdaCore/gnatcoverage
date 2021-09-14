@@ -118,7 +118,7 @@ package Switches is
    Units_Inputs : Inputs.Inputs_Type;
    --  List of names for requested units of interest
 
-   Enabled_Languages : String_Sets.Set;
+   Enable_Languages : String_Sets.Set;
    --  List of languages for which source files should be instrumented
 
    ------------------------
