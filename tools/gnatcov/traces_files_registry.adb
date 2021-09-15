@@ -182,16 +182,14 @@ package body Traces_Files_Registry is
                use Interfaces;
                use Interfaces.C;
 
-               --  We first read the stamp as an unsigned_64 then unchecked
-               --  convert to long, which the time interpretation services
+               --  We first read the stamp as an unsigned_64 then craft a
+               --  "long" value, which the time interpretation services
                --  expect. Going through unsigned_64 is useful to "support"
                --  bogus input values that would overflow a long, occasionally
-               --  observed on non-native systems where the time services
-               --  are misconfigured.
+               --  observed on non-native systems where the time services are
+               --  misconfigured.
 
                Timestamp : Unsigned_64 := 0;
-               function To_long is new
-                 Ada.Unchecked_Conversion (Unsigned_64, long);
             begin
                --  Turn Data (little-endian 64-bit Unix timestamp) into
                --  Timestamp.
@@ -215,10 +213,24 @@ package body Traces_Files_Registry is
                      with Import, Address => Info_Date'Address;
 
                   Year, Month, Day, Hour, Minute, Second : int;
+
+                  --  The "long" value we need to craft has to fit both a
+                  --  "long" number of seconds and a "long long" number of
+                  --  nanoseconds, which the runtime library will compute
+                  --  internally. Then "long" and "long long" are not
+                  --  necessarily the same length, in particular on Windows
+                  --  where "long" is 32bit even in the 64bit ABI.
+
+                  Nano : constant := 1 * 10**9;
+                  Max_Timestamp : constant Unsigned_64 :=
+                    Unsigned_64'Min (Unsigned_64 (long'Last),
+                                     Unsigned_64 (long_long'Last / Nano));
                begin
-                  To_Struct_Tm (To_Ada_Time (To_long (Timestamp)),
-                                Year, Month, Day,
-                                Hour, Minute, Second);
+                  To_Struct_Tm
+                    (To_Ada_Time
+                       (long (Unsigned_64'Min (Timestamp, Max_Timestamp))),
+                     Year, Month, Day,
+                     Hour, Minute, Second);
                   Info_Date.Year  := Unsigned_16 (1900 + Year);
                   Info_Date.Month := Unsigned_8 (1 + Month);
                   Info_Date.Day   := Unsigned_8 (Day);
