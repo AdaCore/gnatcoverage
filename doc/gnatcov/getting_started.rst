@@ -2,17 +2,22 @@
 Getting Started
 ***************
 
-General principles and common notions
-=====================================
+Framework concepts and process overview
+=======================================
 
-|gcp| provides a range of coverage analysis facilities with support for a
-variety of coverage criteria, several output formats and consolidation
-features to produce aggregated reports out of partial results.
+|gcp| provides a range of coverage analysis facilities with support
+notably for
+
+- A variety of measurement methods, coverage criteria and output
+  formats;
+
+- Powerful consolidation features to report about the combined
+  achievements of multiple program executions.
 
 Actual coverage is always first computed out of *trace files* conveying what
 test programs have achieved. |gcp| works with two possible kinds of traces:
 
-- :dfn:`Binary traces`, produced by an instrumented execution environement
+- :dfn:`Binary traces`, produced by an instrumented execution environment
   while running an unmodifed version of the program. Such traces contain low
   level information about executed blocks of machine instructions.
 
@@ -36,6 +41,17 @@ are those defined by the DO-178B certification standard for civil avionics:
   (*conditions* in DO178B parlance) within decisions.
 
 
+From binary traces, |gcp| is also able to produce :dfn:`object
+coverage` reports, measuring the coverage of machine level
+instructions produced by the compilation toolchain out of the original
+sources. |gcp| supports two criteria of this kind:
+
+- :dfn:`Instruction Coverage`, where we evaluate for each machine instruction
+  whether it has been executed at least once or not; and
+
+- :dfn:`Branch Coverage`, where, in addition, we evaluate for each conditional
+  branch instruction whether it was only taken, or went fallthrough or both.
+
 A central notion to all the assessments performed with |gcp| is that of
 :dfn:`units of interest`, which simply designates the set of compilation units
 of which we are aiming to assess the coverage. These typically include the
@@ -44,26 +60,30 @@ test harness infrastructure when one is used. The individual statements,
 decisions, or conditions of relevance within units of interest are referred to
 as :dfn:`Source Coverage Obligations` or :dfn:`SCOs`.
 
-From binary traces, |gcp| is also able to produce *object coverage* reports,
-measuring the coverage of machine level instructions produced by the
-compilation toolchain out of the original sources. |gcp| supports two criteria
-of this kind:
+Consolidation can be performed by aggregating multiple traces
+directly, or so called :dfn:`Coverage Checkpoints`, which are just an
+internal representation of partial coverage results.
 
-- :dfn:`Instruction Coverage`, where we evaluate for each machine instruction
-  whether it has been executed at least once or not; and
+The high level processes involved in using binary or source traces are
+sketched on :numref:`fig-flow0`. We don't support mixing the two kinds
+of traces together and have depicted a separate analysis/consolidation
+step to emphasize this.
 
-- :dfn:`Branch Coverage`, where, in addition, we evaluate for each conditional
-  branch instruction whether it was only taken, or went fallthrough or both.
+We have however strived to maximize the commonalities between the two
+schemes, as hinted by the use of the same blue color for the common
+notions and analysis steps. Indeed, the command line interfaces
+involved are the same, they use inputs of similar general nature
+(traces or checkpoints) and share common definitions of available
+output formats for source coverage criteria.  This is intended to
+facilitate transitions from one scheme to the other and ensure that
+the widest possible range of improvements benefit both modes in a
+consistent manner.
 
+.. _fig-flow0:
+.. figure:: fig_flow0.*
+  :align: center
 
-As the later parts of this manual with describe, the processes involved in
-producing binary or source traces differ in some ways. We don't support mixing
-the two methods together in a single coverage campaign, so a particular scheme
-needs to be selected upfront for each project. We have however strived to
-maximize the commonalities between the two solutions, in order to facilitate
-transitions from one scheme to the other and ensure that the widest possible
-range of improvements (for example, to output report formats) benefit both
-schemes in a consistent manner.
+  Coverage analysis processes overview
 
 .. _support:
 

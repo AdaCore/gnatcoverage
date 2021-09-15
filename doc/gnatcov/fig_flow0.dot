@@ -1,0 +1,131 @@
+digraph {
+  node [fontsize = 9]
+  src [shape = box, label = "Original Sources"];
+
+  scos [shape = ellipse, label = "SCOS", color=blue];
+  units [shape = ellipse, label = "Units Of\nInterest", color=blue];
+
+  edge [fontsize = 9, arrowsize=0.7]
+
+  /*-------------------
+    Using Source traces
+    -------------------*/
+  {
+  /* processes */
+  node [shape = box];
+
+  node [color = green];
+  instrument [label = "Instrument\nOriginal Sources"];
+  build_instr [label = "Build from\nInstrumented Sources"];
+  regular_execution [label = "Regular Execution\n(Instrumented Executable)"];
+
+  node [color = blue];
+  srct_coverage [label = "Analyze/Consolidate"];
+
+  /* products or inputs */
+  node [shape = ellipse, color = green];
+  st1 [label = "strace1"];
+  stdots [label = "..."];
+  st2 [label = "strace2"];
+
+  node [shape = ellipse, color = blue];
+  srct_report [label = "Report"];
+  srct_checkpoint [label = "Checkpoint"];
+  }
+
+  /*-------------------
+    Using Binary traces
+    -------------------*/
+  {
+  /* processes */
+  node [shape = box];
+  node [color = red];
+  build_orig [label = "Build from\nOriginal Sources"];
+  instr_execution [label = "Instrumented Execution\n(Regular Executable)"];
+
+  node [color = blue];
+  bint_coverage [label = "Analyze/Consolidate"];
+
+  /* products or inputs */
+  node [shape = ellipse, color = red];
+  bt1 [label = "btrace1"];
+  btdots [label = "..."];
+  bt2 [label = "btrace2"];
+
+  node [shape = ellipse, color = blue];
+  bint_report [label = "Report"];
+  bint_checkpoint [label = "Checkpoint"];
+  }
+
+  src;
+  src -> instrument;
+  src -> build_orig;
+  scos;
+
+  /*=================== Using Source traces ================*/
+
+  subgraph "cluster_src_traces" {
+  label = "Using Source Traces\n(Source coverage criteria only)";
+  fontsize = 10;
+  labeljust = l;
+  color = green;
+
+  instrument -> build_instr;
+  build_instr -> regular_execution;
+
+  {rank = same;
+   st1; stdots; st2;
+  }
+
+  regular_execution -> st1 [style = dotted];
+  regular_execution -> stdots [style = dotted];
+  regular_execution -> st2 [style = dotted];
+
+  st1 -> srct_coverage;
+  stdots -> srct_coverage;
+  st2 -> srct_coverage;
+
+  srct_coverage -> srct_report [style = dotted];
+  srct_coverage -> srct_checkpoint [style = dotted];
+  srct_checkpoint -> srct_coverage;
+  }
+
+  /*=================== Using Binary traces ================*/
+
+ subgraph "cluster_bin_traces" {
+  label = "Using Binary Traces\n(Source or Object Coverage Criteria)";
+  fontsize = 10;
+  labeljust = r;
+  color = red;
+
+  build_orig [rank=2];
+  build_orig -> instr_execution;
+
+  {rank = same;
+   bt1; btdots; bt2;
+  }
+
+  instr_execution -> bt1 [style = dotted];
+  instr_execution -> btdots [style = dotted];
+  instr_execution -> bt2 [style = dotted];
+
+  bt1 -> bint_coverage;
+  btdots -> bint_coverage;
+  bt2 -> bint_coverage;
+
+  bint_coverage -> bint_report [style = dotted];
+  bint_coverage -> bint_checkpoint [style = dotted];
+  bint_checkpoint -> bint_coverage;
+  }
+
+  instrument -> scos [style = invis];
+  build_orig -> scos [style = invis];
+
+  scos -> units [dir=both, arrowhead=curve, arrowtail=curve];
+
+  units -> instrument;
+  units -> instr_execution;
+  units:s -> bint_coverage;
+  units:s -> srct_coverage;
+
+}
