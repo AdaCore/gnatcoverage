@@ -112,7 +112,7 @@ outcome, here on the right:
     return (A or else B) and then C;
   end;
 
-.. figure:: multipath-bdd.*
+.. figure:: fig_multipath-bdd.*
   :align: center
 
   BDD for ``(A or else B) and then C``, not a tree

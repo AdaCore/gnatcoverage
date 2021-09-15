@@ -64,7 +64,7 @@ install.html: prepare-installdir.html
 # inclusion by sphinx within pdf or html documents. They are better
 # located in the same dir as the sources which include them.
 
-# The only images we generate today are from graphviz  dot files
+# The only images we generate today are from graphviz dot files
 
 %.png: %.dot
 	dot -T png -o $@ $<
@@ -74,14 +74,13 @@ install.html: prepare-installdir.html
 
 # gnatcov/ images:
 
-gnatcov/multipath-bdd.png: gnatcov/multipath-bdd.dot
-gnatcov/multipath-bdd.pdf: gnatcov/multipath-bdd.dot
+gnatcov/fig_%.png: gnatcov/fig_%.dot
+gnatcov/fig_%.pdf: gnatcov/fig_%.dot
 
-gnatcov/consolidation.png: gnatcov/consolidation.dot
-gnatcov/consolidation.pdf: gnatcov/consolidation.dot
+FIGURES=fig_consolidation fig_multipath-bdd
 
-prepare-images:: gnatcov/consolidation.png gnatcov/consolidation.pdf
-prepare-images:: gnatcov/multipath-bdd.png gnatcov/multipath-bdd.pdf
+prepare-images:: $(foreach fig, $(FIGURES), gnatcov/$(fig).pdf)
+prepare-images:: $(foreach fig, $(FIGURES), gnatcov/$(fig).png)
 
 # Images related to project facilities. There is actually a set of images,
 # produced out of generated dot files. We use one of the binary results as

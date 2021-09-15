@@ -164,7 +164,7 @@ In this example, consolidation involved different programs with partial code
 overlap, as depicted on the following representation:
 
 .. _fig-consolidation:
-.. figure:: consolidation.*
+.. figure:: fig_consolidation.*
   :align: center
 
   Overlapping executables

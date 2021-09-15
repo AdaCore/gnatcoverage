@@ -116,7 +116,7 @@ Decision Diagram:
    end Orand;
 
 .. _fig-multipath-bdd:
-.. figure:: multipath-bdd.*
+.. figure:: fig_multipath-bdd.*
   :align: center
 
   BDD for ``(A or else B) and then C``
