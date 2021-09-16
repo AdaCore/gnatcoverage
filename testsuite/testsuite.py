@@ -554,6 +554,9 @@ class TestPyRunner:
         if mopt.spark_tests:
             testcase_cmd.append('--spark-tests=%s' % mopt.spark_tests)
 
+        if mopt.all_warnings:
+            testcase_cmd.append('--all-warnings')
+
         # --gnatcov_<cmd> family
 
         for pgm, cmd in control.ALTRUN_GNATCOV_PAIRS:

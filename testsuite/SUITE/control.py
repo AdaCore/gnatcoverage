@@ -471,3 +471,8 @@ def add_shared_options_to(parser, toplevel):
         '--spark-tests', dest="spark_tests", metavar='SPARK_TESTSUITE_PATH',
         help='Path to the SPARK testsuite. Activate SPARK-specific'
              ' tests. Implicitly appends -gnat12 to Ada cargs.')
+
+    # --all-warnings
+    parser.add_argument(
+        '--all-warnings', action='store_true',
+        help='Whether to pass --all-warnings to gnatcov.')

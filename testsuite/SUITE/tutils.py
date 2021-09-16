@@ -567,6 +567,9 @@ def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
     if not thistest.options.qualif_level and covcmd == "instrument":
         covargs = ['--enabled-languages=Ada', '--enabled-languages=C'] + covargs
 
+    if thistest.options.all_warnings:
+        covargs = ['--all-warnings'] + covargs
+
     covargs = xcov_suite_args(covcmd, covargs, auto_config_args,
                               auto_target_args) + covargs
 
