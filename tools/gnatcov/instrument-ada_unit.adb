@@ -33,17 +33,18 @@ with Libadalang.Expr_Eval;
 with Libadalang.Introspection; use Libadalang.Introspection;
 with Libadalang.Sources;       use Libadalang.Sources;
 
-with ALI_Files;      use ALI_Files;
-with Coverage;       use Coverage;
-with Diagnostics;    use Diagnostics;
-with Files_Table;    use Files_Table;
-with Namet;          use Namet;
-with Outputs;        use Outputs;
+with ALI_Files;        use ALI_Files;
+with Coverage_Options; use Coverage_Options;
+with Coverage;         use Coverage;
+with Diagnostics;      use Diagnostics;
+with Files_Table;      use Files_Table;
+with Namet;            use Namet;
+with Outputs;          use Outputs;
 with SCOs;
-with SC_Obligations; use SC_Obligations;
+with SC_Obligations;   use SC_Obligations;
 with Slocs;
-with Snames;         use Snames;
-with Strings;        use Strings;
+with Snames;           use Snames;
+with Strings;          use Strings;
 with Switches;
 with Table;
 with Text_Files;     use Text_Files;
@@ -52,6 +53,27 @@ package body Instrument.Ada_Unit is
 
    package GPR renames GNATCOLL.Projects;
    package LAL renames Libadalang.Analysis;
+
+   function Create_Context_Instrument
+     (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle;
+   --  Create a context to show that gnatcov is instrumenting the given node
+
+   --  Internal errors are by nature bound to be fixed, so we need to
+   --  artificially trigger errors to exercize the error handling machinery,
+   --  and thus to check that it works as expected. This is the role of the
+   --  following helpers.
+
+   -------------------------------
+   -- Create_Context_Instrument --
+   -------------------------------
+
+   function Create_Context_Instrument
+     (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle is
+   begin
+      return Create_Context
+        ("Instrumenting " & N.Kind_Name
+         & " at " & N.Unit.Get_Filename & ":" & Image (N.Sloc_Range));
+   end Create_Context_Instrument;
 
    type All_Symbols is
      (
@@ -5089,7 +5111,7 @@ package body Instrument.Ada_Unit is
 
          Current_Decision := SCOs.SCO_Table.Last;
 
-         if Coverage.Enabled (Coverage.Decision)
+         if Coverage.Enabled (Decision)
             or else MCDC_Coverage_Enabled
          then
             if MCDC_Coverage_Enabled then
@@ -6244,8 +6266,7 @@ package body Instrument.Ada_Unit is
 
          --  Insert calls to condition/decision witnesses
 
-         if Coverage.Enabled (Coverage.Decision) or else MCDC_Coverage_Enabled
-         then
+         if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
             for SD of UIC.Source_Decisions loop
 
                --  Instrumenting a static decision would make it non-static by

@@ -23,7 +23,6 @@ with Ada.Text_IO;             use Ada.Text_IO;
 with GNAT.CRC32;
 with GNATCOLL.Mmap;
 
-with Diagnostics; use Diagnostics;
 with Hex_Images;  use Hex_Images;
 with Outputs;     use Outputs;
 with Switches;
@@ -240,9 +239,8 @@ package body Inputs is
 
    begin
       if Switches.Verbose then
-         Report
-           (Msg  => "open """ & File_Name & """ (CRC32 = " & Get_CRC32 & ")",
-            Kind => Notice);
+         Put_Line ("--- notice: open """ & File_Name & """ (CRC32 = "
+                   & Get_CRC32 & ")");
       end if;
    end Log_File_Open;
 

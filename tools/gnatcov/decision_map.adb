@@ -27,9 +27,10 @@ with Interfaces; use Interfaces;
 
 with System.Storage_Elements;
 
-with Binary_Files;   use Binary_Files;
+with Binary_Files;      use Binary_Files;
 with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
+with Coverage_Options;  use Coverage_Options;
 with Diagnostics;       use Diagnostics;
 with Elf_Common;
 with Elf_Disassemblers; use Elf_Disassemblers;

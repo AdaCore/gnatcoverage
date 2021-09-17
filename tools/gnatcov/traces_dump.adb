@@ -16,8 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Coverage;
 with Binary_Files;      use Binary_Files;
+with Coverage;
+with Coverage_Options;  use Coverage_Options;
 with Disa_Symbolize;
 with Disassemblers;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -143,7 +144,7 @@ package body Traces_Dump is
       end Process_Insn;
 
       function Img (I : Integer) return String renames Strings.Img;
-      use type Coverage.Coverage_Level;
+      use type Coverage_Level;
 
       --  We resort to a number of routines and internal iterators that use
       --  Text_IO.Put to dump stuff without any consideration for a custom
@@ -172,7 +173,7 @@ package body Traces_Dump is
          Put_Line (Img (Insn_Count) & " instructions analyzed:");
          Put_Line ("  " & Img (Insn_Covered) & " covered");
          Put_Line ("  " & Img (Insn_Count - Insn_Covered) & " not executed");
-         if Coverage.Object_Level = Coverage.Branch then
+         if Coverage.Object_Level = Branch then
             Put_Line (Img (Branch_Count) & " conditional branches analyzed:");
             Put_Line ("  " & Img (Branch_Fully_Covered) & " fully covered");
             Put_Line ("  " & Img (Branch_Partially_Covered)

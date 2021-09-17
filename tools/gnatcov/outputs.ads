@@ -22,8 +22,6 @@
 private with Ada.Finalization;
 with Ada.Text_IO; use Ada.Text_IO;
 
-with Libadalang.Analysis;
-
 package Outputs is
 
    ------------
@@ -85,15 +83,6 @@ package Outputs is
    --     begin
    --        ... process foobar...
    --     end;
-
-   function Create_Context_Instrument
-     (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle;
-   --  Create a context to show that gnatcov is instrumenting the given node
-
-   --  Internal errors are by nature bound to be fixed, so we need to
-   --  artificially trigger errors to exercize the error handling machinery,
-   --  and thus to check that it works as expected. This is the role of the
-   --  following helpers.
 
    type Any_Internal_Error_Trigger is (
       None,

@@ -36,6 +36,7 @@ with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with Coverage;             use Coverage;
+with Coverage_Options;
 with Files_Table;          use Files_Table;
 with GNATcov_RTS.Buffers;  use GNATcov_RTS.Buffers;
 with Interfaces.C;         use Interfaces.C;
@@ -779,7 +780,7 @@ package body Instrument.C is
 
          Current_Decision := SCOs.SCO_Table.Last;
 
-         if Coverage.Enabled (Coverage.Decision)
+         if Coverage.Enabled (Coverage_Options.Decision)
             or else MCDC_Coverage_Enabled
          then
             if MCDC_Coverage_Enabled then
@@ -1821,7 +1822,8 @@ package body Instrument.C is
 
          UIC.CU := Created_Units.Element (UIC.SFI);
 
-         if Coverage.Enabled (Coverage.Decision) or else MCDC_Coverage_Enabled
+         if Coverage.Enabled (Coverage_Options.Decision)
+            or else MCDC_Coverage_Enabled
          then
             for SD of UIC.Source_Decisions loop
                Insert_Decision_Witness

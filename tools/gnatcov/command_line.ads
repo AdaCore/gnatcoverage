@@ -18,8 +18,7 @@
 
 with Argparse;
 with Command_Line_Support; use Command_Line_Support;
-with Coverage;
-with Coverage.Tags;
+with Coverage_Options;     use Coverage_Options;
 
 package Command_Line is
 
@@ -587,10 +586,10 @@ package Command_Line is
             & ASCII.LF
             & "For all commands except ""instrument"", LEVEL is one of:"
             & ASCII.LF
-            & "  " & Coverage.Object_Level_Options (Separator => ", ")
+            & "  " & Object_Level_Options (Separator => ", ")
             & " (object coverage)"
             & ASCII.LF
-            & "  " & Coverage.Source_Level_Options (Separator => ", ")
+            & "  " & Source_Level_Options (Separator => ", ")
             & " (source coverage)"
             & ASCII.LF
             & "For the ""instrument"" command, "
@@ -653,7 +652,7 @@ package Command_Line is
          Internal     => False),
       Opt_Separate => Create
         (Short_Name   => "-S",
-         Pattern      => Coverage.Tags.Tag_Providers.Registered_Names ("|"),
+         Pattern      => "[TAG]",
          Help         => ("Perform separate source coverage analysis."),
          Commands     => (Cmd_Coverage | Cmd_Instrument => True,
                           others => False),

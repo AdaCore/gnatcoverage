@@ -22,15 +22,16 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;
-with Annotations;     use Annotations;
-with Calendar_Utils;  use Calendar_Utils;
-with Coverage;        use Coverage;
-with Coverage.Source; use Coverage.Source;
-with Coverage.Tags;   use Coverage.Tags;
+with Annotations;      use Annotations;
+with Calendar_Utils;   use Calendar_Utils;
+with Coverage_Options; use Coverage_Options;
+with Coverage;         use Coverage;
+with Coverage.Source;  use Coverage.Source;
+with Coverage.Tags;    use Coverage.Tags;
 with Files_Table;
-with Strings;         use Strings;
+with Strings;          use Strings;
 with Switches;
-with Traces_Files;    use Traces_Files;
+with Traces_Files;     use Traces_Files;
 
 package body Annotations.Report is
 

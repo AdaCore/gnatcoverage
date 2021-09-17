@@ -26,8 +26,6 @@ with Ada.Strings.Unbounded;     use Ada.Strings.Unbounded;
 with GNAT.Exception_Actions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
-with Langkit_Support.Slocs; use Langkit_Support.Slocs;
-
 with Command_Line;
 with Support_Files;
 with Strings; use Strings;
@@ -181,18 +179,6 @@ package body Outputs is
 
       return (Ada.Finalization.Limited_Controlled with null record);
    end Create_Context;
-
-   -------------------------------
-   -- Create_Context_Instrument --
-   -------------------------------
-
-   function Create_Context_Instrument
-     (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle is
-   begin
-      return Create_Context
-        ("Instrumenting " & N.Kind_Name
-         & " at " & N.Unit.Get_Filename & ":" & Image (N.Sloc_Range));
-   end Create_Context_Instrument;
 
    --------------------------
    -- Print_Internal_Error --

@@ -23,32 +23,12 @@
 --  for one run; this Level will be unique and will not change after
 --  it has been initialized.
 
-with Ada.Calendar; use Ada.Calendar;
+with Ada.Calendar;          use Ada.Calendar;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
+with Coverage_Options; use Coverage_Options;
+
 package Coverage is
-
-   type Coverage_Level is (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC);
-   --  Coverage objectives supported by xcov. The following values are
-   --  supported:
-
-   --  * object coverage at instruction level        (Insn);
-   --  * object coverage at branch level             (Branch);
-   --  * source coverage at statement level          (Stmt);
-   --  * source coverage at decision level           (Decision);
-   --  * source coverage at masking MC/DC level      (MCDC);
-   --  * source coverage at unique cause MC/DC level (UC_MCDC).
-
-   --  The terms "instruction", "branch", "statement", "decision" and "MCDC"
-   --  should be understood here as they are defined in the DO-178B standard;
-   --  their meaning is also documented in Couverture's documentation.
-
-   subtype Object_Coverage_Level is Coverage_Level range Insn .. Branch;
-   subtype Source_Coverage_Level is Coverage_Level range Stmt .. UC_MCDC;
-   subtype MCDC_Coverage_Level   is Coverage_Level range MCDC .. UC_MCDC;
-
-   type Levels_Type is array (Coverage_Level) of Boolean;
-   --  Set of Coverage_Levels
 
    function Image (Level : Coverage_Level) return String is
      (case Level is
@@ -62,14 +42,6 @@ package Coverage is
 
    procedure Set_Coverage_Levels (Opt : String);
    --  Set the coverage levels to be assessed by xcov
-
-   function Source_Level_Options (Separator : String) return String;
-   --  Return a string expression listing the valid --level alternatives
-   --  for source coverage, separated by Separator.
-
-   function Object_Level_Options (Separator : String) return String;
-   --  Return a string expression describing valid --level alternatives
-   --  for object coverage, separated by Separator.
 
    function Enabled (Level : Coverage_Level) return Boolean;
    --  True when Level is enabled
@@ -108,9 +80,6 @@ package Coverage is
    --  If loading a checkpoint state (from Filename) with the given coverage
    --  levels for the current enabled levels is allowed, return an empty
    --  string. Otherwise, return an error message.
-
-   function Coverage_Option_Value (L : Levels_Type) return String;
-   --  Return the coverage option value corresponding to L
 
    type SC_Tag is new Natural;
    No_SC_Tag : constant SC_Tag := 0;

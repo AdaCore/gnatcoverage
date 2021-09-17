@@ -33,6 +33,7 @@ with Osint;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Checkpoints; use Checkpoints;
+with Coverage;    use Coverage;
 with Outputs;
 with Perf_Counters; use Perf_Counters;
 with Project;

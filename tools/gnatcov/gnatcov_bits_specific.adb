@@ -44,6 +44,7 @@ with Convert;
 with Coverage;              use Coverage;
 with Coverage.Source;       use Coverage.Source;
 with Coverage.Tags;         use Coverage.Tags;
+with Coverage_Options;      use Coverage_Options;
 with Decision_Map;          use Decision_Map;
 with Disassemble_Insn_Properties;
 with Binary_Files;

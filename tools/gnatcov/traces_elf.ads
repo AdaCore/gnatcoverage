@@ -28,19 +28,19 @@ with GNAT.OS_Lib;
 with GNAT.Strings;     use GNAT.Strings;
 with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 
-with Arch;           use Arch;
-with Binary_Files;   use Binary_Files;
-with Disa_Symbolize; use Disa_Symbolize;
-with Elf_Common;     use Elf_Common;
+with Arch;              use Arch;
+with Binary_Files;      use Binary_Files;
+with Disa_Symbolize;    use Disa_Symbolize;
+with Elf_Common;        use Elf_Common;
 with Elf_Disassemblers; use Elf_Disassemblers;
-with Elf_Files;      use Elf_Files;
+with Elf_Files;         use Elf_Files;
 with Highlighting;
-with PECoff_Files;   use PECoff_Files;
-with SC_Obligations; use SC_Obligations;
-with Slocs;          use Slocs;
-with Symbols;        use Symbols;
-with Traces;         use Traces;
-with Traces_Dbase;   use Traces_Dbase;
+with PECoff_Files;      use PECoff_Files;
+with SC_Obligations;    use SC_Obligations;
+with Slocs;             use Slocs;
+with Symbols;           use Symbols;
+with Traces;            use Traces;
+with Traces_Dbase;      use Traces_Dbase;
 
 package Traces_Elf is
 

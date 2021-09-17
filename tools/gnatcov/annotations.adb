@@ -23,14 +23,15 @@ with Ada.Strings.Unbounded;
 
 with Interfaces;
 
-with ALI_Files;       use ALI_Files;
+with ALI_Files;        use ALI_Files;
 with Calendar_Utils;
+with Coverage_Options; use Coverage_Options;
 with Coverage.Object;
-with Coverage.Source; use Coverage.Source;
+with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;
-with Outputs;         use Outputs;
-with Strings;         use Strings;
-with Switches;        use Switches;
+with Outputs;          use Outputs;
+with Strings;          use Strings;
+with Switches;         use Switches;
 with Traces_Disa;
 
 package body Annotations is
@@ -311,20 +312,20 @@ package body Annotations is
          if Kind (SCO) /= Removed and then First_Sloc (SCO).L.Line = Line then
             case SCO_Kind (Kind (SCO)) is
                when Statement =>
-                  if Coverage.Enabled (Coverage.Stmt) then
-                     SCO_State := Get_Line_State (SCO, Coverage.Stmt);
+                  if Coverage.Enabled (Stmt) then
+                     SCO_State := Get_Line_State (SCO, Stmt);
                      Pretty_Print_Statement (Pp, SCO, SCO_State);
                   end if;
 
                when Decision =>
-                  if Coverage.Enabled (Coverage.Decision)
+                  if Coverage.Enabled (Decision)
                     or else Coverage.MCDC_Coverage_Enabled
                   then
                      if Coverage.MCDC_Coverage_Enabled then
                         SCO_State := Get_Line_State (SCO, Coverage.MCDC_Level);
 
-                     elsif Coverage.Enabled (Coverage.Decision) then
-                        SCO_State := Get_Line_State (SCO, Coverage.Decision);
+                     elsif Coverage.Enabled (Decision) then
+                        SCO_State := Get_Line_State (SCO, Decision);
                      end if;
 
                      Pretty_Print_Start_Decision (Pp, SCO, SCO_State);

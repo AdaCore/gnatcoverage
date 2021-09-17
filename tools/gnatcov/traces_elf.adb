@@ -29,25 +29,26 @@ with System.Storage_Elements; use System.Storage_Elements;
 with GNATCOLL.Utils; use GNATCOLL.Utils;
 
 with Coff;
-with Coverage;        use Coverage;
-with Coverage.Object; use Coverage.Object;
+with Coverage_Options; use Coverage_Options;
+with Coverage;         use Coverage;
+with Coverage.Object;  use Coverage.Object;
 with Coverage.Source;
-with Coverage.Tags;   use Coverage.Tags;
+with Coverage.Tags;    use Coverage.Tags;
 with Diagnostics;
 with Disa_Ppc;
-with Disassemblers;   use Disassemblers;
+with Disassemblers;    use Disassemblers;
 with Dwarf;
-with Dwarf_Handling;  use Dwarf_Handling;
-with Execs_Dbase;     use Execs_Dbase;
-with Files_Table;     use Files_Table;
-with Hex_Images;      use Hex_Images;
+with Dwarf_Handling;   use Dwarf_Handling;
+with Execs_Dbase;      use Execs_Dbase;
+with Files_Table;      use Files_Table;
+with Hex_Images;       use Hex_Images;
 with Inputs;
 with Outputs;
-with Perf_Counters;   use Perf_Counters;
+with Perf_Counters;    use Perf_Counters;
 with Traces_Disa;
-with Traces_Lines;    use Traces_Lines;
+with Traces_Lines;     use Traces_Lines;
 with Traces_Names;
-with Types;           use Types;
+with Types;            use Types;
 
 package body Traces_Elf is
 

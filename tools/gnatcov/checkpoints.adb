@@ -20,8 +20,9 @@ with Ada.Streams.Stream_IO; use Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 
 with Coverage.Source;
+with Coverage_Options; use Coverage_Options;
 with Instrument.Common;
-with Outputs;           use Outputs;
+with Outputs;          use Outputs;
 with Traces_Files;
 with Traces_Files_Registry;
 
@@ -407,7 +408,7 @@ package body Checkpoints is
             Supported_Levels (MCDC_Coverage_Level'Range) := (others => True);
             Supported_Levels (Decision) := True;
          end if;
-         Coverage.Levels_Type'Write (CSS.Stream, Supported_Levels);
+         Levels_Type'Write (CSS.Stream, Supported_Levels);
          Traces_Files.Any_Accepted_Trace_Kind'Write
            (CSS.Stream, Traces_Files.Currently_Accepted_Trace_Kind);
 
@@ -465,7 +466,7 @@ package body Checkpoints is
    is
       SF        : Ada.Streams.Stream_IO.File_Type;
       CP_Header : Checkpoint_Header;
-      Levels    : Coverage.Levels_Type;
+      Levels    : Levels_Type;
    begin
       Open (SF, In_File, Filename);
 
@@ -505,7 +506,7 @@ package body Checkpoints is
                end;
             end if;
 
-            Coverage.Levels_Type'Read (CLS.Stream, Levels);
+            Levels_Type'Read (CLS.Stream, Levels);
             declare
                Error_Msg : constant String :=
                  Coverage.Is_Load_Allowed (Filename, Levels);

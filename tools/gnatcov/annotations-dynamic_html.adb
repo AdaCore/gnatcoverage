@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
+with Ada.Directories;         use Ada.Directories;
 with Ada.Exceptions;          use Ada.Exceptions;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -30,16 +31,16 @@ with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNAT.Regpat; use GNAT.Regpat;
 
 with Annotations.Html;
+with Coverage_Options; use Coverage_Options;
 with Hex_Images;
 with Interfaces;
-with Project;
 with Outputs;
+with Project;
 with Strings;
+with Support_Files;    use Support_Files;
 with Switches;
 with Traces_Disa;
 with Traces_Files;     use Traces_Files;
-with Ada.Directories;  use Ada.Directories;
-with Support_Files;    use Support_Files;
 
 --  This package generates a dynamic HTML report, i.e. an HTML document heavily
 --  relying on JavaScript for presenting advanced graphical components.

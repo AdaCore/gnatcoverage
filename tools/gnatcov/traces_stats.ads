@@ -19,8 +19,8 @@
 --  Support for computing some metrics (typically, percentage of coverage)
 --  for a set of line (typically, a source file or a procedure).
 
-with Traces_Lines; use Traces_Lines;
-with Coverage;     use Coverage;
+with Coverage_Options; use Coverage_Options;
+with Traces_Lines;     use Traces_Lines;
 
 package Traces_Stats is
 

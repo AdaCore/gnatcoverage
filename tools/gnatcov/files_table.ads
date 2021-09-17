@@ -24,15 +24,15 @@ with GNAT.Strings; use GNAT.Strings;
 with GNAT.Regexp;
 
 limited with Checkpoints;
-with Coverage;       use Coverage;
-with Diagnostics;    use Diagnostics;
-with SC_Obligations; use SC_Obligations;
-with Slocs;          use Slocs;
-with Traces_Elf;     use Traces_Elf;
-with Traces_Dbase;   use Traces_Dbase;
-with Traces_Stats;   use Traces_Stats;
-with Traces_Lines;   use Traces_Lines;
-with Types;          use Types;
+with Coverage_Options; use Coverage_Options;
+with Diagnostics;      use Diagnostics;
+with SC_Obligations;   use SC_Obligations;
+with Slocs;            use Slocs;
+with Traces_Elf;       use Traces_Elf;
+with Traces_Dbase;     use Traces_Dbase;
+with Traces_Stats;     use Traces_Stats;
+with Traces_Lines;     use Traces_Lines;
+with Types;            use Types;
 
 package Files_Table is
 
