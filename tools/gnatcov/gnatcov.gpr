@@ -26,6 +26,10 @@ project Gnatcov is
       for Specification ("Arch") use "arch__" & Bits & ".ads";
       for Specification ("Qemu_Traces_Entries")
          use"qemu_traces_entries__" & Bits & ".ads";
+      case Bits is
+         when "32" => for Body ("Instrument") use "instrument__stub.adb";
+         when "64" => for Body ("Instrument") use "instrument.adb";
+      end case;
       for Body_Suffix ("C++") use ".cc";
    end Naming;
 
