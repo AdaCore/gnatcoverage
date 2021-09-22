@@ -21,7 +21,7 @@ with Ada.Unchecked_Deallocation;
 
 with Coverage.Source;
 with Coverage_Options; use Coverage_Options;
-with Instrument.Common;
+with Instrument.Checkpoints;
 with Outputs;          use Outputs;
 with Traces_Files;
 with Traces_Files_Registry;
@@ -414,7 +414,7 @@ package body Checkpoints is
 
          Files_Table.Checkpoint_Save (CSS'Access);
          SC_Obligations.Checkpoint_Save (CSS'Access);
-         Instrument.Common.Checkpoint_Save (CSS'Access);
+         Instrument.Checkpoints.Checkpoint_Save (CSS'Access);
          Coverage.Source.Checkpoint_Save (CSS'Access);
          Traces_Files_Registry.Checkpoint_Save (CSS'Access, Context);
       end;
@@ -430,7 +430,7 @@ package body Checkpoints is
    begin
       Files_Table.Checkpoint_Clear;
       SC_Obligations.Checkpoint_Clear;
-      Instrument.Common.Checkpoint_Clear;
+      Instrument.Checkpoints.Checkpoint_Clear;
       Coverage.Source.Checkpoint_Clear;
       Traces_Files_Registry.Checkpoint_Clear;
    end Checkpoint_Clear;
@@ -530,7 +530,7 @@ package body Checkpoints is
             Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
             SC_Obligations.Checkpoint_Load (CLS'Access);
             if not Version_Less (CLS'Access, Than => 2) then
-               Instrument.Common.Checkpoint_Load (CLS'Access);
+               Instrument.Checkpoints.Checkpoint_Load (CLS'Access);
             end if;
             Coverage.Source.Checkpoint_Load (CLS'Access);
             Traces_Files_Registry.Checkpoint_Load (CLS'Access);

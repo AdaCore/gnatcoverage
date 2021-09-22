@@ -21,6 +21,7 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
+with Ada.Directories;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Equal_Case_Insensitive;
@@ -123,6 +124,11 @@ package Strings is
      (Stream : in out Unbounded_String_Stream;
       Item   : Ada.Streams.Stream_Element_Array);
    --  Append to string
+
+   function "/" (Dir, Name : String) return String is
+     (Ada.Directories.Compose (Dir, Name));
+
+   --  TODO??? Handle Unicode file names and source text
 
 private
    pragma Inline (Hash);

@@ -16,13 +16,17 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNATCOLL.VFS;      use GNATCOLL.VFS;
+with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
+
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+
+with Langkit_Support.Text;
 with Libadalang.Analysis;
 with Libadalang.Common; use Libadalang.Common;
 
 with Outputs; use Outputs;
 
-procedure Instrument.Find_Units
+procedure Instrument.Find_Ada_Units
   (IC           : in out Inst_Context;
    CU_Name      : Compilation_Unit_Name;
    Info         : GNATCOLL.Projects.File_Info;
@@ -32,6 +36,32 @@ procedure Instrument.Find_Units
 is
    package LAL renames Libadalang.Analysis;
    package GPR renames GNATCOLL.Projects;
+
+   function To_Qualified_Name
+     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
+      return Ada_Qualified_Name;
+   --  Convert a Libadalang fully qualified name into our format
+
+   -----------------------
+   -- To_Qualified_Name --
+   -----------------------
+
+   function To_Qualified_Name
+     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
+      return Ada_Qualified_Name
+   is
+      use Langkit_Support.Text;
+   begin
+      return Result : Ada_Qualified_Name do
+         for N of Name loop
+
+            --  ??? Same limitation regarding non-ASCII characters as above
+
+            Result.Append
+              (To_Unbounded_String (Image (To_Wide_Wide_String (N))));
+         end loop;
+      end return;
+   end To_Qualified_Name;
 
    function Process_Node (N : LAL.Ada_Node'Class) return Visit_Status;
 
@@ -56,7 +86,7 @@ is
                if Subunit_FQN'Length = 0 then
                   raise Property_Error;
                elsif Unit_Info (Subunit_Name, Subunit_Info) then
-                  Find_Units
+                  Find_Ada_Units
                     (IC, Subunit_Name, Subunit_Info, Process_Unit);
                else
                   Warn ("cannot instrument " & Image (Subunit_Name)
@@ -115,4 +145,4 @@ begin
       Process_Unit (CU_Name, Info);
       CU.Traverse (Process_Node'Access);
    end;
-end Instrument.Find_Units;
+end Instrument.Find_Ada_Units;

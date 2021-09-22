@@ -29,9 +29,9 @@ with Namet;
 with Types; use Types;
 
 limited with Checkpoints;
-with Instrument; use Instrument;
-with Slocs;      use Slocs;
-with Traces;     use Traces;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Slocs;               use Slocs;
+with Traces;              use Traces;
 
 package SC_Obligations is
 

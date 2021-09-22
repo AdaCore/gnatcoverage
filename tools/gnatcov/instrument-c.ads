@@ -25,20 +25,20 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Strings.Wide_Wide_Hash;
 
+with Types; use Types;
+
 with Langkit_Support.Slocs; use Langkit_Support.Slocs;
 with Langkit_Support.Text;  use Langkit_Support.Text;
+with Libadalang.Rewriting;  use Libadalang.Rewriting;
 
-with Clang.Index; use Clang.Index;
+with Clang.Index;   use Clang.Index;
+with Clang.Rewrite; use Clang.Rewrite;
 
-with ALI_Files;         use ALI_Files;
-with Instrument.Common; use Instrument.Common;
-with SC_Obligations;    use SC_Obligations;
-
-with Diagnostics;          use Diagnostics;
-with Types;                use Types;
-with Instrument.C_Utils;   use Instrument.C_Utils;
-with Libadalang.Rewriting; use Libadalang.Rewriting;
-with Clang.Rewrite;        use Clang.Rewrite;
+with ALI_Files;             use ALI_Files;
+with Diagnostics;           use Diagnostics;
+with Instrument.Base_Types; use Instrument.Base_Types;
+with Instrument.Common;     use Instrument.Common;
+with Instrument.C_Utils;    use Instrument.C_Utils;
 
 private package Instrument.C is
    type C_Source_Decision is record

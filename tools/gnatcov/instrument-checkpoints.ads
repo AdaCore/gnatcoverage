@@ -16,18 +16,22 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNATCOLL.Projects;
+with Checkpoints;           use Checkpoints;
+with Instrument.Base_Types; use Instrument.Base_Types;
 
-with Instrument.Common; use Instrument.Common;
+package Instrument.Checkpoints is
 
-procedure Instrument.Find_Units
-  (IC           : in out Inst_Context;
-   CU_Name      : Compilation_Unit_Name;
-   Info         : GNATCOLL.Projects.File_Info;
-   Process_Unit : access procedure
-     (CU_Name : Compilation_Unit_Name;
-      Info    : GNATCOLL.Projects.File_Info));
---  Consider that Info is a source file to instrument (i.e. a unit of interest,
---  CU_Name being the name of its compilation unit) and call Process_Unit for
---  all compilation units that must be instrumented with it (i.e. related
---  subunits, if present).
+   --  Note: the following procedures must be called after the SCO units
+   --  table has been saved/loaded.
+
+   procedure Checkpoint_Save (CSS : access Checkpoint_Save_State);
+   --  Save the current instrumented units map to stream
+
+   procedure Checkpoint_Clear;
+   --  Clear the internal data structures used to create checkpoints
+
+   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State);
+   --  Load checkpointed instrumented unit map from stream and merge them in
+   --  current state.
+
+end Instrument.Checkpoints;

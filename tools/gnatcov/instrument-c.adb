@@ -35,21 +35,23 @@ with GNAT.OS_Lib;
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Coverage;             use Coverage;
-with Coverage_Options;
-with Files_Table;          use Files_Table;
-with GNATcov_RTS.Buffers;  use GNATcov_RTS.Buffers;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
-with Outputs;              use Outputs;
+
+with Coverage;            use Coverage;
+with Coverage_Options;
+with Files_Table;         use Files_Table;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Outputs;             use Outputs;
 with Project;
-with System_Commands;      use System_Commands;
+with System_Commands;     use System_Commands;
+with SC_Obligations;      use SC_Obligations;
 with SCOs;
-with Strings;              use Strings;
-with Switches;             use Switches;
-with System;               use System;
+with Strings;             use Strings;
+with Switches;            use Switches;
+with System;              use System;
 with Table;
-with Text_Files;           use Text_Files;
+with Text_Files;          use Text_Files;
 
 package body Instrument.C is
 

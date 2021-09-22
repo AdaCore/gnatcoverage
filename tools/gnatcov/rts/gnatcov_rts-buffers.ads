@@ -52,7 +52,22 @@ package GNATcov_RTS.Buffers is
 
    type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
 
+   ---------------------------------------------
+   -- Mapping of coverage buffer bits to SCOs --
+   ---------------------------------------------
+
+   ---------------------------
+   -- Source trace bit maps --
+   ---------------------------
+
+   --  As instrumentation is inserted, bit positions in coverage buffers are
+   --  allocated, and these allocations are associated to low-level SCO Ids.
+   --  Once low-level SCOs are converted to high-level SCOs, new mappings
+   --  are generated to allow mapping bit positions to high level SCOs when
+   --  processing buffers from a target run.
+
    type Any_Bit_Id is new Integer;
+   No_Bit_Id : constant Any_Bit_Id := -1;
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
    --  Unique identifier for a boolean in a coverage buffer
 

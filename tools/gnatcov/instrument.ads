@@ -26,20 +26,6 @@ package Instrument is
 
    package US renames Ada.Strings.Unbounded;
 
-   ---------------------------------------------
-   -- Mapping of coverage buffer bits to SCOs --
-   ---------------------------------------------
-
-   --  As instrumentation is inserted, bit positions in coverage buffers are
-   --  allocated, and these allocations are associated to low-level SCO Ids.
-   --  Once low-level SCOs are converted to high-level SCOs, new mappings
-   --  are generated to allow mapping bit positions to high level SCOs when
-   --  processing buffers from a target run.
-
-   type Any_Bit_Id is new Integer;
-   No_Bit_Id : constant Any_Bit_Id := -1;
-   subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
-
    type Any_Dump_Trigger is
      (Manual, At_Exit, Ravenscar_Task_Termination, Main_End);
    --  Trigger to dump coverage buffers in instrumented programs. See the user

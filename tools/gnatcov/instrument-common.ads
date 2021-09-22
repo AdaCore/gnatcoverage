@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Common data structures for source instrumentation-based coverage
+--  Common operations for source instrumentation-based coverage
 --
 --  Organization of instrumented projects
 --  =====================================
@@ -54,7 +54,6 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Directories;
 with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
@@ -66,78 +65,19 @@ with Langkit_Support.Slocs; use Langkit_Support.Slocs;
 with Libadalang.Analysis;   use Libadalang.Analysis;
 with Libadalang.Rewriting;  use Libadalang.Rewriting;
 
-with ALI_Files;           use ALI_Files;
-with Checkpoints;
-with GNATcov_RTS;         use GNATcov_RTS;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with Namet;               use Namet;
-with SC_Obligations;      use SC_Obligations;
-with Strings;             use Strings;
+with ALI_Files;             use ALI_Files;
+with GNATcov_RTS;
+with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
+with Instrument.Base_Types; use Instrument.Base_Types;
+with Namet;                 use Namet;
+with SC_Obligations;        use SC_Obligations;
+with Strings;               use Strings;
 with Text_Files;
-with Types;               use Types;
+with Types;                 use Types;
 
 package Instrument.Common is
 
    pragma Elaborate_Body;
-
-   function "/" (Dir, Name : String) return String is
-     (Ada.Directories.Compose (Dir, Name));
-
-   --  TODO??? Handle Unicode file names and source text
-
-   function Str_To_Language (Language : String) return Any_Language;
-   --  Return the (supported) language kind represented by the string (case-
-   --  insensitive). Raise a fatal error if the given language is not
-   --  supported.
-
-   function Language_To_Str (Language : Any_Language) return String;
-   --  Reverse operation of the above function
-
-   function Str_To_Language_Kind
-     (Language : String) return Any_Language_Kind;
-   --  Returns the language kind (unit-based or file-based) for the given
-   --  language.
-
-   type Ada_Identifier is new Ada.Strings.Unbounded.Unbounded_String;
-   --  Simple Ada identifier
-
-   package Ada_Identifier_Vectors is new Ada.Containers.Vectors
-     (Positive, Ada_Identifier);
-
-   subtype Ada_Qualified_Name is Ada_Identifier_Vectors.Vector;
-   --  Sequence of ada identifiers, representing a qualified name. For
-   --  instance: Scope_A.Scope_B.Scope_C
-
-   function "&" (Left, Right : Ada_Qualified_Name) return Ada_Qualified_Name
-      renames Ada_Identifier_Vectors."&";
-
-   function To_Qualified_Name
-     (Name : Libadalang.Analysis.Name) return Ada_Qualified_Name;
-   --  Return the qualified name corresponding to the given name from a parse
-   --  tree.
-
-   function To_Qualified_Name
-     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
-      return Ada_Qualified_Name;
-   --  Convert a Libadalang fully qualified name into our format
-
-   function To_Qualified_Name (Name : String) return Ada_Qualified_Name;
-   --  Convert a String qualified name into our format
-
-   function Canonicalize (Name : Ada_Qualified_Name) return Ada_Qualified_Name;
-   --  Fold casing of Ada identifiers
-
-   function To_Ada (Name : Ada_Qualified_Name) return String
-      with Pre => not Name.Is_Empty;
-   --  Turn the given qualified name into Ada syntax
-
-   function To_Symbol_Name (Name : Ada_Qualified_Name) return String
-      with Pre => not Name.Is_Empty;
-   --  Lower case each name of the qualified name, and joined them with an
-   --  underscore, to have a C-like syntax.
-   --
-   --  Example: passing the qualified name Foo.Bar will return the string
-   --  "foo_bar".
 
    Sys_Prefix : Ada_Qualified_Name;
    --  Scope for all instrumentation runtime files beyond the instrumented
@@ -171,75 +111,6 @@ package Instrument.Common is
       To_Unbounded_String ("Register_Dump_Buffers");
    --  Name of the procedure (in main dump helper packages) that registers the
    --  coverage buffers dump through atexit(3).
-
-   type Compilation_Unit_Name
-     (Language_Kind : Any_Language_Kind := Unit_Based_Language)
-   is record
-
-      case Language_Kind is
-         when Unit_Based_Language =>
-            Unit : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector;
-            Part : Unit_Parts         := Unit_Body;
-            --  Identifies an Ada compilation unit (unit-based)
-
-         when File_Based_Language =>
-            Filename : Unbounded_String;
-            --  Fallback for file-based languages (like C). We will use the
-            --  simple filename for now.
-
-            Project_Name : Unbounded_String;
-            --  We also need the project name as different projects can have
-            --  the same file.
-
-      end case;
-   end record;
-   --  Unique identifier for an instrumented unit
-
-   Part_Tags : constant array (Unit_Parts) of Character :=
-     (Unit_Spec     => 'S',
-      Unit_Body     => 'B',
-      Unit_Separate => 'U');
-
-   function CU_Name_For_Unit
-     (Unit : Ada_Qualified_Name;
-      Part : Unit_Parts) return Compilation_Unit_Name;
-   --  Return the compilation unit name for the Ada compilation unit
-   --  corresponding to the unit name and the unit part parameters.
-
-   function CU_Name_For_File
-     (Filename     : Unbounded_String;
-      Project_Name : Unbounded_String) return Compilation_Unit_Name;
-   --  Return the compilation unit name for the C translation unit
-   --  corresponding to the filename parameter.
-
-   function To_Compilation_Unit_Name
-     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name;
-   --  Return the compilation unit name corresponding to the unit in
-   --  Source_File.
-
-   function To_Filename
-     (Project  : Project_Type;
-      CU_Name  : Compilation_Unit_Name;
-      Language : Any_Language) return String;
-   --  Return the name of the file to contain the given compilation unit,
-   --  according to Project's naming scheme.
-
-   function Image (CU_Name : Compilation_Unit_Name) return String;
-   --  Return a string representation of CU_Name for use in diagnostics
-
-   function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Name) return String;
-   --  Given a unit to instrument, return a unique identifier to describe it
-   --  (the so called slug).
-   --
-   --  One can use this slug to generate unique names for this unit.
-
-   function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
-   --  Compare the result of a call to Instrumented_Unit_Slug (which gives
-   --  unique identifiers for each compilation unit name) for both operands.
-
-   function "=" (Left, Right : Compilation_Unit_Name) return Boolean;
-   --  Same as above (but checking for equality)
 
    function Dump_Procedure_Symbol
      (Main : Compilation_Unit_Name) return String is
@@ -277,20 +148,6 @@ package Instrument.Common is
    --  Return the directory in which we must create instrumented sources for
    --  Project. This retuns an empty strings for projects that do not have an
    --  object directory.
-
-   package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Compilation_Unit_Name,
-      Element_Type => CU_Id);
-
-   Instrumented_Unit_CUs : Instrumented_Unit_To_CU_Maps.Map;
-   --  Associate a CU id for all instrumented units. Updated each time we
-   --  instrument a unit (or load a checkpoint) and used each time we read a
-   --  coverage buffer (or save to a checkpoint).
-
-   function Find_Instrumented_Unit
-     (CU_Name : Compilation_Unit_Name) return CU_Id;
-   --  Return the CU_Id corresponding to the given instrumented unit, or
-   --  No_CU_Id if not found.
 
    package File_Sets is new Ada.Containers.Hashed_Sets
      (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
@@ -524,23 +381,6 @@ package Instrument.Common is
    --  Write the instrumented source to the filename passed as Output_Filename
    --  to Start_Rewriting. If rewriting failed, raise a fatal error and print
    --  the corresponding error message.
-
-   -----------------
-   -- Checkpoints --
-   -----------------
-
-   --  Note: the following procedures must be called after the SCO units
-   --  table has been saved/loaded.
-
-   procedure Checkpoint_Save (CSS : access Checkpoints.Checkpoint_Save_State);
-   --  Save the current instrumented units map to stream
-
-   procedure Checkpoint_Clear;
-   --  Clear the internal data structures used to create checkpoints
-
-   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
-   --  Load checkpointed instrumented unit map from stream and merge them in
-   --  current state.
 
    ------------------------------------------------------
    --  Common declarations for Ada / C instrumentation --

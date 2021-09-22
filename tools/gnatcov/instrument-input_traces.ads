@@ -18,8 +18,9 @@
 
 --  Source trace files decoding
 
+with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with GNATcov_RTS.Traces;
-with Instrument.Common;
+with Instrument.Base_Types; use Instrument.Base_Types;
 with SC_Obligations;
 with Traces_Files;
 
@@ -35,7 +36,7 @@ package Instrument.Input_Traces is
       with procedure On_Trace_Entry
         (Filename        : String;
          Fingerprint     : SC_Obligations.SCOs_Hash;
-         CU_Name         : Instrument.Common.Compilation_Unit_Name;
+         CU_Name         : Compilation_Unit_Name;
          Stmt_Buffer     : Coverage_Buffer;
          Decision_Buffer : Coverage_Buffer;
          MCDC_Buffer     : Coverage_Buffer) is <>;

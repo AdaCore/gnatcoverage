@@ -30,7 +30,7 @@ with Ada.Unchecked_Deallocation;
 
 with GNAT.OS_Lib;
 
-with GNATCOLL.Projects;
+with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with Libadalang.Analysis;
@@ -38,20 +38,22 @@ with Libadalang.Project_Provider;
 with Libadalang.Rewriting;
 
 with Checkpoints;
-with Command_Line;        use Command_Line;
+with Command_Line;          use Command_Line;
 with Coverage;
+with Diagnostics;           use Diagnostics;
 with Files_Table;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Ada_Unit;
+with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Clean_Objdirs;
 with Instrument.C;
-with Instrument.Common;   use Instrument.Common;
-with Instrument.Find_Units;
-with Outputs;
+with Instrument.Common;     use Instrument.Common;
+with Instrument.Find_Ada_Units;
+with Outputs;               use Outputs;
 with Project;
-with SC_Obligations;
-with Strings;             use Strings;
-with Switches;            use Switches;
+with SC_Obligations;        use SC_Obligations;
+with Strings;               use Strings;
+with Switches;              use Switches;
 with Text_Files;
 
 package body Instrument is
@@ -172,8 +174,6 @@ package body Instrument is
       In_Library_Dir : Boolean) return String
    is
       use GNATCOLL.VFS;
-      use type GPR.Project_Type;
-      use all type GPR.Unit_Parts;
       use Library_Unit_Maps;
 
       LU_Name : constant String := Key (Cur);
@@ -259,8 +259,6 @@ package body Instrument is
      (IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info)
    is
-      use GPR;
-
       CU_Name : Compilation_Unit_Name :=
         CU_Name_For_Unit (Sys_Buffers_Lists, Unit_Spec);
       File    : Text_Files.File_Type;
@@ -508,7 +506,7 @@ package body Instrument is
 
          case CU_Name.Language_Kind is
             when Unit_Based_Language =>
-               Find_Units
+               Find_Ada_Units
                  (IC, CU_Name, Source_File, Add_Instrumented_Unit'Access);
             when File_Based_Language =>
                Add_Instrumented_Unit (CU_Name => CU_Name, Info => Source_File);

@@ -28,8 +28,9 @@ with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
-with Instrument.Common; use Instrument.Common;
-with Types;             use Types;
+with Instrument.Base_Types; use Instrument.Base_Types;
+with Instrument.Common;     use Instrument.Common;
+with Types;                 use Types;
 
 package Instrument.Ada_Unit is
 

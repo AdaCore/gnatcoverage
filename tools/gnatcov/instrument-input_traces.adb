@@ -30,12 +30,10 @@ with System.Storage_Elements;
 with GNAT.OS_Lib;        use GNAT.OS_Lib;
 with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
+with GNATCOLL.Projects;  use GNATCOLL.Projects;
 
-with GNATcov_RTS.Buffers;
 with GNATcov_RTS.Traces; use GNATcov_RTS.Traces;
 with Hex_Images;
-with Instrument.Common;  use Instrument.Common;
 with Strings;            use Strings;
 with Outputs;
 
@@ -512,10 +510,11 @@ package body Instrument.Input_Traces is
          --  current language kind.
 
          elsif (case Raw_Header.Language_Kind is
-                when Unit_Based_Language =>
+                when GNATcov_RTS.Traces.Unit_Based_Language =>
                   Raw_Header.Unit_Part not in Supported_Unit_Part,
-                when File_Based_Language =>
-                  Raw_Header.Unit_Part /= Not_Applicable_Part,
+                when GNATcov_RTS.Traces.File_Based_Language =>
+                  Raw_Header.Unit_Part /=
+                     GNATcov_RTS.Traces.Not_Applicable_Part,
                 when others =>
                    raise Program_Error
                      with "invalid language while already validated")

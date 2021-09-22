@@ -23,8 +23,6 @@ with Ada.Strings.Unbounded;             use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Fixed;
 with Ada.Wide_Wide_Characters.Handling; use Ada.Wide_Wide_Characters.Handling;
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
-
 with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
@@ -33,21 +31,24 @@ with Libadalang.Expr_Eval;
 with Libadalang.Introspection; use Libadalang.Introspection;
 with Libadalang.Sources;       use Libadalang.Sources;
 
-with ALI_Files;        use ALI_Files;
-with Coverage_Options; use Coverage_Options;
-with Coverage;         use Coverage;
-with Diagnostics;      use Diagnostics;
-with Files_Table;      use Files_Table;
-with Namet;            use Namet;
-with Outputs;          use Outputs;
+with GNATCOLL.Projects;
+
+with ALI_Files;           use ALI_Files;
+with Coverage_Options;    use Coverage_Options;
+with Coverage;            use Coverage;
+with Diagnostics;         use Diagnostics;
+with Files_Table;         use Files_Table;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Namet;               use Namet;
+with Outputs;             use Outputs;
 with SCOs;
-with SC_Obligations;   use SC_Obligations;
+with SC_Obligations;      use SC_Obligations;
 with Slocs;
-with Snames;           use Snames;
-with Strings;          use Strings;
+with Snames;              use Snames;
+with Strings;             use Strings;
 with Switches;
 with Table;
-with Text_Files;     use Text_Files;
+with Text_Files;          use Text_Files;
 
 package body Instrument.Ada_Unit is
 
@@ -74,6 +75,52 @@ package body Instrument.Ada_Unit is
         ("Instrumenting " & N.Kind_Name
          & " at " & N.Unit.Get_Filename & ":" & Image (N.Sloc_Range));
    end Create_Context_Instrument;
+
+   function To_Qualified_Name
+     (Name : Libadalang.Analysis.Name) return Ada_Qualified_Name;
+   --  Return the qualified name corresponding to the given name from a parse
+   --  tree.
+
+   -----------------------
+   -- To_Qualified_Name --
+   -----------------------
+
+   function To_Qualified_Name
+     (Name : Libadalang.Analysis.Name) return Ada_Qualified_Name
+   is
+   begin
+      return Result : Ada_Qualified_Name do
+         case Ada_Name (Name.Kind) is
+            when Ada_Dotted_Name =>
+               declare
+                  DN     : constant Dotted_Name := Name.As_Dotted_Name;
+                  Suffix : constant Ada_Qualified_Name := To_Qualified_Name
+                     (DN.F_Suffix.As_Name);
+               begin
+                  Result := To_Qualified_Name (DN.F_Prefix);
+                  Result.Append (Suffix);
+               end;
+
+            when Ada_Single_Tok_Node =>
+               declare
+
+                  --  ??? GNATCOLL.Projects does not specify how to encode
+                  --  Unicode unit names as strings, so for now, assume that we
+                  --  process only codepoints in the ASCII range and thus use
+                  --  Langkit_Support.Text.Image.
+
+                  Identifier : constant Base_Types.Ada_Identifier :=
+                     To_Unbounded_String (Image (Name.Text));
+               begin
+                  Result.Append (Identifier);
+               end;
+
+            when others =>
+               raise Constraint_Error
+                  with "no qualified name for " & Name.Kind'Image & " nodes";
+         end case;
+      end return;
+   end To_Qualified_Name;
 
    type All_Symbols is
      (
@@ -3628,10 +3675,10 @@ package body Instrument.Ada_Unit is
                      begin
                         pragma Assert
                           (IC.Instrumented_Units.Contains
-                             (CU_Name_For_Unit (Body_Name, Unit_Body))
+                             (CU_Name_For_Unit (Body_Name, GPR.Unit_Body))
                            or else IC.Instrumented_Units.Contains
                              (CU_Name_For_Unit
-                                (Body_Name, Unit_Separate)));
+                                (Body_Name, GPR.Unit_Separate)));
                      end;
 
                   --  For a library unit, scan context clause. If this is a
@@ -5850,9 +5897,9 @@ package body Instrument.Ada_Unit is
    begin
       IC.Instrumented_Unit := Instrumented_Unit;
       IC.Buffer_Unit :=
-        CU_Name_For_Unit (Buffer_Unit (Instrumented_Unit), Unit_Spec);
+        CU_Name_For_Unit (Buffer_Unit (Instrumented_Unit), GPR.Unit_Spec);
       IC.Pure_Buffer_Unit :=
-        CU_Name_For_Unit (Pure_Buffer_Unit (Instrumented_Unit), Unit_Spec);
+        CU_Name_For_Unit (Pure_Buffer_Unit (Instrumented_Unit), GPR.Unit_Spec);
       IC.Rewriting_Context := Handle (Context);
 
       declare
