@@ -26,7 +26,7 @@ package Dis_Opcodes is
    -- BFD Types --
    ---------------
 
-   type BFD_VMA is new Interfaces.C.unsigned_long;
+   type BFD_VMA is new Interfaces.C.unsigned_long_long;
    --  Type of virtual memory addresses of the disassembled program
 
    type BFD_Byte is new Interfaces.C.unsigned_char;

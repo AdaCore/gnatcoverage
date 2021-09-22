@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2013-2019, AdaCore
+   Copyright (C) 2013-2021, AdaCore
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -163,7 +163,7 @@ write_trace (app_pc pc, unsigned int size, unsigned char op)
 
   /* FIXME: atomic access ?  */
   ent = &trace_buffer[nbr_entries++];
-  ent->pc = (unsigned long) pc;
+  ent->pc = (pctype) pc;
   ent->size = size;
   ent->op = op;
 }

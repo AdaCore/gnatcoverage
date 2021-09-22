@@ -165,6 +165,13 @@ def gprbuild_largs_with(thislargs):
     all_largs = to_list(thistest.options.largs)
     all_largs.extend(to_list(thislargs))
 
+    # On Windows, executables are made position independent by default, which
+    # gnatcov does not handle, so instruct the linker to not create position
+    # independent executables if running in bin trace mode.
+    if (thistest.env.build.os.name == 'windows'
+            and thistest.options.trace_mode == 'bin'):
+        all_largs.append('-no-pie')
+
     if all_largs:
         all_largs.insert(0, '-largs')
 
