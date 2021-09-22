@@ -341,7 +341,99 @@ Then for each new test:
    coverage data);
 #. Execute the program to produce a trace.
 
-The following section illustrates such a use case.
+The section :ref:`examples_src_traces` illustrates such a use case.
+
+.. _spark_instr :
+
+Instrumentation and coverage of SPARK code
+==========================================
+
+The instrumentation of a SPARK project requires an additionnal step in order
+to make the compiler accept the instrumented code. Additionally, some parts of
+SPARK sources are not processed by the instrumenter, and thus will not have
+any coverage obligation attached to them.
+
+Inhibiting SPARK related pragmas
+---------------------------------
+
+SPARK introduces a certain number of pragmas and aspects to aid the developper
+in writting program contracts and guiding the automatic provers. These are only
+useful for static proof purposes, and are not used when assessing the coverage
+of a project during testing. As such, the instrumenter ignores those
+pragmas/aspects, and the compiler must be instructed to disregard them when
+processing instrumented sources.
+
+To do so, the simplest option is to pass a configuration pragma file which
+inhibits each of the above pragmas when building the project. Such
+a configuration pragma file can be found at
+``examples/support/instrument-spark.adc`` in the installation tree of |gcv|.
+Its contents are:
+
+.. code-block:: ada
+
+  --  This is the list of global restrictions to be used when building
+  --  instrumented spark code.
+  --
+  --  We need to enforce such restrictions, as gnatcov instrumentation generates
+  --  constructs incompatible with a SPARK_Mode compilation.
+
+  pragma Ignore_Pragma (SPARK_Mode);
+  pragma Ignore_Pragma (Refined_State);
+  pragma Ignore_Pragma (Abstract_State);
+  pragma Ignore_Pragma (Global);
+  pragma Ignore_Pragma (Depends);
+  pragma Ignore_Pragma (Part_Of);
+  pragma Ignore_Pragma (Initializes);
+  pragma Ignore_Pragma (Refined_Global);
+  pragma Ignore_Pragma (Refined_Depends);
+
+The configuration pragma file can be passed to the compiler either by
+specifying it on the gprbuild command line with the ``-gnatec`` switch::
+
+  gprbuild -Pproject --src-subdirs=gnatcov-instr --implicit-with=<path-to-runtime> -cargs:Ada -gnatec=instrument-spark.adc
+
+or by way of a ``Global_Configuration_File`` project file attribute,
+possibly controlled by a scenario variable as in:
+
+.. code-block:: ada
+
+  type mode is ("prod", "coverage");
+  BUILD_MODE : mode := external ("BUILD_MODE", "prod")
+
+  package Compiler is
+    case BUILD_MODE is
+      when "coverage" => for Global_Configuration_File use "instrument-spark.adc";
+      when "prod"     => null;
+    end case;
+  end Compiler;
+
+and then building with::
+
+  gprbuild -Pproject --src-subdirs=gnatcov-instr --implicit-with=<path-to-runtime> -XBUILD_MODE=coverage
+
+For SPARK projects for which unit testing is performed through GNATtest,
+see :ref:`gnattest_spark_instrument` for instructions on how to pass the
+configuration pragma file when building the test harness.
+
+Coverage obligations for SPARK code
+-----------------------------------
+
+Some parts of SPARK sources do not necessarily generate executable code when
+compiled, and are mainly used to aid the proof of the program.
+Computing coverage for such source regions isn't meaningful and are thus
+ignored by the instrumenter. This means that those regions will not have any
+coverage obligation attached to them in the coverage reports.
+
+The concerned pieces of code are notably:
+
+- any entity that is ``Ghost``
+- any contract (``Pre``/``Post``/``Contract_Cases``/``Loop_Invariant``)
+
+Note that since no coverage obligations are emitted for such source
+constructs, they will not appear in the coverage reports even if assertions
+are enabled and the assertion policy enables the compilation of ghost code.
+
+.. _examples_src_traces:
 
 Example use cases
 =================
