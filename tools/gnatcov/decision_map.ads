@@ -24,6 +24,7 @@
 --  coverage properties.
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 
 with Disassemblers;  use Disassemblers;
@@ -128,6 +129,17 @@ package Decision_Map is
      (Index_Type   => Natural,
       Element_Type => Pc_Type);
 
+   type Valuation_Type is record
+      CI : Condition_Index;
+      Val : Boolean;
+   end record;
+
+   function "<" (L, R : Valuation_Type) return Boolean is
+      (L.CI < R.CI or else L.Val < R.Val);
+
+   package Valuation_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Valuation_Type);
+
    type Decision_Occurrence
      (Last_Cond_Index : Condition_Index)
    is limited record
@@ -144,6 +156,9 @@ package Decision_Map is
       Seen_Condition       : Any_Condition_Index := No_Condition_Index;
       --  Index of the last seen condition (i.e. condition index of the last
       --  test in Conditional_Branches).
+
+      Missing_Valuations : Valuation_Sets.Set;
+      --  Missing valuations (T / F) for each condition of the decision
    end record;
 
    --  The cond branch map contains information describing each conditional

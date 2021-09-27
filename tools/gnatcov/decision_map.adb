@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Ordered_Sets;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -504,11 +503,7 @@ package body Decision_Map is
             Report_If_Unexpected : Boolean := False) return Boolean;
          --  Check whether we expect to evaluate CI: either we remain in the
          --  current condition (case of a condition that requires multiple
-         --  branches), or we move to the next one.
-
-         procedure Check_Condition_Index (CI : Condition_Index);
-         --  Check whether CI is an expected condition, and if not, report an
-         --  error.
+         --  branches), or we move to the next one..
 
          ---------------------------
          -- Is_Expected_Condition --
@@ -554,22 +549,16 @@ package body Decision_Map is
                      Append (Msg, ", tag=" & Tag_Provider.Tag_Name (Tag));
                   end if;
 
-                  Report (Exec, Insn.First, To_String (Msg));
+                  --  This could correspond to some finalization code, that has
+                  --  a debug info code location corresponding to a condition.
+                  --  We will silence it unless explicitely requested with a
+                  --  verbose mode.
+
+                  Report (Exec, Insn.First, To_String (Msg), Kind => Notice);
                end;
             end if;
             return False;
          end Is_Expected_Condition;
-
-         ---------------------------
-         -- Check_Condition_Index --
-         ---------------------------
-
-         procedure Check_Condition_Index (CI : Condition_Index) is
-            Dummy : Boolean;
-            pragma Unreferenced (Dummy);
-         begin
-            Dummy := Is_Expected_Condition (CI, Report_If_Unexpected => True);
-         end Check_Condition_Index;
 
       --  Start of processing for Process_Condition
 
@@ -605,7 +594,12 @@ package body Decision_Map is
                --  condition in another decision, and DS_Top is that
                --  enclosing decision.
 
-               Check_Condition_Index (Index (Parent_SCO));
+               if not Is_Expected_Condition (Index (Parent_SCO),
+                                             Report_If_Unexpected => True)
+               then
+                  return;
+               end if;
+
                DS_Top := null;
                exit;
             end if;
@@ -756,7 +750,12 @@ package body Decision_Map is
          --  Here after pushing context for current decision, if needed
 
          pragma Assert (DS_Top.Decision = D_SCO);
-         Check_Condition_Index (Cond_Index);
+
+         if not Is_Expected_Condition (Cond_Index,
+                                       Report_If_Unexpected => True)
+         then
+            return;
+         end if;
 
          --  Record condition occurrence
 
@@ -991,8 +990,7 @@ package body Decision_Map is
          CBI            : in out Cond_Branch_Info;
          Edge           : Edge_Kind);
       --  Third pass of control flow analysis: if Edge is not qualified yet,
-      --  but the another edge with the same destination is, copy its
-      --  information.
+      --  but another edge with the same destination is, copy its information.
 
       function Label_From_BB
         (Cond_Branch_PC : Pc_Type;
@@ -2325,9 +2323,6 @@ package body Decision_Map is
       --  the decision). In this case we bail out.
 
       if not Is_Last_Runtime_Condition (D_Occ) then
-         Report (Exe, Last_Seen_Condition_PC,
-                 "incomplete occurrence",
-                 SCO => D_Occ.Decision);
          return;
       end if;
 
@@ -2356,18 +2351,11 @@ package body Decision_Map is
       for J in Condition_Index'First .. D_Occ.Last_Cond_Index loop
          for Val in Boolean'Range loop
             if not Has_Valuation (J, Val)
-                  and then
-               Value (Condition (D_Occ.Decision, J)) = Unknown
+              and then
+                Value (Condition (D_Occ.Decision, J)) = Unknown
             then
-               --  In non-verbose mode, maybe we should display this warning
-               --  only if D_Occ.Decision ends up not covered???
-
-               Report (First_Sloc (Condition (D_Occ.Decision, J)),
-                       Msg  => "condition lacks edge for "
-                       & Val'Img
-                       & " in decision occurrence starting @"
-                       & Hex_Image (D_Occ.Conditional_Branches.First_Element),
-                       Kind => Warning);
+               D_Occ.Missing_Valuations.Insert
+                 (Valuation_Type'(CI  => J, Val => Val));
             end if;
          end loop;
       end loop;
@@ -2782,6 +2770,61 @@ package body Decision_Map is
          Analyze_Decision_Occurrence
            (Exec, Context, Context.Decision_Stack.Element (J));
       end loop;
+
+      --  Report non-constant conditions for which no edge provides a
+      --  valuation.
+
+      for C in Decision_Occurrence_Map.Iterate loop
+         declare
+            D_Occs : constant Decision_Occurrence_Vectors.Vector :=
+              Decision_Occurrence_Maps.Element (C);
+
+            Missing_Valuations : Valuation_Sets.Set :=
+              D_Occs.First_Element.Missing_Valuations;
+            --  For each valuation of each condition, indicates whether
+            --  there is one edge corresponding to each possible valuation
+            --  of the condition.
+
+            Incomplete_Occurrence : Boolean := True;
+         begin
+            for D_Occ of D_Occs loop
+               Missing_Valuations.Intersection (D_Occ.Missing_Valuations);
+               Incomplete_Occurrence := Incomplete_Occurrence and then
+                 not Is_Last_Runtime_Condition (D_Occ);
+            end loop;
+
+            --  Detect and report incomplete occurrences (i.e. occurrence where
+            --  the last seen condition is not the last run-time-evaluated
+            --  condition of the decision).
+
+            if Incomplete_Occurrence then
+               Report (Exec,
+                       D_Occs.First_Element.Conditional_Branches.Last_Element,
+                       "incomplete occurrence",
+                       SCO => D_Occs.First_Element.Decision);
+            end if;
+
+            for Valuation of Missing_Valuations loop
+               declare
+                  D_Occ         : constant Decision_Occurrence_Access :=
+                    D_Occs.First_Element;
+                  Condition_SCO : constant SCO_Id :=
+                    Condition (D_Occ.Decision, Valuation.CI);
+               begin
+                  Report (First_Sloc (Condition_SCO),
+                          Msg  => Image (Condition_SCO)
+                          & " lacks edge for "
+                          & Valuation.Val'Img
+                          & " in decision occurrence starting @"
+                          & Hex_Image
+                            (D_Occs.First_Element.Conditional_Branches
+                             .First_Element),
+                          Kind => Warning);
+               end;
+            end loop;
+         end;
+      end loop;
+      Decision_Occurrence_Map.Clear;
 
       --  Statistics processing
 
