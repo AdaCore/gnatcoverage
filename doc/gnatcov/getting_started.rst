@@ -85,92 +85,63 @@ consistent manner.
 
   Coverage analysis processes overview
 
-.. _support:
-
-Supported languages and environments
-====================================
-
-Object coverage analysis is essentially language agnostic and available for
-both native Linux/Windows applications and for cross environments where we can
-obtain binary traces. For such configurations, we would normally rely on
-GNATemulator or on hardware probes to produce the traces.
-
-Source coverage analysis, on the other hand, is by nature defined in
-close association with each particular source language.
-
-As of today, with binary traces, |gcp| supports all the variants of Ada
-and C supported by the compilation toolchain, for native Linux or Windows
-applications as well as for a number of cross configurations with
-Zero-Footprint or Ravenscar runtimes for Ada.
-
-With source traces, obtained from instrumented source programs, only Ada is
-supported at this stage, in native or cross environments. A few limitations
-remain compared to binary traces, in particular:
-
-- The ``Short_Circuit_And_Or`` pragma is not handled by the source
-  instrumenter: non-short-circuit ``and`` and ``or`` operators are always
-  considered as intra-condition computational operators;
-
-- Separate analysis of generic package instances is not supported.
-
-On the other hand, source traces allow coverage analysis on code running from
-shared libraries, which we don't support for binary traces.
-
-With both kinds of traces, the behavior on Ada 2012 *case* expressions is
-still subject to change, in particular regarding decision or MCDC analysis as
-the criteria definition aren't yet well established for such constructs in
-general.
-
 .. _selecting_trace_kind:
 
-Selecting binary or source traces
-=================================
+Selecting a trace mode; supported features and environments
+===========================================================
 
-A given coverage assessment for a project may not mix source and binary traces
-together. The choice of a trace format depends on a number of considerations.
-
-The first aspect is the match between the project's needs and what each format
-allows, as described in the :ref:`support` section. For object coverage
-assessments, binary traces is the only option.  For source coverage
-assessements, the matrix below summarizes the possibiliites:
+The source and binary trace modes each have specific strengths, the
+relative importance of which depends on the project context.  The
+matrix below summarizes the main characteristics of each mode, as a
+first key to help select one scheme or the other for a given software
+development project:
 
 .. list-table::
-   :widths: 20 20 20 20
+   :widths: 20 20 20
    :header-rows: 1
-   :class: table-bordered
+   :stub-columns: 1
 
    * -
-     - Ada language
-     - C language
-     - Shared Libraries
-   * - Native
-     - Source or Binary
-     - Binary only
-     - Source only
-   * - Cross
-     - Source or Binary
-     - Binary only
-     - N/A
+     - **With Source Traces**
+     - **With Binary Traces**
+   * - *Tracing mechanism*
+     - Program instrumentation
+     - Execution environment
+   * - ~
+     - ~
+     - ~
+   * - *Native applications*
+     - Yes (including shared-libraries)
+     - No
+   * - *Cross configurations with RTOS*
+     - Yes
+     - No
+   * - *Bareboard configurations*
+     - Yes
+     - Selectively (specific CPUs only, through GNATemulator or
+       hardware probes)
+   * - ~
+     - ~
+     - ~
+   * - *Object coverage analysis (language agnostic)*
+     - No
+     - Yes
+   * - *Source coverage analysis for Ada (up to Ada 2012)*
+     - Yes
+     - Yes
+   * - *Source coverage analysis for C*
+     - Beta in release 22
+     - Yes
 
 
-When source or binary traces are both an option, the selection can be
-performed according to a balance between test execution performance and the
-setup conveniency/adquation with possible project organizational requirements.
+A few points regarding less prominent features are also
+worthy of note:
 
-On the one hand, binary traces are produced by execution monitors which incur
-a very significant execution slow down in native environments, in addition to
-requiring compilation options which restrict optimization in several
-ways. Their main advantage, however, is they operate without explicit
-additional data state or control flow deviations, since what gets tested for
-coverage purposes is built from the same sources as what will run in
-operational conditions.
+- Separate analysis of generic package instances is not supported
+  by the source trace mode;
 
-Source traces, on the other hand, are produced out of an alternate version of
-the program, with sources modified to include coverage related additional data
-structures and code adjustments of multiple sorts to feed these structures at
-run-time. The performance impact is expected to be much lower than with binary
-traces, however, and the trace files are more compact as they convey much
-higher level information.
+- Preprocessing directives are ignored by the source instrumenter;
+
 
 Process overview
 ================
