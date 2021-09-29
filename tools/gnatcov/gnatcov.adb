@@ -32,7 +32,7 @@ with Support_Files;
 with Switches;     use Switches;
 
 procedure GNATcov is
-   Target_64_Bit : Boolean := False;
+   Use_Gnatcov64 : Boolean := False;
 begin
    --  Parse arguments just enough to determine the target, then run the
    --  corresponding bits-specific main (see gnatcov_arch_specific.adb),
@@ -58,8 +58,17 @@ begin
          Last_Before_Dash := Last_Before_Dash - 1;
       end if;
 
-      Target_64_Bit :=
-         Index (Target (Target'First .. Last_Before_Dash), "64") /= 0;
+      Use_Gnatcov64 :=
+
+        --  gnatcov32 does not package instrumentation. It can still be used to
+        --  decode source binary traces, but not to instrument source files.
+
+        Args.Command = Cmd_Instrument
+
+        --  Otherwise, infer the gnatcov executable to use from the target
+        --  option.
+
+        or else Index (Target (Target'First .. Last_Before_Dash), "64") /= 0;
    end;
 
    --  Now run the correct arch-specific entry point
@@ -67,7 +76,7 @@ begin
    declare
       Exec_Basename : constant String :=
          "gnatcov"
-         & (if Target_64_Bit then "64" else "32")
+         & (if Use_Gnatcov64 then "64" else "32")
          & GNAT.OS_Lib.Get_Executable_Suffix.all;
       Exec_Filename : constant String := Ada.Directories.Compose
         (Support_Files.Libexec_Dir, Exec_Basename);
