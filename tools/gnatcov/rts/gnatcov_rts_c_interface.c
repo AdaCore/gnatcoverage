@@ -17,28 +17,30 @@
  *                                                                          *
  ****************************************************************************/
 
-#include <time.h>
 #include <stdlib.h>
+#include <time.h>
 
-#if defined (_WIN32)
-#  include <processthreadsapi.h>
+#if defined(_WIN32)
+#include <processthreadsapi.h>
 #else
-#  include <sys/types.h>
-#  include <unistd.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
 #include "gnatcov_rts_c_interface.h"
 
 uint64_t
-gnatcov_rts_time_to_uint64 (void) {
-  return (uint64_t) time (NULL);
+gnatcov_rts_time_to_uint64 (void)
+{
+  return (uint64_t)time (NULL);
 }
 
 uint64_t
-gnatcov_rts_getpid (void) {
-#if defined (_WIN32)
-  return (uint64_t) GetCurrentProcessId ();
+gnatcov_rts_getpid (void)
+{
+#if defined(_WIN32)
+  return (uint64_t)GetCurrentProcessId ();
 #else
-  return (uint64_t) getpid();
+  return (uint64_t)getpid ();
 #endif
 }

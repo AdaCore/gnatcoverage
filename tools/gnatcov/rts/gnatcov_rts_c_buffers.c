@@ -20,7 +20,7 @@
 #include "gnatcov_rts_c_buffers.h"
 
 unsigned
-gnatcov_rts_witness(void *buffer_address, unsigned bit_id)
+gnatcov_rts_witness (void *buffer_address, unsigned bit_id)
 {
   uint8_t *buffer = (uint8_t *)buffer_address;
   buffer[bit_id] = (uint8_t)1;
@@ -28,34 +28,33 @@ gnatcov_rts_witness(void *buffer_address, unsigned bit_id)
 }
 
 unsigned
-gnatcov_rts_witness_decision(void *buffer_address, unsigned false_bit,
-                             unsigned true_bit, unsigned value)
+gnatcov_rts_witness_decision (void *buffer_address, unsigned false_bit,
+                              unsigned true_bit, unsigned value)
 {
   if (value)
-    gnatcov_rts_witness(buffer_address, true_bit);
+    gnatcov_rts_witness (buffer_address, true_bit);
   else
-    gnatcov_rts_witness(buffer_address, false_bit);
+    gnatcov_rts_witness (buffer_address, false_bit);
   return value;
 }
 
 unsigned
-gnatcov_rts_witness_decision_mcdc(void *decision_buffer_address,
-                                  unsigned false_bit, unsigned true_bit,
-                                  void *mcdc_buffer_address,
-                                  unsigned mcdc_base,
-                                  void *mcdc_path_address,
-                                  unsigned value)
+gnatcov_rts_witness_decision_mcdc (void *decision_buffer_address,
+                                   unsigned false_bit, unsigned true_bit,
+                                   void *mcdc_buffer_address,
+                                   unsigned mcdc_base, void *mcdc_path_address,
+                                   unsigned value)
 {
   unsigned mcdc_path_index = *((unsigned *)mcdc_path_address);
-  gnatcov_rts_witness(mcdc_buffer_address, mcdc_base + mcdc_path_index);
-  return gnatcov_rts_witness_decision(decision_buffer_address, false_bit,
-                                      true_bit, value);
+  gnatcov_rts_witness (mcdc_buffer_address, mcdc_base + mcdc_path_index);
+  return gnatcov_rts_witness_decision (decision_buffer_address, false_bit,
+                                       true_bit, value);
 }
 
 unsigned
-gnatcov_rts_witness_condition(unsigned *mcdc_path_address,
-                            unsigned offset_for_true, unsigned first,
-                            unsigned value)
+gnatcov_rts_witness_condition (unsigned *mcdc_path_address,
+                               unsigned offset_for_true, unsigned first,
+                               unsigned value)
 {
   if (first)
     *mcdc_path_address = 0;

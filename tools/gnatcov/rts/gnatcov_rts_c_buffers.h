@@ -17,29 +17,26 @@
  *                                                                          *
  ****************************************************************************/
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define FINGERPRINT_SIZE 20
 
-extern unsigned
-gnatcov_rts_witness(void *buffer_address, unsigned bit_id);
+extern unsigned gnatcov_rts_witness (void *buffer_address, unsigned bit_id);
 
-extern unsigned
-gnatcov_rts_witness_decision(void *buffer_address,
-                             unsigned false_bit,
-                             unsigned true_bit, unsigned value);
+extern unsigned gnatcov_rts_witness_decision (void *buffer_address,
+                                              unsigned false_bit,
+                                              unsigned true_bit,
+                                              unsigned value);
 
-extern unsigned
-gnatcov_rts_witness_decision_mcdc(void *decision_buffer_address,
-                                  unsigned false_bit, unsigned true_bit,
-                                  void *mcdc_buffer_address, unsigned mcdc_base,
-                                  void *mcdc_path_address, unsigned value);
+extern unsigned gnatcov_rts_witness_decision_mcdc (
+    void *decision_buffer_address, unsigned false_bit, unsigned true_bit,
+    void *mcdc_buffer_address, unsigned mcdc_base, void *mcdc_path_address,
+    unsigned value);
 
-extern unsigned
-gnatcov_rts_witness_condition(unsigned *mcdc_path_address,
-                              unsigned offset_for_true,
-                              unsigned first, unsigned value);
+extern unsigned gnatcov_rts_witness_condition (unsigned *mcdc_path_address,
+                                               unsigned offset_for_true,
+                                               unsigned first, unsigned value);
 
 typedef struct gnatcov_rts_unit_coverage_buffers
 {

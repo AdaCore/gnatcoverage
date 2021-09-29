@@ -26,9 +26,7 @@
    be compatible with 32 bit as well as 64 bit architectures.
    It also ensures compatibility with Ada Long_Long_Integer
    standard type. */
-extern uint64_t
-gnatcov_rts_time_to_uint64 (void);
+extern uint64_t gnatcov_rts_time_to_uint64 (void);
 
 /* Return the current process ID as an unsigned 64-bit integer. */
-extern uint64_t
-gnatcov_rts_getpid (void);
+extern uint64_t gnatcov_rts_getpid (void);
