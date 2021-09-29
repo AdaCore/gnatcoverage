@@ -155,13 +155,6 @@ package body Instrument.C is
    -- Source level rewriting --
    ----------------------------
 
-   procedure Initialize_Rewriting
-     (IC                : in out C_Unit_Inst_Context;
-      Instrumented_Unit : Compilation_Unit_Name;
-      Filename          : String);
-   --  Initialize a unit instrumentation context for the given unit to
-   --  instrument.
-
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
       Unit_Info : Instrumented_Unit_Info;
@@ -348,66 +341,6 @@ package body Instrument.C is
                                    Rew  => UIC.Rewriter);
       return Name;
    end Insert_MCDC_State;
-
-   --------------------------
-   -- Initialize_Rewriting --
-   --------------------------
-
-   procedure Initialize_Rewriting
-     (IC                : in out C_Unit_Inst_Context;
-      Instrumented_Unit : Compilation_Unit_Name;
-      Filename          : String)
-   is
-      CIdx : constant Index_T :=
-        Create_Index
-          (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
-
-      Buffer_Filename : constant String :=
-        To_Symbol_Name (Sys_Buffers) & "_b"
-        & Instrumented_Unit_Slug (Instrumented_Unit) & ".c";
-      --  Name of the generated source file holding the coverage buffers
-
-   begin
-      IC.Instrumented_Unit := Instrumented_Unit;
-      IC.Buffer_Unit :=
-        CU_Name_For_File (+Buffer_Filename,
-                          Instrumented_Unit.Project_Name);
-      IC.Pure_Buffer_Unit :=
-        CU_Name_For_Unit
-          (Buffer_Unit (Instrumented_Unit), GPR.Unit_Spec);
-
-      --  TODO: we should pass the same set of preprocessing options that we
-      --  pass to the preprocessing command.
-
-      IC.TU :=
-        Parse_Translation_Unit
-          (C_Idx => CIdx,
-           Source_Filename       => Filename,
-           Command_Line_Args     => System.Null_Address,
-           Num_Command_Line_Args => 0,
-           Unsaved_Files         => null,
-           Num_Unsaved_Files     => 0,
-           Options               =>
-             Translation_Unit_Detailed_Preprocessing_Record);
-      IC.Rewriter := CX_Rewriter_Create (IC.TU);
-   end Initialize_Rewriting;
-
-   procedure Finalize_Rewriting (UIC : C_Unit_Inst_Context);
-   --  Overwrite the preprocessed generated files augmented with
-   --  instrumentation.
-
-   ------------------------
-   -- Finalize_Rewriting --
-   ------------------------
-
-   procedure Finalize_Rewriting (UIC : C_Unit_Inst_Context)
-   is
-      Ignored_Res : Interfaces.C.int;
-   begin
-      Ignored_Res :=
-        CX_Rewriter_Overwrite_Changed_Files (Rew => UIC.Rewriter);
-      Dispose_Translation_Unit (UIC.TU);
-   end Finalize_Rewriting;
 
    type SC_Entry is record
       N : Cursor_T;
@@ -1689,23 +1622,22 @@ package body Instrument.C is
       Info           : in out Project_Info;
       Input_Filename : String)
    is
-      CIdx : constant Index_T :=
-        Create_Index
-          (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
+      Cmd : constant Command_Access :=
+        Preprocessing_Command (Info, Input_Filename);
+      --  The command to preprocess the file
 
-      --  The command to preprocess the file.
-      --  Calls clang preprocessing command.
-      Cmd : constant Command_Access := Preprocessing_Command
-        (Info, Input_Filename);
       Output_Filename : constant String :=
         Register_New_File (Info, Input_Filename);
    begin
       System_Commands.Run_Command
         (Cmd.all, "gnatcov instrument", Output_Filename, False);
 
+      Self.CIdx :=
+        Create_Index
+          (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
       Self.TU :=
         Parse_Translation_Unit
-          (C_Idx => CIdx,
+          (C_Idx => Self.CIdx,
            Source_Filename       => Output_Filename,
            Command_Line_Args     => System.Null_Address,
            Num_Command_Line_Args => 0,
@@ -1714,6 +1646,7 @@ package body Instrument.C is
            Options               =>
              Translation_Unit_Detailed_Preprocessing_Record);
       Self.Rewriter := CX_Rewriter_Create (Self.TU);
+      Self.Output_Filename := +Output_Filename;
    end Start_Rewriting;
 
    -----------
@@ -1725,7 +1658,6 @@ package body Instrument.C is
    begin
       Ignored_Res :=
         CX_Rewriter_Overwrite_Changed_Files (Rew => Self.Rewriter);
-      Dispose_Translation_Unit (Self.TU);
    end Apply;
 
    --------------
@@ -1734,7 +1666,11 @@ package body Instrument.C is
 
    overriding procedure Finalize (Self : in out C_Source_Rewriter) is
    begin
-      null;
+      Dispose_Translation_Unit (Self.TU);
+      Dispose_Index (Self.CIdx);
+      if Switches.Pretty_Print then
+         Run_Clang_Format (+Self.Output_Filename);
+      end if;
    end Finalize;
 
    ----------------------------
@@ -1748,56 +1684,55 @@ package body Instrument.C is
       IC        : in out Inst_Context;
       UIC       : out C_Unit_Inst_Context)
    is
-      Rewriter : C_Source_Rewriter;
-
       Orig_Filename : constant String  := +Unit_Info.Filename;
       Base_Filename : constant String :=
         Ada.Directories.Simple_Name (Orig_Filename);
 
-      Cmd : constant Command_Access :=
-        Preprocessing_Command (Prj_Info, Orig_Filename);
-      --  The command to preprocess the file. Calls clang preprocessing
-      --  command.
+      Output_File : Text_Files.File_Type;
 
-      Output_File     : Text_Files.File_Type;
-      Output_Filename : constant String :=
-        Register_New_File (Prj_Info, Orig_Filename);
-      --  Where the preprocessed file is output. This is the file we will use
-      --  for instrumentation purposes.
+      Buffer_Filename : constant String :=
+        To_Symbol_Name (Sys_Buffers) & "_b" & Instrumented_Unit_Slug (CU_Name)
+        & ".c";
+      --  Name of the generated source file holding the coverage buffers
 
-      CIdx : constant Index_T :=
-        Create_Index
-          (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
-      Root_Cursor : Cursor_T;
-      Filename : constant String := Orig_Filename;
+      Rewriter : C_Source_Rewriter;
+      --  Holds the compilation index, the translation unit and the rewriter.
+      --  We will use shortcuts to the translation unit and the rewriter in the
+      --  C instrumentation context.
+
    begin
-      --  Make sure that the simple name of the instrumented source file is
-      --  registered in our tables. This is required to properly detect when we
-      --  try to load SCOs for the same unit from an ALI file, as ALI files
-      --  only provide simple names.
-
-      System_Commands.Run_Command
-        (Cmd.all, "gnatcov instrument", Output_Filename, False);
       SCOs.Initialize;
       UIC.SFI := Get_Index_From_Generic_Name
-        (Filename,
+        (Orig_Filename,
          Kind                => Files_Table.Source_File,
          Indexed_Simple_Name => True);
 
-      Initialize_Rewriting
-        (IC => UIC, Instrumented_Unit => CU_Name, Filename => Output_Filename);
-      Root_Cursor := Get_Translation_Unit_Cursor (UIC.TU);
+      --  Initialize the C instrumentation context
+
+      UIC.Instrumented_Unit := CU_Name;
+      UIC.Buffer_Unit :=
+        CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
+      UIC.Pure_Buffer_Unit :=
+        CU_Name_For_Unit (Buffer_Unit (CU_Name), GPR.Unit_Spec);
       UIC.File := +Orig_Filename;
+
+      Start_Rewriting (Self           => Rewriter,
+                       IC             => IC,
+                       Info           => Prj_Info,
+                       Input_Filename => Orig_Filename);
+
+      UIC.TU := Rewriter.TU;
+      UIC.Rewriter := Rewriter.Rewriter;
 
       --  Traverse declaration and statements in a translation unit
 
       Traverse_Declarations
         (IC  => IC,
          UIC => UIC,
-         L   => Get_Children (Root_Cursor));
+         L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
 
       SCOs.SCO_Unit_Table.Append
-        ((File_Name  => new String'(Filename),
+        ((File_Name  => new String'(Orig_Filename),
           File_Index => UIC.SFI,
           Dep_Num    => 1,
           From       => SCOs.SCO_Table.First,
@@ -1948,16 +1883,13 @@ package body Instrument.C is
       --  Insert automatic buffer dump calls, if requested
 
       if IC.Dump_Config.Trigger /= Manual and then Unit_Info.Is_Main then
-         Rewriter.TU := UIC.TU;
-         Rewriter.Rewriter := UIC.Rewriter;
          Add_Auto_Dump_Buffers
            (IC   => IC,
             Info => Prj_Info,
             Main => UIC.Instrumented_Unit,
-            Rew => Rewriter);
+            Rew  => Rewriter);
       end if;
-      Finalize_Rewriting (UIC);
-      Dispose_Index (CIdx);
+      Rewriter.Apply;
    end Instrument_Source_File;
 
    --------------------------

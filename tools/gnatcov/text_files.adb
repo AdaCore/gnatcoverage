@@ -174,4 +174,28 @@ package body Text_Files is
       end if;
    end Run_GNATpp;
 
+   ----------------------
+   -- Run_Clang_Format --
+   ----------------------
+
+   procedure Run_Clang_Format (Filename : String) is
+      use GNAT.OS_Lib;
+
+      Inplace      : String := "-i";
+      Args         : constant Argument_List :=
+        (1 => Inplace'Unrestricted_Access, 2 => Filename'Unrestricted_Access);
+      Clang_Format : String_Access := Locate_Exec_On_Path ("clang-format");
+      Success      : Boolean;
+   begin
+      if Clang_Format = null then
+         Put_Line ("clang-format not available");
+         return;
+      end if;
+      Spawn (Clang_Format.all, Args, Success);
+      Free (Clang_Format);
+      if not Success then
+         Put_Line ("pretty-printing " & Filename & " failed!");
+      end if;
+   end Run_Clang_Format;
+
 end Text_Files;

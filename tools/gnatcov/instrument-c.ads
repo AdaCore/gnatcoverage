@@ -73,11 +73,13 @@ private package Instrument.C is
 
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
-         TU : Translation_Unit_T;
+         TU       : Translation_Unit_T;
          Rewriter : Rewriter_T;
-         File : Ada.Strings.Unbounded.Unbounded_String;
 
-         Source_Decisions : Source_Decision_Vectors.Vector;
+         File : Ada.Strings.Unbounded.Unbounded_String;
+         --  Original filename
+
+         Source_Decisions  : Source_Decision_Vectors.Vector;
          Source_Conditions : Source_Condition_Vectors.Vector;
          --  Decisions and (for MC/DC) conditions to be instrumented
 
@@ -165,8 +167,12 @@ private
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record
-      TU : Translation_Unit_T;
+      CIdx     : Index_T;
+      TU       : Translation_Unit_T;
       Rewriter : Rewriter_T;
+      --  Structures that should be freed after rewriting
+
+      Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
    overriding procedure Finalize (Self : in out C_Source_Rewriter);

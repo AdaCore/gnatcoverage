@@ -100,6 +100,9 @@ package Text_Files is
       with Pre => not Self.Is_Open;
    --  Run "gnatpp" on the given file (i.e. reformat/pretty-print it)
 
+   procedure Run_Clang_Format (Filename : String);
+   --  Run "clang-format" on the given file (i.e. reformat/pretty-print it)
+
 private
 
    use Ada.Text_IO;
