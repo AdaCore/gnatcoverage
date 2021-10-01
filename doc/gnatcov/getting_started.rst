@@ -371,19 +371,26 @@ test units for their own coverage achievements.
 Going Further
 =============
 
-Beyond the simple cases sketched previously, |gcp| supports advanced
-capabilities available for both source and object coverage criteria.
+Each of the steps involved in the process overview presented previously
+is described in detail in a specific chapter of this manual, the most
+important ones referenced hereafter:
 
-Two examples are *coverage consolidation*, computing results for a set of
-execution traces, and *exemption regions*, allowing users to define code
-regions for which coverage violations are expected and legitimate.
+- :ref:`bin_traces`
 
-As another example, the handling of libraries with the instrumentation scheme
-requires particular care to prevent re-instrumentation of a library together
-with every different test that exercises part of it.
+- :ref:`src_traces`
 
-The following chapters in this manual provide many more details on such
-topics.
+- :ref:`sunits`
+
+- :ref:`scov`
+
+- :ref:`ocov`
+
+- :ref:`consolidation`
+
+:ref:`exemptions` is also worth noting here, a mechanism allowing
+users to define code regions for which coverage violations are
+expected and legitimate (Ada only at this stage).
+
 
 Conventions used in the rest of this manual
 ===========================================
