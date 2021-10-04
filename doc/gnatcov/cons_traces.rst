@@ -13,10 +13,10 @@ trace (file name, timestamp, tag), is visible in the index page of html
 reports and in the *Assessment Context* section of :option:`=report` outputs,
 where the command line is quoted.
 
-Trace consolidation works the same for source or binary traces. All the traces
-provided for a consolidation must be of the same kind (source or binary),
-however. Even though this may not be rejected by the tool, mixing binary and
-source traces is not supported.
+Trace consolidation works the same for source or binary traces. Mixing
+binary and source traces is not supported, however, so all the traces
+provided for a consolidation must be of the same kind (all source or
+all binary).
 
 The following subsections provide examples of possible use cases of this facility.
 
@@ -313,16 +313,15 @@ files: ``process.c`` doing the computation and displaying the result, and
    #endif
 
 
-Here is a sequence of compilation/executions for various use cases, producing
-binary traces on a native system where command line arguments for the program
-are supported by |gcvrun|. Each execution is requested to produce a specific
-trace file::
+Assuming an instrumented version of the program was built, here is a
+sequence of executions for various use cases, producing source traces
+on a native system and controlling the trace name by way of our
+dedicated environment variable::
 
-   gcc -o calc main.c process.c -g -fpreserve-control-flow -fdump-scos
-   gnatcov run --output=mult.trace -eargs ./calc 6 5 '*'
-   gnatcov run --output=plus.trace -eargs ./calc 2 3 '+'
-   gnatcov run --output=div.trace -eargs ./calc 2 3 '/'
-   gnatcov run --output=misuse.trace -eargs ./calc
+   GNATCOV_TRACE_FILE=mult.srctrace ./calc 6 5 '*'
+   GNATCOV_TRACE_FILE=plus.srctrace ./calc 2 3 '+'
+   GNATCOV_TRACE_FILE=div.srctrace  ./calc 2 3 '/'
+   GNATCOV_TRACE_FILE=misuse.srctrace ./calc
 
 Now we can use |gcvcov| to assess the coverage achieved by arbitrary
 combinations of the executions, just by passing the corresponding traces.
@@ -330,7 +329,7 @@ For example, combining the two executions exercising the ``*`` and ``+``
 computations for statement coverage can be achieved with::
 
    gnatcov coverage --scos=main.c.gli --scos=process.c.gli \
-      --annotate=xcov --level=stmt mult.trace plus.trace
+      --annotate=xcov --level=stmt mult.srctrace plus.srctrace
 
 And this yields reports in ``main.c.xcov`` and ``process.c.xcov`` like::
 
@@ -381,8 +380,8 @@ We observe a reported absence of coverage for statements corresponding to the
 treatment of two kinds of usage error: wrong number of command line arguments,
 visible on lines 7, 14, and 15 of ``main.c``, and attempt to compute an
 unsupported operation, visible on lines 21 and 22 of ``process.c``. These two
-scenarios, exercised through ``div.trace`` and ``misuse.trace`` were indeed
-not included in the consolidation scope.
+scenarios, exercised through ``div.srctrace`` and ``misuse.srctrace`` were
+indeed not included in the consolidation scope.
 
 Special care needed with binary traces
 ======================================
