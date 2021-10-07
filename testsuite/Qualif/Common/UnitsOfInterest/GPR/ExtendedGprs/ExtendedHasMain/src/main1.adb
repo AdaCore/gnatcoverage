@@ -1,6 +1,6 @@
-with Ada.Text_IO;
+with Blob;
 
 procedure Main1 is
 begin
-   Ada.Text_IO.Put_Line ("Hello!");
+   Blob.X := 1;
 end Main1;

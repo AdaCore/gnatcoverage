@@ -33,7 +33,11 @@ build_run_and_coverage(
     gpr_obj_dir='ext-obj',
     extra_coverage_args=['-axcov'])
 
+# In blob.ads, we expect either '+' or '.' on everything, depending
+# on the toolchain. Let check_xcov_reports refine that.
+
 check_xcov_reports('ext-obj/*.xcov', {
+    'ext-obj/blob.ads.xcov': {},
     'ext-obj/main1.adb.xcov': {'+': {5}},
     'ext-obj/main2.adb.xcov': {'+': {5, 6}}})
 
