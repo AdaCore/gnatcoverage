@@ -22,3 +22,9 @@ end;
 
 --  /loc_return/    l+ ## 0
 --  /loc_expr/      l+ ## 0c
+
+-- Old compilers are weak on mere declarations, possibly
+-- keyed on optimization.
+
+-- %tags:7.1.2
+-- =/point_decl/    ~l- ## ~s-

@@ -21,3 +21,10 @@ end;
 
 --  /ikind_return/    l- ## s-
 --  /ikind_expr/      l- ## 0c
+
+-- Old compilers are weak on mere declarations, possibly
+-- keyed on optimization.
+
+-- %tags:7.1.2
+-- =/range_decl/    ~l- ## ~s-
+-- =/point_decl/    ~l- ## ~s-
