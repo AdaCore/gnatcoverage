@@ -1339,7 +1339,7 @@ class TestSuite(e3.testsuite.Testsuite):
         # --RTS=light-<board> or --RTS=light (e.g. for VxWorks) correspond to
         # the former zfp-<board> variants
 
-        elif "light" in self.main.args.RTS:
+        elif "light" in self.main.args.RTS or "zfp" in self.main.args.RTS:
             return ["RTS_ZFP"]
 
         # ex --RTS=powerpc-elf/embedded or --RTS=embedded or --RTS=ravenscar

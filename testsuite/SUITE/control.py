@@ -242,6 +242,8 @@ class RuntimeInfo(object):
             self.has_ravenscar_runtime = True
         elif 'light-tasking' in self.runtime_name:
             self.has_ravenscar_runtime = True
+        elif self.runtime_name.startswith('zfp'):
+            self.has_light_runtime = True
         elif self.runtime_name.startswith('light-'):
             self.has_light_runtime = True
         elif self.runtime_name == 'kernel':
