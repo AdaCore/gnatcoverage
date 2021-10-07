@@ -17,5 +17,11 @@ end;
 --  /sum/   l+ ## 0
 --  /carry/ l+ ## 0
 
--- %tags: (7.1.2|7.2.2)
+--  Old versions of the compiler are imprecise on mutli-line SCOs or
+--  multi-SCO lines, in particular with optimization. The degraded
+--  expectations below are not ideal, but are not a potential safety
+--  issue and are not so incorrect for a statement spanning multiple
+--  lines.
+
+-- %tags: (7.1.2|7.2.2) %cargs: -O1
 -- =/carry/ l! ## s!

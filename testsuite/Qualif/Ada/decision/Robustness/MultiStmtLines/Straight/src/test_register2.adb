@@ -22,8 +22,6 @@ end;
 --  Some compilers are imprecise with multiple stmts on a line
 
 -- %tags:(7.1.2|7.2.2)
---  =/init/   l! ## s!, d!
---  =/double/ l! ## s!, d!
---  =/triple/ l! ## s!, d!
---  =/hits/   l! ## s!, dF-
+-- =/init/   l! ## s!,dF-:"if Hit > 0"
+-- =/triple/ l! ## s!,dT-:"if Triple"
 
