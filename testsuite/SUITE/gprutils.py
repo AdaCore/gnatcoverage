@@ -158,7 +158,7 @@ class GPRswitches:
             built projects (--externally-built-projects).
         :param list[(str,str)] xvars: Optional list of (varname, value) tuples
             for scenario variables (--X arguments).
-        :param str units: Optional --subdirs argument.
+        :param str subdirs: Optional --subdirs argument.
         """
         self.root_project = root_project
         self.projects = projects or []
