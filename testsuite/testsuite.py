@@ -111,6 +111,14 @@ class QlevelInfo(object):
         # qualification mode
         self.xcovlevel = xcovlevel
 
+    def hosts(self, test_dir):
+        """
+        Whether the subtrees covered by this Qlevel encompass the
+        provided test directory, which may be relative to a testsuite
+        root or absolute.
+        """
+        return re.search(pattern=self.subtrees, string=test_dir)
+
 
 RE_QCOMMON = "(Common|Appendix)"
 RE_QLANG = "(%s)" % '|'.join(QLANGUAGES)
@@ -505,9 +513,11 @@ class TestPyRunner:
         # propagating empty arguments.
 
         # In qualification mode, pass the target qualification level to
-        # qualification tests and enforce the proper xcov-level
+        # qualification tests and enforce the proper xcov-level. Note that
+        # if we reach here, we already know that this test is relevant to
+        # the requested level (validated by GNATcovTestFinder.probe):
 
-        if mopt.qualif_level and self.qualif_levels():
+        if mopt.qualif_level:
             testcase_cmd.append('--qualif-level=%s' % mopt.qualif_level)
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
@@ -857,18 +867,6 @@ class TestPyRunner:
         with open(self.errf(), 'a') as f:
             f.write('\n'.join(comments))
 
-    # -------------------------
-    # -- Testcase properties --
-    # -------------------------
-
-    def qualif_levels(self):
-        """List of qualification levels to which SELF applies"""
-
-        # Check which QLEVEL subtrees would match ...
-        return [qlevel
-                for qlevel in QLEVEL_INFO
-                if re.search(QLEVEL_INFO[qlevel].subtrees, self.test_dir())]
-
 
 class TestPyDriver(TestDriver):
     """
@@ -927,6 +925,13 @@ class GroupPyDriver(TestDriver):
 class GNATcovTestFinder(TestFinder):
 
     def probe(self, testsuite, dirpath, dirnames, filenames):
+
+        # If we are running in qualification mode, punt if this test
+        # is not within the subtrees attached to the requested level.
+        qlevel = testsuite.main.args.qualif_level
+        if qlevel and not QLEVEL_INFO[qlevel].hosts(dirpath):
+            return None
+
         # If directory contains a "test.py" file *and* not a ".generated"
         # one, this this is a regular testcase.
         if 'test.py' in filenames and '.generated' not in filenames:
