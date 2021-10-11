@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2021, AdaCore                     --
+--                     Copyright (C) 2008-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -296,6 +296,8 @@ package body Instrument.Ada_Unit is
      Index (Ada_Handled_Stmts, Handled_Stmts_F_Stmts);
    I_Subp_Spec_F_Subp_Params        : constant Integer :=
      Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Params);
+   I_Subp_Spec_F_Name               : constant Integer :=
+     Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Name);
 
    ---------------------
    -- Unbounded texts --
@@ -1905,14 +1907,14 @@ package body Instrument.Ada_Unit is
         & "_With_State_"
         & To_Wide_Wide_String (Img (UIC.Degenerate_Subprogram_Index));
 
-      Need_NP : constant Boolean :=
+      Need_WP : constant Boolean :=
         Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
 
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
 
       Callee    : constant Node_Rewriting_Handle :=
-        (if Need_NP
+        (if Need_WP
          then Create_Dotted_Name
            (RC,
             F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
@@ -1929,7 +1931,7 @@ package body Instrument.Ada_Unit is
 
       --  No need for a declaration if we are using a nested package
 
-      Needs_Decl : constant Boolean := not Need_NP
+      Needs_Decl : constant Boolean := not Need_WP
         and then Augmented_Expr_Function_Needs_Decl
           (Common_Nodes.N.As_Expr_Function);
 
@@ -1977,11 +1979,46 @@ package body Instrument.Ada_Unit is
       --  function, create it. Otherwise, set it to No_Node_Rewriting_Handle.
 
       if Needs_Decl then
-         Augmented_Expr_Function_Decl := Create_Subp_Decl
-           (Handle       => UIC.Rewriting_Context,
-            F_Overriding => No_Node_Rewriting_Handle,
-            F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
-            F_Aspects    => No_Node_Rewriting_Handle);
+         declare
+            --  If the augmented EF needs to have a previous declaration, then
+            --  it should be based on the previous declaration of the original
+            --  EF to avoid potential visibility issues introduced by
+            --  use-clauses in between the declaration and the completion.
+
+            Previous_Spec : constant Subp_Spec :=
+              Common_Nodes.N.P_Previous_Part_For_Decl.As_Subp_Decl.F_Subp_Spec;
+
+            New_Spec : constant Node_Rewriting_Handle := Clone (Previous_Spec);
+            --  Clone the spec of the original declaration
+
+         begin
+            --  Replace the original EF name by the augmented EF name
+
+            Set_Child (New_Spec,
+                       I_Subp_Spec_F_Name,
+                       Make_Identifier (UIC, Augmented_Expr_Func_Name));
+
+            --  Add the augmented params to this spec as well
+
+            Set_Child
+              (New_Spec,
+               I_Subp_Spec_F_Subp_Params,
+               Create_Params (RC, Clone (Formal_Params)));
+
+            Augmented_Expr_Function_Decl := Create_Subp_Decl
+              (Handle       => UIC.Rewriting_Context,
+               F_Overriding => No_Node_Rewriting_Handle,
+               F_Subp_Spec  => New_Spec,
+               F_Aspects    => No_Node_Rewriting_Handle);
+
+         exception
+            when Exc : Property_Error =>
+               Report (Node => Common_Nodes.N,
+                       Msg  => "Could not find previous declaration for the"
+                                & " expression function: "
+                                & Ada.Exceptions.Exception_Information (Exc),
+                       Kind => Low_Warning);
+         end;
       else
          Augmented_Expr_Function_Decl := No_Node_Rewriting_Handle;
       end if;
@@ -2016,7 +2053,7 @@ package body Instrument.Ada_Unit is
          end;
       end if;
 
-      if Need_NP then
+      if Need_WP then
 
          --  Put the augmented expression function in the wrapper package, and
          --  return its handle instead of the one of the expression function.
