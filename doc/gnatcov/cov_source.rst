@@ -819,22 +819,45 @@ Decision Coverage analysis
 Core notions and Reporting (:option:`--level=stmt+decision`)
 ------------------------------------------------------------
 
-With the :option:`--level=stmt+decision` command line option, |gcv| performs
-combined Statement and Decision Coverage assessments.
+With the :option:`--level=stmt+decision` command line option, |gcv|
+performs Statement and Decision Coverage assessments combined
+together. :dfn:`Decisions` in this context are defined as:
 
-In this context, we consider to be a :dfn:`decision` any Boolean expression
-used to influence the control flow via explicit constructs in the source
-program, such as ``if`` statements or ``while`` loops, regardless of the type
-of this expression. This may be of essentially any type in C, and subtypes or
-types derived from the fundamental Boolean type in Ada.
+* Any Boolean expression used to influence the control flow via
+  explicit constructs in the source program, such as ``if`` statements
+  or ``while`` loops;
+
+* The controlling predicate of Ada if-expressions or C
+  conditional-expressions, in any kind of context except Ada
+  contracts.
+
+* The iteration predicate of Ada quantified expressions, in the same
+  contexts as for if-expressions.
+
+The expression may be of essentially any type in C. In Ada, this may
+be the standard Boolean type, or subtypes of it, or derived types
+thereof. Here are a few examples show-casing decisions in a variety of
+contexts::
+
+  while (z++) ...  /* "z++", controlling a while-loop.  */
+
+  if X > 0 then ...  -- "X > 0", controlling an if-statement
+
+  q = z-- ? x : y;  /* "z++", conditional-expression predicate.  */
+
+  Q := (X if Z < 2 else Y); -- "Z < 2", if-expression predicate
+
+  Z := (for all X of Container => P(X));  -- "P(X)", quantified-expression predicate
+  T := (for some X of Container => P(X));
+
 
 A decision is said :dfn:`fully covered`, or just :dfn:`covered`, as soon as it
-has been evaluated at least once True and once False during the program
+has been evaluated at least once True and once False during program
 execution. If only one of these two possible outcomes was exercised, the
 decision is said :dfn:`partially covered`.
 
-A decision is also said :dfn:`partially covered` when none of the possible
-outcomes was exercised, which happens when the enclosing statement was not
+When none of the possible outcomes was exercised, the decision is said
+:dfn:`uncovered`. This happens when either the enclosing statement was not
 executed at all or when all the attempted evaluations were interrupted
 e.g. because of exceptions. In the former case, when a decision is part of a
 statement and the statement is not executed at all, only the statement level
@@ -844,7 +867,6 @@ this case and diagnosing them as well would only add redundancy.
 The :option:`=report` synthetic output lists the statement and decision
 coverage violations in the ``STMT`` and ``DECISION`` coverage report section
 respectively.
-
 For the :option:`=xcov` and :option:`=html` annotated-source oriented formats,
 the single annotation produced on each source line combines the statement and
 decision coverage indications. The following table summarizes the meaning of
@@ -870,17 +892,16 @@ the annotation.
 Example program and assessments
 -------------------------------
 
-To illustrate, we consider the example functional Ada unit below, with the
-spec and body stored in source files named ``divmod.ads`` and ``divmod.adb``:
+Consider the example functional Ada unit below, with the spec and body
+stored in source files named ``divmod.ads`` and ``divmod.adb``:
 
 .. code-block:: ada
 
    procedure Divmod
      (X, Y : Integer; Value : out Integer;
       Divides : out Boolean; Tell : Boolean);
-   --  Compute X / Y into VALUE and set DIVIDES to indicate
-   --  whether  Y divides X. Output a note to this effect when
-   --  requested to TELL.
+   --  Compute X / Y into VALUE and set DIVIDES to indicate whether
+   --  Y divides X. Output a note to this effect when requested to TELL.
 
    procedure Divmod
      (X, Y : Integer; Value : out Integer;
@@ -1028,22 +1049,15 @@ Core notions and Reporting  (:option:`--level=stmt+mcdc`)
 
 Combined Statement and Modified Condition/Decision Coverage (MCDC) analysis is
 performed by passing the :option:`--level=stmt+mcdc` option to |gcvcov|
-commands.
+commands. :dfn:`Decisions` in this context are defined as:
 
-In this case, the tool treats as :dfn:`decisions` the following set of
-expressions:
+* All the expressions considered as decisions for decision coverage,
+  then also:
 
-* All the Boolean expressions used as the controlling conditional in explicit
-  control flow source constructs such as ``if`` statements or ``while`` loops,
-  as for the simpler decision coverage criterion, then also:
-
-* The controlling expression of Ada *if-expressions* or C
-  *conditional-operators*;
-
-* All the Boolean expressions which combine operands with *short-circuit*
-  logical operators in other contexts (``&&`` and ``||`` in C, ``and then``
-  and ``or else`` by default in Ada, for example on the right hand side of
-  assignements or in return expressions).
+* All the Boolean expressions which combine operands with
+  *short-circuit* logical operators ("``&&``" and "``||``" in C,
+  "``and then``" and "``or else``" by default in Ada), in any kind of
+  context except Ada contracts.
 
 Then for all the decisions in the sources of interest:
 
