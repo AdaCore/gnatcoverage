@@ -140,10 +140,9 @@ package Instrument.Common is
    --  its coverage buffers (Coverage_Buffer_Type and Unit_Coverage_Buffers
    --  records).
 
-   function Pure_Buffer_Unit
-     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
-   --  Given a unit to instrument, return the name of the unit that holds
-   --  addresses to its coverage buffers.
+   function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String;
+   --  Name of the symbol that references the gnatcov_rts_unit_coverage_buffers
+   --  struct for this unit.
 
    function Project_Output_Dir (Project : Project_Type) return String;
    --  Return the directory in which we must create instrumented sources for
@@ -481,10 +480,6 @@ package Instrument.Common is
       --  Name of the compilation unit that holds coverage buffers for the
       --  unit currently being instrumented (see Common.Buffer_Unit).
 
-      Pure_Buffer_Unit : Compilation_Unit_Name;
-      --  Name of the compilation unit that holds addresses for the coverage
-      --  buffers of the unit being instrumented (see Common.Pure_Buffer_Unit).
-
       Unit_Bits : LL_Unit_Bit_Allocs;
       --  Record of allocation of coverage buffer bits for low-level SCOs
 
@@ -523,24 +518,10 @@ package Instrument.Common is
       Element_Type => Ada_Qualified_Name,
       "="          => Ada_Identifier_Vectors."=");
 
-   function Buffer_Units_For_Closure
+   function Instr_Units_For_Closure
      (IC   : Inst_Context;
-      Main : Compilation_Unit_Name)
-      return Ada_Qualified_Name_Vectors.Vector;
-   --  Return the list of buffer units names for all units of interest in
-   --  Main's closure. If for some reason we cannot get this list, just return
-   --  an empty one.
-
-   procedure Emit_Ada_Dump_Helper_Unit
-     (IC          : Inst_Context;
-      Info        : in out Project_Info;
-      Main        : Compilation_Unit_Name;
-      Language    : Any_Language;
-      Helper_Unit : out Ada_Qualified_Name);
-   --  Emit the unit to contain helpers to implement the automatic dump of
-   --  coverage buffers for the given Main unit. Info must be the project that
-   --  owns this main. Language is the language for this main compilation unit.
-   --  Upon return, the name of this helper unit is stored in Helper_Unit.
+      Main : Compilation_Unit_Name) return CU_Name_Vectors.Vector;
+   --  Return the list of instrumented units in Main's closure
 
 private
 

@@ -18,6 +18,11 @@
 
 --  Stub of Instrument.C, to avoid pulling a dependency to libclang when
 --  gnatcov is not built with C support.
+--
+--  TODO??? this will need rework when C is enabled by default (see V222-037).
+--  When gnatcov is built with C_SUPPORT=False, it will try to instrument C
+--  units, using the procedures defined here, which will result in a crash (all
+--  the procedures are empty stubs raising an error).
 
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
@@ -43,6 +48,10 @@ private package Instrument.C is
      (Self           : out C_Source_Rewriter;
       Info           : in out Project_Info;
       Input_Filename : String);
+
+   procedure Emit_Buffers_List_Unit
+     (IC                : in out Inst_Context;
+      Root_Project_Info : in out Project_Info);
 
    procedure Instrument_Unit
      (CU_Name   : Compilation_Unit_Name;

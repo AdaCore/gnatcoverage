@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                    Copyright (C) 2021-2022, AdaCore                      --
+--                     Copyright (C) 2021-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -22,42 +22,18 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This unit needs to be compilable with Ada 95 compilers
+--  Ada bindings for gnatcov_rts_c_strings.h
 
-package body GNATcov_RTS.Traces.Output.Bytes_IO is
+with Interfaces.C; use Interfaces.C;
 
-   ------------
-   --  Close --
-   ------------
+package GNATcov_RTS.Strings is
 
-   procedure Close (File : in out File_Type) is
-   begin
-      OSLIB.Close (FD => File.FD);
-   end Close;
+   pragma Pure;
 
-   -------------
-   --  Create --
-   -------------
+   type GNATcov_RTS_String is record
+      Str    : System.Address;
+      Length : size_t;
+   end record;
+   pragma Convention (C_Pass_By_Copy, GNATcov_RTS_String);
 
-   procedure Create (File : in out File_Type; Name : String) is
-   begin
-      File.FD := OSLIB.Create_File (Name => Name, Fmode => OSLIB.Binary);
-      if File.FD = OSLIB.Invalid_FD then
-         raise IO_Error;
-      end if;
-   end Create;
-
-   ------------
-   --  Write --
-   ------------
-
-   procedure Write (File : File_Type; Byte : U8) is
-      N : Integer;
-   begin
-      N := OSLIB.Write (FD => File.FD, A => Byte'Address, N => 1);
-      if N /= 1 then
-         raise IO_Error;
-      end if;
-   end Write;
-
-end GNATcov_RTS.Traces.Output.Bytes_IO;
+end GNATcov_RTS.Strings;

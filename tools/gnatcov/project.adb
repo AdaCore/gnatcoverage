@@ -563,27 +563,6 @@ package body Project is
       return Are_SIDs_Enumerated;
    end SIDs_Enumerated;
 
-   ----------------------
-   -- Has_Ada_Language --
-   ----------------------
-
-   function Has_Ada_Language return Boolean is
-   begin
-      for Prj_Info of Prj_Map loop
-         declare
-            Languages : constant String_List :=
-              GNATCOLL.Projects.Languages (Prj_Info.Project);
-         begin
-            if (for all Language of Languages =>
-                  To_Lower (Language.all) /= "ada")
-            then
-               return False;
-            end if;
-         end;
-      end loop;
-      return True;
-   end Has_Ada_Language;
-
    -----------------------
    -- Enumerate_Sources --
    -----------------------

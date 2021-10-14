@@ -24,22 +24,29 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with System;
+with GNAT.IO;
 
-package body GNATcov_RTS.Traces is
+with Interfaces.C; use Interfaces.C;
 
-   ----------------------
-   -- Native_Endianity --
-   ----------------------
+package body GNATcov_RTS.Base_Io is
 
-   function Native_Endianity return Supported_Endianity is
-      use type System.Bit_Order;
+   ---------
+   -- Put --
+   ---------
+
+   procedure Put (C : Character) is
    begin
-      if System.Default_Bit_Order = System.Low_Order_First then
-         return Little_Endian;
-      else
-         return Big_Endian;
-      end if;
-   end Native_Endianity;
+      GNAT.IO.Put (C);
+   end Put;
 
-end GNATcov_RTS.Traces;
+   --------------
+   -- Put_Line --
+   --------------
+
+   procedure Put_Line (S : GNATcov_RTS_String) is
+      Str : String (1 .. Integer (S.Length));
+      for Str'Address use S.Str;
+   begin
+      GNAT.IO.Put_Line (Str);
+   end Put_Line;
+end GNATcov_RTS.Base_Io;

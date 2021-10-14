@@ -171,15 +171,45 @@ package body Instrument.C is
    -- Source instrumentation --
    ----------------------------
 
-   procedure Emit_C_Buffer_Unit
+   function Unit_Buffers_Array_Name (IC : Inst_Context) return String is
+      ("gnatcov_rts_buffers_array_" & (+IC.Project_Name));
+   --  Name of the symbol that references the
+   --  gnatcov_rts_unit_coverage_buffers_array struct (defined for the whole
+   --  project). This struct is an array containing the coverage buffers of all
+   --  of the instrumented units.
+   --
+   --  We need this to be unique per root project instrumented, as gnatcov
+   --  gives the possibility to link two separately-instrumented libraries in
+   --  the same executable.
+
+   function Buffers_List_Filename (IC : Inst_Context) return String is
+     ("gnatcov_rts_c-buffers-lists-" & (+IC.Project_Name));
+   --  Return the name of the unit containing the array of coverage buffers
+
+   function Buffers_List_Filename_Body (IC : Inst_Context) return String is
+     (Buffers_List_Filename (IC) & ".c");
+   --  Return the implementation filename body of the unit containing the
+   --  array of coverage buffers.
+
+   function Buffers_List_Filename_Header (IC : Inst_Context) return String is
+     (Buffers_List_Filename (IC) & ".h");
+   --  Return the implementation filename header of the unit containing the
+   --  array of coverage buffers.
+
+   procedure Emit_Buffer_Unit
      (Info : in out Project_Info; UIC : C_Unit_Inst_Context'Class);
    --  Emit the unit to contain coverage buffers for the given instrumented
    --  unit.
 
-   procedure Emit_Ada_Buffer_Unit
-     (Info : in out Project_Info; UIC : C_Unit_Inst_Context'Class);
-   --  Emit the ada buffer unit that contain references to the coverage buffers
-   --  defined in the buffer unit.
+   procedure Emit_Dump_Helper_Unit
+     (IC          : Inst_Context;
+      Info        : in out Project_Info;
+      Main        : Compilation_Unit_Name;
+      Helper_Unit : out US.Unbounded_String);
+   --  Emit the unit to contain helpers to implement the automatic dump of
+   --  coverage buffers for the given Main unit. Info must be the project that
+   --  owns this main. Upon return, the name of this helper unit is stored in
+   --  Helper_Unit.
 
    procedure Run_Diagnostics (TU : Translation_Unit_T);
    --  Output clang diagnostics on the given translation unit
@@ -1664,7 +1694,7 @@ package body Instrument.C is
       Orig_Filename : constant String  := +Unit_Info.Filename;
 
       Buffer_Filename : constant String :=
-        To_Symbol_Name (Sys_Buffers) & "_b" & Instrumented_Unit_Slug (CU_Name)
+        To_Symbol_Name (Sys_Buffers) & "_b_" & Instrumented_Unit_Slug (CU_Name)
         & ".c";
       --  Name of the generated source file holding the coverage buffers
 
@@ -1685,8 +1715,6 @@ package body Instrument.C is
       UIC.Instrumented_Unit := CU_Name;
       UIC.Buffer_Unit :=
         CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
-      UIC.Pure_Buffer_Unit :=
-        CU_Name_For_Unit (Buffer_Unit (CU_Name), GPR.Unit_Spec);
       UIC.File := +Orig_Filename;
 
       Start_Rewriting (Self           => Rewriter,
@@ -1864,34 +1892,15 @@ package body Instrument.C is
       Rewriter.Apply;
    end Instrument_Source_File;
 
-   --------------------------
-   -- Unit instrumentation --
-   --------------------------
+   ----------------------
+   -- Emit_Buffer_Unit --
+   ----------------------
 
-   function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String;
-   --  Name of the buffers struct for this unit
-
-   -----------------------
-   -- Unit_Buffers_Name --
-   -----------------------
-
-   function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String is
-   begin
-      return To_Symbol_Name (Sys_Buffers) & "_" & Instrumented_Unit_Slug (Unit)
-        & "_buffers";
-   end Unit_Buffers_Name;
-
-   ------------------------
-   -- Emit_C_Buffer_Unit --
-   ------------------------
-
-   procedure Emit_C_Buffer_Unit
+   procedure Emit_Buffer_Unit
      (Info : in out Project_Info; UIC : C_Unit_Inst_Context'Class)
    is
       use Ada.Strings.Unbounded;
       CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
-      Filename : constant String :=
-        Instrumented_Unit_Slug (CU_Name) & "_buffers.c";
       File    : Text_Files.File_Type;
 
       --  As a reminder, the representation of a static-array variable differs
@@ -1911,7 +1920,7 @@ package body Instrument.C is
       MCDC_Buffer_Repr      : constant String :=
         "__" & MCDC_Buffer_Symbol (UIC.Instrumented_Unit);
    begin
-      Create_File (Info, File, Filename);
+      Create_File (Info, File, +CU_Name.Filename);
 
       declare
          Fingerprint : Unbounded_String;
@@ -1947,7 +1956,7 @@ package body Instrument.C is
             end loop;
             Append (Fingerprint, "}");
          end;
-         File.Put_Line ("#include ""gnatcov_rts_c_buffers.h""");
+         File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
          File.New_Line;
          File.Put_Line
            ("unsigned char " & Statement_Buffer_Repr & "["
@@ -1981,7 +1990,7 @@ package body Instrument.C is
                         & "= {");
          File.Put_Line ("    .fingerprint = " & To_String (Fingerprint) & ",");
 
-         File.Put_Line ("    .language = "
+         File.Put_Line ("    .language_kind = "
                         & Integer'Image
                           (Any_Language_Kind'Pos (File_Based_Language))
                         & ",");
@@ -1989,14 +1998,11 @@ package body Instrument.C is
                         & Integer'Image
                           (Any_Unit_Part'Pos (Not_Applicable_Part))
                         & ",");
-         File.Put_Line ("    .unit_name = " & """" & Unit_Name & """" & ",");
-         File.Put_Line ("    .unit_name_length = "
-                        & Strings.Img (Unit_Name'Length) & ",");
+         File.Put_Line ("    .unit_name = " & "STR (""" & Unit_Name
+                        & """)" & ",");
 
-         File.Put_Line ("    .project_name = " & """" & Project_Name & """"
-                        & ",");
-         File.Put_Line ("    .project_name_length = "
-                        & Strings.Img (Project_Name'Length) & ",");
+         File.Put_Line ("    .project_name = " & "STR (""" & Project_Name
+                        & """)" & ",");
 
          --  We do not use the created pointer (Statement_Buffer) to initialize
          --  the buffer fields, as this is rejected by old versions of the
@@ -2016,108 +2022,116 @@ package body Instrument.C is
 
          File.Put_Line ("};");
       end;
-   end Emit_C_Buffer_Unit;
+   end Emit_Buffer_Unit;
 
-   --------------------------
-   -- Emit_Ada_Buffer_Unit --
-   --------------------------
+   ---------------------------
+   -- Emit_Dump_Helper_Unit --
+   ---------------------------
 
-   procedure Emit_Ada_Buffer_Unit
-     (Info : in out Project_Info; UIC : C_Unit_Inst_Context'Class)
+   procedure Emit_Dump_Helper_Unit
+     (IC          : Inst_Context;
+      Info        : in out Project_Info;
+      Main        : Compilation_Unit_Name;
+      Helper_Unit : out US.Unbounded_String)
    is
-      use Ada.Strings.Unbounded;
-      CU_Name : Compilation_Unit_Name renames UIC.Pure_Buffer_Unit;
-      File    : Text_Files.File_Type;
-      Project_Name : constant String := +UIC.Instrumented_Unit.Project_Name;
+      File : Text_Files.File_Type;
+
+      Output_Proc : constant String :=
+        (case IC.Dump_Config.Channel is
+            when Binary_File => "gnatcov_rts_write_trace_file_wrapper",
+            when Base64_Standard_Output =>
+              "gnatcov_rts_write_trace_file_base64");
+
+      Indent1 : constant String := "    ";
+      Indent2 : constant String := Indent1 & "  ";
+
    begin
-      Create_File (Info,
-                   File,
-                   To_Filename (Info.Project, CU_Name, Ada_Language));
-      Put_Warnings_And_Style_Checks_Pragmas (File);
+      --  Create the name of the helper unit
+
+      Helper_Unit := +(To_Symbol_Name (Sys_Buffers) & "_d_"
+                       & (+Main.Filename));
+
+      --  Compute the qualified names we need for instrumentation
 
       declare
-         Pkg_Name : constant String := To_Ada (CU_Name.Unit);
-
-         Fingerprint : US.Unbounded_String;
-
-         Unit_Name : constant String :=
-           To_Filename (Info.Project, UIC.Instrumented_Unit, C_Language);
-
-         Statement_Last_Bit : constant String := Img
-           (UIC.Unit_Bits.Last_Statement_Bit);
-         Decision_Last_Bit  : constant String := Img
-           (UIC.Unit_Bits.Last_Outcome_Bit);
-         MCDC_Last_Bit      : constant String := Img
-           (UIC.Unit_Bits.Last_Path_Bit);
+         Filename       : constant String := +Helper_Unit;
+         Dump_Procedure : constant String :=
+           Dump_Procedure_Symbol (Main);
 
       begin
-         --  Turn the fingerprint value into the corresponding Ada literal
+         --  Emit the package body
 
-         declare
-            First : Boolean := True;
-         begin
-            Append (Fingerprint, "(");
-            for Byte of SC_Obligations.Fingerprint (UIC.CU) loop
-               if First then
-                  First := False;
-               else
-                  Append (Fingerprint, ", ");
-               end if;
-               Append (Fingerprint, Strings.Img (Integer (Byte)));
-            end loop;
-            Append (Fingerprint, ")");
-         end;
+         Create_File (Info, File, Filename);
 
-         File.Put_Line ("package " & Pkg_Name & " is");
+         File.Put_Line ("#include ""gnatcov_rts_c_strings.h""");
+
+         case IC.Dump_Config.Channel is
+            when Binary_File =>
+               File.Put_Line ("#include """
+                              & "gnatcov_rts_c-traces-output-files.h""");
+               File.Put_Line ("#include ""gnatcov_rts_c-os_interface.h""");
+            when Base64_Standard_Output =>
+               File.Put_Line ("#include """
+                              & "gnatcov_rts_c-traces-output-base64.h""");
+         end case;
+         File.Put_Line ("#include <stdlib.h>");
+         File.Put_Line
+           ("#include """ & Buffers_List_Filename_Header (IC) & """");
+
+         --  Emit the procedure to write the trace file
+
          File.New_Line;
-         File.Put_Line ("   Statement_Buffer_Address : constant System.Address"
-                        & ";");
-         File.Put_Line ("   pragma Import (C, Statement_Buffer_Address, """
-                        & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
-                        & """);");
-         File.New_Line;
+         File.Put_Line ("void " & Dump_Procedure & " (void) {");
 
-         File.Put_Line ("   Decision_Buffer_Address : constant System.Address"
-                        & ";");
-         File.Put_Line ("   pragma Import (C, Decision_Buffer_Address, """
-                        & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
-                        & """);");
-         File.New_Line;
+         File.Put_Line (Indent1 & Output_Proc & " (");
+         File.Put_Line (Indent2 & "&" & Unit_Buffers_Array_Name (IC) & ",");
+         case IC.Dump_Config.Channel is
+         when Binary_File =>
+            declare
 
-         File.Put_Line ("   MCDC_Buffer_Address : constant System.Address;");
-         File.Put_Line ("   pragma Import (C, MCDC_Buffer_Address, """
-                        & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
-                        & """);");
-         File.New_Line;
+               Env_Var : constant String :=
+                 (if US.Length (IC.Dump_Config.Filename_Env_Var) = 0
+                  then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
+                  else """" & (+IC.Dump_Config.Filename_Env_Var) & """");
+               Prefix  : constant String :=
+                 (if US.Length (IC.Dump_Config.Filename_Prefix) = 0
+                  then """" & (+Main.Filename) & """"
+                  else """" & (+IC.Dump_Config.Filename_Prefix) & """");
+               Tag     : constant String := """" & (+IC.Tag) & """";
+               Simple  : constant String :=
+                 (if IC.Dump_Config.Filename_Simple then "1" else "0");
+            begin
+               File.Put_Line
+                 (Indent2 & "gnatcov_rts_default_trace_filename(");
+               File.Put_Line (Indent2 & Env_Var & ",");
+               File.Put_Line (Indent2 & Prefix & ",");
+               File.Put_Line (Indent2 & Tag & ",");
+               File.Put_Line (Indent2 & Simple & "),");
 
-         File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
-         File.Put_Line ("     (Unit_Name_Length => "
-                        & Strings.Img (Unit_Name'Length) & ",");
-         File.Put_Line ("      Project_Name_Length => "
-                        & Strings.Img (Project_Name'Length) & ",");
-         File.Put_Line ("      Fingerprint => "
-                        & To_String (Fingerprint) & ",");
+               File.Put_Line (Indent2 & "STR (""" & (+Main.Filename)
+                              & """),");
+               File.Put_Line (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
+               File.Put_Line (Indent2 & "STR ("""")");
+            end;
 
-         File.Put_Line ("      Language_Kind => File_Based_Language,");
-         File.Put_Line ("      Unit_Part     => Not_Applicable_Part,");
-         File.Put_Line ("      Unit_Name     => """ & Unit_Name & """,");
+         when Base64_Standard_Output =>
 
-         File.Put_Line ("      Project_Name => " & """" & Project_Name
-                        & """,");
+            --  Configurations using this channel generally run on embedded
+            --  targets and have a small runtime, so our best guess for the
+            --  program name is the name of the main, and there is no way to
+            --  get the current execution time.
 
-         File.Put_Line ("      Statement => Statement_Buffer_Address,");
-         File.Put_Line ("      Decision  => Decision_Buffer_Address,");
-         File.Put_Line ("      MCDC      => MCDC_Buffer_Address,");
+            File.Put_Line (Indent2 & "STR (""" & (+Main.Filename) & """),");
+            File.Put_Line (Indent2 & "0,");
+            File.Put_Line (Indent2 & "STR ("""")");
 
-         File.Put_Line ("      Statement_Last_Bit => " & Statement_Last_Bit
-                        & ",");
-         File.Put_Line ("      Decision_Last_Bit => " & Decision_Last_Bit
-                        & ",");
-         File.Put_Line ("      MCDC_Last_Bit => " & MCDC_Last_Bit & ");");
-         File.New_Line;
-         File.Put_Line ("end " & Pkg_Name & ";");
+         end case;
+         File.Put_Line (Indent1 & ");");
+
+         File.Put_Line ("}");
+         File.Close;
       end;
-   end Emit_Ada_Buffer_Unit;
+   end Emit_Dump_Helper_Unit;
 
    ---------------------------
    -- Add_Auto_Dump_Buffers --
@@ -2129,23 +2143,28 @@ package body Instrument.C is
       Main : Compilation_Unit_Name;
       Rew  : C_Source_Rewriter)
    is
-      Buffer_Units : constant Ada_Qualified_Name_Vectors.Vector :=
-        Buffer_Units_For_Closure (IC, Main);
-      --  List of names for units that contains the buffers to dump
+      Instr_Units : constant CU_Name_Vectors.Vector :=
+        Instr_Units_For_Closure (IC, Main);
+      --  List of names for instrumented units
 
-      Helper_Filename : Ada_Qualified_Name;
+      Helper_Filename : US.Unbounded_String;
       --  Name of file to contain helpers implementing the buffers dump
 
    begin
-      if Buffer_Units.Is_Empty then
+      if Instr_Units.Is_Empty then
          return;
       end if;
-      Emit_Ada_Dump_Helper_Unit (IC, Info, Main, C_Language, Helper_Filename);
-      Add_Export (Rew.TU, Rew.Rewriter, "extern void "
-                  & Dump_Procedure_Symbol (Main) & "(void);");
 
-      Add_Export (Rew.TU, Rew.Rewriter, "extern void adainit(void);");
-      Add_Statement_In_Main (Rew.TU, Rew.Rewriter, "adainit();");
+      Emit_Dump_Helper_Unit (IC, Info, Main, Helper_Filename);
+      Add_Export
+        (Rew.TU, Rew.Rewriter,
+         "extern void " & Dump_Procedure_Symbol (Main) & "(void);");
+
+      if IC.Dump_Config.Trigger = Ravenscar_Task_Termination then
+         Warn ("--dump-trigger=ravenscar-task-termination is not valid for a C"
+               & " main. Defaulting to --dump-trigger=main-end for this"
+               & " main.");
+      end if;
 
       case IC.Dump_Config.Trigger is
          when Main_End | Ravenscar_Task_Termination =>
@@ -2158,9 +2177,6 @@ package body Instrument.C is
             Add_Export (Rew.TU, Rew.Rewriter,
                         "extern int atexit( void ( * function ) (void) );");
 
-            --  We need to initialize the Ada runtime as we are still using
-            --  the Ada gnatcov runtime to dump traces.
-
             Add_Statement_In_Main
               (Rew.TU, Rew.Rewriter, "atexit ("
                & Dump_Procedure_Symbol (Main) & ");");
@@ -2169,6 +2185,86 @@ package body Instrument.C is
             null;
       end case;
    end Add_Auto_Dump_Buffers;
+
+   ----------------------------
+   -- Emit_Buffers_List_Unit --
+   ----------------------------
+
+   procedure Emit_Buffers_List_Unit
+     (IC                : in out Inst_Context;
+      Root_Project_Info : in out Project_Info)
+   is
+      CU_Name_Body   : constant Compilation_Unit_Name :=
+        CU_Name_For_File (+Buffers_List_Filename_Body (IC), IC.Project_Name);
+      CU_Name_Header : constant Compilation_Unit_Name :=
+        CU_Name_For_File (+Buffers_List_Filename_Header (IC), IC.Project_Name);
+
+      File_Body   : Text_Files.File_Type;
+      File_Header : Text_Files.File_Type;
+
+      Instr_Units : CU_Name_Vectors.Vector;
+   begin
+
+      for Cur in IC.Instrumented_Units.Iterate loop
+         declare
+            Instr_Unit : constant Compilation_Unit_Name :=
+              Instrumented_Unit_Maps.Key (Cur);
+         begin
+            Instr_Units.Append (Instr_Unit);
+         end;
+      end loop;
+
+      declare
+         Buffer_Unit_Length : constant String :=
+           Count_Type'Image (Instr_Units.Length);
+      begin
+         --  Emit the body to contain the list of buffers
+
+         Create_File
+           (Root_Project_Info,
+            File_Body,
+            To_Filename
+              (Root_Project_Info.Project,
+               CU_Name_Body,
+               C_Language));
+
+         File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
+
+         for Instr_Unit of Instr_Units loop
+            File_Body.Put_Line ("extern gnatcov_rts_unit_coverage_buffers "
+                                & Unit_Buffers_Name (Instr_Unit) & ";");
+         end loop;
+         File_Body.Put_Line ("gnatcov_rts_unit_coverage_buffers_array "
+                             & Unit_Buffers_Array_Name (IC) & " = {");
+         File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
+         File_Body.Put_Line ("  (gnatcov_rts_unit_coverage_buffers *[]) {");
+         for Cur in Instr_Units.Iterate loop
+            declare
+               use CU_Name_Vectors;
+            begin
+               File_Body.Put ("    &" & Unit_Buffers_Name (Element (Cur)));
+               if To_Index (Cur) = Instr_Units.Last_Index then
+                  File_Body.Put_Line ("}};");
+               else
+                  File_Body.Put_Line (",");
+               end if;
+            end;
+         end loop;
+      end;
+
+      --  Emit the extern declaration of the buffers array in the header file
+
+      Create_File
+        (Root_Project_Info,
+         File_Header,
+         To_Filename
+           (Root_Project_Info.Project,
+            CU_Name_Header,
+            C_Language));
+
+      File_Header.Put_Line ("extern gnatcov_rts_unit_coverage_buffers_array "
+                            & Unit_Buffers_Array_Name (IC) & ";");
+   end Emit_Buffers_List_Unit;
 
    ---------------------
    -- Instrument_Unit --
@@ -2194,14 +2290,7 @@ package body Instrument.C is
       --  Ada file exporting the defined symboled to C. Indeed, we want it to
       --  be compatible with a C-only compiler.
 
-      Emit_C_Buffer_Unit (Prj_Info, UIC);
-
-      --  Then, for Ada-compatibility, generate an ada buffer unit that imports
-      --  the symbols defined in the C buffer compilation unit in an Ada unit.
-      --  These references will be used to dump coverage buffers (as we rely on
-      --  an Ada coverage runtime as of right now).
-
-      Emit_Ada_Buffer_Unit (Prj_Info, UIC);
+      Emit_Buffer_Unit (Prj_Info, UIC);
 
       --  Track which CU_Id maps to which instrumented unit
 

@@ -4,26 +4,32 @@
 --  buffers and for the format of GNATcoverage's source trace files.
 --
 --  If you need to use GNATcoverage's own implementation of the writer for
---  source traces files (GNATcov_RTS.Traces.Output), please use the
+--  source traces files (GNATcov_RTS.Traces.Output.Files), please use the
 --  gnatcov_rts_full.gpr project instead.
 
 library project GNATcov_RTS is
+
+   type Any_Library_Type is ("static", "relocatable", "static-pic");
+   Library_Type : Any_Library_Type := external ("LIBRARY_TYPE", "static");
+
    for Library_Name use "gnatcov_rts";
-   for Library_Dir use "lib-gnatcov_rts";
-   for Source_Files use
-     ("gnatcov_rts.ads",
-      "gnatcov_rts-buffers.ads",
-      "gnatcov_rts-buffers.adb",
-      "gnatcov_rts-buffers-lists.ads",
-      "gnatcov_rts-traces.ads",
-      "gnatcov_rts-traces.adb",
-      "gnatcov_rts-traces-output.ads",
-      "gnatcov_rts-traces-output.adb",
-      "gnatcov_rts-traces-output-text_io.ads",
-      "gnatcov_rts-traces-output-base64.ads",
-      "gnatcov_rts-traces-output-base64.adb",
-      "gnatcov_rts_c_buffers.h",
-      "gnatcov_rts_c_buffers.c");
-   for Object_Dir use "obj-gnatcov_rts";
+   for Library_Kind use Library_Type;
+   for Library_Dir use "lib-gnatcov_rts." & Library_Type;
+   for Object_Dir use "obj-gnatcov_rts." & Library_Type;
+
+   for Source_Dirs use (".");
+   
+   --  The following units require special runtime support (file creation
+   --  support). The purpose of gnatcov_rts.gpr is to be used with minimal
+   --  runtime support (in a bareboard context), so we will exclude these files
+   --  from the sources closure.
+
+   for Excluded_Source_Files use
+       ("gnatcov_rts_c-base_io.c",
+        "gnatcov_rts-traces-output-files.adb",
+        "gnatcov_rts-traces-output-files.ads",
+        "gnatcov_rts_c-traces-output-files.c",
+        "gnatcov_rts_c-traces-output-files.h");
+
    for Languages use ("Ada", "C");
 end GNATcov_RTS;

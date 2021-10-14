@@ -26,18 +26,67 @@
 
 package body GNATcov_RTS.Buffers is
 
-   subtype Unbounded_Coverage_Buffer_Type is Coverage_Buffer_Type (Bit_Id);
+   function To_Bool (Bool : GNATcov_RTS_Bool) return Boolean;
+
+   function To_GNATcov_RTS_Bool (Bool : Boolean) return GNATcov_RTS_Bool;
+
+   function GNATcov_RTS_Witness
+     (Buffer_Address : System.Address; Bit : Bit_Id) return GNATcov_RTS_Bool;
+   pragma Import (C, GNATcov_RTS_Witness);
+
+   function GNATcov_RTS_Witness_Decision
+     (Buffer_Address      : System.Address;
+      False_Bit, True_Bit : Bit_Id;
+      Value               : Bit_Id) return GNATcov_RTS_Bool;
+   pragma Import (C, GNATcov_RTS_Witness_Decision);
+
+   function GNATcov_RTS_Witness_Decision_MCDC
+     (Decision_Buffer_Address : System.Address;
+      False_Bit, True_Bit     : Bit_Id;
+      MCDC_Buffer_Address     : System.Address;
+      MCDC_Base               : Bit_Id;
+      MCDC_Path_Address       : System.Address;
+      Value                   : GNATcov_RTS_Bool) return GNATcov_RTS_Bool;
+   pragma Import (C, GNATcov_RTS_Witness_Decision_MCDC);
+
+   function GNATcov_RTS_Witness_Condition
+     (MCDC_Path_Address : System.Address;
+      Offset_For_True   : Any_Bit_Id;
+      First             : GNATcov_RTS_Bool;
+      Value             : GNATcov_RTS_Bool) return GNATcov_RTS_Bool;
+   pragma Import (C, GNATcov_RTS_Witness_Condition);
+
+   -------------
+   -- To_Bool --
+   -------------
+
+   function To_Bool (Bool : GNATcov_RTS_Bool) return Boolean is
+   begin
+      return Bool /= 0;
+   end To_Bool;
+
+   -------------------------
+   -- To_GNATcov_RTS_bool --
+   -------------------------
+
+   function To_GNATcov_RTS_Bool (Bool : Boolean) return GNATcov_RTS_Bool is
+   begin
+      if Bool then
+         return 1;
+      else
+         return 0;
+      end if;
+   end To_GNATcov_RTS_Bool;
 
    -------------
    -- Witness --
    -------------
 
    procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id) is
-      Buffer : Unbounded_Coverage_Buffer_Type;
-      for Buffer'Address use Buffer_Address;
-      pragma Import (Ada, Buffer);
+      Ignored : GNATcov_RTS_Bool :=
+        GNATcov_RTS_Witness (Buffer_Address, Bit);
    begin
-      Buffer (Bit) := True;
+      null;
    end Witness;
 
    function Witness
@@ -77,13 +126,13 @@ package body GNATcov_RTS.Buffers is
       MCDC_Path_Address       : System.Address;
       Value                   : Boolean) return Boolean
    is
-      MCDC_Path_Index : Any_Bit_Id;
-      for MCDC_Path_Index'Address use MCDC_Path_Address;
-      pragma Import (Ada, MCDC_Path_Index);
-
    begin
-      Witness (MCDC_Buffer_Address, MCDC_Base + MCDC_Path_Index);
-      return Witness (Decision_Buffer_Address, False_Bit, True_Bit, Value);
+      return
+        To_Bool
+          (GNATcov_RTS_Witness_Decision_MCDC
+             (Decision_Buffer_Address, False_Bit, True_Bit,
+              MCDC_Buffer_Address, MCDC_Base, MCDC_Path_Address,
+              To_GNATcov_RTS_Bool (Value)));
    end Witness;
 
    function Witness
@@ -92,19 +141,12 @@ package body GNATcov_RTS.Buffers is
       First           : Boolean;
       Value           : Boolean) return Boolean
    is
-      MCDC_Path_Index : Any_Bit_Id;
-      for MCDC_Path_Index'Address use Buffer_Address;
-      pragma Import (Ada, MCDC_Path_Index);
    begin
-      if First then
-         MCDC_Path_Index := 0;
-      end if;
-
-      if Value then
-         MCDC_Path_Index := MCDC_Path_Index + Offset_For_True;
-      end if;
-
-      return Value;
+      return
+        To_Bool
+          (GNATcov_RTS_Witness_Condition
+             (Buffer_Address, Offset_For_True, To_GNATcov_RTS_Bool (First),
+              To_GNATcov_RTS_Bool (Value)));
    end Witness;
 
 end GNATcov_RTS.Buffers;

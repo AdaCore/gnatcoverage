@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                    Copyright (C) 2021-2022, AdaCore                      --
+--                     Copyright (C) 2019-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -24,23 +24,15 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
---  This provides the base IO interface for use by the "base64-stdout" trace
---  dumper, available in all configurations.
---
---  The interface is devised as a simple subset of Ada.Text_IO. It may
---  be used from "atexit" handlers though, so may only resort to low level
---  mechanisms as this triggers after the runtime has been finalized.
+with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
---  GNAT.IO provides the low level services we need and is available from
---  most if not all the GNAT runtime profiles so is a good common ground for
---  our use.
+package GNATcov_RTS.Base_IO is
 
-with GNAT.IO;
+   pragma Preelaborate;
 
-private package GNATcov_RTS.Traces.Output.Text_IO is
+   procedure Put (C : Character);
+   pragma Export (C, Entity => Put, External_Name => "gnatcov_rts_putchar");
 
-   procedure New_Line (N : Positive := 1) renames GNAT.IO.New_Line;
-   procedure Put (S : String) renames GNAT.IO.Put;
-   procedure Put_Line (S : String) renames GNAT.IO.Put_Line;
-
-end GNATcov_RTS.Traces.Output.Text_IO;
+   procedure Put_Line (S : GNATcov_RTS_String);
+   pragma Export (C, Entity => Put_Line, External_Name => "gnatcov_rts_puts");
+end GNATcov_RTS.Base_IO;

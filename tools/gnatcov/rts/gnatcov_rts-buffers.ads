@@ -23,51 +23,26 @@
 ------------------------------------------------------------------------------
 
 --  This package provides types and subprograms to maintain data about the
---  satisfaction of coverage obligations.
-
---  This unit needs to be compilable with Ada 95 compilers
+--  satisfaction of coverage obligations. All the functions are Ada bindings
+--  to the functions defined in gnatcov_rts_c-buffers.h.
+--
+--  This unit needs to be compilable with Ada 95 compilers.
 
 with Interfaces;
+with Interfaces.C; use Interfaces.C;
 with System;
 with System.Storage_Elements;
+
+with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
 package GNATcov_RTS.Buffers is
 
    pragma Pure;
 
-   --  All data takes the form of big arrays of booleans: coverage buffers. How
-   --  to interpret these depend on the type of coverage obligation.
-   --
-   --  For statement coverage, each statement is assigned such a boolean, which
-   --  indicates whether it was executed.
-   --
-   --  For decision coverage, each decision is assigned two booleans: one which
-   --  indicates whether the decision reached the False outcome and another for
-   --  the True outcome.
+   type Any_Bit_Id is new int;
 
-   type Any_Unit_Part is
-     (Not_Applicable_Part, Unit_Body, Unit_Spec, Unit_Separate);
-   --  Not_Applicable_Part is a default value used for compilation units in
-   --  languages that are not unit-based.
-
-   type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
-
-   ---------------------------------------------
-   -- Mapping of coverage buffer bits to SCOs --
-   ---------------------------------------------
-
-   ---------------------------
-   -- Source trace bit maps --
-   ---------------------------
-
-   --  As instrumentation is inserted, bit positions in coverage buffers are
-   --  allocated, and these allocations are associated to low-level SCO Ids.
-   --  Once low-level SCOs are converted to high-level SCOs, new mappings
-   --  are generated to allow mapping bit positions to high level SCOs when
-   --  processing buffers from a target run.
-
-   type Any_Bit_Id is new Integer;
    No_Bit_Id : constant Any_Bit_Id := -1;
+
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
    --  Unique identifier for a boolean in a coverage buffer
 
@@ -75,53 +50,32 @@ package GNATcov_RTS.Buffers is
    --  Even though it is tempting to pack this array to save memory, we must
    --  avoid bit packing to allow concurrent writes to coverage buffers.
 
-   type SCOs_Hash is new System.Storage_Elements.Storage_Array (1 ..  20);
+   Fingerprint_Size : constant := 20;
+
+   type GNATcov_RTS_Bool is new unsigned;
+
+   type Any_Unit_Part is
+     (Not_Applicable_Part, Unit_Body, Unit_Spec, Unit_Separate);
+   pragma Convention (C, Any_Unit_Part);
+
+   type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
+   pragma Convention (C, Any_Language_Kind);
+
+   type SCOs_Hash is new System.Storage_Elements.Storage_Array (1 .. 20);
    --  Hash type to perform consistency checks over Source Coverage
    --  Obligations. 20-byte to hold a SHA-1.
 
-   type Unit_Coverage_Buffers
-     (Unit_Name_Length    : Positive;
-      Project_Name_Length : Natural)
-   is record
-      Fingerprint : SCOs_Hash;
-      --  Hash of SCO info for this unit, as gnatcov computes it (see
-      --  SC_Obligations). Used a fast way to check that coverage obligations
-      --  and coverage data are consistent. Specific hash values are computed
-      --  during instrumentation.
-
-      Language_Kind : Any_Language_Kind;
-      --  Language kind for this unit
-
-      Unit_Part : Any_Unit_Part;
-      Unit_Name : String (1 .. Unit_Name_Length);
-      --  Unit kind and name for the instrumented unit. The Unit_Name field
-      --  accounts both for unit-based languages (such as Ada) and file-based
-      --  languages such as C.
-      --
-      --  The Unit_Part field is only there for unit-based languages and is set
-      --  to Not_Applicable_Part for file-based languages.
-      --
-      --  More specifically, for unit-based languages, Unit_Name is the fully
-      --  qualified name of the compilation unit (or subunit) in lower case.
-      --  For instance: "foo", "ada.text_io" or "foo.bar.my_subunit".
-      --
-      --  For file-based languages, Unit_Name is the simple filename, e.g.
-      --  "foo.c".
-
-      Project_Name : String (1 .. Project_Name_Length);
-      --  Project name for this compilation unit. This is only initialized for
-      --  file-based languages (otherwise, it is an empty string).
-
+   type GNATcov_RTS_Unit_Coverage_Buffers is record
+      Fingerprint               : SCOs_Hash;
+      Language                  : Any_Language_Kind;
+      Unit_Part                 : Any_Unit_Part;
+      Unit_Name                 : GNATcov_RTS_String;
+      Project_Name              : GNATcov_RTS_String;
       Statement, Decision, MCDC : System.Address;
-      --  Addresses of coverage buffers for statement obligations, decision
-      --  obligations and MC/DC obligations. The address refer to
-      --  Coverage_Buffer_Type arrays whose bounds go from
-      --  0 to Unit_Coverage_Buffers.*_Last_Bit.
-
-      Statement_Last_Bit, Decision_Last_Bit, MCDC_Last_Bit : Any_Bit_Id;
-      --  Index for the last bits in coverage buffers for statements, decisions
-      --  and MC/DC.
+      Statement_Last_Bit, Decision_Last_Bit,
+      MCDC_Last_Bit             : Any_Bit_Id;
    end record;
+   pragma Convention (C, GNATcov_RTS_Unit_Coverage_Buffers);
 
    -------------------------
    -- Witness subprograms --
@@ -150,6 +104,7 @@ package GNATcov_RTS.Buffers is
    type Witness_Dummy_Type is record
       Data : Boolean;
    end record;
+
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id) return Witness_Dummy_Type;
    --  This variant is used in contexts where statements are not allowed

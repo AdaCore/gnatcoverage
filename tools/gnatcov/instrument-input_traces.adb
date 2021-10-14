@@ -32,27 +32,27 @@ with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
 with GNATCOLL.Projects;  use GNATCOLL.Projects;
 
-with GNATcov_RTS.Traces; use GNATcov_RTS.Traces;
+with Traces_Source; use Traces_Source;
 with Hex_Images;
-with Strings;            use Strings;
+with Strings;       use Strings;
 with Outputs;
 
 package body Instrument.Input_Traces is
 
    Unit_Part_Map : constant array (Supported_Unit_Part) of Unit_Parts :=
-     (GNATcov_RTS.Traces.Unit_Body     => GNATCOLL.Projects.Unit_Body,
-      GNATcov_RTS.Traces.Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
-      GNATcov_RTS.Traces.Unit_Separate => GNATCOLL.Projects.Unit_Separate);
+     (Traces_Source.Unit_Body     => GNATCOLL.Projects.Unit_Body,
+      Traces_Source.Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
+      Traces_Source.Unit_Separate => GNATCOLL.Projects.Unit_Separate);
 
    Language_Map : constant array (Supported_Language_Kind)
      of GNATcov_RTS.Buffers.Any_Language_Kind :=
-       (GNATcov_RTS.Traces.Unit_Based_Language =>
+       (Traces_Source.Unit_Based_Language =>
           GNATcov_RTS.Buffers.Unit_Based_Language,
-        GNATcov_RTS.Traces.File_Based_Language =>
+        Traces_Source.File_Based_Language =>
           GNATcov_RTS.Buffers.File_Based_Language);
 
    Native_Endianity : constant Supported_Endianity :=
-      GNATcov_RTS.Traces.Native_Endianity;
+      Traces_Source.Native_Endianity;
 
    subtype Read_Result is Traces_Files.Read_Result;
    procedure Create_Error (Result : out Read_Result; Error : String)
@@ -510,11 +510,11 @@ package body Instrument.Input_Traces is
          --  current language kind.
 
          elsif (case Raw_Header.Language_Kind is
-                when GNATcov_RTS.Traces.Unit_Based_Language =>
+                when Traces_Source.Unit_Based_Language =>
                   Raw_Header.Unit_Part not in Supported_Unit_Part,
-                when GNATcov_RTS.Traces.File_Based_Language =>
+                when Traces_Source.File_Based_Language =>
                   Raw_Header.Unit_Part /=
-                     GNATcov_RTS.Traces.Not_Applicable_Part,
+                     Traces_Source.Not_Applicable_Part,
                 when others =>
                    raise Program_Error
                      with "invalid language while already validated")
@@ -601,7 +601,7 @@ package body Instrument.Input_Traces is
    is
       use Interfaces;
 
-      Bit_Index : Any_Bit_Id := Buffer'First;
+      Bit_Index : Any_Bit_Id := Any_Bit_Id (Buffer'First);
    begin
       case Encoding is
          when LSB_First_Bytes =>
@@ -796,7 +796,7 @@ package body Instrument.Input_Traces is
    procedure Dump_Source_Trace_File (Filename : String) is
 
       procedure On_Trace_Info
-        (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+        (Kind : Traces_Source.Supported_Info_Kind;
          Data : String);
       procedure On_Trace_Entry
         (Filename        : String;
@@ -818,7 +818,7 @@ package body Instrument.Input_Traces is
       -------------------
 
       procedure On_Trace_Info
-        (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+        (Kind : Traces_Source.Supported_Info_Kind;
          Data : String)
       is
          use Ada.Text_IO;

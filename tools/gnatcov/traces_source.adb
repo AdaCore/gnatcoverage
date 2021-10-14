@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                    Copyright (C) 2021-2022, AdaCore                      --
+--                     Copyright (C) 2019-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -22,48 +22,22 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This unit needs to be compilable with Ada 95 compilers
+with System;
 
---  This provides the base IO interface for use by the "bin-file" trace
---  dumper, restricted to configurations where we can assume that a full
---  GNAT RTS is available.
---
---  The interface is devised as a simple subset of Ada.Direct_IO. It may
---  be used from "atexit" handlers though, so may only resort to low level
---  mechanisms as this triggers after the runtime has been finalized.
+package body Traces_Source is
 
---  The base IO interface exposed by GNAT.OS_Lib, going through elementary
---  int file descriptors, is well suited for our purpose.
+   ----------------------
+   -- Native_Endianity --
+   ----------------------
 
-with Interfaces;
-with GNAT.OS_Lib;
+   function Native_Endianity return Supported_Endianity is
+      use type System.Bit_Order;
+   begin
+      if System.Default_Bit_Order = System.Low_Order_First then
+         return Little_Endian;
+      else
+         return Big_Endian;
+      end if;
+   end Native_Endianity;
 
-private package GNATcov_RTS.Traces.Output.Bytes_IO is
-
-   package OSLIB renames GNAT.OS_Lib;
-   use type OSLIB.File_Descriptor;
-
-   --  Expose File_Type as a limited record type with implicit
-   --  initializers so clients can simply declare a F : File_Type;
-   --  object and call Create as with Direct_IO.
-
-   type File_Type is limited record
-      FD : OSLIB.File_Descriptor := OSLIB.Invalid_FD;
-   end record;
-
-   subtype U8 is Interfaces.Unsigned_8;
-
-   IO_Error : exception;
-   --  Exception we raise in case of errors reported by the underlying
-   --  IO engine.
-
-   procedure Close (File : in out File_Type);
-
-   procedure Create (File : in out File_Type; Name : String);
-   --  Create or reset a file of the requested Name, ready for writing
-   --  in binary mode. Raise IO_Error if the operation somehow fails and
-   --  would yield an invalid File descriptor.
-
-   procedure Write (File : File_Type; Byte : U8);
-
-end GNATcov_RTS.Traces.Output.Bytes_IO;
+end Traces_Source;

@@ -24,7 +24,7 @@ with Checkpoints;
 with Coverage;
 with Traces_Files; use Traces_Files;
 
-with GNATcov_RTS.Traces;
+with Traces_Source;
 
 --  This package keeps track of all processed trace files
 
@@ -78,7 +78,7 @@ package Traces_Files_Registry is
 
    procedure Update_From_Source_Trace
      (Element : in out Trace_File_Element;
-      Kind    : GNATcov_RTS.Traces.Supported_Info_Kind;
+      Kind    : Traces_Source.Supported_Info_Kind;
       Data    : String);
    --  Initialize Element fields using a trace info entry from a source trace
    --  file.

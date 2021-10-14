@@ -154,9 +154,9 @@ package body Instrument.Base_Types is
             --  the computed slug.
 
             return +Instrumented_Unit.Project_Name & "_"
-                   & Ada.Directories.Base_Name (+Instrumented_Unit.Filename)
-                   & "_"
-                   & Ada.Directories.Extension (+Instrumented_Unit.Filename);
+              & Ada.Directories.Base_Name (+Instrumented_Unit.Filename)
+              & "_"
+              & Ada.Directories.Extension (+Instrumented_Unit.Filename);
       end case;
    end Instrumented_Unit_Slug;
 

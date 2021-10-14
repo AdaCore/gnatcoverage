@@ -152,6 +152,12 @@ private package Instrument.C is
       Unit_Info : in out Instrumented_Unit_Info);
    --  Instrument a single source file of interest from the project
 
+   procedure Emit_Buffers_List_Unit
+     (IC                : in out Inst_Context;
+      Root_Project_Info : in out Project_Info);
+   --  Emit in the root project a unit to contain the list of coverage buffers
+   --  for all units of interest.
+
 private
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled

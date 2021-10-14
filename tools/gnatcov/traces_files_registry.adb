@@ -159,13 +159,13 @@ package body Traces_Files_Registry is
 
    procedure Update_From_Source_Trace
      (Element : in out Trace_File_Element;
-      Kind    : GNATcov_RTS.Traces.Supported_Info_Kind;
+      Kind    : Traces_Source.Supported_Info_Kind;
       Data    : String)
    is
-      use GNATcov_RTS.Traces;
+      use Traces_Source;
    begin
       case Kind is
-         when GNATcov_RTS.Traces.Info_End =>
+         when Traces_Source.Info_End =>
             --  As this special kind is used only to encode the end of a trace
             --  entry sequence in the file format, we don't expect it to show
             --  up at execution.

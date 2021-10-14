@@ -17,42 +17,21 @@
  *                                                                          *
  ****************************************************************************/
 
-#include <stddef.h>
-#include <stdint.h>
+#include "gnatcov_rts_c-buffers.h"
+#include "gnatcov_rts_c_strings.h"
 
-#define FINGERPRINT_SIZE 20
+/* Callback for trace writing routines. Write the N bytes starting at SOURCE to
+   the OUTPUT stream (OUTPUT is just forwarded from
+   gnatcov_rts_generic_write_trace_file).  Return 0 if the write was
+   successful and return any non-zero value in case of error.  */
+typedef int (*gnatcov_rts_write_bytes_callback)
+   (void *output, char *source, unsigned n);
 
-extern unsigned gnatcov_rts_witness (void *buffer_address, unsigned bit_id);
-
-extern unsigned gnatcov_rts_witness_decision (void *buffer_address,
-                                              unsigned false_bit,
-                                              unsigned true_bit,
-                                              unsigned value);
-
-extern unsigned gnatcov_rts_witness_decision_mcdc (
-    void *decision_buffer_address, unsigned false_bit, unsigned true_bit,
-    void *mcdc_buffer_address, unsigned mcdc_base, void *mcdc_path_address,
-    unsigned value);
-
-extern unsigned gnatcov_rts_witness_condition (unsigned *mcdc_path_address,
-                                               unsigned offset_for_true,
-                                               unsigned first, unsigned value);
-
-typedef struct gnatcov_rts_unit_coverage_buffers
-{
-  char fingerprint[FINGERPRINT_SIZE];
-  int language;
-  int unit_part;
-  char *unit_name;
-  char *project_name;
-  size_t unit_name_length;
-  size_t project_name_length;
-  uint8_t *statement, *decision, *mcdc;
-  unsigned statement_last_bit, decision_last_bit, mcdc_last_bit;
-} gnatcov_rts_unit_coverage_buffers;
-
-typedef struct gnatcov_rts_unit_coverage_buffers_array
-{
-  size_t length;
-  gnatcov_rts_unit_coverage_buffers **buffers;
-} gnatcov_rts_unit_coverage_buffers_array;
+/* Write a trace file to contain the given coverage BUFFERS to the OUTPUT
+   stream using the WRITE_BYTES callback.  PROGRAM_NAME, EXEC_DATE and
+   USER_DATA are included as metadata in the trace file.  Return 0 if the write
+   was successful, and return any non-zero value in case of error.  */
+extern int gnatcov_rts_generic_write_trace_file (
+    void *output, gnatcov_rts_unit_coverage_buffers_array *buffers,
+    gnatcov_rts_string program_name, uint64_t exec_date,
+    gnatcov_rts_string user_data, gnatcov_rts_write_bytes_callback write_bytes);

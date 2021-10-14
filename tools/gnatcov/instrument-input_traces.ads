@@ -19,7 +19,7 @@
 --  Source trace files decoding
 
 with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
-with GNATcov_RTS.Traces;
+with Traces_Source;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with SC_Obligations;
 with Traces_Files;
@@ -31,7 +31,7 @@ package Instrument.Input_Traces is
 
    generic
       with procedure On_Trace_Info
-        (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+        (Kind : Traces_Source.Supported_Info_Kind;
          Data : String) is <>;
       with procedure On_Trace_Entry
         (Filename        : String;

@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Conversions;
+with Ada.Containers; use Ada.Containers;
 with Ada.Directories;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
@@ -141,21 +142,15 @@ package body Instrument.Common is
       end return;
    end Buffer_Unit;
 
-   ----------------------
-   -- Pure_Buffer_Unit --
-   ----------------------
+   -----------------------
+   -- Unit_Buffers_Name --
+   -----------------------
 
-   function Pure_Buffer_Unit
-     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name
-   is
-      Simple_Name : Ada_Identifier;
+   function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String is
    begin
-      Append (Simple_Name, 'P');
-      Append (Simple_Name, Instrumented_Unit_Slug (Instrumented_Unit));
-      return CU_Name : Ada_Qualified_Name := Sys_Buffers do
-         CU_Name.Append (Simple_Name);
-      end return;
-   end Pure_Buffer_Unit;
+      return To_Symbol_Name (Sys_Buffers) & "_" & Instrumented_Unit_Slug (Unit)
+        & "_buffers";
+   end Unit_Buffers_Name;
 
    ------------------------
    -- Project_Output_Dir --
@@ -746,13 +741,13 @@ package body Instrument.Common is
    -- Buffer_Units_For_Closure --
    ------------------------------
 
-   function Buffer_Units_For_Closure
+   function Instr_Units_For_Closure
      (IC   : Inst_Context;
       Main : Compilation_Unit_Name)
-      return Ada_Qualified_Name_Vectors.Vector
+      return CU_Name_Vectors.Vector
    is
       pragma Unreferenced (Main);
-      Result : Ada_Qualified_Name_Vectors.Vector;
+      Result : CU_Name_Vectors.Vector;
    begin
       --  TODO??? Here, we need the list of files needed to build Main: specs
       --  for units WITHed by main, their bodies, the separates, etc.  It's
@@ -767,324 +762,11 @@ package body Instrument.Common is
             Instr_Unit : constant Compilation_Unit_Name :=
               Instrumented_Unit_Maps.Key (Cur);
          begin
-            Result.Append (Buffer_Unit (Instr_Unit));
+            Result.Append (Instr_Unit);
          end;
       end loop;
       return Result;
-
-   end Buffer_Units_For_Closure;
-
-   -------------------------------
-   -- Emit_Ada_Dump_Helper_Unit --
-   -------------------------------
-
-   procedure Emit_Ada_Dump_Helper_Unit
-     (IC          : Inst_Context;
-      Info        : in out Project_Info;
-      Main        : Compilation_Unit_Name;
-      Language    : Any_Language;
-      Helper_Unit : out Ada_Qualified_Name)
-   is
-      File : Text_Files.File_Type;
-
-      procedure Put_With (Unit : Ada_Qualified_Name);
-      --  Put a "with" context clause in File
-
-      --------------
-      -- Put_With --
-      --------------
-
-      procedure Put_With (Unit : Ada_Qualified_Name) is
-      begin
-         File.Put_Line ("with " & To_Ada (Unit) & ";");
-      end Put_With;
-
-      Output_Unit, Output_Proc : Ada_Qualified_Name;
-      --  Qualified names for the unit that contains the buffer output
-      --  procedure, and for the procedure itself.
-
-      Dump_Trigger : Auto_Dump_Trigger := IC.Dump_Config.Trigger;
-      --  Shortcut to avoid repeatedly restricting the dump trigger to the
-      --  Auto_Dump_Trigger subtype.
-
-   --  Start of processing for Emit_Dump_Helper_Unit
-
-   begin
-
-      if Language /= Ada_Language
-         and then Dump_Trigger = Ravenscar_Task_Termination
-      then
-         Warn ("--dump-trigger=ravenscar-task-termination is not valid for a"
-               & " C main. Defaulting to --dump-trigger=main-end for this"
-               & " main.");
-         Dump_Trigger := Main_End;
-      end if;
-
-      --  Create the name of the helper unit
-
-      Helper_Unit := Sys_Buffers;
-      Helper_Unit.Append
-        (To_Unbounded_String ("D") & Instrumented_Unit_Slug (Main));
-
-      --  Compute the qualified names we need for instrumentation
-
-      declare
-         use type Ada_Qualified_Name;
-         Unit : constant String :=
-           (case IC.Dump_Config.Channel is
-               when Binary_File            => "Files",
-               when Base64_Standard_Output => "Base64");
-      begin
-         Output_Unit := Sys_Prefix
-           & To_Unbounded_String ("Traces")
-           & To_Unbounded_String ("Output")
-           & To_Unbounded_String (Unit);
-         Output_Proc := Output_Unit & To_Unbounded_String ("Write_Trace_File");
-      end;
-
-      declare
-         Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
-         Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
-
-         Buffer_Units : constant Ada_Qualified_Name_Vectors.Vector :=
-           Buffer_Units_For_Closure (IC, Main);
-         --  List of names for units that contains the buffers to dump
-
-      begin
-         --  Emit the package spec. This includes one Dump_Buffers procedure,
-         --  which dumps all coverage buffers in Main's closure to the source
-         --  trace file.
-
-         Create_File
-           (Info,
-            File,
-            Name => To_Filename
-                      (Info.Project,
-                       CU_Name_For_Unit (Helper_Unit, Unit_Spec),
-                       Ada_Language));
-
-         Put_Warnings_And_Style_Checks_Pragmas (File);
-         File.Put_Line ("package " & Helper_Unit_Name & " is");
-         File.New_Line;
-         File.Put_Line ("   procedure " & Dump_Procedure & ";");
-
-         --  Export the symbol definition so that it can be used in other
-         --  languages.
-
-         File.Put_Line ("   pragma Export (C, " & Dump_Procedure & ", """
-                        & Dump_Procedure_Symbol (Main) & """);");
-         File.New_Line;
-
-         case Dump_Trigger is
-            when At_Exit | Ravenscar_Task_Termination =>
-               File.Put_Line
-                 ("procedure "
-                  & To_String (Register_Dump_Procedure_Name) & ";");
-               File.New_Line;
-
-            when Main_End =>
-               null;
-         end case;
-
-         File.Put_Line ("end " & Helper_Unit_Name & ";");
-         File.Close;
-
-         --  Emit the package body
-
-         Create_File
-           (Info,
-            File,
-            Name => To_Filename
-                      (Info.Project,
-                       CU_Name_For_Unit (Helper_Unit, Unit_Body),
-                       Ada_Language));
-
-         Put_Warnings_And_Style_Checks_Pragmas (File);
-
-         Put_With (Output_Unit);
-         for Buffer_Unit of Buffer_Units loop
-            Put_With (Buffer_Unit);
-         end loop;
-
-         case Dump_Trigger is
-            when At_Exit  =>
-               File.Put_Line ("with Interfaces.C;");
-            when Ravenscar_Task_Termination  =>
-               File.Put_Line ("with Ada.Task_Identification;");
-               File.Put_Line ("with Ada.Task_Termination;");
-            when Main_End =>
-               null;
-         end case;
-
-         File.Put_Line ("package body " & Helper_Unit_Name & " is");
-         File.New_Line;
-
-         --  Emit the procedure to write the trace file
-
-         File.Put_Line ("   procedure " & Dump_Procedure & " is");
-         File.Put_Line ("   begin");
-         File.Put_Line ("      " & To_Ada (Output_Proc));
-         File.Put      ("        ((");
-         for Cur in Buffer_Units.Iterate loop
-            declare
-               use Ada_Qualified_Name_Vectors;
-
-               Index       : constant Positive := To_Index (Cur);
-               Buffer_Name : constant String :=
-                 To_Ada (Element (Cur)) & ".Buffers";
-
-            begin
-               File.Put (Strings.Img (To_Index (Cur))
-                         & " => " & Buffer_Name & "'Access");
-               if Index = Buffer_Units.Last_Index then
-                  File.Put_Line ("),");
-               else
-                  File.Put_Line (",");
-                  File.Put ((1 .. 10 => ' '));
-               end if;
-            end;
-         end loop;
-
-         case IC.Dump_Config.Channel is
-         when Binary_File =>
-            declare
-               use GNATCOLL.VFS;
-
-               U       : constant String := To_Ada (Output_Unit);
-               Indent1 : constant String := "         ";
-               Indent2 : constant String := Indent1 & "  ";
-
-               Env_Var : constant String :=
-                 (if Length (IC.Dump_Config.Filename_Env_Var) = 0
-                  then U & ".Default_Trace_Filename_Env_Var"
-                  else """" & To_String (IC.Dump_Config.Filename_Env_Var)
-                  & """");
-               Prefix  : constant String :=
-                 (if Length (IC.Dump_Config.Filename_Prefix) = 0
-                  then """" & String'(+Info.Project.Executable_Name
-                    (File => +To_Filename
-                         (Project => Info.Project,
-                          CU_Name => Main,
-                          Language =>
-                            (case Main.Language_Kind is
-                                when Unit_Based_Language => Ada_Language,
-                                when File_Based_Language => C_Language)),
-                     Include_Suffix => True)) & """"
-                  else """" & To_String (IC.Dump_Config.Filename_Prefix)
-                  & """");
-               Tag     : constant String := """" & To_String (IC.Tag) & """";
-               Simple  : constant String :=
-                 (if IC.Dump_Config.Filename_Simple
-                  then "True"
-                  else "False");
-            begin
-               File.Put_Line
-                 (Indent1 & "Filename => " & U & ".Default_Trace_Filename");
-               File.Put_Line (Indent2 & "(Prefix => " & Prefix & ",");
-               File.Put_Line (Indent2 & " Env_Var => " & Env_Var & ",");
-               File.Put_Line (Indent2 & " Tag => " & Tag & ",");
-               File.Put (Indent2 & " Simple => " & Simple & ")");
-
-               if Language = C_Language then
-
-                  --  Same rationale as above
-
-                  File.Put (",");
-                  File.Put_Line
-                    (Indent2 & "Program_Name => """
-                     & (To_Filename (Info.Project, Main, Language))
-                     & """");
-               end if;
-            end;
-
-         when Base64_Standard_Output =>
-
-            --  Configurations using this channel generally run on embedded
-            --  targets and have a small runtime, so our best guess for the
-            --  program name is the name of the main, and there is no way to
-            --  get the current execution time.
-
-            case Main.Language_Kind is
-               when Unit_Based_Language =>
-                  File.Put_Line
-                    ("         Program_Name => """
-                     & To_Ada (Main.Unit) & """,");
-               when File_Based_Language =>
-                  File.Put_Line
-                    ("         Program_Name => """ & (+Main.Filename) & """,");
-            end case;
-            File.Put ("         Exec_Date => (others => ASCII.NUL)");
-         end case;
-         File.Put_Line (");");
-
-         File.Put_Line ("   end " & Dump_Procedure & ";");
-         File.New_Line;
-
-         --  Emit trigger-specific procedures
-
-         case Dump_Trigger is
-            when At_Exit =>
-
-               --  Emit a procedure to schedule a trace dump with atexit
-
-               File.Put_Line
-                 ("procedure "
-                  & To_String (Register_Dump_Procedure_Name) & " is");
-               File.Put_Line ("   type Callback is access procedure;");
-               File.Put_Line ("   pragma Convention (C, Callback);");
-               File.New_Line;
-               File.Put_Line ("   function atexit (Func : Callback)"
-                              & " return Interfaces.C.int;");
-               File.Put_Line ("   pragma Import (C, atexit);");
-               File.Put_Line ("   Dummy : constant Interfaces.C.int :=");
-               File.Put_Line ("     atexit (" & Dump_Procedure & "'Access);");
-               File.Put_Line ("begin");
-               File.Put_Line ("   null;");
-               File.Put_Line
-                 ("end " & To_String (Register_Dump_Procedure_Name) & ";");
-               File.New_Line;
-
-            when Ravenscar_Task_Termination =>
-
-               --  Emit a protected object for the callback
-
-               File.Put_Line ("  protected Wrapper is");
-               File.Put_Line ("     procedure Do_Dump"
-                              & " (T : Ada.Task_Identification.Task_Id);");
-               File.Put_Line ("  end Wrapper;");
-               File.New_Line;
-               File.Put_Line ("  protected body Wrapper is");
-               File.Put_Line ("     procedure Do_Dump"
-                              & " (T : Ada.Task_Identification.Task_Id) is");
-               File.Put_Line ("        pragma Unreferenced (T);");
-               File.Put_Line ("     begin");
-               File.Put_Line ("        " & Dump_Procedure & ";");
-               File.Put_Line ("     end Do_Dump;");
-               File.Put_Line ("  end Wrapper;");
-               File.New_Line;
-
-               --  Emit a procedure to schedule a trace dump with
-               --  Ada.Task_Termination.
-
-               File.Put_Line
-                 ("procedure "
-                  & To_String (Register_Dump_Procedure_Name) & " is");
-               File.Put_Line ("begin");
-               File.Put_Line ("   Ada.Task_Termination"
-                              & ".Set_Dependents_Fallback_Handler"
-                              & " (Wrapper.Do_Dump'Access);");
-               File.Put_Line
-                 ("end " & To_String (Register_Dump_Procedure_Name) & ";");
-               File.New_Line;
-
-            when Main_End =>
-               null;
-         end case;
-
-         File.Put_Line ("end " & Helper_Unit_Name & ";");
-         File.Close;
-      end;
-   end Emit_Ada_Dump_Helper_Unit;
+   end Instr_Units_For_Closure;
 
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GNATcov_RTS"));

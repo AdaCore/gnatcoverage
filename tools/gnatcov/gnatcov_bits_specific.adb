@@ -72,9 +72,8 @@ with Traces_Dump;
 with Traces_Files;          use Traces_Files;
 with Traces_Dbase;          use Traces_Dbase;
 with Traces_Disa;
+with Traces_Source;
 with Version;
-
-with GNATcov_RTS.Traces;
 
 procedure GNATcov_Bits_Specific is
 
@@ -1805,7 +1804,7 @@ begin
 
             procedure Process_Source_Trace (Trace_File_Name : String) is
                procedure On_Trace_Info
-                 (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+                 (Kind : Traces_Source.Supported_Info_Kind;
                   Data : String);
                --  Callback for Read_Source_Trace_File
 
@@ -1818,7 +1817,7 @@ begin
                Result     : Read_Result;
 
                procedure On_Trace_Info
-                 (Kind : GNATcov_RTS.Traces.Supported_Info_Kind;
+                 (Kind : Traces_Source.Supported_Info_Kind;
                   Data : String)
                is
                begin

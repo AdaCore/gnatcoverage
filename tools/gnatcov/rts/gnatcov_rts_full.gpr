@@ -12,6 +12,9 @@ library project GNATcov_RTS_Full is
    for Library_Dir use "lib-gnatcov_rts_full." & Library_Type;
    for Object_Dir use "obj-gnatcov_rts_full." & Library_Type;
 
+   for Source_Dirs use (".");
+   for Excluded_Source_Files use ("gnatcov_rts_c-base_io.c");
+
    package Compiler is
       for Default_Switches ("Ada") use ("-O2", "-g");
    end Compiler;

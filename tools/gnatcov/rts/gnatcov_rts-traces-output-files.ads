@@ -26,6 +26,10 @@
 
 with Ada.Command_Line;
 
+with Interfaces;           use Interfaces;
+with Interfaces.C.Strings; use Interfaces.C.Strings;
+
+with GNATcov_RTS.Base_IO;       use GNATcov_RTS.Base_IO;
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
 package GNATcov_RTS.Traces.Output.Files is
@@ -42,51 +46,33 @@ package GNATcov_RTS.Traces.Output.Files is
    --  Returns the number of seconds since the UNIX epoch
 
    function Default_Trace_Filename
-     (Env_Var : String := Default_Trace_Filename_Env_Var;
-      Prefix  : String := "gnatcov";
-      Tag     : String := "";
+     (Env_Var : String  := Default_Trace_Filename_Env_Var;
+      Prefix  : String  := "gnatcov";
+      Tag     : String  := "";
       Simple  : Boolean := False) return String;
-   --  Return the default name of the trace file to write.
-   --
-   --  If the Env_Var environment variable is not defined or empty, return:
-   --
-   --  * "Prefix.srctrace" if Simple is True.
-   --
-   --  * "Prefix-TAG-PID-CLOCK.srctrace" if Simple is False (PID is the
-   --    current process ID and CLOCK is the result of the Clock function in
-   --    decimal representation). The "-TAG" part is omitted if Tag is the
-   --    empty string.
-   --
-   --  If the Env_Var environment variable is defined and not empty, then:
-   --
-   --  * if it ends with "/" or "\", consider it contains the name of a
-   --    directory: use the algorithm described above to compute the basename
-   --    and return the filename in that directory;
-   --
-   --  * otherwise, just return the content of that environment variable.
-   --
-   --  Note that since this unit needs to be compilable with Ada 95 compilers,
-   --  and that there was no standard Ada.Directories package in Ada 95, we
-   --  have no easy access to a predicate checking if a path is a valid
-   --  directory. This is why we use the kludgy separator-ending heuristic here
-   --  instead.
+   --  Return the default name of the trace file to write. Please refer to the
+   --  gnatcov_rts_default_trace_filename function defined in
+   --  gnatcov_rts_c-traces-output-files.h for more information.
 
-   function Format_Date
-     (Timestamp : Time) return Serialized_Timestamp;
-   --  Return Timestamp represented as a little-endian 64-bit Unix timestamp
+   IO_Error : exception;
+   --  Exception we raise in case of errors during the trace file creation
 
    procedure Write_Trace_File
      (Buffers      : Unit_Coverage_Buffers_Array;
       Filename     : String := Default_Trace_Filename;
       Program_Name : String := Ada.Command_Line.Command_Name;
-      Exec_Date    : Time := Clock;
+      Exec_Date    : Time   := Clock;
       User_Data    : String := "");
    --  Write a trace file in Filename to contain the data in Buffers.
-   --
-   --  Program_Name, Exec_Date, and User_Data are used to fill the
-   --  corresponding metadata in the written trace file.
-   --
-   --  Exec_Date is given to produce the Timestamp. Use the current
-   --  time by default.
+   --  If unsuccessful, raise IO_Error and leave the error code in errno.
+
+   procedure Write_Trace_File_Wrapper
+     (Buffers      : Unit_Coverage_Buffers_Array;
+      Filename     : String := Default_Trace_Filename;
+      Program_Name : String := Ada.Command_Line.Command_Name;
+      Exec_Date    : Time   := Clock;
+      User_Data    : String := "");
+   --  Wrapper around Write_Trace_File that writes an error message to the
+   --  standard error if the trace file could not be written.
 
 end GNATcov_RTS.Traces.Output.Files;

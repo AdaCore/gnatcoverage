@@ -25,8 +25,6 @@ with Ada.Text_IO;    use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
-with GNATcov_RTS.Traces;
-
 with Calendar_Utils;
 with Hex_Images; use Hex_Images;
 with Inputs;     use Inputs;
@@ -35,6 +33,7 @@ with Qemu_Traces_Entries;
 with Swaps;
 with Switches;
 with Traces;     use Traces;
+with Traces_Source;
 
 package body Traces_Files is
 
@@ -376,7 +375,7 @@ package body Traces_Files is
       Fd : constant File_Descriptor := Open_Read (Filename, Binary);
 
       Binary_Magic : String renames Qemu_Trace_Magic;
-      Source_Magic : String renames GNATcov_RTS.Traces.Trace_File_Magic;
+      Source_Magic : String renames Traces_Source.Trace_File_Magic;
 
       Magic_Max_Size : constant Natural := Integer'Max
         (Binary_Magic'Length, Source_Magic'Length);

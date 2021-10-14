@@ -141,10 +141,6 @@ package Project is
    function SIDs_Enumerated return Boolean with Pre => Is_Project_Loaded;
    --  Return whether Enumerate_SIDs was called
 
-   function Has_Ada_Language return Boolean;
-   --  Return whether Ada is part of the language attributes for every
-   --  project of interest.
-
    procedure Enumerate_Sources
      (Callback         : access procedure
         (Project : GNATCOLL.Projects.Project_Type;

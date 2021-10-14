@@ -2,7 +2,7 @@
  *                                                                          *
  *                   GNATcoverage Instrumentation Runtime                   *
  *                                                                          *
- *                     Copyright (C) 2020-2022, AdaCore                     *
+ *                     Copyright (C) 2021-2022, AdaCore                     *
  *                                                                          *
  * GNATcoverage is free software; you can redistribute it and/or modify it  *
  * under terms of the GNU General Public License as published by the  Free  *
@@ -17,30 +17,17 @@
  *                                                                          *
  ****************************************************************************/
 
+#include <stdint.h>
 #include <stdlib.h>
-#include <time.h>
+#include <string.h>
 
-#if defined(_WIN32)
-#include <processthreadsapi.h>
-#else
-#include <sys/types.h>
-#include <unistd.h>
-#endif
+#include "gnatcov_rts_c-traces.h"
 
-#include "gnatcov_rts_c_interface.h"
-
-uint64_t
-gnatcov_rts_time_to_uint64 (void)
+unsigned
+gnatcov_rts_native_endianity (void)
 {
-  return (uint64_t)time (NULL);
-}
+  int i = 1;
+  char *p = (char *) &i;
 
-uint64_t
-gnatcov_rts_getpid (void)
-{
-#if defined(_WIN32)
-  return (uint64_t)GetCurrentProcessId ();
-#else
-  return (uint64_t)getpid ();
-#endif
+  return (p[0] == 1) ? GNATCOV_RTS_LITTLE_ENDIAN : GNATCOV_RTS_BIG_ENDIAN;
 }

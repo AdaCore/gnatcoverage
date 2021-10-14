@@ -17,48 +17,23 @@
  *                                                                          *
  ****************************************************************************/
 
-#include "gnatcov_rts_c_buffers.h"
+#include <stdio.h>
 
-unsigned
-gnatcov_rts_witness (void *buffer_address, unsigned bit_id)
+#include "gnatcov_rts_c_strings.h"
+
+/* The libc implementation always provides fwrite / putchar.  Use these
+   functions to print to the standard output.  */
+
+int
+gnatcov_rts_puts (gnatcov_rts_string str)
 {
-  uint8_t *buffer = (uint8_t *)buffer_address;
-  buffer[bit_id] = (uint8_t)1;
-  return 1;
+  fwrite (str.str, 1, str.length, stdout);
+  fwrite ("\n", 1, 1, stdout);
+  return 0;
 }
 
-unsigned
-gnatcov_rts_witness_decision (void *buffer_address, unsigned false_bit,
-                              unsigned true_bit, unsigned value)
+extern int
+gnatcov_rts_putchar (int c)
 {
-  if (value)
-    gnatcov_rts_witness (buffer_address, true_bit);
-  else
-    gnatcov_rts_witness (buffer_address, false_bit);
-  return value;
-}
-
-unsigned
-gnatcov_rts_witness_decision_mcdc (void *decision_buffer_address,
-                                   unsigned false_bit, unsigned true_bit,
-                                   void *mcdc_buffer_address,
-                                   unsigned mcdc_base, void *mcdc_path_address,
-                                   unsigned value)
-{
-  unsigned mcdc_path_index = *((unsigned *)mcdc_path_address);
-  gnatcov_rts_witness (mcdc_buffer_address, mcdc_base + mcdc_path_index);
-  return gnatcov_rts_witness_decision (decision_buffer_address, false_bit,
-                                       true_bit, value);
-}
-
-unsigned
-gnatcov_rts_witness_condition (unsigned *mcdc_path_address,
-                               unsigned offset_for_true, unsigned first,
-                               unsigned value)
-{
-  if (first)
-    *mcdc_path_address = 0;
-  if (value)
-    *mcdc_path_address += offset_for_true;
-  return value;
+  return putchar (c);
 }

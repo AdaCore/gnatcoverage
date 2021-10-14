@@ -2,7 +2,7 @@
  *                                                                          *
  *                   GNATcoverage Instrumentation Runtime                   *
  *                                                                          *
- *                     Copyright (C) 2020-2022, AdaCore                     *
+ *                     Copyright (C) 2021-2022, AdaCore                     *
  *                                                                          *
  * GNATcoverage is free software; you can redistribute it and/or modify it  *
  * under terms of the GNU General Public License as published by the  Free  *
@@ -17,16 +17,14 @@
  *                                                                          *
  ****************************************************************************/
 
+#include "gnatcov_rts_c-buffers.h"
+#include "gnatcov_rts_c_strings.h"
 #include <stdint.h>
 
-/* The C "time" function can return integers of
-   different size depending on the platform.
-   Here, we ensure that the returned result will be an
-   expected long long (a 64 bit integer). It will thus
-   be compatible with 32 bit as well as 64 bit architectures.
-   It also ensures compatibility with Ada Long_Long_Integer
-   standard type. */
-extern uint64_t gnatcov_rts_time_to_uint64 (void);
-
-/* Return the current process ID as an unsigned 64-bit integer. */
-extern uint64_t gnatcov_rts_getpid (void);
+/* Write a Base64-encoded trace file to the standard output.  See the
+   documentation of the gnatcov_rts_generic_write_trace_file function in
+   gnatcov_rts_c-output.h for more information.  */
+extern void gnatcov_rts_write_trace_file_base64 (
+    gnatcov_rts_unit_coverage_buffers_array *buffers,
+    gnatcov_rts_string program_name, uint64_t exec_date,
+    gnatcov_rts_string user_data);

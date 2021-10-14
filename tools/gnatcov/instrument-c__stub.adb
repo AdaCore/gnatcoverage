@@ -18,6 +18,9 @@
 
 package body Instrument.C is
 
+   Error_Msg : constant String :=
+     "GNATcoverage not built with C support.";
+
    ---------------------------
    -- Add_Auto_Dump_Buffers --
    ---------------------------
@@ -28,7 +31,7 @@ package body Instrument.C is
       Main : Compilation_Unit_Name;
       Rew  : C_Source_Rewriter) is
    begin
-      raise Program_Error with "GNATcoverage not built with C support";
+      raise Program_Error with Error_Msg;
    end Add_Auto_Dump_Buffers;
 
    -----------
@@ -37,7 +40,7 @@ package body Instrument.C is
 
    procedure Apply (Self : in out C_Source_Rewriter) is
    begin
-      raise Program_Error with "GNATcoverage not built with C support";
+      raise Program_Error with Error_Msg;
    end Apply;
 
    ---------------------
@@ -49,8 +52,19 @@ package body Instrument.C is
       Info           : in out Project_Info;
       Input_Filename : String) is
    begin
-      raise Program_Error with "GNATcoverage not built with C support";
+      raise Program_Error with Error_Msg;
    end Start_Rewriting;
+
+   ----------------------------
+   -- Emit_Buffers_List_Unit --
+   ----------------------------
+
+   procedure Emit_Buffers_List_Unit
+     (IC                : in out Inst_Context;
+      Root_Project_Info : in out Project_Info) is
+   begin
+      raise Program_Error with Error_Msg;
+   end Emit_Buffers_List_Unit;
 
    ---------------------
    -- Instrument_Unit --
@@ -61,7 +75,7 @@ package body Instrument.C is
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info) is
    begin
-      raise Program_Error with "GNATcoverage not built with C support";
+      raise Program_Error with Error_Msg;
    end Instrument_Unit;
 
 end Instrument.C;

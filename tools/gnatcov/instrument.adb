@@ -53,7 +53,6 @@ with Project;
 with SC_Obligations;
 with Strings;               use Strings;
 with Switches;              use Switches;
-with Text_Files;
 
 package body Instrument is
 
@@ -126,12 +125,6 @@ package body Instrument is
    procedure Prepare_Output_Dirs (IC : Inst_Context);
    --  Make sure we have the expected tree of directories for the
    --  instrumentation output.
-
-   procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info);
-   --  Emit in the root project a unit to contain the list of coverage buffers
-   --  for all units of interest.
 
    procedure Auto_Dump_Buffers_In_Ada_Mains
      (IC    : in out Inst_Context;
@@ -249,81 +242,6 @@ package body Instrument is
          end;
       end loop;
    end Prepare_Output_Dirs;
-
-   ----------------------------
-   -- Emit_Buffers_List_Unit --
-   ----------------------------
-
-   procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info)
-   is
-      CU_Name : Compilation_Unit_Name :=
-        CU_Name_For_Unit (Sys_Buffers_Lists, Unit_Spec);
-      File    : Text_Files.File_Type;
-
-      package Buffer_Vectors is new Ada.Containers.Vectors
-        (Positive, Unbounded_String);
-
-      Buffer_Units : Buffer_Vectors.Vector;
-   begin
-      CU_Name.Unit.Append (Ada_Identifier (IC.Project_Name));
-
-      --  Compute the list of units that contain the coverage buffers to
-      --  process.
-
-      for Cur in IC.Instrumented_Units.Iterate loop
-         declare
-            I_Unit : constant Compilation_Unit_Name :=
-               Instrumented_Unit_Maps.Key (Cur);
-            B_Unit : constant String := To_Ada (Buffer_Unit (I_Unit));
-         begin
-            Buffer_Units.Append (+B_Unit);
-         end;
-      end loop;
-
-      --  Now emit the unit to contain the list of buffers
-
-      declare
-         use type Ada.Containers.Count_Type;
-
-         Unit_Name : constant String := To_Ada (CU_Name.Unit);
-         First     : Boolean := True;
-      begin
-         Create_File
-           (Root_Project_Info,
-            File,
-            To_Filename
-              (Root_Project_Info.Project,
-               CU_Name,
-               Ada_Language));
-         Put_Warnings_And_Style_Checks_Pragmas (File);
-         for Unit of Buffer_Units loop
-            File.Put_Line ("with " & To_String (Unit) & ";");
-         end loop;
-         File.New_Line;
-         File.Put_Line ("package " & Unit_Name & " is");
-         File.New_Line;
-         File.Put_Line ("   List : constant Unit_Coverage_Buffers_Array"
-                        & " :=");
-         File.Put ("     (");
-         if Buffer_Units.Length = 1 then
-            File.Put ("1 => ");
-         end if;
-         for Unit of Buffer_Units loop
-            if First then
-               First := False;
-            else
-               File.Put_Line (",");
-               File.Put ((1 .. 6 => ' '));
-            end if;
-            File.Put (To_String (Unit) & ".Buffers'Access");
-         end loop;
-         File.Put_Line (");");
-         File.New_Line;
-         File.Put_Line ("end " & Unit_Name & ";");
-      end;
-   end Emit_Buffers_List_Unit;
 
    ------------------------------------
    -- Auto_Dump_Buffers_In_Ada_Mains --
@@ -524,6 +442,8 @@ package body Instrument is
 
       end Add_Instrumented_Unit_Wrapper;
 
+      use type Ada.Containers.Count_Type;
+
    --  Start of processing for Instrument_Units_Of_Interest
 
    begin
@@ -535,12 +455,6 @@ package body Instrument is
       end if;
 
       if Is_Language_Enabled ("C") then
-         if not Project.Has_Ada_Language then
-            Outputs.Fatal_Error
-              ("Beta C instrumentation generates Ada files, and thus needs the"
-               & " Ada language to be in the list of languages in the project"
-               & " file.");
-         end if;
          Project.Enumerate_Sources (Add_Instrumented_Unit_Wrapper'Access, "c");
       end if;
 
@@ -698,7 +612,29 @@ package body Instrument is
          Checkpoints.Checkpoint_Clear;
       end loop;
 
-      Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
+      if IC.Instrumented_Units.Length = 0 then
+         Outputs.Fatal_Error ("No unit to instrument.");
+      end if;
+
+      --  Emit units to contain the list of coverage buffers, one per language
+      --  present in the root project.
+      --
+      --  If the project contains both Ada and C sources, this will create two
+      --  arrays of coverage buffers. TODO??? we could have one array defined
+      --  in C and have the Ada unit just import it.
+
+      if Is_Language_Enabled ("Ada")
+         and then Project.Project.Root_Project.Has_Language ("Ada")
+      then
+         Instrument.Ada_Unit.Emit_Buffers_List_Unit
+           (IC, Root_Project_Info.all);
+      end if;
+
+      if Is_Language_Enabled ("C")
+         and then Project.Project.Root_Project.Has_Language ("C")
+      then
+         Instrument.C.Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
+      end if;
 
       --  Instrument all the mains that are not unit of interest to add the
       --  dump of coverage buffers: Instrument_Unit already took care of mains
