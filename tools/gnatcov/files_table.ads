@@ -268,7 +268,11 @@ package Files_Table is
       --  Detailed object coverage information for this line, null when empty
 
       SCOs : SCO_Id_Array_Acc;
-      --  SCOs for this source line, null when empty
+      --  SCOs for this source line, null when empty. Does _not_ contain MC/DC
+      --  coverage obligations: to iterate over them, you can use the Condition
+      --  function defined in SC_Obligations, passing it the decision SCO and
+      --  the condition index (Last_Cond_Index (D_SCO) will give you the last
+      --  condition index).
 
       Messages : Message_Array_Acc;
       --  Various diagnostic messages attached to this line, null when empty

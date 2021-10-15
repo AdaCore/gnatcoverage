@@ -458,6 +458,13 @@ package body Annotations is
             end if;
          end Compute_Line_State;
 
+         Last_Statement_SCO : SCO_Id := No_SCO_Id;
+         Last_Decision_SCO  : SCO_Id := No_SCO_Id;
+         --  A coverage obligation can span on multiple lines, and as we
+         --  iterate over lines to get SCOs and compute coverage entities
+         --  statistics, we need to make sure we are not counting several times
+         --  the same obligation when encountering it on a follow up line.
+
          -------------------
          -- Compute_Stats --
          -------------------
@@ -520,18 +527,52 @@ package body Annotations is
             for SCO of LI.SCOs.all loop
                case Kind (SCO) is
                   when Statement =>
-                     Update_Level_Stats (Get_Line_State (SCO, Stmt), Stmt);
+                     if SCO /= Last_Statement_SCO then
+                        Last_Statement_SCO := SCO;
+                        Update_Level_Stats (Get_Line_State (SCO, Stmt), Stmt);
+                     end if;
                   when Decision  =>
-                     Update_Level_Stats
-                       (Get_Line_State (SCO, Decision), Decision);
-                     if Coverage.MCDC_Coverage_Enabled then
-                        for J in Condition_Index'First .. Last_Cond_Index (SCO)
-                        loop
-                           Update_Level_Stats
-                             (Get_Line_State
-                                (Condition (SCO, J), Coverage.MCDC_Level),
-                              MCDC_Level);
-                        end loop;
+                     if SCO /= Last_Decision_SCO then
+                        Last_Decision_SCO := SCO;
+                        Update_Level_Stats
+                          (Get_Line_State (SCO, Decision), Decision);
+
+                        --  Conditions in that decision
+
+                        if Coverage.MCDC_Coverage_Enabled then
+                           for J in
+                             Condition_Index'First .. Last_Cond_Index (SCO)
+                           loop
+                              declare
+                                 Condition_SCO : constant SCO_Id :=
+                                   Condition (SCO, J);
+
+                                 MCDC_State : constant SCO_State :=
+                                   Get_Line_State (SCO, MCDC);
+                                 --  If the parent decision is partially
+                                 --  covered, then the SCO_State for each
+                                 --  condition will be No_Code, and the
+                                 --  SCO_State for the MCDC Coverage_Level
+                                 --  associated to the parent decision SCO will
+                                 --  be Not_Covered.
+
+                                 Condition_State : SCO_State;
+
+                              begin
+                                 if MCDC_State = Not_Covered
+                                 then
+                                    Condition_State := Not_Covered;
+                                 else
+                                    Condition_State :=
+                                      Get_Line_State
+                                        (Condition_SCO, Coverage.MCDC_Level);
+                                 end if;
+
+                                 Update_Level_Stats
+                                   (Condition_State, MCDC_Level);
+                              end;
+                           end loop;
+                        end if;
                      end if;
                   when others    =>
                      null;
