@@ -744,18 +744,18 @@ package body Decision_Map is
                Decision        => D_SCO,
                Inlined_Body    => Enclosing_Inlined_Body,
                others          => <>);
+
+            if not Is_Expected_Condition (Cond_Index,
+                                          Report_If_Unexpected => True)
+            then
+               return;
+            end if;
             Ctx.Decision_Stack.Append (DS_Top);
          end if;
 
          --  Here after pushing context for current decision, if needed
 
          pragma Assert (DS_Top.Decision = D_SCO);
-
-         if not Is_Expected_Condition (Cond_Index,
-                                       Report_If_Unexpected => True)
-         then
-            return;
-         end if;
 
          --  Record condition occurrence
 
