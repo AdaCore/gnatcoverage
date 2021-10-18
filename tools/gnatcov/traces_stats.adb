@@ -27,7 +27,7 @@ package body Traces_Stats is
    -- Get_Total --
    ---------------
 
-   function Get_Total (Stats : Li_Stat_Array) return Natural is
+   function Get_Total (Stats : Counter_Array) return Natural is
       Total : Natural := 0;
    begin
       for J in Stats'Range loop
@@ -59,11 +59,11 @@ package body Traces_Stats is
       end if;
    end Get_Line_Stat_String;
 
-   ------------------------------
-   -- Get_Entities_Stat_String --
-   ------------------------------
+   ---------------------------------
+   -- Get_Obligation_Stats_String --
+   ---------------------------------
 
-   function Get_Entities_Stat_String (Stats : En_Stat_Array) return String
+   function Get_Obligation_Stats_String (Stats : Ob_Stat_Array) return String
    is
       SCO_Kind_Repr : constant array (Coverage_Level) of Unbounded_String :=
         (Stmt     => +"statement",
@@ -97,7 +97,7 @@ package body Traces_Stats is
          end loop;
          return +Res;
       end if;
-   end Get_Entities_Stat_String;
+   end Get_Obligation_Stats_String;
 
    -----------
    -- Ratio --

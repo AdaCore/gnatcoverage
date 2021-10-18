@@ -374,42 +374,42 @@ package body Annotations.Dynamic_Html is
       Info                  : constant File_Info_Access := Get_File (File);
       Source                : constant JSON_Value := Create_Object;
       Line_Stats            : constant JSON_Value := Create_Object;
-      Entities_Stats_Object : JSON_Array;
+      Obligation_Stats_Object : JSON_Array;
 
-      procedure Add_En_Stats
+      procedure Add_Ob_Stats
         (Level          : Coverage_Level;
-         Entities_Stats : SCO_Tally);
-      --  Add to Entities_Stats_Object the Entities_Stats that correspond to
-      --  the coverage level Level.
+         Obligation_Stats : SCO_Tally);
+      --  Add to Obligation_Stats_Object the Obligation_Stats that correspond
+      --  to the coverage level Level.
 
       ------------------
       -- Add_En_Stats --
       ------------------
 
-      procedure Add_En_Stats
+      procedure Add_Ob_Stats
         (Level          : Coverage_Level;
-         Entities_Stats : SCO_Tally)
+         Obligation_Stats : SCO_Tally)
       is
          Level_Stats  : constant JSON_Value := Create_Object;
          Stats_Holder : constant JSON_Value := Create_Object;
       begin
-         Level_Stats.Set_Field ("covered", Entities_Stats.Stats (Covered));
+         Level_Stats.Set_Field ("covered", Obligation_Stats.Stats (Covered));
          Level_Stats.Set_Field
-           ("notCovered", Entities_Stats.Stats (Not_Covered));
+           ("notCovered", Obligation_Stats.Stats (Not_Covered));
          Level_Stats.Set_Field
-           ("partiallyCovered", Entities_Stats.Stats (Partially_Covered));
+           ("partiallyCovered", Obligation_Stats.Stats (Partially_Covered));
          Level_Stats.Set_Field
-           ("notCoverable", Entities_Stats.Stats (Not_Coverable));
+           ("notCoverable", Obligation_Stats.Stats (Not_Coverable));
          Level_Stats.Set_Field
            ("exemptedNoViolation",
-            Entities_Stats.Stats (Exempted_No_Violation));
+            Obligation_Stats.Stats (Exempted_No_Violation));
          Level_Stats.Set_Field
            ("exemptedWithViolation",
-            Entities_Stats.Stats (Exempted_With_Violation));
+            Obligation_Stats.Stats (Exempted_With_Violation));
          Stats_Holder.Set_Field ("stats", Level_Stats);
          Stats_Holder.Set_Field ("level", Image (Level));
-         Append (Entities_Stats_Object, Stats_Holder);
-      end Add_En_Stats;
+         Append (Obligation_Stats_Object, Stats_Holder);
+      end Add_Ob_Stats;
 
    begin
       Clear (Pp.Current_Mappings);
@@ -434,21 +434,16 @@ package body Annotations.Dynamic_Html is
       Line_Stats.Set_Field
         ("exemptedWithViolation", Info.Li_Stats (Exempted_With_Violation));
 
-      --  Compute entities coverage stats and store them in a dictionary list.
+      --  Compute obligation coverage stats and store them in a dictionary
+      --  list.
       --
       --  Object coverage does not come with coverage obligations on the
       --  assembly instructions, so there would be no point in enabling
-      --  reporting on entities for object coverage reports.
+      --  reporting on obligations for object coverage reports.
 
-      if Source_Coverage_Enabled then
-         Add_En_Stats (Stmt, Info.En_Stats (Stmt));
-         if Decision_Coverage_Enabled then
-            Add_En_Stats (Decision, Info.En_Stats (Decision));
-            if MCDC_Coverage_Enabled then
-               Add_En_Stats (MCDC_Level, Info.En_Stats (MCDC_Level));
-            end if;
-         end if;
-      end if;
+      for Level of Source_Levels_Enabled loop
+         Add_Ob_Stats (Level, Info.Ob_Stats (Level));
+      end loop;
 
       --  Generate the JSON object for this source file
 
@@ -456,7 +451,7 @@ package body Annotations.Dynamic_Html is
       Source.Set_Field ("hunkFilename", Get_Hunk_Filename (File));
       Source.Set_Field ("coverageLevel", Coverage_Option_Value);
       Source.Set_Field ("liStats", Line_Stats);
-      Source.Set_Field ("enAllStats", Entities_Stats_Object);
+      Source.Set_Field ("enAllStats", Obligation_Stats_Object);
 
       if Switches.Root_Project /= null then
          Source.Set_Field ("project", Project_Name (Info.Full_Name.all));

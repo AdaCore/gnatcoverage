@@ -24,6 +24,7 @@
 --  it has been initialized.
 
 with Ada.Calendar;          use Ada.Calendar;
+with Ada.Containers.Ordered_Sets;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Coverage_Options; use Coverage_Options;
@@ -74,6 +75,14 @@ package Coverage is
    --  function is meant to be used only for the purpose of generating a
    --  checkpoint. Code that needs to test the enabled levels should instead
    --  use the above *_Enabled functions.
+
+   package Levels_Sets is
+     new Ada.Containers.Ordered_Sets (Element_Type => Coverage_Level);
+
+   function Source_Levels_Enabled return Levels_Sets.Set;
+   --  Return the set of source coverage levels enabled. Differs from the above
+   --  as it will return the coverage levels implicitely enabled (such as
+   --  decision when passing stmt+mcdc).
 
    function Is_Load_Allowed
      (Filename : String; Checkpoint_Levels : Levels_Type) return String;
