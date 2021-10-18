@@ -178,6 +178,21 @@ package body Coverage is
       return Levels;
    end Current_Levels;
 
+   function Source_Levels_Enabled return Levels_Sets.Set is
+      Res : Levels_Sets.Set;
+   begin
+      if Source_Coverage_Enabled then
+         Res.Include (Stmt);
+         if Decision_Coverage_Enabled then
+            Res.Include (Decision);
+            if MCDC_Coverage_Enabled then
+               Res.Include (MCDC_Level);
+            end if;
+         end if;
+      end if;
+      return Res;
+   end Source_Levels_Enabled;
+
    ---------------------
    -- Is_Load_Allowed --
    ---------------------

@@ -461,7 +461,7 @@ package body Annotations is
          Last_Statement_SCO : SCO_Id := No_SCO_Id;
          Last_Decision_SCO  : SCO_Id := No_SCO_Id;
          --  A coverage obligation can span on multiple lines, and as we
-         --  iterate over lines to get SCOs and compute coverage entities
+         --  iterate over lines to get SCOs and compute coverage obligation
          --  statistics, we need to make sure we are not counting several times
          --  the same obligation when encountering it on a follow up line.
 
@@ -491,20 +491,20 @@ package body Annotations is
                   return;
                end if;
 
-               FI.En_Stats (Level).Total :=
-                 FI.En_Stats (Level).Total + 1;
+               FI.Ob_Stats (Level).Total :=
+                 FI.Ob_Stats (Level).Total + 1;
 
                if LI.Exemption /= Slocs.No_Location then
                   if State = Covered or else State = Not_Coverable then
-                     FI.En_Stats (Level).Stats (Exempted_No_Violation) :=
-                       FI.En_Stats (Level).Stats (Exempted_No_Violation) + 1;
+                     FI.Ob_Stats (Level).Stats (Exempted_No_Violation) :=
+                       FI.Ob_Stats (Level).Stats (Exempted_No_Violation) + 1;
                   else
-                     FI.En_Stats (Level).Stats (Exempted_With_Violation) :=
-                       FI.En_Stats (Level).Stats (Exempted_With_Violation) + 1;
+                     FI.Ob_Stats (Level).Stats (Exempted_With_Violation) :=
+                       FI.Ob_Stats (Level).Stats (Exempted_With_Violation) + 1;
                   end if;
                else
-                  FI.En_Stats (Level).Stats (State) :=
-                    FI.En_Stats (Level).Stats (State) + 1;
+                  FI.Ob_Stats (Level).Stats (State) :=
+                    FI.Ob_Stats (Level).Stats (State) + 1;
                end if;
             end Update_Level_Stats;
 
@@ -518,7 +518,7 @@ package body Annotations is
                FI.Li_Stats (S) := FI.Li_Stats (S) + 1;
             end if;
 
-            --  Update entities count
+            --  Update obligation count
 
             if LI.SCOs = null then
                return;
@@ -593,6 +593,13 @@ package body Annotations is
 
          for J in Global_Stats'Range loop
             Global_Stats (J) := Global_Stats (J) + FI.Li_Stats (J);
+            for Level in Global_Ob_Stats'Range loop
+               Global_Ob_Stats (Level).Stats (J) :=
+                 Global_Ob_Stats (Level).Stats (J)
+                 + FI.Ob_Stats (Level).Stats (J);
+               Global_Ob_Stats (Level).Total :=
+                 Global_Ob_Stats (Level).Total + FI.Ob_Stats (Level).Total;
+            end loop;
          end loop;
       end Compute_File_State;
 

@@ -28,7 +28,7 @@ package Traces_Stats is
    --  Array of stats indexed by the coverage state (covered, partially
    --  covered, etc.).
 
-   type Li_Stat_Array is new Counter_Array;
+   subtype Li_Stat_Array is Counter_Array;
    --  Array of stats for a set of lines
 
    type SCO_Tally is record
@@ -36,18 +36,18 @@ package Traces_Stats is
       Stats : Counter_Array := (others => 0);
    end record;
 
-   type En_Stat_Array is
+   type Ob_Stat_Array is
      array (Source_Coverage_Level) of SCO_Tally;
-   --  Array of stats for each coverage level entity (stmt, decision ...), for
-   --  a set of coverage obligations.
+   --  Array of stats for each coverage level obligation (stmt, decision ...),
+   --  for a set of coverage obligations.
 
    function Get_Line_Stat_String (Stats : Li_Stat_Array) return String;
    --  Return a String image of line stats
 
-   function Get_Entities_Stat_String (Stats : En_Stat_Array) return String;
-   --  Return a String image of entities stats
+   function Get_Obligation_Stats_String (Stats : Ob_Stat_Array) return String;
+   --  Return a String image of obligation stats
 
-   function Get_Total (Stats : Li_Stat_Array) return Natural;
+   function Get_Total (Stats : Counter_Array) return Natural;
    --  Return total line count, excluding No_Code lines
 
    function Ratio (Part : Natural; Total : Natural) return Natural;

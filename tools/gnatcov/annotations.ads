@@ -70,9 +70,10 @@ private
    --  Return a representation of M to be associated with an annotated line
 
    Global_Stats : Li_Stat_Array := (others => 0);
+   Global_Ob_Stats : Ob_Stat_Array;
    --  Stats associated with the whole set of source files that this package
-   --  considers (i.e. total numbers of lines, of partially covered /
-   --  not covered / fully covered lines...)
+   --  considers (i.e. total numbers of lines / obligations, of partially
+   --  covered / not covered / fully covered lines...)
 
    type Pretty_Printer is abstract tagged limited record
       Need_Sources : Boolean;

@@ -183,7 +183,7 @@ package body Annotations.Xcov is
 
       Put_Line (Pp.Xcov_File, Info.Full_Name.all & ':');
       Put_Line (Pp.Xcov_File, Get_Line_Stat_String (Info.Li_Stats));
-      Put_Line (Pp.Xcov_File, Get_Entities_Stat_String (Info.En_Stats));
+      Put_Line (Pp.Xcov_File, Get_Obligation_Stats_String (Info.Ob_Stats));
       Put_Line (Pp.Xcov_File, "Coverage level: " & Coverage_Option_Value);
    end Pretty_Print_Start_File;
 

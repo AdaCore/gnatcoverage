@@ -124,7 +124,7 @@ package body Annotations.Report is
       --  All output messages, classified by section according to relevant
       --  coverage level.
 
-      SCO_Tallies : En_Stat_Array;
+      SCO_Tallies : Ob_Stat_Array;
       --  Tally of SCOs for each report section
 
       Summary : String_Vectors.Vector;

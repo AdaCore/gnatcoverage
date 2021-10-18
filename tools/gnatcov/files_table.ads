@@ -363,10 +363,10 @@ package Files_Table is
             --  Line counters associated with the file (e.g total number of
             --  lines, number of lines that are covered).
 
-            En_Stats : En_Stat_Array;
-            --  Entitiy counters for each kind of SCO (stmt, decision, mcdc).
-            --  Stores how many statement are covered, how many decisions are
-            --  covered etc.
+            Ob_Stats : Ob_Stat_Array;
+            --  Obligation counters for each kind of SCO (stmt, decision,
+            --  mcdc). Stores how many statement are covered, how many
+            --  decisions are covered etc.
 
             Has_Source_Coverage_Info : Boolean := False;
             --  True if source coverage information has been registered for
