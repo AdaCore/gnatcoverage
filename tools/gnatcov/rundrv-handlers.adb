@@ -116,7 +116,7 @@ package body Rundrv.Handlers is
       if Cmd /= "valgrind" then
          Result.Environment.Insert
            (+"VALGRIND_LIB",
-            +Support_Files.In_Libexec_Dir ("lib/valgrind/"));
+            +Support_Files.In_Libexec_Dir ("libexec/valgrind/"));
       end if;
       return Result;
    end Native_Linux;

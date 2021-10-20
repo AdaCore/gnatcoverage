@@ -149,7 +149,7 @@ valgrind_ADAPTER_BUILD_VARS=\
   VALGRIND_PREFIX?=$(VALGRIND_PREFIX)
 
 valgrind_ADAPTER_INSTALL_VARS=\
-  VALGRIND_TOOL_INSTALL_DIR?=$(VALGRIND_PREFIX)/lib/valgrind
+  VALGRIND_TOOL_INSTALL_DIR?=$(VALGRIND_PREFIX)/libexec/valgrind
 
 # For dynamorio, we need a prefix indication at build time to find header
 # files and cmake artifacts, and can always install within the gnatcov install
