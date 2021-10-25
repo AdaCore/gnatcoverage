@@ -1334,7 +1334,7 @@ package body Files_Table is
                Unique_Name_Map : Alias_Maps.Map;
             begin
                --  Make the suffix longer and sort file in a dedicated map,
-               --  so that we can see what files still confilct with new
+               --  so that we can see what files still conflict with new
                --  Unique_Name attributes.
 
                for File of Alias_Set.all loop

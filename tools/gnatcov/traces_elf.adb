@@ -2799,7 +2799,25 @@ package body Traces_Elf is
                if Entry_Format (K).C_Type = DW_LNCT_path then
                   Read_Dwarf_Form_String
                     (Exec, Base, Off, Entry_Format (K).Form, Str_Address);
-                  Dirnames.Append (new String'(Read_String (Str_Address)));
+                  declare
+                     Dirname : constant String := Read_String (Str_Address);
+                  begin
+
+                     --  As specified by the DWARF standard, paths that are
+                     --  relative to the compilation unit directory can be
+                     --  given here.
+                     --
+                     --  Since our internal tables expect absolute filenames,
+                     --  do the appropriate conversion.
+
+                     if not Is_Absolute_Path (Dirname) then
+                        Dirnames.Append
+                          (Build_Filename
+                             (Compilation_Directory.all, Dirname));
+                     else
+                        Dirnames.Append (new String'(Dirname));
+                     end if;
+                  end;
                else
                   Skip_Dwarf_Form (Exec, Base, Off, Entry_Format (K).Form);
                end if;
@@ -2903,6 +2921,7 @@ package body Traces_Elf is
                declare
                   Filename : constant String := Read_String (Str_Address);
 
+                  Full_Filename : String_Access;
                begin
                   --  In DWARF 5, the current directory is explicitly present
                   --  in the directory list with index 0.
@@ -2917,7 +2936,11 @@ package body Traces_Elf is
                      Dir := Empty_String_Acc;
                   end if;
 
-                  Filenames.Append (Build_Filename (Dir.all, Filename));
+                  Full_Filename := Build_Filename (Dir.all, Filename);
+                  Filenames.Append
+                    (new String'
+                       (GNAT.OS_Lib.Normalize_Pathname (Full_Filename.all)));
+                  Free (Full_Filename);
                   Compute_File_Index (Filenames.Last_Element.all);
                end;
             end if;
