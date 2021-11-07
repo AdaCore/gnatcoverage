@@ -430,27 +430,15 @@ package body Files_Table is
 
    function Canonicalize_Filename (Filename : String) return String
    is
-      use Ada.Characters.Handling;
-      Res : String := Filename;
    begin
-      if Res'Length > 2 and then Res (Res'First + 1) = ':' then
-         --  Looks like a Windows file name
+      --  On Windows we used to always lowercase all the characters
+      --  other than the drive letter. Even though referencing the
+      --  file this way remains valid, this doesn't quite represent
+      --  the actual filename any more so wasn't really appropriate
+      --  here. The Normalize_Pathname runtime service knows how to
+      --  do everything else very well.
 
-         --  Capitalize the driver letter
-
-         Res (Res'First) := To_Upper (Res (Res'First));
-
-         --  Lower case letters, back-slashify
-
-         for I in Res'First + 2 .. Res'Last loop
-            if Is_Upper (Res (I)) then
-               Res (I) := To_Lower (Res (I));
-            elsif Res (I) = '/' then
-               Res (I) := '\';
-            end if;
-         end loop;
-      end if;
-      return Res;
+      return GNAT.OS_Lib.Normalize_Pathname (Filename);
    end Canonicalize_Filename;
 
    ---------------------------
@@ -471,7 +459,7 @@ package body Files_Table is
       if Path'Length >= 3
          and then Path (Path'First) in 'A' .. 'Z' | 'a' ..  'z'
          and then Path (Path'First + 1) = ':'
-         and then Path (Path'First + 2) = '\'
+         and then Path (Path'First + 2) in '\' | '/'
       then
          --  Windows flavor absolute path
 

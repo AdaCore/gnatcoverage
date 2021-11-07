@@ -2917,30 +2917,34 @@ package body Traces_Elf is
                end if;
             end loop;
 
+            --  If we not skipping this entry for whatever reason, process
+            --  what we have.
+
             if Str_Address /= Null_Address then
+
+               --  In DWARF 5, the current directory is always explicitly
+               --  present in the directory list at index 0, and we might
+               --  have either relative or absolute paths for file names in
+               --  file_names[] entries.
+
+               --  If we have an absolute _file_ name, use that. Just
+               --  disregard whetever directory indication we have. Always
+               --  normalize path names as we'll check for base names
+               --  uniqueness afterwards.
+
                declare
                   Filename : constant String := Read_String (Str_Address);
 
-                  Full_Filename : String_Access;
+                  Dir : constant String_Access :=
+                    Dirnames.Element (Integer (File_Dir));
+
+                  Full_Filename : constant String
+                    := (if Is_Absolute_Path (Filename)
+                        then Filename
+                        else Build_Filename (Dir.all, Filename));
                begin
-                  --  In DWARF 5, the current directory is explicitly present
-                  --  in the directory list with index 0.
-
-                  if File_Dir > 0 and then File_Dir < Nbr_Dirnames then
-                     Dir := Dirnames.Element (Integer (File_Dir));
-
-                  elsif not Is_Absolute_Path (Filename) then
-                     Dir := Dirnames.Element (0);
-
-                  else
-                     Dir := Empty_String_Acc;
-                  end if;
-
-                  Full_Filename := Build_Filename (Dir.all, Filename);
-                  Filenames.Append
-                    (new String'
-                       (GNAT.OS_Lib.Normalize_Pathname (Full_Filename.all)));
-                  Free (Full_Filename);
+                  Filenames.Append (new String'
+                    (Canonicalize_Filename (Full_Filename)));
                   Compute_File_Index (Filenames.Last_Element.all);
                end;
             end if;
