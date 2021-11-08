@@ -2200,6 +2200,7 @@ package body Traces_Elf is
       Dirnames           : Filenames_Vectors.Vector;
       Filenames          : Filenames_Vectors.Vector;
       Str_Address        : Address;
+      Str_Len            : Storage_Offset;
       Dir                : String_Access;
 
       File_Indices : File_Indices_Vectors.Vector;
@@ -2237,6 +2238,12 @@ package body Traces_Elf is
       function Last_For_Insn (First : Pc_Type) return Pc_Type;
       --  Assuming that an instruction starts at First, return the last byte
       --  that is part of that instruction.
+
+      procedure Register_Dirname_At (Addr : Address; Len : out Storage_Offset);
+      --  From a DWARF string at address Addr, append a full directory name to
+      --  our Directories list. If the directory name at Addr is relative, as
+      --  allowed by the DWARF standard, complete it with Compilation_Dir.
+      --  Len is filled with the length of the originally read directory name.
 
       -----------------------
       -- Close_Source_Line --
@@ -2711,6 +2718,22 @@ package body Traces_Elf is
          end;
       end Last_For_Insn;
 
+      -------------------------
+      -- Register_Dirname_At --
+      -------------------------
+
+      procedure Register_Dirname_At (Addr : Address; Len : out Storage_Offset)
+      is
+         Dirname      : constant String := Read_String (Addr);
+         Full_Dirname : constant String :=
+           (if Is_Absolute_Path (Dirname)
+            then Dirname
+            else Build_Filename (Compilation_Directory.all, Dirname));
+      begin
+         Dirnames.Append (new String'(Full_Dirname));
+         Len := Dirname'Length;
+      end Register_Dirname_At;
+
    --  Start of processing for Read_Debug_Lines
 
    begin
@@ -2785,9 +2808,8 @@ package body Traces_Elf is
             B := Read_Byte (Base + Off);
             exit when B = 0;
 
-            Dirnames.Append (new String'(Read_String (Base + Off)));
-            Off := Off + Dirnames.Last_Element.all'Length + 1;
-
+            Register_Dirname_At (Base + Off, Str_Len);
+            Off := Off + Str_Len + 1;
             Nbr_Dirnames := Nbr_Dirnames + 1;
          end loop;
 
@@ -2804,25 +2826,7 @@ package body Traces_Elf is
                if Entry_Format (K).C_Type = DW_LNCT_path then
                   Read_Dwarf_Form_String
                     (Exec, Base, Off, Entry_Format (K).Form, Str_Address);
-                  declare
-                     Dirname : constant String := Read_String (Str_Address);
-                  begin
-
-                     --  As specified by the DWARF standard, paths that are
-                     --  relative to the compilation unit directory can be
-                     --  given here.
-                     --
-                     --  Since our internal tables expect absolute filenames,
-                     --  do the appropriate conversion.
-
-                     if not Is_Absolute_Path (Dirname) then
-                        Dirnames.Append
-                          (Build_Filename
-                             (Compilation_Directory.all, Dirname));
-                     else
-                        Dirnames.Append (new String'(Dirname));
-                     end if;
-                  end;
+                  Register_Dirname_At (Str_Address, Str_Len);
                else
                   Skip_Dwarf_Form (Exec, Base, Off, Entry_Format (K).Form);
                end if;
@@ -2874,7 +2878,15 @@ package body Traces_Elf is
                   Dir := Empty_String_Acc;
                end if;
 
-               Filenames.Append (Build_Filename (Dir.all, Filename));
+               --  We might have either relative or absolute paths for file
+               --  names in file_names[] entries.
+               --
+               --  Always normalize path names as we'll check for base names
+               --  uniqueness afterwards.
+
+               Filenames.Append
+                 (new String'(Canonicalize_Filename
+                  (Build_Filename (Dir.all, Filename))));
                Compute_File_Index (Filenames.Last_Element.all);
 
                Read_ULEB128 (Base, Off, File_Time);
