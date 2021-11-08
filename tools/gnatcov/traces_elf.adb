@@ -1831,14 +1831,19 @@ package body Traces_Elf is
                   --  we do not support, just skip it. This is an optimization,
                   --  but also removes the need for us from having to support
                   --  foreign constructs.
+                  --
+                  --  As we want to support object coverage for possibly other
+                  --  languages than Ada / C, we will keep analyzing the
+                  --  compilation unit in that case.
 
-                  if At_Lang not in DW_LANG_C
-                                  | DW_LANG_C89
-                                  | DW_LANG_C99
-                                  | DW_LANG_C11
-                                  | DW_LANG_Ada83
-                                  | DW_LANG_Ada95
-                                  | DW_LANG_MIPS_Assembler
+                  if not Object_Coverage_Enabled
+                     and then At_Lang not in DW_LANG_C
+                                           | DW_LANG_C89
+                                           | DW_LANG_C99
+                                           | DW_LANG_C11
+                                           | DW_LANG_Ada83
+                                           | DW_LANG_Ada95
+                                           | DW_LANG_MIPS_Assembler
                   then
                      Off := Last;
                      exit DIE_Loop;
