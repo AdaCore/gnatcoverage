@@ -3587,7 +3587,21 @@ package body Traces_Elf is
          Add_Line_For_Object_Coverage
            (Line_Info.Sloc.Source_File,
             Init_Line_State,
-            Line_Info.Sloc.L.Line,
+
+            --  ??? Debug info is sometimes attached to the line 0. This is
+            --  authorized and specified in the DWARF standard, when an
+            --  instruction should not be attached to any particular line. As
+            --  we only support positive line indexes, we workaround it by
+            --  attaching such instructions to the line 1. There likely won't
+            --  be any code attached to line 1, so there is minimal risk of
+            --  unrelated object code getting mixed up.
+            --
+            --  In the future, we should probably display such lines in their
+            --  own section (for instance, specifically add a line indexed 0 to
+            --  which we could attach such instructions, or have a specific
+            --  section for it).
+
+            (if Line_Info.Sloc.L.Line = 0 then 1 else Line_Info.Sloc.L.Line),
             Line_Info,
             Base,
             Exec);
