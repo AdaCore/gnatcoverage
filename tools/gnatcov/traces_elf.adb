@@ -3077,7 +3077,13 @@ package body Traces_Elf is
          raise Program_Error with "missing end_of_sequence";
       end if;
 
-      --  Add corresponding inlined subprogram addresses ranges
+      --  Add corresponding inlined subprogram addresses ranges. Not needed if
+      --  computing object coverage.
+
+      if Object_Coverage_Enabled then
+         Free (Opc_Length);
+         return;
+      end if;
 
       for Inlined_Subp of Exec.Inlined_Subprograms loop
          if Inlined_Subp.Stmt_List_Offset = Stmt_List_Offset then
