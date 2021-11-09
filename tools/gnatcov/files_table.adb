@@ -485,8 +485,7 @@ package body Files_Table is
       Filename : String) return String
    is
    begin
-      return Canonicalize_Filename
-        (Dir & GNAT.OS_Lib.Directory_Separator & Filename);
+      return Dir & GNAT.OS_Lib.Directory_Separator & Filename;
    end Build_Filename;
 
    --------------------

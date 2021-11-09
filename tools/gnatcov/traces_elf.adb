@@ -187,8 +187,6 @@ package body Traces_Elf is
    --  Load the symbol table (but not the string table) if not already
    --  loaded.
 
-   Empty_String_Acc : constant String_Access := new String'("");
-
    function Get_Desc_Set
      (Exec : Exe_File_Type;
       Kind : Address_Info_Kind;
@@ -2201,7 +2199,6 @@ package body Traces_Elf is
       Filenames          : Filenames_Vectors.Vector;
       Str_Address        : Address;
       Str_Len            : Storage_Offset;
-      Dir                : String_Access;
 
       File_Indices : File_Indices_Vectors.Vector;
       --  Cached file indices for Filenames. The index is set to No_Source_File
@@ -2239,11 +2236,23 @@ package body Traces_Elf is
       --  Assuming that an instruction starts at First, return the last byte
       --  that is part of that instruction.
 
-      procedure Register_Dirname_At (Addr : Address; Len : out Storage_Offset);
-      --  From a DWARF string at address Addr, append a full directory name to
-      --  our Directories list. If the directory name at Addr is relative, as
-      --  allowed by the DWARF standard, complete it with Compilation_Dir.
-      --  Len is filled with the length of the originally read directory name.
+      procedure Register_Dirname
+        (Dw_Dirname : String;
+         Dw_Len     : out Storage_Offset);
+      --  From a DWARF directory name provided in Dw_Dirname, full or
+      --  relative, compute and add a directory name to our Directories
+      --  list. Perform best-effort to come up with a full path name; in
+      --  particular, if the input directory name is relative, complete it
+      --  with Compilation_Dir if the latter is available. Fill Dw_Len with
+      --  the length of Dw_Dirname.
+
+      procedure Register_Filename
+        (Dw_Filename : String;
+         Dw_Dirindex : Unsigned_32);
+      --  For a provided Dwarf filename and file directory index, compute
+      --  the filename to add to our filenames table and append it there.
+      --  Perform best-effort to come up with a full path name and always
+      --  canonicalize.
 
       -----------------------
       -- Close_Source_Line --
@@ -2718,21 +2727,62 @@ package body Traces_Elf is
          end;
       end Last_For_Insn;
 
-      -------------------------
-      -- Register_Dirname_At --
-      -------------------------
+      ----------------------
+      -- Register_Dirname --
+      ----------------------
 
-      procedure Register_Dirname_At (Addr : Address; Len : out Storage_Offset)
+      procedure Register_Dirname
+        (Dw_Dirname : String;
+         Dw_Len     : out Storage_Offset)
       is
-         Dirname      : constant String := Read_String (Addr);
-         Full_Dirname : constant String :=
-           (if Is_Absolute_Path (Dirname)
-            then Dirname
-            else Build_Filename (Compilation_Directory.all, Dirname));
+         Dirname : constant String
+           := (if Is_Absolute_Path (Dw_Dirname)
+                 or else Compilation_Directory = null
+               then Dw_Dirname
+               else Build_Filename (Compilation_Directory.all, Dw_Dirname));
+
       begin
-         Dirnames.Append (new String'(Full_Dirname));
-         Len := Dirname'Length;
-      end Register_Dirname_At;
+         Dirnames.Append (new String'(Dirname));
+         Dw_Len := Dw_Dirname'Length;
+      end Register_Dirname;
+
+      -----------------------
+      -- Register_Filename --
+      -----------------------
+
+      procedure Register_Filename
+        (Dw_Filename : String;
+         Dw_Dirindex : Unsigned_32)
+      is
+         --  Use the filename we have if it is absolute to begin with, or if we
+         --  don't have a directory to prepend. Otherwise, when we have both a
+         --  relative file name and a directory indication, just combine the
+         --  two together.
+
+         --  First determine a directory indication we could use if we need
+         --  one. Up to DWARF 4, the current directory is not represented in
+         --  the directory list and a directory index of 0 implicitly refers
+         --  to that directory, as found in the DW_AT_comp_dir attribute of
+         --  the compilation unit entry.
+         --
+         --  In DWARF 5, the current directory is always explicitly present in
+         --  the directory list, at index 0, and we might have either relative
+         --  or absolute paths for file names in file_names[] entries.
+
+         Dir : constant String_Access :=
+           (if Dw_Dirindex = 0 and then Version < 5
+            then Compilation_Directory
+            else Dirnames.Element (Integer (Dw_Dirindex)));
+
+         Filename : constant String
+             := (if Is_Absolute_Path (Dw_Filename) or else Dir = null
+                 then Dw_Filename
+                 else Build_Filename (Dir.all, Dw_Filename));
+      begin
+         Filenames.Append
+           (new String'(Canonicalize_Filename (Filename)));
+         Compute_File_Index (Filenames.Last_Element.all);
+      end Register_Filename;
 
    --  Start of processing for Read_Debug_Lines
 
@@ -2808,7 +2858,10 @@ package body Traces_Elf is
             B := Read_Byte (Base + Off);
             exit when B = 0;
 
-            Register_Dirname_At (Base + Off, Str_Len);
+            Register_Dirname
+              (Dw_Dirname => Read_String (Base + Off),
+               Dw_Len     => Str_Len);
+
             Off := Off + Str_Len + 1;
             Nbr_Dirnames := Nbr_Dirnames + 1;
          end loop;
@@ -2826,7 +2879,10 @@ package body Traces_Elf is
                if Entry_Format (K).C_Type = DW_LNCT_path then
                   Read_Dwarf_Form_String
                     (Exec, Base, Off, Entry_Format (K).Form, Str_Address);
-                  Register_Dirname_At (Str_Address, Str_Len);
+
+                  Register_Dirname
+                    (Dw_Dirname => Read_String (Str_Address),
+                     Dw_Len     => Str_Len);
                else
                   Skip_Dwarf_Form (Exec, Base, Off, Entry_Format (K).Form);
                end if;
@@ -2855,39 +2911,13 @@ package body Traces_Elf is
             exit when B = 0;
 
             declare
-               Filename : constant String := Read_String (Base + Off);
+               Dw_Filename : constant String := Read_String (Base + Off);
 
             begin
-               Off := Off + Filename'Length + 1;
+               Off := Off + Dw_Filename'Length + 1;
                Read_ULEB128 (Base, Off, File_Dir);
 
-               --  Up to DWARF 4, the current directory is not represented in
-               --  the directory list and a directory index of 0 implicitly
-               --  refers to that directory, as found in the DW_AT_comp_dir
-               --  attribute of the compilation unit entry.
-
-               if File_Dir > 0 and then File_Dir < Nbr_Dirnames then
-                  Dir := Dirnames.Element (Integer (File_Dir));
-
-               elsif Compilation_Directory /= null
-                 and then not Is_Absolute_Path (Filename)
-               then
-                  Dir := Compilation_Directory;
-
-               else
-                  Dir := Empty_String_Acc;
-               end if;
-
-               --  We might have either relative or absolute paths for file
-               --  names in file_names[] entries.
-               --
-               --  Always normalize path names as we'll check for base names
-               --  uniqueness afterwards.
-
-               Filenames.Append
-                 (new String'(Canonicalize_Filename
-                  (Build_Filename (Dir.all, Filename))));
-               Compute_File_Index (Filenames.Last_Element.all);
+               Register_Filename (Dw_Filename, File_Dir);
 
                Read_ULEB128 (Base, Off, File_Time);
                Read_ULEB128 (Base, Off, File_Len);
@@ -2938,31 +2968,10 @@ package body Traces_Elf is
             --  what we have.
 
             if Str_Address /= Null_Address then
-
-               --  In DWARF 5, the current directory is always explicitly
-               --  present in the directory list at index 0, and we might
-               --  have either relative or absolute paths for file names in
-               --  file_names[] entries.
-
-               --  If we have an absolute _file_ name, use that. Just
-               --  disregard whetever directory indication we have. Always
-               --  normalize path names as we'll check for base names
-               --  uniqueness afterwards.
-
                declare
-                  Filename : constant String := Read_String (Str_Address);
-
-                  Dir : constant String_Access :=
-                    Dirnames.Element (Integer (File_Dir));
-
-                  Full_Filename : constant String
-                    := (if Is_Absolute_Path (Filename)
-                        then Filename
-                        else Build_Filename (Dir.all, Filename));
+                  Dw_Filename : constant String := Read_String (Str_Address);
                begin
-                  Filenames.Append (new String'
-                    (Canonicalize_Filename (Full_Filename)));
-                  Compute_File_Index (Filenames.Last_Element.all);
+                  Register_Filename (Dw_Filename, File_Dir);
                end;
             end if;
          end loop;

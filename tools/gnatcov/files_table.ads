@@ -79,7 +79,6 @@ package Files_Table is
       Filename : String) return String_Access;
    --  Create a filename from a directory name and a filename.
    --  The directory name is expected to be not empty.
-   --  If the filename looks like a Windows filename, it is canonicalized.
 
    --  Global directory of all source files
 
