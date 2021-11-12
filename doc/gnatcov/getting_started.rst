@@ -146,9 +146,8 @@ worthy of note:
 A brief introduction to the main process steps
 ==============================================
 
-This section is intended to provide some introductory concrete feeling of what
-the process actually looks like on a very basic example, without getting into
-details.
+This section is intended to illustrate the basics of the process on a
+very simple example, without getting into details.
 
 We start from a very simple Ada package exposing a set of elementary
 operations over ``Integer`` objects, with a spec and body in source files
