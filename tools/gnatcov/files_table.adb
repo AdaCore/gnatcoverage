@@ -32,12 +32,12 @@ with Osint;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with Checkpoints; use Checkpoints;
-with Coverage;    use Coverage;
+with Checkpoints;   use Checkpoints;
+with Coverage;      use Coverage;
 with Outputs;
+with Paths;         use Paths;
 with Perf_Counters; use Perf_Counters;
 with Project;
-with Strings;
 with Switches;
 
 package body Files_Table is
@@ -306,7 +306,7 @@ package body Files_Table is
       use GNAT.Regpat;
       E : Source_Rebase_Entry_Acc;
 
-      Regexp : constant String := "^" & Strings.Glob_To_Regexp (Old_Prefix);
+      Regexp : constant String := "^" & Paths.Glob_To_Regexp (Old_Prefix);
       --  Add a begining of line anchor to the regular expression to make sure
       --  we are matching a prefix.
 
@@ -423,82 +423,6 @@ package body Files_Table is
       end if;
 
    end Lookup_Exec;
-
-   ---------------------------
-   -- Canonicalize_Filename --
-   ---------------------------
-
-   function Canonicalize_Filename (Filename : String) return String
-   is
-   begin
-      --  On Windows we used to always lowercase all the characters
-      --  other than the drive letter. Even though referencing the
-      --  file this way remains valid, this doesn't quite represent
-      --  the actual filename any more so wasn't really appropriate
-      --  here. The Normalize_Pathname runtime service knows how to
-      --  do everything else very well.
-
-      return GNAT.OS_Lib.Normalize_Pathname (Filename);
-   end Canonicalize_Filename;
-
-   ---------------------------
-   -- Canonicalize_Filename --
-   ---------------------------
-
-   function Canonicalize_Filename (Filename : String) return String_Access is
-   begin
-      return new String'(Canonicalize_Filename (Filename));
-   end Canonicalize_Filename;
-
-   ----------------------
-   -- Is_Absolute_Path --
-   ----------------------
-
-   function Is_Absolute_Path (Path : String) return Boolean is
-   begin
-      if Path'Length >= 3
-         and then Path (Path'First) in 'A' .. 'Z' | 'a' ..  'z'
-         and then Path (Path'First + 1) = ':'
-         and then Path (Path'First + 2) in '\' | '/'
-      then
-         --  Windows flavor absolute path
-
-         return True;
-
-      elsif Path'Length >= 1 and then Path (Path'First) = '/' then
-
-         --  Linux flavor absolute pah
-
-         return True;
-
-      else
-         return False;
-      end if;
-   end Is_Absolute_Path;
-
-   --------------------
-   -- Build_Filename --
-   --------------------
-
-   function Build_Filename
-     (Dir      : String;
-      Filename : String) return String
-   is
-   begin
-      return Dir & GNAT.OS_Lib.Directory_Separator & Filename;
-   end Build_Filename;
-
-   --------------------
-   -- Build_Filename --
-   --------------------
-
-   function Build_Filename
-     (Dir      : String;
-      Filename : String) return String_Access
-   is
-   begin
-      return new String'(Build_Filename (Dir, Filename));
-   end Build_Filename;
 
    ---------------------
    -- End_Lex_Element --

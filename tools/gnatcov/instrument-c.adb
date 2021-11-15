@@ -43,6 +43,7 @@ with Coverage_Options;
 with Files_Table;         use Files_Table;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Outputs;             use Outputs;
+with Paths;               use Paths;
 with Project;
 with System_Commands;     use System_Commands;
 with SC_Obligations;      use SC_Obligations;

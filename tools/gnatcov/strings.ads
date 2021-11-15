@@ -21,7 +21,6 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
-with Ada.Directories;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Equal_Case_Insensitive;
@@ -31,8 +30,6 @@ with Ada.Strings.Unbounded.Less_Case_Insensitive;
 with GNAT.Strings; use GNAT.Strings;
 
 package Strings is
-
-   subtype File_Name is String_Access;
 
    function Hash (El : String_Access) return Ada.Containers.Hash_Type;
    --  Compute a hash from El.all
@@ -93,9 +90,6 @@ package Strings is
      (V : String_Vectors.Vector)
       return String_List_Access;
 
-   function Glob_To_Regexp (Pattern : String) return String;
-   --  Translates a globbing pattern into a regular expression
-
    --  The stream type below allows arbitrary objects to be streamed
    --  from/to an unbounded string, which is used as a buffer of bytes.
 
@@ -125,10 +119,7 @@ package Strings is
       Item   : Ada.Streams.Stream_Element_Array);
    --  Append to string
 
-   function "/" (Dir, Name : String) return String is
-     (Ada.Directories.Compose (Dir, Name));
-
-   --  TODO??? Handle Unicode file names and source text
+   --  TODO??? Handle Unicode source texts
 
 private
    pragma Inline (Hash);

@@ -25,6 +25,7 @@ with GNATCOLL.Mmap;
 
 with Hex_Images;  use Hex_Images;
 with Outputs;     use Outputs;
+with Paths;
 with Switches;
 
 package body Inputs is
@@ -305,7 +306,7 @@ package body Inputs is
          else
             Append (Pattern, "|");
          end if;
-         Append (Pattern, Strings.Glob_To_Regexp (Glob_Pattern));
+         Append (Pattern, Paths.Glob_To_Regexp (Glob_Pattern));
       end Process;
 
    --  Start of processing for Create_Matcher

@@ -59,27 +59,6 @@ package Files_Table is
       --  Library files can be consolidated with library files only. They are
       --  excluded from coverage reports.
 
-   function Canonicalize_Filename (Filename : String) return String;
-   function Canonicalize_Filename (Filename : String) return String_Access;
-   --  Assuming Filename is a full pathname to a file, return a normalized
-   --  version of it such that different references to the same file map to
-   --  the same canonical string as much as possible. The casing of characters
-   --  other than Windows drive letters is always preserved.
-
-   function Is_Absolute_Path (Path : String) return Boolean;
-   --  Return whether Path is an absolute path. Unlike the GNAT runtime
-   --  version of the service, this one always matches both Windows or Unix
-   --  file path flavors.
-
-   function Build_Filename
-     (Dir      : String;
-      Filename : String) return String;
-   function Build_Filename
-     (Dir      : String;
-      Filename : String) return String_Access;
-   --  Create a filename from a directory name and a filename.
-   --  The directory name is expected to be not empty.
-
    --  Global directory of all source files
 
    function Get_Index_From_Full_Name

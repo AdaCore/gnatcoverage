@@ -19,9 +19,9 @@
 with Ada.Characters.Handling;
 with Ada.Strings.Hash;
 
-with GNAT.OS_Lib;
 with GNAT.Regexp;
-with GNAT.Regpat;
+
+with Paths;
 
 package body Strings is
 
@@ -110,126 +110,6 @@ package body Strings is
       end loop;
       return Result;
    end Vector_To_List;
-
-   --------------------
-   -- Glob_To_Regexp --
-   --------------------
-
-   function Glob_To_Regexp (Pattern : String) return String is
-      use Ada.Strings.Unbounded;
-      use GNAT.Regpat;
-
-      Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
-      --  Directory separator on this OS. Will also be used to determine if we
-      --  should canonicalize the pattern (only done on Windows).
-
-      Escaped_Sep : constant String := (if Sep = '\' then "\\" else "" & Sep);
-      --  Same as Sep, but escaped so that we can use it in a regexp
-
-      function Canonicalize_Pattern (Pattern : String) return String;
-      --  Canonicalizes a globbing pattern under Windows to capitalize the
-      --  drive letter (if it exists) and turn all other characters to lower
-      --  case. It also converts all forward-slashes to back-slashes.
-
-      --------------------------
-      -- Canonicalize_Pattern --
-      --------------------------
-
-      function Canonicalize_Pattern (Pattern : String) return String is
-         use Ada.Characters.Handling;
-
-         Res         : String := Pattern;
-         Start_Index : Natural := Res'First;
-      begin
-
-         --  We only need to canonicalize patterns under Windows
-
-         if Sep = '\' then
-            if Res'Length >= 2 and then Res (Start_Index + 1) = ':' then
-               Res (Start_Index) := To_Upper (Res (Start_Index));
-               Start_Index := Start_Index + 2;
-            end if;
-
-            for J in Start_Index .. Res'Last loop
-               if Res (J) = '/' then
-                  Res (J) := '\';
-               else
-                  Res (J) := To_Lower (Res (J));
-               end if;
-            end loop;
-         end if;
-
-         return Res;
-      end Canonicalize_Pattern;
-
-      Pat : constant String := Canonicalize_Pattern (Pattern);
-      Res : Unbounded_String;
-      I   : Natural := Pat'First;
-
-   begin
-      --  Glob to Regexp translation largely inspired from Python's fnmatch
-      --  (https://github.com/python/cpython/blob/3.6/Lib/fnmatch.py)
-      --  module, with some tweaks here and there.
-      --
-      --  The biggest differences are the handling of '*', which is translated
-      --  as '.*' in fnmatch, but not here (see bellow), and the fact that both
-      --  [!abc] and [^abc] can be used to match anything but a,b or c.
-      --  The first form comes from fnmatch, while the other was added for
-      --  consistency with the globbing patterns accepted by GNAT.Regexp.
-
-      while I <= Pat'Last loop
-
-         case Pat (I) is
-
-            --  '*' cannot be directly transalted as '.*' as you do not expect
-            --  '*' to match on more than one directory level:
-            --  you would expect 'src_*/' to match 'src_1/' and 'src_2/', but
-            --  not 'src_1/subdir/'.
-
-            when '*' => Append (Res, "[^" & Escaped_Sep & "]*");
-            when '?' => Append (Res, ".");
-            when '[' =>
-               declare
-                  End_Cur : Natural := I + 1;
-                  --  Will hold the position of the next closing bracket. Note
-                  --  that this means that using ']' in a [...] item is not
-                  --  allowed.
-
-               begin
-                  while End_Cur <= Pat'Last
-                    and then Pat (End_Cur) /= ']'
-                  loop
-                     End_Cur := End_Cur + 1;
-                  end loop;
-                  if End_Cur > Pat'Last then
-                     Append (Res, "\[");
-                  else
-                     for J in I .. End_Cur loop
-                        case Pat (J) is
-                        when '\' =>
-                           Append (Res, "\\");
-                        when '-' =>
-                           Append (Res, "\-");
-                        when '!' | '^' =>
-                           if J = I + 1 then
-                              Append (Res, '^');
-                           else
-                              Append (Res, "\" & Pat (J));
-                           end if;
-                        when others =>
-                           Append (Res, Pat (J));
-                        end case;
-                     end loop;
-                     I := End_Cur;
-                  end if;
-               end;
-            when others =>
-               Append (Res, Quote ("" & Pat (I)));
-         end case;
-         I := I + 1;
-      end loop;
-      return To_String (Res);
-   end Glob_To_Regexp;
 
    ----------
    -- Read --
@@ -339,7 +219,7 @@ package body Strings is
       for I in Regexps'Range loop
          Regexps (I) :=
            GNAT.Regexp.Compile
-             (Glob_To_Regexp (To_Lower (+(Patterns_List.Element (I)))));
+             (Paths.Glob_To_Regexp (To_Lower (+(Patterns_List.Element (I)))));
       end loop;
 
       Strings_List.Iterate (Process_String'Access);

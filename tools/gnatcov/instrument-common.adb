@@ -32,6 +32,7 @@ with Libadalang.Sources;
 
 with Hex_Images;
 with Outputs; use Outputs;
+with Paths;   use Paths;
 with Project;
 with Switches;
 with SCOs;

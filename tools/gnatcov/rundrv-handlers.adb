@@ -24,7 +24,7 @@ with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 with Arch;
 with Coverage;      use Coverage;
-with Files_Table;
+with Paths;         use Paths;
 with Support_Files;
 with Strings;       use Strings;
 with Switches;      use Switches;
@@ -49,9 +49,9 @@ package body Rundrv.Handlers is
 
    function Bundled_Or_Plain (What, Where : String) return String is
       Dir     : constant String :=
-         Files_Table.Build_Filename (Support_Files.Libexec_Dir, Where);
+         Paths.Build_Filename (Support_Files.Libexec_Dir, Where);
       Bundled : constant String :=
-         Files_Table.Build_Filename (Dir, What);
+         Paths.Build_Filename (Dir, What);
    begin
       return (if Exists (Bundled) then Bundled else What);
    end Bundled_Or_Plain;

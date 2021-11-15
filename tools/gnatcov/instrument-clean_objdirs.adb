@@ -21,8 +21,8 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
+with Paths;   use Paths;
 with Project;
-with Strings; use Strings;
 
 procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
    use Project_Info_Maps;

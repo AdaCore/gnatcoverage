@@ -28,6 +28,7 @@ with Ada.Containers.Hashed_Maps;
 with GNAT.Strings; use GNAT.Strings;
 
 with Binary_Files; use Binary_Files;
+with Paths;        use Paths;
 with Strings;      use Strings;
 with Traces;       use Traces;
 with Traces_Elf;   use Traces_Elf;

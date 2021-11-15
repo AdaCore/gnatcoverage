@@ -44,6 +44,7 @@ with Files_Table;      use Files_Table;
 with Hex_Images;       use Hex_Images;
 with Inputs;
 with Outputs;
+with Paths;            use Paths;
 with Perf_Counters;    use Perf_Counters;
 with Traces_Disa;
 with Traces_Lines;     use Traces_Lines;

@@ -50,6 +50,7 @@ with Instrument.C;
 with Instrument.Common;     use Instrument.Common;
 with Instrument.Find_Ada_Units;
 with Outputs;               use Outputs;
+with Paths;                 use Paths;
 with Project;
 with SC_Obligations;        use SC_Obligations;
 with Strings;               use Strings;

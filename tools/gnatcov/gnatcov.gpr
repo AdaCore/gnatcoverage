@@ -56,7 +56,7 @@ project Gnatcov is
       case Build_Mode is
          when "dev" =>
             mode_switches := ("-O0", "-g");
-            ada_mode_switches := ("-gnata", "-gnatwe");
+            ada_mode_switches := ("-gnata");
             c_mode_switches := ("-Werror");
             cxx_mode_switches := ("-Werror");
 
