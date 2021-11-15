@@ -512,8 +512,23 @@ Statement Coverage analysis
 Core notions and Reporting (:option:`--level=stmt`)
 ---------------------------------------------------
 
-|gcv| performs Statement Coverage assessments with the :option:`--level=stmt`
-command line option.
+|gcv| performs Statement Coverage assessments with the
+:option:`--level=stmt` command line option. The assessment determines
+the status of statement coverage obligations out of the tests execution,
+considering that:
+
+* A statement is :dfn:`covered`, and the obligation :dfn:`discharged`,
+  as soon as the control flow has reached the statement.
+
+* A statement is :dfn:`uncovered` otherwise.
+
+There is no notion of partial coverage for statements, even when a
+statement execution is interrupted somehow, for example by an
+exception occurrence. For instance, the statement below will be
+reported as covered as soon as the statement is reached, even if the
+expression evaluation never really terminates::
+
+  X := Function_That_Raises_Exception (Y) + Z;
 
 In synthetic :option:`=report` outputs, unexecuted source statements are
 listed as Statement Coverage violations in the report section dedicated to
@@ -529,7 +544,7 @@ indications:
    :header: Annotation, Meaning
 
    ``-`` | At least one statement on the line, none covered
-   ``!`` | At least one statement on the line, some covered
+   ``!`` | More than one statement on the line, some covered
    ``+`` | At least one statement on the line, all covered
 
 When a single statement spans multiple lines, the coverage annotation is
@@ -557,19 +572,9 @@ only. For example, see the ``.`` annotations on lines 4 and 6 in::
 Declarations are generally considered as statements, so are reported
 covered/uncovered when they have initialization code associated with them.
 
-Finally, a statement is considered covered as soon as part of the associated
-machine code is executed, in particular even when the statement execution is
-interrupted somehow, for example by an exception occurrence. For instance, the
-statement below::
-
-  X := Function_That_Raises_Exception (Y) + Z;
-
-Will be reported as covered as soon as it is reached, even if the expression
-evaluation never really terminates.
-
 Note that if no executable code for a given unit can be found in any of the
 executables submitted to gnatcov, then all statements in the unit will
-be conservatively reported as not covered. This ensures that if tests
+be conservatively reported as uncovered. This ensures that if tests
 for an entire unit have been omitted from a test campaign, a violation
 will be properly reported. Such violations can be suppressed either using
 exemptions, or by removing the unit from the list of units of interest.
@@ -577,9 +582,9 @@ exemptions, or by removing the unit from the list of units of interest.
 Example program and assessments
 -------------------------------
 
-To illustrate the just presented points further, we consider the example
-functional unit below, with the spec and body stored in source files named
-``div_with_check.ads`` and ``div_with_check.adb``:
+Let us consider the example functional unit below, with the spec and
+body stored in source files named ``div_with_check.ads`` and
+``div_with_check.adb``:
 
 .. code-block:: ada
 
@@ -759,18 +764,26 @@ contexts::
   T := (for some X of Container => P(X));
 
 
-A decision is said :dfn:`fully covered`, or just :dfn:`covered`, as soon as it
-has been evaluated at least once True and once False during program
-execution. If only one of these two possible outcomes was exercised, the
-decision is said :dfn:`partially covered`.
+The coverage status of a decision obligation is determined as
+follows:
 
-When none of the possible outcomes was exercised, the decision is said
-:dfn:`uncovered`. This happens when either the enclosing statement was not
-executed at all or when all the attempted evaluations were interrupted
-e.g. because of exceptions. In the former case, when a decision is part of a
-statement and the statement is not executed at all, only the statement level
-violation is reported. The nested decision level violations are implicit in
-this case and diagnosing them as well would only add redundancy.
+* A decision is said :dfn:`fully covered`, or just :dfn:`covered`, and
+  the obligation discharged, as soon as the decision has been evaluated at
+  least once True and once False during program execution.
+
+* A decision is said :dfn:`uncovered` when none of the possible
+  outcomes was exercised, either because the enclosing statement was
+  not executed at all or when all the attempted evaluations were
+  interrupted e.g. because of exceptions.
+
+* If only one of the two possible outcomes was exercised, the
+  decision is said :dfn:`partially covered`, and the obligation
+  only partially discharged.
+
+When a decision is part of a statement and the statement is not executed at
+all, only the statement level violation is reported. The nested decision level
+violations are implicit in this case and diagnosing them as well would only
+add redundancy.
 
 The :option:`=report` synthetic output lists the statement and decision
 coverage violations in the ``STMT`` and ``DECISION`` coverage report section
@@ -787,9 +800,9 @@ the possible annotations:
   :widths: 10, 80
   :header: Annotation, Meaning
 
-   ``-`` | Statement on the line was not executed
-   ``!`` | At least one decision partially covered on the line
-   ``+`` | All the statements and decisions on the line are covered
+   ``-`` | At least one statement on the line, none executed.
+   ``!`` | Unless multiple statements are involved, decision partially covered on the line.
+   ``+`` | All the statements and decisions on the line are covered.
 
 
 When a trailing `+` is added to the format passed
@@ -960,7 +973,7 @@ performed by passing the :option:`--level=stmt+mcdc` option to |gcvcov|
 commands. :dfn:`Decisions` in this context are defined as:
 
 * All the expressions considered as decisions for decision coverage,
-  then also:
+  as well as:
 
 * All the Boolean expressions which combine operands with
   *short-circuit* logical operators ("``&&``" and "``||``" in C,
@@ -976,6 +989,14 @@ Then for all the decisions in the sources of interest:
 * Separate conditions in a decision are identified as the operands of
   *short-circuit* operators.
 
+Regarding coverage status definitions:
+
+* A condition is :dfn:`covered`, and the obligation discharged, when
+  the independant effect on the enclosing decision was demonstrated by
+  the tests,
+
+* A condition is said :dfn:`uncovered` otherwise.
+
 The :ref:`mcdc-decisions` section that follows provides a few examples to
 illustrate the identification of decisions and conditions.
 :ref:`non-short-circuit` focuses on the handling of computational Boolean
@@ -989,14 +1010,13 @@ marked with a ``!`` as well:
 
 .. tabularcolumns:: cl
 .. csv-table::
-  :delim: |
-  :widths: 10, 80
-  :header: Annotation, Meaning
+   :delim: |
+   :widths: 10, 60
+   :header: Annotation, Meaning
 
-   ``-`` | Statement on the line was not executed
-   ``!`` | At least one decision/condition partially covered on the line
-   ``+`` | All the statements and decisions/conditions on the line are covered
-
+   ``-`` | At least one statement associated with this line, none executed.
+   ``!`` | For a single statement line, decision partially covered or condition not covered on the line.
+   ``+`` | All the statements, decisions and conditions on the line are covered.
 
 The :option:`=report` outputs feature an extra MCDC section in the Coverage
 Violations segment, which holds:
