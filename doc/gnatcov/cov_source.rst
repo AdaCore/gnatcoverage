@@ -339,98 +339,6 @@ users should open as an entry point to the report contents.
 The per-line details that differentiates :option:`html+` from :option:`html`
 are always produced, initially folded and available on line clicks as well.
 
-.. _rebase_opts:
-
-Handling source relocation for annotated sources output formats
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For all annotated sources output formats
-(:option:`--annotate=xcov[+]|html[+]|dhtml)`, |gcv| needs access to the
-sources of the :term:`units of interest` to generate the output. By default,
-the sources will be searched in the location where they were compiled, for
-binary traces, or where they were instrumented for source traces. This is
-generally going to be the case if the whole coverage analysis process is done
-on the same machine, but in some cases it may be preferable to generate the
-coverage report on a different machine than the one where the coverage run was
-done, or the sources may have been moved.
-
-For instance, a project with a large number of unit tests may be run on
-multiple machines in parallel to speed up the test runs, and then a single
-report will be generated from all the traces/checkpoints. In such case, |gcv|
-will not be able to automatically find the source files. |gcv| offers two
-options to help in those situations:
-
-* The option :option:`--source-rebase=\<old_prefix\>=\<new_prefix\>`
-
-  This option allows the specification of alternate path prefixes for source
-  files that were not found in there build_1234/instrumentation location.
-
-  If the location of a source file, when built on a first machine, was
-  ``/work/build_1234/src/main.adb`` but on the machine where the report is to
-  be generated, the same file is located at
-  ``/some/path/project/src/main.adb``, then in order for |gcv| to find this
-  file, the option
-  :option:`--source-rebase=/work/build_1234/=/some/path/project/` can be
-  passed. Note that the prefixes apply to absolute paths.
-
-  This option supports globbing expressions for the ``old_prefix`` part
-  of the option, so in the example above, if the build number varies from run
-  to run, the option passed can be
-  :option:`--source-rebase=/work/build_*=/some/path/project/`.
-
-  This option also allows for response-files
-  (:option:`--source-rebase=\@rebase_file`) in which each line must be of the
-  form ``old_prefix=new_prefix``.
-
-  This option can be passed multiple times on the command line, and |gcv| will
-  try each pair in the order in which they were passed until the source file
-  is found.
-
-* The option :option:`--source-search=directory_path`
-
-  This option allows the specification of directories in which to search for
-  missing source files.
-
-  If the location of a source file, when built on a first
-  machine, was ``/work/build_1234/src/main.adb`` but its location on the
-  machine where the report is generated is
-  ``/some/path/project/src/main.adb`` then passing
-  :option:`--source-search=/some/path/project/src` will enable |gcv|
-  to find the missing source file. This option also accepts response files.
-
-  This option can appear multiple times on the command line, and when trying
-  to locate a missing source file, |gcv| will first try the
-  :option:`--source-rebase` prefix pairs, if any, and if the source file was
-  not found, it will then look for the file in all the directories passed with
-  :option:`--source-search` in the order in which they appear on the command
-  line.
-
-These two options perform very similar functions and can sometimes be used
-interchangeably, however the second option is less selective and can lead to
-unexpected results in some circumstances. Since :option:`--source-search`
-only specifies an additional directory in which to search for missing sources,
-it does not guarantee that if a file is found then it is the correct one, but
-only that the file found has the same basename than the searched file. For Ada
-projects this should not be an issue, since all files should have different
-names, but for C projects where there can be homonyms, this can be problematic:
-
-If a project is built with the files ``/work/build_1234/src1/foo.h`` and
-``/work/build_1234/src2/foo.h`` among its sources, and
-:option:`--source-search=/some/path/src1 --source-search=/some/path/src2` is
-passed to |gcv| to add the two source directories to the list of locations
-where sources can be found, then the resulting location for both ``foo.h``
-files will be ``/some/path/src1/foo.h``. In this case, passing
-:option:`--source-rebase=/work/build=/some/path/` removes the ambiguity.
-
-:option:`--source-rebase` is also more convenient when the project has
-multiple source directories, provided that their structure is the same when
-building/instrumenting the project and generating the coverage report. In the
-example above, it is necessary to pass :option:`--source-search` twice to
-include all the source directories in the search path, but only one instance
-of :option:`--source-rebase` is needed. For very large projects, since the
-number of required instances of :option:`--source-search` is equal to the
-number of source directories, it is clearly more advantageous to use
-:option:`--source-rebase` which only needs to be passed once.
 
 Violations summary, text (:option:`=report`)
 --------------------------------------------
@@ -1437,6 +1345,99 @@ condition is short-circuited so its value change is not relevant. The
 condition expressions are such that running vector 4 is not possible,
 however, since we can't have V both < X1 (condition 1 False) and V >
 X2 (condition 2 False) at the same time when X1 < X2.
+
+.. _rebase_opts:
+
+Handling source relocation for annotated sources output formats
+===============================================================
+
+For all annotated sources output formats
+(:option:`--annotate=xcov[+]|html[+]|dhtml)`, |gcv| needs access to the
+sources of the :term:`units of interest` to generate the output. By default,
+the sources will be searched in the location where they were compiled, for
+binary traces, or where they were instrumented for source traces. This is
+generally going to be the case if the whole coverage analysis process is done
+on the same machine, but in some cases it may be preferable to generate the
+coverage report on a different machine than the one where the coverage run was
+done, or the sources may have been moved.
+
+For instance, a project with a large number of unit tests may be run on
+multiple machines in parallel to speed up the test runs, and then a single
+report will be generated from all the traces/checkpoints. In such case, |gcv|
+will not be able to automatically find the source files. |gcv| offers two
+options to help in those situations:
+
+* The option :option:`--source-rebase=\<old_prefix\>=\<new_prefix\>`
+
+  This option allows the specification of alternate path prefixes for source
+  files that were not found in there build_1234/instrumentation location.
+
+  If the location of a source file, when built on a first machine, was
+  ``/work/build_1234/src/main.adb`` but on the machine where the report is to
+  be generated, the same file is located at
+  ``/some/path/project/src/main.adb``, then in order for |gcv| to find this
+  file, the option
+  :option:`--source-rebase=/work/build_1234/=/some/path/project/` can be
+  passed. Note that the prefixes apply to absolute paths.
+
+  This option supports globbing expressions for the ``old_prefix`` part
+  of the option, so in the example above, if the build number varies from run
+  to run, the option passed can be
+  :option:`--source-rebase=/work/build_*=/some/path/project/`.
+
+  This option also allows for response-files
+  (:option:`--source-rebase=\@rebase_file`) in which each line must be of the
+  form ``old_prefix=new_prefix``.
+
+  This option can be passed multiple times on the command line, and |gcv| will
+  try each pair in the order in which they were passed until the source file
+  is found.
+
+* The option :option:`--source-search=directory_path`
+
+  This option allows the specification of directories in which to search for
+  missing source files.
+
+  If the location of a source file, when built on a first
+  machine, was ``/work/build_1234/src/main.adb`` but its location on the
+  machine where the report is generated is
+  ``/some/path/project/src/main.adb`` then passing
+  :option:`--source-search=/some/path/project/src` will enable |gcv|
+  to find the missing source file. This option also accepts response files.
+
+  This option can appear multiple times on the command line, and when trying
+  to locate a missing source file, |gcv| will first try the
+  :option:`--source-rebase` prefix pairs, if any, and if the source file was
+  not found, it will then look for the file in all the directories passed with
+  :option:`--source-search` in the order in which they appear on the command
+  line.
+
+These two options perform very similar functions and can sometimes be used
+interchangeably, however the second option is less selective and can lead to
+unexpected results in some circumstances. Since :option:`--source-search`
+only specifies an additional directory in which to search for missing sources,
+it does not guarantee that if a file is found then it is the correct one, but
+only that the file found has the same basename than the searched file. For Ada
+projects this should not be an issue, since all files should have different
+names, but for C projects where there can be homonyms, this can be problematic:
+
+If a project is built with the files ``/work/build_1234/src1/foo.h`` and
+``/work/build_1234/src2/foo.h`` among its sources, and
+:option:`--source-search=/some/path/src1 --source-search=/some/path/src2` is
+passed to |gcv| to add the two source directories to the list of locations
+where sources can be found, then the resulting location for both ``foo.h``
+files will be ``/some/path/src1/foo.h``. In this case, passing
+:option:`--source-rebase=/work/build=/some/path/` removes the ambiguity.
+
+:option:`--source-rebase` is also more convenient when the project has
+multiple source directories, provided that their structure is the same when
+building/instrumenting the project and generating the coverage report. In the
+example above, it is necessary to pass :option:`--source-search` twice to
+include all the source directories in the search path, but only one instance
+of :option:`--source-rebase` is needed. For very large projects, since the
+number of required instances of :option:`--source-search` is equal to the
+number of source directories, it is clearly more advantageous to use
+:option:`--source-rebase` which only needs to be passed once.
 
 Inlining & Ada generic units
 ============================
