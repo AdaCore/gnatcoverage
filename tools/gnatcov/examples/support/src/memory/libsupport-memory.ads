@@ -2,7 +2,7 @@
 --                                                                          --
 --                              GNATcoverage                                --
 --                                                                          --
---                       Copyright (C) 2014, AdaCore                        --
+--                   Copyright (C) 2014-2021, AdaCore                       --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -20,7 +20,7 @@ with System; use System;
 with Interfaces.C; use Interfaces.C;
 
 package Libsupport.Memory is
-  
+
    --  Simple services possibly invoked by the low level code generation
    --  passes, without Ada RTS violation per se at the user level (e.g. when
    --  doing array or slice assignments or comparisons).
@@ -31,10 +31,10 @@ package Libsupport.Memory is
    function memcmp (S1 : Address; S2 : Address; N : size_t) return int;
    pragma Export (C, memcmp, "memcmp");
 
-   procedure memcpy (Dest : Address; Src : Address; N : size_t);
+   function memcpy (Dest : Address; Src : Address; N : size_t) return Address;
    pragma Export (C, memcpy, "memcpy");
 
-   procedure memmove (Dest : Address; Src : Address; N : size_t);
+   function memmove (Dest : Address; Src : Address; N : size_t) return Address;
    pragma Export (C, memmove, "memmove");
 
-end;
+end Libsupport.Memory;

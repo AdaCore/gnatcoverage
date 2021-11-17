@@ -2,7 +2,7 @@
 --                                                                          --
 --                              GNATcoverage                                --
 --                                                                          --
---                       Copyright (C) 2014, AdaCore                        --
+--                     Copyright (C) 2014-2021, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -19,7 +19,7 @@
 with Ada.Unchecked_Conversion;
 
 package body Libsupport.Memory is
-   
+
    subtype mem is char_array (size_t);
    type memptr is access all mem;
    function to_memptr is new Ada.Unchecked_Conversion (Address, memptr);
@@ -46,7 +46,8 @@ package body Libsupport.Memory is
    -- memcpy --
    ------------
 
-   procedure memcpy (Dest : Address; Src : Address; N : size_t) is
+   function memcpy (Dest : Address; Src : Address; N : size_t) return Address
+   is
       dest_p : constant memptr := to_memptr (Dest);
       src_p  : constant memptr := to_memptr (Src);
    begin
@@ -55,20 +56,22 @@ package body Libsupport.Memory is
             dest_p (J) := src_p (J);
          end loop;
       end if;
+      return Dest;
    end memcpy;
 
    -------------
    -- memmove --
    -------------
 
-   procedure memmove (Dest : Address; Src : Address; N : size_t) is
+   function memmove (Dest : Address; Src : Address; N : size_t) return Address
+   is
       dest_p : constant memptr := to_memptr (Dest);
       src_p  : constant memptr := to_memptr (Src);
    begin
       --  Return immediately if no bytes to copy.
 
       if N = 0 then
-         return;
+         return Dest;
       end if;
 
       --  This function must handle overlapping memory regions
@@ -85,6 +88,7 @@ package body Libsupport.Memory is
             dest_p (J) := src_p (J);
          end loop;
       end if;
+      return Dest;
    end memmove;
 
 end Libsupport.Memory;
