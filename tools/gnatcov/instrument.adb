@@ -368,7 +368,7 @@ package body Instrument is
             Rewriter : Instrument.C.C_Source_Rewriter;
          begin
             Rewriter.Start_Rewriting
-              (IC, Main.Prj_Info.all, +Main.File.Full_Name);
+              (Main.Prj_Info.all, +Main.File.Full_Name);
             Instrument.C.Add_Auto_Dump_Buffers
               (IC   => IC,
                Info => Main.Prj_Info.all,

@@ -1618,7 +1618,6 @@ package body Instrument.C is
 
    procedure Start_Rewriting
      (Self           : out C_Source_Rewriter;
-      IC             : in out Inst_Context;
       Info           : in out Project_Info;
       Input_Filename : String)
    is
@@ -1717,7 +1716,6 @@ package body Instrument.C is
       UIC.File := +Orig_Filename;
 
       Start_Rewriting (Self           => Rewriter,
-                       IC             => IC,
                        Info           => Prj_Info,
                        Input_Filename => Orig_Filename);
 
