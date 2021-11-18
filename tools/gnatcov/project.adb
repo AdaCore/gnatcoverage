@@ -1245,7 +1245,6 @@ package body Project is
    procedure Load_Root_Project
      (Prj_Name                   : String;
       Target, Runtime, CGPR_File : GNAT.Strings.String_Access;
-      Override_Units             : Inputs.Inputs_Type;
       From_Driver                : Boolean := False)
    is
    begin
@@ -1298,10 +1297,17 @@ package body Project is
             & " built projects are ignored by default. Consider using"
             & " --externally-built-projects.");
       end if;
+   end Load_Root_Project;
 
+   -------------------------------
+   -- Compute_Units_Of_Interest --
+   -------------------------------
+
+   procedure Compute_Units_Of_Interest (Override_Units : Inputs.Inputs_Type) is
+   begin
       Build_Prj_Map;
       Build_Unit_Map (Override_Units);
-   end Load_Root_Project;
+   end Compute_Units_Of_Interest;
 
    -----------------------
    -- Is_Project_Loaded --
@@ -1311,6 +1317,15 @@ package body Project is
    begin
       return Prj_Tree /= null;
    end Is_Project_Loaded;
+
+   ------------------------------
+   -- Units_Of_Interest_Loaded --
+   ------------------------------
+
+   function Units_Of_Interest_Computed return Boolean is
+   begin
+      return not (Prj_Map.Is_Empty and then Unit_Map.Is_Empty);
+   end Units_Of_Interest_Computed;
 
    ---------------------------
    -- Root_Project_Filename --

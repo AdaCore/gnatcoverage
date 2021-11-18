@@ -18,7 +18,6 @@
 
 with Ada.Command_Line;
 
-with Inputs;   use Inputs;
 with Outputs;  use Outputs;
 with Project;  use Project;
 with Switches; use Switches;
@@ -245,50 +244,11 @@ package body Switches is
       end if;
       Copy_Arg (Opt_Config, CGPR_File);
 
-      --  Communicate to our project handling code the list of project files to
-      --  consider.
-
-      for Arg of Args.String_List_Args (Opt_Projects) loop
-         Project.Add_Project (+Arg);
-      end loop;
-
-      Switches.Recursive_Projects := not Args.Bool_Args (Opt_No_Subprojects);
-      Copy_Arg_List (Opt_Units, Units_Inputs);
-
-      if Is_Present
-        (Args, Option_Reference'(String_List_Opt, Opt_Enable_Languages))
-      then
-         declare
-            procedure Add_Language (L : String_Vectors.Cursor);
-            --  Add language to Enabled_Languages
-
-            ------------------
-            -- Add_Language --
-            ------------------
-
-            procedure Add_Language (L : String_Vectors.Cursor) is
-            begin
-               String_Sets.Insert
-                 (Enable_Languages, String_Vectors.Element (L));
-            end Add_Language;
-
-         begin
-            Args.String_List_Args (Opt_Enable_Languages)
-              .Iterate (Add_Language'Access);
-         end;
-      else
-         --  C instrumentation is a beta feature and not yet fully functional.
-         --  It will thus not be part of the languages enabled by default.
-
-         String_Sets.Insert (Enable_Languages, +"ada");
-      end if;
-
       --  All -X command line switches have now been processed: initialize the
       --  project subsystem and load the root project.
 
       Load_Root_Project
-        (Root_Project.all, Target_Family, Runtime, CGPR_File, Units_Inputs,
-         From_Driver);
+        (Root_Project.all, Target_Family, Runtime, CGPR_File, From_Driver);
 
       --  Get common and command-specific switches, decode them (if any) and
       --  store the result in Project_Args, then merge it into Args.
