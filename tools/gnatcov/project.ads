@@ -34,6 +34,10 @@ package Project is
    function Is_Project_Loaded return Boolean;
    --  Return whether Load_Root_Project was called and returned successfully
 
+   function Units_Of_Interest_Computed return Boolean;
+   --  Return whether the set of units of interest has been computed by calling
+   --  the Compute_Units_Of_Interest procedure.
+
    procedure Finalize;
    --  Release all resources allocated by project handling. Must be called
    --  before leaving gnatcov.
@@ -52,19 +56,18 @@ package Project is
    --  Set the object subdir for all loaded projects
 
    procedure Add_Project (Prj_Name : String)
-      with Pre => not Is_Project_Loaded;
+     with Pre => not Units_Of_Interest_Computed;
    --  Add Prj_Name to the list of projects for which coverage analysis is
    --  desired.
    --
    --  Prj_Name may optionally have a Project_File_Extension.
    --
-   --  If Prj_Name maps to no loaded project, Load_Root_Project will later emit
-      --  an error.
+   --  If Prj_Name maps to no loaded project, Compute_Units_Of_Interest will
+   --  later emit an error.
 
    procedure Load_Root_Project
      (Prj_Name                   : String;
       Target, Runtime, CGPR_File : String_Access;
-      Override_Units             : Inputs.Inputs_Type;
       From_Driver                : Boolean := False)
       with Pre  => not Is_Project_Loaded
                    and then ((Target = null and then Runtime = null)
@@ -79,13 +82,17 @@ package Project is
    --  Note that Target/Runtime must not be provided if a configuration project
    --  file is provided, and reciprocally.
    --
-   --  If Override_Units is present, it overrides the set of units to be
-   --  considered, else the set defined by the project through the Units,
-   --  Units_List, Exclude_Units, and Exclude_Units_List attributes is used.
-   --
    --  If From_Driver is True, do not compute the list of projects/units of
    --  interest. This is meant to be used only in the gnatcov driver, where we
    --  just need to determine the target.
+
+   procedure Compute_Units_Of_Interest (Override_Units : Inputs.Inputs_Type);
+   --  Compute the sets of projects and units of interest from Add_Project,
+   --  Override_Units and project files data.
+   --
+   --  If Override_Units is present, it overrides the set of units to be
+   --  considered, else the set defined by the project through the Units,
+   --  Units_List, Exclude_Units, and Exclude_Units_List attributes is used.
 
    ----------------------------
    -- Post-loading accessors --

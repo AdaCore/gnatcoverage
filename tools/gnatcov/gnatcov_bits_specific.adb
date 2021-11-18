@@ -465,6 +465,20 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
 
+      --  Compute the languages for which we want coverage analysis
+
+      if not Args.String_List_Args (Opt_Enable_Languages).Is_Empty
+      then
+         for Arg of Args.String_List_Args (Opt_Enable_Languages) loop
+            Enable_Languages.Insert (Arg);
+         end loop;
+      else
+         --  C instrumentation is a beta feature and not yet fully functional.
+         --  It will thus not be part of the languages enabled by default.
+
+         Enable_Languages.Insert (+"ada");
+      end if;
+
       if Args.String_Args (Opt_Coverage_Level).Present then
          declare
             Arg : constant String :=
@@ -938,10 +952,32 @@ procedure GNATcov_Bits_Specific is
             null;
       end case;
 
-      if not Is_Project_Loaded
-         and then not Args.String_List_Args (Opt_Projects).Is_Empty
-      then
+      --  Compute the set of units of interest from the command line and
+      --  project file switches. If no project option was specified (and thus,
+      --  no root project was loaded) but a project filtering option was, exit
+      --  with an error.
+
+      if Args.String_Args (Opt_Project).Present then
+
+         for Arg of Args.String_List_Args (Opt_Projects) loop
+            Project.Add_Project (+Arg);
+         end loop;
+
+         Switches.Recursive_Projects :=
+           not Args.Bool_Args (Opt_No_Subprojects);
+         Copy_Arg_List (Opt_Units, Units_Inputs);
+         Project.Compute_Units_Of_Interest (Units_Inputs);
+
+      else
+         if Inputs.Length (Units_Inputs) /= 0 then
+            Fatal_Error ("--units requires -P");
+         end if;
+         if not Args.String_List_Args (Opt_Projects).Is_Empty then
             Fatal_Error ("--projects requires -P");
+         end if;
+         if Args.Bool_Args (Opt_No_Subprojects) then
+            Fatal_Error ("--no-subprojects requires -P");
+         end if;
       end if;
 
       if Inputs.Length (Ignored_Source_Files) = 0 and then Is_Project_Loaded
