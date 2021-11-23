@@ -27,7 +27,7 @@ package body Paths is
    On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
 
    function Likely_Windows_Path (Path : String) return Boolean;
-   --  Wether the provided Path features Windows typical markers
+   --  Whether the provided Path features Windows typical markers
 
    function Normalize_Windows_Pattern (Pattern : String) return String;
    --  Assuming Pattern is a Windows file name or globbing pattern, return a
@@ -37,7 +37,7 @@ package body Paths is
    --  not to have an effect.
 
    function Starts_With_Drive_Pattern (Path : String) return Boolean;
-   --  Wether the provided Path string starts with a "<letter>:" sequence
+   --  Whether the provided Path string starts with a "<letter>:" sequence
 
    --------------------
    -- Build_Filename --

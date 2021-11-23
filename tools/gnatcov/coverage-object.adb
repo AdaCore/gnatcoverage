@@ -67,7 +67,7 @@ package body Coverage.Object is
    function PC_Range_Covered
      (Ranges      : Address_Range_Sets.Set;
       First, Last : Pc_Type) return Boolean;
-   --  Returns wether for every address in First .. Last, there is one
+   --  Returns whether for every address in First .. Last, there is one
    --  Address_Range of Ranges that contains it.
 
    ----------------------
