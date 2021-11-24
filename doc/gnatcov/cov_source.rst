@@ -1366,6 +1366,103 @@ condition expressions are such that running vector 4 is not possible,
 however, since we can't have V both < X1 (condition 1 False) and V >
 X2 (condition 2 False) at the same time when X1 < X2.
 
+.. _synthetic-metrics:
+
+Synthetic metrics
+=================
+
+A number of output formats feature :dfn:`synthetic metrics`
+(essentially, coverage percentages) for each source unit, and for the
+entire analysis when an index summary is also produced. We first
+introduce the metrics definition for the ``=xcov`` format then
+describe how they are presented in other outputs.
+
+For the ``=xcov`` format, the synthetic metrics are summary numbers
+at the top the annotated source for each unit. For example::
+
+  .../metrics/main.adb:
+  50% of 4 lines covered
+  75% statement coverage (3 out of 4)
+  0% decision coverage (0 out of 1)
+
+  Coverage level: stmt+decision
+   1 .: with Ada.Text_IO; use Ada.Text_IO;
+   2 .: with Types; use Types;
+   3 .:
+   4 .: procedure main is
+   5 +:    X : My_Int := 12 with Volatile;
+   6 .: begin
+   7 !:    if X < 2 then
+   8 -:       Put_Line ("X LT 2");
+   9 .:    else
+  10 +:       Put_Line ("X GE 2");
+  11 .:    end if;
+  12 .: end;
+
+
+The metric displayed first is::
+
+  50% of 4 lines covered
+
+This is *line count* based, where the count includes all the lines to which is
+attached at least one coverage obligation of the asserted level (here,
+``stmt+decision``). In the provided example, these are lines 5, 7, 8 and 10,
+for a total of 4 lines, where line 7 encompasses two obligations (one
+statement and one decision).
+
+The metric conveys the total number of lines and the percentage
+of such lines for which all the obligations are fully covered, that is,
+those marked with a '+' annotation.
+
+The two other metrics in this example are::
+
+  75% statement coverage (3 out of 4)
+  0% decision coverage (0 out of 1)
+
+These are *coverage obligation count* based, one for each obligation
+kind involved in the assessed level (here, for
+``--level=stmt+decision``). As for lines, each metric displays the
+total number of obligations of the given kind and the ratio of such
+obligations which have been fully discharged. The ``xcov`` obligation
+metrics don't distinguish partially covered from uncovered items. This
+information is available from the ``dhtml`` reports.
+
+For the ``dhtml`` output, synthetic metrics for all the units are
+first displayed on the index page, together with metrics for the
+entire analysis and for sets of units grouped by GPR project.
+
+Initially, the line count based metrics are displayed, as illustrated
+by :numref:`dhtml-index-lines`. The main procedure source used in our ``xcov``
+report example is the ``main.adb`` source here, single source encompassed
+by the ``main.gpr`` project:
+
+Switching to coverage obligation count based metrics is simply achieved by
+clicking the button(s) at the top of the page labelled with obligation kind
+names ("Stmt", "Decision" or "Mcdc").
+
+Each kind of obligation can be selected alone. Selecting multiple
+kinds is also allowed and just sums the individual counts.
+:numref:`dhtml-index-obligations` illustrates the results we get with
+the ``Stmt`` and ``Decision`` kinds selected together for our previous
+example:
+
+.. _dhtml-index-lines:
+
+.. figure:: dhtml-index-lines.*
+  :scale: 42%
+  :align: center
+
+  Dhtml index with line count based synthetic metrics
+
+.. _dhtml-index-obligations:
+
+.. figure:: dhtml-index-obligations.*
+  :scale: 42%
+  :align: center
+
+  Dhtml index with obligations count based synthetic metrics (stmt+decision)
+
+
 .. _rebase_opts:
 
 Handling source relocation for annotated sources output formats
