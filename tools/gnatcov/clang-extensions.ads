@@ -21,7 +21,6 @@
 --  provide enough utilities for gnatcov usage.
 
 with Interfaces.C; use Interfaces.C;
-with Interfaces.C.Strings;
 
 with Clang.Index;   use Clang.Index;
 with Clang.Rewrite; use Clang.Rewrite;

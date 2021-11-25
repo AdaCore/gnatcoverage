@@ -17,34 +17,31 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters;
-with Ada.Characters.Conversions; use Ada.Characters.Conversions;
-with Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Containers;             use Ada.Containers;
 with Ada.Directories;            use Ada.Directories;
 with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
 with Ada.Text_IO;                use Ada.Text_IO;
 
+with Langkit_Support.Slocs; use Langkit_Support.Slocs;
+
 with Clang.Extensions; use Clang.Extensions;
 with Clang.CX_String;  use Clang.CX_String;
 
-with GNAT.Strings; use GNAT.Strings;
 with GNAT.String_Split;
-with GNAT.OS_Lib;
 
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Interfaces.C;         use Interfaces.C;
-with Interfaces.C.Strings; use Interfaces.C.Strings;
+with Interfaces.C; use Interfaces.C;
 
 with Coverage;            use Coverage;
 with Coverage_Options;
 with Files_Table;         use Files_Table;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
-with Project;
 with System_Commands;     use System_Commands;
 with SC_Obligations;      use SC_Obligations;
 with SCOs;
@@ -88,6 +85,7 @@ package body Instrument.C is
    --
    --  Undefining the __clang__ macro means passing -U__clang__ to the
    --  preprocessing command.
+   pragma Unreferenced (Undef_Switches);
 
    function Def_Switches
      (Info     : Project_Info;
@@ -97,6 +95,7 @@ package body Instrument.C is
    --
    --  Defining the __GCC_IEC_559 macro with a value of 2 means passing
    --  -D__GCC_IEC_559=2 to the preprocessing command.
+   pragma Unreferenced (Def_Switches);
 
    function Preprocessing_Command
      (Info : in out Project_Info;
@@ -118,14 +117,14 @@ package body Instrument.C is
    -------------------------------------
 
    function Make_Expr_Witness
-     (UIC    : C_Unit_Inst_Context;
-      Bit    : Bit_Id) return String;
+     (UIC : C_Unit_Inst_Context;
+      Bit : Bit_Id) return String;
    --  Create a procedure call expression on to witness execution of the low
    --  level SCO with the given bit id.
 
    function Make_Statement_Witness
-     (UIC    : C_Unit_Inst_Context;
-      Bit    : Bit_Id) return String;
+     (UIC : C_Unit_Inst_Context;
+      Bit : Bit_Id) return String;
    --  Create a procedure call statement to witness execution of the low level
    --  SCO with the given bit id.
 
@@ -191,8 +190,8 @@ package body Instrument.C is
    -----------------------
 
    function Make_Expr_Witness
-     (UIC    : C_Unit_Inst_Context;
-      Bit    : Bit_Id) return String
+     (UIC : C_Unit_Inst_Context;
+      Bit : Bit_Id) return String
    is
       Bit_Img : constant String  := Img (Bit);
    begin
@@ -206,10 +205,9 @@ package body Instrument.C is
    ----------------------------
 
    function Make_Statement_Witness
-     (UIC    : C_Unit_Inst_Context;
-      Bit    : Bit_Id) return String
+     (UIC : C_Unit_Inst_Context;
+      Bit : Bit_Id) return String
    is
-      Bit_Img : constant String  := Img (Bit);
    begin
       return Make_Expr_Witness (UIC, Bit) & ";";
    end Make_Statement_Witness;
@@ -292,10 +290,6 @@ package body Instrument.C is
            (if Is_MCDC
             then "gnatcov_rts_witness_decision_mcdc"
             else "gnatcov_rts_witness_decision");
-         Buffer_Symbol : constant String :=
-           (if Is_MCDC
-            then MCDC_Buffer_Symbol (IC.Instrumented_Unit)
-            else Decision_Buffer_Symbol (IC.Instrumented_Unit));
       begin
          Insert_Text_After_Start_Of
            (N    => N,
@@ -437,8 +431,7 @@ package body Instrument.C is
    procedure Traverse_Declarations
      (IC : in out Inst_Context;
       UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector;
-      D   : Dominant_Info := No_Dominant);
+      L   : Cursor_Vectors.Vector);
 
    procedure Process_Decisions
      (UIC : in out C_Unit_Inst_Context;
@@ -573,9 +566,8 @@ package body Instrument.C is
       --  output for the complex decision. It process the suboperands of the
       --  decision looking for nested decisions.
 
-      function Process_Node
-        (N : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
-         return Child_Visit_Result_T with Convention => C;
+      function Process_Node (N : Cursor_T) return Child_Visit_Result_T
+        with Convention => C;
       --  Processes one node in the traversal, looking for logical operators,
       --  and if one is found, outputs the appropriate table entries.
 
@@ -762,10 +754,7 @@ package body Instrument.C is
       -- Process_Node --
       ------------------
 
-      function Process_Node
-        (N           : Cursor_T;
-         Parent      : Cursor_T;
-         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      function Process_Node (N : Cursor_T) return Child_Visit_Result_T
       is
          --  Test for the two cases where N is the root node of some decision:
 
@@ -885,11 +874,8 @@ package body Instrument.C is
 
    function Has_Decision (T : Cursor_T) return Boolean is
 
-      function Visitor
-        (N : Cursor_T;
-         Parent : Cursor_T;
-         Client_Data : Client_Data_T) return Child_Visit_Result_T
-      with Convention => C;
+      function Visitor (N : Cursor_T) return Child_Visit_Result_T
+        with Convention => C;
       --  If N's kind indicates the presence of a decision, return
       --  Child_Visit_Break, otherwise return Child_Visit_Recurse.
       --
@@ -902,10 +888,8 @@ package body Instrument.C is
       -- Visit --
       -----------
 
-      function Visitor
-        (N : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
-         return Child_Visit_Result_T
-        is
+      function Visitor (N : Cursor_T) return Child_Visit_Result_T
+      is
       begin
          if (Is_Expression (Kind (N)) and then Is_Complex_Decision (N))
              or else Kind (N) = Cursor_Conditional_Operator
@@ -1037,7 +1021,6 @@ package body Instrument.C is
                   --  Now we traverse the statements in the THEN part
 
                   Curlify (N   => Then_Part,
-                           TU  => UIC.TU,
                            Rew => UIC.Rewriter);
                   Traverse_Statements
                     (IC, UIC,
@@ -1048,7 +1031,6 @@ package body Instrument.C is
 
                   if not Is_Null (Else_Part) then
                      Curlify (N   => Else_Part,
-                              TU  => UIC.TU,
                               Rew => UIC.Rewriter);
                      Traverse_Statements
                        (IC, UIC,
@@ -1103,7 +1085,6 @@ package body Instrument.C is
 
                begin
                   Curlify (N   => While_Body,
-                           TU  => UIC.TU,
                            Rew => UIC.Rewriter);
                   Extend_Statement_Sequence
                     (N, 'W', UIC,
@@ -1124,7 +1105,6 @@ package body Instrument.C is
 
                begin
                   Curlify (N   => Do_Body,
-                           TU  => UIC.TU,
                            Rew => UIC.Rewriter);
 
                   Traverse_Statements
@@ -1344,8 +1324,7 @@ package body Instrument.C is
    procedure Traverse_Declarations
      (IC  : in out Inst_Context;
       UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector;
-      D   : Dominant_Info := No_Dominant)
+      L   : Cursor_Vectors.Vector)
    is
       use Cursor_Vectors;
    begin
@@ -1591,8 +1570,6 @@ package body Instrument.C is
         GNATCOLL.Projects.Attribute_Value
           (Info.Project, GPR.Compiler_Driver_Attribute, "C");
 
-      File : Ada.Text_IO.File_Type;
-      Res  : String_Vectors.Vector;
    begin
       Result.Command := +Compiler_Driver;
 
@@ -1685,10 +1662,6 @@ package body Instrument.C is
       UIC       : out C_Unit_Inst_Context)
    is
       Orig_Filename : constant String  := +Unit_Info.Filename;
-      Base_Filename : constant String :=
-        Ada.Directories.Simple_Name (Orig_Filename);
-
-      Output_File : Text_Files.File_Type;
 
       Buffer_Filename : constant String :=
         To_Symbol_Name (Sys_Buffers) & "_b" & Instrumented_Unit_Slug (CU_Name)

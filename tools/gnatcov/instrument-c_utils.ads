@@ -16,26 +16,22 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line;
 with Ada.Containers; use Ada.Containers;
-with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Vectors;
 
-with Clang.CX_String;  use Clang.CX_String;
-with Clang.Extensions; use Clang.Extensions;
 with Clang.Index;      use Clang.Index;
 with Clang.Rewrite;    use Clang.Rewrite;
 
 with Langkit_Support.Slocs; use Langkit_Support.Slocs;
-
-with Interfaces; use Interfaces;
-with Interfaces.C;
 
 package Instrument.C_Utils is
 
    package Cursor_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Natural,
       Element_Type => Cursor_T);
+
+   type Cursor_Visitor_Function is access function
+     (Node : Cursor_T) return Child_Visit_Result_T with Convention => C;
 
    -------------------------
    --  Location utilities --
@@ -56,10 +52,12 @@ package Instrument.C_Utils is
    function Is_Null (N : Cursor_T) return Boolean;
    --  Return True if the node N is a null cursor, false otherwise
 
-   procedure Visit_Children (Parent : Cursor_T; Visitor : Cursor_Visitor_T);
+   procedure Visit_Children
+     (Parent  : Cursor_T;
+      Visitor : Cursor_Visitor_Function);
    --  Wrapper for the Visit_Children clang procedure
 
-   procedure Visit (Parent : Cursor_T; Visitor : Cursor_Visitor_T);
+   procedure Visit (Parent : Cursor_T; Visitor : Cursor_Visitor_Function);
    --  Wrapper for the Visit clang procedure
 
    function Get_Children (N : Cursor_T) return Cursor_Vectors.Vector;
@@ -134,11 +132,8 @@ package Instrument.C_Utils is
       Rew  : Rewriter_T);
    --  Same as Insert_Text_Before, but after the end location of N
 
-   procedure Curlify
-     (N   : Cursor_T;
-      TU  : Translation_Unit_T;
-      Rew : Rewriter_T)
-   with Pre => not Is_Null (N);
+   procedure Curlify (N : Cursor_T; Rew : Rewriter_T)
+     with Pre => not Is_Null (N);
    --  If the node N is not a compound statement, rewrite it by surrounding it
    --  with curly braces. Otherwise, do nothing.
    --

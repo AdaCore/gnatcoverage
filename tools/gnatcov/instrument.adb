@@ -38,9 +38,7 @@ with Libadalang.Project_Provider;
 with Libadalang.Rewriting;
 
 with Checkpoints;
-with Command_Line;          use Command_Line;
 with Coverage;
-with Diagnostics;           use Diagnostics;
 with Files_Table;
 with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Ada_Unit;
@@ -49,10 +47,10 @@ with Instrument.Clean_Objdirs;
 with Instrument.C;
 with Instrument.Common;     use Instrument.Common;
 with Instrument.Find_Ada_Units;
-with Outputs;               use Outputs;
+with Outputs;
 with Paths;                 use Paths;
 with Project;
-with SC_Obligations;        use SC_Obligations;
+with SC_Obligations;
 with Strings;               use Strings;
 with Switches;              use Switches;
 with Text_Files;
@@ -457,8 +455,8 @@ package body Instrument is
               Is_Ignored_Source_File (IC, +Info.File.Base_Name);
          begin
             Current_LU_Info.CU_Names.Append
-              ((Name    => CU_Name,
-                Ignored => Should_Ignore));
+              (CU_Name_With_Ignore'(Name    => CU_Name,
+                                    Ignored => Should_Ignore));
             if Should_Ignore then
                Ignored_Units.Insert
                  (CU_Name,

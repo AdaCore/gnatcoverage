@@ -16,10 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with System; use System;
 with Interfaces.C; use Interfaces.C;
-with Interfaces.C.Strings; use Interfaces.C.Strings;
+with System;       use System;
+
 with Ada.Text_IO; use Ada.Text_IO;
+
+with Clang.CX_String;  use Clang.CX_String;
+with Clang.Extensions; use Clang.Extensions;
 
 package body Instrument.C_Utils is
 
@@ -102,22 +105,59 @@ package body Instrument.C_Utils is
    -- Visit_Children --
    --------------------
 
-   procedure Visit_Children (Parent : Cursor_T; Visitor : Cursor_Visitor_T) is
-      Data  : Client_Data_T;
+   procedure Visit_Children
+     (Parent  : Cursor_T;
+      Visitor : Cursor_Visitor_Function) is
+
+      function Visitor_Wrapper
+        (Node        : Cursor_T;
+         Parent      : Cursor_T;
+         Client_Data : Client_Data_T) return Child_Visit_Result_T
+        with Convention => C;
+
+      function Visitor_Wrapper
+        (Node        : Cursor_T;
+         Parent      : Cursor_T;
+         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      is
+         pragma Unreferenced (Parent, Client_Data);
+      begin
+         return Visitor (Node);
+      end Visitor_Wrapper;
+
+      Data   : Client_Data_T;
       Result : unsigned;
    begin
-      Result := Visit_Children (Parent, Visitor, Data);
+      Result :=
+        Visit_Children (Parent, Visitor_Wrapper'Unrestricted_Access, Data);
    end Visit_Children;
 
    -----------
    -- Visit --
    -----------
 
-   procedure Visit (Parent : Cursor_T; Visitor : Cursor_Visitor_T) is
-      Data  : Client_Data_T;
+   procedure Visit (Parent : Cursor_T; Visitor : Cursor_Visitor_Function) is
+
+      function Visitor_Wrapper
+        (Node        : Cursor_T;
+         Parent      : Cursor_T;
+         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      with Convention => C;
+
+      function Visitor_Wrapper
+        (Node        : Cursor_T;
+         Parent      : Cursor_T;
+         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      is
+         pragma Unreferenced (Parent, Client_Data);
+      begin
+         return Visitor (Node);
+      end Visitor_Wrapper;
+
+      Data   : Client_Data_T;
       Result : unsigned;
    begin
-      Result := Visit (Parent, Visitor, Data);
+      Result := Visit (Parent, Visitor_Wrapper'Unrestricted_Access, Data);
    end Visit;
    pragma Warnings (On);
 
@@ -132,15 +172,10 @@ package body Instrument.C_Utils is
       --  Append the children to the result vector and continue the traversal
       --  until all children have been appended.
 
-      function Append_Child
-        (Cursor : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
-         return Child_Visit_Result_T
+      function Append_Child (Cursor : Cursor_T) return Child_Visit_Result_T
         with Convention => C;
 
-      function Append_Child
-        (Cursor : Cursor_T;
-         Parent : Cursor_T;
-         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      function Append_Child (Cursor : Cursor_T) return Child_Visit_Result_T
       is
       begin
          Res.Append (Cursor);
@@ -195,16 +230,10 @@ package body Instrument.C_Utils is
 
       Main_Decl_Cursor : Cursor_T := Get_Null_Cursor;
 
-      function Visit_Decl
-        (Cursor : Cursor_T;
-         Parent : Cursor_T;
-         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
         with Convention => C;
 
-      function Visit_Decl
-        (Cursor : Cursor_T;
-         Parent : Cursor_T;
-         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
       is
       begin
          if Kind (Cursor) = Cursor_Translation_Unit then
@@ -233,18 +262,12 @@ package body Instrument.C_Utils is
       Rew       : Rewriter_T;
       Statement : String) is
 
-      function Visit_Decl
-        (Cursor : Cursor_T;
-         Parent : Cursor_T;
-         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
         with Convention => C;
       --  Traverse the tree until the main function is found, and insert a
       --  statement.
 
-      function Visit_Decl
-        (Cursor : Cursor_T;
-         Parent : Cursor_T;
-         Client_Data : Client_Data_T) return Child_Visit_Result_T
+      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
       is
       begin
          if Kind (Cursor) = Cursor_Translation_Unit then
@@ -289,13 +312,10 @@ package body Instrument.C_Utils is
       Rew       : Rewriter_T;
       Statement : String) is
 
-      function Visit_Decl
-        (Cursor : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
+      function Visit_Decl (Cursor : Cursor_T)
          return Child_Visit_Result_T with Convention => C;
 
-      function Visit_Decl
-        (Cursor : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
-         return Child_Visit_Result_T
+      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
       is
       begin
          if Is_Statement (Kind (Cursor)) then
@@ -326,11 +346,11 @@ package body Instrument.C_Utils is
    is
 
       function Visit_Decl
-        (Cursor : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
+        (Cursor : Cursor_T)
          return Child_Visit_Result_T with Convention => C;
 
       function Visit_Decl
-        (Cursor : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
+        (Cursor : Cursor_T)
          return Child_Visit_Result_T
       is
       begin
@@ -412,19 +432,13 @@ package body Instrument.C_Utils is
    -- Curlify --
    -------------
 
-   procedure Curlify
-     (N   : Cursor_T;
-      TU  : Translation_Unit_T;
-      Rew : Rewriter_T) is
-
+   procedure Curlify (N : Cursor_T; Rew : Rewriter_T) is
    begin
       case Kind (N) is
          when Cursor_Compound_Stmt =>
             null;
          when others =>
             declare
-               Location_Before : constant Source_Location_T :=
-                 Get_Range_Start (Get_Cursor_Extent (N));
                Location_After : constant Source_Location_T :=
                  Get_Range_End (Get_Cursor_Extent (N));
             begin
