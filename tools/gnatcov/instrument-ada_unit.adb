@@ -1623,7 +1623,8 @@ package body Instrument.Ada_Unit is
               (RC,
                F_Has_Not_Null  => Clone (Access_Def.F_Has_Not_Null),
                F_Has_Protected => Clone (Access_Def.F_Has_Protected),
-               F_Subp_Spec     => Subp_Spec));
+               F_Subp_Spec     => Subp_Spec,
+               F_Aspects       => No_Node_Rewriting_Handle));
       end Gen_Type_Expr_For_Access_To_Subp;
 
       ----------------------
