@@ -1,5 +1,5 @@
 .. index::
-   single: Coverage State Checkpoints
+   single: Coverage Checkpoints
 
 .. _checkpoints:
 
@@ -7,15 +7,15 @@
 Consolidation from :term:`coverage checkpoints`
 ***********************************************
 
-A :term:`coverage checkpoint` is a file containing a condensed
-version of a coverage assessment computed by |gcvcov|, which
-:option:`--annotate` would output in a user readable form. This may be
-viewed as an internal representation of a coverage report which the tool can
-reload and combine very efficiently.
+A :term:`coverage checkpoint` is a file containing a condensed version
+of a coverage assessment computed by |gcvcov|, which the tool can
+reload and combine with other assessments very efficiently. This may
+be viewed as an internal representation of a coverage report which
+:option:`--annotate` would output in a user readable form.
 
-Checkpoints are initially produced like reports, from traces, thanks to a
-:option:`--save-checkpoint` option to |gcvcov|, providing the name of the
-checkpoint file to create. For example::
+As reports, checkpoints are initially produced from traces, thanks
+to a :option:`--save-checkpoint` option to |gcvcov|.  The switch
+expects the name of the checkpoint file to create as an argument, as in::
 
   gnatcov coverage --level=<> <units> <traces> --save-checkpoint=<filename>
 
@@ -24,15 +24,13 @@ together to produce a user level report and/or another checkpoint. The example
 command below shows how to reuse the previous checkpoint to produce a user
 readable report::
 
-  gnatcov coverage --level=<> [<units>] --checkpoint=<filename> --annotate=<>
+  gnatcov coverage --level=<> --checkpoint=<filename> --annotate=<>
 
 
-The second :option:`--level` option may differ from the first, as well as the
-second set of units of interest. The latter is actually optional and the
-computation is by default based on the original coverage obligations.  Two
-basic rules need to be obeyed: the second level may not be stricter than the
-first, and the second set of units of interest, if provided, may only contain
-units that had been stated of interest when the checkpoint was produced.
+The second :option:`--level` option may differ from the first, as long
+as it does not request a stricter criterion. Assessing ``stmt`` or
+``stmt+decision`` coverage from checkpoints containing ``stmt+mcdc``
+data is allowed, not the other way around.
 
 In user readable reports, the set of traces eventually contributing to the
 coverage result is available from the index page for HTML formats and in the
@@ -65,6 +63,28 @@ Would produce a report with this kind of information in the header::
    tag      :
    processed: gnatcov coverage <...> --save-checkpoint=t1.ckpt @ 2020-09-22 16:35:06.61
 
+An important point of note: the specification of units of interest
+applies to *traces* only, never to input checkpoints, regardless of
+the checkpoints use.
+
+The ``<units>`` in the second command of our previous example serve
+to scope the coverage achieved by the ``trace2`` argument and has no
+influence, for the output report, on the units held by ``t1.ckpt``.
+
+Suppose we had used different sets of units for the first and second
+commands, say::
+
+    gnatcov coverage --level=<> trace1 <a b c> --save-checkpoint=t1.ckpt
+    gnatcov coverage --level=<> trace2 <b c> --checkpoint=t1.ckpt --annotate=report
+
+The output report produced by the second command would convey the
+coverage achieved for unit "a" out of ``trace1`` (as held by
+``t1.ckpt``), together with the coverage for units "b" and "c" out of
+both ``trace1`` (as held by t1.ckpt) and ``trace2`` (direct
+input). The possible coverage for unit "a" by ``trace2`` is filtered
+out (not in the set of units of interest), but the coverage for that
+unit held by the checkpoint input is included in the report.
+
 We will now describe a few example situations of possible checkpoint uses, then
 discuss compatibility issues regarding consolidation.
 
@@ -90,7 +110,7 @@ One would first do::
 
 Then ...::
 
-  gnatcov coverage --level=<> [<units>] --annotate=<> --checkpoint=<filename>
+  gnatcov coverage --level=<> --annotate=<> --checkpoint=<filename>
   ... repeat for different formats/units/level ...
 
 
