@@ -95,6 +95,9 @@ The available options are as follows:
    determination of SCOs for source coverage analysis, and described in the
    :ref:`sunits` chapter of this manual.
 
+:option:`-t`, :option:`--target` :
+   .. include:: target_switch_common_text.rst
+
 .. _oreport-formats:
 
 Output report formats (:option:`--annotate`)
