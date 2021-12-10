@@ -114,8 +114,8 @@ Then ...::
   ... repeat for different formats/units/level ...
 
 
-Efficient storage of individual test results
-============================================
+Efficient storage of test results
+=================================
 
 Binary trace files can be large and their processing requires access to the
 executable file that was used to produce the trace. Preserving collections of
@@ -131,21 +131,37 @@ to improve storage efficiency consists in producing a checkpoint for each trace
 and preserve just that to consolidate afterwards, as in::
 
   gnatcov coverage --level=<> <units> <trace1> --save-checkpoint=ckpt1
+  (possibly, remove <trace1> as well as the corresponding executable)
   ...
   gnatcov coverage --level=<> <units> <traceN> --save-checkpoint=ckptN
 
 
-Then::
+Then consolidation can be achieved with::
 
-  gnatcov coverage --level=<> --save-checkpoint=ckptN
+  gnatcov coverage --level=<> --annotate=<> --checkpoint=ckpt1 ... --checkpoint=ckptN
+
+
+or, using a response file with the list of checkpoint names::
+
+  gnatcov coverage --level=<> --annotate=<> --checkpoint=@<ckpts.list>
+
+
 
 As checkpoints contain high level coverage information, they are a lot more
 efficient to aggregate, which is all the more beneficial if that processing
 is performed repeatedly.
 
-For situations where individual checkpoints are more often larger than their
-respective trace and executable, checkpoints offer an interesting alternative:
-:ref:`incremental_analysis`, described in the following section.
+For situations where individual checkpoints are more often larger than
+their respective trace and executable, a checkpoint can still be of
+interest to store consolidated results for a group of tests, after all
+the traces are produced::
+
+  gnatcov coverage --level=<> <units> @<traces.list> --save-checkpoint=<filename>
+
+
+Another possibility consists in accumulating results in a common
+checkpoint as each test gets processed. This is referred to as
+:ref:`incremental_analysis`, described in the following section:
 
 .. _incremental_analysis:
 
