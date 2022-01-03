@@ -22,6 +22,9 @@ project Gnatcov is
    type Build_Mode_Type is ("dev", "prod", "boot");
    Build_Mode : Build_Mode_Type := external("BUILD_MODE", "dev");
 
+   type Boolean is ("False", "True");
+   C_Support : Boolean := external("C_SUPPORT", "True");
+
    package Naming is
       for Specification ("Arch") use "arch__" & Bits & ".ads";
       for Specification ("Qemu_Traces_Entries")
@@ -30,6 +33,14 @@ project Gnatcov is
          when "32" => for Body ("Instrument") use "instrument__stub.adb";
          when "64" => for Body ("Instrument") use "instrument.adb";
       end case;
+      case C_Support is
+         when "False" =>
+            for Specification ("Instrument.C") use "instrument-c__stub.ads";
+            for Body ("Instrument.C") use "instrument-c__stub.adb";
+         when "True" =>
+            null;
+      end case;
+
       for Body_Suffix ("C++") use ".cc";
    end Naming;
 

@@ -82,7 +82,20 @@ PGM64PATH=obj64/$(BUILD_MODE)/gnatcov64
 DIRNAME=gnatcoverage
 
 include host.mk
-include common.mk
+
+# We want to allow community users to build gnatcov without a dependency to a
+# customized version of libclang (needed for C instrumentation), through the
+# variable C_SUPPORT.
+#
+# This requires not passing the Clang / LLVM compiler flags, that are passed
+# through libclang_common.mk, and stubbing the libclang project file (done here)
+# and the Instrument.C unit in gnatcov (done in gnatcov.gpr).
+C_SUPPORT?=True
+ifeq ($(C_SUPPORT), True)
+include libclang_common.mk
+else
+GPR_PROJECT_PATH := $(PWD)/gpr_stubs:$(GPR_PROJECT_PATH)
+endif
 
 #####################################################################
 # Targets to build the core tool and the trace adapters, optionally #
@@ -192,6 +205,7 @@ bin:
 	    -XBUILD_MODE=$(BUILD_MODE) \
 	    -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
 	    -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
+	    -XC_SUPPORT="$(C_SUPPORT)" \
 	    $(EXTRA_ADAFLAGS) \
 	    -largs $(LD_FLAGS) \
 	    -cargs:c++ $(CXXFLAGS); \

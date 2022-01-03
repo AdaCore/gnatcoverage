@@ -95,6 +95,6 @@ environment variable designating the GNAT installation root.
 
     ```shell
     gnatcoverage/tools/gnatcov $
-       make BINUTILS_SRC_DIR=<path-to-binutils-src> bin
+       make BINUTILS_SRC_DIR=<path-to-binutils-src> C_SUPPORT=False bin
        make PREFIX=$prefix install-bin install-examples
     ```

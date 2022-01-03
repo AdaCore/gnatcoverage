@@ -3,7 +3,6 @@ GPRCLEAN=gprclean
 PREFIX=install
 
 include ../../host.mk
-include ../../common.mk
 
 .PHONY: force
 
