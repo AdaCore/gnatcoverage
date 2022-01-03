@@ -251,6 +251,28 @@ within the same environment, the variable name for a program can actually be
 tailored by passing a :option:`--dump-filename-env-var` switch to |gcvins|,
 providing the variable name to use.
 
+|gcvins| limitations
+--------------------
+
+There is a small amount of language constructs that |gcvins| cannot handle
+properly. The tool emits a warning when it encounters such cases and the
+corresponding code is not instrumented. Source coverage obligations are still
+emitted, so the unsupported constructs will appear as ``not covered`` in the
+report.
+
+The list of unsupported constructs is as follows:
+
+* Generic expression functions
+* Generic null procedures
+* Recursive expression functions which are primitives of some tagged type
+* Expression functions which are primitives of their return type, when it is a
+  tagged type
+
+The simplest way to work around the limitation concerning expression functions
+is to turn them into regular funtions, by giving them a proper body,
+containing a single return statment with the original expression.
+Otherwise it is possible to exempt those constructs (see :ref:`exemptions`)
+and/or perform a manual coverage analysis for these special cases.
 
 .. _instr-build:
 

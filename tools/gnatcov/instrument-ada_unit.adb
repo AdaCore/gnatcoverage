@@ -855,6 +855,14 @@ package body Instrument.Ada_Unit is
    --  expression has a reference to itself (for instance: it's a recursive
    --  function).
 
+   function Return_Type_Is_Controlling
+     (UIC          : Ada_Unit_Inst_Context;
+      Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean with
+     Pre => not Is_Null (Common_Nodes.N_Spec.F_Subp_Returns);
+   --  Return True if the expression function from which the common nodes were
+   --  generated is a primitive of a tagged type, and if that tagged type is
+   --  the return type of the expression function.
+
    ----------------------------
    -- Source level rewriting --
    ----------------------------
@@ -2215,6 +2223,32 @@ package body Instrument.Ada_Unit is
       return EF.F_Expr.Traverse (Process_Node'Access) = Stop;
    end Is_Self_Referencing;
 
+   --------------------------------
+   -- Return_Type_Is_Controlling --
+   --------------------------------
+
+   function Return_Type_Is_Controlling
+     (UIC          : Ada_Unit_Inst_Context;
+      Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean
+   is
+   begin
+      if Common_Nodes.Ctrl_Type.Is_Null then
+         return False;
+      end if;
+      return Common_Nodes.N_Spec.F_Subp_Returns.P_Designated_Type_Decl
+             = Common_Nodes.Ctrl_Type;
+   exception
+      when Exc : Property_Error =>
+      Report (UIC,
+              Common_Nodes.N,
+              "failed to determine return type of expression function: "
+              & (if Switches.Verbose
+                 then Ada.Exceptions.Exception_Message (Exc)
+                 else Ada.Exceptions.Exception_Information (Exc)),
+              Low_Warning);
+      return False;
+   end Return_Type_Is_Controlling;
+
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
    -----------------------------------------
@@ -3354,6 +3388,59 @@ package body Instrument.Ada_Unit is
                        & " cannot instrument generic null procedures."
                        & " Consider turning it into a regular procedure"
                        & " body.");
+            end if;
+         end if;
+
+         if Is_Expr_Function then
+            if Return_Type_Is_Controlling (UIC, Common_Nodes) then
+
+               --  For the moment when an expression function is a primitive of
+               --  a tagged type T, and that T is the return type of the EF,
+               --  then introducing an augmented EF also introduces a new
+               --  primitive for T, for which the return type is T.
+               --
+               --  This means that if T has a derived type T2, it will need to
+               --  override the original EF (because T2 may have different
+               --  components compared to T). The instrumenter generates all
+               --  the required functions, but since the names of the augmented
+               --  EFs are not necessarly consistent between the augmented EFs
+               --  for T and T2, we end up with missing some primitive
+               --  overrides.
+               --
+               --  Since T2 can be defined in a unit (or a project) that will
+               --  not be processed by gnatcov, there are cases where
+               --  introducing a new primitive for T2 is simply impossible.
+               --  So we'll just disable the instrumentation of these
+               --  expression functions.
+               --
+               --  ??? To be investigated, we may get away with turning
+               --  the return type of the augmented EF in a class wide type,
+               --  so that the augmented EF is no longer a primitive of its
+               --  return type. Need to check for potential freezing issues.
+
+               Unsupported := True;
+               Report (UIC, N,
+                       "gnatcov limitation:"
+                       & " cannot instrument an expression function which is"
+                       & " a primitive of its return type, when this type is"
+                       & " a tagged type. Consider turning it into a regular"
+                       & " function body.",
+                       Warning);
+            elsif Is_Self_Referencing (UIC, N.As_Expr_Function)
+                 and then not Common_Nodes.Ctrl_Type.Is_Null
+            then
+               Unsupported := True;
+               Report (UIC, N,
+                       "gnatcov limitation:"
+                       & " instrumenting a self referencing (i.e. recursive)"
+                       & " expression function which is a primitive of some"
+                       & " tagged type will move the freezing point of that"
+                       & " type if the expression function is not the last"
+                       & " primitive to be declared. Consider turning the"
+                       & " expression function into a regular function body"
+                       & " or moving it to the end of the declarative"
+                       & " region.",
+                       Warning);
             end if;
          end if;
 
