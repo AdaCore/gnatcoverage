@@ -455,6 +455,8 @@ package body Annotations.Dynamic_Html is
 
       if Switches.Root_Project /= null then
          Source.Set_Field ("project", Project_Name (Info.Full_Name.all));
+      else
+         Source.Set_Field ("project", "Other Sources");
       end if;
 
       Pp.Current_Source := Source;
