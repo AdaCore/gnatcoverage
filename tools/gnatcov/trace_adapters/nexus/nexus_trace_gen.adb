@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2013, AdaCore                     --
+--                     Copyright (C) 2009-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -94,7 +94,6 @@ procedure Nexus_Trace_Gen is
 
    OCD_Filename        : String_Access;
    --  On Chip Debug file: file containing the Nexus trace messages.
-
 
    Fd               : File_Descriptor;
    Executable_File  : Elf_File;
@@ -722,7 +721,6 @@ begin
    if Nexus_Msg = null then
       raise Program_Error with "Empty Nexus message list";
    end if;
-
 
    PT_Running := False;
 

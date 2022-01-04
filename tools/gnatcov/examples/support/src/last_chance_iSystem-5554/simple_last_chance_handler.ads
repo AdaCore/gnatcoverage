@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2013, AdaCore                     --
+--                     Copyright (C) 2008-2022, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -41,7 +41,7 @@ package Simple_Last_Chance_Handler is
    --  capability, this variable is set to a non-zero value in the body
    --  of Last_Chance_Handler, and the final value of
    --  Unexpected_Last_Chance_Call is inspected by external means
-   --  after execution has completed (e.g. by a probe attached to the 
+   --  after execution has completed (e.g. by a probe attached to the
    --  target board).
    --
    --  In programs for which a call to Last_Chance_Handler are expected,
