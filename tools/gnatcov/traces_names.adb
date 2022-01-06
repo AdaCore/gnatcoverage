@@ -436,7 +436,6 @@ package body Traces_Names is
 
       First_Code : Boolean;
       Subp_Info  : Subprogram_Info;
-      pragma Unreferenced (First_Code, Subp_Info);
 
    --  Start of processing for Add_Code_And_Traces
 

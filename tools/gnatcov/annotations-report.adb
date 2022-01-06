@@ -22,7 +22,6 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;
-with Annotations;      use Annotations;
 with Calendar_Utils;   use Calendar_Utils;
 with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;

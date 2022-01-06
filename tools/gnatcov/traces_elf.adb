@@ -4604,8 +4604,6 @@ package body Traces_Elf is
       Pos      : Address_Info_Sets.Cursor;
       Inserted : Boolean;
    begin
-      pragma Unreferenced (Pos);
-
       Insert_With_Top_Level_Update (Set, Item, Pos, Inserted);
 
       if not Inserted then
