@@ -7,13 +7,12 @@ Object coverage analysis with |gcvcov|
 .. _ocov-principles:
 
 Object coverage analysis computes metrics focused on machine-level object
-code, concerned with machine basic instructions or conditional branches. One
-important limitation is that conditional general instructions (i.e.
-non-branch instructions), such as `ARM conditional instructions
-<https://developer.arm.com/documentation/dui0473/m/condition-codes/
-conditional-instructions>`_ are not supported. If such instructions are
-present in the subprograms to be analyzed, their reported coverage status
-may be incorrect.
+code, concerned with machine basic instructions or conditional branches.
+Conditional general instructions (i.e.non-branch instructions), such as
+`ARM conditional instructions <https://developer.arm.com/documentation/
+dui0473/m/condition-codes/conditional-instructions>`_ are not supported.
+If such instructions are present in the subprograms to be analyzed, their
+reported coverage status may be incorrect.
 
 On request, the metrics can be presented on sources, with an annotation on
 each line synthesizing the coverage status of all the instructions generated
