@@ -119,6 +119,13 @@ project Gnatcov is
    end IDE;
 
    for Source_Dirs use (".", "libopcodes_bind");
+   case C_Support is
+      when "False" =>
+         for Excluded_Source_Files use ("clang-wrapper.cc");
+      when others =>
+         null;
+   end case;
+
    for Object_Dir use "obj" & Bits & "/" & Build_Mode;
    for Languages use ("Ada", "C", "C++");
    for Main use Mains;

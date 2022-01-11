@@ -94,7 +94,8 @@ C_SUPPORT?=True
 ifeq ($(C_SUPPORT), True)
 include libclang_common.mk
 else
-GPR_PROJECT_PATH := $(PWD)/gpr_stubs:$(GPR_PROJECT_PATH)
+CURRENT_DIR := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
+GPR_PROJECT_PATH := $(CURRENT_DIR)/gpr_stubs:$(GPR_PROJECT_PATH)
 endif
 
 #####################################################################
@@ -205,7 +206,7 @@ bin:
 	    -XBUILD_MODE=$(BUILD_MODE) \
 	    -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
 	    -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
-	    -XC_SUPPORT="$(C_SUPPORT)" \
+	    -XC_SUPPORT=$(C_SUPPORT) \
 	    $(EXTRA_ADAFLAGS) \
 	    -largs $(LD_FLAGS) \
 	    -cargs:c++ $(CXXFLAGS); \
