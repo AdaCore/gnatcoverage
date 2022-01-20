@@ -133,7 +133,7 @@ package Command_Line is
       Opt_Checkpoint,
       Opt_Ignore_Source_Files,
       Opt_Shared_Object,
-      Opt_Enable_Languages);
+      Opt_Restricted_To_Languages);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -964,14 +964,17 @@ package Command_Line is
                          others => False),
          Internal    => False),
 
-      Opt_Enable_Languages => Create
-        (Long_Name => "--enable-languages",
-         Pattern   => "[LANGUAGE|@LISTFILE]",
-         Help      => "Defaults to Ada. C support is still in beta state at"
-                      & " this stage.",
+      Opt_Restricted_To_Languages => Create
+        (Long_Name => "--restricted-to-languages",
+         Pattern   => "[LANGUAGE|LIST|@LISTFILE]",
+         Help      => "Restrict the set of languages for instrumentation."
+                      & " Supports Ada and C. As C support is still in beta"
+                      & " state, the default is --restricted-to-languages=Ada."
+                      & " To enable both, pass"
+                      & " --restricted-to-languages=Ada,C.",
          Commands  => (Cmd_Instrument => True,
                        others => False),
-         Internal  => True));
+         Internal  => False, Accepts_Comma_Separator => True));
 
    procedure Bool_Callback
      (Result : in out Parsed_Arguments;
