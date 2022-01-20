@@ -365,6 +365,26 @@ Then for each new test:
 
 The section :ref:`examples_src_traces` illustrates such a use case.
 
+.. _other_languages_instr :
+
+Instrumentation of a multi-languages project
+============================================
+
+The |gcp| instrumentation mode supports Ada, and C. As C support is still at its
+beta stage, it is disabled by default. To activate it, add the
+:option:`--restricted-to-languages=C,Ada` switch to your command line.
+
+Note that, as of now, the C instrumented code still uses the Ada coverage
+runtime, described in the section :ref:`instr-rts`. To interface with this
+runtime, the instrumenter thus generates Ada files that must be compiled with
+your project. For that reason, "Ada" needs to be included in the Languages
+attribute of your gpr project file (|gcv| will emit a warning at instrumentation
+time if this is not the case).
+
+Instrumentation operates on the preprocessed code, which means that coverage
+obligations that come from a macro expansion (and further obligations on the
+same line) will have inaccurate column numbers.
+
 .. _spark_instr :
 
 Instrumentation and coverage of SPARK code
