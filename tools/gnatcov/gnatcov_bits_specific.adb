@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2021, AdaCore                     --
+--                     Copyright (C) 2008-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -467,9 +467,9 @@ procedure GNATcov_Bits_Specific is
 
       --  Compute the languages for which we want coverage analysis
 
-      if not Args.String_List_Args (Opt_Enable_Languages).Is_Empty
+      if not Args.String_List_Args (Opt_Restricted_To_Languages).Is_Empty
       then
-         for Arg of Args.String_List_Args (Opt_Enable_Languages) loop
+         for Arg of Args.String_List_Args (Opt_Restricted_To_Languages) loop
             Enable_Languages.Insert (Arg);
          end loop;
       else

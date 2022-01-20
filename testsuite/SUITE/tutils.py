@@ -572,7 +572,7 @@ def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
     # gnatcov testsuite exercises C instrumentation, which is not activated by
     # default.
     if not thistest.options.qualif_level and covcmd == "instrument":
-        covargs = ['--enable-languages=Ada', '--enable-languages=C'] + covargs
+        covargs = ['--restricted-to-languages=Ada,C'] + covargs
 
     if thistest.options.all_warnings:
         covargs = ['--all-warnings'] + covargs
