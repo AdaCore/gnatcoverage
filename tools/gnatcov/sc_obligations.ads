@@ -22,6 +22,7 @@ with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
+with Ada.Streams;           use Ada.Streams;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNAT.Regexp;
@@ -33,6 +34,7 @@ with Types; use Types;
 limited with Checkpoints;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Slocs;               use Slocs;
+with Strings;             use Strings;
 with Traces;              use Traces;
 
 package SC_Obligations is
@@ -138,6 +140,62 @@ package SC_Obligations is
    type SCO_Id is new Natural;
    No_SCO_Id : constant SCO_Id := 0;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
+
+   type Scope_Entity;
+   type Scope_Entity_Acc is access Scope_Entity;
+   --  Scope_Entity (SE) stores the SCO range, the name, the sloc and the
+   --  child scopes of a SE. Note that we assume that the SCOs of a SE can
+   --  be designated by a range. We thus include SCOs belonging to children
+   --  SEs.
+   --
+   --  For Ada, we support a granularity of package / subprogram / task /
+   --  entry scopes.
+   --
+   --  TODO??? implementation for C.
+   --
+   --  This information is computed by the instrumenters (that know what is
+   --  a scope, and what is not).
+
+   procedure Read
+     (S : access Root_Stream_Type'Class;
+      V : out Scope_Entity_Acc);
+   procedure Write (S : access Root_Stream_Type'Class; V : Scope_Entity_Acc);
+
+   for Scope_Entity_Acc'Read use Read;
+   for Scope_Entity_Acc'Write use Write;
+
+   procedure Free (Scope_Ent : in out Scope_Entity_Acc);
+
+   package Scope_Entities_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Pos,
+      Element_Type => Scope_Entity_Acc);
+   subtype Scope_Entities_Vector is Scope_Entities_Vectors.Vector;
+
+   type Scope_Entity is record
+      From, To : SCO_Id;
+      --  SCO range for this scope. As scope entities are computed during
+      --  instrumentation, From and To designates low level SCOs that are then
+      --  converted to high level SCOs after processing the low level SCOs.
+
+      Name : Unbounded_String;
+      Sloc : Local_Source_Location;
+      --  Name (as it appears in the source) and sloc of this scope definition
+
+      Children : Scope_Entities_Vector;
+      --  Children scopes
+
+      Parent : Scope_Entity_Acc;
+      --  Reference to parent scope, null if this is a top-level scope
+
+   end record;
+
+   No_Scope_Entity : constant Scope_Entity :=
+     (From     => No_SCO_Id,
+      To       => No_SCO_Id,
+      Name     => +"",
+      Sloc     => No_Local_Location,
+      Children => Scope_Entities_Vectors.Empty_Vector,
+      Parent   => null);
 
    type Any_SCO_Kind is (Removed, Statement, Decision, Condition, Operator);
    subtype SCO_Kind is Any_SCO_Kind range Statement .. Operator;
@@ -466,8 +524,7 @@ package SC_Obligations is
    --  Flag SCO to indicate that the value of its (only) condition is known
    --  only modulo an arbitrary negation.
 
-   function Expression_Image
-     (Op_SCO : SCO_Id) return Ada.Strings.Unbounded.Unbounded_String;
+   function Expression_Image (Op_SCO : SCO_Id) return Unbounded_String;
    --  Pretty_print the expression represented by the SCO.
 
    --------------------------
@@ -589,6 +646,13 @@ package SC_Obligations is
    function Get_PP_Info (SCO : SCO_Id) return PP_Info
      with Pre => Has_PP_Info (SCO);
    --  Return the preprocessing information (if any) for the given SCO
+
+   function Get_Scope_Entity (CU : CU_Id) return Scope_Entity_Acc;
+    --  Return description for top-level scope, if available. Return null
+    --  otherwise.
+
+   procedure Set_Scope_Entity (CU : CU_Id; Scope_Ent : Scope_Entity_Acc);
+   --  Set the top level scope for the given unit
 
    -----------------
    -- Checkpoints --

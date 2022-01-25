@@ -46,6 +46,7 @@ package Checkpoints is
    --  6 -- Add the kind of trace (Source, Binary or mixed) in the checkpoint
    --  7 -- Add the "bits" for binary traces used to create the checkpoint
    --  8 -- Add macro expansion information
+   --  9 -- Add the support for scoped metrics
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:

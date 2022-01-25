@@ -768,6 +768,57 @@ package body Instrument.Common is
       return Result;
    end Instr_Units_For_Closure;
 
+   -----------------
+   -- Enter_Scope --
+   -----------------
+
+   procedure Enter_Scope
+     (UIC        : in out Unit_Inst_Context;
+      Scope_Name : Unbounded_String;
+      Sloc       : Slocs.Local_Source_Location)
+   is
+      New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
+        (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
+         To       => No_SCO_Id,
+         Name     => Scope_Name,
+         Sloc     => Sloc,
+         Children => Scope_Entities_Vectors.Empty_Vector,
+         Parent   => UIC.Current_Scope_Entity);
+   begin
+      if UIC.Current_Scope_Entity /= null then
+         UIC.Current_Scope_Entity.Children.Append (New_Scope_Ent);
+      end if;
+      UIC.Current_Scope_Entity := New_Scope_Ent;
+   end Enter_Scope;
+
+   ----------------
+   -- Exit_Scope --
+   ----------------
+
+   procedure Exit_Scope (UIC : in out Unit_Inst_Context)
+   is
+      Parent : Scope_Entity_Acc renames UIC.Current_Scope_Entity.Parent;
+   begin
+      UIC.Current_Scope_Entity.To := SCO_Id (SCOs.SCO_Table.Last);
+
+      --  If the scope has no SCO (it could be possible for a package spec with
+      --  only subprogram declarations for instance), discard it.
+
+      if UIC.Current_Scope_Entity.To < UIC.Current_Scope_Entity.From then
+         if Parent /= null then
+            UIC.Current_Scope_Entity.Parent.Children.Delete_Last;
+         end if;
+         Free (UIC.Current_Scope_Entity);
+      end if;
+
+      --  If this is not the top-level scope (we want to keep its reference
+      --  after having traversed the AST), go up the scope tree.
+
+      if Parent /= null then
+         UIC.Current_Scope_Entity := Parent;
+      end if;
+   end Exit_Scope;
+
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GNATcov_RTS"));
 
