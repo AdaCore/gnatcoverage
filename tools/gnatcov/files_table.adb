@@ -1511,6 +1511,15 @@ package body Files_Table is
       end loop;
    end Iterate_On_Lines;
 
+   ---------------
+   -- Last_Line --
+   ---------------
+
+   function Last_Line (File : File_Info_Access) return Natural is
+   begin
+      return File.Lines.Last_Index;
+   end Last_Line;
+
    ----------
    -- Open --
    ----------

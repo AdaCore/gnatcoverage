@@ -667,6 +667,16 @@ package SC_Obligations is
    procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed SCOs from stream and merge them in current state
 
+   ---------------------------
+   -- Accessors for CU_Info --
+   ---------------------------
+
+   function First_SCO (CU : CU_Id) return SCO_Id;
+   --  Return the first SCO of the compilation unit
+
+   function Last_SCO (CU : CU_Id) return SCO_Id;
+   --  Return the last SCO of the compilation unit
+
    -------------
    -- Pragmas --
    -------------

@@ -437,13 +437,9 @@ package Files_Table is
       Process : not null access procedure (Index : Positive))
      with Pre => File.Kind = Source_File;
 
-   --  All the Get_Line functions below look for a line information record at
-   --  File:Index (a line in a filename) or at Sloc (a source location, i.e.
-   --  referencing a file and a line number).
-   --
-   --  The overrides that return a Line_Info_Access return null if the
-   --  referenced file is a stub. The override that return a string only accept
-   --  actual source files.
+   function Last_Line (File : File_Info_Access) return Natural
+     with Pre => File.Kind = Source_File;
+   --  Return the last line of the file
 
    function Get_Line
      (File  : File_Info_Access;

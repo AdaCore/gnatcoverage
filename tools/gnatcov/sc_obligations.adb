@@ -1513,6 +1513,32 @@ package body SC_Obligations is
    end Comp_Unit;
 
    ---------------
+   -- First_SCO --
+   ---------------
+
+   function First_SCO (CU : CU_Id) return SCO_Id is
+   begin
+      if CU = No_CU_Id then
+         return No_SCO_Id;
+      else
+         return CU_Vector.Element (CU).First_SCO;
+      end if;
+   end First_SCO;
+
+   --------------
+   -- Last_SCO --
+   --------------
+
+   function Last_SCO (CU : CU_Id) return SCO_Id is
+   begin
+      if CU = No_CU_Id then
+         return No_SCO_Id;
+      else
+         return CU_Vector.Element (CU).Last_SCO;
+      end if;
+   end Last_SCO;
+
+   ---------------
    -- Condition --
    ---------------
 

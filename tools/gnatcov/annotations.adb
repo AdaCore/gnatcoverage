@@ -173,6 +173,14 @@ package body Annotations is
          return;
       end if;
 
+      declare
+         Scope_Ent : constant Scope_Entity_Acc :=
+           Get_Scope_Entity (Comp_Unit (File_Index));
+      begin
+         if Scope_Ent /= null and then Scope_Ent.all /= No_Scope_Entity then
+            Pretty_Print_Scope_Entity (Pp, Scope_Ent.all);
+         end if;
+      end;
       Iterate_On_Lines (FI, Process_One_Line'Access);
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
@@ -397,11 +405,6 @@ package body Annotations is
          --  Given a source line located in FI's source file, at line L,
          --  compute its line state and record it into the file table.
 
-         procedure Compute_Stats (L : Positive);
-         --  Update file statistics for line L. Note that this can be done
-         --  only once Compute_Line_State for each line has been computed,
-         --  because this depends on violation count for each exampted region.
-
          ------------------------
          -- Compute_Line_State --
          ------------------------
@@ -464,128 +467,6 @@ package body Annotations is
             end if;
          end Compute_Line_State;
 
-         Last_Statement_SCO : SCO_Id := No_SCO_Id;
-         Last_Decision_SCO  : SCO_Id := No_SCO_Id;
-         --  A coverage obligation can span on multiple lines, and as we
-         --  iterate over lines to get SCOs and compute coverage obligation
-         --  statistics, we need to make sure we are not counting several times
-         --  the same obligation when encountering it on a follow up line.
-
-         -------------------
-         -- Compute_Stats --
-         -------------------
-
-         procedure Compute_Stats (L : Positive) is
-            LI : constant Line_Info_Access := Get_Line (FI, L);
-            S  : constant Any_Line_State := Aggregated_State (LI.all);
-
-            procedure Update_Level_Stats
-              (State : SCO_State;
-               Level : Coverage_Level);
-            --  Update the file statistics for the given coverage level
-
-            ------------------------
-            -- Update_Level_Stats --
-            ------------------------
-
-            procedure Update_Level_Stats
-              (State : SCO_State;
-               Level : Coverage_Level)
-            is
-            begin
-               if State = No_Code then
-                  return;
-               end if;
-
-               FI.Ob_Stats (Level).Total :=
-                 FI.Ob_Stats (Level).Total + 1;
-
-               if LI.Exemption /= Slocs.No_Location then
-                  if State = Covered or else State = Not_Coverable then
-                     FI.Ob_Stats (Level).Stats (Exempted_No_Violation) :=
-                       FI.Ob_Stats (Level).Stats (Exempted_No_Violation) + 1;
-                  else
-                     FI.Ob_Stats (Level).Stats (Exempted_With_Violation) :=
-                       FI.Ob_Stats (Level).Stats (Exempted_With_Violation) + 1;
-                  end if;
-               else
-                  FI.Ob_Stats (Level).Stats (State) :=
-                    FI.Ob_Stats (Level).Stats (State) + 1;
-               end if;
-            end Update_Level_Stats;
-
-         begin
-            --  Update counts. Note that No_Code lines are always counted as
-            --  No_Code even if they are part of an exempted region.
-
-            if LI.State = Line_States'(others => No_Code) then
-               FI.Li_Stats (No_Code) := FI.Li_Stats (No_Code) + 1;
-            else
-               FI.Li_Stats (S) := FI.Li_Stats (S) + 1;
-            end if;
-
-            --  Update obligation count
-
-            if LI.SCOs = null then
-               return;
-            end if;
-
-            for SCO of LI.SCOs.all loop
-               case Kind (SCO) is
-                  when Statement =>
-                     if SCO /= Last_Statement_SCO then
-                        Last_Statement_SCO := SCO;
-                        Update_Level_Stats (Get_Line_State (SCO, Stmt), Stmt);
-                     end if;
-                  when Decision  =>
-                     if SCO /= Last_Decision_SCO then
-                        Last_Decision_SCO := SCO;
-                        Update_Level_Stats
-                          (Get_Line_State (SCO, Decision), Decision);
-
-                        --  Conditions in that decision
-
-                        if Coverage.MCDC_Coverage_Enabled then
-                           for J in
-                             Condition_Index'First .. Last_Cond_Index (SCO)
-                           loop
-                              declare
-                                 Condition_SCO : constant SCO_Id :=
-                                   Condition (SCO, J);
-
-                                 MCDC_State : constant SCO_State :=
-                                   Get_Line_State (SCO, MCDC);
-                                 --  If the parent decision is partially
-                                 --  covered, then the SCO_State for each
-                                 --  condition will be No_Code, and the
-                                 --  SCO_State for the MCDC Coverage_Level
-                                 --  associated to the parent decision SCO will
-                                 --  be Not_Covered.
-
-                                 Condition_State : SCO_State;
-
-                              begin
-                                 if MCDC_State = Not_Covered
-                                 then
-                                    Condition_State := Not_Covered;
-                                 else
-                                    Condition_State :=
-                                      Get_Line_State
-                                        (Condition_SCO, Coverage.MCDC_Level);
-                                 end if;
-
-                                 Update_Level_Stats
-                                   (Condition_State, MCDC_Level);
-                              end;
-                           end loop;
-                        end if;
-                     end if;
-                  when others    =>
-                     null;
-               end case;
-            end loop;
-         end Compute_Stats;
-
       --  Start of processing for Compute_File_State
 
       begin
@@ -593,9 +474,17 @@ package body Annotations is
             return;
          end if;
 
-         FI.Li_Stats := (others => 0);
          Iterate_On_Lines (FI, Compute_Line_State'Access);
-         Iterate_On_Lines (FI, Compute_Stats'Access);
+
+         --  Update file statistics for line L. Note that this can be done
+         --  only once Compute_Line_State for each line has been computed,
+         --  because this depends on violation count for each exempted region.
+
+         FI.Li_Stats := Line_Metrics (FI, 1, Last_Line (FI));
+         FI.Ob_Stats :=
+           Obligation_Metrics
+             (First_SCO (Comp_Unit (File_Index)),
+              Last_SCO (Comp_Unit (File_Index)));
 
          for J in Global_Stats'Range loop
             Global_Stats (J) := Global_Stats (J) + FI.Li_Stats (J);
@@ -1007,5 +896,132 @@ package body Annotations is
          exit when Line_Last = 0 or else Line_First > Text'Last;
       end loop;
    end Output_Multiline_Msg;
+
+   ------------------
+   -- Line_Metrics --
+   ------------------
+
+   function Line_Metrics
+     (FI       : File_Info_Access;
+      From, To : Natural) return Li_Stat_Array
+   is
+      Result : Li_Stat_Array := (others => 0);
+   begin
+      for L in From .. To loop
+         declare
+            LI : constant Line_Info_Access := Get_Line (FI, L);
+            S  : constant Any_Line_State := Aggregated_State (LI.all);
+         begin
+            --  Update counts. Note that No_Code lines are always counted as
+            --  No_Code even if they are part of an exempted region.
+
+            if LI.State = Line_States'(others => No_Code) then
+               Result (No_Code) := Result (No_Code) + 1;
+            else
+               Result (S) := Result (S) + 1;
+            end if;
+         end;
+      end loop;
+      return Result;
+   end Line_Metrics;
+
+   ------------------------
+   -- Obligation_Metrics --
+   ------------------------
+
+   function Obligation_Metrics (From, To : SCO_Id) return Ob_Stat_Array
+   is
+      Result : Ob_Stat_Array;
+
+      procedure Update_Level_Stats
+        (SCO   : SCO_Id;
+         State : SCO_State;
+         Level : Coverage_Level);
+      --  Update the obligation statistics for the given coverage level
+
+      ------------------------
+      -- Update_Level_Stats --
+      ------------------------
+
+      procedure Update_Level_Stats
+        (SCO   : SCO_Id;
+         State : SCO_State;
+         Level : Coverage_Level)
+      is
+         LI : constant Line_Info_Access := Get_Line (First_Sloc (SCO));
+      begin
+         if State = No_Code then
+            return;
+         end if;
+
+         Result (Level).Total :=
+           Result (Level).Total + 1;
+
+         if LI.Exemption /= Slocs.No_Location then
+            if State = Covered or else State = Not_Coverable then
+               Result (Level).Stats (Exempted_No_Violation) :=
+                 Result (Level).Stats (Exempted_No_Violation) + 1;
+            else
+               Result (Level).Stats (Exempted_With_Violation) :=
+                 Result (Level).Stats (Exempted_With_Violation) + 1;
+            end if;
+         else
+            Result (Level).Stats (State) :=
+              Result (Level).Stats (State) + 1;
+         end if;
+      end Update_Level_Stats;
+
+   begin
+      if From = No_SCO_Id then
+         return Result;
+      end if;
+      for SCO in From .. To loop
+         case Kind (SCO) is
+            when Statement =>
+               Update_Level_Stats (SCO, Get_Line_State (SCO, Stmt), Stmt);
+            when Decision =>
+               Update_Level_Stats
+                 (SCO, Get_Line_State (SCO, Decision), Decision);
+
+               --  Conditions in that decision
+
+               if Coverage.MCDC_Coverage_Enabled then
+                  for J in
+                    Condition_Index'First .. Last_Cond_Index (SCO)
+                  loop
+                     declare
+                        Condition_SCO : constant SCO_Id :=
+                          Condition (SCO, J);
+
+                        MCDC_State : constant SCO_State :=
+                          Get_Line_State (SCO, MCDC);
+                        --  If the parent decision is partially covered, then
+                        --  the SCO_State for each condition will be No_Code,
+                        --  and the SCO_State for the MCDC Coverage_Level
+                        --  associated to the parent decision SCO will be
+                        --  Not_Covered.
+
+                        Condition_State : SCO_State;
+
+                     begin
+                        if MCDC_State = Not_Covered then
+                           Condition_State := Not_Covered;
+                        else
+                           Condition_State :=
+                             Get_Line_State
+                               (Condition_SCO, Coverage.MCDC_Level);
+                        end if;
+
+                        Update_Level_Stats
+                          (SCO, Condition_State, Coverage.MCDC_Level);
+                     end;
+                  end loop;
+               end if;
+            when others =>
+               null;
+         end case;
+      end loop;
+      return Result;
+   end Obligation_Metrics;
 
 end Annotations;

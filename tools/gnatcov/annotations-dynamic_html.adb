@@ -127,6 +127,11 @@ package body Annotations.Dynamic_Html is
 
       Title_Prefix        : Ada.Strings.Unbounded.Unbounded_String;
       --  Prefix to use for titles in generated HTML documents
+
+      Scope_Metrics       : JSON_Value;
+      --  The scoped metrics, e.g. stats for subprograms bodies in a package
+      --  body, organized in a tree fashion.
+
    end record;
 
    -----------------------------------------
@@ -144,6 +149,10 @@ package body Annotations.Dynamic_Html is
       Skip : out Boolean);
 
    procedure Pretty_Print_End_File (Pp : in out Dynamic_Html);
+
+   procedure Pretty_Print_Scope_Entity
+     (Pp        : in out Dynamic_Html;
+      Scope_Ent : Scope_Entity);
 
    procedure Pretty_Print_Start_Line
      (Pp       : in out Dynamic_Html;
@@ -249,6 +258,12 @@ package body Annotations.Dynamic_Html is
    function Get_Hunk_Filename (File : Source_File_Index) return String;
    --  Return the name of the file containing the coverage data for the
    --  given source file.
+
+   function To_JSON (Stats : Counter_Array) return JSON_Value;
+   --  JSONify line statistics
+
+   function To_JSON (Ob_Stats : Ob_Stat_Array) return JSON_Array;
+   --  JSONify obligation statistics
 
    procedure Write_Full_Report (Pp : Dynamic_Html'Class);
    --  Dump the HTML file into Filename, inlining both JS and CSS resources
@@ -374,51 +389,16 @@ package body Annotations.Dynamic_Html is
       use Coverage;
       use Project;
 
-      Info                  : constant File_Info_Access := Get_File (File);
-      Source                : constant JSON_Value := Create_Object;
-      Line_Stats            : constant JSON_Value := Create_Object;
-      Obligation_Stats_Object : JSON_Array;
-
-      procedure Add_Ob_Stats
-        (Level          : Coverage_Level;
-         Obligation_Stats : SCO_Tally);
-      --  Add to Obligation_Stats_Object the Obligation_Stats that correspond
-      --  to the coverage level Level.
-
-      ------------------
-      -- Add_En_Stats --
-      ------------------
-
-      procedure Add_Ob_Stats
-        (Level          : Coverage_Level;
-         Obligation_Stats : SCO_Tally)
-      is
-         Level_Stats  : constant JSON_Value := Create_Object;
-         Stats_Holder : constant JSON_Value := Create_Object;
-      begin
-         Level_Stats.Set_Field ("covered", Obligation_Stats.Stats (Covered));
-         Level_Stats.Set_Field
-           ("notCovered", Obligation_Stats.Stats (Not_Covered));
-         Level_Stats.Set_Field
-           ("partiallyCovered", Obligation_Stats.Stats (Partially_Covered));
-         Level_Stats.Set_Field
-           ("notCoverable", Obligation_Stats.Stats (Not_Coverable));
-         Level_Stats.Set_Field
-           ("exemptedNoViolation",
-            Obligation_Stats.Stats (Exempted_No_Violation));
-         Level_Stats.Set_Field
-           ("exemptedWithViolation",
-            Obligation_Stats.Stats (Exempted_With_Violation));
-         Stats_Holder.Set_Field ("stats", Level_Stats);
-         Stats_Holder.Set_Field ("level", Image (Level));
-         Append (Obligation_Stats_Object, Stats_Holder);
-      end Add_Ob_Stats;
+      Info       : constant File_Info_Access := Get_File (File);
+      Source     : constant JSON_Value := Create_Object;
+      Line_Stats : constant JSON_Value := Create_Object;
 
    begin
       Clear (Pp.Current_Mappings);
       Clear (Pp.Current_Statements);
       Clear (Pp.Current_Decisions);
       Clear (Pp.Current_Conditions);
+      Pp.Scope_Metrics := JSON_Null;
 
       Skip := False;
 
@@ -437,24 +417,13 @@ package body Annotations.Dynamic_Html is
       Line_Stats.Set_Field
         ("exemptedWithViolation", Info.Li_Stats (Exempted_With_Violation));
 
-      --  Compute obligation coverage stats and store them in a dictionary
-      --  list.
-      --
-      --  Object coverage does not come with coverage obligations on the
-      --  assembly instructions, so there would be no point in enabling
-      --  reporting on obligations for object coverage reports.
-
-      for Level of Source_Levels_Enabled loop
-         Add_Ob_Stats (Level, Info.Ob_Stats (Level));
-      end loop;
-
       --  Generate the JSON object for this source file
 
       Source.Set_Field ("filename", Get_Unique_Name (File));
       Source.Set_Field ("hunkFilename", Get_Hunk_Filename (File));
       Source.Set_Field ("coverageLevel", Coverage_Option_Value);
       Source.Set_Field ("liStats", Line_Stats);
-      Source.Set_Field ("enAllStats", Obligation_Stats_Object);
+      Source.Set_Field ("enAllStats", To_JSON (Info.Ob_Stats));
 
       if Switches.Root_Project /= null then
          Source.Set_Field ("project", Project_Name (Info.Full_Name.all));
@@ -485,6 +454,8 @@ package body Annotations.Dynamic_Html is
       if not Is_Empty (Pp.Current_Mappings) then
          Source.Set_Field ("mappings", Pp.Current_Mappings);
       end if;
+
+      Source.Set_Field ("scopeMetrics", Pp.Scope_Metrics);
 
       --  Dump the JSON object containing the full coverage data for a specific
       --  source file, wrapping it into a function call.
@@ -530,6 +501,56 @@ package body Annotations.Dynamic_Html is
 
       Append (Pp.Source_List, Simplified);
    end Pretty_Print_End_File;
+
+   -------------------------------
+   -- Pretty_Print_Scope_Entity --
+   -------------------------------
+
+   procedure Pretty_Print_Scope_Entity
+     (Pp        : in out Dynamic_Html;
+      Scope_Ent : Scope_Entity)
+   is
+      function To_JSON (Scope_Ent : Scope_Entity) return JSON_Value;
+      --  Convert a scope entity to a JSON scoped metric: compute line and
+      --  obligation statistics for the given scope and recursively for
+      --  child scopes. Store the result as a JSON object, with the name and
+      --  the line of the scope.
+
+      -------------
+      -- To_JSON --
+      -------------
+
+      function To_JSON (Scope_Ent : Scope_Entity) return JSON_Value is
+         Scope_Metrics_JSON          : constant JSON_Value := Create_Object;
+         Children_Scope_Metrics_JSON : JSON_Array;
+         FI                          : constant File_Info_Access :=
+           Get_File (First_Sloc (Scope_Ent.From).Source_File);
+         Line_Stats                  : constant Li_Stat_Array :=
+           Line_Metrics
+             (FI,
+              First_Sloc (Scope_Ent.From).L.Line,
+              Last_Sloc (Scope_Ent.To).L.Line);
+         Ob_Stats                    : constant Ob_Stat_Array :=
+           Obligation_Metrics (Scope_Ent.From, Scope_Ent.To);
+      begin
+         Scope_Metrics_JSON.Set_Field ("scopeName", Scope_Ent.Name);
+         Scope_Metrics_JSON.Set_Field ("scopeLine", Scope_Ent.Sloc.Line);
+         Scope_Metrics_JSON.Set_Field ("stats", To_JSON (Line_Stats));
+         Scope_Metrics_JSON.Set_Field ("enAllStats", To_JSON (Ob_Stats));
+         for Child_Scope_Ent of Scope_Ent.Children loop
+            Append
+              (Children_Scope_Metrics_JSON,
+               To_JSON (Child_Scope_Ent.all));
+         end loop;
+         Scope_Metrics_JSON.Set_Field
+           ("children",
+            Create (Children_Scope_Metrics_JSON));
+         return Scope_Metrics_JSON;
+      end To_JSON;
+
+   begin
+      Pp.Scope_Metrics := To_JSON (Scope_Ent);
+   end Pretty_Print_Scope_Entity;
 
    -----------------------------
    -- Pretty_Print_Start_Line --
@@ -890,6 +911,81 @@ package body Annotations.Dynamic_Html is
    begin
       return Get_Unique_Filename (File, "hunk.js");
    end Get_Hunk_Filename;
+
+   -------------
+   -- To_JSON --
+   -------------
+
+   function To_JSON (Stats : Counter_Array) return JSON_Value is
+      Line_Stats : constant JSON_Value := Create_Object;
+   begin
+      Line_Stats.Set_Field ("noCode", Stats (No_Code));
+      Line_Stats.Set_Field ("covered", Stats (Covered));
+      Line_Stats.Set_Field
+        ("partiallyCovered", Stats (Partially_Covered));
+      Line_Stats.Set_Field ("notCovered", Stats (Not_Covered));
+      Line_Stats.Set_Field ("notCoverable", Stats (Not_Coverable));
+      Line_Stats.Set_Field
+        ("exemptedNoViolation", Stats (Exempted_No_Violation));
+      Line_Stats.Set_Field
+        ("exemptedWithViolation", Stats (Exempted_With_Violation));
+      return Line_Stats;
+   end To_JSON;
+
+   -------------
+   -- To_JSON --
+   -------------
+
+   function To_JSON (Ob_Stats : Ob_Stat_Array) return JSON_Array is
+
+      use Coverage;
+
+      Ob_Stats_JSON : JSON_Array;
+
+      procedure Add_Ob_Stats
+        (Level            : Coverage_Level;
+         Obligation_Stats : SCO_Tally);
+      --  Add to Obligation_Stats_Object the Obligation_Stats that correspond
+      --  to the coverage level Level.
+
+      ------------------
+      -- Add_Ob_Stats --
+      ------------------
+
+      procedure Add_Ob_Stats
+        (Level            : Coverage_Level;
+         Obligation_Stats : SCO_Tally)
+      is
+         Level_Stats  : constant JSON_Value := Create_Object;
+         Stats_Holder : constant JSON_Value := Create_Object;
+      begin
+         Level_Stats.Set_Field ("covered", Obligation_Stats.Stats (Covered));
+         Level_Stats.Set_Field
+           ("notCovered", Obligation_Stats.Stats (Not_Covered));
+         Level_Stats.Set_Field
+           ("partiallyCovered", Obligation_Stats.Stats (Partially_Covered));
+         Level_Stats.Set_Field
+           ("notCoverable", Obligation_Stats.Stats (Not_Coverable));
+         Level_Stats.Set_Field
+           ("exemptedNoViolation",
+            Obligation_Stats.Stats (Exempted_No_Violation));
+         Level_Stats.Set_Field
+           ("exemptedWithViolation",
+            Obligation_Stats.Stats (Exempted_With_Violation));
+         Stats_Holder.Set_Field ("stats", Level_Stats);
+         Stats_Holder.Set_Field ("level", Image (Level));
+         Append (Ob_Stats_JSON, Stats_Holder);
+      end Add_Ob_Stats;
+   begin
+      --  Object coverage does not come with coverage obligations on the
+      --  assembly instructions, so there would be no point in enabling
+      --  reporting on obligations for object coverage reports.
+
+      for Level of Source_Levels_Enabled loop
+         Add_Ob_Stats (Level, Ob_Stats (Level));
+      end loop;
+      return Ob_Stats_JSON;
+   end To_JSON;
 
    -----------------------
    -- Write_Full_Report --

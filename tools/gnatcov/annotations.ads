@@ -192,6 +192,11 @@ private
       State : Line_State) is null;
    --  Let Pp print the condition whose id is SCO
 
+   procedure Pretty_Print_Scope_Entity
+     (Pp        : in out Pretty_Printer;
+      Scope_Ent : Scope_Entity) is null;
+   --  Let Pp print the given body entity
+
    procedure Generate_Report
      (Pp           : in out Pretty_Printer'Class;
       Show_Details : Boolean;
@@ -233,5 +238,13 @@ private
       Text   : String);
    --  Output the given Text on Output, replacing all
    --  Ada.Characters.Latin_1.LF by a call to Ada.Text_IO.Newline.
+
+   function Line_Metrics
+     (FI       : File_Info_Access;
+      From, To : Natural) return Li_Stat_Array;
+   --  Return line metrics for the given line range
+
+   function Obligation_Metrics (From, To : SCO_Id) return Ob_Stat_Array;
+   --  Return obligation metrics for the given SCO range
 
 end Annotations;
