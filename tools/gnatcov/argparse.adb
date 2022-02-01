@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2015-2021, AdaCore                     --
+--                     Copyright (C) 2015-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -266,10 +266,12 @@ package body Argparse is
       Commands                    : Command_Set := All_Commands;
       Internal                    : Boolean;
       Greedy                      : Boolean := False;
-      Pattern                     : String := "")
+      Pattern                     : String := "";
+      Accepts_Comma_Separator     : Boolean := False)
       return String_List_Option_Info
    is
-     (+Long_Name, +Short_Name, +Help, Commands, Internal, Greedy, +Pattern);
+     (+Long_Name, +Short_Name, +Help, Commands, Internal, Greedy, +Pattern,
+      Accepts_Comma_Separator);
 
    ------------
    -- Create --
@@ -701,16 +703,53 @@ package body Argparse is
       is
          Str_Vec : String_Vectors.Vector renames
            Result.String_List_Args (Opt);
+         Option : constant String_List_Option_Info :=
+           Parser.Data.String_List_Info (Opt);
       begin
          if Parser.Data.String_List_Callback /= null then
             Parser.Data.String_List_Callback (Result, Opt, +Str);
          end if;
 
-         if Parser.Data.String_List_Info (Opt).Greedy then
+         if Option.Greedy then
             for J in I .. Args'Last loop
                Str_Vec.Append (+Args (J).all);
             end loop;
             return True;
+
+         --  Some string list options accepts comma-separated arguments, e.g.
+         --  --restricted-to-languages=c,ada.
+
+         elsif Option.Accepts_Comma_Separator then
+            declare
+               S               : constant String := +Str;
+               Arg_Start_Index : Natural := 1;
+            begin
+               for I in S'Range loop
+                  if S (I) = ',' then
+                     if I = S'First then
+                        Result :=
+                          Error
+                            ("Missing argument before occurrence of comma"
+                             & " separator in option "
+                             & Option_Name (Option));
+                        return True;
+                     else
+                        Str_Vec.Append (+S (Arg_Start_Index .. I - 1));
+                        Arg_Start_Index := I + 1;
+                     end if;
+                  end if;
+
+               end loop;
+               if Arg_Start_Index > S'Last then
+                  Result :=
+                    Error ("Missing argument after comma separator in option "
+                           & Option_Name (Option));
+                  return True;
+               else
+                  Str_Vec.Append (+S (Arg_Start_Index .. S'Last));
+               end if;
+            end;
+            return False;
          else
             Str_Vec.Append (Str);
             return False;
