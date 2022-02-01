@@ -177,7 +177,8 @@ package Argparse is
       Commands                    : Command_Set := All_Commands;
       Internal                    : Boolean;
       Greedy                      : Boolean := False;
-      Pattern                     : String := "")
+      Pattern                     : String := "";
+      Accepts_Comma_Separator     : Boolean := False)
       return String_List_Option_Info
      with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
    --  Create a multiple strings option description. Long_Name and Short_Name
@@ -386,8 +387,9 @@ private
    end record;
 
    type String_List_Option_Info is new Option_Info with record
-      Greedy  : Boolean;
-      Pattern : Unbounded_String;
+      Greedy                  : Boolean;
+      Pattern                 : Unbounded_String;
+      Accepts_Comma_Separator : Boolean;
    end record;
 
    type Parser_Record;
