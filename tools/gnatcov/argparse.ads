@@ -69,6 +69,11 @@ with Strings; use Strings;
 --      has to introduce them multiple times on the command-line in order to
 --      get multiple strings in the end.
 --
+--      It is also possible for non-greedy multiple string options to accept
+--      several strings in one argument, separated by commas, for instance:
+--      "--values a,b,c --values d,e" will collect "a", "b", "c", "d", "e" for
+--      the "--values" option.
+--
 --  Each kind of option can have multiple long and short names (as they will
 --  appear on command-lines). Long names are of the form "--[LETTERS]" while
 --  short names are of the form "-[SINGLE-LETTER]". There is an exception to
@@ -180,9 +185,16 @@ package Argparse is
       Pattern                     : String := "";
       Accepts_Comma_Separator     : Boolean := False)
       return String_List_Option_Info
-     with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
+     with Pre =>
+       (Long_Name'Length > 0 or else Short_Name'Length > 0)
+       and then not (Greedy and then Accepts_Comma_Separator);
    --  Create a multiple strings option description. Long_Name and Short_Name
    --  are |-separated lists of options names.
+   --
+   --  If Greedy is True, make the option greedy: all arguments that follow it
+   --  are considered values for this option. If Accepts_Comma_Separator is
+   --  True, each option value is treated as a comma-separated list of strings.
+   --  Options cannot be both greedy and accepting commas.
 
    type Bool_Option_Info_Array is
      array (Bool_Options) of aliased Bool_Option_Info;

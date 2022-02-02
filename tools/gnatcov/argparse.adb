@@ -703,7 +703,7 @@ package body Argparse is
       is
          Str_Vec : String_Vectors.Vector renames
            Result.String_List_Args (Opt);
-         Option : constant String_List_Option_Info :=
+         Option  : String_List_Option_Info renames
            Parser.Data.String_List_Info (Opt);
       begin
          if Parser.Data.String_List_Callback /= null then
@@ -711,46 +711,41 @@ package body Argparse is
          end if;
 
          if Option.Greedy then
+
+            --  Greedy options consume all remaining arguments
+
             for J in I .. Args'Last loop
                Str_Vec.Append (+Args (J).all);
             end loop;
             return True;
 
-         --  Some string list options accepts comma-separated arguments, e.g.
-         --  --restricted-to-languages=c,ada.
-
          elsif Option.Accepts_Comma_Separator then
+
+            --  Split values for comma-separated string list options
+
             declare
-               S               : constant String := +Str;
+               Last            : constant Natural := Length (Str);
                Arg_Start_Index : Natural := 1;
             begin
-               for I in S'Range loop
-                  if S (I) = ',' then
-                     if I = S'First then
-                        Result :=
-                          Error
-                            ("Missing argument before occurrence of comma"
-                             & " separator in option "
-                             & Option_Name (Option));
-                        return True;
-                     else
-                        Str_Vec.Append (+S (Arg_Start_Index .. I - 1));
-                        Arg_Start_Index := I + 1;
-                     end if;
-                  end if;
+               --  Add a value for all slices before commas
 
+               for I in 1 .. Last loop
+                  if Element (Str, I) = ',' then
+                     Str_Vec.Append
+                       (Unbounded_Slice (Str, Arg_Start_Index, I - 1));
+                     Arg_Start_Index := I + 1;
+                  end if;
                end loop;
-               if Arg_Start_Index > S'Last then
-                  Result :=
-                    Error ("Missing argument after comma separator in option "
-                           & Option_Name (Option));
-                  return True;
-               else
-                  Str_Vec.Append (+S (Arg_Start_Index .. S'Last));
-               end if;
+
+               --  Do not forget to add the slice after the comma
+
+               Str_Vec.Append (Unbounded_Slice (Str, Arg_Start_Index, Last));
             end;
             return False;
+
          else
+            --  For regular options, just add the passed value
+
             Str_Vec.Append (Str);
             return False;
          end if;
