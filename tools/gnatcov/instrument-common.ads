@@ -113,7 +113,8 @@ package Instrument.Common is
    --  coverage buffers dump through atexit(3).
 
    function Dump_Procedure_Symbol
-     (Main : Compilation_Unit_Name) return String is
+     (Main : Compilation_Unit_Name) return String
+   is
      ("gnatcov_rts_" & Instrumented_Unit_Slug (Main) & "_"
       & To_Lower (To_String (Dump_Procedure_Name)));
    --  Return the name of the exported symbol for the Dump_Buffers function
