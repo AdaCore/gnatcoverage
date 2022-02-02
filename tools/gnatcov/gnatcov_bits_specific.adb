@@ -470,7 +470,7 @@ procedure GNATcov_Bits_Specific is
       if not Args.String_List_Args (Opt_Restricted_To_Languages).Is_Empty
       then
          for Arg of Args.String_List_Args (Opt_Restricted_To_Languages) loop
-            Enable_Languages.Insert (Arg);
+            Enable_Languages.Include (Arg);
          end loop;
       else
          --  C instrumentation is a beta feature and not yet fully functional.
