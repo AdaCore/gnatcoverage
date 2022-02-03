@@ -85,7 +85,10 @@ package body Annotations.Xcov is
          Context      => Context,
          others       => <>);
    begin
-      Annotations.Generate_Report (Pp, Show_Details);
+      Annotations.Generate_Report
+        (Pp,
+         Show_Details,
+         Subdir => (if Pp.Show_Details then "xcov+" else "xcov"));
    end Generate_Report;
 
    ---------------------------

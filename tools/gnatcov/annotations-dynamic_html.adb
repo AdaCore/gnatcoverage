@@ -28,6 +28,7 @@ pragma Warnings (On, "* is an internal GNAT unit");
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
+with GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 
 with Annotations.Html;
@@ -277,7 +278,10 @@ package body Annotations.Dynamic_Html is
          Title_Prefix => Annotations.Html.Title_Prefix (Report_Title),
          others       => <>);
    begin
-      Annotations.Generate_Report (Pp, Show_Details => True);
+      Annotations.Generate_Report
+        (Pp,
+         Show_Details => True,
+         Subdir       => "dhtml");
    end Generate_Report;
 
    ------------------------
@@ -987,7 +991,8 @@ package body Annotations.Dynamic_Html is
             declare
                Source_Name : constant String := Full_Name (Directory_Entry);
                Target_Name : constant String :=
-                 Get_Output_Dir & "/" & Simple_Name (Directory_Entry);
+                 Get_Output_Dir & GNAT.OS_Lib.Directory_Separator
+                 & Simple_Name (Directory_Entry);
             begin
                --  Consider the --report-title option that can change the title
                --  of the HTML generated page.

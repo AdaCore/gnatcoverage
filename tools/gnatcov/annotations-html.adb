@@ -217,7 +217,10 @@ package body Annotations.Html is
          others       => <>);
    begin
       Pp.Show_Details := Show_Details;
-      Annotations.Generate_Report (Pp, Show_Details);
+      Annotations.Generate_Report
+        (Pp,
+         Show_Details,
+         Subdir => (if Show_Details then "html+" else "html"));
    end Generate_Report;
 
    ---------

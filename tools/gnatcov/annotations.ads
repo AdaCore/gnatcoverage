@@ -51,8 +51,23 @@ package Annotations is
    function To_Annotation_Format (Option : String) return Annotation_Format;
    --  Convert annotation format option to Annotation_Format value
 
-   Annotation : Annotation_Format := Annotate_Unknown;
-   --  The kind of output being generated
+   type Annotation_Formats_Arr is array (Annotation_Format) of Boolean;
+
+   Annotation : Annotation_Formats_Arr :=
+     (Annotate_Unknown => True, others => False);
+   --  For each kind of output, a True value indicates that the corresponding
+   --  report annotation should be generated. During an execution,
+   --  Annotation (Annotate_Unknown) should be True only in the following
+   --  situations:
+   --  - We haven't seen any --annotate option on the command line,
+   --  - We are parsing the --annotate options and one of the values for the
+   --    option does not correspond to any annotation format. In that case
+   --    the execution will terminate before finishing to parse the command
+   --    line options.
+
+   Multiple_Reports : Boolean := False;
+   --  True if more than one report annotation format which requires writing
+   --  the report to the output directory is requested.
 
 private
 
@@ -165,10 +180,13 @@ private
 
    procedure Generate_Report
      (Pp           : in out Pretty_Printer'Class;
-      Show_Details : Boolean);
+      Show_Details : Boolean;
+      Subdir       : String := "");
    --  Let Pp generate the annotated sources. If Show_Details is False, only
    --  a line state will be displayed. If Show_Details is True, a justification
-   --  is associated to this line state.
+   --  is associated to this line state. If Subdir is not empty, this will be
+   --  subdirectory in which the report will be created if multiple reports are
+   --  requested.
 
    function Aggregated_State (Info : Line_Info) return Any_Line_State;
    --  Return synthetic indication of coverage state for all computed criteria

@@ -21,6 +21,8 @@ with Ada.Characters.Latin_1;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
+with GNAT.OS_Lib;
+
 with Interfaces;
 
 with ALI_Files;        use ALI_Files;
@@ -364,7 +366,8 @@ package body Annotations is
 
    procedure Generate_Report
      (Pp           : in out Pretty_Printer'Class;
-      Show_Details : Boolean)
+      Show_Details : Boolean;
+      Subdir       : String := "")
    is
       use Coverage;
 
@@ -452,7 +455,7 @@ package body Annotations is
 
             if LI.Exemption /= Slocs.No_Location
               and then S in Not_Covered .. Partially_Covered
-              and then Annotation /= Annotate_Report
+              and then not Annotation (Annotate_Report)
             then
                Inc_Exemption_Count (LI.Exemption);
             end if;
@@ -615,9 +618,22 @@ package body Annotations is
          end if;
       end Process_One_File;
 
+      Previous_Output_Dir : constant String := Get_Output_Dir;
+      --  Current output dir, needed to restore it after we change to the
+      --  requested subdirectory for this report.
+
    --  Start of processing for Generate_Report
 
    begin
+
+      --  Switch the output dir to produce the report content in the requested
+      --  subdir, if needed.
+
+      if Subdir'Length > 0 and then Multiple_Reports then
+         Set_Output_Dir (Previous_Output_Dir & GNAT.OS_Lib.Directory_Separator
+                         & Subdir);
+      end if;
+
       Pp.Show_Details := Show_Details;
 
       --  Compute lines state, files and global statistics
@@ -630,6 +646,13 @@ package body Annotations is
       Pretty_Print_Start (Pp);
       Files_Table_Iterate (Process_One_File'Access);
       Pretty_Print_End (Pp);
+
+      --  Restore the output dir if we modified it
+
+      if Subdir'Length > 0 and then Multiple_Reports then
+         Set_Output_Dir (Previous_Output_Dir);
+      end if;
+
    end Generate_Report;
 
    -------------------

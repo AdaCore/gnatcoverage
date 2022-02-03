@@ -83,7 +83,8 @@ procedure GNATcov_Bits_Specific is
    --  Results of the command line processing. It is filled by
    --  Process_Arguments once Switches.Args reached its final state.
 
-   Annotation           : Annotation_Format renames Annotations.Annotation;
+   Annotation           : Annotation_Formats_Arr renames
+     Annotations.Annotation;
    Trace_Inputs         : Inputs.Inputs_Type;
    Exe_Inputs           : Inputs.Inputs_Type;
    Obj_Inputs           : Inputs.Inputs_Type;
@@ -491,16 +492,35 @@ procedure GNATcov_Bits_Specific is
          end;
       end if;
 
-      if Args.String_Args (Opt_Annotation_Format).Present then
-         declare
-            Arg : constant String :=
-              +Args.String_Args (Opt_Annotation_Format).Value;
-         begin
-            Annotation := To_Annotation_Format (Arg);
-            if Annotation = Annotate_Unknown then
-               Fatal_Error ("Bad annotation format: " & Arg);
+      if not Args.String_List_Args (Opt_Annotation_Format).Is_Empty then
+
+         --  Add each requested report kind to the enabled annotations, while
+         --  checking that all the options passed on the command line are
+         --  valid.
+
+         Annotation (Annotate_Unknown) := False;
+
+         for Arg of Args.String_List_Args (Opt_Annotation_Format) loop
+            Annotation (To_Annotation_Format (+Arg)) := True;
+            if Annotation (Annotate_Unknown) then
+               Fatal_Error ("Bad annotation format: " & (+Arg));
             end if;
+         end loop;
+
+         --  Check if there is more than one annotation format which requires
+         --  an output dir.
+
+         declare
+            Format_Count : Natural := 0;
+         begin
+            for Format in Annotate_Xcov .. Annotate_Xml loop
+               if Annotation (Format) then
+                  Format_Count := Format_Count + 1;
+               end if;
+            end loop;
+            Annotations.Multiple_Reports := Format_Count > 1;
          end;
+
       end if;
 
       for Arg of Args.String_List_Args (Opt_Routines_List) loop
@@ -755,7 +775,7 @@ procedure GNATcov_Bits_Specific is
 
             if Args.Command = Cmd_Coverage
               and then
-                (not Args.String_Args (Opt_Annotation_Format).Present
+                (Args.String_List_Args (Opt_Annotation_Format).Is_Empty
                  and Save_Checkpoint = null)
             then
                Report_Missing_Argument ("an annotation format");
@@ -1553,7 +1573,7 @@ begin
          --  object coverage.
 
          if Object_Coverage_Enabled then
-            if Annotation = Annotate_Report then
+            if Annotation (Annotate_Report) then
                Fatal_Error
                  ("""report"" output format (from --annotate) is"
                     & " only for source coverage criteria"
@@ -1572,22 +1592,17 @@ begin
 
          --  Check the availability of the output format
 
-         case Annotation is
-            when Annotate_Xml =>
-               if not Annotations.Xml.Installed then
-                  Fatal_Error
-                    ("XML report format support is not installed.");
-               end if;
+         if Annotation (Annotate_Xml) and then not Annotations.Xml.Installed
+         then
+            Fatal_Error ("XML report format support is not installed.");
+         end if;
 
-            when Annotate_Dynamic_Html =>
-               if not Annotations.Dynamic_Html.Installed then
-                  Fatal_Error
-                    ("Dynamic HTML report format support is not installed.");
-               end if;
-
-            when others =>
-               null;
-         end case;
+         if Annotation (Annotate_Dynamic_Html)
+           and then not Annotations.Dynamic_Html.Installed
+         then
+            Fatal_Error
+              ("Dynamic HTML report format support is not installed.");
+         end if;
 
          --  Check that the user specified units of interest. We'll load SCOs
          --  from ALIs/SIDs only when necessary, i.e. only the first time we
@@ -2139,7 +2154,7 @@ begin
          if Object_Coverage_Enabled then
             Traces_Elf.Build_Routines_Insn_State;
 
-            if Annotation /= Annotate_Asm then
+            if not Annotation (Annotate_Asm) then
                Traces_Elf.Build_Source_Lines;
             end if;
          end if;
@@ -2161,7 +2176,7 @@ begin
             Dump_Units_In_Report : constant Boolean :=
                Dump_Units
                and then Dump_Units_Filename = null
-               and then Annotation = Annotate_Report;
+               and then Annotation (Annotate_Report);
             --  Whether the list of units of interest should be dumped in the
             --  coverage report itself.
          begin
@@ -2224,8 +2239,7 @@ begin
             --  Generate annotated reports
 
             if Emit_Report then
-               case Annotation is
-               when Annotate_Asm =>
+               if Annotation (Annotate_Asm) then
                   if Source_Coverage_Enabled then
                      Fatal_Error
                        ("""asm"" output format (from --annotate) is"
@@ -2236,36 +2250,44 @@ begin
                           & Coverage_Option_Value (Current_Levels) & ")");
                   end if;
                   Traces_Dump.Dump_Routines_Traces (Output);
+               end if;
 
-               when Annotate_Xml =>
+               if Annotation (Annotate_Xml) then
                   Annotations.Xml.Generate_Report
                     (Context'Unchecked_Access);
+               end if;
 
-               when Annotate_Xcov      |
-                    Annotate_Xcov_Plus =>
+               if Annotation (Annotate_Xcov)
+                 or else Annotation (Annotate_Xcov_Plus)
+               then
                   Annotations.Xcov.Generate_Report
                     (Context'Unchecked_Access,
-                     Show_Details => Annotation = Annotate_Xcov_Plus);
+                     Show_Details => Annotation (Annotate_Xcov_Plus));
+               end if;
 
-               when Annotate_Html      |
-                    Annotate_Html_Plus =>
+               if Annotation (Annotate_Html)
+                 or else Annotation (Annotate_Html_Plus)
+               then
                   Annotations.Html.Generate_Report
                     (Context'Unchecked_Access,
-                     Show_Details => Annotation = Annotate_Html_Plus,
+                     Show_Details => Annotation (Annotate_Html_Plus),
                      Report_Title => Args.String_Args (Opt_Report_Title));
+               end if;
 
-               when Annotate_Dynamic_Html =>
+               if Annotation (Annotate_Dynamic_Html) then
                   Annotations.Dynamic_Html.Generate_Report
                     (Context'Unchecked_Access,
                      Report_Title => Args.String_Args (Opt_Report_Title));
+               end if;
 
-               when Annotate_Report =>
+               if Annotation (Annotate_Report) then
                   Annotations.Report.Generate_Report
                     (Context'Unchecked_Access, Output, Dump_Units_In_Report);
+               end if;
 
-               when Annotate_Unknown =>
+               if Annotation (Annotate_Unknown) then
                   pragma Assert (Save_Checkpoint /= null);
-               end case;
+               end if;
             else
                pragma Assert (Save_Checkpoint /= null);
             end if;

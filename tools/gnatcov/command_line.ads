@@ -98,7 +98,6 @@ package Command_Line is
       Opt_Coverage_Level,
       Opt_Text_Start,
       Opt_Exec_Prefix,
-      Opt_Annotation_Format,
       Opt_Final_Report,
       Opt_HW_Trigger_Traces,
       Opt_Input,
@@ -133,7 +132,8 @@ package Command_Line is
       Opt_Checkpoint,
       Opt_Ignore_Source_Files,
       Opt_Shared_Object,
-      Opt_Restricted_To_Languages);
+      Opt_Restricted_To_Languages,
+      Opt_Annotation_Format);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -614,16 +614,6 @@ package Command_Line is
                           & " look for them in the PREFIX directory."),
          At_Most_Once => False,
          Internal     => True),
-      Opt_Annotation_Format => Create
-        (Long_Name    => "--annotate",
-         Short_Name   => "-a",
-         Pattern      => "[FORM]",
-         Help         => ("Generate a FORM report. FORM is one of:" & ASCII.LF
-                          & "  asm, xcov, html, xcov+, html+, dhtml, report"),
-         Commands     => (Cmd_Coverage => True,
-                          others => False),
-         At_Most_Once => False,
-         Internal     => False),
       Opt_Final_Report => Create
         (Long_Name    => "--report",
          Pattern      => "[FILE]",
@@ -974,7 +964,20 @@ package Command_Line is
                       & " --restricted-to-languages=Ada,C.",
          Commands  => (Cmd_Instrument => True,
                        others => False),
-         Internal  => False, Accepts_Comma_Separator => True));
+         Internal  => False, Accepts_Comma_Separator => True),
+      Opt_Annotation_Format => Create
+        (Long_Name    => "--annotate",
+         Short_Name   => "-a",
+         Pattern      => "[FORM|LIST]",
+         Help         => "Generate a FORM report. FORM is one of:" & ASCII.LF
+                          & "  asm, xcov, html, xcov+, html+, dhtml, report."
+                          & ASCII.LF & "Multiple reports can be produced in"
+                          & " a single execution by passing a comma separated"
+                          & " list of FORMs to this option, or by specifying"
+                          & " this option multiple times on the command line.",
+         Commands     => (Cmd_Coverage => True,
+                          others => False),
+         Internal     => False, Accepts_Comma_Separator => True));
 
    procedure Bool_Callback
      (Result : in out Parsed_Arguments;
