@@ -21,8 +21,8 @@ For native `x86/x86_64-linux/windows` configurations, we now only support the
 source instrumentation based mode.
 
 Documentation, including a getting started guide, is available from the
-"GNATcoverage User's Guide" in the `share/doc/gnatcoverage` sub-directory of
-this distribution.
+"GNATcoverage User's Guide", part of the GNAT Dynamic Analysis Suite Manuals,
+in the `share/doc/gnatdas` sub-directory of this distribution.
 
 This package also provides examples with Makefiles that automate the full
 build/run/analyze sequence on sample programs.

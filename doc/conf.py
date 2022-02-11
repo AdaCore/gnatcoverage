@@ -41,7 +41,12 @@ source_suffix = '.rst'
 # The master toctree document, named to produce a standard html
 # entry point.
 
-master_doc = 'index'
+master_doc = "index"
+
+# General information about the project.
+project = u"GNATDAS"
+copyright = u"2009-2022, AdaCore"
+docname = u"Manuals"
 
 rst_epilog = """
 .. |gcv| replace:: :command:`gnatcov`
@@ -53,6 +58,7 @@ rst_epilog = """
 .. |gcvdsp| replace:: :command:`gnatcov` :command:`disp-routines`
 .. |gcvmap| replace:: :command:`gnatcov` :command:`map-routines`
 
+.. |gdas|  replace:: {}
 .. |gcp|   replace:: GNATcoverage
 .. |gem|   replace:: GNATemulator
 .. |gnat|  replace:: GNAT
@@ -62,12 +68,9 @@ rst_epilog = """
 
 .. |marg| replace:: *(mandatory)*
 .. |rarg| replace:: possibly repeated and accepting :term:`@listfile arguments`
-"""
-
-# General information about the project.
-project = u'GNATcoverage'
-copyright = u'2009-2021, AdaCore'
-docname = u'Manuals'
+""".format(
+  project
+)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -203,7 +206,7 @@ html_use_index = True
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'GNATcoveragedoc'
+htmlhelp_basename = "GNATDASdoc"
 
 
 # -- Options for LaTeX output -----------------------------------------------

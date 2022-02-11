@@ -1,5 +1,5 @@
 ================================
-GNATcoverage Manuals [|release|]
+|gdas| Manuals [|release|]
 ================================
 
 .. toctree::

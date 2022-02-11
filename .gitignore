@@ -5,6 +5,7 @@ lib
 *.dump
 *.qm
 /extra
+/doc/_build
 /tools/gnatcov/doc/html
 /tools/gnatcov/doc/pdf
 /tools/gnatcov/obj32/

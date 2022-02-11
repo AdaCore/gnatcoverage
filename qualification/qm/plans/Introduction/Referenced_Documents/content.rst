@@ -31,7 +31,7 @@ release documentation (file *share/doc/gnat/pdf/gnat_ugn.pdf*).
 .. rubric:: GNATcoverage UG
 
 AdaCore: *GNATcoverage User's Guide*, part of the GNATcoverage 1.4.3 release
-documentation (file *share/doc/gnatcoverage/pdf/gnatcov.pdf*).
+documentation (file *share/doc/gnatdas/pdf/gnatdas.pdf*).
 
 .. rubric:: |plans_doc_title|
 

@@ -50,7 +50,7 @@ MASTER_DOC=$(shell sed -n -e \
 # alone so internal hyperlinks to the toplevel page remain functional.
 
 install.pdf: prepare-installdir.pdf
-	cp $(BUILDDIR)/pdf/$(MASTER_DOC).pdf $(INSTALLDIR)/pdf/gnatcoverage.pdf
+	cp $(BUILDDIR)/pdf/$(MASTER_DOC).pdf $(INSTALLDIR)/pdf/gnatdas.pdf
 
 install.html: prepare-installdir.html
 	rsync -a --delete $(BUILDDIR)/html/ $(INSTALLDIR)/html/
