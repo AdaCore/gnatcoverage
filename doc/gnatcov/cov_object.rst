@@ -75,6 +75,9 @@ The available options are as follows:
    ``xcov[+]``, ``html[+]``, ``dhtml`` and ``asm``, with interpretations that
    vary  depending on the assessed criteria. See the corresponding
    documentation later in this chapter for more details.
+   This option accepts comma separated values and/or can be specified multiple
+   times on the command line, in which case there will be one report produced
+   for each of the requested annotation formats.
 
 .. include:: cov_common_switches.rst
 

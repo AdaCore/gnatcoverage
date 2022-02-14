@@ -88,32 +88,6 @@ unit held by the checkpoint input is included in the report.
 We will now describe a few example situations of possible checkpoint uses, then
 discuss compatibility issues regarding consolidation.
 
-Efficient production of multiple reports
-========================================
-
-Consolidating from traces, in particular binary traces, can be resource
-intensive. When multiple views of the coverage achieved by a set of tests are
-of interest, an intermediate checkpoint can be used as an intermediate high
-level representation of the coverage results from which multiple user readable
-reports can be produced more efficiently than from the original set of traces.
-
-Typically, instead of::
-
-  gnatcov coverage --level=<> <units> <traces> --annotate=<>
-  ... repeat for different formats/units/level ...
-
-
-One would first do::
-
-  gnatcov coverage --level=<> <units> <traces> --save-checkpoint=<filename>
-
-
-Then ...::
-
-  gnatcov coverage --level=<> --annotate=<> --checkpoint=<filename>
-  ... repeat for different formats/units/level ...
-
-
 Efficient storage of test results
 =================================
 

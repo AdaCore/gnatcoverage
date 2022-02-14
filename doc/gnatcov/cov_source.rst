@@ -50,10 +50,13 @@ The available options are as follows:
    in this chapter.
 
 :option:`-a`, :option:`--annotate` |marg|:
-   Request a specific output report format.  All the criteria support
+   Request one or more output report formats.  All the criteria support
    ``xcov[+]``, ``html[+]``, ``dhtml`` and ``report`` formats, with
    interpretations that vary depending on the assessed criteria. See the
    corresponding documentation later in this chapter for more details.
+   This option accepts comma separated values and/or can be specified
+   mulitple times on the command line, in which case there will be one
+   report produced for each of the requested formats.
 
 :option:`-o` :
    Request that the synthetic report produced by ``--annotate=report`` be

@@ -7,8 +7,9 @@
    Request that the report files (index and annotated sources for the
    ``xcov``, ``html`` and ``dhtml`` output formats) be output in the provided
    directory. If not specified, the default is the root project's object
-   directory if using projects, and the current directory if not. The
-   directory must exist prior to invoking |gcv|.
+   directory if using projects, and the current directory if not.
+   If more than one of the above annotation formats is requested, then each
+   report will be placed in a subdirectory named accordingly.
 
 :option:`--report-title` :
    Request that generated HTML documents (index and annotated sources for the
