@@ -10,7 +10,7 @@ PAPER         = a4
 BUILDDIR      = _build
 
 PREFIX        = _install
-INSTALLDIR    = $(PREFIX)/share/doc/gnatcoverage
+INSTALLDIR    = $(PREFIX)/share/doc/gnatdas
 
 # Documentation formats we know how to produce
 DOCFORMATS=pdf html
