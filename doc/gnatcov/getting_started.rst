@@ -133,15 +133,8 @@ development project:
      - Beta in release 22
      - Yes
 
-
-A few points regarding less prominent features are also
-worthy of note:
-
-- Separate analysis of generic package instances is not supported
-  by the source trace mode;
-
-- Preprocessing directives are ignored by the source instrumenter;
-
+The source trace based workflow also has a few other limitations that
+are outlined in section :ref:`instr-limitations`.
 
 A brief introduction to the main process steps
 ==============================================
