@@ -251,6 +251,8 @@ within the same environment, the variable name for a program can actually be
 tailored by passing a :option:`--dump-filename-env-var` switch to |gcvins|,
 providing the variable name to use.
 
+.. _instr-limitations:
+
 |gcvins| limitations
 --------------------
 
@@ -273,6 +275,12 @@ is to turn them into regular funtions, by giving them a proper body,
 containing a single return statment with the original expression.
 Otherwise it is possible to exempt those constructs (see :ref:`exemptions`)
 and/or perform a manual coverage analysis for these special cases.
+
+There are also a few limitations concerning the source trace workflow as a
+whole:
+
+- Separate analysis of generic package instances is not supported,
+- Preprocessing directives are ignored by the source instrumenter
 
 .. _instr-build:
 
