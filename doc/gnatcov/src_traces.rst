@@ -71,7 +71,7 @@ located in the ``share/gnatcoverage/gnatcov_rts`` subdirectory of your
 
 - ``gnatcov_rts.gpr`` is intended for programs which would operate in more
   restricted environments, with support for only the base64 output. The base
-  runtime we provide relies on ``Ada.Text_IO`` to output the data. This can be
+  runtime we provide relies on ``GNAT.IO`` to output the data. This can be
   tailored if needed.
 
 To set up the coverage runtime for use by your project, first copy the
@@ -147,11 +147,10 @@ if any are designated by the root project:
    ``ravenscar-task-termination``.
 
 :option:`--dump-channel`
-   selects the mechanism used to output coverage data
-   at the selected triggering point, if any. The possible choices are
-   ``bin-file``, to create a source trace file, or ``base64-stdout`` to emit a
-   base64 encoded version of the data through ``Ada.Text_IO``. ``bin-file`` is
-   the default.
+   selects the mechanism used to output coverage data at the selected triggering
+   point, if any. The possible choices are ``bin-file``, to create a source
+   trace file, or ``base64-stdout`` to emit a base64 encoded version of the data
+   through ``GNAT.IO``. ``bin-file`` is the default.
 
 :option:`--externally-built-projects`
    instructs the instrumenter to look into projects marked as externally built
@@ -321,12 +320,12 @@ process very efficient and straightforward.
 Extracting a trace from standard output
 =======================================
 
-With the :option:`base64-stdout` channel, coverage data is emitted
-with ``Ada.Text_IO`` on the program's standard output stream. The actual
-base64 encoded data is framed by start/end-of-coverage-data markers and |gcp|
-provides the |gcvxtr| command to extract this data from a captured output and
-create a trace file offline (outside of the program's execution context). The
-extraction command line simply is::
+With the :option:`base64-stdout` channel, coverage data is emitted with
+``GNAT.IO`` on the program's standard output stream. The actual base64 encoded
+data is framed by start/end-of-coverage-data markers and |gcp| provides the
+|gcvxtr| command to extract this data from a captured output and create a trace
+file offline (outside of the program's execution context). The extraction
+command line simply is::
 
   gnatcov extract-base64-trace <captured-output> <output-trace-file>
 
