@@ -28,7 +28,7 @@
 /* Define the number of values in enum bfd_endian.  */
 #define N_BFD_ENDIAN_VALUES 3
 
-typedef struct disassemble_handle
+struct disassemble_handle
 {
     disassembler_ftype disass_func[N_BFD_ENDIAN_VALUES];
     disassemble_info  dinfo;
@@ -36,7 +36,7 @@ typedef struct disassemble_handle
        This is erroneous when we want e.g. to switch between ARM and Thumb
        multiple times.  So we need to keep our disassembler options.  */
     char *disassembler_options;
-} disassemble_handle;
+};
 
 /* Type stored in dhandle->dinfo->application_data.  */
 typedef struct symbolizer_data

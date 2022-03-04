@@ -23,12 +23,12 @@
 
 #include "dis_stream.h"
 
-typedef struct disassembler_stream
+struct disassembler_stream
 {
     char *buff;
     unsigned int size;
     unsigned int idx;
-} disassembler_stream;
+};
 
 /* Printf-like function to add content to the DS stream according to FORMAT.
    Returns the number of characters written to the stream.  */

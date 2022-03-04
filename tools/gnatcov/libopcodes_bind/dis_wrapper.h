@@ -27,6 +27,7 @@
 #include <bfd.h>
 #include <dis-asm.h>
 
+struct disassemble_handle;
 typedef struct disassemble_handle disassemble_handle;
 
 /* Functions of this type can write at most BUFF_SIZE bytes.  */

@@ -21,6 +21,7 @@
 #ifndef DIS_STREAM_H_
 #define DIS_STREAM_H_
 
+struct disassembler_stream;
 typedef struct disassembler_stream disassembler_stream;
 
 extern disassembler_stream *create_stream (void);
