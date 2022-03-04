@@ -27,6 +27,7 @@ with Interfaces;
 with GNAT.OS_Lib;
 
 with Langkit_Support.Symbols;
+with Langkit_Support.Text;
 with Libadalang.Common;
 with Libadalang.Sources;
 
@@ -49,6 +50,37 @@ package body Instrument.Common is
    procedure Remove_Warnings_And_Style_Checks_Pragmas
      (Rewriter : Source_Rewriter);
    --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
+
+   type Missing_Src_Reporter is new Libadalang.Analysis.Event_Handler_Interface
+   with record
+      Reported_Files : String_Sets.Set;
+      --  Set of source file names which were already reported as missing.
+      --  Libadalang does not guarantee that the Unit_Requested event is
+      --  triggered only once per source, so de-duplicate events with this set.
+   end record;
+   --  Implementation of the Libadalang event handler interface used in
+   --  Create_Missing_File_Reporter.
+
+   overriding procedure Release (Self : in out Missing_Src_Reporter) is null;
+
+   overriding procedure Unit_Requested_Callback
+     (Self               : in out Missing_Src_Reporter;
+      Context            : Libadalang.Analysis.Analysis_Context'Class;
+      Name               : Langkit_Support.Text.Text_Type;
+      From               : Libadalang.Analysis.Analysis_Unit'Class;
+      Found              : Boolean;
+      Is_Not_Found_Error : Boolean);
+   --  If the requested unit is not found and that is an error, warn about it.
+   --  Make sure we warn only once about a given source file.
+
+   procedure Create_LAL_Context (IC : in out Inst_Context);
+   --  Create a new Libadalang analysis context for IC, assigning it to
+   --  IC.Context.
+   --
+   --  This helper takes care of passing the unit provider and the event
+   --  handler that we need for all such contexts, and resets
+   --  IC.Get_From_File_Count to 0, as the new context has not been used to
+   --  instrument any source file yet.
 
    -------------------
    -- Buffer_Symbol --
@@ -339,12 +371,25 @@ package body Instrument.Common is
       Self.Unit := No_Analysis_Unit;
    end Finalize;
 
+   ------------------------
+   -- Create_LAL_Context --
+   ------------------------
+
+   procedure Create_LAL_Context (IC : in out Inst_Context) is
+   begin
+      IC.Context := Create_Context
+        (Unit_Provider => IC.Provider,
+         Event_Handler => IC.Event_Handler);
+      IC.Get_From_File_Count := 0;
+   end Create_LAL_Context;
+
    --------------------
    -- Create_Context --
    --------------------
 
    function Create_Context
      (Provider             : Libadalang.Analysis.Unit_Provider_Reference;
+      Event_Handler        : Libadalang.Analysis.Event_Handler_Reference;
       Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
@@ -370,9 +415,8 @@ package body Instrument.Common is
          end;
 
          IC.Provider := Provider;
-         IC.Context := Libadalang.Analysis.Create_Context
-           (Unit_Provider => Provider);
-         IC.Get_From_File_Count := 0;
+         IC.Event_Handler := Event_Handler;
+         Create_LAL_Context (IC);
 
          IC.Dump_Config := Dump_Config;
          IC.Language_Version := Language_Version;
@@ -434,8 +478,7 @@ package body Instrument.Common is
       --  with a new context.
 
       if IC.Get_From_File_Count >= Max_Get_From_File_Count then
-         IC.Context := Create_Context (Unit_Provider => IC.Provider);
-         IC.Get_From_File_Count := 0;
+         Create_LAL_Context (IC);
       end if;
       IC.Get_From_File_Count := IC.Get_From_File_Count + 1;
 
@@ -626,6 +669,53 @@ package body Instrument.Common is
    begin
       File.Put_Line ("pragma Style_Checks (Off); pragma Warnings (Off);");
    end Put_Warnings_And_Style_Checks_Pragmas;
+
+   -----------------------------
+   -- Unit_Requested_Callback --
+   -----------------------------
+
+   overriding procedure Unit_Requested_Callback
+     (Self               : in out Missing_Src_Reporter;
+      Context            : Libadalang.Analysis.Analysis_Context'Class;
+      Name               : Langkit_Support.Text.Text_Type;
+      From               : Libadalang.Analysis.Analysis_Unit'Class;
+      Found              : Boolean;
+      Is_Not_Found_Error : Boolean)
+   is
+   begin
+      --  We need to warn about sources that we could not find *and* whose
+      --  presence is mandated by Ada.
+
+      if Found or else not Is_Not_Found_Error then
+         return;
+      end if;
+
+      --  Warn for a given source file only once, as Libadalang can invoke this
+      --  callback several times. For clarity, only mention the base name,
+      --  which should be unique in Ada projects anyway.
+
+      declare
+         N : constant Unbounded_String := To_Unbounded_String
+           (Ada.Directories.Simple_Name (Langkit_Support.Text.Image (Name)));
+      begin
+         if not Self.Reported_Files.Contains (N) then
+            Self.Reported_Files.Include (N);
+            Warn ("Cannot find required source file: " & To_String (N));
+         end if;
+      end;
+   end Unit_Requested_Callback;
+
+   ----------------------------------
+   -- Create_Missing_File_Reporter --
+   ----------------------------------
+
+   function Create_Missing_File_Reporter
+     return Libadalang.Analysis.Event_Handler_Reference
+   is
+   begin
+      return Create_Event_Handler_Reference
+        (Missing_Src_Reporter'(others => <>));
+   end Create_Missing_File_Reporter;
 
    ----------------
    -- Append_SCO --

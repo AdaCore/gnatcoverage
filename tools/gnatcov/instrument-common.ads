@@ -253,6 +253,9 @@ package Instrument.Common is
       Provider : Libadalang.Analysis.Unit_Provider_Reference;
       --  Unit provider to create an analysis context (Context member below)
 
+      Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
+      --  Event handler to warn about missing source files
+
       Context : Libadalang.Analysis.Analysis_Context;
       --  Libadalang context to load all units to rewrite
 
@@ -280,6 +283,7 @@ package Instrument.Common is
 
    function Create_Context
      (Provider             : Libadalang.Analysis.Unit_Provider_Reference;
+      Event_Handler        : Libadalang.Analysis.Event_Handler_Reference;
       Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
@@ -352,6 +356,12 @@ package Instrument.Common is
    --  projects are built with "warnings-as-errors" (GNAT's -gnatwe option),
    --  this could mean that instrumentation breaks the build. When written at
    --  the very beginning of each written source, these pragmas avoid this.
+
+   function Create_Missing_File_Reporter
+     return Libadalang.Analysis.Event_Handler_Reference;
+   --  Create an event handler to warn about source files that Libadalang needs
+   --  to perform semantic analysis (so mandated by Ada), but which are not
+   --  available.
 
    -------------------------
    -- Source instrumenter --

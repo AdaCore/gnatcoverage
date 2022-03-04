@@ -398,6 +398,12 @@ package body Instrument is
             Env              => null,
             Is_Project_Owner => False);
 
+      --  Create the event handler, to report when Libadalang cannot read a
+      --  required source file.
+
+      Event_Handler : constant Event_Handler_Reference :=
+        Create_Missing_File_Reporter;
+
       --  Create a map from library units to lists of compilation units to
       --  instrument for them.
 
@@ -416,8 +422,13 @@ package body Instrument is
 
       --  Then create the instrumenter context
 
-      IC                : Inst_Context := Create_Context
-         (Provider, Dump_Config, Language_Version, Ignored_Source_Files);
+      IC : Inst_Context := Create_Context
+        (Provider,
+         Event_Handler,
+         Dump_Config,
+         Language_Version,
+         Ignored_Source_Files);
+
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
 
