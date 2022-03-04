@@ -21,7 +21,6 @@ with Ada.Calendar.Conversions;
 with Ada.Containers.Generic_Sort;
 with Ada.Containers.Hashed_Sets;
 with Ada.Strings.Unbounded.Hash;
-with Ada.Unchecked_Conversion;
 
 with Interfaces.C;
 

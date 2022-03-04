@@ -18,7 +18,6 @@
 
 with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Text_IO;      use Ada.Text_IO;
-with Ada.Unchecked_Conversion;
 
 with GNAT.Expect;
 with GNAT.OS_Lib;

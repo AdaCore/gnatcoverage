@@ -5,3 +5,6 @@ pragma Warnings
 pragma Warnings
   (Off,
    """Unsigned_32"" is already use-visible through previous use_type_clause");
+pragma Warnings
+  (Off,
+   "use clause for type ""Interfaces.Unsigned_32"" has no effect");

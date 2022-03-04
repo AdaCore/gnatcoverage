@@ -144,7 +144,6 @@ package body Traces_Dump is
       end Process_Insn;
 
       function Img (I : Integer) return String renames Strings.Img;
-      use type Coverage_Level;
 
       --  We resort to a number of routines and internal iterators that use
       --  Text_IO.Put to dump stuff without any consideration for a custom
