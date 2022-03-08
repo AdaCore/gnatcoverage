@@ -598,6 +598,7 @@ package body Instrument is
                        (Unit_Info.Filename);
                   begin
                      --  Do not process units from externally built projects
+
                      if not Unit_Info.Prj_Info.Externally_Built then
                         All_Externally_Built := False;
 
@@ -703,6 +704,7 @@ package body Instrument is
       Clean_Objdirs (IC);
 
       --  Deallocate Ignored_Unit_Infos
+
       for IU of Ignored_Units loop
          Free (IU);
       end loop;
