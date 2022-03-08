@@ -232,8 +232,8 @@ package Command_Line is
       Cmd_Dump_Src_Trace => Create
         (Name        => "dump-src-trace",
          Pattern     => "[TRACE_FILEs]",
-         Description => "Dump the content of a source trace file in a human-"
-                        & "-readable text form",
+         Description => "Dump the content of a source trace file in a human"
+                        & "-readable text form.",
          Internal    => True),
       Cmd_Dump_Sections => Create
         (Name        => "dump-sections",
@@ -272,17 +272,17 @@ package Command_Line is
                          & " used to match code to draw. The patterns can be:"
                          & ASCII.LF & ASCII.LF
                          & "file:line1:col1-line2:col2" & ASCII.LF
-                         & "  Match code included in a source location range"
+                         & "  Match code included in a source location range."
                          & ASCII.LF & ASCII.LF
                          & "@0xADDRESS" & ASCII.LF
                          & "  Match all code under the symbol an address"
-                         & "  belongs to"
+                         & "  belongs to."
                          & ASCII.LF & ASCII.LF
                          & "0xADDRESS..0xADDRESS" & ASCII.LF
-                         & "  Match code included in an address range"
+                         & "  Match code included in an address range."
                          & ASCII.LF & ASCII.LF
                          & "SYMBOL_NAME" & ASCII.LF
-                         & "  Match all code under a symbol"
+                         & "  Match all code under a symbol."
                          & ASCII.LF & ASCII.LF
                          & "The object code included if the graph must belong"
                          & " to at least one provided pattern."),
@@ -333,69 +333,67 @@ package Command_Line is
          Internal  => True),
       Opt_Recursive => Create
         (Long_Name  => "--recursive",
-         Help       => ("DEPRECATED: In addition to those designated by"
-                        & " -P/--projects, consider units from any"
-                        & " transitively imported project."),
-         Commands   => (Cmd_Run | Cmd_Coverage | Cmd_Instrument
-                           | Cmd_Dump_CFG => True,
-                        others => False),
+         Help       => "DEPRECATED: In addition to those designated by"
+                       & " -P/--projects, consider units from any"
+                       & " transitively imported project.",
+         Commands   => (Cmd_Run
+                        | Cmd_Coverage
+                        | Cmd_Instrument
+                        | Cmd_Dump_CFG => True,
+                        others         => False),
          Internal   => False),
       Opt_No_Subprojects => Create
         (Long_Name  => "--no-subprojects",
-         Help       => ("Consider only units designated by the project"
-                        & " designated by -P/--projects. Units from any"
-                        & " transitively imported projects are not"
-                        & " considered."),
-         Commands   => (Cmd_Run | Cmd_Coverage | Cmd_Instrument
-                           | Cmd_Dump_CFG => True,
-                        others => False),
+         Help       => "Consider only units designated by the project"
+                       & " designated by -P/--projects. Units from any"
+                       & " transitively imported projects are not considered.",
+         Commands   => (Cmd_Run
+                        | Cmd_Coverage
+                        | Cmd_Instrument
+                        | Cmd_Dump_CFG => True,
+                        others         => False),
          Internal   => False),
       Opt_All_Decisions => Create
         (Long_Name => "--all-decisions",
-         Help      => ("Perform decision coverage in stmt+decision mode even"
-                       & " for decisions outside of control structures."),
+         Help      => "Perform decision coverage in stmt+decision mode even"
+                      & " for decisions outside of control structures.",
          --  TODO??? Is this really supposed to be internal?
          Internal  => True),
       Opt_All_Messages => Create
         (Long_Name => "--all-messages",
-         Help      => ("When performing source coverage analysis, also include"
-                       & " in the report messages other than violations of a"
-                       & " source coverage obligation."),
+         Help      => "When performing source coverage analysis, also include"
+                      & " in the report messages other than violations of a"
+                      & " source coverage obligation.",
          Internal  => True),
       Opt_Include => Create
         (Long_Name      => "--include",
-         Help           => ("Include the symbols from the next object file on"
-                            & " the command line to the list of routines."),
-         Commands       => (Cmd_Disp_Routines => True,
-                            others            => False),
+         Help           => "Include the symbols from the next object file on"
+                           & " the command line to the list of routines.",
+         Commands       => (Cmd_Disp_Routines => True, others => False),
          Internal       => False),
       Opt_Exclude => Create
         (Long_Name      => "--exclude",
-         Help           => ("Exclude the symbols from the next object file on"
-                            & " the command line to the list of routines"),
-         Commands       => (Cmd_Disp_Routines => True,
-                            others            => False),
+         Help           => "Exclude the symbols from the next object file on"
+                           & " the command line to the list of routines",
+         Commands       => (Cmd_Disp_Routines => True, others => False),
          Internal       => False),
       Opt_Branch_Stats => Create
         (Long_Name => "--stats",
-         Help      => ("Dump statistics about branch instructions after the"
-                       & " static analysis pass."),
-         Commands   => (Cmd_Map_Routines => True,
-                        others => False),
+         Help      => "Dump statistics about branch instructions after the"
+                      & " static analysis pass.",
+         Commands   => (Cmd_Map_Routines => True, others => False),
          Internal  => True),
       Opt_Excluded_SCOs => Create
         (Long_Name => "--non-coverable",
-         Help      => ("Report SCOs whose coverage cannot be established due"
-                       & " to absence of executable code."),
-         Commands  => (Cmd_Coverage => True,
-                       others => False),
+         Help      => "Report SCOs whose coverage cannot be established due to"
+                      & " absence of executable code.",
+         Commands  => (Cmd_Coverage => True, others => False),
          Internal  => False),
       Opt_Keep_Edges => Create
         (Short_Name => "-k",
-         Help      => ("Do not strip edges that are supposed to be uncoverable"
-                       & " due to exceptions."),
-         Commands  => (Cmd_Dump_CFG => True,
-                       others => False),
+         Help      => "Do not strip edges that are supposed to be uncoverable"
+                      & " due to exceptions.",
+         Commands  => (Cmd_Dump_CFG => True, others => False),
          Internal  => True),
       Opt_Pretty_Print => Create
         (Long_Name => "--pretty-print",
@@ -403,9 +401,9 @@ package Command_Line is
                       & " pretty-printed JSON to ease debugging. For the"
                       & " instrument command, run gnatpp on the generated"
                       & " sources.",
-         Commands  => (Cmd_Disassemble_Insn_Properties => True,
-                       Cmd_Instrument                  => True,
-                       others                          => False),
+         Commands  => (Cmd_Disassemble_Insn_Properties
+                       | Cmd_Instrument => True,
+                       others           => False),
          Internal  => True),
 
       Opt_Keep_Reading_Traces => Create
@@ -414,8 +412,7 @@ package Command_Line is
                       & " skip it and keep reading other trace files until a"
                       & " coverage report can be produced. Note that this"
                       & " makes gnatcov exit with an error status.",
-         Commands  => (Cmd_Coverage => True,
-                       others       => False),
+         Commands  => (Cmd_Coverage => True, others => False),
          Internal  => False),
 
       Opt_Externally_Built_Projects => Create
@@ -424,9 +421,11 @@ package Command_Line is
                       & " computing the list of units of interest (they are"
                       & " ignored by default). For the ""instrument"" command,"
                       & " this only influences the instrumentation of mains.",
-         Commands  => (Cmd_Run | Cmd_Instrument | Cmd_Coverage
-                        | Cmd_Dump_CFG => True,
-                       others          => False),
+         Commands  => (Cmd_Run
+                       | Cmd_Instrument
+                       | Cmd_Coverage
+                       | Cmd_Dump_CFG => True,
+                       others         => False),
          Internal  => False),
 
       Opt_GNAT_Pragmas => Create
@@ -454,7 +453,7 @@ package Command_Line is
       Opt_Allow_Mix_Trace_Kind => Create
         (Long_Name => "--mix-trace-kind",
          Help      => "Allow mixing binary and source traces. A warning will"
-                      & " still be emitted",
+                      & " still be emitted.",
          Commands  => (Cmd_Coverage => True, others => False),
          Internal  => True),
 
@@ -474,8 +473,8 @@ package Command_Line is
                       & " instrument them accordingly. This does not modify"
                       & " the actual semantics of the operators, which needs"
                       & " to be done with the Short_Circuit_And_Or pragma.",
-        Commands   => (Cmd_Instrument => True, others => False),
-        Internal   => True),
+         Commands   => (Cmd_Instrument => True, others => False),
+         Internal   => True),
 
       Opt_Cancel_Annotate => Create
         (Long_Name => "--cancel-annotate",
@@ -489,56 +488,55 @@ package Command_Line is
       Opt_All_Warnings => Create
         (Long_Name => "--all-warnings",
          Help      => "Print low warnings in addition to warnings and errors.",
-         Commands  => (others => True),
          Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create
         (Short_Name   => "-P",
          Pattern      => "[GPR]",
-         Help         => ("Use GPR as root project to locate SCOs, select"
-                          & " units to analyze and find default options."),
+         Help         => "Use GPR as root project to locate SCOs, select"
+                         & " units to analyze and find default options.",
          At_Most_Once => True,
          Internal     => False),
       Opt_Subdirs => Create
         (Long_Name    => "--subdirs",
          Pattern      => "[SUBDIR]",
-         Help         => ("When using project files, look for ALI files in the"
-                          & " provided SUBDIR of the projects' build"
-                          & " directory."),
+         Help         => "When using project files, look for ALI files in the"
+                         & " provided SUBDIR of the projects' build"
+                         & " directory.",
          At_Most_Once => False,
          Internal     => False),
       Opt_Target => Create
         (Long_Name    => "--target",
          Short_Name   => "-t",
          Pattern      => "[TARGET]",
-         Help         => ("State the target toolchain configuration used"
-                          & " to build the analyzed programs, as provided"
-                          & " to gprbuild. For cross or 32bit native"
-                          & " configurations, this switch, together with"
-                          & " its possible --RTS companion, is required for"
-                          & " all commands using project files unless the"
-                          & " root project provides the information with"
-                          & " ""Target""/""Runtime"" attributes. It is also"
-                          & " needed for ""run"" commands without a project"
-                          & " file."),
+         Help         => "State the target toolchain configuration used to"
+                         & " build the analyzed programs, as provided to"
+                         & " gprbuild. For cross or 32bit native"
+                         & " configurations, this switch, together with its"
+                         & " possible --RTS companion, is required for all"
+                         & " commands using project files unless the root"
+                         & " project provides the information with"
+                         & " ""Target""/""Runtime"" attributes. It is also"
+                         & " needed for ""run"" commands without a project"
+                         & " file.",
          At_Most_Once => True,
          Internal     => False),
       Opt_Runtime => Create
         (Long_Name    => "--RTS",
          Pattern      => "[RUNTIME]",
-         Help         => ("When using projects files, state the runtime"
-                          & " used to build the analyzed programs. If project"
-                          & " files don't already set the runtime, this is"
-                          & " required for correct project files processing."),
+         Help         => "When using projects files, state the runtime used"
+                         & " to build the analyzed programs. If project files"
+                         & " don't already set the runtime, this is required"
+                         & " for correct project files processing.",
          At_Most_Once => True,
          Internal     => False),
       Opt_Config => Create
         (Long_Name    => "--config",
          Pattern      => "[CONFIG-FILE]",
-         Help         => ("Specify a configuration project file name. If"
-                          & " passed, this file must exist and neither"
-                          & " --target nor --RTS must be present."),
+         Help         => "Specify a configuration project file name. If"
+                         & " passed, this file must exist and neither --target"
+                         & " nor --RTS must be present.",
          At_Most_Once => True,
          Internal     => False),
       Opt_Output => Create
@@ -546,35 +544,34 @@ package Command_Line is
          Short_Name   => "-o",
          Pattern      => "[FILE]",
          Help         => "Put the report/asm output/trace file into FILE.",
-         Commands     => (Cmd_Run | Cmd_Coverage | Cmd_Convert
-                              | Cmd_Dump_CFG => True,
-                          others => False),
+         Commands     => (Cmd_Run
+                          | Cmd_Coverage
+                          | Cmd_Convert
+                          | Cmd_Dump_CFG => True,
+                          others         => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Output_Directory => Create
         (Long_Name    => "--output-dir",
          Pattern      => "[SUBDIR]",
-         Help         => ("Subdirectory where XCOV or HTML report files"
-                          & " should be produced"),
-         Commands     => (Cmd_Coverage => True,
-                          others => False),
+         Help         => "Subdirectory where XCOV or HTML report files should"
+                         & " be produced.",
+         Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Tag => Create
         (Long_Name    => "--tag",
          Short_Name   => "-T",
          Pattern      => "[TAG]",
-         Help         => ("Tag to put into trace file."),
-         Commands     => (Cmd_Run | Cmd_Convert => True,
-                          others => False),
+         Help         => "Tag to put into trace file.",
+         Commands     => (Cmd_Run | Cmd_Convert => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Kernel => Create
         (Long_Name    => "--kernel",
          Pattern      => "[KERNEL]",
-         Help         => ("Specify which kernel to use."),
-         Commands     => (Cmd_Run => True,
-                          others => False),
+         Help         => "Specify which kernel to use.",
+         Commands     => (Cmd_Run => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Coverage_Level => Create
@@ -595,89 +592,85 @@ package Command_Line is
             & "For the ""instrument"" command, "
             & "a source coverage level is required."
            ),
-         Commands     => (Cmd_Run | Cmd_Coverage | Cmd_Convert
-                             | Cmd_Instrument => True,
-                          others => False),
+         Commands     => (Cmd_Run
+                          | Cmd_Coverage
+                          | Cmd_Convert
+                          | Cmd_Instrument => True,
+                          others           => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Text_Start => Create
         (Long_Name    => "--text-start",
          Pattern      => "[HEX_ADDR]",
-         Help         => ("??? This option was likely introduced for a"
-                          & " feature that is not completely implemented."),
+         Help         => "??? This option was likely introduced for a feature"
+                         & " that is not completely implemented.",
          At_Most_Once => False,
          Internal     => True),
       Opt_Exec_Prefix => Create
         (Long_Name    => "--exec-prefix",
          Pattern      => "[PREFIX]",
-         Help         => ("In cases where we cannot find executable files,"
-                          & " look for them in the PREFIX directory."),
+         Help         => "In cases where we cannot find executable files, look"
+                         & " for them in the PREFIX directory.",
          At_Most_Once => False,
          Internal     => True),
       Opt_Final_Report => Create
         (Long_Name    => "--report",
          Pattern      => "[FILE]",
-         Help         => ("??? This option is redundant with --option and is"
-                          & " not documented in the User Manual."),
-         Commands     => (Cmd_Coverage => True,
-                          others => False),
+         Help         => "??? This option is redundant with --option and is"
+                         & " not documented in the User Manual.",
+         Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => False,
          Internal     => True),
       Opt_HW_Trigger_Traces => Create
         (Long_Name    => "--hw-trigger-traces",
          Pattern      => "[START_ID],[START_ADDR],[STOP_ID]",
-         Help         => ("Identity of start and stop triggers, and address"
-                          & " for start."),
-         Commands     => (Cmd_Convert => True,
-                          others => False),
+         Help         => "Identity of start and stop triggers, and address for"
+                         & " start.",
+         Commands     => (Cmd_Convert => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Input => Create
         (Long_Name    => "--input",
          Pattern      => "[INPUT_TRACE]",
-         Help         => ("File containing trace data to be converted."),
-         Commands     => (Cmd_Convert => True,
-                          others => False),
+         Help         => "File containing trace data to be converted.",
+         Commands     => (Cmd_Convert => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Separate => Create
         (Short_Name   => "-S",
          Pattern      => "[TAG]",
-         Help         => ("Perform separate source coverage analysis."),
+         Help         => "Perform separate source coverage analysis.",
          Commands     => (Cmd_Coverage | Cmd_Instrument => True,
-                          others => False),
+                          others                        => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Output_Format => Create
         (Short_Name   => "-f",
          Pattern      => "[FORMAT]",
-         Help         => ("If given, call dot(1) to produce the actual output"
-                          & " (SVG, PDF, DOT, ...)."),
-         Commands     => (Cmd_Dump_CFG => True,
-                          others => False),
+         Help         => "If given, call dot(1) to produce the actual output"
+                         & " (SVG, PDF, DOT, ...).",
+         Commands     => (Cmd_Dump_CFG => True, others => False),
          At_Most_Once => False,
          Internal     => True),
       Opt_Trace_Source => Create
         (Long_Name    => "--trace-source",
          Pattern      => "[SOURCE]",
          Help         => "Specify a trace source.",
-         Commands     => (Cmd_Convert => True,
-                          others => False),
+         Commands     => (Cmd_Convert => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Save_Checkpoint => Create
         (Long_Name    => "--save-checkpoint",
          Pattern      => "CHECKPOINT",
          Help         => "Save source coverage checkpoint to named file.",
-         Commands     => (Cmd_Coverage => True,
-                          others       => False),
+         Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => True,
          Internal     => False),
       Opt_Report_Title => Create
         (Long_Name    => "--report-title",
          Pattern      => "TITLE LABEL",
-         Help         => ("Override the default title for HTML coverage"
-                          & " reports"),
+         Help         => "Override the default title for HTML coverage"
+                         & " reports.",
          Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => False,
          Internal     => False),
@@ -779,14 +772,14 @@ package Command_Line is
          Internal     => False),
 
       Opt_Timezone => Create
-        (Long_Name => "--timezone",
-         Pattern   => "local|utc",
-         Help      => "State the reference timezone to use when displaying"
-                      & " dates in reports, either ""local"" or ""utc"". If"
-                      & " not specified, default to ""local"".",
-         Commands  => (Cmd_Coverage => True, others => False),
+        (Long_Name    => "--timezone",
+         Pattern      => "local|utc",
+         Help         => "State the reference timezone to use when displaying"
+                         & " dates in reports, either ""local"" or ""utc"". If"
+                         & " not specified, default to ""local"".",
+         Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => True,
-         Internal  => False)
+         Internal     => False)
      );
 
    String_List_Infos : constant String_List_Option_Info_Array :=
@@ -798,9 +791,8 @@ package Command_Line is
       Opt_Projects => Create
         (Long_Name  => "--projects",
          Pattern    => "[GPR|@LISTFILE]",
-         Help       => ("Focus on specific projects within the transitive"
-                          & " closure reachable from the root designated by"
-                          & " -P."),
+         Help       => "Focus on specific projects within the transitive"
+                       & " closure reachable from the root designated by -P.",
          Internal   => False),
       Opt_Scenario_Var => Create
         (Short_Name => "-X",
@@ -810,73 +802,77 @@ package Command_Line is
       Opt_Eargs => Create
         (Long_Name  => "-eargs",
          Pattern    => "[EARGS ...]",
-         Help       => ("For emulated cross targets, pass EARGS to the"
-                        & " low-level emulator. For native configurations,"
-                        & " pass EARGS as command line arguments to the"
-                        & " executed program. The first EARG is picked as the"
-                        & " executable program to run if it was not provided"
-                        & " explicitely otherwise."),
-         Commands   => (Cmd_Run => True,
-                        others => False),
+         Help       => "For emulated cross targets, pass EARGS to the"
+                       & " low-level emulator. For native configurations, pass"
+                       & " EARGS as command line arguments to the executed"
+                       & " program. The first EARG is picked as the executable"
+                       & " program to run if it was not provided explicitly"
+                       & " otherwise.",
+         Commands   => (Cmd_Run => True, others => False),
          Internal   => False,
          Greedy     => True),
       Opt_Scos => Create
         (Long_Name   => "--scos|--alis",
          Pattern     => "[FILE|@LISTFILE]",
-         Help        => ("Load SCOs and exemption info from FILE for this"
-                         & " operation; or do that for each file listed in"
-                         & " LISTFILE."),
-         Commands   => (Cmd_Run | Cmd_Convert | Cmd_Coverage
-                            | Cmd_Scan_Decisions | Cmd_Map_Routines
-                              | Cmd_Dump_CFG => True,
-                        others => False),
+         Help        => "Load SCOs and exemption info from FILE for this"
+                        & " operation; or do that for each file listed in"
+                        & " LISTFILE.",
+         Commands   => (Cmd_Run
+                        | Cmd_Convert
+                        | Cmd_Coverage
+                        | Cmd_Scan_Decisions
+                        | Cmd_Map_Routines
+                        | Cmd_Dump_CFG => True,
+                        others         => False),
          Internal    => False),
       Opt_Units => Create
         (Long_Name   => "--units",
          Pattern     => "[UNIT|@LISTFILE]",
-         Help        => ("State the set of units of interest by name,"
-                         & " overriding the GPR-based selection by -P, etc."
-                         & " Supports globbing patterns."),
-         Commands    => (Cmd_Run | Cmd_Coverage | Cmd_Scan_Decisions
-                             | Cmd_Map_Routines | Cmd_Instrument => True,
-                         others => False),
+         Help        => "State the set of units of interest by name,"
+                        & " overriding the GPR-based selection by -P, etc."
+                        & " Supports globbing patterns.",
+         Commands    => (Cmd_Run
+                         | Cmd_Coverage
+                         | Cmd_Scan_Decisions
+                         | Cmd_Map_Routines
+                         | Cmd_Instrument => True,
+                         others           => False),
          Internal    => False),
       Opt_SID => Create
         (Long_Name   => "--sid",
          Pattern     => "[FILE|@LISTFILE]",
-         Help        => ("Load Source Instrumentation Data from FILE for this"
-                         & " operation; or do that for each file listed in"
-                         & " LISTFILE."),
-         Commands    => (Cmd_Coverage => True,
-                         others       => False),
+         Help        => "Load Source Instrumentation Data from FILE for this"
+                        & " operation; or do that for each file listed in"
+                        & " LISTFILE.",
+         Commands    => (Cmd_Coverage => True, others => False),
          Internal    => False),
       Opt_Routines => Create
         (Long_Name   => "--routines",
          Pattern     => "[ROUTINE|@LISTFILE]",
-         Help        => ("Add ROUTINE, or all routines listed in LISTFILE to"
-                         & " the list of routines."),
-         Commands    => (Cmd_Run | Cmd_Coverage | Cmd_Scan_Decisions
-                             | Cmd_Map_Routines => True,
-                         others => False),
+         Help        => "Add ROUTINE, or all routines listed in LISTFILE to"
+                        & " the list of routines.",
+         Commands    => (Cmd_Run
+                         | Cmd_Coverage
+                         | Cmd_Scan_Decisions
+                         | Cmd_Map_Routines => True,
+                         others             => False),
          Internal    => False),
       Opt_Routines_List => Create
         (Long_Name   => "--routine-list",
          Short_Name  => "-l",
          Pattern     => "[LISTFILE] (DEPRECATED)",
-         Help        => ("Add all routines listed in LISTFILE to the list of"
-                         & " routines."),
-         Commands    => (Cmd_Run | Cmd_Coverage => True,
-                         others => False),
+         Help        => "Add all routines listed in LISTFILE to the list of"
+                        & " routines.",
+         Commands    => (Cmd_Run | Cmd_Coverage => True, others => False),
          Internal    => False),
       Opt_Exec => Create
         (Long_Name    => "--exec",
          Pattern      => "[EXE]",
-         Help         => ("For ""coverage"", use E as the base executable for"
-                          & " the traces that follow on the command line. For"
-                          & " ""convert"", use E as the base executable for"
-                          & " trace conversion."),
-         Commands     => (Cmd_Convert | Cmd_Coverage => True,
-                          others => False),
+         Help         => "For ""coverage"", use E as the base executable for"
+                         & " the traces that follow on the command line. For"
+                         & " ""convert"", use E as the base executable for"
+                         & " trace conversion.",
+         Commands     => (Cmd_Convert | Cmd_Coverage => True, others => False),
          Internal     => True),
       Opt_Source_Rebase => Create
         (Long_Name   => "--source-rebase",
@@ -886,8 +882,7 @@ package Command_Line is
                         & " in LISTFILE shall be of the form [OLD_PREFIX]="
                         & "[NEW_PREFIX]. Globbing patterns can also be used in"
                         & " [OLD_PREFIX] in a response file.",
-         Commands    => (Cmd_Coverage => True,
-                         others => False),
+         Commands    => (Cmd_Coverage => True, others => False),
          Internal    => False),
       Opt_Source_Search => Create
         (Long_Name   => "--source-search",
@@ -895,8 +890,7 @@ package Command_Line is
          Help        => "Specify an alternative prefix to find source files,"
                         & " or add each line of LISTFILE as an alternative"
                         & " prefix.",
-         Commands    => (Cmd_Coverage => True,
-                         others => False),
+         Commands    => (Cmd_Coverage => True, others => False),
          Internal    => False),
 
       --  Opt_Trace will receive both trace files arguments, but also
@@ -909,10 +903,13 @@ package Command_Line is
          Short_Name  => "-T",
          Pattern     => "[TRACE|@LISTFILE]",
          Help        => "Specify trace files to read.",
-         Commands    => (Cmd_Coverage | Cmd_Dump_Trace | Cmd_Dump_Trace_Raw
-                             | Cmd_Dump_Trace_Base | Cmd_Dump_Trace_Asm
-                               | Cmd_Dump_CFG => True,
-                         others => False),
+         Commands    => (Cmd_Coverage
+                         | Cmd_Dump_Trace
+                         | Cmd_Dump_Trace_Raw
+                         | Cmd_Dump_Trace_Base
+                         | Cmd_Dump_Trace_Asm
+                         | Cmd_Dump_CFG => True,
+                         others         => False),
          Internal    => False),
 
       Opt_Checkpoint => Create
@@ -920,64 +917,64 @@ package Command_Line is
          Short_Name  => "-C",
          Pattern     => "[CHECKPOINT|@LISTFILE]",
          Help        => "Specify checkpointed coverage information to load.",
-         Commands    => (Cmd_Coverage => True,
-                         others       => False),
+         Commands    => (Cmd_Coverage => True, others => False),
          Internal    => False),
       Opt_Ignore_Source_Files => Create
         (Long_Name => "--ignore-source-files",
          Pattern   => "[FILE|@LISTFILE]",
-         Help      => ("Specify a list of source files to ignore for coverage."
-                       & " Supports globbing patterns."),
-         Commands  => (Cmd_Coverage | Cmd_Map_Routines
-                           | Cmd_Instrument => True,
-                       others => False),
+         Help      => "Specify a list of source files to ignore for coverage."
+                      & " Supports globbing patterns.",
+         Commands  => (Cmd_Coverage
+                       | Cmd_Map_Routines
+                       | Cmd_Instrument => True,
+                       others           => False),
          Internal  => False),
 
       Opt_Shared_Object => Create
         (Long_Name   => "--shared-object",
          Short_Name  => "-L",
          Pattern     => "[none|all|SHARED_OBJECT|@LISTFILE]",
-         Help        => ("Specify the set of shared object files that will"
-                         & " contribute to the code coverage assessment. The"
-                         & " following special values are supported:"
-                         & ASCII.LF & ASCII.LF
-                         & "  * ""none"" (the default), which prevents all"
-                         & " shared objects from contributing to coverage;"
-                         & ASCII.LF & ASCII.LF
-                         & "  * ""all"", which makes all shared objects"
-                         & " contribute to coverage."
-                         & ASCII.LF & ASCII.LF
-                         & "Note that if one such special value is passed,"
-                         & " it must be the only value passed to this"
-                         & " option."),
-         Commands    => (Cmd_Run => True,
-                         others => False),
+         Help        => "Specify the set of shared object files that will"
+                        & " contribute to the code coverage assessment. The"
+                        & " following special values are supported:"
+                        & ASCII.LF & ASCII.LF
+                        & "  * ""none"" (the default), which prevents all"
+                        & " shared objects from contributing to coverage;"
+                        & ASCII.LF & ASCII.LF
+                        & "  * ""all"", which makes all shared objects"
+                        & " contribute to coverage."
+                        & ASCII.LF & ASCII.LF
+                        & "Note that if one such special value is passed,"
+                        & " it must be the only value passed to this"
+                        & " option.",
+         Commands    => (Cmd_Run => True, others => False),
          Internal    => False),
 
       Opt_Restricted_To_Languages => Create
-        (Long_Name => "--restricted-to-languages",
-         Pattern   => "[LANGUAGE|LIST|@LISTFILE]",
-         Help      => "Restrict the set of languages for instrumentation."
-                      & " Supports Ada and C. As C support is still in beta"
-                      & " state, the default is --restricted-to-languages=Ada."
-                      & " To enable both, pass"
-                      & " --restricted-to-languages=Ada,C.",
-         Commands  => (Cmd_Instrument => True,
-                       others => False),
-         Internal  => False, Accepts_Comma_Separator => True),
+        (Long_Name               => "--restricted-to-languages",
+         Pattern                 => "[LANGUAGE|LIST|@LISTFILE]",
+         Help                    =>
+           "Restrict the set of languages for instrumentation. Supports Ada"
+           & " and C. As C support is still in beta state, the default is"
+           & " --restricted-to-languages=Ada. To enable both, pass"
+           & " --restricted-to-languages=Ada,C.",
+         Commands                => (Cmd_Instrument => True, others => False),
+         Internal                => False,
+         Accepts_Comma_Separator => True),
       Opt_Annotation_Format => Create
-        (Long_Name    => "--annotate",
-         Short_Name   => "-a",
-         Pattern      => "[FORM|LIST]",
-         Help         => "Generate a FORM report. FORM is one of:" & ASCII.LF
-                          & "  asm, xcov, html, xcov+, html+, dhtml, report."
-                          & ASCII.LF & "Multiple reports can be produced in"
-                          & " a single execution by passing a comma separated"
-                          & " list of FORMs to this option, or by specifying"
-                          & " this option multiple times on the command line.",
-         Commands     => (Cmd_Coverage => True,
-                          others => False),
-         Internal     => False, Accepts_Comma_Separator => True));
+        (Long_Name               => "--annotate",
+         Short_Name              => "-a",
+         Pattern                 => "[FORM|LIST]",
+         Help                    =>
+           "Generate a FORM report. FORM is one of:"
+           & ASCII.LF & "  asm, xcov, html, xcov+, html+, dhtml, report."
+           & ASCII.LF & "Multiple reports can be produced in a single"
+           & " execution by passing a comma separated list of FORMs to this"
+           & " option, or by specifying this option multiple times on the"
+           & " command line.",
+         Commands                => (Cmd_Coverage => True, others => False),
+         Internal                => False,
+         Accepts_Comma_Separator => True));
 
    procedure Bool_Callback
      (Result : in out Parsed_Arguments;
