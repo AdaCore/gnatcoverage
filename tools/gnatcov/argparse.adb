@@ -203,6 +203,20 @@ package body Argparse is
       end case;
    end Is_Present;
 
+   -----------
+   -- Value --
+   -----------
+
+   function Value
+     (Args    : Parsed_Arguments;
+      Option  : String_Options;
+      Default : String := "") return String is
+   begin
+      return (if Args.String_Args (Option).Present
+              then +Args.String_Args (Option).Value
+              else Default);
+   end Value;
+
    ----------------
    -- Get_Option --
    ----------------

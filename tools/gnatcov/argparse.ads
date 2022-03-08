@@ -377,6 +377,12 @@ package Argparse is
       Ref  : Option_Reference) return Boolean;
    --  Return whether the Ref option is present in Args
 
+   function Value
+     (Args    : Parsed_Arguments;
+      Option  : String_Options;
+      Default : String := "") return String;
+   --  If Option is present in Args, return its value. Return Default otherwise
+
 private
 
    type Command_Info is record

@@ -1154,11 +1154,6 @@ begin
             Matcher     : aliased GNAT.Regexp.Regexp;
             Has_Matcher : Boolean;
 
-            Dump_Trigger_Opt : String_Option renames
-               Args.String_Args (Opt_Dump_Trigger);
-            Dump_Channel_Opt : String_Option renames
-               Args.String_Args (Opt_Dump_Channel);
-
             Dump_Filename_Simple      : Boolean renames
                Args.Bool_Args (Opt_Dump_Filename_Simple);
             Dump_Filename_Env_Var_Opt : String_Option renames
@@ -1166,25 +1161,21 @@ begin
             Dump_Filename_Prefix_Opt  : String_Option renames
                Args.String_Args (Opt_Dump_Filename_Prefix);
 
-            Language_Version_Opt : String_Option renames
-               Args.String_Args (Opt_Ada);
-
-            Dump_Config      : Any_Dump_Config := (others => <>);
-            Language_Version : Any_Language_Version := Ada_2012;
+            Dump_Config      : Any_Dump_Config;
+            Language_Version : Any_Language_Version;
          begin
             Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
 
-            --  Create the appropritae dump configuration depending on
+            --  Create the appropriate dump configuration depending on
             --  command-line options. Unless --dump-channel is passed, the dump
-            --  channel is "bin-file".
+            --  channel is "bin-file". Likewise, unless --dump-trigger is
+            --  passed, the dump trigger is "manual".
 
             declare
-               Value : constant String :=
-                 (if Dump_Channel_Opt.Present
-                  then +Dump_Channel_Opt.Value
-                  else "bin-file");
+               V : constant String :=
+                 Value (Args, Opt_Dump_Channel, "bin-file");
             begin
-               if Value = "bin-file" then
+               if V = "bin-file" then
                   Dump_Config :=
                     (Channel          => Binary_File,
                      Trigger          => <>,
@@ -1193,48 +1184,47 @@ begin
                         Value_Or_Null (Dump_Filename_Env_Var_Opt),
                      Filename_Prefix  =>
                         Value_Or_Null (Dump_Filename_Prefix_Opt));
-               elsif Value = "base64-stdout" then
+               elsif V = "base64-stdout" then
                   Dump_Config :=
                     (Channel => Base64_Standard_Output,
                      Trigger => <>);
                else
-                  Fatal_Error ("Bad buffers dump channel: " & Value);
+                  Fatal_Error ("Bad buffers dump channel: " & V);
                end if;
             end;
 
-            if Dump_Trigger_Opt.Present then
-               declare
-                  Value : constant String := +Dump_Trigger_Opt.Value;
-               begin
-                  if Value = "manual" then
-                     Dump_Config.Trigger := Manual;
-                  elsif Value = "atexit" then
-                     Dump_Config.Trigger := At_Exit;
-                  elsif Value = "ravenscar-task-termination" then
-                     Dump_Config.Trigger := Ravenscar_Task_Termination;
-                  elsif Value = "main-end" then
-                     Dump_Config.Trigger := Main_End;
-                  else
-                     Fatal_Error ("Bad buffers dump trigger: " & Value);
-                  end if;
-               end;
-            end if;
+            declare
+               V : constant String :=
+                 Value (Args, Opt_Dump_Trigger, "manual");
+            begin
+               if V = "manual" then
+                  Dump_Config.Trigger := Manual;
+               elsif V = "atexit" then
+                  Dump_Config.Trigger := At_Exit;
+               elsif V = "ravenscar-task-termination" then
+                  Dump_Config.Trigger := Ravenscar_Task_Termination;
+               elsif V = "main-end" then
+                  Dump_Config.Trigger := Main_End;
+               else
+                  Fatal_Error ("Bad buffers dump trigger: " & V);
+               end if;
+            end;
 
-            if Language_Version_Opt.Present then
-               declare
-                  Value : constant String := +Language_Version_Opt.Value;
-               begin
-                  if Value in "83" | "1983" then
-                     Language_Version := Ada_83;
-                  elsif Value in "95" | "1995" then
-                     Language_Version := Ada_95;
-                  elsif Value in "05" | "2005" then
-                     Language_Version := Ada_2005;
-                  elsif Value in "12" | "2012" then
-                     Language_Version := Ada_2012;
-                  end if;
-               end;
-            end if;
+            declare
+               V : constant String := Value (Args, Opt_Ada, "2012");
+            begin
+               if V in "83" | "1983" then
+                  Language_Version := Ada_83;
+               elsif V in "95" | "1995" then
+                  Language_Version := Ada_95;
+               elsif V in "05" | "2005" then
+                  Language_Version := Ada_2005;
+               elsif V in "12" | "2012" then
+                  Language_Version := Ada_2012;
+               else
+                  Fatal_Error ("Bad Ada language version: " & V);
+               end if;
+            end;
 
             if Dump_Config.Channel /= Binary_File then
                if Dump_Filename_Simple then
