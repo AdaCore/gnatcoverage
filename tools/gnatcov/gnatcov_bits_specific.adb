@@ -26,6 +26,8 @@ with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
+with Snames;
+
 with ALI_Files;
 with Annotations;           use Annotations;
 with Annotations.Dynamic_Html;
@@ -60,7 +62,6 @@ with Project;               use Project;
 with Qemu_Traces;
 with Rundrv;                use Rundrv;
 with SC_Obligations;        use SC_Obligations;
-with Snames;
 with Strings;               use Strings;
 with Switches;              use Switches;
 with Traces;                use Traces;
