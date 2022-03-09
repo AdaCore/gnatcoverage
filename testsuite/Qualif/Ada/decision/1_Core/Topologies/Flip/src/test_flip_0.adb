@@ -7,6 +7,7 @@ end;
 
 --# flip.adb
 -- /__l!dT-/     l- ## s-
+-- /decl/        l- ## s-
 -- /eval/        l- ## s-
 -- /returnTrue/  l- ## s-
 -- /returnFalse/ l- ## s-
