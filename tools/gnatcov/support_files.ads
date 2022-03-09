@@ -58,6 +58,10 @@ package Support_Files is
    --  GNATcoverage-specific directory in the installation prefix's "libexec"
    --  directory.
 
+   Share_Dir : constant String := Gnatcov_Prefix & "/share/gnatcoverage";
+   --  GNATcoverage-specific directory in the installation prefix's "share"
+   --  directory.
+
    function In_Lib_Dir (File : String) return String is
      (Lib_Dir & "/" & File);
    --  Helper to build the name of a file inside the lib directory
@@ -65,5 +69,9 @@ package Support_Files is
    function In_Libexec_Dir (File : String) return String is
      (Libexec_Dir & "/" & File);
    --  Helper to build the name of a file inside the libexec directory
+
+   function In_Share_Dir (File : String) return String is
+     (Share_Dir & "/" & File);
+   --  Helper to build the name of a file inside the share directory
 
 end Support_Files;

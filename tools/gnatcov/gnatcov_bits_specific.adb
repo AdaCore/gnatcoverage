@@ -62,7 +62,9 @@ with Project;               use Project;
 with Qemu_Traces;
 with Rundrv;                use Rundrv;
 with SC_Obligations;        use SC_Obligations;
+with Setup_RTS;
 with Strings;               use Strings;
+with Support_Files;
 with Switches;              use Switches;
 with Traces;                use Traces;
 with Traces_Elf;            use Traces_Elf;
@@ -437,6 +439,7 @@ procedure GNATcov_Bits_Specific is
       Short_Circuit_And_Or     := Args.Bool_Args
                                     (Opt_Boolean_Short_Circuit_And_Or);
       Emit_Report              := not Args.Bool_Args (Opt_Cancel_Annotate);
+      Save_Temps               := Args.Bool_Args (Opt_Save_Temps);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"
@@ -1140,6 +1143,42 @@ begin
             Check_Argument_Available (Obj_Inputs, "FILEs");
             Inputs.Iterate (Obj_Inputs, Read_Routine_Name'Access);
             Traces_Names.Disp_All_Routines_Of_Interest;
+         end;
+
+      when Cmd_Setup =>
+         declare
+            use Setup_RTS;
+
+            RTS_Profile_Str : constant String :=
+              Value (Args, Opt_RTS_Profile, "auto");
+            RTS_Profile     : Any_RTS_Profile;
+         begin
+            --  Decode the --rts-profile option
+
+            if RTS_Profile_Str = "auto" then
+               RTS_Profile := Auto;
+            elsif RTS_Profile_Str = "full" then
+               RTS_Profile := Full;
+            elsif RTS_Profile_Str = "embedded" then
+               RTS_Profile := Embedded;
+            else
+               Fatal_Error ("Invalid RTS profile: " & RTS_Profile_Str);
+            end if;
+
+            Setup
+              (Target             => Value (Args, Opt_Target),
+               RTS                => Value (Args, Opt_Runtime),
+               Config_File        => Value (Args, Opt_Config),
+               Prefix             => Value (Args, Opt_Prefix),
+               RTS_Profile        => RTS_Profile,
+               Runtime_Project    =>
+                 Value (Args, Opt_Runtime_Project, "GNATcov_RTS"),
+               Runtime_Source_Dir =>
+                 Value
+                    (Args,
+                     Opt_Runtime_Source_Dir,
+                     Support_Files.In_Share_Dir ("gnatcov_rts")),
+               Gargs              => Args.String_List_Args (Opt_Gargs));
          end;
 
       when Cmd_Instrument =>

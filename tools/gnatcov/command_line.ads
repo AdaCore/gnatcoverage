@@ -58,6 +58,7 @@ package Command_Line is
       Cmd_Disassemble,
       Cmd_Scan_Objects,
 
+      Cmd_Setup,
       Cmd_Instrument);
    --  Set of commands we support. More complete descriptions below.
 
@@ -82,7 +83,8 @@ package Command_Line is
       Opt_Analyze_Entry_Barriers,
       Opt_Boolean_Short_Circuit_And_Or,
       Opt_Cancel_Annotate,
-      Opt_All_Warnings);
+      Opt_All_Warnings,
+      Opt_Save_Temps);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -112,7 +114,11 @@ package Command_Line is
       Opt_Dump_Filename_Prefix,
       Opt_Ada,
       Opt_Dump_Units_To,
-      Opt_Timezone);
+      Opt_Timezone,
+      Opt_Prefix,
+      Opt_RTS_Profile,
+      Opt_Runtime_Project,
+      Opt_Runtime_Source_Dir);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -120,6 +126,7 @@ package Command_Line is
       Opt_Projects,
       Opt_Scenario_Var,
       Opt_Eargs,
+      Opt_Gargs,
       Opt_Scos,
       Opt_Units,
       Opt_SID,
@@ -320,6 +327,11 @@ package Command_Line is
          Description => ("Scan object FILEs for empty symbols or orphan"
                          & " regions."),
          Internal    => True),
+      Cmd_Setup => Create
+        (Name        => "setup",
+         Description => "Build and install the runtime for source"
+                        & " instrumentation.",
+         Internal    => False),
       Cmd_Instrument => Create
         (Name        => "instrument",
          Description => ("Instrument the given project and produce the"
@@ -488,6 +500,11 @@ package Command_Line is
       Opt_All_Warnings => Create
         (Long_Name => "--all-warnings",
          Help      => "Print low warnings in addition to warnings and errors.",
+         Internal  => True),
+
+      Opt_Save_Temps => Create
+        (Long_Name => "--save-temps",
+         Help      => "Do not remove temporary files and directories.",
          Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
@@ -504,6 +521,7 @@ package Command_Line is
          Help         => "When using project files, look for ALI/SID files in"
                          & " the provided SUBDIR of the projects' build"
                          & " directory.",
+         Commands     => (Cmd_Setup => False, others => True),
          At_Most_Once => False,
          Internal     => False),
       Opt_Target => Create
@@ -779,6 +797,62 @@ package Command_Line is
                          & " not specified, default to ""local"".",
          Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => True,
+         Internal     => False),
+
+      Opt_Prefix => Create
+        (Long_Name    => "--prefix",
+         Pattern      => "DIR",
+         Help         =>
+           "Installation prefix for the instrumentation runtime. If not"
+           & " provided, install it in the toolchain prefix.",
+         Commands     => (Cmd_Setup => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+
+      Opt_RTS_Profile => Create
+        (Long_Name    => "--rts-profile",
+         Pattern      => "auto|full|embedded",
+         Help         =>
+           "Profile for the language runtime, which determines what features"
+           & " the instrumentation runtime can use."
+           & ASCII.LF & ASCII.LF
+           & """full"" allows the instrumentation runtime to use all features"
+           & " from a standard C runtime: read environment variables, open"
+           & " files, get the current time, ..."
+           & ASCII.LF & ASCII.LF
+           & """embedded"" only allows the instrumentation runtime to print"
+           & " bytes to some output."
+           & ASCII.LF & ASCII.LF
+           & """auto"" lets gnatcov automatically choose between ""full"" and"
+           & " ""embedded"" depending on the selected target and RTS.",
+         Commands     => (Cmd_Setup => True, others => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Runtime_Project => Create
+        (Long_Name    => "--runtime-project",
+         Pattern      => "NAME",
+         Help         =>
+           "Name for the installed project. By default, keep the original:"
+           & " ""gnatcov_rts"". Using non-default names allows one to install"
+           & " different projects in the same installation prefix.",
+         Commands     => (Cmd_Setup => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+
+      Opt_Runtime_Source_Dir => Create
+        (Long_Name    => "--runtime-source-dir",
+         Pattern      => "DIR",
+         Help         =>
+           "Directory in which to look for ""gnatcov_rts.gpr"". The entire"
+           & " directory is copied to a temporary directory, where the build"
+           & " actually happens. By default, look for the ""gnatcov_rts.gpr"""
+           & " project installed with gnatcov."
+           & ASCII.LF & ASCII.LF
+           & "This option allows one to use a custom instrumentation runtime"
+           & " project.",
+         Commands     => (Cmd_Setup => True, others => False),
+         At_Most_Once => False,
          Internal     => False)
      );
 
@@ -793,6 +867,7 @@ package Command_Line is
          Pattern    => "[GPR|@LISTFILE]",
          Help       => "Focus on specific projects within the transitive"
                        & " closure reachable from the root designated by -P.",
+         Commands   => (Cmd_Setup => False, others => True),
          Internal   => False),
       Opt_Scenario_Var => Create
         (Short_Name => "-X",
@@ -809,6 +884,13 @@ package Command_Line is
                        & " program to run if it was not provided explicitly"
                        & " otherwise.",
          Commands   => (Cmd_Run => True, others => False),
+         Internal   => False,
+         Greedy     => True),
+      Opt_Gargs => Create
+        (Long_Name  => "-gargs",
+         Pattern    => "[GARGS ...]",
+         Help       => "Pass GARGS arguments to gprbuild.",
+         Commands   => (Cmd_Setup => True, others => False),
          Internal   => False,
          Greedy     => True),
       Opt_Scos => Create
@@ -958,7 +1040,8 @@ package Command_Line is
            & " and C. As C support is still in beta state, the default is"
            & " --restricted-to-languages=Ada. To enable both, pass"
            & " --restricted-to-languages=Ada,C.",
-         Commands                => (Cmd_Instrument => True, others => False),
+         Commands                => (Cmd_Setup | Cmd_Instrument => True,
+                                     others                     => False),
          Internal                => False,
          Accepts_Comma_Separator => True),
       Opt_Annotation_Format => Create

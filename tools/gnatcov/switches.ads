@@ -112,6 +112,9 @@ package Switches is
    --  short-circuit semantics and instrument the operands of these operators
    --  as conditions.
 
+   Save_Temps : Boolean := False;
+   --  When True, do not remove temporary files and directories
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 
