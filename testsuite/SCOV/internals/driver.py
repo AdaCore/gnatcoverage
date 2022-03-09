@@ -603,7 +603,6 @@ class SCOV_helper:
             srcdirs=["../"*n + "src" for n in range(1, this_depth)],
             exedir=self.abdir(attribute=True),
             main_cargs="-fno-inline",
-            langs=["Ada", "C"],
             deps=self.covctl.deps if self.covctl else [],
             extra=self.covctl.gpr() if self.covctl else "")
 

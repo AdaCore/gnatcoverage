@@ -283,14 +283,19 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
 
     # Likewise for source dirs. Filter on existence, to allow widening the set
     # of tentative dirs while preventing complaints from gprbuild about
-    # inexistent ones. Remove a lone trailing comma, which happens when none
-    # of the provided dirs exists and would produce an invalid gpr file.
-    srcdirs = ', '.join('"%s"' % d for d in srcdirs if os.path.exists(d))
-    srcdirs = srcdirs.rstrip(', ')
+    # inexistent ones.
+    srcdirs_list = [d for d in srcdirs if os.path.exists(d)]
 
-    # Determine the language(s) from the mains.
-    languages_l = langs or set(language_info(main).name for main in mains)
-    languages = ', '.join('"%s"' % lang for lang in languages_l)
+    # Determine the language(s) from the sources if they are not explicitly
+    # passed as parameters.
+    if not langs:
+        lang_infos = [language_info(src)
+                      for srcdir in srcdirs_list
+                      for src in os.listdir(srcdir)]
+        langs = set(li.name for li in lang_infos if li)
+
+    srcdirs = ', '.join('"%s"' % d for d in srcdirs_list)
+    languages = ', '.join('"%s"' % lang for lang in langs)
 
     # The base project file we need to extend, and the way to refer to it
     # from the project contents. This provides a default last chance handler

@@ -27,6 +27,7 @@ Wdir('wd_')
 # Get a template for the project file.
 gpr_filename = gprfor(prjid=gprname, mains=[mainunit],
                       srcdirs=['../..'],
+                      langs=["Ada"],
                       extra='for Target use "%TARGET%"; %RUNTIME%')
 gpr_filename = os.path.abspath(gpr_filename)
 gpr_basename = os.path.basename(gpr_filename)
