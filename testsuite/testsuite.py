@@ -1274,6 +1274,9 @@ class TestSuite(e3.testsuite.Testsuite):
         if self.main.args.spark_tests:
             result.append('spark-tests')
 
+        if self.main.args.all_warnings:
+            result.append('all-warnings')
+
         return result
 
     def _board_discriminants(self):
