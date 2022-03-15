@@ -89,6 +89,19 @@ package Disassemblers is
    --  For most platforms, this can unconditionally return False, since
    --  instructions are always aligned, and thus there is no need for padding.
 
+   function Is_Nop
+     (Self     : Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean is abstract;
+   --  Return whether the given instruction, located at PC, is a NOP
+   --  instruction.
+   --
+   --  We will implement it only for ISAs using delay slots instructions, such
+   --  as SPARC, for ensuring that our decision map heuristics behave the same
+   --  for every platform. With delay slots, a singleton unconditional
+   --  branching basic block has two instructions (the remmanent delay slot +
+   --  the branch).
+
    procedure Abort_Disassembler_Error
      (PC       : Pc_Type;
       Insn_Bin : Binary_Content;

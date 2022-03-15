@@ -67,6 +67,12 @@ package Disa_AArch64 is
       Pc       : Pc_Type) return Boolean;
    --  See disassemblers.ads
 
+   overriding function Is_Nop
+     (Self     : AArch64_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean is (False);
+   --  See disassembler.ads
+
    overriding procedure Initialize
      (Object : in out AArch64_Disassembler);
    --  Override of controlled object primitive

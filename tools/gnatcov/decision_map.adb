@@ -147,6 +147,13 @@ package body Decision_Map is
       --  after the other, or possibly as part of an unrolled loop), the
       --  initial (pre-outcome) basic block of the second occurrence might
       --  need to be marked as a post-outcome block for the first one.
+
+      Jump_Only              : Boolean := False;
+      --  Set True for basic blocks that are a singleton unconditional branch.
+      --  The compiler creates such basic blocks only to hold source locations:
+      --  they can be useful for decision mapping heuristics, but can also be
+      --  skipped to analyze the destination BB if needed (see
+      --  Label_From_Other).
    end record;
 
    No_Basic_Block : constant Basic_Block := (others => <>);
@@ -1647,9 +1654,7 @@ package body Decision_Map is
             --  If edge is not found but branches immediately to a further
             --  unconditional jump, then follow that jump.
 
-            elsif BB.Branch = Br_Jmp
-              and then BB.From = BB.To_PC
-              and then not BB.Cond
+            elsif BB.Jump_Only
             then
                CBE_Dest := BB.Branch_Dest;
             else
@@ -1984,13 +1989,9 @@ package body Decision_Map is
 
                loop
                   --  Keep following branches as long as the BB is a one
-                  --  instruction unconditional branching. This is the
-                  --  symetrical logic of what is implemented in the procedure
-                  --  Label_From_Other.
+                  --  instruction unconditional branching.
 
-                  exit when BB.Branch /= Br_Jmp
-                    or else BB.From /= BB.To_PC
-                    or else BB.Cond;
+                  exit when not BB.Jump_Only;
 
                   Destination := BB.Branch_Dest;
                   BB := Find_Basic_Block (Ctx.Basic_Blocks,
@@ -2514,8 +2515,8 @@ package body Decision_Map is
 
          declare
             LI   : Line_Info_Access;
-            Insn : Binary_Content renames
-                     Slice (Insns, PC, PC + Pc_Type (Insn_Len) - 1);
+            Insn : Binary_Content :=
+              Slice (Insns, PC, PC + Pc_Type (Insn_Len) - 1);
 
             Branch      : Branch_Kind;
             Flag_Indir  : Boolean;
@@ -2595,22 +2596,63 @@ package body Decision_Map is
             end if;
 
             --  If both edges have the same delay slot address, then said delay
-            --  slot is always executed, whether or not we branch, so we
-            --  ignore it for the purpose of edge destination equivalence.
-            --  We thus treat:
-
+            --  slot is always executed, whether or not we branch, so we ignore
+            --  it for the purpose of edge destination equivalence. We thus
+            --  treat:
+            --
             --     cond-branch tgt
             --     insn (in delay slot)
-
+            --
             --  as equivalent to:
-
+            --
             --     insn
             --     cond-branch tgt
             --     nop (in delay slot)
+            --
+            --  If the delay slot is a NOP, we will ignore it, as it just means
+            --  that the compiler was unable to insert a meaningful instruction
+            --  in the delay slot.
+            --
+            --  Otherwise, we put it at the end of the current basic block
+            --  (to which it belongs, and not at the beginning of the next
+            --  fallthrough basic block). We do that by offsetting the current
+            --  PC, Insn and Insn_Len to designate the delay slot (which is the
+            --  instruction right after the PC).
 
-            if Branch_Dest.Delay_Slot = FT_Dest.Delay_Slot then
-               Branch_Dest.Delay_Slot := No_PC;
-               FT_Dest.Delay_Slot     := No_PC;
+            if Branch_Dest.Delay_Slot /= No_PC
+              and then Branch_Dest.Delay_Slot = FT_Dest.Delay_Slot
+            then
+               declare
+                  Delay_Slot_PC   : constant Pc_Type :=
+                    PC + Pc_Type (Insn_Len);
+                  Delay_Slot_Len  : constant Natural :=
+                    Disas.Get_Insn_Length
+                      (Slice (Insns, Delay_Slot_PC, Insns.Last));
+                  Delay_Slot_Insn : constant Binary_Content :=
+                    Slice (Insns, Delay_Slot_PC,
+                           Delay_Slot_PC + Pc_Type (Delay_Slot_Len) - 1);
+               begin
+                  pragma Assert (Branch_Dest.Delay_Slot = Delay_Slot_PC);
+
+                  --  If the delay slot is not a NOP, include it in the current
+                  --  basic block.
+
+                  if not Disas.Is_Nop (Delay_Slot_Insn, Delay_Slot_PC) then
+                     Insn := Delay_Slot_Insn;
+                  end if;
+
+                  --  Make the next iteration work on the instruction that
+                  --  follows the delay slot.
+
+                  PC := Delay_Slot_PC;
+                  Insn_Len := Delay_Slot_Len;
+
+                  --  Now that the delay slot is fully taken into account,
+                  --  reset delay slot info.
+
+                  Branch_Dest.Delay_Slot := No_PC;
+                  FT_Dest.Delay_Slot := No_PC;
+               end;
             end if;
 
             if Branch /= Br_None then
@@ -2636,6 +2678,14 @@ package body Decision_Map is
                   if Branch = Br_Call then
                      Analyze_Call (Exec, BB);
                   end if;
+
+                  --  Keep track of whether, for our analysis, we can consider
+                  --  this basic block to be only an unconditional jump.
+
+                  BB.Jump_Only :=
+                    not BB.Cond
+                    and then BB.Branch = Br_Jmp
+                    and then BB.From = BB.To_PC;
 
                   for Tsloc of Tslocs loop
                      SCO := Sloc_To_SCO (Tsloc.Sloc);

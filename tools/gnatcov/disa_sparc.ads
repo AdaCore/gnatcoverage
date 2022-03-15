@@ -69,6 +69,12 @@ package Disa_Sparc is
       Pc       : Pc_Type) return Boolean;
    --  See disassemblers.ads
 
+   overriding function Is_Nop
+     (Self     : SPARC_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean;
+   --  See disassembler.ads
+
    overriding procedure Initialize
      (Object : in out SPARC_Disassembler);
    --  Override of controlled object primitive

@@ -67,6 +67,11 @@ package Disa_ARM is
       Pc       : Pc_Type) return Boolean;
    --  See disassemblers.ads
 
+   overriding function Is_Nop
+     (Self     : ARM_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean is (False);
+
    overriding procedure Initialize
      (Object : in out ARM_Disassembler);
    --  Override of controlled object primitive

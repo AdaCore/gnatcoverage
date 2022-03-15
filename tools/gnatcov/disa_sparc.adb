@@ -257,4 +257,25 @@ package body Disa_Sparc is
       return False;
    end Is_Padding;
 
+   ------------
+   -- Is_Nop --
+   ------------
+
+   function Is_Nop
+     (Self     : SPARC_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type) return Boolean
+   is
+      W : Unsigned_32;
+   begin
+      if Length (Insn_Bin) < 4 then
+         raise Program_Error;
+      end if;
+
+      W := To_Big_Endian_U32
+        (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3));
+
+      return Get_Field (F_Op2, W) = 2#100#;
+   end Is_Nop;
+
 end Disa_Sparc;
