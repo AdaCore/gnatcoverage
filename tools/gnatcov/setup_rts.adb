@@ -19,15 +19,18 @@
 with Ada.Characters.Handling;   use Ada.Characters.Handling;
 with Ada.Directories;           use Ada.Directories;
 with Ada.Environment_Variables;
-with Ada.Strings.Unbounded;     use Ada.Strings.Unbounded;
+with Ada.Exceptions;            use Ada.Exceptions;
 with Ada.Text_IO;               use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 
+with GNATCOLL.JSON;     use GNATCOLL.JSON;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
+with JSON;          use JSON;
 with Outputs;       use Outputs;
+with Paths;         use Paths;
 with Subprocesses;  use Subprocesses;
 with Support_Files;
 with Switches;      use Switches;
@@ -78,6 +81,14 @@ package body Setup_RTS is
    --  root directory as its relocation root, which would be highly inefficient
    --  and could even trigger path size limits on Windows systems.
 
+   procedure Initialize
+     (Env         : out Project_Environment_Access;
+      Target      : String;
+      RTS         : String;
+      Config_File : String);
+   --  Initialize a project environment with the given target, runtime and
+   --  configuration project file information.
+
    procedure Load_Project_Parameters
      (Project_File     : String;
       Target           : String;
@@ -110,6 +121,66 @@ package body Setup_RTS is
    --  If Library_Kind is not an empty string, build for that library kind and
    --  install it as a variant.
 
+   procedure Error_Report (Msg : String);
+   --  Error reporting callback for GNATCOLL.Projects.Load. Report the error
+   --  message iff the verbose mode is active.
+
+   function Load
+     (Project_File      : String;
+      Setup_Config_File : Virtual_File) return Setup_Config;
+   --  Helper for the public Load function: load the setup config file at
+   --  Setup_Config_File. On success, use Project_File for the result's
+   --  Project_File component.
+
+   function Setup_Config_File_Basename (Project_Name : String) return String
+   is ("setup-config-" & To_Lower (Project_Name) & ".json");
+   --  Return the base filename for the setup config file corresponding to the
+   --  given Project_Name.
+
+   function Load (J : JSON_Value) return Setup_Config
+   with Pre => J.Kind = JSON_Object_Type;
+   --  Helper for the public Load function: load a setup config from the given
+   --  JSON document.
+
+   procedure Save_Setup_Config
+     (Project_Dir  : String;
+      Project_Name : String;
+      Config       : Setup_Config);
+   --  Write Config as a JSON file in Project_Dir for the Project_Name runtime
+   --  project to install. Use a filename that will match the Install'Artifacts
+   --  attribute in the runtime project file.
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Profile : Any_RTS_Profile) return String is
+   begin
+      return (case Profile is
+              when Auto     => "auto",
+              when Full     => "full",
+              when Embedded => "embedded");
+   end Image;
+
+   -----------
+   -- Value --
+   -----------
+
+   function Value (Profile : String) return Any_RTS_Profile is
+   begin
+      if Profile = "auto" then
+         return Auto;
+      elsif Profile = "full" then
+         return Full;
+      elsif Profile = "embedded" then
+         return Embedded;
+      else
+         return
+           (raise Constraint_Error
+            with "invalid RTS profile: " & Profile);
+      end if;
+   end Value;
+
    --------------------------
    -- Default_Project_File --
    --------------------------
@@ -117,7 +188,7 @@ package body Setup_RTS is
    function Default_Project_File return String is
    begin
       return Result : constant String :=
-        Support_Files.In_Share_Dir ("gnatcov_rts") & "/gnatcov_rts.gpr"
+        Support_Files.In_Share_Dir ("gnatcov_rts") / "gnatcov_rts.gpr"
       do
          if not Exists (Result) then
             Fatal_Error ("No instrumentation runtime project file at "
@@ -149,11 +220,11 @@ package body Setup_RTS is
       Tree_Dir : constant String := Containing_Directory (Project_File);
       --  Directory that contains the project to copy/build/install
 
-      Tree_Dir_Copy : constant String := Temp_Dir.Directory_Name & "/src";
+      Tree_Dir_Copy : constant String := Temp_Dir.Directory_Name / "src";
       --  Name of the copy for that directory
 
       Project_File_Copy : constant String :=
-        Tree_Dir_Copy & "/" & Simple_Name (Project_File);
+        Tree_Dir_Copy / Simple_Name (Project_File);
       --  Name for the copy of Project_File
 
       Name : constant String := Project_Name (Project_File);
@@ -178,7 +249,7 @@ package body Setup_RTS is
          return Project_File_Copy;
       else
          return Result : constant String :=
-           Temp_Dir.Directory_Name & "/" & Install_Name & ".gpr"
+           Temp_Dir.Directory_Name / (Install_Name & ".gpr")
          do
             File.Create (Result);
             File.Put_Line ("project " & Install_Name);
@@ -196,6 +267,29 @@ package body Setup_RTS is
          end return;
       end if;
    end Setup_Project;
+
+   ----------------
+   -- Initialize --
+   ----------------
+
+   procedure Initialize
+     (Env         : out Project_Environment_Access;
+      Target      : String;
+      RTS         : String;
+      Config_File : String) is
+   begin
+      Initialize (Env);
+
+      if Config_File = "" then
+         Env.Set_Automatic_Config_File;
+      else
+         Env.Set_Config_File (Create (+Config_File));
+      end if;
+
+      if Target /= "" or else RTS /= "" then
+         Env.Set_Target_And_Runtime (Target, RTS);
+      end if;
+   end Initialize;
 
    -----------------------------
    -- Load_Project_Parameters --
@@ -217,17 +311,7 @@ package body Setup_RTS is
       --  of languages, as we may not be able to load the full Ada+C project if
       --  there is no Ada toolchain available.
 
-      Initialize (Env);
-
-      if Config_File = "" then
-         Env.Set_Automatic_Config_File;
-      else
-         Env.Set_Config_File (Create (+Config_File));
-      end if;
-
-      if Target /= "" or else RTS /= "" then
-         Env.Set_Target_And_Runtime (Target, RTS);
-      end if;
+      Initialize (Env, Target, RTS, Config_File);
 
       if Enable_Languages.Contains (To_Unbounded_String ("Ada")) then
          Env.Change_Environment ("GNATCOV_RTS_WITH_ADA", "true");
@@ -396,14 +480,15 @@ package body Setup_RTS is
    -----------
 
    procedure Setup
-     (Project_File : String;
-      Target       : String;
-      RTS          : String;
-      Config_File  : String;
-      Prefix       : String;
-      RTS_Profile  : Any_RTS_Profile;
-      Install_Name : String;
-      Gargs        : String_Vectors.Vector)
+     (Project_File        : String;
+      Target              : String;
+      RTS                 : String;
+      Config_File         : String;
+      Prefix              : String;
+      RTS_Profile         : Any_RTS_Profile;
+      Default_Dump_Config : Any_Dump_Config;
+      Install_Name        : String;
+      Gargs               : String_Vectors.Vector)
    is
       Temp_Dir : Temporary_Directory;
 
@@ -458,6 +543,27 @@ package body Setup_RTS is
 
          Uninstall (Install_Name, Prefix);
 
+         --  Save the setup profile and default values in the instrumented
+         --  project.
+
+         Save_Setup_Config
+           (Containing_Directory (Actual_Project_File),
+            Install_Name,
+            (Project_File        => <>,
+             RTS_Profile         => Actual_RTS_Profile,
+             RTS_Profile_Present => True,
+             Default_Dump_Config => Default_Dump_Config));
+
+         --  Check that the RTS profile is compatible with the selected
+         --  defaults for the dump config.
+
+         declare
+            Dummy : constant Boolean :=
+              Check_RTS_Profile (Actual_RTS_Profile, Default_Dump_Config);
+         begin
+            null;
+         end;
+
          --  Now build and install the instrumentation runtime
 
          declare
@@ -476,6 +582,11 @@ package body Setup_RTS is
                Install_Args.Append (+("--prefix=" & Prefix));
             end if;
 
+            --  Let the project know about its installation name
+
+            Common_Args.Append
+              (+("-XGNATCOV_RTS_PROJECT_NAME=" & Install_Name));
+
             Build_Args.Append_Vector (Gargs);
 
             --  Tune external variables according to enabled languages and the
@@ -489,7 +600,7 @@ package body Setup_RTS is
                  (+("-XGNATCOV_RTS_WITH_ADA=" & To_Lower (With_Ada'Image)));
                Common_Args.Append
                  (+("-XGNATCOV_RTS_RTS_PROFILE="
-                    & To_Lower (Actual_RTS_Profile'Image)));
+                    & Image (Actual_RTS_Profile)));
             end;
 
             case Lib_Support is
@@ -521,5 +632,298 @@ package body Setup_RTS is
          end;
       end;
    end Setup;
+
+   ------------------
+   -- Error_Report --
+   ------------------
+
+   procedure Error_Report (Msg : String) is
+   begin
+      if Verbose then
+         Put_Line (Msg);
+      end if;
+   end Error_Report;
+
+   ----------
+   -- Load --
+   ----------
+
+   function Load
+     (Target          : String;
+      RTS             : String;
+      Config_File     : String;
+      Runtime_Project : String) return Setup_Config
+   is
+      Result            : Setup_Config := Default_Setup_Config;
+      Setup_Config_File : Virtual_File;
+
+      Env : Project_Environment_Access;
+      Prj : Project_Tree;
+
+      Project_File : Virtual_File;
+   begin
+      --  Load the runtime project file, only to locate the prefix where it has
+      --  been installed: do not print any error message, and if the project
+      --  fails to load, just return the default setup config.
+
+      begin
+         Initialize (Env, Target, RTS, Config_File);
+         Prj.Load
+           (Root_Project_Path => Create (+To_Lower (Runtime_Project)),
+            Env               => Env,
+            Errors            => Error_Report'Access);
+      exception
+         when Invalid_Project =>
+            Free (Env);
+            return Result;
+      end;
+
+      --  The project file is in $PREFIX/share/gpr, so get $PREFIX first and
+      --  then look for the config file under it.
+
+      Project_File := Prj.Root_Project.Project_Path;
+      declare
+         Prefix               : constant Virtual_File :=
+           Project_File.Get_Parent.Get_Parent.Get_Parent;
+         Config_File_Basename : constant String :=
+           Setup_Config_File_Basename (Runtime_Project);
+      begin
+         Setup_Config_File :=
+           Prefix / (+"share") / (+"gnatcov_rts") / (+Config_File_Basename);
+         Prj.Unload;
+         Free (Env);
+      end;
+
+      if Setup_Config_File.Is_Regular_File then
+         Result := Load (+Project_File.Full_Name, Setup_Config_File);
+      elsif Verbose then
+         Put_Line ("Could not find the setup config file: "
+                   & (+Setup_Config_File.Full_Name));
+      end if;
+
+      return Result;
+   end Load;
+
+   function Load
+     (Project_File      : String;
+      Setup_Config_File : Virtual_File) return Setup_Config
+   is
+      --  Load and parse the setup config file
+
+      Parsed_JSON : constant Read_Result := Read (Setup_Config_File);
+   begin
+      --  If parsing was successful, load the various parameters from the JSON
+      --  document. Otherwise, unless the verbose mode is active, silently
+      --  ignore the setup config file.
+
+      if Parsed_JSON.Success then
+         if Parsed_JSON.Value.Kind = JSON_Object_Type then
+            return Result : Setup_Config := Load (Parsed_JSON.Value) do
+               Result.Project_File := To_Unbounded_String (Project_File);
+            end return;
+         end if;
+
+      elsif Verbose then
+         Put_Line ("Parsing error while reading the setup config file:");
+         Put_Line (Format_Parsing_Error (Parsed_JSON.Error));
+      end if;
+
+      return Default_Setup_Config;
+   end Load;
+
+   function Load (J : JSON_Value) return Setup_Config is
+
+      Format_Error : exception;
+      --  Exception to raise in this function when the format of the setup
+      --  config file is unexpected and loading it cannot continue.
+
+      procedure Check_Field (Name : String; Kind : JSON_Value_Type);
+      --  Raise a Format_Error exception if J does not have a Name field or if
+      --  that field does not have the given kind.
+
+      function Get (Name : String) return Unbounded_String;
+      --  Return the Name field in J as a string. If there is no such field or
+      --  if it is not a string, raise a Format_Error exception.
+
+      function Get (Name : String) return Boolean;
+      --  Likewise, but for a boolean field
+
+      -----------------
+      -- Check_Field --
+      -----------------
+
+      procedure Check_Field (Name : String; Kind : JSON_Value_Type) is
+      begin
+         if not J.Has_Field (Name) then
+            raise Format_Error with "missing " & Name & " field";
+         end if;
+
+         if J.Get (Name).Kind /= Kind then
+            raise Format_Error with "invalid " & Name & " field";
+         end if;
+      end Check_Field;
+
+      ---------
+      -- Get --
+      ---------
+
+      function Get (Name : String) return Unbounded_String is
+      begin
+         Check_Field (Name, JSON_String_Type);
+         return J.Get (Name);
+      end Get;
+
+      function Get (Name : String) return Boolean is
+      begin
+         Check_Field (Name, JSON_Boolean_Type);
+         return J.Get (Name);
+      end Get;
+
+      Result : Setup_Config := Default_Setup_Config;
+
+      Channel : Any_Dump_Channel;
+      Trigger : Any_Dump_Trigger;
+
+   begin
+      declare
+         RTS_Profile : constant String := To_String (Get ("rts-profile"));
+      begin
+         Result.RTS_Profile := Value (RTS_Profile);
+         Result.RTS_Profile_Present := True;
+      exception
+         when Constraint_Error =>
+            raise Format_Error with "invalid rts-profile field";
+      end;
+
+      begin
+         Channel := Value (To_String (Get ("dump-channel")));
+      exception
+         when Constraint_Error =>
+            raise Format_Error with "invalid dump-channel field";
+      end;
+
+      begin
+         Trigger := Value (To_String (Get ("dump-trigger")));
+      exception
+         when Constraint_Error =>
+            raise Format_Error with "invalid dump-trigger field";
+      end;
+
+      case Channel is
+         when Binary_File =>
+            Result.Default_Dump_Config :=
+              (Channel          => Binary_File,
+               Trigger          => Trigger,
+               Filename_Simple  => Get ("dump-filename-simple"),
+               Filename_Env_Var => Get ("dump-filename-env-var"),
+               Filename_Prefix  => Get ("dump-filename-prefix"));
+
+         when Base64_Standard_Output =>
+            Result.Default_Dump_Config :=
+              (Channel => Base64_Standard_Output,
+               Trigger => Trigger);
+      end case;
+
+      return Result;
+
+   exception
+      when Exc : Format_Error =>
+         if Verbose then
+            Put_Line
+              ("Setup config file decoding error: "
+               & Exception_Information (Exc));
+         end if;
+         return Result;
+   end Load;
+
+   -----------------------
+   -- Save_Setup_Config --
+   -----------------------
+
+   procedure Save_Setup_Config
+     (Project_Dir  : String;
+      Project_Name : String;
+      Config       : Setup_Config)
+   is
+      Config_Filename : constant String :=
+        Project_Dir / Setup_Config_File_Basename (Project_Name);
+
+      --  Create the JSON to write in the setup config file
+
+      J : constant JSON_Value := Create_Object;
+   begin
+      J.Set_Field ("rts-profile", Image (Config.RTS_Profile));
+      declare
+         Dump_Cfg : Any_Dump_Config renames Config.Default_Dump_Config;
+      begin
+         J.Set_Field ("dump-channel", Image (Dump_Cfg.Channel));
+         J.Set_Field ("dump-trigger", Image (Dump_Cfg.Trigger));
+         case Dump_Cfg.Channel is
+            when Binary_File =>
+               J.Set_Field
+                 ("dump-filename-simple", Dump_Cfg.Filename_Simple'Image);
+               J.Set_Field
+                 ("dump-filename-env-var", Dump_Cfg.Filename_Env_Var);
+               J.Set_Field
+                 ("dump-filename-prefix", Dump_Cfg.Filename_Prefix);
+            when Base64_Standard_Output =>
+               null;
+         end case;
+      end;
+
+      --  Write the setup config file
+
+      Write (Config_Filename, J, Compact => False);
+   end Save_Setup_Config;
+
+   -----------------------
+   -- Check_RTS_Profile --
+   -----------------------
+
+   function Check_RTS_Profile
+     (Profile     : Resolved_RTS_Profile;
+      Dump_Config : Any_Dump_Config) return Boolean
+   is
+      Had_Warnings : Boolean := False;
+
+      procedure Warn (Cond : Boolean; What : String);
+      --  If Cond is True, emit a warning saying that "What" may not work with
+      --  the selected runtime and set Had_Warnings to True.
+
+      ----------
+      -- Warn --
+      ----------
+
+      procedure Warn (Cond : Boolean; What : String) is
+      begin
+         if Cond then
+            Had_Warnings := True;
+            Outputs.Warn
+              (What & " may not be compatible with the selected runtime");
+         end if;
+      end Warn;
+
+   begin
+      --  If the dump is manual, there is nothing we can check here, as the
+      --  other parameters may not correspond to the way the manual dump is
+      --  done in user code.
+
+      if Dump_Config.Trigger = Manual then
+         return False;
+      end if;
+
+      case Profile is
+         when Full =>
+            Warn (Dump_Config.Trigger = Ravenscar_Task_Termination,
+                  "--dump-trigger=ravenscar-task-termination");
+
+         when Embedded =>
+            Warn (Dump_Config.Trigger = At_Exit, "--dump-trigger=atexit");
+            Warn (Dump_Config.Channel = Binary_File,
+                  "--dump-channel=bin-file");
+      end case;
+
+      return Had_Warnings;
+   end Check_RTS_Profile;
 
 end Setup_RTS;

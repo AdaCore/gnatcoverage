@@ -23,12 +23,39 @@
 --  reducing their size and compilation time.
 
 package body Instrument is
+
+   Msg : constant String := "Stub of Instrument, unreachable code.";
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Dump_Trigger : Any_Dump_Trigger) return String
+   is (raise Program_Error with Msg);
+
+   function Image (Dump_Channel : Any_Dump_Channel) return String
+   is (raise Program_Error with Msg);
+
+   -----------
+   -- Value --
+   -----------
+
+   function Value (Dump_Trigger : String) return Any_Dump_Trigger
+   is (raise Program_Error with Msg);
+
+   function Value (Dump_Channel : String) return Any_Dump_Channel
+   is (raise Program_Error with Msg);
+
+   ----------------------------------
+   -- Instrument_Units_Of_Interest --
+   ----------------------------------
+
    procedure Instrument_Units_Of_Interest
      (Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
       Ignored_Source_Files : access GNAT.Regexp.Regexp) is
    begin
-      raise Program_Error with "Stub of Instrument_Units_Of_Interest."
-                               & " Unreachable code.";
+      raise Program_Error with Msg;
    end Instrument_Units_Of_Interest;
+
 end Instrument;

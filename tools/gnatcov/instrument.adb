@@ -135,6 +135,60 @@ package body Instrument is
       Mains : Main_To_Instrument_Vectors.Vector);
    --  Instrument source files in Mains to add a dump of coverage buffers
 
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Dump_Trigger : Any_Dump_Trigger) return String is
+   begin
+      return (case Dump_Trigger is
+              when Manual                     => "manual",
+              when At_Exit                    => "atexit",
+              when Ravenscar_Task_Termination => "ravenscar-task-termination",
+              when Main_End                   => "main-end");
+   end Image;
+
+   function Image (Dump_Channel : Any_Dump_Channel) return String is
+   begin
+      return (case Dump_Channel is
+              when Binary_File            => "bin-file",
+              when Base64_Standard_Output => "base64-stdout");
+   end Image;
+
+   -----------
+   -- Value --
+   -----------
+
+   function Value (Dump_Trigger : String) return Any_Dump_Trigger is
+   begin
+      if Dump_Trigger = "manual" then
+         return Manual;
+      elsif Dump_Trigger = "atexit" then
+         return At_Exit;
+      elsif Dump_Trigger = "ravenscar-task-termination" then
+         return Ravenscar_Task_Termination;
+      elsif Dump_Trigger = "main-end" then
+         return Main_End;
+      else
+         return
+           (raise Constraint_Error
+            with "invalid dump trigger: " & Dump_Trigger);
+      end if;
+   end Value;
+
+   function Value (Dump_Channel : String) return Any_Dump_Channel is
+   begin
+      if Dump_Channel = "bin-file" then
+         return Binary_File;
+      elsif Dump_Channel = "base64-stdout" then
+         return Base64_Standard_Output;
+      else
+         return
+           (raise Constraint_Error
+            with "invalid dump channel: " & Dump_Channel);
+      end if;
+   end Value;
+
    -------------------
    -- Get_Or_Create --
    -------------------

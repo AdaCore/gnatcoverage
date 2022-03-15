@@ -37,6 +37,15 @@ package Instrument is
    --  Channel where to dump coverage buffers. See the user documentation for
    --  the --dump-channel command-line option.
 
+   --  Serialization/deserialization functions for the enumeration types. The
+   --  deserialization ones raise Constraint_Error exceptions for invalid input
+   --  strings.
+
+   function Image (Dump_Trigger : Any_Dump_Trigger) return String;
+   function Image (Dump_Channel : Any_Dump_Channel) return String;
+   function Value (Dump_Trigger : String) return Any_Dump_Trigger;
+   function Value (Dump_Channel : String) return Any_Dump_Channel;
+
    type Any_Dump_Config (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
    is record
       Trigger : Any_Dump_Trigger := Manual;
@@ -68,6 +77,8 @@ package Instrument is
    end record;
    --  Bundle for all configuration related to automatic dump of coverage
    --  buffers.
+
+   Default_Dump_Config : constant Any_Dump_Config := (others => <>);
 
    type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012);
 

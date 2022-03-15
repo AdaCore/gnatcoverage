@@ -54,7 +54,7 @@ with Binary_Files;
 with Execs_Dbase;           use Execs_Dbase;
 with Files_Table;           use Files_Table;
 with Inputs;                use Inputs;
-with Instrument;
+with Instrument;            use Instrument;
 with Instrument.Input_Traces;
 with Object_Locations;
 with Outputs;               use Outputs;
@@ -63,7 +63,7 @@ with Project;               use Project;
 with Qemu_Traces;
 with Rundrv;                use Rundrv;
 with SC_Obligations;        use SC_Obligations;
-with Setup_RTS;
+with Setup_RTS;             use Setup_RTS;
 with Strings;               use Strings;
 with Switches;              use Switches;
 with Traces;                use Traces;
@@ -167,6 +167,11 @@ procedure GNATcov_Bits_Specific is
       with Pre => not Result.Success;
    --  Emit the error corresponding to Result with Outputs. If
    --  Keep_Reading_Tracess is false, this is a fatal error.
+
+   function Load_Dump_Config
+     (Default_Dump_Config : Any_Dump_Config) return Any_Dump_Config;
+   --  Create the Any_Dump_Config value corresponding to Default_Dump_Config
+   --  and the given --dump-* arguments for source trace dumping.
 
    -----------------------------
    -- Report_Missing_Argument --
@@ -1091,6 +1096,111 @@ procedure GNATcov_Bits_Specific is
       end if;
    end Report_Bad_Trace;
 
+   ----------------------
+   -- Load_Dump_Config --
+   ----------------------
+
+   function Load_Dump_Config
+     (Default_Dump_Config : Any_Dump_Config) return Any_Dump_Config
+   is
+      Dump_Channel_Opt : String_Option renames
+        Args.String_Args (Opt_Dump_Channel);
+      Dump_Trigger_Opt : String_Option renames
+        Args.String_Args (Opt_Dump_Trigger);
+
+      Dump_Filename_Env_Var_Opt : String_Option renames
+        Args.String_Args (Opt_Dump_Filename_Env_Var);
+      Dump_Filename_Prefix_Opt  : String_Option renames
+        Args.String_Args (Opt_Dump_Filename_Prefix);
+
+      Dump_Channel          : Any_Dump_Channel;
+      Dump_Trigger          : Any_Dump_Trigger;
+      Dump_Filename_Simple  : Boolean := False;
+      Dump_Filename_Env_Var : Ada.Strings.Unbounded.Unbounded_String;
+      Dump_Filename_Prefix  : Ada.Strings.Unbounded.Unbounded_String;
+   begin
+      --  First, load the config from Default_Dump_Config, then override it
+      --  using command-line arguments.
+
+      Dump_Channel := Default_Dump_Config.Channel;
+      if Dump_Channel_Opt.Present then
+         begin
+            Dump_Channel := Value (+Dump_Channel_Opt.Value);
+         exception
+            when Exc : Constraint_Error =>
+               Fatal_Error (Ada.Exceptions.Exception_Message (Exc));
+         end;
+      end if;
+
+      Dump_Trigger := Default_Dump_Config.Trigger;
+      if Dump_Trigger_Opt.Present then
+         begin
+            Dump_Trigger := Value (+Dump_Trigger_Opt.Value);
+         exception
+            when Exc : Constraint_Error =>
+               Fatal_Error (Ada.Exceptions.Exception_Message (Exc));
+         end;
+      end if;
+
+      case Default_Dump_Config.Channel is
+         when Binary_File =>
+            Dump_Filename_Simple := Default_Dump_Config.Filename_Simple;
+            Dump_Filename_Env_Var := Default_Dump_Config.Filename_Env_Var;
+            Dump_Filename_Prefix := Default_Dump_Config.Filename_Prefix;
+         when others =>
+            null;
+      end case;
+
+      if Args.Bool_Args (Opt_Dump_Filename_Simple) then
+         Dump_Filename_Simple := True;
+      end if;
+      if Dump_Filename_Env_Var_Opt.Present then
+         Dump_Filename_Env_Var := Dump_Filename_Env_Var_Opt.Value;
+      end if;
+      if Dump_Filename_Prefix_Opt.Present then
+         Dump_Filename_Prefix := Dump_Filename_Prefix_Opt.Value;
+      end if;
+
+      --  Now, re-create an Any_Dump_Config record from the overriden config
+      --  data.
+
+      return Dump_Config : Any_Dump_Config do
+
+         case Dump_Channel is
+            when Binary_File =>
+               Dump_Config :=
+                 (Channel          => Binary_File,
+                  Trigger          => Dump_Trigger,
+                  Filename_Simple  => Dump_Filename_Simple,
+                  Filename_Env_Var => Dump_Filename_Env_Var,
+                  Filename_Prefix  => Dump_Filename_Prefix);
+            when Base64_Standard_Output =>
+               Dump_Config :=
+                 (Channel => Base64_Standard_Output,
+                  Trigger => Dump_Trigger);
+         end case;
+
+         --  Reject invalid configurations
+
+         if Dump_Config.Channel /= Binary_File then
+            if Dump_Filename_Simple then
+               Fatal_Error
+                 ("--dump-filename-simple requires"
+                  & " --dump-channel=bin-file");
+            elsif Dump_Filename_Env_Var_Opt.Present then
+               Fatal_Error
+                 ("--dump-filename-env-var requires"
+                  & " --dump-channel=bin-file");
+            elsif Dump_Filename_Prefix_Opt.Present then
+               Fatal_Error
+                 ("--dump-filename-prefix requires"
+                  & " --dump-channel=bin-file");
+            end if;
+         end if;
+
+      end return;
+   end Load_Dump_Config;
+
    ------------------
    -- Show_Version --
    ------------------
@@ -1188,8 +1298,6 @@ begin
 
       when Cmd_Setup =>
          declare
-            use Setup_RTS;
-
             Project_File : String renames Runtime_Project.all;
 
             --  If --target was passed, get the target family (the option may
@@ -1235,14 +1343,15 @@ begin
             end if;
 
             Setup
-              (Project_File => Project_File,
-               Target       => Target,
-               RTS          => Value (Args, Opt_Runtime),
-               Config_File  => Value (Args, Opt_Config),
-               Prefix       => Value (Args, Opt_Prefix),
-               RTS_Profile  => RTS_Profile,
-               Install_Name => Install_Name,
-               Gargs        => Args.String_List_Args (Opt_Gargs));
+              (Project_File        => Project_File,
+               Target              => Target,
+               RTS                 => Value (Args, Opt_Runtime),
+               Config_File         => Value (Args, Opt_Config),
+               Prefix              => Value (Args, Opt_Prefix),
+               RTS_Profile         => RTS_Profile,
+               Default_Dump_Config => Load_Dump_Config (Default_Dump_Config),
+               Install_Name        => Install_Name,
+               Gargs               => Args.String_List_Args (Opt_Gargs));
          end;
 
       when Cmd_Instrument =>
@@ -1252,66 +1361,28 @@ begin
          end if;
 
          declare
-            use Instrument;
+            --  Try to load the setup config from metedata installed with
+            --  instrumentation runtime, and from there, decode the --dump-*
+            --  options.
+
+            Runtime_Project : constant String :=
+              Value (Args, Opt_Runtime_Project, "gnatcov_rts");
+
+            Setup_Cfg   : constant Setup_Config := Load
+              (Project.Target,
+               Project.Runtime,
+               Value (Args, Opt_Config),
+               Runtime_Project);
+            Dump_Config : constant Any_Dump_Config :=
+              Load_Dump_Config (Setup_Cfg.Default_Dump_Config);
 
             Matcher     : aliased GNAT.Regexp.Regexp;
             Has_Matcher : Boolean;
+            --  Matcher for the source files to ignore
 
-            Dump_Filename_Simple      : Boolean renames
-               Args.Bool_Args (Opt_Dump_Filename_Simple);
-            Dump_Filename_Env_Var_Opt : String_Option renames
-               Args.String_Args (Opt_Dump_Filename_Env_Var);
-            Dump_Filename_Prefix_Opt  : String_Option renames
-               Args.String_Args (Opt_Dump_Filename_Prefix);
-
-            Dump_Config      : Any_Dump_Config;
             Language_Version : Any_Language_Version;
          begin
             Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
-
-            --  Create the appropriate dump configuration depending on
-            --  command-line options. Unless --dump-channel is passed, the dump
-            --  channel is "bin-file". Likewise, unless --dump-trigger is
-            --  passed, the dump trigger is "manual".
-
-            declare
-               V : constant String :=
-                 Value (Args, Opt_Dump_Channel, "bin-file");
-            begin
-               if V = "bin-file" then
-                  Dump_Config :=
-                    (Channel          => Binary_File,
-                     Trigger          => <>,
-                     Filename_Simple  => Dump_Filename_Simple,
-                     Filename_Env_Var =>
-                        Value_Or_Null (Dump_Filename_Env_Var_Opt),
-                     Filename_Prefix  =>
-                        Value_Or_Null (Dump_Filename_Prefix_Opt));
-               elsif V = "base64-stdout" then
-                  Dump_Config :=
-                    (Channel => Base64_Standard_Output,
-                     Trigger => <>);
-               else
-                  Fatal_Error ("Bad buffers dump channel: " & V);
-               end if;
-            end;
-
-            declare
-               V : constant String :=
-                 Value (Args, Opt_Dump_Trigger, "manual");
-            begin
-               if V = "manual" then
-                  Dump_Config.Trigger := Manual;
-               elsif V = "atexit" then
-                  Dump_Config.Trigger := At_Exit;
-               elsif V = "ravenscar-task-termination" then
-                  Dump_Config.Trigger := Ravenscar_Task_Termination;
-               elsif V = "main-end" then
-                  Dump_Config.Trigger := Main_End;
-               else
-                  Fatal_Error ("Bad buffers dump trigger: " & V);
-               end if;
-            end;
 
             declare
                V : constant String := Value (Args, Opt_Ada, "2012");
@@ -1329,20 +1400,14 @@ begin
                end if;
             end;
 
-            if Dump_Config.Channel /= Binary_File then
-               if Dump_Filename_Simple then
-                  Fatal_Error
-                    ("--dump-filename-simple requires"
-                     & " --dump-channel=bin-file");
-               elsif Dump_Filename_Env_Var_Opt.Present then
-                  Fatal_Error
-                    ("--dump-filename-env-var requires"
-                     & " --dump-channel=bin-file");
-               elsif Dump_Filename_Prefix_Opt.Present then
-                  Fatal_Error
-                    ("--dump-filename-prefix requires"
-                     & " --dump-channel=bin-file");
-               end if;
+            --  Emit warnings if we detect an incompatibility between the
+            --  selected RTS and the selected dump configuration.
+
+            if Setup_Cfg.RTS_Profile_Present
+               and then Check_RTS_Profile (Setup_Cfg.RTS_Profile, Dump_Config)
+            then
+               Warn
+                 ("(selected runtime from " & (+Setup_Cfg.Project_File) & ")");
             end if;
 
             --  Even though instrumentation does not create any traces, the

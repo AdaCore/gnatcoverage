@@ -118,7 +118,8 @@ package Command_Line is
       Opt_Prefix,
       Opt_RTS_Profile,
       Opt_Path_Count_Limit,
-      Opt_Install_Name);
+      Opt_Install_Name,
+      Opt_Runtime_Project);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -330,7 +331,8 @@ package Command_Line is
       Cmd_Setup => Create
         (Name        => "setup",
          Description => "Build and install the runtime for source"
-                        & " instrumentation.",
+                        & " instrumentation and set up default arguments"
+                        & " for future ""gnatcov instrument"" invocations.",
          Internal    => False),
       Cmd_Instrument => Create
         (Name        => "instrument",
@@ -459,7 +461,7 @@ package Command_Line is
          Help      => "Valid only when --dump-channel=bin-file. Create simple"
                       & " filenames for source trace files (no PID/timestamp"
                       & " variations).",
-         Commands  => (Cmd_Instrument => True, others => False),
+         Commands  => (Cmd_Setup | Cmd_Instrument => True, others => False),
          Internal  => False),
 
       Opt_Allow_Mix_Trace_Kind => Create
@@ -718,7 +720,7 @@ package Command_Line is
                          & " coverage buffers for all units of interest in the"
                          & " main closure. The --dump-channel option"
                          & " determines the dump procedure.",
-         Commands     => (Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
          At_Most_Once => False,
          Internal     => False,
          Pattern      => "manual|atexit|main-end"),
@@ -740,7 +742,7 @@ package Command_Line is
                          & " to dump a base64 trace on the standard output"
                          & " using Ada.Text_IO. This is the preferred channel"
                          & " for non-native programs.",
-         Commands     => (Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
          At_Most_Once => False,
          Internal     => False,
          Pattern      => "bin-file|base64-stdout"),
@@ -749,14 +751,14 @@ package Command_Line is
          Help         => "Valid only when --dump-channel=bin-file. Name of the"
                          & " environment variable which, if set, contains the"
                          & " filename for created source traces.",
-         Commands     => (Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Dump_Filename_Prefix => Create
         (Long_Name    => "--dump-filename-prefix",
          Help         => "Valid only when --dump-channel=bin-file. Select a"
                          & " filename prefix for created source traces.",
-         Commands     => (Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
          At_Most_Once => False,
          Internal     => False),
 
@@ -850,7 +852,18 @@ package Command_Line is
            & " ""gnatcov_rts"", or the name on the project passed to ""gnatcov"
            & " setup"". Using non-default names allows one to install"
            & " different projects in the same installation prefix.",
-         Commands     => (Cmd_Setup => True, others => False),
+         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+
+      Opt_Runtime_Project => Create
+        (Long_Name    => "--runtime-project",
+         Pattern      => "NAME",
+         Help         =>
+           "Name of the installed instrumentation runtime project (see"
+           & " ""gnatcov setup""'s ""--install-name"" option). By default, use"
+           & " ""gnatcov_rts"".",
+         Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
          Internal     => False)
      );

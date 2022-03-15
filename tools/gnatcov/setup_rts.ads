@@ -18,6 +18,9 @@
 
 --  This package implements the "setup" gnatcov command.
 
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+
+with Instrument; use Instrument;
 with Strings;    use Strings;
 
 package Setup_RTS is
@@ -26,6 +29,13 @@ package Setup_RTS is
    --  See documentation for the --rts-profile option
 
    subtype Resolved_RTS_Profile is Any_RTS_Profile range Full .. Embedded;
+
+   --  Serialization/deserialization functions for Any_RTS_Profile. The
+   --  deserialization one raises Constraint_Error exceptions for invalid input
+   --  strings.
+
+   function Image (Profile : Any_RTS_Profile) return String;
+   function Value (Profile : String) return Any_RTS_Profile;
 
    function Default_Project_File return String;
    --  Return the name of the instrumentation runtime project file that is
@@ -36,14 +46,15 @@ package Setup_RTS is
    --  contain.
 
    procedure Setup
-     (Project_File : String;
-      Target       : String;
-      RTS          : String;
-      Config_File  : String;
-      Prefix       : String;
-      RTS_Profile  : Any_RTS_Profile;
-      Install_Name : String;
-      Gargs        : String_Vectors.Vector);
+     (Project_File        : String;
+      Target              : String;
+      RTS                 : String;
+      Config_File         : String;
+      Prefix              : String;
+      RTS_Profile         : Any_RTS_Profile;
+      Default_Dump_Config : Any_Dump_Config;
+      Install_Name        : String;
+      Gargs               : String_Vectors.Vector);
    --  Build and install the given Project_File instrumentation runtime
    --  project.
    --
@@ -59,10 +70,71 @@ package Setup_RTS is
    --  available from the name of the RTS (the actual runtime used in the GPR
    --  world, i.e. not necessarily the value of the RTS argument passed here).
    --
+   --  Default_Dump_Config is the dump config that will be used by default in
+   --  "gnatcov instrument" instances that detect the installed instrumentation
+   --  runtime.
+   --
    --  If non-empty, Install_Name is used as an alternative name for the
    --  installed project.
    --
    --  All items in Gargs are passed as additional command-line arguments to
    --  gprbuild.
+
+   ------------------
+   -- Setup config --
+   ------------------
+
+   --  The "gnatcov setup" command may store in the installed instrumentation
+   --  project some information about what features it provides, and default
+   --  values for instrumentation parameters (trace dump trigger, dump channel,
+   --  etc.).
+   --
+   --  The Setup_Config type below is used to represent this information. As
+   --  this information storage mechanism is optional, each information may be
+   --  absent, hence the "..._Present" boolean components.
+
+   type Setup_Config is record
+      Project_File : Unbounded_String := Null_Unbounded_String;
+      --  Project file associated with this setup config (when that config was
+      --  loaded from a file).
+
+      RTS_Profile         : Resolved_RTS_Profile;
+      RTS_Profile_Present : Boolean;
+      --  RTS profile used when setting up the instrumentation runtime, and
+      --  whether this information is available.
+
+      Default_Dump_Config : Any_Dump_Config;
+      --  Default dump config to use in "gnatcov instrument". No need for a
+      --  "..._Present" flag for this one as when we do not have access to the
+      --  setup config, we just assume defaults for the Any_Dump_Config type.
+   end record;
+
+   Default_Setup_Config : constant Setup_Config :=
+     (Project_File        => <>,
+      RTS_Profile         => Full,
+      RTS_Profile_Present => False,
+      Default_Dump_Config => (others => <>));
+
+   function Load
+     (Target          : String;
+      RTS             : String;
+      Config_File     : String;
+      Runtime_Project : String) return Setup_Config;
+   --  Load the setup config associated to the project file called
+   --  Runtime_Project (that project is loaded using Target, RTS and
+   --  Config_File). If we cannot load the runtime project file or if the setup
+   --  config is missing from this project, just return Default_Setup_Config.
+
+   function Check_RTS_Profile
+     (Profile     : Resolved_RTS_Profile;
+      Dump_Config : Any_Dump_Config) return Boolean;
+   --  Check that Dump_Config is compatible with Profile. If there is an
+   --  incompatibility, emit warnings and return True. Return False otherwise.
+   --
+   --  The RTS profile information is a heuristic: we believe it will be useful
+   --  to use it generally, but there is a chance that it leads us to wrong
+   --  incompatibility predictions. We thus prefer to emit a warning rather
+   --  than fail with an error, so that users are not blocked when that
+   --  heuristic is wrong.
 
 end Setup_RTS;

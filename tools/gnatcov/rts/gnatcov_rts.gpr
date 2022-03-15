@@ -12,6 +12,11 @@
 
 library project GNATcov_RTS is
 
+   Project_Name := external ("GNATCOV_RTS_PROJECT_NAME", "gnatcov_rts");
+   --  Name of this project. This can be something else than "gnatcov_rts"
+   --  in the case of project extension: in that case we want to use the name
+   --  of the extending project.
+
    type Boolean is ("false", "true");
    type RTS_Profile_Type is ("full", "embedded");
 
@@ -89,5 +94,10 @@ library project GNATcov_RTS is
         ("-O2", "-g", "-Wall", "-Wextra", "-std=c89");
       for Default_Switches ("Ada") use ("-O2", "-g", "-gnatwa");
    end Compiler;
+
+   package Install is
+      for Artifacts ("share/gnatcov_rts") use
+        ("setup-config-" & Project_Name & ".json");
+   end Install;
 
 end GNATcov_RTS;
