@@ -1,35 +1,92 @@
---  Project to provide common units for the runtime of instrumented programs
+--  Instrumentation runtime for gnatcov.
 --
---  This is a simple project that contains only type definitions for coverage
---  buffers and for the format of GNATcoverage's source trace files.
+--  This project is meant to be built and installed before instrumenting
+--  projects with "gnatcov instrument", and then to be used when building
+--  instrumented programs thanks to gprbuild's --implicit-with option.
 --
---  If you need to use GNATcoverage's own implementation of the writer for
---  source traces files (GNATcov_RTS.Traces.Output.Files), please use the
---  gnatcov_rts_full.gpr project instead.
+--  As all Ada/C language runtimes have different capabilities, this project is
+--  configurable through external variables (gprbuild -X options) to select
+--  which units should be included/excluded from the instrumentation runtime.
+--  See the "Configuration declarations" section below for the list of
+--  available configurations.
 
 library project GNATcov_RTS is
+
+   type Boolean is ("false", "true");
+   type RTS_Profile_Type is ("full", "embedded");
+
+   --------------------------------
+   -- Configuration declarations --
+   --------------------------------
+
+   With_Ada : Boolean := external ("GNATCOV_RTS_WITH_ADA", "true");
+   --  Whether to include Ada units in this project. Necessary when
+   --  instrumenting Ada code.
+   --
+   --  Note that when Ada support is enabled, we provide the stdout-base64
+   --  implementation helpers declared in gnatcov_rts_c-base_io.h in the
+   --  GNATcov_RTS.Base_IO unit (itself implemented on top of the Ada runtime).
+   --  When Ada support is disabled, we provide these helpers in the
+   --  gnatcov_rts_c-base_io.c C unit instead (implemented on top of libc's
+   --  stdout/fwrite/putchar).
+
+   RTS_Profile : RTS_Profile_Type :=
+     external ("GNATCOV_RTS_RTS_PROFILE", "full");
+
+   -------------------------
+   -- Configuration logic --
+   -------------------------
+
+   Languages := ("C");
+   Excluded_Source_Files := ();
+
+   --  Compute the set of languages for this project. When Ada is enabled,
+   --  exclude the C implementation for stdout output primitives.
+
+   case With_Ada is
+      when "false" => null;
+      when "true"  =>
+         Languages := Languages & ("Ada");
+         Excluded_Source_Files :=
+           Excluded_Source_Files & ("gnatcov_rts_c-base_io.c");
+   end case;
+
+   --  If the runtime does not have support to create files, exclude units that
+   --  depend on that feature.
+
+   case RTS_Profile is
+      when "embedded" =>
+         Excluded_Source_Files :=
+           Excluded_Source_Files
+           & ("gnatcov_rts-traces-output-files.adb",
+              "gnatcov_rts-traces-output-files.ads",
+              "gnatcov_rts_c-traces-output-files.c",
+              "gnatcov_rts_c-traces-output-files.h");
+      when "full" => null;
+   end case;
+
+   ------------
+   -- Common --
+   ------------
+
+   --  If the target supports relocatable libraries, this project should be
+   --  built and installed once for each library kind.
 
    type Any_Library_Type is ("static", "relocatable", "static-pic");
    Library_Type : Any_Library_Type := external ("LIBRARY_TYPE", "static");
 
+   for Languages use Languages;
    for Library_Name use "gnatcov_rts";
    for Library_Kind use Library_Type;
    for Library_Dir use "lib-gnatcov_rts." & Library_Type;
    for Object_Dir use "obj-gnatcov_rts." & Library_Type;
 
    for Source_Dirs use (".");
-   
-   --  The following units require special runtime support (file creation
-   --  support). The purpose of gnatcov_rts.gpr is to be used with minimal
-   --  runtime support (in a bareboard context), so we will exclude these files
-   --  from the sources closure.
+   for Excluded_Source_Files use Excluded_Source_Files;
 
-   for Excluded_Source_Files use
-       ("gnatcov_rts_c-base_io.c",
-        "gnatcov_rts-traces-output-files.adb",
-        "gnatcov_rts-traces-output-files.ads",
-        "gnatcov_rts_c-traces-output-files.c",
-        "gnatcov_rts_c-traces-output-files.h");
+   package Compiler is
+      for Default_Switches ("C") use ("-O2", "-g");
+      for Default_Switches ("Ada") use ("-O2", "-g");
+   end Compiler;
 
-   for Languages use ("Ada", "C");
 end GNATcov_RTS;
