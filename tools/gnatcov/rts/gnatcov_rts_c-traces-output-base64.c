@@ -20,6 +20,7 @@
 #include "gnatcov_rts_c-traces-output-base64.h"
 #include "gnatcov_rts_c-base_io.h"
 #include "gnatcov_rts_c-traces-output.h"
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -79,7 +80,8 @@ flush (gnatcov_rts_base64_buffer *output)
       out_digits[3] = base64_padding;
       break;
 
-    case 3:
+    default:
+      /* This has to be case 3.  */
       out_digits[0] = img (in_bytes[0] >> 2);
       out_digits[1] = img (((in_bytes[0] % 4) << 4) | (in_bytes[1] >> 4));
       out_digits[2] = img (((in_bytes[1] % 16) << 2) | (in_bytes[2] >> 6));
