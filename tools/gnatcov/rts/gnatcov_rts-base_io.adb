@@ -26,8 +26,6 @@
 
 with GNAT.IO;
 
-with Interfaces.C; use Interfaces.C;
-
 package body GNATcov_RTS.Base_Io is
 
    ---------

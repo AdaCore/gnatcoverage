@@ -24,9 +24,6 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Interfaces.C;         use Interfaces.C;
-with Interfaces.C.Strings; use Interfaces.C.Strings;
-
 with GNATcov_RTS.Base_IO; use GNATcov_RTS.Base_IO;
 with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 

@@ -34,12 +34,6 @@ package body GNATcov_RTS.Buffers is
      (Buffer_Address : System.Address; Bit : Bit_Id) return GNATcov_RTS_Bool;
    pragma Import (C, GNATcov_RTS_Witness);
 
-   function GNATcov_RTS_Witness_Decision
-     (Buffer_Address      : System.Address;
-      False_Bit, True_Bit : Bit_Id;
-      Value               : Bit_Id) return GNATcov_RTS_Bool;
-   pragma Import (C, GNATcov_RTS_Witness_Decision);
-
    function GNATcov_RTS_Witness_Decision_MCDC
      (Decision_Buffer_Address : System.Address;
       False_Bit, True_Bit     : Bit_Id;

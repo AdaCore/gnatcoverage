@@ -26,8 +26,7 @@
 
 with Ada.Command_Line;
 
-with Interfaces;           use Interfaces;
-with Interfaces.C.Strings; use Interfaces.C.Strings;
+with Interfaces; use Interfaces;
 
 with GNATcov_RTS.Base_IO;       use GNATcov_RTS.Base_IO;
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;

@@ -24,11 +24,6 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Interfaces.C; use Interfaces.C;
-with System;
-
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-
 package GNATcov_RTS.Buffers.Lists is
 
    pragma Preelaborate;

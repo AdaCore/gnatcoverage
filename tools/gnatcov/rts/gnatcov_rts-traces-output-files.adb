@@ -24,15 +24,12 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
-
-with System;
 
 with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
