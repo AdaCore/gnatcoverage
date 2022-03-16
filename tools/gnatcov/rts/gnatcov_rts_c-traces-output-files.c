@@ -30,7 +30,7 @@
 #include "gnatcov_rts_c-traces-output.h"
 
 static int
-write_bytes (void *output, char *bytes, unsigned count)
+write_bytes (void *output, void *bytes, unsigned count)
 {
   FILE *file = (FILE *) output;
   fwrite (bytes, count, 1, file);

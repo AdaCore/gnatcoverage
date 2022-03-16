@@ -106,12 +106,12 @@ flush (gnatcov_rts_base64_buffer *output)
 }
 
 static int
-write_bytes (void *output, char *bytes, unsigned count)
+write_bytes (void *output, void *bytes, unsigned count)
 {
   gnatcov_rts_base64_buffer *buffer = (gnatcov_rts_base64_buffer *) output;
   uint8_t *bytes_array = (uint8_t *) bytes;
 
-  for (int i = 0; i < count; i++)
+  for (unsigned i = 0; i < count; i++)
     {
       buffer->bytes[buffer->next] = bytes_array[i];
       buffer->next = buffer->next + 1;

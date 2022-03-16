@@ -27,7 +27,7 @@ const unsigned alignment = sizeof (void *);
 
 typedef struct info_entry_d
 {
-  uint8_t *data;
+  void *data;
   uint32_t length;
 } info_entry;
 
@@ -41,7 +41,7 @@ write_padding (gnatcov_rts_write_bytes_callback write_bytes, void *output,
     {
       uint8_t bytes[pad_count];
       memset (bytes, 0, pad_count);
-      write_bytes (output, (void *)bytes, pad_count);
+      write_bytes (output, bytes, pad_count);
     }
 }
 
@@ -68,8 +68,8 @@ write_info (gnatcov_rts_write_bytes_callback write_bytes, void *output,
   struct trace_info_header header;
   header.kind = kind;
   header.length = data->length;
-  write_bytes (output, (char *) &header, sizeof (header));
-  write_bytes (output, &(data->data[0]), data->length);
+  write_bytes (output, &header, sizeof (header));
+  write_bytes (output, data->data, data->length);
   write_padding (write_bytes, output, data->length);
 }
 
@@ -98,7 +98,7 @@ write_buffer (gnatcov_rts_write_bytes_callback write_bytes, void *output,
   uint8_t bit_mask = 1;
   unsigned bytes_count = 0;
 
-  for (int i = 0; i < buffer_length; i++)
+  for (unsigned i = 0; i < buffer_length; i++)
     {
       if (buffer[i])
         current_byte = current_byte | bit_mask;
@@ -189,7 +189,7 @@ gnatcov_rts_generic_write_trace_file (
               &user_data_entry);
   write_info (write_bytes, output, GNATCOV_RTS_INFO_END, &end_entry);
 
-  for (int i = 0; i < buffers->length; i++)
+  for (unsigned i = 0; i < buffers->length; i++)
     write_entry (write_bytes, output, buffers->buffers[i]);
 
   return 0;
