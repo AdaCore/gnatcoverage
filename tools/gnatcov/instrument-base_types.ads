@@ -97,6 +97,11 @@ package Instrument.Base_Types is
    function Image (CU_Name : Compilation_Unit_Name) return String;
    --  Return a string representation of CU_Name for use in diagnostics
 
+   function Qualified_Name_Slug (Name : Ada_Qualified_Name) return String;
+   --  Given a qualified name, return a unique identifier to describe it. This
+   --  identifier can be used as a filename suffix / unit name, as it does
+   --  not contain any '-'.
+
    function Instrumented_Unit_Slug
      (Instrumented_Unit : Compilation_Unit_Name) return String;
    --  Given a unit to instrument, return a unique identifier to describe it

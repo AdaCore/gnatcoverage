@@ -101,6 +101,39 @@ package body Instrument.Base_Types is
       return Instrumented_Unit_Slug (Left) = Instrumented_Unit_Slug (Right);
    end "=";
 
+   -------------------------
+   -- Qualified_Name_Slug --
+   -------------------------
+
+   function Qualified_Name_Slug (Name : Ada_Qualified_Name) return String
+   is
+      First  : Boolean := True;
+      Result : Ada_Identifier;
+   begin
+      --  Create a unique slug from the qualified name: replace occurences of
+      --  'z' with 'zz' and insert '_z_' between identifiers.
+
+      for Id of Name loop
+         if First then
+            First := False;
+         else
+            Append (Result, "_z_");
+         end if;
+         for I in 1 .. Length (Id) loop
+            declare
+               Char : constant Character := Element (Id, I);
+            begin
+               if Char in 'Z' | 'z' then
+                  Append (Result, "zz");
+               else
+                  Append (Result, Char);
+               end if;
+            end;
+         end loop;
+      end loop;
+      return To_String (Result);
+   end Qualified_Name_Slug;
+
    ----------------------------
    -- Instrumented_Unit_Slug --
    ----------------------------
@@ -108,7 +141,6 @@ package body Instrument.Base_Types is
    function Instrumented_Unit_Slug
      (Instrumented_Unit : Compilation_Unit_Name) return String
    is
-      First : Boolean := True;
    begin
       case Instrumented_Unit.Language_Kind is
          when Unit_Based_Language =>
@@ -120,28 +152,10 @@ package body Instrument.Base_Types is
 
                Append (Result, Part_Tags (Instrumented_Unit.Part) & '_');
 
-               --  Create a unique suffix corresponding to the qualified name
-               --  of the unit to instrument. Replace occurences of 'z' with
-               --  'zz' and insert '_z_' between identifiers.
+               --  Append a unique suffix corresponding to the qualified name
+               --  of the unit to instrument.
 
-               for Id of Instrumented_Unit.Unit loop
-                  if First then
-                     First := False;
-                  else
-                     Append (Result, "_z_");
-                  end if;
-                  for I in 1 .. Length (Id) loop
-                     declare
-                        Char : constant Character := Element (Id, I);
-                     begin
-                        if Char in 'Z' | 'z' then
-                           Append (Result, "zz");
-                        else
-                           Append (Result, Char);
-                        end if;
-                     end;
-                  end loop;
-               end loop;
+               Append (Result, Qualified_Name_Slug (Instrumented_Unit.Unit));
                return To_String (Result);
             end;
 

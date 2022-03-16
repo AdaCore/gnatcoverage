@@ -82,6 +82,11 @@ package body Instrument.Ada_Unit is
    --  Return the qualified name corresponding to the given name from a parse
    --  tree.
 
+   function To_Qualified_Name
+     (Name : Unbounded_String) return Ada_Qualified_Name;
+   --  Return the qualified name corresponding to the given name (e.g.
+   --  foo-bar -> Foo.Bar).
+
    -----------------------
    -- To_Qualified_Name --
    -----------------------
@@ -121,6 +126,30 @@ package body Instrument.Ada_Unit is
                   with "no qualified name for " & Name.Kind'Image & " nodes";
          end case;
       end return;
+   end To_Qualified_Name;
+
+   -----------------------
+   -- To_Qualified_Name --
+   -----------------------
+
+   function To_Qualified_Name
+     (Name : Unbounded_String) return Ada_Qualified_Name
+   is
+      Result      : Ada_Qualified_Name;
+      Start_Index : Positive := 1;
+   begin
+      for I in 1 .. Length (Name) loop
+         if Element (Name, I) = '-' then
+            Result.Append
+              (Instrument.Base_Types.Ada_Identifier
+                 (+Slice (Name, Start_Index, I - 1)));
+            Start_Index := I + 1;
+         end if;
+      end loop;
+      Result.Append
+        (Instrument.Base_Types.Ada_Identifier
+           (+Slice (Name, Start_Index, Length (Name))));
+      return Result;
    end To_Qualified_Name;
 
    type All_Symbols is
@@ -891,13 +920,10 @@ package body Instrument.Ada_Unit is
    -- Unit instrumentation --
    --------------------------
 
-   function Buffers_List_Unit (IC : Inst_Context) return Ada_Qualified_Name is
-     (Ada_Identifier_Vectors."&"
-        (Sys_Buffers_Lists,
-         Instrument.Base_Types.Ada_Identifier (IC.Project_Name)));
+   function Buffers_List_Unit (IC : Inst_Context) return Ada_Qualified_Name;
    --  Returns the name of the unit containing the array of coverage buffers.
    --  It is named after the root project name (e.g. if the root project is
-   --  p.gpr, its name is <Sys_Buffers_Lists>.P).
+   --  p.gpr, its name is <Sys_Buffers_Lists>.<Slug for P>).
 
    function Pure_Buffer_Unit
      (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
@@ -6543,6 +6569,20 @@ package body Instrument.Ada_Unit is
 
       Rewriter.Apply;
    end Instrument_Source_File;
+
+   -----------------------
+   -- Buffers_List_Unit --
+   -----------------------
+
+   function Buffers_List_Unit (IC : Inst_Context) return Ada_Qualified_Name
+   is
+      Project_Name_Slug : constant String :=
+        Qualified_Name_Slug (To_Qualified_Name (IC.Project_Name));
+   begin
+      return Ada_Identifier_Vectors."&"
+        (Sys_Buffers_Lists,
+         Instrument.Base_Types.Ada_Identifier (+Project_Name_Slug));
+   end Buffers_List_Unit;
 
    ----------------------
    -- Pure_Buffer_Unit --
