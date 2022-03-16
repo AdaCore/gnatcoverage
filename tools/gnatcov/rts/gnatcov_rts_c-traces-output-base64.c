@@ -133,6 +133,7 @@ gnatcov_rts_write_trace_file_base64 (
   gnatcov_rts_string begin_string
     = STR ("== GNATcoverage source trace file ==");
   gnatcov_rts_string end_string = STR ("== End ==");
+  gnatcov_rts_putchar ('\n');
   gnatcov_rts_puts (begin_string);
   gnatcov_rts_generic_write_trace_file (&buffer, buffers, STR (""), 0,
                                         STR (""), write_bytes);
