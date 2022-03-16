@@ -97,8 +97,9 @@ write_buffer (gnatcov_rts_write_bytes_callback write_bytes, void *output,
   uint8_t current_byte = 0;
   uint8_t bit_mask = 1;
   unsigned bytes_count = 0;
+  unsigned i;
 
-  for (unsigned i = 0; i < buffer_length; i++)
+  for (i = 0; i < buffer_length; i++)
     {
       if (buffer[i])
         current_byte = current_byte | bit_mask;
@@ -150,8 +151,9 @@ write_date (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 {
   uint8_t formatted_date[8];
   info_entry entry;
+  int i;
 
-  for (int i = 0; i < 8; i++)
+  for (i = 0; i < 8; i++)
     {
       formatted_date[i] = timestamp & 0xFF;
       timestamp >>= 8;
@@ -169,6 +171,7 @@ gnatcov_rts_generic_write_trace_file (
     gnatcov_rts_string program_name, uint64_t exec_date,
     gnatcov_rts_string user_data, gnatcov_rts_write_bytes_callback write_bytes)
 {
+  unsigned i;
 
   info_entry program_name_entry;
   program_name_entry.length = program_name.length;
@@ -189,7 +192,7 @@ gnatcov_rts_generic_write_trace_file (
               &user_data_entry);
   write_info (write_bytes, output, GNATCOV_RTS_INFO_END, &end_entry);
 
-  for (unsigned i = 0; i < buffers->length; i++)
+  for (i = 0; i < buffers->length; i++)
     write_entry (write_bytes, output, buffers->buffers[i]);
 
   return 0;

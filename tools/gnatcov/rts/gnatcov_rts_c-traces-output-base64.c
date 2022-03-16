@@ -60,6 +60,7 @@ flush (gnatcov_rts_base64_buffer *output)
 {
   uint8_t *in_bytes = output->bytes;
   char out_digits[4];
+  int i;
 
   switch (output->next)
     {
@@ -93,7 +94,7 @@ flush (gnatcov_rts_base64_buffer *output)
      a newline when needed in order to avoid exceeding 80 characters per
      line.  */
 
-  for (int i = 0; i < 4; i++)
+  for (i = 0; i < 4; i++)
     gnatcov_rts_putchar (out_digits[i]);
 
   output->columns += 4;
@@ -112,8 +113,9 @@ write_bytes (void *output, void *bytes, unsigned count)
 {
   gnatcov_rts_base64_buffer *buffer = (gnatcov_rts_base64_buffer *) output;
   uint8_t *bytes_array = (uint8_t *) bytes;
+  unsigned i;
 
-  for (unsigned i = 0; i < count; i++)
+  for (i = 0; i < count; i++)
     {
       buffer->bytes[buffer->next] = bytes_array[i];
       buffer->next = buffer->next + 1;

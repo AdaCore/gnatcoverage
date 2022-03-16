@@ -58,7 +58,7 @@ concat (const char *s1, ...)
 
   m = n = strlen (s1);
 
-  // Compute length of result string.
+  /* Compute length of result string.  */
 
   va_start (args, s1);
   while ((s = va_arg (args, char *)))
@@ -69,7 +69,7 @@ concat (const char *s1, ...)
 
   result = (char *) malloc (m + 1);
 
-  // Then, concatenate all the strings in the result buffer.
+  /* Then, concatenate all the strings in the result buffer.  */
 
   memcpy (p = result, s1, n);
   p += n;
@@ -82,7 +82,7 @@ concat (const char *s1, ...)
     }
   va_end (args);
 
-  // Null-terminate the result string.
+  /* Null-terminate the result string.  */
 
   *p = 0;
 
