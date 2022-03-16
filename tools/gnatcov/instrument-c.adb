@@ -31,7 +31,7 @@ with Clang.CX_String;  use Clang.CX_String;
 with GNAT.String_Split;
 
 with GNATCOLL.Projects;
-with GNATCOLL.VFS;
+with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Interfaces.C; use Interfaces.C;
 
@@ -2095,7 +2095,9 @@ package body Instrument.C is
                   else """" & (+IC.Dump_Config.Filename_Env_Var) & """");
                Prefix  : constant String :=
                  (if US.Length (IC.Dump_Config.Filename_Prefix) = 0
-                  then """" & (+Main.Filename) & """"
+                  then """" & String'(+Info.Project.Executable_Name
+                                (+(+Main.Filename),
+                                 Include_Suffix => True)) & """"
                   else """" & (+IC.Dump_Config.Filename_Prefix) & """");
                Tag     : constant String := """" & (+IC.Tag) & """";
                Simple  : constant String :=
