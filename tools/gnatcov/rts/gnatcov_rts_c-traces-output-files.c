@@ -157,7 +157,7 @@ gnatcov_rts_write_trace_file (gnatcov_rts_unit_coverage_buffers_array *buffers,
                               uint64_t exec_date, gnatcov_rts_string user_data)
 {
   FILE *file = fopen (filename, "wb+");
-  if (errno != 0)
+  if (!file)
     return 1;
 
   gnatcov_rts_generic_write_trace_file (file, buffers, program_name, exec_date,
