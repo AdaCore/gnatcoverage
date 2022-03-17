@@ -6961,7 +6961,7 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("      " & To_Ada (Output_Proc));
          File.Put      ("        (");
 
-         File.Put_Line (To_Ada (Buffers_List_Unit (IC)) & ".Buffers,");
+         File.Put_Line (To_Ada (Buffers_List_Unit (IC)) & ".List,");
          case IC.Dump_Config.Channel is
          when Binary_File =>
             declare
@@ -7153,7 +7153,7 @@ package body Instrument.Ada_Unit is
 
          --  Create the list of coverage buffers
 
-         File.Put_Line ("   Buffers : GNATcov_RTS.Buffers.Lists"
+         File.Put_Line ("   List : GNATcov_RTS.Buffers.Lists"
                         & ".Unit_Coverage_Buffers_Array := (");
          for Cur in Instr_Units.Iterate loop
             declare
