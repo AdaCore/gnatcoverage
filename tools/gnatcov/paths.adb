@@ -123,6 +123,10 @@ package body Paths is
       --  [!abc] and [^abc] can be used to match anything but a,b or c.
       --  The first form comes from fnmatch, while the other was added for
       --  consistency with the globbing patterns accepted by GNAT.Regexp.
+      --
+      --  We also automatically translate '\' (backslashes) to forward slashes
+      --  ('/'), so that we can transparently match Windows-style file names on
+      --  Unix systems and conversely.
 
       while I <= Pat'Last loop
 
@@ -154,7 +158,7 @@ package body Paths is
                      for J in I .. End_Cur loop
                         case Pat (J) is
                         when '\' =>
-                           Append (Res, "\\");
+                           Append (Res, "/");
                         when '-' =>
                            Append (Res, "\-");
                         when '!' | '^' =>
@@ -170,6 +174,8 @@ package body Paths is
                      I := End_Cur;
                   end if;
                end;
+            when '\' =>
+               Append (Res, '/');
             when others =>
                Append (Res, Quote ("" & Pat (I)));
          end case;

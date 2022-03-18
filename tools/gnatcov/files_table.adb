@@ -171,6 +171,10 @@ package body Files_Table is
    --  (see --source-rebase and --source-search command line arguments).
    --  Return No_File if we could not locate the file.
 
+   function Name_For_Rebase (File : Virtual_File) return String;
+   --  Helper for Locate_Source. Return the file name to use in source rebasing
+   --  for File.
+
    --  Executable search prefix
 
    Exec_Search_Prefix : Virtual_File;
@@ -317,13 +321,22 @@ package body Files_Table is
       --  Windows paths are canonicalized so use case insensitive regexp to
       --  make sure the prefix has a chance to match.
 
-   begin
+      Actual_New_Prefix : constant String_Access :=
+        Canonicalize_Filename (New_Prefix);
       --  Canonicalize the new prefix so all absolute paths in the file table
       --  are canonicalized.
 
+   begin
+      if Switches.Verbose then
+         Put_Line ("Adding source rebase:");
+         Put_Line ("  Glob   -> " & Old_Prefix);
+         Put_Line ("  Regexp -> " & Regexp);
+         Put_Line ("  Will become: " & New_Prefix);
+      end if;
+
       E := new Source_Rebase_Entry'
         (Old_Prefix => new Pattern_Matcher'(Compile (Regexp, Flags)),
-         New_Prefix => Canonicalize_Filename (New_Prefix),
+         New_Prefix => Actual_New_Prefix,
          Next       => null);
       if First_Source_Rebase_Entry = null then
          First_Source_Rebase_Entry := E;
@@ -1603,8 +1616,8 @@ package body Files_Table is
 
       declare
          use GNAT.Regpat;
-         E     : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
-         Name  : constant String := +File.Full_Name;
+         E    : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
+         Name : constant String := Name_For_Rebase (File);
 
          Match_Res : GNAT.Regpat.Match_Array (0 .. 0);
       begin
@@ -1640,6 +1653,27 @@ package body Files_Table is
       return No_File;
 
    end Locate_Source;
+
+   ---------------------
+   -- Name_For_Rebase --
+   ---------------------
+
+   function Name_For_Rebase (File : Virtual_File) return String is
+   begin
+      --  Source rebasing works on the absolute file name
+
+      return Result : String := +File.Full_Name do
+
+         --  Replace backslashes with forward slashes, as our globbing patterns
+         --  canonicalize to forward slashes.
+
+         for C of Result loop
+            if C = '\' then
+               C := '/';
+            end if;
+         end loop;
+      end return;
+   end Name_For_Rebase;
 
    -------------------------------
    -- Writeable_Sloc_To_SCO_Map --
