@@ -124,47 +124,6 @@ package body Traces_Files is
    --  The currently accepted trace kind, start as Unknown and is updated as
    --  soon as we load a trace, a checkpoint or start instrumenting a project.
 
-   -----------------------------------
-   -- Currently_accepted_Trace_Kind --
-   -----------------------------------
-
-   function Currently_Accepted_Trace_Kind return Any_Accepted_Trace_Kind is
-     (Current_Trace_Kind);
-
-   -------------------------------
-   -- Update_Current_Trace_Kind --
-   -------------------------------
-
-   procedure Update_Current_Trace_Kind (New_Kind : Any_Accepted_Trace_Kind) is
-      Trace_Mix_Error_Msg : constant String :=
-        "Mixing source traces and binary traces is not supported. Please only"
-        & " use a single kind of traces.";
-   begin
-      case Current_Trace_Kind is
-         when Unknown =>
-            Current_Trace_Kind := New_Kind;
-         when Source_Trace_File | Binary_Trace_File =>
-            if Current_Trace_Kind /= New_Kind then
-
-               --  Warn or emit an error message if we have inconsistent
-               --  supported trace kinds.
-
-               if Switches.Allow_Mixing_Trace_Kinds then
-                  Warn (Trace_Mix_Error_Msg);
-               else
-                  Fatal_Error (Trace_Mix_Error_Msg);
-               end if;
-               Current_Trace_Kind := All_Trace_Files;
-            end if;
-         when All_Trace_Files =>
-
-            --  We cannot accept more trace kinds than All_Trace_File,
-            --  so there is nothing to do.
-
-            null;
-      end case;
-   end Update_Current_Trace_Kind;
-
    procedure Open_Trace_File
      (Filename   : String;
       Desc       : out Trace_File_Descriptor;
@@ -279,6 +238,47 @@ package body Traces_Files is
    --  that fits our internal data structures. Offset is used to relocate the
    --  entry. It is 0 for statically linked code and non-null for dynamically
    --  linked code.
+
+   -----------------------------------
+   -- Currently_accepted_Trace_Kind --
+   -----------------------------------
+
+   function Currently_Accepted_Trace_Kind return Any_Accepted_Trace_Kind is
+     (Current_Trace_Kind);
+
+   -------------------------------
+   -- Update_Current_Trace_Kind --
+   -------------------------------
+
+   procedure Update_Current_Trace_Kind (New_Kind : Any_Accepted_Trace_Kind) is
+      Trace_Mix_Error_Msg : constant String :=
+        "Mixing source traces and binary traces is not supported. Please only"
+        & " use a single kind of traces.";
+   begin
+      case Current_Trace_Kind is
+         when Unknown =>
+            Current_Trace_Kind := New_Kind;
+         when Source_Trace_File | Binary_Trace_File =>
+            if Current_Trace_Kind /= New_Kind then
+
+               --  Warn or emit an error message if we have inconsistent
+               --  supported trace kinds.
+
+               if Switches.Allow_Mixing_Trace_Kinds then
+                  Warn (Trace_Mix_Error_Msg);
+               else
+                  Fatal_Error (Trace_Mix_Error_Msg);
+               end if;
+               Current_Trace_Kind := All_Trace_Files;
+            end if;
+         when All_Trace_Files =>
+
+            --  We cannot accept more trace kinds than All_Trace_File,
+            --  so there is nothing to do.
+
+            null;
+      end case;
+   end Update_Current_Trace_Kind;
 
    ----------------------------
    -- Success_Or_Fatal_Error --
