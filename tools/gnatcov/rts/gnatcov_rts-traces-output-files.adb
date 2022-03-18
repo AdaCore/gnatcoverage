@@ -128,14 +128,27 @@ package body GNATcov_RTS.Traces.Output.Files is
       Exec_Date    : Time   := Clock;
       User_Data    : String := "")
    is
+
+      function C_Strerror (Errnum : C.int) return C.Strings.chars_ptr;
+      pragma Import (C, C_Strerror, "strerror");
+      --  GNAT.OS_Lib.Errno_Message is not available in GNAT 5.04a1. Use the
+      --  C function to get a descriptive error message from the value of
+      --  errno.
+
    begin
       Write_Trace_File (Buffers, Filename, Program_Name, Exec_Date, User_Data);
    exception
       when IO_Error =>
-         Ada.Text_IO.Put_Line
-           (Standard_Error,
-            "Error occurred while creating the trace file " & Filename
-            & ": " & GNAT.OS_Lib.Errno_Message);
+         declare
+            C_Error_Msg : constant chars_ptr :=
+              C_Strerror (C.int (GNAT.OS_Lib.Errno));
+            Error_Msg   : constant String := Value (C_Error_Msg);
+         begin
+            Ada.Text_IO.Put_Line
+              (Standard_Error,
+               "Error occurred while creating the trace file " & Filename
+               & ": " & Error_Msg);
+         end;
    end Write_Trace_File_Wrapper;
 
 end GNATcov_RTS.Traces.Output.Files;
