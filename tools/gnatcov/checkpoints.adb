@@ -19,11 +19,14 @@
 with Ada.Streams.Stream_IO; use Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 
+with Interfaces; use Interfaces;
+
 with Coverage.Source;
 with Coverage_Options; use Coverage_Options;
 with Instrument.Checkpoints;
 with Outputs;          use Outputs;
-with Traces_Files;
+with Traces;           use Traces;
+with Traces_Files;     use Traces_Files;
 with Traces_Files_Registry;
 
 package body Checkpoints is
@@ -51,6 +54,38 @@ package body Checkpoints is
      (CU_Id_Ignored_Map_Array, CU_Id_Ignored_Access);
    procedure Free is new Ada.Unchecked_Deallocation
      (SCO_Ignored_Map_Array, SCO_Ignored_Map_Access);
+
+   type Binary_Traces_Bits is (Undetermined, Bits_32, Bits_64);
+   --  Describe the nature of binary traces that contributed to create a
+   --  checkpoint.
+   --
+   --  Undetermined
+   --
+   --    No binary trace was used (as far as gnatcov knows).
+   --
+   --  Bits_32
+   --
+   --    Only 32-bit traces were used.
+   --
+   --  Bits_64
+   --
+   --    Only 64-bit traces were used.
+   --
+   --  Remember that it is invalid to mix 32-bit and 64-bit traces.
+
+   subtype Determined_Binary_Traces_Bits is
+     Binary_Traces_Bits range Bits_32 ..  Bits_64;
+
+   Supported_Bits : constant Determined_Binary_Traces_Bits :=
+     (if Pc_Type_Size = 4 then Bits_32 else Bits_64);
+   --  Kind of binary traces that this instance of gnatcov can read
+
+   function Image (Bits : Determined_Binary_Traces_Bits) return String
+   is (case Bits is
+       when Bits_32 => "32-bit traces",
+       when Bits_64 => "64-bit traces");
+   --  Helper to format error messages about binary traces bits. Return the
+   --  name of the kind of traces described by Bits.
 
    -----------------------
    -- Allocate_SFI_Maps --
@@ -399,6 +434,18 @@ package body Checkpoints is
 
          Checkpoint_Purpose'Write (CSS.Stream, Purpose);
 
+         --  Describe the binary traces (if any) that contributed to the
+         --  creation of this checkpoint.
+
+         declare
+            Bits : constant Binary_Traces_Bits :=
+              (case Currently_Accepted_Trace_Kind is
+               when Unknown | Source_Trace_File         => Undetermined,
+               when Binary_Trace_File | All_Trace_Files => Supported_Bits);
+         begin
+            Binary_Traces_Bits'Write (CSS.Stream, Bits);
+         end;
+
          --  Instrumentation is the same for all MC/DC variants, so a
          --  checkpoint generated for any of them supports all of them.
          --  Instrumentation for MC/DC also provides evertyhing needed
@@ -506,6 +553,23 @@ package body Checkpoints is
                end;
             end if;
 
+            --  Check the kind of binary traces that were used to create this
+            --  checkpoint.
+
+            if not Version_Less (CLS'Access, Than => 7) then
+               declare
+                  Bits : constant Binary_Traces_Bits :=
+                    Binary_Traces_Bits'Input (CLS.Stream);
+               begin
+                  if Bits not in Undetermined | Supported_Bits then
+                     Fatal_Error
+                       (Filename & " was created with " & Image (Bits)
+                        & " whereas the selected target requires "
+                        & Image (Supported_Bits));
+                  end if;
+               end;
+            end if;
+
             Levels_Type'Read (CLS.Stream, Levels);
             declare
                Error_Msg : constant String :=
@@ -518,8 +582,6 @@ package body Checkpoints is
 
             if not Version_Less (CLS'Access, Than => 6) then
                declare
-                  use Traces_Files;
-
                   CP_Trace_Kind : Any_Accepted_Trace_Kind;
                begin
                   Any_Accepted_Trace_Kind'Read (CLS.Stream, CP_Trace_Kind);
