@@ -501,8 +501,8 @@ package Command_Line is
       Opt_Subdirs => Create
         (Long_Name    => "--subdirs",
          Pattern      => "[SUBDIR]",
-         Help         => "When using project files, look for ALI files in the"
-                         & " provided SUBDIR of the projects' build"
+         Help         => "When using project files, look for ALI/SID files in"
+                         & " the provided SUBDIR of the projects' build"
                          & " directory.",
          At_Most_Once => False,
          Internal     => False),
