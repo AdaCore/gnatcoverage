@@ -23,5 +23,5 @@ end;
 --  issue and are not so incorrect for a statement spanning multiple
 --  lines.
 
--- %tags: (7.1.2|7.2.2) %cargs: -O1
+-- %tags: (7.1.2|7.2.2), bin-traces %cargs: -O1
 -- =/carry/ l! ## s!

@@ -23,7 +23,7 @@ end;
 
 --  Some compilers are imprecise with multiple stmts on a line
 
--- %tags:(7.1.2|7.2.2)
+-- %tags:(7.1.2|7.2.2), bin-traces
 -- =/init/   l! ## s!,dF-:"if Hit > 0"
 -- =/double/ l! ## s!,dT-:"if Double"
 -- =/triple/ l! ## s!,dT-:"if Triple"

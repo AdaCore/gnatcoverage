@@ -3,3 +3,4 @@ p55-elf XFAIL Machine_Overflows True, no raise on overflow
 --  No urgent need for support
 bin-traces,RTS_ZFP XFAIL PB15-008: inaccurate decision coverage for floating-point overflow check on ZFP
 5.04a1 DEAD pragma "Check-Float-Overflow" not available in 5.04, causing assertion failure
+7.1.2 DEAD pragma "Check-Float-Overflow" not available in 7.1.2, causing assertion failure

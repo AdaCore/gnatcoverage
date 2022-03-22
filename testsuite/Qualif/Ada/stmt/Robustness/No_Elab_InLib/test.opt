@@ -1,2 +1,2 @@
-7.1.2 DEAD relies on compiler change introduced post 7.4
+7.1.2,bin-traces DEAD relies on compiler change introduced post 7.4
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04

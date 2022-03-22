@@ -11,5 +11,5 @@ end;
 --  /sum/   l+ ## 0
 --  /carry/ l! ## s-:"Carry := False"
 
--- %tags: (7.1.2|7.2.2)
+-- %tags: (7.1.2|7.2.2), bin-traces
 -- =/carry/ l! ## s!

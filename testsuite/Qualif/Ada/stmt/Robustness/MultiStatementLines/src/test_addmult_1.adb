@@ -13,5 +13,5 @@ end;
 --# addmult.adb
 --  /compute/ l+ ## 0
 
--- %tags: (7.1.2|7.2.2)
+-- %tags: (7.1.2|7.2.2),bin-traces
 -- =/compute/ l! ## s!

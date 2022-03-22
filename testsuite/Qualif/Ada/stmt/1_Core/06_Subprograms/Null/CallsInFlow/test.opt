@@ -1,2 +1,2 @@
-7.1.2 XFAIL P911-006: SCOs for null subprograms inaccurate in 7.1.2
+7.1.2,bin-traces XFAIL P911-006: SCOs for null subprograms inaccurate in 7.1.2
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
