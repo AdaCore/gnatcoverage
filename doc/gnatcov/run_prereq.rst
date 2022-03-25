@@ -11,11 +11,12 @@ optimizations and allow mapping trace info to source constructs.
 together with :option:`-mlongcall` for PowerPC configurations.  Optimization is
 supported up to :option:`-O1`, with inlining allowed.
 
-The :option:`-fprofile-arcs` compilation switch, intended for analysis with
-the gcov tool, is incompatible with the needs of |gcp| and must not be
-used. Likewise for the :option:`-gnatV` family of GNAT Pro switches requesting
-data validity checks other than those mandated by the Ada RM (special case of
-:option:`-gnatVd`).
+The :option:`-fprofile-arcs` or :option:`--coverage` compilation
+switches, intended for analysis with the gcov tool, are incompatible
+with the needs of |gcp| for binary traces and must not be
+used. Likewise for the :option:`-gnatV` family of GNAT Pro switches
+requesting data validity checks other than those mandated by the Ada
+RM (special case of :option:`-gnatVd`).
 
 For object coverage assessments, only :option:`-g` is of possible use, if you
 intend to produce annotated sources as coverage reports. If source coverage
