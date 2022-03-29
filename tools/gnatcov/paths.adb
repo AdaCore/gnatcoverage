@@ -98,13 +98,6 @@ package body Paths is
       use Ada.Strings.Unbounded;
       use GNAT.Regpat;
 
-      Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
-      --  Directory separator on this OS. Will also be used to determine if we
-      --  should canonicalize the pattern (only done on Windows).
-
-      Escaped_Sep : constant String := (if Sep = '\' then "\\" else "" & Sep);
-      --  Same as Sep, but escaped so that we can use it in a regexp
-
       Pat : constant String :=
         (if On_Windows
          then Normalize_Windows_Pattern (Pattern)
@@ -137,7 +130,7 @@ package body Paths is
             --  you would expect 'src_*/' to match 'src_1/' and 'src_2/', but
             --  not 'src_1/subdir/'.
 
-            when '*' => Append (Res, "[^" & Escaped_Sep & "]*");
+            when '*' => Append (Res, "[^/]*");
             when '?' => Append (Res, ".");
             when '[' =>
                declare
