@@ -30,9 +30,6 @@ package System_Commands is
       Arguments : String_Vectors.Vector;
       --  Arguments to pass to this command
 
-      Input : Ada.Strings.Unbounded.Unbounded_String;
-      --  Input to pass to this command if it is needed
-
       Environment : String_Maps.Map;
       --  Environment variables to set for this command
 
@@ -56,7 +53,8 @@ package System_Commands is
      (Command             : Command_Type;
       Origin_Command_Name : String;
       Output_File         : String := "";
-      Err_To_Out          : Boolean := True) return Boolean;
+      Err_To_Out          : Boolean := True;
+      In_To_Null          : Boolean := False) return Boolean;
    --  Run the given command and return whether it exited with a zero status
    --  code (i.e. whether it was successful).
    --
@@ -69,5 +67,9 @@ package System_Commands is
    --
    --  The subprocess standard error stream is redirected to its standard
    --  output stream iff Err_To_Out is True.
+   --
+   --  The subprocess standard input stream is redirected to the "null" stream
+   --  (stream where there is nothing to read, equivalent to /dev/null on Unix
+   --  systems) iff In_To_Null is True.
 
 end System_Commands;

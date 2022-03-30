@@ -70,13 +70,13 @@ package body System_Commands is
      (Command             : Command_Type;
       Origin_Command_Name : String;
       Output_File         : String := "";
-      Err_To_Out          : Boolean := True) return Boolean
+      Err_To_Out          : Boolean := True;
+      In_To_Null          : Boolean := False) return Boolean
    is
       use String_Maps;
       Success : Boolean;
       Prg     : String_Access;
       Args    : String_List (1 .. Natural (Command.Arguments.Length));
-      Input   : constant String := +Command.Input;
 
       Cmd : constant String := +Command.Command;
    begin
@@ -128,7 +128,26 @@ package body System_Commands is
          New_Line;
       end if;
 
-      if Input'Length = 0 then
+      if In_To_Null then
+         declare
+            File     : File_Type;
+            Status   : aliased Integer;
+            Status_A : constant access Integer := Status'Access;
+            Res      : constant String :=
+              GNAT.Expect.Get_Command_Output
+                (Prg.all, Args, "", Status_A, Err_To_Out => True);
+         begin
+            if Output_File /= "" then
+               Create (File => File,
+                       Mode => Out_File,
+                       Name => Output_File);
+               Put (File, Res);
+               Close (File);
+            end if;
+            Success := Status = 0;
+         end;
+
+      else
          if Output_File = "" then
             GNAT.OS_Lib.Spawn (Prg.all, Args, Success);
          else
@@ -143,24 +162,6 @@ package body System_Commands is
                                   Err_To_Out   => Err_To_Out);
             end;
          end if;
-      else
-         declare
-            File     : File_Type;
-            Status   : aliased Integer;
-            Status_A : constant access Integer := Status'Access;
-            Res      : constant String :=
-              GNAT.Expect.Get_Command_Output (Prg.all, Args, Input, Status_A,
-                                             Err_To_Out => True);
-         begin
-            if Output_File /= "" then
-               Create (File => File,
-                       Mode => Out_File,
-                       Name => Output_File);
-               Put (File, Res);
-               Close (File);
-            end if;
-            Success := Status = 0;
-         end;
       end if;
 
       if not Success then

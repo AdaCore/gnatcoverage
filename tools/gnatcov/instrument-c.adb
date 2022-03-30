@@ -1476,12 +1476,11 @@ package body Instrument.C is
             Append_Arg (Compiler_Command, "-dM");
             Append_Arg (Compiler_Command, "-");
 
-            Compiler_Command.Input := +("" & Types.EOF);
-
             Success := Run_Command
               (Command             => Compiler_Command.all,
                Origin_Command_Name => "gnatcov instrument",
-               Output_File         => Filename);
+               Output_File         => Filename,
+               In_To_Null          => True);
 
             --  Then, read all the macros in the output file, and store them in
             --  the cache.
