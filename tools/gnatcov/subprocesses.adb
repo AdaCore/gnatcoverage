@@ -60,7 +60,8 @@ package body Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
-      In_To_Null          : Boolean := False) return Boolean
+      In_To_Null          : Boolean := False;
+      Ignore_Error        : Boolean := False) return Boolean
    is
    begin
       return Run_Command
@@ -70,7 +71,8 @@ package body Subprocesses is
          Origin_Command_Name,
          Output_File,
          Err_To_Out,
-         In_To_Null);
+         In_To_Null,
+         Ignore_Error);
    end Run_Command;
 
    function Run_Command
@@ -80,7 +82,8 @@ package body Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
-      In_To_Null          : Boolean := False) return Boolean
+      In_To_Null          : Boolean := False;
+      Ignore_Error        : Boolean := False) return Boolean
    is
       package Process_Types renames GNATCOLL.OS.Process_Types;
 
@@ -180,7 +183,10 @@ package body Subprocesses is
          end if;
       end;
 
-      if Verbose then
+      if not Ignore_Error and then not Success then
+         Fatal_Error (Origin_Command_Name & " failed: aborting");
+
+      elsif Verbose then
          if Success then
             Put_Line (Command & " finished");
          else

@@ -18,8 +18,9 @@
 
 --  This package provides a thin layer around the GNATCOLL.OS.Process API to
 --  run subprocesses. This extra layer takes care of logging (in verbose mode,
---  subprocess arguments and environment variables) and offers a simplified API
---  to handle gnatcov's small needs for I/O redirections.
+--  subprocess arguments and environment variables), offers a simplified API to
+--  handle gnatcov's small needs for I/O redirections and can automatically
+--  abort gnatcov in case of subprocess failure.
 
 with Ada.Strings.Unbounded;
 
@@ -58,7 +59,8 @@ package Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
-      In_To_Null          : Boolean := False) return Boolean;
+      In_To_Null          : Boolean := False;
+      Ignore_Error        : Boolean := False) return Boolean;
    --  Run the given command and return whether it exited with a zero status
    --  code (i.e. whether it was successful).
    --
@@ -75,6 +77,9 @@ package Subprocesses is
    --  The subprocess standard input stream is redirected to the "null" stream
    --  (stream where there is nothing to read, equivalent to /dev/null on Unix
    --  systems) iff In_To_Null is True.
+   --
+   --  If Ignore_Error is True and the subprocess exits with a non-zero status
+   --  code, abort with Outputs.Fatal_Error.
 
    function Run_Command
      (Command             : String;
@@ -83,7 +88,8 @@ package Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
-      In_To_Null          : Boolean := False) return Boolean;
+      In_To_Null          : Boolean := False;
+      Ignore_Error        : Boolean := False) return Boolean;
    --  Overload to avoid the Command_Type layer
 
 end Subprocesses;

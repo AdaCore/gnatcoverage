@@ -166,7 +166,7 @@ package body Rundrv is
       --  code from this subprocess is not an error for trace production, as it
       --  may reflect a non-zero status code from the user program.
 
-      Dummy := Run_Command (Run_Cmd, "gnatcov run");
+      Dummy := Run_Command (Run_Cmd, "gnatcov run", Ignore_Error => True);
    end Driver;
 
 end Rundrv;
