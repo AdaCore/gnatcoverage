@@ -16,11 +16,16 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+--  This package provides a thin layer around the GNATCOLL.OS.Process API to
+--  run subprocesses. This extra layer takes care of logging (in verbose mode,
+--  subprocess arguments and environment variables) and offers a simplified API
+--  to handle gnatcov's small needs for I/O redirections.
+
 with Ada.Strings.Unbounded;
 
 with Strings; use Strings;
 
-package System_Commands is
+package Subprocesses is
 
    type Command_Type is record
       Command : Ada.Strings.Unbounded.Unbounded_String;
@@ -81,4 +86,4 @@ package System_Commands is
       In_To_Null          : Boolean := False) return Boolean;
    --  Overload to avoid the Command_Type layer
 
-end System_Commands;
+end Subprocesses;

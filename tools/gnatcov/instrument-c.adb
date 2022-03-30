@@ -41,7 +41,7 @@ with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
-with System_Commands;     use System_Commands;
+with Subprocesses;        use Subprocesses;
 with SC_Obligations;      use SC_Obligations;
 with SCOs;
 with Strings;             use Strings;

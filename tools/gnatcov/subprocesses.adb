@@ -28,7 +28,7 @@ with GNATCOLL.OS.Process_Types;
 with Outputs;  use Outputs;
 with Switches; use Switches;
 
-package body System_Commands is
+package body Subprocesses is
 
    ----------------
    -- Append_Arg --
@@ -188,4 +188,4 @@ package body System_Commands is
       return Success;
    end Run_Command;
 
-end System_Commands;
+end Subprocesses;
