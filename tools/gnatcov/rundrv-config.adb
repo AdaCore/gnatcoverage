@@ -25,26 +25,34 @@ with Strings;         use Strings;
 
 package body Rundrv.Config is
 
-   function Builtin_Driver (Context : Context_Type) return Command_Access;
+   procedure Get_Builtin_Driver
+     (Context : Context_Type;
+      Found   : out Boolean;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
    --  Helper for Lookup_Driver. If there is a builtin driver available for
-   --  this target, return a command to run it. Return null otherwise.
+   --  the requested target, get a command to run it.
 
    -------------------------------------------
    -- Matching helpers for built-in targets --
    -------------------------------------------
 
-   type Driver_Creator_Type is access function
+   type Driver_Creator_Type is access procedure
      (Context : Context_Type;
-      Matches : Match_Array)
-      return Command_Access;
-   --  Function that creates a command for some target.
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
+   --  Procedure that creates a command for some target.
    --
-   --  Such functions are evaluated when the target family string matches some
-   --  pattern. Context contains the information used to select such a
-   --  function and Matches contains the matched substrings in the target
-   --  family.
+   --  Such procedures are evaluated when the target family string matches some
+   --  pattern: Matches references the matched pattern. Context contains the
+   --  information used to select such a function and Matches contains the
+   --  matched substrings in the target family.
    --
-   --  Note that the returned command is not expected to contain arguments for
+   --  The semantics of the Context, Cmd and Native arguments is the same as
+   --  for the Lookup_Driver procedure arguments.
+   --
+   --  Note that the crated command is not expected to contain arguments for
    --  the input program (eargs): the caller will append them at the end of the
    --  arguments list.
 
@@ -72,12 +80,15 @@ package body Rundrv.Config is
    --  (without board name) pattern and a function to create the corresponding
    --  driver.
 
-   --------------------
-   -- Builtin_Driver --
-   --------------------
+   ------------------------
+   -- Get_Builtin_Driver --
+   ------------------------
 
-   function Builtin_Driver (Context : Context_Type) return Command_Access is
-      Result : Command_Access;
+   procedure Get_Builtin_Driver
+     (Context : Context_Type;
+      Found   : out Boolean;
+      Cmd     : out Command_Type;
+      Native  : out Boolean) is
    begin
       for T of Builtin_Targets loop
          declare
@@ -86,43 +97,42 @@ package body Rundrv.Config is
          begin
             Match (Pattern, Context.Target_Family.all, Matches);
             if Matches (0) /= No_Match then
-               Result := T.Driver_Creator (Context, Matches);
+               Found := True;
+               T.Driver_Creator (Context, Matches, Cmd, Native);
 
                --  Always append the eargs at the end of the command line
 
                for Earg of Context.Eargs.all loop
-                  Append_Arg (Result, Earg.all);
+                  Append_Arg (Cmd, Earg.all);
                end loop;
-               return Result;
+               return;
             end if;
          end;
       end loop;
 
-      return null;
-   end Builtin_Driver;
+      Found := False;
+   end Get_Builtin_Driver;
 
    -------------------
    -- Lookup_Driver --
    -------------------
 
-   function Lookup_Driver (Context : Context_Type) return Command_Access is
-      Result : Command_Access;
+   procedure Lookup_Driver
+     (Context : Context_Type;
+      Found   : out Boolean;
+      Cmd     : out Command_Type;
+      Native  : out Boolean) is
    begin
       --  If there is a GNATemulator available, just use it
 
-      Result := Gnatemu_Driver (Context);
-      if Result /= null then
-         return Result;
+      Get_Gnatemu_Driver (Context, Found, Cmd, Native);
+      if Found then
+         return;
       end if;
 
       --  Otherwise, fall back to our knowledge base
 
-      Result := Builtin_Driver (Context);
-      if Result /= null then
-         return Result;
-      end if;
-
-      return null;
+      Get_Builtin_Driver (Context, Found, Cmd, Native);
    end Lookup_Driver;
 
    -----------------------

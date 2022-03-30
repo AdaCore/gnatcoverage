@@ -96,11 +96,10 @@ package body Instrument.C is
    --  -D__GCC_IEC_559=2 to the preprocessing command.
    pragma Unreferenced (Def_Switches);
 
-   function Preprocessing_Command
-     (Info : in out Project_Info;
-      Filename : String) return Command_Access;
-   --  Return the command to preprocess the file. It is mandatory to do so as
-   --  clang rewriter does not accept to rewrite preprocessed code sections.
+   procedure Get_Preprocessing_Command
+     (Info : in out Project_Info; Filename : String; Cmd : out Command_Type);
+   --  Set Cmd to the command to preprocess the file. It is mandatory to do so
+   --  as clang rewriter does not accept to rewrite preprocessed code sections.
    --
    --  We will use the compiler in the Compiler_Driver attribute, that we get
    --  from GNATCOLL.Project, to preprocess the file. We will assume that it
@@ -1466,18 +1465,18 @@ package body Instrument.C is
 
       if not Compiler_Macros.Contains (+Compiler) then
          declare
-            Compiler_Command : constant Command_Access := new Command_Type;
+            Compiler_Command : Command_Type;
             Macros           : String_Vectors.Vector;
             Success          : Boolean;
          begin
-            Compiler_Command.Command := +Compiler;
+            Compiler_Command := (Command => +Compiler, others => <>);
 
             Append_Arg (Compiler_Command, "-E");
             Append_Arg (Compiler_Command, "-dM");
             Append_Arg (Compiler_Command, "-");
 
             Success := Run_Command
-              (Command             => Compiler_Command.all,
+              (Command             => Compiler_Command,
                Origin_Command_Name => "gnatcov instrument",
                Output_File         => Filename,
                In_To_Null          => True);
@@ -1590,24 +1589,20 @@ package body Instrument.C is
       return Res;
    end Def_Switches;
 
-   ---------------------------
-   -- Preprocessing_Command --
-   ---------------------------
+   -------------------------------
+   -- Get_Preprocessing_Command --
+   -------------------------------
 
-   function Preprocessing_Command
-     (Info     : in out Project_Info;
-      Filename : String) return Command_Access
+   procedure Get_Preprocessing_Command
+     (Info : in out Project_Info; Filename : String; Cmd : out Command_Type)
    is
-      Result : constant Command_Access := new Command_Type;
-
       Compiler_Driver : constant String :=
         GNATCOLL.Projects.Attribute_Value
           (Info.Project, GPR.Compiler_Driver_Attribute, "C");
-
    begin
-      Result.Command := +Compiler_Driver;
+      Cmd := (Command => +Compiler_Driver, others => <>);
 
-      Append_Arg (Result, "-E");
+      Append_Arg (Cmd, "-E");
 
       --  Then, we augment the preprocessing command with the other projects
       --  source directories.
@@ -1616,13 +1611,11 @@ package body Instrument.C is
       --  found in the gpr file.
 
       for Dir of Info.Project.Source_Dirs loop
-         Append_Arg (Result, "-I" &
-                     (GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir))));
+         Append_Arg
+           (Cmd, "-I" & (GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir))));
       end loop;
-      Result.Native := True;
-      Append_Arg (Result, Filename);
-      return Result;
-   end Preprocessing_Command;
+      Append_Arg (Cmd, Filename);
+   end Get_Preprocessing_Command;
 
    ---------------------
    -- Start_Rewriting --
@@ -1633,15 +1626,15 @@ package body Instrument.C is
       Info           : in out Project_Info;
       Input_Filename : String)
    is
-      Cmd : constant Command_Access :=
-        Preprocessing_Command (Info, Input_Filename);
+      Cmd : Command_Type;
       --  The command to preprocess the file
 
       Output_Filename : constant String :=
         Register_New_File (Info, Input_Filename);
    begin
+      Get_Preprocessing_Command (Info, Input_Filename, Cmd);
       if not Run_Command
-        (Cmd.all, "gnatcov instrument", Output_Filename, False)
+        (Cmd, "gnatcov instrument", Output_Filename, False)
       then
          Fatal_Error ("Could not preprocess " & Input_Filename);
       end if;

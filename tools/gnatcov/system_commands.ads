@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Strings.Unbounded;
-with Ada.Unchecked_Deallocation;
 
 with Strings; use Strings;
 
@@ -32,22 +31,18 @@ package System_Commands is
 
       Environment : String_Maps.Map;
       --  Environment variables to set for this command
-
-      Native : Boolean;
-      --  Whether this command will run a native program
    end record;
    --  Simple holder for a command to run
 
-   type Command_Access is access all Command_Type;
+   procedure Append_Arg (Cmd : in out Command_Type; Arg : String);
+   --  Append Arg to Cmd.Arguments
 
-   procedure Append_Arg (Cmd : Command_Access; Arg : String);
+   procedure Append_Arg (Cmd : in out Command_Type; Opt, Arg : String);
+   --  Append Opt and Arg to Cmd.Arguments
 
-   procedure Append_Arg (Cmd : Command_Access; Opt, Arg : String);
-
-   procedure Append_Args (Cmd : Command_Access; Args : String_Vectors.Vector);
-
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Command_Type, Command_Access);
+   procedure Append_Args
+     (Cmd : in out Command_Type; Args : String_Vectors.Vector);
+   --  Append all items in Args to Cmd.Arguments
 
    function Run_Command
      (Command             : Command_Type;

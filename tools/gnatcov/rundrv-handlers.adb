@@ -93,40 +93,45 @@ package body Rundrv.Handlers is
    -- Native_Linux --
    ------------------
 
-   function Native_Linux
-     (Context : Context_Type; Matches : Match_Array) return Command_Access
+   procedure Native_Linux
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean)
    is
       pragma Unreferenced (Matches);
 
-      Cmd    : constant String :=
-         Bundled_Or_Plain (What => "valgrind", Where => "bin");
-      Result : constant Command_Access := new Command_Type'
-        (Command => +Cmd, Native => True, others => <>);
+      Cmd_Name : constant String :=
+        Bundled_Or_Plain (What => "valgrind", Where => "bin");
    begin
+      Native := True;
+      Cmd := (Command => +Cmd_Name, others => <>);
       if not Verbose then
-         Append_Arg (Result, "--quiet");
+         Append_Arg (Cmd, "--quiet");
       end if;
-      Append_Arg (Result, "--tool=coverage");
-      Append_Arg (Result, "--cov-exec-file=" & Trace_Input (Context));
-      Append_Arg (Result, Context.Exe_File.all);
+      Append_Arg (Cmd, "--tool=coverage");
+      Append_Arg (Cmd, "--cov-exec-file=" & Trace_Input (Context));
+      Append_Arg (Cmd, Context.Exe_File.all);
 
       --  If we're using our bundled-in valgrind, adjust VALGRIND_LIB
       --  accordingly.
 
-      if Cmd /= "valgrind" then
-         Result.Environment.Insert
+      if Cmd_Name /= "valgrind" then
+         Cmd.Environment.Insert
            (+"VALGRIND_LIB",
             +Support_Files.In_Libexec_Dir ("libexec/valgrind/"));
       end if;
-      return Result;
    end Native_Linux;
 
    --------------------
    -- Native_Windows --
    --------------------
 
-   function Native_Windows
-     (Context : Context_Type; Matches : Match_Array) return Command_Access
+   procedure Native_Windows
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean)
    is
       pragma Unreferenced (Matches);
 
@@ -134,97 +139,97 @@ package body Rundrv.Handlers is
          Bundled_Or_Plain (What => "drrun.exe", Where => "bin" & Bits);
       Drclient : constant String :=
          Bundled_Or_Plain (What => "qtrace.dll", Where => "lib" & Bits);
-      Result : constant Command_Access := new Command_Type'
-        (Command => +Drrun, Native => True, others => <>);
    begin
+      Native := True;
+      Cmd := (Command => +Drrun, others => <>);
+
       --  -quiet silences the warnings emitted by DynamoRIO on the assumption
       --  that it is invoked from an official release install tree.
 
       if not Verbose then
-         Append_Arg (Result, "-quiet");
+         Append_Arg (Cmd, "-quiet");
       end if;
-      Append_Arg (Result, "-no_follow_children");
-      Append_Arg (Result, "-c", Drclient);
-      Append_Arg (Result, "-o", Trace_Input (Context));
-      Append_Arg (Result, "--", Context.Exe_File.all);
-      return Result;
+      Append_Arg (Cmd, "-no_follow_children");
+      Append_Arg (Cmd, "-c", Drclient);
+      Append_Arg (Cmd, "-o", Trace_Input (Context));
+      Append_Arg (Cmd, "--", Context.Exe_File.all);
    end Native_Windows;
 
    -------------
    -- ISystem --
    -------------
 
-   function ISystem
-     (Context : Context_Type; Matches : Match_Array) return Command_Access
+   procedure ISystem
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean)
    is
-      Result : constant Command_Access := new Command_Type'
-        (Command => +"../libexec/gnatcoverage/isys_drv",
-         Native  => False,
-         others  => <>);
       System : constant String :=
         Context.Target_Family.all (Matches (1).First .. Matches (1).Last);
    begin
-      Append_Arg (Result, System);
-      Append_Arg (Result, Context.Exe_File.all);
-      Append_Arg (Result, Trace_Input (Context));
-      return Result;
+      Native := False;
+      Cmd := (Command => +"../libexec/gnatcoverage/isys_drv", others  => <>);
+      Append_Arg (Cmd, System);
+      Append_Arg (Cmd, Context.Exe_File.all);
+      Append_Arg (Cmd, Trace_Input (Context));
    end ISystem;
 
    -------------
    -- Prepare --
    -------------
 
-   function Prepare
-     (Context : Context_Type; Matches : Match_Array) return Command_Access
+   procedure Prepare
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean)
    is
-      pragma Unreferenced (Matches);
-      pragma Unreferenced (Context);
-
-      Result : constant Command_Access := new Command_Type'
-        (Command => +"",
-         Native  => False,
-         others  => <>);
+      pragma Unreferenced (Context, Matches);
    begin
-      return Result;
+      Native := False;
+      Cmd := (Command => +"", others  => <>);
    end Prepare;
 
    ----------------
    -- Visium_ELF --
    ----------------
 
-   function Visium_ELF
-     (Context : Context_Type; Matches : Match_Array) return Command_Access
+   procedure Visium_ELF
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean)
    is
       pragma Unreferenced (Matches);
-
-      Result : constant Command_Access := new Command_Type'
-        (Command => +"visium-elf-run",
-         Native  => False,
-         others  => <>);
    begin
-      Append_Arg (Result, "--trace=" & Context.Trace_File.all);
-      Append_Arg (Result, Context.Exe_File.all);
-      return Result;
+      Native := False;
+      Cmd := (Command => +"visium-elf-run", others  => <>);
+      Append_Arg (Cmd, "--trace=" & Context.Trace_File.all);
+      Append_Arg (Cmd, Context.Exe_File.all);
    end Visium_ELF;
 
-   --------------------
-   -- Gnatemu_Driver --
-   --------------------
+   ------------------------
+   -- Get_Gnatemu_Driver --
+   ------------------------
 
-   function Gnatemu_Driver (Context : Context_Type) return Command_Access
+   procedure Get_Gnatemu_Driver
+     (Context : Context_Type;
+      Found   : out Boolean;
+      Cmd     : out Command_Type;
+      Native  : out Boolean)
    is
       Gnatemu : String_Access := GNAT.OS_Lib.Locate_Exec_On_Path
         (Context.Target_Family.all & "-gnatemu");
-      Result  : Command_Access := new Command_Type;
    begin
-      Result.Native := False;
-
       if Gnatemu = null then
-         Free (Result);
-         return null;
+         Found := False;
+         return;
       end if;
 
-      Result.Command := +Gnatemu.all;
+      Found := True;
+      Native := False;
+      Cmd := (Command => +Gnatemu.all, others => <>);
       Free (Gnatemu);
 
       --  Compute the subsets of options we need to pass.  As common options,
@@ -234,35 +239,33 @@ package body Rundrv.Handlers is
       --  and --board extensions, and the project file related options.
 
       if Context.Kernel /= null then
-         Append_Arg (Result, "--kernel=" & Context.Kernel.all);
+         Append_Arg (Cmd, "--kernel=" & Context.Kernel.all);
       end if;
 
       if Context.Target_Board /= null then
-         Append_Arg (Result, "--board=" & Context.Target_Board.all);
+         Append_Arg (Cmd, "--board=" & Context.Target_Board.all);
       end if;
 
       if Root_Project /= null then
-         Append_Arg (Result, "-P", Root_Project.all);
+         Append_Arg (Cmd, "-P", Root_Project.all);
 
          declare
             use Key_Element_Maps;
          begin
             for Scenario_Var in S_Variables.Iterate loop
-               Append_Arg (Result, "-X" & Key (Scenario_Var)
-                                   & "=" & Element (Scenario_Var));
+               Append_Arg (Cmd, "-X" & Key (Scenario_Var)
+                                & "=" & Element (Scenario_Var));
             end loop;
          end;
       end if;
 
-      Append_Arg (Result, "--eargs");
-      Append_Arg (Result, "-exec-trace", Trace_Input (Context));
+      Append_Arg (Cmd, "--eargs");
+      Append_Arg (Cmd, "-exec-trace", Trace_Input (Context));
       for Earg of Context.Eargs.all loop
-         Append_Arg (Result, Earg.all);
+         Append_Arg (Cmd, Earg.all);
       end loop;
-      Append_Arg (Result, "--eargs-end");
-      Append_Arg (Result, Context.Exe_File.all);
-
-      return Result;
-   end Gnatemu_Driver;
+      Append_Arg (Cmd, "--eargs-end");
+      Append_Arg (Cmd, Context.Exe_File.all);
+   end Get_Gnatemu_Driver;
 
 end Rundrv.Handlers;

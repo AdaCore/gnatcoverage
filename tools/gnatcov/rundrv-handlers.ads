@@ -23,22 +23,43 @@ with Rundrv.Config;   use Rundrv.Config;
 
 package Rundrv.Handlers is
 
-   function Gnatemu_Driver (Context : Context_Type) return Command_Access;
+   procedure Get_Gnatemu_Driver
+     (Context : Context_Type;
+      Found   : out Boolean;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
    --  Helper for Lookup_Driver. If there is a GNATemulator available for this
-   --  target, return a command to run it. Return null otherwise.
+   --  target, create a command to run it. See Rundrv.Config.Lookup_Driver for
+   --  the semantics of arguments.
 
-   --  The following functions create commands to run programs on a given
-   --  target (so we have one function per family of targets).
+   --  The following procedures create commands to run programs on a given
+   --  target (so we have one function per family of targets). See
+   --  Rundrv.Config.Driver_Creator_Type for the semantics of arguments.
 
-   function Native_Linux
-     (Context : Context_Type; Matches : Match_Array) return Command_Access;
-   function Native_Windows
-     (Context : Context_Type; Matches : Match_Array) return Command_Access;
-   function ISystem
-     (Context : Context_Type; Matches : Match_Array) return Command_Access;
-   function Prepare
-     (Context : Context_Type; Matches : Match_Array) return Command_Access;
-   function Visium_ELF
-     (Context : Context_Type; Matches : Match_Array) return Command_Access;
+   procedure Native_Linux
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
+   procedure Native_Windows
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
+   procedure ISystem
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
+   procedure Prepare
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
+   procedure Visium_ELF
+     (Context : Context_Type;
+      Matches : Match_Array;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
 
 end Rundrv.Handlers;

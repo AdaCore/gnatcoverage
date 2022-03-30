@@ -59,20 +59,22 @@ package Rundrv.Config is
    function Available_Targets return String;
    --  Return a list of available targets
 
-   function Lookup_Driver (Context : Context_Type) return Command_Access;
-   --  Create a command to run in order to produce a trace for Context.
-   --  Return null if we cannot figure out what command to run.
+   procedure Lookup_Driver
+     (Context : Context_Type;
+      Found   : out Boolean;
+      Cmd     : out Command_Type;
+      Native  : out Boolean);
+   --  Look for a command to run in order to produce a trace for Context.
    --
-   --  KERNEL is the command line --kernel argument, if any. TARGET is the
-   --  command line --target value, which may feature an optional board
-   --  specification (e.g. --target=powerpc-elf,prep).
+   --  Set Found to whether we manage to find an appropriate command. The other
+   --  arguments are considered uninitialized if Found is False.
    --
-   --  This will be a <target>-gnatemu block if GNATemulator is
+   --  Cmd is set to the command that is found (if any). Native is set to
+   --  whether this is to run a native program (i.e. a program that runs on the
+   --  same host as gnatcov itself).
+   --
+   --  The command will be a <target>-gnatemu block if GNATemulator is
    --  available on PATH, or a low-level emulator block from our static
    --  configuration table otherwise.
-   --
-   --  The computation is split across the two helpers below.  TARGET_FAMILY
-   --  and TARGET_BOARD are set to the base target and board extension of the
-   --  original TARGET input.
 
 end Rundrv.Config;

@@ -72,7 +72,9 @@ package body Rundrv is
          Histmap => Histmap,
          Eargs   => Eargs,
          others  => <>);
-      Run_Cmd : Command_Access;
+      Found   : Boolean;
+      Run_Cmd : Command_Type;
+      Native  : Boolean;
       Dummy   : Boolean;
    begin
 
@@ -107,17 +109,15 @@ package body Rundrv is
          Context.Target_Family := Target_Family;
          Context.Target_Board := Target_Board;
 
-         Run_Cmd := Lookup_Driver (Context);
+         Lookup_Driver (Context, Found, Run_Cmd, Native);
 
-         if Run_Cmd = null then
+         if not Found then
             Outputs.Error
               ("No builtin or GNATemulator execution driver found for"
                & " target: " & Context.Target_Family.all);
             return;
 
-         elsif Run_Cmd.Native
-               and then Env.Value (Native_Warning_Envvar, "") = ""
-         then
+         elsif Native and then Env.Value (Native_Warning_Envvar, "") = "" then
             Outputs.Warn (Native_Warning);
          end if;
 
@@ -166,8 +166,7 @@ package body Rundrv is
       --  code from this subprocess is not an error for trace production, as it
       --  may reflect a non-zero status code from the user program.
 
-      Dummy := Run_Command (Run_Cmd.all, "gnatcov run");
-      Free (Run_Cmd);
+      Dummy := Run_Command (Run_Cmd, "gnatcov run");
    end Driver;
 
 end Rundrv;

@@ -27,37 +27,23 @@ with Switches; use Switches;
 
 package body System_Commands is
 
-   --------------------------------
-   -- Command formatting helpers --
-   --------------------------------
-
    ----------------
    -- Append_Arg --
    ----------------
 
-   procedure Append_Arg (Cmd : Command_Access; Arg : String) is
+   procedure Append_Arg (Cmd : in out Command_Type; Arg : String) is
    begin
       Cmd.Arguments.Append (+Arg);
    end Append_Arg;
 
-   ----------------
-   -- Append_Arg --
-   ----------------
-
-   procedure Append_Arg (Cmd : Command_Access; Opt, Arg : String) is
+   procedure Append_Arg (Cmd : in out Command_Type; Opt, Arg : String) is
    begin
       Append_Arg (Cmd, Opt);
       Append_Arg (Cmd, Arg);
    end Append_Arg;
 
-   ----------------
-   -- Append_Arg --
-   ----------------
-
    procedure Append_Args
-     (Cmd : Command_Access;
-      Args : String_Vectors.Vector)
-   is
+     (Cmd : in out Command_Type; Args : String_Vectors.Vector) is
    begin
       Cmd.Arguments.Append_Vector (Args);
    end Append_Args;
