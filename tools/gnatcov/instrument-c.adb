@@ -1468,6 +1468,7 @@ package body Instrument.C is
          declare
             Compiler_Command : constant Command_Access := new Command_Type;
             Macros           : String_Vectors.Vector;
+            Success          : Boolean;
          begin
             Compiler_Command.Command := +Compiler;
 
@@ -1477,7 +1478,7 @@ package body Instrument.C is
 
             Compiler_Command.Input := +("" & Types.EOF);
 
-            System_Commands.Run_Command
+            Success := Run_Command
               (Command             => Compiler_Command.all,
                Origin_Command_Name => "gnatcov instrument",
                Output_File         => Filename);
@@ -1492,6 +1493,10 @@ package body Instrument.C is
             Close (File);
             Delete_File (Filename);
             Compiler_Macros.Insert (+Compiler, Macros);
+
+            if not Success then
+               Fatal_Error ("Could not get built-in macros for " & Compiler);
+            end if;
          end;
       end if;
 
@@ -1636,8 +1641,11 @@ package body Instrument.C is
       Output_Filename : constant String :=
         Register_New_File (Info, Input_Filename);
    begin
-      System_Commands.Run_Command
-        (Cmd.all, "gnatcov instrument", Output_Filename, False);
+      if not Run_Command
+        (Cmd.all, "gnatcov instrument", Output_Filename, False)
+      then
+         Fatal_Error ("Could not preprocess " & Input_Filename);
+      end if;
 
       Self.CIdx :=
         Create_Index

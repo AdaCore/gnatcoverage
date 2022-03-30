@@ -52,13 +52,22 @@ package System_Commands is
    procedure Free is new Ada.Unchecked_Deallocation
      (Command_Type, Command_Access);
 
-   Exec_Error : exception;
-   --  Raised when subprogram execution failed. The error message shall be
-   --  generated before raising the exception.
-
-   procedure Run_Command
+   function Run_Command
      (Command             : Command_Type;
       Origin_Command_Name : String;
       Output_File         : String := "";
-      Err_To_Out          : Boolean := True);
+      Err_To_Out          : Boolean := True) return Boolean;
+   --  Run the given command and return whether it exited with a zero status
+   --  code (i.e. whether it was successful).
+   --
+   --  Origin_Command_Name is used as a short command name to include in error
+   --  messages.
+   --
+   --  If Output_File is left to the empty string, the subprocess output is not
+   --  redirected. Otherwise, it is redirected to create/overwrite the
+   --  designated file.
+   --
+   --  The subprocess standard error stream is redirected to its standard
+   --  output stream iff Err_To_Out is True.
+
 end System_Commands;

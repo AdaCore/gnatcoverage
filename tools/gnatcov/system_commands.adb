@@ -66,11 +66,11 @@ package body System_Commands is
    -- Run_Command --
    -----------------
 
-   procedure Run_Command
+   function Run_Command
      (Command             : Command_Type;
       Origin_Command_Name : String;
       Output_File         : String := "";
-      Err_To_Out          : Boolean := True)
+      Err_To_Out          : Boolean := True) return Boolean
    is
       use String_Maps;
       Success : Boolean;
@@ -85,7 +85,7 @@ package body System_Commands is
       --  command to run.
 
       if Cmd'Length = 0 then
-         return;
+         return True;
       end if;
 
       --  Find executable
@@ -94,7 +94,7 @@ package body System_Commands is
       if Prg = null then
          Error (Origin_Command_Name & ": cannot find "
                 & Cmd & " on your path");
-         raise Exec_Error;
+         return False;
       end if;
 
       --  Instantiate the argument list
@@ -167,12 +167,14 @@ package body System_Commands is
          if Verbose then
             Error (Origin_Command_Name & " failed");
          end if;
-         raise Exec_Error;
+         return False;
       end if;
 
       if Verbose then
          Put_Line (Cmd & " finished");
       end if;
+
+      return True;
    end Run_Command;
 
 end System_Commands;

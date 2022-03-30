@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Directories;  use Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Unchecked_Conversion;
@@ -74,6 +73,7 @@ package body Rundrv is
          Eargs   => Eargs,
          others  => <>);
       Run_Cmd : Command_Access;
+      Dummy   : Boolean;
    begin
 
       --  Create the first part of the execution trace file: Info header + the
@@ -166,12 +166,8 @@ package body Rundrv is
       --  code from this subprocess is not an error for trace production, as it
       --  may reflect a non-zero status code from the user program.
 
-      Run_Command (Run_Cmd.all, "gnatcov run");
+      Dummy := Run_Command (Run_Cmd.all, "gnatcov run");
       Free (Run_Cmd);
-
-   exception
-      when Exec_Error =>
-         Set_Exit_Status (Failure);
    end Driver;
 
 end Rundrv;
