@@ -52,8 +52,6 @@ package System_Commands is
    procedure Free is new Ada.Unchecked_Deallocation
      (Command_Type, Command_Access);
 
-   procedure Error (Msg : String);
-
    Exec_Error : exception;
    --  Raised when subprogram execution failed. The error message shall be
    --  generated before raising the exception.

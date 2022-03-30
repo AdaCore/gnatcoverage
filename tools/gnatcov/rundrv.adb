@@ -110,8 +110,9 @@ package body Rundrv is
          Run_Cmd := Lookup_Driver (Context);
 
          if Run_Cmd = null then
-            Error ("No builtin or GNATemulator execution driver found for"
-                   & " target: " & Context.Target_Family.all);
+            Outputs.Error
+              ("No builtin or GNATemulator execution driver found for"
+               & " target: " & Context.Target_Family.all);
             return;
 
          elsif Run_Cmd.Native

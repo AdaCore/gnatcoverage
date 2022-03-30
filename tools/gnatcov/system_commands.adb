@@ -16,13 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line; use Ada.Command_Line;
-with Ada.Text_IO;      use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.Expect;
 with GNAT.OS_Lib;
 with GNAT.Strings; use GNAT.Strings;
 
+with Outputs;  use Outputs;
 with Switches; use Switches;
 
 package body System_Commands is
@@ -61,16 +61,6 @@ package body System_Commands is
    begin
       Cmd.Arguments.Append_Vector (Args);
    end Append_Args;
-
-   -----------
-   -- Error --
-   -----------
-
-   procedure Error (Msg : String) is
-   begin
-      Put_Line (Standard_Error, Msg);
-      Set_Exit_Status (Failure);
-   end Error;
 
    -----------------
    -- Run_Command --
