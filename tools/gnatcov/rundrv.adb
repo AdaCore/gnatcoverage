@@ -69,15 +69,15 @@ package body Rundrv is
       --  TODO??? Handle shared objects
 
       Context : Context_Type :=
-        (Kernel   => Kernel,
-         Histmap  => Histmap,
-         Eargs    => Eargs,
-         others   => <>);
+        (Kernel  => Kernel,
+         Histmap => Histmap,
+         Eargs   => Eargs,
+         others  => <>);
       Run_Cmd : Command_Access;
-
-   --  Start of processing for Driver
-
    begin
+
+      --  Create the first part of the execution trace file: Info header + the
+      --  associated Trace Info Entries.
 
       declare
          use GNAT.OS_Lib;
@@ -158,11 +158,15 @@ package body Rundrv is
          Free (Trace_File);
       end;
 
-      --  Some setup operations work out of mere side effect of macro
-      --  expansions, e.g.  setting environment variables. The expansion is
-      --  required, but there's no real command to execute afterwards
+      --  Run the instrumented execution environment for the user program,
+      --  which will append to the trace file its second part: the
+      --  Flat|History header + the associated trace entries.
+      --
+      --  Note that as far as "gnatcov run" is concerned, a non-zero status
+      --  code from this subprocess is not an error for trace production, as it
+      --  may reflect a non-zero status code from the user program.
 
-      System_Commands.Run_Command (Run_Cmd.all, "gnatcov run");
+      Run_Command (Run_Cmd.all, "gnatcov run");
       Free (Run_Cmd);
 
    exception
