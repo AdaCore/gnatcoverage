@@ -67,7 +67,7 @@ package body Instrument.C is
    --  when we will refine what is done with macros.
 
    function Builtin_Macros
-     (Info : Project_Info;
+     (Info     : Project_Info;
       Compiler : String) return String_Vectors.Vector;
    --  Return the list of built-in macros for the given compiler. The result is
    --  the list of macro definitions under the following string format:
@@ -1451,7 +1451,7 @@ package body Instrument.C is
    --------------------
 
    function Builtin_Macros
-     (Info : Project_Info;
+     (Info     : Project_Info;
       Compiler : String) return String_Vectors.Vector
    is
       Basename : constant String :=
@@ -1461,11 +1461,13 @@ package body Instrument.C is
       File     : Ada.Text_IO.File_Type;
       Res      : String_Vectors.Vector;
    begin
+      --  If we have not computed built-in macros for this compiler yet, do it
+      --  now.
 
       if not Compiler_Macros.Contains (+Compiler) then
          declare
             Compiler_Command : constant Command_Access := new Command_Type;
-            Macros   : String_Vectors.Vector;
+            Macros           : String_Vectors.Vector;
          begin
             Compiler_Command.Command := +Compiler;
 
@@ -1492,6 +1494,7 @@ package body Instrument.C is
             Compiler_Macros.Insert (+Compiler, Macros);
          end;
       end if;
+
       Res := Compiler_Macros.Element (+Compiler);
       return Res;
    end Builtin_Macros;
