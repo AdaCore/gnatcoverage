@@ -44,6 +44,8 @@ package System_Commands is
      (Cmd : in out Command_Type; Args : String_Vectors.Vector);
    --  Append all items in Args to Cmd.Arguments
 
+   Empty_Environment : String_Maps.Map renames String_Maps.Empty_Map;
+
    function Run_Command
      (Command             : Command_Type;
       Origin_Command_Name : String;
@@ -66,5 +68,15 @@ package System_Commands is
    --  The subprocess standard input stream is redirected to the "null" stream
    --  (stream where there is nothing to read, equivalent to /dev/null on Unix
    --  systems) iff In_To_Null is True.
+
+   function Run_Command
+     (Command             : String;
+      Arguments           : String_Vectors.Vector;
+      Environment         : String_Maps.Map := Empty_Environment;
+      Origin_Command_Name : String;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      In_To_Null          : Boolean := False) return Boolean;
+   --  Overload to avoid the Command_Type layer
 
 end System_Commands;

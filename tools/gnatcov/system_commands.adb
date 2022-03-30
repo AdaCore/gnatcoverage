@@ -59,27 +59,46 @@ package body System_Commands is
       Err_To_Out          : Boolean := True;
       In_To_Null          : Boolean := False) return Boolean
    is
-      use String_Maps;
-      Success : Boolean;
-      Prg     : String_Access;
-      Args    : String_List (1 .. Natural (Command.Arguments.Length));
+   begin
+      return Run_Command
+        (+Command.Command,
+         Command.Arguments,
+         Command.Environment,
+         Origin_Command_Name,
+         Output_File,
+         Err_To_Out,
+         In_To_Null);
+   end Run_Command;
 
-      Cmd : constant String := +Command.Command;
+   function Run_Command
+     (Command             : String;
+      Arguments           : String_Vectors.Vector;
+      Environment         : String_Maps.Map := Empty_Environment;
+      Origin_Command_Name : String;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      In_To_Null          : Boolean := False) return Boolean
+   is
+      use String_Maps;
+
+      Success : Boolean;
+      Program : String_Access;
+      Args    : String_List (1 .. Natural (Arguments.Length));
    begin
 
       --  Honor a possible empty command text, meaning no actual
       --  command to run.
 
-      if Cmd'Length = 0 then
+      if Command'Length = 0 then
          return True;
       end if;
 
       --  Find executable
 
-      Prg := GNAT.OS_Lib.Locate_Exec_On_Path (Cmd);
-      if Prg = null then
+      Program := GNAT.OS_Lib.Locate_Exec_On_Path (Command);
+      if Program = null then
          Error (Origin_Command_Name & ": cannot find "
-                & Cmd & " on your path");
+                & Command & " on your path");
          return False;
       end if;
 
@@ -88,7 +107,7 @@ package body System_Commands is
       declare
          I : Positive := 1;
       begin
-         for S of Command.Arguments loop
+         for S of Arguments loop
             Args (I) := new String'(+S);
             I := I + 1;
          end loop;
@@ -96,7 +115,7 @@ package body System_Commands is
 
       --  Run
 
-      for Env_Var in Command.Environment.Iterate loop
+      for Env_Var in Environment.Iterate loop
          if Verbose then
             Put_Line ("env: " & (+Key (Env_Var))
                       & "=" & (+Element (Env_Var)));
@@ -106,8 +125,8 @@ package body System_Commands is
 
       if Verbose then
          Put ("exec: ");
-         Put (Prg.all);
-         for S of Command.Arguments loop
+         Put (Program.all);
+         for S of Arguments loop
             Put (' ');
             Put (+S);
          end loop;
@@ -121,7 +140,7 @@ package body System_Commands is
             Status_A : constant access Integer := Status'Access;
             Res      : constant String :=
               GNAT.Expect.Get_Command_Output
-                (Prg.all, Args, "", Status_A, Err_To_Out => True);
+                (Program.all, Args, "", Status_A, Err_To_Out => True);
          begin
             if Output_File /= "" then
                Create (File => File,
@@ -135,12 +154,12 @@ package body System_Commands is
 
       else
          if Output_File = "" then
-            GNAT.OS_Lib.Spawn (Prg.all, Args, Success);
+            GNAT.OS_Lib.Spawn (Program.all, Args, Success);
          else
             declare
                Return_Code : Integer;
             begin
-               GNAT.OS_Lib.Spawn (Program_Name => Prg.all,
+               GNAT.OS_Lib.Spawn (Program_Name => Program.all,
                                   Args         => Args,
                                   Output_File  => Output_File,
                                   Success      => Success,
@@ -158,7 +177,7 @@ package body System_Commands is
       end if;
 
       if Verbose then
-         Put_Line (Cmd & " finished");
+         Put_Line (Command & " finished");
       end if;
 
       return True;

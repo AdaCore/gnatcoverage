@@ -1465,18 +1465,17 @@ package body Instrument.C is
 
       if not Compiler_Macros.Contains (+Compiler) then
          declare
-            Compiler_Command : Command_Type;
-            Macros           : String_Vectors.Vector;
-            Success          : Boolean;
+            Arguments : String_Vectors.Vector;
+            Macros    : String_Vectors.Vector;
+            Success   : Boolean;
          begin
-            Compiler_Command := (Command => +Compiler, others => <>);
-
-            Append_Arg (Compiler_Command, "-E");
-            Append_Arg (Compiler_Command, "-dM");
-            Append_Arg (Compiler_Command, "-");
+            Arguments.Append (+"-E");
+            Arguments.Append (+"-dM");
+            Arguments.Append (+"-");
 
             Success := Run_Command
-              (Command             => Compiler_Command,
+              (Command             => Compiler,
+               Arguments           => Arguments,
                Origin_Command_Name => "gnatcov instrument",
                Output_File         => Filename,
                In_To_Null          => True);
