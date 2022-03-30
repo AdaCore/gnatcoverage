@@ -30,7 +30,9 @@ package System_Commands is
       --  Arguments to pass to this command
 
       Environment : String_Maps.Map;
-      --  Environment variables to set for this command
+      --  Environment variables to set for this command. Note that the actual
+      --  environment that is passed to the subprocess also inherits variables
+      --  from gnatcov's own environment.
    end record;
    --  Simple holder for a command to run
 

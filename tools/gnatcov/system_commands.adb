@@ -18,9 +18,12 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 
-with GNAT.Expect;
 with GNAT.OS_Lib;
 with GNAT.Strings; use GNAT.Strings;
+
+with GNATCOLL.OS.FS;      use GNATCOLL.OS.FS;
+with GNATCOLL.OS.Process; use GNATCOLL.OS.Process;
+with GNATCOLL.OS.Process_Types;
 
 with Outputs;  use Outputs;
 with Switches; use Switches;
@@ -79,11 +82,12 @@ package body System_Commands is
       Err_To_Out          : Boolean := True;
       In_To_Null          : Boolean := False) return Boolean
    is
-      use String_Maps;
+      package Process_Types renames GNATCOLL.OS.Process_Types;
 
-      Success : Boolean;
       Program : String_Access;
-      Args    : String_List (1 .. Natural (Arguments.Length));
+      Env     : Process_Types.Environ;
+      Args    : Process_Types.Arguments;
+      Success : Boolean;
    begin
 
       --  Honor a possible empty command text, meaning no actual
@@ -93,7 +97,7 @@ package body System_Commands is
          return True;
       end if;
 
-      --  Find executable
+      --  Find the actual executable to execute
 
       Program := GNAT.OS_Lib.Locate_Exec_On_Path (Command);
       if Program = null then
@@ -102,85 +106,86 @@ package body System_Commands is
          return False;
       end if;
 
-      --  Instantiate the argument list
+      --  Instantiate environment variables
 
-      declare
-         I : Positive := 1;
-      begin
-         for S of Arguments loop
-            Args (I) := new String'(+S);
-            I := I + 1;
-         end loop;
-      end;
-
-      --  Run
-
+      Process_Types.Import (Env);
+      if Verbose and then not Environment.Is_Empty then
+         Put_Line ("env:");
+      end if;
       for Env_Var in Environment.Iterate loop
-         if Verbose then
-            Put_Line ("env: " & (+Key (Env_Var))
-                      & "=" & (+Element (Env_Var)));
-         end if;
-         GNAT.OS_Lib.Setenv (+Key (Env_Var), +Element (Env_Var));
+         declare
+            Name  : constant String := +String_Maps.Key (Env_Var);
+            Value : constant String := +String_Maps.Element (Env_Var);
+         begin
+            if Verbose then
+               Put_Line ("  " & Name & "='" & Value & "'");
+            end if;
+            Process_Types.Set_Variable (Env, Name, Value);
+         end;
       end loop;
 
+      --  Instantiate the argument list
+
+      Process_Types.Add_Argument (Args, Program.all);
       if Verbose then
-         Put ("exec: ");
-         Put (Program.all);
-         for S of Arguments loop
+         Put_Line ("exec:");
+         Put ("  " & Program.all);
+      end if;
+      for A of Arguments loop
+         Process_Types.Add_Argument (Args, +A);
+         if Verbose then
             Put (' ');
-            Put (+S);
-         end loop;
+            Put (+A);
+         end if;
+      end loop;
+      if Verbose then
          New_Line;
       end if;
 
-      if In_To_Null then
-         declare
-            File     : File_Type;
-            Status   : aliased Integer;
-            Status_A : constant access Integer := Status'Access;
-            Res      : constant String :=
-              GNAT.Expect.Get_Command_Output
-                (Program.all, Args, "", Status_A, Err_To_Out => True);
-         begin
-            if Output_File /= "" then
-               Create (File => File,
-                       Mode => Out_File,
-                       Name => Output_File);
-               Put (File, Res);
-               Close (File);
+      --  Actually run the subprocess
+
+      declare
+         Stdin  : constant File_Descriptor :=
+           (if In_To_Null then Null_FD else Standin);
+         Stdout : File_Descriptor := Standout;
+         Stderr : constant File_Descriptor :=
+           (if Err_To_Out then To_Stdout else Standerr);
+         Status : Integer;
+
+         Redirect_Stdout : constant Boolean := Output_File /= "";
+      begin
+         --  If requested, redirect the subprocess' standard output to a file
+
+         if Redirect_Stdout then
+            Stdout := Open (Output_File, Write_Mode);
+            if Stdout = Invalid_FD then
+               Fatal_Error ("cannot write to " & Output_File);
             end if;
-            Success := Status = 0;
-         end;
-
-      else
-         if Output_File = "" then
-            GNAT.OS_Lib.Spawn (Program.all, Args, Success);
-         else
-            declare
-               Return_Code : Integer;
-            begin
-               GNAT.OS_Lib.Spawn (Program_Name => Program.all,
-                                  Args         => Args,
-                                  Output_File  => Output_File,
-                                  Success      => Success,
-                                  Return_Code  => Return_Code,
-                                  Err_To_Out   => Err_To_Out);
-            end;
          end if;
-      end if;
 
-      if not Success then
-         if Verbose then
-            Error (Origin_Command_Name & " failed");
+         Status := Run
+           (Args   => Args,
+            Env    => Env,
+            Stdin  => Stdin,
+            Stdout => Stdout,
+            Stderr => Stderr);
+         Success := Status = 0;
+
+         Process_Types.Deallocate (Args);
+         Process_Types.Deallocate (Env);
+         if Redirect_Stdout then
+            Close (Stdout);
          end if;
-         return False;
-      end if;
+      end;
 
       if Verbose then
-         Put_Line (Command & " finished");
+         if Success then
+            Put_Line (Command & " finished");
+         else
+            Error (Origin_Command_Name & " failed");
+         end if;
       end if;
-
-      return True;
+      return Success;
    end Run_Command;
 
 end System_Commands;
