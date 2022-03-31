@@ -26,7 +26,6 @@ with Ada.Text_IO;                use Ada.Text_IO;
 with Langkit_Support.Slocs; use Langkit_Support.Slocs;
 
 with Clang.Extensions; use Clang.Extensions;
-with Clang.CX_String;  use Clang.CX_String;
 
 with GNAT.String_Split;
 
@@ -958,14 +957,12 @@ package body Instrument.C is
          declare
             Diag : constant Diagnostic_T :=
               Get_Diagnostic (Unit  => TU, Index => I);
-            Str  : constant String_T :=
+            Str  : constant String :=
               Format_Diagnostic
                 (Diagnostic => Diag,
                  Options    => Default_Diagnostic_Display_Options);
          begin
-            Outputs.Error ("Error when parsing the file "
-                           & Get_C_String (Str));
-            Dispose_String (Str);
+            Outputs.Error ("Error when parsing the file " & Str);
          end;
       end loop;
    end Run_Diagnostics;

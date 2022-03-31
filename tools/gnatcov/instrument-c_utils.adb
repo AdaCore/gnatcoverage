@@ -239,7 +239,7 @@ package body Instrument.C_Utils is
          if Kind (Cursor) = Cursor_Translation_Unit then
             return Child_Visit_Recurse;
          end if;
-         if Get_C_String (Cursor_Get_Mangling (Cursor)) = "main" then
+         if Cursor_Get_Mangling (Cursor) = "main" then
             Main_Decl_Cursor := Cursor;
             return Child_Visit_Break;
          end if;
@@ -273,7 +273,7 @@ package body Instrument.C_Utils is
          if Kind (Cursor) = Cursor_Translation_Unit then
             return Child_Visit_Recurse;
          end if;
-         if Get_C_String (Cursor_Get_Mangling (Cursor)) = "main" then
+         if Cursor_Get_Mangling (Cursor) = "main" then
             declare
                Fun_Children : constant Vector := Get_Children (Cursor);
                Body_Cursor  : constant Cursor_T :=
@@ -462,13 +462,6 @@ package body Instrument.C_Utils is
       Addr_Tokens  : System.Address;
       Num_Tokens   : aliased Interfaces.C.unsigned;
 
-      function Get_Token_Spelling (Tok : Token_T) return String;
-
-      function Get_Token_Spelling (Tok : Token_T) return String is
-      begin
-         return Get_C_String (Get_Token_Spelling (TU, Tok));
-      end Get_Token_Spelling;
-
    begin
       Tokenize (TU, Source_Range, Addr_Tokens'Address, Num_Tokens'Access);
       declare
@@ -476,7 +469,7 @@ package body Instrument.C_Utils is
            with Import, Address => Addr_Tokens;
       begin
          for I in Tokens'Range loop
-            Put_Line (Get_Token_Spelling (Tokens (I)));
+            Put_Line (Get_Token_Spelling (TU, Tokens (I)));
          end loop;
       end;
    end Print_Tokens;
