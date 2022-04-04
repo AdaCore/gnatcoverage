@@ -75,6 +75,46 @@ package body Subprocesses is
          Ignore_Error);
    end Run_Command;
 
+   procedure Run_Command
+     (Command             : Command_Type;
+      Origin_Command_Name : String;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      In_To_Null          : Boolean := False)
+   is
+      Dummy : constant Boolean := Run_Command
+        (Command,
+         Origin_Command_Name,
+         Output_File,
+         Err_To_Out,
+         In_To_Null,
+         Ignore_Error => False);
+   begin
+      null;
+   end Run_Command;
+
+   procedure Run_Command
+     (Command             : String;
+      Arguments           : String_Vectors.Vector;
+      Environment         : String_Maps.Map := Empty_Environment;
+      Origin_Command_Name : String;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      In_To_Null          : Boolean := False)
+   is
+      Dummy : constant Boolean := Run_Command
+        (Command,
+         Arguments,
+         Environment,
+         Origin_Command_Name,
+         Output_File,
+         Err_To_Out,
+         In_To_Null,
+         Ignore_Error => False);
+   begin
+      null;
+   end Run_Command;
+
    function Run_Command
      (Command             : String;
       Arguments           : String_Vectors.Vector;

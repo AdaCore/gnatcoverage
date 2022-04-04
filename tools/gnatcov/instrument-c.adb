@@ -1467,16 +1467,16 @@ package body Instrument.C is
          declare
             Arguments : String_Vectors.Vector;
             Macros    : String_Vectors.Vector;
-            Success   : Boolean;
          begin
             Arguments.Append (+"-E");
             Arguments.Append (+"-dM");
             Arguments.Append (+"-");
 
-            Success := Run_Command
+            Run_Command
               (Command             => Compiler,
                Arguments           => Arguments,
-               Origin_Command_Name => "gnatcov instrument",
+               Origin_Command_Name =>
+                 "getting built-in macros for " & Compiler,
                Output_File         => Filename,
                In_To_Null          => True);
 
@@ -1490,10 +1490,6 @@ package body Instrument.C is
             Close (File);
             Delete_File (Filename);
             Compiler_Macros.Insert (+Compiler, Macros);
-
-            if not Success then
-               Fatal_Error ("Could not get built-in macros for " & Compiler);
-            end if;
          end;
       end if;
 
@@ -1632,11 +1628,7 @@ package body Instrument.C is
         Register_New_File (Info, Input_Filename);
    begin
       Get_Preprocessing_Command (Info, Input_Filename, Cmd);
-      if not Run_Command
-        (Cmd, "gnatcov instrument", Output_Filename, False)
-      then
-         Fatal_Error ("Could not preprocess " & Input_Filename);
-      end if;
+      Run_Command (Cmd, "Preprocessing", Output_Filename, Err_To_Out => False);
 
       Self.CIdx :=
         Create_Index

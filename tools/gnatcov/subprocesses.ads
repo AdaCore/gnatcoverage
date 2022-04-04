@@ -92,4 +92,21 @@ package Subprocesses is
       Ignore_Error        : Boolean := False) return Boolean;
    --  Overload to avoid the Command_Type layer
 
+   procedure Run_Command
+     (Command             : Command_Type;
+      Origin_Command_Name : String;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      In_To_Null          : Boolean := False);
+   procedure Run_Command
+     (Command             : String;
+      Arguments           : String_Vectors.Vector;
+      Environment         : String_Maps.Map := Empty_Environment;
+      Origin_Command_Name : String;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      In_To_Null          : Boolean := False);
+   --  Overloads to stop with a fatal error if the subprocess exits with a
+   --  non-zero status code.
+
 end Subprocesses;
