@@ -131,6 +131,8 @@ package body Subprocesses is
          Put_Line ("exec:");
          Put ("  " & Program.all);
       end if;
+      Free (Program);
+
       for A of Arguments loop
          Process_Types.Add_Argument (Args, +A);
          if Verbose then
