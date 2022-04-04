@@ -255,19 +255,26 @@ providing the variable name to use.
 |gcvins| limitations
 --------------------
 
-There is a small amount of language constructs that |gcvins| cannot handle
-properly. The tool emits a warning when it encounters such cases and the
-corresponding code is not instrumented. Source coverage obligations are still
-emitted, so the unsupported constructs will appear as ``not covered`` in the
-report.
+There are situations and code patterns not handeled correctly by |gcvins|.
+Below are listed the limitations associated with general Ada sources.
+Coverage of SPARK sources require additional considerations, detailed in
+section :ref:`spark_instr`.
+
+Unsupported source constructs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There are a few language constructs that |gcvins| doesn't handle properly.
+The tool emits a warning when it encounters such cases and the corresponding
+code is not instrumented. Source coverage obligations are still emitted, so
+the unsupported constructs will appear as ``not covered`` in the report.
 
 The list of unsupported constructs is as follows:
 
-* Generic expression functions
-* Generic null procedures
-* Recursive expression functions which are primitives of some tagged type
+* Generic expression functions,
+* Generic null procedures,
+* Recursive expression functions which are primitives of some tagged type,
 * Expression functions which are primitives of their return type, when it is a
-  tagged type
+  tagged type.
 
 The simplest way to work around the limitation concerning expression functions
 is to turn them into regular funtions, by giving them a proper body,
@@ -275,11 +282,22 @@ containing a single return statment with the original expression.
 Otherwise it is possible to exempt those constructs (see :ref:`exemptions`)
 and/or perform a manual coverage analysis for these special cases.
 
+Global source traces limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 There are also a few limitations concerning the source trace workflow as a
 whole:
 
 - Separate analysis of generic package instances is not supported,
-- Preprocessing directives are ignored by the source instrumenter
+- Preprocessing directives are ignored by the source instrumenter.
+
+Toolchain-specific limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With GNAT versions from 7.1 to 7.3, compiling with optimization will result in
+coverage violations on all statement obligations associated with expression
+functions. Explicitely disabling optimization (with ``-O0`` for instance) will
+resolve this issue.
 
 .. _instr-build:
 
