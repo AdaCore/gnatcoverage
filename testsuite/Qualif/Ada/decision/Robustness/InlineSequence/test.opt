@@ -1,2 +1,3 @@
 7.1.2,bin-traces XFAIL relies on specific debug info for untangling multiple inlined instances, fixed post 7.0
+7.1.2,src-traces,-O1 XFAIL contains expression functions, not well supported on 7.1.2 and -O1
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
