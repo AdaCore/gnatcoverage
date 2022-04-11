@@ -1,0 +1,7 @@
+Code-Review+1: CI Builder <ci-builder@adacore.com>
+Code-Review+2: Léo Creuse <creuse@adacore.com>
+Submitted-by: Pierre-Marie de Rodat <derodat@adacore.com>
+Submitted-at: Mon, 11 Apr 2022 07:51:24 +0000
+Reviewed-on: https://git.adacore-it.com/c/gnatcoverage/+/112851
+Project: gnatcoverage
+Branch: refs/heads/master
