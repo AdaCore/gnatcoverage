@@ -1,0 +1,7 @@
+Code-Review+2: Olivier Hainque <hainque@adacore.com>
+Code-Review+1: CI Builder <ci-builder@adacore.com>
+Submitted-by: Léo Creuse <creuse@adacore.com>
+Submitted-at: Tue, 12 Apr 2022 13:47:57 +0000
+Reviewed-on: https://git.adacore-it.com/c/gnatcoverage/+/113798
+Project: gnatcoverage
+Branch: refs/heads/master
