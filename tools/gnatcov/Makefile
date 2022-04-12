@@ -242,7 +242,7 @@ ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 .PHONY: clean-bin clean clean-adapters
 
 clean-bin:
-	$(RM) *.o *.ali $(PGMNAME) b~* obj*/*
+	$(RM) -rf *.o *.ali $(PGMNAME) b~* obj*/
 
 clean: clean-bin clean-adapters
 
