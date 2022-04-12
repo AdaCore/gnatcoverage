@@ -101,7 +101,9 @@ project Gnatcov is
         (Binutils_Build_Dir & "/opcodes/libopcodes.a",
          Binutils_Build_Dir & "/bfd/libbfd.a",
          Binutils_Build_Dir & "/libiberty/libiberty.a",
-         "-lz");
+         "-lz",
+         "-static-libstdc++",
+         "-static-libgcc");
    end Linker;
 
    package Binder is

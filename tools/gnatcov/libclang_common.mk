@@ -30,6 +30,6 @@ LLVM_SYSTEM_LIBS=\
         $(shell llvm-config --system-libs)
 LD_FLAGS=\
         $(shell llvm-config --ldflags) $(CLANG_FLAGS) $(LLVM_FLAGS) \
-	$(LLVM_SYSTEM_LIBS) -static-libstdc++
+	$(LLVM_SYSTEM_LIBS)
 
 CXXFLAGS=-I$(LLVM_INCLUDEDIR)
