@@ -81,16 +81,16 @@ project Gnatcov is
               ("-O1", "-fdump-scos", "-fpreserve-control-flow", "-g");
             c_mode_switches := ("-DNDEBUG");
             cxx_mode_switches := ("-DNDEBUG");
-       end case;
+      end case;
 
-       for Default_Switches ("ada")
-          use ada_common_switches & mode_switches & ada_mode_switches;
+      for Default_Switches ("ada")
+        use ada_common_switches & mode_switches & ada_mode_switches;
 
-       for Default_Switches ("C")
-          use c_common_switches & mode_switches & c_mode_switches;
+      for Default_Switches ("C")
+        use c_common_switches & mode_switches & c_mode_switches;
 
       for Default_Switches ("C++")
-          use mode_switches & cxx_mode_switches;
+        use mode_switches & cxx_mode_switches;
 
       for Local_Configuration_Pragmas use "gnat.adc";
 
