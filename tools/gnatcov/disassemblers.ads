@@ -79,7 +79,12 @@ package Disassemblers is
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type) return Boolean is abstract;
    --  Return whether the given instruction, located at PC, is a potential
-   --  padding (NOP) instruction.
+   --  padding instruction.
+   --
+   --  Padding instructions are not meant to be executed: toolchains may insert
+   --  them at the end of routines to align the first instruction of the next
+   --  routine.  Even though padding instructions are generally implemented as
+   --  NOP instructions, toolchain sometime use other kinds of instructions.
    --
    --  For most platforms, this can unconditionally return False, since
    --  instructions are always aligned, and thus there is no need for padding.
