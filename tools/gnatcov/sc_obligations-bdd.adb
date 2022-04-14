@@ -207,6 +207,8 @@ package body SC_Obligations.BDD is
       Visited    : array (Valid_Node_Id) of Boolean := (others => False);
       Path_Count : array (Valid_Node_Id) of Integer := (others => 0);
 
+      Path_Limit_Error : exception;
+
       procedure Visit
         (Node_Id      : BDD_Node_Id;
          Origin_Id    : BDD_Node_Id;
@@ -215,6 +217,9 @@ package body SC_Obligations.BDD is
       --  Visit one node. If it was already seen, record presence of a
       --  multi-path condition. Sets Path_Count (Node_Id) to total count
       --  of paths from the identified node.
+      --
+      --  May raise Path_Limit_Error if the enumeration of BDD paths exceeds
+      --  the limit set in Path_Count_Limit.
 
       -----------
       -- Visit --
@@ -231,6 +236,7 @@ package body SC_Obligations.BDD is
 
          Edge_Count : array (Boolean) of Natural := (others => 0);
          --  Count of paths through each successor to any outcome
+
       begin
          --  Set Node's parent to Parent_Id. Set C_Value to Node's condition
          --  value. Also mark Node reachable if it is an outcome.
@@ -287,6 +293,9 @@ package body SC_Obligations.BDD is
                raise Program_Error;
          end case;
 
+         if Path_Count (Node_Id) > Path_Count_Limit then
+            raise Path_Limit_Error;
+         end if;
          Visited (Node_Id) := True;
       end Visit;
 
@@ -298,6 +307,9 @@ package body SC_Obligations.BDD is
          Origin_Id    => No_BDD_Node_Id,
          Origin_Value => False);
       BDD.Path_Count := Path_Count (BDD.Root_Condition);
+   exception
+      when Path_Limit_Error =>
+         BDD.Path_Count := 0;
    end Enumerate_Paths;
 
    ---------------

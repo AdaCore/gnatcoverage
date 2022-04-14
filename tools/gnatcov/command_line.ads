@@ -118,7 +118,8 @@ package Command_Line is
       Opt_Prefix,
       Opt_RTS_Profile,
       Opt_Runtime_Project,
-      Opt_Runtime_Source_Dir);
+      Opt_Runtime_Source_Dir,
+      Opt_Path_Count_Limit);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -853,6 +854,17 @@ package Command_Line is
            & " project.",
          Commands     => (Cmd_Setup => True, others => False),
          At_Most_Once => False,
+         Internal     => False),
+      Opt_Path_Count_Limit => Create
+        (Long_Name    => "--path-count-limit",
+         Pattern      => "POSITIVE",
+         Help         =>
+           "Limit beyond which enumeration of BDD paths stops. If a decision"
+           & " has more paths in its BDD than the limit, MC/DC coverage will"
+           & " not be assessed for that decision, resulting in violations in"
+           & " the report.",
+         Commands     => (Cmd_Instrument => True, others => False),
+         At_Most_Once => True,
          Internal     => False)
      );
 

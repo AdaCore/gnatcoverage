@@ -432,7 +432,7 @@ package body Instrument.Ada_Unit is
    procedure Insert_Decision_Witness
      (IC         : in out Ada_Unit_Inst_Context;
       SD         : Source_Decision;
-      Path_Count : Positive);
+      Path_Count : Natural);
    --  For use when decision coverage or MC/DC is requested. Insert witness
    --  function call for the identified decision.
 
@@ -1207,7 +1207,7 @@ package body Instrument.Ada_Unit is
    procedure Insert_Decision_Witness
      (IC         : in out Ada_Unit_Inst_Context;
       SD         : Source_Decision;
-      Path_Count : Positive)
+      Path_Count : Natural)
    is
       LL_SCO_Id : Nat renames SD.LL_SCO;
       N         : Expr renames SD.Decision;
@@ -1230,14 +1230,33 @@ package body Instrument.Ada_Unit is
         IC.Unit_Bits.Last_Outcome_Bit + 2;
 
       --  Allocate path bits for MC/DC if MC/DC is required and we were
-      --  able to generate a local state variable.
+      --  able to generate a local state variable. If Path_Count is 0, this
+      --  means the BDD has more paths than the allowed limit, so do not
+      --  allocate any bit in the MC/DC buffers. The SCOs for the conditions
+      --  have already been emitted so this will generate MC/DC violations for
+      --  all of them.
 
-      if MCDC_Coverage_Enabled and then Length (SD.State) > 0 then
+      if MCDC_Coverage_Enabled
+        and then Length (SD.State) > 0
+        and then Path_Count > 0
+      then
          Bits.Path_Bits_Base := IC.Unit_Bits.Last_Path_Bit + 1;
          IC.Unit_Bits.Last_Path_Bit :=
            IC.Unit_Bits.Last_Path_Bit + Bit_Id (Path_Count);
       else
          Bits.Path_Bits_Base := No_Bit_Id;
+      end if;
+
+      if Path_Count = 0 then
+         Report (Node => N,
+                 Msg  => "Number of distinct paths in the decision exceeds"
+                         & " the limit ("
+                         & Img (SC_Obligations.Get_Path_Count_Limit)
+                         & "). MC/DC coverage for this decision will not be"
+                         & " assessed and will result in MC/DC violations."
+                         & " Use option --path-count-limit to adjust the"
+                         & " limit if the default value is too low.",
+                 Kind => Warning);
       end if;
 
       IC.Unit_Bits.Decision_Bits.Append (Bits);
@@ -6496,13 +6515,22 @@ package body Instrument.Ada_Unit is
             end loop;
 
             if MCDC_Coverage_Enabled then
+
                --  As high-level SCO tables have been populated, we have built
                --  BDDs for each decisions, and we can now set the correct
                --  MC/DC path offset for each condition.
+               --
+               --  We do not include a witness call for conditions which appear
+               --  in a decision with a path count exceeding the limit to avoid
+               --  generating overly large traces / run out of memory.
 
                for SC of UIC.Source_Conditions loop
-                  Insert_Condition_Witness
-                    (UIC, SC, Offset_For_True (SCO_Map (SC.LL_SCO)));
+                  if Path_Count
+                       (Enclosing_Decision (SCO_Map (SC.LL_SCO))) /= 0
+                  then
+                     Insert_Condition_Witness
+                       (UIC, SC, Offset_For_True (SCO_Map (SC.LL_SCO)));
+                  end if;
                end loop;
             end if;
          end if;

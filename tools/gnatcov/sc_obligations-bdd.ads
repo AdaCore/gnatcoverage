@@ -22,6 +22,10 @@ with Ada.Streams; use Ada.Streams;
 
 private package SC_Obligations.BDD is
 
+   Path_Count_Limit : Natural := 1024;
+   --  Limit beyond which BDD path enumeration should stop.
+   --  TODO: Arbitrary, to be fine tuned.
+
    type Destinations is array (Boolean) of BDD_Node_Id;
 
    --  BDD node kinds

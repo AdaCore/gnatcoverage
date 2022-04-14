@@ -439,7 +439,16 @@ package SC_Obligations is
 
    function Path_Count (SCO : SCO_Id) return Natural;
    --  Return count of paths through decision's BDD from root condition to
-   --  any outcome.
+   --  any outcome. This should be a positive number for any decision
+   --  (at least 2, one for the True outcome, and one for the False outcome),
+   --  but this function can also return 0 when the number of paths exceeds
+   --  the limit set with Set_Path_Count_Limit.
+
+   procedure Set_Path_Count_Limit (Limit : Natural);
+   --  Set the path count limit beyond which BDD path enumeration is aborted
+
+   function Get_Path_Count_Limit return Natural;
+   --  Returns the path count limit beyond which BDD path enumartion is aborted
 
    function Condition_Values
      (SCO        : SCO_Id;

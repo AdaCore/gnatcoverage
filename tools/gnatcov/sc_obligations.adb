@@ -3453,6 +3453,22 @@ package body SC_Obligations is
       return SCO_Vector.Reference (SCO).Decision_BDD.Path_Count;
    end Path_Count;
 
+   --------------------------
+   -- Set_Path_Count_Limit --
+   --------------------------
+
+   procedure Set_Path_Count_Limit (Limit : Natural) is
+   begin
+      SC_Obligations.BDD.Path_Count_Limit := Limit;
+   end Set_Path_Count_Limit;
+
+   --------------------------
+   -- Get_Path_Count_Limit --
+   --------------------------
+
+   function Get_Path_Count_Limit return Natural is
+     (SC_Obligations.BDD.Path_Count_Limit);
+
    --------------------
    -- Prealloc_Lines --
    --------------------

@@ -971,6 +971,23 @@ procedure GNATcov_Bits_Specific is
                   & (+Args.Remaining_Args.First_Element));
             end if;
 
+            if Args.String_Args (Opt_Path_Count_Limit).Present then
+               declare
+                  Limit : Positive;
+               begin
+                  begin
+                     Limit :=
+                       Positive'Value
+                         (+Args.String_Args (Opt_Path_Count_Limit).Value);
+                  exception
+                     when Constraint_Error =>
+                        Fatal_Error ("--path-count-limit expects a positive"
+                                     & " integer value");
+                  end;
+                  SC_Obligations.Set_Path_Count_Limit (Limit);
+               end;
+            end if;
+
          when others =>
             null;
       end case;
