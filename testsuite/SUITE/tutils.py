@@ -73,6 +73,9 @@ def gprbuild_gargs_with(thisgargs, trace_mode=None):
     """
     Compute and return all the toplevel gprbuild arguments to pass. Account for
     specific requests in THISGARGS.
+
+    If TRACE_MODE is "src", consider that we are building an instrumented
+    project even if the testsuite mode tells otherwise.
     """
     trace_mode = trace_mode or thistest.options.trace_mode
 
@@ -197,6 +200,8 @@ def gprbuild(project,
 
     SUITECARGS tells whether or not we should also add the -cargs passed on
     the testsuite toplevel command line.
+
+    See gprbuild_gargs_with for the meaning of TRACE_MODE.
 
     OUT is the name of the file to contain gprbuild's output.
     """
