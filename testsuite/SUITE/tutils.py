@@ -196,7 +196,8 @@ def gprbuild(project,
              largs=None,
              trace_mode=None,
              instr_runtime_project=None,
-             out='gprbuild.out'):
+             out='gprbuild.out',
+             register_failure=True):
     """
     Cleanup & build the provided PROJECT file using gprbuild, passing
     GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches. Each
@@ -213,6 +214,9 @@ def gprbuild(project,
     INSTR_RUNTIME_PROJECT.
 
     OUT is the name of the file to contain gprbuild's output.
+
+    Stop with a FatalError if the execution status is not zero and
+    REGISTER_FAILURE is True. Return the process descriptor otherwise.
     """
 
     # Fetch options, from what is requested specifically here
@@ -233,8 +237,10 @@ def gprbuild(project,
     args = (to_list(BUILDER.BASE_COMMAND) +
             ['-P%s' % project] + all_gargs + all_cargs + all_largs)
     p = run_and_log(args, output=out, timeout=thistest.options.timeout)
-    thistest.stop_if(p.status != 0,
-                     FatalError("gprbuild exit in error", out))
+    if register_failure:
+        thistest.stop_if(p.status != 0,
+                         FatalError("gprbuild exit in error", out))
+    return p
 
 
 def gprinstall(project, prefix=None):
