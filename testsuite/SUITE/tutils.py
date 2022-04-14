@@ -69,13 +69,18 @@ def run_and_log(*args, **kwargs):
     return p
 
 
-def gprbuild_gargs_with(thisgargs, trace_mode=None):
+def gprbuild_gargs_with(thisgargs,
+                        trace_mode=None,
+                        instr_runtime_project=None):
     """
     Compute and return all the toplevel gprbuild arguments to pass. Account for
     specific requests in THISGARGS.
 
     If TRACE_MODE is "src", consider that we are building an instrumented
     project even if the testsuite mode tells otherwise.
+
+    If INSTR_RUNTIME_PROJECT is not null, it will be used as the name of the
+    instrumentation runtime project in source trace mode.
     """
     trace_mode = trace_mode or thistest.options.trace_mode
 
@@ -93,12 +98,14 @@ def gprbuild_gargs_with(thisgargs, trace_mode=None):
     result.extend(thistest.gprvaroptions)
     result.extend(to_list(thisgargs))
 
-    # If we work with source instrumentation, add the dependency on
-    # gnatcov_full_rts to that instrumented programs are compilable in the
-    # generated projects.
+    # If we work with source instrumentation, add the dependency on the
+    # instrumentation runtime project so that instrumented programs are
+    # compilable in the generated projects.
     if trace_mode == 'src':
-        result.append('--implicit-with={}.gpr'
-                      .format(RUNTIME_INFO.gnatcov_rts_project))
+        instr_runtime_project = (
+            instr_runtime_project or RUNTIME_INFO.gnatcov_rts_project
+        )
+        result.append(f"--implicit-with={instr_runtime_project}.gpr")
 
     return result
 
@@ -188,6 +195,7 @@ def gprbuild(project,
              gargs=None,
              largs=None,
              trace_mode=None,
+             instr_runtime_project=None,
              out='gprbuild.out'):
     """
     Cleanup & build the provided PROJECT file using gprbuild, passing
@@ -201,14 +209,19 @@ def gprbuild(project,
     SUITECARGS tells whether or not we should also add the -cargs passed on
     the testsuite toplevel command line.
 
-    See gprbuild_gargs_with for the meaning of TRACE_MODE.
+    See gprbuild_gargs_with for the meaning of TRACE_MODE and
+    INSTR_RUNTIME_PROJECT.
 
     OUT is the name of the file to contain gprbuild's output.
     """
 
     # Fetch options, from what is requested specifically here
     # or from command line requests
-    all_gargs = gprbuild_gargs_with(thisgargs=gargs, trace_mode=trace_mode)
+    all_gargs = gprbuild_gargs_with(
+        thisgargs=gargs,
+        trace_mode=trace_mode,
+        instr_runtime_project=instr_runtime_project,
+    )
     all_largs = gprbuild_largs_with(thislargs=largs)
     all_cargs = gprbuild_cargs_with(scovcargs=scovcargs,
                                     suitecargs=suitecargs,
@@ -452,23 +465,21 @@ def platform_specific_symbols(symbols):
 
 def xcov_suite_args(covcmd, covargs,
                     auto_config_args=True,
-                    auto_target_args=True):
+                    auto_target_args=True,
+                    force_project_args=False):
     """
     Arguments we should pass to gnatcov to obey what we received on the command
     line, in particular --config and --target/--RTS.
 
-    If AUTO_CONFIG_ARGS, automatically add a --config argument if required for
-    proper project handling in GNATcov.
-
-    If AUTO_TARGET_ARGS, automatically add --target/--RTS arguments if required
-    for proper project handling in gnatcov or to get "gnatcov run" work for the
-    current target.
-
-    There is a subtlety: if project handling is enabled and if both
-    AUTO_CONFIG_ARGS and AUTO_TARGET_ARGS are enabled, this will only add a
-    --config argument, as --target would conflict in this case.
+    By default (when FORCE_PROJECT_ARGS is False), pass arguments to correctly
+    load a project (--config/--target/--RTS) iff COVARSGS contains a -P option
+    (i.e.  iff a project is actually loaded). When FORCE_PROJECT_ARGS is True,
+    pass these arguments if respectively AUTO_CONFIG_ARGS and AUTO_TARGET_ARGS
+    are True.
     """
-    project_handling_enabled = any(arg.startswith('-P') for arg in covargs)
+    project_handling_enabled = (
+        force_project_args or any(arg.startswith('-P') for arg in covargs)
+    )
 
     # If --config is asked and project handling is involved, pass it and stop
     # there. If there is a board, it must be described in the project file
@@ -563,14 +574,16 @@ def cmdrun(cmd, inp=None, out=None, err=None, env=None, register_failure=True):
 
 
 def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
-         auto_config_args=True, auto_target_args=True):
+         auto_config_args=True, auto_target_args=True,
+         force_project_args=False):
     """
     Run xcov with arguments ARGS, timeout control, valgrind control if
     available and enabled, output directed to OUT and failure registration if
     register_failure is True. Return the process status descriptor. ARGS may be
     a list or a whitespace separated string.
 
-    See xcov_suite_args for the meaning of AUTO_*_ARGS arguments.
+    See xcov_suite_args for the meaning of AUTO_*_ARGS and FORCE_PROJECT_ARGS
+    arguments.
     """
 
     # Make ARGS a list from whatever it is, to allow unified processing.
@@ -588,7 +601,7 @@ def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
         covargs = ['--all-warnings'] + covargs
 
     covargs = xcov_suite_args(covcmd, covargs, auto_config_args,
-                              auto_target_args) + covargs
+                              auto_target_args, force_project_args) + covargs
 
     # Determine which program we are actually going launch. This is
     # "gnatcov <cmd>" unless we are to execute some designated program
