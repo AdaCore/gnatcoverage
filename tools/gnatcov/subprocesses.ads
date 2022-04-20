@@ -59,6 +59,7 @@ package Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False;
       Ignore_Error        : Boolean := False) return Boolean;
    --  Run the given command and return whether it exited with a zero status
@@ -72,11 +73,13 @@ package Subprocesses is
    --  designated file.
    --
    --  The subprocess standard error stream is redirected to its standard
-   --  output stream iff Err_To_Out is True.
+   --  output stream iff Err_To_Out is True. The standard output is itself
+   --  redirected to the "null" stream iff Out_To_Null is True (stream where
+   --  there is nothing to read, equivalent to /dev/null on Unix systems). In
+   --  that case, it is an error for Output_File to be non-empty.
    --
    --  The subprocess standard input stream is redirected to the "null" stream
-   --  (stream where there is nothing to read, equivalent to /dev/null on Unix
-   --  systems) iff In_To_Null is True.
+   --  iff In_To_Null is True.
    --
    --  If Ignore_Error is True and the subprocess exits with a non-zero status
    --  code, abort with Outputs.Fatal_Error.
@@ -88,6 +91,7 @@ package Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False;
       Ignore_Error        : Boolean := False) return Boolean;
    --  Overload to avoid the Command_Type layer
@@ -97,6 +101,7 @@ package Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False);
    procedure Run_Command
      (Command             : String;
@@ -105,6 +110,7 @@ package Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False);
    --  Overloads to stop with a fatal error if the subprocess exits with a
    --  non-zero status code.

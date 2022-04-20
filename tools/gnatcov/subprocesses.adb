@@ -60,6 +60,7 @@ package body Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False;
       Ignore_Error        : Boolean := False) return Boolean
    is
@@ -71,6 +72,7 @@ package body Subprocesses is
          Origin_Command_Name,
          Output_File,
          Err_To_Out,
+         Out_To_Null,
          In_To_Null,
          Ignore_Error);
    end Run_Command;
@@ -80,6 +82,7 @@ package body Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False)
    is
       Dummy : constant Boolean := Run_Command
@@ -87,6 +90,7 @@ package body Subprocesses is
          Origin_Command_Name,
          Output_File,
          Err_To_Out,
+         Out_To_Null,
          In_To_Null,
          Ignore_Error => False);
    begin
@@ -100,6 +104,7 @@ package body Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False)
    is
       Dummy : constant Boolean := Run_Command
@@ -109,6 +114,7 @@ package body Subprocesses is
          Origin_Command_Name,
          Output_File,
          Err_To_Out,
+         Out_To_Null,
          In_To_Null,
          Ignore_Error => False);
    begin
@@ -122,6 +128,7 @@ package body Subprocesses is
       Origin_Command_Name : String;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False;
       Ignore_Error        : Boolean := False) return Boolean
    is
@@ -132,6 +139,9 @@ package body Subprocesses is
       Args    : Process_Types.Arguments;
       Success : Boolean;
    begin
+      if Out_To_Null and then Output_File /= "" then
+         raise Program_Error;
+      end if;
 
       --  Honor a possible empty command text, meaning no actual
       --  command to run.
@@ -192,9 +202,12 @@ package body Subprocesses is
       declare
          Stdin  : constant File_Descriptor :=
            (if In_To_Null then Null_FD else Standin);
-         Stdout : File_Descriptor := Standout;
+         Stdout : File_Descriptor :=
+           (if Out_To_Null then Null_FD else Standout);
          Stderr : constant File_Descriptor :=
-           (if Err_To_Out then To_Stdout else Standerr);
+           (if not Err_To_Out then Standerr
+            elsif Out_To_Null then Null_FD
+            else To_Stdout);
          Status : Integer;
 
          Redirect_Stdout : constant Boolean := Output_File /= "";
