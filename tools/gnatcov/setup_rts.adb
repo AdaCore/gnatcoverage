@@ -65,9 +65,12 @@ package body Setup_RTS is
    --  parameters, then determine the actual runtime in effect (Actual_RTS) and
    --  the support for libraries for this configuration (Lib_Support).
 
+   procedure Uninstall (Project_Name, Prefix : String);
+   --  Try to uninstall a previous installation of the project called
+   --  Project_Name in the given Prefix installation directory.
+
    procedure Build_And_Install
-     (Project_Name : String;
-      Project_File : String;
+     (Project_File : String;
       Temp_Dir     : Temporary_Directory;
       Common_Args  : String_Vectors.Vector;
       Build_Args   : String_Vectors.Vector;
@@ -75,9 +78,6 @@ package body Setup_RTS is
       Library_Kind : String := "");
    --  Build and install the Project_File instrumentation project in the given
    --  temporary directory.
-   --
-   --  Project_Name is the name of this project, as given by the user (or the
-   --  default one).
    --
    --  Common_Args are arguments to be passed both to gprbuild and gprinstall,
    --  Build_Args to gprbuild, and Install_Args are passed only to gprinstall.
@@ -239,13 +239,38 @@ package body Setup_RTS is
       Free (Env);
    end Load_Project_Parameters;
 
+   ---------------
+   -- Uninstall --
+   ---------------
+
+   procedure Uninstall (Project_Name, Prefix : String) is
+      Dummy : Boolean;
+      Args  : String_Vectors.Vector;
+   begin
+      if Verbose then
+         Put_Line ("Trying to uninstall " & Project_Name & " from " & Prefix);
+      end if;
+
+      Args.Append (+"--uninstall");
+      Args.Append (+("--prefix=" & Prefix));
+      Args.Append (+Project_Name);
+
+      --  The project may not have been installed there yet, so ignore errors
+
+      Dummy := Run_Command
+        (Command             => "gprinstall",
+         Arguments           => Args,
+         Origin_Command_Name => "gprinstall",
+         Out_To_Null         => not Verbose,
+         Ignore_Error        => True);
+   end Uninstall;
+
    -----------------------
    -- Build_And_Install --
    -----------------------
 
    procedure Build_And_Install
-     (Project_Name : String;
-      Project_File : String;
+     (Project_File : String;
       Temp_Dir     : Temporary_Directory;
       Common_Args  : String_Vectors.Vector;
       Build_Args   : String_Vectors.Vector;
@@ -254,7 +279,6 @@ package body Setup_RTS is
    is
       use String_Vectors;
 
-      Lower_Project_Name  : constant String := To_Lower (Project_Name);
       Actual_Common_Args  : String_Vectors.Vector := Common_Args;
       Actual_Install_Args : String_Vectors.Vector := Install_Args;
    begin
@@ -264,13 +288,6 @@ package body Setup_RTS is
 
       Actual_Common_Args.Append (+("-P" & Project_File));
       Actual_Common_Args.Append (+"-p");
-
-      --  Force the installation of the project: requiring users to call
-      --  "gprinstall --uninstall" when all they want is to update the
-      --  instrumentation runtime is too annoying.
-
-      Actual_Install_Args.Append (+"-f");
-      Actual_Install_Args.Append (+("--install-name=" & Lower_Project_Name));
 
       --  If we manage several library kinds, build and install the requested
       --  variant.
@@ -365,6 +382,17 @@ package body Setup_RTS is
             Put_Line ("Actual RTS profile: " & Actual_RTS_Profile'Image);
          end if;
 
+         --  Try to uninstall a previous installation of the instrumentation
+         --  runtime in the requested prefix. This is to avoid installation
+         --  update issues: for instance, the "Language" project attribute in
+         --  the already installed project could be set to ("Ada", "C") whereas
+         --  we are here installing a runtime only for "C". Uninstalling the
+         --  project first allows gprinstall to start from a sanitized
+         --  environment, and thus the installed project to accurately describe
+         --  what is installed.
+
+         Uninstall (Runtime_Project, Prefix);
+
          --  Now build and install the instrumentation runtime
 
          declare
@@ -405,8 +433,7 @@ package body Setup_RTS is
 
                when Static_Only =>
                   Build_And_Install
-                    (Runtime_Project,
-                     Project_File,
+                    (Project_File,
                      Temp_Dir,
                      Common_Args,
                      Build_Args,
@@ -415,8 +442,7 @@ package body Setup_RTS is
                when Full =>
                   for LK of Library_Kinds loop
                      Build_And_Install
-                       (Runtime_Project,
-                        Project_File,
+                       (Project_File,
                         Temp_Dir,
                         Common_Args,
                         Build_Args,
