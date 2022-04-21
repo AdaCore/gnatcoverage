@@ -122,11 +122,11 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
             (os.path.join(gprsw.subdirs, main) if gprsw.subdirs else main))
         return abspath(exepath_to(main))
 
-    def gprbuild_wrapper(root_project, gargs):
+    def gprbuild_wrapper(root_project):
 
         # Honor build relevant switches from gprsw here
         gprbuild(root_project,
-                 gargs=gprsw.build_switches + gargs + extra_gprbuild_args,
+                 gargs=gprsw.build_switches + extra_gprbuild_args,
                  extracargs=extra_gprbuild_cargs,
                  trace_mode=trace_mode,
                  instr_runtime_project=instr_runtime_project)
@@ -177,7 +177,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
     if trace_mode == 'bin':
         # Build and run each main
-        gprbuild_wrapper(gprsw.root_project, gargs=[])
+        gprbuild_wrapper(gprsw.root_project)
         run_args = covlevel_args + extra_args
 
         if scos_for_run:
@@ -206,8 +206,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                         dump_channel=dump_channel, out='instrument.log',
                         register_failure=register_failure,
                         warnings_as_errors=instrument_warnings_as_errors)
-        gprbuild_wrapper(gprsw.root_project,
-                         gargs=['--src-subdirs=gnatcov-instr'])
+        gprbuild_wrapper(gprsw.root_project)
 
         # Then execute each main and collect trace files
         trace_files = []

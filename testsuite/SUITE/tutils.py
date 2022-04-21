@@ -100,12 +100,16 @@ def gprbuild_gargs_with(thisgargs,
 
     # If we work with source instrumentation, add the dependency on the
     # instrumentation runtime project so that instrumented programs are
-    # compilable in the generated projects.
+    # compilable in the generated projects. Also use instrumented sources in
+    # the "*-gnatcov-instr" object directories.
     if trace_mode == 'src':
         instr_runtime_project = (
             instr_runtime_project or RUNTIME_INFO.gnatcov_rts_project
         )
-        result.append(f"--implicit-with={instr_runtime_project}.gpr")
+        result += [
+            f"--implicit-with={instr_runtime_project}.gpr",
+            "--src-subdirs=gnatcov-instr",
+        ]
 
     return result
 
