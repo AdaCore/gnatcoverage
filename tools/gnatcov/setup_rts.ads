@@ -27,17 +27,25 @@ package Setup_RTS is
 
    subtype Resolved_RTS_Profile is Any_RTS_Profile range Full .. Embedded;
 
+   function Default_Project_File return String;
+   --  Return the name of the instrumentation runtime project file that is
+   --  shipped with gnatcov. Raise a fatal error if we cannot find it.
+
+   function Project_Name (Project_File : String) return String;
+   --  Given a project file, return the name of the project it is supposed to
+   --  contain.
+
    procedure Setup
-     (Target             : String;
-      RTS                : String;
-      Config_File        : String;
-      Prefix             : String;
-      RTS_Profile        : Any_RTS_Profile;
-      Runtime_Project    : String;
-      Runtime_Source_Dir : String;
-      Gargs              : String_Vectors.Vector);
-   --  Build and install the "gnatcov_rts" project shipped in gnatcov's "share"
-   --  directory.
+     (Project_File : String;
+      Target       : String;
+      RTS          : String;
+      Config_File  : String;
+      Prefix       : String;
+      RTS_Profile  : Any_RTS_Profile;
+      Install_Name : String;
+      Gargs        : String_Vectors.Vector);
+   --  Build and install the given Project_File instrumentation runtime
+   --  project.
    --
    --  Target/RTS/Config_File are the standard GPR loading parameters to use
    --  for the build.
@@ -51,8 +59,8 @@ package Setup_RTS is
    --  available from the name of the RTS (the actual runtime used in the GPR
    --  world, i.e. not necessarily the value of the RTS argument passed here).
    --
-   --  Runtime_Project is the name to use for the instrumentation runtime
-   --  project (renamed from "GNATcov_RTS").
+   --  If non-empty, Install_Name is used as an alternative name for the
+   --  installed project.
    --
    --  All items in Gargs are passed as additional command-line arguments to
    --  gprbuild.

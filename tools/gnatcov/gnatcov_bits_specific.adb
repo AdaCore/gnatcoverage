@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers;        use Ada.Containers;
+with Ada.Directories;       use Ada.Directories;
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
@@ -64,7 +65,6 @@ with Rundrv;                use Rundrv;
 with SC_Obligations;        use SC_Obligations;
 with Setup_RTS;
 with Strings;               use Strings;
-with Support_Files;
 with Switches;              use Switches;
 with Traces;                use Traces;
 with Traces_Elf;            use Traces_Elf;
@@ -122,6 +122,10 @@ procedure GNATcov_Bits_Specific is
 
    SIDs_Loaded : Boolean := False;
    --  Whether we loaded SID files for units of interest
+
+   Runtime_Project : String_Access;
+   --  For "gnatcov setup", project file name for the instrumentation runtime
+   --  to build and install.
 
    procedure Process_Arguments;
    --  Process all the arguments present in Args and forward them to local
@@ -765,6 +769,26 @@ procedure GNATcov_Bits_Specific is
       --  meanings.
 
       case Args.Command is
+         when Cmd_Setup =>
+
+            --  Accept one optional argument: the project file name for the
+            --  instrumentation runtime to build and install.
+
+            if Args.Remaining_Args.Is_Empty then
+               Runtime_Project := new String'(Setup_RTS.Default_Project_File);
+            elsif Args.Remaining_Args.Length = 1 then
+               declare
+                  Prj : constant String := +Args.Remaining_Args.Element (0);
+               begin
+                  Runtime_Project := new String'
+                    (if GNAT.OS_Lib.Is_Absolute_Path (Prj)
+                     then Prj
+                     else (Current_Directory & "/" & Prj));
+               end;
+            else
+               Fatal_Error ("at most one positional argument allowed");
+            end if;
+
          when Cmd_Coverage
             | Cmd_Dump_Trace
             | Cmd_Dump_Trace_Raw
@@ -1166,6 +1190,8 @@ begin
          declare
             use Setup_RTS;
 
+            Project_File : String renames Runtime_Project.all;
+
             --  If --target was passed, get the target family (the option may
             --  also contain board info). Otherwise use the default target.
             --
@@ -1182,6 +1208,15 @@ begin
               (if Target_Arg = ""
                then ""
                else Target_Family.all);
+
+            --  Unless a specific installation name is requested, use the name
+            --  of the project to build and install.
+
+            Install_Name : constant String :=
+              Value
+                 (Args,
+                  Opt_Install_Name,
+                  Setup_RTS.Project_Name (Project_File));
 
             RTS_Profile_Str : constant String :=
               Value (Args, Opt_RTS_Profile, "auto");
@@ -1200,19 +1235,14 @@ begin
             end if;
 
             Setup
-              (Target             => Target,
-               RTS                => Value (Args, Opt_Runtime),
-               Config_File        => Value (Args, Opt_Config),
-               Prefix             => Value (Args, Opt_Prefix),
-               RTS_Profile        => RTS_Profile,
-               Runtime_Project    =>
-                 Value (Args, Opt_Runtime_Project, "GNATcov_RTS"),
-               Runtime_Source_Dir =>
-                 Value
-                    (Args,
-                     Opt_Runtime_Source_Dir,
-                     Support_Files.In_Share_Dir ("gnatcov_rts")),
-               Gargs              => Args.String_List_Args (Opt_Gargs));
+              (Project_File => Project_File,
+               Target       => Target,
+               RTS          => Value (Args, Opt_Runtime),
+               Config_File  => Value (Args, Opt_Config),
+               Prefix       => Value (Args, Opt_Prefix),
+               RTS_Profile  => RTS_Profile,
+               Install_Name => Install_Name,
+               Gargs        => Args.String_List_Args (Opt_Gargs));
          end;
 
       when Cmd_Instrument =>

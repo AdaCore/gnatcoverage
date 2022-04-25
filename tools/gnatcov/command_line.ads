@@ -117,9 +117,8 @@ package Command_Line is
       Opt_Timezone,
       Opt_Prefix,
       Opt_RTS_Profile,
-      Opt_Runtime_Project,
-      Opt_Runtime_Source_Dir,
-      Opt_Path_Count_Limit);
+      Opt_Path_Count_Limit,
+      Opt_Install_Name);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -831,31 +830,6 @@ package Command_Line is
          At_Most_Once => False,
          Internal     => True),
 
-      Opt_Runtime_Project => Create
-        (Long_Name    => "--runtime-project",
-         Pattern      => "NAME",
-         Help         =>
-           "Name for the installed project. By default, keep the original:"
-           & " ""gnatcov_rts"". Using non-default names allows one to install"
-           & " different projects in the same installation prefix.",
-         Commands     => (Cmd_Setup => True, others => False),
-         At_Most_Once => False,
-         Internal     => False),
-
-      Opt_Runtime_Source_Dir => Create
-        (Long_Name    => "--runtime-source-dir",
-         Pattern      => "DIR",
-         Help         =>
-           "Directory in which to look for ""gnatcov_rts.gpr"". The entire"
-           & " directory is copied to a temporary directory, where the build"
-           & " actually happens. By default, look for the ""gnatcov_rts.gpr"""
-           & " project installed with gnatcov."
-           & ASCII.LF & ASCII.LF
-           & "This option allows one to use a custom instrumentation runtime"
-           & " project.",
-         Commands     => (Cmd_Setup => True, others => False),
-         At_Most_Once => False,
-         Internal     => False),
       Opt_Path_Count_Limit => Create
         (Long_Name    => "--path-count-limit",
          Pattern      => "POSITIVE",
@@ -866,6 +840,18 @@ package Command_Line is
            & " the report.",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => True,
+         Internal     => False),
+
+      Opt_Install_Name => Create
+        (Long_Name    => "--install-name",
+         Pattern      => "NAME",
+         Help         =>
+           "Name for the installed project. By default, keep the original:"
+           & " ""gnatcov_rts"", or the name on the project passed to ""gnatcov"
+           & " setup"". Using non-default names allows one to install"
+           & " different projects in the same installation prefix.",
+         Commands     => (Cmd_Setup => True, others => False),
+         At_Most_Once => False,
          Internal     => False)
      );
 

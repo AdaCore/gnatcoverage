@@ -16,21 +16,22 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Directories;         use Ada.Directories;
-with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
-with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Characters.Handling;   use Ada.Characters.Handling;
+with Ada.Directories;           use Ada.Directories;
+with Ada.Environment_Variables;
+with Ada.Strings.Unbounded;     use Ada.Strings.Unbounded;
+with Ada.Text_IO;               use Ada.Text_IO;
 
-with GNAT.Strings;
+with GNAT.OS_Lib;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
-with Outputs;      use Outputs;
-with Subprocesses; use Subprocesses;
-with Switches;     use Switches;
-with Temp_Dirs;    use Temp_Dirs;
+with Outputs;       use Outputs;
+with Subprocesses;  use Subprocesses;
+with Support_Files;
+with Switches;      use Switches;
+with Temp_Dirs;     use Temp_Dirs;
 with Text_Files;
 
 package body Setup_RTS is
@@ -47,12 +48,35 @@ package body Setup_RTS is
                              of access constant String :=
      (LK_Static'Access, LK_Static_PIC'Access, LK_Relocatable'Access);
 
-   function Rename_Project
+   function Setup_Project
      (Temp_Dir     : Temporary_Directory;
-      Project_Name : String) return String;
-   --  Create a renamed copy of the "gnatcov_rts.gpr" project file in Temp_Dir.
-   --  Project_Name is the new name for this project. Return the absolute path
-   --  to the renamed project file.
+      Project_File : String;
+      Install_Name : String) return String;
+   --  Copy the directory that contains Project_File (i.e. the sources for the
+   --  instrumentation runtime project to build) to Temp_Dir.
+   --
+   --  If the project name for the given Project_File does not match
+   --  Install_Name, also create an extending project in Temp_Dir that does.
+   --
+   --  Return the absolute file name for the project file to build in the end
+   --  (the copied project file, or the extending one).
+   --
+   --  Note that ideally, we should avoid copying the project file and its
+   --  sources: the assumption that the project layout is self-contained in
+   --  that directory could be wrong in edge cases (e.g. if the Source_Dirs
+   --  attribute contains a ".." component). Besides, that copy could be
+   --  costly, for instance if users left big binaries unrelated to the work of
+   --  "gnatcov setup" in that directory.
+   --
+   --  An out-of-tree build feature in GPRbuild could allow us to avoid the
+   --  copy. Unfortunately the existing one (--relocate-build-tree/--root-dir)
+   --  works relocating the whole tree starting from a parent directory that
+   --  contains the object directories of all the projects to build. In our
+   --  case, the "gnatcov_rts" project may be in one place in the filesystem
+   --  while the temporary directory containing the extended project may be in
+   --  a completely different place, forcing GPRbuild to use the filesystem
+   --  root directory as its relocation root, which would be highly inefficient
+   --  and could even trigger path size limits on Windows systems.
 
    procedure Load_Project_Parameters
      (Project_File : String;
@@ -85,79 +109,92 @@ package body Setup_RTS is
    --  If Library_Kind is not an empty string, build for that library kind and
    --  install it as a variant.
 
-   --------------------
-   -- Rename_Project --
-   --------------------
+   --------------------------
+   -- Default_Project_File --
+   --------------------------
 
-   function Rename_Project
-     (Temp_Dir     : Temporary_Directory;
-      Project_Name : String) return String
-   is
-      use GNAT.Strings;
-
-      Dest_File : constant String :=
-        Temp_Dir.Directory_Name & "/" & To_Lower (Project_Name) & ".gpr";
-      --  Name of the project file to create
-
-      Dest : Text_Files.File_Type;
-      --  Descriptor for the project file to write
-
-      Src_Name : constant String := "GNATcov_RTS";
-      --  Original project name
-
-      Src_File    : constant String :=
-        Temp_Dir.Directory_Name & "/gnatcov_rts.gpr";
-      Src_Content : GNAT.Strings.String_Access;
-      Src_Last    : Natural;
-      --  Original project file name and content
-
-      Index      : Natural;
-      Next_Index : Natural;
+   function Default_Project_File return String is
    begin
-      --  Read the original file, open the file to write, and start processing
-      --  its first byte.
-
-      Src_Content := Create (+Src_File).Read_File;
-      Src_Last := Src_Content.all'Last;
-      Index := Src_Content.all'First;
-      Dest.Create (Dest_File);
-
-      --  Replace all occurences of Src_Name in Src_Content with Project_Name,
-      --  storing the result in Dest_Content. Index tracks the index of the
-      --  first character in Src_Content to process next.
-
-      while Index <= Src_Last loop
-
-         --  Look for the next occurence to replace
-
-         Next_Index := Ada.Strings.Fixed.Index
-           (Source  => Src_Content.all (Index .. Src_Last),
-            Pattern => Src_Name);
-
-         if Next_Index = 0 then
-
-            --  None was found: just forward the rest of Src_Content to
-            --  Dest_Content and stop.
-
-            Dest.Put (Src_Content.all (Index .. Src_Last));
-            exit;
-
-         else
-            --  Forward the part of Src_Content that goes from the current
-            --  position to the occurence of Src_Name we found, then append
-            --  Project_Name and continue just past the occurence of Src_Name.
-
-            Dest.Put (Src_Content.all (Index .. Next_Index - 1));
-            Dest.Put (Project_Name);
-            Index := Next_Index + Src_Name'Length;
+      return Result : constant String :=
+        Support_Files.In_Share_Dir ("gnatcov_rts") & "/gnatcov_rts.gpr"
+      do
+         if not Exists (Result) then
+            Fatal_Error ("No instrumentation runtime project file at "
+                         & Result);
          end if;
-      end loop;
+      end return;
+   end Default_Project_File;
 
-      Free (Src_Content);
-      Dest.Close;
+   ------------------
+   -- Project_Name --
+   ------------------
 
-      return Dest_File;
-   end Rename_Project;
+   function Project_Name (Project_File : String) return String is
+   begin
+      --  Remove the directory and the extension from Project_File
+
+      return Base_Name (Project_File);
+   end Project_Name;
+
+   -------------------
+   -- Setup_Project --
+   -------------------
+
+   function Setup_Project
+     (Temp_Dir     : Temporary_Directory;
+      Project_File : String;
+      Install_Name : String) return String
+   is
+      Tree_Dir : constant String := Containing_Directory (Project_File);
+      --  Directory that contains the project to copy/build/install
+
+      Tree_Dir_Copy : constant String := Temp_Dir.Directory_Name & "/src";
+      --  Name of the copy for that directory
+
+      Project_File_Copy : constant String :=
+        Tree_Dir_Copy & "/" & Simple_Name (Project_File);
+      --  Name for the copy of Project_File
+
+      Name : constant String := Project_Name (Project_File);
+      File : Text_Files.File_Type;
+   begin
+      --  Copy the sources of the project to build
+
+      declare
+         Success  : Boolean;
+      begin
+         Create (+Tree_Dir).Copy (+Tree_Dir_Copy, Success);
+         if not Success then
+            Fatal_Error ("Could not copy the instrumentation runtime sources");
+         end if;
+      end;
+
+      --  If the installation name matches the given project file, we can
+      --  return the project file directly. If not, create the extending
+      --  project file and return it.
+
+      if Name = Install_Name then
+         return Project_File_Copy;
+      else
+         return Result : constant String :=
+           Temp_Dir.Directory_Name & "/" & Install_Name & ".gpr"
+         do
+            File.Create (Result);
+            File.Put_Line ("project " & Install_Name);
+            File.Put_Line ("  extends """ & Project_File_Copy & """");
+            File.Put_Line ("is");
+
+            --  Library and object directories are not inherited, so we have to
+            --  redefine them.
+
+            File.Put_Line ("  for Object_Dir use " & Name & "'Object_Dir;");
+            File.Put_Line ("  for Library_Dir use " & Name & "'Library_Dir;");
+
+            File.Put_Line ("end " & Install_Name & ";");
+            File.Close;
+         end return;
+      end if;
+   end Setup_Project;
 
    -----------------------------
    -- Load_Project_Parameters --
@@ -200,7 +237,8 @@ package body Setup_RTS is
       begin
          Prj.Load
            (Root_Project_Path => Create (+Project_File),
-            Env               => Env);
+            Env               => Env,
+            Errors            => Put_Line'Access);
       exception
          when Invalid_Project =>
             Fatal_Error ("Could not load the runtime project file");
@@ -287,6 +325,8 @@ package body Setup_RTS is
    is
       use String_Vectors;
 
+      Env : String_Maps.Map;
+
       Actual_Common_Args  : String_Vectors.Vector := Common_Args;
       Actual_Install_Args : String_Vectors.Vector := Install_Args;
    begin
@@ -306,15 +346,36 @@ package body Setup_RTS is
          Actual_Install_Args.Append (+("--build-name=" & Library_Kind));
       end if;
 
+      --  Make the default "gnatcov_rts" project file available to GPR tools as
+      --  we may be processing a project that extends it.
+
+      declare
+         use Ada.Environment_Variables;
+
+         Var_Name : constant String := "GPR_PROJECT_PATH";
+         Dir      : constant String :=
+           Support_Files.In_Share_Dir ("gnatcov_rts");
+         Path     : constant String := Value (Var_Name, "");
+         New_Path : constant String :=
+           (if Path = ""
+            then Dir
+            else Dir & GNAT.OS_Lib.Path_Separator & Path);
+      begin
+         Env.Insert
+           (To_Unbounded_String (Var_Name), To_Unbounded_String (New_Path));
+      end;
+
       --  Now run gprbuild and gprinstall
 
       Run_Command
         (Command             => "gprbuild",
          Arguments           => Actual_Common_Args & Build_Args,
+         Environment         => Env,
          Origin_Command_Name => "gprbuild");
       Run_Command
         (Command             => "gprinstall",
          Arguments           => Actual_Common_Args & Actual_Install_Args,
+         Environment         => Env,
          Origin_Command_Name => "gprinstall");
    end Build_And_Install;
 
@@ -323,73 +384,63 @@ package body Setup_RTS is
    -----------
 
    procedure Setup
-     (Target             : String;
-      RTS                : String;
-      Config_File        : String;
-      Prefix             : String;
-      RTS_Profile        : Any_RTS_Profile;
-      Runtime_Project    : String;
-      Runtime_Source_Dir : String;
-      Gargs              : String_Vectors.Vector)
+     (Project_File : String;
+      Target       : String;
+      RTS          : String;
+      Config_File  : String;
+      Prefix       : String;
+      RTS_Profile  : Any_RTS_Profile;
+      Install_Name : String;
+      Gargs        : String_Vectors.Vector)
    is
       Temp_Dir : Temporary_Directory;
-      Success  : Boolean;
-
-      Orig_Project_File : constant String :=
-        Runtime_Source_Dir & "/gnatcov_rts.gpr";
 
       Actual_RTS         : Unbounded_String;
       Actual_RTS_Profile : Resolved_RTS_Profile;
       Lib_Support        : Library_Support;
    begin
-      if not Exists (Orig_Project_File) then
-         Fatal_Error ("No instrumentation runtime project file at "
-                      & Orig_Project_File);
+      --  Load the instrumentation runtime project to know about the actual
+      --  runtime and the library support for this configuration.
+
+      Load_Project_Parameters
+        (Project_File, Target, RTS, Config_File, Actual_RTS, Lib_Support);
+
+      --  If a specific RTS profile was requested, use it. Otherwise, infer it
+      --  from the actual RTS. For now there are only two cases:
+      --
+      --  * The name of the runtime is empty, we are likely using the only
+      --    runtime of a native toolchain:  we have a full runtime.
+      --
+      --  * The name of the runtime is not empty: we are likely using a runtime
+      --    for an embedded target: we have an embedded runtime.
+
+      if RTS_Profile = Auto then
+         Actual_RTS_Profile :=
+           (if Actual_RTS = Null_Unbounded_String
+            then Full
+            else Embedded);
+      else
+         Actual_RTS_Profile := RTS_Profile;
+      end if;
+
+      if Verbose then
+         Put_Line ("Actual RTS profile: " & Actual_RTS_Profile'Image);
       end if;
 
       --  Create the temporary directory to host the build of the
-      --  instrumentation runtime and copy sources for the instrumentation
-      --  runtime project there.
+      --  instrumentation runtime and other temporary files.
 
       Create_Temporary_Directory
         (Temp_Dir, "gnatcov_rts", Auto_Delete => not Save_Temps);
-      Create (+Runtime_Source_Dir).Copy (+Temp_Dir.Directory_Name, Success);
-      if not Success then
-         Fatal_Error ("Could not copy the instrumentation runtime sources");
-      end if;
+
+      --  If an alternative installation name for the instrumentation runtime
+      --  project is requested, create an extending project with that name and
+      --  use it later on.
 
       declare
-         Project_File : constant String :=
-           Rename_Project (Temp_Dir, Runtime_Project);
+         Actual_Project_File : constant String :=
+           Setup_Project (Temp_Dir, Project_File, Install_Name);
       begin
-         --  Load the instrumentation runtime project to know about the actual
-         --  runtime and the library support for this configuration.
-
-         Load_Project_Parameters
-           (Project_File, Target, RTS, Config_File, Actual_RTS, Lib_Support);
-
-         --  If a specific RTS profile was requested, use it. Otherwise, infer
-         --  it from the actual RTS. For now there are only two cases:
-         --
-         --  * The name of the runtime is empty, we are likely using the only
-         --    runtime of a native toolchain:  we have a full runtime.
-         --
-         --  * The name of the runtime is not empty: we are likely using a
-         --    runtime for an embedded target: we have an embedded runtime.
-
-         if RTS_Profile = Auto then
-            Actual_RTS_Profile :=
-              (if Actual_RTS = Null_Unbounded_String
-               then Full
-               else Embedded);
-         else
-            Actual_RTS_Profile := RTS_Profile;
-         end if;
-
-         if Verbose then
-            Put_Line ("Actual RTS profile: " & Actual_RTS_Profile'Image);
-         end if;
-
          --  Try to uninstall a previous installation of the instrumentation
          --  runtime in the requested prefix. This is to avoid installation
          --  update issues: for instance, the "Language" project attribute in
@@ -399,7 +450,7 @@ package body Setup_RTS is
          --  environment, and thus the installed project to accurately describe
          --  what is installed.
 
-         Uninstall (Runtime_Project, Prefix);
+         Uninstall (Install_Name, Prefix);
 
          --  Now build and install the instrumentation runtime
 
@@ -444,7 +495,7 @@ package body Setup_RTS is
 
                when Static_Only =>
                   Build_And_Install
-                    (Project_File,
+                    (Actual_Project_File,
                      Temp_Dir,
                      Common_Args,
                      Build_Args,
@@ -453,7 +504,7 @@ package body Setup_RTS is
                when Full =>
                   for LK of Library_Kinds loop
                      Build_And_Install
-                       (Project_File,
+                       (Actual_Project_File,
                         Temp_Dir,
                         Common_Args,
                         Build_Args,

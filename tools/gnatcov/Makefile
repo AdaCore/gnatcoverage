@@ -280,6 +280,16 @@ install-gnatcov_rts:
 	$(MKDIR) $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
 	$(CP) -r rts/*.gpr rts/*.ads rts/*.adb rts/*.c rts/*.h \
 	   $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
+	# Create library/object directories for gnatcov_rts in the installed tree.
+	# This is necessary for out-of-tree builds of gnatcov_rts to work, as
+	# gnatcov_rts may be read-only after final installation, and gprbuild
+	# expects these directories to exist even if it does not need to modify
+	# them.
+	for d in obj lib; do \
+	  for lt in static static-pic relocatable; do \
+	    mkdir $(PREFIX)/share/$(DIRNAME)/gnatcov_rts/$$d-$$lt; \
+	  done; \
+	done
 
 install-lib:
 	$(MKDIR) $(PREFIX)/lib/gnatcoverage
