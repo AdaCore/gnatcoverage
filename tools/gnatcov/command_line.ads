@@ -514,6 +514,7 @@ package Command_Line is
          Pattern      => "[GPR]",
          Help         => "Use GPR as root project to locate SCOs, select"
                          & " units to analyze and find default options.",
+         Commands     => (Cmd_Setup => False, others => True),
          At_Most_Once => True,
          Internal     => False),
       Opt_Subdirs => Create
