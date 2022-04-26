@@ -65,11 +65,13 @@ package Files_Table is
      (Full_Name           : String;
       Kind                : File_Kind;
       Insert              : Boolean := True;
-      Indexed_Simple_Name : Boolean := False) return Source_File_Index;
+      Indexed_Simple_Name : Boolean := False;
+      Insert_After_Freeze : Boolean := False) return Source_File_Index;
    function Get_Index_From_Simple_Name
-     (Simple_Name : String;
-      Kind        : File_Kind;
-      Insert      : Boolean := True) return Source_File_Index;
+     (Simple_Name         : String;
+      Kind                : File_Kind;
+      Insert              : Boolean := True;
+      Insert_After_Freeze : Boolean := False) return Source_File_Index;
    --  Register a full or simple name in the files table.
    --
    --  If Insert is False and the file is not registered yet, return
@@ -81,6 +83,11 @@ package Files_Table is
    --  If Indexed_Simple_Name is set to True, register both the full name and
    --  the simple name to our internal maps.
    --
+   --  If Insert_After_Freeze is set to True, allow the insertion of the file
+   --  in the files table after it was frozen. For note, this means that you
+   --  won't be able to get a unique name for this file, as this is computed
+   --  when the file table is frozen.
+   --
    --  Windows-looking absolute filenames are canonicalized by upper casing the
    --  drive letter and lower casing all other letters.
 
@@ -88,7 +95,8 @@ package Files_Table is
      (Name                : String;
       Kind                : File_Kind;
       Insert              : Boolean := True;
-      Indexed_Simple_Name : Boolean := False) return Source_File_Index;
+      Indexed_Simple_Name : Boolean := False;
+      Insert_After_Freeze : Boolean := False) return Source_File_Index;
    --  Call Get_Index_From_Simple_Name or Get_Index_From_Full_Name depending
    --  on whether Name is an absolute path. Return the result of this call.
    --
@@ -120,7 +128,7 @@ package Files_Table is
       with Pre => Get_File (Index).Kind = Source_File;
    --  Return the shortest unambiguous file name. It is the smallest suffix for
    --  full name that is unique to this file (multiple files can have the same
-   --  base name). This is availble only for source files. Since unicity
+   --  base name). This is available only for source files. Since unicity
    --  changes when new files are registered in the table, it is invalid to
    --  register a new file once Get_Unique_Name has been invoked once.
 

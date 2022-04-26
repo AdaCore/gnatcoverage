@@ -28,7 +28,6 @@ with Coverage;         use Coverage;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;    use Coverage.Tags;
 with Files_Table;
-with Strings;          use Strings;
 with Switches;
 with Traces_Files;     use Traces_Files;
 
@@ -475,7 +474,7 @@ package body Annotations.Report is
                      & (if Switches.Show_MCDC_Vectors
                        and then Kind (M.SCO) = Condition
                        then Index (M.SCO)'Image
-                       & " (""" & SCO_Text (M.SCO) & """) "
+                       & " (" & SCO_Image (M.SCO) & ") "
                        else " "));
                end if;
 
@@ -500,6 +499,7 @@ package body Annotations.Report is
             end if;
 
             New_Line (Output.all);
+            Output_Annotations (Output.all, SCO_Annotations (M.SCO));
          end Output_Message;
 
       --  Start of processing for Messages_For_Section

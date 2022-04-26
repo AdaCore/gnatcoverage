@@ -22,6 +22,12 @@
 private with Ada.Finalization;
 with Ada.Text_IO; use Ada.Text_IO;
 
+with Types; use Types;
+
+with Files_Table; use Files_Table;
+with Temp_Dirs;   use Temp_Dirs;
+with Paths;       use Paths;
+
 package Outputs is
 
    ------------
@@ -142,6 +148,14 @@ package Outputs is
    --  return its file descriptor.
    --  If output dir has not been initialized by Set_Output_Dir, it is
    --  set to the current directory.
+
+   PP_Temp_Dir : Temporary_Directory;
+   --  Temporary directory that holds preprocessed files, when computing
+   --  coverage reports. Initialized in gnatcov_bits_specific.
+
+   function Get_PP_Filename
+     (SFI : Source_File_Index) return String
+     is (PP_Temp_Dir.Directory_Name / (Get_Unique_Name (SFI) & ".pp"));
 
 private
 

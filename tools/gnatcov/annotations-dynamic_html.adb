@@ -37,7 +37,6 @@ with Hex_Images;
 with Interfaces;
 with Outputs;
 with Project;
-with Strings;
 with Support_Files;    use Support_Files;
 with Switches;
 with Traces_Disa;
@@ -542,8 +541,6 @@ package body Annotations.Dynamic_Html is
       Info     : Line_Info_Access;
       Line     : String)
    is
-      use Strings;
-
       Coverage_State : constant String :=
                          (1 => State_Char (Aggregated_State (Info.all)));
       Exempted       : constant Boolean := Info.Exemption /= Slocs.No_Location;
@@ -845,12 +842,16 @@ package body Annotations.Dynamic_Html is
       SCO   : SCO_Id;
       State : Line_State)
    is
-      use Strings;
+      JSON_Annotations : JSON_Array;
    begin
       Obj.Set_Field ("id", Img (Integer (SCO)));
-      Obj.Set_Field ("text", SCO_Text (SCO));
+      Obj.Set_Field ("text", SCO_Image (SCO));
       Obj.Set_Field ("coverage", String'(1 => State_Char (State)));
       Obj.Set_Field ("range", Src_Range (SCO));
+      for Annotation of SCO_Annotations (SCO) loop
+         Append (JSON_Annotations, Create (Annotation));
+      end loop;
+      Obj.Set_Field ("annotations", JSON_Annotations);
    end Set_SCO_Fields;
 
    ---------------

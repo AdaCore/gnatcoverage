@@ -27,13 +27,15 @@ package Perf_Counters is
       Addr_Map_Cache_Miss,
       Line_Table_Alloc,
       Line_Table_Alloc_Size,
+      Line_Cache_Hit,
+      Line_Cache_Miss,
 
       --  Counters computed at end of run, just before displaying results
 
       Line_Table_Alloc_Avg_Size);
 
    subtype Counter_Type is Any_Counter_Type
-     range Any_Counter_Type'First .. Line_Table_Alloc_Size;
+     range Any_Counter_Type'First .. Line_Cache_Miss;
 
    procedure Enable (Enable : Boolean := True);
    --  Enable/disable performance counters

@@ -66,6 +66,7 @@ with SC_Obligations;        use SC_Obligations;
 with Setup_RTS;             use Setup_RTS;
 with Strings;               use Strings;
 with Switches;              use Switches;
+with Temp_Dirs;             use Temp_Dirs;
 with Traces;                use Traces;
 with Traces_Elf;            use Traces_Elf;
 with Traces_Files_Registry; use Traces_Files_Registry;
@@ -2305,6 +2306,12 @@ begin
                   end if;
                   Traces_Dump.Dump_Routines_Traces (Output);
                end if;
+
+               --  Create the temporary directory that will hold the
+               --  preprocessed view of sources.
+
+               Create_Temporary_Directory (PP_Temp_Dir, "gnatcov_rts_pp",
+                                           Auto_Delete => not Save_Temps);
 
                if Annotation (Annotate_Xml) then
                   Annotations.Xml.Generate_Report

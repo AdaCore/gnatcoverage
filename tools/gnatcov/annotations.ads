@@ -27,6 +27,7 @@ with Disa_Symbolize;        use Disa_Symbolize;
 with Elf_Disassemblers;     use Elf_Disassemblers;
 with Files_Table;           use Files_Table;
 with SC_Obligations;        use SC_Obligations;
+with Strings;               use Strings;
 with Slocs;                 use Slocs;
 with Traces;                use Traces;
 with Traces_Elf;            use Traces_Elf;
@@ -80,6 +81,19 @@ private
    --  Extract the text of SCO from source file, truncating it to the
    --  first source line and the first Length characters. If it has been
    --  truncated, the returned value will end with "...".
+
+   function SCO_Annotations (SCO : SCO_Id) return String_Vectors.Vector;
+   --  Return annotations for the SCO. For instance, this will return a list
+   --  of strings showing the expansion stack if the SCO comes from a macro
+   --  expansion.
+
+   procedure Output_Annotations
+     (Output      : Ada.Text_IO.File_Type;
+      Annotations : String_Vectors.Vector);
+   --  Print annotations
+
+   function SCO_Image (SCO : SCO_Id; Length : Natural := 8) return String;
+   --  Return a string representation of the annotated SCO
 
    function Message_Annotation (M : Message) return String;
    --  Return a representation of M to be associated with an annotated line

@@ -24,6 +24,7 @@ with Interfaces; use Interfaces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Hex_Images; use Hex_Images;
+with Paths;      use Paths;
 with Switches;   use Switches;
 
 package body Temp_Dirs is
@@ -37,11 +38,14 @@ package body Temp_Dirs is
       Prefix      : String;
       Auto_Delete : Boolean := True)
    is
-      PID       : constant Unsigned_64 :=
+      PID         : constant Unsigned_64 :=
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
-      Base_Name : constant String :=
+      Unique_Name : constant String :=
         Prefix & "-" & Strip_Zero_Padding (Hex_Image (PID));
-      Name      : constant String := Compose (Current_Directory, Base_Name);
+      Name        : constant String :=
+        (if Paths.Is_Absolute_Path (Unique_Name)
+         then Unique_Name
+         else Current_Directory / Unique_Name);
    begin
       if Verbose then
          Put_Line

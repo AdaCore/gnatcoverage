@@ -128,11 +128,15 @@ package body Files_Table is
    --  limits the number of call to Locate_Source when querying mutliple times
    --  the file index for one given file.
 
-   Current_File_Line_Cache : File_Info_Access := null;
-   --  Current file whose lines are cached in the file table. There is
-   --  only one entry in the cache for now, which is reasonable for the
-   --  use that we make: the line content is mostly needed by package
-   --  Annotations, which only manipulates one source file at a time.
+   type Cache_Size is mod 2;
+   type File_Info_Access_Arr is array (Cache_Size) of File_Info_Access;
+   File_Line_Cache : File_Info_Access_Arr := (others => null);
+   Current_Cache_Index : Cache_Size := 0;
+   --  Current files whose lines are cached in the file table. There are two
+   --  entries in the cache for now, which is reasonable for the use that we
+   --  make: the line content is mostly needed by package Annotations, which
+   --  only manipulates one source file at a time. The 2nd entry is then used
+   --  to cache the preprocessed view of a source file.
 
    --  Source rebase/search types
 
@@ -672,15 +676,20 @@ package body Files_Table is
       --  Start of processing for Cache_Lines
 
    begin
-      if FI = Current_File_Line_Cache then
-         return;
-      end if;
+      for I in Cache_Size'Range loop
+         if FI = File_Line_Cache (I) then
+            Bump (Line_Cache_Hit);
+            return;
+         end if;
+      end loop;
+
+      Bump (Line_Cache_Miss);
 
       Open (F, FI, Has_Source);
 
       if Has_Source then
-         if Current_File_Line_Cache /= null then
-            Invalidate_Line_Cache (Current_File_Line_Cache);
+         if File_Line_Cache (Current_Cache_Index) /= null then
+            Invalidate_Line_Cache (File_Line_Cache (Current_Cache_Index));
          end if;
 
          while not End_Of_File (F) loop
@@ -695,7 +704,8 @@ package body Files_Table is
             Line := Line + 1;
          end loop;
 
-         Current_File_Line_Cache := FI;
+         File_Line_Cache (Current_Cache_Index) := FI;
+         Current_Cache_Index := Current_Cache_Index + 1;
          Close (F);
       end if;
    end Fill_Line_Cache;
@@ -735,7 +745,8 @@ package body Files_Table is
      (Full_Name           : String;
       Kind                : File_Kind;
       Insert              : Boolean := True;
-      Indexed_Simple_Name : Boolean := False) return Source_File_Index
+      Indexed_Simple_Name : Boolean := False;
+      Insert_After_Freeze : Boolean := False) return Source_File_Index
    is
       use Filename_Maps;
       use Filename_Rebase_Maps;
@@ -837,7 +848,9 @@ package body Files_Table is
 
          --  If we reach this point, we are inserting a new file into the table
 
-         pragma Assert (not Files_Table_Frozen);
+         if not Insert_After_Freeze then
+            pragma Assert (not Files_Table_Frozen);
+         end if;
 
          Files_Table.Append (Create_File_Info
            (Kind,
@@ -879,9 +892,10 @@ package body Files_Table is
    --------------------------------
 
    function Get_Index_From_Simple_Name
-     (Simple_Name : String;
-      Kind        : File_Kind;
-      Insert      : Boolean := True) return Source_File_Index
+     (Simple_Name         : String;
+      Kind                : File_Kind;
+      Insert              : Boolean := True;
+      Insert_After_Freeze : Boolean := False) return Source_File_Index
    is
       use Simple_Name_Maps;
 
@@ -902,7 +916,9 @@ package body Files_Table is
          Res := No_Source_File;
 
       else
-         pragma Assert (not Files_Table_Frozen);
+         if not Insert_After_Freeze then
+            pragma Assert (not Files_Table_Frozen);
+         end if;
 
          Files_Table.Append (Create_File_Info
            (Kind                => Kind,
@@ -931,7 +947,8 @@ package body Files_Table is
      (Name                : String;
       Kind                : File_Kind;
       Insert              : Boolean := True;
-      Indexed_Simple_Name : Boolean := False) return Source_File_Index
+      Indexed_Simple_Name : Boolean := False;
+      Insert_After_Freeze : Boolean := False) return Source_File_Index
    is
       Result : Source_File_Index;
    begin
@@ -942,9 +959,10 @@ package body Files_Table is
 
       if Is_Absolute_Path (Name) then
          Result := Get_Index_From_Full_Name
-           (Name, Kind, Insert, Indexed_Simple_Name);
+           (Name, Kind, Insert, Indexed_Simple_Name, Insert_After_Freeze);
       else
-         Result := Get_Index_From_Simple_Name (Name, Kind, Insert);
+         Result := Get_Index_From_Simple_Name
+           (Name, Kind, Insert, Insert_After_Freeze);
       end if;
       return Result;
    end Get_Index_From_Generic_Name;
