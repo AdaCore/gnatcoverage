@@ -412,6 +412,9 @@ package body Setup_RTS is
             if RTS /= "" then
                Common_Args.Append (+("--RTS=" & RTS));
             end if;
+            if Config_File /= "" then
+               Common_Args.Append (+("--config=" & Config_File));
+            end if;
             if Prefix /= "" then
                Install_Args.Append (+("--prefix=" & Prefix));
             end if;
