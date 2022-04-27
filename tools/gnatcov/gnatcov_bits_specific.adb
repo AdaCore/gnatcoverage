@@ -1166,6 +1166,14 @@ begin
          declare
             use Setup_RTS;
 
+            --  If --target was passed, get the target family (the option may
+            --  also contain board info). Otherwise use the default target.
+
+            Target : constant String :=
+              (if Target_Family = null
+               then ""
+               else Target_Family.all);
+
             RTS_Profile_Str : constant String :=
               Value (Args, Opt_RTS_Profile, "auto");
             RTS_Profile     : Any_RTS_Profile;
@@ -1183,7 +1191,7 @@ begin
             end if;
 
             Setup
-              (Target             => Value (Args, Opt_Target),
+              (Target             => Target,
                RTS                => Value (Args, Opt_Runtime),
                Config_File        => Value (Args, Opt_Config),
                Prefix             => Value (Args, Opt_Prefix),
