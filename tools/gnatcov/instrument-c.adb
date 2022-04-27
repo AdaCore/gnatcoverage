@@ -127,14 +127,14 @@ package body Instrument.C is
    --  SCO with the given bit id.
 
    procedure Insert_Decision_Witness
-     (IC         : in out C_Unit_Inst_Context;
+     (UIC        : in out C_Unit_Inst_Context;
       SD         : C_Source_Decision;
       Path_Count : Positive);
    --  For use when decision coverage or MC/DC is requested. Insert witness
    --  function call for the identified decision.
 
    procedure Insert_Condition_Witness
-     (IC     : in out C_Unit_Inst_Context;
+     (UIC    : in out C_Unit_Inst_Context;
       SC     : C_Source_Condition;
       Offset : Natural);
    --  For use when MC/DC coverage requested. Insert witness function call for
@@ -245,7 +245,7 @@ package body Instrument.C is
    ------------------------------
 
    procedure Insert_Condition_Witness
-     (IC     : in out C_Unit_Inst_Context;
+     (UIC    : in out C_Unit_Inst_Context;
       SC     : C_Source_Condition;
       Offset : Natural)
    is
@@ -265,10 +265,10 @@ package body Instrument.C is
             Text => "gnatcov_rts_witness_condition" & " ((void *)"
                     & US.To_String (SC.State) & ", " & Img (Offset) & ", "
                     & First_Image & ", ",
-            Rew  => IC.Rewriter);
+            Rew  => UIC.Rewriter);
          Insert_Text_After (N    => SC.Condition,
                             Text => ")",
-                            Rew  => IC.Rewriter);
+                            Rew  => UIC.Rewriter);
       end;
    end Insert_Condition_Witness;
 
@@ -277,7 +277,7 @@ package body Instrument.C is
    -----------------------------
 
    procedure Insert_Decision_Witness
-     (IC         : in out C_Unit_Inst_Context;
+     (UIC        : in out C_Unit_Inst_Context;
       SD         : C_Source_Decision;
       Path_Count : Positive)
    is
@@ -292,23 +292,23 @@ package body Instrument.C is
       --  Allocate outcome bits
 
       Bits.Outcome_Bits :=
-        (False => IC.Unit_Bits.Last_Outcome_Bit + 1,
-         True  => IC.Unit_Bits.Last_Outcome_Bit + 2);
-      IC.Unit_Bits.Last_Outcome_Bit :=
-        IC.Unit_Bits.Last_Outcome_Bit + 2;
+        (False => UIC.Unit_Bits.Last_Outcome_Bit + 1,
+         True  => UIC.Unit_Bits.Last_Outcome_Bit + 2);
+      UIC.Unit_Bits.Last_Outcome_Bit :=
+        UIC.Unit_Bits.Last_Outcome_Bit + 2;
 
       --  Allocate path bits for MC/DC if MC/DC is required and we were
       --  able to generate a local state variable.
 
       if MCDC_Coverage_Enabled and then US.Length (SD.State) > 0 then
-         Bits.Path_Bits_Base := IC.Unit_Bits.Last_Path_Bit + 1;
-         IC.Unit_Bits.Last_Path_Bit :=
-           IC.Unit_Bits.Last_Path_Bit + Bit_Id (Path_Count);
+         Bits.Path_Bits_Base := UIC.Unit_Bits.Last_Path_Bit + 1;
+         UIC.Unit_Bits.Last_Path_Bit :=
+           UIC.Unit_Bits.Last_Path_Bit + Bit_Id (Path_Count);
       else
          Bits.Path_Bits_Base := No_Bit_Id;
       end if;
 
-      IC.Unit_Bits.Decision_Bits.Append (Bits);
+      UIC.Unit_Bits.Decision_Bits.Append (Bits);
 
       --  Now attach witness call at the place of the original decision
 
@@ -322,26 +322,26 @@ package body Instrument.C is
          Insert_Text_After_Start_Of
            (N    => N,
             Text => Function_Name & "((void *)"
-                    & Decision_Buffer_Symbol (IC.Instrumented_Unit) & ", "
+                    & Decision_Buffer_Symbol (UIC.Instrumented_Unit) & ", "
                     & Img (Bits.Outcome_Bits (False)) & ", "
                     & Img (Bits.Outcome_Bits (True)),
-            Rew  => IC.Rewriter);
+            Rew  => UIC.Rewriter);
 
          if Is_MCDC then
             Insert_Text_After_Start_Of
               (N    => N,
-               Text => ", " & MCDC_Buffer_Symbol (IC.Instrumented_Unit) & ", "
+               Text => ", " & MCDC_Buffer_Symbol (UIC.Instrumented_Unit) & ", "
                        & Img (Bits.Path_Bits_Base) & ", "
                        & US.To_String (SD.State),
-               Rew  => IC.Rewriter);
+               Rew  => UIC.Rewriter);
          end if;
          Insert_Text_After_Start_Of (N    => N,
                                      Text => ", ",
-                                     Rew  => IC.Rewriter);
+                                     Rew  => UIC.Rewriter);
 
          Insert_Text_After (N    => N,
                             Text => ")",
-                            Rew  => IC.Rewriter);
+                            Rew  => UIC.Rewriter);
       end;
    end Insert_Decision_Witness;
 
@@ -971,7 +971,7 @@ package body Instrument.C is
    -------------------------
 
    procedure Traverse_Statements
-     (IC : in out Inst_Context;
+     (IC  : in out Inst_Context;
       UIC : in out C_Unit_Inst_Context;
       L   : Cursor_Vectors.Vector;
       D   : Dominant_Info := No_Dominant)
@@ -983,7 +983,7 @@ package body Instrument.C is
    end Traverse_Statements;
 
    function Traverse_Statements
-     (IC : in out Inst_Context;
+     (IC  : in out Inst_Context;
       UIC : in out C_Unit_Inst_Context;
       L   : Cursor_Vectors.Vector;
       D   : Dominant_Info := No_Dominant) return Dominant_Info
