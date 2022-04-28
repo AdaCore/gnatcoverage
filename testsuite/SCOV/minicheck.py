@@ -201,7 +201,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         extra_instr_args = cov_or_instr_args + list(extra_instr_args or [])
         xcov_instrument(gprsw, covlevel, extra_args=extra_instr_args,
                         gpr_obj_dir=gpr_obj_dir, dump_trigger=dump_trigger,
-                        dump_channel=dump_channel, out='instrument.log',
+                        dump_channel=dump_channel,
+                        runtime_project=runtime_project,
+                        out='instrument.log',
                         register_failure=register_failure,
                         warnings_as_errors=instrument_warnings_as_errors)
         gprbuild_wrapper(gprsw.root_project)

@@ -33,7 +33,8 @@ def default_dump_channel():
 
 
 def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
-                    dump_channel="auto", gpr_obj_dir=None, out=None, err=None,
+                    dump_channel="auto", gpr_obj_dir=None,
+                    runtime_project=None, out=None, err=None,
                     warnings_as_errors=True, register_failure=True):
     """
     Run "gnatcov instrument" on a project.
@@ -51,6 +52,9 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
     :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
         will create build artifacts. If left to None, assume they are produced
         in the current directory.
+    :param None|str runtime_project: If None, use the default name for the
+        instrumentation runtime project. Otherwise, use the name given for this
+        option.
     :param bool warnings_as_errors: Whether to make the test fail if there are
         warnings in gnatcov's output.
 
@@ -88,6 +92,8 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         if dump_channel == "auto":
             dump_channel = default_dump_channel()
         args += ["--dump-channel", dump_channel]
+    if runtime_project:
+        args += ["--runtime-project", runtime_project]
 
     args += gprsw.cov_switches + extra_args
 
