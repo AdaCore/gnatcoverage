@@ -18,33 +18,35 @@
 
 with Ada.Characters;
 with Ada.Characters.Latin_1;
-with Ada.Containers;             use Ada.Containers;
-with Ada.Directories;            use Ada.Directories;
-with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
-with Ada.Text_IO;                use Ada.Text_IO;
-
-with Langkit_Support.Slocs; use Langkit_Support.Slocs;
+with Ada.Containers;  use Ada.Containers;
+with Ada.Directories; use Ada.Directories;
+with Ada.Strings;
+with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.Extensions; use Clang.Extensions;
 
+with GNAT.OS_Lib; use GNAT.OS_Lib;
+with GNAT.Regpat; use GNAT.Regpat;
 with GNAT.String_Split;
 
 with GNATCOLL.Projects;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with Interfaces.C; use Interfaces.C;
+with Interfaces;           use Interfaces;
+with Interfaces.C;         use Interfaces.C;
+with Interfaces.C.Strings; use Interfaces.C.Strings;
 
 with Coverage;            use Coverage;
 with Coverage_Options;
 with Files_Table;         use Files_Table;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Hex_Images;          use Hex_Images;
 with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
-with Subprocesses;        use Subprocesses;
-with SC_Obligations;      use SC_Obligations;
 with SCOs;
-with Strings;             use Strings;
+with Slocs;
+with Subprocesses;        use Subprocesses;
 with Switches;            use Switches;
 with System;              use System;
 with Table;
@@ -76,39 +78,103 @@ package body Instrument.C is
    --  ...
    --  #define __INT_WIDTH__ 32
 
-   function Undef_Switches
-     (Info     : Project_Info;
-      Compiler : String) return String_Vectors.Vector;
-   --  Return the list of switches to pass to the preprocessing command to
-   --  undefine the builtin macros of the given compiler.
-   --
-   --  Undefining the __clang__ macro means passing -U__clang__ to the
-   --  preprocessing command.
-   pragma Unreferenced (Undef_Switches);
-
    function Def_Switches
      (Info     : Project_Info;
       Compiler : String) return String_Vectors.Vector;
-   --  Return the list of switches to pass to the preprocessing command to
-   --  define the builtin macros of the given compiler.
+   --  Return the list of macros predefined by the given Compiler with their
+   --  values as strings.
    --
-   --  Defining the __GCC_IEC_559 macro with a value of 2 means passing
-   --  -D__GCC_IEC_559=2 to the preprocessing command.
-   pragma Unreferenced (Def_Switches);
+   --  For example, with a Compiler predefining the __GCC_IEC_559 macro
+   --  with value 2, this function would return ["__GCC_IEC_559=2"].
 
-   procedure Get_Preprocessing_Command
-     (Info : in out Project_Info; Filename : String; Cmd : out Command_Type);
-   --  Set Cmd to the command to preprocess the file. It is mandatory to do so
-   --  as clang rewriter does not accept to rewrite preprocessed code sections.
+   function Get_Preprocessing_Args
+     (Info : Project_Info) return String_Vectors.Vector;
+   --  Return the list of preprocessing args parsed in the project
+
+   procedure Preprocess_Source
+     (Filename          : String;
+      PP_Filename       : out Unbounded_String;
+      Info              : in out Project_Info;
+      Search_Paths      : out String_Vectors.Vector;
+      Predefined_Macros : out String_Vectors.Vector);
+   --  Preprocess the source, and fill preprocessor configuration in
+   --  Search_Paths and Predefined_Macros.
    --
    --  We will use the compiler in the Compiler_Driver attribute, that we get
    --  from GNATCOLL.Project, to preprocess the file. We will assume that it
    --  accepts the -E flag, to preprocess a file.
-   --
-   --  TODO: we need the full set of include flags to correctly preprocess
-   --  files, and augment the preprocessing command with it. The only thing it
-   --  does right now, is to augment the preprocessing command with the source
-   --  directories given in the project file, which is not enough.
+
+   ---------------------------
+   --  Passes specificities --
+   ---------------------------
+
+   type Record_PP_Info_Pass_Kind is new Pass_Kind with null record;
+
+   procedure Append_SCO
+     (Pass               : Record_PP_Info_Pass_Kind;
+      UIC                : in out C_Unit_Inst_Context'Class;
+      N                  : Cursor_T;
+      C1, C2             : Character;
+      From, To           : Source_Location;
+      Last               : Boolean;
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name);
+   --  Append a SCO to SCOs.SCO_Table. Also partially fill the preprocessing
+   --  info: the actual source range referred, and the expanded macro name, if
+   --  this is a SCO inside a macro expansion.
+
+   type Instrument_Pass_Kind is new Pass_Kind with null record;
+
+   procedure Append_SCO
+     (Pass               : Instrument_Pass_Kind;
+      UIC                : in out C_Unit_Inst_Context'Class;
+      N                  : Cursor_T;
+      C1, C2             : Character;
+      From, To           : Source_Location;
+      Last               : Boolean;
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name);
+   --  Append a SCO to SCOs.SCO_Table, and complete the preprocessing info with
+   --  the preprocessed source range.
+
+   procedure Instrument_Statement
+     (Pass         : Instrument_Pass_Kind;
+      UIC          : in out C_Unit_Inst_Context'Class;
+      LL_SCO       : Nat;
+      Insertion_N  : Cursor_T;
+      Instr_Scheme : Instr_Scheme_Type);
+   --  Add an entry to UIC.Source_Statements
+
+   procedure Instrument_Decision
+     (Pass     : Instrument_Pass_Kind;
+      UIC      : in out C_Unit_Inst_Context'Class;
+      LL_SCO   : Nat;
+      Decision : Cursor_T;
+      State    : US.Unbounded_String);
+   --  Add an entry to UIC.Source_Decisions
+
+   procedure Instrument_Condition
+     (Pass      : Instrument_Pass_Kind;
+      UIC       : in out C_Unit_Inst_Context'Class;
+      LL_SCO    : Nat;
+      Condition : Cursor_T;
+      State     : US.Unbounded_String;
+      First     : Boolean);
+   --  Add an entry to UIC.Source_Conditions
+
+   procedure Curlify
+     (Pass : Instrument_Pass_Kind;
+      N    : Cursor_T;
+      Rew  : Rewriter_T);
+   --  Wrapper around Instrument.C.Utils.Curlify
+
+   procedure Insert_MCDC_State
+     (Pass       : Instrument_Pass_Kind;
+      UIC        : in out C_Unit_Inst_Context'Class;
+      Name       : String;
+      MCDC_State : out US.Unbounded_String);
+   --  Wrapper around Insert_MCDC_State overload
+
+   Record_PP_Info_Pass : aliased Record_PP_Info_Pass_Kind;
+   Instrument_Pass     : aliased Instrument_Pass_Kind;
 
    -------------------------------------
    -- Generation of witness fragments --
@@ -125,6 +191,11 @@ package body Instrument.C is
       Bit : Bit_Id) return String;
    --  Create a procedure call statement to witness execution of the low level
    --  SCO with the given bit id.
+
+   procedure Insert_Statement_Witness
+     (UIC : in out C_Unit_Inst_Context;
+      SS  : C_Source_Statement);
+   --  Insert witness function call for the identified statement
 
    procedure Insert_Decision_Witness
      (UIC        : in out C_Unit_Inst_Context;
@@ -152,6 +223,13 @@ package body Instrument.C is
    ----------------------------
    -- Source level rewriting --
    ----------------------------
+
+   procedure Record_PP_Info
+     (Unit_Info : Instrumented_Unit_Info;
+      IC        : in out Inst_Context;
+      UIC       : in out C_Unit_Inst_Context);
+   --  Emit the low-level SCOs for the given unit. Do not process them: this is
+   --  left to the other (instrumentation) pass.
 
    procedure Instrument_Source_File
      (CU_Name   : Compilation_Unit_Name;
@@ -213,6 +291,446 @@ package body Instrument.C is
    --  Output clang diagnostics on the given translation unit
    pragma Unreferenced (Run_Diagnostics);
 
+   ----------------
+   -- Append_SCO --
+   ----------------
+
+   procedure Append_SCO
+     (Pass               : Record_PP_Info_Pass_Kind;
+      UIC                : in out C_Unit_Inst_Context'Class;
+      N                  : Cursor_T;
+      C1, C2             : Character;
+      From, To           : Source_Location;
+      Last               : Boolean;
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name)
+   is
+      Loc : Source_Location_T :=
+        Get_Range_Start (Get_Cursor_Extent (N));
+
+      Line, Column, Offset : aliased unsigned;
+      File                 : File_T;
+      Info                 : PP_Info;
+   begin
+      Append_SCO (C1, C2, From, To, Last, Pragma_Aspect_Name);
+
+      --  We add preprocessing information only for actual SCOs. Return there
+      --  if this is an operator SCO or a dominance SCO.
+
+      if C1 in '>' | '!' | '&' | '|' then
+         return;
+      end if;
+
+      Get_Expansion_Location
+        (Loc, File'Address, Line'Access,
+         Column'Access, Offset'Access);
+
+      Info.Actual_Source_Range :=
+        (First_Sloc =>
+           (Line   => Integer (From.Line),
+            Column => Integer (From.Column)),
+         Last_Sloc  =>
+           (Line   => Integer (To.Line),
+            Column => Integer (To.Column)));
+
+      --  Check if this is comes from a macro expansion, in which case we need
+      --  to record some information, for reporting purposes.
+
+      if Is_Macro_Location (Loc) then
+         declare
+            Expansion_Stack : Expansion_Lists.List;
+            Definition_Info : Expansion_Info;
+
+            Macro_Expansion_Name      : US.Unbounded_String;
+            Immediate_Expansion_Loc_C : Source_Location_T;
+            Immediate_Expansion_Loc   : Slocs.Source_Location;
+
+            Macro_Arg_Expanded_Loc_C : aliased Source_Location_T;
+            Macro_Arg_Expanded_Loc   : Slocs.Source_Location;
+         begin
+
+            --  Note: macro arguments are completely macro-expanded before they
+            --  are substituted in a macro body, unless they are stringified or
+            --  pasted with other tokens.
+            --
+            --  In the following example:
+            --
+            --  1: #define DECL(x) int x;
+            --  2: #define ID(x) x
+            --  3: ID(DECL(a));
+            --
+            --  The last (meaning at the bottom of the expansion stack) macro
+            --  expansion will be the expansion of ID. If we go through the
+            --  expansion locations, going up a macro caller each time and
+            --  starting from the bottom of the stack, we will then get:
+            --
+            --  #define ID(x) x
+            --                ^ note: from definition of macro ID at 1:15
+            --
+            --  ID(DECL(a));
+            --  ^~ note: from expansion of macro ID at 3:1
+            --
+            --  ID(DECL(a));
+            --     ^~~~~~~ note: from expansion of macro DECL at 3:4
+            --
+            --  Start by recording the location of the coverage obligation
+            --  first token. This will give the user feedback on where the
+            --  coverage obligation is located in the last macro expansion
+            --  definition (which expands into the coverage obligation).
+            --
+            --  Note that we deal differently when the coverage obligation is
+            --  in a macro argument expansion, and when it is not.
+            --
+            --  In the simple case of a no argument macro expansion:
+            --
+            --  #define DECL_X int x;
+            --  DECL_X;
+            --
+            --  We want the macro definition information to be located at:
+            --  #define DECL_X int x;
+            --                 ^~~~~~
+            --  This corresponds in clang terminology to the spelling location:
+            --  this is where the actual tokens are.
+            --
+            --  In the more complex case of a coverage obligation inside a
+            --  macro argument expansion:
+            --
+            --  1: #define ID(x) x
+            --  2: ID(int x);
+            --
+            --  We want the macro definition information to be located at:
+            --  #define ID(x) x
+            --                ^
+            --  This is not where the actual tokens for the coverage obligation
+            --  lie, but it is where they will ultimately be expanded.
+            --
+            --  We can't use the same mechanism, and retrieve the spelling
+            --  location, as it will point where the actual tokens are, i.e.
+            --  at:
+            --  ID(int x);
+            --     ^~~~~~
+            --  So we have to get the macro argument expansion location, and
+            --  get its spelling location.
+
+            if Is_Macro_Arg_Expansion
+              (Loc, Macro_Arg_Expanded_Loc_C'Access, UIC.TU)
+            then
+               Get_Spelling_Location
+                 (Macro_Arg_Expanded_Loc_C,
+                  File'Address,
+                  Line'Access,
+                  Column'Access,
+                  Offset'Access);
+               Macro_Arg_Expanded_Loc :=
+                 (Source_File =>
+                    Get_Index_From_Generic_Name
+                      (Name => Get_File_Name (File),
+                       Kind => Source_File),
+                  L           =>
+                    (Line   => Integer (Line),
+                     Column => Integer (Column)));
+
+               Macro_Expansion_Name :=
+                 +Get_Immediate_Macro_Name_For_Diagnostics
+                 (Macro_Arg_Expanded_Loc_C,
+                  UIC.TU);
+
+               Definition_Info :=
+                 (Macro_Name => Macro_Expansion_Name,
+                  Sloc       => Macro_Arg_Expanded_Loc);
+            else
+               Get_Spelling_Location
+                 (Loc,
+                  File'Address,
+                  Line'Access,
+                  Column'Access,
+                  Offset'Access);
+
+               Immediate_Expansion_Loc :=
+                 (Source_File =>
+                    Get_Index_From_Generic_Name
+                      (Name => Get_File_Name (File),
+                       Kind => Source_File),
+                  L           =>
+                    (Line   => Integer (Line),
+                     Column => Integer (Column)));
+               Macro_Expansion_Name :=
+                 +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
+               Definition_Info :=
+                 (Macro_Name => Macro_Expansion_Name,
+                  Sloc       => Immediate_Expansion_Loc);
+            end if;
+
+            while Is_Macro_Location (Loc) loop
+
+               Immediate_Expansion_Loc_C := Loc;
+
+               --  Find the location of the immediately expanded macro. Getting
+               --  the immediate expansion location yields a location in the
+               --  definition of the immediately expanded macro (i.e. the last
+               --  expanded macro to get the declaration).
+               --
+               --  In the following example:
+               --
+               --  1: #define DECL(x) int x;
+               --  2: #define ID(x) x
+               --  3: ID(DECL(a));
+               --
+               --  Getting the immediate expansion location of the preprocessed
+               --  declaration will yield:
+               --  1: #define ID(x) x;
+               --                   ^L1: immediate expansion location of the
+               --                    declaration location.
+               --
+               --  To get to the expansion point, we have to go up one level,
+               --  and get the spelling location from there.
+               --
+               --  3: ID(DECL(a));
+               --     ^L2: immediate expansion location of L1
+               --
+               --  Going up another level will yield:
+               --
+               --  3: ID(DECL(a));
+               --        ^L3: immediate expansion location
+               --
+               --  Note that this is a bit counter-intuitive because of the
+               --  arguments prescan (macro arguments being expanded before
+               --  they are substituted in the macro body).
+               --
+               --  The logic implemented here is similar to the logic of the
+               --  implementation of Get_Immediate_Macro_Name_For_Diagnostics
+               --  as implemented in clang.
+
+               while Is_Macro_Arg_Expansion
+                 (Immediate_Expansion_Loc_C,
+                  Macro_Arg_Expanded_Loc_C'Access,
+                  UIC.TU)
+               loop
+                  --  TODO??? Document why it is needed to loop while we are
+                  --  in a macro argument expansion (did not manage to make an
+                  --  example that looped several times). Note that this
+                  --  strictly follows the implementation of
+                  --  Get_Immediate_Macro_Name_For_Diagnostics implemented in
+                  --  clang.
+
+                  Immediate_Expansion_Loc_C :=
+                    Get_Immediate_Expansion_Loc
+                      (Immediate_Expansion_Loc_C, UIC.TU);
+               end loop;
+
+               --  Immediate_Expansion_Loc is the location of the token in
+               --  the immediate expanded macro definition. To get to the
+               --  expansion point, go up one level.
+
+               Immediate_Expansion_Loc_C :=
+                 Get_Immediate_Expansion_Loc
+                   (Immediate_Expansion_Loc_C, UIC.TU);
+               Get_Spelling_Location
+                 (Immediate_Expansion_Loc_C,
+                  File'Address,
+                  Line'Access,
+                  Column'Access,
+                  Offset'Access);
+
+               Immediate_Expansion_Loc :=
+                 (Source_File =>
+                    Get_Index_From_Generic_Name
+                      (Name => Get_File_Name (File),
+                       Kind => Source_File),
+                  L           =>
+                    (Line   => Integer (Line),
+                     Column => Integer (Column)));
+               Macro_Expansion_Name :=
+                 +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
+
+               --  Then, keep going up the expansion stack
+
+               Loc := Get_Immediate_Macro_Caller_Loc (Loc, UIC.TU);
+
+               --  If the returned Macro_Definition_Name is an empty string,
+               --  then it means the location refers to a token paste, or
+               --  stringization and not a macro at all. Let's walk past it.
+
+               if Length (Macro_Expansion_Name) /= 0 then
+                  Expansion_Stack.Append
+                    ((Macro_Name => Macro_Expansion_Name,
+                      Sloc       => Immediate_Expansion_Loc));
+               end if;
+            end loop;
+
+            Info :=
+              (Kind                => In_Expansion,
+               PP_Source_Range     => Info.PP_Source_Range,
+               Actual_Source_Range => Info.Actual_Source_Range,
+               Expansion_Stack     => Expansion_Stack,
+               Definition_Loc      => Definition_Info);
+         end;
+      end if;
+
+      UIC.LL_PP_Info_Map.Insert (SCOs.SCO_Table.Last, Info);
+   end Append_SCO;
+
+   ----------------
+   -- Append_SCO --
+   ----------------
+
+   procedure Append_SCO
+     (Pass               : Instrument_Pass_Kind;
+      UIC                : in out C_Unit_Inst_Context'Class;
+      N                  : Cursor_T;
+      C1, C2             : Character;
+      From, To           : Source_Location;
+      Last               : Boolean;
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name)
+   is
+   begin
+      Append_SCO (C1, C2, From, To, Last, Pragma_Aspect_Name);
+
+      --  If this SCO is in a macro expansion, let's add source location
+      --  information: we want to be able to know the actual source location
+      --  of the SCO in the preprocessed code. This will allow us to
+      --  retrieve the actual string (from the preprocessed code) when
+      --  producing a coverage report.
+
+      if UIC.LL_PP_Info_Map.Contains (SCOs.SCO_Table.Last) then
+         declare
+            Cursor_Source_Range_C : constant Source_Range_T :=
+              Get_Cursor_Extent (N);
+            Start_Loc             : constant Source_Location_T :=
+              Get_Range_Start (Cursor_Source_Range_C);
+            End_Loc               : constant Source_Location_T :=
+              Get_Range_End (Cursor_Source_Range_C);
+
+            Line, Column, Offset : aliased unsigned;
+            File                 : File_T;
+
+            Cursor_Source_Range : Slocs.Local_Source_Location_Range;
+
+            procedure Update
+              (LL_SCO : Nat;
+               Info   : in out PP_Info);
+
+            ------------
+            -- Update --
+            ------------
+
+            procedure Update
+              (LL_SCO : Nat;
+               Info   : in out PP_Info) is
+               pragma Unreferenced (LL_SCO);
+            begin
+               if Info.Kind = In_Expansion then
+                  Info.PP_Source_Range := Cursor_Source_Range;
+               end if;
+            end Update;
+
+         begin
+            --  Get start of the range
+
+            Get_File_Location
+              (Start_Loc,
+               File'Address,
+               Line'Access,
+               Column'Access,
+               Offset'Access);
+            Cursor_Source_Range.First_Sloc :=
+              (Line => Natural (Line), Column => Natural (Column));
+
+            --  Get end of the range. Note: end column is exclusive
+
+            Get_File_Location
+              (End_Loc,
+               File'Address,
+               Line'Access,
+               Column'Access,
+               Offset'Access);
+
+            Cursor_Source_Range.Last_Sloc :=
+              (Line => Natural (Line), Column => Natural (Column) - 1);
+
+            UIC.LL_PP_Info_Map.Update_Element
+              (UIC.LL_PP_Info_Map.Find (SCOs.SCO_Table.Last), Update'Access);
+         end;
+      end if;
+   end Append_SCO;
+
+   -------------
+   -- Curlify --
+   -------------
+
+   procedure Curlify
+     (Pass : Instrument_Pass_Kind;
+      N    : Cursor_T;
+      Rew  : Rewriter_T) is
+   begin
+      Curlify (N, Rew);
+   end Curlify;
+
+   -----------------------
+   -- Insert_MCDC_State --
+   -----------------------
+
+   procedure Insert_MCDC_State
+     (Pass       : Instrument_Pass_Kind;
+      UIC        : in out C_Unit_Inst_Context'Class;
+      Name       : String;
+      MCDC_State : out US.Unbounded_String) is
+   begin
+      MCDC_State := +Insert_MCDC_State (UIC, Name);
+   end Insert_MCDC_State;
+
+   --------------------------
+   -- Instrument_Statement --
+   --------------------------
+
+   procedure Instrument_Statement
+     (Pass         : Instrument_Pass_Kind;
+      UIC          : in out C_Unit_Inst_Context'Class;
+      LL_SCO       : Nat;
+      Insertion_N  : Cursor_T;
+      Instr_Scheme : Instr_Scheme_Type) is
+   begin
+      UIC.Source_Statements.Append
+        ((LL_SCO       => SCOs.SCO_Table.Last,
+          Instr_Scheme => Instr_Scheme,
+          Statement    => Insertion_N));
+   end Instrument_Statement;
+
+   -------------------------
+   -- Instrument_Decision --
+   -------------------------
+
+   procedure Instrument_Decision
+     (Pass     : Instrument_Pass_Kind;
+      UIC      : in out C_Unit_Inst_Context'Class;
+      LL_SCO   : Nat;
+      Decision : Cursor_T;
+      State    : US.Unbounded_String) is
+   begin
+      UIC.Source_Decisions.Append
+        ((LL_SCO   => LL_SCO,
+          Decision => Decision,
+          State    => State));
+   end Instrument_Decision;
+
+   --------------------------
+   -- Instrument_Condition --
+   --------------------------
+
+   procedure Instrument_Condition
+     (Pass      : Instrument_Pass_Kind;
+      UIC       : in out C_Unit_Inst_Context'Class;
+      LL_SCO    : Nat;
+      Condition : Cursor_T;
+      State     : US.Unbounded_String;
+      First     : Boolean) is
+   begin
+      UIC.Source_Conditions.Append
+        ((LL_SCO    => SCOs.SCO_Table.Last,
+          Condition => Condition,
+          State     => State,
+          First     => First));
+   end Instrument_Condition;
+
    -----------------------
    -- Make_Expr_Witness --
    -----------------------
@@ -233,12 +751,47 @@ package body Instrument.C is
    ----------------------------
 
    function Make_Statement_Witness
-     (UIC : C_Unit_Inst_Context;
-      Bit : Bit_Id) return String
+     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String
    is
    begin
       return Make_Expr_Witness (UIC, Bit) & ";";
    end Make_Statement_Witness;
+
+   ------------------------------
+   -- Insert_Statement_Witness --
+   ------------------------------
+
+   procedure Insert_Statement_Witness
+     (UIC : in out C_Unit_Inst_Context;
+      SS  : C_Source_Statement)
+   is
+   begin
+      --  Allocate a bit in the statement coverage buffer, and record
+      --  its id in the bitmap.
+
+      UIC.Unit_Bits.Last_Statement_Bit :=
+        UIC.Unit_Bits.Last_Statement_Bit + 1;
+      UIC.Unit_Bits.Statement_Bits.Append
+        ((SS.LL_SCO, Executed => UIC.Unit_Bits.Last_Statement_Bit));
+
+      case SS.Instr_Scheme is
+         when Instr_Expr =>
+            Insert_Text_After_Start_Of
+              (N    => SS.Statement,
+               Text => Make_Expr_Witness
+                 (UIC => UIC,
+                  Bit => UIC.Unit_Bits.Last_Statement_Bit) & " && ",
+               Rew  => UIC.Rewriter);
+
+         when Instr_Stmt =>
+            Insert_Text_After_Start_Of
+              (N    => SS.Statement,
+               Text => Make_Statement_Witness
+                 (UIC => UIC,
+                  Bit => UIC.Unit_Bits.Last_Statement_Bit),
+               Rew  => UIC.Rewriter);
+      end case;
+   end Insert_Statement_Witness;
 
    ------------------------------
    -- Insert_Condition_Witness --
@@ -640,14 +1193,17 @@ package body Instrument.C is
             end if;
 
             C2 := ' ';
-            Append_SCO
-              (C1   => C1,
+
+            UIC.Pass.Append_SCO
+              (UIC  => UIC,
+               N    => N,
+               C1   => C1,
                C2   => C2,
                From => Sloc (Get_Operator_Loc (N)),
                To   => No_Source_Location,
                Last => False);
 
-            Hash_Entries.Append ((Sloc => Start_Sloc (N),
+            Hash_Entries.Append ((Sloc      => Start_Sloc (N),
                                   SCO_Index => SCOs.SCO_Table.Last));
 
             if not Is_Null (L) then
@@ -661,11 +1217,12 @@ package body Instrument.C is
             Output_Element (N);
 
             if MCDC_Coverage_Enabled then
-               UIC.Source_Conditions.Append
-                 ((LL_SCO    => SCOs.SCO_Table.Last,
-                   Condition => N,
-                   State     => MCDC_State,
-                   First     => Condition_Count = 0));
+               UIC.Pass.Instrument_Condition
+                 (UIC       => UIC,
+                  LL_SCO    => SCOs.SCO_Table.Last,
+                  Condition => N,
+                  State     => MCDC_State,
+                  First     => Condition_Count = 0);
 
                Condition_Count := Condition_Count + 1;
             end if;
@@ -678,8 +1235,10 @@ package body Instrument.C is
 
       procedure Output_Element (N : Cursor_T) is
       begin
-         Append_SCO
-           (C1   => ' ',
+         UIC.Pass.Append_SCO
+           (UIC  => UIC,
+            N    => N,
+            C1   => ' ',
             C2   => 'c',
             From => Start_Sloc (N),
             To   => End_Sloc (N),
@@ -703,20 +1262,20 @@ package body Instrument.C is
          Current_Decision := SCOs.SCO_Table.Last;
 
          if Coverage.Enabled (Coverage_Options.Decision)
-            or else MCDC_Coverage_Enabled
+           or else MCDC_Coverage_Enabled
          then
             if MCDC_Coverage_Enabled then
                Condition_Count := 0;
 
-               MCDC_State := US.To_Unbounded_String
-                 (Insert_MCDC_State
-                    (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last)));
+               UIC.Pass.Insert_MCDC_State
+                 (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last), MCDC_State);
             end if;
 
-            UIC.Source_Decisions.Append
-              ((LL_SCO   => Current_Decision,
-                Decision => N,
-                State    => MCDC_State));
+            UIC.Pass.Instrument_Decision
+              (UIC      => UIC,
+               LL_SCO   => Current_Decision,
+               Decision => N,
+               State    => MCDC_State);
          end if;
 
       end Output_Header;
@@ -1013,8 +1572,8 @@ package body Instrument.C is
 
                   --  Now we traverse the statements in the THEN part
 
-                  Curlify (N   => Then_Part,
-                           Rew => UIC.Rewriter);
+                  UIC.Pass.Curlify (N   => Then_Part,
+                                    Rew => UIC.Rewriter);
                   Traverse_Statements
                     (IC, UIC,
                      L => To_Vector (Then_Part),
@@ -1023,8 +1582,8 @@ package body Instrument.C is
                   --  Traverse the ELSE statements if present
 
                   if not Is_Null (Else_Part) then
-                     Curlify (N   => Else_Part,
-                              Rew => UIC.Rewriter);
+                     UIC.Pass.Curlify (N   => Else_Part,
+                                       Rew => UIC.Rewriter);
                      Traverse_Statements
                        (IC, UIC,
                         L => To_Vector (Else_Part),
@@ -1077,8 +1636,8 @@ package body Instrument.C is
                   Inner_Dominant : constant Dominant_Info := ('S', N);
 
                begin
-                  Curlify (N   => While_Body,
-                           Rew => UIC.Rewriter);
+                  UIC.Pass.Curlify (N   => While_Body,
+                                    Rew => UIC.Rewriter);
                   Extend_Statement_Sequence
                     (N, 'W', UIC,
                      Insertion_N  => Cond,
@@ -1097,8 +1656,8 @@ package body Instrument.C is
                   Do_While : constant Cursor_T := Get_Cond (N);
 
                begin
-                  Curlify (N   => Do_Body,
-                           Rew => UIC.Rewriter);
+                  UIC.Pass.Curlify (N   => Do_Body,
+                                    Rew => UIC.Rewriter);
 
                   Traverse_Statements
                     (IC, UIC, To_Vector (Do_Body), No_Dominant);
@@ -1192,46 +1751,6 @@ package body Instrument.C is
          SC_Last : constant Types.Int := SC.Last;
          SD_Last : constant Types.Int := SD.Last;
 
-         procedure Insert_Statement_Witness (SCE : SC_Entry; LL_SCO_ID : Nat);
-
-         ------------------------------
-         -- Insert_Statement_Witness --
-         ------------------------------
-
-         procedure Insert_Statement_Witness (SCE : SC_Entry; LL_SCO_ID : Nat)
-         is
-            Cursor : constant Cursor_T := SCE.Insertion_N;
-            Location : constant Source_Location_T
-              := Get_Cursor_Location (Cursor);
-            pragma Unreferenced (Location);
-         begin
-            --  Allocate a bit in the statement coverage buffer, and record
-            --  its id in the bitmap.
-
-            UIC.Unit_Bits.Last_Statement_Bit :=
-              UIC.Unit_Bits.Last_Statement_Bit + 1;
-            UIC.Unit_Bits.Statement_Bits.Append
-              ((LL_SCO_ID, Executed => UIC.Unit_Bits.Last_Statement_Bit));
-
-            case SCE.Instr_Scheme is
-               when Instr_Expr =>
-                  Insert_Text_After_Start_Of
-                    (N    => Cursor,
-                     Text => Make_Expr_Witness
-                       (UIC => UIC,
-                        Bit => UIC.Unit_Bits.Last_Statement_Bit) & " && ",
-                     Rew  => UIC.Rewriter);
-
-               when Instr_Stmt =>
-                  Insert_Text_After_Start_Of
-                    (N    => Cursor,
-                     Text => Make_Statement_Witness
-                       (UIC => UIC,
-                        Bit => UIC.Unit_Bits.Last_Statement_Bit),
-                     Rew  => UIC.Rewriter);
-            end case;
-         end Insert_Statement_Witness;
-
       begin
          for J in SC_First .. SC_Last loop
             --  If there is a pending dominant for this statement sequence,
@@ -1245,27 +1764,33 @@ package body Instrument.C is
                     End_Sloc (Current_Dominant.N);
 
                begin
-                  Append_SCO
-                    (C1   => '>',
+                  UIC.Pass.Append_SCO
+                    (UIC  => UIC,
+                     N    => Current_Dominant.N,
+                     C1   => '>',
                      C2   => Current_Dominant.K,
                      From => From,
                      To   => To,
                      Last => False);
                end;
             end if;
-
             declare
                SCE : SC_Entry renames SC.Table (J);
-
             begin
-               Append_SCO
-                 (C1   => 'S',
+               UIC.Pass.Append_SCO
+                 (UIC  => UIC,
+                  N    => SCE.N,
+                  C1   => 'S',
                   C2   => SCE.Typ,
                   From => SCE.From,
                   To   => SCE.To,
                   Last => (J = SC_Last));
 
-               Insert_Statement_Witness (SCE, SCOs.SCO_Table.Last);
+               UIC.Pass.Instrument_Statement
+                 (UIC          => UIC,
+                  LL_SCO       => SCOs.SCO_Table.Last,
+                  Insertion_N  => SCE.Insertion_N,
+                  Instr_Scheme => SCE.Instr_Scheme);
             end;
          end loop;
 
@@ -1464,51 +1989,6 @@ package body Instrument.C is
       return Res;
    end Builtin_Macros;
 
-   --------------------
-   -- Undef_Switches --
-   --------------------
-
-   function Undef_Switches
-     (Info     : Project_Info;
-      Compiler : String) return String_Vectors.Vector is
-      use Ada.Characters;
-      use GNAT;
-
-      Macros : constant String_Vectors.Vector :=
-        Builtin_Macros (Info, Compiler);
-      Res    : String_Vectors.Vector;
-   begin
-      for Macro of Macros loop
-         declare
-            Subs : String_Split.Slice_Set;
-            Seps : constant String := " " & Latin_1.HT;
-         begin
-            String_Split.Create (S          => Subs,
-                                 From       => +Macro,
-                                 Separators => Seps,
-                                 Mode       => String_Split.Multiple);
-
-            declare
-               Macro : constant String := String_Split.Slice (Subs, 2);
-
-               --  If this is a function-like macro, arrrange to remove the
-               --  parenthesis when undefining it.
-
-               Paren_Index : constant Integer :=
-                 Ada.Strings.Fixed.Index (Macro, "(");
-            begin
-               if Paren_Index /= 0 then
-                  Res.Append (+("-U"
-                              & Macro (Paren_Index .. Macro'Length)));
-               else
-                  Res.Append (+("-U" & Macro));
-               end if;
-            end;
-         end;
-      end loop;
-      return Res;
-   end Undef_Switches;
-
    ------------------
    -- Def_Switches --
    ------------------
@@ -1545,57 +2025,142 @@ package body Instrument.C is
                US.Append (Macro_Value, +(String_Split.Slice (Subs, I) & " "));
             end loop;
 
-            Res.Append (+("-D" & (+Macro_Name) & "=" & (+Macro_Value)));
+            Res.Append (+((+Macro_Name) & "=" & (+Macro_Value)));
          end;
       end loop;
       return Res;
    end Def_Switches;
 
-   -------------------------------
-   -- Get_Preprocessing_Command --
-   -------------------------------
+   ----------------------------
+   -- Get_Preprocessing_Args --
+   ----------------------------
 
-   procedure Get_Preprocessing_Command
-     (Info : in out Project_Info; Filename : String; Cmd : out Command_Type)
+   function Get_Preprocessing_Args
+     (Info : Project_Info) return String_Vectors.Vector
+   is
+      Args : String_Vectors.Vector;
+   begin
+      --  Pass the source directories of the project file as -I options
+
+      for Dir of Info.Project.Source_Dirs loop
+         Args.Append (+"-I");
+         Args.Append (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
+      end loop;
+
+      --  TODO: enhance with the -I, -D and -U flags found in the gpr file.
+      --  Also accept such flags on gnatcov command line.
+
+      return Args;
+   end Get_Preprocessing_Args;
+
+   -----------------------
+   -- Preprocess_Source --
+   -----------------------
+
+   procedure Preprocess_Source
+     (Filename          : String;
+      PP_Filename       : out Unbounded_String;
+      Info              : in out Project_Info;
+      Search_Paths      : out String_Vectors.Vector;
+      Predefined_Macros : out String_Vectors.Vector)
    is
       Compiler_Driver : constant String :=
         GNATCOLL.Projects.Attribute_Value
           (Info.Project, GPR.Compiler_Driver_Attribute, "C");
+
+      Cmd : Command_Type;
+      --  The command to preprocess the file
+
+      PID                : constant Unsigned_64 :=
+        Unsigned_64 (Pid_To_Integer (Current_Process_Id));
+      PP_Output_Filename : constant String :=
+        (+Info.Output_Dir) /
+        ("pp-output-" & Strip_Zero_Padding (Hex_Image (PID)));
+      PP_Output_File     : Ada.Text_IO.File_Type;
    begin
+      PP_Filename := +Register_New_File (Info, Filename);
+
       Cmd := (Command => +Compiler_Driver, others => <>);
 
       Append_Arg (Cmd, "-E");
-
-      --  Then, we augment the preprocessing command with the other projects
-      --  source directories.
-      --
-      --  TODO: we should probably enhance it with the -I, -D and -U flags
-      --  found in the gpr file.
-
-      for Dir of Info.Project.Source_Dirs loop
-         Append_Arg
-           (Cmd, "-I" & (GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir))));
-      end loop;
+      Append_Args (Cmd, Get_Preprocessing_Args (Info));
       Append_Arg (Cmd, Filename);
-   end Get_Preprocessing_Command;
+
+      --  To get the include paths, we use the verbose output of cpp -E
+
+      Append_Arg (Cmd, "-v");
+      Append_Arg (Cmd, "-o");
+      Append_Arg (Cmd, +PP_Filename);
+      Run_Command (Cmd, "Preprocessing",
+                   Output_File => PP_Output_Filename);
+
+      --  Retrieve the include search paths. They are delimited by:
+      --  #include "..." search starts here:
+      --  #include <...> search starts here:
+      --  ...
+      --  End of search list
+
+      Open (PP_Output_File, In_File, PP_Output_Filename);
+
+      declare
+         RE_Begin_Pattern      : constant Pattern_Matcher :=
+           Compile ("#include .* search starts here");
+         Begin_Pattern_Matched : Boolean := False;
+         RE_End_Pattern        : constant Pattern_Matcher :=
+           Compile ("End of search list");
+         Matches               : Match_Array (0 .. 0);
+      begin
+         while not End_Of_File (PP_Output_File) loop
+            declare
+               use Ada.Strings;
+               use String_Vectors;
+               Line : constant String := Get_Line (PP_Output_File);
+            begin
+               Match (RE_Begin_Pattern, Line, Matches);
+               if Matches (0) /= No_Match then
+                  Begin_Pattern_Matched := True;
+                  goto End_Loop;
+               end if;
+               if not Begin_Pattern_Matched then
+                  goto End_Loop;
+               end if;
+
+               Match (RE_End_Pattern, Line, Matches);
+               if Matches (0) /= No_Match then
+                  exit;
+               end if;
+
+               --  We are parsing a search path here
+
+               Append (Search_Paths, Trim (+Line, Left));
+               <<End_Loop>>
+            end;
+         end loop;
+      end;
+
+      Delete (PP_Output_File);
+      Predefined_Macros := Def_Switches (Info, Compiler_Driver);
+   end Preprocess_Source;
 
    ---------------------
    -- Start_Rewriting --
    ---------------------
 
    procedure Start_Rewriting
-     (Self           : out C_Source_Rewriter;
-      Info           : in out Project_Info;
-      Input_Filename : String)
+     (Self         : out C_Source_Rewriter;
+      Info         : in out Project_Info;
+      Filename     : String;
+      Preprocessed : Boolean := False)
    is
-      Cmd : Command_Type;
-      --  The command to preprocess the file
+      PP_Filename : Unbounded_String := +Filename;
 
-      Output_Filename : constant String :=
-        Register_New_File (Info, Input_Filename);
+      Ignore_Search_Paths, Ignore_Predefined_Macros : String_Vectors.Vector;
    begin
-      Get_Preprocessing_Command (Info, Input_Filename, Cmd);
-      Run_Command (Cmd, "Preprocessing", Output_Filename, Err_To_Out => False);
+      if not Preprocessed then
+         Preprocess_Source
+           (Filename, PP_Filename, Info,
+            Ignore_Search_Paths, Ignore_Predefined_Macros);
+      end if;
 
       Self.CIdx :=
         Create_Index
@@ -1603,15 +2168,14 @@ package body Instrument.C is
       Self.TU :=
         Parse_Translation_Unit
           (C_Idx => Self.CIdx,
-           Source_Filename       => Output_Filename,
+           Source_Filename       => +PP_Filename,
            Command_Line_Args     => System.Null_Address,
            Num_Command_Line_Args => 0,
            Unsaved_Files         => null,
            Num_Unsaved_Files     => 0,
-           Options               =>
-             Translation_Unit_Detailed_Preprocessing_Record);
+           Options               => 0);
       Self.Rewriter := CX_Rewriter_Create (Self.TU);
-      Self.Output_Filename := +Output_Filename;
+      Self.Output_Filename := PP_Filename;
    end Start_Rewriting;
 
    -----------
@@ -1638,6 +2202,80 @@ package body Instrument.C is
       end if;
    end Finalize;
 
+   ---------------
+   -- Emit_SCOs --
+   ---------------
+
+   procedure Record_PP_Info
+     (Unit_Info : Instrumented_Unit_Info;
+      IC        : in out Inst_Context;
+      UIC       : in out C_Unit_Inst_Context)
+   is
+      Orig_Filename : constant String  := +Unit_Info.Filename;
+
+      Command_Line_Args     : String_Vectors.Vector;
+      Num_Command_Line_Args : Interfaces.C.size_t;
+
+      use String_Vectors;
+   begin
+      UIC.Pass := Record_PP_Info_Pass'Access;
+      UIC.CIdx :=
+        Create_Index
+          (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
+
+      --  Get the predefined macros and search paths of the user's compiler and
+      --  inhibit the use of clang predefined macros. We want to fully emulate
+      --  the user's preprocessor.
+
+      for Macro_Definition of UIC.PP_Predefined_Macros loop
+         Append (Command_Line_Args, +"-D");
+         Append (Command_Line_Args, Macro_Definition);
+      end loop;
+      for Search_Path of UIC.PP_Search_Paths loop
+         Append (Command_Line_Args, +"-I");
+         Append (Command_Line_Args, Search_Path);
+      end loop;
+      Append (Command_Line_Args, +"-undef");
+      Append (Command_Line_Args, +"-nostdinc");
+
+      --  Convert to C compatible char**
+
+      Num_Command_Line_Args := Interfaces.C.size_t
+        (Length (Command_Line_Args));
+
+      declare
+         Command_Line_Args_C : chars_ptr_array
+           (1 .. Num_Command_Line_Args);
+
+         I : Interfaces.C.size_t := 1;
+      begin
+         for Command_Line_Arg of Command_Line_Args loop
+            Command_Line_Args_C (I) := New_String (+Command_Line_Arg);
+            I := I + 1;
+         end loop;
+
+         UIC.TU :=
+           Parse_Translation_Unit
+             (C_Idx                 => UIC.CIdx,
+              Source_Filename       => Orig_Filename,
+              Command_Line_Args     => Command_Line_Args_C (1)'Address,
+              Num_Command_Line_Args =>
+                Interfaces.C.int (Num_Command_Line_Args),
+              Unsaved_Files         => null,
+              Num_Unsaved_Files     => 0,
+              Options               => 0);
+
+         for Command_Line_Arg_C of Command_Line_Args_C loop
+            Free (Command_Line_Arg_C);
+         end loop;
+      end;
+      Traverse_Declarations
+        (IC  => IC,
+         UIC => UIC,
+         L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
+
+   end Record_PP_Info;
+
    ----------------------------
    -- Instrument_Source_File --
    ----------------------------
@@ -1650,6 +2288,8 @@ package body Instrument.C is
       UIC       : out C_Unit_Inst_Context)
    is
       Orig_Filename : constant String  := +Unit_Info.Filename;
+      PP_Filename   : Unbounded_String;
+      --  Respectively original, and preprocessed filename
 
       Buffer_Filename : constant String :=
         To_Symbol_Name (Sys_Buffers) & "_b_" & Instrumented_Unit_Slug (CU_Name)
@@ -1660,6 +2300,13 @@ package body Instrument.C is
       --  Holds the compilation index, the translation unit and the rewriter.
       --  We will use shortcuts to the translation unit and the rewriter in the
       --  C instrumentation context.
+
+      Record_PP_Info_Last_SCO : Nat;
+      --  Index of the last SCO in SCOs.SCO_Table after the first pass. Used
+      --  to check against the result of the second pass (when we instrument
+      --  and fill again the SCOs.SCO_Table), to be sure that both passes
+      --  count the same number of SCOs. For more details, see the
+      --  documentation of Pass_Kind in instrument-c.ads.
 
    begin
       SCOs.Initialize;
@@ -1675,14 +2322,31 @@ package body Instrument.C is
         CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
       UIC.File := +Orig_Filename;
 
-      Start_Rewriting (Self           => Rewriter,
-                       Info           => Prj_Info,
-                       Input_Filename => Orig_Filename);
+      Preprocess_Source
+         (Orig_Filename, PP_Filename, Prj_Info,
+          UIC.PP_Search_Paths, UIC.PP_Predefined_Macros);
 
+      --  Start by recording preprocessing information
+
+      Record_PP_Info (Unit_Info, IC, UIC);
+
+      --  Flush the SCO_Table. We want the SCOs to be located at their
+      --  presumed (i.e. accounting for line directives) preprocessed source
+      --  range, to have unique locations for each.
+
+      Record_PP_Info_Last_SCO := SCOs.SCO_Table.Last;
+      SCOs.SCO_Table.Init;
+
+      --  Then, instrument
+
+      UIC.Pass := Instrument_Pass'Access;
+
+      Start_Rewriting (Self         => Rewriter,
+                       Info         => Prj_Info,
+                       Filename     => +PP_Filename,
+                       Preprocessed => True);
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
-
-      --  Traverse declaration and statements in a translation unit
 
       Traverse_Declarations
         (IC  => IC,
@@ -1695,6 +2359,21 @@ package body Instrument.C is
           Dep_Num    => 1,
           From       => SCOs.SCO_Table.First,
           To         => SCOs.SCO_Table.Last));
+
+      --  Check whether there is a mismatch between Last_SCO and
+      --  SCOs.SCO_Table.Last. If there is, warn the user and discard the
+      --  preprocessed info: the SCO mapping will be wrong.
+      --  Note that this will result on possibly wrong column numbering in
+      --  the report (as a macro expansion may offset a block of code by
+      --  an arbitrary amount).
+
+      if Record_PP_Info_Last_SCO /= SCOs.SCO_Table.Last then
+         Outputs.Error
+           (Orig_Filename & " : preprocessed file coverage obligations"
+              &  " inconsistent with original file obligations "
+              & ". Discarding preprocessing information.");
+         UIC.LL_PP_Info_Map.Clear;
+      end if;
 
       --  Convert low level SCOs from the instrumenter to high level SCOs.
       --  This creates BDDs for every decision.
@@ -1712,10 +2391,28 @@ package body Instrument.C is
             SCO_Map       => SCO_Map'Access,
             Count_Paths   => True);
 
+         --  Now that we have computed high level SCOs, remap the current
+         --  SCO macro info map in our unit instrumentation context (bound to
+         --  low level SCOs), and add it to the global macro info map.
+
+         for Cursor in UIC.LL_PP_Info_Map.Iterate loop
+            declare
+               use LL_SCO_PP_Info_Maps;
+               LL_SCO : constant Nat := Key (Cursor);
+               Info   : constant PP_Info := Element (Cursor);
+            begin
+               Add_PP_Info (SCO_Map (LL_SCO), Info);
+            end;
+         end loop;
+
          --  In the instrumentation case, the origin of SCO information is
          --  the original source file.
 
          UIC.CU := Created_Units.Element (UIC.SFI);
+
+         for SS of UIC.Source_Statements loop
+            Insert_Statement_Witness (UIC, SS);
+         end loop;
 
          if Coverage.Enabled (Coverage_Options.Decision)
             or else MCDC_Coverage_Enabled
@@ -1857,7 +2554,6 @@ package body Instrument.C is
    procedure Emit_Buffer_Unit
      (Info : in out Project_Info; UIC : C_Unit_Inst_Context'Class)
    is
-      use Ada.Strings.Unbounded;
       CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
       File    : Text_Files.File_Type;
 

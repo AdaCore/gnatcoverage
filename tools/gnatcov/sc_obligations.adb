@@ -22,7 +22,6 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Streams;             use Ada.Streams;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
@@ -511,7 +510,7 @@ package body SC_Obligations is
    pragma Unreferenced (R);
 
    --  Source_Coverage_Vectors holds all SCO-related data. This holder can
-   --  contain data loaded from a checkpoints.
+   --  contain data loaded from a checkpoint.
 
    type Source_Coverage_Vectors is record
       CU_Vector       : CU_Info_Vectors.Vector;
@@ -519,6 +518,7 @@ package body SC_Obligations is
       Inst_Vector     : Inst_Info_Vectors.Vector;
       BDD_Vector      : BDD.BDD_Vectors.Vector;
       SCO_Vector      : SCO_Vectors.Vector;
+      PP_Info_Map     : SCO_PP_Info_Maps.Map;
    end record;
 
    -----------------------------------------
@@ -572,6 +572,8 @@ package body SC_Obligations is
    SCO_Vector : SCO_Vectors.Vector renames SC_Vectors.SCO_Vector;
    --  Vector of high-level Source Coverage Obligations (for all units)
 
+   PP_Info_Map : SCO_PP_Info_Maps.Map renames SC_Vectors.PP_Info_Map;
+
    -----------------
    -- Add_Address --
    -----------------
@@ -603,6 +605,24 @@ package body SC_Obligations is
    begin
       return CU_Vector.Reference (CU).Element.Bit_Maps;
    end Bit_Maps;
+
+   -----------------
+   -- Has_PP_Info --
+   -----------------
+
+   function Has_PP_Info (SCO : SCO_Id) return Boolean is
+   begin
+      return PP_Info_Map.Contains (SCO);
+   end Has_PP_Info;
+
+   --------------------
+   -- Get_Macro_Info --
+   --------------------
+
+   function Get_PP_Info (SCO : SCO_Id) return PP_Info is
+   begin
+      return PP_Info_Map.Element (SCO);
+   end Get_PP_Info;
 
    --------------------------------
    -- Checkpoint_Load_Merge_Unit --
@@ -926,6 +946,31 @@ package body SC_Obligations is
                Remap_SCO_Id (D_Path.D_SCO);
             end loop;
          end if;
+
+         --  Remap macro information
+
+         declare
+            use SCO_PP_Info_Maps;
+         begin
+            for Cur in CP_Vectors.PP_Info_Map.Iterate loop
+               declare
+                  Info : PP_Info := Element (Cur);
+               begin
+                  if Info.Kind = In_Expansion then
+                     for Expansion of Info.Expansion_Stack loop
+                        Remap_SFI
+                          (Relocs,
+                           Expansion.Sloc.Source_File);
+                     end loop;
+                     Remap_SFI
+                       (Relocs,
+                        Info.Definition_Loc.Sloc.Source_File);
+                  end if;
+                  PP_Info_Map.Insert
+                    (Remap_SCO_Id (Relocs, Key (Cur)), Info);
+               end;
+            end loop;
+         end;
       end if;
 
       --  Preallocate line table entries for last file
@@ -1189,6 +1234,12 @@ package body SC_Obligations is
       BDD.BDD_Vectors.Vector'Read   (S, CP_Vectors.BDD_Vector);
       SCO_Vectors.Vector'Read       (S, CP_Vectors.SCO_Vector);
 
+      --  Load macro information
+
+      if not Version_Less (S, Than => 8) then
+         SCO_PP_Info_Maps.Map'Read (S, CP_Vectors.PP_Info_Map);
+      end if;
+
       --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 
       Allocate_CU_Id_Maps (Relocs,
@@ -1285,6 +1336,7 @@ package body SC_Obligations is
       Inst_Vector.Clear;
       BDD_Vector.Clear;
       SCO_Vector.Clear;
+      PP_Info_Map.Clear;
    end Checkpoint_Clear;
 
    ---------------------
@@ -1299,6 +1351,7 @@ package body SC_Obligations is
       Inst_Info_Vectors.Vector'Write (S, Inst_Vector);
       BDD.BDD_Vectors.Vector'Write   (S, BDD_Vector);
       SCO_Vectors.Vector'Write       (S, SCO_Vector);
+      SCO_PP_Info_Maps.Map'Write     (S, PP_Info_Map);
    end Checkpoint_Save;
 
    ---------------
@@ -1557,9 +1610,15 @@ package body SC_Obligations is
    -- First_Sloc --
    ----------------
 
-   function First_Sloc (SCO : SCO_Id) return Source_Location is
+   function First_Sloc (SCO : SCO_Id) return Source_Location
+   is
+      Sloc : Source_Location :=
+        First_Sloc (SCO_Vector.Reference (SCO).Sloc_Range);
    begin
-      return First_Sloc (SCO_Vector.Reference (SCO).Sloc_Range);
+      if Has_PP_Info (SCO) then
+         Sloc.L := Get_PP_Info (SCO).Actual_Source_Range.First_Sloc;
+      end if;
+      return Sloc;
    end First_Sloc;
 
    ----------------
@@ -2083,9 +2142,15 @@ package body SC_Obligations is
    -- Last_Sloc --
    ---------------
 
-   function Last_Sloc (SCO : SCO_Id) return Source_Location is
+   function Last_Sloc (SCO : SCO_Id) return Source_Location
+   is
+      Sloc : Source_Location :=
+        Last_Sloc (SCO_Vector.Reference (SCO).Sloc_Range);
    begin
-      return Last_Sloc (SCO_Vector.Reference (SCO).Sloc_Range);
+      if Has_PP_Info (SCO) then
+         Sloc.L := Get_PP_Info (SCO).Actual_Source_Range.Last_Sloc;
+      end if;
+      return Sloc;
    end Last_Sloc;
 
    --------------
@@ -3952,6 +4017,15 @@ package body SC_Obligations is
             return Unknown_Pragma;
       end;
    end Case_Insensitive_Get_Pragma_Id;
+
+   ------------------
+   -- Add_PP_Info --
+   ------------------
+
+   procedure Add_PP_Info (SCO : SCO_Id; Info : PP_Info) is
+   begin
+      PP_Info_Map.Insert (SCO, Info);
+   end Add_PP_Info;
 
 begin
    Snames.Initialize;

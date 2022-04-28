@@ -448,7 +448,7 @@ package body Checkpoints is
 
          --  Instrumentation is the same for all MC/DC variants, so a
          --  checkpoint generated for any of them supports all of them.
-         --  Instrumentation for MC/DC also provides evertyhing needed
+         --  Instrumentation for MC/DC also provides everything needed
          --  for decision coverage analysis.
 
          if Purpose = Instrumentation and then MCDC_Coverage_Enabled then
