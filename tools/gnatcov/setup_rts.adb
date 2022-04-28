@@ -79,15 +79,16 @@ package body Setup_RTS is
    --  and could even trigger path size limits on Windows systems.
 
    procedure Load_Project_Parameters
-     (Project_File : String;
-      Target       : String;
-      RTS          : String;
-      Config_File  : String;
-      Actual_RTS   : out Unbounded_String;
-      Lib_Support  : out Library_Support);
+     (Project_File     : String;
+      Target           : String;
+      RTS              : String;
+      Config_File      : String;
+      Auto_RTS_Profile : out Any_RTS_Profile;
+      Lib_Support      : out Library_Support);
    --  Load the project file at Project_File using the Target/RTS/Config_File
-   --  parameters, then determine the actual runtime in effect (Actual_RTS) and
-   --  the support for libraries for this configuration (Lib_Support).
+   --  parameters, then try to guess the profile of the actual runtime in
+   --  effect (Auto_RTS_Profile) and determine the support for libraries for
+   --  this configuration (Lib_Support).
 
    procedure Uninstall (Project_Name, Prefix : String);
    --  Try to uninstall a previous installation of the project called
@@ -201,12 +202,12 @@ package body Setup_RTS is
    -----------------------------
 
    procedure Load_Project_Parameters
-     (Project_File : String;
-      Target       : String;
-      RTS          : String;
-      Config_File  : String;
-      Actual_RTS   : out Unbounded_String;
-      Lib_Support  : out Library_Support)
+     (Project_File     : String;
+      Target           : String;
+      RTS              : String;
+      Config_File      : String;
+      Auto_RTS_Profile : out Any_RTS_Profile;
+      Lib_Support      : out Library_Support)
    is
       Env : Project_Environment_Access;
       Prj : Project_Tree;
@@ -232,7 +233,7 @@ package body Setup_RTS is
          Env.Change_Environment ("GNATCOV_RTS_WITH_ADA", "true");
       end if;
 
-      --  Now load the project, and get its actual RTS
+      --  Now load the project
 
       begin
          Prj.Load
@@ -244,12 +245,23 @@ package body Setup_RTS is
             Fatal_Error ("Could not load the runtime project file");
       end;
 
-      Actual_RTS := To_Unbounded_String (Prj.Root_Project.Get_Runtime);
-
       if Verbose then
          Put_Line ("Actual target: " & Prj.Root_Project.Get_Target);
-         Put_Line ("Actual RTS: " & To_String (Actual_RTS));
+         Put_Line ("Actual RTS: " & Prj.Root_Project.Get_Runtime);
       end if;
+
+      --  The best heuristic we have to determine if the actual runtime is
+      --  "full" is to look for an Ada source file that is typically found in
+      --  full runtime: "a-comlin.ads" for the Ada.Command_Line unit. If we do
+      --  not have it, consider that the runtime is embedded.
+
+      Auto_RTS_Profile := Embedded;
+      for F of Env.Predefined_Source_Files loop
+         if +F.Base_Name = "a-comlin.ads" then
+            Auto_RTS_Profile := Full;
+            exit;
+         end if;
+      end loop;
 
       --  Query the support for libraries in this configuration. When GPRconfig
       --  fails to find the toolchain for the requested target/RTS, it only
@@ -395,7 +407,7 @@ package body Setup_RTS is
    is
       Temp_Dir : Temporary_Directory;
 
-      Actual_RTS         : Unbounded_String;
+      Auto_RTS_Profile   : Any_RTS_Profile;
       Actual_RTS_Profile : Resolved_RTS_Profile;
       Lib_Support        : Library_Support;
    begin
@@ -403,25 +415,19 @@ package body Setup_RTS is
       --  runtime and the library support for this configuration.
 
       Load_Project_Parameters
-        (Project_File, Target, RTS, Config_File, Actual_RTS, Lib_Support);
+        (Project_File,
+         Target,
+         RTS,
+         Config_File,
+         Auto_RTS_Profile,
+         Lib_Support);
 
-      --  If a specific RTS profile was requested, use it. Otherwise, infer it
-      --  from the actual RTS. For now there are only two cases:
-      --
-      --  * The name of the runtime is empty, we are likely using the only
-      --    runtime of a native toolchain:  we have a full runtime.
-      --
-      --  * The name of the runtime is not empty: we are likely using a runtime
-      --    for an embedded target: we have an embedded runtime.
+      --  If a specific RTS profile was requested, use it
 
-      if RTS_Profile = Auto then
-         Actual_RTS_Profile :=
-           (if Actual_RTS = Null_Unbounded_String
-            then Full
-            else Embedded);
-      else
-         Actual_RTS_Profile := RTS_Profile;
-      end if;
+      Actual_RTS_Profile :=
+        (if RTS_Profile = Auto
+         then Auto_RTS_Profile
+         else RTS_Profile);
 
       if Verbose then
          Put_Line ("Actual RTS profile: " & Actual_RTS_Profile'Image);
