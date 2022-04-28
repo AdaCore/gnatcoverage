@@ -31,6 +31,7 @@ with Ada.Unchecked_Deallocation;
 with GNAT.OS_Lib;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
+with GNATCOLL.JSON;     use GNATCOLL.JSON;
 with GNATCOLL.VFS;
 
 with Libadalang.Analysis;
@@ -47,6 +48,7 @@ with Instrument.Clean_Objdirs;
 with Instrument.C;
 with Instrument.Common;     use Instrument.Common;
 with Instrument.Find_Ada_Units;
+with JSON;                  use JSON;
 with Outputs;
 with Paths;                 use Paths;
 with Project;
@@ -710,6 +712,23 @@ package body Instrument is
          Free (IU);
       end loop;
       Ignored_Units := Ignored_Units_Maps.Empty_Map;
+
+      --  Save the dump trigger+channel information in the root project's
+      --  object directory. This allows user scripts to automatically know
+      --  where to expect source trace files (dump channel) without inspecting
+      --  all inputs (command-line arguments, project file, instrumentation
+      --  runtime, etc.) and whether that info is reliable (it is not if the
+      --  dump trigger is manual).
+
+      declare
+         J        : constant JSON_Value := Create_Object;
+         Filename : constant String :=
+           Project.Output_Dir & "/gnatcov-instr.json";
+      begin
+         J.Set_Field ("dump-trigger", Image (Dump_Config.Trigger));
+         J.Set_Field ("dump-channel", Image (Dump_Config.Channel));
+         Write (Filename, J, Compact => False);
+      end;
    end Instrument_Units_Of_Interest;
 
 end Instrument;

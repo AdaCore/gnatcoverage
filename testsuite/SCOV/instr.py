@@ -32,8 +32,8 @@ def default_dump_channel():
         return 'base64-stdout'
 
 
-def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
-                    dump_channel=None, gpr_obj_dir=None, out=None, err=None,
+def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
+                    dump_channel="auto", gpr_obj_dir=None, out=None, err=None,
                     warnings_as_errors=True, register_failure=True):
     """
     Run "gnatcov instrument" on a project.
@@ -42,12 +42,12 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
     :param None|str covlevel: Coverage level for the instrumentation
         (--level argument). Not passed if None.
     :param list[str] extra_args: Extra arguments to append to the command line.
-    :param None|str dump_trigger: Trigger to dump coverage buffers
-        (--dump-trigger argument). If left to None,
-        use SCOV.instr.default_dump_trigger.
-    :param None|str dump_channel: Channel to dump coverage buffers
-        (--dump-channel argument). If left to None,
-        use SCOV.instr.default_dump_channel.
+    :param None|str dump_trigger: If None, do not pass the --dump-trigger
+        argument. If "auto", pass the result of default_dump_trigger().
+        Otherwise, pass the given value.
+    :param None|str dump_channel: If None, do not pass the --dump-channel
+        argument. If "auto", pass the result of default_dump_channel().
+        Otherwise, pass the given value.
     :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
         will create build artifacts. If left to None, assume they are produced
         in the current directory.
@@ -78,11 +78,18 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger=None,
         mains = m.group('mains').split(',')
         mains = [main.strip(' "') for main in mains]
 
-    args = (['instrument'] + covlevel_args +
-            ['--dump-trigger', dump_trigger or default_dump_trigger(mains),
-             '--dump-channel', dump_channel or default_dump_channel()] +
-            gprsw.cov_switches +
-            extra_args)
+    args = ['instrument'] + covlevel_args
+
+    if dump_trigger:
+        if dump_trigger == "auto":
+            dump_trigger = default_dump_trigger(mains)
+        args += ["--dump-trigger", dump_trigger]
+    if dump_channel:
+        if dump_channel == "auto":
+            dump_channel = default_dump_channel()
+        args += ["--dump-channel", dump_channel]
+
+    args += gprsw.cov_switches + extra_args
 
     if thistest.options.pretty_print:
         args.append('--pretty-print')

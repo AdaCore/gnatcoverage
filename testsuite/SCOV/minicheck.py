@@ -9,6 +9,7 @@ for specific checkpoints usage testcases).
 
 import collections
 import glob
+import json
 import os.path
 import re
 
@@ -31,7 +32,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   separate_coverage=None, extra_args=[], extra_run_args=None,
                   extra_instr_args=None, extra_gprbuild_args=[],
                   extra_gprbuild_cargs=[], absolute_paths=False,
-                  dump_trigger=None, dump_channel=None,
+                  dump_trigger="auto", dump_channel="auto",
                   check_gprbuild_output=False, trace_mode=None,
                   instr_runtime_project=None, gprsw_for_coverage=None,
                   scos_for_run=True, register_failure=True, program_env=None,
@@ -80,12 +81,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :param list[str] extra_gprbuild_cargs: List of arguments to pass to
         gprbuild's -cargs section.
     :param bool absolute_paths: If true, use absolute paths in the result.
-    :param None|str dump_trigger: Trigger to dump coverage buffers
-        (--dump-trigger argument). If left to None,
-        use SCOV.instr.default_dump_trigger.
-    :param None|str dump_channel: Channel to dump coverage buffers
-        (--dump-channel argument). If left to None,
-        use SCOV.instr.default_dump_channel.
+    :param None|str dump_trigger: See xcov_instrument.
+    :param None|str dump_channel: See xcov_instrument.
     :param bool check_gprbuild_output: If true, check that gprbuild's output is
         empty.
     :param None|str trace_mode: If None, use the testsuite's trace mode.
@@ -197,7 +194,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         xcov_args.extend(cov_or_instr_args)
 
     elif trace_mode == 'src':
-        dump_channel = dump_channel or default_dump_channel()
+        if dump_channel == "auto":
+            dump_channel = default_dump_channel()
 
         # Instrument the project and build the result
         extra_instr_args = cov_or_instr_args + list(extra_instr_args or [])
@@ -207,6 +205,37 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                         register_failure=register_failure,
                         warnings_as_errors=instrument_warnings_as_errors)
         gprbuild_wrapper(gprsw.root_project)
+
+        # If an explicit dump channel was requested, check that "gnatcov
+        # instrument" used it. In case it was implicit, get the one that was
+        # used.
+        #
+        # The mode in which we do not register failures is tricky: in this case
+        # we may not have an actual dump channel because instrumentation did
+        # not complete. In that case we cannot use source traces, but we must
+        # build and run programs nonetheless.
+        params_file_dir = gpr_obj_dir
+        if gprsw.subdirs:
+            params_file_dir = os.path.join(params_file_dir, gprsw.subdirs)
+        params_file = os.path.join(params_file_dir, "gnatcov-instr.json")
+        try:
+            f = open(params_file)
+        except FileNotFoundError:
+            if register_failure:
+                raise
+            else:
+                actual_dump_channel = None
+        else:
+            with f:
+                params = json.load(f)
+            actual_dump_channel = params["dump-channel"]
+
+        if dump_channel in (None, "auto"):
+            dump_channel = actual_dump_channel
+        elif dump_channel and actual_dump_channel:
+            thistest.fail_if_not_equal(
+                "actual dump channel", dump_channel, actual_dump_channel
+            )
 
         # Then execute each main and collect trace files
         trace_files = []
@@ -222,8 +251,12 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                             exec_args=exec_args)
 
             # Depending on the dump channel, we also may have to create the
-            # trace file.
-            if dump_channel == 'bin-file':
+            # trace file. If we could not determine the actually used dump
+            # channel (see above), do not collect the trace file.
+            if dump_channel is None:
+                continue
+
+            elif dump_channel == 'bin-file':
                 trace_file = srctracename_for(m,
                                               register_failure=register_failure)
                 if trace_file is None:
