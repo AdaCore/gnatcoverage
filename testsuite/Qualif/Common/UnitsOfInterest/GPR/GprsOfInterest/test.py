@@ -30,6 +30,7 @@ cov_cmdline = build_and_run(
     gprsw=GPRswitches(root_project=root_project),
     mains=['root'],
     covlevel='stmt',
+    gpr_obj_dir='../obj',
     gpr_exe_dir='../obj',
     extra_args=[board_arg],
     extra_coverage_args=[])

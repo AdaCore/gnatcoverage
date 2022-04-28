@@ -20,7 +20,9 @@ def try_one_gpr(gpr, no_such):
         covlevel='stmt',
         mains=['p'],
         extra_coverage_args=['-axcov'],
-        out=dump, register_failure=False)
+        out=dump,
+        register_failure=False
+    )
     dump = contents_of(dump)
 
     expected_warning = (

@@ -34,6 +34,7 @@ build_run_and_coverage(
     covlevel='stmt',
     mains=['main'],
     extra_coverage_args=['-axcov'],
+    gpr_obj_dir='obj-ext',
     gpr_exe_dir='obj-ext')
 
 check_xcov_reports('obj-ext/*.xcov', {
