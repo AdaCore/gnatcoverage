@@ -42,6 +42,12 @@ package Subprocesses is
    end record;
    --  Simple holder for a command to run
 
+   function "=" (L, R : Command_Type) return Boolean;
+   --  Note: the equality comparison does not consider the commands'
+   --  environment.
+
+   Null_Command : constant Command_Type := (others => <>);
+
    procedure Append_Arg (Cmd : in out Command_Type; Arg : String);
    --  Append Arg to Cmd.Arguments
 

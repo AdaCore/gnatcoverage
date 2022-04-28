@@ -2086,6 +2086,19 @@ package body Instrument.C is
       Append_Args (Cmd, Get_Preprocessing_Args (Info));
       Append_Arg (Cmd, Filename);
 
+      --  Register the preprocessing command. We need it to preprocess the file
+      --  when producing the report, and getting the text of macro expansions.
+      --  We don't need the options added afterwards, as they are just there
+      --  for the instrumentation process (and we do not want to pass a -o
+      --  option, as it would make paths too opaque at gnatcov coverage time).
+
+      PP_Cmds.Insert
+        (Get_Index_From_Generic_Name
+           (Filename,
+            Kind                => Files_Table.Source_File,
+            Indexed_Simple_Name => True),
+         Cmd);
+
       --  To get the include paths, we use the verbose output of cpp -E
 
       Append_Arg (Cmd, "-v");

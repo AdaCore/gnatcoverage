@@ -25,8 +25,11 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
+with Types; use Types;
+
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with SC_Obligations;      use SC_Obligations;
+with Subprocesses;        use Subprocesses;
 
 package Instrument.Base_Types is
 
@@ -155,6 +158,14 @@ package Instrument.Base_Types is
    --  Associate a CU id for all instrumented units. Updated each time we
    --  instrument a unit (or load a checkpoint) and used each time we read a
    --  coverage buffer (or save to a checkpoint).
+
+   package SFI_To_PP_Cmd_Maps is
+     new Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_File_Index,
+        Element_Type => Command_Type);
+
+   PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
+   --  Save the preprocessing command for each unit that supports it
 
    function Find_Instrumented_Unit
      (CU_Name : Compilation_Unit_Name) return CU_Id;

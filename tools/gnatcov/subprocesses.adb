@@ -30,6 +30,19 @@ with Switches; use Switches;
 
 package body Subprocesses is
 
+   ---------
+   -- "=" --
+   ---------
+
+   function "=" (L, R : Command_Type) return Boolean
+   is
+      use Ada.Strings.Unbounded;
+      use String_Vectors;
+   begin
+      return L.Command = R.Command
+        and then L.Arguments = R.Arguments;
+   end "=";
+
    ----------------
    -- Append_Arg --
    ----------------
