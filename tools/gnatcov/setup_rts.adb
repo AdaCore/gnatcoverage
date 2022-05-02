@@ -252,8 +252,16 @@ package body Setup_RTS is
       end if;
 
       Args.Append (+"--uninstall");
-      Args.Append (+("--prefix=" & Prefix));
-      Args.Append (+Project_Name);
+
+      if Prefix /= "" then
+         Args.Append (+("--prefix=" & Prefix));
+      end if;
+
+      --  Convert the project name to lower case, as it is case-sensitive for
+      --  gprinstall, and must correspond to the case of the project file that
+      --  is installed (without the ".gpr" extension).
+
+      Args.Append (+To_Lower (Project_Name));
 
       --  The project may not have been installed there yet, so ignore errors
 
