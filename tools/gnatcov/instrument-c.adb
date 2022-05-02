@@ -951,11 +951,12 @@ package body Instrument.C is
    ---------------------
 
    procedure Run_Diagnostics (TU : Translation_Unit_T) is
+      Num_Diag : constant unsigned := Get_Num_Diagnostics (TU);
    begin
-      for I in  0 .. (Get_Num_Diagnostics (TU) - 1) loop
+      for I in 1 .. Num_Diag loop
          declare
             Diag : constant Diagnostic_T :=
-              Get_Diagnostic (Unit  => TU, Index => I);
+              Get_Diagnostic (Unit => TU, Index => I - 1);
             Str  : constant String :=
               Format_Diagnostic
                 (Diagnostic => Diag,
