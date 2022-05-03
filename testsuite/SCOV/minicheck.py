@@ -34,7 +34,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   extra_gprbuild_cargs=[], absolute_paths=False,
                   dump_trigger="auto", dump_channel="auto",
                   check_gprbuild_output=False, trace_mode=None,
-                  instr_runtime_project=None, gprsw_for_coverage=None,
+                  runtime_project=None, gprsw_for_coverage=None,
                   scos_for_run=True, register_failure=True, program_env=None,
                   instrument_warnings_as_errors=True, exec_args=None):
     """
@@ -87,9 +87,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         empty.
     :param None|str trace_mode: If None, use the testsuite's trace mode.
         Otherwise, use the given trace mode ('bin', or 'src').
-    :param None|str instr_runtime_project: If None, use the default name for
-        the instrumentation runtime project. Otherwise, use the name given for
-        this option.
+    :param None|str runtime_project: If None, use the default name for the
+        instrumentation runtime project. Otherwise, use the name given for this
+        option.
     :param None|SUITE.gprutils.GPRswitches gprsw_for_coverage: GPRswitches
         instance used to describe the project and units of interest to analyze
         in "gnatcov coverage". If left to None, use "gprsw".
@@ -126,7 +126,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                  gargs=gprsw.build_switches + extra_gprbuild_args,
                  extracargs=extra_gprbuild_cargs,
                  trace_mode=trace_mode,
-                 instr_runtime_project=instr_runtime_project)
+                 runtime_project=runtime_project)
 
         if check_gprbuild_output:
             gprbuild_out = contents_of('gprbuild.out')

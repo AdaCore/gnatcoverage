@@ -71,7 +71,7 @@ def run_and_log(*args, **kwargs):
 
 def gprbuild_gargs_with(thisgargs,
                         trace_mode=None,
-                        instr_runtime_project=None):
+                        runtime_project=None):
     """
     Compute and return all the toplevel gprbuild arguments to pass. Account for
     specific requests in THISGARGS.
@@ -79,7 +79,7 @@ def gprbuild_gargs_with(thisgargs,
     If TRACE_MODE is "src", consider that we are building an instrumented
     project even if the testsuite mode tells otherwise.
 
-    If INSTR_RUNTIME_PROJECT is not null, it will be used as the name of the
+    If RUNTIME_PROJECT is not null, it will be used as the name of the
     instrumentation runtime project in source trace mode.
     """
     trace_mode = trace_mode or thistest.options.trace_mode
@@ -103,11 +103,11 @@ def gprbuild_gargs_with(thisgargs,
     # compilable in the generated projects. Also use instrumented sources in
     # the "*-gnatcov-instr" object directories.
     if trace_mode == 'src':
-        instr_runtime_project = (
-            instr_runtime_project or RUNTIME_INFO.gnatcov_rts_project
+        runtime_project = (
+            runtime_project or RUNTIME_INFO.gnatcov_rts_project
         )
         result += [
-            f"--implicit-with={instr_runtime_project}.gpr",
+            f"--implicit-with={runtime_project}.gpr",
             "--src-subdirs=gnatcov-instr",
         ]
 
@@ -199,7 +199,7 @@ def gprbuild(project,
              gargs=None,
              largs=None,
              trace_mode=None,
-             instr_runtime_project=None,
+             runtime_project=None,
              out='gprbuild.out',
              register_failure=True):
     """
@@ -214,8 +214,7 @@ def gprbuild(project,
     SUITECARGS tells whether or not we should also add the -cargs passed on
     the testsuite toplevel command line.
 
-    See gprbuild_gargs_with for the meaning of TRACE_MODE and
-    INSTR_RUNTIME_PROJECT.
+    See gprbuild_gargs_with for the meaning of TRACE_MODE and RUNTIME_PROJECT.
 
     OUT is the name of the file to contain gprbuild's output.
 
@@ -228,7 +227,7 @@ def gprbuild(project,
     all_gargs = gprbuild_gargs_with(
         thisgargs=gargs,
         trace_mode=trace_mode,
-        instr_runtime_project=instr_runtime_project,
+        runtime_project=runtime_project,
     )
     all_largs = gprbuild_largs_with(thislargs=largs)
     all_cargs = gprbuild_cargs_with(scovcargs=scovcargs,
