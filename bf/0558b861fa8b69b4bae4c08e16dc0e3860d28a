@@ -1,0 +1,7 @@
+Code-Review+2: Nicolas Setton <setton@adacore.com>
+Code-Review+1: CI Builder <ci-builder@adacore.com>
+Submitted-by: Kyriakos Georgiou <georgiou@adacore.com>
+Submitted-at: Tue, 03 May 2022 15:03:49 +0000
+Reviewed-on: https://git.adacore-it.com/c/gnatcoverage/+/115309
+Project: gnatcoverage
+Branch: refs/heads/master
