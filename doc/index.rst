@@ -3,6 +3,7 @@
 ================================
 
 .. toctree::
+   :numbered:
    :maxdepth: 4
 
    gnatcov/gnatcov_part
