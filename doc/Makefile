@@ -106,11 +106,20 @@ prepare-builddir.%: $(PREPARE_IMAGES)
 	-rm -rf $(BUILDDIR)/$*
 	-$(MKDIR) $(BUILDDIR)/$*
 
-build.pdf: prepare-builddir.pdf
+# gnatfuzz integration: if the 'gnatfuzz' dir is present, add the
+# bits to find it in index.rst.
+look_for_gnatfuzz:
+	if [ -e "gnatfuzz/gnatfuzz_part.rst" ]; then \
+	   if [ "`grep "gnatfuzz" index.rst`" =  "" ]; then \
+	      echo "   gnatfuzz/gnatfuzz_part" >> index.rst; \
+	   fi; \
+	fi
+
+build.pdf: look_for_gnatfuzz prepare-builddir.pdf
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/pdf
 	make -C $(BUILDDIR)/pdf all-pdf LATEXOPTS="-interaction=nonstopmode"
 
-build.html: prepare-builddir.html
+build.html: look_for_gnatfuzz prepare-builddir.html
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 
 doc.%: build.%
