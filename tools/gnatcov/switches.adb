@@ -160,9 +160,16 @@ package body Switches is
 
       --  Now, re-create an Any_Dump_Config record from the overriden config
       --  data.
+      --
+      --  Note that some arguments may end up being ignored depending on other
+      --  arguments. For instance, --dump-filename-simple is ignored if
+      --  --dump-channel=base64-stdout is passed. This is fine, as this allows
+      --  one to blindly pass --dump-filename-simple to get deterministic file
+      --  names without worrying about the dump channel that will be selected
+      --  in the end (whether that happens in gnatcov setup, in another script,
+      --  etc.).
 
       return Dump_Config : Any_Dump_Config do
-
          case Dump_Channel is
             when Binary_File =>
                Dump_Config :=
@@ -176,25 +183,6 @@ package body Switches is
                  (Channel => Base64_Standard_Output,
                   Trigger => Dump_Trigger);
          end case;
-
-         --  Reject invalid configurations
-
-         if Dump_Config.Channel /= Binary_File then
-            if Dump_Filename_Simple then
-               Fatal_Error
-                 ("--dump-filename-simple requires"
-                  & " --dump-channel=bin-file");
-            elsif Dump_Filename_Env_Var_Opt.Present then
-               Fatal_Error
-                 ("--dump-filename-env-var requires"
-                  & " --dump-channel=bin-file");
-            elsif Dump_Filename_Prefix_Opt.Present then
-               Fatal_Error
-                 ("--dump-filename-prefix requires"
-                  & " --dump-channel=bin-file");
-            end if;
-         end if;
-
       end return;
    end Load_Dump_Config;
 
