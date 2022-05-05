@@ -1168,9 +1168,18 @@ begin
 
             --  If --target was passed, get the target family (the option may
             --  also contain board info). Otherwise use the default target.
+            --
+            --  Note that when --target is not passed, Target_Family is set to
+            --  the native 64-bit platform. This is the correct semantics for
+            --  all gnatcov commands except "gnatcov setup", which is meant to
+            --  behave just like gprbuild with equivalent arguments (i.e. as if
+            --  users ran gprbuild themselves with the same
+            --  -P/--target/--config arguments). So use Target_Family only when
+            --  --target is passed.
 
-            Target : constant String :=
-              (if Target_Family = null
+            Target_Arg : constant String := Value (Args, Opt_Target);
+            Target     : constant String :=
+              (if Target_Arg = ""
                then ""
                else Target_Family.all);
 
