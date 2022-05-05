@@ -2629,7 +2629,8 @@ package body Decision_Map is
                     Disas.Get_Insn_Length
                       (Slice (Insns, Delay_Slot_PC, Insns.Last));
                   Delay_Slot_Insn : constant Binary_Content :=
-                    Slice (Insns, Delay_Slot_PC,
+                    Slice (Insns,
+                           Delay_Slot_PC,
                            Delay_Slot_PC + Pc_Type (Delay_Slot_Len) - 1);
                begin
                   pragma Assert (Branch_Dest.Delay_Slot = Delay_Slot_PC);
