@@ -24,6 +24,7 @@ with Calendar_Utils;       use Calendar_Utils;
 with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
 with Inputs;
+with Instrument;           use Instrument;
 with Strings;              use Strings;
 
 package Switches is
@@ -57,6 +58,11 @@ package Switches is
      (Option : String_List_Options;
       List   : in out Inputs.Inputs_Type);
    --  Copy the list of strings referenced in Option to the List input list
+
+   function Load_Dump_Config
+     (Default_Dump_Config : Any_Dump_Config) return Any_Dump_Config;
+   --  Create the Any_Dump_Config value corresponding to Default_Dump_Config
+   --  and the given --dump-* arguments for source trace dumping.
 
    ----------------------------
    -- Miscellaneous switches --

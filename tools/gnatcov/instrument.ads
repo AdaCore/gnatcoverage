@@ -78,8 +78,6 @@ package Instrument is
    --  Bundle for all configuration related to automatic dump of coverage
    --  buffers.
 
-   Default_Dump_Config : constant Any_Dump_Config := (others => <>);
-
    type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012);
 
    type Any_Language is (Ada_Language, C_Language);

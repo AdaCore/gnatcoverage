@@ -23,6 +23,7 @@ with Ada.Exceptions;            use Ada.Exceptions;
 with Ada.Text_IO;               use Ada.Text_IO;
 
 with GNAT.OS_Lib;
+with GNAT.Regexp;
 
 with GNATCOLL.JSON;     use GNATCOLL.JSON;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
@@ -50,6 +51,9 @@ package body Setup_RTS is
    Library_Kinds  : constant array (Positive range <>)
                              of access constant String :=
      (LK_Static'Access, LK_Static_PIC'Access, LK_Relocatable'Access);
+
+   Ravenscar_RTS_Regexp : constant GNAT.Regexp.Regexp :=
+     GNAT.Regexp.Compile (".*(ravenscar|light-tasking|embedded).*");
 
    function Setup_Project
      (Temp_Dir     : Temporary_Directory;
@@ -94,6 +98,7 @@ package body Setup_RTS is
       Target           : String;
       RTS              : String;
       Config_File      : String;
+      Actual_RTS       : out Unbounded_String;
       Auto_RTS_Profile : out Any_RTS_Profile;
       Lib_Support      : out Library_Support);
    --  Load the project file at Project_File using the Target/RTS/Config_File
@@ -180,6 +185,39 @@ package body Setup_RTS is
             with "invalid RTS profile: " & Profile);
       end if;
    end Value;
+
+   -------------------------
+   -- Default_Dump_Config --
+   -------------------------
+
+   function Default_Dump_Config
+     (RTS_Profile : Resolved_RTS_Profile; RTS : String) return Any_Dump_Config
+   is
+   begin
+      case RTS_Profile is
+         when Full =>
+
+            --  The runtime is full so, use the handiest dump configuration:
+            --  directly create source trace files, and to it automatically at
+            --  process exit.
+
+            return (Channel => Binary_File, Trigger => At_Exit, others => <>);
+
+         when Embedded =>
+
+            --  The runtime may be restricted for embedded targets: use base64
+            --  encoded traces on the standard output, and trigger it when the
+            --  main ends (by default) or at task termination (Ranverscar
+            --  runtimes).
+
+            return
+              (Channel => Base64_Standard_Output,
+               Trigger => (if GNAT.Regexp.Match (RTS, Ravenscar_RTS_Regexp)
+                           then Ravenscar_Task_Termination
+                           else Main_End));
+
+      end case;
+   end Default_Dump_Config;
 
    --------------------------
    -- Default_Project_File --
@@ -300,6 +338,7 @@ package body Setup_RTS is
       Target           : String;
       RTS              : String;
       Config_File      : String;
+      Actual_RTS       : out Unbounded_String;
       Auto_RTS_Profile : out Any_RTS_Profile;
       Lib_Support      : out Library_Support)
    is
@@ -328,6 +367,8 @@ package body Setup_RTS is
          when Invalid_Project =>
             Fatal_Error ("Could not load the runtime project file");
       end;
+
+      Actual_RTS := To_Unbounded_String (Prj.Root_Project.Get_Runtime);
 
       if Verbose then
          Put_Line ("Actual target: " & Prj.Root_Project.Get_Target);
@@ -480,18 +521,18 @@ package body Setup_RTS is
    -----------
 
    procedure Setup
-     (Project_File        : String;
-      Target              : String;
-      RTS                 : String;
-      Config_File         : String;
-      Prefix              : String;
-      RTS_Profile         : Any_RTS_Profile;
-      Default_Dump_Config : Any_Dump_Config;
-      Install_Name        : String;
-      Gargs               : String_Vectors.Vector)
+     (Project_File : String;
+      Target       : String;
+      RTS          : String;
+      Config_File  : String;
+      Prefix       : String;
+      RTS_Profile  : Any_RTS_Profile;
+      Install_Name : String;
+      Gargs        : String_Vectors.Vector)
    is
       Temp_Dir : Temporary_Directory;
 
+      Actual_RTS         : Unbounded_String;
       Auto_RTS_Profile   : Any_RTS_Profile;
       Actual_RTS_Profile : Resolved_RTS_Profile;
       Lib_Support        : Library_Support;
@@ -504,6 +545,7 @@ package body Setup_RTS is
          Target,
          RTS,
          Config_File,
+         Actual_RTS,
          Auto_RTS_Profile,
          Lib_Support);
 
@@ -531,6 +573,16 @@ package body Setup_RTS is
       declare
          Actual_Project_File : constant String :=
            Setup_Project (Temp_Dir, Project_File, Install_Name);
+
+         --  Now compute the default dump configuration to be recorded with the
+         --  installed instrumentation runtime project. First comute the
+         --  default dump config for the selected language runtime, then refine
+         --  it with the command-line arguments.
+
+         Dump_Config         : constant Any_Dump_Config :=
+           Load_Dump_Config
+             (Default_Dump_Config
+                (Actual_RTS_Profile, To_String (Actual_RTS)));
       begin
          --  Try to uninstall a previous installation of the instrumentation
          --  runtime in the requested prefix. This is to avoid installation
@@ -552,14 +604,14 @@ package body Setup_RTS is
             (Project_File        => <>,
              RTS_Profile         => Actual_RTS_Profile,
              RTS_Profile_Present => True,
-             Default_Dump_Config => Default_Dump_Config));
+             Default_Dump_Config => Dump_Config));
 
          --  Check that the RTS profile is compatible with the selected
          --  defaults for the dump config.
 
          declare
             Dummy : constant Boolean :=
-              Check_RTS_Profile (Actual_RTS_Profile, Default_Dump_Config);
+              Check_RTS_Profile (Actual_RTS_Profile, Dump_Config);
          begin
             null;
          end;

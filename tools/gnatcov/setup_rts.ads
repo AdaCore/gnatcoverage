@@ -37,6 +37,10 @@ package Setup_RTS is
    function Image (Profile : Any_RTS_Profile) return String;
    function Value (Profile : String) return Any_RTS_Profile;
 
+   function Default_Dump_Config
+     (RTS_Profile : Resolved_RTS_Profile; RTS : String) return Any_Dump_Config;
+   --  Return the default dump configuration to use for the given runtime
+
    function Default_Project_File return String;
    --  Return the name of the instrumentation runtime project file that is
    --  shipped with gnatcov. Raise a fatal error if we cannot find it.
@@ -46,15 +50,14 @@ package Setup_RTS is
    --  contain.
 
    procedure Setup
-     (Project_File        : String;
-      Target              : String;
-      RTS                 : String;
-      Config_File         : String;
-      Prefix              : String;
-      RTS_Profile         : Any_RTS_Profile;
-      Default_Dump_Config : Any_Dump_Config;
-      Install_Name        : String;
-      Gargs               : String_Vectors.Vector);
+     (Project_File : String;
+      Target       : String;
+      RTS          : String;
+      Config_File  : String;
+      Prefix       : String;
+      RTS_Profile  : Any_RTS_Profile;
+      Install_Name : String;
+      Gargs        : String_Vectors.Vector);
    --  Build and install the given Project_File instrumentation runtime
    --  project.
    --
@@ -69,10 +72,6 @@ package Setup_RTS is
    --  instrumentation runtime. If it is Auto, try to infer what features are
    --  available from the name of the RTS (the actual runtime used in the GPR
    --  world, i.e. not necessarily the value of the RTS argument passed here).
-   --
-   --  Default_Dump_Config is the dump config that will be used by default in
-   --  "gnatcov instrument" instances that detect the installed instrumentation
-   --  runtime.
    --
    --  If non-empty, Install_Name is used as an alternative name for the
    --  installed project.
