@@ -63,7 +63,7 @@ begin
         --  gnatcov32 does not package instrumentation. It can still be used to
         --  decode source binary traces, but not to instrument source files.
 
-        Args.Command = Cmd_Instrument
+        Args.Command in Cmd_Setup | Cmd_Instrument
 
         --  Otherwise, infer the gnatcov executable to use from the target
         --  option.
