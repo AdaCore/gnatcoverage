@@ -2609,15 +2609,9 @@ package body Decision_Map is
             --     cond-branch tgt
             --     nop (in delay slot)
             --
-            --  If the delay slot is a NOP, we will ignore it, as it just means
-            --  that the compiler was unable to insert a meaningful instruction
-            --  in the delay slot.
-            --
-            --  Otherwise, we put it at the end of the current basic block
-            --  (to which it belongs, and not at the beginning of the next
-            --  fallthrough basic block). We do that by offsetting the current
-            --  PC, Insn and Insn_Len to designate the delay slot (which is the
-            --  instruction right after the PC).
+            --  If the delay slot is a NOP with the same sloc as the branch, we
+            --  will skip it, as it just means that the compiler was unable to
+            --  insert a meaningful instruction in the delay slot.
 
             if Branch_Dest.Delay_Slot /= No_PC
               and then Branch_Dest.Delay_Slot = FT_Dest.Delay_Slot
@@ -2632,24 +2626,25 @@ package body Decision_Map is
                     Slice (Insns,
                            Delay_Slot_PC,
                            Delay_Slot_PC + Pc_Type (Delay_Slot_Len) - 1);
+                  Delay_Slot_Loc  : constant  Source_Location :=
+                    Get_Sloc (Context.Subprg.Lines, Delay_Slot_PC);
+                  Branch_Sloc     : constant Source_Location :=
+                    Get_Sloc (Context.Subprg.Lines, PC);
                begin
                   pragma Assert (Branch_Dest.Delay_Slot = Delay_Slot_PC);
 
-                  --  If the delay slot is not a NOP, include it in the current
-                  --  basic block.
+                  --  If the delay slot is a NOP with the same sloc as the
+                  --  branch, make the next iteration work on the instruction
+                  --  that follows the delay slot.
 
-                  if not Disas.Is_Nop (Delay_Slot_Insn, Delay_Slot_PC) then
-                     Insn := Delay_Slot_Insn;
+                  if Disas.Is_Nop (Delay_Slot_Insn, Delay_Slot_PC)
+                    and then Delay_Slot_Loc = Branch_Sloc
+                  then
+                     PC := Delay_Slot_PC;
+                     Insn_Len := Delay_Slot_Len;
                   end if;
 
-                  --  Make the next iteration work on the instruction that
-                  --  follows the delay slot.
-
-                  PC := Delay_Slot_PC;
-                  Insn_Len := Delay_Slot_Len;
-
-                  --  Now that the delay slot is fully taken into account,
-                  --  reset delay slot info.
+                  --  Edge destination equivalence (see comment above)
 
                   Branch_Dest.Delay_Slot := No_PC;
                   FT_Dest.Delay_Slot := No_PC;
