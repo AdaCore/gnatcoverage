@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2021, AdaCore                     --
+--                     Copyright (C) 2019-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -25,6 +25,33 @@
 --  This unit needs to be compilable with Ada 95 compilers
 
 package body GNATcov_RTS.Buffers is
+
+   -----------------
+   --  To_String  --
+   ----------------
+
+   function To_String (Arr : Uint8_Array) return String is
+      Result : String (Arr'Range);
+   begin
+      for I in Arr'Range loop
+         Result (I) := Character'Val (Arr (I));
+      end loop;
+      return Result;
+   end To_String;
+
+   -------------------
+   --  From_String  --
+   -------------------
+
+   function From_String (Str : String) return Uint8_Array
+   is
+      Result : Uint8_Array (Str'Range);
+   begin
+      for I in Str'Range loop
+         Result (I) := Character'Pos (Str (I));
+      end loop;
+      return Result;
+   end From_String;
 
    subtype Unbounded_Coverage_Buffer_Type is Coverage_Buffer_Type (Bit_Id);
 

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2021, AdaCore                     --
+--                     Copyright (C) 2008-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -356,7 +356,7 @@ package body Instrument.Input_Traces is
          Raw_Header : Trace_File_Header
             with Import, Address => Buffer_Address (Stream);
       begin
-         if Raw_Header.Magic /= Trace_File_Magic then
+         if To_String (Raw_Header.Magic) /= Trace_File_Magic then
             Create_Error (Result, "invalid magic");
             return;
 
@@ -528,7 +528,7 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid bit buffer encoding");
             return False;
 
-         elsif Raw_Header.Padding /= (1 .. 5 => ASCII.NUL) then
+         elsif Raw_Header.Padding /= (1 .. 5 => 0) then
             Create_Error (Result, "invalid entry header padding");
             return False;
          end if;

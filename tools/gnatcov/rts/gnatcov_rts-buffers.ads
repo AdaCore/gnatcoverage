@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2021, AdaCore                     --
+--                     Copyright (C) 2019-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -29,7 +29,6 @@
 
 with Interfaces;
 with System;
-with System.Storage_Elements;
 
 package GNATcov_RTS.Buffers is
 
@@ -75,14 +74,17 @@ package GNATcov_RTS.Buffers is
    --  Even though it is tempting to pack this array to save memory, we must
    --  avoid bit packing to allow concurrent writes to coverage buffers.
 
-   type SCOs_Hash is new System.Storage_Elements.Storage_Array (1 ..  20);
+   type Uint8_Array is array (Positive range <>) of Interfaces.Unsigned_8;
+
+   function To_String (Arr : Uint8_Array) return String;
+
+   function From_String (Str : String) return Uint8_Array;
+
+   type SCOs_Hash is new Uint8_Array (1 ..  20);
    --  Hash type to perform consistency checks over Source Coverage
    --  Obligations. 20-byte to hold a SHA-1.
 
-   type Unit_Coverage_Buffers
-     (Unit_Name_Length    : Positive;
-      Project_Name_Length : Natural)
-   is record
+   type Unit_Coverage_Buffers is record
       Fingerprint : SCOs_Hash;
       --  Hash of SCO info for this unit, as gnatcov computes it (see
       --  SC_Obligations). Used a fast way to check that coverage obligations
@@ -92,8 +94,9 @@ package GNATcov_RTS.Buffers is
       Language_Kind : Any_Language_Kind;
       --  Language kind for this unit
 
-      Unit_Part : Any_Unit_Part;
-      Unit_Name : String (1 .. Unit_Name_Length);
+      Unit_Part        : Any_Unit_Part;
+      Unit_Name_Length : Positive;
+      Unit_Name        : System.Address;
       --  Unit kind and name for the instrumented unit. The Unit_Name field
       --  accounts both for unit-based languages (such as Ada) and file-based
       --  languages such as C.
@@ -108,7 +111,8 @@ package GNATcov_RTS.Buffers is
       --  For file-based languages, Unit_Name is the simple filename, e.g.
       --  "foo.c".
 
-      Project_Name : String (1 .. Project_Name_Length);
+      Project_Name_Length : Natural;
+      Project_Name        : System.Address;
       --  Project name for this compilation unit. This is only initialized for
       --  file-based languages (otherwise, it is an empty string).
 

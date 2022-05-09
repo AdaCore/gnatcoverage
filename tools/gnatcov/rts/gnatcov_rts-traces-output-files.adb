@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2021, AdaCore                     --
+--                     Copyright (C) 2019-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -24,9 +24,7 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Ada.Command_Line;
 with Interfaces.C.Strings;
-with System;
 
 with GNATcov_RTS.Traces.Output.Bytes_IO;
 
@@ -40,16 +38,8 @@ package body GNATcov_RTS.Traces.Output.Files is
 
    procedure Write_Bytes
      (File  : in out BIO.File_Type;
-      Bytes : System.Address;
-      Count : Natural);
+      Bytes : Uint8_Array);
    --  Callback for GNATcov_RTS.Traces.Output.Generic_Write_Trace_File
-
-   function Basename (Name : String) return String;
-   --  Return the base name of the Name file.
-   --
-   --  Note that this unit must be compilable with an Ada 95 compiler, so this
-   --  is a good enough replacement of Ada.Directories.Simple_Name (introduced
-   --  in Ada 2005).
 
    function Environment_Variable (Name : String) return String;
    --  Return the value for the Name environment variable. Return an empty
@@ -70,20 +60,6 @@ package body GNATcov_RTS.Traces.Output.Files is
    --  Helper for Default_Trace_Filename, to be called when the environment
    --  variable does not provide the source trace filename. Return the basename
    --  for the source trace file.
-
-   --------------
-   -- Basename --
-   --------------
-
-   function Basename (Name : String) return String is
-      First : Natural := Name'Last + 1;
-   begin
-      for J in reverse Name'Range loop
-         exit when Name (J) = '/' or Name (J) = '\';
-         First := J;
-      end loop;
-      return Name (First .. Name'Last);
-   end Basename;
 
    --------------------------
    -- Environment_Variable --
@@ -219,18 +195,12 @@ package body GNATcov_RTS.Traces.Output.Files is
 
    procedure Write_Bytes
      (File  : in out BIO.File_Type;
-      Bytes : System.Address;
-      Count : Natural)
+      Bytes : Uint8_Array)
    is
-      type Uint8_Array is array (Positive range <>) of Interfaces.Unsigned_8;
-      Content : Uint8_Array (1 .. Count);
-      for Content'Address use Bytes;
-      pragma Import (Ada, Content);
    begin
-      for I in Content'Range loop
-         BIO.Write (File, Content (I));
+      for I in Bytes'Range loop
+         BIO.Write (File, Bytes (I));
       end loop;
-      pragma Unreferenced (File);
    end Write_Bytes;
 
    procedure Write_Trace_File is new

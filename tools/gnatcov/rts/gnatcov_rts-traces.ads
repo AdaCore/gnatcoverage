@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2021, AdaCore                     --
+--                     Copyright (C) 2019-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -28,7 +28,7 @@
 
 with Interfaces; use Interfaces;
 
-with GNATcov_RTS.Buffers;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 
 package GNATcov_RTS.Traces is
 
@@ -121,7 +121,7 @@ package GNATcov_RTS.Traces is
    --  Expected value of the Trace_File_Header.Magic field (32 bytes)
 
    type Trace_File_Header is record
-      Magic : String (1 .. 32) := Trace_File_Magic;
+      Magic : Uint8_Array (1 .. 32);
 
       Format_Version : Trace_File_Format_Version;
       Alignment      : Any_Alignment;
@@ -131,16 +131,7 @@ package GNATcov_RTS.Traces is
       --  Padding used only to make the size of the trace file header a
       --  multiple of 8 bytes. Must be zero.
    end record;
-
-   for Trace_File_Header use record
-      Magic          at  0 range 0 .. 32 * 8 - 1;
-      Format_Version at 32 range 0 .. 31;
-      Alignment      at 36 range 0 .. 7;
-      Endianity      at 37 range 0 .. 7;
-      Padding        at 38 range 0 .. 15;
-   end record;
-
-   for Trace_File_Header'Size use 40 * 8;
+   pragma Pack (Trace_File_Header);
 
    -----------------------
    -- Trace information --
@@ -176,13 +167,7 @@ package GNATcov_RTS.Traces is
       Length : Unsigned_32;
       --  Length of the data associated to this entry
    end record;
-
-   for Trace_Info_Header use record
-      Kind   at 0 range 0 .. 31;
-      Length at 4 range 0 .. 31;
-   end record;
-
-   for Trace_Info_Header'Size use 8 * 8;
+   pragma Pack (Trace_Info_Header);
 
    ------------------------
    -- Trace entry header --
@@ -247,24 +232,10 @@ package GNATcov_RTS.Traces is
       --  coverage obligations and coverage data are consistent. Specific hash
       --  values are computed during instrumentation.
 
-      Padding : String (1 .. 5);
+      Padding : Uint8_Array (1 .. 5);
       --  Padding used only to make the size of this trace entry header a
       --  multiple of 8 bytes. Must be zero.
    end record;
-
-   for Trace_Entry_Header use record
-      Unit_Name_Length    at  0 range 0 .. 31;
-      Project_Name_Length at  4 range 0 .. 31;
-      Statement_Bit_Count at  8 range 0 .. 31;
-      Decision_Bit_Count  at 12 range 0 .. 31;
-      MCDC_Bit_Count      at 16 range 0 .. 31;
-      Language_Kind       at 20 range 0 .. 7;
-      Unit_Part           at 21 range 0 .. 7;
-      Bit_Buffer_Encoding at 22 range 0 .. 7;
-      Fingerprint         at 23 range 0 .. 20 * 8 - 1;
-      Padding             at 43 range 0 .. 5 * 8 - 1;
-   end record;
-
-   for Trace_Entry_Header'Size use 48 * 8;
+   pragma Pack (Trace_Entry_Header);
 
 end GNATcov_RTS.Traces;

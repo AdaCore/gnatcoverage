@@ -6609,6 +6609,10 @@ package body Instrument.Ada_Unit is
                         & """);");
          File.New_Line;
 
+         File.Put_Line ("   Unit_Name : constant String := """ & Unit_Name
+                        & """;");
+         File.Put_Line ("   Project_Name : constant String := """";");
+
          File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Unit_Name_Length => "
                         & Strings.Img (Unit_Name'Length) & ",");
@@ -6618,9 +6622,9 @@ package body Instrument.Ada_Unit is
 
          File.Put_Line ("      Language_Kind => Unit_Based_Language,");
          File.Put_Line ("      Unit_Part     => " & Unit_Part & ",");
-         File.Put_Line ("      Unit_Name     => """ & Unit_Name & """,");
+         File.Put_Line ("      Unit_Name     => Unit_Name'Address,");
 
-         File.Put_Line ("      Project_Name => """",");
+         File.Put_Line ("      Project_Name => Project_Name'Address,");
 
          File.Put_Line ("      Statement => Statement_Buffer'Address,");
          File.Put_Line ("      Decision  => Decision_Buffer'Address,");

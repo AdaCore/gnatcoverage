@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2021, AdaCore                     --
+--                     Copyright (C) 2008-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -2118,6 +2118,11 @@ package body Instrument.C is
                         & """);");
          File.New_Line;
 
+         File.Put_Line ("   Unit_Name : constant String := """
+                        & Unit_Name & """;");
+         File.Put_Line ("   Project_Name : constant String := """
+                        & Project_Name & """;");
+
          File.Put_Line ("   Buffers : aliased Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Unit_Name_Length => "
                         & Strings.Img (Unit_Name'Length) & ",");
@@ -2128,10 +2133,9 @@ package body Instrument.C is
 
          File.Put_Line ("      Language_Kind => File_Based_Language,");
          File.Put_Line ("      Unit_Part     => Not_Applicable_Part,");
-         File.Put_Line ("      Unit_Name     => """ & Unit_Name & """,");
+         File.Put_Line ("      Unit_Name     => Unit_Name'Address,");
 
-         File.Put_Line ("      Project_Name => " & """" & Project_Name
-                        & """,");
+         File.Put_Line ("      Project_Name => Project_Name'Address,");
 
          File.Put_Line ("      Statement => Statement_Buffer_Address,");
          File.Put_Line ("      Decision  => Decision_Buffer_Address,");

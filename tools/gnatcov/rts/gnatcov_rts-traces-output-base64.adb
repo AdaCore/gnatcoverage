@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2021, AdaCore                     --
+--                     Copyright (C) 2019-2022, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -60,7 +60,7 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    end record;
 
    procedure Write_Bytes
-     (Output : in out Base64_Buffer; Bytes : System.Address; Count : Natural);
+     (Output : in out Base64_Buffer; Bytes : Uint8_Array);
    --  Callback for Generic_Write_Trace_File
 
    procedure Flush (Output : in out Base64_Buffer);
@@ -73,14 +73,11 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    -----------------
 
    procedure Write_Bytes
-     (Output : in out Base64_Buffer; Bytes : System.Address; Count : Natural)
+     (Output : in out Base64_Buffer; Bytes : Uint8_Array)
    is
-      Bytes_Array : array (1 .. Count) of Interfaces.Unsigned_8;
-      for Bytes_Array'Address use Bytes;
-      pragma Import (Ada, Bytes_Array);
    begin
-      for I in Bytes_Array'Range loop
-         Output.Bytes (Output.Next) := Bytes_Array (I);
+      for I in Bytes'Range loop
+         Output.Bytes (Output.Next) := Bytes (I);
          Output.Next := Output.Next + 1;
          if Output.Next = Base64_Buffer_Index'Last then
             Flush (Output);
@@ -93,7 +90,6 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    -----------
 
    procedure Flush (Output : in out Base64_Buffer) is
-      use Interfaces;
 
       function "+" (Bits : Uint6) return Character;
       --  Shortcut to get the ASCII representation of the given 6 bits
