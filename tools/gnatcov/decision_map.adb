@@ -2515,7 +2515,7 @@ package body Decision_Map is
 
          declare
             LI   : Line_Info_Access;
-            Insn : Binary_Content :=
+            Insn : constant Binary_Content :=
               Slice (Insns, PC, PC + Pc_Type (Insn_Len) - 1);
 
             Branch      : Branch_Kind;
