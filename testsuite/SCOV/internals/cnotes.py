@@ -92,34 +92,42 @@
 
 # lNoCode       : no code for line (=xcov)
 # lNotCoverable : no code but statement on line, hence not coverable (=xcov)
+# lUndetCov     : scos present but could not determine coverage state (=xcov)
 # lFullCov      : full coverage for line (=xcov)
 # r0            : expect empty set of violations (=report)
 # r0c           : like r0, on a statement continuation line (=report)
 # lx0           : line part of exempted block, 0 deviations (=xcov)
 # lx1           : line part of exempted block, >0 deviations (=xcov)
+# lx2           : line part of exempted block, >0 undet. cov. items (=xcov)
 # lNoCov        : line not covered (=xcov)
 # lPartCov      : line partially covered (=xcov)
 
 # sNotCoverable : no code but statement on line, hence not coverable (=report)
+# sUndetCov     : statement with undetermined coverage state (=report)
 # sNoCov        : stmt not covered (=report)
 # sPartCov      : unable to assess precise stmt coverage (=report)
 
-# dtAlways : decision is always True, hence not coverable (=report)
-# dfAlways : decision is always False, hence not coverable (=report)
-# dtNoCov  : decision outcome True not covered (=report)
-# dfNoCov  : decision outcome False not covered (=report)
-# dPartCov : one decision outcome not covered (=report)
-# dNoCov   : decision never evaluated (=report)
+# dtAlways  : decision is always True, hence not coverable (=report)
+# dfAlways  : decision is always False, hence not coverable (=report)
+# dtNoCov   : decision outcome True not covered (=report)
+# dfNoCov   : decision outcome False not covered (=report)
+# dPartCov  : one decision outcome not covered (=report)
+# dNoCov    : decision never evaluated (=report)
+# dUndetCov : decision with undetermined coverage state for decision
+#             coverage (=report)
 
-# etNoCov  : expression outcome True not covered (=report)
-# efNoCov  : expression outcome False not covered (=report)
-# ePartCov : one expression outcome not covered (=report)
-# eNoCov   : expression never evaluated (=report)
+# etNoCov   : expression outcome True not covered (=report)
+# efNoCov   : expression outcome False not covered (=report)
+# ePartCov  : one expression outcome not covered (=report)
+# eNoCov    : expression never evaluated (=report)
+# eUndetCov : expression with undetermined coverage state for MC/DC
+#             coverage (=report)
 
 # cPartCov : independent effect of condition not demonstrated (=report)
 
 # xBlock0  : exempted block, 0 deviations (=report)
 # xBlock1  : exempted block, >0 deviations (=report)
+# xBlock2  : exempted block, >0 undetermined coverage items (=report)
 
 # Transient kinds: these may be used in expectations and should always be
 # subject to substitution rules mapping them to other kinds. No emitted note
@@ -138,32 +146,33 @@
 
 (lNoCode, lFullCov,
  strictNote,
- r0, r0c, lx0, lx1,
+ r0, r0c, lx0, lx1, lx2,
  deviationNote,
- lNoCov, lPartCov, lNotCoverable,
- sNoCov, sPartCov, sNotCoverable,
+ lNoCov, lPartCov, lNotCoverable, lUndetCov,
+ sNoCov, sPartCov, sNotCoverable, sUndetCov,
  dtAlways, dfAlways,
- dtNoCov, dfNoCov, dNoCov, dPartCov,
- etNoCov, efNoCov, eNoCov, ePartCov,
+ dtNoCov, dfNoCov, dNoCov, dPartCov, dUndetCov,
+ etNoCov, efNoCov, eNoCov, ePartCov, eUndetCov,
  otNoCov, ofNoCov, oNoCov, oPartCov,
  cPartCov,
  blockNote,
- xBlock0, xBlock1) = range(32)
+ xBlock0, xBlock1, xBlock2) = range(38)
 
 NK_image = {None: "None",
             lNoCode: "lNoCode", lNotCoverable: "lNotCoverable",
+            lUndetCov: "lUndetCov",
             lFullCov: "lFullCov", lNoCov: "lNoCov", lPartCov: "lPartCov",
-            r0: "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1",
+            r0: "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1", lx2: "lx2",
             sNoCov: "sNoCov", sPartCov: "sPartCov",
-            sNotCoverable: "sNotCoverable",
+            sNotCoverable: "sNotCoverable", sUndetCov: "sUndetCov",
             dtAlways: "dtAlways", dfAlways: "dfAlways",
             dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
-            dPartCov: "dPartCov",
+            dPartCov: "dPartCov", dUndetCov: "dUndetCov",
             etNoCov: "etNoCov", efNoCov: "efNoCov", eNoCov: "eNoCov",
-            ePartCov: "ePartCov",
+            ePartCov: "ePartCov", eUndetCov: " eUndetCov",
             otNoCov: "otNoCov", ofNoCov: "ofNoCov", oNoCov: "oNoCov",
             oPartCov: "oPartCov",
-            xBlock0: "xBlock0", xBlock1: "xBlock1",
+            xBlock0: "xBlock0", xBlock1: "xBlock1", xBlock2: "xBlock2",
             cPartCov: "cPartCov"}
 
 
@@ -174,23 +183,24 @@ NK_image = {None: "None",
 # Line notes (=xcov); the set of possible expectations matches the
 # set of possible emitted indications
 
-elNoteKinds = (lNoCode, lNotCoverable, lNoCov, lPartCov, lFullCov, lx0, lx1)
+elNoteKinds = (lNoCode, lNotCoverable, lUndetCov, lNoCov, lPartCov, lFullCov,
+               lx0, lx1, lx2)
 xlNoteKinds = elNoteKinds
 
 # Report notes (=report), which feature anti-expectations that
 # explicitely state expection of absence of emitted notes
 
 # SC indications
-sNoteKinds = (sNoCov, sPartCov, sNotCoverable)
+sNoteKinds = (sNoCov, sPartCov, sNotCoverable, sUndetCov)
 
 # DC indications
-dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov, dtAlways, dfAlways)
+dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov, dtAlways, dfAlways, dUndetCov)
 
 # MCDC violations
-cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov)
+cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov, eUndetCov)
 
 # Exemption regions
-xNoteKinds = (xBlock0, xBlock1)
+xNoteKinds = (xBlock0, xBlock1, xBlock2)
 
 # Anti-expectations
 rAntiKinds = (r0, r0c)

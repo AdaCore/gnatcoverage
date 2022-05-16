@@ -14,8 +14,9 @@ import re
 from .cnotes import (
     Xnote, block_p, cPartCov, dNoCov, dPartCov, dfAlways, dfNoCov, dtAlways,
     dtNoCov, ePartCov, eNoCov, efNoCov, etNoCov, lFullCov, lNoCode, lNoCov,
-    lNotCoverable, lPartCov, lx0, lx1, oNoCov, oPartCov, ofNoCov, otNoCov, r0,
-    r0c, sNoCov, sNotCoverable, sPartCov, xBlock0, xBlock1, xNoteKinds
+    lNotCoverable, lPartCov, lx0, lx1, lx2, oNoCov, oPartCov, ofNoCov,
+    otNoCov, r0, r0c, sNoCov, sNotCoverable, sPartCov, xBlock0, xBlock1,
+    xBlock2, xNoteKinds, lUndetCov, sUndetCov, dUndetCov, eUndetCov
 )
 from .segments import Line, Section, Segment
 from .stags import Stag_from
@@ -167,15 +168,18 @@ class _XnoteP_segment:
 class XnoteP:
 
     NK_for = {'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
-              'l.': lNoCode, 'l0': lNotCoverable,
-              'l#': lx0, 'l*': lx1,
+              'l.': lNoCode, 'l0': lNotCoverable, 'l?': lUndetCov,
+              'l#': lx0, 'l*': lx1, 'l@': lx2,
               's-': sNoCov, 's!': sPartCov, 's0': sNotCoverable,
+              's?': sUndetCov,
               'dT*': dtAlways, 'dF*': dfAlways,
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-': dNoCov,
+              'd?': dUndetCov,
               'eT-': etNoCov, 'eF-': efNoCov, 'e!': ePartCov, 'e-': eNoCov,
+              'e?': eUndetCov,
               'oT-': otNoCov, 'oF-': ofNoCov, 'o!': oPartCov, 'o-': oNoCov,
               'c!': cPartCov,
-              'x0': xBlock0, 'x+': xBlock1,
+              'x0': xBlock0, 'x+': xBlock1, 'x?': xBlock2,
               '0': r0, '0c': r0c}
 
     def __init__(self, text, stext=None, stag=None):

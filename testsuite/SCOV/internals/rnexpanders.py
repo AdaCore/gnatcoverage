@@ -11,7 +11,8 @@ from SUITE.context import thistest
 from .cnotes import (
     xBlock0, xBlock1, sNoCov, sPartCov, sNotCoverable, dfAlways, dtAlways,
     dfNoCov, dtNoCov, dNoCov, dPartCov, efNoCov, etNoCov, eNoCov, ePartCov,
-    cPartCov, Enote, KnoteDict, erNoteKinds
+    cPartCov, Enote, KnoteDict, erNoteKinds, sUndetCov,
+    dUndetCov, eUndetCov, xBlock2
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from
@@ -345,7 +346,18 @@ class NCIchapter(Nchapter):
                           re_notes=re_notes)
 
     def re_summary(self):
-        return r"(No|\d+).* coverage exclusion[s]*\.$"
+        return r"(No|\d+) coverage exclusion[s]*\.$"
+
+
+class UCIchapter (Nchapter):
+    """Undetermined Coverage Items chapter."""
+    def __init__(self, re_start, re_notes):
+        Nchapter.__init__(self, re_start=re_start,
+                          re_end=r"(\d+) undetermined coverage item[s]*\.$",
+                          re_notes=re_notes)
+
+    def re_summary(self):
+        return r"(\d+) undetermined coverage items[s]*\.$"
 
 
 class SMRchapter(Rchapter):
@@ -400,6 +412,7 @@ class SMRchapter(Rchapter):
 #              |              |         |
 #          VIOsection     XMPchapter  SMRchapter
 #          OERsection     NCIchapter
+#                         UCIchapter
 #
 # We now add grab bags specializations aimed at catching
 # unexpected blocks:
@@ -482,11 +495,27 @@ class RblockSet:
         self.noteblocks.append(
             NCIchapter(re_start="NON COVERABLE ITEMS", re_notes=nc_notes))
 
+        # Undetermined coverage items
+
+        ni_notes = {
+            "statement was not instrumented": sUndetCov,
+            "decision was not instrumented"
+            " for decision coverage"       : dUndetCov,
+            "decision was not instrumented"
+            " for MC/DC coverage"          : eUndetCov
+        }
+
+        self.noteblocks.append(
+            UCIchapter(re_start="UNDETERMINED COVERAGE ITEMS", re_notes=ni_notes))
+
         # Exemptions regions
 
         xr_notes = {
             "0 exempted violation": xBlock0,
-            r"[1-9]\d* exempted violation": xBlock1}
+            r"[1-9]\d* exempted violation": xBlock1,
+            r"\d+ exempted violations?; [1-9]\d+ exempted undetermined"
+            r"coverage items?": xBlock2
+        }
         self.noteblocks.append(
             XREchapter(re_start="EXEMPTED REGIONS", re_notes=xr_notes))
 

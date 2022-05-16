@@ -350,8 +350,9 @@ def check_xcov_content(filename, expected_cov):
     >>> {'+': {5, 7}, '!': {6}}
 
     This is interpreted as: lines 5 and 7 must be fully covered (+), line 6
-    must be partially covered (!) and all other lines must be no-code (.) or
-    fully covered (+).
+    must be partially covered (!) and all other lines must be no-code (.),
+    fully covered (+) or undetermined coverage (?).
+
     """
 
     def remove_empty_sets(data):
@@ -363,7 +364,7 @@ def check_xcov_content(filename, expected_cov):
                 if lines}
 
     # Check that expected coverage data contain only supported line annotations
-    invalid_line_annotations = set(expected_cov) - {'+', '!', '-'}
+    invalid_line_annotations = set(expected_cov) - {'+', '!', '-', '?'}
     assert not invalid_line_annotations, (
         'Invalid line annotations: {}'
         .format(' '.join(sorted(invalid_line_annotations))))
