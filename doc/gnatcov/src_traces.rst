@@ -545,6 +545,15 @@ For our intended target environment, this would be something like::
   # Allow references to the coverage runtime project from other project files:
   export GPR_PROJECT_PATH=<gnatcov_rts-ppc-install-dir>/share/gpr
 
+
+Setting up the coverage runtime for AAMP
+****************************************
+
+As the AAMP target does not support libraries, GNATcoverage also comes with a
+custom instrumentation runtime file for AAMP, ``gnatcov_rts_aamp.gpr``. Use this
+one instead of ``gnatcov_rts.gpr`` when invoking ``gprbuild``.
+
+
 Instrument and build
 ********************
 
