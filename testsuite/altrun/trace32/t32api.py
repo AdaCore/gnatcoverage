@@ -14,7 +14,7 @@ PATH_TO_T32 = find_executable('t32marm-qt')
 assert PATH_TO_T32, "no Trace32 executable on path"
 
 PATH_TO_T32_HOME = os.path.join(os.path.dirname(PATH_TO_T32), '../../')
-PATH_TO_T32_PY_API = os.path.join(PATH_TO_T32_HOME, 'demo/api/python')
+PATH_TO_T32_PY_API = os.path.join(PATH_TO_T32_HOME, 'demo/api/python/legacy')
 
 # auto-detect the correct library
 if (platform.system() == 'Windows') or (platform.system()[0:6] == 'CYGWIN'):
