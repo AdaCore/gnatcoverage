@@ -211,6 +211,10 @@ package body Instrument.Ada_Unit is
    --  Wrappers around P_Is_Ghost_Code to protect ourselves against property
    --  errors. If the property fails for some reason, consider that the code
    --  is not ghost.
+   --
+   --  For declarations, return False if at least one of the defined name is
+   --  not ghost. This is what we need here, as we need to instrument the
+   --  declaration if if at least one defined name is not ghost.
 
    function Op_Symbol_To_Name
      (Op : Libadalang.Analysis.Name) return Wide_Wide_String;
@@ -5790,7 +5794,7 @@ package body Instrument.Ada_Unit is
 
    function Safe_Is_Ghost (N : Basic_Decl'Class) return Boolean is
    begin
-      return N.P_Is_Ghost_Code;
+      return not (for all DN of N.P_Defining_Names => not DN.P_Is_Ghost_Code);
    exception
       when E : Property_Error =>
          Report (N,
