@@ -628,11 +628,24 @@ package body Coverage.Source is
       --  Set True when a diagnosis has been emitted for multiple statements
 
    begin
+      if Line_Info.Coverage_Processed then
+
+         --  Recomputing the coverage state for this line has no influence over
+         --  the resulting coverage state, but will lead to eventual violation
+         --  messages being emitted mutliple times.
+
+         return;
+      end if;
+
       if Line_Info.SCOs = null then
          --  No SCOs associated with this source line
 
          --  ??? Have a debug mode to warn if there is object code with
          --  this line ?
+
+         --  Record that this line has been processed
+
+         Line_Info.Coverage_Processed := True;
 
          return;
       end if;
@@ -923,6 +936,10 @@ package body Coverage.Source is
 
          <<Next_SCO>> null;
       end loop;
+
+      --  Record that this line has been processed
+
+      Line_Info.Coverage_Processed := True;
    end Compute_Line_State;
 
    ------------------------
