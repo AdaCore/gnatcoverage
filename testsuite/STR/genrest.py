@@ -13,7 +13,7 @@ import os
 import re
 import optparse
 import collections
-from gnatpython.fileutils import find
+from e3.fs import find
 
 # The testsuite dir corresponding to this local "qualification" dir. This is
 # where we fetch common python source dirs. This might be different from where
@@ -51,13 +51,13 @@ class Error(Exception):
 
 def fail_if(p, msg):
     if p:
-        print "!!! %s !!!" % msg
+        print("!!! %s !!!" % msg)
         raise Error
 
 
 def exit_if(p, msg):
     if p:
-        print msg
+        print(msg)
         sys.exit(1)
 
 # ================================================
@@ -100,7 +100,7 @@ class QualificationDataRepository(object):
         :param root: testsuite root directory
         :type root: str
         """
-        print "== Registering test execution dumps from %s ..." % root
+        print("== Registering test execution dumps from %s ..." % root)
 
         # Search for all directories containing a testcase status
         # dump file and load the data available there
@@ -114,7 +114,7 @@ class QualificationDataRepository(object):
         :param dirname: directory of the testcase
         :type dirname: str
         """
-        print "loading from %s" % dirname
+        print("loading from %s" % dirname)
 
         # Some tests in the Common chapter have status data and multiple
         # individual test data files in subdirectories. Their purpose is to
@@ -268,10 +268,10 @@ column_for = {
     # When checking status, map text passed by toplevel driver
     # to column.
 
-    'OK': colid.passed,
+    'PASS': colid.passed,
+    'XPASS': colid.passed,
+    'FAIL': colid.failed,
     'XFAIL': colid.xfail,
-    'UOK': colid.passed,
-    'FAILED': colid.failed
 }
 
 # -------------------------------
@@ -752,7 +752,7 @@ class QDreport(object):
 
         [self.count(note=note, cell=this_tcdata[column_for[note.kind]])
          for qde in qd.entries for src in qde.xrnotes
-         for notelist in qde.xrnotes[src].itervalues()
+         for notelist in qde.xrnotes[src].values()
          for note in notelist]
 
         return this_tcdata

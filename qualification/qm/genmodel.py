@@ -14,11 +14,11 @@
 #   and testcases someday)
 
 import sys, optparse, re
-from gnatpython.ex import Run
+from e3.os.process import Run
 
 def exit_if (p, msg):
     if p:
-        print msg
+        print(msg)
         sys.exit(1)
 
 def contents_of(filename):

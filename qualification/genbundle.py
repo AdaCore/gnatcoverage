@@ -22,8 +22,8 @@
 #          such and such testsuite results)
 #
 # All the artifacts required to produce these documents are hosted in a GIT
-# repository. This ought to be the AdaCore main "gnatcoverage" repository for
-# material to be delivered.
+# repository. This ought to be the AdaCore main "gnatcoverage-qualification"
+# repository for material to be delivered.
 #
 # The three documents may be produced in either html or pdf format. Most of
 # the time, this is achieved by using Sphinx on generated REST.
@@ -46,7 +46,7 @@
 #    This produces the html or pdf (according to --docformat) documents of
 #    interest + stuff we don't care about, e.g. intermediate latex sources for
 #    rest->pdf,
-#    
+#
 # 3) Move or copy the final documents in a subdir named after their format
 #    (PDF|HTML subdir), then maybe build an archive of the set of available
 #    items for each format.
@@ -134,13 +134,13 @@
 # [source-repo-for-testsuite-run]
 #     |
 #     | (clone by user to run testsuite)
-#     v 
+#     v
 #     gnatcoverage/testsuite/testsuite.py
 #                           /Qualif/        <- testbase & STR artifacts
 #
 # On the host where the kit production is launched:
 # -------------------------------------------------
-# 
+#
 # [source-repo-for-document-artifacts]
 #             |
 #             | (clone by genbundle.py)
@@ -178,8 +178,8 @@
 #
 # *****************************************************************************
 
-from gnatpython.ex import Run
-from gnatpython.fileutils import cp, mv, rm, mkdir, ls, find
+from e3.os.process import Run
+from e3.fs import cp, mv, rm, mkdir, ls, find
 
 from datetime import date
 
@@ -204,17 +204,17 @@ class Error (Exception):
 
 def fail_if (p, msg):
     if p:
-        print msg
+        print(msg)
         raise Error
 
 def exit_if (p, msg):
     if p:
-        print msg
+        print(msg)
         sys.exit(1)
 
 def warn_if (p, msg):
     if p:
-        print "\n!!! WARNING: %s !!!\n" % msg
+        print("\n!!! WARNING: %s !!!\n" % msg)
 
 def run_list (cmd, dir=None, env=None):
     """Execute the provided CMD command-list (command name + arguments),
@@ -225,13 +225,13 @@ def run_list (cmd, dir=None, env=None):
     top of os.environ."""
 
     oriwd = os.getcwd()
-    print "from : %s" % oriwd
+    print("from : %s" % oriwd)
 
     if dir:
-        print "hopat : %s" % dir
+        print("hopat : %s" % dir)
         os.chdir (dir)
 
-    print "run  : %s" % ' '.join(cmd)
+    print("run  : %s" % ' '.join(cmd))
 
     out = os.path.basename(cmd[0])+".log"
     p = Run (cmd, output=out, env=env, ignore_environ=False)
@@ -246,13 +246,13 @@ def run (s, dir=None, env=None):
     run_list (s.split(), dir, env=env)
 
 def announce (s):
-    print "=========== " + s
+    print("=========== " + s)
 
 def remove (path):
     """Delete the file or directory subtree designated by PATH"""
 
-    print "from : %s" % os.getcwd()
-    print "remove : %s" % path
+    print("from : %s" % os.getcwd())
+    print("remove : %s" % path)
 
     # To prevent big damage if the input PATH argument happens to have been
     # miscomputed, we first attempt to move it locally, then remove the local
@@ -293,15 +293,15 @@ def rdir_in (path):
 # current git branch name, used as kit identifier:
 
 def current_gitbranch_at (dirname):
-    
-    cwd = os.getcwd()    
+
+    cwd = os.getcwd()
     os.chdir(dirname)
 
     this_branch = re.search (
         pattern="\* (?P<branchname>\S*)",
         string=output_of("git branch")
         ).group('branchname')
-    
+
     os.chdir(cwd)
 
     return this_branch
@@ -368,7 +368,7 @@ class QMAT:
     def log (self, line):
         with open (os.path.join(self.workdir, "genbundle.log"), 'a') as f:
             f.write (line + '\n')
-                
+
     # ----------------
     # -- git_update --
     # ----------------
@@ -424,7 +424,7 @@ class QMAT:
         a-la html (e.g. TOR, which will contain content.html etc), or a
         specific filename (e.g. PLANS.pdf) for other formats. This is what
         latch_into sets up eventually."""
-        
+
         this_item_is_tree = (self.this_docformat == 'html')
 
         this_item_suffix = (
@@ -517,10 +517,10 @@ class QMAT:
         else:
             mv (this_build_subdir, this_target)
 
-        print "%s %s available in %s %s" % (
+        print("%s %s available in %s %s" % (
             self.this_docformat, part.upper(),
             this_target, "(toplevel)" if toplevel else ""
-            )
+            ))
 
     # ------------------
     # -- gen_qm_model --
@@ -551,7 +551,7 @@ class QMAT:
         os.chdir (
             os.path.join (self.repodir, "qualification", "qm")
             )
-        
+
         # The qmachine model might use the "build" directory as
         # a repository, and it has to preexist:
 
@@ -576,14 +576,14 @@ class QMAT:
         if self.local_testsuite_dir and self.passno == 1:
             os.chdir (self.local_testsuite_dir)
 
-            def sync(relative):
+            def sync(tr):
                 target_dir = os.path.join (
                     self.repodir, "testsuite", os.path.dirname (tr)
                     )
                 if os.path.exists(target_dir):
-                    cp (relative, target_dir)
+                    cp (tr, target_dir)
                 else:
-                    print ("ERRRR !! inexistant target dir for %s" % relative)
+                    print ("ERRRR !! inexistant target dir for %s" % tr)
 
             [sync(tr) for tr in find (root=".", pattern="tc.dump")]
 
@@ -631,12 +631,12 @@ class QMAT:
             log.write (
                 "!!! local and suite tree refs aren't sequential !!!\n")
             return
-        
+
         log.write (
             "%s tree is ahead\n" % \
                 ('suite' if first == local_treeref else 'local')
             )
-        
+
         gitlog_cmd = (
             "git rev-list --oneline %s ^%s" % (next, first))
         log.write (
@@ -663,7 +663,7 @@ class QMAT:
             note = (
                 "matches" if re.search (pattern=expected, string=actual)
                 else "doesn't match")
-            
+
             log.write (
                 '%(tool)s version "%(actual)s" %(note)s ' \
                     'expectation \"%(expected)s"\n' % {
@@ -672,7 +672,7 @@ class QMAT:
                         'expected': expected,
                         'actual'  : actual
                         }
-                )            
+                )
         #
 
         check_one (
@@ -705,7 +705,7 @@ class QMAT:
 
     def dump_kit_consistency_log (self):
         announce ("dumping consistency log - format agnostic")
-        
+
         logfile = os.path.join(self.workdir, "consistency.log")
         log = open (logfile, 'w')
 
@@ -720,18 +720,18 @@ class QMAT:
                  else "local")
             )
         log.write (
-            "local testsuite tree at %s\n" % self.local_testsuite_dir)        
+            "local testsuite tree at %s\n" % self.local_testsuite_dir)
 
         suite_ctxdata = jload_from (
             os.path.join (self.local_testsuite_dir, CTXDATA_FILE))
-        
+
         self.__dump_tree_consistency_info (log, suite_ctxdata)
         self.__dump_version_consistency_info (log, suite_ctxdata)
         self.__dump_tr_consistency_info (log)
 
         log.close()
 
-        print "consistency log available at %s" % logfile
+        print("consistency log available at %s" % logfile)
 
     # ----------------------------
     # -- localize_testsuite_dir --
@@ -744,7 +744,7 @@ class QMAT:
         os.chdir (self.workdir)
 
         self.local_testsuite_dir = \
-            hashlib.sha1(self.o.testsuite_dir).hexdigest()
+            hashlib.sha1(self.o.testsuite_dir.encode()).hexdigest()
 
         # Exclude non qualification tests and internal reports aimed at our
         # intranet from the transfer. All useless and potentially confusing.
@@ -758,7 +758,7 @@ class QMAT:
 
         run ("rsync -arz --delete --delete-excluded %s/ %s %s" % (
                 self.o.testsuite_dir, self.local_testsuite_dir,
-                ' '.join (("--exclude=/tests", 
+                ' '.join (("--exclude=/tests",
                            "--exclude=/output",
                            "--exclude=/rep_gnatcov*",
                            "--exclude=*.o",
@@ -788,7 +788,7 @@ class QMAT:
         generate the STR REST for the designated testsuite-dir, possibly
         remote.  Fetch this dir back as needed then and remember where the
         corresponding STR subdir (with REST generated) is located."""
-        
+
         announce ("preparing STR dir @ %s" % self.o.testsuite_dir)
 
         # Produce REST from the tests results dropped by testsuite run.  If we
@@ -840,9 +840,9 @@ class QMAT:
 
         remove (item_target_path)
 
-        print "move : %s" % item_source_path
-        print "into : %s" % dir
-        
+        print("move : %s" % item_source_path)
+        print("into : %s" % dir)
+
         mv (item_source_path, dir)
 
     def build_kit (self):
@@ -878,7 +878,7 @@ class QMAT:
             self.o.rekit if self.o.rekit
             else "%4d%02d%02d" % (today.year, today.month, today.day)
             )
-        kitname = "%s-%s-%s" % (kitprefix, kitid, kitstamp)             
+        kitname = "%s-%s-%s" % (kitprefix, kitid, kitstamp)
         kitdir = "%s-%s" % (kitname, self.this_docformat)
 
         mkdir (kitdir)
@@ -927,7 +927,7 @@ class QMAT:
 
         if self.do_str() and self.passno == 1:
             self.__prepare_str_dir()
-        
+
         if self.o.testsuite_dir and not self.local_testsuite_dir:
             self.__localize_testsuite_dir ()
 
@@ -1096,7 +1096,7 @@ def check_valid(options, args):
         not options.branchname,
         ("Please specify the git branch name (--branch).")
         )
-    
+
     # Convey whether we are requested to produce a kit:
 
     options.kitp = options.rekit or not options.parts
