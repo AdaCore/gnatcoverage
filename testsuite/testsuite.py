@@ -685,8 +685,8 @@ class TestPyRunner:
         try:
             self.set_up()
             self.run()
-            self.tear_down()
             self.analyze()
+            self.tear_down()
         except TestAbortWithError as exc:
             self.push_error(str(exc))
             return
