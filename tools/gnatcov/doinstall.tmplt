@@ -82,10 +82,13 @@ EOF
 
 standard_installation () {
 
-   # Makes the real installation
-   mkdir -p $prefix
+   # Perform the real installation. Cleanup possible remnants of a
+   # previous gnatcov_rts installation to make sure the new rts dir
+   # only contains the new sources.
+   mkdir -p "$prefix"
+   rm -rf "$prefix/share/gnatcoverage/gnatcov_rts/"
    (tar cf - bin lib libexec share \
-      | (cd $prefix; tar xf -)) 2>&1 | tee $tmpout
+      | (cd "$prefix"; tar xf -)) 2>&1 | tee $tmpout
 
    # Check that installation was OK
 
