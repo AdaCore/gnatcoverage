@@ -602,6 +602,59 @@ class ASCIItable(RSTtable):
         self.rstf.write(sepl, post=2)
 
 
+# ===============
+# == LISTtable ==
+# ===============
+
+# Helper class for the generation of a REST table using list-table.
+#
+# To represent:
+#
+# =========== ======== ======== ... =======
+# testcase    nov      scv          status
+# =========== ======== ======== ... =======
+# Qualif/bla  3        1            passed
+# ...
+# =========== ======== ======== ... =======
+#
+# This would produce:
+#
+#  .. list-table:: <title>
+#     :header-rows: 1
+#
+#     * - testcase
+#       - nov
+#       - scv
+#       - status
+#     * - Qualif/bla
+#       - 3
+#       - 1
+#       - passed
+
+
+class LISTtable(RSTtable):
+
+    def __init__(self, title, text, columns, contents):
+        RSTtable.__init__(
+            self, title=title, text=text,
+            columns=columns, contents=contents)
+
+    def dump_header(self):
+        self.rstf.write('.. list-table::')
+        self.rstf.write('   :header-rows: 1', post=2)
+
+        self.rstf.write('   * ' + "\n     ".join(
+            ["- %s" % col.htext for col in self.columns]
+        ))
+
+    def dump_centry(self, ce):
+        self.rstf.write('   * ' + "\n     ".join(
+            ["- %s" % ce[col] for col in self.columns]
+        ))
+
+    def dump_footer(self):
+        self.rstf.write('\n', post=2)
+
 # ==============
 # == QDreport ==
 # ==============
@@ -827,7 +880,7 @@ class QDreport(object):
         # Arrange to get a single description and legend followed by a set of
         # tables with data for each category.
 
-        ASCIItable(
+        LISTtable(
             title=None,
             text=(
                 "The following tables list all the testcases that were "
@@ -870,7 +923,7 @@ class QDreport(object):
             contents=None,
             ).dump_to(self.rstf)
 
-        [ASCIItable(
+        [LISTtable(
                 title=("%s tests [ %s/... ]" % (cat.name, cat.qmprefix)),
                 text=None,
                 columns=self.tccolumns(),
