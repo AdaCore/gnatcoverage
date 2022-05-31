@@ -29,11 +29,9 @@ from SUITE.cutils import (exit_if, indent, indent_after_first_line, lines_of,
 
 logger = logging.getLogger('SUITE.context')
 
-# This is where the toplevel invocation was issued:
+# This is where the toplevel invocation was issued for the individual test
+# at hand, which we expect to be where the toplevel testsuite.py is located.
 ROOT_DIR = os.getcwd()
-
-# And this is the relative directory where test.py was found:
-TEST_DIR = os.path.dirname(sys.modules['__main__'].__file__)
 
 
 # Internal helper to dispatch information to test.py.err/log/out
@@ -143,17 +141,25 @@ class Test (object):
 
         self.start_time = time.time()
 
-        # Compute the depth of this test wrt testsuite root. We join ROOT and
-        # TEST dirs then compute the length of the relative path, instead of
-        # just counting the number of components in TEST_DIR, to prevent
-        # inacuracies from possible "./" components that don't really increase
-        # the depth.
-        self.reldir = TEST_DIR
-        self.homedir = os.path.join(ROOT_DIR, TEST_DIR)
+        # Compute this test's home directory, absolute dir where test.py
+        # is located, then the position relative to testsuite.py. Note that
+        # .__file__ might be an absolute path, which os.path.join handles
+        # just fine (join("/foo", "/foo/bar") yields "/foo/bar").
 
+        testsuite_py_dir = ROOT_DIR
+        test_py_dir = os.path.dirname(sys.modules['__main__'].__file__)
+
+        self.homedir = os.path.join(testsuite_py_dir, test_py_dir)
+        self.reldir = os.path.relpath(self.homedir, start=testsuite_py_dir)
+
+        # Perform a simple canonicalization of the relative dir to simplify
+        # related computations/assumptions in other parts of the testsuite.
+        self.reldir = self.reldir.replace('\\', '/')
+
+        # Compute the depth of this test wrt testsuite root.
         self.depth = ndirs_in(os.path.relpath(self.homedir, ROOT_DIR))
 
-        cd(TEST_DIR)
+        cd(self.homedir)
 
         self.options = self.__cmdline_options()
         self.n_failed = 0
