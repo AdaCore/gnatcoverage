@@ -469,8 +469,9 @@ package body Instrument.C_Utils is
            with Import, Address => Addr_Tokens;
       begin
          for I in Tokens'Range loop
-            Put_Line (Get_Token_Spelling (TU, Tokens (I)));
+            Put (Get_Token_Spelling (TU, Tokens (I)));
          end loop;
+         New_Line;
       end;
    end Print_Tokens;
 
