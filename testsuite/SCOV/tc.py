@@ -31,7 +31,6 @@ from SCOV.internals.driver import (SCOV_helper_bin_traces,
                                    SCOV_helper_src_traces)
 from SCOV.internals.driver import WdirControl
 from SCOV.tctl import CAT
-from SUITE.context import TEST_DIR
 from SUITE.context import thistest
 from SUITE.cutils import to_list, contents_of, FatalError
 from SUITE.qdata import Qdata, QDentry
@@ -90,14 +89,14 @@ class TestCase:
 
     def __category_from_dir(self):
         """Compute test category from directory location."""
-        # Canonicalize directory separators to simplify the maching logic
-        test_dir = TEST_DIR.replace('\\', '/')
+
+        test_dir = thistest.reldir
         for cat in CAT.critcats:
             if re.search(r"/%s" % cat.name, test_dir):
                 return cat
 
         raise FatalError("Unable to infer test category from subdir '%s'"
-                         % TEST_DIR)
+                         % test_dir)
 
     def __drivers_from(self, cspec):
         """
@@ -162,7 +161,7 @@ class TestCase:
         # Step 3: Setup qualification data for this testcase
         # --------------------------------------------------
 
-        self.qdata = Qdata(tcid=TEST_DIR)
+        self.qdata = Qdata(tcid=thistest.reldir)
 
     # Helpers for run
 

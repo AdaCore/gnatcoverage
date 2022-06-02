@@ -13,7 +13,7 @@ import os
 import re
 import optparse
 import collections
-from gnatpython.fileutils import find
+from e3.fs import find
 
 # The testsuite dir corresponding to this local "qualification" dir. This is
 # where we fetch common python source dirs. This might be different from where
@@ -51,13 +51,13 @@ class Error(Exception):
 
 def fail_if(p, msg):
     if p:
-        print "!!! %s !!!" % msg
+        print("!!! %s !!!" % msg)
         raise Error
 
 
 def exit_if(p, msg):
     if p:
-        print msg
+        print(msg)
         sys.exit(1)
 
 # ================================================
@@ -100,7 +100,7 @@ class QualificationDataRepository(object):
         :param root: testsuite root directory
         :type root: str
         """
-        print "== Registering test execution dumps from %s ..." % root
+        print("== Registering test execution dumps from %s ..." % root)
 
         # Search for all directories containing a testcase status
         # dump file and load the data available there
@@ -114,7 +114,7 @@ class QualificationDataRepository(object):
         :param dirname: directory of the testcase
         :type dirname: str
         """
-        print "loading from %s" % dirname
+        print("loading from %s" % dirname)
 
         # Some tests in the Common chapter have status data and multiple
         # individual test data files in subdirectories. Their purpose is to
@@ -268,10 +268,10 @@ column_for = {
     # When checking status, map text passed by toplevel driver
     # to column.
 
-    'OK': colid.passed,
+    'PASS': colid.passed,
+    'XPASS': colid.passed,
+    'FAIL': colid.failed,
     'XFAIL': colid.xfail,
-    'UOK': colid.passed,
-    'FAILED': colid.failed
 }
 
 # -------------------------------
@@ -455,7 +455,7 @@ class RSTtable(object):
         # For text alignment purposes, the legend is best displayed
         # as a (description-less) table itself ...
 
-        RSTtable(
+        ASCIItable(
             title=None, text=None,
             columns=(colid.colname, colid.legend),
             contents=[
@@ -466,56 +466,18 @@ class RSTtable(object):
     def __dump_contents(self):
         [self.dump_centry(ce) for ce in self.contents]
 
-    def __compute_widths(self):
-
-        # Compute the current width of every column, as the max of
-        # all the texts (on every contents + header line)
-
-        # This is useful to align the text of every column, for both
-        # content rows and the ReST table separation lines.
-
-        self.width = dict(
-            [(col, 0) for col in self.columns])
-
-        # Maximize column width over contents entries
-
-        [self.width.__setitem__(
-                col, max(self.width[col], len(centry[col])))
-         for centry in self.contents for col in self.columns]
-
-        # Maximize column width with length of column header
-
-        [self.width.__setitem__(
-                col, max(self.width[col], len(col.htext)))
-         for col in self.columns]
-
     # -------------------------------------------
     # -- Internals to be specialized as needed --
     # -------------------------------------------
 
-    # Version to generate "simple" table here
-
     def dump_header(self):
-        sepl = " ".join(
-            ["=" * self.width[col] for col in self.columns])
-
-        headl = " ".join(
-            ["%-*s" % (self.width[col], col.htext)
-             for col in self.columns])
-
-        self.rstf.write(sepl)
-        self.rstf.write(headl)
-        self.rstf.write(sepl)
+        pass
 
     def dump_centry(self, ce):
-        entryl = " ".join(
-            ["%-*s" % (self.width[col], ce[col]) for col in self.columns])
-        self.rstf.write(entryl)
+        pass
 
     def dump_footer(self):
-        sepl = " ".join(
-            ["=" * self.width[col] for col in self.columns])
-        self.rstf.write(sepl, post=2)
+        pass
 
     # -------------
     # -- dump_to --
@@ -532,10 +494,10 @@ class RSTtable(object):
             self.rstf.write("~", post=2)
 
         if self.contents is not None:
-            self.__compute_widths()
             self.dump_header()
             self.__dump_contents()
             self.dump_footer()
+
 
 # ==============
 # == CSVtable ==
@@ -571,6 +533,127 @@ class CSVtable(RSTtable):
     def dump_footer(self):
         self.rstf.write('\n')
 
+
+# ================
+# == ASCIItable ==
+# ================
+
+# Helper class for the generation of REST tables directly as:
+#
+# =========== ======== ======== ... =======
+# testcase    nov      scv          status
+# =========== ======== ======== ... =======
+# Qualif/bla  3        1            passed
+# ...
+# =========== ======== ======== ... =======
+
+
+class ASCIItable(RSTtable):
+
+    def __init__(self, title, text, columns, contents):
+        RSTtable.__init__(
+            self, title=title, text=text,
+            columns=columns, contents=contents)
+        self.__compute_widths()
+
+    def __compute_widths(self):
+
+        # Compute the current width of every column, as the max of
+        # all the texts (on every contents + header line)
+
+        # This is useful to align the text of every column, for both
+        # content rows and the ReST table separation lines.
+
+        self.width = dict(
+            [(col, 0) for col in self.columns])
+
+        # Maximize column width over contents entries
+
+        [self.width.__setitem__(
+                col, max(self.width[col], len(centry[col])))
+         for centry in self.contents for col in self.columns]
+
+        # Maximize column width with length of column header
+
+        [self.width.__setitem__(
+                col, max(self.width[col], len(col.htext)))
+         for col in self.columns]
+
+    def dump_header(self):
+        sepl = " ".join(
+            ["=" * self.width[col] for col in self.columns])
+
+        headl = " ".join(
+            ["%-*s" % (self.width[col], col.htext)
+             for col in self.columns])
+
+        self.rstf.write(sepl)
+        self.rstf.write(headl)
+        self.rstf.write(sepl)
+
+    def dump_centry(self, ce):
+        entryl = " ".join(
+            ["%-*s" % (self.width[col], ce[col]) for col in self.columns])
+        self.rstf.write(entryl)
+
+    def dump_footer(self):
+        sepl = " ".join(
+            ["=" * self.width[col] for col in self.columns])
+        self.rstf.write(sepl, post=2)
+
+
+# ===============
+# == LISTtable ==
+# ===============
+
+# Helper class for the generation of a REST table using list-table.
+#
+# To represent:
+#
+# =========== ======== ======== ... =======
+# testcase    nov      scv          status
+# =========== ======== ======== ... =======
+# Qualif/bla  3        1            passed
+# ...
+# =========== ======== ======== ... =======
+#
+# This would produce:
+#
+#  .. list-table:: <title>
+#     :header-rows: 1
+#
+#     * - testcase
+#       - nov
+#       - scv
+#       - status
+#     * - Qualif/bla
+#       - 3
+#       - 1
+#       - passed
+
+
+class LISTtable(RSTtable):
+
+    def __init__(self, title, text, columns, contents):
+        RSTtable.__init__(
+            self, title=title, text=text,
+            columns=columns, contents=contents)
+
+    def dump_header(self):
+        self.rstf.write('.. list-table::')
+        self.rstf.write('   :header-rows: 1', post=2)
+
+        self.rstf.write('   * ' + "\n     ".join(
+            ["- %s" % col.htext for col in self.columns]
+        ))
+
+    def dump_centry(self, ce):
+        self.rstf.write('   * ' + "\n     ".join(
+            ["- %s" % ce[col] for col in self.columns]
+        ))
+
+    def dump_footer(self):
+        self.rstf.write('\n', post=2)
 
 # ==============
 # == QDreport ==
@@ -752,7 +835,7 @@ class QDreport(object):
 
         [self.count(note=note, cell=this_tcdata[column_for[note.kind]])
          for qde in qd.entries for src in qde.xrnotes
-         for notelist in qde.xrnotes[src].itervalues()
+         for notelist in qde.xrnotes[src].values()
          for note in notelist]
 
         return this_tcdata
@@ -797,7 +880,7 @@ class QDreport(object):
         # Arrange to get a single description and legend followed by a set of
         # tables with data for each category.
 
-        RSTtable(
+        LISTtable(
             title=None,
             text=(
                 "The following tables list all the testcases that were "
@@ -840,7 +923,7 @@ class QDreport(object):
             contents=None,
             ).dump_to(self.rstf)
 
-        [RSTtable(
+        [LISTtable(
                 title=("%s tests [ %s/... ]" % (cat.name, cat.qmprefix)),
                 text=None,
                 columns=self.tccolumns(),
@@ -961,7 +1044,7 @@ class QDreport(object):
 
         self.rstf.write(rest.chapter("Testsuite Status summary"))
 
-        RSTtable(
+        ASCIItable(
             title=None,
             text="This table summarizes status and expectation counters "
             "for each test category across the entire testsuite.  Please "
