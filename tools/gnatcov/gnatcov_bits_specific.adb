@@ -1811,7 +1811,6 @@ begin
                   Fatal_Error ("Cannot open ELF file " & Exe_Name
                                & " for trace file " & Trace_File_Name & ": "
                                & Ada.Exceptions.Exception_Message (E));
-                  raise;
             end Open_Exec_For_Trace;
 
             ------------------
