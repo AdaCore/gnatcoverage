@@ -140,6 +140,7 @@ procedure GNATcov_Bits_Specific is
    procedure Report_Missing_Argument
      (What            : String;
       Additional_Info : String := "");
+   pragma No_Return (Report_Missing_Argument);
    --  Report a fatal error telling the user that an argument is missing.
 
    procedure Check_Argument_Available

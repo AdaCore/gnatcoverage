@@ -46,9 +46,11 @@ package Outputs is
    --  Same as Error, and cause Xcov to terminate by raising Fatal_Error_Exc
 
    procedure Fatal_Error_With_Usage (Msg : String);
+   pragma No_Return (Fatal_Error_With_Usage);
    --  Same as Fatal_Error, but print the command-line usage before terminating
 
    procedure Normal_Exit;
+   pragma No_Return (Normal_Exit);
    --  Cause Xcov to terminate. exit status OK
 
    ---------------------
