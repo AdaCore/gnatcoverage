@@ -139,7 +139,8 @@ procedure GNATcov_Bits_Specific is
 
    procedure Report_Missing_Argument
      (What            : String;
-      Additional_Info : String := "");
+      Additional_Info : String := "")
+   with No_Return;
    --  Report a fatal error telling the user that an argument is missing.
 
    procedure Check_Argument_Available
@@ -1811,7 +1812,6 @@ begin
                   Fatal_Error ("Cannot open ELF file " & Exe_Name
                                & " for trace file " & Trace_File_Name & ": "
                                & Ada.Exceptions.Exception_Message (E));
-                  raise;
             end Open_Exec_For_Trace;
 
             ------------------

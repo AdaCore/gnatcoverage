@@ -41,14 +41,13 @@ package Outputs is
    procedure Warning_Or_Error (Msg : String);
    --  Display Msg on standard error
 
-   procedure Fatal_Error (Msg : String);
-   pragma No_Return (Fatal_Error);
+   procedure Fatal_Error (Msg : String) with No_Return;
    --  Same as Error, and cause Xcov to terminate by raising Fatal_Error_Exc
 
-   procedure Fatal_Error_With_Usage (Msg : String);
+   procedure Fatal_Error_With_Usage (Msg : String) with No_Return;
    --  Same as Fatal_Error, but print the command-line usage before terminating
 
-   procedure Normal_Exit;
+   procedure Normal_Exit with No_Return;
    --  Cause Xcov to terminate. exit status OK
 
    ---------------------

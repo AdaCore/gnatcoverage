@@ -1483,7 +1483,6 @@ package body Traces_Elf is
                Outputs.Fatal_Error
                  ("Relocs unhandled for this machine, reloc is"
                   & Elf_Word'Image (Elf_R_Type (R.R_Info)));
-               raise Program_Error;
          end case;
 
       end loop;
