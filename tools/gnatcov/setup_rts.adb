@@ -537,6 +537,13 @@ package body Setup_RTS is
       Actual_RTS_Profile : Resolved_RTS_Profile;
       Lib_Support        : Library_Support;
    begin
+      --  The core runtime is implemented in C, so C must be in the set of
+      --  enabled languages.
+
+      if not Enable_Languages.Contains (To_Unbounded_String ("C")) then
+         Fatal_Error ("The C language must be enabled");
+      end if;
+
       --  Load the instrumentation runtime project to know about the actual
       --  runtime and the library support for this configuration.
 

@@ -486,6 +486,13 @@ procedure GNATcov_Bits_Specific is
          --  It will thus not be part of the languages enabled by default.
 
          Enable_Languages.Insert (+"ada");
+
+         --  It must be enabled for "gnatcov setup", as the core runtime is
+         --  implemented in C.
+
+         if Args.Command = Cmd_Setup then
+            Enable_Languages.Insert (+"c");
+         end if;
       end if;
 
       if Args.String_Args (Opt_Coverage_Level).Present then
