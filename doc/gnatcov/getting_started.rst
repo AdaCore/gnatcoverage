@@ -235,8 +235,8 @@ execution traces to these obligations afterwards.
 For our example use case here, we first use the GNAT Pro toolset for
 ``powerpc-elf`` to build, using :command:`gprbuild` as follows::
 
-   gprbuild --target=powerpc-elf --RTS=light-mpc8641 -Ptests.gpr
-    -cargs -g -fpreserve-control-flow -fdump-scos
+   gprbuild --target=powerpc-elf --RTS=light-mpc8641 -Ptests.gpr \
+     -cargs -g -fpreserve-control-flow -fdump-scos
 
 We pass the project file with ``-P``, the required compilation flags
 with ``-cargs`` and request the use of a ``light`` runtime library tailored
@@ -275,7 +275,7 @@ documented in the :ref:`instr-rts` section of this manual.
 Instrumenting a test main program together with its "code" dependency is then
 achieved by a |gcvins| command.  For our example use case, this would be::
 
-    gnatcov instrument -Ptests.gpr --level=stmt
+    gnatcov instrument -Ptests.gpr --level=stmt \
       --dump-trigger=atexit --dump-channel=bin-file
 
 The ``--dump-channel=bin-file`` switch requests outputing coverage data
@@ -290,7 +290,7 @@ After setting ``GPR_PROJECT_PATH`` to designate the directory where the
 coverage runtime has been installed, building the instrumented program then
 goes like::
 
-    gprbuild -f -p -Ptests.gpr
+    gprbuild -f -p -Ptests.gpr \
       --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full.gpr
 
 
