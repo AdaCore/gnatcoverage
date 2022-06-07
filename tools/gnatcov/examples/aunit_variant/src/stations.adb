@@ -17,7 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Text_IO; use Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
 package body Stations is
 

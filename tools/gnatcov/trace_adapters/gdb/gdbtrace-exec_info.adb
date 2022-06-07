@@ -22,7 +22,7 @@ with Elf_Common; use Elf_Common;
 with Interfaces; use Interfaces;
 with Swaps;      use Swaps;
 
-with Text_IO;     use Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 separate (Gdbtrace)
