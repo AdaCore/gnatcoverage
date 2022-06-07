@@ -291,7 +291,7 @@ coverage runtime has been installed, building the instrumented program then
 goes like::
 
     gprbuild -f -p -Ptests.gpr \
-      --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full.gpr
+      --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts
 
 
 The ``--src-subdirs`` and ``--implicit-with`` options respectively instruct

@@ -65,6 +65,7 @@ rst_epilog = """
 .. |gcv| replace:: :command:`gnatcov`
 .. |gcvrun| replace:: :command:`gnatcov` :command:`run`
 .. |gcvcov| replace:: :command:`gnatcov` :command:`coverage`
+.. |gcvstp| replace:: :command:`gnatcov` :command:`setup`
 .. |gcvins| replace:: :command:`gnatcov` :command:`instrument`
 .. |gcvxtr| replace:: :command:`gnatcov` :command:`extract-base64-trace`
 .. |gcvcnv| replace:: :command:`gnatcov` :command:`convert`
