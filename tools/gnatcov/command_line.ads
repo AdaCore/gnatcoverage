@@ -885,6 +885,7 @@ package Command_Line is
         (Short_Name => "-X",
          Pattern    => "[NAME]=[VALUE]",
          Help       => "Define a scenario variable for project files.",
+         Commands   => (Cmd_Setup => False, others => True),
          Internal   => False),
       Opt_Eargs => Create
         (Long_Name  => "-eargs",
@@ -903,7 +904,7 @@ package Command_Line is
          Pattern    => "[GARGS ...]",
          Help       => "Pass GARGS arguments to gprbuild.",
          Commands   => (Cmd_Setup => True, others => False),
-         Internal   => False,
+         Internal   => True,
          Greedy     => True),
       Opt_Scos => Create
         (Long_Name   => "--scos|--alis",

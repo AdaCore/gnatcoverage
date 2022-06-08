@@ -49,7 +49,7 @@ with Ada.Unchecked_Conversion;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 with Ada.Command_Line; use Ada.Command_Line;
-with Text_IO;          use Text_IO;
+with Ada.Text_IO;      use Ada.Text_IO;
 with Interfaces;       use Interfaces;
 with Ada.Exceptions;   use Ada.Exceptions;
 with GNAT.OS_Lib;      use GNAT.OS_Lib;
