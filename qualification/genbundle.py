@@ -60,12 +60,16 @@
 #
 # The target dir might already have a clone setup. By default, a selected git
 # source is re-cloned there. --git-reuse and --git-pull provide alternate
-# options, sometimes handy during development phases.
+# options, sometimes handy during adjustment phases.
 #
 # When cloning in a work dir that doesn't have a clone already, or when
 # re-cloning when neither --git-reuse nor --git-pull is requested,
 # --git-source lets you state which repo is to be cloned. In absence of an
 # explicit source, the main AdaCore git repo for GNATcoverage is selected.
+#
+# During pure development phases, --git-rsync /your/local/gnatcoverage
+# will let you try out the production of documents without even committing
+# them to the local repo.
 #
 # Example development sequence:
 # =============================
@@ -78,7 +82,7 @@
 #     --git-source=$HOME/gnatcoverage --branch=dev-str
 #     --parts=plans
 #
-# Testing plans regeneration after local commit:
+# Testing plans regeneration after local commit, pulled in the cloned repo:
 #
 #   python genbundle.py --docformat=html
 #      --work-dir=$HOME/my-qmat
@@ -95,6 +99,15 @@
 #     --testsuite-dir=$HOME/gnatcoverage/testsuite
 #     --dolevel=doB
 #
+# During pure development phases, testing STR production using an
+# rsynced copy of your local checkout, possibly including changes not
+# yet committed:
+#
+#  python genbundle.py --docformat=html,pdf --parts=str --dolevel doA
+#  --testsuite-dir=$HOME/gnatcoverage/testsuite
+#  --work-dir=$HOME/my-qmat
+#  --git-rsync=$HOME/gnatcoverage --branch=qual-quantified-expr
+
 # Testsuite directories
 # =====================
 #
@@ -374,6 +387,17 @@ class QMAT:
     # ----------------
 
     def git_update (self):
+
+        # If we're requested to rsync from an existing repo dir, do so
+
+        if self.o.gitrsync:
+            run_list (
+                ["rsync", "-ar", self.o.gitrsync + '/', self.repodir + '/',
+                 '--delete', '--delete-excluded',
+                 '--filter', '. dev.rsync',
+                ]
+            )
+            return
 
         # If we're requested to pull/update only, do so
 
@@ -993,6 +1017,12 @@ def commandline():
         "--git-reuse", dest="gitreuse", action="store_true", default=False,
         help=(
             "Reuse current git clone setup in work-dir, as-is. "
+            )
+        )
+    op.add_option (
+        "--git-rsync", dest="gitrsync", default=False,
+        help=(
+            "Rsync an existing git repo into our git clone dir."
             )
         )
     op.add_option (

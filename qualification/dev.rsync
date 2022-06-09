@@ -1,0 +1,8 @@
+# rsync filters for development setups, used by genbundle --git-rsync
++ .git/
++ testsuite/
+- tools/
+- st_*/
+- dc_*/
+- mc_*/
+- uc_*/
