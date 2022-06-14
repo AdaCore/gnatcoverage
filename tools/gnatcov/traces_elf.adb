@@ -1814,6 +1814,20 @@ package body Traces_Elf is
                end case;
             end loop Attr_Loop;
 
+            --  Debug info for ARM subprograms may use low addresses with the
+            --  LSB set to indicate that they target Thumb code (all code is
+            --  aligned at least on 2 bytes, so this does not create
+            --  ambiguity). So the address that is read in DWARF actually
+            --  contains two separate information: the actual low PC for this
+            --  DIE, and whether it's ARM or Thumb code.  Our data structures
+            --  are designed to contain the low PC only, and ARM ELF binaries
+            --  contain $a/$d/$t symbols to recover the ARM/Thumb information
+            --  so we can afford to take it out here.
+
+            if Machine = ARM and then At_Low_Pc mod 2 = 1 then
+               At_Low_Pc := At_Low_Pc - 1;
+            end if;
+
             --  Patch the high PC only now, since it may need the value for the
             --  DW_AT_low_pc attribute and we cannot assume that DW_AT_low_pc
             --  appears before DW_AT_high_pc.
