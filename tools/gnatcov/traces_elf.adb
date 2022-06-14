@@ -56,9 +56,6 @@ package body Traces_Elf is
    procedure Free is new Ada.Unchecked_Deallocation
      (Exe_File_Type'Class, Exe_File_Acc);
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Address_Info, Address_Info_Acc);
-
    No_Stmt_List : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_stmt_list
 
@@ -711,6 +708,42 @@ package body Traces_Elf is
 
       Free (Exec);
    end Close_File;
+
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Info : in out Address_Info_Acc) is
+      procedure Deallocate is new Ada.Unchecked_Deallocation
+        (Address_Info, Address_Info_Acc);
+   begin
+      if Info = null then
+         return;
+      end if;
+
+      case Info.Kind is
+         when Compilation_Unit_Addresses =>
+            null;
+
+         when Section_Addresses =>
+            Free (Info.Section_Name);
+            Free (Info.Section_LS);
+
+         when Subprogram_Addresses =>
+            Free (Info.Subprogram_Name);
+
+         when Inlined_Subprogram_Addresses =>
+            null;
+
+         when Symbol_Addresses =>
+            Free (Info.Symbol_Name);
+
+         when Line_Addresses =>
+            null;
+      end case;
+
+      Deallocate (Info);
+   end Free;
 
    -----------------------
    -- Find_Address_Info --
@@ -1922,16 +1955,20 @@ package body Traces_Elf is
 
                   if At_High_Pc > At_Low_Pc then
 
-                     Insert_With_Top_Level_Update
-                       (Exec.Desc_Sets (Compilation_Unit_Addresses),
-                        new Address_Info'
-                          (Kind      => Compilation_Unit_Addresses,
-                           First     => Exec.Exe_Text_Start
-                           + Pc_Type (At_Low_Pc),
-                           Last      => Pc_Type (At_High_Pc - 1),
-                           Top_Level => <>,
-                           Parent    => null,
-                           DIE_CU    => Current_DIE_CU));
+                     declare
+                        Item : Address_Info_Acc :=
+                           new Address_Info'
+                             (Kind      => Compilation_Unit_Addresses,
+                              First     => Exec.Exe_Text_Start
+                              + Pc_Type (At_Low_Pc),
+                              Last      => Pc_Type (At_High_Pc - 1),
+                              Top_Level => <>,
+                              Parent    => null,
+                              DIE_CU    => Current_DIE_CU);
+                     begin
+                        Insert_With_Top_Level_Update
+                          (Exec.Desc_Sets (Compilation_Unit_Addresses), Item);
+                     end;
                   end if;
 
                   Current_Stmt_List := At_Stmt_List;
@@ -3232,19 +3269,23 @@ package body Traces_Elf is
             Addr := Pc_Type (Shdr.Sh_Addr);
             Last := Pc_Type (Shdr.Sh_Addr + Shdr.Sh_Size - 1);
 
-            Insert_With_Top_Level_Update
-              (Exec.Desc_Sets (Section_Addresses),
-               new Address_Info'
-                 (Kind            => Section_Addresses,
-                  First           => Addr,
-                  Last            => Last,
-                  Top_Level       => <>,
-                  Parent          => null,
-                  Section_Name    => new String'(
-                    Get_Shdr_Name (Exec.Elf_File, Idx)),
-                  Section_Sec_Idx => Section_Index (Idx),
-                  Section_Content => Invalid_Binary_Content,
-                  Section_LS      => No_Loaded_Section));
+            declare
+               Item : Address_Info_Acc :=
+                  new Address_Info'
+                    (Kind            => Section_Addresses,
+                     First           => Addr,
+                     Last            => Last,
+                     Top_Level       => <>,
+                     Parent          => null,
+                     Section_Name    => new String'(
+                       Get_Shdr_Name (Exec.Elf_File, Idx)),
+                     Section_Sec_Idx => Section_Index (Idx),
+                     Section_Content => Invalid_Binary_Content,
+                     Section_LS      => No_Loaded_Section);
+            begin
+               Insert_With_Top_Level_Update
+                 (Exec.Desc_Sets (Section_Addresses), Item);
+            end;
          end if;
       end loop;
    end Build_Sections;
@@ -3254,6 +3295,7 @@ package body Traces_Elf is
       Scn : Scnhdr;
       Addr : Pc_Type;
       Last : Pc_Type;
+      Item : Address_Info_Acc;
    begin
       --  Return now if already built
 
@@ -3274,19 +3316,19 @@ package body Traces_Elf is
             Addr := Pc_Type (Scn.S_Vaddr) + Get_Image_Base (Exec.PE_File);
             Last := Addr + Get_Section_Length (Exec.PE_File, Idx) - 1;
 
+            Item := new Address_Info'
+              (Kind            => Section_Addresses,
+               First           => Addr,
+               Last            => Last,
+               Top_Level       => <>,
+               Parent          => null,
+               Section_Name    => new String'(
+                 Get_Section_Name (Exec.PE_File, Idx)),
+               Section_Sec_Idx => Section_Index (Idx),
+               Section_Content => Invalid_Binary_Content,
+               Section_LS      => No_Loaded_Section);
             Insert_With_Top_Level_Update
-              (Exec.Desc_Sets (Section_Addresses),
-               new Address_Info'
-                 (Kind            => Section_Addresses,
-                  First           => Addr,
-                  Last            => Last,
-                  Top_Level       => <>,
-                  Parent          => null,
-                  Section_Name    => new String'(
-                    Get_Section_Name (Exec.PE_File, Idx)),
-                  Section_Sec_Idx => Section_Index (Idx),
-                  Section_Content => Invalid_Binary_Content,
-                  Section_LS      => No_Loaded_Section));
+              (Exec.Desc_Sets (Section_Addresses), Item);
          end if;
       end loop;
    end Build_Sections;
@@ -4611,16 +4653,35 @@ package body Traces_Elf is
    end Insert_With_Top_Level_Update;
 
    procedure Insert_With_Top_Level_Update
-     (Set      : in out Address_Info_Sets.Set;
-      Item     : Address_Info_Acc)
+     (Set : in out Address_Info_Sets.Set; Item : in out Address_Info_Acc)
    is
-      Pos      : Address_Info_Sets.Cursor;
-      Inserted : Boolean;
+      Pos           : Address_Info_Sets.Cursor;
+      Inserted      : Boolean;
+      Existing_Item : Address_Info_Acc;
    begin
       Insert_With_Top_Level_Update (Set, Item, Pos, Inserted);
 
+      --  The call above will make gnatcov abort if Item breaks the address
+      --  range nesting invariant, so Inserted will be False iff. we tried to
+      --  insert a duplicate entry.
+
       if not Inserted then
-         raise Constraint_Error;
+         Existing_Item := Address_Info_Sets.Element (Pos);
+         if Item.Kind = Subprogram_Addresses
+            and then Item.First = Existing_Item.First
+            and then Item.Last = Existing_Item.Last
+            and then Item.Subprogram_Name /= null
+            and then Existing_Item.Subprogram_Name /= null
+            and then (Item.Subprogram_Name.all
+                      = Existing_Item.Subprogram_Name.all)
+         then
+            Free (Item);
+            Item := Existing_Item;
+
+         else
+            raise Constraint_Error
+              with "cannot insert duplicate Address_Info: " & Image (Item);
+         end if;
       end if;
    end Insert_With_Top_Level_Update;
 

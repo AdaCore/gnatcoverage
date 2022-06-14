@@ -283,6 +283,9 @@ package Traces_Elf is
       end case;
    end record;
 
+   procedure Free (Info : in out Address_Info_Acc);
+   --  Deallocate Info and all the resources it owns (string accesses, etc.)
+
    function Empty_Range (Info : Address_Info) return Boolean
      is (Traces.Empty_Range (Info.First, Info.Last));
    --  True if Info has an empty PC range
@@ -335,11 +338,14 @@ package Traces_Elf is
    --  Top_Level of Item has no impact and will be overwritten.
 
    procedure Insert_With_Top_Level_Update
-     (Set  : in out Address_Info_Sets.Set;
-      Item : Address_Info_Acc);
+     (Set : in out Address_Info_Sets.Set; Item : in out Address_Info_Acc);
    --  Inserts Item in Set while updating the field Top_Level of the elements
    --  of Set to make searching for an item more efficient. The value of the
    --  field Top_Level of Item has no impact and will be overwritten.
+   --
+   --  If Item is a Subprogram_Address and Set already contains a subprogram
+   --  "SP" with the same PC range and name, free Item and set it to "SP".
+   --
    --  Raises Constraint_Error if the insertion is not successful.
 
    function Get_Symbol
