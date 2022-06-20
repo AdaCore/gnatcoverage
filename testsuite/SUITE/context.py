@@ -13,10 +13,13 @@ import re
 import sys
 import time
 
+from e3.diff import diff
 from e3.fs import rm
+from e3.main import Main
 from e3.os.fs import cd
 from e3.os.process import Run
-from e3.main import Main
+from e3.testsuite.driver.diff import (CanonicalizeLineEndings,
+                                      RefiningChain, Substitute)
 
 from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, env
@@ -33,8 +36,8 @@ logger = logging.getLogger('SUITE.context')
 # at hand, which we expect to be where the toplevel testsuite.py is located.
 ROOT_DIR = os.getcwd()
 
-
 # Internal helper to dispatch information to test.py.err/log/out
+
 
 class _ReportOutput(object):
     """
@@ -267,6 +270,97 @@ class Test (object):
     def stop_if(self, expr, exc):
         if expr:
             self.stop(exc)
+
+    def report_output_refiners(self):
+        """
+        When using the diff computing API (e.g. fail_if_diff), one needs to
+        refine the actual output to ignore execution specific data (such as
+        absolute paths, timestamps etc.). This function returns output refiners
+        for gnatcov reports.
+
+        TODO: this only implement refiners for xcov[+]?. Implement for other
+        report formats when needed.
+        """
+        return [
+            # Refiners for the xcov report
+            Substitute(os.path.realpath(self.homedir), "<test_dir>"),
+
+            # Ignore platform specificities
+            CanonicalizeLineEndings(),
+        ]
+
+    def fail_if_diff_internal(
+        self,
+        baseline_file,
+        actual,
+        failure_message="unexpected output",
+        output_refiners=None,
+    ):
+        """Compute the diff between expected and actual outputs.
+
+        Return an empty list if there is no diff, and return a list that
+        contains an error message based on ``failure_message`` otherwise.
+
+        :param baseline_file: Absolute filename for the text file that contains
+            the expected content (for baseline rewriting, if enabled), or None.
+        :param actual: Actual content to compare.
+        :param failure_message: Failure message to return if there is a
+            difference.
+        :param output_refiners: List of refiners to apply both to the baseline
+            and the actual output. Refer to the doc in
+            ``e3.testsuite.driver.diff``. If None, use
+            ``self.report_output_refiners()``.
+        """
+
+        if output_refiners is None:
+            output_refiners = self.report_output_refiners()
+
+        # Run output refiners on the actual output, and on the baseline
+        refiners = RefiningChain(output_refiners)
+        refined_actual = refiners.refine(actual)
+        with open(baseline_file, "r") as f:
+            refined_baseline = refiners.refine(f.read())
+
+        # Get the two texts to compare as list of lines, with trailing
+        # characters preserved (splitlines(keepends=True)).
+        expected_lines = refined_baseline.splitlines(True)
+        actual_lines = refined_actual.splitlines(True)
+
+        # Compute the diff. If it is empty, return no failure. Otherwise,
+        # include the diff in the test log and return the given failure
+        # message.
+        d = diff(expected_lines, actual_lines)
+        if not d:
+            return []
+
+        message = failure_message
+
+        # If requested and the failure is not expected, rewrite the test
+        # baseline with the new one.
+        if baseline_file is not None and self.options.rewrite:
+            with open(baseline_file, "w") as f:
+                f.write(refined_actual)
+            message = "{} (baseline updated)".format(message)
+
+        # Send the appropriate logging.
+        self.failed(
+            "Diff failure: {}\n".format(message)
+            + "\n{}".format(d)
+            + "\n"
+        )
+
+    def fail_if_diff(
+        self,
+        baseline_file,
+        actual_file,
+        failure_message="unexpected output",
+        output_refiners=None,
+    ):
+        """Wrapper around fail_if_diff_internal, taking an actual_file parameter
+        instead of an actual string."""
+        with open(actual_file, "r") as f:
+            self.fail_if_diff_internal(baseline_file, f.read(),
+                                       failure_message, output_refiners)
 
     def result(self):
         """Output the final result which the testsuite driver looks for.

@@ -589,6 +589,9 @@ class TestPyRunner:
         if mopt.enable_valgrind:
             timeout = VALGRIND_TIMEOUT_FACTOR * timeout
 
+        if mopt.rewrite and not self.test_control.xfail:
+            testcase_cmd.append("--rewrite")
+
         self.testcase_cmd = testcase_cmd
         self.testcase_timeout = timeout
 
@@ -1352,7 +1355,8 @@ class TestSuite(e3.testsuite.Testsuite):
 
         # ex --RTS=powerpc-elf/embedded or --RTS=embedded or --RTS=ravenscar
 
-        elif "embedded" in self.main.args.RTS or "ravenscar" in self.main.args.RTS:
+        elif ("embedded" in self.main.args.RTS
+              or "ravenscar" in self.main.args.RTS):
             return ["RTS_RAVENSCAR", "RTS_EMBEDDED"]
 
         # ex --RTS=native or --RTS=kernel, or no --RTS at all
