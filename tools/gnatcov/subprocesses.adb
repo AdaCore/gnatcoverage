@@ -200,26 +200,26 @@ package body Subprocesses is
       --  Actually run the subprocess
 
       declare
-         Stdin  : constant File_Descriptor :=
+         Stdin          : constant File_Descriptor :=
            (if In_To_Null then Null_FD else Standin);
-         Stdout : File_Descriptor :=
-           (if Out_To_Null then Null_FD else Standout);
-         Stderr : constant File_Descriptor :=
-           (if not Err_To_Out then Standerr
-            elsif Out_To_Null then Null_FD
-            else To_Stdout);
-         Status : Integer;
+         Stdout, Stderr : File_Descriptor;
+         Status         : Integer;
 
          Redirect_Stdout : constant Boolean := Output_File /= "";
       begin
          --  If requested, redirect the subprocess' standard output to a file
 
-         if Redirect_Stdout then
+         if Out_To_Null then
+            Stdout := Null_FD;
+         elsif Redirect_Stdout then
             Stdout := Open (Output_File, Write_Mode);
             if Stdout = Invalid_FD then
                Fatal_Error ("cannot write to " & Output_File);
             end if;
+         else
+            Stdout := Standout;
          end if;
+         Stderr := (if Err_To_Out then Stdout else Standerr);
 
          Status := Run
            (Args   => Args,

@@ -35,6 +35,15 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="obligation_type">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Stmt"/>
+            <xs:enumeration value="Decision"/>
+            <xs:enumeration value="MCDC"/>
+            <xs:enumeration value="UC_MCDC"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <!-- Index-specific types -->
 
     <xs:complexType name="coverage_report_type">
@@ -60,6 +69,8 @@
         <xs:sequence>
             <xs:element name="metric" type="metric_type"
                 minOccurs="6" maxOccurs="6"/>
+            <xs:element name="obligation_stats" type="obligation_stats_type"
+                minOccurs="1" maxOccurs="3"/>
             <xs:element name="file" type="file_type"
                 minOccurs="1" maxOccurs="unbounded"/>
         </xs:sequence>
@@ -73,6 +84,7 @@
 
     <xs:simpleType name="metric_kind_type">
         <xs:restriction base="xs:string">
+            <xs:enumeration value="total_obligations_of_relevance"/>
             <xs:enumeration value="total_lines_of_relevance"/>
             <xs:enumeration value="fully_covered"/>
             <xs:enumeration value="partially_covered"/>
@@ -82,10 +94,20 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:complexType name="obligation_stats_type">
+        <xs:sequence>
+            <xs:element name="metric" type="metric_type"
+                minOccurs="6" maxOccurs="6"/>
+        </xs:sequence>
+        <xs:attribute name="kind" type="xs:string"/>
+    </xs:complexType>
+
     <xs:complexType name="file_type">
         <xs:sequence>
             <xs:element name="metric" type="metric_type"
                 minOccurs="6" maxOccurs="6"/>
+            <xs:element name="obligation_stats" type="obligation_stats_type"
+                minOccurs="1" maxOccurs="3"/>
         </xs:sequence>
         <xs:attribute name="name" type="xs:string"/>
     </xs:complexType>

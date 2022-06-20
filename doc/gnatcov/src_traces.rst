@@ -60,48 +60,93 @@ packed.
 Setting up the :term:`coverage runtime` library
 ===============================================
 
-|gcp| comes with two variants of the coverage runtime, distributed
-as a set of sources and two project files (one project for each variant)
-located in the ``share/gnatcoverage/gnatcov_rts`` subdirectory of your
-|gcp| installation.
+|gcp| is shipped with the sources of the coverage runtime and with a companion
+project file. The |gcvstp| command helps automating the build and installation
+of this project.
 
-- ``gnatcov_rts_full.gpr`` is intended for programs which have access to a full
-  Ada runtime, with support for both the base64 output and the direct creation
-  of trace files;
+Just like :command:`gprbuild`, |gcvstp| accept the :option:`--RTS`,
+:option:`--config` and :option:`--target` command line options: you need to
+build the coverage runtime with the same toolchain and runtime as the ones used
+to build the application code. For instance:
 
-- ``gnatcov_rts.gpr`` is intended for programs which would operate in more
-  restricted environments, with support for only the base64 output. The base
-  runtime we provide relies on ``GNAT.IO`` to output the data. This can be
-  tailored if needed.
+.. code-block:: sh
 
-To set up the coverage runtime for use by your project, first copy the
-``gnatcov_rts`` subdirectory tree to a local spot of your choice where you will
-perform the build. For example, using a Unix shell like syntax::
+   # For a native project
+   gnatcov setup
 
-  $ rm -rf gnatcov_rts-build  # Remove a possible previous copy
-  $ cp -r <gnatcov-install>/share/gnatcoverage/gnatcov_rts/ gnatcov_rts-build
+   # For a project that targets ARM ELF with the light-stm32f4 runtime
+   gnatcov setup --target=arm-eabi --RTS=light-stm32f4
 
-Then switch to the local directory to build the library, and install it
-to another location of your choice::
+By default, |gcvstp| installs the coverage runtime in the same prefix as the
+selected toolchain (just like :command:`gprinstall`). In order to install it in
+another location, pass the :option:`--prefix` option:
 
-  $ cd gnatcov_rts-build
-  $ gprbuild -P<gnatcov_rts_gpr> -p [-XLIBRARY_TYPE=<library-type>]
-  $ gprinstall -P<gnatcov_rts_gpr> --prefix=<gnatcov_rts-install>
+.. code-block:: sh
 
-Here, pick :option:`<gnatcov_rts_gpr>` as one of the two variants introduced
-previously, depending on the capabilities of your execution environment and
-the kind of coverage data output you will want to do.
+   gnatcov setup --prefix=/usr/local
 
-Regardless of the variant, the library needs to be compiled with the same
-toolchain as the one which will be used to build the application code.
 
-The *full* library can be built for different possible use modes afterwards,
-typically, static, shared, or static-pic. The choice of a mode is controlled
-by the ``LIBRARY_TYPE`` scenario variable as hinted in the example commands
-above. The default is to build a static library.
+Multiple runtimes in the same prefix
+------------------------------------
 
-That's essentially it; we will explain later in this chapter how the installed
-library is to be used.
+It is sometimes convenient to install multiple times the coverage runtime in
+the same prefix, for instance when working on a project that runs both on the
+native platform and on an embedded target while the two toolchains are also
+installed in the same prefix. It is possible to make |gcvstp| install the
+coverage runtime under different project names: the default is ``gnatcov_rts``,
+and using the :option:`--install-name` option changes it.
+
+.. code-block:: sh
+
+   # Install the coverage runtime both for native projects (gnatcov_rts_native)
+   # and for ARM ELF/light-stm32f4 projects (gnatcov_rts_stm32f4).
+   gnatcov setup --install-name=gnatcov_rts_native
+   gnatcov setup --target=arm-eabi --RTS=light-stm32f4 \
+     --install-name=gnatcov_rts_stm32f4
+
+When building instrumented projects later with :command:`gprbuild`, you then
+have to select the appropriate coverage runtime with the
+:option:`--implicit-with` switch:
+
+.. code-block:: sh
+
+   # Build the instrumented project with the native toolchain and the
+   # corresponding coverage runtime.
+   gprbuild -Pmy_project \
+     --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_native
+
+   # Now do the same, but for ARM ELF/light-stm32f4
+   gprbuild -Pmy_project --target=arm-eabi --RTS=light-stm32f4 \
+     --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_stm32f4
+
+
+Language restrictions
+---------------------
+
+By default, |gcvstp| builds and installs the coverage runtime with Ada and C
+units. When using |gcp| with a C-only toolchain, it is necessary to build the
+coverage runtime without its Ada units. The :option:`--restricted-to-languages`
+option allows that:
+
+.. code-block:: sh
+
+   # Build and install the coverage runtime with C units only
+   gnatcov setup --restricted-to-languages C
+
+   # Build and install the coverage runtime with both Ada and C units (the
+   # default).
+   gnatcov setup --restricted-to-languages Ada,C
+
+Note that for now, only Ada and C are supported. The core runtime is
+implemented in C, so the C language must be enabled in all cases.
+
+
+.. TODO (U211-014): Document:
+
+   * the project positional argument (to install an extending coverage runtime
+     project).
+
+   * dump options and their interactions with "gnatcov instrument"
 
 
 Instrumenting programs
