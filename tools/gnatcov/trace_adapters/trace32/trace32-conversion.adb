@@ -97,7 +97,6 @@ package body Trace32.Conversion is
          --  No entry in Branchflow file
          Outputs.Fatal_Error ("No entry in Trace32 Branchflow file'"
                                 & Branchflow_File & "'");
-         return;
       else
          --  Use Target address of first branchflow entry as the first address
          --  of the first basic block.
