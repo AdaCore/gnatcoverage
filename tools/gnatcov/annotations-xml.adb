@@ -898,12 +898,14 @@ package body Annotations.Xml is
    procedure Print_Coverage_Ob_Stats
      (Pp : in out Xml_Pretty_Printer'Class; Ob_Stats : Ob_Stat_Array) is
    begin
+      Pp.ST ("obligation_statistics", "", Dest_Index);
       for Level of Source_Levels_Enabled loop
-         Pp.ST ("obligation_stats", A ("kind", Image (Level)), Dest_Index);
+         Pp.ST ("obligation", A ("kind", Image (Level)), Dest_Index);
          Print_Coverage_Stats (Pp, Ob_Stats (Level).Stats,
                                "total_obligations_of_relevance");
-         Pp.ET ("obligation_stats", Dest_Index);
+         Pp.ET ("obligation", Dest_Index);
       end loop;
+      Pp.ET ("obligation_statistics", Dest_Index);
    end Print_Coverage_Ob_Stats;
 
 end Annotations.Xml;
