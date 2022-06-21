@@ -1888,7 +1888,6 @@ package body Traces_Elf is
                                            | DW_LANG_C11
                                            | DW_LANG_Ada83
                                            | DW_LANG_Ada95
-                                           | DW_LANG_MIPS_Assembler
                   then
                      Off := Last;
                      exit DIE_Loop;
