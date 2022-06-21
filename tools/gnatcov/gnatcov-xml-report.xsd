@@ -35,6 +35,15 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="obligation_type">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Stmt"/>
+            <xs:enumeration value="Decision"/>
+            <xs:enumeration value="MCDC"/>
+            <xs:enumeration value="UC_MCDC"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <!-- Index-specific types -->
 
     <xs:complexType name="coverage_report_type">
@@ -60,6 +69,8 @@
         <xs:sequence>
             <xs:element name="metric" type="metric_type"
                 minOccurs="6" maxOccurs="6"/>
+            <xs:element name="obligation_stats" type="obligation_stats_type"
+                minOccurs="0" maxOccurs="3"/>
             <xs:element name="file" type="file_type"
                 minOccurs="1" maxOccurs="unbounded"/>
         </xs:sequence>
@@ -73,6 +84,7 @@
 
     <xs:simpleType name="metric_kind_type">
         <xs:restriction base="xs:string">
+            <xs:enumeration value="total_obligations_of_relevance"/>
             <xs:enumeration value="total_lines_of_relevance"/>
             <xs:enumeration value="fully_covered"/>
             <xs:enumeration value="partially_covered"/>
@@ -82,10 +94,20 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:complexType name="obligation_stats_type">
+        <xs:sequence>
+            <xs:element name="metric" type="metric_type"
+                minOccurs="6" maxOccurs="6"/>
+        </xs:sequence>
+        <xs:attribute name="kind" type="xs:string"/>
+    </xs:complexType>
+
     <xs:complexType name="file_type">
         <xs:sequence>
             <xs:element name="metric" type="metric_type"
                 minOccurs="6" maxOccurs="6"/>
+            <xs:element name="obligation_stats" type="obligation_stats_type"
+                minOccurs="0" maxOccurs="3"/>
         </xs:sequence>
         <xs:attribute name="name" type="xs:string"/>
     </xs:complexType>
@@ -156,6 +178,8 @@
             <xs:enumeration value="#"/>
             <xs:enumeration value="*"/>
             <xs:enumeration value="0"/>
+            <xs:enumeration value="v"/>
+            <xs:enumeration value=">"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -184,7 +208,8 @@
 
     <xs:complexType name="instruction_block_type">
         <xs:sequence>
-            <xs:element name="instruction" type="instruction_type"/>
+            <xs:element name="instruction" type="instruction_type"
+                minOccurs="1" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="name" type="xs:string" use="required"/>
         <xs:attribute name="offset" type="xs:string" use="required"/>
@@ -241,6 +266,7 @@
 
     <xs:complexType name="message_type">
         <xs:attribute name="kind" type="message_kind_type" use="required"/>
+        <xs:attribute name="address" type="xs:hexBinary"/>
         <xs:attribute name="SCO" type="xs:string"/>
         <xs:attribute name="message" type="xs:string" use="required"/>
     </xs:complexType>
