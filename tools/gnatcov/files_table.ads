@@ -272,6 +272,11 @@ package Files_Table is
       State : Line_States := (others => No_Code);
       --  Coverage state for each available coverage level (see previous
       --  comment block).
+
+      Coverage_Processed : Boolean := False;
+      --  Whether this line has already had its coverage state computed.
+      --  Used to avoid recomputing the coverage state for different output
+      --  formats.
    end record;
 
    type Line_Info_Access is access all Line_Info;

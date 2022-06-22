@@ -692,46 +692,12 @@ package body Instrument.C is
       -------------------
 
       procedure Output_Header (T : Character; N : Cursor_T) is
-         Loc : Source_Location := No_Source_Location;
-         --  Node whose Sloc is used for the decision
-
       begin
-         case T is
-            when 'I' | 'W' =>
-               declare
-                  N_Parent : constant Cursor_T := Get_Parent (N);
-               begin
-                  --  For IF, WHILE the token SLOC is that of the parent
-                  --  expression. We use the 'I' marker also for ternary
-                  --  operator, so we make sure not to be in that situation
-                  --  first.
-
-                  if Kind (N_Parent) /= Cursor_Conditional_Operator then
-                     Loc := Start_Sloc (N_Parent);
-                  end if;
-               end;
-
-            when 'X' =>
-
-               --  For an expression, we will use the sloc of the first
-               --  condition. This is done afterwards, when processing the low
-               --  level scos in sc_obligations.adb.
-               --
-               --  cf. the Update_Decision_Sloc procedure.
-
-               null;
-
-            --  No other possibilities
-
-            when others =>
-               raise Program_Error;
-         end case;
-
          Append_SCO
            (C1   => T,
             C2   => ' ',
-            From => Loc,
-            To   => No_Source_Location,
+            From => Start_Sloc (N),
+            To   => End_Sloc (N),
             Last => False);
 
          Current_Decision := SCOs.SCO_Table.Last;

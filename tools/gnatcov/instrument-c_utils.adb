@@ -78,7 +78,7 @@ package body Instrument.C_Utils is
          Line     => Line'Access,
          Column   => Column'Access);
       return (Line   => Langkit_Support.Slocs.Line_Number (Line),
-              Column => Langkit_Support.Slocs.Column_Number (Column) - 1);
+              Column => Langkit_Support.Slocs.Column_Number (Column));
    end End_Sloc;
 
    ----------
