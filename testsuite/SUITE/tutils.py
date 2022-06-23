@@ -14,7 +14,7 @@ import time
 
 
 from e3.os.fs import touch, unixpath
-from e3.os.process import Run
+from e3.os.process import DEVNULL, Run
 
 
 # Expose a few other items as a test util-facilities as well
@@ -704,9 +704,17 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
         if board:
             args.append('--board=' + board)
 
+        # If GNATemulator runs as a background process in an interactive shell,
+        # the Linux kernel will send a SIGTTIN when GNATemulator tries to read
+        # the standard input (which is the interactive shell by default). This
+        # will result in an abnormal GNATemulator termination, and the test
+        # failing. Redirecting the standard input to /dev/null works around
+        # this issue.
+        inp = DEVNULL
+
     args.append(executable)
     args.extend(exec_args)
-    return cmdrun(args, out=out, env=env, register_failure=register_failure)
+    return cmdrun(args, out=out, inp=inp, env=env, register_failure=register_failure)
 
 
 def do(command):
