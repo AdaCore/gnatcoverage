@@ -693,6 +693,7 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
 
     args = []
     exec_args = exec_args or []
+    inp = None
 
     # If we are in a cross configuration, run the program using GNATemulator
     if thistest.options.target:
