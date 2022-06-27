@@ -333,7 +333,7 @@ by the commands introduced in the previous example sections. Here, we request:
 This produces annotated sources in the project's object directory,
 with ``ops.adb.xcov`` quoted below:
 
-.. code-block:: ada
+.. code-block::
 
   examples/starter/src/ops.adb:
   67% of 3 lines covered

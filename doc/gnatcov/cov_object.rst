@@ -231,7 +231,7 @@ count with respect to the total number of lines with associated code, as well
 as an indication of the assessed criterion. Below is an example of report
 obtained for our Assert unit:
 
-.. code-block:: ada
+.. code-block::
 
  examples/src/assert.adb:
  75% of 4 lines covered
@@ -645,7 +645,7 @@ The presence of uncovered instructions yields a partial coverage annotation
 for the corresponding source line in the :option:`=xcov` output (``!`` on line
 10):
 
-.. code-block:: ada
+.. code-block::
 
    6 .: package body Genpos is
    7 +:    procedure Count (X : Num_T) is
