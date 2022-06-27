@@ -430,11 +430,20 @@ package body Annotations.Dynamic_Html is
       Source.Set_Field ("liStats", Line_Stats);
       Source.Set_Field ("enAllStats", To_JSON (Info.Ob_Stats));
 
-      if Switches.Root_Project /= null then
-         Source.Set_Field ("project", Project_Name (Info.Full_Name.all));
-      else
-         Source.Set_Field ("project", "Other Sources");
-      end if;
+      declare
+         P_Name : constant String :=
+           (if Switches.Root_Project /= null
+            then Project_Name (Info.Full_Name.all)
+            else "");
+         --  Note that P_Name can be "" here either because we don't have a
+         --  root project at all or because we were unable to find the project
+         --  to which the source pertains.
+
+      begin
+         Source.Set_Field
+           ("project",
+            (if P_Name /= "" then P_Name else "Other Sources"));
+      end;
 
       Pp.Current_Source := Source;
    end Pretty_Print_Start_File;
