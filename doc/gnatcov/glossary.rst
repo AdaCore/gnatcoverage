@@ -25,6 +25,13 @@ Glossary of terms & concepts
       expression. For example, ``A``, ``not B`` and ``C`` in ``if A or else
       (not B and then C) then``.
 
+   Coverage Checkpoint
+      File a condensed version of a coverage assessment computed by |gcvcov|,
+      which the tool can reload and combine with other assessments very
+      efficiently. This may be viewed as an internal representation of a
+      coverage report which :option:`--annotate` would output in a user
+      readable form. See :ref:`checkpoints` for more information.
+
    Coverage Runtime
       Library of services used by instrumented sources to manipulate
       coverage data while the program is running and produce a source
