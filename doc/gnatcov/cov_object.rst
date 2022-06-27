@@ -88,8 +88,8 @@ The available options are as follows:
    the :ref:`oroutines` section for extra details and use examples.
 
 :option:`--alis`, |rarg|:
-    Provide set of :term:`Library Information files` for units where there
-    might be applicable exemption regions to account for, as explained in the
+   Provide set of :term:`Library Information files` for units where there might
+   be applicable exemption regions to account for, as explained in the
    :ref:`ocov_exemptions` section of this manual.
 
 :option:`-P`:
