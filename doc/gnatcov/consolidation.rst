@@ -6,9 +6,9 @@ Coverage Consolidation
 
 :dfn:`Coverage consolidation` designates the general facility allowing the
 computation of the overall coverage achieved by a set of executions. When
-different executions get through common :term:`units of interest`,
-consolidation computes the combined coverage of all the executions on these
-units.
+different executions get through common :term:`units of interest <Units of
+Interest>`, consolidation computes the combined coverage of all the executions
+on these units.
 
 A typical case where consolidation is useful is when some part of an
 application depends on external inputs and several executions are required to

@@ -97,6 +97,10 @@ Glossary of terms & concepts
       requirements. Coverage objectives are typically associated with the
       applicative part only.
 
+   Units of Interest
+      Set of units on which coverage should be assessed. See :ref:`sunits` for
+      more information.
+
    @listfile argument
       Part of a command line that designates a text file which contains a
       list of items, one per line in the file. The expected nature of each

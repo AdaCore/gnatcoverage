@@ -153,11 +153,11 @@ Instrumenting programs
 ======================
 
 Instrumentation is performed upfront for an intended strictest coverage
-criterion on a given set of :term:`units of interest`. The production of a
-coverage report afterwards might restrict the report to a subset of those
-units, or lower to a less strict criterion.
-Instrumenting programs is achieved with |gcvins| commands, which might
-involve two distinct kinds of operations:
+criterion on a given set of :term:`units of interest <Units of Interest>`. The
+production of a coverage report afterwards might restrict the report to a
+subset of those units, or lower to a less strict criterion.  Instrumenting
+programs is achieved with |gcvins| commands, which might involve two distinct
+kinds of operations:
 
 - Modify the code in units-of-interest so the program records, while it is
   running, facts of relevance to the coverage metrics to be assessed,
