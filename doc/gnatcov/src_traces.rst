@@ -583,7 +583,7 @@ trace data to standard output.
 
 
 Setting up the coverage runtime
-*******************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We just "build" the runtime library project as we would build a regular
 program for our target configuration, specifying the target name and the
@@ -608,7 +608,7 @@ For our intended target environment, this would be something like::
   export GPR_PROJECT_PATH=<gnatcov_rts-ppc-install-dir>/share/gpr
 
 Instrument and build
-********************
+^^^^^^^^^^^^^^^^^^^^
 
 We setup a ``monitor.gpr`` project file for our program, where we
 
@@ -646,7 +646,7 @@ Building the instrumented version of the program is then achieved with::
     --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts.gpr
 
 Execute, extract a trace and report
-***********************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The steps required to execute are very environment specific. Symbolically,
 we do something like::
@@ -691,7 +691,7 @@ For the sake of the example, we will consider that
   at a given point in time.
 
 Setting up the coverage runtime
-*******************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On a native system such as Linux or Windows, the simplest is to pick a
 *gnatcov_rts_full.gpr* variant, thanks to which we will be able to produce
@@ -712,7 +712,7 @@ the default full Ada runtime (no specific :option:`--RTS` option)::
   export GPR_PROJECT_PATH=<gnatcov_rts-install-dir>/share/gpr
 
 Project file architecture
-*************************
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A possible straightforward way to handle code + tests system when all the code
 is available upfront is to setup a single project file designating the two
@@ -780,7 +780,7 @@ to the coverage metrics:
   end Tests;
 
 Instrument and build the library
-********************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We would first instrument and build the instrumented library with commands
 such as::
@@ -798,7 +798,7 @@ Then we can go on with the tests using the default ``CODE_LIBMODE`` value,
 implicitly switching the attribute to ``"True"``.
 
 Instrument, build and run the tests to produce traces
-*****************************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Here the only point of the instrumentation phase is to instrument the main
 units, in our case to dump trace files when the test programs exit::
