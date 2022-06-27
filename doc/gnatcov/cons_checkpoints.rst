@@ -143,8 +143,8 @@ Incremental coverage analysis
 =============================
 
 :term:`Incremental coverage analysis` consists in constructing a consolidated
-coverage result incrementally, using a single checkpoint file to accumulate
-new info about discharged coverage obligations as tests execute in sequence.
+coverage result incrementally, using a single checkpoint file to accumulate new
+info about discharged coverage obligations as tests execute in sequence.
 
 When providing execution traces as *the only* input to |gcvcov|, coverage
 analysis starts with an empty coverage state where none of the coverage

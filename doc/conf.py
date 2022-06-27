@@ -80,7 +80,8 @@ rst_epilog = """
 .. |gtest| replace:: GNATtest
 
 .. |marg| replace:: *(mandatory)*
-.. |rarg| replace:: possibly repeated and accepting :term:`@listfile arguments`
+.. |rarg| replace:: possibly repeated and accepting :term:`@listfile arguments
+                    <@listfile argument>`
 """.format(
   project
 )

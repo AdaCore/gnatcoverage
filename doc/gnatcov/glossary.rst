@@ -50,8 +50,15 @@ Glossary of terms & concepts
       example A=True, B=False, Expression=False for ``A and then B``.
 
    Exemption Region
-      Regions of source for which :term:`coverage violations` are expected,
-      and explicitly marked as such with a mandatory justification text.
+      Regions of source for which :term:`coverage violations <Coverage
+      Violation>` are expected, and explicitly marked as such with a mandatory
+      justification text.
+
+   Incremental Coverage Analysis
+      The process of constructing a consolidated coverage result incrementally,
+      using a single checkpoint file to accumulate new info about discharged
+      coverage obligations as tests execute in sequence. See
+      :ref:`incremental_analysis`.
 
    Independence Pair
       A pair of decision evaluation vectors that demonstrate the independent

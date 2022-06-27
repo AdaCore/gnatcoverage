@@ -9,7 +9,7 @@ Source coverage analysis with |gcvcov|
 Source coverage analysis computes metrics focused on source programming
 language entities such as high level *statements* or *decisions* (DO178
 parlance for boolean expressions), which translate as :term:`Source Coverage
-Obligations`, or SCOs, in |gcp| terms.
+Obligations <Source Coverage Obligation>`, or SCOs, in |gcp| terms.
 
 Once you have produced source or binary traces, actual analysis is then
 performed with |gcvcov| to generate coverage reports. *Source* coverage is
@@ -101,22 +101,23 @@ The available options are as follows:
    source coverage with those provided.
 
 :option:`--subdirs`:
-   When using project files, look for :term:`Library Information files` in the
-   indicated subdirectory of each project's object directory.
+   When using project files, look for :term:`Library Information files <Library
+   Information file>` in the indicated subdirectory of each project's object
+   directory.
 
 :option:`--scos`, |rarg|:
    Provide the set of
-   :term:`Library Information files` from which Source Coverage Obligations
-   (SCOs) should be loaded to process **binary** traces. This low-level switch
-   effectively overrides the project based units of interest selection.
-   It only has effect if used with binary traces.
+   :term:`Library Information files <Library Information file>` from which
+   Source Coverage Obligations (SCOs) should be loaded to process **binary**
+   traces. This low-level switch effectively overrides the project based units
+   of interest selection.  It only has effect if used with binary traces.
 
 :option:`--sid`, |rarg|:
-   Provide the set of
-   :term:`Source Instrumentation Data files` from which Source Coverage
-   Obligations (SCOs) should be loaded to process **source** traces. This low
-   level switch effectively overrides the project based units of interest
-   selection. It only has effect if used with source traces.
+   Provide the set of :term:`Source Instrumentation Data files <Source
+   Instrumentation Data file>` from which Source Coverage Obligations (SCOs)
+   should be loaded to process **source** traces. This low level switch
+   effectively overrides the project based units of interest selection. It only
+   has effect if used with source traces.
 
 :option:`--ignore-source-files`, |rarg|:
    Provide a list of globbing patterns (as in Unix shells) of source
@@ -203,13 +204,13 @@ Output report formats (:option:`--annotate`)
 ============================================
 
 Source coverage reports may be produced in various formats, as requested with
-the :option:`--annotate` command line argument of |gcvcov|. The
-:option:`xcov`, :option:`html` and :option:`dhtml` formats produce a set of
-annotated source files, in the directory where |gcv| is launched unless
-overriden with a :option:`--output-dir` option. The :option:`report`
-output consists in a synthetic text report of :term:`coverage violations` with
-respect to the requested criteria, produced on standard output by default or
-in the file specified by the :option:`-o` command line option.
+the :option:`--annotate` command line argument of |gcvcov|. The :option:`xcov`,
+:option:`html` and :option:`dhtml` formats produce a set of annotated source
+files, in the directory where |gcv| is launched unless overriden with a
+:option:`--output-dir` option. The :option:`report` output consists in a
+synthetic text report of :term:`coverage violations <Coverage Violation>` with
+respect to the requested criteria, produced on standard output by default or in
+the file specified by the :option:`-o` command line option.
 
 Later in this chapter we name output formats by the text to add to
 :option:`--annotate` on the command line. For example, we use "the
@@ -282,10 +283,10 @@ called Ranges, with an original body source file named ``ranges.adb``:
 
 :option:`--annotate=xcov+` (with a trailing +) works the same, only providing
 extra details below lines with improperly satisfied obligations. The available
-details consists in the list of :term:`coverage violations` diagnosed for the
-line, which depends on the coverage criteria involved. Here is an excerpt for
-our previous example, where the only improperly satisfied obligation is an
-uncovered statement on line 7::
+details consists in the list of :term:`coverage violations <Coverage
+Violation>` diagnosed for the line, which depends on the coverage criteria
+involved. Here is an excerpt for our previous example, where the only
+improperly satisfied obligation is an uncovered statement on line 7::
 
    7 -:          return V >= X2 and then V <= X1;
    STATEMENT "return V ..." at 7:10 not executed
@@ -347,15 +348,15 @@ Violations summary, text (:option:`=report`)
 --------------------------------------------
 
 For source coverage criteria, |gcvcov| :option:`--annotate=report` produces a
-summary that lists all the :term:`coverage violations` (failure
-to satisfy some aspect of a coverage criterion) relevant to the set of
+summary that lists all the :term:`coverage violations <Coverage Violation>`
+(failure to satisfy some aspect of a coverage criterion) relevant to the set of
 assessed criteria.
 
 The report features explicit start/end of report notifications and at least
 three sections in between: Assessment Context, Coverage Violations, and
 Analysis Summary.  A few variations are introduced when :term:`exemption
-regions` are in scope.  See the :ref:`exemptions` section for more details on
-their use and effect on the output reports.
+regions <Exemption Region>` are in scope.  See the :ref:`exemptions` section
+for more details on their use and effect on the output reports.
 
 If :option:`--dump-units-to -` is also on the command line, a *UNITS OF
 INTEREST* section is produced, which contains the list of units considered
@@ -1200,7 +1201,7 @@ short-circuited:
 
 Each line in such a table is called an :term:`evaluation vector`, and
 the pairs that demonstrate the independant effect of conditions are known as
-:term:`independence pairs`.
+:term:`independence pairs <Independence Pair>`.
 
 Evaluations 1 + 3 constitute a Unique Cause independence pair for A, where A
 changes, B does not, and the expression value toggles. 1 + 2 constitues a pair

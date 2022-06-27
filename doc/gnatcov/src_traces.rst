@@ -4,8 +4,8 @@
 Producing source traces with |gcvins|
 #####################################
 
-The production of :term:`source traces` is performed by an instrumented
-version of the original program running in its regular execution
+The production of :term:`source traces <Source Trace>` is performed by an
+instrumented version of the original program running in its regular execution
 environment. A |gcvins| command produces alternative sources for units of
 interest, with additional data structures and code statements solely aimed at
 tracking coverage related information. Coverage data is output in accordance

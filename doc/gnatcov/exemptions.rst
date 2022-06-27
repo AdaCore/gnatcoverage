@@ -9,8 +9,8 @@ coverage of some source construct is not achievable. The |gcp|
 :dfn:`exemptions` facility was designed to allow abstracting these coverage
 violations away from the genuine defects of a testing campaign.
 
-Defining :term:`Exemption Regions`
-==================================
+Defining :term:`Exemption Regions <Exemption Region>`
+=====================================================
 
 :dfn:`Exemption regions` are lexical sections of sources in which coverage
 violations are expected and can be justified. For Ada with the |gnat|
@@ -143,8 +143,9 @@ as the conditional branch used to implement the ``if`` statement is expected
 to remain partially covered, as well as the sequence of machine instructions
 triggerring the Ada exception raise.
 
-As for Source Coverage Obligations for source level criteria, information
-about the declared exemption regions is located in the :term:`Library
-Information files` produced by the compiler for every compilation unit. The
-mechanisms described in chapter :ref:`sunits` can then also be used to
-designate units for which exemptions regions should be accounted for.
+As for Source Coverage Obligations for source level criteria, information about
+the declared exemption regions is located in the :term:`Library Information
+files <Library Information file>` produced by the compiler for every
+compilation unit. The mechanisms described in chapter :ref:`sunits` can then
+also be used to designate units for which exemptions regions should be
+accounted for.

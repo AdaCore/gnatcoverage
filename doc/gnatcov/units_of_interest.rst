@@ -39,8 +39,8 @@ to :option:`--sid` with ``.sid`` files.
 Each occurrence of :option:`--scos` on the command line expects a single
 argument which specifies a set of units of interest. Multiple occurrences are
 allowed and the sets accumulate. The argument might be either the name of a
-single Library Information file for a unit, or a :term:`@listfile argument`
-expected to contain a list of such file names.
+single Library Information file for a unit, or a :term:`@listfile arguments
+<@listfile argument>` expected to contain a list of such file names.
 
 For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
 with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with
