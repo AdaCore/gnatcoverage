@@ -442,8 +442,7 @@ Separate test drivers
 =====================
 
 Using separate test drivers is advisable to avoid incidental coverage of one
-unit from the testing of other units
-(see :ref:`Handle incidental coverage effects`).
+unit from the testing of other units (see :ref:`incidental_coverage`).
 Note that since the smallest division of a project supported by |gcp| is the
 unit, there is no benefit in specifying :option:`--separate-drivers=test`
 instead of :option:`--separate-drivers=unit` to GNATtest, as far as incidental

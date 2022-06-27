@@ -282,9 +282,8 @@ The ``--dump-channel=bin-file`` switch requests outputing coverage data
 directly to a trace file and ``--dump-trigger=atexit`` instructs to perform
 this operation as part of an execution termination handler, the simplest
 option in native environments. ``--level=stmt`` states that we will want to
-perform :term:`statement coverage` analysis afterwards and ``-Ptests.gpr``
-specifies the root project for coverage obligations and the main unit(s) to
-instrument.
+perform statement coverage analysis afterwards and ``-Ptests.gpr`` specifies
+the root project for coverage obligations and the main unit(s) to instrument.
 
 After setting ``GPR_PROJECT_PATH`` to designate the directory where the
 coverage runtime has been installed, building the instrumented program then

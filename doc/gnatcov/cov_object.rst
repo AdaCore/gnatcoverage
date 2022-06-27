@@ -207,7 +207,7 @@ Annotated sources, text (:option:`=xcov[+]`)
 
 For object coverage analysis, :option:`--annotate=xcov` produces annotated
 source files with the ``.xcov`` extension, one per original compilation unit
-in the :ref:`selected output directory <cov-outdir>`.
+in the selected output directory.
 
 The annotations are visible at the beginning of every source line, as a
 single character which synthesizes the coverage status of all the machine
