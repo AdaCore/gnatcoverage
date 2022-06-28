@@ -210,31 +210,36 @@ the default behavior and possibilities to alter it.
 Output strategies for main units
 --------------------------------
 
-The choice of a dump-trigger/dump-channel pair for main units depends on the
-runtime environment available to your program.
+The choice of a ``--dump-trigger``/``--dump-channel`` pair for main units
+depends on the runtime environment available to your program.
 
 For a native program with access to a full Ada runtime and the associated
-coverage runtime, ``bin-file`` is the recommended channel as it produces a
-trace in the most direct manner and separates the trace data from the regular
-output. ``atexit`` is a natural triggering choice in this case, as it takes
-care of outputting the data automatically at a point where we know the program
-is not going to execute more, regardless of how or why the program exits.
+coverage runtime, ``--dump-channel=bin-file`` is the recommended choice as it
+produces a trace in the most direct manner and separates the trace data from
+the regular output. ``--dump-trigger=atexit`` is a natural triggering choice in
+this case, as it takes care of outputting the data automatically at a point
+where we know the program is not going to execute more, regardless of how or
+why the program exits.
 
-The ``main-end`` alternative simply inserts the calls at the end of the main
-subprogram bodies, which may be bypassed if the program exits abruptly, or
-miss data if the program has tasks not terminated when execution of the main
-subprogram/thread reaches its end.
+The ``--dump-trigger=main-end`` alternative simply inserts the calls at the end
+of the main subprogram bodies, which may be bypassed if the program exits
+abruptly, or miss data if the program has tasks not terminated when execution
+of the main subprogram/thread reaches its end.
 
-For more restricted environments where, say, there is limited file IO
-available to the program, a ``base64-stdout`` kind of output is needed in
+For Ravenscar programs, another option is to use
+``--dump-trigger=ravenscar-task-termination``, which triggers the creation of a
+source trace whenever an Ada task terminates.
+
+For more restricted environments where, say, there is limited file IO available
+to the program, a ``--dump-channel=base64-stdout`` kind of output is needed in
 association with the restricted coverage runtime.
 
 If none of the available automatic triggering option works out well, full
-control is offered by the ``manual`` policy where the instrumenter doesn't
-actually add any code to main units for emitting the collected coverage
-data. You will have to emit this data somehow to allow analysing coverage
-afterwards, still, and can of course experiment with other possibilities just
-to get examples of possible ways to proceed.
+control is offered by the ``--dump-trigger=manual`` policy where the
+instrumenter doesn't actually add any code to main units for emitting the
+collected coverage data. You will have to emit this data somehow to allow
+analysing coverage afterwards, still, and can of course experiment with other
+possibilities just to get examples of possible ways to proceed.
 
 .. _instr-tracename:
 
