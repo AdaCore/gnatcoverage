@@ -154,7 +154,7 @@ After invoking GNATtest as follows:
 
 The following two files can be found in the harness directory:
 
-* The ``Makefile`` with (amond other things) three rules that execute the
+* The ``Makefile`` with (amongst other things) three rules that execute the
   full coverage workflow for each test driver project, and then generates a
   coverage report combining the results:
 
