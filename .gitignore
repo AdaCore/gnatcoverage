@@ -27,3 +27,4 @@ gnatcov-loc.xml
 gnatinspect.db
 README.html
 TAGS
+*.~undo.tree~
