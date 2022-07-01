@@ -53,7 +53,7 @@ Using the basic test driver below:
 both ways so the driver achieves statement and decision coverage. It even
 achieves mcdc since the decision has a single condition, which is reported by
 |gcp| with a 100% achievement for the *stmt+mcdc* coverage level and ``+``
-annotations everywhere in the :option:`=xcov` output::
+annotations everywhere in the :cmd-option:`=xcov` output::
 
   gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov test_ops1.trace
   ...
@@ -133,9 +133,9 @@ The following simple driver exercises all the paths through this BDD:
       Assert (Orand (False, True, False) = False);
    end Test_Orand;
 
-As we will be comparing with the mcdc assessment, we pass :option:`--scos` and
-:option:`--level` to |gcvrun| prior to anything else, so we will be able to
-reuse the same execution trace for both our object and source level
+As we will be comparing with the mcdc assessment, we pass :cmd-option:`--scos`
+and :cmd-option:`--level` to |gcvrun| prior to anything else, so we will be
+able to reuse the same execution trace for both our object and source level
 experiments::
 
   gnatcov run --scos=@alis --level=stmt+mcdc test_orand
@@ -153,8 +153,8 @@ Now we verify that |gcp| reports full object coverage as expected::
    4 +: end Orand;
 
 With 3 tests for 3 conditions, mcdc cannot be achieved yet and |gcp| reports
-this correctly as well. Using :option:`=xcov+` to see the reason for partial
-coverage attached to line 3, we indeed get::
+this correctly as well. Using :cmd-option:`=xcov+` to see the reason for
+partial coverage attached to line 3, we indeed get::
 
    gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov+ test_orand.trace
    ...

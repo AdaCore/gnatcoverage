@@ -12,50 +12,50 @@ of files which hold the coverage obligations for the units of interest, or
 rely on project files facilities to designate the set of units. At analysis
 time, the actual list of unit names for which a report or checkpoint is
 produced as well as the list of individually ignored source files for each unit
-can be displayed with the :option:`--dump-units-to` option of the
+can be displayed with the :cmd-option:`--dump-units-to` option of the
 |gcvcov| command.
 
 .. _passing_scos:
 
-Providing coverage obligation files (:option:`--scos|--sid`)
-------------------------------------------------------------
+Providing coverage obligation files (:cmd-option:`--scos|--sid`)
+----------------------------------------------------------------
 
-With the :option:`--scos` or :option:`--sid` command line arguments, users
-convey the set of units of interest by directly providing the set of files
-which contain the coverage obligations for those units.
+With the :cmd-option:`--scos` or :cmd-option:`--sid` command line arguments,
+users convey the set of units of interest by directly providing the set of
+files which contain the coverage obligations for those units.
 
-The :option:`--scos` switch is for binary trace based analysis and the files
-to provide are the *Library Information* files produced by the compiler
-(``.ali`` files for Ada, ``.gli`` files for C). The :option:`--sid` switch is
-for source trace based analysis and the files to provide are the ``.sid``
-*Source Instrumentation Data* files produced by ``gnatcov instrument``. In
-all cases, the files are located at the same place as where the object file
-for a unit is produced.
+The :cmd-option:`--scos` switch is for binary trace based analysis and the
+files to provide are the *Library Information* files produced by the compiler
+(``.ali`` files for Ada, ``.gli`` files for C). The :cmd-option:`--sid` switch
+is for source trace based analysis and the files to provide are the ``.sid``
+*Source Instrumentation Data* files produced by ``gnatcov instrument``. In all
+cases, the files are located at the same place as where the object file for a
+unit is produced.
 
 The following paragraphs provide details and examples on the use of
-:option:`--scos` with ``.gli`` or ``.ali`` files. The same principles apply
-to :option:`--sid` with ``.sid`` files.
+:cmd-option:`--scos` with ``.gli`` or ``.ali`` files. The same principles apply
+to :cmd-option:`--sid` with ``.sid`` files.
 
-Each occurrence of :option:`--scos` on the command line expects a single
+Each occurrence of :cmd-option:`--scos` on the command line expects a single
 argument which specifies a set of units of interest. Multiple occurrences are
 allowed and the sets accumulate. The argument might be either the name of a
 single Library Information file for a unit, or a :term:`@listfile arguments
 <@listfile argument>` expected to contain a list of such file names.
 
 For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
-with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with
-``--scos=u3.ali --scos=@lst12`` where ``lst12`` is a text file containing the
-first two ALI file names, or with other combinations alike.
+with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with ``--scos=u3.ali
+--scos=@lst12`` where ``lst12`` is a text file containing the first two ALI
+file names, or with other combinations alike.
 
 The GNAT toolchain provides a useful device for list computations: the
-:option:`-A` command line argument to :command:`gnatbind` which produces a
+:cmd-option:`-A` command line argument to :command:`gnatbind` which produces a
 list of all the ``.ali`` files involved in an executable construction.  By
 default, the list goes to standard output. It may be directed to a file on
-request with :option:`-A=<list-filename>`, and users may of course filter this
-list as they see fit depending on their analysis purposes.
+request with :cmd-option:`-A=<list-filename>`, and users may of course filter
+this list as they see fit depending on their analysis purposes.
 
-Below is an example sequence of commands to illustrate, using the standard
-Unix ``grep`` tool to filter out test harness units, assuming a basic naming
+Below is an example sequence of commands to illustrate, using the standard Unix
+``grep`` tool to filter out test harness units, assuming a basic naming
 convention::
 
     # Build executable and produce the corresponding list of ALI files. Pass
@@ -72,14 +72,14 @@ convention::
 
 .. _passing_gpr:
 
-Using project files (:option:`-P`, :option:`--projects`, :option:`--units`)
----------------------------------------------------------------------------
+Using project files (:cmd-option:`-P`, :cmd-option:`--projects`, :cmd-option:`--units`)
+---------------------------------------------------------------------------------------
 
 As an alternative to providing the complete list of coverage obligation files
-with :option:`--scos` or :option:`--sid`, you can use project files to specify
-units of interest. When both obligation files and project file options are on
-the command line, the former prevail and the project files are only used for
-switches or the determination of the target and runtime configuration.
+with :cmd-option:`--scos` or :cmd-option:`--sid`, you can use project files to
+specify units of interest. When both obligation files and project file options
+are on the command line, the former prevail and the project files are only used
+for switches or the determination of the target and runtime configuration.
 
 The units of interest designation with project files incurs two levels of
 selection: first, specify the set of :dfn:`projects of interest` where the
@@ -93,25 +93,25 @@ The set of projects of interest is computed by the following rules:
 - A set of *base* projects is first selected from the recursive
   dependency closure of a root project;
 
-- A set of *candidate* projects of interest is established, as the union of
-  the dependency closures of all the base projects by default, or as the mere
-  set of base projects alone if the :option:`--no-subprojects` switch is used;
+- A set of *candidate* projects of interest is established, as the union of the
+  dependency closures of all the base projects by default, or as the mere set
+  of base projects alone if the :cmd-option:`--no-subprojects` switch is used;
 
 - The actual projects of interest are the candidate ones minus those
   with an ``Externally_Built`` attribute set to ``"True"``.
 
 For the determination of the base projects set, a single :dfn:`root project`
-must first be specified using the :option:`-P` option. The set may then be
+must first be specified using the :cmd-option:`-P` option. The set may then be
 refined according to the following rules with an optional list of
-:option:`--projects` switches naming projects within the dependency closure of
-the root:
+:cmd-option:`--projects` switches naming projects within the dependency closure
+of the root:
 
-- Without :option:`--projects`, the base projects set is the root project
-  designated by :option:`-P` alone, or the project designated by the
+- Without :cmd-option:`--projects`, the base projects set is the root project
+  designated by :cmd-option:`-P` alone, or the project designated by the
   ``Origin_Project`` attribute therein if there is such an attribute;
 
-- With :option:`--projects` options, the listed projects are taken as the base
-  and the root project needs to be listed as well to be included.
+- With :cmd-option:`--projects` options, the listed projects are taken as the
+  base and the root project needs to be listed as well to be included.
 
 Let us illustrate the effect of various combinations, assuming an example
 project tree depicted below:
@@ -131,9 +131,9 @@ Assuming none of the projects is flagged ``Externally_Built``:
   explicitly, as in :ref:`fig-Proot-root-ss_a-nosub`
   (:numref:`fig-Proot-root-ss_a-nosub`);
 
-- Removing :option:`--no-subprojects` as in :ref:`fig-Proot-ss_a`,
-  lets you consider all the projects transitively imported by the base
-  ones (:numref:`fig-Proot-ss_a`);
+- Removing :cmd-option:`--no-subprojects` as in :ref:`fig-Proot-ss_a`, lets you
+  consider all the projects transitively imported by the base ones
+  (:numref:`fig-Proot-ss_a`);
 
 Projects with an ``Externally_Built`` attribute set to ``"True"`` are
 just removed from the set of interest at the end, without influencing
@@ -213,8 +213,8 @@ considered of interest within a project are as follows:
   attributes are removed from the initial set to yield the set to consider.
 
 Finally, the list of units of interest for a given execution of |gcv| can also
-be overriden from the command line using the :option:`--units` switch.  When
-this option is used, the project files attributes are ignored.
+be overriden from the command line using the :cmd-option:`--units` switch.
+When this option is used, the project files attributes are ignored.
 
 The switch may appear multiple times. Each occurrence indicates one
 unit to focus on, or with the @ syntax the name of a text file
@@ -379,7 +379,7 @@ And then have::
     end Coverage;
 
 As a possible alternative to the project file attributes, the |gcvcov| and
-|gcvins| commands accept a :option:`--ignore-source-files` switch on the
+|gcvins| commands accept a :cmd-option:`--ignore-source-files` switch on the
 command line.
 
 This option can appear multiple times on the command line. Each
@@ -409,8 +409,8 @@ Compilation unit vs source file names
 
 For Ada, explicit *compilation unit* names are given to library level packages
 or subprograms, case insensitive. This is what must be used in project file
-attributes or :option:`--units` arguments to elaborate the set of :dfn:`units
-of interest`, not source file names.
+attributes or :cmd-option:`--units` arguments to elaborate the set of
+:dfn:`units of interest`, not source file names.
 
 This offers a simple and consistent naming basis to users, orthogonal to the
 unit/source name mapping. Consider, for example, a project file with the set
@@ -430,8 +430,8 @@ body of a ``Logger`` package depending on the kind of build performed::
   end Naming;
 
 Regardless of the build mode, restricting the analysis to the ``Logger``
-package would be achieved with :option:`-P<project> --units=logger` or
-with a ``Units`` attribute such as::
+package would be achieved with :cmd-option:`-P<project> --units=logger` or with
+a ``Units`` attribute such as::
 
   package Coverage is
      for Units use ("Logger"); -- compilation unit name here
@@ -439,11 +439,11 @@ with a ``Units`` attribute such as::
 
 
 Source file names are used in the output reports, still, either in source
-location references as part of the :option:`=report` outputs, or as the base
-filename of annotated source files for other formats. For our ``Logger`` case
-above, the analysis with, for example, :option:`--annotate=xcov` of a program
-built in Debug mode would yield a ``debug-logger.adb.xcov`` annotated source
-result.
+location references as part of the :cmd-option:`=report` outputs, or as the
+base filename of annotated source files for other formats. For our ``Logger``
+case above, the analysis with, for example, :cmd-option:`--annotate=xcov` of a
+program built in Debug mode would yield a ``debug-logger.adb.xcov`` annotated
+source result.
 
 For C, the notion of *translation unit* resolves to the set of tokens that the
 compiler gets to work on, after the pre-processing expansion of macros,

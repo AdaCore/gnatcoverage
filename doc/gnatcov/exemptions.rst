@@ -47,12 +47,12 @@ Reporting about coverage exemptions
 ===================================
 
 Exempted regions are reported as blocks in both the annotated source and the
-synthetic text reports, for both source and object coverage metrics.
-In annotated source reports, a ``#`` or ``*`` caracter annotates all the
-exempted lines, depending on whether 0 or at least 1 violation was exempted
-over the whole section, respectively.
-For our ``Eassert`` example above, a typical :option:`=xcov` output
-for :option:`stmt+decision` coverage for would be::
+synthetic text reports, for both source and object coverage metrics.  In
+annotated source reports, a ``#`` or ``*`` caracter annotates all the exempted
+lines, depending on whether 0 or at least 1 violation was exempted over the
+whole section, respectively.  For our ``Eassert`` example above, a typical
+:cmd-option:`=xcov` output for :cmd-option:`stmt+decision` coverage for would
+be::
 
    6 .: procedure Eassert (T : Boolean) is
    7 .: begin
@@ -76,8 +76,8 @@ regions, displaying for each the source location span, the number of actually
 exempted violations in the region, and the exemption justification text. It
 also includes a total count of the number of exempted regions at the end.
 
-The corresponding :option:`=report` excerpt below illustrates
-this for the ``Eassert`` example::
+The corresponding :cmd-option:`=report` excerpt below illustrates this for the
+``Eassert`` example::
 
    ...
    =========================

@@ -29,7 +29,7 @@ Glossary of terms & concepts
       File a condensed version of a coverage assessment computed by |gcvcov|,
       which the tool can reload and combine with other assessments very
       efficiently. This may be viewed as an internal representation of a
-      coverage report which :option:`--annotate` would output in a user
+      coverage report which :cmd-option:`--annotate` would output in a user
       readable form. See :ref:`checkpoints` for more information.
 
    Coverage Runtime

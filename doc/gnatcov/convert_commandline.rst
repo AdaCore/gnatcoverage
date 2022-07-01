@@ -17,7 +17,7 @@
 
 Details about the available options follow:
 
-:option:`--trace-source` :
+:cmd-option:`--trace-source` :
   An identifier of the source of the input trace data is provided using this
   option. The input source effects which other options are required. Currently,
   the only values for this option are ``iSystem-5634`` (see
@@ -26,22 +26,22 @@ Details about the available options follow:
   :ref:`GeneratingCoverageInformationFromLauterbachTrace32`). For the
   ``iSystem-5634`` source, the ``--hw-trigger-traces`` option is required.
 
-:option:`--exec` :
+:cmd-option:`--exec` :
   This option provides the filename of a file containing the
   target executable from which the trace data was generated, and upon
   which the coverage analysis is done.
 
-:option:`--input` :
+:cmd-option:`--input` :
   This option provides the name of the file containing the input trace
   data to be converted.
 
-:option:`--output` :
+:cmd-option:`--output` :
   The name of the file to write the output trace into can be provided by
   by this option. If ``--output`` is not used, the output filename is derived
   from the name of the executable, by taking the basename of the executable
   file and appending ``.trace``.
 
-:option:`--hw-trigger-traces` :
+:cmd-option:`--hw-trigger-traces` :
   For Nexus modules that support the Class 4 HW Watchpoint Trigger feature,
   the generation of program trace data can be started and stopped
   in response to watchpoint events. When this mechanism is used, in order
@@ -56,8 +56,8 @@ Details about the available options follow:
   name (e.g. ``main``). ``STOP_ID`` can identify another of the IACs, or be
   ``0``, to indicate that a stop trigger was not set up.
 
-:option:`--level` :
+:cmd-option:`--level` :
   This is used in an identical manner as for |gcvrun|.
 
-:option:`--scos` :
+:cmd-option:`--scos` :
   This is used in an identical manner as for |gcvrun|.

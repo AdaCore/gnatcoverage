@@ -13,7 +13,7 @@ Obligations <Source Coverage Obligation>`, or SCOs, in |gcp| terms.
 
 Once you have produced source or binary traces, actual analysis is then
 performed with |gcvcov| to generate coverage reports. *Source* coverage is
-queried by passing a specific :option:`--level` argument to |gcvcov|.
+queried by passing a specific :cmd-option:`--level` argument to |gcvcov|.
 
 The general structure of this command line is always like::
 
@@ -36,20 +36,20 @@ coverage assessment are to be specified.
 .. _gnatcov_coverage-commandline-src:
 
 Coverage analysis with |gcp| is performed by invoking |gcvcov| for a set of
-critera queried via the :option:`--level` command line option. The general
-interface synopsis is available from |gcv| :option:`--help`::
+critera queried via the :cmd-option:`--level` command line option. The general
+interface synopsis is available from |gcv| :cmd-option:`--help`::
 
  gnatcov coverage OPTIONS TRACE_FILES
 
 The available options are as follows:
 
-:option:`-c`, :option:`--level` |marg|:
-   Tell the set of coverage criteria to be assessed. The possible values
-   for source coverage analysis are :option:`stmt`, :option:`stmt+decision`,
-   :option:`stmt+mcdc`, and :option:`stmt+uc_mcdc`, all explained later
-   in this chapter.
+:cmd-option:`-c`, :cmd-option:`--level` |marg|:
+   Tell the set of coverage criteria to be assessed. The possible values for
+   source coverage analysis are :cmd-option:`stmt`,
+   :cmd-option:`stmt+decision`, :cmd-option:`stmt+mcdc`, and
+   :cmd-option:`stmt+uc_mcdc`, all explained later in this chapter.
 
-:option:`-a`, :option:`--annotate` |marg|:
+:cmd-option:`-a`, :cmd-option:`--annotate` |marg|:
    Request one or more output report formats.  All the criteria support
    ``xcov[+]``, ``html[+]``, ``dhtml`` and ``report`` formats, with
    interpretations that vary depending on the assessed criteria. See the
@@ -58,100 +58,99 @@ The available options are as follows:
    mulitple times on the command line, in which case there will be one
    report produced for each of the requested formats.
 
-:option:`-o` :
+:cmd-option:`-o` :
    Request that the synthetic report produced by ``--annotate=report`` be
    output in the provided filname instead of standard output by default. This
    is just ignored for other output formats.
 
 .. include:: cov_common_switches.rst
 
-:option:`-t`, :option:`--target` :
+:cmd-option:`-t`, :cmd-option:`--target` :
    .. include:: target_switch_common_text.rst
 
-:option:`--non-coverable`:
+:cmd-option:`--non-coverable`:
    Report about language statements for which no object code could be found in
    the surrounding suprogram (typically out of optimization).
 
-:option:`-P`:
+:cmd-option:`-P`:
    Use the indicated project file as the root project to select the units of
    interest for the analysis and find default options. Default options are
-   taken only from this project. In absence of :option:`--projects` and of
-   :option:`--no-subprojects`, the units of interest are those designated by
-   this project and all it's transitive dependencies, minus those
-   advertised as externally-built.  The target/runtime/scenario contextual
-   options that would be passed to build the project should also be passed
-   for proper interpretation of the project files.  See the :ref:`sunits`
-   chapter of this manual for more details.
+   taken only from this project. In absence of :cmd-option:`--projects` and of
+   :cmd-option:`--no-subprojects`, the units of interest are those designated
+   by this project and all it's transitive dependencies, minus those advertised
+   as externally-built.  The target/runtime/scenario contextual options that
+   would be passed to build the project should also be passed for proper
+   interpretation of the project files.  See the :ref:`sunits` chapter of this
+   manual for more details.
 
-:option:`--projects`, |rarg|:
-   When using :option:`-P`, use the provided
-   projects to select units of interest, together with their transitive
-   dependencies unless :option:`--no-subprojects` is also provided. The
-   projects designated by this option must all be part of the import
-   transitive closure reachable from the root project designated by
-   :option:`-P`.
+:cmd-option:`--projects`, |rarg|:
+   When using :cmd-option:`-P`, use the provided projects to select units of
+   interest, together with their transitive dependencies unless
+   :cmd-option:`--no-subprojects` is also provided. The projects designated by
+   this option must all be part of the import transitive closure reachable from
+   the root project designated by :cmd-option:`-P`.
 
-:option:`--no-subprojects`:
-  Consider only the projects (and units) encompassed by the :option:`-P`
-  / :option:`--projects` options as of-interest. Don't include any project
+:cmd-option:`--no-subprojects`:
+  Consider only the projects (and units) encompassed by the :cmd-option:`-P` /
+  :cmd-option:`--projects` options as of-interest. Don't include any project
   imported from there.
 
-:option:`--units`, |rarg|:
+:cmd-option:`--units`, |rarg|:
    When using project files, override the list of units of interest for
    source coverage with those provided.
 
-:option:`--subdirs`:
+:cmd-option:`--subdirs`:
    When using project files, look for :term:`Library Information files <Library
    Information file>` in the indicated subdirectory of each project's object
    directory.
 
-:option:`--scos`, |rarg|:
+:cmd-option:`--scos`, |rarg|:
    Provide the set of
    :term:`Library Information files <Library Information file>` from which
    Source Coverage Obligations (SCOs) should be loaded to process **binary**
    traces. This low-level switch effectively overrides the project based units
    of interest selection.  It only has effect if used with binary traces.
 
-:option:`--sid`, |rarg|:
+:cmd-option:`--sid`, |rarg|:
    Provide the set of :term:`Source Instrumentation Data files <Source
    Instrumentation Data file>` from which Source Coverage Obligations (SCOs)
    should be loaded to process **source** traces. This low level switch
    effectively overrides the project based units of interest selection. It only
    has effect if used with source traces.
 
-:option:`--ignore-source-files`, |rarg|:
+:cmd-option:`--ignore-source-files`, |rarg|:
    Provide a list of globbing patterns (as in Unix shells) of source
    files to be excluded from the analysis and from the output report.
    See the :ref:`ignore_source_files` section for more information.
 
-:option:`--dump-units-to`:
-   For source coverage analysis specifically, output the names of units
-   that are considered of-interest to the requested assessment, that is,
-   for which a report or checkpoint is going to be produced. This also
-   outputs, for each unit of interest, the list of files that were individually
-   ignored using the ``Ignored_Source_Files`` project attribute or corresponding
-   command-line option. Ignored source files listed with :option:`--dump-units-to`
-   will be either marked as ``always ignored``, if they were ignored in all
-   the inputs (traces or checkpoints) that were used to produce this report,
-   or as ``sometimes ignored``, if the source files were ignored in at least
-   one of the inputs of this report, but not all of them. The argument
-   may be either the name of a file, clobbered it if it already exists,
-   or '-' to request displaying the list on standard output. In the latter
-   case, when a ``report`` output is also requested, the list of units is
-   displayed as an additional report section.
+:cmd-option:`--dump-units-to`:
+   For source coverage analysis specifically, output the names of units that
+   are considered of-interest to the requested assessment, that is, for which a
+   report or checkpoint is going to be produced. This also outputs, for each
+   unit of interest, the list of files that were individually ignored using the
+   ``Ignored_Source_Files`` project attribute or corresponding command-line
+   option. Ignored source files listed with :cmd-option:`--dump-units-to` will
+   be either marked as ``always ignored``, if they were ignored in all the
+   inputs (traces or checkpoints) that were used to produce this report, or as
+   ``sometimes ignored``, if the source files were ignored in at least one of
+   the inputs of this report, but not all of them. The argument may be either
+   the name of a file, clobbered it if it already exists, or '-' to request
+   displaying the list on standard output. In the latter case, when a
+   ``report`` output is also requested, the list of units is displayed as an
+   additional report section.
 
-:option:`--save-checkpoint`:
+:cmd-option:`--save-checkpoint`:
     Save the resulting coverage analysis to the named checkpoint file.
 
-:option:`--checkpoint`, |rarg|:
+:cmd-option:`--checkpoint`, |rarg|:
     Load previously saved coverage analysis checkpoint(s), and continue coverage
     analysis from that initial state.
 
-:option:`--source-rebase`, |rarg|:
+:cmd-option:`--source-rebase`, |rarg|:
     Specify alternate absolute path prefixes to locate missing source files
     when producing annotated source outputs. See :ref:`rebase_opts`
 
-:option:`--source-search`, |rarg|:
+:cmd-option:`--source-search`, |rarg|:
     Specify a directory in which missing source files will be searched when
     producing annotated source outputs. See :ref:`rebase_opts`
 
@@ -169,11 +168,11 @@ in order to avoid incidental coverage. See :ref:`checkpoints` for a
 discussion of these use cases.
 
 Positional arguments on the command line (not tied to a particular option) are
-considered as trace file arguments. At least one trace file is required for
-the ``coverage`` command to operate, which may but need not be introduced with
-:option:`-T` or :option:`--trace`. Here are a few examples of valid command
-lines to illustrate. Other examples will be exposed along the course of the
-following sections::
+considered as trace file arguments. At least one trace file is required for the
+``coverage`` command to operate, which may but need not be introduced with
+:cmd-option:`-T` or :cmd-option:`--trace`. Here are a few examples of valid
+command lines to illustrate. Other examples will be exposed along the course of
+the following sections::
 
   gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=prog.trace
   #                      (a)         (b)              (c)            (d)
@@ -200,22 +199,23 @@ following sections::
 
 .. _sreport-formats:
 
-Output report formats (:option:`--annotate`)
-============================================
+Output report formats (:cmd-option:`--annotate`)
+================================================
 
 Source coverage reports may be produced in various formats, as requested with
-the :option:`--annotate` command line argument of |gcvcov|. The :option:`xcov`,
-:option:`html` and :option:`dhtml` formats produce a set of annotated source
-files, in the directory where |gcv| is launched unless overriden with a
-:option:`--output-dir` option. The :option:`report` output consists in a
-synthetic text report of :term:`coverage violations <Coverage Violation>` with
-respect to the requested criteria, produced on standard output by default or in
-the file specified by the :option:`-o` command line option.
+the :cmd-option:`--annotate` command line argument of |gcvcov|. The
+:cmd-option:`xcov`, :cmd-option:`html` and :cmd-option:`dhtml` formats produce
+a set of annotated source files, in the directory where |gcv| is launched
+unless overriden with a :cmd-option:`--output-dir` option. The
+:cmd-option:`report` output consists in a synthetic text report of
+:term:`coverage violations <Coverage Violation>` with respect to the requested
+criteria, produced on standard output by default or in the file specified by
+the :cmd-option:`-o` command line option.
 
 Later in this chapter we name output formats by the text to add to
-:option:`--annotate` on the command line. For example, we use "the
-:option:`=report` outputs" to mean "the coverage reports produced with
-:option:`--annotate=report`".
+:cmd-option:`--annotate` on the command line. For example, we use "the
+:cmd-option:`=report` outputs" to mean "the coverage reports produced with
+:cmd-option:`--annotate=report`".
 
 We will illustrate the various formats with samples extracted from outputs
 obtained by perfoming coverage analysis of the following example Ada
@@ -236,11 +236,11 @@ application unit:
    end Between;
 
 
-Annotated sources, text (:option:`=xcov[+]`)
---------------------------------------------
+Annotated sources, text (:cmd-option:`=xcov[+]`)
+------------------------------------------------
 
-For source coverage criteria, |gcvcov| :option:`--annotate=xcov` produces an
-annotated version of each source file, in text format, named after the
+For source coverage criteria, |gcvcov| :cmd-option:`--annotate=xcov` produces
+an annotated version of each source file, in text format, named after the
 original source with an extra ``.xcov`` extension at the end (``x.ext.xcov``
 for a source named ``x.ext``).
 
@@ -281,9 +281,9 @@ called Ranges, with an original body source file named ``ranges.adb``:
    9 .:    end;
   10 .: end;
 
-:option:`--annotate=xcov+` (with a trailing +) works the same, only providing
-extra details below lines with improperly satisfied obligations. The available
-details consists in the list of :term:`coverage violations <Coverage
+:cmd-option:`--annotate=xcov+` (with a trailing +) works the same, only
+providing extra details below lines with improperly satisfied obligations. The
+available details consists in the list of :term:`coverage violations <Coverage
 Violation>` diagnosed for the line, which depends on the coverage criteria
 involved. Here is an excerpt for our previous example, where the only
 improperly satisfied obligation is an uncovered statement on line 7::
@@ -291,15 +291,15 @@ improperly satisfied obligation is an uncovered statement on line 7::
    7 -:          return V >= X2 and then V <= X1;
    STATEMENT "return V ..." at 7:10 not executed
 
-Annotated sources, html (:option:`=html[+]`)
---------------------------------------------
+Annotated sources, html (:cmd-option:`=html[+]`)
+------------------------------------------------
 
-For source coverage criteria, |gcvcov| :option:`--annotate=html` produces an
-annotated version of each source file, in html format, named after the
+For source coverage criteria, |gcvcov| :cmd-option:`--annotate=html` produces
+an annotated version of each source file, in html format, named after the
 original source with an extra ``.html`` extension at the end.  Each annotated
 source page contains a summary of the assessment results followed by the
-original source lines, all numbered and marked with a coverage annotation as
-in the :option:`--annotate=xcov` case. Lines with obligations are colorized in
+original source lines, all numbered and marked with a coverage annotation as in
+the :cmd-option:`--annotate=xcov` case. Lines with obligations are colorized in
 green, orange or red for ``+``, ``!`` or ``-`` coverage respectively.
 
 An `index.html` page is also produced, which contains a summary of the
@@ -316,39 +316,41 @@ this file is available when |gcv| starts, |gcv| uses it so users may setup a
 customized version if needed. If the file is not available, |gcv| creates a
 default one.
 
-Similarily to the :option:`xcov` format case, :option:`--annotate=html+` (with
-a trailing +) adds details about improperly satisfied obligations.  In the
-html version, these extra details are initially folded within their associated
-line and expanded by a mouse click on the line.
+Similarily to the :cmd-option:`xcov` format case,
+:cmd-option:`--annotate=html+` (with a trailing +) adds details about
+improperly satisfied obligations.  In the html version, these extra details are
+initially folded within their associated line and expanded by a mouse click on
+the line.
 
-Annotated sources, dynamic html (:option:`=dhtml`)
---------------------------------------------------
+Annotated sources, dynamic html (:cmd-option:`=dhtml`)
+------------------------------------------------------
 
-:option:`--annotate=dhtml` produces a *dynamic html* output, which essentially
-features:
+:cmd-option:`--annotate=dhtml` produces a *dynamic html* output, which
+essentially features:
 
-* A more modern look & feel compared to the :option:`html` formats described
-  earlier,
+* A more modern look & feel compared to the :cmd-option:`html` formats
+  described earlier,
 
 * The ability to sort indexes by clicking on column headers, allowing for
   example sorts keyed on unit names or on relative coverage achievement,
 
-* Per-project indexes on the root page when :option:`-P` was used to designate
-  the source units of interest.
+* Per-project indexes on the root page when :cmd-option:`-P` was used to
+  designate the source units of interest.
 
 The option produces a set of `.js` javascript files implementing most of the
 report displays and interactions, as well as an `index.html` root page which
 users should open as an entry point to the report contents.
 
-The per-line details that differentiates :option:`html+` from :option:`html`
-are always produced, initially folded and available on line clicks as well.
+The per-line details that differentiates :cmd-option:`html+` from
+:cmd-option:`html` are always produced, initially folded and available on line
+clicks as well.
 
 
-Violations summary, text (:option:`=report`)
---------------------------------------------
+Violations summary, text (:cmd-option:`=report`)
+------------------------------------------------
 
-For source coverage criteria, |gcvcov| :option:`--annotate=report` produces a
-summary that lists all the :term:`coverage violations <Coverage Violation>`
+For source coverage criteria, |gcvcov| :cmd-option:`--annotate=report` produces
+a summary that lists all the :term:`coverage violations <Coverage Violation>`
 (failure to satisfy some aspect of a coverage criterion) relevant to the set of
 assessed criteria.
 
@@ -358,7 +360,7 @@ Analysis Summary.  A few variations are introduced when :term:`exemption
 regions <Exemption Region>` are in scope.  See the :ref:`exemptions` section
 for more details on their use and effect on the output reports.
 
-If :option:`--dump-units-to -` is also on the command line, a *UNITS OF
+If :cmd-option:`--dump-units-to -` is also on the command line, a *UNITS OF
 INTEREST* section is produced, which contains the list of units considered
 of-interest for the reported assessment, as well as the list of source files
 individually ignored with the ``Ignored_Source_Files`` project attribute and
@@ -374,15 +376,15 @@ items:
 * Date & time when the report was produced
 
 * Command line and Version of |gcp| that produced the report. The set of units
-  that the report is about is conveyed by the command line switches
-  summarized there (:option:`--projects`, :option:`--units`, :option:`--scos`).
+  that the report is about is conveyed by the command line switches summarized
+  there (:cmd-option:`--projects`, :cmd-option:`--units`,
+  :cmd-option:`--scos`).
 
 * Coverage level requested to be analyzed
 
-* Details on the input trace files:
-  path to binary program exercised (as recorded in the trace header),
-  production time stamp and tag string (:option:`--tag` command line
-  argument value).
+* Details on the input trace files: path to binary program exercised (as
+  recorded in the trace header), production time stamp and tag string
+  (:cmd-option:`--tag` command line argument value).
 
 Here is a example excerpt::
 
@@ -413,12 +415,12 @@ Coverage Violations
 The *Coverage Violations* report section lists and counts the coverage
 violations that relate to source lines not part of an exemption region.  The
 violations are grouped in subsections, one per assessed criterion according to
-the :option:`--level` option:
+the :cmd-option:`--level` option:
 
 .. tabularcolumns:: ll
 .. csv-table::
    :delim: |
-   :header: :option:`--level=`, Assessed criteria / Report subsections
+   :header: :cmd-option:`--level=`, Assessed criteria / Report subsections
    :widths: 10, 50
 
    `stmt`          | Statement Coverage
@@ -456,10 +458,10 @@ When multiple violations apply someplace, only the most basic diagnostic is
 emitted, not the more precise ones corresponding to stricter criteria. For
 instance, if an Ada statement like ``X := A and then B;`` is not covered at
 all, a ``statement not executed`` violation is always emitted alone, even when
-assessing :option:`--level=stmt+mcdc` and we also have improper decision and
-conditions coverage.
+assessing :cmd-option:`--level=stmt+mcdc` and we also have improper decision
+and conditions coverage.
 
-Here is an output excerpt for our example with :option:`--level=stmt+mcdc`,
+Here is an output excerpt for our example with :cmd-option:`--level=stmt+mcdc`,
 producing one subsection for each of the three criteria requested at that
 level::
 
@@ -513,12 +515,12 @@ sections that precede.
 Statement Coverage analysis
 ===========================
 
-Core notions and Reporting (:option:`--level=stmt`)
----------------------------------------------------
+Core notions and Reporting (:cmd-option:`--level=stmt`)
+-------------------------------------------------------
 
 |gcv| performs Statement Coverage assessments with the
-:option:`--level=stmt` command line option. The assessment determines
-the status of statement coverage obligations out of the tests execution,
+:cmd-option:`--level=stmt` command line option. The assessment determines the
+status of statement coverage obligations out of the tests execution,
 considering that:
 
 * A statement is :dfn:`covered`, and the obligation :dfn:`discharged`,
@@ -534,7 +536,7 @@ expression evaluation never really terminates::
 
   X := Function_That_Raises_Exception (Y) + Z;
 
-In synthetic :option:`=report` outputs, unexecuted source statements are
+In synthetic :cmd-option:`=report` outputs, unexecuted source statements are
 listed as Statement Coverage violations in the report section dedicated to
 these.
 
@@ -620,7 +622,7 @@ Statement Coverage criterion using the following |gcvcov| invocation::
 
   gnatcov coverage --level=stmt --scos=div_with_check.ali --annotate=xcov test_div1.trace
 
-We get an :option:`=xcov` annotated source result in text format for the
+We get an :cmd-option:`=xcov` annotated source result in text format for the
 functional unit on which the analysis is focused, in
 ``div_with_check.adb.xcov``::
 
@@ -661,8 +663,8 @@ constructs of relevance for our purposes::
 
   gnatcov coverage --level=stmt -Pmytest.gpr --annotate=xcov test_div0.trace
 
-The :option:`=xcov` outputs follow. First, for the functional unit, with the
-``if`` statement coverage reversed compared to the previous testcase::
+The :cmd-option:`=xcov` outputs follow. First, for the functional unit, with
+the ``if`` statement coverage reversed compared to the previous testcase::
 
       1 .: function Div_With_Check (X, Y : Integer) return Integer is
       2 .: begin
@@ -697,8 +699,8 @@ Then, for the test driver where we can note that
       7 -:    Put_Line ("R = " & Integer'Image (Result));
       8 .: end;
 
-The corresponding synthetic report is simply obtained by running |gcvcov|
-again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
+The corresponding synthetic report is simply obtained by running |gcvcov| again
+with :cmd-option:`--annotate=report` instead of :cmd-option:`--annotate=xcov`::
 
    ===========================
    == 1. ASSESSMENT CONTEXT ==
@@ -722,23 +724,23 @@ again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
 
    2 STMT violations.
 
-We can see here that the two lines marked ``-`` in the :option:`=xcov` outputs
-are properly reported as violations in the ``STMT COVERAGE`` section of this
-report, and that this section is the only one presented in the ``COVERAGE
+We can see here that the two lines marked ``-`` in the :cmd-option:`=xcov`
+outputs are properly reported as violations in the ``STMT COVERAGE`` section of
+this report, and that this section is the only one presented in the ``COVERAGE
 VIOLATIONS`` part, as only this criterion was to be analyzed per the
-:option:`--level=stmt` argument.
+:cmd-option:`--level=stmt` argument.
 
 .. _scov-dc:
 
 Decision Coverage analysis
 ==========================
 
-Core notions and Reporting (:option:`--level=stmt+decision`)
-------------------------------------------------------------
+Core notions and Reporting (:cmd-option:`--level=stmt+decision`)
+----------------------------------------------------------------
 
-With the :option:`--level=stmt+decision` command line option, |gcv|
-performs Statement and Decision Coverage assessments combined
-together. :dfn:`Decisions` in this context are defined as:
+With the :cmd-option:`--level=stmt+decision` command line option, |gcv|
+performs Statement and Decision Coverage assessments combined together.
+:dfn:`Decisions` in this context are defined as:
 
 * Any Boolean expression used to influence the control flow via
   explicit constructs in the source program, such as ``if`` statements
@@ -789,13 +791,12 @@ all, only the statement level violation is reported. The nested decision level
 violations are implicit in this case and diagnosing them as well would only
 add redundancy.
 
-The :option:`=report` synthetic output lists the statement and decision
+The :cmd-option:`=report` synthetic output lists the statement and decision
 coverage violations in the ``STMT`` and ``DECISION`` coverage report section
-respectively.
-For the :option:`=xcov` and :option:`=html` annotated-source oriented formats,
-the single annotation produced on each source line combines the statement and
-decision coverage indications. The following table summarizes the meaning of
-the possible annotations:
+respectively.  For the :cmd-option:`=xcov` and :cmd-option:`=html`
+annotated-source oriented formats, the single annotation produced on each
+source line combines the statement and decision coverage indications. The
+following table summarizes the meaning of the possible annotations:
 
 
 .. tabularcolumns:: cl
@@ -809,10 +810,9 @@ the possible annotations:
    ``+`` | All the statements and decisions on the line are covered.
 
 
-When a trailing `+` is added to the format passed
-to :option:`--annotate` (:option:`=xcov+` or :option:`=html+`), a precise
-description of the actual violations is available for each line in addition to
-the annotation.
+When a trailing `+` is added to the format passed to :cmd-option:`--annotate`
+(:cmd-option:`=xcov+` or :cmd-option:`=html+`), a precise description of the
+actual violations is available for each line in addition to the annotation.
 
 Example program and assessments
 -------------------------------
@@ -863,11 +863,11 @@ We first experiment with the following test driver:
 
 This exercises the ``Divmod`` function twice. The outer ``if`` construct
 executes both ways and the ``if Tell then`` test runs once only for ``Tell``
-True. As a result, the only :option:`stmt+decision` violation by our driver is
-the ``Tell`` decision coverage, only partially achieved since we have only
-exercised the True case. This is confirmed by :option:`=report` excerpt below,
-where we find the two violations sections in accordance with the requested set
-of criteria::
+True. As a result, the only :cmd-option:`stmt+decision` violation by our driver
+is the ``Tell`` decision coverage, only partially achieved since we have only
+exercised the True case. This is confirmed by :cmd-option:`=report` excerpt
+below, where we find the two violations sections in accordance with the
+requested set of criteria::
 
    2.1. STMT COVERAGE
    ------------------
@@ -881,8 +881,8 @@ of criteria::
 
    1 violation.
 
-For :option:`--annotate=xcov`, this translates as a single
-partial coverage annotation on the inner ``if`` control line::
+For :cmd-option:`--annotate=xcov`, this translates as a single partial coverage
+annotation on the inner ``if`` control line::
 
    8 .: procedure Divmod
    9 .:   (X, Y : Integer; Value : out Integer;
@@ -917,7 +917,7 @@ Now we exercise with another test driver:
 Here we issue a single call passing 0 for the Y argument, which triggers a
 check failure for the ``mod`` operation.
 
-This results in the following :option:`=xcov` output::
+This results in the following :cmd-option:`=xcov` output::
 
    8 .: procedure Divmod
    9 .:   (X, Y : Integer; Value : out Integer;
@@ -944,9 +944,9 @@ We have an interesting situation here, where
   attempted computation is interrupted by an exception, so none of the other
   statements is ever reached.
 
-This gets all confirmed by the :option:`=report` output below, on which we
-also notice that the only diagnostic emitted for the uncovered inner ``if``
-on line 14 is the statement coverage violation::
+This gets all confirmed by the :cmd-option:`=report` output below, on which we
+also notice that the only diagnostic emitted for the uncovered inner ``if`` on
+line 14 is the statement coverage violation::
 
    2.1. STMT COVERAGE
    ------------------
@@ -969,11 +969,11 @@ on line 14 is the statement coverage violation::
 Modified Condition/Decision Coverage analysis
 =============================================
 
-Core notions and Reporting  (:option:`--level=stmt+mcdc`)
----------------------------------------------------------
+Core notions and Reporting  (:cmd-option:`--level=stmt+mcdc`)
+-------------------------------------------------------------
 
 Combined Statement and Modified Condition/Decision Coverage (MCDC) analysis is
-performed by passing the :option:`--level=stmt+mcdc` option to |gcvcov|
+performed by passing the :cmd-option:`--level=stmt+mcdc` option to |gcvcov|
 commands. :dfn:`Decisions` in this context are defined as:
 
 * All the expressions considered as decisions for decision coverage,
@@ -1008,9 +1008,9 @@ operators, then :ref:`mcdc-variants` expands on the notion of
 :dfn:`independant influence` and on possible variations of the MCDC criterion
 definition.
 
-Output-wise, the source annotations for the :option:`=xcov` or :option:`=html`
-formats are the same as for decision coverage, with condition specific cases
-marked with a ``!`` as well:
+Output-wise, the source annotations for the :cmd-option:`=xcov` or
+:cmd-option:`=html` formats are the same as for decision coverage, with
+condition specific cases marked with a ``!`` as well:
 
 .. tabularcolumns:: cl
 .. csv-table::
@@ -1022,7 +1022,7 @@ marked with a ``!`` as well:
    ``!`` | For a single statement line, decision partially covered or condition not covered on the line.
    ``+`` | All the statements, decisions and conditions on the line are covered.
 
-The :option:`=report` outputs feature an extra MCDC section in the Coverage
+The :cmd-option:`=report` outputs feature an extra MCDC section in the Coverage
 Violations segment, which holds:
 
 - The condition specific diagnosics (``independent influence not
@@ -1213,13 +1213,13 @@ to differ as well in a pair. Indeed, their value change cannot possibly have
 influenced the decision toggle (since they are not even considered in the
 computation), so they can never invalidate the effect of another condition.
 
-We call this variation :dfn:`Unique Cause + Short-Circuit MCDC`, activated
-with :option:`--level=stmt+uc_mcdc` on the command line. From the ``A and then
-B`` table just introduced, 4 + 1 becomes another valid independence pair for
-A, as `B` is not evaluated at all when `A` is False so the change on `B` is
+We call this variation :dfn:`Unique Cause + Short-Circuit MCDC`, activated with
+:cmd-option:`--level=stmt+uc_mcdc` on the command line. From the ``A and then
+B`` table just introduced, 4 + 1 becomes another valid independence pair for A,
+as `B` is not evaluated at all when `A` is False so the change on `B` is
 irrelevant in the decision switch.
 
-:option:`--level=stmt+mcdc` actually implements another variant, known as
+:cmd-option:`--level=stmt+mcdc` actually implements another variant, known as
 :dfn:`Masking MCDC`, accepted as a sound alternative and offering improved
 support for coupled conditions.
 
@@ -1261,13 +1261,13 @@ single case where X1 < V < X2:
       Assert (Between (X1 => 2, X2 => 5, V => 3)); -- X1 < V < X2
    end Test_X1VX2;
 
-Performing MCDC analysis with binary traces requires telling the execution
-step about it, by providing both the :option:`--level` and a list of units for
+Performing MCDC analysis with binary traces requires telling the execution step
+about it, by providing both the :cmd-option:`--level` and a list of units for
 which analysis is to be performed to |gcvrun|::
 
    gnatcov run --level=stmt+mcdc -Pmytest.gpr test_x1vx2
 
-We can then request, say, an :option:`=xcov+` report to get a first set of
+We can then request, say, an :cmd-option:`=xcov+` report to get a first set of
 results in the ``ranges.adb.xcov`` annotated source::
 
    gnatcov coverage --level=stmt+mcdc -Pmytest.gpr --annotate=xcov+ test_x1vx2.trace
@@ -1303,7 +1303,7 @@ Another aspect of interest is that we have partial decision coverage on two
 kinds of decisions (one control-flow decision controling the *if*, and another
 one used a straight return value), and this distinction places the two
 ``decision outcome FALSE never exercised`` violations in distinct sections of
-the :option:`=report` output::
+the :cmd-option:`=report` output::
 
 
    2.1. STMT COVERAGE
@@ -1473,7 +1473,7 @@ Handling source relocation for annotated sources output formats
 ===============================================================
 
 For all annotated sources output formats
-(:option:`--annotate=xcov[+]|html[+]|dhtml)`, |gcv| needs access to the
+(:cmd-option:`--annotate=xcov[+]|html[+]|dhtml)`, |gcv| needs access to the
 sources of the :term:`units of interest <Units of Interest>` to generate the
 output. By default, the sources will be searched in the location where they
 were compiled, for binary traces, or where they were instrumented for source
@@ -1488,7 +1488,7 @@ report will be generated from all the traces/checkpoints. In such case, |gcv|
 will not be able to automatically find the source files. |gcv| offers two
 options to help in those situations:
 
-* The option :option:`--source-rebase=\<old_prefix\>=\<new_prefix\>`
+* The option :cmd-option:`--source-rebase=\<old_prefix\>=\<new_prefix\>`
 
   This option allows the specification of alternate path prefixes for source
   files that were not found in there build_1234/instrumentation location.
@@ -1498,44 +1498,43 @@ options to help in those situations:
   be generated, the same file is located at
   ``/some/path/project/src/main.adb``, then in order for |gcv| to find this
   file, the option
-  :option:`--source-rebase=/work/build_1234/=/some/path/project/` can be
+  :cmd-option:`--source-rebase=/work/build_1234/=/some/path/project/` can be
   passed. Note that the prefixes apply to absolute paths.
 
-  This option supports globbing expressions for the ``old_prefix`` part
-  of the option, so in the example above, if the build number varies from run
-  to run, the option passed can be
-  :option:`--source-rebase=/work/build_*=/some/path/project/`.
+  This option supports globbing expressions for the ``old_prefix`` part of the
+  option, so in the example above, if the build number varies from run to run,
+  the option passed can be
+  :cmd-option:`--source-rebase=/work/build_*=/some/path/project/`.
 
   This option also allows for response-files
-  (:option:`--source-rebase=\@rebase_file`) in which each line must be of the
-  form ``old_prefix=new_prefix``.
+  (:cmd-option:`--source-rebase=\@rebase_file`) in which each line must be of
+  the form ``old_prefix=new_prefix``.
 
   This option can be passed multiple times on the command line, and |gcv| will
   try each pair in the order in which they were passed until the source file
   is found.
 
-* The option :option:`--source-search=directory_path`
+* The option :cmd-option:`--source-search=directory_path`
 
   This option allows the specification of directories in which to search for
   missing source files.
 
-  If the location of a source file, when built on a first
-  machine, was ``/work/build_1234/src/main.adb`` but its location on the
-  machine where the report is generated is
-  ``/some/path/project/src/main.adb`` then passing
-  :option:`--source-search=/some/path/project/src` will enable |gcv|
-  to find the missing source file. This option also accepts response files.
+  If the location of a source file, when built on a first machine, was
+  ``/work/build_1234/src/main.adb`` but its location on the machine where the
+  report is generated is ``/some/path/project/src/main.adb`` then passing
+  :cmd-option:`--source-search=/some/path/project/src` will enable |gcv| to
+  find the missing source file. This option also accepts response files.
 
-  This option can appear multiple times on the command line, and when trying
-  to locate a missing source file, |gcv| will first try the
-  :option:`--source-rebase` prefix pairs, if any, and if the source file was
-  not found, it will then look for the file in all the directories passed with
-  :option:`--source-search` in the order in which they appear on the command
-  line.
+  This option can appear multiple times on the command line, and when trying to
+  locate a missing source file, |gcv| will first try the
+  :cmd-option:`--source-rebase` prefix pairs, if any, and if the source file
+  was not found, it will then look for the file in all the directories passed
+  with :cmd-option:`--source-search` in the order in which they appear on the
+  command line.
 
 These two options perform very similar functions and can sometimes be used
 interchangeably, however the second option is less selective and can lead to
-unexpected results in some circumstances. Since :option:`--source-search`
+unexpected results in some circumstances. Since :cmd-option:`--source-search`
 only specifies an additional directory in which to search for missing sources,
 it does not guarantee that if a file is found then it is the correct one, but
 only that the file found has the same basename than the searched file. For Ada
@@ -1544,21 +1543,21 @@ names, but for C projects where there can be homonyms, this can be problematic:
 
 If a project is built with the files ``/work/build_1234/src1/foo.h`` and
 ``/work/build_1234/src2/foo.h`` among its sources, and
-:option:`--source-search=/some/path/src1 --source-search=/some/path/src2` is
-passed to |gcv| to add the two source directories to the list of locations
+:cmd-option:`--source-search=/some/path/src1 --source-search=/some/path/src2`
+is passed to |gcv| to add the two source directories to the list of locations
 where sources can be found, then the resulting location for both ``foo.h``
 files will be ``/some/path/src1/foo.h``. In this case, passing
-:option:`--source-rebase=/work/build=/some/path/` removes the ambiguity.
+:cmd-option:`--source-rebase=/work/build=/some/path/` removes the ambiguity.
 
-:option:`--source-rebase` is also more convenient when the project has
+:cmd-option:`--source-rebase` is also more convenient when the project has
 multiple source directories, provided that their structure is the same when
 building/instrumenting the project and generating the coverage report. In the
-example above, it is necessary to pass :option:`--source-search` twice to
-include all the source directories in the search path, but only one instance
-of :option:`--source-rebase` is needed. For very large projects, since the
-number of required instances of :option:`--source-search` is equal to the
+example above, it is necessary to pass :cmd-option:`--source-search` twice to
+include all the source directories in the search path, but only one instance of
+:cmd-option:`--source-rebase` is needed. For very large projects, since the
+number of required instances of :cmd-option:`--source-search` is equal to the
 number of source directories, it is clearly more advantageous to use
-:option:`--source-rebase` which only needs to be passed once.
+:cmd-option:`--source-rebase` which only needs to be passed once.
 
 Inlining & Ada generic units
 ============================
@@ -1691,8 +1690,8 @@ copy the violation originates from.
 subsections.
 
 
-Separation by instance (:option:`-S instance`)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Separation by instance (:cmd-option:`-S instance`)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this mode, two code regions coming from the same source construct will
 undergo separate coverage analyses if they come from different generic
@@ -1710,22 +1709,22 @@ violations detailed are exposed, this translates as::
 
 
 We do observe violations on the ``Vops`` generic body, fully covered without
-:option:`-S instance`. This is the outcome of an analysis conducted on the two
-generic instances separately, each designated by a ``(from <instantiation
+:cmd-option:`-S instance`. This is the outcome of an analysis conducted on the
+two generic instances separately, each designated by a ``(from <instantiation
 source location>)`` indication.
 
 |gcv| needs to see the coverage obligations correponding to each instance in
 this mode. This is achieved transparently by the use of a project file in the
 example command lines we quoted and needs particular care when the Library
-Information files are provided manually with :option:`--scos` instead.
+Information files are provided manually with :cmd-option:`--scos` instead.
 
-Indeed, even if we aim at getting coverage results for the ``vops.adb``
-source, passing :option:`--scos=vops.ali` alone isn't enough when per instance
+Indeed, even if we aim at getting coverage results for the ``vops.adb`` source,
+passing :cmd-option:`--scos=vops.ali` alone isn't enough when per instance
 separate analysis is desired. Separate coverage analysis for the instances
 entails coverage obligations for the instances, and this requires the units
 where the instantiations occur to be declared of interest as well. In our
-example, this means passing :option:`--scos=v5.ali` and
-:option:`--scos=v8.ali` in addition.
+example, this means passing :cmd-option:`--scos=v5.ali` and
+:cmd-option:`--scos=v8.ali` in addition.
 
 Separation by instance relies on specific compiler support available in the
 GNAT Pro toolchain since the 7.2 release. For older toolchains, another mode
@@ -1734,8 +1733,8 @@ with distinct symbols of the executable file. As we will describe, this
 provides a good approximation of per-instance analysis in absence of inlining,
 and becomes inaccurate when inlining comes into play.
 
-Separation by routine (:option:`-S routine`, *obsolete*)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Separation by routine (:cmd-option:`-S routine`, *obsolete*)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this mode, two code regions coming from the same source construct will
 undergo separate coverage analyses if they occur in different symbols of the
@@ -1831,10 +1830,10 @@ The two macro invocations actually expand as:
        do { if (x == 0) (x)++; else (y)++; } while(0);
 
 
-The expanded version is the basis of SCO identification process, so we have
-one decision and two conditioned statements on line 13, likewise on
-line 14. Only one of each is exercised at execution time, and a
-:option:`stmt+decision` analysis on this program yields::
+The expanded version is the basis of SCO identification process, so we have one
+decision and two conditioned statements on line 13, likewise on line 14. Only
+one of each is exercised at execution time, and a :cmd-option:`stmt+decision`
+analysis on this program yields::
 
   2.1. STMT COVERAGE
   ------------------
@@ -1872,14 +1871,14 @@ statement cannot be be inferred from that of other statements around, |gcp|
 categorizes the statement as :dfn:`non-coverable`.
 
 By default, nothing is said about non-coverable statements in the
-:option:`=report` outputs and the corresponding lines are marked with a '.' in
-annnotated sources, as for any other line to which no machine code is
+:cmd-option:`=report` outputs and the corresponding lines are marked with a '.'
+in annnotated sources, as for any other line to which no machine code is
 attached.  Below is an example source annotated for statement coverage, where
 absence of code for a couple of Ada statments was triggered by constant
 propagation and inlining. The local ``Pos`` function is called only once, with
 a constant argument such that only one alternative of the ``if`` statement is
-taken. With :option:`-O1 -gnatn`, the compiler sees that the ``else`` part can
-never be entered and no code is emitted at all for this alternative::
+taken. With :cmd-option:`-O1 -gnatn`, the compiler sees that the ``else`` part
+can never be entered and no code is emitted at all for this alternative::
 
    4 .: procedure Test_Pos1 is
    5 .:    function Pos (X : Integer) return Boolean;
@@ -1922,9 +1921,9 @@ Decision coverage report remains accurate::
    11 +:          Put_Line ("X is positive");
    12 +:          return True;
 
-|gcvcov| features the :option:`--non-coverable` command line option to expose
-the non-coverable statements if needed. They are listed in an additional
-"``NON COVERABLE ITEMS``" section of the :option:`=report` outputs and the
+|gcvcov| features the :cmd-option:`--non-coverable` command line option to
+expose the non-coverable statements if needed. They are listed in an additional
+"``NON COVERABLE ITEMS``" section of the :cmd-option:`=report` outputs and the
 corresponding lines are flagged with a '0' mark in annotated sources, as well
 as a specific color in the html formats. For our example, this yields::
 

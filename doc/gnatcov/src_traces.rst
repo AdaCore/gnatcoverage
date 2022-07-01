@@ -64,10 +64,10 @@ Setting up the :term:`coverage runtime` library
 project file. The |gcvstp| command helps automating the build and installation
 of this project.
 
-Just like :command:`gprbuild`, |gcvstp| accept the :option:`--RTS`,
-:option:`--config` and :option:`--target` command line options: you need to
-build the coverage runtime with the same toolchain and runtime as the ones used
-to build the application code. For instance:
+Just like :command:`gprbuild`, |gcvstp| accept the :cmd-option:`--RTS`,
+:cmd-option:`--config` and :cmd-option:`--target` command line options: you
+need to build the coverage runtime with the same toolchain and runtime as the
+ones used to build the application code.  For instance:
 
 .. code-block:: sh
 
@@ -79,7 +79,7 @@ to build the application code. For instance:
 
 By default, |gcvstp| installs the coverage runtime in the same prefix as the
 selected toolchain (just like :command:`gprinstall`). In order to install it in
-another location, pass the :option:`--prefix` option:
+another location, pass the :cmd-option:`--prefix` option:
 
 .. code-block:: sh
 
@@ -94,7 +94,7 @@ the same prefix, for instance when working on a project that runs both on the
 native platform and on an embedded target while the two toolchains are also
 installed in the same prefix. It is possible to make |gcvstp| install the
 coverage runtime under different project names: the default is ``gnatcov_rts``,
-and using the :option:`--install-name` option changes it.
+and using the :cmd-option:`--install-name` option changes it.
 
 .. code-block:: sh
 
@@ -106,7 +106,7 @@ and using the :option:`--install-name` option changes it.
 
 When building instrumented projects later with :command:`gprbuild`, you then
 have to select the appropriate coverage runtime with the
-:option:`--implicit-with` switch:
+:cmd-option:`--implicit-with` switch:
 
 .. code-block:: sh
 
@@ -125,8 +125,8 @@ Language restrictions
 
 By default, |gcvstp| builds and installs the coverage runtime with Ada and C
 units. When using |gcp| with a C-only toolchain, it is necessary to build the
-coverage runtime without its Ada units. The :option:`--restricted-to-languages`
-option allows that:
+coverage runtime without its Ada units. The
+:cmd-option:`--restricted-to-languages` option allows that:
 
 .. code-block:: sh
 
@@ -174,29 +174,29 @@ by ``gnatcov instrument --help``. The general sysopsis is as follows::
 
   gnatcov instrument --level=<> <units-of-interest> [OPTIONS]
 
-:option:`--level` states the strictest criterion that this instrumentation
-will allow assessing afterwards and the :option:`<units-of-interest>` switches
-specify the set of units for which such assessment will be possible. The
+:cmd-option:`--level` states the strictest criterion that this instrumentation
+will allow assessing afterwards and the ``<units-of-interest>`` switches
+specify the set of units for which such assessment will be possible.  The
 latter may only resort to project file facilities, as described in the
 :ref:`passing_gpr` section of this manual. Projects marked ``Externally_Built``
 in the closure are not instrumented or otherwise modified.
 
-A few :option:`[OPTIONS]` allow controlling the instrumentation of main units,
-if any are designated by the root project:
+A few :cmd-option:`[OPTIONS]` allow controlling the instrumentation of main
+units, if any are designated by the root project:
 
-:option:`--dump-trigger`
+:cmd-option:`--dump-trigger`
    selects the execution point at which the output of coverage data should be
    injected in main units. This is ``manual`` by default, leaving to users the
    responsibility to emit the coverage data as they see fit. Other possible
    choices are ``atexit``, ``main-end`` and ``ravenscar-task-termination``.
 
-:option:`--dump-channel`
+:cmd-option:`--dump-channel`
    selects the mechanism used to output coverage data at the selected
    triggering point, if any. The possible choices are ``bin-file``, to create a
    source trace file, or ``base64-stdout`` to emit a base64 encoded version of
    the data through ``GNAT.IO``. ``bin-file`` is the default.
 
-:option:`--externally-built-projects`
+:cmd-option:`--externally-built-projects`
    instructs the instrumenter to look into projects marked as externally built
    when computing the list of units of interest (they are ignored by default),
    for the sole purpose of instrumenting mains.
@@ -270,13 +270,13 @@ expressed as hexadecimal integers to limit the growth of file name lengths.
 
 This default behavior can be influenced in several manners. First:
 
-* The :option:`--dump-filename-prefix` switch to |gcvins| requests replacing
-  the ``<ename>`` component by the switch argument;
+* The :cmd-option:`--dump-filename-prefix` switch to |gcvins| requests
+  replacing the ``<ename>`` component by the switch argument;
 
-* The :option:`--dump-filename-simple` switch requests the removal of the
+* The :cmd-option:`--dump-filename-simple` switch requests the removal of the
   variable components (stamps and pid), so only the ``<ename>`` component
-  remains or the replacement provided by :option:`--dump-filename-prefix` if
-  that switch is also used.
+  remains or the replacement provided by :cmd-option:`--dump-filename-prefix`
+  if that switch is also used.
 
 
 The use of a specific location for the file, or of a specific file name can be
@@ -296,7 +296,7 @@ point and the directories involved are expected to exist at that time.
 
 For specific needs of programs wishing to output to different places from
 within the same environment, the variable name for a program can actually be
-tailored by passing a :option:`--dump-filename-env-var` switch to |gcvins|,
+tailored by passing a :cmd-option:`--dump-filename-env-var` switch to |gcvins|,
 providing the variable name to use.
 
 .. _instr-limitations:
@@ -368,24 +368,25 @@ not even modification of the project files.
 
 For each project in the closure of-interest, the instrumentation generates the
 alternative sources in the ``gnatcov-instr`` subdirectory of the project's
-object directory.  Giving priority to this subdir when it exists is achieved
-by passing a :option:`--src-subdirs` switch to :command:`gprbuild`, naming
+object directory.  Giving priority to this subdir when it exists is achieved by
+passing a :cmd-option:`--src-subdirs` switch to :command:`gprbuild`, naming
 that particular relative subdirectory.
 
-Then :command:`gprbuild` now supports a :option:`--implicit-with` option which
-requests processing every project as if it started with a ``with`` statement
-for a given project, which we can use to designate the coverage runtime
-project file so all the compiled code gets access to the support packages.
+Then :command:`gprbuild` now supports a :cmd-option:`--implicit-with` option
+which requests processing every project as if it started with a ``with``
+statement for a given project, which we can use to designate the coverage
+runtime project file so all the compiled code gets access to the support
+packages.
 
 The build of instrumented components then proceeds almost exactly as a regular
-one, only adding :option:`--src-subdirs=gnatcov-instr` and
-:option:`--implicit-with=`:option:`<gnatcov_rts_gpr>` to the build options,
-where :option:`<gnatcov_rts_gpr>` would be the coverage runtime project file
-setup beforehand for the project, as described previously in this
-chapter. This project file could be referred to with a full path specification,
-or with a simple basename if the ``GPR_PROJECT_PATH`` environment variable is
-updated to designate the directory where the project file is located, which
-would be the ``share/gpr`` subdirectory of the runtime installation tree.
+one, only adding :cmd-option:`--src-subdirs=gnatcov-instr` and
+:cmd-option:`--implicit-with=<gnatcov_rts_gpr>` to the build options, where
+:cmd-option:`<gnatcov_rts_gpr>` would be the coverage runtime project file
+setup beforehand for the project, as described previously in this chapter. This
+project file could be referred to with a full path specification, or with a
+simple basename if the ``GPR_PROJECT_PATH`` environment variable is updated to
+designate the directory where the project file is located, which would be the
+``share/gpr`` subdirectory of the runtime installation tree.
 
 While the scheme relies on the use of GNAT project files, it does not
 absolutely require :command:`gprbuild` to build the instrumented programs,
@@ -395,7 +396,7 @@ process very efficient and straightforward.
 Extracting a trace from standard output
 =======================================
 
-With the :option:`base64-stdout` channel, coverage data is emitted with
+With the :cmd-option:`base64-stdout` channel, coverage data is emitted with
 ``GNAT.IO`` on the program's standard output stream. The actual base64 encoded
 data is framed by start/end-of-coverage-data markers and |gcp| provides the
 |gcvxtr| command to extract this data from a captured output and create a trace
@@ -446,7 +447,7 @@ Instrumentation of a multi-languages project
 
 The |gcp| instrumentation mode supports Ada, and C. As C support is still at its
 beta stage, it is disabled by default. To activate it, add the
-:option:`--restricted-to-languages=C,Ada` switch to your command line.
+:cmd-option:`--restricted-to-languages=C,Ada` switch to your command line.
 
 Note that, as of now, the C instrumented code still uses the Ada coverage
 runtime, described in the section :ref:`instr-rts`. To interface with this
@@ -581,9 +582,9 @@ source unit providing access to some sensor values.
   end;
 
 We will consider a cross target environment, say PowerPC-VxWorks, using Real
-Time Processes hence an :option:`rtp` Ada runtime library. We will assume we
-don't have a filesystem at hand, so will rely on the base64 encoded output of
-trace data to standard output.
+Time Processes hence an :cmd-option:`rtp` Ada runtime library. We will assume
+we don't have a filesystem at hand, so will rely on the base64 encoded output
+of trace data to standard output.
 
 
 Setting up the coverage runtime
@@ -619,8 +620,8 @@ We setup a ``monitor.gpr`` project file for our program, where we
 - Provide the main unit name, so it can be instrumented automatically, and...
 
 - State the target configuration name and Ada runtime library so we won't have
-  to pass explicit :option:`--target` and :option:`--RTS` on every command
-  line involving project files afterwards.
+  to pass explicit :cmd-option:`--target` and :cmd-option:`--RTS` on every
+  command line involving project files afterwards.
 
 For example:
 
@@ -700,7 +701,7 @@ Setting up the coverage runtime
 On a native system such as Linux or Windows, the simplest is to pick a
 *gnatcov_rts_full.gpr* variant, thanks to which we will be able to produce
 trace files directly. We go for a straightforward setup assuming we will use
-the default full Ada runtime (no specific :option:`--RTS` option)::
+the default full Ada runtime (no specific :cmd-option:`--RTS` option)::
 
   # Copy the sources into a fresh local place for the build:
   cp -rp <gnatcoverage-install>/share/gnatcoverage/gnatcov_rts <gnatcov_rts-build-dir>
@@ -727,7 +728,7 @@ the other is frozen, best is to isolate the frozen part as a separate project
 and declare it ``Externally_Built`` once the instrumented version has been built.
 
 This would normally be achieved by :command:`gprinstall` after the build,
-except the support for instrumentation artifacts (:option:`--src-subdirs`
+except the support for instrumentation artifacts (:cmd-option:`--src-subdirs`
 option) may not be available.
 
 One solution consists in setting up a separate library project file for the
@@ -794,9 +795,10 @@ such as::
   gprbuild -f -Pcode.gpr -XCODE_LIBMODE=build -p
     --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full.gpr
 
-Both commands proceed with ``Externally_Built`` ``"False"``. There is no main unit
-attached to the library per se, so no need for :option:`--dump-trigger` or
-:option:`--dump-channel` at instrumentation time.
+Both commands proceed with ``Externally_Built`` ``"False"``. There is no main
+unit attached to the library per se, so no need for
+:cmd-option:`--dump-trigger` or :cmd-option:`--dump-channel` at instrumentation
+time.
 
 Then we can go on with the tests using the default ``CODE_LIBMODE`` value,
 implicitly switching the attribute to ``"True"``.
@@ -810,10 +812,11 @@ units, in our case to dump trace files when the test programs exit::
   gnatcov instrument -Ptests.gpr --level=stmt+decision
     --dump-trigger=atexit [--dump-method=bin-file] --externally-built-projects
 
-The :option:`--externally-built-projects` option is required to consider units
-from the library code project as contributing to the set of units of interest,
-for the purpose of instrumenting mains, that is, so the instrumentation of
-main considers coverage data from those units when producing the trace file.
+The :cmd-option:`--externally-built-projects` option is required to consider
+units from the library code project as contributing to the set of units of
+interest, for the purpose of instrumenting mains, that is, so the
+instrumentation of main considers coverage data from those units when producing
+the trace file.
 
 The build of instrumented tests then proceeds as follows::
 

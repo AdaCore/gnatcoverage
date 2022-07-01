@@ -14,6 +14,8 @@
 
 import os
 
+import docutils.nodes as nodes
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -275,3 +277,15 @@ latex_toplevel_sectioning = 'part'
 
 # If false, no module index is generated.
 latex_domain_indices = True
+
+
+# Custom :cmd-option: role
+def cmd_option_role(
+    name, rawtext, text, lineno, inliner, options={}, content=[]
+):
+    node = nodes.literal(rawtext, text, *content, **options)
+    return [node], []
+
+
+def setup(app):
+    app.add_role("cmd-option", cmd_option_role)

@@ -67,12 +67,12 @@ list cumulates before ``--annotate`` for |gcvcov|. Similarily, switches from
 the project file are always processed as if appearing before the others on the
 command line.
 
-For switches like :option:`--level` that don't accumulate to produce sets, the
-last occurrence on the command line prevails. The project file values act as
-defaults that can be overriden by an explicit value on the command line,
-wherever they are placed (before or after :option:`-P`).
+For switches like :cmd-option:`--level` that don't accumulate to produce sets,
+the last occurrence on the command line prevails. The project file values act
+as defaults that can be overriden by an explicit value on the command line,
+wherever they are placed (before or after :cmd-option:`-P`).
 
-For switches such as :option:`--units` which have cumulative effect, later
+For switches such as :cmd-option:`--units` which have cumulative effect, later
 occurrences on the command line add up with, rather than replace, those
 specified in the project file.
 
@@ -84,9 +84,9 @@ Specifying the Target and language Runtime
 Similarly to other tools, |gcv| uses any existing ``Target`` or ``Runtime``
 attribute in the root project file to detect what target architecture and
 associated language runtime profile to consider. This can be done instead of
-providing the :option:`--target` and :option:`--RTS` options both for correct
-processing of project files and to run the appropriate execution environment
-in |gcvrun|.  Here is a simple example::
+providing the :cmd-option:`--target` and :cmd-option:`--RTS` options both for
+correct processing of project files and to run the appropriate execution
+environment in |gcvrun|.  Here is a simple example::
 
     project My_Program is
        for Languages use ("Ada");
@@ -96,5 +96,5 @@ in |gcvrun|.  Here is a simple example::
        for Runtime use "zfp-mpc8641";
     end My_Program;
 
-When a :option:`--target` or a :option:`--RTS` option is provided on the
-command line, the option takes precedence over the corresponding attribute.
+When a :cmd-option:`--target` or a :cmd-option:`--RTS` option is provided on
+the command line, the option takes precedence over the corresponding attribute.
