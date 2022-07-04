@@ -1258,7 +1258,7 @@ begin
          end if;
 
          declare
-            --  Try to load the setup config from metedata installed with
+            --  Try to load the setup config from metadata installed with
             --  instrumentation runtime, and from there, decode the --dump-*
             --  options.
 

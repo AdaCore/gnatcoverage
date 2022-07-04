@@ -3,14 +3,14 @@
 
 .. _checkpoints:
 
-***********************************************
-Consolidation from :term:`coverage checkpoints`
-***********************************************
+*********************************************************************
+Consolidation from :term:`coverage checkpoints <Coverage Checkpoint>`
+*********************************************************************
 
-A :term:`coverage checkpoint` is a file containing a condensed version
-of a coverage assessment computed by |gcvcov|, which the tool can
-reload and combine with other assessments very efficiently. This may
-be viewed as an internal representation of a coverage report which
+A :term:`coverage checkpoint <Coverage Checkpoint>` is a file containing a
+condensed version of a coverage assessment computed by |gcvcov|, which the tool
+can reload and combine with other assessments very efficiently. This may be
+viewed as an internal representation of a coverage report which
 :option:`--annotate` would output in a user readable form.
 
 As reports, checkpoints are initially produced from traces, thanks

@@ -1473,13 +1473,13 @@ Handling source relocation for annotated sources output formats
 
 For all annotated sources output formats
 (:option:`--annotate=xcov[+]|html[+]|dhtml)`, |gcv| needs access to the
-sources of the :term:`units of interest` to generate the output. By default,
-the sources will be searched in the location where they were compiled, for
-binary traces, or where they were instrumented for source traces. This is
-generally going to be the case if the whole coverage analysis process is done
-on the same machine, but in some cases it may be preferable to generate the
-coverage report on a different machine than the one where the coverage run was
-done, or the sources may have been moved.
+sources of the :term:`units of interest <Units of Interest>` to generate the
+output. By default, the sources will be searched in the location where they
+were compiled, for binary traces, or where they were instrumented for source
+traces. This is generally going to be the case if the whole coverage analysis
+process is done on the same machine, but in some cases it may be preferable to
+generate the coverage report on a different machine than the one where the
+coverage run was done, or the sources may have been moved.
 
 For instance, a project with a large number of unit tests may be run on
 multiple machines in parallel to speed up the test runs, and then a single

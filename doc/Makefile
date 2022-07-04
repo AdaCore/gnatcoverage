@@ -6,7 +6,6 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-PAPER         = a4
 BUILDDIR      = _build
 
 PREFIX        = _install
@@ -16,9 +15,7 @@ INSTALLDIR    = $(PREFIX)/share/doc/gnatdas
 DOCFORMATS=pdf html
 
 # Internal variables.
-PAPEROPT_a4     = -D latex_paper_size=a4
-PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SPHINXOPTS) .
 
 MKDIR=mkdir -p
 

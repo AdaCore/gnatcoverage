@@ -6,9 +6,9 @@ Coverage Consolidation
 
 :dfn:`Coverage consolidation` designates the general facility allowing the
 computation of the overall coverage achieved by a set of executions. When
-different executions get through common :term:`units of interest`,
-consolidation computes the combined coverage of all the executions on these
-units.
+different executions get through common :term:`units of interest <Units of
+Interest>`, consolidation computes the combined coverage of all the executions
+on these units.
 
 A typical case where consolidation is useful is when some part of an
 application depends on external inputs and several executions are required to
@@ -24,8 +24,9 @@ different scenarios of a given subprogram).
 The production of consolidated coverage reports can proceed either directly
 from a set of source or binary traces produced by the executions, or from a
 set of pre-computed partial results latched in what we refer to as
-:term:`coverage checkpoints`, which offer a lot of advanced capabilities.
-The following sections illustrate various combinations of the possibilities.
+:term:`coverage checkpoints <Coverage Checkpoint>`, which offer a lot of
+advanced capabilities.  The following sections illustrate various combinations
+of the possibilities.
 
 .. toctree::
    :maxdepth: 2

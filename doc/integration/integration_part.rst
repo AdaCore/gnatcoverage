@@ -154,46 +154,47 @@ After invoking GNATtest as follows:
 
 The following two files can be found in the harness directory:
 
-* The ``Makefile`` with (amond other things) three rules that execute the
-full coverage workflow for each test driver project, and then generates
-a coverage report combining the results:
+* The ``Makefile`` with (amongst other things) three rules that execute the
+  full coverage workflow for each test driver project, and then generates a
+  coverage report combining the results:
 
-.. code-block:: Makefile
+  .. code-block:: Makefile
 
-  bin-coverage: ...
+    bin-coverage: ...
 
-  inst-coverage: ...
+    inst-coverage: ...
 
-  coverage: inst-coverage
+    coverage: inst-coverage
 
-The first rule (``bin-coverage``) runs the binary traces workflow for |gcp|,
-whereas the second rule (``inst-coverage``) runs the source-trace (or
-instrumentation based) workflow. The last rule (``coverage``) is defined to
-use the workflow the most likely to work given the current target.
+  The first rule (``bin-coverage``) runs the binary traces workflow for |gcp|,
+  whereas the second rule (``inst-coverage``) runs the source-trace (or
+  instrumentation based) workflow. The last rule (``coverage``) is defined to
+  use the workflow the most likely to work given the current target.
 
 * The ``coverage_settings.mk`` file, which, when generated, copied all the
   values of the relevant root project attributes into corresponding variables:
 
-.. code-block:: Makefile
+  .. code-block:: Makefile
 
-  # Settings in this file were extracted from the source project
-  # or are gnattest default values if they weren't specified in the source project.
-  # They may need adjustments to fit your particular coverage needs.
-  # This file won't be overwritten when regenerating the harness.
+    # Settings in this file were extracted from the source project
+    # or are gnattest default values if they weren't specified in the source
+    # project. They may need adjustments to fit your particular coverage needs.
+    # This file won't be overwritten when regenerating the harness.
 
-  # Switches for the various gnatcov commands
-  SWITCHES_INSTRUMENT=--dump-trigger=main-end --level=stmt
+    # Switches for the various gnatcov commands
+    SWITCHES_INSTRUMENT=--dump-trigger=main-end --level=stmt
 
-  SWITCHES_RUN=--level=stmt
+    SWITCHES_RUN=--level=stmt
 
-  SWITCHES_COVERAGE=--annotate=report --level=stmt
+    SWITCHES_COVERAGE=--annotate=report --level=stmt
 
-  # Path to the installed gnatcov rts project file.
-  # No need to specify it if the project file path was added to the GPR_PROJECT_PATH environment variable.
-  GNATCOV_RTS=
+    # Path to the installed gnatcov rts project file.
+    # No need to specify it if the project file path was added to the
+    # GPR_PROJECT_PATH environment variable.
+    GNATCOV_RTS=
 
-There is an empty ``GNATCOV_RTS`` variable defined, which we can set to the
-path to the installed gnatcov runtime project file.
+  There is an empty ``GNATCOV_RTS`` variable defined, which we can set to the
+  path to the installed gnatcov runtime project file.
 
 Once the tests are all written, generating the coverage report (on the
 standard output in this example) can be done by simply invoking::
