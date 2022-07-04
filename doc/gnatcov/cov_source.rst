@@ -147,8 +147,8 @@ The available options are as follows:
     analysis from that initial state.
 
 :cmd-option:`--source-rebase`, |rarg|:
-    Specify alternate absolute path prefixes to locate missing source files
-    when producing annotated source outputs. See :ref:`rebase_opts`
+    Specify alternate absolute path prefixes to locate source files when
+    producing annotated source outputs. See :ref:`rebase_opts`
 
 :cmd-option:`--source-search`, |rarg|:
     Specify a directory in which missing source files will be searched when
@@ -1510,7 +1510,7 @@ options to help in those situations:
 * The option :cmd-option:`--source-rebase=\<old_prefix\>=\<new_prefix\>`
 
   This option allows the specification of alternate path prefixes for source
-  files that were not found in there build_1234/instrumentation location.
+  files.
 
   If the location of a source file, when built on a first machine, was
   ``/work/build_1234/src/main.adb`` but on the machine where the report is to
@@ -1538,18 +1538,17 @@ options to help in those situations:
   This option allows the specification of directories in which to search for
   missing source files.
 
-  If the location of a source file, when built on a first machine, was
-  ``/work/build_1234/src/main.adb`` but its location on the machine where the
-  report is generated is ``/some/path/project/src/main.adb`` then passing
-  :cmd-option:`--source-search=/some/path/project/src` will enable |gcv| to
-  find the missing source file. This option also accepts response files.
+  If the location of a source file, when built on a first machine,
+  was ``/work/build_1234/src/main.adb`` but its location on the machine where
+  the report is generated is ``/some/path/project/src/main.adb`` then passing
+  :option:`--source-search=/some/path/project/src` will enable |gcv| to find
+  the missing source file. This option also accepts response files.
 
-  This option can appear multiple times on the command line, and when trying to
-  locate a missing source file, |gcv| will first try the
-  :cmd-option:`--source-rebase` prefix pairs, if any, and if the source file
-  was not found, it will then look for the file in all the directories passed
-  with :cmd-option:`--source-search` in the order in which they appear on the
-  command line.
+  This option can appear multiple times on the command line. Note that |gcv|
+  will first try the :option:`--source-rebase` prefix pairs, if any, and if
+  the source file was not found, it will then look for the file in all the
+  directories passed with :option:`--source-search` in the order in which they
+  appear on the command line.
 
 These two options perform very similar functions and can sometimes be used
 interchangeably, however the second option is less selective and can lead to
