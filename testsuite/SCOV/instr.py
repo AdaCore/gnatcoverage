@@ -112,8 +112,9 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
 
     if warnings_as_errors:
         output = contents_of(out)
+
         thistest.fail_if(
-            "!!!" in output,
+            "***" in output,
             f"Warnings detected in the output of 'gnatcov instrument':"
             f"\n{indent(output)}"
         )
