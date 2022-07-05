@@ -138,7 +138,7 @@ package body Setup_RTS is
    --  Project_File component.
 
    function Setup_Config_File_Basename (Project_Name : String) return String
-   is ("setup-config-" & To_Lower (Project_Name) & ".json");
+   is ("setup-config-" & To_Lower (Base_Name (Project_Name)) & ".json");
    --  Return the base filename for the setup config file corresponding to the
    --  given Project_Name.
 
@@ -728,7 +728,7 @@ package body Setup_RTS is
       begin
          Initialize (Env, Target, RTS, Config_File);
          Prj.Load
-           (Root_Project_Path => Create (+To_Lower (Runtime_Project)),
+           (Root_Project_Path => Create (+Runtime_Project),
             Env               => Env,
             Errors            => Error_Report'Access);
       exception
