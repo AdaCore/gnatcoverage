@@ -920,7 +920,7 @@ package body Setup_RTS is
          case Dump_Cfg.Channel is
             when Binary_File =>
                J.Set_Field
-                 ("dump-filename-simple", Dump_Cfg.Filename_Simple'Image);
+                 ("dump-filename-simple", Dump_Cfg.Filename_Simple);
                J.Set_Field
                  ("dump-filename-env-var", Dump_Cfg.Filename_Env_Var);
                J.Set_Field
