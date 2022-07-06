@@ -185,17 +185,16 @@ A few :option:`[OPTIONS]` allow controlling the instrumentation of main units,
 if any are designated by the root project:
 
 :option:`--dump-trigger`
-   selects the execution point at which the output of
-   coverage data should be injected in main units. This is ``manual`` by
-   default, leaving to users the responsibility to emit the coverage data as
-   they see fit. Other possible choices are ``atexit``, ``main-end`` and
-   ``ravenscar-task-termination``.
+   selects the execution point at which the output of coverage data should be
+   injected in main units. This is ``manual`` by default, leaving to users the
+   responsibility to emit the coverage data as they see fit. Other possible
+   choices are ``atexit``, ``main-end`` and ``ravenscar-task-termination``.
 
 :option:`--dump-channel`
-   selects the mechanism used to output coverage data at the selected triggering
-   point, if any. The possible choices are ``bin-file``, to create a source
-   trace file, or ``base64-stdout`` to emit a base64 encoded version of the data
-   through ``GNAT.IO``. ``bin-file`` is the default.
+   selects the mechanism used to output coverage data at the selected
+   triggering point, if any. The possible choices are ``bin-file``, to create a
+   source trace file, or ``base64-stdout`` to emit a base64 encoded version of
+   the data through ``GNAT.IO``. ``bin-file`` is the default.
 
 :option:`--externally-built-projects`
    instructs the instrumenter to look into projects marked as externally built

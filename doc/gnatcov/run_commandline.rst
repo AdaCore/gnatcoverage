@@ -78,7 +78,7 @@ Then the available :option:`[OPTIONS]` are:
    Designate a root project file for various possible purposes.  This can
    first be used together with :option:`--projects` as an alternative to
    :option:`--scos` to collect the set of units of interest for later coverage
-   assessments if mcdc computation is needed. See the :ref:`trace-control` and
+   assessments if mcdc computation is needed. See the :ref:`mcdc-examples` and
    :ref:`sunits` sections of this manual for more details on this. Another
    possible use is the specification in the root project file of attributes
    controlling the execution, such as the coverage level intended to be

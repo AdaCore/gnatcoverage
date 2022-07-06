@@ -264,7 +264,7 @@ example unit when the ``Between`` function was called so that the ``if``
 control evaluated True only. The function is actually part of an Ada package,
 called Ranges, with an original body source file named ``ranges.adb``:
 
-.. code-block:: ada
+.. code-block::
 
  examples/src/ranges.adb:
  67% of 3 lines covered
@@ -1801,30 +1801,33 @@ after the preprocessing of sources, with two consequences of note:
 Consider this C code for example:
 
 .. code-block:: c
+   :linenos:
 
-     1	#define COND_INC(cond,x,y) \
-     2	  do {                     \
-     3	    if (cond)              \
-     4	      (x)++;               \
-     5	    else                   \
-     6	      (y)++;               \
-     7	  } while(0)
-     8
-     9	int main ()
-    10	{
-    11	  volatile x = 0, y = 0;
-    12
-    13	  COND_INC(x == 0, x, y);
-    14	  COND_INC(x == 0, x, y);
-    15	}
+   #define COND_INC(cond,x,y) \
+     do {                     \
+       if (cond)              \
+         (x)++;               \
+       else                   \
+         (y)++;               \
+     } while(0)
+
+   int main ()
+   {
+     volatile x = 0, y = 0;
+
+     COND_INC(x == 0, x, y);
+     COND_INC(x == 0, x, y);
+   }
 
 
 The two macro invocations actually expand as:
 
 .. code-block:: c
+   :linenos:
+   :lineno-start: 13
 
-    13    do { if (x == 0) (x)++; else (y)++; } while(0);
-    14    do { if (x == 0) (x)++; else (y)++; } while(0);
+       do { if (x == 0) (x)++; else (y)++; } while(0);
+       do { if (x == 0) (x)++; else (y)++; } while(0);
 
 
 The expanded version is the basis of SCO identification process, so we have
