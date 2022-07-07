@@ -4,14 +4,14 @@ Trace file contents
 
 A trace file essentially consists in
 
-* A header with general information about the trace generation context (name
-  of the binary executable passed to |gcvrun|, :option:`--tag` argument value,
+* A header with general information about the trace generation context (name of
+  the binary executable passed to |gcvrun|, :cmd-option:`--tag` argument value,
   production date & time, ...), followed by
 
 * The machine execution trace entries (roughly, one per execution basic block,
   with information on the branch decision at the end)
 
-|gcv| offers a :option:`dump-trace` option to display the contents of trace
+|gcv| offers a :cmd-option:`dump-trace` option to display the contents of trace
 files passed as arguments, displaying tags passed to |gcvrun| amongst other
 things. For example::
 
@@ -55,8 +55,8 @@ features the following information entries:
   address for example.
 
 ``USER_DATA`` :
-  User string tag for this trace, when one was passed with :option:`-T`
-  to |gcvrun|.
+  User string tag for this trace, when one was passed with :cmd-option:`-T` to
+  |gcvrun|.
 
 The precise structure is described in the ``qemu_traces.ads`` unit of the
 gnatcov sources.

@@ -227,10 +227,10 @@ extra code and data structures. For cross configurations, |gem| provides such
 an environment.  Hardware probes may also be used, provided trace data is
 converted to the format |gcv| expects.
 
-Programs are built from their original sources, only requiring the use
-of :option:`-g -fpreserve-control-flow -fdump-scos` compilation
-options to generate coverage obligation lists and let us associate
-execution traces to these obligations afterwards.
+Programs are built from their original sources, only requiring the use of
+:cmd-option:`-g -fpreserve-control-flow -fdump-scos` compilation options to
+generate coverage obligation lists and let us associate execution traces to
+these obligations afterwards.
 
 For our example use case here, we first use the GNAT Pro toolset for
 ``powerpc-elf`` to build, using :command:`gprbuild` as follows::
@@ -322,12 +322,13 @@ commands. For our example use case, this could for example be::
 ... where ``<trace>`` would be either the source or the binary trace produced
 by the commands introduced in the previous example sections. Here, we request:
 
-- A source *statement coverage* assessment with :option:`--level=stmt`,
+- A source *statement coverage* assessment with :cmd-option:`--level=stmt`,
 
-- An annotated source report in text format with :option:`--annotate=xcov`,
+- An annotated source report in text format with :cmd-option:`--annotate=xcov`,
 
 - For the complete set of units involved in the executable, per
-  :option:`-Ptests.gpr` and no specification otherwise in the project files.
+  :cmd-option:`-Ptests.gpr` and no specification otherwise in the project
+  files.
 
 This produces annotated sources in the project's object directory,
 with ``ops.adb.xcov`` quoted below:
@@ -386,12 +387,12 @@ expected and legitimate (Ada only at this stage).
 Conventions used in the rest of this manual
 ===========================================
 
-- A number of example commands include a :option:`--level=`:option:`<>`
+- A number of example commands include a :cmd-option:`--level=`:cmd-option:`<>`
   switch, which conveys a target coverage criterion when needed. ``<>`` is a
   placeholder for an actual level supported by the tool in this case, such as
   ``stmt``, ``stmt+decision``, or ``stmt+mcdc`` for source criteria.
 
-- Example command lines might also include as :option:`<units-of-interest>`
+- Example command lines might also include as :cmd-option:`<units-of-interest>`
   placeholder, which represents a set of switches conveying the set of units
   for interest for source coverage assessments. GPR project files provide the
   most elaborate mechanisms for this purpose and the :ref:`sunits` chapter

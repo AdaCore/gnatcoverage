@@ -14,17 +14,17 @@ dui0473/m/condition-codes/conditional-instructions>`_ are not supported.
 If such instructions are present in the subprograms to be analyzed, their
 reported coverage status may be incorrect.
 
-On request, the metrics can be presented on sources, with an annotation on
-each line synthesizing the coverage status of all the instructions generated
-for this line. This mapping relies on debug information, so sources must be
-compiled with :option:`-g` for this to work. There is no further compilation
-requirement for object coverage alone.
+On request, the metrics can be presented on sources, with an annotation on each
+line synthesizing the coverage status of all the instructions generated for
+this line. This mapping relies on debug information, so sources must be
+compiled with :cmd-option:`-g` for this to work. There is no further
+compilation requirement for object coverage alone.
 
-Once your application is built, the analysis proceeds in two steps: |gcvrun|
-is used to produce execution traces, then |gcvcov| to generate coverage
-reports. *Object* coverage is queried by passing a specific :option:`--level`
-argument to |gcvcov|; :option:`=insn` or :option:`=branch`, described in
-detail in the following sections. As for source coverage, there is never a
+Once your application is built, the analysis proceeds in two steps: |gcvrun| is
+used to produce execution traces, then |gcvcov| to generate coverage reports.
+*Object* coverage is queried by passing a specific :cmd-option:`--level`
+argument to |gcvcov|; :cmd-option:`=insn` or :cmd-option:`=branch`, described
+in detail in the following sections. As for source coverage, there is never a
 requirement to recompile just because a different criterion needs to be
 analyzed.
 
@@ -36,13 +36,13 @@ produced. The general command line structure is always like::
   gnatcov coverage --level=<criterion> --annotate=<format>
                    [--routines=<names>] ... <traces>
 
-The optional :option:`--routines` argument provides the set of object level
+The optional :cmd-option:`--routines` argument provides the set of object level
 subprogram names on which the analysis should focus. This set defaults to the
-full set of symbols defined by all the executables associated with the
-provided execution traces.
+full set of symbols defined by all the executables associated with the provided
+execution traces.
 
 Later in this chapter, :ref:`oroutines` explains how to construct the relevant
-list of names for :option:`--routines`.  Prior to this comes a section
+list of names for :cmd-option:`--routines`.  Prior to this comes a section
 describing the :ref:`available report formats <oreport-formats>`, then more
 details regarding :ref:`ocov-insn`, :ref:`ocov-branch`, and specificities
 regarding :ref:`ocov-generics`. Finally, :ref:`ocov-full` describes tools that
@@ -58,19 +58,19 @@ object coverage.
 .. _gnatcov_coverage-commandline-obj:
 
 Coverage analysis with |gcp| is performed by invoking |gcvcov| for a set of
-critera queried via the :option:`--level` command line option. The general
-interface synopsis is available from |gcv| :option:`--help`::
+critera queried via the :cmd-option:`--level` command line option. The general
+interface synopsis is available from |gcv| :cmd-option:`--help`::
 
  gnatcov coverage OPTIONS TRACE_FILES
 
 The available options are as follows:
 
-:option:`-c`, :option:`--level` |marg|:
-   Tell the set of coverage criteria to be assessed. The possible values
-   for object coverage analysis are :option:`insn`, :option:`branch`, both
+:cmd-option:`-c`, :cmd-option:`--level` |marg|:
+   Tell the set of coverage criteria to be assessed. The possible values for
+   object coverage analysis are :cmd-option:`insn`, :cmd-option:`branch`, both
    explained later in this chapter.
 
-:option:`-a`, :option:`--annotate` |marg|:
+:cmd-option:`-a`, :cmd-option:`--annotate` |marg|:
    Request a specific output report format.  The two possible criteria support
    ``xcov[+]``, ``html[+]``, ``dhtml`` and ``asm``, with interpretations that
    vary  depending on the assessed criteria. See the corresponding
@@ -81,55 +81,54 @@ The available options are as follows:
 
 .. include:: cov_common_switches.rst
 
-:option:`--routines`, |rarg|:
+:cmd-option:`--routines`, |rarg|:
    Provide the list of object symbol names that correspond to routines for
    which the coverage assessment is to be performed. Each instance of this
    option on the command line adds to what is to be assessed eventually. See
    the :ref:`oroutines` section for extra details and use examples.
 
-:option:`--alis`, |rarg|:
-   Provide set of :term:`Library Information files` for units where there might
-   be applicable exemption regions to account for, as explained in the
-   :ref:`ocov_exemptions` section of this manual.
+:cmd-option:`--alis`, |rarg|:
+   Provide set of :term:`Library Information files <Library Information file>`
+   for units where there might be applicable exemption regions to account for,
+   as explained in the :ref:`ocov_exemptions` section of this manual.
 
-:option:`-P`:
+:cmd-option:`-P`:
    Use the indicated project file to find default options. This can also be
    used, possibly combined with other project related switches, as an
-   alternative to :option:`--alis` to determine the set of units for which
+   alternative to :cmd-option:`--alis` to determine the set of units for which
    coverage exemptions should be honored. In this case, the
-   target/runtime/scenario contextual options that would be passed to build
-   the project should also be passed for proper interpretation of the project
+   target/runtime/scenario contextual options that would be passed to build the
+   project should also be passed for proper interpretation of the project
    files. This is similar to the use of project facilities for the
    determination of SCOs for source coverage analysis, and described in the
    :ref:`sunits` chapter of this manual.
 
-:option:`-t`, :option:`--target` :
+:cmd-option:`-t`, :cmd-option:`--target` :
    .. include:: target_switch_common_text.rst
 
 .. _oreport-formats:
 
-Output report formats (:option:`--annotate`)
-============================================
+Output report formats (:cmd-option:`--annotate`)
+================================================
 
 Object coverage reports may be produced in various formats, as requested with
-the :option:`--annotate` command line argument of |gcvcov|.
+the :cmd-option:`--annotate` command line argument of |gcvcov|.
 
-The :option:`asm` format produces an annotated assembly output, with a
+The :cmd-option:`asm` format produces an annotated assembly output, with a
 coverage indication attached to every single instruction. This is the base
 information of interest to object coverage analysis, simply presented in
 different manners through the other possible output formats. The
-:option:`xcov`, :option:`html`, and :option:`dhtml` formats produce a set of
-annotated source files, in the directory where |gcv| is launched unless
-overriden with a :option:`--output-dir` option. Even though
+:cmd-option:`xcov`, :cmd-option:`html`, and :cmd-option:`dhtml` formats produce
+a set of annotated source files, in the directory where |gcv| is launched
+unless overriden with a :cmd-option:`--output-dir` option. Even though
 presented on sources, the annotations remain representative of object coverage
-metrics, synthesized for all the instructions associated with each source
-line.
+metrics, synthesized for all the instructions associated with each source line.
 
 Later in this chapter we name output formats by the text to add to
-:option:`--annotate` on the command line. For example, we use "the
-:option:`=asm` outputs" to mean "the coverage reports produced with
-:option:`--annotate=asm`". We also sometimes use *in-source* reports
-or outputs to designate the set of outputs in annotated source forms.
+:cmd-option:`--annotate` on the command line. For example, we use "the
+:cmd-option:`=asm` outputs" to mean "the coverage reports produced with
+:cmd-option:`--annotate=asm`". We also sometimes use *in-source* reports or
+outputs to designate the set of outputs in annotated source forms.
 
 We illustrate the various formats with coverage analysis excerpts on
 the following example Ada support unit:
@@ -148,15 +147,15 @@ the following example Ada support unit:
 As the contents suggest, this subprogram is expected never to be called
 with T False in nominal situations.
 
-Machine level reports (:option:`=asm`)
---------------------------------------
+Machine level reports (:cmd-option:`=asm`)
+------------------------------------------
 
-For object coverage analysis, :option:`--annotate=asm` produces annotated
+For object coverage analysis, :cmd-option:`--annotate=asm` produces annotated
 assembly code for all the selected routines on standard output.  The
 annotations are first visible as a special character on each machine code line
-to convey the coverage status of the corresponding instruction.
-The following output excerpt, for example, is part of a coverage report for
-our ``Assert`` subprogram compiled for the PowerPc architecture::
+to convey the coverage status of the corresponding instruction.  The following
+output excerpt, for example, is part of a coverage report for our ``Assert``
+subprogram compiled for the PowerPc architecture::
 
    Coverage level: branch
    _ada_assert !: 0c4-123
@@ -202,12 +201,12 @@ In our example, the code features both fully covered and uncovered
 instructions, and the ``_assert`` symbol as a whole is marked partially
 covered with a ``!`` annotation.
 
-Annotated sources, text (:option:`=xcov[+]`)
---------------------------------------------
+Annotated sources, text (:cmd-option:`=xcov[+]`)
+------------------------------------------------
 
-For object coverage analysis, :option:`--annotate=xcov` produces annotated
-source files with the ``.xcov`` extension, one per original compilation unit
-in the selected output directory.
+For object coverage analysis, :cmd-option:`--annotate=xcov` produces annotated
+source files with the ``.xcov`` extension, one per original compilation unit in
+the selected output directory.
 
 The annotations are visible at the beginning of every source line, as a
 single character which synthesizes the coverage status of all the machine
@@ -254,29 +253,30 @@ properties here, hence are of a different nature than what the DO-178B source
 structural coverage criteria refer to. See our :ref:`osmetrics` section for
 further details on this aspect.
 
-With :option:`--annotate=xcov+` (extra ``+`` at the end), the machine
+With :cmd-option:`--annotate=xcov+` (extra ``+`` at the end), the machine
 instructions and their individual coverage status are printed next to their
 associated source line.
 
-Annotated sources, html (:option:`=html[+]`) or dynamic html (:option:`=dhtml`)
--------------------------------------------------------------------------------
+Annotated sources, html (:cmd-option:`=html[+]`) or dynamic html (:cmd-option:`=dhtml`)
+---------------------------------------------------------------------------------------
 
-For object coverage criteria, |gcvcov| :option:`--annotate=html` produces an
-annotated version of each source file, in html format, named after the original
-source with an extra ``.html`` extension at the end.
-Each annotated source page contains a summary of the assessment results
-followed by the original source lines, all numbered and marked with a coverage
-annotation as in the :option:`--annotate=xcov` case. In addition, lines with
-obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
-coverage respectively. An `index.html` page is also produced, which contains a
+For object coverage criteria, |gcvcov| :cmd-option:`--annotate=html` produces
+an annotated version of each source file, in html format, named after the
+original source with an extra ``.html`` extension at the end.  Each annotated
+source page contains a summary of the assessment results followed by the
+original source lines, all numbered and marked with a coverage annotation as in
+the :cmd-option:`--annotate=xcov` case. In addition, lines with obligations are
+colorized in green, orange or red for ``+``, ``!`` or ``-`` coverage
+respectively. An `index.html` page is also produced, which contains a
 description of the assessment context (assessed criteria, set of trace files
 involved, ...) and a summary of the coverage results for all the units, with
 links to their annotated sources.
 
-Similarily to the :option:`xcov` format case, :option:`--annotate=html+` (with
-a trailing +) attaches to each line details about the coverage status of all
-the individual instructions generated for the line. These are folded within
-the line and expanded when a mouse click hits it.
+Similarily to the :cmd-option:`xcov` format case,
+:cmd-option:`--annotate=html+` (with a trailing +) attaches to each line
+details about the coverage status of all the individual instructions generated
+for the line. These are folded within the line and expanded when a mouse click
+hits it.
 
 The page style is governed by a set of Cascading Style Sheet (CSS) parameters,
 fetched from a ``xcov.css`` file in the directory where |gcv| is launched. If
@@ -284,19 +284,19 @@ this file is available when |gcv| starts, |gcv| uses it so users may setup a
 customized version if needed. If the file is not available, |gcv| creates a
 default one.
 
-As for source coverage criteria, the :option:`dhtml` variant produces a more
-elaborate kind of report, with sortable columns and per-project indexes on the
-root page when the units of interest were specified using the :option:`-P`
-option.
+As for source coverage criteria, the :cmd-option:`dhtml` variant produces a
+more elaborate kind of report, with sortable columns and per-project indexes on
+the root page when the units of interest were specified using the
+:cmd-option:`-P` option.
 
 .. _ocov-insn:
 
-Object Instruction Coverage analysis (:option:`--level=insn`)
-=============================================================
+Object Instruction Coverage analysis (:cmd-option:`--level=insn`)
+=================================================================
 
 Object *Instruction* Coverage treats basic and conditional branch instructions
 identically, as either executed or not, hence fully covered or uncovered. The
-:option:`=asm` instruction annotations are as follows:
+:cmd-option:`=asm` instruction annotations are as follows:
 
 .. tabularcolumns:: cl
 
@@ -308,7 +308,7 @@ identically, as either executed or not, hence fully covered or uncovered. The
    ``-`` | the instruction was not executed
    ``+`` | the instruction was executed
 
-The :option:`=asm` excerpt below provides a representative example of the
+The :cmd-option:`=asm` excerpt below provides a representative example of the
 PowerPC instruction coverage achieved for our ``Assert`` procedure by nominal
 executions where the subprogram is never called with T False::
 
@@ -332,7 +332,7 @@ without exception propagation support. The two instructions at offsets 0ec and
 implement the *if* construct. We note here that the conditional branch is
 reported fully covered, as merely executed, even though always taken.
 
-The corresponding :option:`=xcov` output follows:
+The corresponding :cmd-option:`=xcov` output follows:
 
 .. code-block:: ada
 
@@ -344,14 +344,14 @@ The corresponding :option:`=xcov` output follows:
    6 +: end Assert;
 
 The annotations on lines 3 and 4 correspond to immediate expectations from
-comments we made on the :option:`=asm` output. We can also observe annotations
-on lines 1 and 6, to which the subprogram prologue and epilogue code is
-attached, and executed as soon as the procedure is called.
+comments we made on the :cmd-option:`=asm` output. We can also observe
+annotations on lines 1 and 6, to which the subprogram prologue and epilogue
+code is attached, and executed as soon as the procedure is called.
 
 .. _ocov-branch:
 
-Object Branch Coverage analysis (:option:`--level=branch`)
-==========================================================
+Object Branch Coverage analysis (:cmd-option:`--level=branch`)
+==============================================================
 
 Object *Branch* Coverage treats basic and conditional branch instructions
 differently. Basic instructions are considered fully covered as soon as
@@ -359,7 +359,7 @@ executed, as in the Instruction Coverage case.  Conditional branches, however,
 have to be executed at least twice to be claimed fully covered : once taking
 the branch and once executing fall-through, which we sometimes abusively refer
 to as :dfn:`taken both ways` even if one case actually corresponds to the
-branch not being taken.  The :option:`=asm` instruction annotations are as
+branch not being taken.  The :cmd-option:`=asm` instruction annotations are as
 follows:
 
 .. tabularcolumns:: cl
@@ -394,7 +394,7 @@ statement code as expected for nominal executions::
    ...
    120 +:  4e 80 00 20      blr
 
-The corresponding :option:`=xcov` output follows::
+The corresponding :cmd-option:`=xcov` output follows::
 
  examples/src/assert.adb:
  50% of 4 lines covered
@@ -408,8 +408,8 @@ The corresponding :option:`=xcov` output follows::
 
 The partial branch coverage logically translates into a partial coverage
 annotation on the line to which the branch is attached, here the line of the
-*if* statement that the conditional branch implements. This is confirmed by
-the :option:`=xcov+` output, where the individual instructions are visible as
+*if* statement that the conditional branch implements. This is confirmed by the
+:cmd-option:`=xcov+` output, where the individual instructions are visible as
 well together with their own coverage indications::
 
    examples/src/assert.adb:
@@ -439,23 +439,22 @@ well together with their own coverage indications::
 
 .. _oroutines:
 
-Focusing on subprograms of interest (:option:`--routines`)
-==========================================================
+Focusing on subprograms of interest (:cmd-option:`--routines`)
+==============================================================
 
-By default, in absence of a :option:`--routines` argument to |gcvcov|, object
-coverage results are produced for the full set of subprogram symbols defined
-by the executables designated by the analyzed traces.
+By default, in absence of a :cmd-option:`--routines` argument to |gcvcov|,
+object coverage results are produced for the full set of subprogram symbols
+defined by the executables designated by the analyzed traces.
 
-:option:`--routines` allows the specification of a set of subprogram symbols
-of interest so reports refer to this (sub)set only.
-Each occurrence of :option:`--routines` on the command line expects a single
-argument which specifies a subset of symbols of interest. Multiple occurrences
-are allowed and the subsets accumulate. The argument might be either a single
-symbol name or a :term:`@listfile argument` expected to contain a list of
-symbol names.
+:cmd-option:`--routines` allows the specification of a set of subprogram
+symbols of interest so reports refer to this (sub)set only.  Each occurrence of
+:cmd-option:`--routines` on the command line expects a single argument which
+specifies a subset of symbols of interest. Multiple occurrences are allowed and
+the subsets accumulate. The argument might be either a single symbol name or a
+:term:`@listfile argument` expected to contain a list of symbol names.
 
 For example, focusing on three symbols ``sym1``, ``sym2`` and ``sym3`` can be
-achieved with either one of the following set of :option:`--routines`
+achieved with either one of the following set of :cmd-option:`--routines`
 combinations::
 
   --routines=sym1 --routines=sym2 --routines=sym3
@@ -481,12 +480,13 @@ sense here, as :dfn:`conforming to a supported object file format, typically
 ELF`, so includes executable files as well as single compilation unit objects.
 
 The output set is built incrementally while processing the arguments left to
-right. :option:`--include` states "from now on, until contradicted, symbols
-defined in object files are added to the result set", and :option:`--exclude`
-states "from now on, until contradicted, symbols defined in object files are
-removed from the result set". An implicit :option:`--include` is assumed right
-at the beginning, and each argument may be either the direct name of an object
-file or a :term:`@listfile argument` containing a list of such names.
+right. :cmd-option:`--include` states "from now on, until contradicted, symbols
+defined in object files are added to the result set", and
+:cmd-option:`--exclude` states "from now on, until contradicted, symbols
+defined in object files are removed from the result set". An implicit
+:cmd-option:`--include` is assumed right at the beginning, and each argument
+may be either the direct name of an object file or a :term:`@listfile argument`
+containing a list of such names.
 
 Below are a few examples of commands together with a description of the
 set they build::
@@ -519,7 +519,7 @@ The generated code for an inlined subprogram call or a generic instantiation
 materializes two distinct source entities: the expanded source (of the inlined
 subprogram or of the instanciated generic body) and the expansion request (the
 subprogram call or the generic instanciation). While this is of no consequence
-for :option:`=asm` outputs, which just report coverage of raw machine
+for :cmd-option:`=asm` outputs, which just report coverage of raw machine
 instructions within their object level subprograms, regardless of the object
 code origin, this raises a few points of note for in-source outputs.
 
@@ -558,12 +558,12 @@ The following analysis::
 
   gnatcov coverage --level=insn --routines=_test_inc0 --annotate=xcov+ test_inc0.trace
 
-... requests, with :option:`--routines`, to report about the Test_Inc0
+... requests, with :cmd-option:`--routines`, to report about the Test_Inc0
 procedure only, so we intuitively expect a single ``test_inc0.adb.xcov``
 annotated source result. If the ``Inc(X)`` call in Test_Inc0 is inlined,
 however, the command actually produces an ``intops.adb.xcov`` report as well
-because the object code of Test_Inc0 also contains inlined code coming from
-the other unit.
+because the object code of Test_Inc0 also contains inlined code coming from the
+other unit.
 
 For generic units, information for all the instances is aggregated on the
 generic source, so each line annotation is a super synthesis of the coverage
@@ -618,10 +618,10 @@ for ``Count`` in the second instance (not going within the *if* statement):
       Pos_T2.Count (X => -1);
    end Test_Genpos;
 
-The precise :option:`insn` coverage difference is first visible in the
-:option:`=asm` report. The conditioned part of ``Count`` clearly shows up as
-uncovered in the ``Pos_T2`` instance (``-`` at offset 204 and on), while it is
-reported covered as expected in the ``Pos_T1`` instance (``+`` at offset 1b4
+The precise :cmd-option:`insn` coverage difference is first visible in the
+:cmd-option:`=asm` report. The conditioned part of ``Count`` clearly shows up
+as uncovered in the ``Pos_T2`` instance (``-`` at offset 204 and on), while it
+is reported covered as expected in the ``Pos_T1`` instance (``+`` at offset 1b4
 and on)::
 
    posi__pos_t1__count +: 1ac-1e7
@@ -641,8 +641,8 @@ and on)::
    224 +:  60 00 00 00      ori    r0,r0,0x0000
    ...
 
-The presence of uncovered instructions yields a partial coverage annotation
-for the corresponding source line in the :option:`=xcov` output (``!`` on line
+The presence of uncovered instructions yields a partial coverage annotation for
+the corresponding source line in the :cmd-option:`=xcov` output (``!`` on line
 10):
 
 .. code-block::
@@ -656,9 +656,9 @@ for the corresponding source line in the :option:`=xcov` output (``!`` on line
   12 +:    end Count;
   13 .: end Genpos;
 
-And the :option:`=xcov+` (or :option:`=html+`) output gathers everything
-together, with the blocks of instructions coming from different instances
-identifiable by the associated object symbol names::
+And the :cmd-option:`=xcov+` (or :cmd-option:`=html+`) output gathers
+everything together, with the blocks of instructions coming from different
+instances identifiable by the associated object symbol names::
 
      10 !:          N_Positive := N_Positive + 1;
    <posi__pos_t1__count+0000001c>:+
@@ -681,11 +681,10 @@ symbol, and :dfn:`empty symbols`, for which the reported code size is null.
 
 Orphaned regions usually show up out of legitimate code alignment requests
 issued for performance or target ABI specificities. Empty symbols most often
-result from low level assembly programmed parts missing the assembly
-directives aimed at populating the symbol table.
-Both are typically harmless so information about them is only emitted on
-explicit request. |gcv| provides the :option:`scan-objects` command for this
-purpose. The command expects the set of object files to examine on the command
-line, as a sequence of either object file or :term:`@listfile argument`, and
-reports about the two kinds of situations described above.
-
+result from low level assembly programmed parts missing the assembly directives
+aimed at populating the symbol table.  Both are typically harmless so
+information about them is only emitted on explicit request. |gcv| provides the
+:cmd-option:`scan-objects` command for this purpose. The command expects the
+set of object files to examine on the command line, as a sequence of either
+object file or :term:`@listfile argument`, and reports about the two kinds of
+situations described above.

@@ -8,10 +8,10 @@ Computing a consolidated coverage result from multiple executions is simply
 achieved by providing the set of trace files resulting for these executions as
 inputs to a single |gcvcov| command.
 
-The set of traces involved in a computation, with some details about each
-trace (file name, timestamp, tag), is visible in the index page of html
-reports and in the *Assessment Context* section of :option:`=report` outputs,
-where the command line is quoted.
+The set of traces involved in a computation, with some details about each trace
+(file name, timestamp, tag), is visible in the index page of html reports and
+in the *Assessment Context* section of :cmd-option:`=report` outputs, where the
+command line is quoted.
 
 Trace consolidation works the same for source or binary traces. Mixing
 binary and source traces is not supported, however, so all the traces
@@ -91,7 +91,7 @@ If we were to produce a coverage report for each individual test, we would
 observe partial coverage of the Commands body regardless of the kind of trace
 used.
 
-Indeed, an :option:`=xcov` report from the first test only would typically
+Indeed, an :cmd-option:`=xcov` report from the first test only would typically
 display::
 
    6 .:    procedure Stat (Safe : Boolean) is
@@ -107,8 +107,8 @@ Where, in accordance with the testcase strategy, everything is statement
 covered except the code specific to *unsafe* situations, here the counter
 update on line 11.
 
-Conversely, an :option:`=xcov` report from the second test only would
-yield the symmetric results::
+Conversely, an :cmd-option:`=xcov` report from the second test only would yield
+the symmetric results::
 
    6 .:    procedure Stat (Safe : Boolean) is
    7 .:    begin
@@ -138,8 +138,9 @@ would be something like::
     gnatcov coverage --level=stmt <units-of-interest> --annotate=xcov
       test_cmd_safe.trace test_cmd_unsafe.trace
 
-The means to obtain the traces and the :option:`<units-of-interest>` switches
-would depend on how the functional and testing code has been organized.
+The means to obtain the traces and the :cmd-option:`<units-of-interest>`
+switches would depend on how the functional and testing code has been
+organized.
 
 One possibility would be to have all the code hosted by a single project where
 we could explicitly state which units are of interest, for example::
@@ -401,7 +402,7 @@ to make sure that calls into the code-under-test by the testing code are not
 inlined by the compiler.
 
 With GCC based toolchains such as GNAT Pro, this can be achieved by adding
-:option:`-fno-inline` to the compilation options of the testing code.
+:cmd-option:`-fno-inline` to the compilation options of the testing code.
 
 
 Object code overlap in executables
@@ -424,8 +425,8 @@ considered overlapping when all the following conditions are met:
 
 By this construction, a symbol missing debug information is never considered
 overlapping with any other symbol. Whatever coverage is achieved on such a
-symbol never gets combined with anything else and the only kind of report
-where the symbol coverage is exposed is the :option:`=asm` assembly output for
+symbol never gets combined with anything else and the only kind of report where
+the symbol coverage is exposed is the :cmd-option:`=asm` assembly output for
 object level criteria.
 
 Moreover, for object level coverage criteria, |gcvcov| will issue a

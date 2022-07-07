@@ -30,7 +30,7 @@ instructions.
 
 For **cross** configurations in general:
 
-- Need to convey the target to |gcvrun|, either with a :option:`--target`
+- Need to convey the target to |gcvrun|, either with a :cmd-option:`--target`
   switch or a ``Target`` project file attribute;
 
 - Need to convey the target and Ada runtime when using project files
@@ -62,7 +62,7 @@ On lines with multiple statements, the tool may not be able to infer
 accurate statement coverage results for each individual statement. The
 tool emits explicit diagnostics in this case.
 
-In :option:`=report` outputs (with :option:`--annotate=report`), this
+In :cmd-option:`=report` outputs (with :cmd-option:`--annotate=report`), this
 translates as a statement coverage violation like::
 
  <sloc>: multiple statements on line, unable to establish full statement coverage
@@ -70,10 +70,11 @@ translates as a statement coverage violation like::
 where <sloc> is a source-filename:line:column source location of the
 problematic line.
 
-In annotated sources kinds of outputs, this materializes as '!' note
-indicating partial coverage on the affected lines, with the :option:`=report`
+In annotated sources kinds of outputs, this materializes as '!' note indicating
+partial coverage on the affected lines, with the :cmd-option:`=report`
 violation text quoted above available as part of the line extra-details
-expanded on demand (:option:`=html+` and :option:`xcov+` output formats).
+expanded on demand (:cmd-option:`=html+` and :cmd-option:`xcov+` output
+formats).
 
 .. _mcdc-limitations:
 

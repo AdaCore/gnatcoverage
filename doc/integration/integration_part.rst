@@ -77,10 +77,10 @@ set in the ``coverage_settings.mk`` secondary makefile.
 
 For source traces, the instrumented program will be run using GNATemuator
 directly, and assumes that the standard package Ada.GNAT_IO allows data to be
-output on a serial port. The instrumentation process overrides the two
-switches :option:`--dump-trigger` and :option:`--dump-channel` to the values
-``main-end`` and ``base64-stdout`` respectively as they are the most adapted
-to the GNATtest harness project and to the GNATemulator execution environment.
+output on a serial port. The instrumentation process overrides the two switches
+:cmd-option:`--dump-trigger` and :cmd-option:`--dump-channel` to the values
+``main-end`` and ``base64-stdout`` respectively as they are the most adapted to
+the GNATtest harness project and to the GNATemulator execution environment.
 The program is run under GNATemulator, and the output of the first serial port
 is captured as it contains the trace in a base-64 encoding. This text trace is
 then decoded and converted into a regular source trace.
@@ -442,10 +442,10 @@ Separate test drivers
 =====================
 
 Using separate test drivers is advisable to avoid incidental coverage of one
-unit from the testing of other units (see :ref:`incidental_coverage`).
-Note that since the smallest division of a project supported by |gcp| is the
-unit, there is no benefit in specifying :option:`--separate-drivers=test`
-instead of :option:`--separate-drivers=unit` to GNATtest, as far as incidental
+unit from the testing of other units (see :ref:`incidental_coverage`).  Note
+that since the smallest division of a project supported by |gcp| is the unit,
+there is no benefit in specifying :cmd-option:`--separate-drivers=test` instead
+of :cmd-option:`--separate-drivers=unit` to GNATtest, as far as incidental
 coverage is concerned.
 
 When using mutliple drivers, there will be a ``test_driver.gpr`` generated for
@@ -461,4 +461,4 @@ on other units. During harness generation, a file named ``units.list`` will be
 created in the same directory as each ``test_driver.gpr`` file. This file
 contains the name of the unit tested by the driver, and can be used to specify
 to |gcv| to only process the unit under test, by adding the switch
-:option:`--units=@units.list`.
+:cmd-option:`--units=@units.list`.

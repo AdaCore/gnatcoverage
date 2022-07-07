@@ -11,15 +11,15 @@ A :term:`coverage checkpoint <Coverage Checkpoint>` is a file containing a
 condensed version of a coverage assessment computed by |gcvcov|, which the tool
 can reload and combine with other assessments very efficiently. This may be
 viewed as an internal representation of a coverage report which
-:option:`--annotate` would output in a user readable form.
+:cmd-option:`--annotate` would output in a user readable form.
 
-As reports, checkpoints are initially produced from traces, thanks
-to a :option:`--save-checkpoint` option to |gcvcov|.  The switch
-expects the name of the checkpoint file to create as an argument, as in::
+As reports, checkpoints are initially produced from traces, thanks to a
+:cmd-option:`--save-checkpoint` option to |gcvcov|.  The switch expects the
+name of the checkpoint file to create as an argument, as in::
 
   gnatcov coverage --level=<> <units> <traces> --save-checkpoint=<filename>
 
-:option:`--checkpoint` options then allow consolidating sets of checkpoints
+:cmd-option:`--checkpoint` options then allow consolidating sets of checkpoints
 together to produce a user level report and/or another checkpoint. The example
 command below shows how to reuse the previous checkpoint to produce a user
 readable report::
@@ -27,14 +27,14 @@ readable report::
   gnatcov coverage --level=<> --checkpoint=<filename> --annotate=<>
 
 
-The second :option:`--level` option may differ from the first, as long
-as it does not request a stricter criterion. Assessing ``stmt`` or
-``stmt+decision`` coverage from checkpoints containing ``stmt+mcdc``
-data is allowed, not the other way around.
+The second :cmd-option:`--level` option may differ from the first, as long as
+it does not request a stricter criterion. Assessing ``stmt`` or
+``stmt+decision`` coverage from checkpoints containing ``stmt+mcdc`` data is
+allowed, not the other way around.
 
 In user readable reports, the set of traces eventually contributing to the
 coverage result is available from the index page for HTML formats and in the
-``Assessment Context`` header section of :option:`=report` outputs. In the
+``Assessment Context`` header section of :cmd-option:`=report` outputs. In the
 latter case, if the contribution comes from an intermediate checkpoint, the
 command which produced the checkpoint is displayed. For example, a sequence of
 commands such as::
@@ -143,8 +143,8 @@ Incremental coverage analysis
 =============================
 
 :term:`Incremental coverage analysis` consists in constructing a consolidated
-coverage result incrementally, using a single checkpoint file to accumulate
-new info about discharged coverage obligations as tests execute in sequence.
+coverage result incrementally, using a single checkpoint file to accumulate new
+info about discharged coverage obligations as tests execute in sequence.
 
 When providing execution traces as *the only* input to |gcvcov|, coverage
 analysis starts with an empty coverage state where none of the coverage

@@ -4,25 +4,25 @@
 Execution environment
 *********************
 
-For cross configurations, the :option:`--target` command line option allows
-specifying the target environment for which the program was built and for
-which |gcvrun| should pick a suitable execution environment. The option states
-a base target name possibly followed by a board specialization after a
-separating '``,``' (:option:`--target=powperpc-eabispe,mpc5566` for
-example). When a simple target name alone is sufficient, it is possible to let
-|gcv| detect it from the ``Target`` attribute from the project file (see
-:ref:`target_attr` section). Then:
+For cross configurations, the :cmd-option:`--target` command line option allows
+specifying the target environment for which the program was built and for which
+|gcvrun| should pick a suitable execution environment. The option states a base
+target name possibly followed by a board specialization after a separating
+'``,``' (:cmd-option:`--target=powperpc-eabispe,mpc5566` for example). When a
+simple target name alone is sufficient, it is possible to let |gcv| detect it
+from the ``Target`` attribute from the project file (see :ref:`target_attr`
+section). Then:
 
 * When |gem| for the base target is available on your PATH, as
   `<base-target>-gnatemu`, |gcv| uses this to run the program. |gem| acts as a
   wrapper around the real machine emulator in this case, taking care of
   low-level interfacing details. If an optional board extension is provided in
-  the :option:`--target` argument, the specified board name is passed as an
-  extra :option:`--board=<board-name>` command line option to |gem|.
+  the :cmd-option:`--target` argument, the specified board name is passed as an
+  extra :cmd-option:`--board=<board-name>` command line option to |gem|.
 
 * Otherwise, |gcv| resorts to a builtin low level emulator statically
-  configured for the base target. An ``unsupported target`` error is issued
-  and |gcv| exits if no such configuration is found to match.
+  configured for the base target. An ``unsupported target`` error is issued and
+  |gcv| exits if no such configuration is found to match.
 
 .. _exe-and-args:
 
@@ -34,22 +34,23 @@ To facilitate the coverage analysis integration within different kinds of
 environments, |gcvrun| supports several ways of selecting the program to
 execute:
 
-* If an :ref:`[EXE] <exe>` argument is provided on the base command line, before
-  :option:`eargs`, use it as the candidate program name to execute. Otherwise:
+* If an :ref:`[EXE] <exe>` argument is provided on the base command line,
+  before :cmdoption:`eargs`, use it as the candidate program name to execute.
+  Otherwise:
 
 * If :ref:`eargs <eargs>` are provided and the first item designates an
   executable file, use this as the program to execute. Otherwise:
 
-* If a root project file is designated with :option:`-P`, and this project
+* If a root project file is designated with :cmd-option:`-P`, and this project
   features a single Main attribute, use the corresponding executable name as
   the program to execute.
 
-The :option:`eargs` switches not used as the program name are then used
-differently in cross or native configurations, as differentiated by the
-use of a :option:`--target` option.
+The :cmd-option:`eargs` switches not used as the program name are then used
+differently in cross or native configurations, as differentiated by the use of
+a :cmd-option:`--target` option.
 
-In cross configurations, :option:`eargs` switches are passed straight to the
-low-level emulation engine.  They are not interpreted by |gem| when it is
+In cross configurations, :cmd-option:`eargs` switches are passed straight to
+the low-level emulation engine.  They are not interpreted by |gem| when it is
 used. Passing arguments to |gem| via |gcvrun| can be achieved by way of a GNAT
 project file, with a Switches attribute in the Emulator package. For example::
 
@@ -65,7 +66,7 @@ Then::
   gnatcov run --target=<target> -Pcovemu.gpr
 
 In native configurations, the program executes in the host environment and the
-:option:`-eargs` switches are passed as command line arguments to the
+:cmd-option:`-eargs` switches are passed as command line arguments to the
 executable program.
 
 This way users can just prefix a regular host command line by "gnatcov run
