@@ -606,8 +606,8 @@ body stored in source files named ``div_with_check.ads`` and
       end if;
    end;
 
-We first exercise the function for Y = 1 only, using
-the following :term:`test driver` in ``test_div1.adb``:
+We first exercise the function for Y = 1 only, using the following :term:`test
+driver <Test Driver>` in ``test_div1.adb``:
 
 .. code-block:: ada
 
@@ -1199,9 +1199,9 @@ short-circuited:
    4 | F | *F* | F
 
 
-Each line in such a table is called an :term:`evaluation vector`, and
-the pairs that demonstrate the independant effect of conditions are known as
-:term:`independence pairs <Independence Pair>`.
+Each line in such a table is called an :term:`evaluation vector <Evaluation
+Vector>`, and the pairs that demonstrate the independant effect of conditions
+are known as :term:`independence pairs <Independence Pair>`.
 
 Evaluations 1 + 3 constitute a Unique Cause independence pair for A, where A
 changes, B does not, and the expression value toggles. 1 + 2 constitues a pair

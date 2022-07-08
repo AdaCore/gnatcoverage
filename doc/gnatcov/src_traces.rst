@@ -12,13 +12,13 @@ tracking coverage related information. Coverage data is output in accordance
 with a user selectable policy, for example upon exit of the program, for which
 the program main unit gets instrumented as well.
 
-To gather coverage data while the program is running and to output this data
-in the form of a source trace file eventually, the instrumented code relies on
-common data types and subprograms provided by a :term:`coverage runtime`
-library.  The first thing to do for a given project is then to build and
-install the coverage runtime so it becomes available to the instrumented
-sources afterwards, as we will describe in the :ref:`instr-rts` section
-of this chapter.
+To gather coverage data while the program is running and to output this data in
+the form of a source trace file eventually, the instrumented code relies on
+common data types and subprograms provided by a :term:`coverage runtime
+<Coverage Runtime>` library.  The first thing to do for a given project is then
+to build and install the coverage runtime so it becomes available to the
+instrumented sources afterwards, as we will describe in the :ref:`instr-rts`
+section of this chapter.
 
 Once the coverage runtime is setup, the simplest possible use of the
 instrumentation is on entire programs at once, with their main unit(s)
@@ -57,8 +57,8 @@ packed.
 
 .. _instr-rts:
 
-Setting up the :term:`coverage runtime` library
-===============================================
+Setting up the :term:`coverage runtime <Coverage Runtime>` library
+==================================================================
 
 |gcp| is shipped with the sources of the coverage runtime and with a companion
 project file. The |gcvstp| command helps automating the build and installation

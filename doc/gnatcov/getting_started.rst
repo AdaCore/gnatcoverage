@@ -168,8 +168,8 @@ named ``ops.ads`` and ``ops.adb``:
      end;
    end;
 
-We will analyse the statement coverage achieved by the sample unit
-:term:`test driver` below, in ``test_inc.adb``, which exercises the
+We will analyse the statement coverage achieved by the sample unit :term:`test
+driver <Test Driver>` below, in ``test_inc.adb``, which exercises the
 ``Increment`` operation only:
 
 .. code-block:: ada

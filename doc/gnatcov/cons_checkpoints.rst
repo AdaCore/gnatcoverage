@@ -142,7 +142,7 @@ checkpoint as each test gets processed. This is referred to as
 Incremental coverage analysis
 =============================
 
-:term:`Incremental coverage analysis` consists in constructing a consolidated
+:term:`Incremental Coverage Analysis` consists in constructing a consolidated
 coverage result incrementally, using a single checkpoint file to accumulate new
 info about discharged coverage obligations as tests execute in sequence.
 

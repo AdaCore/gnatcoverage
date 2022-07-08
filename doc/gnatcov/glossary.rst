@@ -45,9 +45,10 @@ Glossary of terms & concepts
       side of an assignment.
 
    Evaluation Vector
-      A set of Boolean values assigned to each :term:`condition` of a
-      :term:`decision` together with the resulting expression value. For
-      example A=True, B=False, Expression=False for ``A and then B``.
+      A set of Boolean values assigned to each :term:`condition <Condition>` of
+      a :term:`decision <Decision>` together with the resulting expression
+      value.  For example A=True, B=False, Expression=False for ``A and then
+      B``.
 
    Exemption Region
       Regions of source for which :term:`coverage violations <Coverage
