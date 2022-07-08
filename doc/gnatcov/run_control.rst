@@ -35,7 +35,7 @@ environments, |gcvrun| supports several ways of selecting the program to
 execute:
 
 * If an :ref:`[EXE] <exe>` argument is provided on the base command line,
-  before :cmdoption:`eargs`, use it as the candidate program name to execute.
+  before :cmd-option:`eargs`, use it as the candidate program name to execute.
   Otherwise:
 
 * If :ref:`eargs <eargs>` are provided and the first item designates an

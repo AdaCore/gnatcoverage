@@ -478,3 +478,7 @@ def add_shared_options_to(parser, toplevel):
     parser.add_argument(
         '--all-warnings', action='store_true',
         help='Whether to pass --all-warnings to gnatcov.')
+
+    parser.add_argument(
+        '--rewrite', action='store_true',
+        help='Rewrite test baselines according to current outputs.')
