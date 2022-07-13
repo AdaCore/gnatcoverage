@@ -130,6 +130,11 @@ package body Setup_RTS is
    --  Error reporting callback for GNATCOLL.Projects.Load. Report the error
    --  message iff the verbose mode is active.
 
+   Load_Setup_Config_Error : exception;
+   --  Exception raised when loading the setup config file failed (because the
+   --  runtime project could not be loaded / the config file could not be
+   --  decoded etc.).
+
    function Load
      (Project_File      : String;
       Setup_Config_File : Virtual_File) return Setup_Config;
@@ -734,7 +739,7 @@ package body Setup_RTS is
       exception
          when Invalid_Project =>
             Free (Env);
-            return Result;
+            raise Load_Setup_Config_Error;
       end;
 
       --  The project file is in $PREFIX/share/gpr, so get $PREFIX first and
@@ -758,9 +763,21 @@ package body Setup_RTS is
       elsif Verbose then
          Put_Line ("Could not find the setup config file: "
                    & (+Setup_Config_File.Full_Name));
+         raise Load_Setup_Config_Error;
       end if;
 
+      --  At that point, setup config file was loaded successfully. Otherwise,
+      --  we will return through the below exception handler.
+
+      if Verbose then
+         Put_Line ("Successfully loaded the setup configuration file "
+                   & (+Setup_Config_File.Full_Name) & ".");
+      end if;
       return Result;
+
+   exception
+      when Load_Setup_Config_Error =>
+         return Result;
    end Load;
 
    function Load
@@ -787,7 +804,7 @@ package body Setup_RTS is
          Put_Line (Format_Parsing_Error (Parsed_JSON.Error));
       end if;
 
-      return Default_Setup_Config;
+      raise Load_Setup_Config_Error;
    end Load;
 
    function Load (J : JSON_Value) return Setup_Config is
@@ -892,7 +909,7 @@ package body Setup_RTS is
               ("Setup config file decoding error: "
                & Exception_Information (Exc));
          end if;
-         return Result;
+         raise Load_Setup_Config_Error;
    end Load;
 
    -----------------------
