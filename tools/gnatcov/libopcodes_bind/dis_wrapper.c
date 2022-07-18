@@ -99,7 +99,8 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
       return NULL;
     }
 
-  init_disassemble_info (&(dh->dinfo), ds, (fprintf_ftype) stream_printf);
+  init_disassemble_info (&(dh->dinfo), ds, (fprintf_ftype) stream_printf,
+			 (fprintf_styled_ftype) stream_styled_printf);
   dh->dinfo.arch = arch;
   if (options)
     {
