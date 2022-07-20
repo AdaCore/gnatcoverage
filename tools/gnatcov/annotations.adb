@@ -589,7 +589,7 @@ package body Annotations is
       --  Start of processing for Compute_File_State
 
       begin
-         if FI.Kind /= Source_File then
+         if FI.Kind /= Source_File or else FI.Ignore_Status = Always then
             return;
          end if;
 
