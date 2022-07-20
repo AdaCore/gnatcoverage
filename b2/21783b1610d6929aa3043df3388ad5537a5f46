@@ -1,0 +1,8 @@
+Code-Review+2: Feodor Rybin <frybin@adacore.com>
+Code-Review+1: CI Builder <ci-builder@adacore.com>
+Code-Review+2: Matthieu Eyraud <eyraud@adacore.com>
+Submitted-by: Pierre-Marie de Rodat <derodat@adacore.com>
+Submitted-at: Wed, 20 Jul 2022 13:57:29 +0000
+Reviewed-on: https://git.adacore-it.com/c/gnatcoverage/+/118428
+Project: gnatcoverage
+Branch: refs/heads/master
