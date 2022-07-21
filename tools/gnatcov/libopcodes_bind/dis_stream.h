@@ -21,6 +21,13 @@
 #ifndef DIS_STREAM_H_
 #define DIS_STREAM_H_
 
+/* The following defines are needed to bypass check in libbfd include.  */
+#define PACKAGE 1
+#define PACKAGE_VERSION 1
+
+#include <bfd.h>
+#include <dis-asm.h>
+
 struct disassembler_stream;
 typedef struct disassembler_stream disassembler_stream;
 
@@ -29,6 +36,10 @@ extern disassembler_stream *create_stream (void);
 extern void delete_stream (disassembler_stream *const ds);
 
 extern int stream_printf (disassembler_stream *ptr, const char *format, ...);
+
+extern int stream_styled_printf (disassembler_stream *ptr,
+				 enum disassembler_style style,
+				 const char *format, ...);
 
 extern void clear_stream (disassembler_stream *const ds);
 

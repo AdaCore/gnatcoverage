@@ -32,22 +32,45 @@ struct disassembler_stream
 
 /* Printf-like function to add content to the DS stream according to FORMAT.
    Returns the number of characters written to the stream.  */
+static int
+common_printf (disassembler_stream *ds, const char *format, va_list ap)
+{
+  int res;
+
+  if (ds->buff == NULL)
+    return 0;
+
+  res = vsnprintf (ds->buff + ds->idx, ds->size - ds->idx, format, ap);
+  ds->idx += res;
+
+  return res;
+}
+
 int
 stream_printf (disassembler_stream *ds, const char *format, ...)
 {
   va_list ap;
   int res;
 
-  if (ds->buff == NULL)
-    {
-      return 0;
-    }
+  va_start (ap, format);
+  res = common_printf(ds, format, ap);
+  va_end (ap);
+
+  return res;
+}
+
+/* As stream_printf but the content can be styled based on style if
+   desired.  */
+int
+stream_styled_printf (disassembler_stream *ds,
+		      enum disassembler_style style ATTRIBUTE_UNUSED,
+		      const char *format, ...)
+{
+  va_list ap;
+  int res;
 
   va_start (ap, format);
-
-  res = vsnprintf (ds->buff + ds->idx, ds->size - ds->idx, format, ap);
-  ds->idx += res;
-
+  res = common_printf(ds, format, ap);
   va_end (ap);
 
   return res;
