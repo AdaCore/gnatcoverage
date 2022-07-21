@@ -145,8 +145,23 @@
 
   <!-- Annotated source-specific types -->
 
+  <xs:complexType name="scope_metric_type">
+    <xs:sequence>
+      <xs:element name="metric" type="metric_type"
+                  minOccurs="6" maxOccurs="6"/>
+      <xs:element name="obligation_stats" type="obligation_stats_type"
+                  minOccurs="0" maxOccurs="3"/>
+      <xs:element name="scope_metric" type="scope_metric_type"
+                  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="scope_name" type="xs:string"/>
+    <xs:attribute name="scope_line" type="xs:integer"/>
+  </xs:complexType>
+
   <xs:complexType name="source_type">
     <xs:sequence>
+      <xs:element name="scope_metric" type="scope_metric_type"
+                  minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="src_mapping" type="src_mapping_type"
                   minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>

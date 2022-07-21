@@ -138,6 +138,10 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_File (Pp : in out Xml_Pretty_Printer);
 
+   procedure Pretty_Print_Scope_Entity
+     (Pp        : in out Xml_Pretty_Printer;
+      Scope_Ent : Scope_Entity);
+
    procedure Pretty_Print_Start_Line
      (Pp       : in out Xml_Pretty_Printer;
       Line_Num : Natural;
@@ -192,7 +196,8 @@ package body Annotations.Xml is
    procedure Print_Coverage_Stats
      (Pp         : in out Xml_Pretty_Printer'Class;
       Stats      : Counter_Array;
-      Total_Kind : String);
+      Total_Kind : String;
+      Dest       : Printing_Destination);
    --  Emit a series of <metric> tags to Pp to describe the given statistics.
    --  Total_String is the string emitted for the total kind attributes, to
    --  have <metric kind="total_lines_of_relevance"/> for line statistics, and
@@ -200,12 +205,16 @@ package body Annotations.Xml is
    --  statistics.
 
    procedure Print_Coverage_Li_Stats
-     (Pp : in out Xml_Pretty_Printer'Class; Li_Stats : Li_Stat_Array);
+     (Pp       : in out Xml_Pretty_Printer'Class;
+      Li_Stats : Li_Stat_Array;
+      Dest     : Printing_Destination);
    --  Emit a series of <obligation_statistics> tags to Pp to describe the
    --  given statistics
 
    procedure Print_Coverage_Ob_Stats
-     (Pp : in out Xml_Pretty_Printer'Class; Ob_Stats : Ob_Stat_Array);
+     (Pp       : in out Xml_Pretty_Printer'Class;
+      Ob_Stats : Ob_Stat_Array;
+      Dest     : Printing_Destination);
    --  Emit a series of <obligation_statistics> tags to Pp to describe the
    --  given statistics
 
@@ -483,16 +492,16 @@ package body Annotations.Xml is
          begin
             if FI.Kind = Source_File and then To_Display (FI) then
                Pp.ST ("file", A ("name", FI.Simple_Name.all), Dest_Index);
-               Print_Coverage_Li_Stats (Pp, FI.Li_Stats);
-               Print_Coverage_Ob_Stats (Pp, FI.Ob_Stats);
+               Print_Coverage_Li_Stats (Pp, FI.Li_Stats, Dest_Index);
+               Print_Coverage_Ob_Stats (Pp, FI.Ob_Stats, Dest_Index);
                Pp.ET ("file", Dest_Index);
             end if;
          end Process_One_File;
 
       begin
          Pp.ST ("coverage_summary", Dest_Index);
-         Print_Coverage_Li_Stats (Pp, Global_Stats);
-         Print_Coverage_Ob_Stats (Pp, Global_Ob_Stats);
+         Print_Coverage_Li_Stats (Pp, Global_Stats, Dest_Index);
+         Print_Coverage_Ob_Stats (Pp, Global_Ob_Stats, Dest_Index);
          Files_Table_Iterate (Process_One_File'Access);
          Pp.ET ("coverage_summary", Dest_Index);
       end;
@@ -555,6 +564,37 @@ package body Annotations.Xml is
       Pp.T ("xi:include", A ("parse", "xml") & A ("href", Xml_File_Name),
             Dest_Index);
    end Pretty_Print_Start_File;
+
+   -------------------------------
+   -- Pretty_Print_Scope_Entity --
+   -------------------------------
+
+   procedure Pretty_Print_Scope_Entity
+     (Pp        : in out Xml_Pretty_Printer;
+      Scope_Ent : Scope_Entity)
+   is
+      FI : constant File_Info_Access :=
+        Get_File (First_Sloc (Scope_Ent.From).Source_File);
+   begin
+      Pp.ST ("scope_metric",
+             A ("scope_name", Scope_Ent.Name)
+             & A ("scope_line", Img (Scope_Ent.Sloc.Line)));
+      Print_Coverage_Li_Stats
+        (Pp,
+         Line_Metrics
+           (FI,
+            First_Sloc (Scope_Ent.From).L.Line,
+            Last_Sloc (Scope_Ent.To).L.Line),
+         Dest_Compilation_Unit);
+      Print_Coverage_Ob_Stats
+        (Pp,
+         Obligation_Metrics (Scope_Ent.From, Scope_Ent.To),
+         Dest_Compilation_Unit);
+      for Child of Scope_Ent.Children loop
+         Pp.Pretty_Print_Scope_Entity (Child.all);
+      end loop;
+      Pp.ET ("scope_metric");
+   end Pretty_Print_Scope_Entity;
 
    ----------------------------------------
    -- Pretty_Print_Start_Instruction_Set --
@@ -854,7 +894,8 @@ package body Annotations.Xml is
    procedure Print_Coverage_Stats
      (Pp         : in out Xml_Pretty_Printer'Class;
       Stats      : Counter_Array;
-      Total_Kind : String)
+      Total_Kind : String;
+      Dest       : Printing_Destination)
    is
 
       Total : constant Natural := Get_Total (Stats);
@@ -874,12 +915,12 @@ package body Annotations.Xml is
                then ""
                else A ("ratio", Img (Ratio (Amount, Total))));
       begin
-         Pp.T ("metric", Attributes, Dest_Index);
+         Pp.T ("metric", Attributes, Dest);
       end Print_Metric_Ratio;
 
    begin
       Pp.T ("metric", A ("kind", Total_Kind)
-                      & A ("count", Img (Total)), Dest_Index);
+                      & A ("count", Img (Total)), Dest);
       Print_Metric_Ratio ("fully_covered", Stats (Covered));
       Print_Metric_Ratio ("partially_covered", Stats (Partially_Covered));
       Print_Metric_Ratio ("not_covered", Stats (Not_Covered));
@@ -894,9 +935,11 @@ package body Annotations.Xml is
    -----------------------------
 
    procedure Print_Coverage_Li_Stats
-     (Pp : in out Xml_Pretty_Printer'Class; Li_Stats : Li_Stat_Array) is
+     (Pp       : in out Xml_Pretty_Printer'Class;
+      Li_Stats : Li_Stat_Array;
+      Dest     : Printing_Destination) is
    begin
-      Print_Coverage_Stats (Pp, Li_Stats, "total_lines_of_relevance");
+      Print_Coverage_Stats (Pp, Li_Stats, "total_lines_of_relevance", Dest);
    end Print_Coverage_Li_Stats;
 
    -----------------------------
@@ -904,13 +947,18 @@ package body Annotations.Xml is
    -----------------------------
 
    procedure Print_Coverage_Ob_Stats
-     (Pp : in out Xml_Pretty_Printer'Class; Ob_Stats : Ob_Stat_Array) is
+     (Pp       : in out Xml_Pretty_Printer'Class;
+      Ob_Stats : Ob_Stat_Array;
+      Dest     : Printing_Destination) is
    begin
       for Level of Source_Levels_Enabled loop
-         Pp.ST ("obligation_stats", A ("kind", Image (Level)), Dest_Index);
-         Print_Coverage_Stats (Pp, Ob_Stats (Level).Stats,
-                               "total_obligations_of_relevance");
-         Pp.ET ("obligation_stats", Dest_Index);
+         Pp.ST ("obligation_stats", A ("kind", Image (Level)), Dest);
+         Print_Coverage_Stats
+           (Pp,
+            Ob_Stats (Level).Stats,
+            "total_obligations_of_relevance",
+            Dest);
+         Pp.ET ("obligation_stats", Dest);
       end loop;
    end Print_Coverage_Ob_Stats;
 
