@@ -96,7 +96,9 @@ clang_getBody (CXCursor C)
   if (clang_isDeclaration (C.kind))
     {
       if (const Decl *D = cxcursor::getCursorDecl (C))
-        return MakeCXCursorWithNull (D->getBody (), C);
+        if (const FunctionDecl *FD = dyn_cast<FunctionDecl>(D))
+          if (FD->doesThisDeclarationHaveABody ())
+            return MakeCXCursorWithNull (FD->getBody (), C);
     }
   else if (clang_isStatement (C.kind))
     if (const Stmt *S = cxcursor::getCursorStmt (C))
