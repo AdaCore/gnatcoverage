@@ -31,7 +31,7 @@ package Instrument.Checkpoints is
    --  Clear the internal data structures used to create checkpoints
 
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State);
-   --  Load checkpointed instrumented unit map from stream and merge them in
+   --  Load instrumentation-specific data from stream and merge them in the
    --  current state.
 
 end Instrument.Checkpoints;

@@ -69,9 +69,12 @@ package body Instrument.C_Utils is
    function End_Sloc (N : Cursor_T) return Source_Location is
       Line   : aliased Interfaces.C.unsigned;
       Column : aliased Interfaces.C.unsigned;
-      Loc    : constant Source_Location_T :=
+      Loc    : Source_Location_T :=
         Get_Range_End (Get_Cursor_Extent (N));
    begin
+      if Is_Macro_Location (Loc) then
+         Loc := Get_Expansion_End (Get_Cursor_TU (N), Loc);
+      end if;
       Get_Presumed_Location
         (Location => Loc,
          Filename => null,

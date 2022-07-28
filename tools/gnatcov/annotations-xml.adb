@@ -27,7 +27,6 @@ with GNAT.OS_Lib;
 with Coverage;      use Coverage;
 with Hex_Images;    use Hex_Images;
 with Outputs;       use Outputs;
-with Strings;       use Strings;
 with Support_Files;
 with Traces_Disa;   use Traces_Disa;
 with Traces_Files;  use Traces_Files;
@@ -320,6 +319,9 @@ package body Annotations.Xml is
              A ("id", Img (Integer (SCO)))
              & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
+      for Annotation of SCO_Annotations (SCO) loop
+         Pp.T ("annotation", A ("text", Annotation));
+      end loop;
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("condition");
    end Pretty_Print_Condition;
@@ -515,6 +517,9 @@ package body Annotations.Xml is
              A ("id", Img (Integer (SCO)))
              & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
+      for Annotation of SCO_Annotations (SCO) loop
+         Pp.T ("annotation", A ("text", Annotation));
+      end loop;
       Pp.Src_Block (Sloc_Start, Sloc_End);
    end Pretty_Print_Start_Decision;
 
@@ -612,14 +617,17 @@ package body Annotations.Xml is
       SCO   : SCO_Id;
       State : Line_State)
    is
-      Sloc_Start     : constant Source_Location := First_Sloc (SCO);
-      Sloc_End       : constant Source_Location :=
-                         End_Lex_Element (Last_Sloc (SCO));
+      Sloc_Start : constant Source_Location := First_Sloc (SCO);
+      Sloc_End   : constant Source_Location :=
+        End_Lex_Element (Last_Sloc (SCO));
    begin
       Pp.ST ("statement",
              A ("id", Img (Integer (SCO)))
              & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
+      for Annotation of SCO_Annotations (SCO) loop
+         Pp.T ("annotation", A ("text", Annotation));
+      end loop;
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("statement");
    end Pretty_Print_Statement;

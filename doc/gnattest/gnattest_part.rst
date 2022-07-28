@@ -181,6 +181,12 @@ Switches for ``gnattest`` in framework generation mode
   parameter.
 
 
+  .. index:: --no-subprojects (gnattest)
+
+:switch:`--no-subprojects`
+  Process only source files from the root project.
+
+
   .. index:: -X (gnattest)
 
 :switch:`-X{name}={val}`

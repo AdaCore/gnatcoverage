@@ -132,6 +132,7 @@ package body Annotations.Xcov is
    begin
       Output_Multiline_Msg (Pp.Xcov_File, Message_Annotation (M));
       New_Line (Pp.Xcov_File);
+      Output_Annotations (Pp.Xcov_File, SCO_Annotations (M.SCO));
    end Pretty_Print_Message;
 
    -----------------------------

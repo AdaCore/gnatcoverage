@@ -190,6 +190,10 @@
         </xs:sequence>
     </xs:complexType>
 
+    <xs:complexType name="annotation_type">
+        <xs:attribute name="text" type="xs:string"/>
+    </xs:complexType>
+
     <xs:complexType name="line_type">
         <xs:attribute name="num" type="xs:integer" use="required"/>
         <xs:attribute name="src" type="xs:string"/>
@@ -224,6 +228,8 @@
 
     <xs:complexType name="statement_type">
         <xs:sequence>
+            <xs:element name="annotation" type="annotation_type"
+                minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="src" type="src_type"
                 minOccurs="0" maxOccurs="1"/>
         </xs:sequence>
@@ -234,6 +240,8 @@
 
     <xs:complexType name="decision_type">
         <xs:sequence>
+            <xs:element name="annotation" type="annotation_type"
+                minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="src" type="src_type"
                 minOccurs="0" maxOccurs="1"/>
             <xs:element name="condition" type="condition_type"
@@ -246,6 +254,8 @@
 
     <xs:complexType name="condition_type">
         <xs:sequence>
+            <xs:element name="annotation" type="annotation_type"
+                minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="src" type="src_type"
                 minOccurs="0" maxOccurs="1"/>
         </xs:sequence>

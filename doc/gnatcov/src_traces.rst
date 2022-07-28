@@ -141,12 +141,54 @@ Note that for now, only Ada and C are supported. The core runtime is
 implemented in C, so the C language must be enabled in all cases.
 
 
+Default source trace dump options
+---------------------------------
+
+Source trace dump settings (``--dump-trigger``, ``--dump-channel`` and other
+related ``--dump-*`` command line options) are used to make |gcvins| produce
+instrumented mains that automatically dump source trace files at the end of the
+program execution, or to leave this to manually written code (see the full
+documentation in :ref:`later sections <gcvins-cmd-line>`).
+
+Without any ``--dump-*`` option, |gcvstp| selects defaults for the target
+platform, which |gcvins| can then reuse automatically. There are two ways to
+override these defaults: pass ``--dump-*`` options directly to |gcvins|, or to
+|gcvstp|. If ``--dump-*`` options are passed to both |gcvstp| then to |gcvins|,
+the options passed to the latter take precedence. For instance:
+
+.. code-block:: sh
+
+   # Use what gnatcov thinks the most sensible defaults for the target platform
+   # are.
+   gnatcov setup
+   gnatcov instrument # ...
+
+   # Setup to use atexit/bin-file by default, then use these defaults for
+   # instrumentation.
+   gnatcov setup --dump-trigger=atexit --dump-channel=bin-file
+   gnatcov instrument # ...
+
+   # Make atexit/bin-file the default at setup time, but actually use
+   # main-end/base64-stdout for source instrumentation.
+   gnatcov setup --dump-trigger=atexit \
+                 --dump-channel=bin-file
+   gnatcov instrument --dump-trigger=main-end \
+                      --dump-channel=base64-stdout # ...
+
+   # Make atexit/bin-file the default at setup time, but actually use
+   # main-end for source instrumentation (thus still using the default
+   # bin-file).
+   gnatcov setup --dump-trigger=atexit \
+                 --dump-channel=bin-file
+   gnatcov instrument --dump-trigger=main-end # ...
+
+Note that the defaults that |gcvstp| uses for each target platform may change
+between versions of |gcp|.
+
 .. TODO (U211-014): Document:
 
    * the project positional argument (to install an extending coverage runtime
      project).
-
-   * dump options and their interactions with "gnatcov instrument"
 
 
 Instrumenting programs
@@ -165,6 +207,8 @@ kinds of operations:
 - Modify the main unit(s) to output the so gathered coverage data to
   an externally readable channel, typically either a source trace file or some
   communication port.
+
+.. _gcvins-cmd-line:
 
 |gcvins| command line
 ---------------------

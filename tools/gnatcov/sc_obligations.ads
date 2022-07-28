@@ -18,9 +18,11 @@
 
 --  Source Coverage Obligations
 
+with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNAT.Regexp;
 with GNAT.SHA1;
@@ -527,6 +529,63 @@ package SC_Obligations is
 
    procedure Set_Bit_Maps (CU : CU_Id; Bit_Maps : CU_Bit_Maps);
    --  Set the tables mapping source trace bit indices to SCO discharge info
+
+  --  With languages featuring macros such as C, coverage obligations are
+  --  established from expanded code but the user level sources against which
+  --  we produce reports are the original unexpanded ones. Here, we instate
+  --  mechanisms to let us track and eventually report how expanded SCOs
+  --  connect to the original sources.
+
+   type SCO_PP_Kind is (In_Expansion, No_Expansion);
+
+   type Expansion_Info is record
+      Macro_Name : Unbounded_String;
+      Sloc       : Slocs.Source_Location;
+   end record;
+
+   package Expansion_Lists is new Ada.Containers.Doubly_Linked_Lists
+     (Element_Type => Expansion_Info);
+
+   type PP_Info (Kind : SCO_PP_Kind := No_Expansion) is record
+      Actual_Source_Range : Slocs.Local_Source_Location_Range;
+      --  Refers to the source location of a SCO in the unpreprocessed view
+      --  of the source file.
+
+      PP_Source_Range     : Slocs.Local_Source_Location_Range;
+      --  Refer to a source location from the preprocessed version of the
+      --  source file, without accounting for preprocessor-inserted line
+      --  directives.
+
+      Expansion_Stack : Expansion_Lists.List;
+      --  Empty if PP_Info.Kind = No_Expansion
+
+      case Kind is
+         when In_Expansion =>
+            Definition_Loc : Expansion_Info;
+            --  Location in the definition of the ultimate macro expansion
+
+         when others       =>
+            null;
+      end case;
+
+   end record;
+   --  Preprocessing information for SCOs. Hold basic information to enhance
+   --  the report output with more precise messages.
+
+   package SCO_PP_Info_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => SCO_Id,
+      Element_Type => PP_Info);
+
+   procedure Add_PP_Info (SCO : SCO_Id; Info : PP_Info)
+      with Pre => not Has_PP_Info (SCO);
+      --  Add macro expansion information for the given SCO
+
+   function Has_PP_Info (SCO : SCO_Id) return Boolean;
+   --  Return whether the given SCO comes has preprocessing information
+
+   function Get_PP_Info (SCO : SCO_Id) return PP_Info
+     with Pre => Has_PP_Info (SCO);
+   --  Return the preprocessing information (if any) for the given SCO
 
    -----------------
    -- Checkpoints --

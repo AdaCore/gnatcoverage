@@ -31,6 +31,8 @@
 #include "clang-c/Rewrite.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ParentMapContext.h"
+#include "clang/Basic/SourceLocation.h"
+#include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/ASTUnit.h"
 #include "clang/Lex/Lexer.h"
 #include "clang/Lex/Token.h"
@@ -360,10 +362,78 @@ clang_CXRewriter_insertTextAfterToken (CXRewriter Rew, CXSourceLocation Loc,
 }
 
 extern "C" unsigned
-clang_CXRewriter_isRewritable (CXSourceLocation Loc)
+clang_isMacroLocation (CXSourceLocation Loc)
 {
-  return clang::Rewriter::isRewritable (
-             clang::cxloc::translateSourceLocation (Loc))
-             ? 1
-             : 0;
+  const clang::SourceLocation SLoc =
+     clang::cxloc::translateSourceLocation (Loc);
+  return SLoc.isMacroID () ? 1 : 0;
+}
+
+extern "C" unsigned
+clang_isMacroArgExpansion (CXSourceLocation Loc, CXSourceLocation *StartLoc, CXTranslationUnit TU)
+{
+  const SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  const SourceLocation SLoc = translateSourceLocation (Loc);
+  ASTUnit *astUnit = cxtu::getASTUnit (TU);
+  ASTContext &astContext = astUnit->getASTContext ();
+  SourceLocation Result;
+  if (SM.isMacroArgExpansion (SLoc, &Result))
+    {
+      *StartLoc = cxloc::translateSourceLocation (astContext, Result);
+      return 1;
+    }
+  return 0;
+}
+
+extern "C" CXSourceLocation
+clang_getImmediateMacroCallerLoc (CXSourceLocation Loc, CXTranslationUnit TU)
+{
+  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  ASTUnit *astUnit = cxtu::getASTUnit (TU);
+  ASTContext &astContext = astUnit->getASTContext ();
+  SourceLocation SLoc = translateSourceLocation (Loc);
+  if (SLoc.isMacroID ())
+    return cxloc::translateSourceLocation
+      (astContext, SM.getImmediateMacroCallerLoc (SLoc));
+  return Loc;
+}
+
+extern "C" CXSourceLocation
+clang_getImmediateExpansionLoc (CXSourceLocation Loc, CXTranslationUnit TU)
+{
+  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  ASTUnit *astUnit = cxtu::getASTUnit (TU);
+  ASTContext &astContext = astUnit->getASTContext ();
+  SourceLocation SLoc = translateSourceLocation (Loc);
+  return cxloc::translateSourceLocation
+    (astContext, SM.getImmediateExpansionRange (SLoc).getBegin ());
+}
+
+extern "C" CXString
+clang_getImmediateMacroNameForDiagnostics (CXSourceLocation Loc, CXTranslationUnit TU)
+{
+  SourceLocation SLoc = translateSourceLocation (Loc);
+  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  ASTUnit *astUnit = cxtu::getASTUnit (TU);
+  ASTContext &astContext = astUnit->getASTContext ();
+  return createDup
+    (Lexer::getImmediateMacroNameForDiagnostics
+     (SLoc, SM, astContext.getLangOpts ()));
+}
+
+extern "C" CXSourceLocation
+clang_getExpansionEnd (CXTranslationUnit TU, CXSourceLocation Loc)
+{
+  SourceLocation SLoc = translateSourceLocation (Loc);
+  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  ASTUnit *astUnit = cxtu::getASTUnit (TU);
+  ASTContext &astContext = astUnit->getASTContext ();
+  return cxloc::translateSourceLocation
+    (astContext, SM.getExpansionRange (SLoc).getEnd ());
+}
+
+extern "C" CXTranslationUnit
+clang_getCursorTU (CXCursor C)
+{
+  return cxcursor::getCursorTU (C);
 }

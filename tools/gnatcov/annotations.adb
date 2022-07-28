@@ -31,12 +31,15 @@ with Coverage_Options; use Coverage_Options;
 with Coverage.Object;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;
+with Instrument.Base_Types;
 with Outputs;          use Outputs;
-with Strings;          use Strings;
+with Subprocesses;
 with Switches;         use Switches;
 with Traces_Disa;
 
 package body Annotations is
+
+   package US renames Ada.Strings.Unbounded;
 
    -------------------------
    -- Get_Unique_Filename --
@@ -586,7 +589,7 @@ package body Annotations is
       --  Start of processing for Compute_File_State
 
       begin
-         if FI.Kind /= Source_File then
+         if FI.Kind /= Source_File or else FI.Ignore_Status = Always then
             return;
          end if;
 
@@ -728,7 +731,7 @@ package body Annotations is
            & (if Switches.Show_MCDC_Vectors and then Kind (M.SCO) = Condition
               then Index (M.SCO)'Image & " ("
               else " ")
-           & """" & SCO_Text (M.SCO) & '"'
+           & SCO_Image (M.SCO)
            & " at "
            & Img (First_Sloc (M.SCO).L.Line) & ":"
            & Img (First_Sloc (M.SCO).L.Column)
@@ -772,29 +775,157 @@ package body Annotations is
    --------------
 
    function SCO_Text (SCO : SCO_Id; Length : Natural := 8) return String is
-      Sloc_Start : constant Source_Location := First_Sloc (SCO);
-      Sloc_End   : constant Source_Location :=
-                     End_Lex_Element (Last_Sloc (SCO));
+
+      Sloc_Start : Source_Location := First_Sloc (SCO);
+      Sloc_End   : Source_Location := End_Lex_Element (Last_Sloc (SCO));
       Sloc_Bound : Source_Location;
-      Line       : constant String := Get_Line (Sloc_Start);
-      Col_Start  : constant Natural := Sloc_Start.L.Column;
+      Line       : US.Unbounded_String;
+      Col_Start  : Natural;
       Col_End    : Natural;
+
+      Desc : US.Unbounded_String;
+      --  SCO description: shortened view of the SCO tokens, with a macro
+      --  expansion annotation if the SCO comes from a macro expansion.
+
    begin
-      if Line'Last < Sloc_Start.L.Column then
+      --  First, if this is a SCO inside a macro expansion, get the
+      --  preprocessed excerpt for reporting purposes.
+
+      if Has_PP_Info (SCO) and then Get_PP_Info (SCO).Kind = In_Expansion then
+         declare
+            SFI : constant Source_File_Index := Sloc_Start.Source_File;
+
+            Info                  : constant PP_Info := Get_PP_Info (SCO);
+            Preprocessed_Filename : constant String := Get_PP_Filename (SFI);
+            Preprocessed_SFI      : Source_File_Index :=
+              Get_Index_From_Generic_Name
+                (Preprocessed_Filename,
+                 Source_File, Insert => False);
+
+         begin
+            if Preprocessed_SFI = No_Source_File then
+               declare
+                  use Instrument.Base_Types;
+                  use Subprocesses;
+                  Preprocessed : Boolean;
+               begin
+                  if PP_Cmds.Contains (SFI) then
+                     Preprocessed :=
+                       Run_Command
+                         (PP_Cmds.Element (SFI), "Preprocessing",
+                          Preprocessed_Filename,
+                          Err_To_Out => False,
+                          Ignore_Error => True);
+
+                     if Preprocessed then
+                        Preprocessed_SFI :=
+                          Get_Index_From_Generic_Name
+                            (Preprocessed_Filename,
+                             Source_File,
+                             Insert_After_Freeze => True);
+                     else
+                        PP_Cmds.Delete (SFI);
+                        Outputs.Warn
+                          ("unable to preprocess " & Get_Full_Name (SFI)
+                           & ". This will result in degraded messages at lines"
+                           & " with macro expansions.");
+                     end if;
+                  end if;
+               end;
+            end if;
+
+            if Preprocessed_SFI /= No_Source_File then
+               Sloc_Start.Source_File := Preprocessed_SFI;
+               Sloc_Start.L := Info.PP_Source_Range.First_Sloc;
+               Sloc_End.Source_File := Preprocessed_SFI;
+               Sloc_End.L := Info.PP_Source_Range.Last_Sloc;
+            end if;
+         end;
+      end if;
+
+      Line := +Get_Line (Sloc_Start);
+
+      if US.Length (Line) < Sloc_Start.L.Column then
          return "";
       end if;
+
+      Col_Start := Sloc_Start.L.Column;
 
       Sloc_Bound := Sloc_Start;
       Sloc_Bound.L.Column := Sloc_Start.L.Column + Length;
 
+      --  We will print out a shortened view (8 characters by default) of the
+      --  SCO tokens.
+
       if Sloc_Bound <= Sloc_End then
-         Col_End := Natural'Min (Line'Last, Sloc_Bound.L.Column);
-         return Line (Col_Start .. Col_End) & "...";
+         Col_End := Natural'Min (US.Length (Line), Sloc_Bound.L.Column);
+         US.Append (Desc,
+                    +US.Unbounded_Slice (Line, Col_Start, Col_End) & "...");
       else
-         Col_End := Natural'Min (Line'Last, Sloc_End.L.Column);
-         return Line (Col_Start .. Col_End);
+         Col_End := Natural'Min (US.Length (Line), Sloc_End.L.Column);
+         US.Append (Desc, US.Unbounded_Slice (Line, Col_Start, Col_End));
       end if;
+      return +Desc;
    end SCO_Text;
+
+   ---------------------
+   -- SCO_Annotations --
+   ---------------------
+
+   function SCO_Annotations (SCO : SCO_Id) return String_Vectors.Vector is
+      use Ada.Strings.Unbounded;
+   begin
+      if Has_PP_Info (SCO) then
+         declare
+            Info        : constant PP_Info := Get_PP_Info (SCO);
+            Annotations : String_Vectors.Vector;
+         begin
+            if Info.Kind = In_Expansion then
+               Annotations.Append
+                 ("in definition of macro "
+                  & Info.Definition_Loc.Macro_Name
+                  & " at location "
+                  & Slocs.Image (Info.Definition_Loc.Sloc));
+
+               for Exp_Info of Info.Expansion_Stack loop
+                  Annotations.Append
+                    ("from expansion of macro "
+                     & Exp_Info.Macro_Name
+                     & " at location "
+                     & Slocs.Image (Exp_Info.Sloc));
+               end loop;
+
+               return Annotations;
+            end if;
+         end;
+      end if;
+      return String_Vectors.Empty_Vector;
+   end SCO_Annotations;
+
+   ------------------------
+   -- Output_Annotations --
+   ------------------------
+
+   procedure Output_Annotations
+     (Output      : Ada.Text_IO.File_Type;
+      Annotations : String_Vectors.Vector)
+   is
+      use Ada.Text_IO;
+   begin
+      for Annotation of Annotations loop
+         Put_Line (Output, "  note: " & (+Annotation));
+      end loop;
+   end Output_Annotations;
+
+   ---------------
+   -- SCO_Image --
+   ---------------
+
+   function SCO_Image (SCO : SCO_Id; Length : Natural := 8) return String
+   is
+   begin
+      return """" & SCO_Text (SCO, Length) & """";
+   end SCO_Image;
 
    --------------------------
    -- To_Annotation_Format --

@@ -92,4 +92,58 @@ package Clang.Extensions is
    --  Insert the text Insert after the token at the given location, and after
    --  any previously inserted string (at the same location).
 
+   function Get_Cursor_TU (C : Cursor_T) return Translation_Unit_T
+   with
+     Import, Convention => C,
+     External_Name => "clang_getCursorTU";
+   --  Return the translation unit to which C belongs.
+
+   --------------------
+   -- Clang wrappers --
+   --------------------
+
+   --  The functions below are simply bindings around clang functions, which
+   --  are exhaustively documented in the clang sources.
+
+   function Is_Macro_Location (Loc : Source_Location_T) return Boolean
+     with Inline;
+   --  See isMacroID in clang/Basic/SourceLocation.h.
+
+   function Is_Macro_Arg_Expansion
+     (Loc       : Source_Location_T;
+      Start_Loc : access Source_Location_T := null;
+      TU        : Translation_Unit_T) return Boolean
+      with Inline;
+   --  See isMacroArgExpansion in clang/Basic/SourceManager.h.
+
+   function Get_Immediate_Macro_Name_For_Diagnostics
+     (Loc : Source_Location_T;
+      TU  : Translation_Unit_T) return String
+     with Inline;
+   --  See getImmediateMacroNameForDiagnostics in clang/Lex/Lexer.h
+
+   function Get_Immediate_Macro_Caller_Loc
+     (Loc : Source_Location_T;
+      TU  : Translation_Unit_T) return Source_Location_T
+     with
+       Import, Convention => C,
+       External_Name => "clang_getImmediateMacroCallerLoc";
+   --  See getImmediateMacroCallerLoc in clang/Basic/SourceManager.h.
+
+   function Get_Immediate_Expansion_Loc
+     (Loc : Source_Location_T;
+      TU  : Translation_Unit_T) return Source_Location_T
+     with
+       Import, Convention => C,
+       External_Name => "clang_getImmediateExpansionLoc";
+   --  See getImmediateExpansionRange in clang/Basic/SourceManager.h.
+
+   function Get_Expansion_End
+     (TU  : Translation_Unit_T;
+      Loc : Source_Location_T) return Source_Location_T
+     with
+       Import, Convention => C,
+       External_Name => "clang_getExpansionEnd";
+   --  See getExpansionRange in clang/Basic/SourceManager.h.
+
 end Clang.Extensions;

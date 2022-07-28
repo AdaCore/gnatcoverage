@@ -82,4 +82,62 @@ package body Clang.Extensions is
       CX_Rewriter_Insert_Text_After_Token_C (Rew, Loc, Insert & ASCII.NUL);
    end CX_Rewriter_Insert_Text_After_Token;
 
+   -----------------------
+   -- Is_Macro_Location --
+   -----------------------
+
+   function Is_Macro_Location (Loc : Source_Location_T) return Boolean
+   is
+      function Is_Macro_Location_C (Loc : Source_Location_T) return unsigned
+        with
+          Import, Convention => C,
+          External_Name => "clang_isMacroLocation";
+   begin
+      return Is_Macro_Location_C (Loc) /= 0;
+   end Is_Macro_Location;
+
+   ----------------------------------------------
+   -- Get_Immediate_Macro_Name_For_Diagnostics --
+   ----------------------------------------------
+
+   function Get_Immediate_Macro_Name_For_Diagnostics
+     (Loc : Source_Location_T;
+      TU  : Translation_Unit_T) return String
+   is
+      function Get_Immediate_Macro_Name_For_Diagnostics_C
+        (Loc : Source_Location_T;
+         TU  : Translation_Unit_T) return String_T
+        with
+          Import, Convention => C,
+          External_Name      => "clang_getImmediateMacroNameForDiagnostics";
+
+      Macro_Name_C : constant String_T :=
+        Get_Immediate_Macro_Name_For_Diagnostics_C (Loc, TU);
+      Macro_Name   : constant String :=
+        Get_C_String (Macro_Name_C);
+   begin
+      Dispose_String (Macro_Name_C);
+      return Macro_Name;
+   end Get_Immediate_Macro_Name_For_Diagnostics;
+
+   ----------------------------
+   -- Is_Macro_Arg_Expansion --
+   ----------------------------
+
+   function Is_Macro_Arg_Expansion
+     (Loc       : Source_Location_T;
+      Start_Loc : access Source_Location_T := null;
+      TU        : Translation_Unit_T) return Boolean
+   is
+      function Is_Macro_Arg_Expansion
+        (Loc       : Source_Location_T;
+         Start_Loc : access Source_Location_T;
+         TU        : Translation_Unit_T) return unsigned
+        with
+          Import, Convention => C,
+          External_Name      => "clang_isMacroArgExpansion";
+   begin
+      return Is_Macro_Arg_Expansion (Loc, Start_Loc, TU) /= 0;
+   end Is_Macro_Arg_Expansion;
+
 end Clang.Extensions;
