@@ -4885,13 +4885,17 @@ package body Instrument.Ada_Unit is
       N       : Package_Body;
       Preelab : Boolean)
    is
+      Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
+        UIC.MCDC_State_Inserter;
+      Local_Inserter            : aliased Default_MCDC_State_Inserter :=
+        (Local_Decls => Handle (N.F_Decls.F_Decls));
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
-
       Enter_Scope
         (UIC        => UIC,
          Scope_Name => N.As_Package_Body.F_Package_Name.Text,
          Sloc       => Sloc (N));
+      UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       --  The first statement in the handled sequence of statements is
       --  dominated by the elaboration of the last declaration.
@@ -4901,9 +4905,10 @@ package body Instrument.Ada_Unit is
          N => N.F_Stmts,
          D => Traverse_Declarations_Or_Statements
                 (IC, UIC, N.F_Decls.F_Decls, Preelab));
-      UIC.Ghost_Code := False;
 
+      UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
+      UIC.Ghost_Code := False;
    end Traverse_Package_Body;
 
    ----------------------------------
@@ -4918,12 +4923,18 @@ package body Instrument.Ada_Unit is
       D       : Dominant_Info := No_Dominant)
    is
       Private_Part_Dominant : Dominant_Info;
+
+      Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
+        UIC.MCDC_State_Inserter;
+      Local_Inserter            : aliased Default_MCDC_State_Inserter :=
+        (Local_Decls => Handle (N.F_Public_Part.F_Decls));
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
         (UIC        => UIC,
          Scope_Name => N.F_Package_Name.Text,
          Sloc       => Sloc (N));
+      UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Private_Part_Dominant :=
         Traverse_Declarations_Or_Statements
@@ -4940,6 +4951,7 @@ package body Instrument.Ada_Unit is
             Preelab => Preelab,
             D       => Private_Part_Dominant);
       end if;
+      UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
       UIC.Ghost_Code := False;
    end Traverse_Package_Declaration;
