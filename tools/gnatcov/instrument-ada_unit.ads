@@ -166,6 +166,10 @@ private
 
       First : Boolean;
       --  True if this condition is the first one in its decision
+
+      Decision_Static : Boolean := False;
+      --  True if the expression of the enclosing decision is static
+      --  (according to the RM definition of static).
    end record;
 
    package Source_Decision_Vectors is
