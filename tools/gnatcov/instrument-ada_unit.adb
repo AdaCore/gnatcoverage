@@ -6664,18 +6664,7 @@ package body Instrument.Ada_Unit is
 
          --  Import annotations in our internal tables
 
-         for Couple of UIC.Annotations loop
-            declare
-               Sloc : constant Slocs.Source_Location :=
-                 (Source_File => UIC.SFI,
-                  L           => (Line   => Positive (Couple.Sloc.Line),
-                                  Column => Positive (Couple.Sloc.Column)));
-            begin
-               Couple.Annotation.CU := UIC.CU;
-               ALI_Annotations.Insert
-                 (Key => Sloc, New_Item => Couple.Annotation);
-            end;
-         end loop;
+         UIC.Import_Annotations;
 
          --  Import non-instrumented SCOs in the internal tables
 

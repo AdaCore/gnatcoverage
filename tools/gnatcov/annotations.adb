@@ -91,14 +91,18 @@ package body Annotations is
    -- Aggregated_State --
    ----------------------
 
-   function Aggregated_State (Info : Line_Info) return Any_Line_State is
+   function Aggregated_State
+     (Info              : Line_Info;
+      Ignore_Exemptions : Boolean := False) return Any_Line_State is
       Result : Line_State := No_Code;
    begin
       --  Exempted case
 
-      if Info.Exemption /= Slocs.No_Location then
+      if Info.Exemption /= Slocs.No_Location
+        and then not Ignore_Exemptions
+      then
          if Get_Exemption_Violation_Count (Info.Exemption) = 0
-           and then Get_Exemption_Undet_Cov_Count (Info.Exemption) = 0
+            and then Get_Exemption_Undet_Cov_Count (Info.Exemption) = 0
          then
             return Exempted_No_Violation;
          elsif Get_Exemption_Violation_Count (Info.Exemption) = 0 then
@@ -414,10 +418,8 @@ package body Annotations is
          ------------------------
 
          procedure Compute_Line_State (L : Positive) is
-            LI        : constant Line_Info_Access := Get_Line (FI, L);
-            S         : Any_Line_State;
-            Sloc      : Source_Location;
-
+            LI : constant Line_Info_Access := Get_Line (FI, L);
+            S  : Line_State;
          begin
             --  Compute state for each coverage objective
 
@@ -429,34 +431,7 @@ package body Annotations is
 
             --  Compute aggregated line state before exemption
 
-            S := Aggregated_State (LI.all);
-
-            --  Now determine whether this line is covered by an exemption.
-
-            --  First check whether the beginning of the line is exempted. If
-            --  not, find the first statement SCO starting on the line, and
-            --  check for exemption at that point. This part is just to exempt
-            --  exemption pragmas themselves, as the exemption starts at the
-            --  specific exemption pragma location. If we were to rely solely
-            --  on the line, we would not exempt the exemption pragma itself,
-            --  as it probably does not start on the column 0.
-
-            Sloc := (File_Index, (L, 0));
-            LI.Exemption := Get_Exemption (Sloc);
-
-            if LI.Exemption = Slocs.No_Location then
-               if LI.SCOs /= null then
-                  for SCO of LI.SCOs.all loop
-                     if Kind (SCO) = Statement
-                          and then Sloc < First_Sloc (SCO)
-                     then
-                        Sloc := First_Sloc (SCO);
-                        exit;
-                     end if;
-                  end loop;
-               end if;
-               LI.Exemption := Get_Exemption (Sloc);
-            end if;
+            S := Aggregated_State (LI.all, Ignore_Exemptions => True);
 
             --  If exempted, bump exemption hit counter if generating annotated
             --  sources (or HTML). Note that for the Report case, we count
@@ -480,6 +455,7 @@ package body Annotations is
             return;
          end if;
 
+         Populate_Exemptions (File_Index);
          Iterate_On_Lines (FI, Compute_Line_State'Access);
 
          --  Update file statistics for line L. Note that this can be done

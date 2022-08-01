@@ -32,6 +32,7 @@ with Osint;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
+with ALI_Files;     use ALI_Files;
 with Checkpoints;   use Checkpoints;
 with Coverage;      use Coverage;
 with Outputs;
@@ -1732,6 +1733,116 @@ package body Files_Table is
          return Empty_Sloc_To_SCO_Map'Access;
       end if;
    end Sloc_To_SCO_Map;
+
+   -------------------------
+   -- Populate_Exemptions --
+   -------------------------
+
+   procedure Populate_Exemptions (FI : Source_File_Index) is
+      use ALI_Annotation_Maps;
+      Info : File_Info renames Files_Table (FI).all;
+
+      Current_Line_Num : Natural := Info.Lines.First_Index;
+
+      Last_Line_Num    : Natural := Info.Lines.Last_Index;
+      --  Refers to the last line number on which there are SCOs. This may be
+      --  expanded later if we find that there are exemption annotations past
+      --  this line.
+
+      Annotation_Cur     : Cursor :=
+        ALI_Annotations.Ceiling ((FI, (Current_Line_Num, 0)));
+      Next_Annot_Cur     : Cursor;
+      Current_Annot_Sloc : Source_Location;
+      Current_Annotation : ALI_Annotation;
+
+      function Annotation_In_File (Cur : Cursor) return Boolean is
+        (Has_Element (Cur) and then Key (Cur).Source_File = FI);
+      --  Returns whether the annotation represented by Cur is in the same file
+      --  as FI.
+
+   begin
+      if not Has_Element (Annotation_Cur) then
+
+         --  No annotations for this file
+
+         return;
+      end if;
+
+      Current_Annot_Sloc := Key (Annotation_Cur);
+      Current_Annotation := Element (Annotation_Cur);
+      Next_Annot_Cur := Next (Annotation_Cur);
+
+      if FI = Current_Annot_Sloc.Source_File then
+         Current_Line_Num := Current_Annot_Sloc.L.Line;
+      else
+         --  No annotations for this file
+
+         return;
+      end if;
+
+      --  Iterate on all the lines and mark those in an active exemption
+      --  region.
+      --
+      --  The complexity in the loop bellow stems from two factors to keep in
+      --  mind when reading the code:
+      --  - Exemption annotations do not always have a corresponding SCO,
+      --    this is currently always true for Ada sources, but always false
+      --    for C sources.
+      --  - We cannot expect an Exempt_On annotation to be followed by an
+      --    Exempt_Off annotation: there could be multiple annotations of the
+      --    same kind back to back, or we could very well have a lone annoation
+      --    in a file.
+
+      loop
+         --  If we are in an active exemption region but have reached the end
+         --  of the registered lines, allocate lines until the next exemption
+         --  annotation of this file. If there is no next annotation in the
+         --  file, simply exit the loop.
+         --
+         --  This implies that if the last annotation of a file is Exempt_On,
+         --  all the lines starting at the annotation until the last line with
+         --  a SCO will be marked as exempted. We can't go up to the actual end
+         --  of the file because we don't have the actual number of lines of
+         --  the file. In practice this is ok because the lines that we won't
+         --  process are lines without SCOs in them.
+
+         if Current_Line_Num > Last_Line_Num then
+            exit when not
+              (Current_Annotation.Kind = Exempt_On
+               and then Annotation_In_File (Next_Annot_Cur));
+            Last_Line_Num := Key (Next_Annot_Cur).L.Line;
+            Expand_Line_Table (FI, Last_Line_Num);
+         end if;
+
+         --  Annotate lines when we are in an active exemption region,
+         --  otherwise skip lines until the next annotation if it exists, or
+         --  exit the loop if there is no more annotations.
+
+         if Current_Annotation.Kind = Exempt_On then
+            Info.Lines.Element
+              (Current_Line_Num).all.Exemption := Current_Annot_Sloc;
+         else
+            exit when not Annotation_In_File (Next_Annot_Cur);
+            Current_Line_Num := Key (Next_Annot_Cur).L.Line;
+         end if;
+
+         if Has_Element (Next_Annot_Cur)
+           and then Current_Line_Num = Key (Next_Annot_Cur).L.Line
+         then
+            --  We do not bump the line number here so that lines corresponding
+            --  to an exempt_on or exempt_off are processed twice, one for each
+            --  kind of annotation, and thus end up in the annotated region.
+
+            Annotation_Cur := Next_Annot_Cur;
+            Current_Annotation := Element (Annotation_Cur);
+            Current_Annot_Sloc := Key (Annotation_Cur);
+            Next_Annot_Cur := Next (Annotation_Cur);
+            exit when Current_Annot_Sloc.Source_File /= FI;
+         else
+            Current_Line_Num := Current_Line_Num + 1;
+         end if;
+      end loop;
+   end Populate_Exemptions;
 
    ----------------
    -- To_Display --

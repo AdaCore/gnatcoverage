@@ -463,6 +463,10 @@ package Files_Table is
 
    --  Get line info (or text) at File:Index (or at Sloc)
 
+   procedure Populate_Exemptions (FI : Source_File_Index);
+   --  Fill the Exemption field in the Line_Info records of FI based on the
+   --  information in Annotation_Map.
+
    function Writeable_Sloc_To_SCO_Map
      (Index : Source_File_Index;
       Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map

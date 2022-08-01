@@ -139,6 +139,12 @@ package Instrument.C_Utils is
    --  and N end loc), then the curly brace will be appended after that text,
    --  so make sure to call Curlify before further rewriting.
 
+   procedure Iterate_Tokens
+     (TU      : Translation_Unit_T;
+      N       : Cursor_T;
+      Process : not null access procedure (Tok : Token_T));
+   --  Call Process on all of the tokens within the source range of N
+
    --  Debugging
 
    procedure Print_Tokens (TU : Translation_Unit_T; N : Cursor_T);
