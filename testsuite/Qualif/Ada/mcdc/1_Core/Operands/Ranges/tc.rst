@@ -1,2 +1,2 @@
-**MCDC on a simple expression involving a range test**
+**MCDC on a simple expression involving range tests**
 
