@@ -283,7 +283,9 @@ class Test (object):
         """
         return [
             # Refiners for the xcov report
-            Substitute(os.path.realpath(self.homedir), "<test_dir>"),
+            Substitute(
+                os.path.normcase(os.path.realpath(self.homedir)) + os.path.sep,
+                "<test_dir>"),
 
             # Ignore platform specificities
             CanonicalizeLineEndings(),
