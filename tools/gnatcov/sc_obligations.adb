@@ -102,6 +102,8 @@ package body SC_Obligations is
       Fingerprint : SCOs_Hash;
       --  Hash of SCO info in ALI, for incremental coverage consistency check
 
+      PP_Info_Map : SCO_PP_Info_Maps.Map;
+      --  Information about preprocessing
       case Provider is
          when Compiler =>
             null;
@@ -518,7 +520,6 @@ package body SC_Obligations is
       Inst_Vector     : Inst_Info_Vectors.Vector;
       BDD_Vector      : BDD.BDD_Vectors.Vector;
       SCO_Vector      : SCO_Vectors.Vector;
-      PP_Info_Map     : SCO_PP_Info_Maps.Map;
    end record;
 
    -----------------------------------------
@@ -561,7 +562,11 @@ package body SC_Obligations is
    --  Vectors for all currently loaded source coverage information
 
    CU_Vector : CU_Info_Vectors.Vector renames SC_Vectors.CU_Vector;
-   --  Vector of compilation unit info (one entry per LI file)
+   --  Vector of compilation unit info (one entry per LI file). Note that the
+   --  Comp_Unit procedure that computes the owning compilation unit of a SCO
+   --  assumes that the compilation unit vector is naturally ordered by SCO
+   --  ranges. This is true by construction, as we remap SCOs while we load
+   --  new units.
 
    Inst_Vector : Inst_Info_Vectors.Vector renames SC_Vectors.Inst_Vector;
    --  Vector of info for generic instantiations
@@ -571,8 +576,6 @@ package body SC_Obligations is
 
    SCO_Vector : SCO_Vectors.Vector renames SC_Vectors.SCO_Vector;
    --  Vector of high-level Source Coverage Obligations (for all units)
-
-   PP_Info_Map : SCO_PP_Info_Maps.Map renames SC_Vectors.PP_Info_Map;
 
    -----------------
    -- Add_Address --
@@ -611,17 +614,22 @@ package body SC_Obligations is
    -----------------
 
    function Has_PP_Info (SCO : SCO_Id) return Boolean is
+      CU : constant CU_Id := Comp_Unit (SCO);
    begin
-      return PP_Info_Map.Contains (SCO);
+      if CU = No_CU_Id then
+         return False;
+      end if;
+      return CU_Vector.Reference (CU).Element.PP_Info_Map.Contains (SCO);
    end Has_PP_Info;
 
-   --------------------
-   -- Get_Macro_Info --
-   --------------------
+   -----------------
+   -- Get_PP_Info --
+   -----------------
 
    function Get_PP_Info (SCO : SCO_Id) return PP_Info is
+      CU : constant CU_Id := Comp_Unit (SCO);
    begin
-      return PP_Info_Map.Element (SCO);
+      return CU_Vector.Reference (CU).Element.PP_Info_Map.Element (SCO);
    end Get_PP_Info;
 
    --------------------------------
@@ -951,8 +959,9 @@ package body SC_Obligations is
 
          declare
             use SCO_PP_Info_Maps;
+            Remapped_PP_Info_Map : SCO_PP_Info_Maps.Map;
          begin
-            for Cur in CP_Vectors.PP_Info_Map.Iterate loop
+            for Cur in CP_CU.PP_Info_Map.Iterate loop
                declare
                   Info : PP_Info := Element (Cur);
                begin
@@ -966,10 +975,15 @@ package body SC_Obligations is
                        (Relocs,
                         Info.Definition_Loc.Sloc.Source_File);
                   end if;
-                  PP_Info_Map.Insert
-                    (Remap_SCO_Id (Relocs, Key (Cur)), Info);
+                  declare
+                     SCO : SCO_Id := Key (Cur);
+                  begin
+                     Remap_SCO_Id (SCO);
+                     Remapped_PP_Info_Map.Insert (SCO, Info);
+                  end;
                end;
             end loop;
+            CP_CU.PP_Info_Map := Remapped_PP_Info_Map;
          end;
       end if;
 
@@ -1151,6 +1165,12 @@ package body SC_Obligations is
       Boolean'Read           (S, V.Has_Code);
       SCOs_Hash'Read         (S, V.Fingerprint);
 
+      --  Checkpoint version 8 preprocessing information
+
+      if not Version_Less (S, Than => 8) then
+         SCO_PP_Info_Maps.Map'Read (S, V.PP_Info_Map);
+      end if;
+
       --  Checkpoint version 2 data (instrumentation support)
 
       if not Version_Less (S, Than => 2) then
@@ -1197,6 +1217,11 @@ package body SC_Obligations is
       Boolean'Write           (S, V.Has_Code);
       SCOs_Hash'Write         (S, V.Fingerprint);
 
+      --  Checkpoint version 8 preprocessing information
+      if not Version_Less (S, Than => 8) then
+         SCO_PP_Info_Maps.Map'Write (S, V.PP_Info_Map);
+      end if;
+
       --  Checkpoint version 2 data (instrumentation support)
 
       if not Version_Less (S, Than => 2) then
@@ -1233,12 +1258,6 @@ package body SC_Obligations is
       Inst_Info_Vectors.Vector'Read (S, CP_Vectors.Inst_Vector);
       BDD.BDD_Vectors.Vector'Read   (S, CP_Vectors.BDD_Vector);
       SCO_Vectors.Vector'Read       (S, CP_Vectors.SCO_Vector);
-
-      --  Load macro information
-
-      if not Version_Less (S, Than => 8) then
-         SCO_PP_Info_Maps.Map'Read (S, CP_Vectors.PP_Info_Map);
-      end if;
 
       --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 
@@ -1336,7 +1355,6 @@ package body SC_Obligations is
       Inst_Vector.Clear;
       BDD_Vector.Clear;
       SCO_Vector.Clear;
-      PP_Info_Map.Clear;
    end Checkpoint_Clear;
 
    ---------------------
@@ -1351,7 +1369,6 @@ package body SC_Obligations is
       Inst_Info_Vectors.Vector'Write (S, Inst_Vector);
       BDD.BDD_Vectors.Vector'Write   (S, BDD_Vector);
       SCO_Vectors.Vector'Write       (S, SCO_Vector);
-      SCO_PP_Info_Maps.Map'Write     (S, PP_Info_Map);
    end Checkpoint_Save;
 
    ---------------
@@ -1893,6 +1910,34 @@ package body SC_Obligations is
       end if;
    end Image;
 
+   ---------------
+   -- Comp_Unit --
+   ---------------
+
+   function Comp_Unit (SCO : SCO_Id) return CU_Id is
+      LB, UB, Middle : Valid_CU_Id;
+      CU             : CU_Info;
+   begin
+      --  Assume that compilation units in CU_Vector are ordered by SCO range
+      --  to look up efficiently (by dichotomy) the compilation unit for the
+      --  SCO.
+
+      LB := CU_Vector.First_Index;
+      UB := CU_Vector.Last_Index;
+      while LB <= UB loop
+         Middle := LB + (UB - LB) / 2;
+         CU := CU_Vector.Element (Middle);
+         if SCO in CU.First_SCO .. CU.Last_SCO then
+            return Middle;
+         elsif SCO < CU.First_SCO then
+            UB := Middle - 1;
+         else
+            LB := Middle + 1;
+         end if;
+      end loop;
+      return No_CU_Id;
+   end Comp_Unit;
+
    -----------
    -- Index --
    -----------
@@ -1907,6 +1952,7 @@ package body SC_Obligations is
    -----------------
    -- Register_CU --
    -----------------
+
    procedure Register_CU (CU : CU_Id) is
       Origin   : constant Source_File_Index := CU_Vector.Reference (CU).Origin;
       Cur      : Origin_To_CUs_Maps.Cursor :=
@@ -4023,8 +4069,9 @@ package body SC_Obligations is
    ------------------
 
    procedure Add_PP_Info (SCO : SCO_Id; Info : PP_Info) is
+      CU : constant CU_Id := Comp_Unit (SCO);
    begin
-      PP_Info_Map.Insert (SCO, Info);
+      CU_Vector.Reference (CU).Element.PP_Info_Map.Insert (SCO, Info);
    end Add_PP_Info;
 
 begin
