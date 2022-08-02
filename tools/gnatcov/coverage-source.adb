@@ -632,7 +632,7 @@ package body Coverage.Source is
 
          --  Recomputing the coverage state for this line has no influence over
          --  the resulting coverage state, but will lead to eventual violation
-         --  messages being emitted mutliple times.
+         --  messages being emitted multiple times.
 
          return;
       end if;
