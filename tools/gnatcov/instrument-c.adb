@@ -2381,7 +2381,7 @@ package body Instrument.C is
       --  an arbitrary amount).
 
       if Record_PP_Info_Last_SCO /= SCOs.SCO_Table.Last then
-         Outputs.Error
+         Outputs.Warn
            (Orig_Filename & " : preprocessed file coverage obligations"
               &  " inconsistent with original file obligations "
               & ". Discarding preprocessing information.");
