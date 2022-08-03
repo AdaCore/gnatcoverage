@@ -6,11 +6,18 @@ Core expectations for Decision Coverage
 
 %REQ_ID%
 
-For Decision Coverage assessments, the tool processes as decisions all the
-Boolean expressions used to influence control-flow language constructs,
-including the controlling test of Ada2012 *if-expressions*. The types
-involved need not be restricted to the standard Boolean type; they may be
-subtypes or types derived from Boolean.
+For Decision Coverage assessments, the tool processes as decisions the
+following set of expressions:
+
+* The Boolean guards in *explicit control-flow* language constructs such
+  as If statements or While loops,
+
+* The controlling tests of Ada2012 *if-expressions*,
+
+* The Ada2012 *quantified-expressions* predicates.
+
+The types involved need not be restricted to the standard Boolean
+type; they may be subtypes or types derived from Boolean.
 
 In this context, the following set of rules shall be obeyed on top of the
 requirements governing Statement Coverage:
@@ -65,5 +72,24 @@ ways, always including:
 * a set of test vectors where the decision evaluates both True and False
   (*rule #3*),
 
-Rules #4 and #5 are addressed by the organization of the set of testcase groups
-presented in the table above.
+Rule #4 is validated by the *NoEval* testcase group listed in the table above.
+Rule #5 is addressed by the *Topologies* and the *Operands* groups, as implied
+by their description.
+
+Ada2012 quantified-expressions require particular care as
+their predicates are decisions on their own, nested within the predicated
+expression, itself possibly part of a distinct outer decision.
+
+Dedicated testcases in the *Topologies* series verify the proper processing of
+various forms of predicates in contexts where the enclosing expression is not
+involved in a decision. Some of these testcases exercise predicates consisting
+of a single Boolean atom, confirming that any Boolean expression is considered
+as a decision in such a context.
+
+Dedicated testcases in the *Operands* series verify the proper processing of
+decisions involving predicated expressions as operands, implying the correct
+distinction of such decisions and the inner predicates.
+
+We check a mix of FORALL and FORSOME expressions, iterating through a
+variety of mechanisms such as array indexes (for all|some I in
+Arr'Range) or array items directly (for all|some X of Arr).
