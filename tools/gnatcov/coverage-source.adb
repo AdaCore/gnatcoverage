@@ -40,7 +40,6 @@ with Elf_Disassemblers;   use Elf_Disassemblers;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with MC_DC;               use MC_DC;
 with Outputs;             use Outputs;
-with Project;
 with Slocs;               use Slocs;
 with Strings;             use Strings;
 with Switches;            use Switches;
@@ -217,7 +216,7 @@ package body Coverage.Source is
 
    package US renames Ada.Strings.Unbounded;
 
-   Unit_List : String_Sets.Set;
+   Unit_List : Unit_Sets.Set;
    --  List of names for units of interest. Store it as an ordered set so that
    --  the order of dump depends on its content, not on the way it was created.
 
@@ -279,17 +278,17 @@ package body Coverage.Source is
       end if;
 
       Unit_List_Invalidated := True;
-      Unit_List := String_Sets.Empty_Set;
+      Unit_List := Unit_Sets.Empty_Set;
    end Invalidate_Unit_List;
 
    -------------------
    -- Add_Unit_Name --
    -------------------
 
-   procedure Add_Unit_Name (Name : String) is
+   procedure Add_Unit_Name (Name : Unique_Name) is
    begin
       if not Unit_List_Invalidated then
-         Unit_List.Include (US.To_Unbounded_String (Name));
+         Unit_List.Include (Name);
       end if;
    end Add_Unit_Name;
 
@@ -308,8 +307,13 @@ package body Coverage.Source is
                        Pattern => ".",
                        From    => Sep,
                        Going   => Ada.Strings.Backward);
+
          if Unit_List.Contains
-           (US.To_Unbounded_String (Qualified_Name (First .. Sep - 1)))
+           (Unique_Name'
+              (Language  => Unit_Based_Language,
+               Unit_Name =>
+                 US.To_Unbounded_String
+                         (Qualified_Name (First .. Sep - 1))))
          then
             return Qualified_Name (First .. Sep - 1);
          end if;
@@ -335,7 +339,6 @@ package body Coverage.Source is
 
    procedure Compute_Unit_Name_For_Ignored_Sources
    is
-      use Project;
       use Types;
 
       procedure Callback
@@ -407,8 +410,7 @@ package body Coverage.Source is
            and then FI.Ignore_Status in Always .. Sometimes
          then
             pragma Assert
-              (FI.Unit.Known and then Unit_List.Contains (FI.Unit.Name));
-
+              (FI.Unit.Known and then Is_Unit_Of_Interest (FI.Full_Name.all));
             if not Ignored_SF_Map.Contains (FI.Unit.Name) then
                Vec := new Ignored_Sources_Vector.Vector;
                Ignored_SF_Map.Insert (FI.Unit.Name, Vec);
@@ -430,15 +432,15 @@ package body Coverage.Source is
    --------------------------
 
    procedure Iterate_On_Unit_List
-     (Process_Unit        : not null access procedure (Name : String);
+     (Process_Unit        : not null access procedure (Name : Unique_Name);
       Process_Source_File : not null access procedure (FI : File_Info))
    is
    begin
       for S of Unit_List loop
-         Process_Unit.all (US.To_String (S));
+         Process_Unit.all (S);
 
-         if Ignored_SF_Map.Contains (S) then
-            for FI of Ignored_SF_Map.Element (S).all loop
+         if Ignored_SF_Map.Contains (S.Unit_Name) then
+            for FI of Ignored_SF_Map.Element (S.Unit_Name).all loop
                Process_Source_File (FI.all);
             end loop;
          end if;
@@ -461,7 +463,7 @@ package body Coverage.Source is
          if not Unit_List_Invalidated then
             Ada.Containers.Count_Type'Output (CSS, Unit_List.Length);
             for N of Unit_List loop
-               US.Unbounded_String'Output (CSS, N);
+               Unique_Name'Output (CSS, N);
             end loop;
          end if;
       end if;
@@ -475,7 +477,7 @@ package body Coverage.Source is
    begin
       SCI_Vector.Clear;
       Unit_List_Invalidated := False;
-      Unit_List := String_Sets.Empty_Set;
+      Unit_List := Unit_Sets.Empty_Set;
    end Checkpoint_Clear;
 
    ---------------------
@@ -585,9 +587,13 @@ package body Coverage.Source is
             Invalidate_Unit_List
               (US.To_String (CLS.Filename)
                & " does not contain the list of units (obsolete format)");
+
          else
             declare
                Invalidated : constant Boolean := Boolean'Input (CLS);
+               Obsolete    : constant Boolean :=
+                 Checkpoints.Version_Less (CLS, Than => 12);
+               Dummy       : US.Unbounded_String;
             begin
                if Invalidated then
                   Invalidate_Unit_List
@@ -595,9 +601,24 @@ package body Coverage.Source is
                      & " does not contain the list of units (produced with"
                      & " --scos or --sid)");
                else
-                  for I in 1 ..  Ada.Containers.Count_Type'Input (CLS) loop
-                     pragma Unreferenced (I);
-                     Unit_List.Include (US.Unbounded_String'Input (CLS));
+                  for I in 1 .. Ada.Containers.Count_Type'Input (CLS) loop
+
+                     --  From version 3 up to version 11, Unit_List used to
+                     --  be a set of unbounded strings, and did not support
+                     --  homonym source files. If we are in that case, read the
+                     --  old Unit_List from the checkpoint and then discard it.
+
+                     if Obsolete then
+                        if I = 1 then
+                           Invalidate_Unit_List
+                             (US.To_String (CLS.Filename)
+                              & " does not contain the list of units (obsolete"
+                              & " format)");
+                        end if;
+                        US.Unbounded_String'Read (CLS, Dummy);
+                     else
+                        Unit_List.Include (Unique_Name'Input (CLS));
+                     end if;
                   end loop;
                end if;
             end;

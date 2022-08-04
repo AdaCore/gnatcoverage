@@ -29,6 +29,7 @@ with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;    use Coverage.Tags;
 with Files_Table;
 with SC_Obligations;
+with Project;          use Project;
 with Switches;
 with Traces_Files;     use Traces_Files;
 
@@ -648,7 +649,7 @@ package body Annotations.Report is
               (FI : Files_Table.File_Info);
             --  Print the name of the file and its ignore status on the report
 
-            procedure Print_Unit_Name (Name : String);
+            procedure Print_Unit_Name (Name : Unique_Name);
             --  Print Name on the report
 
             ------------------------
@@ -671,9 +672,9 @@ package body Annotations.Report is
             -- Print_Unit_Name --
             ---------------------
 
-            procedure Print_Unit_Name (Name : String) is
+            procedure Print_Unit_Name (Name : Unique_Name) is
             begin
-               Put_Line (Output.all, Name);
+               Put_Line (Output.all, +Name.Unit_Name);
             end Print_Unit_Name;
          begin
             Iterate_On_Unit_List

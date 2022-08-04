@@ -59,6 +59,19 @@ package body Paths is
       return new String'(Build_Filename (Dir, Filename));
    end Build_Filename;
 
+   --------------------------
+   -- Fold_Filename_Casing --
+   --------------------------
+
+   function Fold_Filename_Casing (Filename : String) return String is
+   begin
+      if On_Windows then
+         return Ada.Characters.Handling.To_Lower (Filename);
+      else
+         return Filename;
+      end if;
+   end Fold_Filename_Casing;
+
    ---------------------------
    -- Canonicalize_Filename --
    ---------------------------

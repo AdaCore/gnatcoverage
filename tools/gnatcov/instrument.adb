@@ -49,7 +49,7 @@ with Instrument.Find_Ada_Units;
 with JSON;                  use JSON;
 with Outputs;
 with Paths;                 use Paths;
-with Project;
+with Project;               use Project;
 with SC_Obligations;
 with Switches;              use Switches;
 
