@@ -413,9 +413,14 @@ package body Annotations.Dynamic_Html is
       Line_Stats.Set_Field ("notCovered", Info.Li_Stats (Not_Covered));
       Line_Stats.Set_Field ("notCoverable", Info.Li_Stats (Not_Coverable));
       Line_Stats.Set_Field
+        ("undeterminedCoverage", Info.Li_Stats (Undetermined_Coverage));
+      Line_Stats.Set_Field
         ("exemptedNoViolation", Info.Li_Stats (Exempted_No_Violation));
       Line_Stats.Set_Field
         ("exemptedWithViolation", Info.Li_Stats (Exempted_With_Violation));
+      Line_Stats.Set_Field
+        ("exemptedWithUndetCov",
+         Info.Li_Stats (Exempted_With_Undetermined_Cov));
 
       --  Generate the JSON object for this source file
 

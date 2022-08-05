@@ -241,7 +241,18 @@ package body Coverage.Object is
             --  Line can't be marked as not coverable, since there *is* an
             --  associated instruction.
 
-            raise Program_Error with "inconsistent line state";
+            raise Program_Error with
+              "Attempting to set an instruction state to Not_Coverable,"
+              & " but the instruction comes from an executable.";
+
+         when Undetermined_Coverage =>
+
+            --  Line can't (at the moment) be marked as undetermined line state
+            --  when not using source traces.
+
+            raise Program_Error with
+            "Undetermined_Coverage line state reserved for source"
+            & " coverage";
 
       end case;
    end Update_Line_State;

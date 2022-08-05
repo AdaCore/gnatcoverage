@@ -97,8 +97,12 @@ package body Annotations is
       --  Exempted case
 
       if Info.Exemption /= Slocs.No_Location then
-         if Get_Exemption_Count (Info.Exemption) = 0 then
+         if Get_Exemption_Violation_Count (Info.Exemption) = 0
+           and then Get_Exemption_Undet_Cov_Count (Info.Exemption) = 0
+         then
             return Exempted_No_Violation;
+         elsif Get_Exemption_Violation_Count (Info.Exemption) = 0 then
+            return Exempted_With_Undetermined_Cov;
          else
             return Exempted_With_Violation;
          end if;
@@ -411,7 +415,7 @@ package body Annotations is
 
          procedure Compute_Line_State (L : Positive) is
             LI        : constant Line_Info_Access := Get_Line (FI, L);
-            S         : Line_State;
+            S         : Any_Line_State;
             Sloc      : Source_Location;
 
          begin
@@ -460,15 +464,17 @@ package body Annotations is
             --  specifically in Annotation.Report.
 
             if LI.Exemption /= Slocs.No_Location
-              and then S in Not_Covered .. Partially_Covered
               and then not Annotation (Annotate_Report)
             then
-               Inc_Exemption_Count (LI.Exemption);
+               if S in Not_Covered .. Partially_Covered then
+                  Inc_Violation_Exemption_Count (LI.Exemption);
+               elsif S = Undetermined_Coverage then
+                  Inc_Undet_Cov_Exemption_Count (LI.Exemption);
+               end if;
             end if;
          end Compute_Line_State;
 
       --  Start of processing for Compute_File_State
-
       begin
          if FI.Kind /= Source_File or else FI.Ignore_Status = Always then
             return;
@@ -572,16 +578,27 @@ package body Annotations is
       return Slocs.No_Location;
    end Get_Exemption;
 
-   -------------------------
-   -- Get_Exemption_Count --
-   -------------------------
+   -----------------------------------
+   -- Get_Exemption_Violation_Count --
+   -----------------------------------
 
-   function Get_Exemption_Count
+   function Get_Exemption_Violation_Count
      (Sloc : Source_Location) return Natural
    is
    begin
-      return ALI_Annotations.Element (Sloc).Count;
-   end Get_Exemption_Count;
+      return ALI_Annotations.Element (Sloc).Violation_Count;
+   end Get_Exemption_Violation_Count;
+
+   -----------------------------------
+   -- Get_Exemption_Undet_Cov_Count --
+   -----------------------------------
+
+   function Get_Exemption_Undet_Cov_Count
+     (Sloc : Source_Location) return Natural
+   is
+   begin
+      return ALI_Annotations.Element (Sloc).Undetermined_Cov_Count;
+   end Get_Exemption_Undet_Cov_Count;
 
    ---------------------------
    -- Get_Exemption_Message --
@@ -594,18 +611,31 @@ package body Annotations is
       return ALI_Annotations.Element (Sloc).Message;
    end Get_Exemption_Message;
 
-   -------------------------
-   -- Inc_Exemption_Count --
-   -------------------------
+   -----------------------------------
+   -- Inc_Violation_Exemption_Count --
+   -----------------------------------
 
-   procedure Inc_Exemption_Count (Sloc : Source_Location) is
+   procedure Inc_Violation_Exemption_Count (Sloc : Source_Location) is
       use ALI_Annotation_Maps;
 
       Cur : constant Cursor := ALI_Annotations.Find (Sloc);
       E   : ALI_Annotation renames ALI_Annotations.Reference (Cur);
    begin
-      E.Count := E.Count + 1;
-   end Inc_Exemption_Count;
+      E.Violation_Count := E.Violation_Count + 1;
+   end Inc_Violation_Exemption_Count;
+
+   -----------------------------------
+   -- Inc_Undet_Cov_Exemption_Count --
+   -----------------------------------
+
+   procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location) is
+      use ALI_Annotation_Maps;
+
+      Cur : constant Cursor := ALI_Annotations.Find (Sloc);
+      E   : ALI_Annotation renames ALI_Annotations.Reference (Cur);
+   begin
+      E.Undetermined_Cov_Count := E.Undetermined_Cov_Count + 1;
+   end Inc_Undet_Cov_Exemption_Count;
 
    ------------------------
    -- Message_Annotation --
@@ -961,6 +991,9 @@ package body Annotations is
             if State = Covered or else State = Not_Coverable then
                Result (Level).Stats (Exempted_No_Violation) :=
                  Result (Level).Stats (Exempted_No_Violation) + 1;
+            elsif State = Undetermined_Coverage then
+               Result (Level).Stats (Exempted_With_Undetermined_Cov) :=
+                 Result (Level).Stats (Exempted_With_Undetermined_Cov) + 1;
             else
                Result (Level).Stats (Exempted_With_Violation) :=
                  Result (Level).Stats (Exempted_With_Violation) + 1;

@@ -924,9 +924,14 @@ package body Annotations.Xml is
       Print_Metric_Ratio ("fully_covered", Stats (Covered));
       Print_Metric_Ratio ("partially_covered", Stats (Partially_Covered));
       Print_Metric_Ratio ("not_covered", Stats (Not_Covered));
+      Print_Metric_Ratio ("undetermined_coverage",
+                          Stats (Undetermined_Coverage));
       Print_Metric_Ratio ("exempted_no_violation",
                           Stats (Exempted_No_Violation));
-      Print_Metric_Ratio ("exempted", Stats (Exempted_With_Violation));
+      Print_Metric_Ratio ("exempted",
+                          Stats (Exempted_With_Violation));
+      Print_Metric_Ratio ("exempted_undetermined_coverage",
+                          Stats (Exempted_With_Undetermined_Cov));
 
    end Print_Coverage_Stats;
 

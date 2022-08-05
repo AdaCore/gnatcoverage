@@ -25,6 +25,7 @@ with Traces_Disa;  use Traces_Disa;
 with Traces_Files; use Traces_Files;
 with Coverage;     use Coverage;
 with Outputs;      use Outputs;
+with Switches;
 
 package body Annotations.Html is
    type String_Cst_Acc is access constant String;
@@ -187,11 +188,14 @@ package body Annotations.Html is
    begin
       Create_Output_File (F, "xcov.css");
       Put (F, CSS);
-      Put_State_Color (Covered,                 "#80FF80");
-      Put_State_Color (Partially_Covered,       "orange");
-      Put_State_Color (Not_Covered,             "red");
-      Put_State_Color (Exempted_With_Violation, "#CCCCCC");
-      Put_State_Color (Exempted_No_Violation,   "#5CB3FF");
+      Put_State_Color (Covered,                        "#80FF80");
+      Put_State_Color (Partially_Covered,              "orange");
+      Put_State_Color (Not_Covered,                    "red");
+      Put_State_Color (Not_Coverable,                  "#000000");
+      Put_State_Color (Undetermined_Coverage,          "#808080");
+      Put_State_Color (Exempted_With_Violation,        "#CCCCCC");
+      Put_State_Color (Exempted_With_Undetermined_Cov, "#C0C0C0");
+      Put_State_Color (Exempted_No_Violation,          "#5CB3FF");
       Close (F);
    exception
       when Name_Error =>
@@ -319,9 +323,10 @@ package body Annotations.Html is
       Print_Bar_Legend (Covered);
       Print_Bar_Legend (Partially_Covered);
       Print_Bar_Legend (Not_Covered);
+      Print_Bar_Legend (Undetermined_Coverage);
       Print_Bar_Legend (Exempted_No_Violation);
       Print_Bar_Legend (Exempted_With_Violation);
-
+      Print_Bar_Legend (Exempted_With_Undetermined_Cov);
       Pi ("     </tr>");
       Pi ("   </table>");
 
@@ -667,8 +672,12 @@ package body Annotations.Html is
             Wrh (Pp, "no code present");
          when Not_Coverable =>
             Wrh (Pp, "no code generated");
+         when Undetermined_Coverage =>
+            Wrh (Pp, "undetermined coverage status");
          when Exempted_With_Violation =>
             Wrh (Pp, "exempted, violation present");
+         when Exempted_With_Undetermined_Cov =>
+            Wrh (Pp, "exempted, undetermined coverage item present");
          when Exempted_No_Violation =>
             Wrh (Pp, "exempted, no violation");
       end case;
@@ -751,7 +760,14 @@ package body Annotations.Html is
       Put_Line
         (F, "      <td class=""SumHead""> exempted, no violation</td>");
       Put_Line
-        (F, "      <td class=""SumHead""> exempted</td>");
+        (F, "      <td class=""SumHead""> exempted, violation present</td>");
+      Put_Line
+        (F, "      <td class=""SumHead""> exempted, with undetermined coverage"
+            & " present</td>");
+      if Switches.Excluded_SCOs then
+         Put_Line (F, "      <td class=""SumHead""> not coverable</td>");
+      end if;
+      Put_Line (F, "      <td class=""SumHead"">undetermined coverage</td>");
       Put_Line
         (F, "      <td class=""SumHead""> visual summary </td>");
 
@@ -834,6 +850,15 @@ package body Annotations.Html is
       Print_Ratio (Stats (Not_Covered));
       Print_Ratio (Stats (Exempted_No_Violation));
       Print_Ratio (Stats (Exempted_With_Violation));
+      if Currently_Accepted_Trace_Kind = Source_Trace_File then
+         Print_Ratio (Stats (Exempted_With_Undetermined_Cov));
+      end if;
+      if Switches.Excluded_SCOs then
+         Print_Ratio (Stats (Not_Coverable));
+      end if;
+      if Currently_Accepted_Trace_Kind = Source_Trace_File then
+         Print_Ratio (Stats (Undetermined_Coverage));
+      end if;
 
       --  Visual summary
 
@@ -848,6 +873,11 @@ package body Annotations.Html is
          Print_Bar (Not_Covered);
          Print_Bar (Exempted_No_Violation);
          Print_Bar (Exempted_With_Violation);
+         Print_Bar (Exempted_With_Undetermined_Cov);
+         if Switches.Excluded_SCOs then
+            Print_Bar (Not_Coverable);
+         end if;
+         Print_Bar (Undetermined_Coverage);
       end if;
 
       Put_Line (F, "</tr></table></td>");

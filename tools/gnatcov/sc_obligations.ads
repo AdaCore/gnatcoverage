@@ -21,6 +21,7 @@
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Streams;           use Ada.Streams;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -420,6 +421,34 @@ package SC_Obligations is
    --  generate any executable code, which may be treated as a documentation
    --  item in the source. The input SCO argument is expected to designate a
    --  statement SCO.
+
+   package Non_Instrumented_SCO_Sets is
+     new Ada.Containers.Ordered_Sets (Element_Type => SCO_Id);
+
+   procedure Set_Stmt_SCO_Non_Instr (SCO : SCO_Id) with
+     Pre => Kind (SCO) = Statement;
+   --  Mark this statment SCO as non-instrumented
+
+   procedure Set_Decision_SCO_Non_Instr (SCO : SCO_Id) with
+     Pre => Kind (SCO) = Decision;
+   --  Mark this decision SCO as non-instrumented for decision coverage
+
+   procedure Set_Decision_SCO_Non_Instr_For_MCDC (SCO : SCO_Id) with
+     Pre => Kind (SCO) = Decision;
+   --  Mark this decision SCO as non-instrumented for MCDC coverage
+
+   function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean with
+     Pre => Kind (SCO) = Statement;
+   --  Whether this statment SCO was instrumented
+
+   function Decision_SCO_Instrumented (SCO : SCO_Id) return Boolean with
+     Pre => Kind (SCO) = Decision;
+   --  Whether this decision SCO was instrumented for decision coverage
+
+   function Decision_SCO_Instrumented_For_MCDC
+     (SCO : SCO_Id) return Boolean with
+     Pre => Kind (SCO) = Decision;
+   --  Whether this decision SCO was instrumented for MCDC coverage
 
    function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Pre/Postcondition

@@ -43,7 +43,6 @@ with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Namet;               use Namet;
 with Outputs;             use Outputs;
 with SCOs;
-with SC_Obligations;      use SC_Obligations;
 with Slocs;
 with Snames;              use Snames;
 with Strings;             use Strings;
@@ -165,6 +164,37 @@ package body Instrument.Ada_Unit is
            (+Slice (Name, Start_Index, Length (Name))));
       return Result;
    end To_Qualified_Name;
+
+   procedure Import_Non_Instrumented_LL_SCOs
+     (UIC : Ada_Unit_Inst_Context;
+      SCO_Map : LL_HL_SCO_Map);
+   --  Import the low level SCO ids marked as non-instrumetned in the
+   --  high level non-instrumented SCO_id sets.
+
+   -------------------------------------
+   -- Import_Non_Instrumented_LL_SCOs --
+   -------------------------------------
+
+   procedure Import_Non_Instrumented_LL_SCOs
+     (UIC     : Ada_Unit_Inst_Context;
+      SCO_Map : LL_HL_SCO_Map)
+   is
+   begin
+      for LL_SCO of UIC.Non_Instr_LL_SCOs loop
+         declare
+            Remapped_SCO : constant SCO_Id := SCO_Map (Nat (LL_SCO));
+         begin
+            case Kind (Remapped_SCO) is
+               when Statement => Set_Stmt_SCO_Non_Instr (Remapped_SCO);
+               when Decision  => Set_Decision_SCO_Non_Instr (Remapped_SCO);
+               when Condition => Set_Decision_SCO_Non_Instr_For_MCDC
+                                   (Enclosing_Decision (Remapped_SCO));
+               when others =>
+                  null;
+            end case;
+         end;
+      end loop;
+   end Import_Non_Instrumented_LL_SCOs;
 
    type All_Symbols is
      (
@@ -667,7 +697,7 @@ package body Instrument.Ada_Unit is
    --  function Foo (Arg : Arg_Type) return Ret_Type is (<some expression>);
    --
    --  where Ret_Type is a tagged type, and Foo is a primitive of Ret_Type,
-   --  we geenrate the following declarations in the insturmented unit,
+   --  we geenrate the following declarations in the instrumented unit,
    --  replacing the original declaration:
    --
    --  --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
@@ -2915,6 +2945,16 @@ package body Instrument.Ada_Unit is
 
             Raise_Stub_Internal_Error_For (Ada_Instrument_Insert_Stmt_Witness);
 
+            --  If the current code pattern is actually unsupported, do not
+            --  even try to insert the witness call or allocate bits for it in
+            --  the buffers. Mark the corresponding SCO as non-instrumented
+            --  instead.
+
+            if Insert_Info.Unsupported then
+               UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO_Id));
+               return;
+            end if;
+
             --  Allocate a bit in the statement coverage buffer, and record
             --  its id in the bitmap.
 
@@ -2923,13 +2963,6 @@ package body Instrument.Ada_Unit is
             UIC.Unit_Bits.Statement_Bits.Append
               (Statement_Bit_Ids'
                  (LL_SCO_Id, Executed => UIC.Unit_Bits.Last_Statement_Bit));
-
-            --  If the current code pattern is actually unsupported, do not
-            --  even try to insert the witness call.
-
-            if Insert_Info.Unsupported then
-               return;
-            end if;
 
             case Insert_Info.Method is
 
@@ -6644,6 +6677,10 @@ package body Instrument.Ada_Unit is
             end;
          end loop;
 
+         --  Import non-instrumented SCOs in the internal tables
+
+         Import_Non_Instrumented_LL_SCOs (UIC, SCO_Map);
+
          --  Insert calls to condition/decision witnesses
 
          if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
@@ -6659,14 +6696,14 @@ package body Instrument.Ada_Unit is
                --         then <out-of-range-static>
                --         else <value>);
                --
-               --  Not instrumenting these decisions (and not allocating bits
-               --  in the coverage buffers for them) will treat them as being
-               --  absent in the code execution, and thus, no SCO violation
-               --  will be emitted.
+               --  Mark these decisions as non-instrumented so they are
+               --  properly reported.
 
                if not SD.Is_Static then
                   Insert_Decision_Witness
                     (UIC, SD, Path_Count (SCO_Map (SD.LL_SCO)));
+               else
+                  Set_Decision_SCO_Non_Instr (SCO_Map (SD.LL_SCO));
                end if;
             end loop;
 
@@ -6682,7 +6719,8 @@ package body Instrument.Ada_Unit is
                --
                --  We also do not include witness calls for conditions of
                --  static decision, as this would make the instrumented
-               --  expression non-static.
+               --  expression non-static. Mark the enclosing decision as not
+               --  instrumented for MCDC instead.
 
                for SC of UIC.Source_Conditions loop
                   if Path_Count
@@ -6691,6 +6729,9 @@ package body Instrument.Ada_Unit is
                   then
                      Insert_Condition_Witness
                        (UIC, SC, Offset_For_True (SCO_Map (SC.LL_SCO)));
+                  else
+                     Set_Decision_SCO_Non_Instr_For_MCDC
+                       (Enclosing_Decision (SCO_Map (SC.LL_SCO)));
                   end if;
                end loop;
             end if;

@@ -65,7 +65,7 @@ package Coverage.Source is
    --  Set Line.State based on coverage information accumulated on all SCOs
    --  that cover the given line.
 
-   subtype SCO_State is Line_State range Not_Covered .. Not_Coverable;
+   subtype SCO_State is Line_State range Not_Covered .. Undetermined_Coverage;
    function Get_Line_State
      (SCO   : SCO_Id;
       Level : Coverage_Level) return SCO_State;

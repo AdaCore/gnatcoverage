@@ -209,6 +209,10 @@ private
 
    function Aggregated_State (Info : Line_Info) return Any_Line_State;
    --  Return synthetic indication of coverage state for all computed criteria
+   --
+   --  We'll consider Exempted_With_Violation to be more important than
+   --  Exempted_With_Undetermined_Cov in case there are exemptions of both
+   --  kinds.
 
    function Original_Processing_Context
      (TF : Trace_File_Element) return String;
@@ -218,20 +222,30 @@ private
    --  in the current Gnatcov execution.
 
    function Get_Exemption (Sloc : Source_Location) return Source_Location;
-   --  If the given sloc is covered by an exemption, return the source location
+   --  If the given Sloc is covered by an exemption, return the source location
    --  of the corresponding exemption annotation, else return No_Location.
 
    function Get_Exemption_Message
      (Sloc : Source_Location) return String_Access;
-   --  For a sloc denoting an Exempt_On annotation, return the descriptive
+   --  For a Sloc denoting an Exempt_On annotation, return the descriptive
    --  message justifying the exemption.
 
-   function Get_Exemption_Count
+   function Get_Exemption_Violation_Count
      (Sloc : Source_Location) return Natural;
-   --  Return the exempted line/message counter for exemption at sloc
+   --  Return the exempted line/message violation counter for exemption at Sloc
 
-   procedure Inc_Exemption_Count (Sloc : Source_Location);
-   --  Increment the exempted line/message counter for exemption at sloc
+   function Get_Exemption_Undet_Cov_Count
+     (Sloc : Source_Location) return Natural;
+   --  Return the exempted line/message undetermined coverage items counter for
+   --  exemption at Sloc.
+
+   procedure Inc_Violation_Exemption_Count (Sloc : Source_Location);
+   --  Increment the exempted line/message violation counter for exemption at
+   --  Sloc.
+
+   procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location);
+   --  Increment the exempted line/message undetermined coverage items counter
+   --  for exemption at Sloc.
 
    procedure Output_Multiline_Msg
      (Output : Ada.Text_IO.File_Type;

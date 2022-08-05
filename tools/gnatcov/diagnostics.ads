@@ -45,7 +45,14 @@ with Traces_Elf;     use Traces_Elf;
 package Diagnostics is
 
    type Report_Kind is
-     (Notice, Low_Warning, Warning, Error, Info, Violation, Exclusion);
+     (Notice,
+      Low_Warning,
+      Warning,
+      Error,
+      Info,
+      Violation,
+      Undetermined_Cov,
+      Exclusion);
    subtype Coverage_Kind is Report_Kind range Info .. Exclusion;
 
    type Message is record

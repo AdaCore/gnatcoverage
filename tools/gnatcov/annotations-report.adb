@@ -28,6 +28,7 @@ with Coverage;         use Coverage;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;    use Coverage.Tags;
 with Files_Table;
+with SC_Obligations;
 with Switches;
 with Traces_Files;     use Traces_Files;
 
@@ -58,15 +59,16 @@ package body Annotations.Report is
 
    type Report_Section is
      range Coverage_Level'Pos (Coverage_Level'First)
-        .. Coverage_Level'Pos (Coverage_Level'Last) + 2;
+        .. Coverage_Level'Pos (Coverage_Level'Last) + 3;
    --  There is one report section for each coverage level, plus the following
-   --  two special sections:
+   --  three special sections:
    subtype Coverage_Violations is Report_Section
      range Coverage_Level'Pos (Coverage_Level'First)
         .. Coverage_Level'Pos (Coverage_Level'Last);
 
-   Coverage_Exclusions : constant Report_Section := Report_Section'Last - 1;
-   Other_Errors        : constant Report_Section := Report_Section'Last;
+   Coverage_Exclusions   : constant Report_Section := Report_Section'Last - 2;
+   Undetermined_Coverage : constant Report_Section := Report_Section'Last - 1;
+   Other_Errors          : constant Report_Section := Report_Section'Last;
 
    function Section_Of_SCO (SCO : SCO_Id) return Report_Section;
    function Section_Of_Message (M : Message) return Report_Section;
@@ -326,6 +328,7 @@ package body Annotations.Report is
          State   : SCO_State;
       begin
          if Section /= Other_Errors then
+
             L := Coverage_Level'Val (Section);
 
             --  Some decision SCOs (complex boolean expressions not in control
@@ -413,9 +416,17 @@ package body Annotations.Report is
             Put (Output.all, "-<eof>");
          end if;
 
-         Put (Output.all, ":" & E.Count'Img & " exempted violation");
-         if E.Count > 1 then
+         Put (Output.all, ":" & E.Violation_Count'Img & " exempted violation");
+         if E.Violation_Count > 1 then
             Put (Output.all, "s");
+         end if;
+
+         if E.Undetermined_Cov_Count > 0 then
+            Put (Output.all, ";" & E.Undetermined_Cov_Count'Img
+                 & " exempted undetermined coverage item");
+            if E.Undetermined_Cov_Count > 1 then
+               Put (Output.all, "s");
+            end if;
          end if;
 
          Put_Line (Output.all, ", justification:");
@@ -532,7 +543,9 @@ package body Annotations.Report is
                        when Other_Errors        =>
                          "other message",
                        when Coverage_Exclusions  =>
-                         "coverage exclusion")) & "."));
+                         "coverage exclusion",
+                       when Undetermined_Coverage =>
+                         "undetermined coverage item")) & "."));
 
          --  Count of total (coverable) and covered SCOs is displayed only
          --  if --all-messages is specified.
@@ -587,6 +600,18 @@ package body Annotations.Report is
            (Coverage_Exclusions,
             Title => "",
             Item  => "exclusion");
+      end if;
+
+      --  No need to have the section header and so on if there are no
+      --  non-instrumented constructs.
+
+      if not Pp.Nonexempted_Messages (Undetermined_Coverage).Is_Empty then
+         Pp.Chapter ("UNDETERMINED COVERAGE ITEMS");
+         New_Line (Output.all);
+         Messages_For_Section
+           (Undetermined_Coverage,
+            Title => "",
+            Item  => "undetermined coverage items");
       end if;
 
       if Has_Exempted_Region then
@@ -700,9 +725,15 @@ package body Annotations.Report is
 
          --  If M is a violation, check if an exemption is currently active
 
-         if M.Kind = Violation and then Pp.Exemption /= Slocs.No_Location then
+         if M.Kind in Violation | Undetermined_Cov
+           and then Pp.Exemption /= Slocs.No_Location
+         then
             Pp.Exempted_Messages.Append (M);
-            Inc_Exemption_Count (Pp.Exemption);
+            if M.Kind = Violation then
+               Inc_Violation_Exemption_Count (Pp.Exemption);
+            else
+               Inc_Undet_Cov_Exemption_Count (Pp.Exemption);
+            end if;
          else
             Pp.Nonexempted_Messages (MC).Append (M);
          end if;
@@ -821,9 +852,12 @@ package body Annotations.Report is
    function Section_Of_Message (M : Message) return Report_Section is
    begin
       if M.SCO /= No_SCO_Id and then M.Kind in Coverage_Kind then
-         if M.Kind = Exclusion then
+         case M.Kind is
+         when Exclusion =>
             return Coverage_Exclusions;
-         else
+         when Undetermined_Cov =>
+            return Undetermined_Coverage;
+         when others =>
             pragma Assert (M.Kind = Violation or else M.Kind = Info);
 
             declare
@@ -837,7 +871,7 @@ package body Annotations.Report is
                end if;
                return S;
             end;
-         end if;
+         end case;
 
       else
          pragma Assert (M.Kind not in Coverage_Kind);

@@ -39,14 +39,27 @@ package Traces_Lines is
       Not_Coverable,
       --  No code for this line, but report presence of SCO
 
+      Undetermined_Coverage,
+      --  Code present but coverage assessment impossible (for instance code
+      --  not instrumented).
+
       Exempted_With_Violation,
       --  Exempted line in an exemption block that has a violation
 
+      Exempted_With_Undetermined_Cov,
+      --  Exempted line in an exemption block that has an item with
+      --  undetermined coverage state (for instance due to it not being
+      --  instrumented). For reporting purposes, Exempted_With_Violation should
+      --  take precedence over Exempted_With_Undetermined_Cov.
+
       Exempted_No_Violation
-      --  Exempted line in an exemption block with no violation
+      --  Exempted line in an exemption block with no violation nor
+      --  undetermined coverage SCOs. The two previous states should take
+      --  precedence over it.
      );
 
-   subtype Line_State is Any_Line_State range Not_Covered .. Not_Coverable;
+   subtype Line_State is Any_Line_State
+     range Not_Covered .. Undetermined_Coverage;
    --  Non-exempted line state
 
    type State_Char_Array is array (Any_Line_State) of Character;
@@ -58,12 +71,14 @@ package Traces_Lines is
 
 private
    State_Char : constant State_Char_Array :=
-     (No_Code                 => '.',
-      Not_Coverable           => '0',
-      Not_Covered             => '-',
-      Partially_Covered       => '!',
-      Covered                 => '+',
-      Exempted_With_Violation => '*',
-      Exempted_No_Violation   => '#');
+     (No_Code                        => '.',
+      Not_Coverable                  => '0',
+      Undetermined_Coverage          => '?',
+      Not_Covered                    => '-',
+      Partially_Covered              => '!',
+      Covered                        => '+',
+      Exempted_With_Violation        => '*',
+      Exempted_With_Undetermined_Cov => '@',
+      Exempted_No_Violation          => '#');
 
 end Traces_Lines;
