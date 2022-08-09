@@ -90,8 +90,7 @@ library project GNATcov_RTS is
    for Excluded_Source_Files use Excluded_Source_Files;
 
    package Compiler is
-      for Default_Switches ("C") use
-        ("-O2", "-g", "-Wall", "-Wextra", "-std=c89");
+      for Default_Switches ("C") use ("-O2", "-g", "-Wall", "-Wextra");
       for Default_Switches ("Ada") use ("-O2", "-g", "-gnatwa");
    end Compiler;
 

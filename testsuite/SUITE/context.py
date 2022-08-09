@@ -18,8 +18,8 @@ from e3.fs import rm
 from e3.main import Main
 from e3.os.fs import cd
 from e3.os.process import Run
-from e3.testsuite.driver.diff import (CanonicalizeLineEndings,
-                                      RefiningChain, Substitute)
+from e3.testsuite.driver.diff import (CanonicalizeLineEndings, LineByLine,
+                                      OutputRefiner, RefiningChain)
 
 from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, env
@@ -281,11 +281,18 @@ class Test (object):
         TODO: this only implement refiners for xcov[+]?. Implement for other
         report formats when needed.
         """
+
+        class XcovPathRemover(OutputRefiner):
+            """Remove path lines in outputs."""
+
+            def refine(self, output):
+                if os.path.exists(output.strip('\n:')):
+                    return ""
+                return output
+
         return [
             # Refiners for the xcov report
-            Substitute(
-                os.path.normcase(os.path.realpath(self.homedir)) + os.path.sep,
-                "<test_dir>"),
+            LineByLine(XcovPathRemover()),
 
             # Ignore platform specificities
             CanonicalizeLineEndings(),
