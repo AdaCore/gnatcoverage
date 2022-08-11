@@ -1252,8 +1252,10 @@ package body Instrument.C is
 
       procedure Output_Header (T : Character; N : Cursor_T) is
       begin
-         Append_SCO
-           (C1   => T,
+         UIC.Pass.Append_SCO
+           (UIC  => UIC,
+            N    => N,
+            C1   => T,
             C2   => ' ',
             From => Start_Sloc (N),
             To   => End_Sloc (N),
@@ -2381,7 +2383,7 @@ package body Instrument.C is
       --  an arbitrary amount).
 
       if Record_PP_Info_Last_SCO /= SCOs.SCO_Table.Last then
-         Outputs.Error
+         Outputs.Warn
            (Orig_Filename & " : preprocessed file coverage obligations"
               &  " inconsistent with original file obligations "
               & ". Discarding preprocessing information.");

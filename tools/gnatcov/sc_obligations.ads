@@ -151,6 +151,9 @@ package SC_Obligations is
 
    function Image (SCO : SCO_Id; With_Sloc : Boolean := True) return String;
 
+   function Comp_Unit (SCO : SCO_Id) return CU_Id;
+   --  Return the owning compilation unit of a SCO
+
    function Sloc_To_SCO
      (Sloc              : Source_Location;
       Include_Decisions : Boolean := False) return SCO_Id;
