@@ -1374,7 +1374,8 @@ package body Project is
                             or else To_Lower (Prj_Tree.Info (F).Language)
                                     = Lower_Language)
                then
-                  Mains.Append ((File => F, Project => Project));
+                  Mains.Append
+                    (Main_Source_File'(File => F, Project => Project));
                end if;
             end;
          end loop;

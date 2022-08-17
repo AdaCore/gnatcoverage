@@ -528,9 +528,10 @@ package body CFG_Dump is
 
                if Last_Insn /= null then
                   Last_Insn.Successors.Append
-                    ((Kind    => Fallthrough,
-                      Known   => True,
-                      Address => Address (Insn)));
+                    (Successor_Record'
+                       (Kind    => Fallthrough,
+                        Known   => True,
+                        Address => Address (Insn)));
 
                   if not Insn.Selected and then Last_Insn.Selected then
                      --  This instruction is not selected, but since it's

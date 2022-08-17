@@ -2619,7 +2619,7 @@ package body SC_Obligations is
                --  unit.
 
                if Unit.From <= Unit.To then
-                  Unit_Info.Entries.Append ((Unit.From, Unit.To));
+                  Unit_Info.Entries.Append (Nat_Range'(Unit.From, Unit.To));
                end if;
 
                --  Make data for SCO entries contribute to the computation of
@@ -3188,7 +3188,7 @@ package body SC_Obligations is
                         First_Instance + Inst_Id (SIE.Enclosing_Instance) - 1;
                   end if;
 
-                  Inst_Vector.Append ((Sloc, Enclosing_Inst, CU));
+                  Inst_Vector.Append (Inst_Info'(Sloc, Enclosing_Inst, CU));
                end;
             end loop;
 

@@ -478,8 +478,9 @@ package body Traces_Names is
          begin
             Subps.Reserve_Capacity (Routines.Length);
             for Cur in Routines.Iterate loop
-               Subps.Append ((Name   => Routines_Maps.Key (Cur).Name,
-                              Cursor => Cur));
+               Subps.Append (Subp_Entry'
+                               (Name   => Routines_Maps.Key (Cur).Name,
+                                Cursor => Cur));
             end loop;
             Subp_Sorting.Sort (Subps);
 
