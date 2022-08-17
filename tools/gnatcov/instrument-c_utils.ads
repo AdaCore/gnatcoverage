@@ -103,11 +103,6 @@ package Instrument.C_Utils is
    --  Add a statement before the return, and after any previously inserted
    --  string at the same location.
 
-   procedure Add_Export
-     (TU     : Translation_Unit_T;
-      Rew    : Rewriter_T;
-      Export : String);
-
    procedure Insert_Text_After_Start_Of
      (N    : Cursor_T;
       Text : String;
