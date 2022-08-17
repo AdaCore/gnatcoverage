@@ -1588,6 +1588,13 @@ package body Instrument.C is
       procedure Traverse_One (N : Cursor_T);
       --  Traverse a statement
 
+      procedure Extend_Statement_Sequence
+        (N           : Cursor_T;
+         Typ         : Character;
+         Insertion_N : Cursor_T := Get_Null_Cursor;
+         Instr_Scheme : Instr_Scheme_Type := Instr_Stmt);
+      --  Add an entry to the SC table
+
       procedure Set_Statement_Entry;
       --  Output CS entries for all statements saved in table SC, and end the
       --  current CS sequence. Then output entries for all decisions nested in
@@ -1627,7 +1634,7 @@ package body Instrument.C is
             --  we include the condition in the current sequence.
 
             when Cursor_If_Stmt =>
-               Extend_Statement_Sequence (N, 'I', UIC);
+               Extend_Statement_Sequence (N, 'I');
 
                declare
                   Then_Part : constant Cursor_T := Get_Then (N);
@@ -1661,7 +1668,7 @@ package body Instrument.C is
             --  but we include the expression in the current sequence.
 
             when Cursor_Switch_Stmt =>
-               Extend_Statement_Sequence (N, 'C', UIC);
+               Extend_Statement_Sequence (N, 'C');
                declare
                   Switch_Cond : constant Cursor_T := Get_Cond (N);
                   Alt         : constant Cursor_T := Get_Body (N);
@@ -1705,7 +1712,7 @@ package body Instrument.C is
                   UIC.Pass.Curlify (N   => While_Body,
                                     Rew => UIC.Rewriter);
                   Extend_Statement_Sequence
-                    (N, 'W', UIC,
+                    (N, 'W',
                      Insertion_N  => Cond,
                      Instr_Scheme => Instr_Expr);
                   Process_Decisions_Defer (Cond, 'W');
@@ -1728,7 +1735,7 @@ package body Instrument.C is
                   Traverse_Statements
                     (IC, UIC, To_Vector (Do_Body), No_Dominant);
                   Extend_Statement_Sequence
-                    (Do_While, 'W', UIC, Instr_Scheme => Instr_Expr);
+                    (Do_While, 'W', Instr_Scheme => Instr_Expr);
 
                   Process_Decisions_Defer (Do_While, 'W');
                   Set_Statement_Entry;
@@ -1746,9 +1753,9 @@ package body Instrument.C is
                   For_Body : constant Vector := To_Vector (Get_Body (N));
                begin
                   Extend_Statement_Sequence
-                    (For_Init, ' ', UIC, Insertion_N => N);
+                    (For_Init, ' ', Insertion_N => N);
                   Extend_Statement_Sequence
-                    (For_Cond, 'F', UIC, Instr_Scheme => Instr_Expr);
+                    (For_Cond, 'F', Instr_Scheme => Instr_Expr);
                   Process_Decisions_Defer (For_Cond, 'X');
 
                   Set_Statement_Entry;
@@ -1759,7 +1766,7 @@ package body Instrument.C is
                     Traverse_Statements (IC, UIC, For_Body, Current_Dominant);
 
                   Extend_Statement_Sequence
-                    (For_Inc, ' ', UIC, Instr_Scheme => Instr_Expr);
+                    (For_Inc, ' ', Instr_Scheme => Instr_Expr);
 
                   Set_Statement_Entry;
 
@@ -1770,7 +1777,7 @@ package body Instrument.C is
            --  sequence, but then terminates it.
 
             when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt =>
-               Extend_Statement_Sequence (N, ' ', UIC);
+               Extend_Statement_Sequence (N, ' ');
                Set_Statement_Entry;
                Current_Dominant := No_Dominant;
 
@@ -1801,7 +1808,7 @@ package body Instrument.C is
                   --  Determine required type character code, or ASCII.NUL if
                   --  no SCO should be generated for this node.
 
-                  Extend_Statement_Sequence (N, ' ', UIC);
+                  Extend_Statement_Sequence (N, ' ');
 
                   --  Process any embedded decisions
 
@@ -1811,6 +1818,70 @@ package body Instrument.C is
                end if;
          end case;
       end Traverse_One;
+
+      -------------------------------
+      -- Extend_Statement_Sequence --
+      -------------------------------
+
+      procedure Extend_Statement_Sequence
+        (N            : Cursor_T;
+         Typ          : Character;
+         Insertion_N  : Cursor_T := Get_Null_Cursor;
+         Instr_Scheme : Instr_Scheme_Type := Instr_Stmt)
+      is
+         Insert_Cursor : aliased Cursor_T := N;
+
+         F : constant Source_Location := Start_Sloc (N);
+         T : Source_Location := End_Sloc (N);
+
+         --  Source location bounds used to produce a SCO statement. By
+         --  default, this should cover the same source location range as N,
+         --  however for nodes that can contain other statements, we select an
+         --  end bound that appears before the first nested statement (see
+         --  To_Node below).
+
+         To_Node : Cursor_T := Get_Null_Cursor;
+         --  In the case of simple statements, set to null cursor and unused.
+         --  Otherwise, use F and this node's end sloc for the emitted
+         --  statement source location range.
+
+      begin
+
+         if Is_Null (N) then
+            return;
+         end if;
+
+         --  For now, instrument only cursor that come from the file being
+         --  instrumented, and do not instrument included code.
+
+         if Is_Unit_Of_Interest (N, +UIC.File) then
+            case Kind (N) is
+               when Cursor_If_Stmt =>
+                  To_Node := Get_Cond (N);
+               when Cursor_Switch_Stmt =>
+                  To_Node := Get_Cond (N);
+               when Cursor_While_Stmt =>
+                  Insert_Cursor := Get_Cond (N);
+                  To_Node := Insert_Cursor;
+               when others => null;
+            end case;
+
+            if not Is_Null (To_Node) then
+               T := End_Sloc (To_Node);
+            end if;
+
+            SC.Append
+              ((N            => Insert_Cursor,
+                Insertion_N  =>
+                    (if Is_Null (Insertion_N)
+                     then N
+                     else Insertion_N),
+                From         => F,
+                To           => T,
+                Typ          => Typ,
+                Instr_Scheme => Instr_Scheme));
+         end if;
+      end Extend_Statement_Sequence;
 
       -------------------------
       -- Set_Statement_Entry --
@@ -1944,71 +2015,6 @@ package body Instrument.C is
          end;
       end loop;
    end Traverse_Declarations;
-
-   -------------------------------
-   -- Extend_Statement_Sequence --
-   -------------------------------
-
-   procedure Extend_Statement_Sequence
-     (N            : Cursor_T;
-      Typ          : Character;
-      UIC          : C_Unit_Inst_Context;
-      Insertion_N  : Cursor_T := Get_Null_Cursor;
-      Instr_Scheme : Instr_Scheme_Type := Instr_Stmt)
-   is
-      Insert_Cursor : aliased Cursor_T := N;
-
-      F : constant Source_Location := Start_Sloc (N);
-      T : Source_Location := End_Sloc (N);
-
-      --  Source location bounds used to produce a SCO statement. By
-      --  default, this should cover the same source location range as N,
-      --  however for nodes that can contain other statements, we select an end
-      --  bound that appears before the first nested statement (see To_Node
-      --  below).
-
-      To_Node : Cursor_T := Get_Null_Cursor;
-      --  In the case of simple statements, set to null cursor and unused.
-      --  Otherwise, use F and this node's end sloc for the emitted
-      --  statement source location range.
-
-   begin
-
-      if Is_Null (N) then
-         return;
-      end if;
-
-      --  For now, instrument only cursor that come from the file being
-      --  instrumented, and do not instrument included code.
-
-      if Is_Unit_Of_Interest (N, +UIC.File) then
-         case Kind (N) is
-            when Cursor_If_Stmt =>
-               To_Node := Get_Cond (N);
-            when Cursor_Switch_Stmt =>
-               To_Node := Get_Cond (N);
-            when Cursor_While_Stmt =>
-               Insert_Cursor := Get_Cond (N);
-               To_Node := Insert_Cursor;
-            when others => null;
-         end case;
-
-         if not Is_Null (To_Node) then
-            T := End_Sloc (To_Node);
-         end if;
-
-         SC.Append
-           ((N            => Insert_Cursor,
-             Insertion_N  =>
-                 (if Is_Null (Insertion_N)
-                  then N
-                  else Insertion_N),
-             From         => F,
-             To           => T,
-             Typ          => Typ,
-             Instr_Scheme => Instr_Scheme));
-      end if;
-   end Extend_Statement_Sequence;
 
    --------------------
    -- Builtin_Macros --

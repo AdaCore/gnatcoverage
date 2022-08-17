@@ -278,13 +278,6 @@ private package Instrument.C is
    type C_Source_Rewriter is tagged limited private;
    --  Helper object to instrument a source file
 
-   procedure Extend_Statement_Sequence
-     (N           : Cursor_T;
-      Typ         : Character;
-      UIC         : C_Unit_Inst_Context;
-      Insertion_N : Cursor_T := Get_Null_Cursor;
-      Instr_Scheme : Instr_Scheme_Type := Instr_Stmt);
-
    procedure Apply (Self : in out C_Source_Rewriter);
 
    procedure Start_Rewriting
