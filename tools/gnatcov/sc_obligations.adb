@@ -20,7 +20,6 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
-with Ada.Streams;             use Ada.Streams;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
@@ -40,7 +39,6 @@ with Diagnostics;   use Diagnostics;
 with Files_Table;   use Files_Table;
 with Outputs;       use Outputs;
 with SC_Obligations.BDD;
-with Strings;       use Strings;
 with Switches;      use Switches;
 with Traces_Elf;    use Traces_Elf;
 
@@ -104,14 +102,22 @@ package body SC_Obligations is
 
       PP_Info_Map : SCO_PP_Info_Maps.Map;
       --  Information about preprocessing
+
+      Scope_Ent : Scope_Entity_Acc := null;
+      --  Top-level scope, used to output e.g. subprogram metrics
+
       case Provider is
          when Compiler =>
             null;
 
          when Instrumenter =>
             Bit_Maps : CU_Bit_Maps;
+            --  Mapping of bits in coverage buffers to SCOs
       end case;
+
    end record;
+
+   procedure Free (CU : in out CU_Info);
 
    pragma Warnings (Off, "* is not referenced");
    procedure Read
@@ -632,6 +638,22 @@ package body SC_Obligations is
       return CU_Vector.Reference (CU).Element.PP_Info_Map.Element (SCO);
    end Get_PP_Info;
 
+   ----------------------
+   -- Get_Scope_Entity --
+   ----------------------
+
+   function Get_Scope_Entity (CU : CU_Id) return Scope_Entity_Acc is
+   begin
+      if CU /= No_CU_Id then
+         declare
+            Info : constant CU_Info := CU_Vector.Reference (CU).Element.all;
+         begin
+            return Info.Scope_Ent;
+         end;
+      end if;
+      return null;
+   end Get_Scope_Entity;
+
    --------------------------------
    -- Checkpoint_Load_Merge_Unit --
    --------------------------------
@@ -711,6 +733,9 @@ package body SC_Obligations is
       procedure Remap_SCO_Id (S : in out SCO_Id);
       --  Remap a SCO_Id. Note: this assumes possible forward references, and
       --  does not rely on SCO_Map.
+
+      procedure Remap_Scope_Entity (Scope_Ent : Scope_Entity_Acc);
+      --  Remap a Scope_Entity, including all of its children (recursively)
 
       ---------------
       -- Remap_BDD --
@@ -803,6 +828,23 @@ package body SC_Obligations is
             pragma Assert (S /= No_SCO_Id);
          end if;
       end Remap_SCO_Id;
+
+      ------------------------
+      -- Remap_Scope_Entity --
+      ------------------------
+
+      procedure Remap_Scope_Entity (Scope_Ent : Scope_Entity_Acc) is
+      begin
+         if Scope_Ent = null then
+            return;
+         end if;
+         Remap_SCO_Id (Scope_Ent.From);
+         Remap_SCO_Id (Scope_Ent.To);
+
+         for Child of Scope_Ent.Children loop
+            Remap_Scope_Entity (Child);
+         end loop;
+      end Remap_Scope_Entity;
 
    --  Start of processing for Checkpoint_Load_New_Unit
 
@@ -985,6 +1027,11 @@ package body SC_Obligations is
             end loop;
             CP_CU.PP_Info_Map := Remapped_PP_Info_Map;
          end;
+
+         --  Remap SCOs span for scope entities
+
+         Remap_Scope_Entity (CP_CU.Scope_Ent);
+
       end if;
 
       --  Preallocate line table entries for last file
@@ -1129,6 +1176,40 @@ package body SC_Obligations is
       end if;
    end Checkpoint_Load_Unit;
 
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Scope_Ent : in out Scope_Entity_Acc) is
+      procedure Deallocate is new Ada.Unchecked_Deallocation
+        (Scope_Entity, Scope_Entity_Acc);
+   begin
+      for Child of Scope_Ent.Children loop
+         Free (Child);
+      end loop;
+      Deallocate (Scope_Ent);
+   end Free;
+
+   procedure Free (CU : in out CU_Info) is
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Statement_Bit_Map, Statement_Bit_Map_Access);
+
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Decision_Bit_Map, Decision_Bit_Map_Access);
+
+      procedure Free is new Ada.Unchecked_Deallocation
+        (MCDC_Bit_Map, MCDC_Bit_Map_Access);
+   begin
+      if CU.Provider = Instrumenter then
+         Free (CU.Bit_Maps.Statement_Bits);
+         Free (CU.Bit_Maps.Decision_Bits);
+         Free (CU.Bit_Maps.MCDC_Bits);
+      end if;
+      if CU.Scope_Ent /= null then
+         Free (CU.Scope_Ent);
+      end if;
+   end Free;
+
    --  Procedures below use comparisons on checkpoint format versions
 
    ----------
@@ -1188,6 +1269,27 @@ package body SC_Obligations is
                end if;
          end case;
       end if;
+
+      --  Checkpoint version 8 data (scoped metrics support)
+
+      if not Version_Less (S, Than => 8) then
+         Scope_Entity_Acc'Read (S, V.Scope_Ent);
+      end if;
+   end Read;
+
+   procedure Read (S : access Root_Stream_Type'Class; V : out Scope_Entity_Acc)
+   is
+   begin
+      V := new Scope_Entity;
+      SCO_Id'Read (S, V.From);
+      SCO_Id'Read (S, V.To);
+      Unbounded_String'Read (S, V.Name);
+      Local_Source_Location'Read (S, V.Sloc);
+      Scope_Entities_Vector'Read (S, V.Children);
+
+      --  Note that we don't stream Scope_Ent.Parent. We only need it at
+      --  instrumentation time, to help creating the scope tree.
+
    end Read;
 
    -----------
@@ -1239,6 +1341,27 @@ package body SC_Obligations is
                end if;
          end case;
       end if;
+
+      --  Checkpoint version 8 data (support for scoped metrics)
+
+      if not Version_Less (S, Than => 8) then
+         Scope_Entity_Acc'Write (S, V.Scope_Ent);
+      end if;
+   end Write;
+
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (S : access Root_Stream_Type'Class; V : Scope_Entity_Acc) is
+      Scope_Ent : constant Scope_Entity :=
+        (if V = null then No_Scope_Entity else V.all);
+   begin
+      SCO_Id'Write (S, Scope_Ent.From);
+      SCO_Id'Write (S, Scope_Ent.To);
+      Unbounded_String'Write (S, Scope_Ent.Name);
+      Local_Source_Location'Write (S, Scope_Ent.Sloc);
+      Scope_Entities_Vector'Write (S, Scope_Ent.Children);
    end Write;
 
    ---------------------
@@ -1348,6 +1471,9 @@ package body SC_Obligations is
 
    procedure Checkpoint_Clear is
    begin
+      for CU of CU_Vector loop
+         Free (CU);
+      end loop;
       CU_Map.Clear;
       Origin_To_CUs_Map.Clear;
       CU_Vector.Clear;
@@ -1385,6 +1511,32 @@ package body SC_Obligations is
          return Element (Cur);
       end if;
    end Comp_Unit;
+
+   ---------------
+   -- First_SCO --
+   ---------------
+
+   function First_SCO (CU : CU_Id) return SCO_Id is
+   begin
+      if CU = No_CU_Id then
+         return No_SCO_Id;
+      else
+         return CU_Vector.Element (CU).First_SCO;
+      end if;
+   end First_SCO;
+
+   --------------
+   -- Last_SCO --
+   --------------
+
+   function Last_SCO (CU : CU_Id) return SCO_Id is
+   begin
+      if CU = No_CU_Id then
+         return No_SCO_Id;
+      else
+         return CU_Vector.Element (CU).Last_SCO;
+      end if;
+   end Last_SCO;
 
    ---------------
    -- Condition --
@@ -3755,6 +3907,15 @@ package body SC_Obligations is
    begin
       CU_Vector.Reference (CU).Bit_Maps := Bit_Maps;
    end Set_Bit_Maps;
+
+   ----------------------
+   -- Set_Scope_Entity --
+   ----------------------
+
+   procedure Set_Scope_Entity  (CU : CU_Id; Scope_Ent : Scope_Entity_Acc) is
+   begin
+      CU_Vector.Reference (CU).Scope_Ent := Scope_Ent;
+   end Set_Scope_Entity;
 
    -------------------------------
    -- Set_Operand_Or_Expression --

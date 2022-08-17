@@ -18,8 +18,6 @@
 
 --  Binary Decision Diagrams
 
-with Ada.Streams; use Ada.Streams;
-
 private package SC_Obligations.BDD is
 
    Path_Count_Limit : Natural := 1024;

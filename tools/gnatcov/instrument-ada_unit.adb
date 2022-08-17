@@ -897,6 +897,17 @@ package body Instrument.Ada_Unit is
    --  generated is a primitive of a tagged type, and if that tagged type is
    --  the return type of the expression function.
 
+   --------------------------------
+   -- Instrumentation extensions --
+   --------------------------------
+
+   procedure Enter_Scope
+     (UIC        : in out Ada_Unit_Inst_Context;
+      Scope_Name : Text_Type;
+      Sloc       : Source_Location);
+   --  Wrapper around Instrument.Common.Enter_Scope. See the documentation for
+   --  this function.
+
    ----------------------------
    -- Source level rewriting --
    ----------------------------
@@ -3827,8 +3838,15 @@ package body Instrument.Ada_Unit is
          --  Nothing else to do except for the case of degenerate subprograms
          --  (null procedures and expression functions).
 
-         if N.Kind in Ada_Null_Subp_Decl | Ada_Expr_Function then
+         if N.Kind in Ada_Null_Subp_Decl then
             Traverse_Degenerate_Subprogram (N, N_Spec);
+         elsif N.Kind in Ada_Expr_Function then
+            Enter_Scope
+              (UIC        => UIC,
+               Scope_Name => N.As_Expr_Function.F_Subp_Spec.F_Subp_Name.Text,
+               Sloc       => Sloc (N));
+            Traverse_Degenerate_Subprogram (N, N_Spec);
+            Exit_Scope (UIC);
          end if;
       end Traverse_Subp_Decl_Or_Stub;
 
@@ -4867,6 +4885,11 @@ package body Instrument.Ada_Unit is
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
 
+      Enter_Scope
+        (UIC        => UIC,
+         Scope_Name => N.As_Package_Body.F_Package_Name.Text,
+         Sloc       => Sloc (N));
+
       --  The first statement in the handled sequence of statements is
       --  dominated by the elaboration of the last declaration.
 
@@ -4876,6 +4899,8 @@ package body Instrument.Ada_Unit is
          D => Traverse_Declarations_Or_Statements
                 (IC, UIC, N.F_Decls.F_Decls, Preelab));
       UIC.Ghost_Code := False;
+
+      Exit_Scope (UIC);
    end Traverse_Package_Body;
 
    ----------------------------------
@@ -4892,6 +4917,11 @@ package body Instrument.Ada_Unit is
       Private_Part_Dominant : Dominant_Info;
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
+      Enter_Scope
+        (UIC        => UIC,
+         Scope_Name => N.F_Package_Name.Text,
+         Sloc       => Sloc (N));
+
       Private_Part_Dominant :=
         Traverse_Declarations_Or_Statements
           (IC, UIC, N.F_Public_Part.F_Decls, Preelab, D,
@@ -4907,6 +4937,7 @@ package body Instrument.Ada_Unit is
             Preelab => Preelab,
             D       => Private_Part_Dominant);
       end if;
+      Exit_Scope (UIC);
       UIC.Ghost_Code := False;
    end Traverse_Package_Declaration;
 
@@ -5007,8 +5038,9 @@ package body Instrument.Ada_Unit is
 
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
-      Local_Inserter : aliased Default_MCDC_State_Inserter;
+      Local_Inserter            : aliased Default_MCDC_State_Inserter;
 
+      Body_Name : Defining_Name;
    begin
       case Kind (N) is
          when Ada_Subp_Body =>
@@ -5017,6 +5049,7 @@ package body Instrument.Ada_Unit is
             begin
                Decls := SBN.F_Decls;
                HSS   := SBN.F_Stmts;
+               Body_Name := N.As_Subp_Body.F_Subp_Spec.F_Subp_Name;
             end;
 
          when Ada_Task_Body =>
@@ -5025,6 +5058,7 @@ package body Instrument.Ada_Unit is
             begin
                Decls := TBN.F_Decls;
                HSS   := TBN.F_Stmts;
+               Body_Name := N.As_Task_Body.F_Name;
             end;
 
          when Ada_Entry_Body =>
@@ -5033,11 +5067,17 @@ package body Instrument.Ada_Unit is
             begin
                Decls := EBN.F_Decls;
                HSS := EBN.F_Stmts;
+               Body_Name := N.As_Entry_Body.F_Entry_Name;
             end;
 
          when others =>
             raise Program_Error;
       end case;
+
+      Enter_Scope
+        (UIC        => UIC,
+         Scope_Name => Body_Name.Text,
+         Sloc       => Sloc (N));
 
       Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
@@ -5049,6 +5089,10 @@ package body Instrument.Ada_Unit is
         (IC, UIC, L => Decls.F_Decls, D => Dom_Info);
 
       Traverse_Handled_Statement_Sequence (IC, UIC, N => HSS, D => Dom_Info);
+
+      Exit_Scope (UIC);
+
+      --  Restore the MCDC_State_Inserter
 
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
    end Traverse_Subprogram_Or_Task_Body;
@@ -6083,6 +6127,21 @@ package body Instrument.Ada_Unit is
       end return;
    end Detach;
 
+   -----------------
+   -- Enter_Scope --
+   -----------------
+
+   procedure Enter_Scope
+     (UIC        : in out Ada_Unit_Inst_Context;
+      Scope_Name : Text_Type;
+      Sloc       : Source_Location) is
+   begin
+      Enter_Scope
+        (UIC,
+         +Langkit_Support.Text.To_UTF8 (Scope_Name),
+         (Line => Natural (Sloc.Line), Column => Natural (Sloc.Column)));
+   end Enter_Scope;
+
    --------------------------
    -- Initialize_Rewriting --
    --------------------------
@@ -6584,6 +6643,37 @@ package body Instrument.Ada_Unit is
          end loop;
 
          Set_Bit_Maps (UIC.CU, Bit_Maps);
+
+          --  Remap low level SCOS in Scope_Entity records to high-level SCOs.
+          --  See the comment for Scope_Entity.From/To.
+
+         if UIC.Current_Scope_Entity /= null then
+            declare
+               use Scope_Entities_Vectors;
+
+               procedure Remap_SCOs (Scope_Entity : Scope_Entity_Acc);
+
+               ----------------
+               -- Remap_SCOs --
+               ----------------
+
+               procedure Remap_SCOs (Scope_Entity : Scope_Entity_Acc)
+               is
+               begin
+                  Scope_Entity.From := SCO_Map (Nat (Scope_Entity.From));
+                  Scope_Entity.To := SCO_Map (Nat (Scope_Entity.To));
+                  for Child of Scope_Entity.Children loop
+                     Remap_SCOs (Child);
+                  end loop;
+               end Remap_SCOs;
+
+            begin
+               --  Iterate through the package level body entities
+
+               Remap_SCOs (UIC.Current_Scope_Entity);
+               Set_Scope_Entity (UIC.CU, UIC.Current_Scope_Entity);
+            end;
+         end if;
       end;
 
       --  Insert automatic buffer dump calls, if requested

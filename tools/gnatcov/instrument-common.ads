@@ -71,6 +71,7 @@ with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Namet;                 use Namet;
 with SC_Obligations;        use SC_Obligations;
+with Slocs;
 with Strings;               use Strings;
 with Text_Files;
 with Types;                 use Types;
@@ -487,6 +488,13 @@ package Instrument.Common is
       --  Annotations created during the instrumentation process, to insert in
       --  ALI_Files.ALI_Annotations afterwards, when the compilation unit
       --  (SC_Obligations.CU_Info) for this annotation is ready.
+
+      Current_Scope_Entity : Scope_Entity_Acc := null;
+      --  Information about the name, sloc, SCO range and children scopes of
+      --  the current scope entity. This is modified when entering a scope
+      --  (updated to the current scope), and when leaving it (updated to the
+      --  current scope parent, if any).
+
    end record;
 
    function Img (Bit : Any_Bit_Id) return String is
@@ -522,6 +530,22 @@ package Instrument.Common is
      (IC   : Inst_Context;
       Main : Compilation_Unit_Name) return CU_Name_Vectors.Vector;
    --  Return the list of instrumented units in Main's closure
+
+   procedure Enter_Scope
+     (UIC        : in out Unit_Inst_Context;
+      Scope_Name : Unbounded_String;
+      Sloc       : Slocs.Local_Source_Location);
+   --  Enter a scope. This must be completed with a call to the function
+   --  Exit_Scope, defined below. Scope_Name is the name of the scope, which
+   --  is defined at location Sloc. Assume that the scope first SCO is the next
+   --  generated SCO (SCOs.SCO_Table.Last + 1). Update UIC.Current_Scope_Entity
+   --  to the created entity.
+
+   procedure Exit_Scope (UIC : in out Unit_Inst_Context)
+     with Pre => UIC.Current_Scope_Entity /= null;
+   --  Exit the current scioe, updating UIC.Current_Scope_Entity to
+   --  UIC.Current_Scope_Entity.Parent, if any. Assume that the last generated
+   --  SCO (SCOs.SCO_Table.Last) is the last SCO for the current scope.
 
 private
 
