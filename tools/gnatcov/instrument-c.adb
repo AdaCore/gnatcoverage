@@ -2732,14 +2732,8 @@ package body Instrument.C is
                         & "= {");
          File.Put_Line ("    .fingerprint = " & To_String (Fingerprint) & ",");
 
-         File.Put_Line ("    .language_kind = "
-                        & Integer'Image
-                          (Any_Language_Kind'Pos (File_Based_Language))
-                        & ",");
-         File.Put_Line ("    .unit_part = "
-                        & Integer'Image
-                          (Any_Unit_Part'Pos (Not_Applicable_Part))
-                        & ",");
+         File.Put_Line ("    .language_kind = FILE_BASED_LANGUAGE,");
+         File.Put_Line ("    .unit_part = NOT_APPLICABLE_PART,");
          File.Put_Line ("    .unit_name = " & "{""" & Unit_Name & """, "
                         & Natural'Image (Unit_Name'Length) & "},");
 
