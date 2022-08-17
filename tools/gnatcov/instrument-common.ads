@@ -556,6 +556,10 @@ package Instrument.Common is
    --  Set of operations to allow the instrumentation of sources files for a
    --  given language.
 
+   function Language
+     (Self : Language_Instrumenter) return Src_Supported_Language is abstract;
+   --  Return the language that this instrumenter is designed to process
+
    function Skip_Source_File
      (Self        : Language_Instrumenter;
       Source_File : GNATCOLL.Projects.File_Info) return Boolean

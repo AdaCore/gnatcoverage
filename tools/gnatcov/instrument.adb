@@ -59,7 +59,8 @@ package body Instrument is
    Instrumenters : constant array (Src_Supported_Language)
                    of access constant Language_Instrumenter'Class :=
      (Ada_Language => Ada_Unit.Instrumenter'Access,
-      C_Language   => C.Instrumenter'Access);
+      C_Language   => C.C_Instrumenter'Access,
+      CPP_Language => C.CPP_Instrumenter'Access);
 
    package GPR renames GNATCOLL.Projects;
 

@@ -16,12 +16,14 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 with Ada.Tags;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -137,6 +139,9 @@ package body Project is
       --  are not units of their own (in particular they don't have their own
       --  LI file), but we still allow them to appear in unit lists.
 
+      Language : Some_Language;
+      --  Language for this unit
+
       LI_Seen : Boolean;
       --  Set true if the LI file for this unit has been seen
 
@@ -151,7 +156,8 @@ package body Project is
    procedure Add_Unit
      (Units         : in out Unit_Maps.Map;
       Cur           : out Unit_Maps.Cursor;
-      Original_Name : String);
+      Original_Name : String;
+      Language      : Some_Language);
    --  Add an entry to Units. See Unit_Info's members for the semantics of
    --  arguments.
 
@@ -246,7 +252,8 @@ package body Project is
    procedure Add_Unit
      (Units         : in out Unit_Maps.Map;
       Cur           : out Unit_Maps.Cursor;
-      Original_Name : String)
+      Original_Name : String;
+      Language      : Some_Language)
    is
       Ignored_Inserted : Boolean;
       On_Windows       : constant Boolean :=
@@ -267,6 +274,7 @@ package body Project is
          New_Item => (Original_Name             => Orig_Name,
                       Present_In_Projects       => False,
                       Is_Subunit                => False,
+                      Language                  => Language,
                       LI_Seen                   => Is_C_Header,
                       Warned_About_Missing_Info => Is_C_Header),
          Position => Cur,
@@ -279,7 +287,15 @@ package body Project is
 
    procedure Warn_Missing_Info (What_Info : String; Unit : in out Unit_Info) is
    begin
-      if Unit.Warned_About_Missing_Info then
+      --  The only way to perform code coverage on C++ units is to use
+      --  instrumentation. If we have not enumerated SID files, this means that
+      --  we are using binary traces only, and thus C++ units cannot be units
+      --  of interest, so do not warn about them in this specific case.
+
+      if Unit.Warned_About_Missing_Info
+         or else (not Are_SIDs_Enumerated
+                  and then Unit.Language = CPP_Language)
+      then
          return;
       end if;
 
@@ -383,9 +399,11 @@ package body Project is
                   declare
                      Info : constant File_Info := File_Info (Abstract_Info);
                   begin
-                     --  Register only units in supported languages (Ada and
-                     --  C), and don't consider subunits as independent units.
-                     if To_Lower (Info.Language) in "ada" | "c"
+                     --  Register only units in supported languages (Ada, C and
+                     --  C++), and don't consider subunits as independent
+                     --  units.
+
+                     if To_Lower (Info.Language) in "ada" | "c" | "c++"
                        and then (Include_Subunits
                                  or else Info.Unit_Part /= Unit_Separate)
                      then
@@ -997,7 +1015,11 @@ package body Project is
                                 (To_Lower (Unit_Name),
                                  Units_Specified_Matcher))
                   then
-                     Add_Unit (Inc_Units, Cur, Unit_Name);
+                     Add_Unit
+                       (Inc_Units,
+                        Cur,
+                        Unit_Name,
+                        To_Language (Info.Language));
                      Inc_Units.Reference (Cur).Is_Subunit :=
                        Info.Unit_Part = Unit_Separate;
                   end if;
@@ -1192,6 +1214,14 @@ package body Project is
       Units_Present : String_Vectors.Vector;
       --  List of all units in Prj
 
+      package Unit_Language_Maps is new Ada.Containers.Hashed_Maps
+        (Key_Type        => Unbounded_String,
+         Element_Type    => Some_Language,
+         Equivalent_Keys => "=",
+         Hash            => Hash);
+      Unit_Languages : Unit_Language_Maps.Map;
+      --  Language for each unit in Units_Present
+
       Unit_Patterns    : String_Vectors.Vector;
       Attr_For_Pattern : String_Maps.Map;
       --  Patterns identifying unit names and project attribute from which we
@@ -1224,9 +1254,10 @@ package body Project is
       -------------------------
 
       procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
-         pragma Unreferenced (Info);
+         Key : constant Unbounded_String := +Unit_Name;
       begin
-         Units_Present.Append (+Unit_Name);
+         Units_Present.Append (Key);
+         Unit_Languages.Include (Key, To_Language (Info.Language));
       end Process_Source_File;
 
    --  Start of processing for Units_From_Project
@@ -1260,7 +1291,11 @@ package body Project is
       end loop;
 
       for Unit_Name of Units_Present loop
-         Add_Unit (Units, Ignored_Cur, +Unit_Name);
+         Add_Unit
+           (Units,
+            Ignored_Cur,
+            +Unit_Name,
+            Unit_Languages.Element (Unit_Name));
       end loop;
 
    end Units_From_Project;
@@ -1401,7 +1436,8 @@ package body Project is
         (case Language is
          when All_Languages => "",
          when Ada_Language  => "ada",
-         when C_Language    => "c");
+         when C_Language    => "c",
+         when CPP_Language  => "c++");
 
       package Main_Source_File_Vectors is new Ada.Containers.Vectors
         (Positive, Main_Source_File);

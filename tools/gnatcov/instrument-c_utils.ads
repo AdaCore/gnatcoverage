@@ -71,6 +71,10 @@ package Instrument.C_Utils is
    --  functions in clang-wrapper.cc and the associated ada bindings in the
    --  package clang-extensions.
 
+   function Get_Lambda_Exprs (N : Cursor_T) return Cursor_Vectors.Vector;
+   --  Return the lambda expressions in a node and its descendents if any,
+   --  except the lambda expressions nested in other lambda expressions.
+
    function Is_Unit_Of_Interest
      (N        : Cursor_T;
       Filename : String) return Boolean;

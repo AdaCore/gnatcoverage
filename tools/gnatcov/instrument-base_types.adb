@@ -35,7 +35,8 @@ package body Instrument.Base_Types is
    begin
       return (case Language is
               when Ada_Language => Unit_Based_Language,
-              when C_Language   => File_Based_Language);
+              when C_Language
+                 | CPP_Language => File_Based_Language);
    end Language_Kind;
 
    ------------

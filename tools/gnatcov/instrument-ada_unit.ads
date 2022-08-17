@@ -31,6 +31,7 @@ with Libadalang.Rewriting; use Libadalang.Rewriting;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
 with SC_Obligations;        use SC_Obligations;
+with Switches;
 with Types;                 use Types;
 
 package Instrument.Ada_Unit is
@@ -38,6 +39,10 @@ package Instrument.Ada_Unit is
    type Ada_Instrumenter_Type is new Language_Instrumenter with
      null record;
    --  Instrumentation primitives for Ada
+
+   overriding function Language
+     (Self : Ada_Instrumenter_Type) return Switches.Src_Supported_Language
+   is (Switches.Ada_Language);
 
    overriding procedure Instrument_Unit
      (Self      : Ada_Instrumenter_Type;
