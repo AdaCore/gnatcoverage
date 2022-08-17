@@ -1539,14 +1539,21 @@ package body Instrument.C is
    begin
       for I in 1 .. Num_Diag loop
          declare
-            Diag : constant Diagnostic_T :=
+            Diag     : constant Diagnostic_T :=
               Get_Diagnostic (Unit => TU, Index => I - 1);
-            Str  : constant String :=
+            Severity : constant Diagnostic_Severity_T :=
+              Get_Diagnostic_Severity (Diag);
+            Str      : constant String :=
               Format_Diagnostic
                 (Diagnostic => Diag,
                  Options    => Default_Diagnostic_Display_Options);
          begin
-            Outputs.Error ("Error when parsing the file " & Str);
+            case Severity is
+               when Diagnostic_Error | Diagnostic_Fatal =>
+                  Outputs.Error ("Error when parsing the file " & Str);
+               when others =>
+                  null;
+            end case;
          end;
       end loop;
    end Run_Diagnostics;
