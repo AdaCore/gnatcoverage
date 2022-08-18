@@ -578,9 +578,10 @@ package body Instrument.Common is
             Get_Or_Create_Project_Info (Context, Project);
       begin
          Mains.Append
-           ((CU_Name  => CU_Name,
-             File     => File,
-             Prj_Info => Prj_Info));
+           (Main_To_Instrument'
+              (CU_Name  => CU_Name,
+               File     => File,
+               Prj_Info => Prj_Info));
       end;
    end Register_Main_To_Instrument;
 

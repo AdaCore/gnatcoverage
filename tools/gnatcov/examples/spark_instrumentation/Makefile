@@ -15,9 +15,9 @@
 # remains the same.
 
 all:
-	gnatcov instrument -P spark_project.gpr --level=stmt+mcdc --dump-trigger=atexit
+	gnatcov instrument -P spark_project.gpr --level=stmt+mcdc --dump-trigger=main-end --dump-channel=base64-stdout
 	echo $(CURDIR)
-	gprbuild -P spark_project.gpr --implicit-with=gnatcov_rts_full --src-subdirs=gnatcov-instr -gnatec="$(CURDIR)/../support/instrument-spark.adc"
+	gprbuild -f -c -P spark_project.gpr --target=c --implicit-with=gnatcov_rts --src-subdirs=gnatcov-instr -gnatec="$(CURDIR)/../support/instrument-spark.adc" -cargs -gnatp
 	GNATCOV_TRACE_FILE="main.srctrace" ./obj/main
 	gnatcov coverage -P spark_project.gpr --level=stmt+mcdc --annotate=dhtml --output-dir=report main.srctrace
 

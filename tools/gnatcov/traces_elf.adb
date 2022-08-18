@@ -2072,8 +2072,9 @@ package body Traces_Elf is
                when DW_TAG_GNU_call_site | DW_TAG_call_site =>
                   if At_Low_Pc /= 0 and then At_Abstract_Origin /= 0 then
                      Call_Site_To_Target.Append
-                       ((Pc_Type (At_Low_Pc),
-                        Storage_Offset (At_Abstract_Origin)));
+                       (Call_Target'
+                          (Pc_Type (At_Low_Pc),
+                           Storage_Offset (At_Abstract_Origin)));
                   end if;
 
                when DW_TAG_inlined_subroutine =>
@@ -2081,13 +2082,14 @@ package body Traces_Elf is
                      --  TODO: handle address ranges
 
                      Exec.Inlined_Subprograms.Append
-                       ((First            => Pc_Type (At_Low_Pc),
-                         Last             => Pc_Type (At_High_Pc) - 1,
-                         Stmt_List_Offset => Current_Stmt_List,
-                         Section          => Current_Sec,
-                         File             => Natural (At_Call_File),
-                         Line             => Natural (At_Call_Line),
-                         Column           => Natural (At_Call_Column)));
+                       (Inlined_Subprogram_Raw'
+                          (First            => Pc_Type (At_Low_Pc),
+                           Last             => Pc_Type (At_High_Pc) - 1,
+                           Stmt_List_Offset => Current_Stmt_List,
+                           Section          => Current_Sec,
+                           File             => Natural (At_Call_File),
+                           Line             => Natural (At_Call_Line),
+                           Column           => Natural (At_Call_Column)));
                   end if;
 
                when others =>

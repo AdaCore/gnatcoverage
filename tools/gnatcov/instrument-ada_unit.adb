@@ -2893,7 +2893,8 @@ package body Instrument.Ada_Unit is
             UIC.Unit_Bits.Last_Statement_Bit :=
               UIC.Unit_Bits.Last_Statement_Bit + 1;
             UIC.Unit_Bits.Statement_Bits.Append
-              ((LL_SCO_Id, Executed => UIC.Unit_Bits.Last_Statement_Bit));
+              (Statement_Bit_Ids'
+                 (LL_SCO_Id, Executed => UIC.Unit_Bits.Last_Statement_Bit));
 
             --  If the current code pattern is actually unsupported, do not
             --  even try to insert the witness call.
@@ -3810,11 +3811,12 @@ package body Instrument.Ada_Unit is
                --  will no longer be available).
 
                UIC.Degenerate_Subprogram_Generics.Append
-                 ((Generic_Subp_Decl =>
-                     To_Unbounded_Wide_Wide_String
-                       (Unparse (NP_Nodes.Subp_Decl)),
-                   Generic_Subp_Body =>
-                     To_Unbounded_Wide_Wide_String (Unparse (Subp_Body))));
+                 (Generic_Subp'
+                    (Generic_Subp_Decl =>
+                         To_Unbounded_Wide_Wide_String
+                            (Unparse (NP_Nodes.Subp_Decl)),
+                     Generic_Subp_Body =>
+                       To_Unbounded_Wide_Wide_String (Unparse (Subp_Body))));
             end;
          end if;
       end Traverse_Degenerate_Subprogram;
@@ -4501,7 +4503,8 @@ package body Instrument.Ada_Unit is
                                                  .As_String_Literal.Text));
                               end if;
 
-                              UIC.Annotations.Append ((Sloc (N), Ann));
+                              UIC.Annotations.Append
+                                (Annotation_Couple'(Sloc (N), Ann));
 
                            exception
                               when Constraint_Error =>
@@ -5260,10 +5263,11 @@ package body Instrument.Ada_Unit is
 
             if MCDC_Coverage_Enabled then
                UIC.Source_Conditions.Append
-                 ((LL_SCO    => SCOs.SCO_Table.Last,
-                   Condition => N.As_Expr,
-                   State     => MCDC_State,
-                   First     => Condition_Count = 0));
+                 (Source_Condition'
+                    (LL_SCO    => SCOs.SCO_Table.Last,
+                     Condition => N.As_Expr,
+                     State     => MCDC_State,
+                     First     => Condition_Count = 0));
 
                Condition_Count := Condition_Count + 1;
             end if;
@@ -5401,10 +5405,11 @@ package body Instrument.Ada_Unit is
             end if;
 
             UIC.Source_Decisions.Append
-              ((LL_SCO    => Current_Decision,
-                Decision  => N.As_Expr,
-                State     => MCDC_State,
-                Is_Static => Is_Static_Expr (N.As_Expr)));
+              (Source_Decision'
+                 (LL_SCO    => Current_Decision,
+                  Decision  => N.As_Expr,
+                  State     => MCDC_State,
+                  Is_Static => Is_Static_Expr (N.As_Expr)));
          end if;
 
          --  For an aspect specification, which will be rewritten into a

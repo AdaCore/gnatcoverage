@@ -1,0 +1,3 @@
+**MCDC on "A and then Orelse(B, C)" controlling an index based FORSOME quantified-expression**
+
+LRMREF: 4.5.7

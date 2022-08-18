@@ -2717,13 +2717,14 @@ package body Decision_Map is
                                  --  Queue for later processing
 
                                  Pending_Cond_Branches.Append
-                                   ((Insn_First  => Insn.First,
-                                     Insn_Last   => Insn.Last,
-                                     Tag         => Tsloc.Tag,
-                                     C_SCO       => SCO,
-                                     Branch_Dest => Branch_Dest,
-                                     FT_Dest     => FT_Dest,
-                                     BB_From     => BB.From));
+                                   (Pending_Cond_Branch'
+                                      (Insn_First  => Insn.First,
+                                       Insn_Last   => Insn.Last,
+                                       Tag         => Tsloc.Tag,
+                                       C_SCO       => SCO,
+                                       Branch_Dest => Branch_Dest,
+                                       FT_Dest     => FT_Dest,
+                                       BB_From     => BB.From));
                               end if;
                            end if;
 

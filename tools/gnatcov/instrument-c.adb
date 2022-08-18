@@ -690,9 +690,10 @@ package body Instrument.C is
       Instr_Scheme : Instr_Scheme_Type) is
    begin
       UIC.Source_Statements.Append
-        ((LL_SCO       => SCOs.SCO_Table.Last,
-          Instr_Scheme => Instr_Scheme,
-          Statement    => Insertion_N));
+        (C_Source_Statement'
+           (LL_SCO       => SCOs.SCO_Table.Last,
+            Instr_Scheme => Instr_Scheme,
+            Statement    => Insertion_N));
    end Instrument_Statement;
 
    -------------------------
@@ -707,9 +708,10 @@ package body Instrument.C is
       State    : US.Unbounded_String) is
    begin
       UIC.Source_Decisions.Append
-        ((LL_SCO   => LL_SCO,
-          Decision => Decision,
-          State    => State));
+        (C_Source_Decision'
+           (LL_SCO   => LL_SCO,
+            Decision => Decision,
+            State    => State));
    end Instrument_Decision;
 
    --------------------------
@@ -725,10 +727,11 @@ package body Instrument.C is
       First     : Boolean) is
    begin
       UIC.Source_Conditions.Append
-        ((LL_SCO    => SCOs.SCO_Table.Last,
-          Condition => Condition,
-          State     => State,
-          First     => First));
+        (C_Source_Condition'
+           (LL_SCO    => SCOs.SCO_Table.Last,
+            Condition => Condition,
+            State     => State,
+            First     => First));
    end Instrument_Condition;
 
    -----------------------
@@ -772,7 +775,8 @@ package body Instrument.C is
       UIC.Unit_Bits.Last_Statement_Bit :=
         UIC.Unit_Bits.Last_Statement_Bit + 1;
       UIC.Unit_Bits.Statement_Bits.Append
-        ((SS.LL_SCO, Executed => UIC.Unit_Bits.Last_Statement_Bit));
+        (Statement_Bit_Ids'
+           (SS.LL_SCO, Executed => UIC.Unit_Bits.Last_Statement_Bit));
 
       case SS.Instr_Scheme is
          when Instr_Expr =>
