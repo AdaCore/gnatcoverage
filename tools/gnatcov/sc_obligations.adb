@@ -484,6 +484,17 @@ package body SC_Obligations is
    --  Return the innermost enclosing SCO with the given Kind (if SCO has the
    --  given Kind, returns SCO itself).
 
+   function Nested (Left, Right : SCO_Descriptor) return Boolean;
+   --  Return whether R is nested in L, exclusive at boundaries
+
+   function Invalid_Overlap
+     (SCOD          : SCO_Descriptor;
+      Enclosing_SCO : SCO_Id) return Boolean;
+   --  If Enclosing_SCO is No_SCO_Id, return False. Otherwise, assume that
+   --  SCOD and Enclosing_SCO share part of their sloc range. Issue a warning
+   --  and return True if this is an invalid case of overlap (if both SCOs
+   --  overlap without nesting).
+
    procedure Prealloc_Lines
      (Cur_Source_File : Source_File_Index;
       Last_Line       : in out Natural);
@@ -1884,6 +1895,46 @@ package body SC_Obligations is
          end loop;
       end return;
    end Enclosing;
+
+   ------------
+   -- Nested --
+   ------------
+
+   function Nested (Left, Right : SCO_Descriptor) return Boolean
+   is
+      L : Local_Source_Location_Range renames Left.Sloc_Range.L;
+      R : Local_Source_Location_Range renames Right.Sloc_Range.L;
+   begin
+      return L.First_Sloc < R.First_Sloc and then R.Last_Sloc < L.Last_Sloc;
+   end Nested;
+
+   ---------------------
+   -- Invalid_Overlap --
+   ---------------------
+
+   function Invalid_Overlap
+     (SCOD          : SCO_Descriptor;
+      Enclosing_SCO : SCO_Id) return Boolean is
+   begin
+      if Enclosing_SCO /= No_SCO_Id then
+         declare
+            Enclosing_SCOD : SCO_Descriptor renames
+              SCO_Vector.Reference (Enclosing_SCO);
+         begin
+            if not (Nested (SCOD, Enclosing_SCOD)
+                    or else Nested (Enclosing_SCOD, SCOD))
+            then
+               Report
+                 (First_Sloc (SCOD.Sloc_Range),
+                  "unexpected SCO overlapping with "
+                  & Image (Enclosing_SCO)
+                  & ", discarding overlapping SCO");
+               return True;
+            end if;
+         end;
+      end if;
+      return False;
+   end Invalid_Overlap;
 
    ------------------------
    -- Enclosing_Decision --
@@ -3482,24 +3533,31 @@ package body SC_Obligations is
                      Add_SCO_To_Lines (SCO, SCOD);
 
                   when Statement =>
-                     --  A SCO for a (simple) statement is never nested
 
-                     --  pragma Assert (Enclosing_SCO = No_SCO_Id);
-                     --  For now generate explicit diagnostic, ignore nested
-                     --  SCO and proceed???
+                     if (Enclosing_SCO /= No_SCO_Id
+                         and then Equivalent
+                           (SCOD, SCO_Vector (Enclosing_SCO)))
 
-                     if Enclosing_SCO /= No_SCO_Id then
-                        if not Equivalent (SCOD, SCO_Vector (Enclosing_SCO))
-                        then
-                           Report
-                             (First,
-                              "unexpected SCO nesting in "
-                              & Image (Enclosing_SCO)
-                              & ", discarding nested SCO");
-                        end if;
+                        --  The only form of SCO overlapping we allow is
+                        --  SCO nesting. A statement can contain nested
+                        --  statements, e.g. with C++ lambda expressions.
+                        --  We reject every other kind of overlapping.
+                        --
+                        --  TODO???: with C headers, we can have multiple
+                        --  times the same SCO if the header is included
+                        --  multiple times. This will result in a buggy
+                        --  behavior if the included code expansion varies (as
+                        --  we may accept nested SCO that come from the second
+                        --  inclusion, but that are nested in a SCO from the
+                        --  first inclusion, which makes no sense). Consider
+                        --  this as a marginal use case for now.
+
+                        or else Invalid_Overlap (SCOD, Enclosing_SCO)
+                        or else Invalid_Overlap
+                          (SCOD, Sloc_To_SCO (Last_Sloc (Sloc_Range)))
+                     then
                         return;
                      end if;
-
                      Add_SCO_To_Lines (SCO, SCOD);
 
                   when Condition | Operator =>
