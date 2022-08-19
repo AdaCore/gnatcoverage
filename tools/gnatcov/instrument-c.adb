@@ -936,6 +936,10 @@ package body Instrument.C is
          First_Image : constant String :=
            Integer'Image (if SC.First then 1 else 0);
       begin
+         --  Wrap the condition inside a ternary expression so that we always
+         --  pass an unsigned value to the witness function. This turns <cond>
+         --  into (<cond>) ? 1 : 0.
+
          Insert_Text_After_Start_Of
            (N    => SC.Condition,
             Text => "gnatcov_rts_witness_condition" & " ("
@@ -943,7 +947,7 @@ package body Instrument.C is
                     & First_Image & ", ",
             Rew  => UIC.Rewriter);
          Insert_Text_Before_End_Of (N    => SC.Condition,
-                                    Text => ")",
+                                    Text => " ? 1 : 0)",
                                     Rew  => UIC.Rewriter);
       end;
    end Insert_Condition_Witness;
@@ -1015,8 +1019,12 @@ package body Instrument.C is
                                      Text => ", ",
                                      Rew  => UIC.Rewriter);
 
+         --  Wrap the decision inside a ternary expression so that we always
+         --  pass an unsigned value to the witness function. This turns <dec>
+         --  into (<dec>) ? 1 : 0.
+
          Insert_Text_Before_End_Of (N    => N,
-                                    Text => ")",
+                                    Text => " ? 1 : 0)",
                                     Rew  => UIC.Rewriter);
       end;
    end Insert_Decision_Witness;
