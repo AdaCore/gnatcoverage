@@ -6662,8 +6662,7 @@ package body Instrument.Ada_Unit is
                -- Remap_SCOs --
                ----------------
 
-               procedure Remap_SCOs (Scope_Entity : Scope_Entity_Acc)
-               is
+               procedure Remap_SCOs (Scope_Entity : Scope_Entity_Acc) is
                begin
                   Scope_Entity.From := SCO_Map (Nat (Scope_Entity.From));
                   Scope_Entity.To := SCO_Map (Nat (Scope_Entity.To));
