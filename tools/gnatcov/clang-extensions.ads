@@ -146,4 +146,7 @@ package Clang.Extensions is
        External_Name => "clang_getExpansionEnd";
    --  See getExpansionRange in clang/Basic/SourceManager.h.
 
+   procedure Print_Location (TU : Translation_Unit_T; Loc : Source_Location_T)
+     with Import, Convention => C, External_Name => "clang_printLocation";
+
 end Clang.Extensions;

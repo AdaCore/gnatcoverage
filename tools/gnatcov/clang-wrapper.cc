@@ -439,3 +439,10 @@ clang_getCursorTU (CXCursor C)
 {
   return cxcursor::getCursorTU (C);
 }
+
+extern "C" void
+clang_printLocation (CXTranslationUnit TU, CXSourceLocation Loc)
+{
+  const SourceManager &SM = cxtu::getASTUnit(TU)->getSourceManager();
+  clang::cxloc::translateSourceLocation (Loc).dump(SM);
+}
