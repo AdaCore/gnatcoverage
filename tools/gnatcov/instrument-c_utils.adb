@@ -380,9 +380,9 @@ package body Instrument.C_Utils is
                       Visitor => Visit_Decl'Unrestricted_Access);
    end Add_Export;
 
-   ------------------------
-   -- Insert_Text_Before --
-   ------------------------
+   --------------------------------
+   -- Insert_Text_After_Start_Of --
+   --------------------------------
 
    procedure Insert_Text_After_Start_Of
      (N    : Cursor_T;
@@ -398,9 +398,9 @@ package body Instrument.C_Utils is
          Insert => Text);
    end Insert_Text_After_Start_Of;
 
-   -------------------------------
-   -- Insert_Text_Before_Before --
-   -------------------------------
+   ---------------------------------
+   -- Insert_Text_Before_Start_Of --
+   ---------------------------------
 
    procedure Insert_Text_Before_Start_Of
      (N    : Cursor_T;
@@ -416,11 +416,11 @@ package body Instrument.C_Utils is
          Insert => Text);
    end Insert_Text_Before_Start_Of;
 
-   -----------------------
-   -- Insert_Text_After --
-   -----------------------
+   -------------------------------
+   -- Insert_Text_Before_End_Of --
+   -------------------------------
 
-   procedure Insert_Text_After
+   procedure Insert_Text_Before_End_Of
      (N    : Cursor_T;
       Text : String;
       Rew  : Rewriter_T)
@@ -428,8 +428,11 @@ package body Instrument.C_Utils is
       Location : constant Source_Location_T :=
         Get_Range_End (Get_Cursor_Extent (N));
    begin
-      CX_Rewriter_Insert_Text_After (Rew, Location, Text);
-   end Insert_Text_After;
+      CX_Rewriter_Insert_Text_Before
+        (Rew    => Rew,
+         Loc    => Location,
+         Insert => Text);
+   end Insert_Text_Before_End_Of;
 
    -------------
    -- Curlify --

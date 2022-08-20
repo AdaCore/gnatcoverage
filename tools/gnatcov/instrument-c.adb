@@ -880,9 +880,9 @@ package body Instrument.C is
                     & US.To_String (SC.State) & ", " & Img (Offset) & ", "
                     & First_Image & ", ",
             Rew  => UIC.Rewriter);
-         Insert_Text_After (N    => SC.Condition,
-                            Text => ")",
-                            Rew  => UIC.Rewriter);
+         Insert_Text_Before_End_Of (N    => SC.Condition,
+                                    Text => ")",
+                                    Rew  => UIC.Rewriter);
       end;
    end Insert_Condition_Witness;
 
@@ -953,9 +953,9 @@ package body Instrument.C is
                                      Text => ", ",
                                      Rew  => UIC.Rewriter);
 
-         Insert_Text_After (N    => N,
-                            Text => ")",
-                            Rew  => UIC.Rewriter);
+         Insert_Text_Before_End_Of (N    => N,
+                                    Text => ")",
+                                    Rew  => UIC.Rewriter);
       end;
    end Insert_Decision_Witness;
 
