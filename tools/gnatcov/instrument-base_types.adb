@@ -17,12 +17,13 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Directories;
+with Interfaces;              use Interfaces;
 
 with GNATCOLL.VFS;
 
-with Outputs; use Outputs;
-with Strings; use Strings;
+with Hex_Images; use Hex_Images;
+with Outputs;    use Outputs;
+with Strings;    use Strings;
 
 package body Instrument.Base_Types is
 
@@ -160,17 +161,43 @@ package body Instrument.Base_Types is
             end;
 
          when File_Based_Language =>
+            declare
+               Result : Ada_Identifier;
+            begin
+               --  For a compilation unit in a file-based language, relying on
+               --  the filename only is not enough, as there can be multiple
+               --  sources with the same name belonging to different projects
+               --  in a project tree. To avoid name clashes, prepend the name
+               --  of the owning project to the computed slug.
 
-            --  For a compilation unit in a file-based language, relying on the
-            --  filename only is not enough, as there can be multiple sources
-            --  with the same name belonging to different projects in a project
-            --  tree. We will thus prepend the name of the owning project to
-            --  the computed slug.
+               Append
+                 (Result,
+                  Qualified_Name_Slug
+                    (To_Qualified_Name (+Instrumented_Unit.Project_Name)));
 
-            return +Instrumented_Unit.Project_Name & "_"
-              & Ada.Directories.Base_Name (+Instrumented_Unit.Filename)
-              & "_"
-              & Ada.Directories.Extension (+Instrumented_Unit.Filename);
+               --  Add an unambiguous separator between the project name and
+               --  the rest of the slug.
+
+               Append (Result, "_z_z_");
+
+               --  File names can contain characters that cannot appear in
+               --  identifiers. Furthermore, unlike for the identifier to
+               --  return, file names may be case sensitive. In order to
+               --  produce valid identifiers, encode everything that isn't a
+               --  lower case letter or a digit.
+
+               for C of "+" (Instrumented_Unit.Filename) loop
+                  if C in 'a' .. 'z' | '0' .. '9' then
+                     Append (Result, C);
+                  else
+                     Append
+                       (Result,
+                        "_" & Hex_Image (Unsigned_8'(Character'Pos (C))));
+                  end if;
+               end loop;
+
+               return To_String (Result);
+            end;
       end case;
    end Instrumented_Unit_Slug;
 
