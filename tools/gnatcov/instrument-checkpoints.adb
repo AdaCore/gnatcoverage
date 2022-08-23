@@ -29,8 +29,7 @@ package body Instrument.Checkpoints is
    -- Checkpoint_Save --
    ---------------------
 
-   procedure Checkpoint_Save
-     (CSS : access Checkpoint_Save_State) is
+   procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
    begin
       Instrumented_Unit_To_CU_Maps.Map'Write
         (CSS.Stream, Instrumented_Unit_CUs);
@@ -52,10 +51,8 @@ package body Instrument.Checkpoints is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load
-     (CLS : access Checkpoint_Load_State)
-   is
-      Relocs    : Checkpoint_Relocations renames CLS.Relocations;
+   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
    begin
       declare
          use Instrumented_Unit_To_CU_Maps;
