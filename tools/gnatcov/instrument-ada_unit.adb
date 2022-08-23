@@ -4885,13 +4885,17 @@ package body Instrument.Ada_Unit is
       N       : Package_Body;
       Preelab : Boolean)
    is
+      Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
+        UIC.MCDC_State_Inserter;
+      Local_Inserter            : aliased Default_MCDC_State_Inserter :=
+        (Local_Decls => Handle (N.F_Decls.F_Decls));
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
-
       Enter_Scope
         (UIC        => UIC,
          Scope_Name => N.As_Package_Body.F_Package_Name.Text,
          Sloc       => Sloc (N));
+      UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       --  The first statement in the handled sequence of statements is
       --  dominated by the elaboration of the last declaration.
@@ -4901,9 +4905,10 @@ package body Instrument.Ada_Unit is
          N => N.F_Stmts,
          D => Traverse_Declarations_Or_Statements
                 (IC, UIC, N.F_Decls.F_Decls, Preelab));
-      UIC.Ghost_Code := False;
 
+      UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
+      UIC.Ghost_Code := False;
    end Traverse_Package_Body;
 
    ----------------------------------
@@ -4918,12 +4923,18 @@ package body Instrument.Ada_Unit is
       D       : Dominant_Info := No_Dominant)
    is
       Private_Part_Dominant : Dominant_Info;
+
+      Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
+        UIC.MCDC_State_Inserter;
+      Local_Inserter            : aliased Default_MCDC_State_Inserter :=
+        (Local_Decls => Handle (N.F_Public_Part.F_Decls));
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
         (UIC        => UIC,
          Scope_Name => N.F_Package_Name.Text,
          Sloc       => Sloc (N));
+      UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Private_Part_Dominant :=
         Traverse_Declarations_Or_Statements
@@ -4940,6 +4951,7 @@ package body Instrument.Ada_Unit is
             Preelab => Preelab,
             D       => Private_Part_Dominant);
       end if;
+      UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
       UIC.Ghost_Code := False;
    end Traverse_Package_Declaration;
@@ -5164,7 +5176,9 @@ package body Instrument.Ada_Unit is
       MCDC_State : Unbounded_String;
       --  Name of MC/DC state local variable for current decision (MC/DC only)
 
-      procedure Output_Decision_Operand (Operand : Expr);
+      procedure Output_Decision_Operand
+        (Operand         : Expr;
+         Decision_Static : Boolean);
       --  The node Operand is the top level logical operator of a decision, or
       --  it is one of the operands of a logical operator belonging to a single
       --  complex decision. This (recursive) routine outputs the sequence of
@@ -5173,6 +5187,9 @@ package body Instrument.Ada_Unit is
       --  done in Find_Nested_Decisions, because we can't get decisions mixed
       --  up in the global table. Call has no effect if Operand is Empty.
       --  Increments Condition_Count (recursively) for each condition.
+      --
+      --  Decision_Static indicates whether the expression of the whole
+      --  decision is static, and should thus not be instrumented.
 
       procedure Output_Element (N : Ada_Node);
       --  Node N is an operand of a logical operator that is not itself a
@@ -5199,7 +5216,9 @@ package body Instrument.Ada_Unit is
       -- Output_Decision_Operand --
       -----------------------------
 
-      procedure Output_Decision_Operand (Operand : Expr) is
+      procedure Output_Decision_Operand
+        (Operand : Expr; Decision_Static : Boolean)
+      is
          C1 : Character;
          C2 : Character;
          --  C1 holds a character that identifies the operation while C2
@@ -5252,9 +5271,9 @@ package body Instrument.Ada_Unit is
             Hash_Entries.Append ((Sloc (N), SCOs.SCO_Table.Last));
 
             if not L.Is_Null then
-               Output_Decision_Operand (L);
+               Output_Decision_Operand (L, Decision_Static);
             end if;
-            Output_Decision_Operand (R);
+            Output_Decision_Operand (R, Decision_Static);
 
          --  Not a logical operator -> condition
 
@@ -5264,10 +5283,11 @@ package body Instrument.Ada_Unit is
             if MCDC_Coverage_Enabled then
                UIC.Source_Conditions.Append
                  (Source_Condition'
-                    (LL_SCO    => SCOs.SCO_Table.Last,
-                     Condition => N.As_Expr,
-                     State     => MCDC_State,
-                     First     => Condition_Count = 0));
+                    (LL_SCO          => SCOs.SCO_Table.Last,
+                     Condition       => N.As_Expr,
+                     State           => MCDC_State,
+                     First           => Condition_Count = 0,
+                     Decision_Static => Decision_Static));
 
                Condition_Count := Condition_Count + 1;
             end if;
@@ -5490,7 +5510,8 @@ package body Instrument.Ada_Unit is
 
                --  Output the decision (recursively traversing operands)
 
-               Output_Decision_Operand (EN);
+               Output_Decision_Operand
+                 (EN, Is_Static_Expr (N.As_Expr));
 
                --  If the decision was in an expression context (T = 'X')
                --  and contained only NOT operators, then we don't output
@@ -6590,10 +6611,15 @@ package body Instrument.Ada_Unit is
                --  We do not include a witness call for conditions which appear
                --  in a decision with a path count exceeding the limit to avoid
                --  generating overly large traces / run out of memory.
+               --
+               --  We also do not include witness calls for conditions of
+               --  static decision, as this would make the instrumented
+               --  expression non-static.
 
                for SC of UIC.Source_Conditions loop
                   if Path_Count
                        (Enclosing_Decision (SCO_Map (SC.LL_SCO))) /= 0
+                    and then not SC.Decision_Static
                   then
                      Insert_Condition_Witness
                        (UIC, SC, Offset_For_True (SCO_Map (SC.LL_SCO)));
