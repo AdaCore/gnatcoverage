@@ -124,6 +124,10 @@ package Project is
            Post => LIs_Enumerated;
    --  Call LI_Cb once for every library information (ALI/GLI) file from a
    --  project mentioned in a previous Add_Project call.
+   --
+   --  Note that this skips LI files that are not for Ada/C sources. This is
+   --  expected since gnatcov processes LI files only when dealing with binary
+   --  traces, which support only Ada and C (not C++, for instance).
 
    function LIs_Enumerated return Boolean with Pre => Is_Project_Loaded;
    --  Return whether Enumerate_LIs was called
