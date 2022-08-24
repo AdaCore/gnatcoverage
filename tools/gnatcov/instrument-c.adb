@@ -2077,6 +2077,9 @@ package body Instrument.C is
       Cmd : Command_Type;
       --  The command to preprocess the file
 
+      Success : Boolean;
+      --  Whether this command is successful
+
       PID                : constant Unsigned_64 :=
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
       PP_Output_Filename : constant String :=
@@ -2110,8 +2113,15 @@ package body Instrument.C is
       Append_Arg (Cmd, "-v");
       Append_Arg (Cmd, "-o");
       Append_Arg (Cmd, +PP_Filename);
-      Run_Command (Cmd, "Preprocessing",
-                   Output_File => PP_Output_Filename);
+
+      --  Run the preprocessing command, keep track of whether it was
+      --  successful for later
+
+      Success := Run_Command
+        (Command             => Cmd,
+         Origin_Command_Name => "Preprocessing",
+         Output_File         => PP_Output_Filename,
+         Ignore_Error        => True);
 
       --  Retrieve the include search paths. They are delimited by:
       --  #include "..." search starts here:
@@ -2149,6 +2159,27 @@ package body Instrument.C is
                end if;
             end;
          end loop;
+
+         --  If the command failed, forward the error message so that users can
+         --  investigate what is wrong.
+
+         if not Success then
+
+            --  If the begin pattern for includes was found, the error message
+            --  is supposed to appear right after it. If we could not find it,
+            --  the error message can be anywhere, so just forward the whole
+            --  output.
+
+            if not Begin_Pattern_Matched then
+               Reset (PP_Output_File);
+            end if;
+
+            while not End_Of_File (PP_Output_File) loop
+               Put_Line (Get_Line (PP_Output_File));
+            end loop;
+            Delete (PP_Output_File);
+            Fatal_Error ("Preprocessing failed: aborting");
+         end if;
       end;
 
       Delete (PP_Output_File);
