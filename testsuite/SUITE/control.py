@@ -70,7 +70,11 @@ class LangInfo:
         self.sidfile_for = sidfile_for
 
 
-# A dictionary mapping a LangInfo instance to each known language
+# A dictionary mapping a LangInfo instance to each known language.
+# The set of recognized extensions is limited to those that gprbuild
+# recognizes by default, on purpose to encourage consistency in the
+# choice of filenames throughout the tests.
+
 LANGINFO = {
     "Ada": LangInfo(
         name="Ada", src_ext=[".ads", ".adb"], comment='--',
@@ -83,9 +87,10 @@ LANGINFO = {
         sidfile_for=lambda source: source + '.sid'),
 
     "C++": LangInfo(
-        name="C++", src_ext=[".hpp", ".cpp", ".cc", ".hh", ".hxx"],
+        name="C++", src_ext=[".hh", ".cpp"],
         comment='//',
-        scofile_for=None),
+        scofile_for=None,
+        sidfile_for=lambda source: source + '.sid'),
 
     "Asm": LangInfo(
         name="Asm", src_ext=[".s"], comment='#',
