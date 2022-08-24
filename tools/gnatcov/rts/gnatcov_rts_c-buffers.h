@@ -20,7 +20,6 @@
 #ifndef GNATCOV_RTS_C_BUFFERS_H
 #define GNATCOV_RTS_C_BUFFERS_H
 
-#include <stddef.h>
 #include <stdint.h>
 
 #include "gnatcov_rts_c_strings.h"

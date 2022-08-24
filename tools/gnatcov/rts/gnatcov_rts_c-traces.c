@@ -17,10 +17,6 @@
  *                                                                          *
  ****************************************************************************/
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "gnatcov_rts_c-traces.h"
 
 unsigned

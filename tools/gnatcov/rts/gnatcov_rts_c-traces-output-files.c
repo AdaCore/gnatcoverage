@@ -27,6 +27,7 @@
 
 #include "gnatcov_rts_c-os_interface.h"
 #include "gnatcov_rts_c-traces-output-files.h"
+#include "gnatcov_rts_c-traces-output.h"
 
 static int
 write_bytes (void *output, void *bytes, unsigned count)
