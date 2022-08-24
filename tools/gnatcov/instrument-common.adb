@@ -36,7 +36,6 @@ with Hex_Images;
 with Outputs; use Outputs;
 with Paths;   use Paths;
 with Project;
-with Switches;
 with SCOs;
 
 package body Instrument.Common is
@@ -618,7 +617,7 @@ package body Instrument.Common is
                   Prj_Info => Get_Or_Create_Project_Info (Context, Project),
                   Is_Main  => GNATCOLL.Projects.Is_Main_File
                                 (Project, Source_File.File.Base_Name),
-                  Language => Str_To_Language (Source_File.Language));
+                  Language => To_Language (Source_File.Language));
          begin
             Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
          end;

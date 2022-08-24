@@ -80,8 +80,6 @@ package Instrument is
 
    type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012);
 
-   type Any_Language is (Ada_Language, C_Language);
-
    procedure Instrument_Units_Of_Interest
      (Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;

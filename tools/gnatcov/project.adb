@@ -33,10 +33,9 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
-with Inputs;   use Inputs;
-with Outputs;  use Outputs;
-with Strings;  use Strings;
-with Switches; use Switches;
+with Inputs;  use Inputs;
+with Outputs; use Outputs;
+with Strings; use Strings;
 
 package body Project is
 
@@ -213,15 +212,13 @@ package body Project is
 
    function Enumerate_Mains
      (Root_Project : Project_Type;
-      Language     : String := "") return Main_Source_File_Array;
-   --  Helper for Get_Single_Main_Executable. Return the list of all main
-   --  source files recursively found in the Root_Project.
+      Language     : Any_Language) return Main_Source_File_Array;
+   --  Return the list of all main source files recursively found in the
+   --  Root_Project for the given Language, or for all languages if Language is
+   --  All_Languages.
    --
    --  Note that this also returns source files for mains that are not units of
    --  interest.
-   --
-   --  If Language is not an empty string, only return source files whose
-   --  language matches it.
 
    ---------
    -- "+" --
@@ -571,7 +568,7 @@ package body Project is
      (Callback         : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
-      Language         : String;
+      Language         : Any_Language;
       Include_Subunits : Boolean := False)
    is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
@@ -584,10 +581,13 @@ package body Project is
 
       procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
       begin
-         if To_Lower (Info.Language) = To_Lower (Language)
+         if (Language = All_Languages
+               or else
+             Language = To_Language (Info.Language))
            and then
              (Include_Subunits
-              or else Unit_Map.Contains (To_Lower (Unit_Name)))
+                or else
+              Unit_Map.Contains (To_Lower (Unit_Name)))
          then
             Callback (Info.Project, Info);
          end if;
@@ -1321,7 +1321,8 @@ package body Project is
 
    function Get_Single_Main_Executable return String is
       Mains : constant Main_Source_File_Array :=
-         Enumerate_Mains (GNATCOLL.Projects.Root_Project (Prj_Tree.all));
+        Enumerate_Mains
+          (GNATCOLL.Projects.Root_Project (Prj_Tree.all), All_Languages);
    begin
       if Mains'Length /= 1 then
          return "";
@@ -1346,9 +1347,13 @@ package body Project is
 
    function Enumerate_Mains
      (Root_Project : Project_Type;
-      Language     : String := "") return Main_Source_File_Array
+      Language     : Any_Language) return Main_Source_File_Array
    is
-      Lower_Language : constant String := To_Lower (Language);
+      Lower_Language : constant String :=
+        (case Language is
+         when All_Languages => "",
+         when Ada_Language  => "ada",
+         when C_Language    => "c");
 
       package Main_Source_File_Vectors is new Ada.Containers.Vectors
         (Positive, Main_Source_File);
@@ -1370,7 +1375,7 @@ package body Project is
                Name : constant Filesystem_String := Base_Name (F);
             begin
                if Project.Is_Main_File (Name)
-                  and then (Language = ""
+                  and then (Language = All_Languages
                             or else To_Lower (Prj_Tree.Info (F).Language)
                                     = Lower_Language)
                then
@@ -1395,23 +1400,12 @@ package body Project is
       end return;
    end Enumerate_Mains;
 
-   -------------------------
-   -- Enumerate_Ada_Mains --
-   -------------------------
-
-   function Enumerate_Ada_Mains return Main_Source_File_Array is
+   function Enumerate_Mains
+     (Language : Any_Language) return Main_Source_File_Array
+   is
    begin
-      return Enumerate_Mains (Prj_Tree.Root_Project, "ada");
-   end Enumerate_Ada_Mains;
-
-   -------------------------
-   -- Enumerate_C_Mains --
-   -------------------------
-
-   function Enumerate_C_Mains return Main_Source_File_Array is
-   begin
-      return Enumerate_Mains (Prj_Tree.Root_Project, "c");
-   end Enumerate_C_Mains;
+      return Enumerate_Mains (Prj_Tree.Root_Project, Language);
+   end Enumerate_Mains;
 
    ----------------
    -- Output_Dir --

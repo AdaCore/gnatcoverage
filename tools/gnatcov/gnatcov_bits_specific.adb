@@ -16,12 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers;        use Ada.Containers;
-with Ada.Directories;       use Ada.Directories;
+with Ada.Containers;  use Ada.Containers;
+with Ada.Directories; use Ada.Directories;
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
-with Ada.Text_IO;           use Ada.Text_IO;
+with Ada.Text_IO;     use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 with GNAT.Regexp;
@@ -475,25 +475,26 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
 
-      --  Compute the languages for which we want coverage analysis
+      --  Compute the languages for which we want coverage analysis, or enable
+      --  just the default ones.
 
-      if not Args.String_List_Args (Opt_Restricted_To_Languages).Is_Empty
+      if Args.String_List_Args (Opt_Restricted_To_Languages).Is_Empty
       then
-         for Arg of Args.String_List_Args (Opt_Restricted_To_Languages) loop
-            Enable_Languages.Include (Arg);
-         end loop;
-      else
          --  C instrumentation is a beta feature and not yet fully functional.
          --  It will thus not be part of the languages enabled by default.
 
-         Enable_Languages.Insert (+"ada");
+         Src_Enabled_Languages (Ada_Language) := True;
 
          --  It must be enabled for "gnatcov setup", as the core runtime is
          --  implemented in C.
 
          if Args.Command = Cmd_Setup then
-            Enable_Languages.Insert (+"c");
+            Src_Enabled_Languages (C_Language) := True;
          end if;
+      else
+         for Arg of Args.String_List_Args (Opt_Restricted_To_Languages) loop
+            Src_Enabled_Languages (To_Language (+Arg)) := True;
+         end loop;
       end if;
 
       if Args.String_Args (Opt_Coverage_Level).Present then

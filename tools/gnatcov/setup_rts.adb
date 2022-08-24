@@ -212,7 +212,7 @@ package body Setup_RTS is
          Descs (1) := GPR2.Project.Configuration.Create
            (Language => GPR2.C_Language,
             Runtime  => GPR2.Optional_Name_Type (RTS));
-         if Enable_Languages.Contains (To_Unbounded_String ("Ada")) then
+         if Src_Enabled_Languages (Ada_Language) then
             Descs (2) := GPR2.Project.Configuration.Create
               (Language => GPR2.Ada_Language,
                Runtime  => GPR2.Optional_Name_Type (RTS));
@@ -392,8 +392,7 @@ package body Setup_RTS is
       Auto_RTS_Profile : out Any_RTS_Profile;
       Lib_Support      : out Library_Support)
    is
-      Has_Ada       : constant Boolean :=
-        Enable_Languages.Contains (To_Unbounded_String ("Ada"));
+      Has_Ada       : constant Boolean := Src_Enabled_Languages (Ada_Language);
       Main_Language : constant GPR2.Language_Id :=
         (if Has_Ada
          then GPR2.Ada_Language
@@ -624,7 +623,7 @@ package body Setup_RTS is
       --  The core runtime is implemented in C, so C must be in the set of
       --  enabled languages.
 
-      if not Enable_Languages.Contains (To_Unbounded_String ("C")) then
+      if not Src_Enabled_Languages (C_Language) then
          Fatal_Error ("The C language must be enabled");
       end if;
 
@@ -737,7 +736,7 @@ package body Setup_RTS is
 
             declare
                With_Ada : constant Boolean :=
-                 Enable_Languages.Contains (To_Unbounded_String ("Ada"));
+                 Src_Enabled_Languages (Ada_Language);
             begin
                Common_Args.Append
                  (+("-XGNATCOV_RTS_WITH_ADA=" & To_Lower (With_Ada'Image)));

@@ -22,50 +22,21 @@ with Interfaces;              use Interfaces;
 with GNATCOLL.VFS;
 
 with Hex_Images; use Hex_Images;
-with Outputs;    use Outputs;
 with Strings;    use Strings;
 
 package body Instrument.Base_Types is
 
-   ---------------------
-   -- Str_To_Language --
-   ---------------------
+   -------------------
+   -- Language_Kind --
+   -------------------
 
-   function Str_To_Language (Language : String) return Any_Language is
-   begin
-      if To_Lower (Language) = "ada" then
-         return Ada_Language;
-      elsif To_Lower (Language) = "c" then
-         return C_Language;
-      end if;
-      Outputs.Fatal_Error ("Language " & Language & " is not supported");
-   end Str_To_Language;
-
-   ---------------------
-   -- Language_To_Str --
-   ---------------------
-
-   function Language_To_Str (Language : Any_Language) return String is
-   begin
-      case Language is
-         when Ada_Language => return "ada";
-         when C_Language   => return "c";
-      end case;
-   end Language_To_Str;
-
-   --------------------------
-   -- Str_To_Language_Kind --
-   --------------------------
-
-   function Str_To_Language_Kind
-     (Language : String) return Any_Language_Kind
+   function Language_Kind (Language : Some_Language) return Any_Language_Kind
    is
    begin
-      case Str_To_Language (Language) is
-         when Ada_Language => return Unit_Based_Language;
-         when C_Language   => return File_Based_Language;
-      end case;
-   end Str_To_Language_Kind;
+      return (case Language is
+              when Ada_Language => Unit_Based_Language,
+              when C_Language   => File_Based_Language);
+   end Language_Kind;
 
    ------------
    -- To_Ada --
@@ -302,12 +273,8 @@ package body Instrument.Base_Types is
      (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name
    is
       use GNATCOLL.VFS;
-
-      Language : constant Any_Language_Kind :=
-        Str_To_Language_Kind (Source_File.Language);
-
    begin
-      case Language is
+      case Language_Kind (To_Language (Source_File.Language)) is
          when Unit_Based_Language =>
             return CU_Name_For_Unit
               (Unit => To_Qualified_Name (Source_File.Unit_Name),
@@ -336,7 +303,7 @@ package body Instrument.Base_Types is
             return +Project.File_From_Unit
               (Unit_Name       => To_Ada (CU_Name.Unit),
                Part            => CU_Name.Part,
-               Language        => Language_To_Str (Language),
+               Language        => Image (Language),
                File_Must_Exist => False);
          when File_Based_Language =>
             return +CU_Name.Filename;

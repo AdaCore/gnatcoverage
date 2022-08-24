@@ -4041,8 +4041,7 @@ package body Instrument.Ada_Unit is
                begin
                   Set_Statement_Entry;
 
-                  if Switches.Analyze_Entry_Barriers
-                    and then not Cond.Is_Null
+                  if Switches.Analyze_Entry_Barriers and then not Cond.Is_Null
                   then
                      Process_Decisions_Defer (Cond, 'G');
 
@@ -6763,7 +6762,7 @@ package body Instrument.Ada_Unit is
    begin
       Create_File (Info,
                    File,
-                   To_Filename (Info.Project, CU_Name, Ada_Language));
+                   To_Filename (Info.Project, CU_Name, Switches.Ada_Language));
       Put_Warnings_And_Style_Checks_Pragmas (File);
       File.Put_Line ("with Interfaces.C; use Interfaces.C;");
 
@@ -6914,7 +6913,7 @@ package body Instrument.Ada_Unit is
    begin
       Create_File (Info,
                    File,
-                   To_Filename (Info.Project, CU_Name, Ada_Language));
+                   To_Filename (Info.Project, CU_Name, Switches.Ada_Language));
 
       Put_Warnings_And_Style_Checks_Pragmas (File);
       Put_Language_Version_Pragma;
@@ -6958,9 +6957,10 @@ package body Instrument.Ada_Unit is
       if not UIC.Degenerate_Subprogram_Generics.Is_Empty then
          CU_Name.Part := GNATCOLL.Projects.Unit_Body;
 
-         Create_File (Info,
-                      File,
-                      To_Filename (Info.Project, CU_Name, Ada_Language));
+         Create_File
+           (Info,
+            File,
+            To_Filename (Info.Project, CU_Name, Switches.Ada_Language));
 
          Put_Warnings_And_Style_Checks_Pragmas (File);
          Put_Language_Version_Pragma;
@@ -7052,7 +7052,7 @@ package body Instrument.Ada_Unit is
               To_Filename
                 (Info.Project,
                  CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Spec),
-                 Ada_Language));
+                 Switches.Ada_Language));
 
          Put_Warnings_And_Style_Checks_Pragmas (File);
          File.Put_Line ("package " & Helper_Unit_Name & " is");
@@ -7083,7 +7083,7 @@ package body Instrument.Ada_Unit is
               To_Filename
                 (Info.Project,
                  CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Body),
-                 Ada_Language));
+                 Switches.Ada_Language));
 
          Put_Warnings_And_Style_Checks_Pragmas (File);
 
@@ -7133,7 +7133,7 @@ package body Instrument.Ada_Unit is
                     (File => +To_Filename
                          (Project => Info.Project,
                           CU_Name => Main,
-                          Language => Ada_Language),
+                          Language => Switches.Ada_Language),
                      Include_Suffix => True)) & """"
                   else """" & To_String (IC.Dump_Config.Filename_Prefix)
                        & """");
@@ -7267,7 +7267,7 @@ package body Instrument.Ada_Unit is
             To_Filename
               (Root_Project_Info.Project,
                CU_Name,
-               Ada_Language));
+               Switches.Ada_Language));
          Put_Warnings_And_Style_Checks_Pragmas (File);
 
          for Instr_Unit of Instr_Units loop

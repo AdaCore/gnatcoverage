@@ -25,7 +25,6 @@ with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
 with Inputs;
 with Instrument;           use Instrument;
-with Strings;              use Strings;
 
 package Switches is
 
@@ -127,8 +126,28 @@ package Switches is
    Units_Inputs : Inputs.Inputs_Type;
    --  List of names for requested units of interest
 
-   Enable_Languages : String_Sets.Set;
-   --  List of languages for which source files should be instrumented
+   type Any_Language is (All_Languages, Ada_Language, C_Language);
+   --  A language that is supported for source coverage All_Languages is a
+   --  special value to designate all languages at once.
+
+   subtype Some_Language is Any_Language range Ada_Language .. C_Language;
+
+   function To_Language (Name : String) return Some_Language;
+   --  Convert a human-readable language name to the corresponding enumeration
+   --  value. Abort with a fatal error if Name is invalid.
+
+   function Image (Language : Some_Language) return String;
+   --  Return a human-readable name for the given language
+
+   subtype Bin_Supported_Language is Some_Language;
+   subtype Src_Supported_Language is Some_Language;
+   --  A language that is supported for source coverage in binary (respectively
+   --  source) trace mode.
+
+   Src_Enabled_Languages : array (Src_Supported_Language) of Boolean :=
+     (others => False);
+   --  List of languages for which source files should be instrumented.
+   --  Initialized during command line arguments parsing.
 
    ------------------------
    -- Target information --
