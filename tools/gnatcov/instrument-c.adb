@@ -2131,28 +2131,22 @@ package body Instrument.C is
       begin
          while not End_Of_File (PP_Output_File) loop
             declare
-               use Ada.Strings;
-               use String_Vectors;
                Line : constant String := Get_Line (PP_Output_File);
             begin
                Match (RE_Begin_Pattern, Line, Matches);
                if Matches (0) /= No_Match then
                   Begin_Pattern_Matched := True;
-                  goto End_Loop;
-               end if;
-               if not Begin_Pattern_Matched then
-                  goto End_Loop;
-               end if;
 
-               Match (RE_End_Pattern, Line, Matches);
-               if Matches (0) /= No_Match then
-                  exit;
+               elsif Begin_Pattern_Matched then
+
+                  --  We have already found the "begin" pattern: unless we find
+                  --  the "end" pattern (in which case our lookup loop is
+                  --  over), the current line contains a search path.
+
+                  Match (RE_End_Pattern, Line, Matches);
+                  exit when Matches (0) /= No_Match;
+                  Search_Paths.Append (Trim (+Line, Ada.Strings.Left));
                end if;
-
-               --  We are parsing a search path here
-
-               Append (Search_Paths, Trim (+Line, Left));
-               <<End_Loop>>
             end;
          end loop;
       end;
