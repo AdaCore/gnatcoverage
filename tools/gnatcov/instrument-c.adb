@@ -2202,12 +2202,31 @@ package body Instrument.C is
         CX_Rewriter_Overwrite_Changed_Files (Rew => Self.Rewriter);
    end Apply;
 
+   ----------------
+   -- Initialize --
+   ----------------
+
+   overriding procedure Initialize (Self : in out C_Source_Rewriter) is
+   begin
+      --  Initialize CIdx to a dummy value so that we can determine in Finalize
+      --  whether the Clang data structures were created.
+
+      Self.CIdx := Index_T (System.Null_Address);
+   end Initialize;
+
    --------------
    -- Finalize --
    --------------
 
    overriding procedure Finalize (Self : in out C_Source_Rewriter) is
    begin
+      --  If we have not created the Clang data structures yet, do not try to
+      --  free them.
+
+      if System.Address (Self.CIdx) = System.Null_Address then
+         return;
+      end if;
+
       Dispose_Translation_Unit (Self.TU);
       Dispose_Index (Self.CIdx);
       if Switches.Pretty_Print then
