@@ -101,7 +101,7 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         args.append('--pretty-print')
 
     out = out or "instrument.log"
-    xcov(args, out=out, err=err, register_failure=register_failure)
+    result = xcov(args, out=out, err=err, register_failure=register_failure)
 
     if warnings_as_errors:
         output = contents_of(out)
@@ -110,6 +110,8 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
             f"Warnings detected in the output of 'gnatcov instrument':"
             f"\n{indent(output)}"
         )
+
+    return result
 
 
 def xcov_convert_base64(base64_file, output_trace_file, out=None, err=None,

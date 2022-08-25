@@ -2077,6 +2077,9 @@ package body Instrument.C is
       Cmd : Command_Type;
       --  The command to preprocess the file
 
+      Success : Boolean;
+      --  Whether this command is successful
+
       PID                : constant Unsigned_64 :=
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
       PP_Output_Filename : constant String :=
@@ -2110,8 +2113,15 @@ package body Instrument.C is
       Append_Arg (Cmd, "-v");
       Append_Arg (Cmd, "-o");
       Append_Arg (Cmd, +PP_Filename);
-      Run_Command (Cmd, "Preprocessing",
-                   Output_File => PP_Output_Filename);
+
+      --  Run the preprocessing command, keep track of whether it was
+      --  successful for later
+
+      Success := Run_Command
+        (Command             => Cmd,
+         Origin_Command_Name => "Preprocessing",
+         Output_File         => PP_Output_Filename,
+         Ignore_Error        => True);
 
       --  Retrieve the include search paths. They are delimited by:
       --  #include "..." search starts here:
@@ -2149,6 +2159,27 @@ package body Instrument.C is
                end if;
             end;
          end loop;
+
+         --  If the command failed, forward the error message so that users can
+         --  investigate what is wrong.
+
+         if not Success then
+
+            --  If the begin pattern for includes was found, the error message
+            --  is supposed to appear right after it. If we could not find it,
+            --  the error message can be anywhere, so just forward the whole
+            --  output.
+
+            if not Begin_Pattern_Matched then
+               Reset (PP_Output_File);
+            end if;
+
+            while not End_Of_File (PP_Output_File) loop
+               Put_Line (Get_Line (PP_Output_File));
+            end loop;
+            Delete (PP_Output_File);
+            Fatal_Error ("Preprocessing failed: aborting");
+         end if;
       end;
 
       Delete (PP_Output_File);
@@ -2202,12 +2233,31 @@ package body Instrument.C is
         CX_Rewriter_Overwrite_Changed_Files (Rew => Self.Rewriter);
    end Apply;
 
+   ----------------
+   -- Initialize --
+   ----------------
+
+   overriding procedure Initialize (Self : in out C_Source_Rewriter) is
+   begin
+      --  Initialize CIdx to a dummy value so that we can determine in Finalize
+      --  whether the Clang data structures were created.
+
+      Self.CIdx := Index_T (System.Null_Address);
+   end Initialize;
+
    --------------
    -- Finalize --
    --------------
 
    overriding procedure Finalize (Self : in out C_Source_Rewriter) is
    begin
+      --  If we have not created the Clang data structures yet, do not try to
+      --  free them.
+
+      if System.Address (Self.CIdx) = System.Null_Address then
+         return;
+      end if;
+
       Dispose_Translation_Unit (Self.TU);
       Dispose_Index (Self.CIdx);
       if Switches.Pretty_Print then

@@ -52,6 +52,16 @@ class TestCase:
         for p in to_list(patterns):
             self.all_cspecs.extend(ls(p))
 
+    def __with_extensions(self, pattern):
+        """Given a filename PATTERN string without a language extension,
+        return a string listing PATTERN with all the possible language
+        extensions we expect for drivers."""
+
+        # We expect .adb for Ada bodies, .c for C sources and .cpp
+        # for C++ sources.
+        return ' '.join(
+            "%s%s" % (pattern, ext) for ext in [".adb", ".c", ".cpp"])
+
     def __expand_shared_controllers(self, drivers, cspecs):
         """Search and expand possible shared drivers and/or consolidation
         specs uptree for our local functional units."""
@@ -82,10 +92,11 @@ class TestCase:
             for prefix in ("../" * n for n in range(1, thistest.depth)):
                 if drivers:
                     self.__expand_drivers(
-                        "%(p)ssrc/test_%(b)s*.adb %(p)ssrc/test_%(b)s*.c"
-                        % {'p': prefix, 'b': body})
+                        self.__with_extensions(
+                            "%ssrc/test_%s*" % (prefix, body)))
                 if cspecs:
-                    self.__expand_cspecs("%ssrc/cons_%s*.txt" % (prefix, body))
+                    self.__expand_cspecs(
+                        "%ssrc/cons_%s*.txt" % (prefix, body))
 
     def __category_from_dir(self):
         """Compute test category from directory location."""
@@ -126,7 +137,8 @@ class TestCase:
         # exercised by common drivers up-tree. Abort if there's nothing to
         # exercise at all
         self.all_drivers = []
-        self.__expand_drivers("src/test_*.adb src/test_*.c " + extradrivers)
+        self.__expand_drivers(
+            self.__with_extensions("src/test_*") + " " + extradrivers)
 
         if not self.all_drivers:
             self.__expand_shared_controllers(drivers=True, cspecs=False)

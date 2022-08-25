@@ -301,6 +301,7 @@ private
       Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
+   overriding procedure Initialize (Self : in out C_Source_Rewriter);
    overriding procedure Finalize (Self : in out C_Source_Rewriter);
 
 end Instrument.C;
