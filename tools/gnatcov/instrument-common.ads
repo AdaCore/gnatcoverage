@@ -552,6 +552,16 @@ package Instrument.Common is
    --  Set of operations to allow the instrumentation of sources files for a
    --  given language.
 
+   function Skip_Source_File
+     (Self        : Language_Instrumenter;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean
+   is (False);
+   --  Whether the instrumenter skips the given source file.
+   --
+   --  There is currently only one case where this is needed: the C
+   --  instrumenter must skip header files, as it instruments only bodies (.c
+   --  files).
+
    procedure Instrument_Unit
      (Self      : Language_Instrumenter;
       CU_Name   : Compilation_Unit_Name;

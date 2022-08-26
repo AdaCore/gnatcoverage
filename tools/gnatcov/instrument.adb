@@ -392,48 +392,59 @@ package body Instrument is
             end if;
          end Add_Instrumented_Unit;
 
-         CU_Name : constant Compilation_Unit_Name :=
-            To_Compilation_Unit_Name (Source_File);
+         Language : constant Src_Supported_Language :=
+           To_Language (Source_File.Language);
 
-         Unit_Name : constant String :=
-           (case CU_Name.Language_Kind is
-               when Unit_Based_Language => To_Ada (CU_Name.Unit),
-               when File_Based_Language => +CU_Name.Filename);
-
-      --  Start of processing for Find_Units_Wrapper
+      --  Start of processing for Add_Instrumented_Unit_Wrapper
 
       begin
-         --  Get the vector in which we will record the compilation units that
-         --  the following call to Find_Units will list.
+         --  Skip this source file if the instrumenter requires it
 
-         Get_Or_Create (LU_Map, Unit_Name, Current_LU_Info);
+         if Instrumenters (Language).Skip_Source_File (Source_File) then
+            return;
+         end if;
 
-         --  Keep track of projects that own this library unit's source files
-         --  for its spec/body.
+         declare
+            CU_Name : constant Compilation_Unit_Name :=
+               To_Compilation_Unit_Name (Source_File);
 
-         case Source_File.Unit_Part is
-            when GPR.Unit_Body => Current_LU_Info.Body_Project := Project;
-            when GPR.Unit_Spec => Current_LU_Info.Spec_Project := Project;
+            Unit_Name : constant String :=
+              (case CU_Name.Language_Kind is
+                  when Unit_Based_Language => To_Ada (CU_Name.Unit),
+                  when File_Based_Language => +CU_Name.Filename);
 
-            --  Subunits cannot be units of interest, so Enumerate_Sources
-            --  should not be able to call Find_Units_Wrapper with a subunit.
-            --  Hence, the following should be unreachable.
+         begin
+            --  Get the vector in which we will record the compilation units
+            --  that the following call to Find_Units will list.
 
-            when GPR.Unit_Separate =>
-               raise Program_Error with "unreachable code";
-         end case;
+            Get_Or_Create (LU_Map, Unit_Name, Current_LU_Info);
 
-         Current_LU_Info.Language_Kind := CU_Name.Language_Kind;
-         Current_LU_Info.Language := To_Language (Source_File.Language);
+            --  Keep track of projects that own this library unit's source
+            --  files for its spec/body.
 
-         case CU_Name.Language_Kind is
-            when Unit_Based_Language =>
-               Find_Ada_Units
-                 (IC, CU_Name, Source_File, Add_Instrumented_Unit'Access);
-            when File_Based_Language =>
-               Add_Instrumented_Unit (CU_Name => CU_Name, Info => Source_File);
-         end case;
+            case Source_File.Unit_Part is
+               when GPR.Unit_Body => Current_LU_Info.Body_Project := Project;
+               when GPR.Unit_Spec => Current_LU_Info.Spec_Project := Project;
 
+               --  Subunits cannot be units of interest, so Enumerate_Sources
+               --  should not be able to call Find_Units_Wrapper with a
+               --  subunit.  Hence, the following should be unreachable.
+
+               when GPR.Unit_Separate =>
+                  raise Program_Error with "unreachable code";
+            end case;
+
+            Current_LU_Info.Language_Kind := CU_Name.Language_Kind;
+            Current_LU_Info.Language := To_Language (Source_File.Language);
+
+            case CU_Name.Language_Kind is
+               when Unit_Based_Language =>
+                  Find_Ada_Units
+                    (IC, CU_Name, Source_File, Add_Instrumented_Unit'Access);
+               when File_Based_Language =>
+                  Add_Instrumented_Unit (CU_Name, Source_File);
+            end case;
+         end;
       end Add_Instrumented_Unit_Wrapper;
 
       use type Ada.Containers.Count_Type;

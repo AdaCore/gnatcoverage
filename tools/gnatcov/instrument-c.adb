@@ -29,7 +29,6 @@ with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 with GNAT.String_Split;
 
-with GNATCOLL.Projects;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Interfaces;           use Interfaces;
@@ -3026,5 +3025,21 @@ package body Instrument.C is
 
       Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
    end Instrument_Unit;
+
+   ----------------------
+   -- Skip_Source_File --
+   ----------------------
+
+   overriding function Skip_Source_File
+     (Self        : C_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean
+   is
+      use GNATCOLL.Projects;
+   begin
+      --  Do not instrument C headers: code in C header is meant to be
+      --  instrumented at the time it is included in a ".c" source.
+
+      return Source_File.Unit_Part = Unit_Spec;
+   end Skip_Source_File;
 
 end Instrument.C;

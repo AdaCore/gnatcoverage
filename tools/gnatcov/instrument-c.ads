@@ -23,6 +23,8 @@ with Ada.Containers.Vectors;
 with Ada.Finalization;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
+with GNATCOLL.Projects;
+
 with Langkit_Support.Slocs; use Langkit_Support.Slocs;
 
 with Namet; use Namet;
@@ -41,6 +43,10 @@ private package Instrument.C is
    type C_Instrumenter_Type is new Language_Instrumenter with
      null record;
    --  Instrumentation primitives for C
+
+   overriding function Skip_Source_File
+     (Self        : C_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean;
 
    overriding procedure Instrument_Unit
      (Self      : C_Instrumenter_Type;
