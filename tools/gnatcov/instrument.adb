@@ -35,7 +35,6 @@ with GNATCOLL.VFS;
 
 with Libadalang.Analysis;
 with Libadalang.Project_Provider;
-with Libadalang.Rewriting;
 
 with Checkpoints;
 with Coverage;
@@ -56,6 +55,11 @@ with Strings;               use Strings;
 with Switches;              use Switches;
 
 package body Instrument is
+
+   Instrumenters : constant array (Src_Supported_Language)
+                   of access constant Language_Instrumenter'Class :=
+     (Ada_Language => Ada_Unit.Instrumenter'Access,
+      C_Language   => C.Instrumenter'Access);
 
    package GPR renames GNATCOLL.Projects;
 
@@ -126,15 +130,6 @@ package body Instrument is
    procedure Prepare_Output_Dirs (IC : Inst_Context);
    --  Make sure we have the expected tree of directories for the
    --  instrumentation output.
-
-   procedure Auto_Dump_Buffers_In_Ada_Mains
-     (IC    : in out Inst_Context;
-      Mains : Main_To_Instrument_Vectors.Vector);
-
-   procedure Auto_Dump_Buffers_In_C_Mains
-     (IC    : in out Inst_Context;
-      Mains : Main_To_Instrument_Vectors.Vector);
-   --  Instrument source files in Mains to add a dump of coverage buffers
 
    -----------
    -- Image --
@@ -297,59 +292,6 @@ package body Instrument is
          end;
       end loop;
    end Prepare_Output_Dirs;
-
-   ------------------------------------
-   -- Auto_Dump_Buffers_In_Ada_Mains --
-   ------------------------------------
-
-   procedure Auto_Dump_Buffers_In_Ada_Mains
-     (IC    : in out Inst_Context;
-      Mains : Main_To_Instrument_Vectors.Vector)
-   is
-   begin
-      for Main of Mains loop
-         declare
-            use type GNATCOLL.VFS.Filesystem_String;
-
-            Rewriter : Source_Rewriter;
-         begin
-            Rewriter.Start_Rewriting
-              (IC, Main.Prj_Info.all, +Main.File.Full_Name);
-            Instrument.Ada_Unit.Add_Auto_Dump_Buffers
-              (IC   => IC,
-               Info => Main.Prj_Info.all,
-               Main => Main.CU_Name,
-               URH  => Libadalang.Rewriting.Handle (Rewriter.Rewritten_Unit));
-            Rewriter.Apply;
-         end;
-      end loop;
-   end Auto_Dump_Buffers_In_Ada_Mains;
-
-   ----------------------------------
-   -- Auto_Dump_Buffers_In_C_Mains --
-   ----------------------------------
-
-   procedure Auto_Dump_Buffers_In_C_Mains
-     (IC    : in out Inst_Context;
-      Mains : Main_To_Instrument_Vectors.Vector)
-   is
-   begin
-      for Main of Mains loop
-         declare
-            use type GNATCOLL.VFS.Filesystem_String;
-            Rewriter : Instrument.C.C_Source_Rewriter;
-         begin
-            Rewriter.Start_Rewriting
-              (Main.Prj_Info.all, +Main.File.Full_Name);
-            Instrument.C.Add_Auto_Dump_Buffers
-              (IC   => IC,
-               Info => Main.Prj_Info.all,
-               Main => Main.CU_Name,
-               Rew  => Rewriter);
-            Rewriter.Apply;
-         end;
-      end loop;
-   end Auto_Dump_Buffers_In_C_Mains;
 
    ----------------------------------
    -- Instrument_Units_Of_Interest --
@@ -572,15 +514,8 @@ package body Instrument is
                      if not Unit_Info.Prj_Info.Externally_Built then
                         All_Externally_Built := False;
 
-                        case Unit_Info.Language is
-                           when Ada_Language =>
-                              Instrument.Ada_Unit.Instrument_Unit
-                                (CU.Name, IC, Unit_Info);
-
-                           when C_Language =>
-                              Instrument.C.Instrument_Unit
-                                (CU.Name, IC, Unit_Info);
-                        end case;
+                        Instrumenters (Unit_Info.Language).Instrument_Unit
+                          (CU.Name, IC, Unit_Info);
 
                         --  Update the Ignore_Status of the CU we instrumented
 
@@ -661,32 +596,36 @@ package body Instrument is
          Outputs.Fatal_Error ("No unit to instrument.");
       end if;
 
-      --  Emit units to contain the list of coverage buffers, one per language
-      --  present in the root project.
-      --
-      --  If the project contains both Ada and C sources, this will create two
-      --  arrays of coverage buffers. TODO??? we could have one array defined
-      --  in C and have the Ada unit just import it.
+      for Language in Src_Supported_Language loop
 
-      if Src_Enabled_Languages (Ada_Language)
-         and then Project.Project.Root_Project.Has_Language ("Ada")
-      then
-         Instrument.Ada_Unit.Emit_Buffers_List_Unit
-           (IC, Root_Project_Info.all);
-      end if;
+         --  Emit units to contain the list of coverage buffers, one per
+         --  language present in the root project.
+         --
+         --  If the project contains both Ada and C sources, this will create
+         --  two arrays of coverage buffers. TODO??? we could have one array
+         --  defined in C and have the Ada unit just import it.
 
-      if Src_Enabled_Languages (C_Language)
-         and then Project.Project.Root_Project.Has_Language ("C")
-      then
-         Instrument.C.Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
-      end if;
+         if Src_Enabled_Languages (Language)
+            and then Project.Project.Root_Project.Has_Language
+                       (Image (Language))
+         then
+            Instrumenters (Language).Emit_Buffers_List_Unit
+              (IC, Root_Project_Info.all);
+         end if;
 
-      --  Instrument all the mains that are not unit of interest to add the
-      --  dump of coverage buffers: Instrument_Unit already took care of mains
-      --  that are units of interest.
+         --  Instrument all the mains that are not unit of interest to add the
+         --  dump of coverage buffers: Instrument_Unit already took care of
+         --  mains that are units of interest.
 
-      Auto_Dump_Buffers_In_Ada_Mains (IC, Mains_To_Instrument (Ada_Language));
-      Auto_Dump_Buffers_In_C_Mains (IC, Mains_To_Instrument (C_Language));
+         for Main of Mains_To_Instrument (Language) loop
+            declare
+               use type GNATCOLL.VFS.Filesystem_String;
+            begin
+               Instrumenters (Language).Auto_Dump_Buffers_In_Main
+                 (IC, Main.CU_Name, +Main.File.Full_Name, Main.Prj_Info.all);
+            end;
+         end loop;
+      end loop;
 
       --  Remove sources in IC.Output_Dir that we did not generate this time.
       --  They are probably left overs from previous instrumentations for units

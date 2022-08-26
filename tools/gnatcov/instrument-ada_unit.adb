@@ -87,6 +87,20 @@ package body Instrument.Ada_Unit is
    --  Return the qualified name corresponding to the given name (e.g.
    --  foo-bar -> Foo.Bar).
 
+   procedure Auto_Dump_Buffers_In_Main
+     (IC   : Inst_Context;
+      Info : in out Project_Info;
+      Main : Compilation_Unit_Name;
+      URH  : Unit_Rewriting_Handle)
+     with Pre => IC.Dump_Config.Trigger /= Manual;
+   --  Common code for auto dump insertion in the main procedure, used in the
+   --  Auto_Dump_Buffers_In_Main primitive for Ada_Instrumenter_Type, and
+   --  from the Instrument_Source_File procedure.
+   --
+   --  Arguments have the same semantics as in the Auto_Dump_Buffers_In_Main
+   --  primitive. The additional URH argument is the Ada source rewriter that
+   --  is ready to use for the source file to instrument.
+
    -----------------------
    -- To_Qualified_Name --
    -----------------------
@@ -6204,11 +6218,11 @@ package body Instrument.Ada_Unit is
       end;
    end Initialize_Rewriting;
 
-   ---------------------------
-   -- Add_Auto_Dump_Buffers --
-   ---------------------------
+   -------------------------------
+   -- Auto_Dump_Buffers_In_Main --
+   -------------------------------
 
-   procedure Add_Auto_Dump_Buffers
+   procedure Auto_Dump_Buffers_In_Main
      (IC   : Inst_Context;
       Info : in out Project_Info;
       Main : Compilation_Unit_Name;
@@ -6445,7 +6459,25 @@ package body Instrument.Ada_Unit is
          end;
 
       end case;
-   end Add_Auto_Dump_Buffers;
+   end Auto_Dump_Buffers_In_Main;
+
+   overriding procedure Auto_Dump_Buffers_In_Main
+     (Self     : Ada_Instrumenter_Type;
+      IC       : in out Inst_Context;
+      Main     : Compilation_Unit_Name;
+      Filename : String;
+      Info     : in out Project_Info)
+   is
+      Rewriter : Source_Rewriter;
+   begin
+      Rewriter.Start_Rewriting (IC, Info, Filename);
+      Auto_Dump_Buffers_In_Main
+        (IC   => IC,
+         Info => Info,
+         Main => Main,
+         URH  => Libadalang.Rewriting.Handle (Rewriter.Rewritten_Unit));
+      Rewriter.Apply;
+   end Auto_Dump_Buffers_In_Main;
 
    ----------------------------
    -- Instrument_Source_File --
@@ -6549,7 +6581,7 @@ package body Instrument.Ada_Unit is
          Created_Units : Created_Unit_Maps.Map;
       begin
          Process_Low_Level_SCOs
-           (Provider      => Instrumenter,
+           (Provider      => SC_Obligations.Instrumenter,
             Origin        => UIC.SFI,
             Created_Units => Created_Units,
             SCO_Map       => SCO_Map'Access,
@@ -6708,7 +6740,7 @@ package body Instrument.Ada_Unit is
       --  Insert automatic buffer dump calls, if requested
 
       if IC.Dump_Config.Trigger /= Manual and then Unit_Info.Is_Main then
-         Add_Auto_Dump_Buffers
+         Auto_Dump_Buffers_In_Main
            (IC   => IC,
             Info => Prj_Info,
             Main => UIC.Instrumented_Unit,
@@ -7238,7 +7270,8 @@ package body Instrument.Ada_Unit is
    ----------------------------
 
    procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
+     (Self              : Ada_Instrumenter_Type;
+      IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info)
    is
       CU_Name : constant Compilation_Unit_Name :=
@@ -7335,8 +7368,9 @@ package body Instrument.Ada_Unit is
    -- Instrument_Unit --
    ---------------------
 
-   procedure Instrument_Unit
-     (CU_Name   : Compilation_Unit_Name;
+   overriding procedure Instrument_Unit
+     (Self      : Ada_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info)
    is

@@ -285,6 +285,19 @@ package body Instrument.C is
    with Unreferenced;
    --  Output clang diagnostics on the given translation unit
 
+   procedure Auto_Dump_Buffers_In_Main
+     (IC   : Inst_Context;
+      Info : in out Project_Info;
+      Main : Compilation_Unit_Name;
+      Rew  : in out C_Source_Rewriter);
+   --  Common code for auto dump insertion in the "main" function, used in the
+   --  Auto_Dump_Buffers_In_Main primitive for C_Instrumenter_Type, and from
+   --  the Instrument_Source_File procedure.
+   --
+   --  Arguments have the same semantics as in the Auto_Dump_Buffers_In_Main
+   --  primitive. The additional Rew argument is the C source rewriter that is
+   --  ready to use for the source file to instrument.
+
    ----------------
    -- Append_SCO --
    ----------------
@@ -2431,7 +2444,7 @@ package body Instrument.C is
          Created_Units : Created_Unit_Maps.Map;
       begin
          Process_Low_Level_SCOs
-           (Provider      => Instrumenter,
+           (Provider      => SC_Obligations.Instrumenter,
             Origin        => UIC.SFI,
             Created_Units => Created_Units,
             SCO_Map       => SCO_Map'Access,
@@ -2583,7 +2596,7 @@ package body Instrument.C is
       --  Insert automatic buffer dump calls, if requested
 
       if IC.Dump_Config.Trigger /= Manual and then Unit_Info.Is_Main then
-         Add_Auto_Dump_Buffers
+         Auto_Dump_Buffers_In_Main
            (IC   => IC,
             Info => Prj_Info,
             Main => UIC.Instrumented_Unit,
@@ -2833,15 +2846,15 @@ package body Instrument.C is
       end;
    end Emit_Dump_Helper_Unit;
 
-   ---------------------------
-   -- Add_Auto_Dump_Buffers --
-   ---------------------------
+   -------------------------------
+   -- Auto_Dump_Buffers_In_Main --
+   -------------------------------
 
-   procedure Add_Auto_Dump_Buffers
+   procedure Auto_Dump_Buffers_In_Main
      (IC   : Inst_Context;
       Info : in out Project_Info;
       Main : Compilation_Unit_Name;
-      Rew  : C_Source_Rewriter)
+      Rew  : in out C_Source_Rewriter)
    is
       Instr_Units : constant CU_Name_Vectors.Vector :=
         Instr_Units_For_Closure (IC, Main);
@@ -2884,14 +2897,30 @@ package body Instrument.C is
          when others =>
             null;
       end case;
-   end Add_Auto_Dump_Buffers;
+
+   end Auto_Dump_Buffers_In_Main;
+
+   overriding procedure Auto_Dump_Buffers_In_Main
+     (Self     : C_Instrumenter_Type;
+      IC       : in out Inst_Context;
+      Main     : Compilation_Unit_Name;
+      Filename : String;
+      Info     : in out Project_Info)
+   is
+      Rew : C_Source_Rewriter;
+   begin
+      Rew.Start_Rewriting (Info, Filename);
+      Auto_Dump_Buffers_In_Main (IC, Info, Main, Rew);
+      Rew.Apply;
+   end Auto_Dump_Buffers_In_Main;
 
    ----------------------------
    -- Emit_Buffers_List_Unit --
    ----------------------------
 
-   procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
+   overriding procedure Emit_Buffers_List_Unit
+     (Self              : C_Instrumenter_Type;
+      IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info)
    is
       CU_Name_Body   : constant Compilation_Unit_Name :=
@@ -2970,8 +2999,9 @@ package body Instrument.C is
    -- Instrument_Unit --
    ---------------------
 
-   procedure Instrument_Unit
-     (CU_Name   : Compilation_Unit_Name;
+   overriding procedure Instrument_Unit
+     (Self      : C_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info)
    is
@@ -2996,4 +3026,5 @@ package body Instrument.C is
 
       Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
    end Instrument_Unit;
+
 end Instrument.C;
