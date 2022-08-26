@@ -26,7 +26,7 @@ const unsigned alignment = sizeof (void *);
 
 typedef struct info_entry_d
 {
-  void *data;
+  const void *data;
   uint32_t length;
 } info_entry;
 
