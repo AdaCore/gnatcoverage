@@ -141,7 +141,7 @@ private package Instrument.C is
    --
    --  They thus run the same code with a few tweaks:
    --
-   --     * The first pass only records preprocessing information and do not
+   --     * The first pass only records preprocessing information and does not
    --       implement any of the instrumentation code.
    --
    --     * The second pass instruments the code.
@@ -155,11 +155,11 @@ private package Instrument.C is
    --  produced by the user's preprocessor. To have the same AST in the end, we
    --  make the assumption that we can emulate the user's preprocessor with
    --  clang (with the right set of flags, to override clang's preprocessor
-   --  defaults). If this assumption does not hold, then we will probably get
-   --  a different AST for both passes. For that reason, we make a
-   --  consistency check after having ran both passes: if it does not hold, we
-   --  will simply discard the preprocessed information recorded by the first
-   --  pass, and produce a degraded report.
+   --  defaults). If this assumption does not hold, then we will probably get a
+   --  different AST for both passes. For that reason, we make a consistency
+   --  check after having ran both passes: if it does not hold, we will simply
+   --  discard the preprocessed information recorded by the first pass, and
+   --  produce a degraded report.
 
    package LL_SCO_PP_Info_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Nat,
@@ -287,9 +287,7 @@ private
       MCDC_State : out US.Unbounded_String) is null;
 
    procedure Curlify
-     (Pass : Pass_Kind;
-      N    : Cursor_T;
-      Rew  : Rewriter_T) is null;
+     (Pass : Pass_Kind; N : Cursor_T; Rew : Rewriter_T) is null;
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record
