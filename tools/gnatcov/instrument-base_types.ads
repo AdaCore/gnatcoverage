@@ -30,19 +30,12 @@ with Types; use Types;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with SC_Obligations;      use SC_Obligations;
 with Subprocesses;        use Subprocesses;
+with Switches;            use Switches;
 
 package Instrument.Base_Types is
 
-   function Str_To_Language (Language : String) return Any_Language;
-   --  Return the (supported) language kind represented by the string (case-
-   --  insensitive). Raise a fatal error if the given language is not
-   --  supported.
-
-   function Language_To_Str (Language : Any_Language) return String;
-   --  Reverse operation of the above function
-
-   function Str_To_Language_Kind
-     (Language : String) return Any_Language_Kind;
+   function Language_Kind
+     (Language : Some_Language) return Any_Language_Kind;
    --  Returns the language kind (unit-based or file-based) for the given
    --  language.
 

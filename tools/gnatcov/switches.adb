@@ -16,12 +16,14 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
 with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 
 with Outputs;  use Outputs;
 with Project;  use Project;
+with Strings;  use Strings;
 with Switches; use Switches;
 
 package body Switches is
@@ -185,6 +187,33 @@ package body Switches is
          end case;
       end return;
    end Load_Dump_Config;
+
+   -----------------
+   -- To_Language --
+   -----------------
+
+   function To_Language (Name : String) return Some_Language is
+      Lower_Name : constant String := To_Lower (Name);
+   begin
+      if Lower_Name = "ada" then
+         return Ada_Language;
+      elsif Lower_Name = "c" then
+         return C_Language;
+      else
+         Fatal_Error ("Unsupported language: " & Name);
+      end if;
+   end To_Language;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Language : Some_Language) return String is
+   begin
+      return (case Language is
+              when Ada_Language => "Ada",
+              when C_Language   => "C");
+   end Image;
 
    -----------------------
    -- Command_Line_Args --

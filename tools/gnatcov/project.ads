@@ -24,6 +24,7 @@ with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with Inputs;
+with Switches; use Switches;
 
 package Project is
 
@@ -145,7 +146,7 @@ package Project is
      (Callback         : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
-      Language         : String;
+      Language         : Any_Language;
       Include_Subunits : Boolean := False)
      with Pre => Is_Project_Loaded;
    --  Call Callback once for every source file of the given language
@@ -166,15 +167,14 @@ package Project is
    type Main_Source_File_Array is
       array (Positive range <>) of Main_Source_File;
 
-   function Enumerate_Ada_Mains return Main_Source_File_Array
+   function Enumerate_Mains
+     (Language : Any_Language) return Main_Source_File_Array
       with Pre => Is_Project_Loaded;
-   --  Return the list of all Ada main source files recursively found in the
-   --  loaded project tree.
-
-   function Enumerate_C_Mains return Main_Source_File_Array
-      with Pre => Is_Project_Loaded;
-   --  Return the list of all C main source files recursively found in the
-   --  loaded project tree.
+   --  Return the list of all main source files found in the project tree for
+   --  the given Language, or for all languages if Language is All_Languages.
+   --
+   --  Note that this also returns source files for mains that are not units of
+   --  interest.
 
    function Find_Source_File (Simple_Name : String) return String_Access;
    --  Look for the absolute path for the source file called Simple_Name in the

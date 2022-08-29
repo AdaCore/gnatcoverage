@@ -73,6 +73,7 @@ with Namet;                 use Namet;
 with SC_Obligations;        use SC_Obligations;
 with Slocs;
 with Strings;               use Strings;
+with Switches;              use Switches;
 with Text_Files;
 with Types;                 use Types;
 
@@ -209,7 +210,7 @@ package Instrument.Common is
       Is_Main : Boolean;
       --  Whether this unit is a main
 
-      Language : Any_Language;
+      Language : Some_Language;
       --  Language for this unit
    end record;
 

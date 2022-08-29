@@ -18,14 +18,13 @@
 
 --  Source instrumentation
 
-with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 with GNAT.OS_Lib;
@@ -256,7 +255,7 @@ package body Instrument is
                   Part            => (if Use_Spec
                                       then Unit_Spec
                                       else Unit_Body),
-                  Language        =>  Language_To_Str (Info.Language),
+                  Language        =>  Image (Info.Language),
                   File_Must_Exist => False);
                Src_Ext_Index : constant Positive :=
                  Ada.Strings.Fixed.Index
@@ -385,10 +384,11 @@ package body Instrument is
       Current_LU_Info : Library_Unit_Info_Access;
       Ignored_Units   : Ignored_Units_Maps.Map;
 
-      Ada_Main_To_Instrument_Vector : Main_To_Instrument_Vectors.Vector;
-      C_Main_To_Instrument_Vector   : Main_To_Instrument_Vectors.Vector;
-      --  List of mains to instrument *which are not units of interest*. Always
-      --  empty when Dump_Config.Trigger is Manual.
+      Mains_To_Instrument : array (Src_Supported_Language)
+                            of Main_To_Instrument_Vectors.Vector;
+      --  For each supported language, list of mains to instrument *which are
+      --  not units of interest*. Always empty when Dump_Config.Trigger is
+      --  Manual.
       --
       --  We need a separate list for these as mains which are units of
       --  interest are instrumented to dump coverage buffers at the same time
@@ -410,10 +410,6 @@ package body Instrument is
         (Project : GPR.Project_Type; Source_File : GPR.File_Info);
       --  Add this source file to the list of units to instrument. For unit-
       --  based languages, also add subunits that depend on this source file.
-
-      function Is_Language_Enabled (Language : String) return Boolean is
-        (Enable_Languages.Contains (+(To_Lower (Language))));
-      --  Check whether Language is part of the enabled languages
 
       -----------------------------------
       -- Add_Instrumented_Unit_Wrapper --
@@ -486,7 +482,7 @@ package body Instrument is
          end case;
 
          Current_LU_Info.Language_Kind := CU_Name.Language_Kind;
-         Current_LU_Info.Language := Str_To_Language (Source_File.Language);
+         Current_LU_Info.Language := To_Language (Source_File.Language);
 
          case CU_Name.Language_Kind is
             when Unit_Based_Language =>
@@ -505,32 +501,25 @@ package body Instrument is
    begin
       --  First get the list of all units of interest
 
-      if Is_Language_Enabled ("Ada") then
-         Project.Enumerate_Sources
-           (Add_Instrumented_Unit_Wrapper'Access, "ada");
-      end if;
-
-      if Is_Language_Enabled ("C") then
-         Project.Enumerate_Sources (Add_Instrumented_Unit_Wrapper'Access, "c");
-      end if;
+      for Lang in Src_Supported_Language loop
+         if Src_Enabled_Languages (Lang) then
+            Project.Enumerate_Sources
+              (Add_Instrumented_Unit_Wrapper'Access, Lang);
+         end if;
+      end loop;
 
       --  If we need to instrument all the mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.
 
       if Dump_Config.Trigger /= Manual then
-         if Is_Language_Enabled ("Ada") then
-            for Main of Project.Enumerate_Ada_Mains loop
-               Register_Main_To_Instrument
-                 (IC, Ada_Main_To_Instrument_Vector, Main.File, Main.Project);
-            end loop;
-         end if;
-
-         if Is_Language_Enabled ("C") then
-            for Main of Project.Enumerate_C_Mains loop
-               Register_Main_To_Instrument
-                 (IC, C_Main_To_Instrument_Vector, Main.File, Main.Project);
-            end loop;
-         end if;
+         for Lang in Src_Supported_Language loop
+            if Src_Enabled_Languages (Lang) then
+               for Main of Project.Enumerate_Mains (Lang) loop
+                  Register_Main_To_Instrument
+                    (IC, Mains_To_Instrument (Lang), Main.File, Main.Project);
+               end loop;
+            end if;
+         end loop;
       end if;
 
       --  Know that we know all the sources we need to instrument, prepare
@@ -679,14 +668,14 @@ package body Instrument is
       --  arrays of coverage buffers. TODO??? we could have one array defined
       --  in C and have the Ada unit just import it.
 
-      if Is_Language_Enabled ("Ada")
+      if Src_Enabled_Languages (Ada_Language)
          and then Project.Project.Root_Project.Has_Language ("Ada")
       then
          Instrument.Ada_Unit.Emit_Buffers_List_Unit
            (IC, Root_Project_Info.all);
       end if;
 
-      if Is_Language_Enabled ("C")
+      if Src_Enabled_Languages (C_Language)
          and then Project.Project.Root_Project.Has_Language ("C")
       then
          Instrument.C.Emit_Buffers_List_Unit (IC, Root_Project_Info.all);
@@ -696,8 +685,8 @@ package body Instrument is
       --  dump of coverage buffers: Instrument_Unit already took care of mains
       --  that are units of interest.
 
-      Auto_Dump_Buffers_In_Ada_Mains (IC, Ada_Main_To_Instrument_Vector);
-      Auto_Dump_Buffers_In_C_Mains (IC, C_Main_To_Instrument_Vector);
+      Auto_Dump_Buffers_In_Ada_Mains (IC, Mains_To_Instrument (Ada_Language));
+      Auto_Dump_Buffers_In_C_Mains (IC, Mains_To_Instrument (C_Language));
 
       --  Remove sources in IC.Output_Dir that we did not generate this time.
       --  They are probably left overs from previous instrumentations for units

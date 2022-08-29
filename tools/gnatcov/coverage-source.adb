@@ -379,7 +379,7 @@ package body Coverage.Source is
       Enumerate_Sources
         (Callback'Access,
          Include_Subunits => True,
-         Language         => "ada");
+         Language         => Ada_Language);
    end Compute_Unit_Name_For_Ignored_Sources;
 
    -------------------------
