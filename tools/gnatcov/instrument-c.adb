@@ -56,6 +56,14 @@ package body Instrument.C is
    package GPR renames GNATCOLL.Projects;
    package US renames Ada.Strings.Unbounded;
 
+   function To_Chars_Ptr_Array
+     (V : String_Vectors.Vector) return chars_ptr_array;
+   --  Convert a string vector to a chars_ptr_array. Result must be freed by
+   --  the caller.
+
+   procedure Free (Self : in out chars_ptr_array);
+   --  Free all strings in Self
+
    ------------------------------
    --  Preprocessing utilities --
    ------------------------------
@@ -296,6 +304,31 @@ package body Instrument.C is
    --  Arguments have the same semantics as in the Auto_Dump_Buffers_In_Main
    --  primitive. The additional Rew argument is the C source rewriter that is
    --  ready to use for the source file to instrument.
+
+   ------------------------
+   -- To_Chars_Ptr_Array --
+   ------------------------
+
+   function To_Chars_Ptr_Array
+     (V : String_Vectors.Vector) return chars_ptr_array is
+   begin
+      return Result : chars_ptr_array (1 .. Interfaces.C.size_t (V.Length)) do
+         for I in Result'Range loop
+            Result (I) := New_String (+V (Integer (I) - 1));
+         end loop;
+      end return;
+   end To_Chars_Ptr_Array;
+
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Self : in out chars_ptr_array) is
+   begin
+      for Item of Self loop
+         Free (Item);
+      end loop;
+   end Free;
 
    ----------------
    -- Append_SCO --
@@ -2270,9 +2303,7 @@ package body Instrument.C is
       UIC       : in out C_Unit_Inst_Context)
    is
       Orig_Filename : constant String  := +Unit_Info.Filename;
-
-      Command_Line_Args     : String_Vectors.Vector;
-      Num_Command_Line_Args : Interfaces.C.size_t;
+      Args          : String_Vectors.Vector;
 
       use String_Vectors;
    begin
@@ -2286,46 +2317,31 @@ package body Instrument.C is
       --  the user's preprocessor.
 
       for Macro_Definition of UIC.PP_Predefined_Macros loop
-         Append (Command_Line_Args, +"-D");
-         Append (Command_Line_Args, Macro_Definition);
+         Append (Args, +"-D");
+         Append (Args, Macro_Definition);
       end loop;
       for Search_Path of UIC.PP_Search_Paths loop
-         Append (Command_Line_Args, +"-I");
-         Append (Command_Line_Args, Search_Path);
+         Append (Args, +"-I");
+         Append (Args, Search_Path);
       end loop;
-      Append (Command_Line_Args, +"-undef");
-      Append (Command_Line_Args, +"-nostdinc");
+      Append (Args, +"-undef");
+      Append (Args, +"-nostdinc");
 
       --  Convert to C compatible char**
 
-      Num_Command_Line_Args := Interfaces.C.size_t
-        (Length (Command_Line_Args));
-
       declare
-         Command_Line_Args_C : chars_ptr_array
-           (1 .. Num_Command_Line_Args);
-
-         I : Interfaces.C.size_t := 1;
+         C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
       begin
-         for Command_Line_Arg of Command_Line_Args loop
-            Command_Line_Args_C (I) := New_String (+Command_Line_Arg);
-            I := I + 1;
-         end loop;
-
          UIC.TU :=
            Parse_Translation_Unit
              (C_Idx                 => UIC.CIdx,
               Source_Filename       => Orig_Filename,
-              Command_Line_Args     => Command_Line_Args_C (1)'Address,
-              Num_Command_Line_Args =>
-                Interfaces.C.int (Num_Command_Line_Args),
+              Command_Line_Args     => C_Args'Address,
+              Num_Command_Line_Args => C_Args'Length,
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
               Options               => 0);
-
-         for Command_Line_Arg_C of Command_Line_Args_C loop
-            Free (Command_Line_Arg_C);
-         end loop;
+         Free (C_Args);
       end;
       Traverse_Declarations
         (IC  => IC,
