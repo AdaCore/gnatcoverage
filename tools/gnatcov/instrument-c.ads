@@ -195,6 +195,42 @@ private package Instrument.C is
      (Key_Type     => Nat,
       Element_Type => PP_Info);
 
+   type Macro_Definition is record
+      Define : Boolean;
+      --  Whether this defines a macro or undefines it
+
+      Value : Unbounded_String;
+      --  If this undefines a macro, this just contains the name of that macro.
+      --
+      --  If this defines a macro, "-D" option value for the definition of this
+      --  macro. For instance "A(x, y)=B" for "#define A(x, y) B".
+   end record;
+   --  Whether a macro should be defined, its name, and when it must be
+   --  defined, its value.
+
+   package Macro_Vectors is
+     new Ada.Containers.Vectors (Positive, Macro_Definition);
+
+   type Analysis_Options is record
+      PP_Search_Path : String_Vectors.Vector;
+      --  List of directories to search when looking for an included file
+
+      PP_Macros : Macro_Vectors.Vector;
+      --  List of macros for the preprocessor
+   end record;
+   --  Options to analyze (preprocess and/or parse) a compilation unit
+
+   procedure Add_Options
+     (Args : in out String_Vectors.Vector; Options : Analysis_Options);
+   --  Append to Args the command line options correspondig to Options
+
+   procedure Import_From_Project
+     (Self     : out Analysis_Options;
+      Info     : Project_Info;
+      Filename : String);
+   --  Initialize Self from compiler switches corresponding to the Filename
+   --  source file in the Info project.
+
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
          TU       : Translation_Unit_T;
@@ -214,9 +250,9 @@ private package Instrument.C is
          --  Where should MCDC state declaration be inserted (the beginning of
          --  the procedure).
 
-         PP_Search_Paths, PP_Predefined_Macros : String_Vectors.Vector;
-         --  Configuration of the user's preprocessor. We need to pass it to
-         --  clang when parsing the unpreprocessed view of the sources.
+         Options : Analysis_Options;
+         --  Configuration for the preprocessor/parser when working on this
+         --  source file.
 
          Pass : Pass_Kind_Acc;
          --  Current pass. See the Pass_Kind documentation for more details.

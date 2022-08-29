@@ -16,18 +16,17 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters;
-with Ada.Characters.Latin_1;
 with Ada.Containers;  use Ada.Containers;
+with Ada.Containers.Hashed_Maps;
 with Ada.Directories; use Ada.Directories;
 with Ada.Strings;
+with Ada.Strings.Unbounded.Hash;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.Extensions; use Clang.Extensions;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
-with GNAT.String_Split;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
@@ -64,50 +63,65 @@ package body Instrument.C is
    procedure Free (Self : in out chars_ptr_array);
    --  Free all strings in Self
 
+   function Compiler_Driver
+     (Project : GNATCOLL.Projects.Project_Type) return String;
+   --  Return the command name for the C compiler in the given Project
+
    ------------------------------
    --  Preprocessing utilities --
    ------------------------------
 
-   Compiler_Macros : Vector_String_Maps.Map;
+   Macro_Def_Regexp : constant Pattern_Matcher := Compile (
+     "#define"
+     & "(?: |\t)+"
+     --  "#define", then a non-empty blank
+
+     & "([a-zA-Z0-9_][^ \t]*"
+     --  The name of the macro, followed by....
+
+     & "(?:\(.*\))?"
+     --  The optional list of macro arguments
+
+     & ")"
+     --  End of "extended" macro name (actual name + arguments)
+
+     & "(.*)"
+     --  The macro value itself
+   );
+   --  Regular expression to analyze definitions for builtin macros (see
+   --  Builtin_Macros)
+
+   type Macro_Vector_Access is access Macro_Vectors.Vector;
+   type Macro_Vector_Cst_Access is access constant Macro_Vectors.Vector;
+   package Compiler_Macros_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Unbounded_String,
+      Element_Type    => Macro_Vector_Access,
+      Equivalent_Keys => "=",
+      Hash            => Ada.Strings.Unbounded.Hash);
+   Compiler_Macros : Compiler_Macros_Maps.Map;
    --  Cache for computed compiler builtin macros, to avoid relaunching the
-   --  compiler command every time a file is instrumented.
+   --  compiler command every time a file is instrumented. Used in the
+   --  Builtin_Macros function only.
 
    --  The three following functions are not used, but could be in the future,
    --  when we will refine what is done with macros.
 
    function Builtin_Macros
-     (Info : Project_Info; Compiler : String) return String_Vectors.Vector;
-   --  Return the list of built-in macros for the given compiler. The result is
-   --  the list of macro definitions under the following string format:
-   --
-   --  #define __unix__ 1
-   --  ...
-   --  #define __INT_WIDTH__ 32
-
-   function Def_Switches
-     (Info : Project_Info; Compiler : String) return String_Vectors.Vector;
-   --  Return the list of macros predefined by the given Compiler with their
-   --  values as strings.
-   --
-   --  For example, with a Compiler predefining the __GCC_IEC_559 macro
-   --  with value 2, this function would return ["__GCC_IEC_559=2"].
-
-   function Get_Preprocessing_Args
-     (Info : Project_Info) return String_Vectors.Vector;
-   --  Return the list of preprocessing args parsed in the project
+     (Compiler, Output_Dir : String) return Macro_Vector_Cst_Access;
+   --  Return the list of built-in macros for the given compiler. Output_Dir
+   --  is used to store a temporary file.
 
    procedure Preprocess_Source
-     (Filename          : String;
-      PP_Filename       : out Unbounded_String;
-      Info              : in out Project_Info;
-      Search_Paths      : out String_Vectors.Vector;
-      Predefined_Macros : out String_Vectors.Vector);
-   --  Preprocess the source, and fill preprocessor configuration in
-   --  Search_Paths and Predefined_Macros.
+     (Filename    : String;
+      PP_Filename : out Unbounded_String;
+      Info        : in out Project_Info;
+      Options     : in out Analysis_Options);
+   --  Preprocess the source at Filename and extend Options using the
+   --  preprocessor output.
    --
-   --  We will use the compiler in the Compiler_Driver attribute, that we get
-   --  from GNATCOLL.Project, to preprocess the file. We will assume that it
-   --  accepts the -E flag, to preprocess a file.
+   --  This uses the compiler in the Compiler_Driver project attribute to
+   --  preprocess the file, assuming that it accepts the -E flag, to preprocess
+   --  a file.
 
    ---------------------------
    --  Passes specificities --
@@ -329,6 +343,18 @@ package body Instrument.C is
          Free (Item);
       end loop;
    end Free;
+
+   ---------------------
+   -- Compiler_Driver --
+   ---------------------
+
+   function Compiler_Driver
+     (Project : GNATCOLL.Projects.Project_Type) return String
+   is
+   begin
+      return GNATCOLL.Projects.Attribute_Value
+               (Project, GPR.Compiler_Driver_Attribute, "C");
+   end Compiler_Driver;
 
    ----------------
    -- Append_SCO --
@@ -1977,131 +2003,93 @@ package body Instrument.C is
    --------------------
 
    function Builtin_Macros
-     (Info : Project_Info; Compiler : String) return String_Vectors.Vector
+     (Compiler, Output_Dir : String) return Macro_Vector_Cst_Access
    is
-      Basename : constant String :=
-        Ada.Directories.Simple_Name (Compiler) & "_builtins";
-      Filename : constant String :=
-        (+Info.Output_Dir) / Basename;
-      File     : Ada.Text_IO.File_Type;
-      Res      : String_Vectors.Vector;
-   begin
-      --  If we have not computed built-in macros for this compiler yet, do it
-      --  now.
+      use Compiler_Macros_Maps;
 
-      if not Compiler_Macros.Contains (+Compiler) then
+      Key    : constant Unbounded_String := +Compiler;
+      Cur    : constant Cursor := Compiler_Macros.Find (Key);
+      Result : Macro_Vector_Access;
+   begin
+      --  If we already computed builtin macros for Compiler, return the cached
+      --  result. Compute it now otherwise.
+
+      if Has_Element (Cur) then
+         Result := Element (Cur);
+
+      else
+         Result := new Macro_Vectors.Vector;
          declare
-            Arguments : String_Vectors.Vector;
-            Macros    : String_Vectors.Vector;
+            Args     : String_Vectors.Vector;
+            Basename : constant String :=
+              Ada.Directories.Simple_Name (Compiler) & "_builtins";
+            Filename : constant String := Output_Dir / Basename;
+            File     : Ada.Text_IO.File_Type;
          begin
-            Arguments.Append (+"-E");
-            Arguments.Append (+"-dM");
-            Arguments.Append (+"-");
+            --  Run the preprocessor on an empty file and write the
+            --  preprocessed sources to Filename.
+
+            Args.Append (+"-E");
+            Args.Append (+"-dM");
+            Args.Append (+"-");
 
             Run_Command
               (Command             => Compiler,
-               Arguments           => Arguments,
+               Arguments           => Args,
                Origin_Command_Name =>
                  "getting built-in macros for " & Compiler,
                Output_File         => Filename,
                In_To_Null          => True);
 
-            --  Then, read all the macros in the output file, and store them in
-            --  the cache.
+            --  Decode all macro definitions in Filename and store them in
+            --  Result.
 
             Open (File, In_File, Filename);
             while not End_Of_File (File) loop
-               Macros.Append (+Get_Line (File));
+               declare
+                  Line    : constant String := Get_Line (File);
+                  Matches : Match_Array (0 .. 2);
+                  M       : Macro_Definition;
+               begin
+                  Match (Macro_Def_Regexp, Line, Matches);
+                  if Matches (0) = No_Match then
+                     Warn
+                       ("Cannot parse a built-in macro definition for "
+                        & Compiler & ", ignoring it:"
+                        & ASCII.LF & "  " & Line);
+                  else
+                     M.Define := True;
+                     Append
+                       (M.Value, Line (Matches (1).First .. Matches (1).Last));
+                     Append (M.Value, "=");
+                     Append
+                       (M.Value, Line (Matches (2).First .. Matches (2).Last));
+                     Result.Append (M);
+                  end if;
+               end;
             end loop;
             Close (File);
             Delete_File (Filename);
-            Compiler_Macros.Insert (+Compiler, Macros);
+
+            --  Save Result in the cache for later use
+
+            Compiler_Macros.Insert (Key, Result);
          end;
       end if;
 
-      Res := Compiler_Macros.Element (+Compiler);
-      return Res;
+      return Macro_Vector_Cst_Access (Result);
    end Builtin_Macros;
-
-   ------------------
-   -- Def_Switches --
-   ------------------
-
-   function Def_Switches
-     (Info : Project_Info; Compiler : String) return String_Vectors.Vector
-   is
-      use Ada.Characters;
-      use GNAT;
-
-      Macros : constant String_Vectors.Vector :=
-        Builtin_Macros (Info, Compiler);
-      Res    : String_Vectors.Vector;
-   begin
-      for Macro of Macros loop
-         declare
-            Subs : String_Split.Slice_Set;
-            Seps : constant String := " " & Latin_1.HT;
-
-            Macro_Name  : US.Unbounded_String;
-            Macro_Value : US.Unbounded_String;
-         begin
-            String_Split.Create (S          => Subs,
-                                 From       => +Macro,
-                                 Separators => Seps,
-                                 Mode       => String_Split.Multiple);
-
-            Macro_Name := +(String_Split.Slice (Subs, 2));
-
-            for I in 3 .. String_Split.Slice_Count (Subs) loop
-
-               --  Everything after the macro name is its value
-
-               US.Append (Macro_Value, +(String_Split.Slice (Subs, I) & " "));
-            end loop;
-
-            Res.Append (+((+Macro_Name) & "=" & (+Macro_Value)));
-         end;
-      end loop;
-      return Res;
-   end Def_Switches;
-
-   ----------------------------
-   -- Get_Preprocessing_Args --
-   ----------------------------
-
-   function Get_Preprocessing_Args
-     (Info : Project_Info) return String_Vectors.Vector
-   is
-      Args : String_Vectors.Vector;
-   begin
-      --  Pass the source directories of the project file as -I options
-
-      for Dir of Info.Project.Source_Dirs loop
-         Args.Append (+"-I");
-         Args.Append (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
-      end loop;
-
-      --  TODO??? enhance with the -I, -D and -U flags found in the gpr file.
-      --  Also accept such flags on gnatcov command line.
-
-      return Args;
-   end Get_Preprocessing_Args;
 
    -----------------------
    -- Preprocess_Source --
    -----------------------
 
    procedure Preprocess_Source
-     (Filename          : String;
-      PP_Filename       : out Unbounded_String;
-      Info              : in out Project_Info;
-      Search_Paths      : out String_Vectors.Vector;
-      Predefined_Macros : out String_Vectors.Vector)
+     (Filename    : String;
+      PP_Filename : out Unbounded_String;
+      Info        : in out Project_Info;
+      Options     : in out Analysis_Options)
    is
-      Compiler_Driver : constant String :=
-        GNATCOLL.Projects.Attribute_Value
-          (Info.Project, GPR.Compiler_Driver_Attribute, "C");
-
       Cmd : Command_Type;
       --  The command to preprocess the file
 
@@ -2117,10 +2105,11 @@ package body Instrument.C is
    begin
       PP_Filename := +Register_New_File (Info, Filename);
 
-      Cmd := (Command => +Compiler_Driver, others => <>);
+      Cmd := (Command => +Compiler_Driver (Info.Project), others => <>);
 
       Append_Arg (Cmd, "-E");
-      Append_Args (Cmd, Get_Preprocessing_Args (Info));
+      Add_Options (Cmd.Arguments, Options);
+
       Append_Arg (Cmd, Filename);
 
       --  Register the preprocessing command. We need it to preprocess the file
@@ -2150,6 +2139,11 @@ package body Instrument.C is
          Origin_Command_Name => "Preprocessing",
          Output_File         => PP_Output_Filename,
          Ignore_Error        => True);
+
+      --  Clear the search path so that we populate it from the include search
+      --  paths in the logs.
+
+      Options.PP_Search_Path.Clear;
 
       --  Retrieve the include search paths. They are delimited by:
       --  #include "..." search starts here:
@@ -2183,7 +2177,8 @@ package body Instrument.C is
 
                   Match (RE_End_Pattern, Line, Matches);
                   exit when Matches (0) /= No_Match;
-                  Search_Paths.Append (Trim (+Line, Ada.Strings.Left));
+                  Options.PP_Search_Path.Append
+                    (Trim (+Line, Ada.Strings.Left));
                end if;
             end;
          end loop;
@@ -2211,7 +2206,6 @@ package body Instrument.C is
       end;
 
       Delete (PP_Output_File);
-      Predefined_Macros := Def_Switches (Info, Compiler_Driver);
    end Preprocess_Source;
 
    ---------------------
@@ -2226,26 +2220,34 @@ package body Instrument.C is
    is
       PP_Filename : Unbounded_String := +Filename;
 
-      Ignore_Search_Paths, Ignore_Predefined_Macros : String_Vectors.Vector;
+      Options : Analysis_Options;
+      Args    : String_Vectors.Vector;
    begin
       if not Preprocessed then
-         Preprocess_Source
-           (Filename, PP_Filename, Info,
-            Ignore_Search_Paths, Ignore_Predefined_Macros);
+         Import_From_Project (Options, Info, Filename);
+         Preprocess_Source (Filename, PP_Filename, Info, Options);
       end if;
 
       Self.CIdx :=
         Create_Index
           (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
-      Self.TU :=
-        Parse_Translation_Unit
-          (C_Idx                 => Self.CIdx,
-           Source_Filename       => +PP_Filename,
-           Command_Line_Args     => System.Null_Address,
-           Num_Command_Line_Args => 0,
-           Unsaved_Files         => null,
-           Num_Unsaved_Files     => 0,
-           Options               => 0);
+
+      Add_Options (Args, Options);
+      declare
+         C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
+      begin
+         Self.TU :=
+           Parse_Translation_Unit
+             (C_Idx                 => Self.CIdx,
+              Source_Filename       => +PP_Filename,
+              Command_Line_Args     => C_Args'Address,
+              Num_Command_Line_Args => C_Args'Length,
+              Unsaved_Files         => null,
+              Num_Unsaved_Files     => 0,
+              Options               => 0);
+         Free (C_Args);
+      end;
+
       Self.Rewriter := CX_Rewriter_Create (Self.TU);
       Self.Output_Filename := PP_Filename;
    end Start_Rewriting;
@@ -2316,14 +2318,7 @@ package body Instrument.C is
       --  inhibit the use of clang predefined macros. We want to fully emulate
       --  the user's preprocessor.
 
-      for Macro_Definition of UIC.PP_Predefined_Macros loop
-         Append (Args, +"-D");
-         Append (Args, Macro_Definition);
-      end loop;
-      for Search_Path of UIC.PP_Search_Paths loop
-         Append (Args, +"-I");
-         Append (Args, Search_Path);
-      end loop;
+      Add_Options (Args, UIC.Options);
       Append (Args, +"-undef");
       Append (Args, +"-nostdinc");
 
@@ -2396,9 +2391,11 @@ package body Instrument.C is
         CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
       UIC.File := +Orig_Filename;
 
-      Preprocess_Source
-        (Orig_Filename, PP_Filename, Prj_Info,
-         UIC.PP_Search_Paths, UIC.PP_Predefined_Macros);
+      --  Import analysis options for the file to preprocess, then run the
+      --  preprocessor.
+
+      Import_From_Project (UIC.Options, Prj_Info, Orig_Filename);
+      Preprocess_Source (Orig_Filename, PP_Filename, Prj_Info, UIC.Options);
 
       --  Start by recording preprocessing information
 
@@ -3057,5 +3054,55 @@ package body Instrument.C is
 
       return Source_File.Unit_Part = Unit_Spec;
    end Skip_Source_File;
+
+   -----------------
+   -- Add_Options --
+   -----------------
+
+   procedure Add_Options
+     (Args : in out String_Vectors.Vector; Options : Analysis_Options) is
+   begin
+      for Dir of Options.PP_Search_Path loop
+         Args.Append (+"-I");
+         Args.Append (Dir);
+      end loop;
+
+      for M of Options.PP_Macros loop
+         declare
+            Prefix : constant Unbounded_String :=
+              +(if M.Define
+                then "-D"
+                else "-U");
+         begin
+            Args.Append (Prefix & M.Value);
+         end;
+      end loop;
+   end Add_Options;
+
+   -------------------------
+   -- Import_From_Project --
+   -------------------------
+
+   procedure Import_From_Project
+     (Self     : out Analysis_Options;
+      Info     : Project_Info;
+      Filename : String) is
+   begin
+      Self.PP_Macros :=
+        Builtin_Macros (Compiler_Driver (Info.Project), +Info.Output_Dir).all;
+
+      --  Pass the source directories of the project file as -I options
+
+      for Dir of Info.Project.Source_Dirs loop
+         Self.PP_Search_Path.Append
+           (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
+      end loop;
+
+      --  TODO??? Add -I, -D and -U options from compiler switches in the
+      --  project file, and allow users to add more switches from gnatcov's
+      --  command line.
+
+      pragma Unreferenced (Filename);
+   end Import_From_Project;
 
 end Instrument.C;
