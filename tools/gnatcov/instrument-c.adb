@@ -307,6 +307,9 @@ package body Instrument.C is
    procedure Run_Diagnostics (TU : Translation_Unit_T)
    with Unreferenced;
    --  Output clang diagnostics on the given translation unit
+   --
+   --  TODO??? If this is a debug helper, use it in verbose mode instead of
+   --  leaving it unreferenced.
 
    procedure Auto_Dump_Buffers_In_Main
      (IC   : Inst_Context;
