@@ -444,30 +444,36 @@ package body Project is
            (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
          for LI of Lib_Info loop
 
-            --  If the unit for this library file is in Unit_Map, this is a
-            --  unit of interest, so use it.
+            --  Enumerate only LI files for Ada and C sources
 
-            declare
-               use Unit_Maps;
+            if To_Lower (LI.Source.Language) in "ada" | "c" then
 
-               LI_Source_Unit : constant String := LI.Source.Unit_Name;
-               LI_Source_File : constant String := +LI.Source.File.Base_Name;
+               --  If the unit for this library file is in Unit_Map, this is a
+               --  unit of interest, so use it.
 
-               U  : constant String :=
-                      (if LI_Source_Unit'Length > 0
-                       then LI_Source_Unit
-                       else LI_Source_File);
-               --  For unit-based languages (Ada), retrieve unit name from LI
-               --  file. For file-based languages (C), fall back to translation
-               --  unit source file name instead.
+               declare
+                  use Unit_Maps;
 
-               Cur : constant Cursor := Unit_Map.Find (U);
-            begin
-               if Has_Element (Cur) then
-                  LI_Cb.all (+LI.Library_File.Full_Name);
-                  Unit_Map.Reference (Cur).LI_Seen := True;
-               end if;
-            end;
+                  LI_Source_Unit : constant String := LI.Source.Unit_Name;
+                  LI_Source_File : constant String :=
+                    +LI.Source.File.Base_Name;
+
+                  U  : constant String :=
+                         (if LI_Source_Unit'Length > 0
+                          then LI_Source_Unit
+                          else LI_Source_File);
+                  --  For unit-based languages (Ada), retrieve unit name from
+                  --  LI file. For file-based languages (C), fall back to
+                  --  translation unit source file name instead.
+
+                  Cur : constant Cursor := Unit_Map.Find (U);
+               begin
+                  if Has_Element (Cur) then
+                     LI_Cb.all (+LI.Library_File.Full_Name);
+                     Unit_Map.Reference (Cur).LI_Seen := True;
+                  end if;
+               end;
+            end if;
          end loop;
          Lib_Info.Clear;
       end loop;
