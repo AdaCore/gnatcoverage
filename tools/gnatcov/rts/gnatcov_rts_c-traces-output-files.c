@@ -94,7 +94,8 @@ concat (const char *s1, ...)
    basename for the source trace file.  See the documentation of
    gnatcov_rts_default_trace_filename for more information.  */
 char *
-gnatcov_rts_default_trace_basename (char *prefix, char *tag, unsigned simple)
+gnatcov_rts_default_trace_basename (const char *prefix, const char *tag,
+				    unsigned simple)
 {
   char *extension = ".srctrace";
   if (simple)
@@ -118,8 +119,8 @@ gnatcov_rts_default_trace_basename (char *prefix, char *tag, unsigned simple)
 
 /* See gnatcov_rts_cc-traces-output-files.h.  */
 char *
-gnatcov_rts_default_trace_filename (char *env_var, char *prefix, char *tag,
-                                    unsigned simple)
+gnatcov_rts_default_trace_filename (const char *env_var, const char *prefix,
+				    const char *tag, unsigned simple)
 {
   char *env_trace_filename = getenv (env_var);
 
@@ -152,9 +153,10 @@ gnatcov_rts_default_trace_filename (char *env_var, char *prefix, char *tag,
 
 /* See gnatcov_rts_c-traces-output-files.h.  */
 int
-gnatcov_rts_write_trace_file (gnatcov_rts_unit_coverage_buffers_array *buffers,
-                              char *filename, gnatcov_rts_string program_name,
-                              uint64_t exec_date, gnatcov_rts_string user_data)
+gnatcov_rts_write_trace_file (
+  const gnatcov_rts_unit_coverage_buffers_array *buffers, const char *filename,
+  gnatcov_rts_string program_name, uint64_t exec_date,
+  gnatcov_rts_string user_data)
 {
   FILE *file = fopen (filename, "wb+");
   if (!file)
@@ -168,9 +170,9 @@ gnatcov_rts_write_trace_file (gnatcov_rts_unit_coverage_buffers_array *buffers,
 
 /* See gnatcov_rts_c-traces-output-files.h.  */
 void
-gnatcov_rts_write_trace_file_wrapper
-  (gnatcov_rts_unit_coverage_buffers_array *buffers,
-  char *filename, gnatcov_rts_string program_name,
+gnatcov_rts_write_trace_file_wrapper (
+  const gnatcov_rts_unit_coverage_buffers_array *buffers,
+  const char *filename, gnatcov_rts_string program_name,
   uint64_t exec_date, gnatcov_rts_string user_data)
 {
   if (gnatcov_rts_write_trace_file

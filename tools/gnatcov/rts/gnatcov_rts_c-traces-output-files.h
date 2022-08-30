@@ -44,8 +44,10 @@
      filename in that directory;
 
    * otherwise, just return the content of that environment variable.  */
-extern char *gnatcov_rts_default_trace_filename (char *env_var, char *prefix,
-                                                 char *tag, unsigned simple);
+extern char *gnatcov_rts_default_trace_filename (const char *env_var,
+						 const char *prefix,
+						 const char *tag,
+						 unsigned simple);
 
 /* Write a trace file in FILENAME to contain the data in BUFFERS.
 
@@ -58,15 +60,15 @@ extern char *gnatcov_rts_default_trace_filename (char *env_var, char *prefix,
    Return 0 if the trace creation was successful, 1 otherwise.  In case of
    error, ERRNO is left to the number for the cause of error.  */
 extern int
-gnatcov_rts_write_trace_file (gnatcov_rts_unit_coverage_buffers_array *buffers,
-                              char *filename, gnatcov_rts_string program_name,
-                              uint64_t exec_date,
-                              gnatcov_rts_string user_data);
+gnatcov_rts_write_trace_file (
+  const gnatcov_rts_unit_coverage_buffers_array *buffers, const char *filename,
+  gnatcov_rts_string program_name, uint64_t exec_date,
+  gnatcov_rts_string user_data);
 
 /* Call gnatcov_rts_write_trace_file and print an error message on the standard
    error if the trace could not be created.  */
 extern void
-gnatcov_rts_write_trace_file_wrapper
-  (gnatcov_rts_unit_coverage_buffers_array *buffers,
-   char *filename, gnatcov_rts_string program_name,
-   uint64_t exec_date, gnatcov_rts_string user_data);
+gnatcov_rts_write_trace_file_wrapper (
+  const gnatcov_rts_unit_coverage_buffers_array *buffers, const char *filename,
+  gnatcov_rts_string program_name, uint64_t exec_date,
+  gnatcov_rts_string user_data);
