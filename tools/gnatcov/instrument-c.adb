@@ -2734,11 +2734,9 @@ package body Instrument.C is
 
          File.Put_Line ("    .language_kind = FILE_BASED_LANGUAGE,");
          File.Put_Line ("    .unit_part = NOT_APPLICABLE_PART,");
-         File.Put_Line ("    .unit_name = " & "{""" & Unit_Name & """, "
-                        & Natural'Image (Unit_Name'Length) & "},");
+         File.Put_Line ("    .unit_name = STR (""" & Unit_Name & """),");
 
-         File.Put_Line ("    .project_name = " & "{ """ & Project_Name & """, "
-                        & Natural'Image (Project_Name'Length) & "},");
+         File.Put_Line ("    .project_name = STR (""" & Project_Name & """),");
 
          --  We do not use the created pointer (Statement_Buffer) to initialize
          --  the buffer fields, as this is rejected by old versions of the
