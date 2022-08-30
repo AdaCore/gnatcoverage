@@ -34,6 +34,7 @@ with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
+with Command_Line;
 with Coverage;            use Coverage;
 with Coverage_Options;
 with Files_Table;         use Files_Table;
@@ -2223,8 +2224,8 @@ package body Instrument.C is
       Options : Analysis_Options;
       Args    : String_Vectors.Vector;
    begin
+      Import_Options (Options, Info, Filename);
       if not Preprocessed then
-         Import_From_Project (Options, Info, Filename);
          Preprocess_Source (Filename, PP_Filename, Info, Options);
       end if;
 
@@ -2394,7 +2395,7 @@ package body Instrument.C is
       --  Import analysis options for the file to preprocess, then run the
       --  preprocessor.
 
-      Import_From_Project (UIC.Options, Prj_Info, Orig_Filename);
+      Import_Options (UIC.Options, Prj_Info, Orig_Filename);
       Preprocess_Source (Orig_Filename, PP_Filename, Prj_Info, UIC.Options);
 
       --  Start by recording preprocessing information
@@ -3104,5 +3105,146 @@ package body Instrument.C is
 
       pragma Unreferenced (Filename);
    end Import_From_Project;
+
+   ----------------------
+   -- Import_From_Args --
+   ----------------------
+
+   procedure Import_From_Args
+     (Self : in out Analysis_Options; Args : String_Vectors.Vector)
+   is
+      I    : Natural := Args.First_Index;
+      Last : constant Natural := Args.Last_Index;
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean;
+      --  Assuming that Arg starts with "-X" where X is Option_Name, try to
+      --  fetch the value for this option. If we managed to get one, return
+      --  True and set Value to it. Return False otherwise.
+
+      ------------------------
+      -- Read_With_Argument --
+      ------------------------
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean
+      is
+         Prefix : constant String := ('-', Option_Name);
+      begin
+         if Arg = Prefix then
+
+            --  Option and value are two separate arguments (-O VALUE)
+
+            I := I + 1;
+            if I <= Last then
+               Value := Args (I);
+               return True;
+            end if;
+
+         elsif Has_Prefix (Arg, Prefix) then
+
+            --  Option and value are combined in a single argument (-OVALUE)
+
+            Value := +Arg (Arg'First + Prefix'Length .. Arg'Last);
+            return True;
+         end if;
+
+         return False;
+      end Read_With_Argument;
+
+   --  Start of processing for Import_From_Args
+
+   begin
+      while I <= Last loop
+         declare
+            A     : constant String := +Args (I);
+            Value : Unbounded_String;
+         begin
+
+            --  Process arguments we manage to handle, silently discard unknown
+            --  ones.
+            --
+            --  TODO??? In order to avoid surprising situations for users (for
+            --  instance typos in command line arguments), maybe we should emit
+            --  a warning for unknown arguments. However, given that this
+            --  procedure is called at least once per instrumented source file,
+            --  we would need to avoid emitting duplicate warnings.
+
+            if Read_With_Argument (A, 'I', Value) then
+               Self.PP_Search_Path.Append (Value);
+
+            elsif Read_With_Argument (A, 'D', Value) then
+               Self.PP_Macros.Append ((Define => True, Value => Value));
+
+            elsif Read_With_Argument (A, 'U', Value) then
+               Self.PP_Macros.Append ((Define => False, Value => Value));
+            end if;
+
+            I := I + 1;
+         end;
+      end loop;
+   end Import_From_Args;
+
+   ----------------
+   -- Split_Args --
+   ----------------
+
+   function Split_Args (Args : Unbounded_String) return String_Vectors.Vector
+   is
+      Last_Is_Backslash : Boolean := False;
+      --  Whether the last character analyzed was a backslash
+   begin
+      return Result : String_Vectors.Vector do
+
+         --  The split of an empty string must yield a list of 1 empty string
+
+         Result.Append (Null_Unbounded_String);
+
+         for I in 1 .. Length (Args) loop
+            declare
+               C : constant Character := Element (Args, I);
+            begin
+               if Last_Is_Backslash then
+
+                  --  If the last character was a backslash, we expect a comma
+
+                  if C = ',' then
+                     Append (Result.Reference (Result.Last), C);
+                  else
+                     Fatal_Error ("Invalid comma-separated option list");
+                  end if;
+                  Last_Is_Backslash := False;
+
+               else
+                  case C is
+                     when '\' =>
+                        Last_Is_Backslash := True;
+                     when ',' =>
+                        Result.Append (Null_Unbounded_String);
+                     when others =>
+                        Append (Result.Reference (Result.Last), C);
+                  end case;
+               end if;
+            end;
+         end loop;
+      end return;
+   end Split_Args;
+
+   --------------------
+   -- Import_Options --
+   --------------------
+
+   procedure Import_Options
+     (Self : out Analysis_Options; Info : Project_Info; Filename : String) is
+   begin
+      Import_From_Project (Self, Info, Filename);
+      for Args of Switches.Args.String_List_Args (Command_Line.Opt_C_Opts) loop
+         Import_From_Args (Self, Split_Args (Args));
+      end loop;
+   end Import_Options;
 
 end Instrument.C;

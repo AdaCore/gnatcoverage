@@ -231,6 +231,19 @@ private package Instrument.C is
    --  Initialize Self from compiler switches corresponding to the Filename
    --  source file in the Info project.
 
+   procedure Import_From_Args
+     (Self : in out Analysis_Options; Args : String_Vectors.Vector);
+   --  Extract analysis options from the Args command line arguments and update
+   --  Self accordingly.
+
+   function Split_Args (Args : Unbounded_String) return String_Vectors.Vector;
+   --  Split a comma-separated list of arguments
+
+   procedure Import_Options
+     (Self : out Analysis_Options; Info : Project_Info; Filename : String);
+   --  Shortcut to call Import_From_Project, and Import_From_Agrs on the
+   --  --c-opts option.
+
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
          TU       : Translation_Unit_T;
