@@ -27,6 +27,7 @@ with Clang.Extensions; use Clang.Extensions;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
+with GNAT.Strings;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
@@ -3087,7 +3088,9 @@ package body Instrument.C is
    procedure Import_From_Project
      (Self     : out Analysis_Options;
       Info     : Project_Info;
-      Filename : String) is
+      Filename : String)
+   is
+      Switches : GNAT.Strings.String_List_Access;
    begin
       Self.PP_Macros :=
         Builtin_Macros (Compiler_Driver (Info.Project), +Info.Output_Dir).all;
@@ -3099,11 +3102,36 @@ package body Instrument.C is
            (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
       end loop;
 
-      --  TODO??? Add -I, -D and -U options from compiler switches in the
-      --  project file, and allow users to add more switches from gnatcov's
-      --  command line.
+      --  Now get actual compiler switches from the project file for Filename.
+      --  First try to get the switches specifically for Filename, then if
+      --  there are none fall back to default switches for C.
 
-      pragma Unreferenced (Filename);
+      Switches :=
+        Info.Project.Attribute_Value
+          (Attribute => GPR.Build ("compiler", "switches"),
+           Index     => Simple_Name (Filename));
+
+      if Switches = null then
+         Switches :=
+           Info.Project.Attribute_Value
+             (Attribute => GPR.Compiler_Default_Switches_Attribute,
+              Index     => "c");
+      end if;
+
+      --  If we manage to find appropriate switches, convert them to a string
+      --  vector import the switches.
+
+      if Switches /= null then
+         declare
+            Args : String_Vectors.Vector;
+         begin
+            for S of Switches.all loop
+               Args.Append (To_Unbounded_String (S.all));
+            end loop;
+            GNAT.Strings.Free (Switches);
+            Import_From_Args (Self, Args);
+         end;
+      end if;
    end Import_From_Project;
 
    ----------------------
@@ -3114,7 +3142,7 @@ package body Instrument.C is
      (Self : in out Analysis_Options; Args : String_Vectors.Vector)
    is
       I    : Natural := Args.First_Index;
-      Last : constant Natural := Args.Last_Index;
+      Last : constant Integer := Args.Last_Index;
 
       function Read_With_Argument
         (Arg         : String;
