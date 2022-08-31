@@ -29,7 +29,6 @@ with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 with GNAT.String_Split;
 
-with GNATCOLL.Projects;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Interfaces;           use Interfaces;
@@ -57,6 +56,14 @@ package body Instrument.C is
    package GPR renames GNATCOLL.Projects;
    package US renames Ada.Strings.Unbounded;
 
+   function To_Chars_Ptr_Array
+     (V : String_Vectors.Vector) return chars_ptr_array;
+   --  Convert a string vector to a chars_ptr_array. Result must be freed by
+   --  the caller.
+
+   procedure Free (Self : in out chars_ptr_array);
+   --  Free all strings in Self
+
    ------------------------------
    --  Preprocessing utilities --
    ------------------------------
@@ -69,8 +76,7 @@ package body Instrument.C is
    --  when we will refine what is done with macros.
 
    function Builtin_Macros
-     (Info     : Project_Info;
-      Compiler : String) return String_Vectors.Vector;
+     (Info : Project_Info; Compiler : String) return String_Vectors.Vector;
    --  Return the list of built-in macros for the given compiler. The result is
    --  the list of macro definitions under the following string format:
    --
@@ -79,8 +85,7 @@ package body Instrument.C is
    --  #define __INT_WIDTH__ 32
 
    function Def_Switches
-     (Info     : Project_Info;
-      Compiler : String) return String_Vectors.Vector;
+     (Info : Project_Info; Compiler : String) return String_Vectors.Vector;
    --  Return the list of macros predefined by the given Compiler with their
    --  values as strings.
    --
@@ -181,20 +186,17 @@ package body Instrument.C is
    -------------------------------------
 
    function Make_Expr_Witness
-     (UIC : C_Unit_Inst_Context;
-      Bit : Bit_Id) return String;
+     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String;
    --  Create a procedure call expression on to witness execution of the low
    --  level SCO with the given bit id.
 
    function Make_Statement_Witness
-     (UIC : C_Unit_Inst_Context;
-      Bit : Bit_Id) return String;
+     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String;
    --  Create a procedure call statement to witness execution of the low level
    --  SCO with the given bit id.
 
    procedure Insert_Statement_Witness
-     (UIC : in out C_Unit_Inst_Context;
-      SS  : C_Source_Statement);
+     (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement);
    --  Insert witness function call for the identified statement
 
    procedure Insert_Decision_Witness
@@ -217,8 +219,7 @@ package body Instrument.C is
    --  decision SCO.
 
    function Insert_MCDC_State
-     (UIC  : in out C_Unit_Inst_Context'Class;
-      Name : String) return String;
+     (UIC : in out C_Unit_Inst_Context'Class; Name : String) return String;
 
    ----------------------------
    -- Source level rewriting --
@@ -287,9 +288,47 @@ package body Instrument.C is
    --  owns this main. Upon return, the name of this helper unit is stored in
    --  Helper_Unit.
 
-   procedure Run_Diagnostics (TU : Translation_Unit_T);
+   procedure Run_Diagnostics (TU : Translation_Unit_T)
+   with Unreferenced;
    --  Output clang diagnostics on the given translation unit
-   pragma Unreferenced (Run_Diagnostics);
+
+   procedure Auto_Dump_Buffers_In_Main
+     (IC   : Inst_Context;
+      Info : in out Project_Info;
+      Main : Compilation_Unit_Name;
+      Rew  : in out C_Source_Rewriter);
+   --  Common code for auto dump insertion in the "main" function, used in the
+   --  Auto_Dump_Buffers_In_Main primitive for C_Instrumenter_Type, and from
+   --  the Instrument_Source_File procedure.
+   --
+   --  Arguments have the same semantics as in the Auto_Dump_Buffers_In_Main
+   --  primitive. The additional Rew argument is the C source rewriter that is
+   --  ready to use for the source file to instrument.
+
+   ------------------------
+   -- To_Chars_Ptr_Array --
+   ------------------------
+
+   function To_Chars_Ptr_Array
+     (V : String_Vectors.Vector) return chars_ptr_array is
+   begin
+      return Result : chars_ptr_array (1 .. Interfaces.C.size_t (V.Length)) do
+         for I in Result'Range loop
+            Result (I) := New_String (+V (Integer (I) - 1));
+         end loop;
+      end return;
+   end To_Chars_Ptr_Array;
+
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Self : in out chars_ptr_array) is
+   begin
+      for Item of Self loop
+         Free (Item);
+      end loop;
+   end Free;
 
    ----------------
    -- Append_SCO --
@@ -321,8 +360,7 @@ package body Instrument.C is
       end if;
 
       Get_Expansion_Location
-        (Loc, File'Address, Line'Access,
-         Column'Access, Offset'Access);
+        (Loc, File'Address, Line'Access, Column'Access, Offset'Access);
 
       Info.Actual_Source_Range :=
         (First_Sloc =>
@@ -431,8 +469,7 @@ package body Instrument.C is
 
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics
-                 (Macro_Arg_Expanded_Loc_C,
-                  UIC.TU);
+                    (Macro_Arg_Expanded_Loc_C, UIC.TU);
 
                Definition_Info :=
                  (Macro_Name => Macro_Expansion_Name,
@@ -605,17 +642,13 @@ package body Instrument.C is
 
             Cursor_Source_Range : Slocs.Local_Source_Location_Range;
 
-            procedure Update
-              (LL_SCO : Nat;
-               Info   : in out PP_Info);
+            procedure Update (LL_SCO : Nat; Info : in out PP_Info);
 
             ------------
             -- Update --
             ------------
 
-            procedure Update
-              (LL_SCO : Nat;
-               Info   : in out PP_Info) is
+            procedure Update (LL_SCO : Nat; Info : in out PP_Info) is
                pragma Unreferenced (LL_SCO);
             begin
                if Info.Kind = In_Expansion then
@@ -658,9 +691,7 @@ package body Instrument.C is
    -------------
 
    procedure Curlify
-     (Pass : Instrument_Pass_Kind;
-      N    : Cursor_T;
-      Rew  : Rewriter_T) is
+     (Pass : Instrument_Pass_Kind; N : Cursor_T; Rew : Rewriter_T) is
    begin
       Curlify (N, Rew);
    end Curlify;
@@ -739,8 +770,7 @@ package body Instrument.C is
    -----------------------
 
    function Make_Expr_Witness
-     (UIC : C_Unit_Inst_Context;
-      Bit : Bit_Id) return String
+     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String
    is
       Bit_Img : constant String  := Img (Bit);
    begin
@@ -754,8 +784,7 @@ package body Instrument.C is
    ----------------------------
 
    function Make_Statement_Witness
-     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String
-   is
+     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String is
    begin
       return Make_Expr_Witness (UIC, Bit) & ";";
    end Make_Statement_Witness;
@@ -765,9 +794,7 @@ package body Instrument.C is
    ------------------------------
 
    procedure Insert_Statement_Witness
-     (UIC : in out C_Unit_Inst_Context;
-      SS  : C_Source_Statement)
-   is
+     (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement) is
    begin
       --  Allocate a bit in the statement coverage buffer, and record
       --  its id in the bitmap.
@@ -804,8 +831,7 @@ package body Instrument.C is
    procedure Insert_Condition_Witness
      (UIC    : in out C_Unit_Inst_Context;
       SC     : C_Source_Condition;
-      Offset : Natural)
-   is
+      Offset : Natural) is
    begin
       --  No instrumentation for condition if there is no local state variable
 
@@ -907,8 +933,7 @@ package body Instrument.C is
    -----------------------
 
    function Insert_MCDC_State
-     (UIC      : in out C_Unit_Inst_Context'Class;
-      Name     : String) return String
+     (UIC : in out C_Unit_Inst_Context'Class; Name : String) return String
    is
       Var_Decl_Img  : constant String :=
         "unsigned " & Name & "_var;";
@@ -1014,14 +1039,13 @@ package body Instrument.C is
    --  dominant information corresponding to the last node with SCO in L.
 
    procedure Traverse_Declarations
-     (IC : in out Inst_Context;
+     (IC  : in out Inst_Context;
       UIC : in out C_Unit_Inst_Context;
       L   : Cursor_Vectors.Vector);
+   --  Traverse a translation unit (top level declarations)
 
    procedure Process_Decisions
-     (UIC : in out C_Unit_Inst_Context;
-      N   : Cursor_T;
-      T   : Character);
+     (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains.
 
@@ -1065,9 +1089,7 @@ package body Instrument.C is
    -----------------------
 
    procedure Process_Decisions
-     (UIC : in out C_Unit_Inst_Context;
-      N   : Cursor_T;
-      T   : Character)
+     (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character)
    is
       Mark : Nat;
       --  This is used to mark the location of a decision sequence in the SCO
@@ -1191,7 +1213,8 @@ package body Instrument.C is
                R := Get_RHS (N);
                if Op_N = "||" then
                   C1 := '|';
-               else pragma Assert (Op_N = "&&");
+               else
+                  pragma Assert (Op_N = "&&");
                   C1 := '&';
                end if;
             end if;
@@ -1313,8 +1336,7 @@ package body Instrument.C is
       -- Process_Node --
       ------------------
 
-      function Process_Node (N : Cursor_T) return Child_Visit_Result_T
-      is
+      function Process_Node (N : Cursor_T) return Child_Visit_Result_T is
          --  Test for the two cases where N is the root node of some decision:
 
          Decision_Root : constant Boolean :=
@@ -1409,8 +1431,8 @@ package body Instrument.C is
       Hash_Entries.Free;
    end Process_Decisions;
 
-   procedure Process_Decisions_Defer (N : Cursor_T; T : Character);
-   pragma Inline (Process_Decisions_Defer);
+   procedure Process_Decisions_Defer (N : Cursor_T; T : Character)
+   with Inline;
    --  This routine is logically the same as Process_Decisions, except that the
    --  arguments are saved in the SD table for later processing when
    --  Set_Statement_Entry is called, which goes through the saved entries
@@ -1727,7 +1749,7 @@ package body Instrument.C is
             when Cursor_Null_Stmt =>
                null;
 
-            --  TODO: there are probably missing special statements, such as
+            --  TODO??? there are probably missing special statements, such as
             --  ternary operator etc. Do that in a later step.
 
             when others =>
@@ -1752,11 +1774,13 @@ package body Instrument.C is
          end case;
       end Traverse_One;
 
-      procedure Set_Statement_Entry is
+      -------------------------
+      -- Set_Statement_Entry --
+      -------------------------
 
+      procedure Set_Statement_Entry is
          SC_Last : constant Types.Int := SC.Last;
          SD_Last : constant Types.Int := SD.Last;
-
       begin
          for J in SC_First .. SC_Last loop
             --  If there is a pending dominant for this statement sequence,
@@ -1831,6 +1855,9 @@ package body Instrument.C is
       use Cursor_Vectors;
 
       Emit_SCOs : Boolean := False;
+
+   --  Start of processing for Traverse_Statements
+
    begin
       for N of L loop
          Traverse_One (N);
@@ -1843,7 +1870,9 @@ package body Instrument.C is
       return Current_Dominant;
    end Traverse_Statements;
 
-   --  Traverse a translation unit (top level declarations)
+   ---------------------------
+   -- Traverse_Declarations --
+   ---------------------------
 
    procedure Traverse_Declarations
      (IC  : in out Inst_Context;
@@ -1948,8 +1977,7 @@ package body Instrument.C is
    --------------------
 
    function Builtin_Macros
-     (Info     : Project_Info;
-      Compiler : String) return String_Vectors.Vector
+     (Info : Project_Info; Compiler : String) return String_Vectors.Vector
    is
       Basename : constant String :=
         Ada.Directories.Simple_Name (Compiler) & "_builtins";
@@ -2000,8 +2028,8 @@ package body Instrument.C is
    ------------------
 
    function Def_Switches
-     (Info     : Project_Info;
-      Compiler : String) return String_Vectors.Vector is
+     (Info : Project_Info; Compiler : String) return String_Vectors.Vector
+   is
       use Ada.Characters;
       use GNAT;
 
@@ -2053,7 +2081,7 @@ package body Instrument.C is
          Args.Append (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
       end loop;
 
-      --  TODO: enhance with the -I, -D and -U flags found in the gpr file.
+      --  TODO??? enhance with the -I, -D and -U flags found in the gpr file.
       --  Also accept such flags on gnatcov command line.
 
       return Args;
@@ -2211,7 +2239,7 @@ package body Instrument.C is
           (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
       Self.TU :=
         Parse_Translation_Unit
-          (C_Idx => Self.CIdx,
+          (C_Idx                 => Self.CIdx,
            Source_Filename       => +PP_Filename,
            Command_Line_Args     => System.Null_Address,
            Num_Command_Line_Args => 0,
@@ -2275,9 +2303,7 @@ package body Instrument.C is
       UIC       : in out C_Unit_Inst_Context)
    is
       Orig_Filename : constant String  := +Unit_Info.Filename;
-
-      Command_Line_Args     : String_Vectors.Vector;
-      Num_Command_Line_Args : Interfaces.C.size_t;
+      Args          : String_Vectors.Vector;
 
       use String_Vectors;
    begin
@@ -2291,46 +2317,31 @@ package body Instrument.C is
       --  the user's preprocessor.
 
       for Macro_Definition of UIC.PP_Predefined_Macros loop
-         Append (Command_Line_Args, +"-D");
-         Append (Command_Line_Args, Macro_Definition);
+         Append (Args, +"-D");
+         Append (Args, Macro_Definition);
       end loop;
       for Search_Path of UIC.PP_Search_Paths loop
-         Append (Command_Line_Args, +"-I");
-         Append (Command_Line_Args, Search_Path);
+         Append (Args, +"-I");
+         Append (Args, Search_Path);
       end loop;
-      Append (Command_Line_Args, +"-undef");
-      Append (Command_Line_Args, +"-nostdinc");
+      Append (Args, +"-undef");
+      Append (Args, +"-nostdinc");
 
       --  Convert to C compatible char**
 
-      Num_Command_Line_Args := Interfaces.C.size_t
-        (Length (Command_Line_Args));
-
       declare
-         Command_Line_Args_C : chars_ptr_array
-           (1 .. Num_Command_Line_Args);
-
-         I : Interfaces.C.size_t := 1;
+         C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
       begin
-         for Command_Line_Arg of Command_Line_Args loop
-            Command_Line_Args_C (I) := New_String (+Command_Line_Arg);
-            I := I + 1;
-         end loop;
-
          UIC.TU :=
            Parse_Translation_Unit
              (C_Idx                 => UIC.CIdx,
               Source_Filename       => Orig_Filename,
-              Command_Line_Args     => Command_Line_Args_C (1)'Address,
-              Num_Command_Line_Args =>
-                Interfaces.C.int (Num_Command_Line_Args),
+              Command_Line_Args     => C_Args'Address,
+              Num_Command_Line_Args => C_Args'Length,
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
               Options               => 0);
-
-         for Command_Line_Arg_C of Command_Line_Args_C loop
-            Free (Command_Line_Arg_C);
-         end loop;
+         Free (C_Args);
       end;
       Traverse_Declarations
         (IC  => IC,
@@ -2386,8 +2397,8 @@ package body Instrument.C is
       UIC.File := +Orig_Filename;
 
       Preprocess_Source
-         (Orig_Filename, PP_Filename, Prj_Info,
-          UIC.PP_Search_Paths, UIC.PP_Predefined_Macros);
+        (Orig_Filename, PP_Filename, Prj_Info,
+         UIC.PP_Search_Paths, UIC.PP_Predefined_Macros);
 
       --  Start by recording preprocessing information
 
@@ -2432,9 +2443,9 @@ package body Instrument.C is
 
       if Record_PP_Info_Last_SCO /= SCOs.SCO_Table.Last then
          Outputs.Warn
-           (Orig_Filename & " : preprocessed file coverage obligations"
-              &  " inconsistent with original file obligations "
-              & ". Discarding preprocessing information.");
+           (Orig_Filename & ": preprocessed file coverage obligations"
+              &  " inconsistent with obligations from the original file."
+              & " Discarding preprocessing information.");
          UIC.LL_PP_Info_Map.Clear;
       end if;
 
@@ -2448,7 +2459,7 @@ package body Instrument.C is
          Created_Units : Created_Unit_Maps.Map;
       begin
          Process_Low_Level_SCOs
-           (Provider      => Instrumenter,
+           (Provider      => SC_Obligations.Instrumenter,
             Origin        => UIC.SFI,
             Created_Units => Created_Units,
             SCO_Map       => SCO_Map'Access,
@@ -2519,8 +2530,7 @@ package body Instrument.C is
             begin
                for Outcome in Boolean loop
                   Bit_Maps.Decision_Bits
-                    (D_Bit_Alloc.Outcome_Bits (Outcome)) :=
-                      (D_SCO, Outcome);
+                    (D_Bit_Alloc.Outcome_Bits (Outcome)) := (D_SCO, Outcome);
                end loop;
 
                if MCDC_Coverage_Enabled
@@ -2601,7 +2611,7 @@ package body Instrument.C is
       --  Insert automatic buffer dump calls, if requested
 
       if IC.Dump_Config.Trigger /= Manual and then Unit_Info.Is_Main then
-         Add_Auto_Dump_Buffers
+         Auto_Dump_Buffers_In_Main
            (IC   => IC,
             Info => Prj_Info,
             Main => UIC.Instrumented_Unit,
@@ -2772,8 +2782,7 @@ package body Instrument.C is
 
       declare
          Filename       : constant String := +Helper_Unit;
-         Dump_Procedure : constant String :=
-           Dump_Procedure_Symbol (Main);
+         Dump_Procedure : constant String := Dump_Procedure_Symbol (Main);
 
       begin
          --  Emit the package body
@@ -2852,15 +2861,15 @@ package body Instrument.C is
       end;
    end Emit_Dump_Helper_Unit;
 
-   ---------------------------
-   -- Add_Auto_Dump_Buffers --
-   ---------------------------
+   -------------------------------
+   -- Auto_Dump_Buffers_In_Main --
+   -------------------------------
 
-   procedure Add_Auto_Dump_Buffers
+   procedure Auto_Dump_Buffers_In_Main
      (IC   : Inst_Context;
       Info : in out Project_Info;
       Main : Compilation_Unit_Name;
-      Rew  : C_Source_Rewriter)
+      Rew  : in out C_Source_Rewriter)
    is
       Instr_Units : constant CU_Name_Vectors.Vector :=
         Instr_Units_For_Closure (IC, Main);
@@ -2897,20 +2906,36 @@ package body Instrument.C is
                         "extern int atexit( void ( * function ) (void) );");
 
             Add_Statement_In_Main
-              (Rew.TU, Rew.Rewriter, "atexit ("
-               & Dump_Procedure_Symbol (Main) & ");");
+              (Rew.TU, Rew.Rewriter,
+               "atexit (" & Dump_Procedure_Symbol (Main) & ");");
 
          when others =>
             null;
       end case;
-   end Add_Auto_Dump_Buffers;
+
+   end Auto_Dump_Buffers_In_Main;
+
+   overriding procedure Auto_Dump_Buffers_In_Main
+     (Self     : C_Instrumenter_Type;
+      IC       : in out Inst_Context;
+      Main     : Compilation_Unit_Name;
+      Filename : String;
+      Info     : in out Project_Info)
+   is
+      Rew : C_Source_Rewriter;
+   begin
+      Rew.Start_Rewriting (Info, Filename);
+      Auto_Dump_Buffers_In_Main (IC, Info, Main, Rew);
+      Rew.Apply;
+   end Auto_Dump_Buffers_In_Main;
 
    ----------------------------
    -- Emit_Buffers_List_Unit --
    ----------------------------
 
-   procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
+   overriding procedure Emit_Buffers_List_Unit
+     (Self              : C_Instrumenter_Type;
+      IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info)
    is
       CU_Name_Body   : constant Compilation_Unit_Name :=
@@ -2989,8 +3014,9 @@ package body Instrument.C is
    -- Instrument_Unit --
    ---------------------
 
-   procedure Instrument_Unit
-     (CU_Name   : Compilation_Unit_Name;
+   overriding procedure Instrument_Unit
+     (Self      : C_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info)
    is
@@ -3015,4 +3041,21 @@ package body Instrument.C is
 
       Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
    end Instrument_Unit;
+
+   ----------------------
+   -- Skip_Source_File --
+   ----------------------
+
+   overriding function Skip_Source_File
+     (Self        : C_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean
+   is
+      use GNATCOLL.Projects;
+   begin
+      --  Do not instrument C headers: code in C header is meant to be
+      --  instrumented at the time it is included in a ".c" source.
+
+      return Source_File.Unit_Part = Unit_Spec;
+   end Skip_Source_File;
+
 end Instrument.C;

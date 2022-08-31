@@ -24,7 +24,7 @@
 
 typedef struct gnatcov_rts_string
 {
-  char *str;
+  const char *str;
   size_t length;
 } gnatcov_rts_string;
 

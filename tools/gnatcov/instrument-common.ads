@@ -548,6 +548,52 @@ package Instrument.Common is
    --  UIC.Current_Scope_Entity.Parent, if any. Assume that the last generated
    --  SCO (SCOs.SCO_Table.Last) is the last SCO for the current scope.
 
+   type Language_Instrumenter is abstract tagged null record;
+   --  Set of operations to allow the instrumentation of sources files for a
+   --  given language.
+
+   function Skip_Source_File
+     (Self        : Language_Instrumenter;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean
+   is (False);
+   --  Whether the instrumenter skips the given source file.
+   --
+   --  There is currently only one case where this is needed: the C
+   --  instrumenter must skip header files, as it instruments only bodies (.c
+   --  files).
+
+   procedure Instrument_Unit
+     (Self      : Language_Instrumenter;
+      CU_Name   : Compilation_Unit_Name;
+      IC        : in out Inst_Context;
+      Unit_Info : in out Instrumented_Unit_Info) is abstract;
+   --  Instrument a single source file for the language that Self supports.
+   --
+   --  CU_Name must be the name of the compilation unit for this source file,
+   --  and Unit_Info must be the Instrumented_Unit_Info record corresponding to
+   --  this source file.
+
+   procedure Auto_Dump_Buffers_In_Main
+     (Self     : Language_Instrumenter;
+      IC       : in out Inst_Context;
+      Main     : Compilation_Unit_Name;
+      Filename : String;
+      Info     : in out Project_Info) is abstract;
+   --  Try to instrument the Main/Filename source file (whose language is
+   --  assumed to be Self's) to insert a call to dump the list of coverage
+   --  buffers for all units of interest in Main's closure. Do nothing if not
+   --  successful.
+   --
+   --  Info must be the Project_Info record corresponding to the project that
+   --  owns the Main unit.
+
+   procedure Emit_Buffers_List_Unit
+     (Self              : Language_Instrumenter;
+      IC                : in out Inst_Context;
+      Root_Project_Info : in out Project_Info) is abstract;
+   --  Emit in the root project a unit (in Self's language) to contain the list
+   --  of coverage buffers for all units of interest.
+
 private
 
    type Source_Rewriter is limited new Ada.Finalization.Limited_Controlled with

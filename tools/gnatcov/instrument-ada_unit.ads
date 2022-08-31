@@ -34,30 +34,29 @@ with Types;                 use Types;
 
 package Instrument.Ada_Unit is
 
-   procedure Instrument_Unit
-     (CU_Name   : Compilation_Unit_Name;
+   type Ada_Instrumenter_Type is new Language_Instrumenter with
+     null record;
+   --  Instrumentation primitives for Ada
+
+   overriding procedure Instrument_Unit
+     (Self      : Ada_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info);
-   --  Instrument a single source file of interest from the project
 
-   procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
+   overriding procedure Auto_Dump_Buffers_In_Main
+     (Self     : Ada_Instrumenter_Type;
+      IC       : in out Inst_Context;
+      Main     : Compilation_Unit_Name;
+      Filename : String;
+      Info     : in out Project_Info);
+
+   overriding procedure Emit_Buffers_List_Unit
+     (Self              : Ada_Instrumenter_Type;
+      IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info);
-   --  Emit in the root project a unit to contain the list of coverage buffers
-   --  for all units of interest.
 
-   procedure Add_Auto_Dump_Buffers
-     (IC   : Inst_Context;
-      Info : in out Project_Info;
-      Main : Compilation_Unit_Name;
-      URH  : Unit_Rewriting_Handle)
-     with Pre => IC.Dump_Config.Trigger /= Manual;
-   --  Try to insert in the sources of Main (a main subprogram) a call to dump
-   --  the list of coverage buffers for all units of interest in Main's
-   --  closure. Return without doing anything if unsuccessful.
-   --
-   --  Info must be the project that owns the Main unit, and URH must be a
-   --  rewriting handle for the body unit that contains Main's sources.
+   Instrumenter : aliased constant Ada_Instrumenter_Type := (null record);
 
    --  Private declarations relative to the AST traversal
 private

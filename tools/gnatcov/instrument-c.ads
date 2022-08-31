@@ -23,6 +23,8 @@ with Ada.Containers.Vectors;
 with Ada.Finalization;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
+with GNATCOLL.Projects;
+
 with Langkit_Support.Slocs; use Langkit_Support.Slocs;
 
 with Namet; use Namet;
@@ -37,6 +39,34 @@ with SC_Obligations;        use SC_Obligations;
 with Strings;               use Strings;
 
 private package Instrument.C is
+
+   type C_Instrumenter_Type is new Language_Instrumenter with
+     null record;
+   --  Instrumentation primitives for C
+
+   overriding function Skip_Source_File
+     (Self        : C_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean;
+
+   overriding procedure Instrument_Unit
+     (Self      : C_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
+      IC        : in out Inst_Context;
+      Unit_Info : in out Instrumented_Unit_Info);
+
+   overriding procedure Auto_Dump_Buffers_In_Main
+     (Self     : C_Instrumenter_Type;
+      IC       : in out Inst_Context;
+      Main     : Compilation_Unit_Name;
+      Filename : String;
+      Info     : in out Project_Info);
+
+   overriding procedure Emit_Buffers_List_Unit
+     (Self              : C_Instrumenter_Type;
+      IC                : in out Inst_Context;
+      Root_Project_Info : in out Project_Info);
+
+   Instrumenter : aliased constant C_Instrumenter_Type := (null record);
 
    type Instr_Scheme_Type is (Instr_Stmt, Instr_Expr);
    --  Depending on the statement construct, we can instrument it either with
@@ -141,7 +171,7 @@ private package Instrument.C is
    --
    --  They thus run the same code with a few tweaks:
    --
-   --     * The first pass only records preprocessing information and do not
+   --     * The first pass only records preprocessing information and does not
    --       implement any of the instrumentation code.
    --
    --     * The second pass instruments the code.
@@ -155,11 +185,11 @@ private package Instrument.C is
    --  produced by the user's preprocessor. To have the same AST in the end, we
    --  make the assumption that we can emulate the user's preprocessor with
    --  clang (with the right set of flags, to override clang's preprocessor
-   --  defaults). If this assumption does not hold, then we will probably get
-   --  a different AST for both passes. For that reason, we make a
-   --  consistency check after having ran both passes: if it does not hold, we
-   --  will simply discard the preprocessed information recorded by the first
-   --  pass, and produce a degraded report.
+   --  defaults). If this assumption does not hold, then we will probably get a
+   --  different AST for both passes. For that reason, we make a consistency
+   --  check after having ran both passes: if it does not hold, we will simply
+   --  discard the preprocessed information recorded by the first pass, and
+   --  produce a degraded report.
 
    package LL_SCO_PP_Info_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Nat,
@@ -199,19 +229,6 @@ private package Instrument.C is
    type C_Source_Rewriter is tagged limited private;
    --  Helper object to instrument a source file
 
-   procedure Add_Auto_Dump_Buffers
-     (IC   : Inst_Context;
-      Info : in out Project_Info;
-      Main : Compilation_Unit_Name;
-      Rew  : C_Source_Rewriter)
-     with Pre => IC.Dump_Config.Trigger /= Manual;
-   --  Try to insert in the sources of Main (a main subprogram) a call to dump
-   --  the list of coverage buffers for all units of interest in Main's
-   --  closure. Return without doing anything if unsuccessful.
-   --
-   --  Info must be the project that owns the Main unit, and Rew is a rewriter
-   --  for the Main compilation unit.
-
    procedure Extend_Statement_Sequence
      (N           : Cursor_T;
       Typ         : Character;
@@ -232,18 +249,6 @@ private package Instrument.C is
    --  If Preprocessed is set to True, consider that the file was preprocessed
    --  beforehand. Otherwise, generate a preprocessed version of it in
    --  Info.Output_Dir and start a rewriting session on the latter.
-
-   procedure Instrument_Unit
-     (CU_Name   : Compilation_Unit_Name;
-      IC        : in out Inst_Context;
-      Unit_Info : in out Instrumented_Unit_Info);
-   --  Instrument a single source file of interest from the project
-
-   procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info);
-   --  Emit in the root project a unit to contain the list of coverage buffers
-   --  for all units of interest.
 
 private
 
@@ -287,9 +292,7 @@ private
       MCDC_State : out US.Unbounded_String) is null;
 
    procedure Curlify
-     (Pass : Pass_Kind;
-      N    : Cursor_T;
-      Rew  : Rewriter_T) is null;
+     (Pass : Pass_Kind; N : Cursor_T; Rew : Rewriter_T) is null;
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record

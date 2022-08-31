@@ -25,7 +25,7 @@
    gnatcov_rts_generic_write_trace_file).  Return 0 if the write was
    successful and return any non-zero value in case of error.  */
 typedef int (*gnatcov_rts_write_bytes_callback)
-   (void *output, void *source, unsigned n);
+   (void *output, const void *source, unsigned n);
 
 /* Write a trace file to contain the given coverage BUFFERS to the OUTPUT
    stream using the WRITE_BYTES callback.  PROGRAM_NAME, EXEC_DATE and
