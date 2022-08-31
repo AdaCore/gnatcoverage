@@ -1833,7 +1833,6 @@ package body Instrument.C is
 
          F : constant Source_Location := Start_Sloc (N);
          T : Source_Location := End_Sloc (N);
-
          --  Source location bounds used to produce a SCO statement. By
          --  default, this should cover the same source location range as N,
          --  however for nodes that can contain other statements, we select an
@@ -1844,43 +1843,42 @@ package body Instrument.C is
          --  In the case of simple statements, set to null cursor and unused.
          --  Otherwise, use F and this node's end sloc for the emitted
          --  statement source location range.
-
       begin
+         --  For now, instrument only cursors that come from the file being
+         --  instrumented, and do not instrument included code.
 
-         if Is_Null (N) then
+         if Is_Null (N) or else not Is_Unit_Of_Interest (N, +UIC.File) then
             return;
          end if;
 
-         --  For now, instrument only cursor that come from the file being
-         --  instrumented, and do not instrument included code.
+         --  If N contains nested statements, set To_Node to the controlling
+         --  expression, so that the sloc range for the SCO spans from the
+         --  starting keyword to the end of the controlling expression.
 
-         if Is_Unit_Of_Interest (N, +UIC.File) then
-            case Kind (N) is
-               when Cursor_If_Stmt =>
-                  To_Node := Get_Cond (N);
-               when Cursor_Switch_Stmt =>
-                  To_Node := Get_Cond (N);
-               when Cursor_While_Stmt =>
-                  Insert_Cursor := Get_Cond (N);
-                  To_Node := Insert_Cursor;
-               when others => null;
-            end case;
+         case Kind (N) is
+            when Cursor_If_Stmt | Cursor_Switch_Stmt =>
+               To_Node := Get_Cond (N);
+            when Cursor_While_Stmt =>
+               Insert_Cursor := Get_Cond (N);
+               To_Node := Insert_Cursor;
+            when others =>
+               null;
+         end case;
 
-            if not Is_Null (To_Node) then
-               T := End_Sloc (To_Node);
-            end if;
-
-            SC.Append
-              ((N            => Insert_Cursor,
-                Insertion_N  =>
-                    (if Is_Null (Insertion_N)
-                     then N
-                     else Insertion_N),
-                From         => F,
-                To           => T,
-                Typ          => Typ,
-                Instr_Scheme => Instr_Scheme));
+         if not Is_Null (To_Node) then
+            T := End_Sloc (To_Node);
          end if;
+
+         SC.Append
+           ((N            => Insert_Cursor,
+             Insertion_N  =>
+                 (if Is_Null (Insertion_N)
+                  then N
+                  else Insertion_N),
+             From         => F,
+             To           => T,
+             Typ          => Typ,
+             Instr_Scheme => Instr_Scheme));
       end Extend_Statement_Sequence;
 
       -------------------------
