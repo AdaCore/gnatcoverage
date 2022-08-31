@@ -505,7 +505,7 @@ package body Setup_RTS is
       --  string for the Library_Support attribute.
 
       declare
-         Attr_Id : constant GPR2.Attribute_Id :=
+         Attr_Id : constant GPR2.Q_Attribute_Id :=
            GPR2.Project.Registry.Attribute.Library_Support;
          Attr    : constant GPR2.Project.Attribute.Object :=
            Prj.Configuration.Corresponding_View.Attribute (Attr_Id);
