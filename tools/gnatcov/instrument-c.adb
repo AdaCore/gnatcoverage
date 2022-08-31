@@ -980,8 +980,8 @@ package body Instrument.C is
 
    type SC_Entry is record
       N : Cursor_T;
-      --  Original statement node, providing the source location associated
-      --  with the statement SCO.
+      --  Original statement node, used to compute macro expansion information
+      --  related to this SCO.
 
       Insertion_N : Cursor_T;
       --  If not null, node where the witness call should be inserted.
