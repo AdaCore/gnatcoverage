@@ -1756,11 +1756,19 @@ package body Instrument.C is
                     (For_Init, ' ', Insertion_N => N);
                   Extend_Statement_Sequence
                     (For_Cond, 'F', Instr_Scheme => Instr_Expr);
-                  Process_Decisions_Defer (For_Cond, 'X');
+
+                  --  The guard expression for the FOR loop is a decision. The
+                  --  closest match for this kind of decision is a while loop.
+
+                  Process_Decisions_Defer (For_Cond, 'W');
 
                   Set_Statement_Entry;
 
-                  Current_Dominant := ('S', For_Cond);
+                  --  The first statement that is nested in the FOR loop runs
+                  --  iff the guard expression evaluates to True. Set the
+                  --  dominant accordingly.
+
+                  Current_Dominant := ('T', For_Cond);
 
                   Current_Dominant :=
                     Traverse_Statements (IC, UIC, For_Body, Current_Dominant);
@@ -1769,6 +1777,10 @@ package body Instrument.C is
                     (For_Inc, ' ', Instr_Scheme => Instr_Expr);
 
                   Set_Statement_Entry;
+
+                  --  Evaluation of the guard expression necessarily precedes
+                  --  evaluation of the first statement that follows the
+                  --  FOR loop.
 
                   Current_Dominant := ('S', For_Cond);
                end;
