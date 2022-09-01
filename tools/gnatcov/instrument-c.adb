@@ -1630,10 +1630,10 @@ package body Instrument.C is
       L   : Cursor_Vectors.Vector;
       D   : Dominant_Info := No_Dominant)
    is
-      Discard_Dom : Dominant_Info;
-      pragma Warnings (Off, Discard_Dom);
+      Discard_Dom : constant  Dominant_Info :=
+        Traverse_Statements (IC, UIC, L, D);
    begin
-      Discard_Dom := Traverse_Statements (IC, UIC, L, D);
+      null;
    end Traverse_Statements;
 
    function Traverse_Statements
