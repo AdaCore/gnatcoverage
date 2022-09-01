@@ -2692,7 +2692,8 @@ package body Instrument.C is
          MCDC_Last_Bit      : constant String := Img
            (UIC.Unit_Bits.Last_Path_Bit);
       begin
-         --  Turn the fingerprint value into the corresponding Ada literal
+         --  Turn the fingerprint value into the corresponding C literal (array
+         --  of uint8_t).
 
          declare
             First : Boolean := True;
@@ -2708,6 +2709,7 @@ package body Instrument.C is
             end loop;
             Append (Fingerprint, "}");
          end;
+
          File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
          File.New_Line;
          File.Put_Line
