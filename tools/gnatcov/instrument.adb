@@ -463,15 +463,16 @@ package body Instrument is
 
       --  If we need to instrument all the mains, also go through them now, so
       --  that we can prepare output directories for their projects later on.
+      --  Note that for user convenience, we want to do this for all the
+      --  languages that gnatcov supports, even those that are not considered
+      --  for coverage analysis.
 
       if Dump_Config.Trigger /= Manual then
          for Lang in Src_Supported_Language loop
-            if Src_Enabled_Languages (Lang) then
-               for Main of Project.Enumerate_Mains (Lang) loop
-                  Register_Main_To_Instrument
-                    (IC, Mains_To_Instrument (Lang), Main.File, Main.Project);
-               end loop;
-            end if;
+            for Main of Project.Enumerate_Mains (Lang) loop
+               Register_Main_To_Instrument
+                 (IC, Mains_To_Instrument (Lang), Main.File, Main.Project);
+            end loop;
          end loop;
       end if;
 
@@ -616,10 +617,7 @@ package body Instrument is
          --  two arrays of coverage buffers. TODO??? we could have one array
          --  defined in C and have the Ada unit just import it.
 
-         if Src_Enabled_Languages (Language)
-            and then Project.Project.Root_Project.Has_Language
-                       (Image (Language))
-         then
+         if Project.Project.Root_Project.Has_Language (Image (Language)) then
             Instrumenters (Language).Emit_Buffers_List_Unit
               (IC, Root_Project_Info.all);
          end if;
