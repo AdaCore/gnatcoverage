@@ -17,14 +17,12 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers;
-with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Equal_Case_Insensitive;
-with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Unbounded.Less_Case_Insensitive;
 
 with GNAT.Strings; use GNAT.Strings;
@@ -72,13 +70,6 @@ package Strings is
       Element_Type => Ada.Strings.Unbounded.Unbounded_String,
       "<"          => Ada.Strings.Unbounded."<",
       "="          => Ada.Strings.Unbounded."=");
-
-   package Vector_String_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
-      Element_Type    => String_Vectors.Vector,
-      Hash            => Ada.Strings.Unbounded.Hash,
-      "="             => String_Vectors."=",
-      Equivalent_Keys => Ada.Strings.Unbounded."=");
 
    package String_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Ada.Strings.Unbounded.Unbounded_String,

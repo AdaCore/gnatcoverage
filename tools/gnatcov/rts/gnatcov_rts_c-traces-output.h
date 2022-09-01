@@ -32,6 +32,7 @@ typedef int (*gnatcov_rts_write_bytes_callback)
    USER_DATA are included as metadata in the trace file.  Return 0 if the write
    was successful, and return any non-zero value in case of error.  */
 extern int gnatcov_rts_generic_write_trace_file (
-    void *output, gnatcov_rts_unit_coverage_buffers_array *buffers,
-    gnatcov_rts_string program_name, uint64_t exec_date,
-    gnatcov_rts_string user_data, gnatcov_rts_write_bytes_callback write_bytes);
+  void *output, const gnatcov_rts_unit_coverage_buffers_array *buffers,
+  gnatcov_rts_string program_name, uint64_t exec_date,
+  gnatcov_rts_string user_data,
+  gnatcov_rts_write_bytes_callback write_bytes);

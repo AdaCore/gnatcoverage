@@ -16,18 +16,18 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters;
-with Ada.Characters.Latin_1;
 with Ada.Containers;  use Ada.Containers;
+with Ada.Containers.Hashed_Maps;
 with Ada.Directories; use Ada.Directories;
 with Ada.Strings;
+with Ada.Strings.Unbounded.Hash;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.Extensions; use Clang.Extensions;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
-with GNAT.String_Split;
+with GNAT.Strings;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
@@ -35,6 +35,7 @@ with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
+with Command_Line;
 with Coverage;            use Coverage;
 with Coverage_Options;
 with Files_Table;         use Files_Table;
@@ -64,50 +65,65 @@ package body Instrument.C is
    procedure Free (Self : in out chars_ptr_array);
    --  Free all strings in Self
 
+   function Compiler_Driver
+     (Project : GNATCOLL.Projects.Project_Type) return String;
+   --  Return the command name for the C compiler in the given Project
+
    ------------------------------
    --  Preprocessing utilities --
    ------------------------------
 
-   Compiler_Macros : Vector_String_Maps.Map;
+   Macro_Def_Regexp : constant Pattern_Matcher := Compile (
+     "#define"
+     & "(?: |\t)+"
+     --  "#define", then a non-empty blank
+
+     & "([a-zA-Z0-9_][^ \t]*"
+     --  The name of the macro, followed by....
+
+     & "(?:\(.*\))?"
+     --  The optional list of macro arguments
+
+     & ")"
+     --  End of "extended" macro name (actual name + arguments)
+
+     & "(.*)"
+     --  The macro value itself
+   );
+   --  Regular expression to analyze definitions for builtin macros (see
+   --  Builtin_Macros)
+
+   type Macro_Vector_Access is access Macro_Vectors.Vector;
+   type Macro_Vector_Cst_Access is access constant Macro_Vectors.Vector;
+   package Compiler_Macros_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Unbounded_String,
+      Element_Type    => Macro_Vector_Access,
+      Equivalent_Keys => "=",
+      Hash            => Ada.Strings.Unbounded.Hash);
+   Compiler_Macros : Compiler_Macros_Maps.Map;
    --  Cache for computed compiler builtin macros, to avoid relaunching the
-   --  compiler command every time a file is instrumented.
+   --  compiler command every time a file is instrumented. Used in the
+   --  Builtin_Macros function only.
 
    --  The three following functions are not used, but could be in the future,
    --  when we will refine what is done with macros.
 
    function Builtin_Macros
-     (Info : Project_Info; Compiler : String) return String_Vectors.Vector;
-   --  Return the list of built-in macros for the given compiler. The result is
-   --  the list of macro definitions under the following string format:
-   --
-   --  #define __unix__ 1
-   --  ...
-   --  #define __INT_WIDTH__ 32
-
-   function Def_Switches
-     (Info : Project_Info; Compiler : String) return String_Vectors.Vector;
-   --  Return the list of macros predefined by the given Compiler with their
-   --  values as strings.
-   --
-   --  For example, with a Compiler predefining the __GCC_IEC_559 macro
-   --  with value 2, this function would return ["__GCC_IEC_559=2"].
-
-   function Get_Preprocessing_Args
-     (Info : Project_Info) return String_Vectors.Vector;
-   --  Return the list of preprocessing args parsed in the project
+     (Compiler, Output_Dir : String) return Macro_Vector_Cst_Access;
+   --  Return the list of built-in macros for the given compiler. Output_Dir
+   --  is used to store a temporary file.
 
    procedure Preprocess_Source
-     (Filename          : String;
-      PP_Filename       : out Unbounded_String;
-      Info              : in out Project_Info;
-      Search_Paths      : out String_Vectors.Vector;
-      Predefined_Macros : out String_Vectors.Vector);
-   --  Preprocess the source, and fill preprocessor configuration in
-   --  Search_Paths and Predefined_Macros.
+     (Filename    : String;
+      PP_Filename : out Unbounded_String;
+      Info        : in out Project_Info;
+      Options     : in out Analysis_Options);
+   --  Preprocess the source at Filename and extend Options using the
+   --  preprocessor output.
    --
-   --  We will use the compiler in the Compiler_Driver attribute, that we get
-   --  from GNATCOLL.Project, to preprocess the file. We will assume that it
-   --  accepts the -E flag, to preprocess a file.
+   --  This uses the compiler in the Compiler_Driver project attribute to
+   --  preprocess the file, assuming that it accepts the -E flag, to preprocess
+   --  a file.
 
    ---------------------------
    --  Passes specificities --
@@ -291,6 +307,9 @@ package body Instrument.C is
    procedure Run_Diagnostics (TU : Translation_Unit_T)
    with Unreferenced;
    --  Output clang diagnostics on the given translation unit
+   --
+   --  TODO??? If this is a debug helper, use it in verbose mode instead of
+   --  leaving it unreferenced.
 
    procedure Auto_Dump_Buffers_In_Main
      (IC   : Inst_Context;
@@ -329,6 +348,18 @@ package body Instrument.C is
          Free (Item);
       end loop;
    end Free;
+
+   ---------------------
+   -- Compiler_Driver --
+   ---------------------
+
+   function Compiler_Driver
+     (Project : GNATCOLL.Projects.Project_Type) return String
+   is
+   begin
+      return GNATCOLL.Projects.Attribute_Value
+               (Project, GPR.Compiler_Driver_Attribute, "C");
+   end Compiler_Driver;
 
    ----------------
    -- Append_SCO --
@@ -949,8 +980,8 @@ package body Instrument.C is
 
    type SC_Entry is record
       N : Cursor_T;
-      --  Original statement node, providing the source location associated
-      --  with the statement SCO.
+      --  Original statement node, used to compute macro expansion information
+      --  related to this SCO.
 
       Insertion_N : Cursor_T;
       --  If not null, node where the witness call should be inserted.
@@ -1508,14 +1539,21 @@ package body Instrument.C is
    begin
       for I in 1 .. Num_Diag loop
          declare
-            Diag : constant Diagnostic_T :=
+            Diag     : constant Diagnostic_T :=
               Get_Diagnostic (Unit => TU, Index => I - 1);
-            Str  : constant String :=
+            Severity : constant Diagnostic_Severity_T :=
+              Get_Diagnostic_Severity (Diag);
+            Str      : constant String :=
               Format_Diagnostic
                 (Diagnostic => Diag,
                  Options    => Default_Diagnostic_Display_Options);
          begin
-            Outputs.Error ("Error when parsing the file " & Str);
+            case Severity is
+               when Diagnostic_Error | Diagnostic_Fatal =>
+                  Outputs.Error ("Error when parsing the file " & Str);
+               when others =>
+                  null;
+            end case;
          end;
       end loop;
    end Run_Diagnostics;
@@ -1549,6 +1587,13 @@ package body Instrument.C is
 
       procedure Traverse_One (N : Cursor_T);
       --  Traverse a statement
+
+      procedure Extend_Statement_Sequence
+        (N           : Cursor_T;
+         Typ         : Character;
+         Insertion_N : Cursor_T := Get_Null_Cursor;
+         Instr_Scheme : Instr_Scheme_Type := Instr_Stmt);
+      --  Add an entry to the SC table
 
       procedure Set_Statement_Entry;
       --  Output CS entries for all statements saved in table SC, and end the
@@ -1589,7 +1634,7 @@ package body Instrument.C is
             --  we include the condition in the current sequence.
 
             when Cursor_If_Stmt =>
-               Extend_Statement_Sequence (N, 'I', UIC);
+               Extend_Statement_Sequence (N, 'I');
 
                declare
                   Then_Part : constant Cursor_T := Get_Then (N);
@@ -1623,7 +1668,7 @@ package body Instrument.C is
             --  but we include the expression in the current sequence.
 
             when Cursor_Switch_Stmt =>
-               Extend_Statement_Sequence (N, 'C', UIC);
+               Extend_Statement_Sequence (N, 'C');
                declare
                   Switch_Cond : constant Cursor_T := Get_Cond (N);
                   Alt         : constant Cursor_T := Get_Body (N);
@@ -1667,7 +1712,7 @@ package body Instrument.C is
                   UIC.Pass.Curlify (N   => While_Body,
                                     Rew => UIC.Rewriter);
                   Extend_Statement_Sequence
-                    (N, 'W', UIC,
+                    (N, 'W',
                      Insertion_N  => Cond,
                      Instr_Scheme => Instr_Expr);
                   Process_Decisions_Defer (Cond, 'W');
@@ -1690,7 +1735,7 @@ package body Instrument.C is
                   Traverse_Statements
                     (IC, UIC, To_Vector (Do_Body), No_Dominant);
                   Extend_Statement_Sequence
-                    (Do_While, 'W', UIC, Instr_Scheme => Instr_Expr);
+                    (Do_While, 'W', Instr_Scheme => Instr_Expr);
 
                   Process_Decisions_Defer (Do_While, 'W');
                   Set_Statement_Entry;
@@ -1708,22 +1753,34 @@ package body Instrument.C is
                   For_Body : constant Vector := To_Vector (Get_Body (N));
                begin
                   Extend_Statement_Sequence
-                    (For_Init, ' ', UIC, Insertion_N => N);
+                    (For_Init, ' ', Insertion_N => N);
                   Extend_Statement_Sequence
-                    (For_Cond, 'F', UIC, Instr_Scheme => Instr_Expr);
-                  Process_Decisions_Defer (For_Cond, 'X');
+                    (For_Cond, 'F', Instr_Scheme => Instr_Expr);
+
+                  --  The guard expression for the FOR loop is a decision. The
+                  --  closest match for this kind of decision is a while loop.
+
+                  Process_Decisions_Defer (For_Cond, 'W');
 
                   Set_Statement_Entry;
 
-                  Current_Dominant := ('S', For_Cond);
+                  --  The first statement that is nested in the FOR loop runs
+                  --  iff the guard expression evaluates to True. Set the
+                  --  dominant accordingly.
+
+                  Current_Dominant := ('T', For_Cond);
 
                   Current_Dominant :=
                     Traverse_Statements (IC, UIC, For_Body, Current_Dominant);
 
                   Extend_Statement_Sequence
-                    (For_Inc, ' ', UIC, Instr_Scheme => Instr_Expr);
+                    (For_Inc, ' ', Instr_Scheme => Instr_Expr);
 
                   Set_Statement_Entry;
+
+                  --  Evaluation of the guard expression necessarily precedes
+                  --  evaluation of the first statement that follows the
+                  --  FOR loop.
 
                   Current_Dominant := ('S', For_Cond);
                end;
@@ -1732,7 +1789,7 @@ package body Instrument.C is
            --  sequence, but then terminates it.
 
             when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt =>
-               Extend_Statement_Sequence (N, ' ', UIC);
+               Extend_Statement_Sequence (N, ' ');
                Set_Statement_Entry;
                Current_Dominant := No_Dominant;
 
@@ -1763,7 +1820,7 @@ package body Instrument.C is
                   --  Determine required type character code, or ASCII.NUL if
                   --  no SCO should be generated for this node.
 
-                  Extend_Statement_Sequence (N, ' ', UIC);
+                  Extend_Statement_Sequence (N, ' ');
 
                   --  Process any embedded decisions
 
@@ -1773,6 +1830,68 @@ package body Instrument.C is
                end if;
          end case;
       end Traverse_One;
+
+      -------------------------------
+      -- Extend_Statement_Sequence --
+      -------------------------------
+
+      procedure Extend_Statement_Sequence
+        (N            : Cursor_T;
+         Typ          : Character;
+         Insertion_N  : Cursor_T := Get_Null_Cursor;
+         Instr_Scheme : Instr_Scheme_Type := Instr_Stmt)
+      is
+         Insert_Cursor : aliased Cursor_T := N;
+
+         F : constant Source_Location := Start_Sloc (N);
+         T : Source_Location := End_Sloc (N);
+         --  Source location bounds used to produce a SCO statement. By
+         --  default, this should cover the same source location range as N,
+         --  however for nodes that can contain other statements, we select an
+         --  end bound that appears before the first nested statement (see
+         --  To_Node below).
+
+         To_Node : Cursor_T := Get_Null_Cursor;
+         --  In the case of simple statements, set to null cursor and unused.
+         --  Otherwise, use F and this node's end sloc for the emitted
+         --  statement source location range.
+      begin
+         --  For now, instrument only cursors that come from the file being
+         --  instrumented, and do not instrument included code.
+
+         if Is_Null (N) or else not Is_Unit_Of_Interest (N, +UIC.File) then
+            return;
+         end if;
+
+         --  If N contains nested statements, set To_Node to the controlling
+         --  expression, so that the sloc range for the SCO spans from the
+         --  starting keyword to the end of the controlling expression.
+
+         case Kind (N) is
+            when Cursor_If_Stmt | Cursor_Switch_Stmt =>
+               To_Node := Get_Cond (N);
+            when Cursor_While_Stmt =>
+               Insert_Cursor := Get_Cond (N);
+               To_Node := Insert_Cursor;
+            when others =>
+               null;
+         end case;
+
+         if not Is_Null (To_Node) then
+            T := End_Sloc (To_Node);
+         end if;
+
+         SC.Append
+           ((N            => Insert_Cursor,
+             Insertion_N  =>
+                 (if Is_Null (Insertion_N)
+                  then N
+                  else Insertion_N),
+             From         => F,
+             To           => T,
+             Typ          => Typ,
+             Instr_Scheme => Instr_Scheme));
+      end Extend_Statement_Sequence;
 
       -------------------------
       -- Set_Statement_Entry --
@@ -1907,201 +2026,98 @@ package body Instrument.C is
       end loop;
    end Traverse_Declarations;
 
-   -------------------------------
-   -- Extend_Statement_Sequence --
-   -------------------------------
-
-   procedure Extend_Statement_Sequence
-     (N            : Cursor_T;
-      Typ          : Character;
-      UIC          : C_Unit_Inst_Context;
-      Insertion_N  : Cursor_T := Get_Null_Cursor;
-      Instr_Scheme : Instr_Scheme_Type := Instr_Stmt)
-   is
-      Insert_Cursor : aliased Cursor_T := N;
-
-      F : constant Source_Location := Start_Sloc (N);
-      T : Source_Location := End_Sloc (N);
-
-      --  Source location bounds used to produce a SCO statement. By
-      --  default, this should cover the same source location range as N,
-      --  however for nodes that can contain other statements, we select an end
-      --  bound that appears before the first nested statement (see To_Node
-      --  below).
-
-      To_Node : Cursor_T := Get_Null_Cursor;
-      --  In the case of simple statements, set to null cursor and unused.
-      --  Otherwise, use F and this node's end sloc for the emitted
-      --  statement source location range.
-
-   begin
-
-      if Is_Null (N) then
-         return;
-      end if;
-
-      --  For now, instrument only cursor that come from the file being
-      --  instrumented, and do not instrument included code.
-
-      if Is_Unit_Of_Interest (N, +UIC.File) then
-         case Kind (N) is
-            when Cursor_If_Stmt =>
-               To_Node := Get_Cond (N);
-            when Cursor_Switch_Stmt =>
-               To_Node := Get_Cond (N);
-            when Cursor_While_Stmt =>
-               Insert_Cursor := Get_Cond (N);
-               To_Node := Insert_Cursor;
-            when others => null;
-         end case;
-
-         if not Is_Null (To_Node) then
-            T := End_Sloc (To_Node);
-         end if;
-
-         SC.Append
-           ((N            => Insert_Cursor,
-             Insertion_N  =>
-                 (if Is_Null (Insertion_N)
-                  then N
-                  else Insertion_N),
-             From         => F,
-             To           => T,
-             Typ          => Typ,
-             Instr_Scheme => Instr_Scheme));
-      end if;
-   end Extend_Statement_Sequence;
-
    --------------------
    -- Builtin_Macros --
    --------------------
 
    function Builtin_Macros
-     (Info : Project_Info; Compiler : String) return String_Vectors.Vector
+     (Compiler, Output_Dir : String) return Macro_Vector_Cst_Access
    is
-      Basename : constant String :=
-        Ada.Directories.Simple_Name (Compiler) & "_builtins";
-      Filename : constant String :=
-        (+Info.Output_Dir) / Basename;
-      File     : Ada.Text_IO.File_Type;
-      Res      : String_Vectors.Vector;
-   begin
-      --  If we have not computed built-in macros for this compiler yet, do it
-      --  now.
+      use Compiler_Macros_Maps;
 
-      if not Compiler_Macros.Contains (+Compiler) then
+      Key    : constant Unbounded_String := +Compiler;
+      Cur    : constant Cursor := Compiler_Macros.Find (Key);
+      Result : Macro_Vector_Access;
+   begin
+      --  If we already computed builtin macros for Compiler, return the cached
+      --  result. Compute it now otherwise.
+
+      if Has_Element (Cur) then
+         Result := Element (Cur);
+
+      else
+         Result := new Macro_Vectors.Vector;
          declare
-            Arguments : String_Vectors.Vector;
-            Macros    : String_Vectors.Vector;
+            Args     : String_Vectors.Vector;
+            Basename : constant String :=
+              Ada.Directories.Simple_Name (Compiler) & "_builtins";
+            Filename : constant String := Output_Dir / Basename;
+            File     : Ada.Text_IO.File_Type;
          begin
-            Arguments.Append (+"-E");
-            Arguments.Append (+"-dM");
-            Arguments.Append (+"-");
+            --  Run the preprocessor on an empty file and write the
+            --  preprocessed sources to Filename.
+
+            Args.Append (+"-E");
+            Args.Append (+"-dM");
+            Args.Append (+"-");
 
             Run_Command
               (Command             => Compiler,
-               Arguments           => Arguments,
+               Arguments           => Args,
                Origin_Command_Name =>
                  "getting built-in macros for " & Compiler,
                Output_File         => Filename,
                In_To_Null          => True);
 
-            --  Then, read all the macros in the output file, and store them in
-            --  the cache.
+            --  Decode all macro definitions in Filename and store them in
+            --  Result.
 
             Open (File, In_File, Filename);
             while not End_Of_File (File) loop
-               Macros.Append (+Get_Line (File));
+               declare
+                  Line    : constant String := Get_Line (File);
+                  Matches : Match_Array (0 .. 2);
+                  M       : Macro_Definition;
+               begin
+                  Match (Macro_Def_Regexp, Line, Matches);
+                  if Matches (0) = No_Match then
+                     Warn
+                       ("Cannot parse a built-in macro definition for "
+                        & Compiler & ", ignoring it:"
+                        & ASCII.LF & "  " & Line);
+                  else
+                     M.Define := True;
+                     Append
+                       (M.Value, Line (Matches (1).First .. Matches (1).Last));
+                     Append (M.Value, "=");
+                     Append
+                       (M.Value, Line (Matches (2).First .. Matches (2).Last));
+                     Result.Append (M);
+                  end if;
+               end;
             end loop;
             Close (File);
             Delete_File (Filename);
-            Compiler_Macros.Insert (+Compiler, Macros);
+
+            --  Save Result in the cache for later use
+
+            Compiler_Macros.Insert (Key, Result);
          end;
       end if;
 
-      Res := Compiler_Macros.Element (+Compiler);
-      return Res;
+      return Macro_Vector_Cst_Access (Result);
    end Builtin_Macros;
-
-   ------------------
-   -- Def_Switches --
-   ------------------
-
-   function Def_Switches
-     (Info : Project_Info; Compiler : String) return String_Vectors.Vector
-   is
-      use Ada.Characters;
-      use GNAT;
-
-      Macros : constant String_Vectors.Vector :=
-        Builtin_Macros (Info, Compiler);
-      Res    : String_Vectors.Vector;
-   begin
-      for Macro of Macros loop
-         declare
-            Subs : String_Split.Slice_Set;
-            Seps : constant String := " " & Latin_1.HT;
-
-            Macro_Name  : US.Unbounded_String;
-            Macro_Value : US.Unbounded_String;
-         begin
-            String_Split.Create (S          => Subs,
-                                 From       => +Macro,
-                                 Separators => Seps,
-                                 Mode       => String_Split.Multiple);
-
-            Macro_Name := +(String_Split.Slice (Subs, 2));
-
-            for I in 3 .. String_Split.Slice_Count (Subs) loop
-
-               --  Everything after the macro name is its value
-
-               US.Append (Macro_Value, +(String_Split.Slice (Subs, I) & " "));
-            end loop;
-
-            Res.Append (+((+Macro_Name) & "=" & (+Macro_Value)));
-         end;
-      end loop;
-      return Res;
-   end Def_Switches;
-
-   ----------------------------
-   -- Get_Preprocessing_Args --
-   ----------------------------
-
-   function Get_Preprocessing_Args
-     (Info : Project_Info) return String_Vectors.Vector
-   is
-      Args : String_Vectors.Vector;
-   begin
-      --  Pass the source directories of the project file as -I options
-
-      for Dir of Info.Project.Source_Dirs loop
-         Args.Append (+"-I");
-         Args.Append (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
-      end loop;
-
-      --  TODO??? enhance with the -I, -D and -U flags found in the gpr file.
-      --  Also accept such flags on gnatcov command line.
-
-      return Args;
-   end Get_Preprocessing_Args;
 
    -----------------------
    -- Preprocess_Source --
    -----------------------
 
    procedure Preprocess_Source
-     (Filename          : String;
-      PP_Filename       : out Unbounded_String;
-      Info              : in out Project_Info;
-      Search_Paths      : out String_Vectors.Vector;
-      Predefined_Macros : out String_Vectors.Vector)
+     (Filename    : String;
+      PP_Filename : out Unbounded_String;
+      Info        : in out Project_Info;
+      Options     : in out Analysis_Options)
    is
-      Compiler_Driver : constant String :=
-        GNATCOLL.Projects.Attribute_Value
-          (Info.Project, GPR.Compiler_Driver_Attribute, "C");
-
       Cmd : Command_Type;
       --  The command to preprocess the file
 
@@ -2117,10 +2133,11 @@ package body Instrument.C is
    begin
       PP_Filename := +Register_New_File (Info, Filename);
 
-      Cmd := (Command => +Compiler_Driver, others => <>);
+      Cmd := (Command => +Compiler_Driver (Info.Project), others => <>);
 
       Append_Arg (Cmd, "-E");
-      Append_Args (Cmd, Get_Preprocessing_Args (Info));
+      Add_Options (Cmd.Arguments, Options);
+
       Append_Arg (Cmd, Filename);
 
       --  Register the preprocessing command. We need it to preprocess the file
@@ -2150,6 +2167,11 @@ package body Instrument.C is
          Origin_Command_Name => "Preprocessing",
          Output_File         => PP_Output_Filename,
          Ignore_Error        => True);
+
+      --  Clear the search path so that we populate it from the include search
+      --  paths in the logs.
+
+      Options.PP_Search_Path.Clear;
 
       --  Retrieve the include search paths. They are delimited by:
       --  #include "..." search starts here:
@@ -2183,7 +2205,8 @@ package body Instrument.C is
 
                   Match (RE_End_Pattern, Line, Matches);
                   exit when Matches (0) /= No_Match;
-                  Search_Paths.Append (Trim (+Line, Ada.Strings.Left));
+                  Options.PP_Search_Path.Append
+                    (Trim (+Line, Ada.Strings.Left));
                end if;
             end;
          end loop;
@@ -2211,7 +2234,6 @@ package body Instrument.C is
       end;
 
       Delete (PP_Output_File);
-      Predefined_Macros := Def_Switches (Info, Compiler_Driver);
    end Preprocess_Source;
 
    ---------------------
@@ -2226,26 +2248,34 @@ package body Instrument.C is
    is
       PP_Filename : Unbounded_String := +Filename;
 
-      Ignore_Search_Paths, Ignore_Predefined_Macros : String_Vectors.Vector;
+      Options : Analysis_Options;
+      Args    : String_Vectors.Vector;
    begin
+      Import_Options (Options, Info, Filename);
       if not Preprocessed then
-         Preprocess_Source
-           (Filename, PP_Filename, Info,
-            Ignore_Search_Paths, Ignore_Predefined_Macros);
+         Preprocess_Source (Filename, PP_Filename, Info, Options);
       end if;
 
       Self.CIdx :=
         Create_Index
           (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
-      Self.TU :=
-        Parse_Translation_Unit
-          (C_Idx                 => Self.CIdx,
-           Source_Filename       => +PP_Filename,
-           Command_Line_Args     => System.Null_Address,
-           Num_Command_Line_Args => 0,
-           Unsaved_Files         => null,
-           Num_Unsaved_Files     => 0,
-           Options               => 0);
+
+      Add_Options (Args, Options);
+      declare
+         C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
+      begin
+         Self.TU :=
+           Parse_Translation_Unit
+             (C_Idx                 => Self.CIdx,
+              Source_Filename       => +PP_Filename,
+              Command_Line_Args     => C_Args'Address,
+              Num_Command_Line_Args => C_Args'Length,
+              Unsaved_Files         => null,
+              Num_Unsaved_Files     => 0,
+              Options               => 0);
+         Free (C_Args);
+      end;
+
       Self.Rewriter := CX_Rewriter_Create (Self.TU);
       Self.Output_Filename := PP_Filename;
    end Start_Rewriting;
@@ -2316,14 +2346,7 @@ package body Instrument.C is
       --  inhibit the use of clang predefined macros. We want to fully emulate
       --  the user's preprocessor.
 
-      for Macro_Definition of UIC.PP_Predefined_Macros loop
-         Append (Args, +"-D");
-         Append (Args, Macro_Definition);
-      end loop;
-      for Search_Path of UIC.PP_Search_Paths loop
-         Append (Args, +"-I");
-         Append (Args, Search_Path);
-      end loop;
+      Add_Options (Args, UIC.Options);
       Append (Args, +"-undef");
       Append (Args, +"-nostdinc");
 
@@ -2396,9 +2419,11 @@ package body Instrument.C is
         CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
       UIC.File := +Orig_Filename;
 
-      Preprocess_Source
-        (Orig_Filename, PP_Filename, Prj_Info,
-         UIC.PP_Search_Paths, UIC.PP_Predefined_Macros);
+      --  Import analysis options for the file to preprocess, then run the
+      --  preprocessor.
+
+      Import_Options (UIC.Options, Prj_Info, Orig_Filename);
+      Preprocess_Source (Orig_Filename, PP_Filename, Prj_Info, UIC.Options);
 
       --  Start by recording preprocessing information
 
@@ -2667,7 +2692,8 @@ package body Instrument.C is
          MCDC_Last_Bit      : constant String := Img
            (UIC.Unit_Bits.Last_Path_Bit);
       begin
-         --  Turn the fingerprint value into the corresponding Ada literal
+         --  Turn the fingerprint value into the corresponding C literal (array
+         --  of uint8_t).
 
          declare
             First : Boolean := True;
@@ -2683,6 +2709,7 @@ package body Instrument.C is
             end loop;
             Append (Fingerprint, "}");
          end;
+
          File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
          File.New_Line;
          File.Put_Line
@@ -2717,19 +2744,11 @@ package body Instrument.C is
                         & "= {");
          File.Put_Line ("    .fingerprint = " & To_String (Fingerprint) & ",");
 
-         File.Put_Line ("    .language_kind = "
-                        & Integer'Image
-                          (Any_Language_Kind'Pos (File_Based_Language))
-                        & ",");
-         File.Put_Line ("    .unit_part = "
-                        & Integer'Image
-                          (Any_Unit_Part'Pos (Not_Applicable_Part))
-                        & ",");
-         File.Put_Line ("    .unit_name = " & "{""" & Unit_Name & """, "
-                        & Natural'Image (Unit_Name'Length) & "},");
+         File.Put_Line ("    .language_kind = FILE_BASED_LANGUAGE,");
+         File.Put_Line ("    .unit_part = NOT_APPLICABLE_PART,");
+         File.Put_Line ("    .unit_name = STR (""" & Unit_Name & """),");
 
-         File.Put_Line ("    .project_name = " & "{ """ & Project_Name & """, "
-                        & Natural'Image (Project_Name'Length) & "},");
+         File.Put_Line ("    .project_name = STR (""" & Project_Name & """),");
 
          --  We do not use the created pointer (Statement_Buffer) to initialize
          --  the buffer fields, as this is rejected by old versions of the
@@ -3057,5 +3076,223 @@ package body Instrument.C is
 
       return Source_File.Unit_Part = Unit_Spec;
    end Skip_Source_File;
+
+   -----------------
+   -- Add_Options --
+   -----------------
+
+   procedure Add_Options
+     (Args : in out String_Vectors.Vector; Options : Analysis_Options) is
+   begin
+      for Dir of Options.PP_Search_Path loop
+         Args.Append (+"-I");
+         Args.Append (Dir);
+      end loop;
+
+      for M of Options.PP_Macros loop
+         declare
+            Prefix : constant Unbounded_String :=
+              +(if M.Define
+                then "-D"
+                else "-U");
+         begin
+            Args.Append (Prefix & M.Value);
+         end;
+      end loop;
+   end Add_Options;
+
+   -------------------------
+   -- Import_From_Project --
+   -------------------------
+
+   procedure Import_From_Project
+     (Self     : out Analysis_Options;
+      Info     : Project_Info;
+      Filename : String)
+   is
+      Switches : GNAT.Strings.String_List_Access;
+   begin
+      Self.PP_Macros :=
+        Builtin_Macros (Compiler_Driver (Info.Project), +Info.Output_Dir).all;
+
+      --  Pass the source directories of the project file as -I options
+
+      for Dir of Info.Project.Source_Dirs loop
+         Self.PP_Search_Path.Append
+           (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
+      end loop;
+
+      --  Now get actual compiler switches from the project file for Filename.
+      --  First try to get the switches specifically for Filename, then if
+      --  there are none fall back to default switches for C.
+
+      Switches :=
+        Info.Project.Attribute_Value
+          (Attribute => GPR.Build ("compiler", "switches"),
+           Index     => Simple_Name (Filename));
+
+      if Switches = null then
+         Switches :=
+           Info.Project.Attribute_Value
+             (Attribute => GPR.Compiler_Default_Switches_Attribute,
+              Index     => "c");
+      end if;
+
+      --  If we manage to find appropriate switches, convert them to a string
+      --  vector import the switches.
+
+      if Switches /= null then
+         declare
+            Args : String_Vectors.Vector;
+         begin
+            for S of Switches.all loop
+               Args.Append (To_Unbounded_String (S.all));
+            end loop;
+            GNAT.Strings.Free (Switches);
+            Import_From_Args (Self, Args);
+         end;
+      end if;
+   end Import_From_Project;
+
+   ----------------------
+   -- Import_From_Args --
+   ----------------------
+
+   procedure Import_From_Args
+     (Self : in out Analysis_Options; Args : String_Vectors.Vector)
+   is
+      I    : Natural := Args.First_Index;
+      Last : constant Integer := Args.Last_Index;
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean;
+      --  Assuming that Arg starts with "-X" where X is Option_Name, try to
+      --  fetch the value for this option. If we managed to get one, return
+      --  True and set Value to it. Return False otherwise.
+
+      ------------------------
+      -- Read_With_Argument --
+      ------------------------
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean
+      is
+         Prefix : constant String := ('-', Option_Name);
+      begin
+         if Arg = Prefix then
+
+            --  Option and value are two separate arguments (-O VALUE)
+
+            I := I + 1;
+            if I <= Last then
+               Value := Args (I);
+               return True;
+            end if;
+
+         elsif Has_Prefix (Arg, Prefix) then
+
+            --  Option and value are combined in a single argument (-OVALUE)
+
+            Value := +Arg (Arg'First + Prefix'Length .. Arg'Last);
+            return True;
+         end if;
+
+         return False;
+      end Read_With_Argument;
+
+   --  Start of processing for Import_From_Args
+
+   begin
+      while I <= Last loop
+         declare
+            A     : constant String := +Args (I);
+            Value : Unbounded_String;
+         begin
+
+            --  Process arguments we manage to handle, silently discard unknown
+            --  ones.
+            --
+            --  TODO??? In order to avoid surprising situations for users (for
+            --  instance typos in command line arguments), maybe we should emit
+            --  a warning for unknown arguments. However, given that this
+            --  procedure is called at least once per instrumented source file,
+            --  we would need to avoid emitting duplicate warnings.
+
+            if Read_With_Argument (A, 'I', Value) then
+               Self.PP_Search_Path.Append (Value);
+
+            elsif Read_With_Argument (A, 'D', Value) then
+               Self.PP_Macros.Append ((Define => True, Value => Value));
+
+            elsif Read_With_Argument (A, 'U', Value) then
+               Self.PP_Macros.Append ((Define => False, Value => Value));
+            end if;
+
+            I := I + 1;
+         end;
+      end loop;
+   end Import_From_Args;
+
+   ----------------
+   -- Split_Args --
+   ----------------
+
+   function Split_Args (Args : Unbounded_String) return String_Vectors.Vector
+   is
+      Last_Is_Backslash : Boolean := False;
+      --  Whether the last character analyzed was a backslash
+   begin
+      return Result : String_Vectors.Vector do
+
+         --  The split of an empty string must yield a list of 1 empty string
+
+         Result.Append (Null_Unbounded_String);
+
+         for I in 1 .. Length (Args) loop
+            declare
+               C : constant Character := Element (Args, I);
+            begin
+               if Last_Is_Backslash then
+
+                  --  If the last character was a backslash, we expect a comma
+
+                  if C = ',' then
+                     Append (Result.Reference (Result.Last), C);
+                  else
+                     Fatal_Error ("Invalid comma-separated option list");
+                  end if;
+                  Last_Is_Backslash := False;
+
+               else
+                  case C is
+                     when '\' =>
+                        Last_Is_Backslash := True;
+                     when ',' =>
+                        Result.Append (Null_Unbounded_String);
+                     when others =>
+                        Append (Result.Reference (Result.Last), C);
+                  end case;
+               end if;
+            end;
+         end loop;
+      end return;
+   end Split_Args;
+
+   --------------------
+   -- Import_Options --
+   --------------------
+
+   procedure Import_Options
+     (Self : out Analysis_Options; Info : Project_Info; Filename : String) is
+   begin
+      Import_From_Project (Self, Info, Filename);
+      for Args of Switches.Args.String_List_Args (Command_Line.Opt_C_Opts) loop
+         Import_From_Args (Self, Split_Args (Args));
+      end loop;
+   end Import_Options;
 
 end Instrument.C;

@@ -141,7 +141,8 @@ package Command_Line is
       Opt_Ignore_Source_Files,
       Opt_Shared_Object,
       Opt_Restricted_To_Languages,
-      Opt_Annotation_Format);
+      Opt_Annotation_Format,
+      Opt_C_Opts);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -1070,7 +1071,17 @@ package Command_Line is
            & " command line.",
          Commands                => (Cmd_Coverage => True, others => False),
          Internal                => False,
-         Accepts_Comma_Separator => True));
+         Accepts_Comma_Separator => True),
+
+        Opt_C_Opts => Create
+          (Long_Name => "--c-opts",
+           Pattern   => "[COMMA-SEPARATED-OPTIONS]",
+           Help      =>
+             "List of additional compiler switches to analayze C source"
+             & " files.",
+           Commands  => (Cmd_Instrument => True, others => False),
+           Internal  => False)
+     );
 
    procedure Bool_Callback
      (Result : in out Parsed_Arguments;

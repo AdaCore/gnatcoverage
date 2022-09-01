@@ -21,7 +21,6 @@
 #include "gnatcov_rts_c-base_io.h"
 #include "gnatcov_rts_c-traces-output.h"
 #include <assert.h>
-#include <stdio.h>
 #include <string.h>
 
 static const char *base64_alphabet
@@ -127,9 +126,9 @@ write_bytes (void *output, const void *bytes, unsigned count)
 
 void
 gnatcov_rts_write_trace_file_base64 (
-    gnatcov_rts_unit_coverage_buffers_array *buffers,
-    gnatcov_rts_string program_name, uint64_t exec_date,
-    gnatcov_rts_string user_data)
+  const gnatcov_rts_unit_coverage_buffers_array *buffers,
+  gnatcov_rts_string program_name, uint64_t exec_date,
+  gnatcov_rts_string user_data)
 {
   gnatcov_rts_base64_buffer buffer;
   buffer.next = 0;

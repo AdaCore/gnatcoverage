@@ -35,7 +35,8 @@ def default_dump_channel():
 def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
                     dump_channel="auto", gpr_obj_dir=None,
                     runtime_project=None, out=None, err=None,
-                    warnings_as_errors=True, register_failure=True):
+                    warnings_as_errors=True, register_failure=True,
+                    auto_languages=True):
     """
     Run "gnatcov instrument" on a project.
 
@@ -101,7 +102,13 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         args.append('--pretty-print')
 
     out = out or "instrument.log"
-    result = xcov(args, out=out, err=err, register_failure=register_failure)
+    result = xcov(
+        args,
+        out=out,
+        err=err,
+        register_failure=register_failure,
+        auto_languages=auto_languages,
+    )
 
     if warnings_as_errors:
         output = contents_of(out)
