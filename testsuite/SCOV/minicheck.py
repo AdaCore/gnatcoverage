@@ -36,7 +36,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   check_gprbuild_output=False, trace_mode=None,
                   runtime_project=None, gprsw_for_coverage=None,
                   scos_for_run=True, register_failure=True, program_env=None,
-                  instrument_warnings_as_errors=True, exec_args=None):
+                  instrument_warnings_as_errors=True, exec_args=None,
+                  auto_languages=True):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -103,6 +104,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         there are warnings in the output of "gnatcov instrument".
     :param None|list[str] exec_args: List of arguments to pass to the
         executable. This will only work for native configurations.
+    :param bool auto_languages: See SUITE.tutils.xcov.
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -205,7 +207,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                         runtime_project=runtime_project,
                         out='instrument.log',
                         register_failure=register_failure,
-                        warnings_as_errors=instrument_warnings_as_errors)
+                        warnings_as_errors=instrument_warnings_as_errors,
+                        auto_languages=auto_languages)
         gprbuild_wrapper(gprsw.root_project)
 
         # If an explicit dump channel was requested, check that "gnatcov

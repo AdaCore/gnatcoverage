@@ -584,12 +584,16 @@ def cmdrun(cmd, inp=None, out=None, err=None, env=None, register_failure=True):
 
 def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
          auto_config_args=True, auto_target_args=True,
-         force_project_args=False):
+         force_project_args=False, auto_languages=True):
     """
     Run xcov with arguments ARGS, timeout control, valgrind control if
     available and enabled, output directed to OUT and failure registration if
     register_failure is True. Return the process status descriptor. ARGS may be
     a list or a whitespace separated string.
+
+    If AUTO_LANGUAGES is True, the gnatcov sub-command is "instrument" and the
+    testsuite is not in qualification mode, automatically pass the
+    --restricted-to-languages argument to enable all the languages to test.
 
     See xcov_suite_args for the meaning of AUTO_*_ARGS and FORCE_PROJECT_ARGS
     arguments.
@@ -603,7 +607,11 @@ def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
 
     # gnatcov testsuite exercises C instrumentation, which is not activated by
     # default.
-    if not thistest.options.qualif_level and covcmd == "instrument":
+    if (
+        auto_languages
+        and not thistest.options.qualif_level
+        and covcmd == "instrument"
+    ):
         covargs = ['--restricted-to-languages=Ada,C'] + covargs
 
     if thistest.options.all_warnings:
