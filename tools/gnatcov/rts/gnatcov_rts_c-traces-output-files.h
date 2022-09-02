@@ -21,6 +21,10 @@
 #include "gnatcov_rts_c_strings.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Default name of the environment variable which controls the default
    filename for source traces: see the gnatcov_rts_default_trace_filename
    function below.  */
@@ -72,3 +76,7 @@ gnatcov_rts_write_trace_file_wrapper (
   const gnatcov_rts_unit_coverage_buffers_array *buffers, const char *filename,
   gnatcov_rts_string program_name, uint64_t exec_date,
   gnatcov_rts_string user_data);
+
+#ifdef __cplusplus
+}
+#endif

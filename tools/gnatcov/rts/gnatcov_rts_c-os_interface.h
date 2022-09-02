@@ -19,6 +19,11 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /* The C "time" function can return integers of
    different size depending on the platform.
    Here, we ensure that the returned result will be an
@@ -30,3 +35,7 @@ extern uint64_t gnatcov_rts_time_to_uint64 (void);
 
 /* Return the current process ID as an unsigned 64-bit integer.  */
 extern uint64_t gnatcov_rts_getpid (void);
+
+#ifdef __cplusplus
+}
+#endif

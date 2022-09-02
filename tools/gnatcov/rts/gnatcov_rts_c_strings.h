@@ -22,6 +22,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct gnatcov_rts_string
 {
   const char *str;
@@ -31,5 +35,9 @@ typedef struct gnatcov_rts_string
 /* Converts a string litteral to the corresponding gnatcov_rts_string struct
    value.  */
 #define STR(x) (struct gnatcov_rts_string) { x, sizeof (x) - 1 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -24,6 +24,10 @@
 
 #include "gnatcov_rts_c_strings.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Coverage buffers are big arrays of booleans. How to interpret them depends
    on the type of coverage obligation.
 
@@ -153,4 +157,9 @@ extern gnatcov_rts_bool
 gnatcov_rts_witness_condition (gnatcov_rts_bit_id *mcdc_path_address,
                                gnatcov_rts_bit_id offset_for_true,
                                gnatcov_rts_bool first, gnatcov_rts_bool value);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

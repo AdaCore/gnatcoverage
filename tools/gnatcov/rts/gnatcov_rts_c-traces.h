@@ -22,6 +22,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Expected value of the `trace_file_header.format_version` field.
 
    0 -- initial version
@@ -138,4 +142,9 @@ struct trace_entry_header
      of 8 bytes. Must be zero.  */
   uint8_t padding[5];
 };
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
