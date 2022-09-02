@@ -1031,7 +1031,7 @@ package body Instrument.C is
       Var_Decl_Img  : constant String :=
         "unsigned " & Name & "_var;";
       Addr_Decl_Img : constant String :=
-        "void *" & Name & " = &" & Name & "_var;";
+        "unsigned *" & Name & " = &" & Name & "_var;";
 
    begin
       Insert_Text_Before_Start_Of (N    => UIC.MCDC_State_Declaration_Node,
@@ -2707,7 +2707,7 @@ package body Instrument.C is
                       & " unsigned true_bit,"
                       & " unsigned char *mcdc_buffer_address,"
                       & " unsigned mcdc_base,"
-                      & " unsigned char *mcdc_path_address,"
+                      & " unsigned *mcdc_path_address,"
                       & " unsigned value");
       Put_Extern_Decl
         ("unsigned",
