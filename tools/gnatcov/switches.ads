@@ -120,6 +120,9 @@ package Switches is
    Save_Temps : Boolean := False;
    --  When True, do not remove temporary files and directories
 
+   SPARK_Compat : Boolean := False;
+   --  When True, tune the instrumenter for maximum SPARK compatibility
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

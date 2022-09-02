@@ -84,7 +84,8 @@ package Command_Line is
       Opt_Boolean_Short_Circuit_And_Or,
       Opt_Cancel_Annotate,
       Opt_All_Warnings,
-      Opt_Save_Temps);
+      Opt_Save_Temps,
+      Opt_SPARK_Compat);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -508,7 +509,14 @@ package Command_Line is
       Opt_Save_Temps => Create
         (Long_Name => "--save-temps",
          Help      => "Do not remove temporary files and directories.",
-         Internal  => True));
+         Internal  => True),
+
+      Opt_SPARK_Compat => Create
+        (Long_Name => "--spark-compat",
+         Help      => "Enable the SPARK compatibility mode. This ensures"
+                      & " instrumented code will be ghost compliant.",
+         Commands  => (Cmd_Instrument => True, others => False),
+         Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

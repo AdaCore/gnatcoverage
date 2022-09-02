@@ -267,6 +267,12 @@ private
          --  (declarations in a ghost package, assignments to a ghost variable
          --  etc.). We will not emit any coverage obligation in this context
          --  and assume ghost code is absent at execution.
+
+         In_Generic : Boolean := False;
+         --  True when traversing nodes in a generic package or subprogram.
+         --
+         --  Used when the SPARK compatibility mode is enabled, to insert
+         --  non-volatile witness result variables to be ghost compliant.
       end record;
 
    function Insert_MCDC_State

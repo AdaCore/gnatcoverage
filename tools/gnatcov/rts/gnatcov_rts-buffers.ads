@@ -124,6 +124,16 @@ package GNATcov_RTS.Buffers is
    --
    --  used for some kinds of expression functions.
 
+   type Non_Volatile_Witness_Dummy_Type is record
+      Data : Boolean;
+   end record;
+
+   function Witness
+     (Buffer_Address : System.Address; Bit : Bit_Id)
+      return Non_Volatile_Witness_Dummy_Type;
+   --  This variant uses a non-volatile return type to be compatible with ghost
+   --  code.
+
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id) return Boolean;
    --  This variant is used in Boolean expression contexts and always returns

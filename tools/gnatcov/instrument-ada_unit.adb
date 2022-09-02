@@ -457,11 +457,15 @@ package body Instrument.Ada_Unit is
    type Statement_Witness_Flavor is
      (Procedure_Call, Function_Call, Declaration);
    function Make_Statement_Witness
-     (UIC    : Ada_Unit_Inst_Context;
-      Bit    : Bit_Id;
-      Flavor : Statement_Witness_Flavor) return Node_Rewriting_Handle;
+     (UIC        : Ada_Unit_Inst_Context;
+      Bit        : Bit_Id;
+      Flavor     : Statement_Witness_Flavor;
+      In_Generic : Boolean) return Node_Rewriting_Handle;
    --  Create a procedure call statement or object declaration to witness
    --  execution of the low level SCO with the given bit id.
+   --
+   --  In_Generic is used to indicate whether the statment witness is destined
+   --  to be inserted in a generic package or subprogram.
 
    procedure Ensure_With (UIC : in out Ada_Unit_Inst_Context'Class;
                           Unit : Text_Type);
@@ -1142,9 +1146,10 @@ package body Instrument.Ada_Unit is
    ----------------------------
 
    function Make_Statement_Witness
-     (UIC    : Ada_Unit_Inst_Context;
-      Bit    : Bit_Id;
-      Flavor : Statement_Witness_Flavor) return Node_Rewriting_Handle
+     (UIC        : Ada_Unit_Inst_Context;
+      Bit        : Bit_Id;
+      Flavor     : Statement_Witness_Flavor;
+      In_Generic : Boolean) return Node_Rewriting_Handle
    is
       Bit_Img : constant String  := Img (Bit);
       E       : Instrumentation_Entities renames UIC.Entities;
@@ -1160,8 +1165,10 @@ package body Instrument.Ada_Unit is
 
       function Decl_Img return String is
         ("Discard_" & UIC.Instrumented_Unit.Part'Img & Bit_Img
-         & " : {}.Witness_Dummy_Type := "
-         & Call_Img);
+         & " : {}." & (if In_Generic and then Switches.SPARK_Compat
+                       then "Non_Volatile_"
+                       else "")
+         & "Witness_Dummy_Type := " & Call_Img);
 
    --  Start of processing for Make_Statement_Witness
 
@@ -2562,6 +2569,9 @@ package body Instrument.Ada_Unit is
       --  Position where to insert the witness call relative to Insertion_N
       --  (see declaration of Instrument_Location_Type for the meaning of
       --  the various values).
+
+      In_Generic : Boolean := False;
+      --  Wether this statment is generic code.
    end record;
 
    package SC is new Table.Table
@@ -2648,7 +2658,8 @@ package body Instrument.Ada_Unit is
         (Method => None, Unsupported => False);
 
       procedure Extend_Statement_Sequence
-        (N                   : Ada_Node'Class;
+        (UIC                 : Ada_Unit_Inst_Context;
+         N                   : Ada_Node'Class;
          Typ                 : Character;
          Insertion_N         : Node_Rewriting_Handle :=
                                   No_Node_Rewriting_Handle;
@@ -2714,7 +2725,8 @@ package body Instrument.Ada_Unit is
       -------------------------------
 
       procedure Extend_Statement_Sequence
-        (N                   : Ada_Node'Class;
+        (UIC                 : Ada_Unit_Inst_Context;
+         N                   : Ada_Node'Class;
          Typ                 : Character;
          Insertion_N         : Node_Rewriting_Handle :=
                                   No_Node_Rewriting_Handle;
@@ -2854,7 +2866,9 @@ package body Instrument.Ada_Unit is
                         when Ada_Delay_Stmt
                            | Ada_Call_Stmt => Before_Parent,
                         when others        => After)
-                else Instrument_Location)));
+                else Instrument_Location),
+
+             In_Generic          => UIC.In_Generic));
       end Extend_Statement_Sequence;
 
       -----------------------------
@@ -2931,8 +2945,9 @@ package body Instrument.Ada_Unit is
                           Children =>
                             (1 => Make_Statement_Witness
                                (UIC,
-                                Bit    => UIC.Unit_Bits.Last_Statement_Bit,
-                                Flavor => Function_Call),
+                                Bit        => UIC.Unit_Bits.Last_Statement_Bit,
+                                Flavor     => Function_Call,
+                                In_Generic => SCE.In_Generic),
 
                              2 => Make (UIC, Ada_Op_Or_Else),
 
@@ -3068,13 +3083,14 @@ package body Instrument.Ada_Unit is
                      Child  =>
                        Make_Statement_Witness
                          (UIC,
-                          Bit    => UIC.Unit_Bits.Last_Statement_Bit,
-                          Flavor =>
+                          Bit        => UIC.Unit_Bits.Last_Statement_Bit,
+                          Flavor     =>
                             (case Insert_Info.Method is
                              when Statement => Procedure_Call,
                              when Declaration => Declaration,
                              when Expression_Function | None =>
-                                    raise Program_Error)));
+                                    raise Program_Error),
+                          In_Generic => SCE.In_Generic));
 
                   --  Update the rewriting offset iff we inserted an element in
                   --  the current rewriting list: that offset specifically
@@ -3108,8 +3124,9 @@ package body Instrument.Ada_Unit is
                begin
                   Insert_Info.Witness_Actual := Make_Statement_Witness
                     (UIC,
-                     Bit    => UIC.Unit_Bits.Last_Statement_Bit,
-                     Flavor => Function_Call);
+                     Bit        => UIC.Unit_Bits.Last_Statement_Bit,
+                     Flavor     => Function_Call,
+                     In_Generic => SCE.In_Generic);
 
                   Insert_Info.Witness_Formal := Create_Param_Spec
                     (RC,
@@ -3350,7 +3367,8 @@ package body Instrument.Ada_Unit is
             --  Add witness statement for the single statement
 
             Extend_Statement_Sequence
-              (N           => N,
+              (UIC         => UIC,
+               N           => N,
                Typ         => ' ',
                Insertion_N => Single_Stmt_RH);
 
@@ -3635,7 +3653,7 @@ package body Instrument.Ada_Unit is
             declare
                N_Expr : constant Expr := N.As_Expr_Function.F_Expr;
             begin
-               Extend_Statement_Sequence (N_Expr, 'X');
+               Extend_Statement_Sequence (UIC, N_Expr, 'X');
 
                --  For unsupported expression functions, creating a statement
                --  obligation is enough: it will never be satisfied and thus
@@ -3654,7 +3672,8 @@ package body Instrument.Ada_Unit is
             --  the whole null procedure declaration to provide a sloc.
 
             Extend_Statement_Sequence
-              (N           => N,
+              (UIC         => UIC,
+               N           => N,
                Typ         => 'X',
                Insertion_N => NP_Nodes.Null_Stmt);
          end if;
@@ -3872,6 +3891,8 @@ package body Instrument.Ada_Unit is
 
       procedure Traverse_One (N : Ada_Node) is
          Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
+
+         Saved_In_Generic : constant Boolean := UIC.In_Generic;
       begin
          --  Initialize or extend current statement sequence. Note that for
          --  special cases such as IF and Case statements we will modify
@@ -3961,11 +3982,15 @@ package body Instrument.Ada_Unit is
                         | Ada_Subp_Decl
                         | Ada_Task_Body
                      =>
+                        if CU_Decl.Kind = Ada_Generic_Package_Decl then
+                           UIC.In_Generic := True;
+                        end if;
                         Traverse_Declarations_Or_Statements
                           (IC, UIC,
                            P       => CU_Decl.As_Ada_Node,
                            L       => CUN.F_Pragmas,
                            Preelab => Preelab);
+                        UIC.In_Generic := Saved_In_Generic;
 
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
@@ -3999,15 +4024,19 @@ package body Instrument.Ada_Unit is
             --  Generic package declaration
 
             when Ada_Generic_Package_Decl =>
+               UIC.In_Generic := True;
                Set_Statement_Entry;
                Traverse_Generic_Package_Declaration
                  (IC, UIC, N.As_Generic_Package_Decl, Preelab);
+               UIC.In_Generic := Saved_In_Generic;
 
             --  Package body
 
             when Ada_Package_Body =>
+               UIC.In_Generic := Is_Generic (UIC, N.As_Basic_Decl);
                Set_Statement_Entry;
                Traverse_Package_Body (IC, UIC, N.As_Package_Body, Preelab);
+               UIC.In_Generic := Saved_In_Generic;
 
             --  Subprogram declaration or subprogram body stub
 
@@ -4030,10 +4059,12 @@ package body Instrument.Ada_Unit is
                declare
                   GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
                begin
+                  UIC.In_Generic := True;
                   Process_Decisions_Defer
                     (GSD.F_Formal_Part.F_Decls, 'X');
                   Process_Decisions_Defer
                     (GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
+                  UIC.In_Generic := Saved_In_Generic;
                end;
 
             --  Task or subprogram body
@@ -4041,8 +4072,12 @@ package body Instrument.Ada_Unit is
             when Ada_Subp_Body
                | Ada_Task_Body
             =>
+               if Is_Generic (UIC, N.As_Basic_Decl) then
+                  UIC.In_Generic := True;
+               end if;
                Set_Statement_Entry;
                Traverse_Subprogram_Or_Task_Body (IC, UIC, N);
+               UIC.In_Generic := Saved_In_Generic;
 
             --  Entry body
 
@@ -4082,7 +4117,7 @@ package body Instrument.Ada_Unit is
             --  any decisions in the exit statement expression.
 
             when Ada_Exit_Stmt =>
-               Extend_Statement_Sequence (N, 'E');
+               Extend_Statement_Sequence (UIC, N, 'E');
                declare
                   Cond : constant Expr := As_Exit_Stmt (N).F_Cond_Expr;
                begin
@@ -4135,7 +4170,7 @@ package body Instrument.Ada_Unit is
 
             when Ada_If_Stmt =>
                Current_Test := N;
-               Extend_Statement_Sequence (N, 'I');
+               Extend_Statement_Sequence (UIC, N, 'I');
 
                declare
                   If_N : constant If_Stmt := N.As_If_Stmt;
@@ -4178,7 +4213,8 @@ package body Instrument.Ada_Unit is
                            --  a statement for the resulting decisions.
 
                            Extend_Statement_Sequence
-                             (Ada_Node (Elif), 'I',
+                             (UIC,
+                              Ada_Node (Elif), 'I',
                               Insertion_N         => Handle (Elif.F_Cond_Expr),
                               Instrument_Location => Inside_Expr);
                            Process_Decisions_Defer (Elif.F_Cond_Expr, 'I');
@@ -4212,7 +4248,7 @@ package body Instrument.Ada_Unit is
             --  but we include the expression in the current sequence.
 
             when Ada_Case_Stmt =>
-               Extend_Statement_Sequence (N, 'C');
+               Extend_Statement_Sequence (UIC, N, 'C');
                declare
                   Case_N : constant Case_Stmt := N.As_Case_Stmt;
                   Alt_L  : constant Case_Stmt_Alternative_List :=
@@ -4240,7 +4276,7 @@ package body Instrument.Ada_Unit is
             --  ACCEPT statement
 
             when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
-               Extend_Statement_Sequence (N, 'A');
+               Extend_Statement_Sequence (UIC, N, 'A');
                Set_Statement_Entry;
 
                if N.Kind = Ada_Accept_Stmt_With_Stmts then
@@ -4258,7 +4294,7 @@ package body Instrument.Ada_Unit is
             --  conditional_entry_call, and asynchronous_select).
 
             when Ada_Select_Stmt =>
-               Extend_Statement_Sequence (N, 'S');
+               Extend_Statement_Sequence (UIC, N, 'S');
                Set_Statement_Entry;
 
                declare
@@ -4320,7 +4356,7 @@ package body Instrument.Ada_Unit is
                | Ada_Raise_Stmt
                | Ada_Requeue_Stmt
             =>
-               Extend_Statement_Sequence (N, ' ');
+               Extend_Statement_Sequence (UIC, N, ' ');
                Set_Statement_Entry;
                Current_Dominant := No_Dominant;
 
@@ -4328,7 +4364,7 @@ package body Instrument.Ada_Unit is
             --  have to process the return expression for decisions.
 
             when Ada_Return_Stmt =>
-               Extend_Statement_Sequence (N, ' ');
+               Extend_Statement_Sequence (UIC, N, ' ');
                Process_Decisions_Defer
                  (N.As_Return_Stmt.F_Return_Expr, 'X');
                Set_Statement_Entry;
@@ -4337,7 +4373,7 @@ package body Instrument.Ada_Unit is
             --  Extended return statement
 
             when Ada_Extended_Return_Stmt =>
-               Extend_Statement_Sequence (N, 'R');
+               Extend_Statement_Sequence (UIC, N, 'R');
                declare
                   ER_N : constant Extended_Return_Stmt :=
                     N.As_Extended_Return_Stmt;
@@ -4374,7 +4410,7 @@ package body Instrument.Ada_Unit is
                      --  WHILE loop
 
                      if ISC.Kind = Ada_While_Loop_Spec then
-                        Extend_Statement_Sequence (N, 'W');
+                        Extend_Statement_Sequence (UIC, N, 'W');
                         Process_Decisions_Defer
                           (ISC.As_While_Loop_Spec.F_Expr, 'W');
 
@@ -4396,7 +4432,7 @@ package body Instrument.Ada_Unit is
                         --  only appear in the "iteration expression", i.e. the
                         --  expression that comes before the LOOP keyword.
 
-                        Extend_Statement_Sequence (N, 'F');
+                        Extend_Statement_Sequence (UIC, N, 'F');
                         Process_Decisions_Defer
                           (ISC.As_For_Loop_Spec.F_Iter_Expr, 'X');
                      end if;
@@ -4543,7 +4579,7 @@ package body Instrument.Ada_Unit is
 
                   --  Add statement SCO
 
-                  Extend_Statement_Sequence (N, Typ);
+                  Extend_Statement_Sequence (UIC, N, Typ);
                end;
 
             --  Object or named number declaration
@@ -4553,7 +4589,7 @@ package body Instrument.Ada_Unit is
             when Ada_Number_Decl
                | Ada_Object_Decl
             =>
-               Extend_Statement_Sequence (N, 'o');
+               Extend_Statement_Sequence (UIC, N, 'o');
 
                if Has_Decision (UIC, N) then
                   Process_Decisions_Defer (N, 'X');
@@ -4565,7 +4601,7 @@ package body Instrument.Ada_Unit is
             when Ada_Protected_Type_Decl
                | Ada_Task_Type_Decl
             =>
-               Extend_Statement_Sequence (N, 't');
+               Extend_Statement_Sequence (UIC, N, 't');
                declare
                   Disc_N : constant Discriminant_Part :=
                     (case N.Kind is
@@ -4585,7 +4621,7 @@ package body Instrument.Ada_Unit is
             when Ada_Single_Protected_Decl
                | Ada_Single_Task_Decl
             =>
-               Extend_Statement_Sequence (N, 'o');
+               Extend_Statement_Sequence (UIC, N, 'o');
                Set_Statement_Entry;
 
                Traverse_Sync_Definition (IC, UIC, N);
@@ -4656,7 +4692,7 @@ package body Instrument.Ada_Unit is
                   end case;
 
                   if Typ /= ASCII.NUL then
-                     Extend_Statement_Sequence (N, Typ);
+                     Extend_Statement_Sequence (UIC, N, Typ);
                   end if;
                end;
 
@@ -6135,7 +6171,7 @@ package body Instrument.Ada_Unit is
       Canonical_Decl : Basic_Decl;
    begin
       --  Decl is generic iff its canonical part is a generic subprogram
-      --  declaration.
+      --  declaration or a generic package declaration.
 
       begin
          Canonical_Decl := Decl.P_Canonical_Part;
@@ -6148,7 +6184,8 @@ package body Instrument.Ada_Unit is
                Warning);
       end;
 
-      return Canonical_Decl.Kind = Ada_Generic_Subp_Decl;
+      return Canonical_Decl.Kind in
+        Ada_Generic_Subp_Decl | Ada_Generic_Package_Decl;
    end Is_Generic;
 
    ------------

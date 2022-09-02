@@ -36,7 +36,7 @@ package GNATcov_RTS is
    package Std renames Standard;
    package Sys renames System;
 
-   Version : constant := 4;
+   Version : constant := 5;
    --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
    --  versioned.
    --
@@ -44,5 +44,7 @@ package GNATcov_RTS is
    --  2 -- extend trace entry model to account for C files
    --  3 -- add a renaming of the Standard and System packages in GNATcov_RTS
    --  4 -- add C witness functions / buffer types
+   --  5 -- add a non-volatile version of the Witness_Dummy_Type and
+   --       the associated Witness function.
 
 end GNATcov_RTS;
