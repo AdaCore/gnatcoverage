@@ -867,7 +867,7 @@ package body Instrument.C is
    is
       Bit_Img : constant String  := Img (Bit);
    begin
-      return "gnatcov_rts_witness ((void *)"
+      return "gnatcov_rts_witness ("
         & Statement_Buffer_Symbol (UIC.Instrumented_Unit) & "," & Bit_Img
         & ")";
    end Make_Expr_Witness;
@@ -938,7 +938,7 @@ package body Instrument.C is
       begin
          Insert_Text_After_Start_Of
            (N    => SC.Condition,
-            Text => "gnatcov_rts_witness_condition" & " ((void *)"
+            Text => "gnatcov_rts_witness_condition" & " ("
                     & US.To_String (SC.State) & ", " & Img (Offset) & ", "
                     & First_Image & ", ",
             Rew  => UIC.Rewriter);
@@ -997,7 +997,7 @@ package body Instrument.C is
       begin
          Insert_Text_After_Start_Of
            (N    => N,
-            Text => Function_Name & "((void *)"
+            Text => Function_Name & "("
                     & Decision_Buffer_Symbol (UIC.Instrumented_Unit) & ", "
                     & Img (Bits.Outcome_Bits (False)) & ", "
                     & Img (Bits.Outcome_Bits (True)),
@@ -2691,23 +2691,23 @@ package body Instrument.C is
       Put_Extern_Decl
         ("unsigned",
          "gnatcov_rts_witness",
-         Func_Args => "void *buffer_address, unsigned bit_id");
+         Func_Args => "unsigned char *buffer_address, unsigned bit_id");
       Put_Extern_Decl
         ("unsigned",
          "gnatcov_rts_witness_decision",
-         Func_Args => "void *buffer_address,"
+         Func_Args => "unsigned char *buffer_address,"
                       & " unsigned false_bit,"
                       & " unsigned true_bit,"
                       & " unsigned value");
       Put_Extern_Decl
         ("unsigned",
          "gnatcov_rts_witness_decision_mcdc",
-         Func_Args => "void *decision_buffer_address,"
+         Func_Args => "unsigned char *decision_buffer_address,"
                       & " unsigned false_bit,"
                       & " unsigned true_bit,"
-                      & " void *mcdc_buffer_address,"
+                      & " unsigned char *mcdc_buffer_address,"
                       & " unsigned mcdc_base,"
-                      & " void *mcdc_path_address,"
+                      & " unsigned char *mcdc_path_address,"
                       & " unsigned value");
       Put_Extern_Decl
         ("unsigned",
