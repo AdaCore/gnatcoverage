@@ -3259,12 +3259,26 @@ package body Instrument.C is
                if Last_Is_Backslash then
 
                   --  If the last character was a backslash, we expect a comma
+                  --  or a backslash. If we have something else, just treat
+                  --  the backslash as a regular character, i.e. add the
+                  --  backslash *and* the current character.
+                  --
+                  --  Note that this is to mimic the behavior of "sh", which is
+                  --  convenient on Windows: "C:\foo" is valid and interpreted
+                  --  as "C:\foo" (backslash preserved) instead of as, for
+                  --  instance "C:foo" (backslash just ignored).
 
-                  if C = ',' then
-                     Append (Result.Reference (Result.Last), C);
-                  else
-                     Fatal_Error ("Invalid comma-separated option list");
-                  end if;
+                  declare
+                     Last_Arg : Unbounded_String
+                       renames Result.Reference (Result.Last);
+                  begin
+                     case C is
+                        when '\' | ',' =>
+                           Append (Last_Arg, C);
+                        when others =>
+                           Append (Last_Arg, (1 => '\', 2 => C));
+                     end case;
+                  end;
                   Last_Is_Backslash := False;
 
                else
@@ -3279,6 +3293,12 @@ package body Instrument.C is
                end if;
             end;
          end loop;
+
+         --  If we got a trailing backslash, treat it as a regular character
+
+         if Last_Is_Backslash then
+            Append (Result.Reference (Result.Last), '\');
+         end if;
       end return;
    end Split_Args;
 
