@@ -3667,6 +3667,9 @@ package body Instrument.C is
       end loop;
 
       declare
+         Buffer_Array_Decl  : constant String :=
+           "gnatcov_rts_unit_coverage_buffers_array "
+           & Unit_Buffers_Array_Name (IC);
          Buffer_Unit_Length : constant String :=
            Count_Type'Image (Instr_Units.Length);
       begin
@@ -3676,6 +3679,8 @@ package body Instrument.C is
 
          File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
+         --  First create extern declarations for each individual unit buffer
+
          for Instr_Unit of Instr_Units loop
             Put_Extern_Decl
               (File_Body,
@@ -3683,9 +3688,13 @@ package body Instrument.C is
                "gnatcov_rts_unit_coverage_buffers",
                Unit_Buffers_Name (Instr_Unit));
          end loop;
-         File_Body.Put (Self.Extern_Prefix);
-         File_Body.Put_Line ("gnatcov_rts_unit_coverage_buffers_array "
-                             & Unit_Buffers_Array_Name (IC) & " = {");
+
+         --  Then create an extern declaration for the buffer array (necessary
+         --  in C++ to set the C linkage), and finally the definition for that
+         --  array.
+
+         File_Body.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
+         File_Body.Put_Line (Buffer_Array_Decl & " = {");
          File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
          File_Body.Put_Line ("  (gnatcov_rts_unit_coverage_buffers *[]) {");
          for Cur in Instr_Units.Iterate loop
