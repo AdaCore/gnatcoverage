@@ -518,32 +518,74 @@ package body Project is
            (List => Lib_Info, ALI_Ext => "^.*\.sid$");
          for LI of Lib_Info loop
 
-            --  If the unit for this SID file is in Unit_Map, this is a unit of
-            --  interest, so use it.
+            --  GNATCOLL.Projects.Library_Files has several bugs wrt. the
+            --  enumeration of LI files for C++ units. Filter out these LI
+            --  files and implement our own enumerations for C++. TODO???
+            --  This has been fixed in GNATcoll's development branch: remove
+            --  this workaround during the next stable bump.
 
-            declare
-               use Unit_Maps;
+            if LI.Source.Language /= "c++" then
 
-               LI_Source_Unit : constant String := LI.Source.Unit_Name;
-               LI_Source_File : constant String := +LI.Source.File.Base_Name;
+               --  If the unit for this SID file is in Unit_Map, this is a unit
+               --  of interest, so use it.
 
-               U : constant String :=
-                 (if LI_Source_Unit'Length > 0
-                  then LI_Source_Unit
-                  else LI_Source_File);
-               --  For unit-based languages (Ada), retrieve unit name from SID
-               --  file. For file-based languages (C), fall back to translation
-               --  unit source file name instead.
+               declare
+                  use Unit_Maps;
 
-               Cur : constant Cursor := Unit_Map.Find (U);
-            begin
-               if Has_Element (Cur) then
-                  Callback.all (+LI.Library_File.Full_Name);
-                  Unit_Map.Reference (Cur).LI_Seen := True;
-               end if;
-            end;
+                  LI_Source_Unit : constant String := LI.Source.Unit_Name;
+                  LI_Source_File : constant String :=
+                    +LI.Source.File.Base_Name;
+
+                  U : constant String :=
+                    (if LI_Source_Unit'Length > 0
+                     then LI_Source_Unit
+                     else LI_Source_File);
+                  --  For unit-based languages (Ada), retrieve unit name from
+                  --  SID file. For file-based languages (C), fall back to
+                  --  translation unit source file name instead.
+
+                  Cur : constant Cursor := Unit_Map.Find (U);
+               begin
+                  if Has_Element (Cur) then
+                     Callback.all (+LI.Library_File.Full_Name);
+                     Unit_Map.Reference (Cur).LI_Seen := True;
+                  end if;
+               end;
+            end if;
          end loop;
          Lib_Info.Clear;
+
+         --  Implement our own enumeration for C++ units (see above). TODO???
+         --  Remove this bit too during the next stable bump.
+
+         if Prj_Info.Project.Has_Language ("C++") then
+            declare
+               Obj_Dir : constant String :=
+                 +Prj_Info.Project.Object_Dir.Full_Name;
+               Sources : File_Array_Access := Prj_Info.Project.Source_Files;
+               FI      : File_Info;
+            begin
+               for S of Sources.all loop
+                  FI := Prj_Tree.Info (S);
+                  if To_Lower (FI.Language) = "c++" then
+                     declare
+                        use Unit_Maps;
+
+                        Src_File : constant String := +S.Base_Name;
+                        SID_Name : constant String :=
+                          Compose (Obj_Dir, Src_File & ".sid");
+                        Cur      : constant Cursor := Unit_Map.Find (Src_File);
+                     begin
+                        if Has_Element (Cur) and then Exists (SID_Name) then
+                           Callback.all (SID_Name);
+                           Unit_Map.Reference (Cur).LI_Seen := True;
+                        end if;
+                     end;
+                  end if;
+               end loop;
+               Unchecked_Free (Sources);
+            end;
+         end if;
       end loop;
 
       --  Now warn about units of interest that have no SID
