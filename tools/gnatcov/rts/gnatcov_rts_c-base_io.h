@@ -30,6 +30,14 @@
 
 #include "gnatcov_rts_c_strings.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* See gnatcov_rts-base_io.ads.  */
 extern int gnatcov_rts_puts (gnatcov_rts_string str);
 extern int gnatcov_rts_putchar (int c);
+
+#ifdef __cplusplus
+}
+#endif

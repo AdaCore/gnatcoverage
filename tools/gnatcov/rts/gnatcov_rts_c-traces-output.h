@@ -20,6 +20,10 @@
 #include "gnatcov_rts_c-buffers.h"
 #include "gnatcov_rts_c_strings.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Callback for trace writing routines. Write the N bytes starting at SOURCE to
    the OUTPUT stream (OUTPUT is just forwarded from
    gnatcov_rts_generic_write_trace_file).  Return 0 if the write was
@@ -36,3 +40,7 @@ extern int gnatcov_rts_generic_write_trace_file (
   gnatcov_rts_string program_name, uint64_t exec_date,
   gnatcov_rts_string user_data,
   gnatcov_rts_write_bytes_callback write_bytes);
+
+#ifdef __cplusplus
+}
+#endif

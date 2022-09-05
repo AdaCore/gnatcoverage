@@ -324,6 +324,68 @@ package body Instrument.C is
    --  primitive. The additional Rew argument is the C source rewriter that is
    --  ready to use for the source file to instrument.
 
+   function Format_Def
+     (C_Type     : String;
+      Name       : String;
+      Array_Size : String := "";
+      Func_Args  : String := "";
+      Init_Expr  : String := "";
+      External   : Boolean := False) return String;
+   --  Helper to format a variable/constant definition or declaration.
+   --
+   --  C_Type is the type for the declared entity ("int", "const char *", ...).
+   --
+   --  Name is the identifier for the declared entity.
+   --
+   --  If the declared entity is an array, Array_Size must be the
+   --  representation of its size. Note that in this case, C_Type is the type
+   --  of the elements in this array. Leave empty otherwise.
+   --
+   --  If the declared entity is a function, Func_Args must be the list of its
+   --  arguments. Note that in that case, C_Type is the function return type.
+   --  Leave empty otherwise.
+   --
+   --  Init_Expr is the initialization expression for the declared entity, if
+   --  needed.
+   --
+   --  If External is True, add an "extern" keyword as a prefix for the
+   --  declaration. Note that this is incompatible with Init_Expr, as an extern
+   --  declaration be a definition.
+
+   procedure Put_Format_Def
+     (File       : in out Text_Files.File_Type;
+      C_Type     : String;
+      Name       : String;
+      Array_Size : String := "";
+      Init_Expr  : String := "");
+   --  Like Format_Def, but write the definition to File
+
+   function Format_Extern_Decl
+     (C_Type    : String;
+      Name      : String;
+      Func_Args : String := "") return String;
+   --  Helper for format an "extern" declaration. Arguments are the same as
+   --  Format_Def.
+
+   procedure Put_Extern_Decl
+     (Rewriter  : Rewriter_T;
+      Location  : Source_Location_T;
+      C_Type    : String;
+      Name      : String;
+      Func_Args : String := "");
+   --  Like Format_Extern_Decl, but write the definition to TU/Rewriter
+
+   procedure Put_Extern_Decl
+     (File      : in out Text_Files.File_Type;
+      C_Type    : String;
+      Name      : String;
+      Func_Args : String := "");
+   --  Like Format_Extern_Decl, but write the definition to File
+
+   function Find_First_Insert_Location
+     (TU : Translation_Unit_T) return Source_Location_T;
+   --  Find the first rewritable (raw) location of the file
+
    ------------------------
    -- To_Chars_Ptr_Array --
    ------------------------
@@ -805,7 +867,7 @@ package body Instrument.C is
    is
       Bit_Img : constant String  := Img (Bit);
    begin
-      return "gnatcov_rts_witness ((void *)"
+      return "gnatcov_rts_witness ("
         & Statement_Buffer_Symbol (UIC.Instrumented_Unit) & "," & Bit_Img
         & ")";
    end Make_Expr_Witness;
@@ -874,15 +936,19 @@ package body Instrument.C is
          First_Image : constant String :=
            Integer'Image (if SC.First then 1 else 0);
       begin
+         --  Wrap the condition inside a ternary expression so that we always
+         --  pass an unsigned value to the witness function. This turns <cond>
+         --  into (<cond>) ? 1 : 0.
+
          Insert_Text_After_Start_Of
            (N    => SC.Condition,
-            Text => "gnatcov_rts_witness_condition" & " ((void *)"
+            Text => "gnatcov_rts_witness_condition" & " ("
                     & US.To_String (SC.State) & ", " & Img (Offset) & ", "
                     & First_Image & ", ",
             Rew  => UIC.Rewriter);
-         Insert_Text_After (N    => SC.Condition,
-                            Text => ")",
-                            Rew  => UIC.Rewriter);
+         Insert_Text_Before_End_Of (N    => SC.Condition,
+                                    Text => " ? 1 : 0)",
+                                    Rew  => UIC.Rewriter);
       end;
    end Insert_Condition_Witness;
 
@@ -935,7 +1001,7 @@ package body Instrument.C is
       begin
          Insert_Text_After_Start_Of
            (N    => N,
-            Text => Function_Name & "((void *)"
+            Text => Function_Name & "("
                     & Decision_Buffer_Symbol (UIC.Instrumented_Unit) & ", "
                     & Img (Bits.Outcome_Bits (False)) & ", "
                     & Img (Bits.Outcome_Bits (True)),
@@ -953,9 +1019,13 @@ package body Instrument.C is
                                      Text => ", ",
                                      Rew  => UIC.Rewriter);
 
-         Insert_Text_After (N    => N,
-                            Text => ")",
-                            Rew  => UIC.Rewriter);
+         --  Wrap the decision inside a ternary expression so that we always
+         --  pass an unsigned value to the witness function. This turns <dec>
+         --  into (<dec>) ? 1 : 0.
+
+         Insert_Text_Before_End_Of (N    => N,
+                                    Text => " ? 1 : 0)",
+                                    Rew  => UIC.Rewriter);
       end;
    end Insert_Decision_Witness;
 
@@ -969,7 +1039,7 @@ package body Instrument.C is
       Var_Decl_Img  : constant String :=
         "unsigned " & Name & "_var;";
       Addr_Decl_Img : constant String :=
-        "void *" & Name & " = &" & Name & "_var;";
+        "unsigned *" & Name & " = &" & Name & "_var;";
 
    begin
       Insert_Text_Before_Start_Of (N    => UIC.MCDC_State_Declaration_Node,
@@ -1568,10 +1638,10 @@ package body Instrument.C is
       L   : Cursor_Vectors.Vector;
       D   : Dominant_Info := No_Dominant)
    is
-      Discard_Dom : Dominant_Info;
-      pragma Warnings (Off, Discard_Dom);
+      Discard_Dom : constant  Dominant_Info :=
+        Traverse_Statements (IC, UIC, L, D);
    begin
-      Discard_Dom := Traverse_Statements (IC, UIC, L, D);
+      null;
    end Traverse_Statements;
 
    function Traverse_Statements
@@ -2405,6 +2475,30 @@ package body Instrument.C is
       --  count the same number of SCOs. For more details, see the
       --  documentation of Pass_Kind in instrument-c.ads.
 
+      Insert_Extern_Location : Source_Location_T;
+      --  Where to insert extern declarations
+
+      procedure Put_Extern_Decl
+        (C_Type    : String;
+         Name      : String;
+         Func_Args : String := "");
+      --  Local shortcut to avoid passing UIC.TU/UIC.Rewriter explicitly
+
+      ---------------------
+      -- Put_Extern_Decl --
+      ---------------------
+
+      procedure Put_Extern_Decl
+        (C_Type    : String;
+         Name      : String;
+         Func_Args : String := "") is
+      begin
+         Put_Extern_Decl
+           (UIC.Rewriter, Insert_Extern_Location, C_Type, Name, Func_Args);
+      end Put_Extern_Decl;
+
+   --  Start of processing for Instrument_Source_File
+
    begin
       SCOs.Initialize;
       UIC.SFI := Get_Index_From_Generic_Name
@@ -2446,6 +2540,7 @@ package body Instrument.C is
                        Preprocessed => True);
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
+      Insert_Extern_Location := Find_First_Insert_Location (UIC.TU);
 
       Traverse_Declarations
         (IC  => IC,
@@ -2592,46 +2687,43 @@ package body Instrument.C is
       --  libraries, which we don't want. To be safe, we will declare
       --  GNATcov_RTS functions and symbols as extern.
 
-      Add_Export (UIC.TU,
-                  UIC.Rewriter,
-                  "extern unsigned char *"
-                  & Statement_Buffer_Symbol (UIC.Instrumented_Unit) & ";");
-
-      Add_Export (UIC.TU,
-                  UIC.Rewriter,
-                  "extern unsigned char *"
-                  & Decision_Buffer_Symbol (UIC.Instrumented_Unit) & ";");
-
-      Add_Export (UIC.TU,
-                  UIC.Rewriter,
-                  "extern unsigned char *"
-                  & MCDC_Buffer_Symbol (UIC.Instrumented_Unit) & ";");
-
-      Add_Export (UIC.TU,
-                  UIC.Rewriter,
-                  "extern unsigned gnatcov_rts_witness"
-                  & " (void *buffer_address, unsigned bit_id);");
-
-      Add_Export (UIC.TU,
-                  UIC.Rewriter,
-                  "extern unsigned gnatcov_rts_witness_decision"
-                  & " (void *buffer_address, unsigned false_bit,"
-                  & " unsigned true_bit, unsigned value);");
-
-      Add_Export (UIC.TU,
-                  UIC.Rewriter,
-                  "extern unsigned gnatcov_rts_witness_decision_mcdc"
-                  & "(void *decision_buffer_address,"
-                  & " unsigned false_bit, unsigned true_bit,"
-                  & " void *mcdc_buffer_address, unsigned mcdc_base,"
-                  & " void *mcdc_path_address, unsigned value);");
-
-      Add_Export (UIC.TU,
-                  UIC.Rewriter,
-                  "extern unsigned gnatcov_rts_witness_condition"
-                  & "(unsigned *mcdc_path_address,"
-                  & "unsigned offset_for_true,"
-                  & " unsigned first, unsigned value);");
+      Put_Extern_Decl
+        ("unsigned char *",
+         Statement_Buffer_Symbol (UIC.Instrumented_Unit));
+      Put_Extern_Decl
+        ("unsigned char *",
+         Decision_Buffer_Symbol (UIC.Instrumented_Unit));
+      Put_Extern_Decl
+        ("unsigned char *",
+         MCDC_Buffer_Symbol (UIC.Instrumented_Unit));
+      Put_Extern_Decl
+        ("unsigned",
+         "gnatcov_rts_witness",
+         Func_Args => "unsigned char *buffer_address, unsigned bit_id");
+      Put_Extern_Decl
+        ("unsigned",
+         "gnatcov_rts_witness_decision",
+         Func_Args => "unsigned char *buffer_address,"
+                      & " unsigned false_bit,"
+                      & " unsigned true_bit,"
+                      & " unsigned value");
+      Put_Extern_Decl
+        ("unsigned",
+         "gnatcov_rts_witness_decision_mcdc",
+         Func_Args => "unsigned char *decision_buffer_address,"
+                      & " unsigned false_bit,"
+                      & " unsigned true_bit,"
+                      & " unsigned char *mcdc_buffer_address,"
+                      & " unsigned mcdc_base,"
+                      & " unsigned *mcdc_path_address,"
+                      & " unsigned value");
+      Put_Extern_Decl
+        ("unsigned",
+         "gnatcov_rts_witness_condition",
+         Func_Args => "unsigned *mcdc_path_address,"
+                      & "unsigned offset_for_true,"
+                      & " unsigned first,"
+                      & " unsigned value");
 
       --  Insert automatic buffer dump calls, if requested
 
@@ -2712,61 +2804,81 @@ package body Instrument.C is
 
          File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
          File.New_Line;
-         File.Put_Line
-           ("unsigned char " & Statement_Buffer_Repr & "["
-            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Statement_Bit + 1))
-            & "];");
-         File.Put_Line
-           ("unsigned char *const " & Statement_Buffer & " = &"
-            & Statement_Buffer_Repr & "[0];");
-         File.New_Line;
+         Put_Format_Def
+           (File,
+            "unsigned char",
+            Statement_Buffer_Repr,
+            Array_Size =>
+              Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Statement_Bit + 1)));
+         Put_Format_Def
+           (File,
+            "unsigned char *const",
+            Statement_Buffer,
+            Init_Expr => "&" & Statement_Buffer_Repr & "[0]");
 
-         File.Put_Line
-           ("unsigned char " & Decision_Buffer_Repr & "["
-            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Outcome_Bit + 1))
-            & "];");
-         File.Put_Line
-           ("unsigned char *const " & Decision_Buffer & " = &"
-            & Decision_Buffer_Repr & "[0];");
-         File.New_Line;
+         Put_Format_Def
+           (File,
+            "unsigned char",
+            Decision_Buffer_Repr,
+            Array_Size =>
+              Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Outcome_Bit + 1)));
+         Put_Format_Def
+           (File,
+            "unsigned char *const",
+            Decision_Buffer,
+            Init_Expr => "&" & Decision_Buffer_Repr & "[0]");
 
-         File.Put_Line
-           ("unsigned char " & MCDC_Buffer_Repr & "["
-            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Path_Bit + 1))
-            & "];");
-         File.Put_Line
-           ("unsigned char *const " & MCDC_Buffer & " = &" & MCDC_Buffer_Repr
-            & "[0];");
-         File.New_Line;
+         Put_Format_Def
+           (File,
+            "unsigned char",
+            MCDC_Buffer_Repr,
+            Array_Size =>
+              Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Path_Bit + 1)));
+         Put_Format_Def
+           (File,
+            "unsigned char *const",
+            MCDC_Buffer,
+            Init_Expr => "&" & MCDC_Buffer_Repr & "[0]");
 
-         File.Put_Line ("struct gnatcov_rts_unit_coverage_buffers "
-                        & Unit_Buffers_Name (UIC.Instrumented_Unit)
-                        & "= {");
-         File.Put_Line ("    .fingerprint = " & To_String (Fingerprint) & ",");
+         Put_Format_Def
+           (File,
+            "struct gnatcov_rts_unit_coverage_buffers",
+            Unit_Buffers_Name (UIC.Instrumented_Unit),
+            Init_Expr =>
+              "{"
+              & ASCII.LF
+              & "  .fingerprint = " & To_String (Fingerprint) & ","
+              & ASCII.LF
+              & "  .language_kind = FILE_BASED_LANGUAGE,"
+              & ASCII.LF
+              & "  .unit_part = NOT_APPLICABLE_PART,"
+              & ASCII.LF
+              & "  .unit_name = STR (""" & Unit_Name & """),"
+              & ASCII.LF
+              & "  .project_name = STR (""" & Project_Name & """),"
+              & ASCII.LF
 
-         File.Put_Line ("    .language_kind = FILE_BASED_LANGUAGE,");
-         File.Put_Line ("    .unit_part = NOT_APPLICABLE_PART,");
-         File.Put_Line ("    .unit_name = STR (""" & Unit_Name & """),");
+              --  We do not use the created pointer (Statement_Buffer) to
+              --  initialize the buffer fields, as this is rejected by old
+              --  versions of the compiler (up to the 20 version): the
+              --  initializer element is considered not constant. To work
+              --  around it, we simply use the original expression instead of
+              --  using a wrapper pointer.
 
-         File.Put_Line ("    .project_name = STR (""" & Project_Name & """),");
+              & "  .statement = &" & Statement_Buffer_Repr & "[0],"
+              & ASCII.LF
+              & "  .decision = &" & Decision_Buffer_Repr & "[0],"
+              & ASCII.LF
+              & "  .mcdc = &" & MCDC_Buffer_Repr & "[0],"
+              & ASCII.LF
 
-         --  We do not use the created pointer (Statement_Buffer) to initialize
-         --  the buffer fields, as this is rejected by old versions of the
-         --  compiler (up to the 20 version): the initializer element is
-         --  considered not constant. To work around it, we simply use the
-         --  original expression instead of using a wrapper pointer.
-
-         File.Put_Line ("    .statement = &" & Statement_Buffer_Repr & "[0],");
-         File.Put_Line ("    .decision = &" & Decision_Buffer_Repr & "[0],");
-         File.Put_Line ("    .mcdc = &" & MCDC_Buffer_Repr & "[0],");
-
-         File.Put_Line ("    .statement_last_bit = " & Statement_Last_Bit
-                        & ",");
-         File.Put_Line ("    .decision_last_bit = " & Decision_Last_Bit
-                        & ",");
-         File.Put_Line ("    .mcdc_last_bit = " & MCDC_Last_Bit);
-
-         File.Put_Line ("};");
+              & "  .statement_last_bit = " & Statement_Last_Bit & ","
+              & ASCII.LF
+              & "  .decision_last_bit = " & Decision_Last_Bit & ","
+              & ASCII.LF
+              & "  .mcdc_last_bit = " & MCDC_Last_Bit
+              & ASCII.LF
+              & "}");
       end;
    end Emit_Buffer_Unit;
 
@@ -2897,15 +3009,21 @@ package body Instrument.C is
       Helper_Filename : US.Unbounded_String;
       --  Name of file to contain helpers implementing the buffers dump
 
+      Insert_Extern_Location : constant Source_Location_T :=
+        Find_First_Insert_Location (Rew.TU);
+      --  Where to insert extern declarations
    begin
       if Instr_Units.Is_Empty then
          return;
       end if;
 
       Emit_Dump_Helper_Unit (IC, Info, Main, Helper_Filename);
-      Add_Export
-        (Rew.TU, Rew.Rewriter,
-         "extern void " & Dump_Procedure_Symbol (Main) & "(void);");
+      Put_Extern_Decl
+        (Rew.Rewriter,
+         Insert_Extern_Location,
+         "void",
+         Dump_Procedure_Symbol (Main),
+         Func_Args => "void");
 
       if IC.Dump_Config.Trigger = Ravenscar_Task_Termination then
          Warn ("--dump-trigger=ravenscar-task-termination is not valid for a C"
@@ -2921,8 +3039,12 @@ package body Instrument.C is
                Statement => Dump_Procedure_Symbol (Main) & "();");
 
          when At_Exit =>
-            Add_Export (Rew.TU, Rew.Rewriter,
-                        "extern int atexit( void ( * function ) (void) );");
+            Put_Extern_Decl
+              (Rew.Rewriter,
+               Insert_Extern_Location,
+               "int",
+               "atexit",
+               Func_Args => "void (*function) (void)");
 
             Add_Statement_In_Main
               (Rew.TU, Rew.Rewriter,
@@ -2947,6 +3069,145 @@ package body Instrument.C is
       Auto_Dump_Buffers_In_Main (IC, Info, Main, Rew);
       Rew.Apply;
    end Auto_Dump_Buffers_In_Main;
+
+   ----------------
+   -- Format_Def --
+   ----------------
+
+   function Format_Def
+     (C_Type     : String;
+      Name       : String;
+      Array_Size : String := "";
+      Func_Args  : String := "";
+      Init_Expr  : String := "";
+      External   : Boolean := False) return String
+   is
+      Result : Unbounded_String;
+   begin
+      if External then
+         Append (Result, "extern ");
+      end if;
+      Append (Result, C_Type);
+      Append (Result, ' ');
+      Append (Result, Name);
+      if Array_Size /= "" then
+         Append (Result, '[');
+         Append (Result, Array_Size);
+         Append (Result, ']');
+      end if;
+      if Func_Args /= "" then
+         Append (Result, " (");
+         Append (Result, Func_Args);
+         Append (Result, ')');
+      end if;
+      if Init_Expr /= "" then
+         Append (Result, " = ");
+         Append (Result, Init_Expr);
+      end if;
+      Append (Result, ';');
+      return To_String (Result);
+   end Format_Def;
+
+   --------------------
+   -- Put_Format_Def --
+   --------------------
+
+   procedure Put_Format_Def
+     (File       : in out Text_Files.File_Type;
+      C_Type     : String;
+      Name       : String;
+      Array_Size : String := "";
+      Init_Expr  : String := "") is
+   begin
+      File.Put_Line
+        (Format_Def (C_Type, Name, Array_Size, Init_Expr => Init_Expr));
+   end Put_Format_Def;
+
+   ------------------------
+   -- Format_Extern_Decl --
+   ------------------------
+
+   function Format_Extern_Decl
+     (C_Type    : String;
+      Name      : String;
+      Func_Args : String := "") return String is
+   begin
+      return
+        Format_Def (C_Type, Name, Func_Args => Func_Args, External => True);
+   end Format_Extern_Decl;
+
+   ---------------------
+   -- Put_Extern_Decl --
+   ---------------------
+
+   procedure Put_Extern_Decl
+     (Rewriter  : Rewriter_T;
+      Location  : Source_Location_T;
+      C_Type    : String;
+      Name      : String;
+      Func_Args : String := "") is
+   begin
+      CX_Rewriter_Insert_Text_Before
+        (Rew    => Rewriter,
+         Loc    => Location,
+         Insert => Format_Extern_Decl (C_Type, Name, Func_Args) & ASCII.LF);
+   end Put_Extern_Decl;
+
+   ---------------------
+   -- Put_Extern_Decl --
+   ---------------------
+
+   procedure Put_Extern_Decl
+     (File      : in out Text_Files.File_Type;
+      C_Type    : String;
+      Name      : String;
+      Func_Args : String := "") is
+   begin
+      File.Put_Line (Format_Extern_Decl (C_Type, Name, Func_Args));
+   end Put_Extern_Decl;
+
+   --------------------------------
+   -- Find_First_Insert_Location --
+   --------------------------------
+
+   function Find_First_Insert_Location
+     (TU : Translation_Unit_T) return Source_Location_T
+   is
+      Location : Source_Location_T := Get_Null_Location;
+
+      function Visit_Decl
+        (Cursor : Cursor_T) return Child_Visit_Result_T with Convention => C;
+      --  Callback for Visit_Children
+
+      ----------------
+      -- Visit_Decl --
+      ----------------
+
+      function Visit_Decl
+        (Cursor : Cursor_T) return Child_Visit_Result_T is
+      begin
+         if Kind (Cursor) = Cursor_Translation_Unit then
+            return Child_Visit_Recurse;
+         end if;
+         declare
+            Cursor_Location : constant Source_Location_T :=
+              Get_Range_Start (Get_Cursor_Extent (Cursor));
+         begin
+            if not Is_Macro_Location (Location) then
+               Location := Cursor_Location;
+               return Child_Visit_Break;
+            end if;
+         end;
+         return Child_Visit_Continue;
+      end Visit_Decl;
+
+   --  Start of processing for Find_First_Insert_Location
+
+   begin
+      Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
+                      Visitor => Visit_Decl'Unrestricted_Access);
+      return Location;
+   end Find_First_Insert_Location;
 
    ----------------------------
    -- Emit_Buffers_List_Unit --
@@ -2994,8 +3255,10 @@ package body Instrument.C is
          File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
          for Instr_Unit of Instr_Units loop
-            File_Body.Put_Line ("extern gnatcov_rts_unit_coverage_buffers "
-                                & Unit_Buffers_Name (Instr_Unit) & ";");
+            Put_Extern_Decl
+              (File_Body,
+               "gnatcov_rts_unit_coverage_buffers",
+               Unit_Buffers_Name (Instr_Unit));
          end loop;
          File_Body.Put_Line ("gnatcov_rts_unit_coverage_buffers_array "
                              & Unit_Buffers_Array_Name (IC) & " = {");
@@ -3025,8 +3288,10 @@ package body Instrument.C is
             CU_Name_Header,
             C_Language));
 
-      File_Header.Put_Line ("extern gnatcov_rts_unit_coverage_buffers_array "
-                            & Unit_Buffers_Array_Name (IC) & ";");
+      Put_Extern_Decl
+        (File_Header,
+         "gnatcov_rts_unit_coverage_buffers_array",
+         Unit_Buffers_Array_Name (IC));
    end Emit_Buffers_List_Unit;
 
    ---------------------
@@ -3259,12 +3524,26 @@ package body Instrument.C is
                if Last_Is_Backslash then
 
                   --  If the last character was a backslash, we expect a comma
+                  --  or a backslash. If we have something else, just treat
+                  --  the backslash as a regular character, i.e. add the
+                  --  backslash *and* the current character.
+                  --
+                  --  Note that this is to mimic the behavior of "sh", which is
+                  --  convenient on Windows: "C:\foo" is valid and interpreted
+                  --  as "C:\foo" (backslash preserved) instead of as, for
+                  --  instance "C:foo" (backslash just ignored).
 
-                  if C = ',' then
-                     Append (Result.Reference (Result.Last), C);
-                  else
-                     Fatal_Error ("Invalid comma-separated option list");
-                  end if;
+                  declare
+                     Last_Arg : Unbounded_String
+                       renames Result.Reference (Result.Last);
+                  begin
+                     case C is
+                        when '\' | ',' =>
+                           Append (Last_Arg, C);
+                        when others =>
+                           Append (Last_Arg, (1 => '\', 2 => C));
+                     end case;
+                  end;
                   Last_Is_Backslash := False;
 
                else
@@ -3279,6 +3558,12 @@ package body Instrument.C is
                end if;
             end;
          end loop;
+
+         --  If we got a trailing backslash, treat it as a regular character
+
+         if Last_Is_Backslash then
+            Append (Result.Reference (Result.Last), '\');
+         end if;
       end return;
    end Split_Args;
 

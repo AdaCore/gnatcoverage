@@ -103,16 +103,11 @@ package Instrument.C_Utils is
    --  Add a statement before the return, and after any previously inserted
    --  string at the same location.
 
-   procedure Add_Export
-     (TU     : Translation_Unit_T;
-      Rew    : Rewriter_T;
-      Export : String);
-
    procedure Insert_Text_After_Start_Of
      (N    : Cursor_T;
       Text : String;
       Rew  : Rewriter_T);
-   --  Inserts the string Text before the starting location of N.
+   --  Inserts the string Text at the start location of N.
    --
    --  If this procedure is called multiple times with the same N as parameter,
    --  the string will be inserted _after_ any previously inserted string.
@@ -121,16 +116,19 @@ package Instrument.C_Utils is
      (N    : Cursor_T;
       Text : String;
       Rew  : Rewriter_T);
-   --  Inserts the string Text before the starting location of N.
+   --  Inserts the string Text at the start location of N.
    --
    --  If this procedure is called multiple times with the same N as parameter,
    --  the string will be inserted _before_ any previously inserted string.
 
-   procedure Insert_Text_After
+   procedure Insert_Text_Before_End_Of
      (N    : Cursor_T;
       Text : String;
       Rew  : Rewriter_T);
-   --  Same as Insert_Text_Before, but after the end location of N
+   --  Inserts the string Text at the end location of N.
+   --
+   --  If this procedure is called multiple times with the same N as parameter,
+   --  the string will be inserted _before_ any previously inserted string.
 
    procedure Curlify (N : Cursor_T; Rew : Rewriter_T)
      with Pre => not Is_Null (N);
