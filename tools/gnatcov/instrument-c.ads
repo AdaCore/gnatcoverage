@@ -70,33 +70,34 @@ private package Instrument.C is
 
    type Instr_Scheme_Type is (Instr_Stmt, Instr_Expr);
    --  Depending on the statement construct, we can instrument it either with
-   --  another statement right before, which is the case for most expressions,
+   --  another statement right before (Instr_Stmt), which is the case for most
+   --  statements:
    --
-   --  int a = 1;
+   --    int a = 1;
    --
-   --  will become
+   --  will become:
    --
-   --  witness;
-   --  int a = 1;
+   --    witness;
+   --    int a = 1;
    --
-   --  or we have to instrument it by augmenting the underlying expression
-   --  (when it is a statement expression), like:
+   --  Sometimes we have to augment instead the underlying expression
+   --  (Instr_Expr, when it is a statement expression):
    --
-   --  while (a = 2) {}
+   --    while (a = 2) {}
    --
-   --  will become
+   --  will become:
    --
-   --  while (witness && a = 2) {}
+   --    while (witness, a = 2) {}
    --
    --  Here, we can't have the witness call go before the while, as there could
    --  very well be a goto pointing inside the loop, making it skip the
    --  execution of the witness statement, but we would still be executing the
    --  condition of the loop on the second iteration.
    --
-   --  TODO: we still have to figure out what should be done with such valid
+   --  TODO??? we still have to figure out what should be done with such valid
    --  C++ constructs:
    --
-   --  while (int i = calc()){}
+   --    while (int i = calc()){}
 
    type C_Source_Statement is record
       LL_SCO : Nat;

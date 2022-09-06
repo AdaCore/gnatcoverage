@@ -324,6 +324,9 @@ package body Instrument.C is
    --  primitive. The additional Rew argument is the C source rewriter that is
    --  ready to use for the source file to instrument.
 
+   function Format_Str_Constant (Value : String) return String;
+   --  Return a gnatcov_rts_string literal corresponding to Value
+
    function Format_Def
      (C_Type     : String;
       Name       : String;
@@ -887,32 +890,36 @@ package body Instrument.C is
    ------------------------------
 
    procedure Insert_Statement_Witness
-     (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement) is
-   begin
+     (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement)
+   is
       --  Allocate a bit in the statement coverage buffer, and record
       --  its id in the bitmap.
 
-      UIC.Unit_Bits.Last_Statement_Bit :=
-        UIC.Unit_Bits.Last_Statement_Bit + 1;
+      Bit : constant Bit_Id := UIC.Unit_Bits.Last_Statement_Bit + 1;
+   begin
+      UIC.Unit_Bits.Last_Statement_Bit := Bit;
       UIC.Unit_Bits.Statement_Bits.Append
-        (Statement_Bit_Ids'
-           (SS.LL_SCO, Executed => UIC.Unit_Bits.Last_Statement_Bit));
+        (Statement_Bit_Ids'(SS.LL_SCO, Executed => Bit));
+
+      --  Insert the call to the witness function: as a foregoing statement if
+      --  SS.Statement is a statement, or as a previous expression (using the
+      --  comma operator) if SS.Statement is an expression.
 
       case SS.Instr_Scheme is
-         when Instr_Expr =>
-            Insert_Text_After_Start_Of
-              (N    => SS.Statement,
-               Text => Make_Expr_Witness
-                 (UIC => UIC,
-                  Bit => UIC.Unit_Bits.Last_Statement_Bit) & " && ",
-               Rew  => UIC.Rewriter);
-
          when Instr_Stmt =>
             Insert_Text_After_Start_Of
               (N    => SS.Statement,
-               Text => Make_Statement_Witness
-                 (UIC => UIC,
-                  Bit => UIC.Unit_Bits.Last_Statement_Bit),
+               Text => Make_Statement_Witness (UIC, Bit),
+               Rew  => UIC.Rewriter);
+
+         when Instr_Expr =>
+            Insert_Text_After_Start_Of
+              (N    => SS.Statement,
+               Text => "(" & Make_Expr_Witness (UIC, Bit) & ", ",
+               Rew  => UIC.Rewriter);
+            Insert_Text_Before_End_Of
+              (N    => SS.Statement,
+               Text => ")",
                Rew  => UIC.Rewriter);
       end case;
    end Insert_Statement_Witness;
@@ -942,12 +949,15 @@ package body Instrument.C is
 
          Insert_Text_After_Start_Of
            (N    => SC.Condition,
-            Text => "gnatcov_rts_witness_condition" & " ("
-                    & US.To_String (SC.State) & ", " & Img (Offset) & ", "
-                    & First_Image & ", ",
+            Text =>
+              "gnatcov_rts_witness_condition ("
+              & US.To_String (SC.State) & ", "
+              & Img (Offset) & ", "
+              & First_Image & ", "
+              & "(",
             Rew  => UIC.Rewriter);
          Insert_Text_Before_End_Of (N    => SC.Condition,
-                                    Text => " ? 1 : 0)",
+                                    Text => ") ? 1 : 0)",
                                     Rew  => UIC.Rewriter);
       end;
    end Insert_Condition_Witness;
@@ -1016,7 +1026,7 @@ package body Instrument.C is
                Rew  => UIC.Rewriter);
          end if;
          Insert_Text_After_Start_Of (N    => N,
-                                     Text => ", ",
+                                     Text => ", (",
                                      Rew  => UIC.Rewriter);
 
          --  Wrap the decision inside a ternary expression so that we always
@@ -1024,7 +1034,7 @@ package body Instrument.C is
          --  into (<dec>) ? 1 : 0.
 
          Insert_Text_Before_End_Of (N    => N,
-                                    Text => " ? 1 : 0)",
+                                    Text => ") ? 1 : 0)",
                                     Rew  => UIC.Rewriter);
       end;
    end Insert_Decision_Witness;
@@ -2853,9 +2863,15 @@ package body Instrument.C is
               & ASCII.LF
               & "  .unit_part = NOT_APPLICABLE_PART,"
               & ASCII.LF
-              & "  .unit_name = STR (""" & Unit_Name & """),"
+
+              --  Old toolchains (for instance GNAT Pro 7.1.2) consider that
+              --  "STR(<string literal>)" is not a static expression, and thus
+              --  refuse using STR to initialize a global data structure. To
+              --  workaround this, emit a gnatcov_rtr_string literal ourselves.
+
+              & "  .unit_name = " & Format_Str_Constant (Unit_Name) & ","
               & ASCII.LF
-              & "  .project_name = STR (""" & Project_Name & """),"
+              & "  .project_name = " & Format_Str_Constant (Project_Name) & ","
               & ASCII.LF
 
               --  We do not use the created pointer (Statement_Buffer) to
@@ -3069,6 +3085,15 @@ package body Instrument.C is
       Auto_Dump_Buffers_In_Main (IC, Info, Main, Rew);
       Rew.Apply;
    end Auto_Dump_Buffers_In_Main;
+
+   -------------------------
+   -- Format_Str_Constant --
+   -------------------------
+
+   function Format_Str_Constant (Value : String) return String is
+   begin
+      return "{""" & Value & """," & Value'Length'Image & "}";
+   end Format_Str_Constant;
 
    ----------------
    -- Format_Def --
