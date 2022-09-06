@@ -887,32 +887,36 @@ package body Instrument.C is
    ------------------------------
 
    procedure Insert_Statement_Witness
-     (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement) is
-   begin
+     (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement)
+   is
       --  Allocate a bit in the statement coverage buffer, and record
       --  its id in the bitmap.
 
-      UIC.Unit_Bits.Last_Statement_Bit :=
-        UIC.Unit_Bits.Last_Statement_Bit + 1;
+      Bit : constant Bit_Id := UIC.Unit_Bits.Last_Statement_Bit + 1;
+   begin
+      UIC.Unit_Bits.Last_Statement_Bit := Bit;
       UIC.Unit_Bits.Statement_Bits.Append
-        (Statement_Bit_Ids'
-           (SS.LL_SCO, Executed => UIC.Unit_Bits.Last_Statement_Bit));
+        (Statement_Bit_Ids'(SS.LL_SCO, Executed => Bit));
+
+      --  Insert the call to the witness function: as a foregoing statement if
+      --  SS.Statement is a statement, or as a previous expression (using the
+      --  comma operator) if SS.Statement is an expression.
 
       case SS.Instr_Scheme is
-         when Instr_Expr =>
-            Insert_Text_After_Start_Of
-              (N    => SS.Statement,
-               Text => Make_Expr_Witness
-                 (UIC => UIC,
-                  Bit => UIC.Unit_Bits.Last_Statement_Bit) & " && ",
-               Rew  => UIC.Rewriter);
-
          when Instr_Stmt =>
             Insert_Text_After_Start_Of
               (N    => SS.Statement,
-               Text => Make_Statement_Witness
-                 (UIC => UIC,
-                  Bit => UIC.Unit_Bits.Last_Statement_Bit),
+               Text => Make_Statement_Witness (UIC, Bit),
+               Rew  => UIC.Rewriter);
+
+         when Instr_Expr =>
+            Insert_Text_After_Start_Of
+              (N    => SS.Statement,
+               Text => "(" & Make_Expr_Witness (UIC, Bit) & ", ",
+               Rew  => UIC.Rewriter);
+            Insert_Text_Before_End_Of
+              (N    => SS.Statement,
+               Text => ")",
                Rew  => UIC.Rewriter);
       end case;
    end Insert_Statement_Witness;

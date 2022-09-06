@@ -87,7 +87,7 @@ private package Instrument.C is
    --
    --  will become:
    --
-   --    while (witness && a = 2) {}
+   --    while (witness, a = 2) {}
    --
    --  Here, we can't have the witness call go before the while, as there could
    --  very well be a goto pointing inside the loop, making it skip the
