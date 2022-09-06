@@ -1796,7 +1796,7 @@ package body Instrument.Ada_Unit is
             Create_Generic_Formal_Type_Decl
               (RC,
                F_Decl    =>
-                 Create_Type_Decl
+                 Create_Formal_Type_Decl
                    (RC,
                     F_Name          =>
                       Make_Defining_Name (UIC, Formal_Type_Name),
@@ -1819,6 +1819,8 @@ package body Instrument.Ada_Unit is
 
                          F_Has_Limited  =>
                            Make (UIC, Ada_Limited_Present)),
+
+                    F_Default_Type  => No_Node_Rewriting_Handle,
 
                     F_Aspects       => No_Node_Rewriting_Handle),
 
