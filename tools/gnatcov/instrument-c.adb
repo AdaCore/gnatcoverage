@@ -324,6 +324,9 @@ package body Instrument.C is
    --  primitive. The additional Rew argument is the C source rewriter that is
    --  ready to use for the source file to instrument.
 
+   function Format_Str_Constant (Value : String) return String;
+   --  Return a gnatcov_rts_string literal corresponding to Value
+
    function Format_Def
      (C_Type     : String;
       Name       : String;
@@ -2860,9 +2863,15 @@ package body Instrument.C is
               & ASCII.LF
               & "  .unit_part = NOT_APPLICABLE_PART,"
               & ASCII.LF
-              & "  .unit_name = STR (""" & Unit_Name & """),"
+
+              --  Old toolchains (for instance GNAT Pro 7.1.2) consider that
+              --  "STR(<string literal>)" is not a static expression, and thus
+              --  refuse using STR to initialize a global data structure. To
+              --  workaround this, emit a gnatcov_rtr_string literal ourselves.
+
+              & "  .unit_name = " & Format_Str_Constant (Unit_Name) & ","
               & ASCII.LF
-              & "  .project_name = STR (""" & Project_Name & """),"
+              & "  .project_name = " & Format_Str_Constant (Project_Name) & ","
               & ASCII.LF
 
               --  We do not use the created pointer (Statement_Buffer) to
@@ -3076,6 +3085,15 @@ package body Instrument.C is
       Auto_Dump_Buffers_In_Main (IC, Info, Main, Rew);
       Rew.Apply;
    end Auto_Dump_Buffers_In_Main;
+
+   -------------------------
+   -- Format_Str_Constant --
+   -------------------------
+
+   function Format_Str_Constant (Value : String) return String is
+   begin
+      return "{""" & Value & """," & Value'Length'Image & "}";
+   end Format_Str_Constant;
 
    ----------------
    -- Format_Def --
