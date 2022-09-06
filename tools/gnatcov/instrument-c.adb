@@ -1898,16 +1898,24 @@ package body Instrument.C is
             when Cursor_While_Stmt =>
                declare
                   While_Body     : constant Cursor_T := Get_Body (N);
+                  Cond_Var       : constant Cursor_T := Get_Cond_Var (N);
                   Cond           : constant Cursor_T := Get_Cond (N);
                   Inner_Dominant : constant Dominant_Info := ('S', N);
 
                begin
                   UIC.Pass.Curlify (N   => While_Body,
                                     Rew => UIC.Rewriter);
+
+                  --  If the loop condition is a declaration, instrument its
+                  --  initialization expression.
+
                   Extend_Statement_Sequence
                     (N, 'W',
-                     Insertion_N  => Cond,
+                     Insertion_N  => (if Is_Null (Cond_Var)
+                                      then Cond
+                                      else Get_Var_Init_Expr (Cond_Var)),
                      Instr_Scheme => Instr_Expr);
+
                   Process_Decisions_Defer (Cond, 'W');
                   Set_Statement_Entry;
                   Traverse_Statements

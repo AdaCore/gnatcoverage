@@ -119,11 +119,6 @@ package Instrument.C is
    --  very well be a goto pointing inside the loop, making it skip the
    --  execution of the witness statement, but we would still be executing the
    --  condition of the loop on the second iteration.
-   --
-   --  TODO??? we still have to figure out what should be done with such valid
-   --  C++ constructs:
-   --
-   --    while (int i = calc()){}
 
    type C_Source_Statement is record
       LL_SCO : Nat;
