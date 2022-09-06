@@ -1999,9 +1999,28 @@ package body Instrument.C is
 
             when Cursor_CXX_For_Range_Stmt =>
                declare
-                  For_Body : constant Cursor_T := Get_Body (N);
+                  For_Init_Stmt  : constant Cursor_T := Get_For_Init (N);
+                  For_Range_Decl : constant Cursor_T := Get_For_Range_Expr (N);
+                  For_Body       : constant Cursor_T := Get_Body (N);
                begin
+                  --  Generate SCO statements for both the init statement and
+                  --  the range declaration initialization expression. Like all
+                  --  statements, they can contain nested decisions.
+
+                  Extend_Statement_Sequence
+                    (For_Init_Stmt, ' ', Insertion_N => N);
+                  Process_Decisions_Defer (For_Init_Stmt, 'X');
+
+                  Extend_Statement_Sequence
+                    (For_Range_Decl, ' ',
+                     Insertion_N  => For_Range_Decl,
+                     Instr_Scheme => Instr_Expr);
+                  Process_Decisions_Defer (For_Range_Decl, 'X');
+
                   Set_Statement_Entry;
+
+                  --  Generate obligations for body statements
+
                   UIC.Pass.Curlify (N => For_Body, Rew => UIC.Rewriter);
                   Traverse_Statements
                     (IC, UIC,

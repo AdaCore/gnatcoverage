@@ -45,6 +45,9 @@ package Clang.Extensions is
    function Get_Var_Init_Expr (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_getVarInitExpr";
 
+   function Get_For_Range_Expr (C : Cursor_T) return Cursor_T
+     with Import, Convention => C, External_Name => "clang_getForRangeExpr";
+
    function Get_Then (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_getThen";
 
