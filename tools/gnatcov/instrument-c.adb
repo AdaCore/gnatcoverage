@@ -946,12 +946,15 @@ package body Instrument.C is
 
          Insert_Text_After_Start_Of
            (N    => SC.Condition,
-            Text => "gnatcov_rts_witness_condition" & " ("
-                    & US.To_String (SC.State) & ", " & Img (Offset) & ", "
-                    & First_Image & ", ",
+            Text =>
+              "gnatcov_rts_witness_condition ("
+              & US.To_String (SC.State) & ", "
+              & Img (Offset) & ", "
+              & First_Image & ", "
+              & "(",
             Rew  => UIC.Rewriter);
          Insert_Text_Before_End_Of (N    => SC.Condition,
-                                    Text => " ? 1 : 0)",
+                                    Text => ") ? 1 : 0)",
                                     Rew  => UIC.Rewriter);
       end;
    end Insert_Condition_Witness;
@@ -1020,7 +1023,7 @@ package body Instrument.C is
                Rew  => UIC.Rewriter);
          end if;
          Insert_Text_After_Start_Of (N    => N,
-                                     Text => ", ",
+                                     Text => ", (",
                                      Rew  => UIC.Rewriter);
 
          --  Wrap the decision inside a ternary expression so that we always
@@ -1028,7 +1031,7 @@ package body Instrument.C is
          --  into (<dec>) ? 1 : 0.
 
          Insert_Text_Before_End_Of (N    => N,
-                                    Text => " ? 1 : 0)",
+                                    Text => ") ? 1 : 0)",
                                     Rew  => UIC.Rewriter);
       end;
    end Insert_Decision_Witness;
