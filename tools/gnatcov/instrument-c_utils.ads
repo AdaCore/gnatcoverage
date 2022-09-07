@@ -96,13 +96,6 @@ package Instrument.C_Utils is
    --  Add a statement at the beginning of the main, and before any previously
    --  inserted string at the same location.
 
-   procedure Add_Statement_Before_Return
-     (Fun_Decl  : Cursor_T;
-      Rew       : Rewriter_T;
-      Statement : String);
-   --  Add a statement before the return, and after any previously inserted
-   --  string at the same location.
-
    procedure Insert_Text_After_Start_Of
      (N    : Cursor_T;
       Text : String;
@@ -120,6 +113,15 @@ package Instrument.C_Utils is
    --
    --  If this procedure is called multiple times with the same N as parameter,
    --  the string will be inserted _before_ any previously inserted string.
+
+   procedure Insert_Text_After_End_Of
+     (N    : Cursor_T;
+      Text : String;
+      Rew  : Rewriter_T);
+   --  Inserts the string Text at the end location of N.
+   --
+   --  If this procedure is called multiple times with the same N as parameter,
+   --  the string will be inserted _after_ any previously inserted string.
 
    procedure Insert_Text_Before_End_Of
      (N    : Cursor_T;

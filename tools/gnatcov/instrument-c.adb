@@ -3157,10 +3157,92 @@ package body Instrument.C is
 
       case IC.Dump_Config.Trigger is
          when Main_End | Ravenscar_Task_Termination =>
-            Add_Statement_Before_Return
-              (Fun_Decl  => Get_Main (Rew.TU),
-               Rew       => Rew.Rewriter,
-               Statement => Dump_Procedure_Symbol (Main) & "();");
+            declare
+               function Process
+                 (Cursor : Cursor_T) return Child_Visit_Result_T
+                 with Convention => C;
+               --  Callback for Visit_Children. Insert calls to dump buffers
+               --  before the function return.
+
+               -------------
+               -- Process --
+               -------------
+
+               function Process
+                 (Cursor : Cursor_T) return Child_Visit_Result_T is
+               begin
+                  if Is_Statement (Kind (Cursor))
+                    and then Kind (Cursor) = Cursor_Return_Stmt
+                  then
+                     declare
+                        Return_Expr : constant Cursor_T :=
+                          Get_Children (Cursor).First_Element;
+                     begin
+                        --  Introduce a variable to hold the return result,
+                        --  and replace "return <expr>;" with
+                        --  "{
+                        --     int <tmp>;
+                        --     return <tmp>=<expr>, <dump_buffers>(), <tmp>;
+                        --   }".
+                        --
+                        --  Note that we have to be careful to put braces
+                        --  around the return statement, as the control flow
+                        --  structures may not have been curlified yet,
+                        --  e.g. if the main is not a unit of interest. This
+                        --  means that:
+                        --
+                        --  if (<cond>)
+                        --     return <expr>;
+                        --
+                        --  should produce
+                        --
+                        --  if (<cond>)
+                        --  {
+                        --     int <tmp>;
+                        --     return <tmp>=<expr>, <dump_buffers>(), <tmp>;
+                        --  }
+                        --
+                        --  Notice how this would be wrong without the braces.
+
+                        Insert_Text_After_Start_Of
+                          (N    => Cursor,
+                           Text => "{int gnatcov_rts_return;",
+                           Rew  => Rew.Rewriter);
+
+                        Insert_Text_Before_Start_Of
+                          (N    => Return_Expr,
+                           Text => "gnatcov_rts_return = ",
+                           Rew  => Rew.Rewriter);
+
+                        Insert_Text_After_End_Of
+                          (N    => Return_Expr,
+                           Text => ", "
+                                   & Dump_Procedure_Symbol (Main)
+                                   & "(), gnatcov_rts_return",
+                           Rew  => Rew.Rewriter);
+
+                        CX_Rewriter_Insert_Text_After_Token
+                          (Rew.Rewriter,
+                           Get_Range_End (Get_Cursor_Extent (Cursor)),
+                           "}");
+
+                        return Child_Visit_Continue;
+                     end;
+                  else
+                     --  Be careful not to recurse into lambda expressions,
+                     --  which may have their own return statements.
+
+                     return (if Kind (Cursor) = Cursor_Lambda_Expr
+                             then Child_Visit_Continue
+                             else Child_Visit_Recurse);
+                  end if;
+               end Process;
+
+            begin
+               Visit_Children
+                 (Parent  => Get_Main (Rew.TU),
+                  Visitor => Process'Unrestricted_Access);
+            end;
 
          when At_Exit =>
             Put_Extern_Decl

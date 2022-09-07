@@ -307,38 +307,6 @@ package body Instrument.C_Utils is
                       Visitor => Visit_Decl'Unrestricted_Access);
    end Add_Statement_In_Main;
 
-   ---------------------------------
-   -- Add_Statement_Before_Return --
-   ---------------------------------
-
-   procedure Add_Statement_Before_Return
-     (Fun_Decl  : Cursor_T;
-      Rew       : Rewriter_T;
-      Statement : String) is
-
-      function Visit_Decl (Cursor : Cursor_T)
-         return Child_Visit_Result_T with Convention => C;
-
-      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
-      is
-      begin
-         if Is_Statement (Kind (Cursor)) then
-            if Kind (Cursor) = Cursor_Return_Stmt then
-               Insert_Text_After_Start_Of (N    => Cursor,
-                                           Text => Statement,
-                                           Rew  => Rew);
-            else
-               return Child_Visit_Recurse;
-            end if;
-         end if;
-         return Child_Visit_Continue;
-      end Visit_Decl;
-
-   begin
-      Visit_Children (Parent  => Fun_Decl,
-                      Visitor => Visit_Decl'Unrestricted_Access);
-   end Add_Statement_Before_Return;
-
    --------------------------------
    -- Insert_Text_After_Start_Of --
    --------------------------------
@@ -374,6 +342,24 @@ package body Instrument.C_Utils is
          Loc    => Location,
          Insert => Text);
    end Insert_Text_Before_Start_Of;
+
+   -------------------------------
+   -- Insert_Text_After_End_Of --
+   -------------------------------
+
+   procedure Insert_Text_After_End_Of
+     (N    : Cursor_T;
+      Text : String;
+      Rew  : Rewriter_T)
+   is
+      Location : constant Source_Location_T :=
+        Get_Range_End (Get_Cursor_Extent (N));
+   begin
+      CX_Rewriter_Insert_Text_After
+        (Rew    => Rew,
+         Loc    => Location,
+         Insert => Text);
+   end Insert_Text_After_End_Of;
 
    -------------------------------
    -- Insert_Text_Before_End_Of --
