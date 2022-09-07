@@ -631,7 +631,8 @@ package body ALI_Files is
             V.Message := new String'(Msg);
          end if;
       end;
-      V.Count := 0;
+      V.Violation_Count := 0;
+      V.Undetermined_Cov_Count := 0;
    end Read;
 
    -----------

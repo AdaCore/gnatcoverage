@@ -35,10 +35,28 @@ package body Traces_Lines is
                return R;
             end if;
 
+         --  We don't want non instrumented code to mask any confirmed
+         --  violations, but we still want them to show up if gnatcov does not
+         --  detect any violation.
+
+         when Undetermined_Coverage =>
+            if R in No_Code | Covered then
+               return L;
+            else
+               return R;
+            end if;
+
          when others =>
             case R is
                when No_Code | Not_Coverable =>
                   return L;
+
+               when Undetermined_Coverage =>
+                  if L = Covered then
+                     return R;
+                  else
+                     return L;
+                  end if;
 
                when Not_Covered =>
                   return Line_State'Min (L, Partially_Covered);

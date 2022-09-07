@@ -68,7 +68,7 @@
   <xs:complexType name="coverage_summary_type">
     <xs:sequence>
       <xs:element name="metric" type="metric_type"
-                  minOccurs="6" maxOccurs="6"/>
+                  minOccurs="8" maxOccurs="8"/>
       <xs:element name="obligation_stats" type="obligation_stats_type"
                   minOccurs="0" maxOccurs="3"/>
       <xs:element name="file" type="file_type"
@@ -89,7 +89,9 @@
       <xs:enumeration value="fully_covered"/>
       <xs:enumeration value="partially_covered"/>
       <xs:enumeration value="not_covered"/>
+      <xs:enumeration value="undetermined_coverage"/>
       <xs:enumeration value="exempted_no_violation"/>
+      <xs:enumeration value="exempted_undetermined_coverage"/>
       <xs:enumeration value="exempted"/>
     </xs:restriction>
   </xs:simpleType>
@@ -97,7 +99,7 @@
   <xs:complexType name="obligation_stats_type">
     <xs:sequence>
       <xs:element name="metric" type="metric_type"
-                  minOccurs="6" maxOccurs="6"/>
+                  minOccurs="8" maxOccurs="8"/>
     </xs:sequence>
     <xs:attribute name="kind" type="xs:string"/>
   </xs:complexType>
@@ -105,7 +107,7 @@
   <xs:complexType name="file_type">
     <xs:sequence>
       <xs:element name="metric" type="metric_type"
-                  minOccurs="6" maxOccurs="6"/>
+                  minOccurs="8" maxOccurs="8"/>
       <xs:element name="obligation_stats" type="obligation_stats_type"
                   minOccurs="0" maxOccurs="3"/>
     </xs:sequence>
@@ -148,7 +150,7 @@
   <xs:complexType name="scope_metric_type">
     <xs:sequence>
       <xs:element name="metric" type="metric_type"
-                  minOccurs="6" maxOccurs="6"/>
+                  minOccurs="8" maxOccurs="8"/>
       <xs:element name="obligation_stats" type="obligation_stats_type"
                   minOccurs="0" maxOccurs="3"/>
       <xs:element name="scope_metric" type="scope_metric_type"
@@ -190,7 +192,9 @@
       <xs:enumeration value="+"/>
       <xs:enumeration value="-"/>
       <xs:enumeration value="!"/>
+      <xs:enumeration value="?"/>
       <xs:enumeration value="#"/>
+      <xs:enumeration value="@"/>
       <xs:enumeration value="*"/>
       <xs:enumeration value="0"/>
       <xs:enumeration value="v"/>
@@ -279,6 +283,7 @@
       <xs:enumeration value="warning"/>
       <xs:enumeration value="error"/>
       <xs:enumeration value="violation"/>
+      <xs:enumeration value="undetermined_cov"/>
       <xs:enumeration value="exclusion"/>
     </xs:restriction>
   </xs:simpleType>

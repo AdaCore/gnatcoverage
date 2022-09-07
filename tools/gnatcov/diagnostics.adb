@@ -44,13 +44,14 @@ package body Diagnostics is
    function Image (M : Message) return String is
       subtype Prefix_Str is String (1 .. 3);
       Prefix : constant array (Report_Kind) of Prefix_Str :=
-                 (Notice      => "---",
-                  Low_Warning => "***",
-                  Warning     => "***",
-                  Error       => "!!!",
-                  Info        => ".C.",
-                  Violation   => "!C!",
-                  Exclusion   => "-C-");
+                 (Notice           => "---",
+                  Low_Warning      => "***",
+                  Warning          => "***",
+                  Error            => "!!!",
+                  Info             => ".C.",
+                  Violation        => "!C!",
+                  Undetermined_Cov => "?C?",
+                  Exclusion        => "-C-");
 
       function Kind_Image return String;
       --  Text prefix for Kind, empty for the value Error

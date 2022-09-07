@@ -30,6 +30,7 @@ with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
+with SC_Obligations;        use SC_Obligations;
 with Types;                 use Types;
 
 package Instrument.Ada_Unit is
@@ -273,6 +274,9 @@ private
          --
          --  Used when the SPARK compatibility mode is enabled, to insert
          --  non-volatile witness result variables to be ghost compliant.
+
+         Non_Instr_LL_SCOs : Non_Instrumented_SCO_Sets.Set;
+         --  Set of low level SCO ids that were not instrumented
       end record;
 
    function Insert_MCDC_State

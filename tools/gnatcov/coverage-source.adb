@@ -704,7 +704,7 @@ package body Coverage.Source is
                      --  not covered (on the basis that they might end up
                      --  having code, and be marked  as not covered, when the
                      --  code for the unit is actually loaded).
-
+                     --
                      --  The distinction of the two cases of no code being
                      --  present for a SCO is that in the first case, the
                      --  code for the surrounding unit is present, so we know
@@ -714,13 +714,23 @@ package body Coverage.Source is
                      --  omitted at link time, so we don't know for sure
                      --  whether or not the compiler emitted code for that SCO,
                      --  so we conservatively assume that it might have.
+                     --
+                     --  Stmt_SCO_Instrumented (SCO) returns false iff the
+                     --  unit was instrumented, but not the particular SCO.
+                     --  In that case, report the SCO as undetermined coverage.
 
-                     --  For source instrumentation, Unit_Has_Code is set when
-                     --  we load coverage buffers for the unit, and
-                     --  Basic_Block_Has_Code is set when there is a statement
-                     --  SCO bit for this statement SCO (or one it dominates).
+                     if not Stmt_SCO_Instrumented (SCO)
+                       and then S_Kind (SCO) in Ada_Statement_Kind
+                     then
 
-                     if Report_If_Excluded (SCO) then
+                        SCO_State := Undetermined_Coverage;
+                        Report_Coverage
+                          (SCO,
+                           SCI.Tag,
+                           "was not instrumented",
+                           Kind => Undetermined_Cov);
+
+                     elsif Report_If_Excluded (SCO) then
                         SCO_State := Not_Coverable;
                         Report_Exclusion (SCO, SCI.Tag, "has no object code");
                      end if;
@@ -867,8 +877,10 @@ package body Coverage.Source is
                      end;
 
                   elsif Enclosing_Statement (SCO) = No_SCO_Id
-                    or else Basic_Block_Has_Code
+                    or else (Basic_Block_Has_Code
                               (Enclosing_Statement (SCO), SCI.Tag)
+                             and then Stmt_SCO_Instrumented
+                                        (Enclosing_Statement (SCO)))
                   then
                      --  Similar to the above for statement coverage: a
                      --  decision that cannot ever be executed is reported
@@ -884,7 +896,6 @@ package body Coverage.Source is
                      --  enclosing statement, or there is an ignored SCO
                      --  (e.g. case of a pragma that generates freestanding
                      --  decisions) then we always report the coverage status.
-
                      declare
                         S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
                         S_SCI : constant Source_Coverage_Info_Access :=
@@ -892,15 +903,31 @@ package body Coverage.Source is
                              then null
                              else Get_SCI (S_SCO, SCI.Tag));
                      begin
+                        SCO_State := Not_Covered;
                         if S_SCI = null
                           or else S_SCI.Executed
                           or else S_SCI.Line_Executed
                           or else Ignore_SCO (S_SCO)
                         then
-                           Report_Violation (SCO, SCI.Tag, "never evaluated");
+
+                           --  Decision_SCO_Instrumented (SCO) is False iff the
+                           --  unit was instrumented, but not that particular
+                           --  decision.
+
+                           if not Decision_SCO_Instrumented (SCO) then
+                              SCO_State := Undetermined_Coverage;
+                              Report_Coverage
+                                (SCO,
+                                 SCI.Tag,
+                                 "was not instrumented for decision coverage",
+                                 Kind => Undetermined_Cov);
+                              SCO_State := Undetermined_Coverage;
+                           else
+                              Report_Violation
+                                (SCO, SCI.Tag, "never evaluated");
+                           end if;
                         end if;
                      end;
-                     SCO_State := Not_Covered;
                   end if;
 
                   Update_Line_State
@@ -912,12 +939,41 @@ package body Coverage.Source is
                         --  Complete computation of MC/DC coverage state if SCO
                         --  is covered for decision coverage.
 
-                        Update_Line_State
-                          (Line_Info,
-                           SCO,
-                           SCI.Tag,
-                           MCDC_Level,
-                           Compute_MCDC_State (SCO, SCI.all));
+                        if not Decision_SCO_Instrumented_For_MCDC (SCO) then
+
+                           --  This decision was not instrumented for MCDC,
+                           --  so report only once for the whole decision, but
+                           --  still mark each condition as not instrumented.
+
+                           for Cond_Index in 0 .. Last_Cond_Index (SCO) loop
+                              Update_Line_State
+                                (Line_Info,
+                                 Condition (SCO, Cond_Index),
+                                 SCI.Tag,
+                                 MCDC_Level,
+                                 Undetermined_Coverage);
+                           end loop;
+
+                           Update_Line_State
+                             (Line_Info,
+                              SCO,
+                              SCI.Tag,
+                              MCDC_Level,
+                              Covered);
+
+                           Report_Coverage
+                             (SCO,
+                              SCI.Tag,
+                              "was not instrumented for MC/DC",
+                              Kind => Undetermined_Cov);
+                        else
+                           Update_Line_State
+                             (Line_Info,
+                              SCO,
+                              SCI.Tag,
+                              MCDC_Level,
+                              Compute_MCDC_State (SCO, SCI.all));
+                        end if;
 
                      elsif SCO_State /= No_Code then
 

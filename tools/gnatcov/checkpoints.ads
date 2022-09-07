@@ -32,21 +32,22 @@ with SC_Obligations; use SC_Obligations;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 8;
-   Default_Checkpoint_Version : constant Checkpoint_Version := 8;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 10;
+   Default_Checkpoint_Version : constant Checkpoint_Version := 10;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
-   --  1 -- initial version of checkpoint support
-   --  2 -- support for source instrumentation
-   --  3 -- support for dumping names for units of interest
-   --  4 -- gnatcov's own Pragma_Id type
-   --  5 -- one CU_Info per source file and revamped fingerprint computation
-   --       and support for listing ignored source files with --dump-units-to
-   --  6 -- Add the kind of trace (Source, Binary or mixed) in the checkpoint
-   --  7 -- Add the "bits" for binary traces used to create the checkpoint
-   --  8 -- Add macro expansion information
-   --  9 -- Add the support for scoped metrics
+   --  1  -- initial version of checkpoint support
+   --  2  -- support for source instrumentation
+   --  3  -- support for dumping names for units of interest
+   --  4  -- gnatcov's own Pragma_Id type
+   --  5  -- one CU_Info per source file and revamped fingerprint computation
+   --        and support for listing ignored source files with --dump-units-to
+   --  6  -- Add the kind of trace (Source, Binary or mixed) in the checkpoint
+   --  7  -- Add the "bits" for binary traces used to create the checkpoint
+   --  8  -- Add macro expansion information
+   --  9  -- Add the support for scoped metrics
+   --  10 -- Add non instrumented SCOs sets
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:

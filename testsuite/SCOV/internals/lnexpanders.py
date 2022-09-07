@@ -11,16 +11,17 @@ import re
 from e3.fs import ls
 
 from .cnotes import (KnoteDict, Enote, elNoteKinds, lNoCode, lFullCov,
-                     lPartCov, lNoCov, lNotCoverable, lx0, lx1)
+                     lPartCov, lNoCov, lNotCoverable, lUndetCov, lx0, lx1,
+                     lx2)
 from .segments import Line
 from .tfiles import Tfile
 
 
 class LnotesExpander:
 
-    NK_for = {'.': lNoCode, '0': lNotCoverable,
+    NK_for = {'.': lNoCode, '0': lNotCoverable, '?': lUndetCov,
               '+': lFullCov, '-': lNoCov, '!': lPartCov,
-              '#': lx0, '*': lx1}
+              '#': lx0, '*': lx1, '@': lx2}
 
     def process_tline(self, tline):
         m = re.match(r'\s*([0-9]+) (.):', tline.text)

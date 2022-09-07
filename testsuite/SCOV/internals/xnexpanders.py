@@ -53,11 +53,11 @@ from .xnotep import XnoteP
 
 #     lx_lnote_list := lx_lnote_choice ["," lx_lnote_list]
 #     lx_lnote_choice := [cov_level_test] [weak_mark] lx_lnote
-#     lx_lnote := <l-|l!|l+|l*|l#|l0>
+#     lx_lnote := <l-|l!|l+|l*|l#|l@|l0|l?>
 
 #     lx_rnote_list := lx_rnote_choice [rnote_sep lx_rnote_list]
 #     lx_rnote_choice := [cov_level_test] [weak_mark] lx_rnote
-#     lx_rnote_kind = <s-|s!|dT-|dF-|d!|eT-|eF-|oT-|oF-|c!|x0|x+>
+#     lx_rnote_kind = <s-|s!|s?|dT-|dF-|d!|d?|eT-|eF-|e?|oT-|oF-|c!|x0|x+|x?>
 #     lx_rnote := lx_rnote_kind[:"TEXT"][@(STAG)]
 
 #     rnote_sep is selected to be '#' if any # is found on the line,

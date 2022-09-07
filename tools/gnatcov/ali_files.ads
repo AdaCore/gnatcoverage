@@ -50,10 +50,21 @@ package ALI_Files is
       --  This is null if no justification is given (i.e. this is never an
       --  access to an empty string).
 
-      Count : Natural := 0;
-      --  When Kind = Exempt_On, this counts the "hits" on this exemption:
-      --  exempted messages if generating a report, exempted non/partially
-      --  covered lines otherwise.
+      Violation_Count : Natural := 0;
+      --  When Kind = Exempt_On, this counts the violation "hits" on this
+      --  exemption:
+      --
+      --  * exempted violation messages if generating a report,
+      --
+      --  * exempted non/partially covered lines otherwise.
+
+      Undetermined_Cov_Count : Natural := 0;
+      --  When Kind = Exempt_On, this counts the number of "hits" for
+      --  undetermined coverage items: currently exempted non-instrumented
+      --  messages when generating a report, or lines marked as
+      --  non instrumented otherwise.
+      --
+      --  This is relevant only for source trace based coverage analysis.
    end record;
 
    procedure Read (S : access Root_Stream_Type'Class; V : out ALI_Annotation);

@@ -18,10 +18,9 @@
 
 --  Source Coverage Obligations
 
-with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
-with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Characters.Handling;     use Ada.Characters.Handling;
+with Ada.Strings.Fixed;           use Ada.Strings.Fixed;
+with Ada.Text_IO;                 use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
@@ -485,6 +484,17 @@ package body SC_Obligations is
    --  Return the innermost enclosing SCO with the given Kind (if SCO has the
    --  given Kind, returns SCO itself).
 
+   function Nested (Left, Right : SCO_Descriptor) return Boolean;
+   --  Return whether R is nested in L, exclusive at boundaries
+
+   function Invalid_Overlap
+     (SCOD          : SCO_Descriptor;
+      Enclosing_SCO : SCO_Id) return Boolean;
+   --  If Enclosing_SCO is No_SCO_Id, return False. Otherwise, assume that
+   --  SCOD and Enclosing_SCO share part of their sloc range. Issue a warning
+   --  and return True if this is an invalid case of overlap (if both SCOs
+   --  overlap without nesting).
+
    procedure Prealloc_Lines
      (Cur_Source_File : Source_File_Index;
       Last_Line       : in out Natural);
@@ -521,11 +531,13 @@ package body SC_Obligations is
    --  contain data loaded from a checkpoint.
 
    type Source_Coverage_Vectors is record
-      CU_Vector       : CU_Info_Vectors.Vector;
-      ALI_Annotations : ALI_Annotation_Maps.Map;
-      Inst_Vector     : Inst_Info_Vectors.Vector;
-      BDD_Vector      : BDD.BDD_Vectors.Vector;
-      SCO_Vector      : SCO_Vectors.Vector;
+      CU_Vector           : CU_Info_Vectors.Vector;
+      ALI_Annotations     : ALI_Annotation_Maps.Map;
+      Inst_Vector         : Inst_Info_Vectors.Vector;
+      BDD_Vector          : BDD.BDD_Vectors.Vector;
+      SCO_Vector          : SCO_Vectors.Vector;
+      Non_Instr_SCOs      : Non_Instrumented_SCO_Sets.Set;
+      Non_Instr_MCDC_SCOs : Non_Instrumented_SCO_Sets.Set;
    end record;
 
    -----------------------------------------
@@ -534,6 +546,7 @@ package body SC_Obligations is
 
    procedure Checkpoint_Load_Merge_Unit
      (CLS        : access Checkpoint_Load_State;
+      CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : CU_Info;
       Real_CU_Id : CU_Id);
    --  Load CU from checkpoint that corresponds to a current unit of interest
@@ -582,6 +595,21 @@ package body SC_Obligations is
 
    SCO_Vector : SCO_Vectors.Vector renames SC_Vectors.SCO_Vector;
    --  Vector of high-level Source Coverage Obligations (for all units)
+
+   Non_Instr_SCOs : Non_Instrumented_SCO_Sets.Set renames
+     SC_Vectors.Non_Instr_SCOs;
+   --  Set of SCOs that were not instrumented, either for stmt or decision.
+   --
+   --  ??? This should really be part of the SCO_Descriptor record, but doing
+   --  so would break backwards compatibility with checkpoints. This set should
+   --  be removed once manual serialization of checkpoints/SID files is
+   --  implemented.
+
+   Non_Instr_MCDC_SCOs : Non_Instrumented_SCO_Sets.Set renames
+     SC_Vectors.Non_Instr_MCDC_SCOs;
+   --  Set of decsion SCOs that were not instrumented for MCDC.
+   --
+   --  ??? Same comment as above.
 
    -----------------
    -- Add_Address --
@@ -660,16 +688,19 @@ package body SC_Obligations is
 
    procedure Checkpoint_Load_Merge_Unit
      (CLS        : access Checkpoint_Load_State;
+      CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : CU_Info;
       Real_CU_Id : CU_Id)
    is
       Relocs  : Checkpoint_Relocations renames CLS.Relocations;
       Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
+      S       : constant access Root_Stream_Type'Class := CLS.all'Access;
    begin
       --  Here we already have loaded full SCO information for this CU, so
       --  all we need to do is to populate the tables mapping the SCO and
       --  instance IDs for this unit in the checkpoint to their counterparts
-      --  in the current context.
+      --  in the current context, and merge non-instrumented SCO information
+      --  if available.
 
       --  SCOs
 
@@ -703,6 +734,80 @@ package body SC_Obligations is
       --  Has_Code indication
 
       Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
+
+      --  Non-Instrumented SCO sets
+
+      if Version_Less (S, Than => 9) then
+
+         --  Nothing to do
+         return;
+      end if;
+
+      declare
+         use Non_Instrumented_SCO_Sets;
+         CU_CP_Set : Set;
+         CU_Set    : Set;
+         Remapped_SCO : SCO_Id;
+         Cur       : Cursor;
+         Prev      : Cursor;
+      begin
+         --  First process the non instrumented SCOs for stmt and decision
+         --
+         --  Since the CU we are loading from the CP is already in the current
+         --  execution tables, a SCO is non-instrumented iff it was marked as
+         --  non-instrumented in the current execution, as well as in the CP.
+         --
+         --  We need to take care not to process any SCO outside of the one of
+         --  this CU, so we build "local" sets containing only the SCOs in the
+         --  current CU to compute the intersection.
+
+         for SCO of CP_Vectors.Non_Instr_SCOs loop
+            Remapped_SCO := Remap_SCO_Id (Relocs, SCO);
+            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO
+              and then Remapped_SCO /= No_SCO_Id
+            then
+               CU_CP_Set.Insert (Remapped_SCO);
+            end if;
+         end loop;
+
+         Cur := Non_Instr_SCOs.Ceiling (Real_CU.First_SCO);
+         while Has_Element (Cur) and then Element (Cur) <= Real_CU.Last_SCO
+         loop
+            CU_Set.Insert (Element (Cur));
+            Next (Cur);
+
+            --  Remove the element from the main set so we can insert the
+            --  intersection of the CU-specific sets later.
+
+            Prev := Previous (Cur);
+            Non_Instr_SCOs.Delete (Prev);
+         end loop;
+         Non_Instr_SCOs.Union (CU_Set.Intersection (CU_CP_Set));
+
+         --  Same processing for MCDC SCOs
+
+         CU_Set.Clear;
+         CU_CP_Set.Clear;
+
+         for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
+            Remapped_SCO := Remap_SCO_Id (Relocs, SCO);
+            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO
+              and then Remapped_SCO /= No_SCO_Id
+            then
+               CU_CP_Set.Insert (Remapped_SCO);
+            end if;
+         end loop;
+
+         Cur := Non_Instr_MCDC_SCOs.Ceiling (Real_CU.First_SCO);
+         while Has_Element (Cur) and then Element (Cur) <= Real_CU.Last_SCO
+         loop
+            CU_Set.Insert (Element (Cur));
+            Next (Cur);
+            Prev := Previous (Cur);
+            Non_Instr_MCDC_SCOs.Delete (Prev);
+         end loop;
+         Non_Instr_MCDC_SCOs.Union (CU_Set.Intersection (CU_CP_Set));
+      end;
    end Checkpoint_Load_Merge_Unit;
 
    ------------------------------
@@ -717,6 +822,7 @@ package body SC_Obligations is
       New_CU_Id  : out CU_Id)
    is
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
+      S      : constant access Root_Stream_Type'Class := CLS.all'Access;
 
       New_First_Instance : Inst_Id;
       New_First_SCO      : SCO_Id;
@@ -1075,6 +1181,28 @@ package body SC_Obligations is
       if CLS.Purpose = Instrumentation then
          Coverage.Source.Initialize_SCI_For_Instrumented_CU (New_CU_Id);
       end if;
+
+      if Version_Less (S, Than => 9) then
+         return;
+      end if;
+
+      --  If we have information about non instrumented units, import them as
+      --  is. Only import SCOs that belong to this CU, as others SCOs might
+      --  belong to a CU already present in the current execution, and which
+      --  would not be simply imported as is.
+
+      for SCO of CP_Vectors.Non_Instr_SCOs loop
+         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
+            Non_Instr_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
+         end if;
+      end loop;
+
+      for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
+         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
+            Non_Instr_MCDC_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
+         end if;
+      end loop;
+
    end Checkpoint_Load_New_Unit;
 
    --------------------------
@@ -1170,6 +1298,7 @@ package body SC_Obligations is
                Checkpoint_Load_Merge_Unit
                  (CLS,
                   CP_CU      => CP_CU,
+                  CP_Vectors => CP_Vectors,
                   Real_CU_Id => New_CU_Id);
             end if;
          end;
@@ -1382,6 +1511,14 @@ package body SC_Obligations is
       BDD.BDD_Vectors.Vector'Read   (S, CP_Vectors.BDD_Vector);
       SCO_Vectors.Vector'Read       (S, CP_Vectors.SCO_Vector);
 
+      --  Load non-instrumented information
+
+      if not Version_Less (S, Than => 9) then
+         Non_Instrumented_SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_SCOs);
+         Non_Instrumented_SCO_Sets.Set'Read
+           (S, CP_Vectors.Non_Instr_MCDC_SCOs);
+      end if;
+
       --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 
       Allocate_CU_Id_Maps (Relocs,
@@ -1462,6 +1599,7 @@ package body SC_Obligations is
                end if;
             end;
          end loop;
+
       end;
    end Checkpoint_Load;
 
@@ -1490,11 +1628,13 @@ package body SC_Obligations is
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
       S : constant access Root_Stream_Type'Class := CSS.all'Access;
    begin
-      CU_Info_Vectors.Vector'Write   (S, CU_Vector);
-      ALI_Annotation_Maps.Map'Write  (S, ALI_Annotations);
-      Inst_Info_Vectors.Vector'Write (S, Inst_Vector);
-      BDD.BDD_Vectors.Vector'Write   (S, BDD_Vector);
-      SCO_Vectors.Vector'Write       (S, SCO_Vector);
+      CU_Info_Vectors.Vector'Write        (S, CU_Vector);
+      ALI_Annotation_Maps.Map'Write       (S, ALI_Annotations);
+      Inst_Info_Vectors.Vector'Write      (S, Inst_Vector);
+      BDD.BDD_Vectors.Vector'Write        (S, BDD_Vector);
+      SCO_Vectors.Vector'Write            (S, SCO_Vector);
+      Non_Instrumented_SCO_Sets.Set'Write (S, Non_Instr_SCOs);
+      Non_Instrumented_SCO_Sets.Set'Write (S, Non_Instr_MCDC_SCOs);
    end Checkpoint_Save;
 
    ---------------
@@ -1756,6 +1896,46 @@ package body SC_Obligations is
       end return;
    end Enclosing;
 
+   ------------
+   -- Nested --
+   ------------
+
+   function Nested (Left, Right : SCO_Descriptor) return Boolean
+   is
+      L : Local_Source_Location_Range renames Left.Sloc_Range.L;
+      R : Local_Source_Location_Range renames Right.Sloc_Range.L;
+   begin
+      return L.First_Sloc < R.First_Sloc and then R.Last_Sloc < L.Last_Sloc;
+   end Nested;
+
+   ---------------------
+   -- Invalid_Overlap --
+   ---------------------
+
+   function Invalid_Overlap
+     (SCOD          : SCO_Descriptor;
+      Enclosing_SCO : SCO_Id) return Boolean is
+   begin
+      if Enclosing_SCO /= No_SCO_Id then
+         declare
+            Enclosing_SCOD : SCO_Descriptor renames
+              SCO_Vector.Reference (Enclosing_SCO);
+         begin
+            if not (Nested (SCOD, Enclosing_SCOD)
+                    or else Nested (Enclosing_SCOD, SCOD))
+            then
+               Report
+                 (First_Sloc (SCOD.Sloc_Range),
+                  "unexpected SCO overlapping with "
+                  & Image (Enclosing_SCO)
+                  & ", discarding overlapping SCO");
+               return True;
+            end if;
+         end;
+      end if;
+      return False;
+   end Invalid_Overlap;
+
    ------------------------
    -- Enclosing_Decision --
    ------------------------
@@ -2003,6 +2183,55 @@ package body SC_Obligations is
 
         SCOD.S_Kind = Disabled_Pragma_Statement;
    end Ignore_SCO;
+
+   ----------------------------
+   -- Set_Stmt_SCO_Non_Instr --
+   ----------------------------
+
+   procedure Set_Stmt_SCO_Non_Instr (SCO : SCO_Id) is
+   begin
+      Non_Instr_SCOs.Include (SCO);
+   end Set_Stmt_SCO_Non_Instr;
+
+   --------------------------------
+   -- Set_Decision_SCO_Non_Instr --
+   --------------------------------
+
+   procedure Set_Decision_SCO_Non_Instr (SCO : SCO_Id) is
+   begin
+      Non_Instr_SCOs.Include (SCO);
+   end Set_Decision_SCO_Non_Instr;
+
+   -----------------------------------------
+   -- Set_Decision_SCO_Non_Instr_For_MCDC --
+   -----------------------------------------
+
+   procedure Set_Decision_SCO_Non_Instr_For_MCDC (SCO : SCO_Id) is
+   begin
+      Non_Instr_MCDC_SCOs.Include (SCO);
+   end Set_Decision_SCO_Non_Instr_For_MCDC;
+
+   ---------------------------
+   -- Stmt_SCO_Instrumented --
+   ---------------------------
+
+   function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean is
+     (not Non_Instr_SCOs.Contains (SCO));
+
+   -------------------------------
+   -- Decision_SCO_Instrumented --
+   -------------------------------
+
+   function Decision_SCO_Instrumented (SCO : SCO_Id) return Boolean is
+      (not Non_Instr_SCOs.Contains (SCO));
+
+   ----------------------------------------
+   -- Decision_SCO_Instrumented_For_MCDC --
+   ----------------------------------------
+
+   function Decision_SCO_Instrumented_For_MCDC
+     (SCO : SCO_Id) return Boolean  is
+     (not Non_Instr_MCDC_SCOs.Contains (SCO));
 
    -----------
    -- Image --
@@ -3304,24 +3533,31 @@ package body SC_Obligations is
                      Add_SCO_To_Lines (SCO, SCOD);
 
                   when Statement =>
-                     --  A SCO for a (simple) statement is never nested
 
-                     --  pragma Assert (Enclosing_SCO = No_SCO_Id);
-                     --  For now generate explicit diagnostic, ignore nested
-                     --  SCO and proceed???
+                     if (Enclosing_SCO /= No_SCO_Id
+                         and then Equivalent
+                           (SCOD, SCO_Vector (Enclosing_SCO)))
 
-                     if Enclosing_SCO /= No_SCO_Id then
-                        if not Equivalent (SCOD, SCO_Vector (Enclosing_SCO))
-                        then
-                           Report
-                             (First,
-                              "unexpected SCO nesting in "
-                              & Image (Enclosing_SCO)
-                              & ", discarding nested SCO");
-                        end if;
+                        --  The only form of SCO overlapping we allow is
+                        --  SCO nesting. A statement can contain nested
+                        --  statements, e.g. with C++ lambda expressions.
+                        --  We reject every other kind of overlapping.
+                        --
+                        --  TODO???: with C headers, we can have multiple
+                        --  times the same SCO if the header is included
+                        --  multiple times. This will result in a buggy
+                        --  behavior if the included code expansion varies (as
+                        --  we may accept nested SCO that come from the second
+                        --  inclusion, but that are nested in a SCO from the
+                        --  first inclusion, which makes no sense). Consider
+                        --  this as a marginal use case for now.
+
+                        or else Invalid_Overlap (SCOD, Enclosing_SCO)
+                        or else Invalid_Overlap
+                          (SCOD, Sloc_To_SCO (Last_Sloc (Sloc_Range)))
+                     then
                         return;
                      end if;
-
                      Add_SCO_To_Lines (SCO, SCOD);
 
                   when Condition | Operator =>
