@@ -343,36 +343,11 @@ package body Traces_Files_Registry is
                 then This_Context
                 else TF.Context);
          begin
-            if Checkpoints.Version_Less (CSS, Than => 2) then
-
-               --  Before version 2, there were only binary traces and we
-               --  streamed metadata as trace infos.
-
-               pragma Assert (TF.Kind = Binary_Trace_File);
-
-               Info_Kind_Type'Write (CSS, Coverage_Context);
-               Unbounded_String'Write (CSS, TF_Context);
-
-               Info_Kind_Type'Write (CSS, Exec_File_Name);
-               Unbounded_String'Write (CSS, TF.Program_Name);
-
-               Info_Kind_Type'Write (CSS, Date_Time);
-               Unbounded_String'Write
-                 (CSS,
-                  To_Unbounded_String (Parse_Date_Info (To_String (TF.Time))));
-
-               Info_Kind_Type'Write (CSS, User_Data);
-               Unbounded_String'Write (CSS, TF.User_Data);
-
-               Info_Kind_Type'Write (CSS, Info_End);
-
-            else
-               Trace_File_Kind'Write  (CSS, TF.Kind);
-               Unbounded_String'Write (CSS, TF_Context);
-               Unbounded_String'Write (CSS, TF.Program_Name);
-               Unbounded_String'Write (CSS, TF.Time);
-               Unbounded_String'Write (CSS, TF.User_Data);
-            end if;
+            Trace_File_Kind'Write  (CSS, TF.Kind);
+            Unbounded_String'Write (CSS, TF_Context);
+            Unbounded_String'Write (CSS, TF.Program_Name);
+            Unbounded_String'Write (CSS, TF.Time);
+            Unbounded_String'Write (CSS, TF.User_Data);
          end;
       end loop;
 

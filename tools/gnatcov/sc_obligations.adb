@@ -1430,11 +1430,7 @@ package body SC_Obligations is
       V : CU_Info)
    is
    begin
-      --  Discriminant for v2 data
-
-      if not Version_Less (S, Than => 2) then
-         SCO_Provider'Write (S, V.Provider);
-      end if;
+      SCO_Provider'Write (S, V.Provider);
 
       --  Checkpoint version 1 data
 
@@ -1448,34 +1444,23 @@ package body SC_Obligations is
       Boolean'Write           (S, V.Has_Code);
       SCOs_Hash'Write         (S, V.Fingerprint);
 
-      --  Checkpoint version 8 preprocessing information
-      if not Version_Less (S, Than => 8) then
-         SCO_PP_Info_Maps.Map'Write (S, V.PP_Info_Map);
-      end if;
+      SCO_PP_Info_Maps.Map'Write (S, V.PP_Info_Map);
 
-      --  Checkpoint version 2 data (instrumentation support)
+      case V.Provider is
+         when Compiler =>
+            null;
+         when Instrumenter =>
+            if Purpose_Of (S) = Instrumentation then
+               Statement_Bit_Map'Output
+                 (S, V.Bit_Maps.Statement_Bits.all);
+               Decision_Bit_Map'Output
+                 (S, V.Bit_Maps.Decision_Bits.all);
+               MCDC_Bit_Map'Output
+                 (S, V.Bit_Maps.MCDC_Bits.all);
+            end if;
+      end case;
 
-      if not Version_Less (S, Than => 2) then
-         case V.Provider is
-            when Compiler =>
-               null;
-            when Instrumenter =>
-               if Purpose_Of (S) = Instrumentation then
-                  Statement_Bit_Map'Output
-                    (S, V.Bit_Maps.Statement_Bits.all);
-                  Decision_Bit_Map'Output
-                    (S, V.Bit_Maps.Decision_Bits.all);
-                  MCDC_Bit_Map'Output
-                    (S, V.Bit_Maps.MCDC_Bits.all);
-               end if;
-         end case;
-      end if;
-
-      --  Checkpoint version 8 data (support for scoped metrics)
-
-      if not Version_Less (S, Than => 8) then
-         Scope_Entity_Acc'Write (S, V.Scope_Ent);
-      end if;
+      Scope_Entity_Acc'Write (S, V.Scope_Ent);
    end Write;
 
    -----------

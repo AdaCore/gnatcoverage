@@ -33,7 +33,6 @@ with SC_Obligations; use SC_Obligations;
 package Checkpoints is
 
    subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 10;
-   Default_Checkpoint_Version : constant Checkpoint_Version := 10;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -48,6 +47,8 @@ package Checkpoints is
    --  8  -- Add macro expansion information
    --  9  -- Add the support for scoped metrics
    --  10 -- Add non instrumented SCOs sets
+   --
+   --  Note that we always use the last version when creating a checkpoint.
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:
