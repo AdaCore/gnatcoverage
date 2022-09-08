@@ -46,7 +46,6 @@ with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
 with SCOs;
-with Slocs;
 with Subprocesses;        use Subprocesses;
 with Switches;            use Switches;
 with System;              use System;
@@ -145,7 +144,7 @@ package body Instrument.C is
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Source_Location;
+      From, To           : Local_Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a SCO to SCOs.SCO_Table. Also partially fill the preprocessing
@@ -159,7 +158,7 @@ package body Instrument.C is
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Source_Location;
+      From, To           : Local_Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a SCO to SCOs.SCO_Table, and complete the preprocessing info with
@@ -446,7 +445,7 @@ package body Instrument.C is
    begin
       while Has_Element (Cur) loop
          declare
-            Sloc    : constant Slocs.Source_Location := Key (Cur);
+            Sloc    : constant Source_Location := Key (Cur);
             LI      : constant Line_Info_Access := Get_Line (Sloc);
             Deleted : Boolean := False;
          begin
@@ -485,7 +484,7 @@ package body Instrument.C is
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Source_Location;
+      From, To           : Local_Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
@@ -508,13 +507,7 @@ package body Instrument.C is
       Get_Expansion_Location
         (Loc, File'Address, Line'Access, Column'Access, Offset'Access);
 
-      Info.Actual_Source_Range :=
-        (First_Sloc =>
-           (Line   => Integer (From.Line),
-            Column => Integer (From.Column)),
-         Last_Sloc  =>
-           (Line   => Integer (To.Line),
-            Column => Integer (To.Column)));
+      Info.Actual_Source_Range := (From, To);
 
       --  Check if this is comes from a macro expansion, in which case we need
       --  to record some information, for reporting purposes.
@@ -526,10 +519,10 @@ package body Instrument.C is
 
             Macro_Expansion_Name      : US.Unbounded_String;
             Immediate_Expansion_Loc_C : Source_Location_T;
-            Immediate_Expansion_Loc   : Slocs.Source_Location;
+            Immediate_Expansion_Loc   : Source_Location;
 
             Macro_Arg_Expanded_Loc_C : aliased Source_Location_T;
-            Macro_Arg_Expanded_Loc   : Slocs.Source_Location;
+            Macro_Arg_Expanded_Loc   : Source_Location;
          begin
 
             --  Note: macro arguments are completely macro-expanded before they
@@ -609,9 +602,7 @@ package body Instrument.C is
                     Get_Index_From_Generic_Name
                       (Name => Get_File_Name (File),
                        Kind => Source_File),
-                  L           =>
-                    (Line   => Integer (Line),
-                     Column => Integer (Column)));
+                  L           =>  (Natural (Line), Natural (Column)));
 
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics
@@ -633,9 +624,7 @@ package body Instrument.C is
                     Get_Index_From_Generic_Name
                       (Name => Get_File_Name (File),
                        Kind => Source_File),
-                  L           =>
-                    (Line   => Integer (Line),
-                     Column => Integer (Column)));
+                  L           => (Natural (Line), Natural (Column)));
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
                Definition_Info :=
@@ -719,9 +708,7 @@ package body Instrument.C is
                     Get_Index_From_Generic_Name
                       (Name => Get_File_Name (File),
                        Kind => Source_File),
-                  L           =>
-                    (Line   => Integer (Line),
-                     Column => Integer (Column)));
+                  L           => (Natural (Line), Natural (Column)));
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
 
@@ -761,7 +748,7 @@ package body Instrument.C is
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Source_Location;
+      From, To           : Local_Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
@@ -1117,8 +1104,8 @@ package body Instrument.C is
       --  If not null, node where the witness call should be inserted.
       --  Otherwise, the insertion node will be N.
 
-      From : Source_Location;
-      To   : Source_Location;
+      From : Local_Source_Location;
+      To   : Local_Source_Location;
       Typ  : Character;
 
       Instr_Scheme : Instr_Scheme_Type := Instr_Stmt;
@@ -1261,7 +1248,7 @@ package body Instrument.C is
       --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
 
       type Hash_Entry is record
-         Sloc      : Source_Location;
+         Sloc      : Local_Source_Location;
          SCO_Index : Nat;
       end record;
       --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
@@ -1388,7 +1375,7 @@ package body Instrument.C is
                C1   => C1,
                C2   => C2,
                From => Sloc (Get_Operator_Loc (N)),
-               To   => No_Source_Location,
+               To   => No_Local_Location,
                Last => False);
 
             Hash_Entries.Append ((Sloc      => Start_Sloc (N),
@@ -1973,8 +1960,8 @@ package body Instrument.C is
       is
          Insert_Cursor : aliased Cursor_T := N;
 
-         F : constant Source_Location := Start_Sloc (N);
-         T : Source_Location := End_Sloc (N);
+         F : constant Local_Source_Location := Start_Sloc (N);
+         T : Local_Source_Location := End_Sloc (N);
          --  Source location bounds used to produce a SCO statement. By
          --  default, this should cover the same source location range as N,
          --  however for nodes that can contain other statements, we select an
@@ -2037,9 +2024,9 @@ package body Instrument.C is
 
             if J = SC_First and then Current_Dominant /= No_Dominant then
                declare
-                  From : constant Source_Location :=
+                  From : constant Local_Source_Location :=
                     Start_Sloc (Current_Dominant.N);
-                  To   : constant Source_Location :=
+                  To   : constant Local_Source_Location :=
                     End_Sloc (Current_Dominant.N);
 
                begin

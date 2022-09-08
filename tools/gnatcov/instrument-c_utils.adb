@@ -33,22 +33,21 @@ package body Instrument.C_Utils is
    -- Sloc --
    ----------
 
-   function Sloc (Loc : Source_Location_T) return Source_Location is
+   function Sloc (Loc : Source_Location_T) return Local_Source_Location is
       Line, Column : aliased Interfaces.C.unsigned;
    begin
       Get_Presumed_Location (Location => Loc,
                              Filename => null,
                              Line     => Line'Access,
                              Column   => Column'Access);
-      return (Line   => Langkit_Support.Slocs.Line_Number (Line),
-              Column => Langkit_Support.Slocs.Column_Number (Column));
+      return (Natural (Line), Natural (Column));
    end Sloc;
 
    ----------------
    -- Start_Sloc --
    ----------------
 
-   function Start_Sloc (N : Cursor_T) return Source_Location is
+   function Start_Sloc (N : Cursor_T) return Local_Source_Location is
       Line, Column : aliased Interfaces.C.unsigned;
       Loc          : constant Source_Location_T :=
         Get_Range_Start (Get_Cursor_Extent (N));
@@ -57,15 +56,14 @@ package body Instrument.C_Utils is
                              Filename => null,
                              Line     => Line'Access,
                              Column   => Column'Access);
-      return (Line   => Langkit_Support.Slocs.Line_Number (Line),
-              Column => Langkit_Support.Slocs.Column_Number (Column));
+      return (Natural (Line), Natural (Column));
    end Start_Sloc;
 
    --------------
    -- End_Sloc --
    --------------
 
-   function End_Sloc (N : Cursor_T) return Source_Location is
+   function End_Sloc (N : Cursor_T) return Local_Source_Location is
       Line, Column : aliased Interfaces.C.unsigned;
       Loc          : Source_Location_T :=
         Get_Range_End (Get_Cursor_Extent (N));
@@ -78,8 +76,7 @@ package body Instrument.C_Utils is
          Filename => null,
          Line     => Line'Access,
          Column   => Column'Access);
-      return (Line   => Langkit_Support.Slocs.Line_Number (Line),
-              Column => Langkit_Support.Slocs.Column_Number (Column));
+      return (Natural (Line), Natural (Column));
    end End_Sloc;
 
    ----------
