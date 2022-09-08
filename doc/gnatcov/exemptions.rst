@@ -129,6 +129,19 @@ In synthetic reports, the count of exempted violations is 0, like::
 
   1 exempted region.
 
+Undetermined Coverage state and Exemptions
+------------------------------------------
+
+For each exemption region in which there are obligations with undetermined
+coverage state, the synthetic text report will indicate the count of
+undetermined coverage obligations in the region, in addition to the number
+of violations.
+
+In the annotated sources, exemption regions with *only* undetermined coverage
+items are annotated with ``@`` signs instead of ``*``. If there are both
+undetermined coverage obligations as well as violations in the exemption
+region, the corresponding lines is still annotated with ``#``.
+
 .. _ocov_exemptions:
 
 Object coverage exemptions

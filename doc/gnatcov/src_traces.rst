@@ -356,10 +356,12 @@ section :ref:`spark_instr`.
 Unsupported source constructs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-There are a few language constructs that |gcvins| doesn't handle properly.
+There are a few language constructs that |gcvins| doesn't support.
 The tool emits a warning when it encounters such cases and the corresponding
-code is not instrumented. Source coverage obligations are still emitted, so
-the unsupported constructs will appear as ``not covered`` in the report.
+code is not instrumented. Source coverage obligations are still emitted, and
+the unsupported constructs will be reported in a separate 
+``Undetermined_Coverage`` category, to differentiate them from actual coverage
+violations.
 
 The list of unsupported constructs is as follows:
 

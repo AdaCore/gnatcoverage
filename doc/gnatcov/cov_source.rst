@@ -258,7 +258,11 @@ in a single character, which may be one of the following:
    ``.`` | No coverage obligation is attached to the line
    ``-`` | Coverage obligations attached to the line, none satisfied
    ``!`` | Coverage obligations attached to the line, some satisfied
+   ``?`` | Coverage obligations attached to the line, undetermined coverage state (*)
    ``+`` | Coverage obligations attached to the line, all satisfied
+
+(*) The Undetermined Coverage state (``?``) is only shown on the line in the
+absence of other known violations for that same line.
 
 Here is, to illustrate, the full statement coverage report produced for our
 example unit when the ``Between`` function was called so that the ``if``
@@ -356,9 +360,13 @@ assessed criteria.
 
 The report features explicit start/end of report notifications and at least
 three sections in between: Assessment Context, Coverage Violations, and
-Analysis Summary.  A few variations are introduced when :term:`exemption
-regions <Exemption Region>` are in scope.  See the :ref:`exemptions` section
-for more details on their use and effect on the output reports.
+Analysis Summary. Should |gcv| be unable to determine the coverage state of
+some coverage obligations, those will be reported in a dedicated Undetermined
+Coverage Items section, with a description of why the tool was unable to
+determine the coverage state for each obligation. A few variations are
+introduced when :term:`exemption regions <Exemption Region>` are in scope.
+See the :ref:`exemptions` section for more details on their use and effect on
+the output reports.
 
 If :cmd-option:`--dump-units-to -` is also on the command line, a *UNITS OF
 INTEREST* section is produced, which contains the list of units considered
@@ -551,7 +559,11 @@ indications:
 
    ``-`` | At least one statement on the line, none covered
    ``!`` | More than one statement on the line, some covered
+   ``?`` | At least one statement on this line, some with undetermined coverage state (*)
    ``+`` | At least one statement on the line, all covered
+
+(*) The Undetermined Coverage state (``?``) is only shown on the line in the
+absence of other known violations for that same line.
 
 When a single statement spans multiple lines, the coverage annotation is
 present on all the lines, as the two ``+`` signs for the single assignment
@@ -807,8 +819,11 @@ following table summarizes the meaning of the possible annotations:
 
    ``-`` | At least one statement on the line, none executed.
    ``!`` | Unless multiple statements are involved, decision partially covered on the line.
+   ``?`` | At least one statement or decision on the line with undetermined coverage state. (*)
    ``+`` | All the statements and decisions on the line are covered.
 
+(*) The Undetermined Coverage state (``?``) is only shown on the line in the
+absence of other known violations for that same line.
 
 When a trailing `+` is added to the format passed to :cmd-option:`--annotate`
 (:cmd-option:`=xcov+` or :cmd-option:`=html+`), a precise description of the
@@ -1020,7 +1035,11 @@ condition specific cases marked with a ``!`` as well:
 
    ``-`` | At least one statement associated with this line, none executed.
    ``!`` | For a single statement line, decision partially covered or condition not covered on the line.
+   ``?`` | At least one statment or decision on the line with undetermined coverage state. (*)
    ``+`` | All the statements, decisions and conditions on the line are covered.
+
+(*) The Undetermined Coverage state (``?``) is only shown on the line in the
+absence of other known violations for that same line.
 
 The :cmd-option:`=report` outputs feature an extra MCDC section in the Coverage
 Violations segment, which holds:
