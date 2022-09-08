@@ -20,6 +20,7 @@ with Interfaces.C; use Interfaces.C;
 with System;       use System;
 
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Unchecked_Conversion;
 
 with Clang.CX_String;  use Clang.CX_String;
 with Clang.Extensions; use Clang.Extensions;
@@ -306,38 +307,6 @@ package body Instrument.C_Utils is
                       Visitor => Visit_Decl'Unrestricted_Access);
    end Add_Statement_In_Main;
 
-   ---------------------------------
-   -- Add_Statement_Before_Return --
-   ---------------------------------
-
-   procedure Add_Statement_Before_Return
-     (Fun_Decl  : Cursor_T;
-      Rew       : Rewriter_T;
-      Statement : String) is
-
-      function Visit_Decl (Cursor : Cursor_T)
-         return Child_Visit_Result_T with Convention => C;
-
-      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
-      is
-      begin
-         if Is_Statement (Kind (Cursor)) then
-            if Kind (Cursor) = Cursor_Return_Stmt then
-               Insert_Text_After_Start_Of (N    => Cursor,
-                                           Text => Statement,
-                                           Rew  => Rew);
-            else
-               return Child_Visit_Recurse;
-            end if;
-         end if;
-         return Child_Visit_Continue;
-      end Visit_Decl;
-
-   begin
-      Visit_Children (Parent  => Fun_Decl,
-                      Visitor => Visit_Decl'Unrestricted_Access);
-   end Add_Statement_Before_Return;
-
    --------------------------------
    -- Insert_Text_After_Start_Of --
    --------------------------------
@@ -373,6 +342,24 @@ package body Instrument.C_Utils is
          Loc    => Location,
          Insert => Text);
    end Insert_Text_Before_Start_Of;
+
+   -------------------------------
+   -- Insert_Text_After_End_Of --
+   -------------------------------
+
+   procedure Insert_Text_After_End_Of
+     (N    : Cursor_T;
+      Text : String;
+      Rew  : Rewriter_T)
+   is
+      Location : constant Source_Location_T :=
+        Get_Range_End (Get_Cursor_Extent (N));
+   begin
+      CX_Rewriter_Insert_Text_After
+        (Rew    => Rew,
+         Loc    => Location,
+         Insert => Text);
+   end Insert_Text_After_End_Of;
 
    -------------------------------
    -- Insert_Text_Before_End_Of --
@@ -412,6 +399,38 @@ package body Instrument.C_Utils is
       end case;
    end Curlify;
 
+   --------------------
+   -- Iterate_Tokens --
+   --------------------
+
+   procedure Iterate_Tokens
+     (TU      : Translation_Unit_T;
+      N       : Cursor_T;
+      Process : not null access procedure (Tok : Token_T))
+   is
+      type Tokens_Array is array (Natural range <>) of aliased Token_T;
+      Source_Range : constant Source_Range_T := Get_Cursor_Extent (N);
+      Num_Tokens   : aliased Interfaces.C.unsigned;
+      Toks_Ptr     : System.Address;
+      type Token_Acc is access Token_T;
+      function To_Access is new Ada.Unchecked_Conversion
+        (System.Address, Token_Acc);
+   begin
+      Tokenize (TU, Source_Range, Toks_Ptr'Address, Num_Tokens'Access);
+      if Toks_Ptr = Null_Address then
+         return;
+      end if;
+      declare
+         Tokens  : Tokens_Array (1 .. Natural (Num_Tokens))
+           with Import, Address => Toks_Ptr;
+      begin
+         for J in Tokens'Range loop
+            Process.all (Tokens (J));
+         end loop;
+         Dispose_Tokens (TU, To_Access (Toks_Ptr), Num_Tokens);
+      end;
+   end Iterate_Tokens;
+
    --  Debugging utilities
 
    ------------------
@@ -419,24 +438,19 @@ package body Instrument.C_Utils is
    ------------------
 
    procedure Print_Tokens (TU : Translation_Unit_T; N : Cursor_T) is
+      procedure Put_Token (Tok : Token_T);
 
-      type Tokens_Array is array (Natural range <>) of Token_T;
+      ---------------
+      -- Put_Token --
+      ---------------
 
-      Source_Range : constant Source_Range_T := Get_Cursor_Extent (N);
-      Addr_Tokens  : System.Address;
-      Num_Tokens   : aliased Interfaces.C.unsigned;
-
-   begin
-      Tokenize (TU, Source_Range, Addr_Tokens'Address, Num_Tokens'Access);
-      declare
-         Tokens : Tokens_Array (1 .. Natural (Num_Tokens))
-           with Import, Address => Addr_Tokens;
+      procedure Put_Token (Tok : Token_T) is
       begin
-         for I in Tokens'Range loop
-            Put (Get_Token_Spelling (TU, Tokens (I)));
-         end loop;
-         New_Line;
-      end;
+         Put (Get_Token_Spelling (TU, Tok));
+      end Put_Token;
+   begin
+      Iterate_Tokens (TU, N, Put_Token'Access);
+      New_Line;
    end Print_Tokens;
 
 end Instrument.C_Utils;

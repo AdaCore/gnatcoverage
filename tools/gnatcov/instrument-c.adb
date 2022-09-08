@@ -36,6 +36,7 @@ with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
 with Command_Line;
+with ALI_Files;           use ALI_Files;
 with Coverage;            use Coverage;
 with Coverage_Options;
 with Files_Table;         use Files_Table;
@@ -68,6 +69,14 @@ package body Instrument.C is
    function Compiler_Driver
      (Project : GNATCOLL.Projects.Project_Type) return String;
    --  Return the command name for the C compiler in the given Project
+
+   procedure Filter_Annotations;
+   --  Remove any exemption annotations from the map that intersects a
+   --  statement SCO. This is not part of Import_Annotations as this is only
+   --  required for C annotations, where the exemption markers can be
+   --  arbitrarily placed. This would also not work for Ada exemptions as there
+   --  is always a SCO associated with a pragma exempt, which would result in
+   --  all the annotations being filtered out.
 
    ------------------------------
    --  Preprocessing utilities --
@@ -425,6 +434,47 @@ package body Instrument.C is
       return GNATCOLL.Projects.Attribute_Value
                (Project, GPR.Compiler_Driver_Attribute, "C");
    end Compiler_Driver;
+
+   ------------------------
+   -- Filter_Annotations --
+   ------------------------
+
+   procedure Filter_Annotations is
+      use ALI_Annotation_Maps;
+      Cur     : Cursor := ALI_Annotations.First;
+      Del_Cur : Cursor;
+   begin
+      while Has_Element (Cur) loop
+         declare
+            Sloc    : constant Slocs.Source_Location := Key (Cur);
+            LI      : constant Line_Info_Access := Get_Line (Sloc);
+            Deleted : Boolean := False;
+         begin
+            --  Check that no SCOs on the line of the annotation intersect
+            --  the anntoation Sloc. If one does, discard the annotation and
+            --  warn the user as this is not a supported use case.
+
+            if LI /= null and then LI.SCOs /= null
+            then
+               for SCO of LI.SCOs.all loop
+                  if Slocs.In_Range (Sloc, Sloc_Range (SCO)) then
+                     Del_Cur := Cur;
+                     Next (Cur);
+                     ALI_Annotations.Delete (Del_Cur);
+                     Warn ("Exemption annotation at " & Slocs.Image (Sloc)
+                           & " intersects a coverage obligation ("
+                           & Image (SCO, True) & "), ignoring it");
+                     Deleted := True;
+                     exit;
+                  end if;
+               end loop;
+            end if;
+            if not Deleted then
+               Next (Cur);
+            end if;
+         end;
+      end loop;
+   end Filter_Annotations;
 
    ----------------
    -- Append_SCO --
@@ -2533,6 +2583,59 @@ package body Instrument.C is
 
       Record_PP_Info (Unit_Info, IC, UIC);
 
+      --  Then record exemption annotations in the comments. Reuse the TU from
+      --  the preprocessing information recording pass as we want the
+      --  annotations to refer to unpreprocessed locations.
+
+      Search_Exemptions :
+      declare
+         Start_Matcher : constant Pattern_Matcher :=
+           Compile ("GNATCOV_EXEMPT_ON ""(.*)""");
+         End_Matcher   : constant Pattern_Matcher :=
+           Compile ("GNATCOV_EXEMPT_OF");
+         Match_Res     : Match_Array (0 .. 1);
+
+         procedure Search_Exempt_In_Token (Token : Token_T);
+
+         ----------------------------
+         -- Search_Exempt_In_Token --
+         ----------------------------
+
+         procedure Search_Exempt_In_Token (Token : Token_T) is
+         begin
+            if Get_Token_Kind (Token) = Token_Comment then
+               declare
+                  Comment : constant String :=
+                    Get_Token_Spelling (UIC.TU, Token);
+                  Ann     : ALI_Annotation;
+               begin
+                  Match (Start_Matcher, Comment, Match_Res);
+                  if Match_Res (1) /= No_Match then
+                     Ann.Kind := Exempt_On;
+                     Ann.Message :=
+                       new String'
+                         (Comment (Match_Res (1).First .. Match_Res (1).Last));
+                     UIC.Annotations.Append
+                       ((Sloc (Get_Token_Location (UIC.TU, Token)), Ann));
+                  end if;
+                  Match (End_Matcher, Comment, Match_Res);
+                  if Match_Res (0) /= No_Match then
+                     Ann.Kind := Exempt_Off;
+                     UIC.Annotations.Append
+                       ((Sloc
+                           (Get_Range_End (Get_Token_Extent (UIC.TU, Token))),
+                         Ann));
+                  end if;
+               end;
+            end if;
+         end Search_Exempt_In_Token;
+      begin
+         Iterate_Tokens
+           (UIC.TU,
+            Get_Translation_Unit_Cursor (UIC.TU),
+            Search_Exempt_In_Token'Access);
+      end Search_Exemptions;
+
       --  Flush the SCO_Table. We want the SCOs to be located at their
       --  presumed (i.e. accounting for line directives) preprocessed source
       --  range, to have unique locations for each.
@@ -2613,6 +2716,11 @@ package body Instrument.C is
          --  the original source file.
 
          UIC.CU := Created_Units.Element (UIC.SFI);
+
+         --  Import annotations in our internal tables
+
+         UIC.Import_Annotations;
+         Filter_Annotations;
 
          for SS of UIC.Source_Statements loop
             Insert_Statement_Witness (UIC, SS);
@@ -3049,10 +3157,92 @@ package body Instrument.C is
 
       case IC.Dump_Config.Trigger is
          when Main_End | Ravenscar_Task_Termination =>
-            Add_Statement_Before_Return
-              (Fun_Decl  => Get_Main (Rew.TU),
-               Rew       => Rew.Rewriter,
-               Statement => Dump_Procedure_Symbol (Main) & "();");
+            declare
+               function Process
+                 (Cursor : Cursor_T) return Child_Visit_Result_T
+                 with Convention => C;
+               --  Callback for Visit_Children. Insert calls to dump buffers
+               --  before the function return.
+
+               -------------
+               -- Process --
+               -------------
+
+               function Process
+                 (Cursor : Cursor_T) return Child_Visit_Result_T is
+               begin
+                  if Is_Statement (Kind (Cursor))
+                    and then Kind (Cursor) = Cursor_Return_Stmt
+                  then
+                     declare
+                        Return_Expr : constant Cursor_T :=
+                          Get_Children (Cursor).First_Element;
+                     begin
+                        --  Introduce a variable to hold the return result,
+                        --  and replace "return <expr>;" with
+                        --  "{
+                        --     int <tmp>;
+                        --     return <tmp>=<expr>, <dump_buffers>(), <tmp>;
+                        --   }".
+                        --
+                        --  Note that we have to be careful to put braces
+                        --  around the return statement, as the control flow
+                        --  structures may not have been curlified yet,
+                        --  e.g. if the main is not a unit of interest. This
+                        --  means that:
+                        --
+                        --  if (<cond>)
+                        --     return <expr>;
+                        --
+                        --  should produce
+                        --
+                        --  if (<cond>)
+                        --  {
+                        --     int <tmp>;
+                        --     return <tmp>=<expr>, <dump_buffers>(), <tmp>;
+                        --  }
+                        --
+                        --  Notice how this would be wrong without the braces.
+
+                        Insert_Text_After_Start_Of
+                          (N    => Cursor,
+                           Text => "{int gnatcov_rts_return;",
+                           Rew  => Rew.Rewriter);
+
+                        Insert_Text_Before_Start_Of
+                          (N    => Return_Expr,
+                           Text => "gnatcov_rts_return = ",
+                           Rew  => Rew.Rewriter);
+
+                        Insert_Text_After_End_Of
+                          (N    => Return_Expr,
+                           Text => ", "
+                                   & Dump_Procedure_Symbol (Main)
+                                   & "(), gnatcov_rts_return",
+                           Rew  => Rew.Rewriter);
+
+                        CX_Rewriter_Insert_Text_After_Token
+                          (Rew.Rewriter,
+                           Get_Range_End (Get_Cursor_Extent (Cursor)),
+                           "}");
+
+                        return Child_Visit_Continue;
+                     end;
+                  else
+                     --  Be careful not to recurse into lambda expressions,
+                     --  which may have their own return statements.
+
+                     return (if Kind (Cursor) = Cursor_Lambda_Expr
+                             then Child_Visit_Continue
+                             else Child_Visit_Recurse);
+                  end if;
+               end Process;
+
+            begin
+               Visit_Children
+                 (Parent  => Get_Main (Rew.TU),
+                  Visitor => Process'Unrestricted_Access);
+            end;
 
          when At_Exit =>
             Put_Extern_Decl

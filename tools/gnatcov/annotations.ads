@@ -207,8 +207,12 @@ private
    --  subdirectory in which the report will be created if multiple reports are
    --  requested.
 
-   function Aggregated_State (Info : Line_Info) return Any_Line_State;
-   --  Return synthetic indication of coverage state for all computed criteria
+   function Aggregated_State
+     (Info              : Line_Info;
+      Ignore_Exemptions : Boolean := False) return Any_Line_State;
+   --  Return synthetic indication of coverage state for all computed criteria.
+   --  If Ignore_Exemptions is True, any exemption information attached to the
+   --  line is ignored during the state aggregation.
    --
    --  We'll consider Exempted_With_Violation to be more important than
    --  Exempted_With_Undetermined_Cov in case there are exemptions of both

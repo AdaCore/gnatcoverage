@@ -146,10 +146,7 @@ package body SC_Obligations.BDD is
       BDD_Node_Id'Write  (S, V.Last_Node);
       BDD_Node_Id'Write  (S, V.First_Multipath_Condition);
       Reachability'Write (S, V.Reachable_Outcomes);
-
-      if not Version_Less (S, Than => 2) then
-         Natural'Write (S, V.Path_Count);
-      end if;
+      Natural'Write      (S, V.Path_Count);
    end Write;
 
    procedure Write
@@ -168,12 +165,7 @@ package body SC_Obligations.BDD is
             Boolean'Write      (S, V.Parent_Value);
             SCO_Id'Write       (S, V.C_SCO);
             Destinations'Write (S, V.Dests);
-
-            --  Checkpoint version 2 data (instrumentation support)
-
-            if not Version_Less (S, Than => 2) then
-               Natural'Write (S, V.Path_Offset);
-            end if;
+            Natural'Write      (S, V.Path_Offset);
 
          when Jump =>
             BDD_Node_Id'Write (S, V.Dest);

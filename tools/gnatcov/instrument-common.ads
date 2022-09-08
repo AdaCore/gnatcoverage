@@ -498,6 +498,11 @@ package Instrument.Common is
 
    end record;
 
+   procedure Import_Annotations (UIC : in out Unit_Inst_Context) with
+     Pre => UIC.CU /= No_CU_Id;
+   --  Import ALI annotations for this unit in the global annotations table.
+   --  This should be called once the unit was insturmented and given a CU id.
+
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));
 

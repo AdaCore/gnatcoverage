@@ -712,6 +712,26 @@ package body Instrument.Common is
         (Missing_Src_Reporter'(others => <>));
    end Create_Missing_File_Reporter;
 
+   ------------------------
+   -- Import_Annotations --
+   ------------------------
+
+   procedure Import_Annotations (UIC : in out Unit_Inst_Context) is
+   begin
+      for Couple of UIC.Annotations loop
+         declare
+            Sloc : constant Slocs.Source_Location :=
+               (Source_File => UIC.SFI,
+                L           => (Line   => Positive (Couple.Sloc.Line),
+                                Column => Positive (Couple.Sloc.Column)));
+         begin
+            Couple.Annotation.CU := UIC.CU;
+            ALI_Annotations.Insert
+              (Key => Sloc, New_Item => Couple.Annotation);
+         end;
+      end loop;
+   end Import_Annotations;
+
    ----------------
    -- Append_SCO --
    ----------------

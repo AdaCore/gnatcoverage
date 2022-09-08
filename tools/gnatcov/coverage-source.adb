@@ -450,24 +450,13 @@ package body Coverage.Source is
    ---------------------
 
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
-      Stream_Tags : constant Boolean :=
-         not Checkpoints.Version_Less (CSS, Than => 2);
-      --  Before version 2, we streamed mere tags in the checkpoint. We stream
-      --  tag provider names since then.
    begin
-      if Stream_Tags then
-         String'Output (CSS, Tag_Provider_Name);
-      else
-         Ada.Tags.Tag'Write (CSS, Tag_Provider'Tag);
-      end if;
+      String'Output (CSS, Tag_Provider_Name);
       SCI_Vector_Vectors.Vector'Write (CSS.Stream, SCI_Vector);
 
-      --  Before version 3, we did not stream the list of names for units of
-      --  interest. Note that this is for checkpoints only (not SID files).
+      --  For checkpoints only, stream the list of names for units of interest
 
-      if not Checkpoints.Version_Less (CSS, Than => 3)
-         and then CSS.Purpose = Consolidation
-      then
+      if CSS.Purpose = Consolidation then
          Boolean'Output (CSS, Unit_List_Invalidated);
          if not Unit_List_Invalidated then
             Ada.Containers.Count_Type'Output (CSS, Unit_List.Length);
