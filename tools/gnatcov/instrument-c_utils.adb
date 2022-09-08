@@ -19,10 +19,14 @@
 with Interfaces.C; use Interfaces.C;
 with System;       use System;
 
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Directories; use Ada.Directories;
+with Ada.Text_IO;     use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
+with Clang.CX_String;  use Clang.CX_String;
 with Clang.Extensions; use Clang.Extensions;
+
+with Files_Table; use Files_Table;
 
 package body Instrument.C_Utils is
 
@@ -45,31 +49,46 @@ package body Instrument.C_Utils is
    -- Sloc --
    ----------
 
-   function Sloc (Loc : Source_Location_T) return Local_Source_Location is
+   function Sloc (Loc : Source_Location_T) return Source_Location is
+      Line, Column : aliased Interfaces.C.unsigned;
+      File         : aliased String_T;
    begin
-      return Presumed_Location (Loc);
+      if Loc = Get_Null_Location then
+         return No_Location;
+      end if;
+      Get_Presumed_Location (Location => Loc,
+                             Filename => File'Access,
+                             Line     => Line'Access,
+                             Column   => Column'Access);
+      return
+        (Source_File =>
+           Get_Index_From_Generic_Name
+             (Full_Name (Get_C_String (File)), Kind => Source_File),
+         L           =>
+           (Line   => Natural (Line),
+            Column => Natural (Column)));
    end Sloc;
 
    ----------------
    -- Start_Sloc --
    ----------------
 
-   function Start_Sloc (N : Cursor_T) return Local_Source_Location is
+   function Start_Sloc (N : Cursor_T) return Source_Location is
    begin
-      return Presumed_Location (Get_Range_Start (Get_Cursor_Extent (N)));
+      return Sloc (Get_Range_Start (Get_Cursor_Extent (N)));
    end Start_Sloc;
 
    --------------
    -- End_Sloc --
    --------------
 
-   function End_Sloc (N : Cursor_T) return Local_Source_Location is
+   function End_Sloc (N : Cursor_T) return Source_Location is
       Loc : Source_Location_T := Get_Range_End (Get_Cursor_Extent (N));
    begin
       if Is_Macro_Location (Loc) then
          Loc := Get_Expansion_End (Get_Cursor_TU (N), Loc);
       end if;
-      return Presumed_Location (Loc);
+      return Sloc (Loc);
    end End_Sloc;
 
    ----------

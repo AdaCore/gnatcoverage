@@ -328,9 +328,6 @@ package Instrument.C is
          CIdx     : Index_T;
          Rewriter : Rewriter_T;
 
-         File : Ada.Strings.Unbounded.Unbounded_String;
-         --  Original filename
-
          Instrumented_Entities : C_Instrumented_Entities_Maps.Map;
          --  Statements, decisions and (for MC/DC) conditions to be
          --  instrumented.
@@ -372,11 +369,6 @@ package Instrument.C is
    --  Track the source file from which N originates in
    --  UIC.Sources_Of_Interest. Return whether this source file is a source of
    --  interest.
-   --
-   --  TODO??? For now, only the source file from which instrumentation started
-   --  (the "body" C/C++ file, i.e. UIC.File) is considered as a source of
-   --  interest, i.e. code inserted by #include is not instrumented and
-   --  excluded from coverage analysis.
 
 private
 
@@ -395,7 +387,7 @@ private
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Local_Source_Location;
+      From, To           : Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name) is null;
 
