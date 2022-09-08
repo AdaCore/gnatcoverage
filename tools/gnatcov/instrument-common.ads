@@ -567,12 +567,18 @@ package Instrument.Common is
    --  verify that they are built with the version of GNATcov_RTS the
    --  instrumenter expects.
 
+   procedure Append_Unit (SFI : Source_File_Index);
+   --  Append a new entry to the SCO_Unit_Table, with an empty SCO range
+
    procedure Append_SCO
      (C1, C2             : Character;
       From, To           : Local_Source_Location;
+      SFI                : Source_File_Index;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
-   --  Append a new entry to the low-level SCO table
+   --  Append a new entry to the low-level SCO table. If SFI designates a new
+   --  source file, also append a new entry to the SCO_Unit_Table, otherwise
+   --  complete its last entry.
 
    package CU_Name_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,

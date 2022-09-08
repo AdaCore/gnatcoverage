@@ -850,6 +850,20 @@ package body Instrument.Common is
       end loop;
    end Import_Annotations;
 
+   -----------------
+   -- Append_Unit --
+   -----------------
+
+   procedure Append_Unit (SFI : Source_File_Index) is
+   begin
+      SCOs.SCO_Unit_Table.Append
+        ((File_Name  => new String'(Get_Full_Name (SFI)),
+          File_Index => SFI,
+          Dep_Num    => 1,
+          From       => SCOs.SCO_Table.Last + 1,
+          To         => SCOs.SCO_Table.Last));
+   end Append_Unit;
+
    ----------------
    -- Append_SCO --
    ----------------
@@ -857,10 +871,26 @@ package body Instrument.Common is
    procedure Append_SCO
      (C1, C2             : Character;
       From, To           : Local_Source_Location;
+      SFI                : Source_File_Index;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
+      use type SCOs.SCO_Unit_Index;
    begin
+      --  If needed, append a new entry to the SCO_Unit_Table (if we
+      --  are entering a new file when instrumenting a compilation unit,
+      --  which can happen with #included files for instance).
+
+      if SCOs.SCO_Unit_Table.Last = 0
+         or else
+           SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).File_Index /=
+              SFI
+      then
+         Append_Unit (SFI);
+      end if;
+
+      --  Append a new SCO to the low level SCO table
+
       SCOs.SCO_Table.Append
         ((From               =>
             (Logical_Line_Number (From.Line), Column_Number (From.Column)),
@@ -871,6 +901,11 @@ package body Instrument.Common is
           Last               => Last,
           Pragma_Sloc        => Types.No_Location,
           Pragma_Aspect_Name => Pragma_Aspect_Name));
+
+      --  Then, extend the SCO_Unit_Table with the newly created SCO
+
+      SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).To :=
+        SCOs.SCO_Table.Last;
    end Append_SCO;
 
    ------------------------------

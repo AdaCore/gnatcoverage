@@ -3109,6 +3109,7 @@ package body Instrument.Ada_Unit is
                   C2                 => SCE.Typ,
                   From               => +SCE.From,
                   To                 => +SCE.To,
+                  SFI                => UIC.SFI,
                   Last               => (J = SC_Last),
                   Pragma_Aspect_Name => Pragma_Aspect_Name);
 
@@ -5103,6 +5104,7 @@ package body Instrument.Ada_Unit is
                C2   => C2,
                From => +Sloc (Op_N),
                To   => Slocs.No_Local_Location,
+               SFI  => UIC.SFI,
                Last => False);
 
             Hash_Entries.Append ((Sloc (N), SCOs.SCO_Table.Last));
@@ -5159,6 +5161,7 @@ package body Instrument.Ada_Unit is
             C2   => C2,
             From => +Start_Sloc (N_SR),
             To   => +Inclusive_End_Sloc (N_SR),
+            SFI  => UIC.SFI,
             Last => False);
          Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
       end Output_Element;
@@ -5238,6 +5241,7 @@ package body Instrument.Ada_Unit is
             C2                 => ' ',
             From               => +Loc,
             To                 => Slocs.No_Local_Location,
+            SFI                => UIC.SFI,
             Last               => False,
             Pragma_Aspect_Name => Nam);
 
@@ -6383,19 +6387,19 @@ package body Instrument.Ada_Unit is
       --  procedures/functions in the same pass.
 
       SCOs.Initialize;
+
+      --  Append an entry in the SCO_Unit_Table for this unit to preserve
+      --  invariants in our data structures and subsequently avoiding to have
+      --  UIC.CU set to No_CU_Id.
+
+      Append_Unit (UIC.SFI);
+
       Traverse_Declarations_Or_Statements
         (IC      => IC,
          UIC     => UIC,
          L       => No_Ada_List,
          Preelab => Preelab,
          P       => Rewriter.Rewritten_Unit.Root);
-
-      SCOs.SCO_Unit_Table.Append
-        ((File_Name  => new String'(Filename),
-          File_Index => UIC.SFI,
-          Dep_Num    => 1,
-          From       => SCOs.SCO_Table.First,
-          To         => SCOs.SCO_Table.Last));
 
       --  Convert low level SCOs from the instrumenter to high level SCOs.
       --  This creates BDDs for every decision.
