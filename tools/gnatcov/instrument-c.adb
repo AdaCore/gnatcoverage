@@ -599,7 +599,8 @@ package body Instrument.C is
       Loc  : Source_Location_T := Get_Range_Start (Get_Cursor_Extent (N));
       Info : PP_Info;
    begin
-      Append_SCO (C1, C2, From, To, Last, Pragma_Aspect_Name);
+      Append_SCO
+        (C1, C2, From, To, UIC.SFI, Last, Pragma_Aspect_Name);
 
       --  We add preprocessing information only for actual SCOs. Return there
       --  if this is an operator SCO.
@@ -804,7 +805,8 @@ package body Instrument.C is
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
    begin
-      Append_SCO (C1, C2, From, To, Last, Pragma_Aspect_Name);
+      Append_SCO
+        (C1, C2, From, To, UIC.SFI, Last, Pragma_Aspect_Name);
 
       --  If this SCO is in a macro expansion, let's add source location
       --  information: we want to be able to know the actual source location
@@ -2630,10 +2632,6 @@ package body Instrument.C is
             Func_Args);
       end Put_Extern_Decl;
 
-      Unit_Index : SCOs.SCO_Unit_Index;
-      --  Index in low-level tables of the only SCO Unit we create for this
-      --  source file.
-
    --  Start of processing for Instrument_Source_File
 
    begin
@@ -2664,7 +2662,6 @@ package body Instrument.C is
              Dep_Num    => 1,
              From       => SCOs.SCO_Table.First,
              To         => SCOs.SCO_Table.Last));
-         Unit_Index := SCOs.SCO_Unit_Table.Last;
       end;
 
       --  Import analysis options for the file to preprocess, then run the
@@ -2761,17 +2758,6 @@ package body Instrument.C is
         (IC  => IC,
          UIC => UIC,
          L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
-
-      --  At this point, all coverage obligations where created in the
-      --  low-level tables, so we can adjust the upper bound in the SCO Unit
-      --  table.
-      --
-      --  TODO??? This works because for now we handle only one SCO unit, but
-      --  handling more units (for instance C headers) will require a redesign
-      --  for this part, for instance making Append_SCO automatically increment
-      --  that upper bound for the last SCO unit.
-
-      SCOs.SCO_Unit_Table.Table (Unit_Index).To := SCOs.SCO_Table.Last;
 
       --  Check whether there is a mismatch between Last_SCO and
       --  SCOs.SCO_Table.Last. If there is, warn the user and discard the
