@@ -43,6 +43,7 @@ with Hex_Images;          use Hex_Images;
 with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
+with Project;
 with SCOs;
 with Subprocesses;        use Subprocesses;
 with System;              use System;
@@ -166,7 +167,7 @@ package body Instrument.C is
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Local_Source_Location;
+      From, To           : Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a SCO to SCOs.SCO_Table. Also partially fill the preprocessing
@@ -180,7 +181,7 @@ package body Instrument.C is
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Local_Source_Location;
+      From, To           : Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a SCO to SCOs.SCO_Table, and complete the preprocessing info with
@@ -592,7 +593,7 @@ package body Instrument.C is
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Local_Source_Location;
+      From, To           : Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
@@ -600,7 +601,7 @@ package body Instrument.C is
       Info : PP_Info;
    begin
       Append_SCO
-        (C1, C2, From, To, UIC.SFI, Last, Pragma_Aspect_Name);
+        (C1, C2, From.L, To.L, From.Source_File, Last, Pragma_Aspect_Name);
 
       --  We add preprocessing information only for actual SCOs. Return there
       --  if this is an operator SCO.
@@ -609,7 +610,10 @@ package body Instrument.C is
          return;
       end if;
 
-      Info.Actual_Source_Range := (From, To);
+      --  TODO??? the actual source range should be a Source_Location, and not
+      --  a Local_Source_Location as it can refer to #included files.
+
+      Info.Actual_Source_Range := (From.L, To.L);
 
       --  Check if this is comes from a macro expansion, in which case we need
       --  to record some information, for reporting purposes.
@@ -800,13 +804,13 @@ package body Instrument.C is
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Local_Source_Location;
+      From, To           : Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
    begin
       Append_SCO
-        (C1, C2, From, To, UIC.SFI, Last, Pragma_Aspect_Name);
+        (C1, C2, From.L, To.L, From.Source_File, Last, Pragma_Aspect_Name);
 
       --  If this SCO is in a macro expansion, let's add source location
       --  information: we want to be able to know the actual source location
@@ -1075,7 +1079,7 @@ package body Instrument.C is
       Bits : constant Decision_Bit_Ids :=
         Allocate_Decision_Bits
           (Unit_Bits,
-           (Unit_Bits.SFI, Start_Sloc (N)),
+           Start_Sloc (N),
            SD.LL_SCO,
            SD.State,
            Path_Count);
@@ -1149,8 +1153,8 @@ package body Instrument.C is
       --  If not null, node where the witness call should be inserted.
       --  Otherwise, the insertion node will be N.
 
-      From : Local_Source_Location;
-      To   : Local_Source_Location;
+      From : Source_Location;
+      To   : Source_Location;
       Typ  : Character;
 
       Instr_Scheme : Instr_Scheme_Type := Instr_Stmt;
@@ -1275,7 +1279,7 @@ package body Instrument.C is
       --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
 
       type Hash_Entry is record
-         Sloc      : Local_Source_Location;
+         Sloc      : Source_Location;
          SCO_Index : Nat;
       end record;
       --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
@@ -1401,7 +1405,7 @@ package body Instrument.C is
                C1   => C1,
                C2   => C2,
                From => Sloc (Get_Operator_Loc (N)),
-               To   => No_Local_Location,
+               To   => Slocs.No_Location,
                Last => False);
 
             Hash_Entries.Append ((Sloc      => Start_Sloc (N),
@@ -1981,8 +1985,8 @@ package body Instrument.C is
       is
          Insert_Cursor : aliased Cursor_T := N;
 
-         F : constant Local_Source_Location := Start_Sloc (N);
-         T : Local_Source_Location := End_Sloc (N);
+         F : constant Source_Location := Start_Sloc (N);
+         T : Source_Location := End_Sloc (N);
          --  Source location bounds used to produce a SCO statement. By
          --  default, this should cover the same source location range as N,
          --  however for nodes that can contain other statements, we select an
@@ -1993,10 +1997,8 @@ package body Instrument.C is
          --  In the case of simple statements, set to null cursor and unused.
          --  Otherwise, use F and this node's end sloc for the emitted
          --  statement source location range.
-      begin
-         --  For now, instrument only cursors that come from the file being
-         --  instrumented, and do not instrument included code.
 
+      begin
          if Is_Null (N) or else not Is_Source_Of_Interest (UIC, N) then
             return;
          end if;
@@ -2118,7 +2120,6 @@ package body Instrument.C is
 
          begin
             if Is_Source_Of_Interest (UIC, N) then
-
                case Kind (N) is
 
                   --  Traverse the statements of function bodies
@@ -2143,8 +2144,8 @@ package body Instrument.C is
                         end if;
                      end;
 
-                   --  Traverse the declarations of a namespace / linkage
-                   --  specifier etc.
+                  --  Traverse the declarations of a namespace / linkage
+                  --  specifier etc.
 
                   when Cursor_Namespace
                      | Cursor_Linkage_Spec
@@ -2646,23 +2647,6 @@ package body Instrument.C is
       UIC.Instrumented_Unit := CU_Name;
       UIC.Buffer_Unit :=
         CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
-      UIC.File := +Orig_Filename;
-
-      --  Create the only SCO Unit we will need to instrument this source file.
-      --  Also make sure we will create at least the set of coverage buffers
-      --  for the main source file.
-
-      declare
-         Dummy : C_Instrumented_Entities renames
-           UIC.Find_Instrumented_Entities (UIC.SFI);
-      begin
-         SCOs.SCO_Unit_Table.Append
-           ((File_Name  => new String'(Orig_Filename),
-             File_Index => UIC.SFI,
-             Dep_Num    => 1,
-             From       => SCOs.SCO_Table.First,
-             To         => SCOs.SCO_Table.Last));
-      end;
 
       --  Import analysis options for the file to preprocess, then run the
       --  preprocessor.
@@ -2709,16 +2693,14 @@ package body Instrument.C is
                        new String'
                          (Comment (Match_Res (1).First .. Match_Res (1).Last));
                      UIC.Annotations.Append
-                       (((UIC.SFI, Sloc (Get_Token_Location (UIC.TU, Token))),
-                         Ann));
+                       ((Sloc (Get_Token_Location (UIC.TU, Token)), Ann));
                   end if;
                   Match (End_Matcher, Comment, Match_Res);
                   if Match_Res (0) /= No_Match then
                      Ann.Kind := Exempt_Off;
                      UIC.Annotations.Append
-                       (((UIC.SFI,
-                          Sloc
-                           (Get_Range_End (Get_Token_Extent (UIC.TU, Token)))),
+                       ((Sloc
+                           (Get_Range_End (Get_Token_Extent (UIC.TU, Token))),
                          Ann));
                   end if;
                end;
@@ -2731,12 +2713,12 @@ package body Instrument.C is
             Search_Exempt_In_Token'Access);
       end Search_Exemptions;
 
-      --  Flush the SCO_Table. We want the SCOs to be located at their
-      --  presumed (i.e. accounting for line directives) preprocessed source
-      --  range, to have unique locations for each.
+      --  Save the last SCO of the first pass (for a consistency check with
+      --  the second pass later), and reset the SCO tables for the
+      --  instrumentation pass.
 
       Record_PP_Info_Last_SCO := SCOs.SCO_Table.Last;
-      SCOs.SCO_Table.Init;
+      SCOs.Initialize;
 
       --  Then, instrument
 
@@ -4231,22 +4213,29 @@ package body Instrument.C is
                              Filename => C_File'Access,
                              Line     => Line'Access,
                              Column   => Column'Access);
-      File := +Get_C_String (C_File);
+      File := +Ada.Directories.Full_Name (Get_C_String (C_File));
 
       --  Look for a corresponding entry in UIC.Sources_Of_Interest, create one
       --  if it is missing.
 
       declare
+         use GNATCOLL.Projects;
+         use GNATCOLL.VFS;
          use Source_Of_Interest_Maps;
 
          Cur : constant Cursor := UIC.Sources_Of_Interest.Find (File);
          SOI : Source_Of_Interest;
+         FI  : GNATCOLL.Projects.File_Info;
       begin
          if Has_Element (Cur) then
             return UIC.Sources_Of_Interest.Reference (Cur).Of_Interest;
          end if;
 
-         if File = UIC.File then
+         --  Consider that File is of interest iff it belongs to a loaded
+         --  project.
+
+         FI := Project.Project.Info (Create (+To_String (File)));
+         if FI.Project /= No_Project then
             SOI :=
               (Of_Interest  => True,
                SFI          => Get_Index_From_Generic_Name
