@@ -225,16 +225,19 @@ package body Instrument is
       --  basename for the SID file to create. Mimic how GNAT creates ALI
       --  files: use the project of the main source of the library unit, start
       --  from the basename of that source file, replace the last extension
-      --  with ".sid".
+      --  with ".sid". Also make sure to use the most extending project in the
+      --  hierarchy, which is where GPRbuild puts ALI/object files.
 
       SID_Basename : US.Unbounded_String;
 
       Use_Spec : constant Boolean :=
         Info.Body_Project = GPR.No_Project;
       Project  : constant GPR.Project_Type :=
-        (if Use_Spec
-         then Info.Spec_Project
-         else Info.Body_Project);
+        GPR.Extending_Project
+          (Project => (if Use_Spec
+                       then Info.Spec_Project
+                       else Info.Body_Project),
+           Recurse => True);
       pragma Assert (Project /= GPR.No_Project);
 
       Output_Directory : constant Virtual_File :=
