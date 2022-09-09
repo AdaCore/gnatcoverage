@@ -61,9 +61,8 @@ with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Langkit_Support.Slocs; use Langkit_Support.Slocs;
-with Libadalang.Analysis;   use Libadalang.Analysis;
-with Libadalang.Rewriting;  use Libadalang.Rewriting;
+with Libadalang.Analysis;  use Libadalang.Analysis;
+with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with ALI_Files;             use ALI_Files;
 with GNATcov_RTS;
@@ -71,7 +70,7 @@ with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Namet;                 use Namet;
 with SC_Obligations;        use SC_Obligations;
-with Slocs;
+with Slocs;                 use Slocs;
 with Strings;               use Strings;
 with Switches;              use Switches;
 with Text_Files;
@@ -450,7 +449,7 @@ package Instrument.Common is
    --  MC/DC instrumentation depends on BDD information.
 
    type Annotation_Couple is record
-      Sloc       : Source_Location;
+      Sloc       : Local_Source_Location;
       Annotation : ALI_Annotation;
    end record;
    --  When instrumenting sources, annotations are registred in two steps:
@@ -518,7 +517,7 @@ package Instrument.Common is
 
    procedure Append_SCO
      (C1, C2             : Character;
-      From, To           : Source_Location;
+      From, To           : Local_Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name);
    --  Append a new entry to the low-level SCO table
@@ -540,7 +539,7 @@ package Instrument.Common is
    procedure Enter_Scope
      (UIC        : in out Unit_Inst_Context;
       Scope_Name : Unbounded_String;
-      Sloc       : Slocs.Local_Source_Location);
+      Sloc       : Local_Source_Location);
    --  Enter a scope. This must be completed with a call to the function
    --  Exit_Scope, defined below. Scope_Name is the name of the scope, which
    --  is defined at location Sloc. Assume that the scope first SCO is the next

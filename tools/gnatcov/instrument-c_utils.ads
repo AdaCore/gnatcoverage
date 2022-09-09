@@ -19,10 +19,10 @@
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Vectors;
 
-with Clang.Index;      use Clang.Index;
-with Clang.Rewrite;    use Clang.Rewrite;
+with Clang.Index;   use Clang.Index;
+with Clang.Rewrite; use Clang.Rewrite;
 
-with Langkit_Support.Slocs; use Langkit_Support.Slocs;
+with Slocs; use Slocs;
 
 package Instrument.C_Utils is
 
@@ -37,13 +37,13 @@ package Instrument.C_Utils is
    --  Location utilities --
    -------------------------
 
-   function Sloc (Loc : Source_Location_T) return Source_Location;
+   function Sloc (Loc : Source_Location_T) return Local_Source_Location;
    --  Convert a Source_Location_T to a Source_Location
 
-   function Start_Sloc (N : Cursor_T) return Source_Location;
+   function Start_Sloc (N : Cursor_T) return Local_Source_Location;
    --  Return the starting location of a node
 
-   function End_Sloc (N : Cursor_T) return Source_Location;
+   function End_Sloc (N : Cursor_T) return Local_Source_Location;
    --  Return the end location of a node
 
    function Kind (N : Cursor_T) return Cursor_Kind_T;

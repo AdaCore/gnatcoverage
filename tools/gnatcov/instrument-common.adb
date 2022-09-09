@@ -720,10 +720,9 @@ package body Instrument.Common is
    begin
       for Couple of UIC.Annotations loop
          declare
-            Sloc : constant Slocs.Source_Location :=
+            Sloc : constant Source_Location :=
                (Source_File => UIC.SFI,
-                L           => (Line   => Positive (Couple.Sloc.Line),
-                                Column => Positive (Couple.Sloc.Column)));
+                L           => Couple.Sloc);
          begin
             Couple.Annotation.CU := UIC.CU;
             ALI_Annotations.Insert
@@ -738,22 +737,20 @@ package body Instrument.Common is
 
    procedure Append_SCO
      (C1, C2             : Character;
-      From, To           : Source_Location;
+      From, To           : Local_Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
    begin
       SCOs.SCO_Table.Append
-        ((From =>
-              (Line => Logical_Line_Number (From.Line),
-               Col  => Standard.Types.Column_Number (From.Column)),
-          To   =>
-              (Line => Logical_Line_Number (To.Line),
-               Col  => Standard.Types.Column_Number (To.Column)),
-          C1   => C1,
-          C2   => C2,
-          Last => Last,
-          Pragma_Sloc        => No_Location,
+        ((From               =>
+            (Logical_Line_Number (From.Line), Column_Number (From.Column)),
+          To                 =>
+            (Logical_Line_Number (To.Line), Column_Number (To.Column)),
+          C1                 => C1,
+          C2                 => C2,
+          Last               => Last,
+          Pragma_Sloc        => Types.No_Location,
           Pragma_Aspect_Name => Pragma_Aspect_Name));
    end Append_SCO;
 

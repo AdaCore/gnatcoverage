@@ -25,8 +25,6 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects;
 
-with Langkit_Support.Slocs; use Langkit_Support.Slocs;
-
 with Namet; use Namet;
 with Types; use Types;
 
@@ -36,6 +34,7 @@ with Clang.Rewrite; use Clang.Rewrite;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
 with SC_Obligations;        use SC_Obligations;
+with Slocs;                 use Slocs;
 with Strings;               use Strings;
 
 private package Instrument.C is
@@ -302,7 +301,7 @@ private
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
-      From, To           : Source_Location;
+      From, To           : Local_Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name) is null;
 

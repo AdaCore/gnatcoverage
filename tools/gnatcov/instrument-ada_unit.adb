@@ -269,6 +269,9 @@ package body Instrument.Ada_Unit is
    function Sloc (N : Ada_Node'Class) return Source_Location is
      (Start_Sloc (N.Sloc_Range));
 
+   function "+" (Sloc : Source_Location) return Slocs.Local_Source_Location
+   is ((Natural (Sloc.Line), Natural (Sloc.Column)));
+
    function Expr_Needs_Parens (Kind : Ada_Node_Kind_Type) return Boolean
    is (Kind in Ada_Quantified_Expr | Ada_If_Expr | Ada_Case_Expr);
    --  Whether nodes of type Kind must be wrapped with parens
@@ -3202,8 +3205,8 @@ package body Instrument.Ada_Unit is
                   Append_SCO
                     (C1   => '>',
                      C2   => Current_Dominant.K,
-                     From => From,
-                     To   => To,
+                     From => +From,
+                     To   => +To,
                      Last => False);
                end;
             end if;
@@ -3224,8 +3227,8 @@ package body Instrument.Ada_Unit is
                Append_SCO
                  (C1                 => 'S',
                   C2                 => SCE.Typ,
-                  From               => SCE.From,
-                  To                 => SCE.To,
+                  From               => +SCE.From,
+                  To                 => +SCE.To,
                   Last               => (J = SC_Last),
                   Pragma_Aspect_Name => Pragma_Aspect_Name);
 
@@ -4588,7 +4591,7 @@ package body Instrument.Ada_Unit is
                               end if;
 
                               UIC.Annotations.Append
-                                (Annotation_Couple'(Sloc (N), Ann));
+                                (Annotation_Couple'(+Sloc (N), Ann));
 
                            exception
                               when Constraint_Error =>
@@ -5348,8 +5351,8 @@ package body Instrument.Ada_Unit is
             Append_SCO
               (C1   => C1,
                C2   => C2,
-               From => Sloc (Op_N),
-               To   => No_Source_Location,
+               From => +Sloc (Op_N),
+               To   => Slocs.No_Local_Location,
                Last => False);
 
             Hash_Entries.Append ((Sloc (N), SCOs.SCO_Table.Last));
@@ -5404,8 +5407,8 @@ package body Instrument.Ada_Unit is
          Append_SCO
            (C1   => ' ',
             C2   => C2,
-            From => Start_Sloc (N_SR),
-            To   => Inclusive_End_Sloc (N_SR),
+            From => +Start_Sloc (N_SR),
+            To   => +Inclusive_End_Sloc (N_SR),
             Last => False);
          Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
       end Output_Element;
@@ -5483,8 +5486,8 @@ package body Instrument.Ada_Unit is
          Append_SCO
            (C1                 => T,
             C2                 => ' ',
-            From               => Loc,
-            To                 => No_Source_Location,
+            From               => +Loc,
+            To                 => Slocs.No_Local_Location,
             Last               => False,
             Pragma_Aspect_Name => Nam);
 
