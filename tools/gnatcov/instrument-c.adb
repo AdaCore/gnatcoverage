@@ -451,7 +451,7 @@ package body Instrument.C is
             Deleted : Boolean := False;
          begin
             --  Check that no SCOs on the line of the annotation intersect
-            --  the anntoation Sloc. If one does, discard the annotation and
+            --  the annotation Sloc. If one does, discard the annotation and
             --  warn the user as this is not a supported use case.
 
             if LI /= null and then LI.SCOs /= null
