@@ -71,8 +71,6 @@ clang_getCond (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::IfStmtClass:
           return MakeCXCursorWithNull (cast<IfStmt> (S)->getCond (), C);
         case Stmt::WhileStmtClass:
@@ -86,6 +84,8 @@ clang_getCond (CXCursor C)
         case Stmt::ConditionalOperatorClass:
           return MakeCXCursorWithNull (
               cast<ConditionalOperator> (S)->getCond (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -125,10 +125,10 @@ clang_getForInit (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::ForStmtClass:
           return MakeCXCursorWithNull (cast<ForStmt> (S)->getInit (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -140,10 +140,10 @@ clang_getForInc (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::ForStmtClass:
           return MakeCXCursorWithNull (cast<ForStmt> (S)->getInc (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -155,10 +155,10 @@ clang_getThen (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::IfStmtClass:
           return MakeCXCursorWithNull (cast<IfStmt> (S)->getThen (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -170,10 +170,10 @@ clang_getElse (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::IfStmtClass:
           return MakeCXCursorWithNull (cast<IfStmt> (S)->getElse (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -185,11 +185,11 @@ clang_getSubExpr (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::UnaryOperatorClass:
           return MakeCXCursorWithNull (cast<UnaryOperator> (S)->getSubExpr (),
                                        C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -201,13 +201,13 @@ clang_getSubStmt (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::CaseStmtClass:
           return MakeCXCursorWithNull (cast<CaseStmt> (S)->getSubStmt (), C);
         case Stmt::DefaultStmtClass:
           return MakeCXCursorWithNull (cast<DefaultStmt> (S)->getSubStmt (),
                                        C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -219,13 +219,13 @@ clang_getRHS (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::BinaryOperatorClass:
           return MakeCXCursorWithNull (cast<BinaryOperator> (S)->getRHS (), C);
         case Stmt::ConditionalOperatorClass:
           return MakeCXCursorWithNull (
               cast<ConditionalOperator> (S)->getRHS (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -237,13 +237,13 @@ clang_getLHS (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
         case Stmt::BinaryOperatorClass:
           return MakeCXCursorWithNull (cast<BinaryOperator> (S)->getLHS (), C);
         case Stmt::ConditionalOperatorClass:
           return MakeCXCursorWithNull (
               cast<ConditionalOperator> (S)->getRHS (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -258,14 +258,14 @@ clang_getOpcodeStr (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return createEmpty ();
         case Stmt::BinaryOperatorClass:
           return createRef (BinaryOperator::getOpcodeStr (
               cast<BinaryOperator> (S)->getOpcode ()));
         case Stmt::UnaryOperatorClass:
           return createRef (UnaryOperator::getOpcodeStr (
               cast<UnaryOperator> (S)->getOpcode ()));
+        default:
+          return createEmpty ();
         }
   return createEmpty ();
 }
@@ -283,14 +283,14 @@ clang_getOperatorLoc (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-        default:
-          return clang_getNullLocation ();
         case Stmt::BinaryOperatorClass:
           sloc = cast<BinaryOperator> (S)->getOperatorLoc ();
           break;
         case Stmt::UnaryOperatorClass:
           sloc = cast<UnaryOperator> (S)->getOperatorLoc ();
           break;
+        default:
+          return clang_getNullLocation ();
         }
   return cxloc::translateSourceLocation (CXXUnit->getASTContext (), sloc);
 }
