@@ -30,7 +30,9 @@
 #include "clang-c/Index.h"
 #include "clang-c/Rewrite.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/ExprCXX.h"
 #include "clang/AST/ParentMapContext.h"
+#include "clang/AST/StmtCXX.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/ASTUnit.h"
@@ -96,24 +98,55 @@ clang_getBody (CXCursor C)
   if (clang_isDeclaration (C.kind))
     {
       if (const Decl *D = cxcursor::getCursorDecl (C))
-        if (const FunctionDecl *FD = dyn_cast<FunctionDecl>(D))
-          if (FD->doesThisDeclarationHaveABody ())
-            return MakeCXCursorWithNull (FD->getBody (), C);
+        switch (D->getKind ())
+          {
+          case Decl::FunctionTemplate:
+            return MakeCXCursorWithNull (
+              cast<FunctionTemplateDecl> (D)->getTemplatedDecl ()->getBody (),
+              C);
+          case Decl::Function:
+          case Decl::CXXMethod:
+          case Decl::CXXConstructor:
+          case Decl::CXXDestructor:
+          case Decl::CXXConversion:
+            {
+              const FunctionDecl *FD = cast<FunctionDecl> (D);
+              if (FD->doesThisDeclarationHaveABody ())
+                return MakeCXCursorWithNull (FD->getBody (), C);
+              break;
+            }
+          default:
+            return MakeCXCursorWithNull (D->getBody (), C);
+          }
     }
   else if (clang_isStatement (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
-      switch (S->getStmtClass ())
+    {
+      if (const Stmt *S = cxcursor::getCursorStmt (C))
+        switch (S->getStmtClass ())
+          {
+            case Stmt::WhileStmtClass:
+              return MakeCXCursorWithNull (cast<WhileStmt> (S)->getBody (), C);
+            case Stmt::ForStmtClass:
+              return MakeCXCursorWithNull (cast<ForStmt> (S)->getBody (), C);
+            case Stmt::CXXForRangeStmtClass:
+              return MakeCXCursorWithNull
+                (cast<CXXForRangeStmt> (S)->getBody (), C);
+            case Stmt::DoStmtClass:
+              return MakeCXCursorWithNull (cast<DoStmt> (S)->getBody (), C);
+            case Stmt::SwitchStmtClass:
+              return MakeCXCursorWithNull (cast<SwitchStmt> (S)->getBody (), C);
+            default:
+              return clang_getNullCursor ();
+          }
+    }
+  else if (clang_isExpression (C.kind))
+    if (const Expr *E = cxcursor::getCursorExpr (C))
+      switch (E->getStmtClass ())
         {
-        default:
-          return clang_getNullCursor ();
-        case Stmt::WhileStmtClass:
-          return MakeCXCursorWithNull (cast<WhileStmt> (S)->getBody (), C);
-        case Stmt::ForStmtClass:
-          return MakeCXCursorWithNull (cast<ForStmt> (S)->getBody (), C);
-        case Stmt::DoStmtClass:
-          return MakeCXCursorWithNull (cast<DoStmt> (S)->getBody (), C);
-        case Stmt::SwitchStmtClass:
-          return MakeCXCursorWithNull (cast<SwitchStmt> (S)->getBody (), C);
+          case Expr::LambdaExprClass:
+            return MakeCXCursorWithNull (cast<LambdaExpr> (E)->getBody (), C);
+          default:
+            return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -295,17 +328,36 @@ clang_getOperatorLoc (CXCursor C)
   return cxloc::translateSourceLocation (CXXUnit->getASTContext (), sloc);
 }
 
-/* If the given expression is a paren expression, return the outermost
-   expression inside that is not a paren expression.  */
+/* If the given expression is a wrapping expression (i.e. a parenthesized
+   expression, a cast expression etc.), return the outermost expression inside
+   that is not a wrapping expression.  */
 
 extern "C" CXCursor
 clang_unwrap (CXCursor C)
 {
   if (clang_isExpression (C.kind))
     if (const Stmt *S = cxcursor::getCursorStmt (C))
-      if (S->getStmtClass () == Stmt::ParenExprClass)
-        return clang_unwrap (
-            MakeCXCursorWithNull (cast<ParenExpr> (S)->getSubExpr (), C));
+      switch (S->getStmtClass ())
+        {
+          case Stmt::ParenExprClass:
+            return clang_unwrap
+              (MakeCXCursorWithNull (cast<ParenExpr> (S)->getSubExpr (), C));
+          case Expr::ConstantExprClass:
+          case Expr::ExprWithCleanupsClass:
+            return clang_unwrap
+              (MakeCXCursorWithNull (cast<FullExpr> (S)->getSubExpr (), C));
+          case Expr::ImplicitCastExprClass:
+          case Expr::CStyleCastExprClass:
+          case Expr::CXXFunctionalCastExprClass:
+          case Expr::CXXStaticCastExprClass:
+          case Expr::CXXDynamicCastExprClass:
+          case Expr::CXXReinterpretCastExprClass:
+          case Expr::CXXConstCastExprClass:
+          case Expr::CXXAddrspaceCastExprClass:
+            return clang_unwrap
+              (MakeCXCursorWithNull (cast<CastExpr> (S)->getSubExpr (), C));
+
+        }
   return C;
 }
 

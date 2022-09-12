@@ -129,11 +129,13 @@ package Switches is
    Units_Inputs : Inputs.Inputs_Type;
    --  List of names for requested units of interest
 
-   type Any_Language is (All_Languages, Ada_Language, C_Language);
+   type Any_Language is
+     (All_Languages, Ada_Language, C_Language, CPP_Language);
    --  A language that is supported for source coverage All_Languages is a
    --  special value to designate all languages at once.
 
-   subtype Some_Language is Any_Language range Ada_Language .. C_Language;
+   subtype Some_Language is Any_Language range Ada_Language .. CPP_Language;
+   subtype C_Family_Language is Any_Language range C_Language .. CPP_Language;
 
    function To_Language (Name : String) return Some_Language;
    --  Convert a human-readable language name to the corresponding enumeration
@@ -142,8 +144,10 @@ package Switches is
    function Image (Language : Some_Language) return String;
    --  Return a human-readable name for the given language
 
-   subtype Bin_Supported_Language is Some_Language;
-   subtype Src_Supported_Language is Some_Language;
+   subtype Bin_Supported_Language is
+     Some_Language range Ada_Language .. C_Language;
+   subtype Src_Supported_Language is
+     Some_Language range Ada_Language .. CPP_Language;
    --  A language that is supported for source coverage in binary (respectively
    --  source) trace mode.
 

@@ -29,7 +29,7 @@ with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 with GNAT.Strings;
 
-with GNATCOLL.VFS; use GNATCOLL.VFS;
+with GNATCOLL.VFS;
 
 with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
@@ -47,7 +47,6 @@ with Outputs;             use Outputs;
 with Paths;               use Paths;
 with SCOs;
 with Subprocesses;        use Subprocesses;
-with Switches;            use Switches;
 with System;              use System;
 with Table;
 with Text_Files;          use Text_Files;
@@ -66,8 +65,17 @@ package body Instrument.C is
    --  Free all strings in Self
 
    function Compiler_Driver
-     (Project : GNATCOLL.Projects.Project_Type) return String;
-   --  Return the command name for the C compiler in the given Project
+     (Project  : GNATCOLL.Projects.Project_Type;
+      Language : C_Family_Language) return String;
+   --  Return the command name for the compiler for Language in the given
+   --  Project.
+
+   function Source_Suffix
+     (Instrumenter : C_Family_Instrumenter_Type'Class;
+      Part         : GNATCOLL.Projects.Unit_Parts;
+      Project      : GNATCOLL.Projects.Project_Type) return String;
+   --  Return the filename suffix corresponding for Part files and the language
+   --  that Instrumenter handles in the given project.
 
    procedure Filter_Annotations;
    --  Remove any exemption annotations from the map that intersects a
@@ -122,16 +130,21 @@ package body Instrument.C is
    --  is used to store a temporary file.
 
    procedure Preprocess_Source
-     (Filename    : String;
-      PP_Filename : out Unbounded_String;
-      Info        : in out Project_Info;
-      Options     : in out Analysis_Options);
+     (Filename     : String;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      PP_Filename  : out Unbounded_String;
+      Info         : in out Project_Info;
+      Options      : in out Analysis_Options);
    --  Preprocess the source at Filename and extend Options using the
    --  preprocessor output.
    --
    --  This uses the compiler in the Compiler_Driver project attribute to
    --  preprocess the file, assuming that it accepts the -E flag, to preprocess
    --  a file.
+
+   function Common_Parse_TU_Args return String_Vectors.Vector;
+   --  Return the list of arguments that should always be passed to
+   --  Parse_Translation_Unit.
 
    ---------------------------
    --  Passes specificities --
@@ -257,11 +270,12 @@ package body Instrument.C is
    --  left to the other (instrumentation) pass.
 
    procedure Instrument_Source_File
-     (CU_Name   : Compilation_Unit_Name;
-      Unit_Info : Instrumented_Unit_Info;
-      Prj_Info  : in out Project_Info;
-      IC        : in out Inst_Context;
-      UIC       : out C_Unit_Inst_Context);
+     (CU_Name      : Compilation_Unit_Name;
+      Unit_Info    : Instrumented_Unit_Info;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj_Info     : in out Project_Info;
+      IC           : in out Inst_Context;
+      UIC          : out C_Unit_Inst_Context);
    --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
    --  Record instrumentation information in IC.
    --
@@ -287,43 +301,49 @@ package body Instrument.C is
      ("gnatcov_rts_c-buffers-lists-" & (+IC.Project_Name));
    --  Return the name of the unit containing the array of coverage buffers
 
-   function Buffers_List_Filename_Body (IC : Inst_Context) return String is
-     (Buffers_List_Filename (IC) & ".c");
-   --  Return the implementation filename body of the unit containing the
-   --  array of coverage buffers.
-
-   function Buffers_List_Filename_Header (IC : Inst_Context) return String is
-     (Buffers_List_Filename (IC) & ".h");
-   --  Return the implementation filename header of the unit containing the
-   --  array of coverage buffers.
-
    procedure Emit_Buffer_Unit
-     (Info : in out Project_Info; UIC : C_Unit_Inst_Context'Class);
+     (Info         : in out Project_Info;
+      UIC          : C_Unit_Inst_Context'Class;
+      Instrumenter : C_Family_Instrumenter_Type'Class);
    --  Emit the unit to contain coverage buffers for the given instrumented
-   --  unit.
+   --  unit, for the given instrumenter.
 
    procedure Emit_Dump_Helper_Unit
-     (IC          : Inst_Context;
-      Info        : in out Project_Info;
-      Main        : Compilation_Unit_Name;
-      Helper_Unit : out US.Unbounded_String);
+     (IC           : Inst_Context;
+      Info         : in out Project_Info;
+      Main         : Compilation_Unit_Name;
+      Helper_Unit  : out US.Unbounded_String;
+      Instrumenter : C_Family_Instrumenter_Type'Class);
    --  Emit the unit to contain helpers to implement the automatic dump of
    --  coverage buffers for the given Main unit. Info must be the project that
    --  owns this main. Upon return, the name of this helper unit is stored in
    --  Helper_Unit.
 
-   procedure Run_Diagnostics (TU : Translation_Unit_T)
-   with Unreferenced;
-   --  Output clang diagnostics on the given translation unit
+   procedure Apply (Self : in out C_Source_Rewriter);
+   --  Overwrite the file with the rewritter modifications
+
+   procedure Start_Rewriting
+     (Self         : out C_Source_Rewriter;
+      Info         : in out Project_Info;
+      Filename     : String;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Preprocessed : Boolean := False);
+   --  Start a rewriting session for the given file identified by its full
+   --  name.
    --
-   --  TODO??? If this is a debug helper, use it in verbose mode instead of
-   --  leaving it unreferenced.
+   --  If Preprocessed is set to True, consider that the file was preprocessed
+   --  beforehand. Otherwise, generate a preprocessed version of it in
+   --  Info.Output_Dir and start a rewriting session on the latter.
+
+   procedure Run_Diagnostics (TU : Translation_Unit_T);
+   --  Output clang diagnostics on the given translation unit
 
    procedure Auto_Dump_Buffers_In_Main
-     (IC   : Inst_Context;
-      Info : in out Project_Info;
-      Main : Compilation_Unit_Name;
-      Rew  : in out C_Source_Rewriter);
+     (IC           : Inst_Context;
+      Info         : in out Project_Info;
+      Main         : Compilation_Unit_Name;
+      Rew          : in out C_Source_Rewriter;
+      Instrumenter : C_Family_Instrumenter_Type'Class);
    --  Common code for auto dump insertion in the "main" function, used in the
    --  Auto_Dump_Buffers_In_Main primitive for C_Instrumenter_Type, and from
    --  the Instrument_Source_File procedure.
@@ -336,13 +356,17 @@ package body Instrument.C is
    --  Return a gnatcov_rts_string literal corresponding to Value
 
    function Format_Def
-     (C_Type     : String;
-      Name       : String;
-      Array_Size : String := "";
-      Func_Args  : String := "";
-      Init_Expr  : String := "";
-      External   : Boolean := False) return String;
-   --  Helper to format a variable/constant definition or declaration.
+     (Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Array_Size   : String := "";
+      Func_Args    : String := "";
+      Init_Expr    : String := "";
+      External     : Boolean := False) return String;
+   --  Helper to format a variable/constant definition.
+   --
+   --  If Instrumenter is for C++, return first an "extern ""C""" declaration
+   --  for the definition to set the C linkage, then the definition itself.
    --
    --  C_Type is the type for the declared entity ("int", "const char *", ...).
    --
@@ -364,33 +388,38 @@ package body Instrument.C is
    --  declaration be a definition.
 
    procedure Put_Format_Def
-     (File       : in out Text_Files.File_Type;
-      C_Type     : String;
-      Name       : String;
-      Array_Size : String := "";
-      Init_Expr  : String := "");
+     (File         : in out Text_Files.File_Type;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Array_Size   : String := "";
+      Init_Expr    : String := "");
    --  Like Format_Def, but write the definition to File
 
    function Format_Extern_Decl
-     (C_Type    : String;
-      Name      : String;
-      Func_Args : String := "") return String;
+     (Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Func_Args    : String := "") return String;
    --  Helper for format an "extern" declaration. Arguments are the same as
    --  Format_Def.
 
    procedure Put_Extern_Decl
-     (Rewriter  : Rewriter_T;
-      Location  : Source_Location_T;
-      C_Type    : String;
-      Name      : String;
-      Func_Args : String := "");
-   --  Like Format_Extern_Decl, but write the definition to TU/Rewriter
+     (Rewriter     : Rewriter_T;
+      Location     : Source_Location_T;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Func_Args    : String := "");
+   --  Like Format_Extern_Decl, but write the definition at Location in the
+   --  unit rewritten by Rewriter.
 
    procedure Put_Extern_Decl
-     (File      : in out Text_Files.File_Type;
-      C_Type    : String;
-      Name      : String;
-      Func_Args : String := "");
+     (File         : in out Text_Files.File_Type;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Func_Args    : String := "");
    --  Like Format_Extern_Decl, but write the definition to File
 
    function Find_First_Insert_Location
@@ -427,11 +456,11 @@ package body Instrument.C is
    ---------------------
 
    function Compiler_Driver
-     (Project : GNATCOLL.Projects.Project_Type) return String
-   is
+     (Project  : GNATCOLL.Projects.Project_Type;
+      Language : C_Family_Language) return String is
    begin
       return GNATCOLL.Projects.Attribute_Value
-               (Project, GPR.Compiler_Driver_Attribute, "C");
+               (Project, GPR.Compiler_Driver_Attribute, Image (Language));
    end Compiler_Driver;
 
    ------------------------
@@ -474,6 +503,47 @@ package body Instrument.C is
          end;
       end loop;
    end Filter_Annotations;
+
+   -------------------
+   -- Source_Suffix --
+   -------------------
+
+   function Source_Suffix
+     (Instrumenter : C_Family_Instrumenter_Type'Class;
+      Part         : GNATCOLL.Projects.Unit_Parts;
+      Project      : GNATCOLL.Projects.Project_Type) return String
+   is
+      L    : constant C_Family_Language := Instrumenter.Language;
+      Attr : constant GPR.Attribute_Pkg_String :=
+        GPR.Build
+          (Package_Name   => "Naming",
+           Attribute_Name =>
+             (case Part is
+              when GPR.Unit_Body     => "Body_Suffix",
+              when GPR.Unit_Spec     => "Spec_Suffix",
+              when GPR.Unit_Separate => raise Program_Error));
+   begin
+      case Part is
+         when GPR.Unit_Body =>
+            return Project.Attribute_Value
+              (Attribute => Attr,
+               Index     => Image (L),
+               Default   => (case L is
+                             when C_Language   => ".c",
+                             when CPP_Language => ".cpp"));
+
+         when GPR.Unit_Spec =>
+            return Project.Attribute_Value
+              (Attribute => Attr,
+               Index     => Image (L),
+               Default   => (case L is
+                             when C_Language   => ".h",
+                             when CPP_Language => ".hh"));
+
+         when GPR.Unit_Separate =>
+            return (raise Program_Error);
+      end case;
+   end Source_Suffix;
 
    ----------------
    -- Append_SCO --
@@ -1625,6 +1695,12 @@ package body Instrument.C is
          then
             Has_Decision := True;
             return Child_Visit_Break;
+
+         --  We don't want to visit lambda expressions: we will treat them
+         --  outside of the current expression.
+
+         elsif Kind (N) = Cursor_Lambda_Expr then
+            return Child_Visit_Continue;
          else
             return Child_Visit_Recurse;
          end if;
@@ -1706,9 +1782,9 @@ package body Instrument.C is
       --  Traverse a statement
 
       procedure Extend_Statement_Sequence
-        (N           : Cursor_T;
-         Typ         : Character;
-         Insertion_N : Cursor_T := Get_Null_Cursor;
+        (N            : Cursor_T;
+         Typ          : Character;
+         Insertion_N  : Cursor_T := Get_Null_Cursor;
          Instr_Scheme : Instr_Scheme_Type := Instr_Stmt);
       --  Add an entry to the SC table
 
@@ -1867,7 +1943,7 @@ package body Instrument.C is
                   For_Init : constant Cursor_T := Get_For_Init (N);
                   For_Cond : constant Cursor_T := Get_Cond (N);
                   For_Inc  : constant Cursor_T := Get_For_Inc (N);
-                  For_Body : constant Vector := To_Vector (Get_Body (N));
+                  For_Body : constant Cursor_T := Get_Body (N);
                begin
                   Extend_Statement_Sequence
                     (For_Init, ' ', Insertion_N => N);
@@ -1887,8 +1963,12 @@ package body Instrument.C is
 
                   Current_Dominant := ('T', For_Cond);
 
+                  UIC.Pass.Curlify (N => For_Body, Rew => UIC.Rewriter);
                   Current_Dominant :=
-                    Traverse_Statements (IC, UIC, For_Body, Current_Dominant);
+                    Traverse_Statements
+                      (IC, UIC,
+                       To_Vector (For_Body),
+                       Current_Dominant);
 
                   Extend_Statement_Sequence
                     (For_Inc, ' ', Instr_Scheme => Instr_Expr);
@@ -1900,6 +1980,18 @@ package body Instrument.C is
                   --  FOR loop.
 
                   Current_Dominant := ('S', For_Cond);
+               end;
+
+            when Cursor_CXX_For_Range_Stmt =>
+               declare
+                  For_Body : constant Cursor_T := Get_Body (N);
+               begin
+                  Set_Statement_Entry;
+                  UIC.Pass.Curlify (N => For_Body, Rew => UIC.Rewriter);
+                  Traverse_Statements
+                    (IC, UIC,
+                     To_Vector (For_Body),
+                     Current_Dominant);
                end;
 
            --  Unconditional goto, which is included in the current statement
@@ -1927,25 +2019,25 @@ package body Instrument.C is
             --  ternary operator etc. Do that in a later step.
 
             when others =>
-               if Is_Declaration (Kind (N)) then
-                  Traverse_Statements
-                    (IC => IC,
-                     UIC => UIC,
-                     L => Get_Children (N));
-               else
 
-                  --  Determine required type character code, or ASCII.NUL if
-                  --  no SCO should be generated for this node.
+               --  Determine required type character code, or ASCII.NUL if
+               --  no SCO should be generated for this node.
 
-                  Extend_Statement_Sequence (N, ' ');
+               Extend_Statement_Sequence (N, ' ');
 
-                  --  Process any embedded decisions
+               --  Process any embedded decisions
 
-                  if Has_Decision (N) then
-                     Process_Decisions_Defer (N, 'X');
-                  end if;
+               if Has_Decision (N) then
+                  Process_Decisions_Defer (N, 'X');
                end if;
          end case;
+
+         --  Traverse lambda expressions, if any
+
+         Traverse_Declarations
+           (IC  => IC,
+            UIC => UIC,
+            L   => Get_Lambda_Exprs (N));
       end Traverse_One;
 
       -------------------------------
@@ -2116,6 +2208,8 @@ package body Instrument.C is
       L   : Cursor_Vectors.Vector)
    is
       use Cursor_Vectors;
+      Saved_MCDC_State_Declaration_Node : constant Cursor_T :=
+        UIC.MCDC_State_Declaration_Node;
    begin
       for N of L loop
 
@@ -2123,24 +2217,53 @@ package body Instrument.C is
          --  interest.
 
          begin
-            if Kind (N) = Cursor_Function_Decl
-               and then Is_Unit_Of_Interest (N, +UIC.File)
-            then
-               declare
-                  --  Get_Body returns a Compound_Stmt, convert it to a list of
-                  --  statements using the Get_Children utility.
+            if Is_Unit_Of_Interest (N, +UIC.File) then
 
-                  Fun_Body : constant Cursor_Vectors.Vector :=
-                    Get_Children (Get_Body (N));
-               begin
-                  if Fun_Body.Length > 0 then
-                     UIC.MCDC_State_Declaration_Node := Fun_Body.First_Element;
-                     Traverse_Statements (IC, UIC, Fun_Body);
-                  end if;
-               end;
+               case Kind (N) is
+
+                  --  Traverse the statements of function bodies
+
+                  when Cursor_Function_Decl
+                     | Cursor_Function_Template
+                     | Cursor_CXX_Method
+                     | Cursor_Constructor
+                     | Cursor_Destructor
+                     | Cursor_Lambda_Expr =>
+                     declare
+                        --  Get_Body returns a Compound_Stmt, convert it to a
+                        --  list of statements using the Get_Children utility.
+
+                        Fun_Body : constant Cursor_Vectors.Vector :=
+                          Get_Children (Get_Body (N));
+                     begin
+                        if Fun_Body.Length > 0 then
+                           UIC.MCDC_State_Declaration_Node :=
+                             Fun_Body.First_Element;
+                           Traverse_Statements (IC, UIC, Fun_Body);
+                        end if;
+                     end;
+
+                   --  Traverse the declarations of a namespace / linkage
+                   --  specifier etc.
+
+                  when Cursor_Namespace
+                     | Cursor_Linkage_Spec
+                     | Cursor_Class_Template
+                     | Cursor_Class_Decl =>
+                     Traverse_Declarations (IC, UIC, Get_Children (N));
+
+                  when others =>
+                     null;
+               end case;
             end if;
          end;
       end loop;
+
+      --  Restore previous MCDC_State insertion node: we can have lambda
+      --  expressions inside functions, and we don't want to keep inserting
+      --  MCDC state variables in the lambda after we finished its traversal.
+
+      UIC.MCDC_State_Declaration_Node := Saved_MCDC_State_Declaration_Node;
    end Traverse_Declarations;
 
    --------------------
@@ -2230,10 +2353,11 @@ package body Instrument.C is
    -----------------------
 
    procedure Preprocess_Source
-     (Filename    : String;
-      PP_Filename : out Unbounded_String;
-      Info        : in out Project_Info;
-      Options     : in out Analysis_Options)
+     (Filename     : String;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      PP_Filename  : out Unbounded_String;
+      Info         : in out Project_Info;
+      Options      : in out Analysis_Options)
    is
       Cmd : Command_Type;
       --  The command to preprocess the file
@@ -2250,7 +2374,11 @@ package body Instrument.C is
    begin
       PP_Filename := +Register_New_File (Info, Filename);
 
-      Cmd := (Command => +Compiler_Driver (Info.Project), others => <>);
+      Cmd :=
+        (Command => +Compiler_Driver (Info.Project, Instrumenter.Language),
+         others  => <>);
+
+      --  Add the preprocessing flag
 
       Append_Arg (Cmd, "-E");
       Add_Options (Cmd.Arguments, Options);
@@ -2353,6 +2481,24 @@ package body Instrument.C is
       Delete (PP_Output_File);
    end Preprocess_Source;
 
+   --------------------------
+   -- Common_Parse_TU_Args --
+   --------------------------
+
+   function Common_Parse_TU_Args return String_Vectors.Vector is
+      Command_Line_Args : String_Vectors.Vector;
+      use String_Vectors;
+   begin
+      --  We will get errors when parsing a gcc-preprocessed file with clang:
+      --  portions of the standard library may refer to compiler builtins.
+      --  To work around clang incompletely parsing the file in that case,
+      --  unset the error limit.
+
+      Append (Command_Line_Args, +"-ferror-limit=0");
+
+      return Command_Line_Args;
+   end Common_Parse_TU_Args;
+
    ---------------------
    -- Start_Rewriting --
    ---------------------
@@ -2361,6 +2507,7 @@ package body Instrument.C is
      (Self         : out C_Source_Rewriter;
       Info         : in out Project_Info;
       Filename     : String;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
       Preprocessed : Boolean := False)
    is
       PP_Filename : Unbounded_String := +Filename;
@@ -2368,9 +2515,10 @@ package body Instrument.C is
       Options : Analysis_Options;
       Args    : String_Vectors.Vector;
    begin
-      Import_Options (Options, Info, Filename);
+      Import_Options (Options, Instrumenter.Language, Info, Filename);
       if not Preprocessed then
-         Preprocess_Source (Filename, PP_Filename, Info, Options);
+         Preprocess_Source
+           (Filename, Instrumenter, PP_Filename, Info, Options);
       end if;
 
       Self.CIdx :=
@@ -2378,6 +2526,7 @@ package body Instrument.C is
           (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
 
       Add_Options (Args, Options);
+      String_Vectors.Append (Args, Common_Parse_TU_Args);
       declare
          C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
       begin
@@ -2390,9 +2539,11 @@ package body Instrument.C is
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
               Options               => 0);
+         if Verbose then
+            Run_Diagnostics (Self.TU);
+         end if;
          Free (C_Args);
       end;
-
       Self.Rewriter := CX_Rewriter_Create (Self.TU);
       Self.Output_Filename := PP_Filename;
    end Start_Rewriting;
@@ -2451,8 +2602,6 @@ package body Instrument.C is
    is
       Orig_Filename : constant String  := +Unit_Info.Filename;
       Args          : String_Vectors.Vector;
-
-      use String_Vectors;
    begin
       UIC.Pass := Record_PP_Info_Pass'Access;
       UIC.CIdx :=
@@ -2464,10 +2613,25 @@ package body Instrument.C is
       --  the user's preprocessor.
 
       Add_Options (Args, UIC.Options);
-      Append (Args, +"-undef");
-      Append (Args, +"-nostdinc");
+      String_Vectors.Append (Args, Common_Parse_TU_Args);
 
-      --  Convert to C compatible char**
+      --  TODO??? We should also inhibit the use of clang predefined macros,
+      --  with the -undef option, but doing this yields parsing errors, and a
+      --  structurally different AST, and a mismatching between the
+      --  preprocessing phase, and the instrumentation phase. For whatever
+      --  reason, this is not the case when we undefine manually (passing -U
+      --  to the command line) all of clang predefines... But we can't do that
+      --  as getting the clang predefines requires having it on the path (and
+      --  it is not packaged with gnatcov as of right now, and we probably
+      --  don't want to do that).
+      --
+      --  As this is best effort, remove the -undef switch for now, and
+      --  investigate later (it looks complex). This means that if the code
+      --  base has compiler-specific code e.g. code that is expanded when
+      --  preprocessing with clang predefines, but not when compiling with
+      --  gcc, and admitting the compiler driver is gcc we will get a
+      --  different AST in the preprocessing phase, and simply discard the
+      --  preprocessing information later.
 
       declare
          C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
@@ -2480,7 +2644,7 @@ package body Instrument.C is
               Num_Command_Line_Args => C_Args'Length,
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
-              Options               => 0);
+              Options               => Translation_Unit_Keep_Going);
          Free (C_Args);
       end;
       Traverse_Declarations
@@ -2495,11 +2659,12 @@ package body Instrument.C is
    ----------------------------
 
    procedure Instrument_Source_File
-     (CU_Name   : Compilation_Unit_Name;
-      Unit_Info : Instrumented_Unit_Info;
-      Prj_Info  : in out Project_Info;
-      IC        : in out Inst_Context;
-      UIC       : out C_Unit_Inst_Context)
+     (CU_Name      : Compilation_Unit_Name;
+      Unit_Info    : Instrumented_Unit_Info;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj_Info     : in out Project_Info;
+      IC           : in out Inst_Context;
+      UIC          : out C_Unit_Inst_Context)
    is
       Orig_Filename : constant String  := +Unit_Info.Filename;
       PP_Filename   : Unbounded_String;
@@ -2507,7 +2672,7 @@ package body Instrument.C is
 
       Buffer_Filename : constant String :=
         To_Symbol_Name (Sys_Buffers) & "_b_" & Instrumented_Unit_Slug (CU_Name)
-        & ".c";
+        & Source_Suffix (Instrumenter, GPR.Unit_Body, Prj_Info.Project);
       --  Name of the generated source file holding the coverage buffers
 
       Rewriter : C_Source_Rewriter;
@@ -2541,7 +2706,12 @@ package body Instrument.C is
          Func_Args : String := "") is
       begin
          Put_Extern_Decl
-           (UIC.Rewriter, Insert_Extern_Location, C_Type, Name, Func_Args);
+           (UIC.Rewriter,
+            Insert_Extern_Location,
+            Instrumenter,
+            C_Type,
+            Name,
+            Func_Args);
       end Put_Extern_Decl;
 
    --  Start of processing for Instrument_Source_File
@@ -2563,8 +2733,10 @@ package body Instrument.C is
       --  Import analysis options for the file to preprocess, then run the
       --  preprocessor.
 
-      Import_Options (UIC.Options, Prj_Info, Orig_Filename);
-      Preprocess_Source (Orig_Filename, PP_Filename, Prj_Info, UIC.Options);
+      Import_Options
+        (UIC.Options, Instrumenter.Language, Prj_Info, Orig_Filename);
+      Preprocess_Source
+        (Orig_Filename, Instrumenter, PP_Filename, Prj_Info, UIC.Options);
 
       --  Start by recording preprocessing information
 
@@ -2637,6 +2809,7 @@ package body Instrument.C is
       Start_Rewriting (Self         => Rewriter,
                        Info         => Prj_Info,
                        Filename     => +PP_Filename,
+                       Instrumenter => Instrumenter,
                        Preprocessed => True);
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
@@ -2834,10 +3007,11 @@ package body Instrument.C is
 
       if IC.Dump_Config.Trigger /= Manual and then Unit_Info.Is_Main then
          Auto_Dump_Buffers_In_Main
-           (IC   => IC,
-            Info => Prj_Info,
-            Main => UIC.Instrumented_Unit,
-            Rew  => Rewriter);
+           (IC           => IC,
+            Info         => Prj_Info,
+            Main         => UIC.Instrumented_Unit,
+            Rew          => Rewriter,
+            Instrumenter => Instrumenter);
       end if;
       Rewriter.Apply;
    end Instrument_Source_File;
@@ -2847,7 +3021,9 @@ package body Instrument.C is
    ----------------------
 
    procedure Emit_Buffer_Unit
-     (Info : in out Project_Info; UIC : C_Unit_Inst_Context'Class)
+     (Info         : in out Project_Info;
+      UIC          : C_Unit_Inst_Context'Class;
+      Instrumenter : C_Family_Instrumenter_Type'Class)
    is
       CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
       File    : Text_Files.File_Type;
@@ -2874,9 +3050,7 @@ package body Instrument.C is
       declare
          Fingerprint : Unbounded_String;
 
-         Unit_Name : constant String :=
-           To_Filename (Info.Project, UIC.Instrumented_Unit, C_Language);
-
+         Unit_Name    : constant String := +UIC.Instrumented_Unit.Filename;
          Project_Name : constant String := +UIC.Instrumented_Unit.Project_Name;
 
          --  Do not use 'Image so that we use the original casing for the
@@ -2911,42 +3085,49 @@ package body Instrument.C is
          File.New_Line;
          Put_Format_Def
            (File,
+            Instrumenter,
             "unsigned char",
             Statement_Buffer_Repr,
             Array_Size =>
               Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Statement_Bit + 1)));
          Put_Format_Def
            (File,
+            Instrumenter,
             "unsigned char *const",
             Statement_Buffer,
             Init_Expr => "&" & Statement_Buffer_Repr & "[0]");
 
          Put_Format_Def
            (File,
+            Instrumenter,
             "unsigned char",
             Decision_Buffer_Repr,
             Array_Size =>
               Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Outcome_Bit + 1)));
          Put_Format_Def
            (File,
+            Instrumenter,
             "unsigned char *const",
             Decision_Buffer,
             Init_Expr => "&" & Decision_Buffer_Repr & "[0]");
 
          Put_Format_Def
            (File,
+            Instrumenter,
             "unsigned char",
             MCDC_Buffer_Repr,
             Array_Size =>
               Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Path_Bit + 1)));
          Put_Format_Def
            (File,
+            Instrumenter,
             "unsigned char *const",
             MCDC_Buffer,
             Init_Expr => "&" & MCDC_Buffer_Repr & "[0]");
 
          Put_Format_Def
            (File,
+            Instrumenter,
             "struct gnatcov_rts_unit_coverage_buffers",
             Unit_Buffers_Name (UIC.Instrumented_Unit),
             Init_Expr =>
@@ -2998,10 +3179,11 @@ package body Instrument.C is
    ---------------------------
 
    procedure Emit_Dump_Helper_Unit
-     (IC          : Inst_Context;
-      Info        : in out Project_Info;
-      Main        : Compilation_Unit_Name;
-      Helper_Unit : out US.Unbounded_String)
+     (IC           : Inst_Context;
+      Info         : in out Project_Info;
+      Main         : Compilation_Unit_Name;
+      Helper_Unit  : out US.Unbounded_String;
+      Instrumenter : C_Family_Instrumenter_Type'Class)
    is
       File : Text_Files.File_Type;
 
@@ -3017,8 +3199,12 @@ package body Instrument.C is
    begin
       --  Create the name of the helper unit
 
-      Helper_Unit := +(To_Symbol_Name (Sys_Buffers) & "_d_"
-                       & (+Main.Filename));
+      Helper_Unit :=
+        To_Symbol_Name (Sys_Buffers)
+        & "_d_"
+        & Instrumented_Unit_Slug (Main)
+        & US.To_Unbounded_String
+            (Source_Suffix (Instrumenter, GPR.Unit_Body, Info.Project));
 
       --  Compute the qualified names we need for instrumentation
 
@@ -3044,11 +3230,14 @@ package body Instrument.C is
          end case;
          File.Put_Line ("#include <stdlib.h>");
          File.Put_Line
-           ("#include """ & Buffers_List_Filename_Header (IC) & """");
+           ("#include """ & Buffers_List_Filename (IC)
+            & Source_Suffix (Instrumenter, GPR.Unit_Spec, Info.Project)
+            & """");
 
          --  Emit the procedure to write the trace file
 
          File.New_Line;
+         File.Put (Instrumenter.Extern_Prefix);
          File.Put_Line ("void " & Dump_Procedure & " (void) {");
 
          File.Put_Line (Indent1 & Output_Proc & " (");
@@ -3056,6 +3245,7 @@ package body Instrument.C is
          case IC.Dump_Config.Channel is
          when Binary_File =>
             declare
+               use GNATCOLL.VFS;
 
                Env_Var : constant String :=
                  (if US.Length (IC.Dump_Config.Filename_Env_Var) = 0
@@ -3099,6 +3289,7 @@ package body Instrument.C is
          File.Put_Line (Indent1 & ");");
 
          File.Put_Line ("}");
+
          File.Close;
       end;
    end Emit_Dump_Helper_Unit;
@@ -3108,10 +3299,11 @@ package body Instrument.C is
    -------------------------------
 
    procedure Auto_Dump_Buffers_In_Main
-     (IC   : Inst_Context;
-      Info : in out Project_Info;
-      Main : Compilation_Unit_Name;
-      Rew  : in out C_Source_Rewriter)
+     (IC           : Inst_Context;
+      Info         : in out Project_Info;
+      Main         : Compilation_Unit_Name;
+      Rew          : in out C_Source_Rewriter;
+      Instrumenter : C_Family_Instrumenter_Type'Class)
    is
       Instr_Units : constant CU_Name_Vectors.Vector :=
         Instr_Units_For_Closure (IC, Main);
@@ -3128,10 +3320,12 @@ package body Instrument.C is
          return;
       end if;
 
-      Emit_Dump_Helper_Unit (IC, Info, Main, Helper_Filename);
+      Emit_Dump_Helper_Unit (IC, Info, Main, Helper_Filename, Instrumenter);
+
       Put_Extern_Decl
         (Rew.Rewriter,
          Insert_Extern_Location,
+         Instrumenter,
          "void",
          Dump_Procedure_Symbol (Main),
          Func_Args => "void");
@@ -3235,6 +3429,7 @@ package body Instrument.C is
             Put_Extern_Decl
               (Rew.Rewriter,
                Insert_Extern_Location,
+               Instrumenter,
                "int",
                "atexit",
                Func_Args => "void (*function) (void)");
@@ -3246,11 +3441,10 @@ package body Instrument.C is
          when others =>
             null;
       end case;
-
    end Auto_Dump_Buffers_In_Main;
 
    overriding procedure Auto_Dump_Buffers_In_Main
-     (Self     : C_Instrumenter_Type;
+     (Self     : C_Family_Instrumenter_Type;
       IC       : in out Inst_Context;
       Main     : Compilation_Unit_Name;
       Filename : String;
@@ -3258,8 +3452,8 @@ package body Instrument.C is
    is
       Rew : C_Source_Rewriter;
    begin
-      Rew.Start_Rewriting (Info, Filename);
-      Auto_Dump_Buffers_In_Main (IC, Info, Main, Rew);
+      Rew.Start_Rewriting (Info, Filename, Self);
+      Auto_Dump_Buffers_In_Main (IC, Info, Main, Rew, Self);
       Rew.Apply;
    end Auto_Dump_Buffers_In_Main;
 
@@ -3277,18 +3471,35 @@ package body Instrument.C is
    ----------------
 
    function Format_Def
-     (C_Type     : String;
-      Name       : String;
-      Array_Size : String := "";
-      Func_Args  : String := "";
-      Init_Expr  : String := "";
-      External   : Boolean := False) return String
+     (Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Array_Size   : String := "";
+      Func_Args    : String := "";
+      Init_Expr    : String := "";
+      External     : Boolean := False) return String
    is
       Result : Unbounded_String;
    begin
       if External then
-         Append (Result, "extern ");
+         Append (Result, Instrumenter.Extern_Prefix);
+
+      --  In C++, if we are requested to return a definition (Func_Args = ""),
+      --  we must first emit a declaration in order to correctly set the
+      --  C linkage.
+
+      elsif Instrumenter.Language = CPP_Language and then Func_Args = "" then
+         Append
+           (Result,
+              Format_Def
+                (Instrumenter,
+                 C_Type,
+                 Name,
+                 Array_Size => Array_Size,
+                 External   => True));
+         Append (Result, ASCII.LF);
       end if;
+
       Append (Result, C_Type);
       Append (Result, ' ');
       Append (Result, Name);
@@ -3315,14 +3526,16 @@ package body Instrument.C is
    --------------------
 
    procedure Put_Format_Def
-     (File       : in out Text_Files.File_Type;
-      C_Type     : String;
-      Name       : String;
-      Array_Size : String := "";
-      Init_Expr  : String := "") is
+     (File         : in out Text_Files.File_Type;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Array_Size   : String := "";
+      Init_Expr    : String := "") is
    begin
       File.Put_Line
-        (Format_Def (C_Type, Name, Array_Size, Init_Expr => Init_Expr));
+        (Format_Def
+           (Instrumenter, C_Type, Name, Array_Size, Init_Expr => Init_Expr));
    end Put_Format_Def;
 
    ------------------------
@@ -3330,12 +3543,18 @@ package body Instrument.C is
    ------------------------
 
    function Format_Extern_Decl
-     (C_Type    : String;
-      Name      : String;
-      Func_Args : String := "") return String is
+     (Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Func_Args    : String := "") return String is
    begin
       return
-        Format_Def (C_Type, Name, Func_Args => Func_Args, External => True);
+        Format_Def
+          (Instrumenter,
+           C_Type,
+           Name,
+           Func_Args => Func_Args,
+           External  => True);
    end Format_Extern_Decl;
 
    ---------------------
@@ -3343,16 +3562,18 @@ package body Instrument.C is
    ---------------------
 
    procedure Put_Extern_Decl
-     (Rewriter  : Rewriter_T;
-      Location  : Source_Location_T;
-      C_Type    : String;
-      Name      : String;
-      Func_Args : String := "") is
+     (Rewriter     : Rewriter_T;
+      Location     : Source_Location_T;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Func_Args    : String := "") is
    begin
-      CX_Rewriter_Insert_Text_Before
-        (Rew    => Rewriter,
-         Loc    => Location,
-         Insert => Format_Extern_Decl (C_Type, Name, Func_Args) & ASCII.LF);
+      CX_Rewriter_Insert_Text_After
+        (Rewriter,
+         Location,
+         Format_Extern_Decl (Instrumenter, C_Type, Name, Func_Args)
+         & ASCII.LF);
    end Put_Extern_Decl;
 
    ---------------------
@@ -3360,12 +3581,14 @@ package body Instrument.C is
    ---------------------
 
    procedure Put_Extern_Decl
-     (File      : in out Text_Files.File_Type;
-      C_Type    : String;
-      Name      : String;
-      Func_Args : String := "") is
+     (File         : in out Text_Files.File_Type;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      C_Type       : String;
+      Name         : String;
+      Func_Args    : String := "") is
    begin
-      File.Put_Line (Format_Extern_Decl (C_Type, Name, Func_Args));
+      File.Put_Line
+        (Format_Extern_Decl (Instrumenter, C_Type, Name, Func_Args));
    end Put_Extern_Decl;
 
    --------------------------------
@@ -3416,14 +3639,17 @@ package body Instrument.C is
    ----------------------------
 
    overriding procedure Emit_Buffers_List_Unit
-     (Self              : C_Instrumenter_Type;
+     (Self              : C_Family_Instrumenter_Type;
       IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info)
    is
-      CU_Name_Body   : constant Compilation_Unit_Name :=
-        CU_Name_For_File (+Buffers_List_Filename_Body (IC), IC.Project_Name);
-      CU_Name_Header : constant Compilation_Unit_Name :=
-        CU_Name_For_File (+Buffers_List_Filename_Header (IC), IC.Project_Name);
+      Base_Filename  : constant String := Buffers_List_Filename (IC);
+      CU_Name_Body   : constant String :=
+        Base_Filename
+        & Source_Suffix (Self, GPR.Unit_Body, Root_Project_Info.Project);
+      CU_Name_Header : constant String :=
+        Base_Filename
+        & Source_Suffix (Self, GPR.Unit_Spec, Root_Project_Info.Project);
 
       File_Body   : Text_Files.File_Type;
       File_Header : Text_Files.File_Type;
@@ -3446,22 +3672,18 @@ package body Instrument.C is
       begin
          --  Emit the body to contain the list of buffers
 
-         Create_File
-           (Root_Project_Info,
-            File_Body,
-            To_Filename
-              (Root_Project_Info.Project,
-               CU_Name_Body,
-               C_Language));
+         Create_File (Root_Project_Info, File_Body, CU_Name_Body);
 
          File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
          for Instr_Unit of Instr_Units loop
             Put_Extern_Decl
               (File_Body,
+               Self,
                "gnatcov_rts_unit_coverage_buffers",
                Unit_Buffers_Name (Instr_Unit));
          end loop;
+         File_Body.Put (Self.Extern_Prefix);
          File_Body.Put_Line ("gnatcov_rts_unit_coverage_buffers_array "
                              & Unit_Buffers_Array_Name (IC) & " = {");
          File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
@@ -3482,16 +3704,11 @@ package body Instrument.C is
 
       --  Emit the extern declaration of the buffers array in the header file
 
-      Create_File
-        (Root_Project_Info,
-         File_Header,
-         To_Filename
-           (Root_Project_Info.Project,
-            CU_Name_Header,
-            C_Language));
+      Create_File (Root_Project_Info, File_Header, CU_Name_Header);
 
       Put_Extern_Decl
         (File_Header,
+         Self,
          "gnatcov_rts_unit_coverage_buffers_array",
          Unit_Buffers_Array_Name (IC));
    end Emit_Buffers_List_Unit;
@@ -3501,7 +3718,7 @@ package body Instrument.C is
    ---------------------
 
    overriding procedure Instrument_Unit
-     (Self      : C_Instrumenter_Type;
+     (Self      : C_Family_Instrumenter_Type;
       CU_Name   : Compilation_Unit_Name;
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info)
@@ -3510,18 +3727,19 @@ package body Instrument.C is
       UIC      : C_Unit_Inst_Context;
    begin
       Instrument_Source_File
-        (CU_Name   => CU_Name,
-         Unit_Info => Unit_Info,
-         Prj_Info  => Prj_Info,
-         IC        => IC,
-         UIC       => UIC);
+        (CU_Name      => CU_Name,
+         Unit_Info    => Unit_Info,
+         Instrumenter => Self,
+         Prj_Info     => Prj_Info,
+         IC           => IC,
+         UIC          => UIC);
 
       --  Generate a buffer compilation unit defining coverage buffers that
       --  will store execution witnesses. This CU is a C file rather than an
       --  Ada file exporting the defined symboled to C. Indeed, we want it to
       --  be compatible with a C-only compiler.
 
-      Emit_Buffer_Unit (Prj_Info, UIC);
+      Emit_Buffer_Unit (Prj_Info, UIC, Self);
 
       --  Track which CU_Id maps to which instrumented unit
 
@@ -3533,7 +3751,7 @@ package body Instrument.C is
    ----------------------
 
    overriding function Skip_Source_File
-     (Self        : C_Instrumenter_Type;
+     (Self        : C_Family_Instrumenter_Type;
       Source_File : GNATCOLL.Projects.File_Info) return Boolean
    is
       use GNATCOLL.Projects;
@@ -3574,13 +3792,15 @@ package body Instrument.C is
 
    procedure Import_From_Project
      (Self     : out Analysis_Options;
+      Language : C_Family_Language;
       Info     : Project_Info;
       Filename : String)
    is
       Switches : GNAT.Strings.String_List_Access;
    begin
       Self.PP_Macros :=
-        Builtin_Macros (Compiler_Driver (Info.Project), +Info.Output_Dir).all;
+        Builtin_Macros
+          (Compiler_Driver (Info.Project, Language), +Info.Output_Dir).all;
 
       --  Pass the source directories of the project file as -I options
 
@@ -3602,7 +3822,7 @@ package body Instrument.C is
          Switches :=
            Info.Project.Attribute_Value
              (Attribute => GPR.Compiler_Default_Switches_Attribute,
-              Index     => "c");
+              Index     => Image (Language));
       end if;
 
       --  If we manage to find appropriate switches, convert them to a string
@@ -3774,10 +3994,18 @@ package body Instrument.C is
    --------------------
 
    procedure Import_Options
-     (Self : out Analysis_Options; Info : Project_Info; Filename : String) is
+     (Self     : out Analysis_Options;
+      Language : C_Family_Language;
+      Info     : Project_Info;
+      Filename : String)
+   is
+      Opt : constant Command_Line.String_List_Options :=
+        (case Language is
+         when C_Language   => Command_Line.Opt_C_Opts,
+         when CPP_Language => Command_Line.Opt_CPP_Opts);
    begin
-      Import_From_Project (Self, Info, Filename);
-      for Args of Switches.Args.String_List_Args (Command_Line.Opt_C_Opts) loop
+      Import_From_Project (Self, Language, Info, Filename);
+      for Args of Switches.Args.String_List_Args (Opt) loop
          Import_From_Args (Self, Split_Args (Args));
       end loop;
    end Import_Options;

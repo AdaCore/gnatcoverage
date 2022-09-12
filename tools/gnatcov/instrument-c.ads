@@ -36,36 +36,63 @@ with Instrument.Common;     use Instrument.Common;
 with SC_Obligations;        use SC_Obligations;
 with Slocs;                 use Slocs;
 with Strings;               use Strings;
+with Switches;              use Switches;
 
-private package Instrument.C is
+package Instrument.C is
 
-   type C_Instrumenter_Type is new Language_Instrumenter with
-     null record;
-   --  Instrumentation primitives for C
+   type C_Family_Instrumenter_Type is
+     abstract new Language_Instrumenter with null record;
+   --  Common instrumentation primitives for C/C++
 
    overriding function Skip_Source_File
-     (Self        : C_Instrumenter_Type;
+     (Self        : C_Family_Instrumenter_Type;
       Source_File : GNATCOLL.Projects.File_Info) return Boolean;
 
    overriding procedure Instrument_Unit
-     (Self      : C_Instrumenter_Type;
+     (Self      : C_Family_Instrumenter_Type;
       CU_Name   : Compilation_Unit_Name;
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info);
 
    overriding procedure Auto_Dump_Buffers_In_Main
-     (Self     : C_Instrumenter_Type;
+     (Self     : C_Family_Instrumenter_Type;
       IC       : in out Inst_Context;
       Main     : Compilation_Unit_Name;
       Filename : String;
       Info     : in out Project_Info);
 
    overriding procedure Emit_Buffers_List_Unit
-     (Self              : C_Instrumenter_Type;
+     (Self              : C_Family_Instrumenter_Type;
       IC                : in out Inst_Context;
       Root_Project_Info : in out Project_Info);
 
-   Instrumenter : aliased constant C_Instrumenter_Type := (null record);
+   function Extern_Prefix
+     (Self : C_Family_Instrumenter_Type) return String
+   is ("extern ");
+   --  Return the prefix for declarations and definitions so have C linkage
+
+   type C_Instrumenter_Type is
+     new C_Family_Instrumenter_Type with null record;
+   --  Instrumentation primitives for C
+
+   overriding function Language
+     (Self : C_Instrumenter_Type) return Src_Supported_Language
+   is (C_Language);
+
+   type CPP_Instrumenter_Type is
+     new C_Family_Instrumenter_Type with null record;
+   --  Instrumentation primitives for C++
+
+   overriding function Language
+     (Self : CPP_Instrumenter_Type) return Src_Supported_Language
+   is (CPP_Language);
+
+   overriding function Extern_Prefix
+     (Self : CPP_Instrumenter_Type) return String
+   is ("extern ""C"" ");
+
+   C_Instrumenter   : aliased constant C_Instrumenter_Type := (null record);
+   CPP_Instrumenter : aliased constant CPP_Instrumenter_Type := (null record);
 
    type Instr_Scheme_Type is (Instr_Stmt, Instr_Expr);
    --  Depending on the statement construct, we can instrument it either with
@@ -226,6 +253,7 @@ private package Instrument.C is
 
    procedure Import_From_Project
      (Self     : out Analysis_Options;
+      Language : C_Family_Language;
       Info     : Project_Info;
       Filename : String);
    --  Initialize Self from compiler switches corresponding to the Filename
@@ -240,9 +268,12 @@ private package Instrument.C is
    --  Split a comma-separated list of arguments
 
    procedure Import_Options
-     (Self : out Analysis_Options; Info : Project_Info; Filename : String);
+     (Self     : out Analysis_Options;
+      Language : C_Family_Language;
+      Info     : Project_Info;
+      Filename : String);
    --  Shortcut to call Import_From_Project, and Import_From_Agrs on the
-   --  --c-opts option.
+   --  --c-opts/--c++-opts option.
 
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
@@ -277,20 +308,6 @@ private package Instrument.C is
 
    type C_Source_Rewriter is tagged limited private;
    --  Helper object to instrument a source file
-
-   procedure Apply (Self : in out C_Source_Rewriter);
-
-   procedure Start_Rewriting
-     (Self         : out C_Source_Rewriter;
-      Info         : in out Project_Info;
-      Filename     : String;
-      Preprocessed : Boolean := False);
-   --  Start a rewriting session for the given file identified by its full
-   --  name.
-   --
-   --  If Preprocessed is set to True, consider that the file was preprocessed
-   --  beforehand. Otherwise, generate a preprocessed version of it in
-   --  Info.Output_Dir and start a rewriting session on the latter.
 
 private
 
@@ -342,6 +359,11 @@ private
       TU       : Translation_Unit_T;
       Rewriter : Rewriter_T;
       --  Structures that should be freed after rewriting
+
+      Extern_Insertion_Location : Source_Location_T;
+      --  Where we can insert extern declarations in the file being rewritten.
+      --  Such declarations must go before being used, so this should
+      --  correspond to the first rewritable location.
 
       Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
    end record;

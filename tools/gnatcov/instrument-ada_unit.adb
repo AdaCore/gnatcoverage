@@ -46,7 +46,6 @@ with SCOs;
 with Slocs;
 with Snames;              use Snames;
 with Strings;             use Strings;
-with Switches;
 with Table;
 with Text_Files;          use Text_Files;
 

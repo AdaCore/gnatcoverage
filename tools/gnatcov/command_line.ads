@@ -143,7 +143,8 @@ package Command_Line is
       Opt_Shared_Object,
       Opt_Restricted_To_Languages,
       Opt_Annotation_Format,
-      Opt_C_Opts);
+      Opt_C_Opts,
+      Opt_CPP_Opts);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -1088,7 +1089,16 @@ package Command_Line is
              "List of additional compiler switches to analayze C source"
              & " files.",
            Commands  => (Cmd_Instrument => True, others => False),
-           Internal  => False)
+           Internal  => False),
+
+        Opt_CPP_Opts => Create
+          (Long_Name    => "--c++-opts",
+           Pattern      => "[COMMA-SEPARATED-OPTIONS]",
+           Help         =>
+             "List of additional compiler switches to analayze C++ source"
+             & " files.",
+           Commands     => (Cmd_Instrument => True, others => False),
+           Internal     => False)
      );
 
    procedure Bool_Callback

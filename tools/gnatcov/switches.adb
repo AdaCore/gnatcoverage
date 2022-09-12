@@ -199,6 +199,8 @@ package body Switches is
          return Ada_Language;
       elsif Lower_Name = "c" then
          return C_Language;
+      elsif Lower_Name = "c++" then
+         return CPP_Language;
       else
          Fatal_Error ("Unsupported language: " & Name);
       end if;
@@ -212,7 +214,8 @@ package body Switches is
    begin
       return (case Language is
               when Ada_Language => "Ada",
-              when C_Language   => "C");
+              when C_Language   => "C",
+              when CPP_Language => "C++");
    end Image;
 
    -----------------------
