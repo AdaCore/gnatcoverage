@@ -6587,6 +6587,7 @@ package body Instrument.Ada_Unit is
         (Filename,
          Kind                => Files_Table.Source_File,
          Indexed_Simple_Name => True);
+      UIC.Unit_Bits.SFI := UIC.SFI;
 
       --  Then run SCOs generation. This inserts calls to witness
       --  procedures/functions in the same pass.

@@ -236,6 +236,9 @@ private
          Source_Conditions : Source_Condition_Vectors.Vector;
          --  Decisions and (for MC/DC) conditions to be instrumented
 
+         Unit_Bits : Instrument.Common.Allocated_Bits;
+         --  Allocated bits in coverage buffers for low-level SCOs
+
          Entities : Instrumentation_Entities;
          --  Bank of nodes to use during instrumentation
 

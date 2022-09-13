@@ -83,6 +83,10 @@ package body Instrument.C is
    --  is always a SCO associated with a pragma exempt, which would result in
    --  all the annotations being filtered out.
 
+   function Last_File return Valid_Source_File_Index
+   is (SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).File_Index);
+   --  Return the source file for the last low-level SCO that was created
+
    ------------------------------
    --  Preprocessing utilities --
    ------------------------------
@@ -226,26 +230,43 @@ package body Instrument.C is
    -- Generation of witness fragments --
    -------------------------------------
 
+   function Buffers_Subscript (Buffers_Index : Positive) return String
+   is ("[" & Img (Buffers_Index - 1) & "]");
+   --  Return a C array subscript to refer to the coverage buffers
+   --  corresponding to Buffers_Index.
+   --
+   --  Note that while Buffers_Index is 1-based, C arrays are 0-based, hence
+   --  the index "off-by-1" conversion.
+
    function Make_Expr_Witness
-     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String;
+     (UIC          : C_Unit_Inst_Context;
+      Buffer_Index : Positive;
+      Bit          : Bit_Id) return String;
    --  Create a procedure call expression on to witness execution of the low
-   --  level SCO with the given bit id.
+   --  level SCO with the given Bit id in the statement buffer at Buffer_Index.
 
    function Make_Statement_Witness
-     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String;
+     (UIC          : C_Unit_Inst_Context;
+      Buffer_Index : Positive;
+      Bit          : Bit_Id) return String;
    --  Create a procedure call statement to witness execution of the low level
-   --  SCO with the given bit id.
+   --  SCO with the given Bit id in the statement buffer at Buffer_Index.
 
    procedure Insert_Statement_Witness
-     (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement);
-   --  Insert witness function call for the identified statement
+     (UIC           : in out C_Unit_Inst_Context;
+      Buffers_Index : Positive;
+      SS            : C_Source_Statement);
+   --  Insert witness function call for the identified statement. Buffers_Index
+   --  designates the relevant set of coverage buffers.
 
    procedure Insert_Decision_Witness
-     (UIC        : in out C_Unit_Inst_Context;
-      SD         : C_Source_Decision;
-      Path_Count : Natural);
+     (UIC           : in out C_Unit_Inst_Context;
+      Buffers_Index : Positive;
+      SD            : C_Source_Decision;
+      Path_Count    : Natural);
    --  For use when decision coverage or MC/DC is requested. Insert witness
-   --  function call for the identified decision.
+   --  function call for the identified decision. Buffers_Index designates the
+   --  relevant set of coverage buffers.
 
    procedure Insert_Condition_Witness
      (UIC    : in out C_Unit_Inst_Context;
@@ -359,6 +380,20 @@ package body Instrument.C is
    function Format_Str_Constant (Value : String) return String;
    --  Return a gnatcov_rts_string literal corresponding to Value
 
+   function Format_Array_Init_Expr
+     (Exprs     : String_Vectors.Vector;
+      Multiline : Boolean := False) return String;
+   --  Helper to format the initialization expression for an array.
+   --
+   --  Exprs is the list of expressions for all items in the array.
+   --
+   --  If Multiline is False, the returned expression fits on a single line.
+   --  Otherwise, put one array item per line.
+
+   function Format_Fingerprint
+     (Fingerprint : SC_Obligations.SCOs_Hash) return String;
+   --  Helper to format a uint8_t[] literal for a SCOs fingerprint
+
    function Format_Def
      (Instrumenter : C_Family_Instrumenter_Type'Class;
       C_Type       : String;
@@ -404,6 +439,7 @@ package body Instrument.C is
      (Instrumenter : C_Family_Instrumenter_Type'Class;
       C_Type       : String;
       Name         : String;
+      Array_Size   : String := "";
       Func_Args    : String := "") return String;
    --  Helper for format an "extern" declaration. Arguments are the same as
    --  Format_Def.
@@ -414,6 +450,7 @@ package body Instrument.C is
       Instrumenter : C_Family_Instrumenter_Type'Class;
       C_Type       : String;
       Name         : String;
+      Array_Size   : String := "";
       Func_Args    : String := "");
    --  Like Format_Extern_Decl, but write the definition at Location in the
    --  unit rewritten by Rewriter.
@@ -828,6 +865,24 @@ package body Instrument.C is
       Curlify (N, Rew);
    end Curlify;
 
+   --------------------------------
+   -- Find_Instrumented_Entities --
+   --------------------------------
+
+   function Find_Instrumented_Entities
+     (UIC : in out C_Unit_Inst_Context'Class;
+      SFI : Valid_Source_File_Index)
+      return C_Instrumented_Entities_Maps.Reference_Type
+   is
+      use C_Instrumented_Entities_Maps;
+      Cur   : Cursor;
+      Dummy : Boolean;
+   begin
+      UIC.Instrumented_Entities.Insert
+        (SFI, (others => <>), Cur, Dummy);
+      return UIC.Instrumented_Entities.Reference (Cur);
+   end Find_Instrumented_Entities;
+
    -----------------------
    -- Insert_MCDC_State --
    -----------------------
@@ -852,7 +907,7 @@ package body Instrument.C is
       Insertion_N  : Cursor_T;
       Instr_Scheme : Instr_Scheme_Type) is
    begin
-      UIC.Source_Statements.Append
+      UIC.Find_Instrumented_Entities (Last_File).Statements.Append
         (C_Source_Statement'
            (LL_SCO       => SCOs.SCO_Table.Last,
             Instr_Scheme => Instr_Scheme,
@@ -870,7 +925,7 @@ package body Instrument.C is
       Decision : Cursor_T;
       State    : US.Unbounded_String) is
    begin
-      UIC.Source_Decisions.Append
+      UIC.Find_Instrumented_Entities (Last_File).Decisions.Append
         (C_Source_Decision'
            (LL_SCO   => LL_SCO,
             Decision => Decision,
@@ -889,7 +944,7 @@ package body Instrument.C is
       State     : US.Unbounded_String;
       First     : Boolean) is
    begin
-      UIC.Source_Conditions.Append
+      UIC.Find_Instrumented_Entities (Last_File).Conditions.Append
         (C_Source_Condition'
            (LL_SCO    => SCOs.SCO_Table.Last,
             Condition => Condition,
@@ -902,13 +957,14 @@ package body Instrument.C is
    -----------------------
 
    function Make_Expr_Witness
-     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String
-   is
-      Bit_Img : constant String  := Img (Bit);
+     (UIC          : C_Unit_Inst_Context;
+      Buffer_Index : Positive;
+      Bit          : Bit_Id) return String is
    begin
-      return "gnatcov_rts_witness ("
-        & Statement_Buffer_Symbol (UIC.Instrumented_Unit) & "," & Bit_Img
-        & ")";
+      return
+        "gnatcov_rts_witness ("
+        & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
+        & Buffers_Subscript (Buffer_Index) & ", " & Img (Bit) & ")";
    end Make_Expr_Witness;
 
    ----------------------------
@@ -916,9 +972,11 @@ package body Instrument.C is
    ----------------------------
 
    function Make_Statement_Witness
-     (UIC : C_Unit_Inst_Context; Bit : Bit_Id) return String is
+     (UIC          : C_Unit_Inst_Context;
+      Buffer_Index : Positive;
+      Bit          : Bit_Id) return String is
    begin
-      return Make_Expr_Witness (UIC, Bit) & ";";
+      return Make_Expr_Witness (UIC, Buffer_Index, Bit) & ";";
    end Make_Statement_Witness;
 
    ------------------------------
@@ -926,12 +984,16 @@ package body Instrument.C is
    ------------------------------
 
    procedure Insert_Statement_Witness
-     (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement)
+     (UIC           : in out C_Unit_Inst_Context;
+      Buffers_Index : Positive;
+      SS            : C_Source_Statement)
    is
+      Unit_Bits : Allocated_Bits renames UIC.Allocated_Bits (Buffers_Index);
+
       --  Allocate a bit in the statement coverage buffer
 
       Bit : constant Bit_Id :=
-        Allocate_Statement_Bit (UIC.Unit_Bits, SS.LL_SCO);
+        Allocate_Statement_Bit (Unit_Bits, SS.LL_SCO);
    begin
       --  Insert the call to the witness function: as a foregoing statement if
       --  SS.Statement is a statement, or as a previous expression (using the
@@ -941,13 +1003,14 @@ package body Instrument.C is
          when Instr_Stmt =>
             Insert_Text_After_Start_Of
               (N    => SS.Statement,
-               Text => Make_Statement_Witness (UIC, Bit),
+               Text => Make_Statement_Witness (UIC, Buffers_Index, Bit),
                Rew  => UIC.Rewriter);
 
          when Instr_Expr =>
             Insert_Text_After_Start_Of
               (N    => SS.Statement,
-               Text => "(" & Make_Expr_Witness (UIC, Bit) & ", ",
+               Text =>
+                 "(" & Make_Expr_Witness (UIC, Buffers_Index, Bit) & ", ",
                Rew  => UIC.Rewriter);
             Insert_Text_Before_End_Of
               (N    => SS.Statement,
@@ -999,18 +1062,21 @@ package body Instrument.C is
    -----------------------------
 
    procedure Insert_Decision_Witness
-     (UIC        : in out C_Unit_Inst_Context;
-      SD         : C_Source_Decision;
-      Path_Count : Natural)
+     (UIC           : in out C_Unit_Inst_Context;
+      Buffers_Index : Positive;
+      SD            : C_Source_Decision;
+      Path_Count    : Natural)
    is
+      Unit_Bits : Allocated_Bits renames UIC.Allocated_Bits (Buffers_Index);
+
       N : Cursor_T renames SD.Decision;
 
       --  Allocate bits for this decision in coverage buffers
 
       Bits : constant Decision_Bit_Ids :=
         Allocate_Decision_Bits
-          (UIC.Unit_Bits,
-           (UIC.SFI, Start_Sloc (N)),
+          (Unit_Bits,
+           (Unit_Bits.SFI, Start_Sloc (N)),
            SD.LL_SCO,
            SD.State,
            Path_Count);
@@ -1027,7 +1093,8 @@ package body Instrument.C is
          Insert_Text_After_Start_Of
            (N    => N,
             Text => Function_Name & "("
-                    & Decision_Buffer_Symbol (UIC.Instrumented_Unit) & ", "
+                    & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
+                    & Buffers_Subscript (Buffers_Index) & ", "
                     & Img (Bits.Outcome_Bits (False)) & ", "
                     & Img (Bits.Outcome_Bits (True)),
             Rew  => UIC.Rewriter);
@@ -1035,7 +1102,8 @@ package body Instrument.C is
          if Is_MCDC then
             Insert_Text_After_Start_Of
               (N    => N,
-               Text => ", " & MCDC_Buffer_Symbol (UIC.Instrumented_Unit) & ", "
+               Text => ", " & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
+                       & Buffers_Subscript (Buffers_Index) & ", "
                        & Img (Bits.Path_Bits_Base) & ", "
                        & US.To_String (SD.State),
                Rew  => UIC.Rewriter);
@@ -2639,9 +2707,10 @@ package body Instrument.C is
       --  Where to insert extern declarations
 
       procedure Put_Extern_Decl
-        (C_Type    : String;
-         Name      : String;
-         Func_Args : String := "");
+        (C_Type     : String;
+         Name       : String;
+         Array_Size : String := "";
+         Func_Args  : String := "");
       --  Local shortcut to avoid passing UIC.TU/UIC.Rewriter explicitly
 
       ---------------------
@@ -2649,9 +2718,10 @@ package body Instrument.C is
       ---------------------
 
       procedure Put_Extern_Decl
-        (C_Type    : String;
-         Name      : String;
-         Func_Args : String := "") is
+        (C_Type     : String;
+         Name       : String;
+         Array_Size : String := "";
+         Func_Args  : String := "") is
       begin
          Put_Extern_Decl
            (UIC.Rewriter,
@@ -2659,8 +2729,13 @@ package body Instrument.C is
             Instrumenter,
             C_Type,
             Name,
+            Array_Size,
             Func_Args);
       end Put_Extern_Decl;
+
+      Unit_Index : SCOs.SCO_Unit_Index;
+      --  Index in low-level tables of the only SCO Unit we create for this
+      --  source file.
 
    --  Start of processing for Instrument_Source_File
 
@@ -2677,6 +2752,23 @@ package body Instrument.C is
       UIC.Buffer_Unit :=
         CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
       UIC.File := +Orig_Filename;
+
+      --  Create the only SCO Unit we will need to instrument this source file.
+      --  Also make sure we will create at least the set of coverage buffers
+      --  for the main source file.
+
+      declare
+         Dummy : C_Instrumented_Entities renames
+           UIC.Find_Instrumented_Entities (UIC.SFI);
+      begin
+         SCOs.SCO_Unit_Table.Append
+           ((File_Name  => new String'(Orig_Filename),
+             File_Index => UIC.SFI,
+             Dep_Num    => 1,
+             From       => SCOs.SCO_Table.First,
+             To         => SCOs.SCO_Table.Last));
+         Unit_Index := SCOs.SCO_Unit_Table.Last;
+      end;
 
       --  Import analysis options for the file to preprocess, then run the
       --  preprocessor.
@@ -2768,12 +2860,16 @@ package body Instrument.C is
          UIC => UIC,
          L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
 
-      SCOs.SCO_Unit_Table.Append
-        ((File_Name  => new String'(Orig_Filename),
-          File_Index => UIC.SFI,
-          Dep_Num    => 1,
-          From       => SCOs.SCO_Table.First,
-          To         => SCOs.SCO_Table.Last));
+      --  At this point, all coverage obligations where created in the
+      --  low-level tables, so we can adjust the upper bound in the SCO Unit
+      --  table.
+      --
+      --  TODO??? This works because for now we handle only one SCO unit, but
+      --  handling more units (for instance C headers) will require a redesign
+      --  for this part, for instance making Append_SCO automatically increment
+      --  that upper bound for the last SCO unit.
+
+      SCOs.SCO_Unit_Table.Table (Unit_Index).To := SCOs.SCO_Table.Last;
 
       --  Check whether there is a mismatch between Last_SCO and
       --  SCOs.SCO_Table.Last. If there is, warn the user and discard the
@@ -2790,19 +2886,27 @@ package body Instrument.C is
          UIC.LL_PP_Info_Map.Clear;
       end if;
 
+      --  Now that the set of coverage obligations and the set of source files
+      --  are known, allocate the required set of coverage buffers (one per
+      --  source file) and assign the corresponding buffers indexes.
+
+      for Cur in UIC.Instrumented_Entities.Iterate loop
+         UIC.Instrumented_Entities.Reference (Cur).Buffers_Index :=
+           Create_Unit_Bits
+             (UIC.Allocated_Bits, C_Instrumented_Entities_Maps.Key (Cur));
+      end loop;
+
       --  Convert low level SCOs from the instrumenter to high level SCOs.
       --  This creates BDDs for every decision.
 
       declare
-         SCO_Map       : aliased LL_HL_SCO_Map :=
+         SCO_Map : aliased LL_HL_SCO_Map :=
            (SCOs.SCO_Table.First .. SCOs.SCO_Table.Last => No_SCO_Id);
-         Bit_Maps      : CU_Bit_Maps;
-         Created_Units : Created_Unit_Maps.Map;
       begin
          Process_Low_Level_SCOs
            (Provider      => SC_Obligations.Instrumenter,
             Origin        => UIC.SFI,
-            Created_Units => Created_Units,
+            Created_Units => UIC.CUs,
             SCO_Map       => SCO_Map'Access,
             Count_Paths   => True);
 
@@ -2823,94 +2927,116 @@ package body Instrument.C is
          --  In the instrumentation case, the origin of SCO information is
          --  the original source file.
 
-         UIC.CU := Created_Units.Element (UIC.SFI);
+         UIC.CU := UIC.CUs.Element (UIC.SFI);
 
          --  Import annotations in our internal tables
 
          UIC.Import_Annotations;
          Filter_Annotations;
 
-         for SS of UIC.Source_Statements loop
-            Insert_Statement_Witness (UIC, SS);
-         end loop;
+         for Cur in UIC.Instrumented_Entities.Iterate loop
+            declare
+               SFI : constant Valid_Source_File_Index :=
+                 C_Instrumented_Entities_Maps.Key (Cur);
+               Ent : C_Instrumented_Entities renames
+                 UIC.Instrumented_Entities.Reference (Cur);
 
-         if Coverage.Enabled (Coverage_Options.Decision)
-            or else MCDC_Coverage_Enabled
-         then
-            for SD of UIC.Source_Decisions loop
-               Insert_Decision_Witness
-                 (UIC, SD, Path_Count (SCO_Map (SD.LL_SCO)));
-            end loop;
+               Unit_Bits : Allocated_Bits renames
+                 UIC.Allocated_Bits.Reference (Ent.Buffers_Index);
+               Bit_Maps  : CU_Bit_Maps;
+            begin
+               --  Allocate bits in covearge buffers and insert the
+               --  corresponding witness calls.
 
-            if MCDC_Coverage_Enabled then
+               for SS of Ent.Statements loop
+                  Insert_Statement_Witness (UIC, Ent.Buffers_Index, SS);
+               end loop;
 
-               --  As high-level SCO tables have been populated, we have built
-               --  BDDs for each decisions, and we can now set the correct
-               --  MC/DC path offset for each condition.
-               --
-               --  As we go through each condition, mark their enclosing
-               --  decision as not instrumented if their number of paths
-               --  exceeds our limit.
+               if Coverage.Enabled (Coverage_Options.Decision)
+                  or else MCDC_Coverage_Enabled
+               then
+                  for SD of Ent.Decisions loop
+                     Insert_Decision_Witness
+                       (UIC,
+                        Ent.Buffers_Index,
+                        SD,
+                        Path_Count (SCO_Map (SD.LL_SCO)));
+                  end loop;
 
-               for SC of UIC.Source_Conditions loop
+                  if MCDC_Coverage_Enabled then
+
+                     --  As high-level SCO tables have been populated, we have
+                     --  built BDDs for each decisions, and we can now set the
+                     --  correct MC/DC path offset for each condition.
+
+                     for SC of Ent.Conditions loop
+                        declare
+                           Condition : constant SCO_Id := SCO_Map (SC.LL_SCO);
+                           Decision  : constant SCO_Id :=
+                             Enclosing_Decision (Condition);
+                        begin
+                           if Path_Count (Decision) = 0 then
+                              Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
+                           else
+                              Insert_Condition_Witness
+                                (UIC, SC, Offset_For_True (Condition));
+                           end if;
+                        end;
+                     end loop;
+                  end if;
+               end if;
+
+               --  Create mappings from alloacted bits to the corresponding SCO
+               --  discharging information (Bit_Maps).
+
+               Bit_Maps :=
+                 (Statement_Bits => new Statement_Bit_Map'
+                    (Bit_Id'First .. Unit_Bits.Last_Statement_Bit =>
+                       No_SCO_Id),
+                  Decision_Bits  => new Decision_Bit_Map'
+                    (Bit_Id'First .. Unit_Bits.Last_Outcome_Bit =>
+                       (No_SCO_Id, False)),
+                  MCDC_Bits      => new MCDC_Bit_Map'
+                    (Bit_Id'First .. Unit_Bits.Last_Path_Bit =>
+                       (No_SCO_Id, 0)));
+
+               for S_Bit_Alloc of Unit_Bits.Statement_Bits loop
+                  Bit_Maps.Statement_Bits (S_Bit_Alloc.Executed) :=
+                    SCO_Map (S_Bit_Alloc.LL_S_SCO);
+               end loop;
+
+               for D_Bit_Alloc of Unit_Bits.Decision_Bits loop
                   declare
-                     Condition : constant SCO_Id := SCO_Map (SC.LL_SCO);
-                     Decision  : constant SCO_Id :=
-                       Enclosing_Decision (Condition);
+                     D_SCO : constant SCO_Id := SCO_Map (D_Bit_Alloc.LL_D_SCO);
                   begin
-                     if Path_Count (Decision) = 0 then
-                        Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
-                     else
-                        Insert_Condition_Witness
-                          (UIC, SC, Offset_For_True (Condition));
+                     for Outcome in Boolean loop
+                        Bit_Maps.Decision_Bits
+                          (D_Bit_Alloc.Outcome_Bits (Outcome)) :=
+                          (D_SCO, Outcome);
+                     end loop;
+
+                     if MCDC_Coverage_Enabled
+                       and then D_Bit_Alloc.Path_Bits_Base /= No_Bit_Id
+                     then
+                        declare
+                           Path_Count : constant Natural :=
+                             SC_Obligations.Path_Count (D_SCO);
+                        begin
+                           for J in 1 .. Any_Bit_Id (Path_Count) loop
+                              Bit_Maps.MCDC_Bits
+                                (D_Bit_Alloc.Path_Bits_Base + J - 1) :=
+                                (D_SCO, Natural (J - 1));
+                           end loop;
+                        end;
                      end if;
                   end;
                end loop;
-            end if;
-         end if;
 
-         Bit_Maps :=
-           (Statement_Bits => new Statement_Bit_Map'
-              (Bit_Id'First .. UIC.Unit_Bits.Last_Statement_Bit => No_SCO_Id),
-            Decision_Bits  => new Decision_Bit_Map'
-              (Bit_Id'First .. UIC.Unit_Bits.Last_Outcome_Bit =>
-                   (No_SCO_Id, False)),
-            MCDC_Bits      =>
-               new MCDC_Bit_Map'(Bit_Id'First .. UIC.Unit_Bits.Last_Path_Bit =>
-                                     (No_SCO_Id, 0)));
+               --  Associate these bit maps to the corresponding CU
 
-         for S_Bit_Alloc of UIC.Unit_Bits.Statement_Bits loop
-            Bit_Maps.Statement_Bits (S_Bit_Alloc.Executed) :=
-              SCO_Map (S_Bit_Alloc.LL_S_SCO);
-         end loop;
-
-         for D_Bit_Alloc of UIC.Unit_Bits.Decision_Bits loop
-            declare
-               D_SCO : constant SCO_Id := SCO_Map (D_Bit_Alloc.LL_D_SCO);
-            begin
-               for Outcome in Boolean loop
-                  Bit_Maps.Decision_Bits
-                    (D_Bit_Alloc.Outcome_Bits (Outcome)) := (D_SCO, Outcome);
-               end loop;
-
-               if MCDC_Coverage_Enabled
-                 and then D_Bit_Alloc.Path_Bits_Base /= No_Bit_Id
-               then
-                  declare
-                     Path_Count : constant Natural :=
-                       SC_Obligations.Path_Count (D_SCO);
-                  begin
-                     for J in 1 .. Any_Bit_Id (Path_Count) loop
-                        Bit_Maps.MCDC_Bits
-                          (D_Bit_Alloc.Path_Bits_Base + J - 1) :=
-                          (D_SCO, Natural (J - 1));
-                     end loop;
-                  end;
-               end if;
+               Set_Bit_Maps (UIC.CUs.Element (SFI), Bit_Maps);
             end;
          end loop;
-
-         Set_Bit_Maps (UIC.CU, Bit_Maps);
       end;
 
       --  We import the extern declaration of symbols instead of including the
@@ -2927,15 +3053,23 @@ package body Instrument.C is
       --  libraries, which we don't want. To be safe, we will declare
       --  GNATcov_RTS functions and symbols as extern.
 
-      Put_Extern_Decl
-        ("unsigned char *",
-         Statement_Buffer_Symbol (UIC.Instrumented_Unit));
-      Put_Extern_Decl
-        ("unsigned char *",
-         Decision_Buffer_Symbol (UIC.Instrumented_Unit));
-      Put_Extern_Decl
-        ("unsigned char *",
-         MCDC_Buffer_Symbol (UIC.Instrumented_Unit));
+      declare
+         Buffers_Count : constant String :=
+           Img (Natural (UIC.Allocated_Bits.Length));
+      begin
+         Put_Extern_Decl
+           ("unsigned char *",
+            Statement_Buffer_Symbol (UIC.Instrumented_Unit),
+            Array_Size => Buffers_Count);
+         Put_Extern_Decl
+           ("unsigned char *",
+            Decision_Buffer_Symbol (UIC.Instrumented_Unit),
+            Array_Size => Buffers_Count);
+         Put_Extern_Decl
+           ("unsigned char *",
+            MCDC_Buffer_Symbol (UIC.Instrumented_Unit),
+            Array_Size => Buffers_Count);
+      end;
       Put_Extern_Decl
         ("unsigned",
          "gnatcov_rts_witness",
@@ -2978,6 +3112,55 @@ package body Instrument.C is
       Rewriter.Apply;
    end Instrument_Source_File;
 
+   ----------------------------
+   -- Format_Array_Init_Expr --
+   ----------------------------
+
+   function Format_Array_Init_Expr
+     (Exprs     : String_Vectors.Vector;
+      Multiline : Boolean := False) return String
+   is
+      Result : Unbounded_String;
+   begin
+      Append (Result, "{");
+      if Multiline then
+         Append (Result, ASCII.LF);
+      end if;
+      for I in Exprs.First_Index .. Exprs.Last_Index loop
+         if I > Exprs.First_Index then
+            if Multiline then
+               Append (Result, "," & ASCII.LF);
+            else
+               Append (Result, ", ");
+            end if;
+         end if;
+         if Multiline then
+            Append (Result, "  ");
+         end if;
+         Append (Result, To_String (Exprs.Element (I)));
+      end loop;
+      if Multiline then
+         Append (Result, ASCII.LF);
+      end if;
+      Append (Result, "}");
+      return To_String (Result);
+   end Format_Array_Init_Expr;
+
+   ------------------------
+   -- Format_Fingerprint --
+   ------------------------
+
+   function Format_Fingerprint
+     (Fingerprint : SC_Obligations.SCOs_Hash) return String is
+      Items : String_Vectors.Vector;
+   begin
+      for Byte of Fingerprint loop
+         Items.Append (+Img (Integer (Byte)));
+      end loop;
+
+      return Format_Array_Init_Expr (Items);
+   end Format_Fingerprint;
+
    ----------------------
    -- Emit_Buffer_Unit --
    ----------------------
@@ -2990,163 +3173,251 @@ package body Instrument.C is
       CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
       File    : Text_Files.File_Type;
 
-      --  As a reminder, the representation of a static-array variable differs
-      --  from a pointer-to-array variable.
+      Buffers_Count : constant Natural := Natural (UIC.Allocated_Bits.Length);
+      --  Number of items in the buffer group to create
 
-      Statement_Buffer : constant String :=
+      --  Symbol names for the arrays of buffer bits (one for statements, one
+      --  for decisions, one for MC/DC paths). They are exported, so they need
+      --  to be unique program-wide.
+
+      Statement_Buffers : constant String :=
         Statement_Buffer_Symbol (UIC.Instrumented_Unit);
-      Decision_Buffer  : constant String :=
+      Decision_Buffers  : constant String :=
         Decision_Buffer_Symbol (UIC.Instrumented_Unit);
-      MCDC_Buffer      : constant String :=
+      MCDC_Buffers      : constant String :=
         MCDC_Buffer_Symbol (UIC.Instrumented_Unit);
 
-      Statement_Buffer_Repr : constant String :=
-        "__" & Statement_Buffer_Symbol (UIC.Instrumented_Unit);
-      Decision_Buffer_Repr  : constant String :=
-        "__" & Decision_Buffer_Symbol (UIC.Instrumented_Unit);
-      MCDC_Buffer_Repr      : constant String :=
-        "__" & MCDC_Buffer_Symbol (UIC.Instrumented_Unit);
-
-      Buffers_Record : constant String := "__xcov_buffers";
-      --  Name of the gnatcov_rts_coverage_buffers struct for this unit
-
-      Buffers_Group_Array : constant String := "__xcov_buffers_group";
+      Buffers_Array : constant String := "__xcov_buffers_group";
       --  Name of the array of gnatcov_rts_coverage_buffers struct for this
       --  unit.
+
+      Statement_Init : String_Vectors.Vector;
+      Decision_Init  : String_Vectors.Vector;
+      MCDC_Init      : String_Vectors.Vector;
+      --  Initialization expressions for the pointer arrays: each element in a
+      --  vector is an array item initializer.
+
+      Group_Init : String_Vectors.Vector;
+      --  Likewise, but for the coverage buffers group
+
+      Buffers_CUs      : CU_Id_Vectors.Vector :=
+        CU_Id_Vectors.To_Vector (No_CU_Id, UIC.Allocated_Bits.Length);
+      Buffers_CU_Names : CU_Name_Vectors.Vector :=
+        CU_Name_Vectors.To_Vector
+           ((Language_Kind => File_Based_Language, others => <>),
+            UIC.Allocated_Bits.Length);
+      --  For each set of buffers in UIC.Allocated_Bits, corresponding CU_Id
+      --  and CU_Name for the instrumented source file.
+
+      I : Positive := 1;
    begin
+      --  Compute Buffers_Filenames and Buffers_Projects
+
+      for Cur in UIC.Sources_Of_Interest.Iterate loop
+         declare
+            use Created_Unit_Maps;
+
+            SOI   : Source_Of_Interest renames
+              UIC.Sources_Of_Interest.Constant_Reference (Cur);
+            Cur   : Cursor;
+            Index : Natural;
+         begin
+            if SOI.Of_Interest then
+               Cur := UIC.CUs.Find (SOI.SFI);
+               if Has_Element (Cur) then
+                  Index :=
+                    UIC.Instrumented_Entities.Constant_Reference
+                      (SOI.SFI).Buffers_Index;
+                  Buffers_CUs (Index) := Element (Cur);
+                  Buffers_CU_Names (Index) := SOI.CU_Name;
+               end if;
+            end if;
+         end;
+      end loop;
+
+      --  Each source file in UIC.Instrumented_Entities is supposed to have a
+      --  corresponding "Of_Interest => True" entry in UIC.Sources_Of_Interest.
+
+      pragma Assert (for all CU of Buffers_CUs => CU /= No_CU_Id);
+
+      --  Start to emit the buffer unit
+
       Create_File (Info, File, +CU_Name.Filename);
 
-      declare
-         Fingerprint : Unbounded_String;
+      File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
+      File.New_Line;
 
-         Unit_Name    : constant String := +UIC.Instrumented_Unit.Filename;
-         Project_Name : constant String := +UIC.Instrumented_Unit.Project_Name;
+      --  Define coverage buffers for each source file:
+      --
+      --  * First, create individual buffers for each kind (statement, decision
+      --    and MC/DC). These are static, so no need to create symbol names
+      --    that are unique program-wide.
+      --
+      --  * Then, create pointers to these individual buffers. Put all pointers
+      --    to each kind of buffers in an exported array. Since both pointers
+      --    and the exported array are exported (used in buffer list units and
+      --    instrumented units), we need to create symbol names that are unique
+      --    program-wide.
 
-         --  Do not use 'Image so that we use the original casing for the
-         --  enumerators, and thus avoid compilation warnings/errors.
+      --  Create the static buffers as well as the
+      --  gnatcov_rts_coverage_buffers struct for each source file.
 
-         Statement_Last_Bit : constant String := Img
-           (UIC.Unit_Bits.Last_Statement_Bit);
-         Decision_Last_Bit  : constant String := Img
-           (UIC.Unit_Bits.Last_Outcome_Bit);
-         MCDC_Last_Bit      : constant String := Img
-           (UIC.Unit_Bits.Last_Path_Bit);
-      begin
-         --  Turn the fingerprint value into the corresponding C literal (array
-         --  of uint8_t).
-
+      for Cur in UIC.Instrumented_Entities.Iterate loop
          declare
-            First : Boolean := True;
+            SFI           : constant Valid_Source_File_Index :=
+              C_Instrumented_Entities_Maps.Key (Cur);
+            Buffers_Index : constant Positive :=
+              UIC.Instrumented_Entities.Constant_Reference (SFI).Buffers_Index;
+            Unit_Bits     : Allocated_Bits renames
+              UIC.Allocated_Bits.Constant_Reference (Buffers_Index);
+
+            CU      : constant CU_Id := Buffers_CUs (Buffers_Index);
+            CU_Name : Compilation_Unit_Name renames
+              Buffers_CU_Names.Constant_Reference (Buffers_Index);
+
+            --  Symbol name for each kind of static buffer
+
+            Suffix : constant String := "_" & Img (I);
+
+            Statement_Buffer_Repr : constant String := "__stmt_bits" & Suffix;
+            Decision_Buffer_Repr  : constant String := "__dc_bits" & Suffix;
+            MCDC_Buffer_Repr      : constant String := "__mcdc_bits" & Suffix;
+
+            Buffers_Struct : constant String := "__xcov_buffers" & Suffix;
+            --  Name of the gnatcov_rts_coverage_buffers struct for this
+            --  source file.
+
          begin
-            Append (Fingerprint, "{");
-            for Byte of SC_Obligations.Fingerprint (UIC.CU) loop
-               if First then
-                  First := False;
-               else
-                  Append (Fingerprint, ", ");
-               end if;
-               Append (Fingerprint, Strings.Img (Integer (Byte)));
-            end loop;
-            Append (Fingerprint, "}");
+            File.Put_Line ("/* Buffers for " & Get_Full_Name (SFI) & " */");
+
+            --  Static buffers
+
+            File.Put_Line
+              ("static unsigned char " & Statement_Buffer_Repr & "["
+               & Img (Any_Bit_Id'Max (1, Unit_Bits.Last_Statement_Bit + 1))
+               & "];");
+            Statement_Init.Append (+("&" & Statement_Buffer_Repr & "[0]"));
+
+            File.Put_Line
+              ("static unsigned char " & Decision_Buffer_Repr & "["
+               & Img (Any_Bit_Id'Max (1, Unit_Bits.Last_Outcome_Bit + 1))
+               & "];");
+            Decision_Init.Append (+("&" & Decision_Buffer_Repr & "[0]"));
+
+            File.Put_Line
+              ("static unsigned char " & MCDC_Buffer_Repr & "["
+               & Img (Any_Bit_Id'Max (1, Unit_Bits.Last_Path_Bit + 1))
+               & "];");
+            MCDC_Init.Append (+("&" & MCDC_Buffer_Repr & "[0]"));
+
+            --  gnatcov_rts_coverage_buffers struct
+
+            File.Put_Line
+              ("static const struct gnatcov_rts_coverage_buffers "
+               & Buffers_Struct & " = {"
+               & ASCII.LF
+               & "  .fingerprint = "
+               & Format_Fingerprint (SC_Obligations.Fingerprint (CU)) & ","
+               & ASCII.LF
+               & "  .language_kind = FILE_BASED_LANGUAGE,"
+               & ASCII.LF
+               & "  .unit_part = NOT_APPLICABLE_PART,"
+               & ASCII.LF
+
+               --  Old toolchains (for instance GNAT Pro 7.1.2) consider that
+               --  "STR(<string literal>)" is not a static expression, and thus
+               --  refuse using STR to initialize a global data structure. To
+               --  workaround this, emit a gnatcov_rtr_string literal
+               --  ourselves.
+
+               & "  .unit_name = " & Format_Str_Constant (+CU_Name.Filename)
+               & ","
+               & ASCII.LF
+               & "  .project_name = "
+               & Format_Str_Constant (+CU_Name.Project_Name) & ","
+               & ASCII.LF
+
+               --  We do not use the created pointer (Statement_Buffer) to
+               --  initialize the buffer fields, as this is rejected by old
+               --  versions of the compiler (up to the 20 version): the
+               --  initializer element is considered not constant. To work
+               --  around it, we simply use the original expression instead of
+               --  using a wrapper pointer.
+
+               & "  .statement = &" & Statement_Buffer_Repr & "[0],"
+               & ASCII.LF
+               & "  .decision = &" & Decision_Buffer_Repr & "[0],"
+               & ASCII.LF
+               & "  .mcdc = &" & MCDC_Buffer_Repr & "[0],"
+               & ASCII.LF
+
+               & "  .statement_last_bit = "
+               & Img (Unit_Bits.Last_Statement_Bit) & ","
+               & ASCII.LF
+               & "  .decision_last_bit = " & Img (Unit_Bits.Last_Outcome_Bit)
+               & ","
+               & ASCII.LF
+               & "  .mcdc_last_bit = " & Img (Unit_Bits.Last_Path_Bit)
+               & ASCII.LF
+               & "};");
+            Group_Init.Append (+("&" & Buffers_Struct));
+
+            File.New_Line;
+
+            --  Track which CU_Id maps to which instrumented unit
+
+            Instrumented_Unit_CUs.Insert (CU_Name, CU);
+
+            I := I + 1;
          end;
+      end loop;
 
-         File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
-         File.New_Line;
+      declare
+         Buffers_Count_Img : constant String := Img (Buffers_Count);
+      begin
+         --  Then define pointers to these individual buffers. Put all pointers
+         --  to statement buffers in an exported array (same for decision and
+         --  for MC/DC).
 
-         --  Define the individual buffers (statement, decision and MC/DC,
-         --  which are static) as well as pointers to them (exported).
-
-         File.Put_Line
-           ("static unsigned char " & Statement_Buffer_Repr & "["
-            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Statement_Bit + 1))
-            & "];");
          Put_Format_Def
            (File,
             Instrumenter,
             "unsigned char *const",
-            Statement_Buffer,
-            Init_Expr => "&" & Statement_Buffer_Repr & "[0]");
-
-         File.Put_Line
-           ("static unsigned char " & Decision_Buffer_Repr & "["
-            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Outcome_Bit + 1))
-            & "];");
+            Statement_Buffers,
+            Array_Size => Buffers_Count_Img,
+            Init_Expr  => Format_Array_Init_Expr
+                            (Statement_Init, Multiline => True));
          Put_Format_Def
            (File,
             Instrumenter,
             "unsigned char *const",
-            Decision_Buffer,
-            Init_Expr => "&" & Decision_Buffer_Repr & "[0]");
-
-         File.Put_Line
-           ("static unsigned char " & MCDC_Buffer_Repr & "["
-            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Path_Bit + 1))
-            & "];");
+            Decision_Buffers,
+            Array_Size => Buffers_Count_Img,
+            Init_Expr  => Format_Array_Init_Expr
+                            (Decision_Init, Multiline => True));
          Put_Format_Def
            (File,
             Instrumenter,
             "unsigned char *const",
-            MCDC_Buffer,
-            Init_Expr => "&" & MCDC_Buffer_Repr & "[0]");
-
-         --  Create the gnatcov_rts_coverage_buffers struct
-
-         File.Put_Line
-           ("static const struct gnatcov_rts_coverage_buffers "
-            & Buffers_Record & " = {"
-            & ASCII.LF
-            & "  .fingerprint = " & To_String (Fingerprint) & ","
-            & ASCII.LF
-            & "  .language_kind = FILE_BASED_LANGUAGE,"
-            & ASCII.LF
-            & "  .unit_part = NOT_APPLICABLE_PART,"
-            & ASCII.LF
-
-            --  Old toolchains (for instance GNAT Pro 7.1.2) consider that
-            --  "STR(<string literal>)" is not a static expression, and thus
-            --  refuse using STR to initialize a global data structure. To
-            --  workaround this, emit a gnatcov_rtr_string literal ourselves.
-
-            & "  .unit_name = " & Format_Str_Constant (Unit_Name) & ","
-            & ASCII.LF
-            & "  .project_name = " & Format_Str_Constant (Project_Name) & ","
-            & ASCII.LF
-
-            --  We do not use the created pointer (Statement_Buffer) to
-            --  initialize the buffer fields, as this is rejected by old
-            --  versions of the compiler (up to the 20 version): the
-            --  initializer element is considered not constant. To work around
-            --  it, we simply use the original expression instead of using a
-            --  wrapper pointer.
-
-            & "  .statement = &" & Statement_Buffer_Repr & "[0],"
-            & ASCII.LF
-            & "  .decision = &" & Decision_Buffer_Repr & "[0],"
-            & ASCII.LF
-            & "  .mcdc = &" & MCDC_Buffer_Repr & "[0],"
-            & ASCII.LF
-
-            & "  .statement_last_bit = " & Statement_Last_Bit & ","
-            & ASCII.LF
-            & "  .decision_last_bit = " & Decision_Last_Bit & ","
-            & ASCII.LF
-            & "  .mcdc_last_bit = " & MCDC_Last_Bit
-            & ASCII.LF
-            & "};");
+            MCDC_Buffers,
+            Array_Size => Buffers_Count_Img,
+            Init_Expr  => Format_Array_Init_Expr
+                            (MCDC_Init, Multiline => True));
 
          --  Create the buffers group: first the array of buffers (static),
          --  then the gnatcov_rts_coverage_buffers_group struct (extern).
 
-         File.Put_Line ("static const struct gnatcov_rts_coverage_buffers *"
-                        & Buffers_Group_Array & "[] = {");
-         File.Put_Line ("  &" & Buffers_Record);
-         File.Put_Line ("};");
+         File.Put_Line
+           ("static const struct gnatcov_rts_coverage_buffers *"
+            & Buffers_Array & "[" & Buffers_Count_Img & "] = "
+            & Format_Array_Init_Expr (Group_Init, Multiline => True) & ";");
          Put_Format_Def
            (File,
             Instrumenter,
             "const struct gnatcov_rts_coverage_buffers_group",
             Unit_Buffers_Name (UIC.Instrumented_Unit),
-            Init_Expr => "{1, " & Buffers_Group_Array & "}");
+            Init_Expr =>
+              "{" & Img (Buffers_Count) & ", &" & Buffers_Array & "[0]}");
       end;
    end Emit_Buffer_Unit;
 
@@ -3520,6 +3791,7 @@ package body Instrument.C is
      (Instrumenter : C_Family_Instrumenter_Type'Class;
       C_Type       : String;
       Name         : String;
+      Array_Size   : String := "";
       Func_Args    : String := "") return String is
    begin
       return
@@ -3527,8 +3799,9 @@ package body Instrument.C is
           (Instrumenter,
            C_Type,
            Name,
-           Func_Args => Func_Args,
-           External  => True);
+           Array_Size => Array_Size,
+           Func_Args  => Func_Args,
+           External   => True);
    end Format_Extern_Decl;
 
    ---------------------
@@ -3541,12 +3814,13 @@ package body Instrument.C is
       Instrumenter : C_Family_Instrumenter_Type'Class;
       C_Type       : String;
       Name         : String;
+      Array_Size   : String := "";
       Func_Args    : String := "") is
    begin
       CX_Rewriter_Insert_Text_After
         (Rewriter,
          Location,
-         Format_Extern_Decl (Instrumenter, C_Type, Name, Func_Args)
+         Format_Extern_Decl (Instrumenter, C_Type, Name, Array_Size, Func_Args)
          & ASCII.LF);
    end Put_Extern_Decl;
 
@@ -3724,10 +3998,6 @@ package body Instrument.C is
       --  be compatible with a C-only compiler.
 
       Emit_Buffer_Unit (Prj_Info, UIC, Self);
-
-      --  Track which CU_Id maps to which instrumented unit
-
-      Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
    end Instrument_Unit;
 
    ----------------------
