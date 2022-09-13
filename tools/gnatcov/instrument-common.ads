@@ -65,6 +65,7 @@ with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with ALI_Files;             use ALI_Files;
+with Files_Table;           use Files_Table;
 with GNATcov_RTS;
 with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Base_Types; use Instrument.Base_Types;
@@ -444,6 +445,9 @@ package Instrument.Common is
      new Ada.Containers.Vectors (Nat, Decision_Bit_Ids);
 
    type Allocated_Bits is record
+      SFI : Valid_Source_File_Index;
+      --  Source file index for the SCOs associated to these coverage buffers
+
       Statement_Bits     : LL_Statement_SCO_Bit_Allocs.Vector;
       Last_Statement_Bit : Any_Bit_Id := No_Bit_Id;
 
@@ -480,6 +484,19 @@ package Instrument.Common is
    --  Path_Count is the number of paths in this decision. If the number of
    --  paths exceeds the limit, must be 0: this function emits a warning in
    --  this case.
+
+   package Allocated_Bits_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Allocated_Bits);
+   --  Allocated bits in coverage buffers for low-level SCOs (one per source
+   --  file). Because of #include directives in C/C++, a single compilation
+   --  unit may yield multiple sets of coverage buffers: one for the compiled
+   --  source file, one for each included source.
+
+   function Create_Unit_Bits
+     (Allocated_Bits : in out Allocated_Bits_Vectors.Vector;
+      SFI            : Valid_Source_File_Index) return Positive;
+   --  Allocate a new set of coverage buffers for the given source file. Return
+   --  the index for the newly created set of buffers.
 
    -----------------------------
    -- Instrumentation context --
@@ -524,9 +541,6 @@ package Instrument.Common is
       Buffer_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit that holds coverage buffers for the
       --  unit currently being instrumented (see Common.Buffer_Unit).
-
-      Unit_Bits : Allocated_Bits;
-      --  Record of allocation of coverage buffer bits for low-level SCOs
 
       Annotations : Annotation_Vectors.Vector;
       --  Annotations created during the instrumentation process, to insert in

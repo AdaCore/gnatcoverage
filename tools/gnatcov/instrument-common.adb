@@ -801,6 +801,18 @@ package body Instrument.Common is
       end return;
    end Allocate_Decision_Bits;
 
+   ----------------------
+   -- Create_Unit_Bits --
+   ----------------------
+
+   function Create_Unit_Bits
+     (Allocated_Bits : in out Allocated_Bits_Vectors.Vector;
+      SFI            : Valid_Source_File_Index) return Positive is
+   begin
+      Allocated_Bits.Append (Common.Allocated_Bits'(SFI => SFI, others => <>));
+      return Allocated_Bits.Last_Index;
+   end Create_Unit_Bits;
+
    ------------------------
    -- Import_Annotations --
    ------------------------

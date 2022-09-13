@@ -92,6 +92,8 @@ package SC_Obligations is
    No_CU_Id : constant CU_Id := 0;
    subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
 
+   package CU_Id_Vectors is new Ada.Containers.Vectors (Positive, CU_Id);
+
    function Provider (CU : CU_Id) return SCO_Provider;
    --  Return the SCO provider corresponding to the given compilation unit
 
