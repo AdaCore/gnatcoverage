@@ -433,11 +433,15 @@ package body Setup_RTS is
       --  Print all messages in verbose mode, and all but the Information ones
       --  otherwise. Abort on error, or if we failed to get a runtime project
       --  (when we cannot find a toolchain, GPR2 only emits warnings).
+      --
+      --  C-only projects do not require a runtime, so do not complain if there
+      --  is no runtime project in this case.
 
       declare
          Logs      : constant access GPR2.Log.Object := Prj.Log_Messages;
          Has_Error : constant Boolean :=
-           Logs.Has_Error or else not Prj.Has_Runtime_Project;
+           Logs.Has_Error
+           or else (Has_Ada and then not Prj.Has_Runtime_Project);
       begin
          Logs.Output_Messages (Information => Verbose);
          if Has_Error then
@@ -445,7 +449,10 @@ package body Setup_RTS is
          end if;
       end;
 
-      Actual_RTS := To_Unbounded_String (String (Prj.Runtime (Main_Language)));
+      Actual_RTS :=
+        (if Prj.Has_Runtime_Project
+         then To_Unbounded_String (String (Prj.Runtime (Main_Language)))
+         else Null_Unbounded_String);
 
       --  In verbose mode, show the actual names for the target and the runtime
       --  that GPR2 uses. They can be slightly different from the names users
@@ -461,14 +468,35 @@ package body Setup_RTS is
       --  "full" is to look for an Ada source file that is typically found in
       --  full runtime: "a-comlin.ads" for the Ada.Command_Line unit. If we do
       --  not have it, consider that the runtime is embedded.
+      --
+      --  When only C is enabled and we do not have a runtime at hand to guess
+      --  what is available, fall back to the full profile for native
+      --  applications and the embedded runtime otherwise.
 
       Auto_RTS_Profile := Embedded;
-      for F of Prj.Runtime_Project.Sources loop
-         if F.Path_Name.Simple_Name = "a-comlin.ads" then
-            Auto_RTS_Profile := Full;
-            exit;
-         end if;
-      end loop;
+      if Has_Ada then
+         for F of Prj.Runtime_Project.Sources loop
+            if F.Path_Name.Simple_Name = "a-comlin.ads" then
+               Auto_RTS_Profile := Full;
+               exit;
+            end if;
+         end loop;
+      else
+         declare
+            use GPR2;
+            Tool_Name : constant Name_Type := "gcc";
+         begin
+            --  Add_Tool_Prefix's documentation states that the tool name is
+            --  returned unchanged for native compilation, so use this as a
+            --  proxy to determine if we are setting up the gnatcov RTS for
+            --  a cross target or not.
+
+            Auto_RTS_Profile :=
+              (if Tool_Name = Prj.Add_Tool_Prefix (Tool_Name)
+               then Full
+               else Embedded);
+         end;
+      end if;
 
       --  Query the support for libraries in this configuration. When GPRconfig
       --  fails to find the toolchain for the requested target/RTS, it only
