@@ -479,19 +479,16 @@ procedure GNATcov_Bits_Specific is
       --  Compute the languages for which we want coverage analysis, or enable
       --  just the default ones.
 
-      if Args.String_List_Args (Opt_Restricted_To_Languages).Is_Empty
-      then
-         --  C instrumentation is a beta feature and not yet fully functional.
-         --  It will thus not be part of the languages enabled by default.
+      if Args.String_List_Args (Opt_Restricted_To_Languages).Is_Empty then
 
-         Src_Enabled_Languages (Ada_Language) := True;
+         --  C++ instrumentation is a beta feature and not yet fully
+         --  functional. It will thus not be part of the languages enabled by
+         --  default.
 
-         --  It must be enabled for "gnatcov setup", as the core runtime is
-         --  implemented in C.
-
-         if Args.Command = Cmd_Setup then
-            Src_Enabled_Languages (C_Language) := True;
-         end if;
+         Src_Enabled_Languages :=
+           (Ada_Language => True,
+            C_Language   => True,
+            CPP_Language => False);
       else
          for Arg of Args.String_List_Args (Opt_Restricted_To_Languages) loop
             Src_Enabled_Languages (To_Language (+Arg)) := True;
