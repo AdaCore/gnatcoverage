@@ -2547,6 +2547,13 @@ package body Instrument.C is
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
               Options               => 0);
+         if Self.TU = null then
+            Outputs.Error ("Failed to parse " & Filename);
+            Outputs.Error ("Please make sure that the original project can"
+                           & " be compiled, and that the right set of"
+                           & " options is passed to gnatcov instrument");
+            raise Xcov_Exit_Exc;
+         end if;
          if Verbose then
             Run_Diagnostics (Self.TU);
          end if;
