@@ -1898,16 +1898,24 @@ package body Instrument.C is
             when Cursor_While_Stmt =>
                declare
                   While_Body     : constant Cursor_T := Get_Body (N);
+                  Cond_Var       : constant Cursor_T := Get_Cond_Var (N);
                   Cond           : constant Cursor_T := Get_Cond (N);
                   Inner_Dominant : constant Dominant_Info := ('S', N);
 
                begin
                   UIC.Pass.Curlify (N   => While_Body,
                                     Rew => UIC.Rewriter);
+
+                  --  If the loop condition is a declaration, instrument its
+                  --  initialization expression.
+
                   Extend_Statement_Sequence
                     (N, 'W',
-                     Insertion_N  => Cond,
+                     Insertion_N  => (if Is_Null (Cond_Var)
+                                      then Cond
+                                      else Get_Var_Init_Expr (Cond_Var)),
                      Instr_Scheme => Instr_Expr);
+
                   Process_Decisions_Defer (Cond, 'W');
                   Set_Statement_Entry;
                   Traverse_Statements
@@ -3667,6 +3675,9 @@ package body Instrument.C is
       end loop;
 
       declare
+         Buffer_Array_Decl  : constant String :=
+           "gnatcov_rts_unit_coverage_buffers_array "
+           & Unit_Buffers_Array_Name (IC);
          Buffer_Unit_Length : constant String :=
            Count_Type'Image (Instr_Units.Length);
       begin
@@ -3676,6 +3687,8 @@ package body Instrument.C is
 
          File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
+         --  First create extern declarations for each individual unit buffer
+
          for Instr_Unit of Instr_Units loop
             Put_Extern_Decl
               (File_Body,
@@ -3683,9 +3696,13 @@ package body Instrument.C is
                "gnatcov_rts_unit_coverage_buffers",
                Unit_Buffers_Name (Instr_Unit));
          end loop;
-         File_Body.Put (Self.Extern_Prefix);
-         File_Body.Put_Line ("gnatcov_rts_unit_coverage_buffers_array "
-                             & Unit_Buffers_Array_Name (IC) & " = {");
+
+         --  Then create an extern declaration for the buffer array (necessary
+         --  in C++ to set the C linkage), and finally the definition for that
+         --  array.
+
+         File_Body.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
+         File_Body.Put_Line (Buffer_Array_Decl & " = {");
          File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
          File_Body.Put_Line ("  (gnatcov_rts_unit_coverage_buffers *[]) {");
          for Cur in Instr_Units.Iterate loop

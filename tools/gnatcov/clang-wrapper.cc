@@ -59,6 +59,15 @@ MakeCXCursorWithNull (const Stmt *S, CXCursor C)
     return clang_getNullCursor ();
 }
 
+CXCursor
+MakeCXCursorWithNull (const Decl *decl, CXCursor C)
+{
+  if (decl)
+    return MakeCXCursor (decl, getCursorTU (C));
+  else
+    return clang_getNullCursor ();
+}
+
 /* Most of the functions are getters around existing clang functions of a
    similar name, for the accepted type(s).  For instance, clang_getCond will
    simply call getCond on the given node, if this is a statement or an
@@ -178,6 +187,40 @@ clang_getForInc (CXCursor C)
         default:
           return clang_getNullCursor ();
         }
+  return clang_getNullCursor ();
+}
+
+extern "C" CXCursor
+clang_getCondVar (CXCursor C)
+{
+  const Stmt *stmt;
+  const WhileStmt *while_stmt;
+  const VarDecl *decl;
+
+  if (clang_isStatement (C.kind)
+      && (stmt = cxcursor::getCursorStmt (C))
+      && stmt->getStmtClass () == Stmt::WhileStmtClass)
+    {
+      while_stmt = cast<WhileStmt> (stmt);
+      if (decl = while_stmt->getConditionVariable ())
+        return MakeCXCursorWithNull (decl, C);
+    }
+  return clang_getNullCursor ();
+}
+
+extern "C" CXCursor
+clang_getVarInitExpr (CXCursor C)
+{
+  const Decl *decl;
+  const VarDecl *var_decl;
+
+  if (clang_isDeclaration (C.kind)
+      && (decl = cxcursor::getCursorDecl (C))
+      && decl->getKind () == Decl::Kind::Var)
+    {
+      var_decl = cast<VarDecl> (decl);
+      return MakeCXCursorWithNull (var_decl->getInit (), C);
+    }
   return clang_getNullCursor ();
 }
 
