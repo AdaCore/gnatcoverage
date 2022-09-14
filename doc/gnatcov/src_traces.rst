@@ -507,13 +507,6 @@ And to instrument Ada, C and C++ units:
 
    gnatcov instrument --restricted-to-languages=Ada,C,C++ # ...
 
-Instrumentation and coverage of C/C++ code
-==========================================
-
-Instrumentation operates on the preprocessed code, which means that coverage
-obligations that come from a macro expansion (and further obligations on the
-same line) will have inaccurate column numbers.
-
 .. _spark_instr :
 
 Instrumentation and coverage of SPARK code
