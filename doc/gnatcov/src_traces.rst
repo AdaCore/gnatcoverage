@@ -489,16 +489,26 @@ The section :ref:`examples_src_traces` illustrates such a use case.
 Instrumentation of a multi-languages project
 ============================================
 
-The |gcp| instrumentation mode supports Ada, and C. As C support is still at its
-beta stage, it is disabled by default. To activate it, add the
-:cmd-option:`--restricted-to-languages=C,Ada` switch to your command line.
+The |gcp| instrumentation mode supports Ada, C and C++ (beta). Ada and C units
+are instrumented by default, however since C++ support is still under
+development, it is disabled by default.
 
-Note that, as of now, the C instrumented code still uses the Ada coverage
-runtime, described in the section :ref:`instr-rts`. To interface with this
-runtime, the instrumenter thus generates Ada files that must be compiled with
-your project. For that reason, "Ada" needs to be included in the Languages
-attribute of your gpr project file (|gcv| will emit a warning at instrumentation
-time if this is not the case).
+To change the set of languages to be instrumented, pass the
+:cmd-option:`--restricted-to-languages` option to |gcvins|. For instance, to
+instrument only Ada units:
+
+.. code-block:: sh
+
+   gnatcov instrument --restricted-to-languages=Ada # ...
+
+And to instrument Ada, C and C++ units:
+
+.. code-block:: sh
+
+   gnatcov instrument --restricted-to-languages=Ada,C,C++ # ...
+
+Instrumentation and coverage of C/C++ code
+==========================================
 
 Instrumentation operates on the preprocessed code, which means that coverage
 obligations that come from a macro expansion (and further obligations on the
