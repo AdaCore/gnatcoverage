@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling;
 with Ada.Containers;  use Ada.Containers;
 with Ada.Containers.Hashed_Maps;
 with Ada.Directories; use Ada.Directories;
@@ -125,9 +126,15 @@ package body Instrument.C is
    --  when we will refine what is done with macros.
 
    function Builtin_Macros
-     (Compiler, Output_Dir : String) return Macro_Vector_Cst_Access;
-   --  Return the list of built-in macros for the given compiler. Output_Dir
-   --  is used to store a temporary file.
+     (Lang, Compiler, Std, Output_Dir : String) return Macro_Vector_Cst_Access;
+   --  Return the list of built-in macros for the given compiler, standard and
+   --  language. Output_Dir is used to store a temporary file.
+   --
+   --  Note that we could generate a fully-fledged preprocessor configuration
+   --  (the standard macros + the command-line defined macros with an
+   --  additional argument there), but it is more convenient to cache the
+   --  "light" preprocessor configuration that is determined by the compiler,
+   --  language and standard only.
 
    procedure Preprocess_Source
      (Filename     : String;
@@ -2279,11 +2286,14 @@ package body Instrument.C is
    --------------------
 
    function Builtin_Macros
-     (Compiler, Output_Dir : String) return Macro_Vector_Cst_Access
+     (Lang, Compiler, Std, Output_Dir : String) return Macro_Vector_Cst_Access
    is
+      use Ada.Characters.Handling;
       use Compiler_Macros_Maps;
 
-      Key    : constant Unbounded_String := +Compiler;
+      L      : constant String := To_Lower (Lang);
+      Key    : constant Unbounded_String :=
+        +Compiler & " -x " & L & " " & Std;
       Cur    : constant Cursor := Compiler_Macros.Find (Key);
       Result : Macro_Vector_Access;
    begin
@@ -2305,6 +2315,11 @@ package body Instrument.C is
             --  Run the preprocessor on an empty file and write the
             --  preprocessed sources to Filename.
 
+            Args.Append (+"-x");
+            Args.Append (+L);
+            if Std'Length /= 0 then
+               Args.Append (+Std);
+            end if;
             Args.Append (+"-E");
             Args.Append (+"-dM");
             Args.Append (+"-");
@@ -2313,7 +2328,7 @@ package body Instrument.C is
               (Command             => Compiler,
                Arguments           => Args,
                Origin_Command_Name =>
-                 "getting built-in macros for " & Compiler,
+                 "getting built-in macros for " & (+Key),
                Output_File         => Filename,
                In_To_Null          => True);
 
@@ -2547,6 +2562,13 @@ package body Instrument.C is
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
               Options               => 0);
+         if Self.TU = null then
+            Outputs.Error ("Failed to parse " & Filename);
+            Outputs.Error ("Please make sure that the original project can"
+                           & " be compiled, and that the right set of"
+                           & " options is passed to gnatcov instrument");
+            raise Xcov_Exit_Exc;
+         end if;
          if Verbose then
             Run_Diagnostics (Self.TU);
          end if;
@@ -3784,23 +3806,51 @@ package body Instrument.C is
    -----------------
 
    procedure Add_Options
-     (Args : in out String_Vectors.Vector; Options : Analysis_Options) is
+     (Args : in out String_Vectors.Vector; Options : Analysis_Options)
+   is
+
+      procedure Add_Macro_Switches (Macros : Macro_Vectors.Vector);
+      --  Add the given macro switches to Args
+
+      ------------------------
+      -- Add_Macro_Switches --
+      ------------------------
+
+      procedure Add_Macro_Switches (Macros : Macro_Vectors.Vector) is
+      begin
+         for M of Macros loop
+            declare
+               Prefix : constant Unbounded_String :=
+                 +(if M.Define
+                   then "-D"
+                   else "-U");
+            begin
+               Args.Append (Prefix & M.Value);
+            end;
+         end loop;
+      end Add_Macro_Switches;
+
    begin
       for Dir of Options.PP_Search_Path loop
          Args.Append (+"-I");
          Args.Append (Dir);
       end loop;
 
-      for M of Options.PP_Macros loop
-         declare
-            Prefix : constant Unbounded_String :=
-              +(if M.Define
-                then "-D"
-                else "-U");
-         begin
-            Args.Append (Prefix & M.Value);
-         end;
-      end loop;
+      --  Add builtin macros before macros from command line switches, as the
+      --  latter should have precedence over builtins and thus must come last
+      --  in Args.
+
+      Add_Macro_Switches (Options.Builtin_Macros);
+      Add_Macro_Switches (Options.PP_Macros);
+
+      --  The -std switch also indicates the C/C++ version used, and
+      --  influences both the configuration of the preprocessor, and the
+      --  parsing of the file.
+
+      if Length (Options.Std) /= 0 then
+         Args.Append (Options.Std);
+      end if;
+
    end Add_Options;
 
    -------------------------
@@ -3815,10 +3865,6 @@ package body Instrument.C is
    is
       Switches : GNAT.Strings.String_List_Access;
    begin
-      Self.PP_Macros :=
-        Builtin_Macros
-          (Compiler_Driver (Info.Project, Language), +Info.Output_Dir).all;
-
       --  Pass the source directories of the project file as -I options
 
       for Dir of Info.Project.Source_Dirs loop
@@ -3885,7 +3931,7 @@ package body Instrument.C is
          Option_Name : Character;
          Value       : out Unbounded_String) return Boolean
       is
-         Prefix : constant String := ('-', Option_Name);
+         Prefix : constant String := "-" & Option_Name;
       begin
          if Arg = Prefix then
 
@@ -3934,6 +3980,9 @@ package body Instrument.C is
 
             elsif Read_With_Argument (A, 'U', Value) then
                Self.PP_Macros.Append ((Define => False, Value => Value));
+
+            elsif Has_Prefix (A, "-std=") then
+               Self.Std := +A;
             end if;
 
             I := I + 1;
@@ -4025,6 +4074,16 @@ package body Instrument.C is
       for Args of Switches.Args.String_List_Args (Opt) loop
          Import_From_Args (Self, Split_Args (Args));
       end loop;
+
+      --  Now, we can generate the preprocessor configuration (i.e. the set
+      --  of predefined macros).
+
+      Self.Builtin_Macros :=
+        Builtin_Macros
+          (Image (Language),
+           Compiler_Driver (Info.Project, Language),
+           +Self.Std,
+           +Info.Output_Dir).all;
    end Import_Options;
 
 end Instrument.C;

@@ -237,14 +237,21 @@ package Instrument.C is
       PP_Search_Path : String_Vectors.Vector;
       --  List of directories to search when looking for an included file
 
+      Builtin_Macros : Macro_Vectors.Vector;
+      --  List of predefined macros for the project compiler driver
+
       PP_Macros : Macro_Vectors.Vector;
       --  List of macros for the preprocessor
+
+      Std : Unbounded_String;
+      --  -std=X argument to pass to the preprocessor and the parser, or the
+      --  empty string.
    end record;
    --  Options to analyze (preprocess and/or parse) a compilation unit
 
    procedure Add_Options
      (Args : in out String_Vectors.Vector; Options : Analysis_Options);
-   --  Append to Args the command line options correspondig to Options
+   --  Append to Args the command line options corresponding to Options
 
    procedure Import_From_Project
      (Self     : out Analysis_Options;
