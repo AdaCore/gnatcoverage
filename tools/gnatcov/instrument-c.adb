@@ -3011,9 +3011,13 @@ package body Instrument.C is
         Create_Index
           (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
 
-      Add_Options (Args, Options);
+      --  At this point, whether Preprocessed was passed True or False to
+      --  Start_Rewriting, the code to parse is always preprocessed.
+
+      Add_Options (Args, Options, Preprocessed => True);
       String_Vectors.Append
         (Args, Common_Parse_TU_Args (Instrumenter.Language));
+
       declare
          C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
       begin
@@ -4467,7 +4471,8 @@ package body Instrument.C is
    procedure Add_Options
      (Args          : in out String_Vectors.Vector;
       Options       : Analysis_Options;
-      Pass_Builtins : Boolean := True) is
+      Pass_Builtins : Boolean := True;
+      Preprocessed  : Boolean := False) is
 
       procedure Add_Macro_Switches (Macros : Macro_Set);
       --  Add the given macro switches to Args
@@ -4493,14 +4498,22 @@ package body Instrument.C is
          Args.Append (Dir);
       end loop;
 
-      --  Add builtin macros before macros from command line switches, as the
-      --  latter should have precedence over builtins and thus must come last
-      --  in Args.
+      --  If the file was already pre-processed, do not pass macro command
+      --  line switches. Since preprocessed code can contain names of defined
+      --  macros, passing macro arguments for the parsing step could trigger
+      --  other expansions, and thus feed the parser with unexpected code.
 
-      if Pass_Builtins then
-         Add_Macro_Switches (Options.Builtin_Macros);
+      if not Preprocessed then
+
+         --  Add builtin macros before macros from command line switches, as
+         --  the latter should have precedence over builtins and thus must
+         --  come last in Args.
+
+         if Pass_Builtins then
+            Add_Macro_Switches (Options.Builtin_Macros);
+         end if;
+         Add_Macro_Switches (Options.PP_Macros);
       end if;
-      Add_Macro_Switches (Options.PP_Macros);
 
       --  The -std switch also indicates the C/C++ version used, and
       --  influences both the configuration of the preprocessor, and the

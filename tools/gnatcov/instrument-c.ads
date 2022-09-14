@@ -287,9 +287,12 @@ package Instrument.C is
    procedure Add_Options
      (Args          : in out String_Vectors.Vector;
       Options       : Analysis_Options;
-      Pass_Builtins : Boolean := True);
+      Pass_Builtins : Boolean := True;
+      Preprocessed  : Boolean := False);
    --  Append to Args the command line options corresponding to Options. If
-   --  Pass_Builtins is True, pass builtin macros in Options to Args.
+   --  Pass_Builtins is True, pass builtin macros in Options to Args. If
+   --  Preprocessed is True, consider that we will use these options on a
+   --  file that was already preprocessed.
 
    procedure Import_From_Project
      (Self     : out Analysis_Options;
