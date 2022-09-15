@@ -104,4 +104,9 @@ package Slocs is
 
    type Source_Locations is array (Positive range <>) of Source_Location;
 
+   function Clang_Predefined_File (Filename : String) return Boolean is
+     (Filename = "<command line>" or else Filename = "<built-in>");
+   --  Return whether this filename represents a command-line / built-in
+   --  location.
+
 end Slocs;

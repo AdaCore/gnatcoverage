@@ -190,7 +190,21 @@ package Clang.Extensions is
        External_Name => "clang_getExpansionEnd";
    --  See getExpansionRange in clang/Basic/SourceManager.h.
 
+   function Get_Spelling_Loc
+     (TU  : Translation_Unit_T;
+      Loc : Source_Location_T) return Source_Location_T
+     with Import, Convention => C, External_Name => "clang_getSpellingLoc";
+   --  See getSpellingLoc in clang/Basic/SourceManager.h
+
    procedure Print_Location (TU : Translation_Unit_T; Loc : Source_Location_T)
      with Import, Convention => C, External_Name => "clang_printLocation";
+
+   -----------
+   -- Utils --
+   -----------
+
+   function To_Sloc (Line, Column : unsigned) return Local_Source_Location is
+     ((Natural (Line), Natural (Column)));
+   --  Convert a Clang local source location to gnatcov's own format
 
 end Clang.Extensions;

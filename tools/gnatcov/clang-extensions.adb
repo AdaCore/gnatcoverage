@@ -26,10 +26,6 @@ with Files_Table; use Files_Table;
 
 package body Clang.Extensions is
 
-   function To_Sloc (Line, Column : unsigned) return Local_Source_Location is
-     ((Natural (Line), Natural (Column)));
-   --  Convert a Clang local source location to gnatcov's own format
-
    function To_Sloc
      (File : File_T; Line, Column : unsigned) return Source_Location
    is
@@ -176,6 +172,7 @@ package body Clang.Extensions is
       Line, Column : aliased unsigned;
    begin
       Get_Presumed_Location (Loc, Filename'Access, Line'Access, Column'Access);
+      Dispose_String (Filename);
       return To_Sloc (Line, Column);
    end Presumed_Location;
 

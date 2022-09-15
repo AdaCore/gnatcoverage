@@ -899,6 +899,14 @@ package body Instrument.C is
             --     ^~~~~~
             --  So we have to get the macro argument expansion location, and
             --  get its spelling location.
+            --
+            --  Another important point is that macro definitions can be
+            --  given on the command line, which means that source locations
+            --  that refer to the expansion of such macros will not have an
+            --  associated file. This information is preserved through
+            --  preprocessing, and we can actually use the Presumed_Location
+            --  API to get either a filename, or a <command line> or <built-in>
+            --  string in these cases.
 
             if Is_Macro_Arg_Expansion (Loc, Macro_Arg_Expanded_Loc, UIC.TU)
             then
@@ -908,13 +916,23 @@ package body Instrument.C is
 
                Definition_Info :=
                  (Macro_Name => Macro_Expansion_Name,
-                  Sloc       => Spelling_Location (Macro_Arg_Expanded_Loc));
+                  Sloc       =>
+                    Presumed_Spelling_Location
+                      (UIC.TU,
+                       Macro_Arg_Expanded_Loc,
+                       Macro_Expansion_Name,
+                       UIC.Options.Builtin_Macros));
             else
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
                Definition_Info :=
                  (Macro_Name => Macro_Expansion_Name,
-                  Sloc       => Spelling_Location (Loc));
+                  Sloc       =>
+                    Presumed_Spelling_Location
+                      (UIC.TU,
+                       Loc,
+                       Macro_Expansion_Name,
+                       UIC.Options.Builtin_Macros));
             end if;
 
             while Is_Macro_Location (Loc) loop
@@ -992,8 +1010,12 @@ package body Instrument.C is
                if Length (Macro_Expansion_Name) /= 0 then
                   Expansion_Stack.Append
                     ((Macro_Name => Macro_Expansion_Name,
-                      Sloc       => Spelling_Location
-                                      (Immediate_Expansion_Loc)));
+                      Sloc       =>
+                        Presumed_Spelling_Location
+                          (UIC.TU,
+                           Immediate_Expansion_Loc,
+                           Macro_Expansion_Name,
+                           UIC.Options.Builtin_Macros)));
                end if;
             end loop;
 
