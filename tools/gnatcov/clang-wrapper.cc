@@ -169,9 +169,28 @@ clang_getForInit (CXCursor C)
         {
         case Stmt::ForStmtClass:
           return MakeCXCursorWithNull (cast<ForStmt> (S)->getInit (), C);
+        case Stmt::CXXForRangeStmtClass:
+          return MakeCXCursorWithNull (cast<CXXForRangeStmt> (S)->getInit (),
+                                       C);
         default:
           return clang_getNullCursor ();
         }
+  return clang_getNullCursor ();
+}
+
+extern "C" CXCursor
+clang_getForRangeExpr (CXCursor C)
+{
+  const Stmt *stmt;
+  const CXXForRangeStmt *for_stmt;
+
+  if (clang_isStatement (C.kind)
+      && (stmt = cxcursor::getCursorStmt (C))
+      && stmt->getStmtClass () == Stmt::CXXForRangeStmtClass)
+    {
+      for_stmt = cast<CXXForRangeStmt> (stmt);
+      return MakeCXCursorWithNull (for_stmt->getRangeInit (), C);
+    }
   return clang_getNullCursor ();
 }
 
