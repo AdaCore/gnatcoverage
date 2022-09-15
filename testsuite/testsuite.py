@@ -1265,8 +1265,21 @@ class TestSuite(e3.testsuite.Testsuite):
             self._toolchain_discriminants())
 
     def _base_discriminants(self):
+
+        # List of toolchain discriminants for which we don't want to run
+        # C++ tests, due to lack of compatibility with modern hosts.
+        unsupported_cpp_toolchains = ["7.1.2", "5.04a1"]
+
         result = ['ALL'] + self.env.discriminants
-        if which(self.tool('g++')):
+
+        toolchain_discrs = self._toolchain_discriminants()
+
+        # Only enable C++ tests if we have a C++ compiler that is not
+        # blacklisted.
+        if which(self.tool('g++')) and (
+            not toolchain_discrs
+            or toolchain_discrs[0] not in unsupported_cpp_toolchains
+        ):
             result.append('C++')
 
         # Add a discriminant to track the current trace mode
