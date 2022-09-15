@@ -581,9 +581,6 @@ package body Instrument.C is
          return;
       end if;
 
-      Get_Expansion_Location
-        (Loc, File'Address, Line'Access, Column'Access, Offset'Access);
-
       Info.Actual_Source_Range := (From, To);
 
       --  Check if this is comes from a macro expansion, in which case we need
