@@ -472,6 +472,8 @@ clang_CXRewriter_insertTextAfterToken (CXRewriter Rew, CXSourceLocation Loc,
   R.InsertTextAfterToken (clang::cxloc::translateSourceLocation (Loc), Insert);
 }
 
+/* Wrappers around source location analysis functions.  */
+
 extern "C" unsigned
 clang_isMacroLocation (CXSourceLocation Loc)
 {
@@ -549,6 +551,8 @@ clang_getCursorTU (CXCursor C)
 {
   return cxcursor::getCursorTU (C);
 }
+
+/* Debug helpers.  */
 
 extern "C" void
 clang_printLocation (CXTranslationUnit TU, CXSourceLocation Loc)
