@@ -369,8 +369,6 @@ extern "C" CXSourceLocation
 clang_getOperatorLoc (CXCursor C)
 {
   ASTUnit *CXXUnit = cxtu::getASTUnit (getCursorTU (C));
-  if (!CXXUnit)
-    return clang_getNullLocation ();
   SourceLocation sloc;
   if (clang_isExpression (C.kind))
     if (const Stmt *S = cxcursor::getCursorStmt (C))
