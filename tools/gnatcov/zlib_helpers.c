@@ -26,8 +26,8 @@
    OUT_BUFFER (a byte buffer of size OUT_SIZE) using zlib.  Return whether
    decompression was successful.  */
 int
-gnatcov_zlib_uncompress (char *in_buffer, uint64_t in_size,
-			 char *out_buffer, uint64_t out_size)
+gnatcov_zlib_uncompress (char *in_buffer, uint64_t in_size, char *out_buffer,
+                         uint64_t out_size)
 {
   z_stream strm;
 
@@ -39,8 +39,6 @@ gnatcov_zlib_uncompress (char *in_buffer, uint64_t in_size,
 
   /* Uncompress and then check that uncompressed data consumed exactly OUT_SIZE
      bytes.  */
-  return (inflateInit (&strm) == Z_OK
-	  && inflate (&strm, Z_FINISH) == Z_OK
-	  && inflateEnd (&strm) == Z_OK
-	  && strm.avail_out == 0);
+  return (inflateInit (&strm) == Z_OK && inflate (&strm, Z_FINISH) == Z_OK
+          && inflateEnd (&strm) == Z_OK && strm.avail_out == 0);
 }

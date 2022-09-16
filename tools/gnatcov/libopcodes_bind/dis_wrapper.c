@@ -17,32 +17,32 @@
  *                                                                          *
  ****************************************************************************/
 
-#include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "dis_wrapper.h"
 #include "dis_stream.h"
+#include "dis_wrapper.h"
 
 /* Define the number of values in enum bfd_endian.  */
 #define N_BFD_ENDIAN_VALUES 3
 
 struct disassemble_handle
 {
-    disassembler_ftype disass_func[N_BFD_ENDIAN_VALUES];
-    disassemble_info  dinfo;
-    /* Libopcode sets dinfo.disassembler_options to NULL after parsing once.
-       This is erroneous when we want e.g. to switch between ARM and Thumb
-       multiple times.  So we need to keep our disassembler options.  */
-    char *disassembler_options;
+  disassembler_ftype disass_func[N_BFD_ENDIAN_VALUES];
+  disassemble_info dinfo;
+  /* Libopcode sets dinfo.disassembler_options to NULL after parsing once.
+     This is erroneous when we want e.g. to switch between ARM and Thumb
+     multiple times.  So we need to keep our disassembler options.  */
+  char *disassembler_options;
 };
 
 /* Type stored in dhandle->dinfo->application_data.  */
 typedef struct symbolizer_data
 {
-    print_symbol_cb addr_cb; /* Function that performs the symbol lookup.  */
-    void *symbolizer; /* Object containing the symbol informations.  */
+  print_symbol_cb addr_cb; /* Function that performs the symbol lookup.  */
+  void *symbolizer;        /* Object containing the symbol informations.  */
 } symbolizer_data;
 
 char *const dis_thumb_option = "force-thumb";
@@ -54,11 +54,11 @@ char *const dis_ppc_32_option = "32";
 char *const dis_ppc_64_option = "64";
 
 #if TARGET_BITS == 32
-#  define TARGET_ADDR_FMT "0x%lx"
+#define TARGET_ADDR_FMT "0x%lx"
 #elif TARGET_BITS == 64
-#  define TARGET_ADDR_FMT "0x%lx"
+#define TARGET_ADDR_FMT "0x%lx"
 #else /* TARGET_BITS != 32 and TARGET_BITS != 64 */
-#  error "Target arch is neither 32 or 64bits, not supported."
+#error "Target arch is neither 32 or 64bits, not supported."
 #endif
 
 /* This is a callback for disassemble_info->print_address_func.  */
@@ -76,7 +76,7 @@ _print_address_cb (bfd_vma addr, disassemble_info *dinfo)
   /* Then, print the symbolized address, if possible.  First dump it to BUFF,
      then if symbolization worked, move it to the output stream.  */
   buff_cur
-    = sym_data->addr_cb (addr, sym_data->symbolizer, buff, buff_size - 1);
+      = sym_data->addr_cb (addr, sym_data->symbolizer, buff, buff_size - 1);
   buff[buff_cur++] = '\0';
   stream_printf (dinfo->stream, "%s", buff);
 }
@@ -100,7 +100,7 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
     }
 
   init_disassemble_info (&(dh->dinfo), ds, (fprintf_ftype) stream_printf,
-			 (fprintf_styled_ftype) stream_styled_printf);
+                         (fprintf_styled_ftype) stream_styled_printf);
   dh->dinfo.arch = arch;
   if (options)
     {
@@ -133,8 +133,8 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
 static disassemble_handle *
 _create_arm_arch_disassembler (unsigned char for_thumb)
 {
-  return _create_base_disassembler
-    (bfd_arch_arm, (for_thumb) ? dis_thumb_option : dis_arm_option);
+  return _create_base_disassembler (
+      bfd_arch_arm, (for_thumb) ? dis_thumb_option : dis_arm_option);
 }
 
 /* Set necessary information for symbol resolution for the disassembler
@@ -143,7 +143,7 @@ void
 set_disassembler_symbolizer (disassemble_handle *const dh,
                              void *const symbolizer, print_symbol_cb addr_cb)
 {
-  symbolizer_data* sym_data = dh->dinfo.application_data;
+  symbolizer_data *sym_data = dh->dinfo.application_data;
 
   sym_data->addr_cb = addr_cb;
   dh->dinfo.print_address_func = _print_address_cb;
@@ -269,7 +269,7 @@ disassemble_to_text (disassemble_handle *const dh, bfd_vma pc,
      instruction.  */
   dh->dinfo.disassembler_options = dh->disassembler_options;
 
-  size = dh->disass_func[endian] (pc, &(dh->dinfo));
+  size = dh->disass_func[endian](pc, &(dh->dinfo));
 
   clear_stream (dh->dinfo.stream);
 
