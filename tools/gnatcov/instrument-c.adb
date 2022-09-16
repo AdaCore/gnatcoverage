@@ -1310,8 +1310,7 @@ package body Instrument.C is
       --  output for the complex decision. It process the suboperands of the
       --  decision looking for nested decisions.
 
-      function Process_Node (N : Cursor_T) return Child_Visit_Result_T
-        with Convention => C;
+      function Process_Node (N : Cursor_T) return Child_Visit_Result_T;
       --  Processes one node in the traversal, looking for logical operators,
       --  and if one is found, outputs the appropriate table entries.
 
@@ -1564,7 +1563,7 @@ package body Instrument.C is
          return;
       end if;
       Hash_Entries.Init;
-      Visit (N, Process_Node'Unrestricted_Access);
+      Visit (N, Process_Node'Access);
       Hash_Entries.Free;
    end Process_Decisions;
 
@@ -1592,8 +1591,7 @@ package body Instrument.C is
 
    function Has_Decision (T : Cursor_T) return Boolean is
 
-      function Visitor (N : Cursor_T) return Child_Visit_Result_T
-        with Convention => C;
+      function Visitor (N : Cursor_T) return Child_Visit_Result_T;
       --  If N's kind indicates the presence of a decision, return
       --  Child_Visit_Break, otherwise return Child_Visit_Recurse.
       --
@@ -1628,7 +1626,7 @@ package body Instrument.C is
    --  Start of processing for Has_Decision
 
    begin
-      Visit (T, Visitor'Unrestricted_Access);
+      Visit (T, Visitor'Access);
       return Has_Decision;
    end Has_Decision;
 
@@ -3219,8 +3217,7 @@ package body Instrument.C is
          when Main_End | Ravenscar_Task_Termination =>
             declare
                function Process
-                 (Cursor : Cursor_T) return Child_Visit_Result_T
-                 with Convention => C;
+                 (Cursor : Cursor_T) return Child_Visit_Result_T;
                --  Callback for Visit_Children. Insert calls to dump buffers
                --  before the function return.
 
@@ -3299,9 +3296,8 @@ package body Instrument.C is
                end Process;
 
             begin
-               Visit_Children
-                 (Parent  => Get_Main (Rew.TU),
-                  Visitor => Process'Unrestricted_Access);
+               Visit_Children (Parent  => Get_Main (Rew.TU),
+                               Visitor => Process'Access);
             end;
 
          when At_Exit =>
@@ -3479,8 +3475,7 @@ package body Instrument.C is
    is
       Location : Source_Location_T := Get_Null_Location;
 
-      function Visit_Decl
-        (Cursor : Cursor_T) return Child_Visit_Result_T with Convention => C;
+      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T;
       --  Callback for Visit_Children
 
       ----------------
@@ -3509,7 +3504,7 @@ package body Instrument.C is
 
    begin
       Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
-                      Visitor => Visit_Decl'Unrestricted_Access);
+                      Visitor => Visit_Decl'Access);
       return Location;
    end Find_First_Insert_Location;
 

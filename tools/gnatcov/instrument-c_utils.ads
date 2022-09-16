@@ -53,10 +53,15 @@ package Instrument.C_Utils is
    --  Return True if the node N is a null cursor, false otherwise
 
    procedure Visit_Children
-     (Parent : Cursor_T; Visitor : Cursor_Visitor_Function);
+     (Parent  : Cursor_T;
+      Visitor : not null access function
+                  (Node : Cursor_T) return Child_Visit_Result_T);
    --  Wrapper for the Visit_Children clang procedure
 
-   procedure Visit (Parent : Cursor_T; Visitor : Cursor_Visitor_Function);
+   procedure Visit
+     (Parent  : Cursor_T;
+      Visitor : not null access function
+                  (Node : Cursor_T) return Child_Visit_Result_T);
    --  Wrapper for the Visit clang procedure
 
    function Get_Children (N : Cursor_T) return Cursor_Vectors.Vector;
