@@ -565,12 +565,8 @@ package body Instrument.C is
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
-      Loc : Source_Location_T :=
-        Get_Range_Start (Get_Cursor_Extent (N));
-
-      Line, Column, Offset : aliased unsigned;
-      File                 : File_T;
-      Info                 : PP_Info;
+      Loc  : Source_Location_T := Get_Range_Start (Get_Cursor_Extent (N));
+      Info : PP_Info;
    begin
       Append_SCO (C1, C2, From, To, Last, Pragma_Aspect_Name);
 
@@ -591,14 +587,10 @@ package body Instrument.C is
             Expansion_Stack : Expansion_Lists.List;
             Definition_Info : Expansion_Info;
 
-            Macro_Expansion_Name      : US.Unbounded_String;
-            Immediate_Expansion_Loc_C : Source_Location_T;
-            Immediate_Expansion_Loc   : Source_Location;
-
-            Macro_Arg_Expanded_Loc_C : aliased Source_Location_T;
-            Macro_Arg_Expanded_Loc   : Source_Location;
+            Macro_Expansion_Name    : US.Unbounded_String;
+            Immediate_Expansion_Loc : Source_Location_T;
+            Macro_Arg_Expanded_Loc  : Source_Location_T;
          begin
-
             --  Note: macro arguments are completely macro-expanded before they
             --  are substituted in a macro body, unless they are stringified or
             --  pasted with other tokens.
@@ -662,53 +654,26 @@ package body Instrument.C is
             --  So we have to get the macro argument expansion location, and
             --  get its spelling location.
 
-            if Is_Macro_Arg_Expansion
-              (Loc, Macro_Arg_Expanded_Loc_C'Access, UIC.TU)
+            if Is_Macro_Arg_Expansion (Loc, Macro_Arg_Expanded_Loc, UIC.TU)
             then
-               Get_Spelling_Location
-                 (Macro_Arg_Expanded_Loc_C,
-                  File'Address,
-                  Line'Access,
-                  Column'Access,
-                  Offset'Access);
-               Macro_Arg_Expanded_Loc :=
-                 (Source_File =>
-                    Get_Index_From_Generic_Name
-                      (Name => Get_File_Name (File),
-                       Kind => Source_File),
-                  L           =>  (Natural (Line), Natural (Column)));
-
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics
-                    (Macro_Arg_Expanded_Loc_C, UIC.TU);
+                    (Macro_Arg_Expanded_Loc, UIC.TU);
 
                Definition_Info :=
                  (Macro_Name => Macro_Expansion_Name,
-                  Sloc       => Macro_Arg_Expanded_Loc);
+                  Sloc       => Spelling_Location (Macro_Arg_Expanded_Loc));
             else
-               Get_Spelling_Location
-                 (Loc,
-                  File'Address,
-                  Line'Access,
-                  Column'Access,
-                  Offset'Access);
-
-               Immediate_Expansion_Loc :=
-                 (Source_File =>
-                    Get_Index_From_Generic_Name
-                      (Name => Get_File_Name (File),
-                       Kind => Source_File),
-                  L           => (Natural (Line), Natural (Column)));
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
                Definition_Info :=
                  (Macro_Name => Macro_Expansion_Name,
-                  Sloc       => Immediate_Expansion_Loc);
+                  Sloc       => Spelling_Location (Loc));
             end if;
 
             while Is_Macro_Location (Loc) loop
 
-               Immediate_Expansion_Loc_C := Loc;
+               Immediate_Expansion_Loc := Loc;
 
                --  Find the location of the immediately expanded macro. Getting
                --  the immediate expansion location yields a location in the
@@ -747,9 +712,7 @@ package body Instrument.C is
                --  as implemented in clang.
 
                while Is_Macro_Arg_Expansion
-                 (Immediate_Expansion_Loc_C,
-                  Macro_Arg_Expanded_Loc_C'Access,
-                  UIC.TU)
+                 (Immediate_Expansion_Loc, Macro_Arg_Expanded_Loc, UIC.TU)
                loop
                   --  TODO??? Document why it is needed to loop while we are
                   --  in a macro argument expansion (did not manage to make an
@@ -758,31 +721,17 @@ package body Instrument.C is
                   --  Get_Immediate_Macro_Name_For_Diagnostics implemented in
                   --  clang.
 
-                  Immediate_Expansion_Loc_C :=
+                  Immediate_Expansion_Loc :=
                     Get_Immediate_Expansion_Loc
-                      (Immediate_Expansion_Loc_C, UIC.TU);
+                      (Immediate_Expansion_Loc, UIC.TU);
                end loop;
 
-               --  Immediate_Expansion_Loc is the location of the token in
-               --  the immediate expanded macro definition. To get to the
-               --  expansion point, go up one level.
-
-               Immediate_Expansion_Loc_C :=
-                 Get_Immediate_Expansion_Loc
-                   (Immediate_Expansion_Loc_C, UIC.TU);
-               Get_Spelling_Location
-                 (Immediate_Expansion_Loc_C,
-                  File'Address,
-                  Line'Access,
-                  Column'Access,
-                  Offset'Access);
+               --  Immediate_Expansion_Loc is the location of the token in the
+               --  immediate expanded macro definition. To get to the expansion
+               --  point, go up one level.
 
                Immediate_Expansion_Loc :=
-                 (Source_File =>
-                    Get_Index_From_Generic_Name
-                      (Name => Get_File_Name (File),
-                       Kind => Source_File),
-                  L           => (Natural (Line), Natural (Column)));
+                 Get_Immediate_Expansion_Loc (Immediate_Expansion_Loc, UIC.TU);
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
 
@@ -797,7 +746,8 @@ package body Instrument.C is
                if Length (Macro_Expansion_Name) /= 0 then
                   Expansion_Stack.Append
                     ((Macro_Name => Macro_Expansion_Name,
-                      Sloc       => Immediate_Expansion_Loc));
+                      Sloc       => Spelling_Location
+                                      (Immediate_Expansion_Loc)));
                end if;
             end loop;
 
@@ -844,9 +794,6 @@ package body Instrument.C is
             End_Loc               : constant Source_Location_T :=
               Get_Range_End (Cursor_Source_Range_C);
 
-            Line, Column, Offset : aliased unsigned;
-            File                 : File_T;
-
             Cursor_Source_Range : Slocs.Local_Source_Location_Range;
 
             procedure Update (LL_SCO : Nat; Info : in out PP_Info);
@@ -864,28 +811,13 @@ package body Instrument.C is
             end Update;
 
          begin
-            --  Get start of the range
+            --  Get start and end of the range. Note: End_Loc is exclusive,
+            --  whereas we need Cursor_Source_Range.Last_Sloc to be inclusive.
 
-            Get_File_Location
-              (Start_Loc,
-               File'Address,
-               Line'Access,
-               Column'Access,
-               Offset'Access);
-            Cursor_Source_Range.First_Sloc :=
-              (Line => Natural (Line), Column => Natural (Column));
-
-            --  Get end of the range. Note: end column is exclusive
-
-            Get_File_Location
-              (End_Loc,
-               File'Address,
-               Line'Access,
-               Column'Access,
-               Offset'Access);
-
-            Cursor_Source_Range.Last_Sloc :=
-              (Line => Natural (Line), Column => Natural (Column) - 1);
+            Cursor_Source_Range.First_Sloc := File_Location (Start_Loc);
+            Cursor_Source_Range.Last_Sloc := File_Location (End_Loc);
+            Cursor_Source_Range.Last_Sloc.Column :=
+              Cursor_Source_Range.Last_Sloc.Column - 1;
 
             UIC.LL_PP_Info_Map.Update_Element
               (UIC.LL_PP_Info_Map.Find (SCOs.SCO_Table.Last), Update'Access);
