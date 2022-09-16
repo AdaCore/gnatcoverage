@@ -110,9 +110,10 @@ clang_getBody (CXCursor C)
         switch (D->getKind ())
           {
           case Decl::FunctionTemplate:
-            return MakeCXCursorWithNull (
-              cast<FunctionTemplateDecl> (D)->getTemplatedDecl ()->getBody (),
-              C);
+            return MakeCXCursorWithNull (cast<FunctionTemplateDecl> (D)
+                                             ->getTemplatedDecl ()
+                                             ->getBody (),
+                                         C);
           case Decl::Function:
           case Decl::CXXMethod:
           case Decl::CXXConstructor:
@@ -133,29 +134,29 @@ clang_getBody (CXCursor C)
       if (const Stmt *S = cxcursor::getCursorStmt (C))
         switch (S->getStmtClass ())
           {
-            case Stmt::WhileStmtClass:
-              return MakeCXCursorWithNull (cast<WhileStmt> (S)->getBody (), C);
-            case Stmt::ForStmtClass:
-              return MakeCXCursorWithNull (cast<ForStmt> (S)->getBody (), C);
-            case Stmt::CXXForRangeStmtClass:
-              return MakeCXCursorWithNull
-                (cast<CXXForRangeStmt> (S)->getBody (), C);
-            case Stmt::DoStmtClass:
-              return MakeCXCursorWithNull (cast<DoStmt> (S)->getBody (), C);
-            case Stmt::SwitchStmtClass:
-              return MakeCXCursorWithNull (cast<SwitchStmt> (S)->getBody (), C);
-            default:
-              return clang_getNullCursor ();
+          case Stmt::WhileStmtClass:
+            return MakeCXCursorWithNull (cast<WhileStmt> (S)->getBody (), C);
+          case Stmt::ForStmtClass:
+            return MakeCXCursorWithNull (cast<ForStmt> (S)->getBody (), C);
+          case Stmt::CXXForRangeStmtClass:
+            return MakeCXCursorWithNull (cast<CXXForRangeStmt> (S)->getBody (),
+                                         C);
+          case Stmt::DoStmtClass:
+            return MakeCXCursorWithNull (cast<DoStmt> (S)->getBody (), C);
+          case Stmt::SwitchStmtClass:
+            return MakeCXCursorWithNull (cast<SwitchStmt> (S)->getBody (), C);
+          default:
+            return clang_getNullCursor ();
           }
     }
   else if (clang_isExpression (C.kind))
     if (const Expr *E = cxcursor::getCursorExpr (C))
       switch (E->getStmtClass ())
         {
-          case Expr::LambdaExprClass:
-            return MakeCXCursorWithNull (cast<LambdaExpr> (E)->getBody (), C);
-          default:
-            return clang_getNullCursor ();
+        case Expr::LambdaExprClass:
+          return MakeCXCursorWithNull (cast<LambdaExpr> (E)->getBody (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -184,8 +185,7 @@ clang_getForRangeExpr (CXCursor C)
   const Stmt *stmt;
   const CXXForRangeStmt *for_stmt;
 
-  if (clang_isStatement (C.kind)
-      && (stmt = cxcursor::getCursorStmt (C))
+  if (clang_isStatement (C.kind) && (stmt = cxcursor::getCursorStmt (C))
       && stmt->getStmtClass () == Stmt::CXXForRangeStmtClass)
     {
       for_stmt = cast<CXXForRangeStmt> (stmt);
@@ -216,8 +216,7 @@ clang_getCondVar (CXCursor C)
   const WhileStmt *while_stmt;
   const VarDecl *decl;
 
-  if (clang_isStatement (C.kind)
-      && (stmt = cxcursor::getCursorStmt (C))
+  if (clang_isStatement (C.kind) && (stmt = cxcursor::getCursorStmt (C))
       && stmt->getStmtClass () == Stmt::WhileStmtClass)
     {
       while_stmt = cast<WhileStmt> (stmt);
@@ -233,8 +232,7 @@ clang_getVarInitExpr (CXCursor C)
   const Decl *decl;
   const VarDecl *var_decl;
 
-  if (clang_isDeclaration (C.kind)
-      && (decl = cxcursor::getCursorDecl (C))
+  if (clang_isDeclaration (C.kind) && (decl = cxcursor::getCursorDecl (C))
       && decl->getKind () == Decl::Kind::Var)
     {
       var_decl = cast<VarDecl> (decl);
@@ -401,24 +399,23 @@ clang_unwrap (CXCursor C)
     if (const Stmt *S = cxcursor::getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-          case Stmt::ParenExprClass:
-            return clang_unwrap
-              (MakeCXCursorWithNull (cast<ParenExpr> (S)->getSubExpr (), C));
-          case Expr::ConstantExprClass:
-          case Expr::ExprWithCleanupsClass:
-            return clang_unwrap
-              (MakeCXCursorWithNull (cast<FullExpr> (S)->getSubExpr (), C));
-          case Expr::ImplicitCastExprClass:
-          case Expr::CStyleCastExprClass:
-          case Expr::CXXFunctionalCastExprClass:
-          case Expr::CXXStaticCastExprClass:
-          case Expr::CXXDynamicCastExprClass:
-          case Expr::CXXReinterpretCastExprClass:
-          case Expr::CXXConstCastExprClass:
-          case Expr::CXXAddrspaceCastExprClass:
-            return clang_unwrap
-              (MakeCXCursorWithNull (cast<CastExpr> (S)->getSubExpr (), C));
-
+        case Stmt::ParenExprClass:
+          return clang_unwrap (
+              MakeCXCursorWithNull (cast<ParenExpr> (S)->getSubExpr (), C));
+        case Expr::ConstantExprClass:
+        case Expr::ExprWithCleanupsClass:
+          return clang_unwrap (
+              MakeCXCursorWithNull (cast<FullExpr> (S)->getSubExpr (), C));
+        case Expr::ImplicitCastExprClass:
+        case Expr::CStyleCastExprClass:
+        case Expr::CXXFunctionalCastExprClass:
+        case Expr::CXXStaticCastExprClass:
+        case Expr::CXXDynamicCastExprClass:
+        case Expr::CXXReinterpretCastExprClass:
+        case Expr::CXXConstCastExprClass:
+        case Expr::CXXAddrspaceCastExprClass:
+          return clang_unwrap (
+              MakeCXCursorWithNull (cast<CastExpr> (S)->getSubExpr (), C));
         }
   return C;
 }
@@ -480,13 +477,14 @@ clang_CXRewriter_insertTextAfterToken (CXRewriter Rew, CXSourceLocation Loc,
 extern "C" unsigned
 clang_isMacroLocation (CXSourceLocation Loc)
 {
-  const clang::SourceLocation SLoc =
-     clang::cxloc::translateSourceLocation (Loc);
+  const clang::SourceLocation SLoc
+      = clang::cxloc::translateSourceLocation (Loc);
   return SLoc.isMacroID () ? 1 : 0;
 }
 
 extern "C" unsigned
-clang_isMacroArgExpansion (CXSourceLocation Loc, CXSourceLocation *StartLoc, CXTranslationUnit TU)
+clang_isMacroArgExpansion (CXSourceLocation Loc, CXSourceLocation *StartLoc,
+                           CXTranslationUnit TU)
 {
   const SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
   const SourceLocation SLoc = translateSourceLocation (Loc);
@@ -509,8 +507,8 @@ clang_getImmediateMacroCallerLoc (CXSourceLocation Loc, CXTranslationUnit TU)
   ASTContext &astContext = astUnit->getASTContext ();
   SourceLocation SLoc = translateSourceLocation (Loc);
   if (SLoc.isMacroID ())
-    return cxloc::translateSourceLocation
-      (astContext, SM.getImmediateMacroCallerLoc (SLoc));
+    return cxloc::translateSourceLocation (
+        astContext, SM.getImmediateMacroCallerLoc (SLoc));
   return Loc;
 }
 
@@ -521,20 +519,20 @@ clang_getImmediateExpansionLoc (CXSourceLocation Loc, CXTranslationUnit TU)
   ASTUnit *astUnit = cxtu::getASTUnit (TU);
   ASTContext &astContext = astUnit->getASTContext ();
   SourceLocation SLoc = translateSourceLocation (Loc);
-  return cxloc::translateSourceLocation
-    (astContext, SM.getImmediateExpansionRange (SLoc).getBegin ());
+  return cxloc::translateSourceLocation (
+      astContext, SM.getImmediateExpansionRange (SLoc).getBegin ());
 }
 
 extern "C" CXString
-clang_getImmediateMacroNameForDiagnostics (CXSourceLocation Loc, CXTranslationUnit TU)
+clang_getImmediateMacroNameForDiagnostics (CXSourceLocation Loc,
+                                           CXTranslationUnit TU)
 {
   SourceLocation SLoc = translateSourceLocation (Loc);
   SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
   ASTUnit *astUnit = cxtu::getASTUnit (TU);
   ASTContext &astContext = astUnit->getASTContext ();
-  return createDup
-    (Lexer::getImmediateMacroNameForDiagnostics
-     (SLoc, SM, astContext.getLangOpts ()));
+  return createDup (Lexer::getImmediateMacroNameForDiagnostics (
+      SLoc, SM, astContext.getLangOpts ()));
 }
 
 extern "C" CXSourceLocation
@@ -544,8 +542,8 @@ clang_getExpansionEnd (CXTranslationUnit TU, CXSourceLocation Loc)
   SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
   ASTUnit *astUnit = cxtu::getASTUnit (TU);
   ASTContext &astContext = astUnit->getASTContext ();
-  return cxloc::translateSourceLocation
-    (astContext, SM.getExpansionRange (SLoc).getEnd ());
+  return cxloc::translateSourceLocation (
+      astContext, SM.getExpansionRange (SLoc).getEnd ());
 }
 
 extern "C" CXTranslationUnit
@@ -557,6 +555,6 @@ clang_getCursorTU (CXCursor C)
 extern "C" void
 clang_printLocation (CXTranslationUnit TU, CXSourceLocation Loc)
 {
-  const SourceManager &SM = cxtu::getASTUnit(TU)->getSourceManager();
-  clang::cxloc::translateSourceLocation (Loc).dump(SM);
+  const SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  clang::cxloc::translateSourceLocation (Loc).dump (SM);
 }
