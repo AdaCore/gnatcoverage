@@ -33,9 +33,9 @@ package Instrument.C_Utils is
    type Cursor_Visitor_Function is access function
      (Node : Cursor_T) return Child_Visit_Result_T with Convention => C;
 
-   -------------------------
-   --  Location utilities --
-   -------------------------
+   ------------------------
+   -- Location utilities --
+   ------------------------
 
    function Sloc (Loc : Source_Location_T) return Local_Source_Location;
    --  Convert a Source_Location_T to a Source_Location
@@ -53,8 +53,7 @@ package Instrument.C_Utils is
    --  Return True if the node N is a null cursor, false otherwise
 
    procedure Visit_Children
-     (Parent  : Cursor_T;
-      Visitor : Cursor_Visitor_Function);
+     (Parent : Cursor_T; Visitor : Cursor_Visitor_Function);
    --  Wrapper for the Visit_Children clang procedure
 
    procedure Visit (Parent : Cursor_T; Visitor : Cursor_Visitor_Function);
@@ -90,8 +89,12 @@ package Instrument.C_Utils is
    --  Turn the node N into a single element node vector
 
    function Get_Main (TU : Translation_Unit_T) return Cursor_T;
+   --  Return the cursor corresponding to the definition of the "main"
+   --  function, or the null cursor if there is no main function.
 
-   --  Rewriting utilities
+   -------------------------
+   -- Rewriting utilities --
+   -------------------------
 
    procedure Add_Statement_In_Main
      (TU        : Translation_Unit_T;
@@ -151,7 +154,9 @@ package Instrument.C_Utils is
       Process : not null access procedure (Tok : Token_T));
    --  Call Process on all of the tokens within the source range of N
 
-   --  Debugging
+   ---------------
+   -- Debugging --
+   ---------------
 
    procedure Print_Tokens (TU : Translation_Unit_T; N : Cursor_T);
    --  Print the tokens associated to the given node
