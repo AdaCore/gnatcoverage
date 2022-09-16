@@ -34,13 +34,8 @@ package body Instrument.C_Utils is
    ----------
 
    function Sloc (Loc : Source_Location_T) return Local_Source_Location is
-      Line, Column : aliased Interfaces.C.unsigned;
    begin
-      Get_Presumed_Location (Location => Loc,
-                             Filename => null,
-                             Line     => Line'Access,
-                             Column   => Column'Access);
-      return (Natural (Line), Natural (Column));
+      return Presumed_Location (Loc);
    end Sloc;
 
    ----------------
@@ -48,15 +43,8 @@ package body Instrument.C_Utils is
    ----------------
 
    function Start_Sloc (N : Cursor_T) return Local_Source_Location is
-      Line, Column : aliased Interfaces.C.unsigned;
-      Loc          : constant Source_Location_T :=
-        Get_Range_Start (Get_Cursor_Extent (N));
    begin
-      Get_Presumed_Location (Location => Loc,
-                             Filename => null,
-                             Line     => Line'Access,
-                             Column   => Column'Access);
-      return (Natural (Line), Natural (Column));
+      return Presumed_Location (Get_Range_Start (Get_Cursor_Extent (N)));
    end Start_Sloc;
 
    --------------
@@ -64,19 +52,12 @@ package body Instrument.C_Utils is
    --------------
 
    function End_Sloc (N : Cursor_T) return Local_Source_Location is
-      Line, Column : aliased Interfaces.C.unsigned;
-      Loc          : Source_Location_T :=
-        Get_Range_End (Get_Cursor_Extent (N));
+      Loc : Source_Location_T := Get_Range_End (Get_Cursor_Extent (N));
    begin
       if Is_Macro_Location (Loc) then
          Loc := Get_Expansion_End (Get_Cursor_TU (N), Loc);
       end if;
-      Get_Presumed_Location
-        (Location => Loc,
-         Filename => null,
-         Line     => Line'Access,
-         Column   => Column'Access);
-      return (Natural (Line), Natural (Column));
+      return Presumed_Location (Loc);
    end End_Sloc;
 
    ----------
