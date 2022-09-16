@@ -46,6 +46,39 @@ using namespace clang::cxloc;
 using namespace clang::cxstring;
 using namespace clang::cxtu;
 
+/* Return the AST context corresponding to the given translation unit TU.  */
+
+static ASTContext &
+getContext (CXTranslationUnit TU)
+{
+  return cxtu::getASTUnit (TU)->getASTContext ();
+}
+
+/* Likewise, but starting from a cursor.  */
+
+static ASTContext &
+getContext (CXCursor C)
+{
+  return getContext (getCursorTU (C));
+}
+
+/* Return the SourceManager corresponding to the given translation unit TU.  */
+
+static const SourceManager &
+getSourceManager (CXTranslationUnit TU)
+{
+  return cxtu::getASTUnit (TU)->getSourceManager ();
+}
+
+/* Translate a source location to a cursor source location in the given
+   translation unit TU.  */
+
+static CXSourceLocation
+translateSLoc (CXTranslationUnit TU, SourceLocation Loc)
+{
+  return cxloc::translateSourceLocation (getContext (TU), Loc);
+}
+
 /* Convert a clang Stmt type to a libclang CXCursor structure.  The CXCursor C
    is simply used to get a relevant declaration and translation unit to tie
    the returned cursor to.  */
@@ -368,7 +401,7 @@ clang_getOpcodeStr (CXCursor C)
 extern "C" CXSourceLocation
 clang_getOperatorLoc (CXCursor C)
 {
-  ASTUnit *CXXUnit = cxtu::getASTUnit (getCursorTU (C));
+  CXTranslationUnit TU = getCursorTU (C);
   SourceLocation sloc;
   if (clang_isExpression (C.kind))
     if (const Stmt *S = cxcursor::getCursorStmt (C))
@@ -383,7 +416,7 @@ clang_getOperatorLoc (CXCursor C)
         default:
           return clang_getNullLocation ();
         }
-  return cxloc::translateSourceLocation (CXXUnit->getASTContext (), sloc);
+  return translateSLoc (TU, sloc);
 }
 
 /* If the given expression is a wrapping expression (i.e. a parenthesized
@@ -438,11 +471,9 @@ extern "C" CXCursor
 clang_getParent (CXCursor C)
 {
   assert (clang_isStatement (C.kind) || clang_isExpression (C.kind));
-  ASTUnit *astUnit = cxtu::getASTUnit (getCursorTU (C));
-  ASTContext &astContext = astUnit->getASTContext ();
   if (const Stmt *S = cxcursor::getCursorStmt (C))
     {
-      const auto Parents = astContext.getParents (*S);
+      const auto Parents = getContext (C).getParents (*S);
       if (Parents.empty ())
         return clang_getNullCursor ();
       const auto &SParent = Parents[0];
@@ -486,14 +517,12 @@ extern "C" unsigned
 clang_isMacroArgExpansion (CXSourceLocation Loc, CXSourceLocation *StartLoc,
                            CXTranslationUnit TU)
 {
-  const SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  const SourceManager &SM = getSourceManager (TU);
   const SourceLocation SLoc = translateSourceLocation (Loc);
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
   SourceLocation Result;
   if (SM.isMacroArgExpansion (SLoc, &Result))
     {
-      *StartLoc = cxloc::translateSourceLocation (astContext, Result);
+      *StartLoc = translateSLoc (TU, Result);
       return 1;
     }
   return 0;
@@ -502,25 +531,19 @@ clang_isMacroArgExpansion (CXSourceLocation Loc, CXSourceLocation *StartLoc,
 extern "C" CXSourceLocation
 clang_getImmediateMacroCallerLoc (CXSourceLocation Loc, CXTranslationUnit TU)
 {
-  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
+  const SourceManager &SM = getSourceManager (TU);
   SourceLocation SLoc = translateSourceLocation (Loc);
   if (SLoc.isMacroID ())
-    return cxloc::translateSourceLocation (
-        astContext, SM.getImmediateMacroCallerLoc (SLoc));
+    return translateSLoc (TU, SM.getImmediateMacroCallerLoc (SLoc));
   return Loc;
 }
 
 extern "C" CXSourceLocation
 clang_getImmediateExpansionLoc (CXSourceLocation Loc, CXTranslationUnit TU)
 {
-  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
+  const SourceManager &SM = getSourceManager (TU);
   SourceLocation SLoc = translateSourceLocation (Loc);
-  return cxloc::translateSourceLocation (
-      astContext, SM.getImmediateExpansionRange (SLoc).getBegin ());
+  return translateSLoc (TU, SM.getImmediateExpansionRange (SLoc).getBegin ());
 }
 
 extern "C" CXString
@@ -528,22 +551,17 @@ clang_getImmediateMacroNameForDiagnostics (CXSourceLocation Loc,
                                            CXTranslationUnit TU)
 {
   SourceLocation SLoc = translateSourceLocation (Loc);
-  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
+  const SourceManager &SM = getSourceManager (TU);
   return createDup (Lexer::getImmediateMacroNameForDiagnostics (
-      SLoc, SM, astContext.getLangOpts ()));
+      SLoc, SM, getContext (TU).getLangOpts ()));
 }
 
 extern "C" CXSourceLocation
 clang_getExpansionEnd (CXTranslationUnit TU, CXSourceLocation Loc)
 {
   SourceLocation SLoc = translateSourceLocation (Loc);
-  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
-  return cxloc::translateSourceLocation (
-      astContext, SM.getExpansionRange (SLoc).getEnd ());
+  const SourceManager &SM = getSourceManager (TU);
+  return translateSLoc (TU, SM.getExpansionRange (SLoc).getEnd ());
 }
 
 extern "C" CXTranslationUnit
@@ -557,6 +575,6 @@ clang_getCursorTU (CXCursor C)
 extern "C" void
 clang_printLocation (CXTranslationUnit TU, CXSourceLocation Loc)
 {
-  const SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  const SourceManager &SM = getSourceManager (TU);
   clang::cxloc::translateSourceLocation (Loc).dump (SM);
 }
