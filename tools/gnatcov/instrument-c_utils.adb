@@ -78,21 +78,24 @@ package body Instrument.C_Utils is
       return Cursor_Is_Null (N);
    end Is_Null;
 
-   pragma Warnings (Off);
-
    --------------------
    -- Visit_Children --
    --------------------
 
    procedure Visit_Children
-     (Parent  : Cursor_T;
-      Visitor : Cursor_Visitor_Function) is
-
+     (Parent : Cursor_T; Visitor : Cursor_Visitor_Function)
+   is
       function Visitor_Wrapper
         (Node        : Cursor_T;
          Parent      : Cursor_T;
          Client_Data : Client_Data_T) return Child_Visit_Result_T
         with Convention => C;
+      --  Callback for Clang.Index.Visit_Children. Just a wrapper around
+      --  Visitor.
+
+      ---------------------
+      -- Visitor_Wrapper --
+      ---------------------
 
       function Visitor_Wrapper
         (Node        : Cursor_T;
@@ -104,11 +107,15 @@ package body Instrument.C_Utils is
          return Visitor (Node);
       end Visitor_Wrapper;
 
-      Data   : Client_Data_T;
-      Result : unsigned;
+      Dummy : constant unsigned := Visit_Children
+        (Parent,
+         Visitor_Wrapper'Unrestricted_Access,
+         Client_Data_T (System.Null_Address));
+
+   --  Start of processing for Visit_Children
+
    begin
-      Result :=
-        Visit_Children (Parent, Visitor_Wrapper'Unrestricted_Access, Data);
+      null;
    end Visit_Children;
 
    -----------
@@ -116,12 +123,17 @@ package body Instrument.C_Utils is
    -----------
 
    procedure Visit (Parent : Cursor_T; Visitor : Cursor_Visitor_Function) is
-
       function Visitor_Wrapper
         (Node        : Cursor_T;
          Parent      : Cursor_T;
          Client_Data : Client_Data_T) return Child_Visit_Result_T
       with Convention => C;
+      --  Callback for Clang.Index.Visit_Children. Just a wrapper around
+      --  Visitor.
+
+      ---------------------
+      -- Visitor_Wrapper --
+      ---------------------
 
       function Visitor_Wrapper
         (Node        : Cursor_T;
@@ -133,33 +145,40 @@ package body Instrument.C_Utils is
          return Visitor (Node);
       end Visitor_Wrapper;
 
-      Data   : Client_Data_T;
-      Result : unsigned;
+      Dummy : constant unsigned := Visit
+        (Parent,
+         Visitor_Wrapper'Unrestricted_Access,
+         Client_Data_T (System.Null_Address));
+
+   --  Start of processing for Visit
+
    begin
-      Result := Visit (Parent, Visitor_Wrapper'Unrestricted_Access, Data);
+      null;
    end Visit;
-   pragma Warnings (On);
 
    ------------------
    -- Get_Children --
    ------------------
 
    function Get_Children (N : Cursor_T) return Cursor_Vectors.Vector is
-
       Res : Vector;
-
-      --  Append the children to the result vector and continue the traversal
-      --  until all children have been appended.
 
       function Append_Child (Cursor : Cursor_T) return Child_Visit_Result_T
         with Convention => C;
+      --  Callback for Visit_Children. Append Cursor to Res and continue the
+      --  traversal.
 
-      function Append_Child (Cursor : Cursor_T) return Child_Visit_Result_T
-      is
+      ------------------
+      -- Append_Child --
+      ------------------
+
+      function Append_Child (Cursor : Cursor_T) return Child_Visit_Result_T is
       begin
          Res.Append (Cursor);
          return Child_Visit_Continue;
       end Append_Child;
+
+   --  Start of processing for Get_Children
 
    begin
       Visit_Children (N, Get_Children.Append_Child'Unrestricted_Access);
@@ -190,6 +209,9 @@ package body Instrument.C_Utils is
          end if;
          return Child_Visit_Recurse;
       end Process;
+
+   --  Start of processing for Get_Lambda_Exprs
+
    begin
       Visit_Children (N, Process'Unrestricted_Access);
       return Res;
@@ -223,6 +245,10 @@ package body Instrument.C_Utils is
       end;
    end Is_Unit_Of_Interest;
 
+   ---------------
+   -- To_Vector --
+   ---------------
+
    function To_Vector (N : Cursor_T) return Cursor_Vectors.Vector is
       Res : Cursor_Vectors.Vector;
    begin
@@ -235,28 +261,36 @@ package body Instrument.C_Utils is
    --------------
 
    function Get_Main (TU : Translation_Unit_T) return Cursor_T is
-
-      Main_Decl_Cursor : Cursor_T := Get_Null_Cursor;
+      Result : Cursor_T := Get_Null_Cursor;
 
       function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
         with Convention => C;
+      --  Callback for Visit_Children. Set Result and break the iteration if
+      --  Cursor is the "main" function definition, continue the iteration to
+      --  find the main otherwise.
 
-      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
-      is
+      ----------------
+      -- Visit_Decl --
+      ----------------
+
+      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T is
       begin
          if Kind (Cursor) = Cursor_Translation_Unit then
             return Child_Visit_Recurse;
          end if;
          if Cursor_Get_Mangling (Cursor) = "main" then
-            Main_Decl_Cursor := Cursor;
+            Result := Cursor;
             return Child_Visit_Break;
          end if;
          return Child_Visit_Continue;
       end Visit_Decl;
+
+   --  Start of processing for Get_Main
+
    begin
       Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
                       Visitor => Visit_Decl'Unrestricted_Access);
-      return Main_Decl_Cursor;
+      return Result;
    end Get_Main;
 
    --  Rewriting utilities
@@ -268,20 +302,23 @@ package body Instrument.C_Utils is
    procedure Add_Statement_In_Main
      (TU        : Translation_Unit_T;
       Rew       : Rewriter_T;
-      Statement : String) is
-
+      Statement : String)
+   is
       function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
         with Convention => C;
       --  Traverse the tree until the main function is found, and insert a
       --  statement.
 
-      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T
-      is
+      ----------------
+      -- Visit_Decl --
+      ----------------
+
+      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T is
       begin
          if Kind (Cursor) = Cursor_Translation_Unit then
             return Child_Visit_Recurse;
-         end if;
-         if Cursor_Get_Mangling (Cursor) = "main" then
+
+         elsif Cursor_Get_Mangling (Cursor) = "main" then
             declare
                Fun_Children : constant Vector := Get_Children (Cursor);
                Body_Cursor  : constant Cursor_T :=
@@ -303,9 +340,14 @@ package body Instrument.C_Utils is
                   Insert => Statement);
             end;
             return Child_Visit_Break;
+
+         else
+            return Child_Visit_Continue;
          end if;
-         return Child_Visit_Continue;
       end Visit_Decl;
+
+   --  Start of processing for Add_Statement_In_Main
+
    begin
       Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
                       Visitor => Visit_Decl'Unrestricted_Access);
@@ -443,6 +485,8 @@ package body Instrument.C_Utils is
 
    procedure Print_Tokens (TU : Translation_Unit_T; N : Cursor_T) is
       procedure Put_Token (Tok : Token_T);
+      --  Callback for Iterate_Tokens. Put the spelling of Tok on the standard
+      --  output.
 
       ---------------
       -- Put_Token --
@@ -452,6 +496,9 @@ package body Instrument.C_Utils is
       begin
          Put (Get_Token_Spelling (TU, Tok));
       end Put_Token;
+
+   --  Start of processing for Print_Tokens
+
    begin
       Iterate_Tokens (TU, N, Put_Token'Access);
       New_Line;
