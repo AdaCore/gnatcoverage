@@ -88,6 +88,10 @@ package Instrument.C_Utils is
    --  Return the cursor corresponding to the definition of the "main"
    --  function, or the null cursor if there is no main function.
 
+   function Is_Atexit_Declared (TU : Translation_Unit_T) return Boolean;
+   --  Return True if there is a declaration of atexit in the given translation
+   --  unit.
+
    -------------------------
    -- Rewriting utilities --
    -------------------------

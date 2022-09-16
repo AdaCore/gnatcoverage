@@ -273,6 +273,44 @@ package body Instrument.C_Utils is
       return Result;
    end Get_Main;
 
+   ------------------------
+   -- Is_Atexit_Declared --
+   ------------------------
+
+   function Is_Atexit_Declared (TU : Translation_Unit_T) return Boolean is
+      Has_Atexit_Declaration : Boolean := False;
+
+      function Is_Atexit (Cursor : Cursor_T) return Child_Visit_Result_T;
+      --  Set Has_Atexit_Declaration to True if Cursor is the declaration of
+      --  the atexit function. Otherwise, recurse into the node if it is a
+      --  list of C declarations, or continue the traversal of the current
+      --  declaration list.
+
+      ---------------
+      -- Is_Atexit --
+      ---------------
+
+      function Is_Atexit (Cursor : Cursor_T) return Child_Visit_Result_T is
+      begin
+         if Kind (Cursor) in Cursor_Translation_Unit | Cursor_Linkage_Spec
+         then
+            return Child_Visit_Recurse;
+         elsif Cursor_Get_Mangling (Cursor) = "atexit" then
+            Has_Atexit_Declaration := True;
+            return Child_Visit_Break;
+         else
+            return Child_Visit_Continue;
+         end if;
+      end Is_Atexit;
+
+      --  Start of processing for Is_Atexit_Declared
+
+   begin
+      Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
+                      Visitor => Is_Atexit'Access);
+      return Has_Atexit_Declaration;
+   end Is_Atexit_Declared;
+
    --  Rewriting utilities
 
    --------------------------------

@@ -3913,13 +3913,20 @@ package body Instrument.C is
             end;
 
          when At_Exit =>
-            Put_Extern_Decl
-              (Rew.Rewriter,
-               Insert_Extern_Location,
-               Instrumenter,
-               "int",
-               "atexit",
-               Func_Args => "void (*function) (void)");
+
+            --  To avoid getting conflicting atexit declarations (if the user
+            --  includes stdlib.h), we only emit a declaration of atexit if
+            --  is not already declared in the translation unit.
+
+            if not Is_Atexit_Declared (Rew.TU) then
+               Put_Extern_Decl
+                 (Rew.Rewriter,
+                  Insert_Extern_Location,
+                  Instrumenter,
+                  "int",
+                  "atexit",
+                  Func_Args => "void (*function) (void)");
+            end if;
 
             declare
                Body_Cursor : constant Cursor_T := Get_Body (Main_Cursor);
