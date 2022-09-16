@@ -138,8 +138,9 @@ package body Slocs is
    -- Image --
    -----------
 
-   function Image (Sloc : Source_Location;
-                   Unique_Name : Boolean := False) return String is
+   function Image
+     (Sloc        : Source_Location;
+      Unique_Name : Boolean := False) return String is
    begin
       return Abridged_Image
         (Sloc        => Sloc,

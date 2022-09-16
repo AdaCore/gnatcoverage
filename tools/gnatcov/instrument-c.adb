@@ -581,9 +581,6 @@ package body Instrument.C is
          return;
       end if;
 
-      Get_Expansion_Location
-        (Loc, File'Address, Line'Access, Column'Access, Offset'Access);
-
       Info.Actual_Source_Range := (From, To);
 
       --  Check if this is comes from a macro expansion, in which case we need
@@ -2423,7 +2420,7 @@ package body Instrument.C is
       --  Add the preprocessing flag
 
       Append_Arg (Cmd, "-E");
-      Add_Options (Cmd.Arguments, Options);
+      Add_Options (Cmd.Arguments, Options, Pass_Builtins => False);
 
       Append_Arg (Cmd, Filename);
 
@@ -3825,8 +3822,9 @@ package body Instrument.C is
    -----------------
 
    procedure Add_Options
-     (Args : in out String_Vectors.Vector; Options : Analysis_Options)
-   is
+     (Args          : in out String_Vectors.Vector;
+      Options       : Analysis_Options;
+      Pass_Builtins : Boolean := True) is
 
       procedure Add_Macro_Switches (Macros : Macro_Vectors.Vector);
       --  Add the given macro switches to Args
@@ -3859,7 +3857,9 @@ package body Instrument.C is
       --  latter should have precedence over builtins and thus must come last
       --  in Args.
 
-      Add_Macro_Switches (Options.Builtin_Macros);
+      if Pass_Builtins then
+         Add_Macro_Switches (Options.Builtin_Macros);
+      end if;
       Add_Macro_Switches (Options.PP_Macros);
 
       --  The -std switch also indicates the C/C++ version used, and

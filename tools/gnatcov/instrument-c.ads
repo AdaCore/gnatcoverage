@@ -250,8 +250,11 @@ package Instrument.C is
    --  Options to analyze (preprocess and/or parse) a compilation unit
 
    procedure Add_Options
-     (Args : in out String_Vectors.Vector; Options : Analysis_Options);
-   --  Append to Args the command line options corresponding to Options
+     (Args          : in out String_Vectors.Vector;
+      Options       : Analysis_Options;
+      Pass_Builtins : Boolean := True);
+   --  Append to Args the command line options corresponding to Options. If
+   --  Pass_Builtins is True, pass builtin macros in Options to Args.
 
    procedure Import_From_Project
      (Self     : out Analysis_Options;
