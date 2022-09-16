@@ -90,13 +90,6 @@ package Instrument.C_Utils is
    -- Rewriting utilities --
    -------------------------
 
-   procedure Add_Statement_In_Main
-     (TU        : Translation_Unit_T;
-      Rew       : Rewriter_T;
-      Statement : String);
-   --  Add a statement at the beginning of the main, and before any previously
-   --  inserted string at the same location.
-
    procedure Insert_Text_After_Start_Of
      (N    : Cursor_T;
       Text : String;

@@ -3622,9 +3622,17 @@ package body Instrument.C is
       Insert_Extern_Location : constant Source_Location_T :=
         Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
       --  Where to insert extern declarations
+
+      Main_Cursor : constant Cursor_T := Get_Main (Rew.TU);
+      --  Cursor of the main declaration
    begin
       if Instr_Units.Is_Empty then
          return;
+      end if;
+
+      if Main_Cursor = Get_Null_Cursor then
+         Outputs.Fatal_Error ("Could not find main function in "
+                              & (+Main.Filename));
       end if;
 
       Emit_Dump_Helper_Unit (IC, Info, Main, Helper_Filename, Instrumenter);
@@ -3726,7 +3734,7 @@ package body Instrument.C is
                end Process;
 
             begin
-               Visit_Children (Parent  => Get_Main (Rew.TU),
+               Visit_Children (Parent  => Main_Cursor,
                                Visitor => Process'Access);
 
                --  If the last statement of the function is not a return
@@ -3779,9 +3787,24 @@ package body Instrument.C is
                "atexit",
                Func_Args => "void (*function) (void)");
 
-            Add_Statement_In_Main
-              (Rew.TU, Rew.Rewriter,
-               "atexit (" & Dump_Procedure_Symbol (Main) & ");");
+            declare
+               Body_Cursor : constant Cursor_T := Get_Body (Main_Cursor);
+
+               --  The body of a function is a compound statement, so insert
+               --  the call to atexit before its first statement.
+
+               Body_Stmts : constant Cursor_Vectors.Vector :=
+                 Get_Children (Body_Cursor);
+               First_Stmt : constant Cursor_T := Body_Stmts.First_Element;
+
+               Location : constant Source_Location_T :=
+                 Get_Cursor_Location (First_Stmt);
+            begin
+               CX_Rewriter_Insert_Text_Before
+                 (Rew    => Rew.Rewriter,
+                  Loc    => Location,
+                  Insert => "atexit (" & Dump_Procedure_Symbol (Main) & ");");
+            end;
 
          when others =>
             null;
