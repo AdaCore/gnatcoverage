@@ -96,6 +96,26 @@ package body Clang.Extensions is
       return Is_Macro_Location_C (Loc) /= 0;
    end Is_Macro_Location;
 
+   ----------------------------
+   -- Is_Macro_Arg_Expansion --
+   ----------------------------
+
+   function Is_Macro_Arg_Expansion
+     (Loc       : Source_Location_T;
+      Start_Loc : access Source_Location_T := null;
+      TU        : Translation_Unit_T) return Boolean
+   is
+      function Is_Macro_Arg_Expansion
+        (Loc       : Source_Location_T;
+         Start_Loc : access Source_Location_T;
+         TU        : Translation_Unit_T) return unsigned
+        with
+          Import, Convention => C,
+          External_Name      => "clang_isMacroArgExpansion";
+   begin
+      return Is_Macro_Arg_Expansion (Loc, Start_Loc, TU) /= 0;
+   end Is_Macro_Arg_Expansion;
+
    ----------------------------------------------
    -- Get_Immediate_Macro_Name_For_Diagnostics --
    ----------------------------------------------
@@ -119,25 +139,5 @@ package body Clang.Extensions is
       Dispose_String (Macro_Name_C);
       return Macro_Name;
    end Get_Immediate_Macro_Name_For_Diagnostics;
-
-   ----------------------------
-   -- Is_Macro_Arg_Expansion --
-   ----------------------------
-
-   function Is_Macro_Arg_Expansion
-     (Loc       : Source_Location_T;
-      Start_Loc : access Source_Location_T := null;
-      TU        : Translation_Unit_T) return Boolean
-   is
-      function Is_Macro_Arg_Expansion
-        (Loc       : Source_Location_T;
-         Start_Loc : access Source_Location_T;
-         TU        : Translation_Unit_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name      => "clang_isMacroArgExpansion";
-   begin
-      return Is_Macro_Arg_Expansion (Loc, Start_Loc, TU) /= 0;
-   end Is_Macro_Arg_Expansion;
 
 end Clang.Extensions;
