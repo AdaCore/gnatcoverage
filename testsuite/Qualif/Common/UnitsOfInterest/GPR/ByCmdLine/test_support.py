@@ -4,6 +4,8 @@ Expose a "check" conveniency function to all testcases.
 
 import os
 
+from e3.fs import mkdir, sync_tree
+
 from SCOV.tc import TestCase
 from SCOV.tctl import CovControl
 from SUITE.control import env
@@ -19,29 +21,12 @@ _xreports = {
                  'boolops-andthen.adb', 'boolops-orelse.adb'],
     'intops':   ['intops.ads', 'intops.adb',
                  'intops-add.adb', 'intops-sub.adb'],
-    'counters': ['counters.ads', 'counters.adb']
-    }
+    'counters': ['counters.ads', 'counters.adb'],
+}
+all_projects = list(_xreports)
 
 
-def _gpr_for(prj):
-    """
-    Assuming we're in the tmpdir created by the SCOV TestCase
-    instance, return the relative file name for the project file
-    corresponding to the `prj` project shortname.
-    """
-
-    # <tcgroup_dir>
-    #     /intops
-    #     /boolops
-    #     /counters
-    #     /<tcdir>/<tmpdir_for_check>/<tmpdir_by_TestCase>
-
-    return '../../../%s/%s.gpr' % (prj, prj)
-
-
-def check(root_project, recurse,
-          projects=None, units=None,
-          xreports=None):
+def check(root_project, recurse, projects=None, units=None, xreports=None):
     """
     Check that running our test with
 
@@ -64,48 +49,39 @@ def check(root_project, recurse,
     `recurse` None means "arrange not to pass any option influencing
     recursiveness".
     """
-
     projects = to_list(projects)
     units = to_list(units)
 
-    # root_project, projects, and units arguments we will provide to the
-    # GPRswitches class:
-    gprsw_root_project = (
-        root_project if root_project.endswith('.gpr')
-        else _gpr_for(root_project))
-
-    gprsw_projects = [_gpr_for(prj) for prj in projects]
-
-    gprsw_units = units
-
-    # Arrange to execute each check in its own tmp dir and
-    # passing a unique --subdirs prevent mixups across test variants
-    # within the shared projects.
-
-    # Start with 'wd_foo' from .../.../foo.gpr or a project short
-    # name intended for -P.
-    tmpdir = 'wd_' + os.path.basename(root_project).split('.')[0]
+    # Create a label for this variant that is unique in this testcase. Start
+    # including the root project.
+    label = os.path.splitext(os.path.basename(root_project))[0]
 
     # Append the first letter of each project name will pass through
     # --project, if any:
     if projects:
-        tmpdir += '-' + ''.join(prj[0] for prj in projects)
+        label += '-' + ''.join(prj[0] for prj in projects)
 
     # Append indication on recursion request:
     if recurse:
-        tmpdir += '-rt'
+        label += '-rt'
     elif recurse is None:
-        tmpdir += '-rn'
+        label += '-rn'
     else:
-        tmpdir += '-rf'
+        label += '-rf'
 
-    # For the --subdirs argument, relative to each subproject's object dir,
-    # prepend our testcase local directory name:
-    gprsw_subdirs = os.path.basename(os.getcwd()) + '_' + tmpdir
+    # Arrange to execute each check in its own temporary directory and copying
+    # shared projects in that directory prevent mixups across test variants.
+    tmpdir = f'wd_{label}'
+    wd = Wdir(tmpdir)
+
+    # Copy shared projects in the temporary directory and create their object
+    # directory to avoid spurious warnings.
+    for p in all_projects:
+        sync_tree(os.path.join(wd.homedir, '..', p), p)
+        mkdir(os.path.join(p, "obj"))
 
     # If a list of expected reports is provided, convert into list of
     # corresponding sources, which the CovControl class expects:
-
     if xreports is not None:
         ctl_xreports = []
         for xr in xreports:
@@ -114,34 +90,32 @@ def check(root_project, recurse,
     else:
         ctl_xreports = None
 
-    # Getting the default behavior wrt recursiveness consists
-    # in requesting not to pass --no-subprojects.
-    gprsw_no_subprojects = False if recurse is None else not recurse
-
-    wd = Wdir()
-    wd.to_subdir(tmpdir)
+    # Getting the default behavior wrt recursiveness consists in requesting not
+    # to pass --no-subprojects.
+    no_subprojects = False if recurse is None else not recurse
 
     TestCase(category=None).run(
         covcontrol=CovControl(
 
-            # The programs we build and exercise alway depend on
-            # the three subprojects:
-            deps=[_gpr_for('boolops'),
-                  _gpr_for('intops'),
-                  _gpr_for('counters')],
+            # The programs we build and exercise always depend on the three
+            # subprojects (copied above in the parent directory relative to the
+            # TestCase temporary directory).
+            deps=[f'../{p}/{p}' for p in all_projects],
 
             # What we analyse and check depends on our arguments:
             gprsw=GPRswitches(
-                root_project=gprsw_root_project,
-                projects=gprsw_projects,
-                units=gprsw_units,
-                no_subprojects=gprsw_no_subprojects,
-                subdirs=gprsw_subdirs,
-                xvars=[('BOARD', env.target.machine)]),
+                root_project=root_project,
+                projects=projects,
+                units=units,
+                no_subprojects=no_subprojects,
+                xvars=[('BOARD', env.target.machine)],
+            ),
 
             xreports=ctl_xreports,
 
             # The test driver and the likes are never of interest
-            units_in=[]))
+            units_in=[],
+        ),
+    )
 
     wd.to_homedir()

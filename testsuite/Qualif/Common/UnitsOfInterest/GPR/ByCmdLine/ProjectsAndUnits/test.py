@@ -26,7 +26,7 @@ check(
 # Lone unit, with child units, in closure
 
 check(
-    root_project='boolops',
+    root_project='../boolops/boolops',
     units=['boolops'],
     recurse=True,
     xreports=['boolops.ads', 'boolops.adb'])
@@ -34,7 +34,7 @@ check(
 # Likewise, using a response file to convey the units.
 
 check(
-    root_project='boolops',
+    root_project='../boolops/boolops',
     units=['@%s' % list_to_tmp(['boolops'], dir='tmp_files')],
     recurse=True,
     xreports=['boolops.ads', 'boolops.adb'])
@@ -43,7 +43,7 @@ check(
 # or from a -P designating the subproject directly
 
 check(
-    root_project='boolops',
+    root_project='../boolops/boolops',
     units=['boolops.andthen'],
     recurse=False,
     xreports=['boolops.ads', 'boolops-andthen.adb'])
