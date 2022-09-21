@@ -816,9 +816,25 @@ package body Setup_RTS is
       Result            : Setup_Config := Default_Setup_Config;
       Setup_Config_File : Virtual_File;
 
+      Prj_Ext      : constant String := ".gpr";
+      Prj_Filename : constant String :=
+        (if not Has_Suffix (Runtime_Project, Prj_Ext)
+            and then Exists (Runtime_Project & Prj_Ext)
+         then Runtime_Project & Prj_Ext
+         else Runtime_Project);
+      --  Name of the runtime project file to load it with GPR2.
+      --
+      --  TODO??? (V921-006) While the call to Prj.Load below is responsible
+      --  for resolving GPR file base names to full names, it is not able to
+      --  append the ".gpr" extension when missing, whereas command-line tools
+      --  are supposed to accept this case. Add ".gpr" ourselves when needed
+      --  for now, and remove this special case when GPR2 is able to do it
+
       Prj : GPR2.Project.Tree.Object;
 
       Project_File : Virtual_File;
+      --  Name of the runtime project file after it has been loaded
+      --  (i.e. resolved file name).
    begin
       --  Load the runtime project file, only to locate the prefix where it has
       --  been installed: do not print any error message, and if the project
@@ -826,9 +842,9 @@ package body Setup_RTS is
 
       begin
          Prj.Load
-           (Filename => GPR2.Project.Create
-                          (GPR2.Filename_Type (Runtime_Project),
-                           GPR2.Project.Default_Search_Paths (True)),
+           (Filename => GPR2.Path_Name.Create_File
+                          (GPR2.Filename_Type (Prj_Filename),
+                           GPR2.Path_Name.No_Resolution),
             Context  => GPR2.Context.Empty,
             Config   => Create_Config
                           (Target, RTS, Config_File, Runtime_Project));
