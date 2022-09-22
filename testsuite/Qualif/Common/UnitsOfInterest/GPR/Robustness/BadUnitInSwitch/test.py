@@ -16,7 +16,9 @@ build_run_and_coverage(
                       units=['no_such_unit', 'main', 'helper.say_hello']),
     covlevel='stmt',
     mains=['main'],
-    extra_coverage_args=['-axcov'])
+    instrument_warnings_as_errors=False,
+    extra_coverage_args=['-axcov'],
+)
 
 log_file = ('coverage.log'
             if thistest.options.trace_mode == 'bin' else

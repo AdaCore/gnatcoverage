@@ -21,7 +21,7 @@ def try_one_gpr(gpr, no_such):
         mains=['p'],
         extra_coverage_args=['-axcov'],
         out=dump,
-        register_failure=False
+        register_failure=False,
     )
     dump = contents_of(dump)
 
