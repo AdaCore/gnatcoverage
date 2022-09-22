@@ -71,7 +71,6 @@ with Instrument.Base_Types; use Instrument.Base_Types;
 with Namet;                 use Namet;
 with SC_Obligations;        use SC_Obligations;
 with Slocs;                 use Slocs;
-with Strings;               use Strings;
 with Switches;              use Switches;
 with Text_Files;
 with Types;                 use Types;

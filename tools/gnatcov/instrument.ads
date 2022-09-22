@@ -22,6 +22,8 @@ with Ada.Strings.Unbounded;
 
 with GNAT.Regexp;
 
+with Strings; use Strings;
+
 package Instrument is
 
    package US renames Ada.Strings.Unbounded;
@@ -83,7 +85,8 @@ package Instrument is
    procedure Instrument_Units_Of_Interest
      (Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp);
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Mains                : String_Vectors.Vector);
    --  Generate instrumented sources for the source files of all units of
    --  interest. Also save mappings between coverage buffers and SCOs for each
    --  library units to SID files (one per library unit).
@@ -99,5 +102,7 @@ package Instrument is
    --
    --  If Ignored_Source_File is non-null, ignore files whose names match the
    --  accessed pattern.
-
+   --
+   --  Mains is the list of source files that were listed on the command line:
+   --  if non-empty, they replace the mains specified in project files.
 end Instrument;

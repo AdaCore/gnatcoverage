@@ -22,7 +22,6 @@ with Interfaces;              use Interfaces;
 with GNATCOLL.VFS;
 
 with Hex_Images; use Hex_Images;
-with Strings;    use Strings;
 
 package body Instrument.Base_Types is
 

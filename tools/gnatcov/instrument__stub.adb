@@ -53,7 +53,8 @@ package body Instrument is
    procedure Instrument_Units_Of_Interest
      (Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp) is
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Mains                : String_Vectors.Vector) is
    begin
       raise Program_Error with Msg;
    end Instrument_Units_Of_Interest;

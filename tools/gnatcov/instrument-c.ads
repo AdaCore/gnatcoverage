@@ -35,7 +35,6 @@ with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
 with SC_Obligations;        use SC_Obligations;
 with Slocs;                 use Slocs;
-with Strings;               use Strings;
 with Switches;              use Switches;
 
 package Instrument.C is
