@@ -1284,10 +1284,11 @@ package body Project is
       Prj_Tree := new Project_Tree;
       begin
          Prj_Tree.Load
-           (Root_Project_Path => Create (+Prj_Name),
-            Env               => Env,
-            Packages_To_Check => Coverage_Package_List'Access,
-            Errors            => Outputs.Warning_Or_Error'Access);
+           (Root_Project_Path   => Create (+Prj_Name),
+            Env                 => Env,
+            Packages_To_Check   => Coverage_Package_List'Access,
+            Errors              => Outputs.Warning_Or_Error'Access,
+            Report_Missing_Dirs => False);
       exception
          when Invalid_Project =>
             Free (Prj_Tree);
