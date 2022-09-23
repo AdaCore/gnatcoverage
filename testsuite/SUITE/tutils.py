@@ -246,21 +246,22 @@ def gprbuild(project,
     return p
 
 
-def gprinstall(project, prefix=None):
+def gprinstall(project, gargs=None):
     """
     Run "gprinstall" on the provided project file.
 
-    :param None|str prefix: If a string is passed, add `--prefix=PREFIX` to the
-        gprinstall command-line.
+    :param None|list[str] gargs: list of command line switches to pass to
+        gprinstall
     """
     ofile = 'gprinstall.out'
     args = ['gprinstall', '-P', project, '-p']
-    if prefix:
-        args.append('--prefix={}'.format(prefix))
 
     # Add mandatory options, such as target and RTS info
     args.extend(thistest.gprconfoptions)
     args.extend(thistest.gprvaroptions)
+
+    # Add user-provided arguments
+    args.extend(to_list(gargs))
 
     p = run_and_log(args, output=ofile, timeout=thistest.options.timeout)
     thistest.stop_if(p.status != 0,
