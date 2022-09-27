@@ -1033,6 +1033,9 @@ package body Project is
                end Process_Source_File;
 
             begin
+               --  Do not go through imported projects; the Excluded_Units /
+               --  Units attributes only apply to the project itself.
+
                Iterate_Source_Files
                  (Project, Process_Source_File'Access, Recursive => False);
                Inc_Units_Defined := True;
@@ -1286,7 +1289,7 @@ package body Project is
       --  source file name.
 
       Iterate_Source_Files
-        (Prj, Process_Source_File'Access, Recursive => True);
+        (Prj, Process_Source_File'Access, Recursive => False);
 
       Match_Pattern_List (Patterns_List        => Unit_Patterns,
                           Strings_List         => Units_Present,
