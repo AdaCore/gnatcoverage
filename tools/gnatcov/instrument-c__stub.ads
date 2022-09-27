@@ -24,38 +24,57 @@
 --  units, using the procedures defined here, which will result in a crash (all
 --  the procedures are empty stubs raising an error).
 
+with GNATCOLL.Projects; use GNATCOLL.Projects;
+
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
+with Switches;              use Switches;
 
 private package Instrument.C is
-   type C_Source_Decision is null record;
 
-   type C_Source_Condition is null record;
+   type C_Family_Instrumenter_Type is
+     abstract new Language_Instrumenter with null record;
+   --  Common instrumentation primitives for C/C++
 
-   type C_Unit_Inst_Context is null record;
+   overriding function Skip_Source_File
+     (Self        : C_Family_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean;
 
-   type C_Source_Rewriter is tagged limited null record;
-
-   procedure Add_Auto_Dump_Buffers
-     (IC   : Inst_Context;
-      Info : in out Project_Info;
-      Main : Compilation_Unit_Name;
-      Rew  : C_Source_Rewriter);
-
-   procedure Apply (Self : in out C_Source_Rewriter);
-
-   procedure Start_Rewriting
-     (Self           : out C_Source_Rewriter;
-      Info           : in out Project_Info;
-      Input_Filename : String);
-
-   procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info);
-
-   procedure Instrument_Unit
-     (CU_Name   : Compilation_Unit_Name;
+   overriding procedure Instrument_Unit
+     (Self      : C_Family_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info);
+
+   overriding procedure Auto_Dump_Buffers_In_Main
+     (Self     : C_Family_Instrumenter_Type;
+      IC       : in out Inst_Context;
+      Main     : Compilation_Unit_Name;
+      Filename : String;
+      Info     : in out Project_Info);
+
+   overriding procedure Emit_Buffers_List_Unit
+     (Self              : C_Family_Instrumenter_Type;
+      IC                : in out Inst_Context;
+      Root_Project_Info : in out Project_Info);
+
+   type C_Instrumenter_Type is
+     new C_Family_Instrumenter_Type with null record;
+   --  Instrumentation primitives for C
+
+   overriding function Language
+     (Self : C_Instrumenter_Type) return Src_Supported_Language
+   is (C_Language);
+
+   type CPP_Instrumenter_Type is
+     new C_Family_Instrumenter_Type with null record;
+   --  Instrumentation primitives for C++
+
+   overriding function Language
+     (Self : CPP_Instrumenter_Type) return Src_Supported_Language
+   is (CPP_Language);
+
+   C_Instrumenter   : aliased constant C_Instrumenter_Type := (null record);
+   CPP_Instrumenter : aliased constant CPP_Instrumenter_Type := (null record);
 
 end Instrument.C;

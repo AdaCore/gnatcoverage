@@ -21,61 +21,52 @@ package body Instrument.C is
    Error_Msg : constant String :=
      "GNATcoverage not built with C support.";
 
-   ---------------------------
-   -- Add_Auto_Dump_Buffers --
-   ---------------------------
+   ----------------------
+   -- Skip_Source_File --
+   ----------------------
 
-   procedure Add_Auto_Dump_Buffers
-     (IC   : Inst_Context;
-      Info : in out Project_Info;
-      Main : Compilation_Unit_Name;
-      Rew  : C_Source_Rewriter) is
-   begin
-      raise Program_Error with Error_Msg;
-   end Add_Auto_Dump_Buffers;
-
-   -----------
-   -- Apply --
-   -----------
-
-   procedure Apply (Self : in out C_Source_Rewriter) is
-   begin
-      raise Program_Error with Error_Msg;
-   end Apply;
-
-   ---------------------
-   -- Start_Rewriting --
-   ---------------------
-
-   procedure Start_Rewriting
-     (Self           : out C_Source_Rewriter;
-      Info           : in out Project_Info;
-      Input_Filename : String) is
-   begin
-      raise Program_Error with Error_Msg;
-   end Start_Rewriting;
-
-   ----------------------------
-   -- Emit_Buffers_List_Unit --
-   ----------------------------
-
-   procedure Emit_Buffers_List_Unit
-     (IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info) is
-   begin
-      raise Program_Error with Error_Msg;
-   end Emit_Buffers_List_Unit;
+   function Skip_Source_File
+     (Self        : C_Family_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean
+   is (raise Program_Error with Error_Msg);
 
    ---------------------
    -- Instrument_Unit --
    ---------------------
 
    procedure Instrument_Unit
-     (CU_Name   : Compilation_Unit_Name;
+     (Self      : C_Family_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
       IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info) is
    begin
       raise Program_Error with Error_Msg;
    end Instrument_Unit;
+
+   -------------------------------
+   -- Auto_Dump_Buffers_In_Main --
+   -------------------------------
+
+   procedure Auto_Dump_Buffers_In_Main
+     (Self     : C_Family_Instrumenter_Type;
+      IC       : in out Inst_Context;
+      Main     : Compilation_Unit_Name;
+      Filename : String;
+      Info     : in out Project_Info) is
+   begin
+      raise Program_Error with Error_Msg;
+   end Auto_Dump_Buffers_In_Main;
+
+   ----------------------------
+   -- Emit_Buffers_List_Unit --
+   ----------------------------
+
+   procedure Emit_Buffers_List_Unit
+     (Self              : C_Family_Instrumenter_Type;
+      IC                : in out Inst_Context;
+      Root_Project_Info : in out Project_Info) is
+   begin
+      raise Program_Error with Error_Msg;
+   end Emit_Buffers_List_Unit;
 
 end Instrument.C;
