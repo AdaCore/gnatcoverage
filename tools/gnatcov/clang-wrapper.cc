@@ -46,6 +46,39 @@ using namespace clang::cxloc;
 using namespace clang::cxstring;
 using namespace clang::cxtu;
 
+/* Return the AST context corresponding to the given translation unit TU.  */
+
+static ASTContext &
+getContext (CXTranslationUnit TU)
+{
+  return getASTUnit (TU)->getASTContext ();
+}
+
+/* Likewise, but starting from a cursor.  */
+
+static ASTContext &
+getContext (CXCursor C)
+{
+  return getContext (getCursorTU (C));
+}
+
+/* Return the SourceManager corresponding to the given translation unit TU.  */
+
+static const SourceManager &
+getSourceManager (CXTranslationUnit TU)
+{
+  return getASTUnit (TU)->getSourceManager ();
+}
+
+/* Translate a source location to a cursor source location in the given
+   translation unit TU.  */
+
+static CXSourceLocation
+translateSLoc (CXTranslationUnit TU, SourceLocation Loc)
+{
+  return translateSourceLocation (getContext (TU), Loc);
+}
+
 /* Convert a clang Stmt type to a libclang CXCursor structure.  The CXCursor C
    is simply used to get a relevant declaration and translation unit to tie
    the returned cursor to.  */
@@ -79,7 +112,7 @@ extern "C" CXCursor
 clang_getCond (CXCursor C)
 {
   if (clang_isStatement (C.kind) || clang_isExpression (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::IfStmtClass:
@@ -106,13 +139,14 @@ clang_getBody (CXCursor C)
 {
   if (clang_isDeclaration (C.kind))
     {
-      if (const Decl *D = cxcursor::getCursorDecl (C))
+      if (const Decl *D = getCursorDecl (C))
         switch (D->getKind ())
           {
           case Decl::FunctionTemplate:
-            return MakeCXCursorWithNull (
-              cast<FunctionTemplateDecl> (D)->getTemplatedDecl ()->getBody (),
-              C);
+            return MakeCXCursorWithNull (cast<FunctionTemplateDecl> (D)
+                                             ->getTemplatedDecl ()
+                                             ->getBody (),
+                                         C);
           case Decl::Function:
           case Decl::CXXMethod:
           case Decl::CXXConstructor:
@@ -130,32 +164,32 @@ clang_getBody (CXCursor C)
     }
   else if (clang_isStatement (C.kind))
     {
-      if (const Stmt *S = cxcursor::getCursorStmt (C))
+      if (const Stmt *S = getCursorStmt (C))
         switch (S->getStmtClass ())
           {
-            case Stmt::WhileStmtClass:
-              return MakeCXCursorWithNull (cast<WhileStmt> (S)->getBody (), C);
-            case Stmt::ForStmtClass:
-              return MakeCXCursorWithNull (cast<ForStmt> (S)->getBody (), C);
-            case Stmt::CXXForRangeStmtClass:
-              return MakeCXCursorWithNull
-                (cast<CXXForRangeStmt> (S)->getBody (), C);
-            case Stmt::DoStmtClass:
-              return MakeCXCursorWithNull (cast<DoStmt> (S)->getBody (), C);
-            case Stmt::SwitchStmtClass:
-              return MakeCXCursorWithNull (cast<SwitchStmt> (S)->getBody (), C);
-            default:
-              return clang_getNullCursor ();
+          case Stmt::WhileStmtClass:
+            return MakeCXCursorWithNull (cast<WhileStmt> (S)->getBody (), C);
+          case Stmt::ForStmtClass:
+            return MakeCXCursorWithNull (cast<ForStmt> (S)->getBody (), C);
+          case Stmt::CXXForRangeStmtClass:
+            return MakeCXCursorWithNull (cast<CXXForRangeStmt> (S)->getBody (),
+                                         C);
+          case Stmt::DoStmtClass:
+            return MakeCXCursorWithNull (cast<DoStmt> (S)->getBody (), C);
+          case Stmt::SwitchStmtClass:
+            return MakeCXCursorWithNull (cast<SwitchStmt> (S)->getBody (), C);
+          default:
+            return clang_getNullCursor ();
           }
     }
   else if (clang_isExpression (C.kind))
-    if (const Expr *E = cxcursor::getCursorExpr (C))
+    if (const Expr *E = getCursorExpr (C))
       switch (E->getStmtClass ())
         {
-          case Expr::LambdaExprClass:
-            return MakeCXCursorWithNull (cast<LambdaExpr> (E)->getBody (), C);
-          default:
-            return clang_getNullCursor ();
+        case Expr::LambdaExprClass:
+          return MakeCXCursorWithNull (cast<LambdaExpr> (E)->getBody (), C);
+        default:
+          return clang_getNullCursor ();
         }
   return clang_getNullCursor ();
 }
@@ -164,7 +198,7 @@ extern "C" CXCursor
 clang_getForInit (CXCursor C)
 {
   if (clang_isStatement (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::ForStmtClass:
@@ -184,8 +218,7 @@ clang_getForRangeExpr (CXCursor C)
   const Stmt *stmt;
   const CXXForRangeStmt *for_stmt;
 
-  if (clang_isStatement (C.kind)
-      && (stmt = cxcursor::getCursorStmt (C))
+  if (clang_isStatement (C.kind) && (stmt = cxcursor::getCursorStmt (C))
       && stmt->getStmtClass () == Stmt::CXXForRangeStmtClass)
     {
       for_stmt = cast<CXXForRangeStmt> (stmt);
@@ -198,7 +231,7 @@ extern "C" CXCursor
 clang_getForInc (CXCursor C)
 {
   if (clang_isStatement (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::ForStmtClass:
@@ -216,8 +249,7 @@ clang_getCondVar (CXCursor C)
   const WhileStmt *while_stmt;
   const VarDecl *decl;
 
-  if (clang_isStatement (C.kind)
-      && (stmt = cxcursor::getCursorStmt (C))
+  if (clang_isStatement (C.kind) && (stmt = getCursorStmt (C))
       && stmt->getStmtClass () == Stmt::WhileStmtClass)
     {
       while_stmt = cast<WhileStmt> (stmt);
@@ -233,8 +265,7 @@ clang_getVarInitExpr (CXCursor C)
   const Decl *decl;
   const VarDecl *var_decl;
 
-  if (clang_isDeclaration (C.kind)
-      && (decl = cxcursor::getCursorDecl (C))
+  if (clang_isDeclaration (C.kind) && (decl = getCursorDecl (C))
       && decl->getKind () == Decl::Kind::Var)
     {
       var_decl = cast<VarDecl> (decl);
@@ -247,7 +278,7 @@ extern "C" CXCursor
 clang_getThen (CXCursor C)
 {
   if (clang_isStatement (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::IfStmtClass:
@@ -262,7 +293,7 @@ extern "C" CXCursor
 clang_getElse (CXCursor C)
 {
   if (clang_isStatement (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::IfStmtClass:
@@ -277,7 +308,7 @@ extern "C" CXCursor
 clang_getSubExpr (CXCursor C)
 {
   if (clang_isExpression (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::UnaryOperatorClass:
@@ -293,7 +324,7 @@ extern "C" CXCursor
 clang_getSubStmt (CXCursor C)
 {
   if (clang_isStatement (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::CaseStmtClass:
@@ -311,7 +342,7 @@ extern "C" CXCursor
 clang_getRHS (CXCursor C)
 {
   if (clang_isExpression (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::BinaryOperatorClass:
@@ -329,7 +360,7 @@ extern "C" CXCursor
 clang_getLHS (CXCursor C)
 {
   if (clang_isExpression (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::BinaryOperatorClass:
@@ -350,7 +381,7 @@ extern "C" CXString
 clang_getOpcodeStr (CXCursor C)
 {
   if (clang_isExpression (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::BinaryOperatorClass:
@@ -370,12 +401,10 @@ clang_getOpcodeStr (CXCursor C)
 extern "C" CXSourceLocation
 clang_getOperatorLoc (CXCursor C)
 {
-  ASTUnit *CXXUnit = cxtu::getASTUnit (getCursorTU (C));
-  if (!CXXUnit)
-    return clang_getNullLocation ();
+  CXTranslationUnit TU = getCursorTU (C);
   SourceLocation sloc;
   if (clang_isExpression (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
         case Stmt::BinaryOperatorClass:
@@ -387,7 +416,7 @@ clang_getOperatorLoc (CXCursor C)
         default:
           return clang_getNullLocation ();
         }
-  return cxloc::translateSourceLocation (CXXUnit->getASTContext (), sloc);
+  return translateSLoc (TU, sloc);
 }
 
 /* If the given expression is a wrapping expression (i.e. a parenthesized
@@ -398,27 +427,26 @@ extern "C" CXCursor
 clang_unwrap (CXCursor C)
 {
   if (clang_isExpression (C.kind))
-    if (const Stmt *S = cxcursor::getCursorStmt (C))
+    if (const Stmt *S = getCursorStmt (C))
       switch (S->getStmtClass ())
         {
-          case Stmt::ParenExprClass:
-            return clang_unwrap
-              (MakeCXCursorWithNull (cast<ParenExpr> (S)->getSubExpr (), C));
-          case Expr::ConstantExprClass:
-          case Expr::ExprWithCleanupsClass:
-            return clang_unwrap
-              (MakeCXCursorWithNull (cast<FullExpr> (S)->getSubExpr (), C));
-          case Expr::ImplicitCastExprClass:
-          case Expr::CStyleCastExprClass:
-          case Expr::CXXFunctionalCastExprClass:
-          case Expr::CXXStaticCastExprClass:
-          case Expr::CXXDynamicCastExprClass:
-          case Expr::CXXReinterpretCastExprClass:
-          case Expr::CXXConstCastExprClass:
-          case Expr::CXXAddrspaceCastExprClass:
-            return clang_unwrap
-              (MakeCXCursorWithNull (cast<CastExpr> (S)->getSubExpr (), C));
-
+        case Stmt::ParenExprClass:
+          return clang_unwrap (
+              MakeCXCursorWithNull (cast<ParenExpr> (S)->getSubExpr (), C));
+        case Expr::ConstantExprClass:
+        case Expr::ExprWithCleanupsClass:
+          return clang_unwrap (
+              MakeCXCursorWithNull (cast<FullExpr> (S)->getSubExpr (), C));
+        case Expr::ImplicitCastExprClass:
+        case Expr::CStyleCastExprClass:
+        case Expr::CXXFunctionalCastExprClass:
+        case Expr::CXXStaticCastExprClass:
+        case Expr::CXXDynamicCastExprClass:
+        case Expr::CXXReinterpretCastExprClass:
+        case Expr::CXXConstCastExprClass:
+        case Expr::CXXAddrspaceCastExprClass:
+          return clang_unwrap (
+              MakeCXCursorWithNull (cast<CastExpr> (S)->getSubExpr (), C));
         }
   return C;
 }
@@ -430,9 +458,8 @@ extern "C" unsigned
 clang_visit (CXCursor parent, CXCursorVisitor visitor,
              CXClientData client_data)
 {
-  cxcursor::CursorVisitor CursorVis (getCursorTU (parent), visitor,
-                                     client_data,
-                                     /*VisitPreprocessorLast=*/false);
+  CursorVisitor CursorVis (getCursorTU (parent), visitor, client_data,
+                           /*VisitPreprocessorLast=*/false);
   return CursorVis.Visit (parent);
 }
 
@@ -443,11 +470,9 @@ extern "C" CXCursor
 clang_getParent (CXCursor C)
 {
   assert (clang_isStatement (C.kind) || clang_isExpression (C.kind));
-  ASTUnit *astUnit = cxtu::getASTUnit (getCursorTU (C));
-  ASTContext &astContext = astUnit->getASTContext ();
-  if (const Stmt *S = cxcursor::getCursorStmt (C))
+  if (const Stmt *S = getCursorStmt (C))
     {
-      const auto Parents = astContext.getParents (*S);
+      const auto Parents = getContext (C).getParents (*S);
       if (Parents.empty ())
         return clang_getNullCursor ();
       const auto &SParent = Parents[0];
@@ -464,8 +489,8 @@ clang_CXRewriter_insertTextAfter (CXRewriter Rew, CXSourceLocation Loc,
                                   const char *Insert)
 {
   assert (Rew);
-  clang::Rewriter &R = *reinterpret_cast<clang::Rewriter *> (Rew);
-  R.InsertTextAfter (clang::cxloc::translateSourceLocation (Loc), Insert);
+  Rewriter &R = *reinterpret_cast<Rewriter *> (Rew);
+  R.InsertTextAfter (translateSourceLocation (Loc), Insert);
 }
 
 extern "C" void
@@ -473,29 +498,29 @@ clang_CXRewriter_insertTextAfterToken (CXRewriter Rew, CXSourceLocation Loc,
                                        const char *Insert)
 {
   assert (Rew);
-  clang::Rewriter &R = *reinterpret_cast<clang::Rewriter *> (Rew);
-  R.InsertTextAfterToken (clang::cxloc::translateSourceLocation (Loc), Insert);
+  Rewriter &R = *reinterpret_cast<Rewriter *> (Rew);
+  R.InsertTextAfterToken (translateSourceLocation (Loc), Insert);
 }
+
+/* Wrappers around source location analysis functions.  */
 
 extern "C" unsigned
 clang_isMacroLocation (CXSourceLocation Loc)
 {
-  const clang::SourceLocation SLoc =
-     clang::cxloc::translateSourceLocation (Loc);
+  const SourceLocation SLoc = translateSourceLocation (Loc);
   return SLoc.isMacroID () ? 1 : 0;
 }
 
 extern "C" unsigned
-clang_isMacroArgExpansion (CXSourceLocation Loc, CXSourceLocation *StartLoc, CXTranslationUnit TU)
+clang_isMacroArgExpansion (CXSourceLocation Loc, CXSourceLocation *StartLoc,
+                           CXTranslationUnit TU)
 {
-  const SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
+  const SourceManager &SM = getSourceManager (TU);
   const SourceLocation SLoc = translateSourceLocation (Loc);
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
   SourceLocation Result;
   if (SM.isMacroArgExpansion (SLoc, &Result))
     {
-      *StartLoc = cxloc::translateSourceLocation (astContext, Result);
+      *StartLoc = translateSLoc (TU, Result);
       return 1;
     }
   return 0;
@@ -504,59 +529,50 @@ clang_isMacroArgExpansion (CXSourceLocation Loc, CXSourceLocation *StartLoc, CXT
 extern "C" CXSourceLocation
 clang_getImmediateMacroCallerLoc (CXSourceLocation Loc, CXTranslationUnit TU)
 {
-  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
+  const SourceManager &SM = getSourceManager (TU);
   SourceLocation SLoc = translateSourceLocation (Loc);
   if (SLoc.isMacroID ())
-    return cxloc::translateSourceLocation
-      (astContext, SM.getImmediateMacroCallerLoc (SLoc));
+    return translateSLoc (TU, SM.getImmediateMacroCallerLoc (SLoc));
   return Loc;
 }
 
 extern "C" CXSourceLocation
 clang_getImmediateExpansionLoc (CXSourceLocation Loc, CXTranslationUnit TU)
 {
-  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
+  const SourceManager &SM = getSourceManager (TU);
   SourceLocation SLoc = translateSourceLocation (Loc);
-  return cxloc::translateSourceLocation
-    (astContext, SM.getImmediateExpansionRange (SLoc).getBegin ());
+  return translateSLoc (TU, SM.getImmediateExpansionRange (SLoc).getBegin ());
 }
 
 extern "C" CXString
-clang_getImmediateMacroNameForDiagnostics (CXSourceLocation Loc, CXTranslationUnit TU)
+clang_getImmediateMacroNameForDiagnostics (CXSourceLocation Loc,
+                                           CXTranslationUnit TU)
 {
   SourceLocation SLoc = translateSourceLocation (Loc);
-  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
-  return createDup
-    (Lexer::getImmediateMacroNameForDiagnostics
-     (SLoc, SM, astContext.getLangOpts ()));
+  const SourceManager &SM = getSourceManager (TU);
+  return createDup (Lexer::getImmediateMacroNameForDiagnostics (
+      SLoc, SM, getContext (TU).getLangOpts ()));
 }
 
 extern "C" CXSourceLocation
 clang_getExpansionEnd (CXTranslationUnit TU, CXSourceLocation Loc)
 {
   SourceLocation SLoc = translateSourceLocation (Loc);
-  SourceManager &SM = cxtu::getASTUnit (TU)->getSourceManager ();
-  ASTUnit *astUnit = cxtu::getASTUnit (TU);
-  ASTContext &astContext = astUnit->getASTContext ();
-  return cxloc::translateSourceLocation
-    (astContext, SM.getExpansionRange (SLoc).getEnd ());
+  const SourceManager &SM = getSourceManager (TU);
+  return translateSLoc (TU, SM.getExpansionRange (SLoc).getEnd ());
 }
 
 extern "C" CXTranslationUnit
 clang_getCursorTU (CXCursor C)
 {
-  return cxcursor::getCursorTU (C);
+  return getCursorTU (C);
 }
+
+/* Debug helpers.  */
 
 extern "C" void
 clang_printLocation (CXTranslationUnit TU, CXSourceLocation Loc)
 {
-  const SourceManager &SM = cxtu::getASTUnit(TU)->getSourceManager();
-  clang::cxloc::translateSourceLocation (Loc).dump(SM);
+  const SourceManager &SM = getSourceManager (TU);
+  translateSourceLocation (Loc).dump (SM);
 }

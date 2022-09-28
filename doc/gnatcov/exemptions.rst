@@ -13,9 +13,10 @@ Defining :term:`Exemption Regions <Exemption Region>`
 =====================================================
 
 :dfn:`Exemption regions` are lexical sections of sources in which coverage
-violations are expected and can be justified. For Ada with the |gnat|
-compilers, regions are defined by the insertion of dedicated pragmas in the
-sources:
+violations are expected and can be justified.
+
+For Ada with the |gnat| compilers, regions are defined by the insertion of
+dedicated pragmas in the sources:
 
 - ``pragma Annotate (Xcov, Exempt_On, "justification text");`` starts a
   region, providing some justification text that will be recalled in coverage
@@ -42,13 +43,52 @@ We expect never to reach here with ``T`` False, so we declare an exemption
 region to state that coverage violations across this region are expected and
 not a testing campaign deficiency.
 
+For C code, exemptions are only supported with
+:term:`source traces<Source Trace>` and are defined using comment markers to
+delimit the exempted regions:
+
+- Any comment containing the string ``GNATCOV_EXEMPT_ON`` followed by a string
+  in double quotes starts a region, the string within the double quotes being
+  used as justification text that will be recalled in coverage reports.
+
+- Any comment containing the string ``GNATCOV_EXEMPT_OFF`` closes the current
+  exemption region.
+
+The following assert function illustrates the definition of an exemption
+block:
+
+.. code-block:: C
+
+  void
+  assert (bool x){
+   // GNATCOV_EXEMPT_ON "assert condition is never false"
+    if (!x)
+      abort();
+   // GNATCOV_EXEMPT_OFF
+  }
+
+As in the first example, we never expect to reach this function with x false,
+so an exemption region is declared to state that all coverage violations
+within the region are expected.
+
+An exemption comment marker may not intersect any coverage obligation,
+such as a statement or a decision, as in the following example attempting
+to exempt a decision only partially:
+
+.. code-block:: C
+
+  if(a && /*GNATCOV_EXEMPT_ON "justification"*/ b /*GNATCOV_EXEMPT_OFF*/){
+    ...
+  }
+
+Such markers are ignored by |gcvins|, after emitting a warning.
 
 Reporting about coverage exemptions
 ===================================
 
 Exempted regions are reported as blocks in both the annotated source and the
 synthetic text reports, for both source and object coverage metrics.  In
-annotated source reports, a ``#`` or ``*`` caracter annotates all the exempted
+annotated source reports, a ``#`` or ``*`` character annotates all the exempted
 lines, depending on whether 0 or at least 1 violation was exempted over the
 whole section, respectively.  For our ``Eassert`` example above, a typical
 :cmd-option:`=xcov` output for :cmd-option:`stmt+decision` coverage for would

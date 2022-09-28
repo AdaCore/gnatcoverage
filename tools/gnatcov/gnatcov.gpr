@@ -50,47 +50,47 @@ project Gnatcov is
 
    package Compiler is
 
-      ada_common_switches :=
+      Ada_Common_Switches :=
         ("-gnat12", "-gnatwa", "-gnatyg");
 
-      c_common_switches :=
+      C_Common_Switches :=
         ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-std=c99",
          "-I" & Binutils_Build_Dir & "/bfd",
          "-I" & Binutils_Src_Dir & "/include",
          "-I" & Binutils_Src_Dir & "/bfd");
 
-      mode_switches := ();
-      ada_mode_switches := ();
-      c_mode_switches := ();
-      cxx_mode_switches := ();
+      Mode_Switches := ();
+      Ada_Mode_Switches := ();
+      C_Mode_Switches := ();
+      CPP_Mode_Switches := ();
 
       case Build_Mode is
          when "dev" =>
-            mode_switches := ("-O0", "-g");
-            ada_mode_switches := ("-gnata");
-            c_mode_switches := ("-Werror");
-            cxx_mode_switches := ("-Werror");
+            Mode_Switches := ("-O0", "-g");
+            Ada_Mode_Switches := ("-gnata");
+            C_Mode_Switches := ("-Werror");
+            CPP_Mode_Switches := ("-Werror");
 
          when "prod" =>
-            mode_switches := ("-O2");
-            c_mode_switches := ("-DNDEBUG");
-            cxx_mode_switches := ("-DNDEBUG");
+            Mode_Switches := ("-O2");
+            C_Mode_Switches := ("-DNDEBUG");
+            CPP_Mode_Switches := ("-DNDEBUG");
 
          when "boot" =>
-            mode_switches :=
+            Mode_Switches :=
               ("-O1", "-fdump-scos", "-fpreserve-control-flow", "-g");
-            c_mode_switches := ("-DNDEBUG");
-            cxx_mode_switches := ("-DNDEBUG");
+            C_Mode_Switches := ("-DNDEBUG");
+            CPP_Mode_Switches := ("-DNDEBUG");
       end case;
 
       for Default_Switches ("ada")
-        use ada_common_switches & mode_switches & ada_mode_switches;
+        use Ada_Common_Switches & Mode_Switches & Ada_Mode_Switches;
 
       for Default_Switches ("C")
-        use c_common_switches & mode_switches & c_mode_switches;
+        use C_Common_Switches & Mode_Switches & C_Mode_Switches;
 
       for Default_Switches ("C++")
-        use mode_switches & cxx_mode_switches;
+        use Mode_Switches & CPP_Mode_Switches;
 
       for Local_Configuration_Pragmas use "gnat.adc";
 

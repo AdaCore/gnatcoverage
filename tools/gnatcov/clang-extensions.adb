@@ -22,7 +22,22 @@
 
 with Clang.CX_String; use Clang.CX_String;
 
+with Files_Table; use Files_Table;
+
 package body Clang.Extensions is
+
+   function To_Sloc (Line, Column : unsigned) return Local_Source_Location is
+     ((Natural (Line), Natural (Column)));
+   --  Convert a Clang local source location to gnatcov's own format
+
+   function To_Sloc
+     (File : File_T; Line, Column : unsigned) return Source_Location
+   is
+     ((Source_File => Get_Index_From_Generic_Name
+                        (Name => Get_File_Name (File),
+                         Kind => Source_File),
+       L           =>  To_Sloc (Line, Column)));
+   --  Convert a Clang source location to gnatcov's own format
 
    --------------------
    -- Get_Opcode_Str --
@@ -83,6 +98,50 @@ package body Clang.Extensions is
    end CX_Rewriter_Insert_Text_After_Token;
 
    -----------------------
+   -- Spelling_Location --
+   -----------------------
+
+   function Spelling_Location (Loc : Source_Location_T) return Source_Location
+   is
+      File                 : File_T;
+      Line, Column, Offset : aliased unsigned;
+   begin
+      Get_Spelling_Location
+        (Loc, File'Address, Line'Access, Column'Access, Offset'Access);
+
+      return To_Sloc (File, Line, Column);
+   end Spelling_Location;
+
+   -------------------
+   -- File_Location --
+   -------------------
+
+   function File_Location
+     (Loc : Source_Location_T) return Local_Source_Location
+   is
+      File                 : File_T;
+      Line, Column, Offset : aliased unsigned;
+   begin
+      Get_File_Location
+        (Loc, File'Address, Line'Access, Column'Access, Offset'Access);
+      return To_Sloc (Line, Column);
+   end File_Location;
+
+   -----------------------
+   -- Presumed_Location --
+   -----------------------
+
+   function Presumed_Location
+     (Loc : Source_Location_T) return Local_Source_Location
+   is
+      Filename     : aliased String_T;
+      Line, Column : aliased unsigned;
+   begin
+      Get_Presumed_Location (Loc, Filename'Access, Line'Access, Column'Access);
+      return To_Sloc (Line, Column);
+   end Presumed_Location;
+
+   -----------------------
    -- Is_Macro_Location --
    -----------------------
 
@@ -95,6 +154,32 @@ package body Clang.Extensions is
    begin
       return Is_Macro_Location_C (Loc) /= 0;
    end Is_Macro_Location;
+
+   ----------------------------
+   -- Is_Macro_Arg_Expansion --
+   ----------------------------
+
+   function Is_Macro_Arg_Expansion
+     (Loc       : Source_Location_T;
+      Start_Loc : out Source_Location_T;
+      TU        : Translation_Unit_T) return Boolean
+   is
+      function Is_Macro_Arg_Expansion
+        (Loc       : Source_Location_T;
+         Start_Loc : access Source_Location_T;
+         TU        : Translation_Unit_T) return unsigned
+        with
+          Import, Convention => C,
+          External_Name      => "clang_isMacroArgExpansion";
+
+      C_Start_Loc : aliased Source_Location_T;
+   begin
+      return Result : constant Boolean :=
+        Is_Macro_Arg_Expansion (Loc, C_Start_Loc'Access, TU) /= 0
+      do
+         Start_Loc := C_Start_Loc;
+      end return;
+   end Is_Macro_Arg_Expansion;
 
    ----------------------------------------------
    -- Get_Immediate_Macro_Name_For_Diagnostics --
@@ -119,25 +204,5 @@ package body Clang.Extensions is
       Dispose_String (Macro_Name_C);
       return Macro_Name;
    end Get_Immediate_Macro_Name_For_Diagnostics;
-
-   ----------------------------
-   -- Is_Macro_Arg_Expansion --
-   ----------------------------
-
-   function Is_Macro_Arg_Expansion
-     (Loc       : Source_Location_T;
-      Start_Loc : access Source_Location_T := null;
-      TU        : Translation_Unit_T) return Boolean
-   is
-      function Is_Macro_Arg_Expansion
-        (Loc       : Source_Location_T;
-         Start_Loc : access Source_Location_T;
-         TU        : Translation_Unit_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name      => "clang_isMacroArgExpansion";
-   begin
-      return Is_Macro_Arg_Expansion (Loc, Start_Loc, TU) /= 0;
-   end Is_Macro_Arg_Expansion;
 
 end Clang.Extensions;

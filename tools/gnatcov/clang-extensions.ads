@@ -25,6 +25,8 @@ with Interfaces.C; use Interfaces.C;
 with Clang.Index;   use Clang.Index;
 with Clang.Rewrite; use Clang.Rewrite;
 
+with Slocs; use Slocs;
+
 package Clang.Extensions is
 
    function Get_Body (C : Cursor_T) return Cursor_T
@@ -114,13 +116,26 @@ package Clang.Extensions is
    --  The functions below are simply bindings around clang functions, which
    --  are exhaustively documented in the clang sources.
 
+   function Spelling_Location (Loc : Source_Location_T) return Source_Location
+     with Inline;
+   --  Thick binding for Clang.Index.Get_Spelling_Location
+
+   function File_Location
+     (Loc : Source_Location_T) return Local_Source_Location
+     with Inline;
+   --  Thick binding for Clang.Index.Get_File_Location
+
+   function Presumed_Location
+     (Loc : Source_Location_T) return Local_Source_Location;
+   --  Thick binding for Clang.Index.Get Presumed_Location
+
    function Is_Macro_Location (Loc : Source_Location_T) return Boolean
      with Inline;
    --  See isMacroID in clang/Basic/SourceLocation.h.
 
    function Is_Macro_Arg_Expansion
      (Loc       : Source_Location_T;
-      Start_Loc : access Source_Location_T := null;
+      Start_Loc : out Source_Location_T;
       TU        : Translation_Unit_T) return Boolean
       with Inline;
    --  See isMacroArgExpansion in clang/Basic/SourceManager.h.

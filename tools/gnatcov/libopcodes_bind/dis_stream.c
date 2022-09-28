@@ -17,17 +17,17 @@
  *                                                                          *
  ****************************************************************************/
 
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "dis_stream.h"
 
 struct disassembler_stream
 {
-    char *buff;
-    unsigned int size;
-    unsigned int idx;
+  char *buff;
+  unsigned int size;
+  unsigned int idx;
 };
 
 /* Printf-like function to add content to the DS stream according to FORMAT.
@@ -53,7 +53,7 @@ stream_printf (disassembler_stream *ds, const char *format, ...)
   int res;
 
   va_start (ap, format);
-  res = common_printf(ds, format, ap);
+  res = common_printf (ds, format, ap);
   va_end (ap);
 
   return res;
@@ -63,14 +63,14 @@ stream_printf (disassembler_stream *ds, const char *format, ...)
    desired.  */
 int
 stream_styled_printf (disassembler_stream *ds,
-		      enum disassembler_style style ATTRIBUTE_UNUSED,
-		      const char *format, ...)
+                      enum disassembler_style style ATTRIBUTE_UNUSED,
+                      const char *format, ...)
 {
   va_list ap;
   int res;
 
   va_start (ap, format);
-  res = common_printf(ds, format, ap);
+  res = common_printf (ds, format, ap);
   va_end (ap);
 
   return res;
