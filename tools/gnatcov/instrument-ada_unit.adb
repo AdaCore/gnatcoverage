@@ -6960,17 +6960,20 @@ package body Instrument.Ada_Unit is
 
       declare
          Pkg_Name : constant String := To_Ada (CU_Name.Unit);
+         --  Package name for the buffer unit
 
          Fingerprint : Unbounded_String;
+         --  Fingerprint for the instrumented unit
 
          Unit_Name : constant String := Ada.Characters.Handling.To_Lower
            (To_Ada (UIC.Instrumented_Unit.Unit));
+         --  Lower-case name for the instrumented unit
 
          Unit_Part : constant String :=
-              (case UIC.Instrumented_Unit.Part is
-                  when GPR.Unit_Spec     => "Unit_Spec",
-                  when GPR.Unit_Body     => "Unit_Body",
-                  when GPR.Unit_Separate => "Unit_Separate");
+           (case UIC.Instrumented_Unit.Part is
+               when GPR.Unit_Spec     => "Unit_Spec",
+               when GPR.Unit_Body     => "Unit_Body",
+               when GPR.Unit_Separate => "Unit_Separate");
          --  Do not use 'Image so that we use the original casing for the
          --  enumerators, and thus avoid compilation warnings/errors.
 
