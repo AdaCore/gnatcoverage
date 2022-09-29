@@ -129,25 +129,25 @@ gnatcov_rts_default_trace_filename (const char *env_var, const char *prefix,
   else
     {
       /* The caller is supposed to free the returned string, so create a
-         copy.  */
+	 copy.  */
       env_trace_filename = concat (env_trace_filename, NULL);
 
       /* If the filename ends with a directory separator, consider that it
-         refers to a directory: in that case return a filename inside it.  */
+	 refers to a directory: in that case return a filename inside it.  */
       size_t length = strlen (env_trace_filename);
       if (length > 0
-          && (env_trace_filename[length - 1] == '/'
-              || env_trace_filename[length - 1] == '\\'))
-        {
-          char *basename
-            = gnatcov_rts_default_trace_basename (prefix, tag, simple);
-          char *res = concat (env_trace_filename, basename, NULL);
-          free (env_trace_filename);
-          free (basename);
-          return res;
-        }
+	  && (env_trace_filename[length - 1] == '/'
+	      || env_trace_filename[length - 1] == '\\'))
+	{
+	  char *basename
+	    = gnatcov_rts_default_trace_basename (prefix, tag, simple);
+	  char *res = concat (env_trace_filename, basename, NULL);
+	  free (env_trace_filename);
+	  free (basename);
+	  return res;
+	}
       else
-        return env_trace_filename;
+	return env_trace_filename;
     }
 }
 
@@ -163,7 +163,7 @@ gnatcov_rts_write_trace_file (
     return 1;
 
   gnatcov_rts_generic_write_trace_file (file, buffers, program_name, exec_date,
-                                        user_data, write_bytes);
+					user_data, write_bytes);
   fclose (file);
   return 0;
 }
@@ -171,14 +171,13 @@ gnatcov_rts_write_trace_file (
 /* See gnatcov_rts_c-traces-output-files.h.  */
 void
 gnatcov_rts_write_trace_file_wrapper (
-  const gnatcov_rts_unit_coverage_buffers_array *buffers,
-  const char *filename, gnatcov_rts_string program_name,
-  uint64_t exec_date, gnatcov_rts_string user_data)
+  const gnatcov_rts_unit_coverage_buffers_array *buffers, const char *filename,
+  gnatcov_rts_string program_name, uint64_t exec_date,
+  gnatcov_rts_string user_data)
 {
-  if (gnatcov_rts_write_trace_file
-       (buffers, filename, program_name, exec_date, user_data) != 0)
-    fprintf
-      (stderr,
-       "Error occurred while creating the trace file %s: %s\n",
-       filename, strerror (errno));
+  if (gnatcov_rts_write_trace_file (buffers, filename, program_name, exec_date,
+				    user_data)
+      != 0)
+    fprintf (stderr, "Error occurred while creating the trace file %s: %s\n",
+	     filename, strerror (errno));
 }

@@ -119,7 +119,7 @@ write_bytes (void *output, const void *bytes, unsigned count)
       buffer->bytes[buffer->next] = bytes_array[i];
       buffer->next = buffer->next + 1;
       if (buffer->next == 3)
-        flush (buffer);
+	flush (buffer);
     }
   return 0;
 }

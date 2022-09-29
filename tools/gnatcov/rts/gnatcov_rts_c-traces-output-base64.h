@@ -22,16 +22,17 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* Write a Base64-encoded trace file to the standard output.  See the
-   documentation of the gnatcov_rts_generic_write_trace_file function in
-   gnatcov_rts_c-output.h for more information.  */
-extern void gnatcov_rts_write_trace_file_base64 (
-  const gnatcov_rts_unit_coverage_buffers_array *buffers,
-  gnatcov_rts_string program_name, uint64_t exec_date,
-  gnatcov_rts_string user_data);
+  /* Write a Base64-encoded trace file to the standard output.  See the
+     documentation of the gnatcov_rts_generic_write_trace_file function in
+     gnatcov_rts_c-output.h for more information.  */
+  extern void gnatcov_rts_write_trace_file_base64 (
+    const gnatcov_rts_unit_coverage_buffers_array *buffers,
+    gnatcov_rts_string program_name, uint64_t exec_date,
+    gnatcov_rts_string user_data);
 
 #ifdef __cplusplus
 }
