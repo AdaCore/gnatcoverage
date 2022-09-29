@@ -143,12 +143,12 @@ package Instrument.Common is
    function Buffer_Unit
      (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
    --  Given a unit to instrument, return the name of the unit that holds
-   --  its coverage buffers (Coverage_Buffer_Type and Unit_Coverage_Buffers
-   --  records).
+   --  its coverage buffers (Coverage_Buffer_Type and
+   --  GNATcov_RTS_Coverage_Buffers records).
 
    function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String;
-   --  Name of the symbol that references the gnatcov_rts_unit_coverage_buffers
-   --  struct for this unit.
+   --  Name of the symbol that references the
+   --  gnatcov_rts_coverage_buffers_group struct for this unit.
 
    function Project_Output_Dir (Project : Project_Type) return String;
    --  Return the directory in which we must create instrumented sources for

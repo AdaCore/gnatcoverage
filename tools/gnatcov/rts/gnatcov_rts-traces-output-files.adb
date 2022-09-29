@@ -36,11 +36,11 @@ with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 package body GNATcov_RTS.Traces.Output.Files is
 
    function Write_Trace_File_C
-     (Buffers      : GNATcov_RTS_Coverage_Buffers_Array;
-      Filename     : chars_ptr;
-      Program_Name : GNATcov_RTS_String;
-      Exec_Date    : Unsigned_64;
-      User_Data    : GNATcov_RTS_String) return int;
+     (Buffers_Groups : GNATcov_RTS_Coverage_Buffers_Group_Array;
+      Filename       : chars_ptr;
+      Program_Name   : GNATcov_RTS_String;
+      Exec_Date      : Unsigned_64;
+      User_Data      : GNATcov_RTS_String) return int;
    pragma Import
      (C, Write_Trace_File_C, External_Name => "gnatcov_rts_write_trace_file");
 
@@ -95,16 +95,16 @@ package body GNATcov_RTS.Traces.Output.Files is
    ----------------------
 
    procedure Write_Trace_File
-     (Buffers      : Coverage_Buffers_Array;
-      Filename     : String := Default_Trace_Filename;
-      Program_Name : String := Ada.Command_Line.Command_Name;
-      Exec_Date    : Time   := Clock;
-      User_Data    : String := "")
+     (Buffers_Groups : Coverage_Buffers_Group_Array;
+      Filename       : String := Default_Trace_Filename;
+      Program_Name   : String := Ada.Command_Line.Command_Name;
+      Exec_Date      : Time   := Clock;
+      User_Data      : String := "")
    is
       Filename_C : chars_ptr := New_String (Filename);
    begin
       if Write_Trace_File_C
-           ((Buffers'Length, Buffers'Address),
+           ((Buffers_Groups'Length, Buffers_Groups'Address),
             Filename_C,
             (Program_Name'Address, Program_Name'Length),
             Interfaces.Unsigned_64 (Exec_Date),
@@ -121,11 +121,11 @@ package body GNATcov_RTS.Traces.Output.Files is
    ------------------------------
 
    procedure Write_Trace_File_Wrapper
-     (Buffers      : Coverage_Buffers_Array;
-      Filename     : String := Default_Trace_Filename;
-      Program_Name : String := Ada.Command_Line.Command_Name;
-      Exec_Date    : Time   := Clock;
-      User_Data    : String := "")
+     (Buffers_Groups : Coverage_Buffers_Group_Array;
+      Filename       : String := Default_Trace_Filename;
+      Program_Name   : String := Ada.Command_Line.Command_Name;
+      Exec_Date      : Time   := Clock;
+      User_Data      : String := "")
    is
 
       function C_Strerror (Errnum : C.int) return C.Strings.chars_ptr;
@@ -135,7 +135,8 @@ package body GNATcov_RTS.Traces.Output.Files is
       --  errno.
 
    begin
-      Write_Trace_File (Buffers, Filename, Program_Name, Exec_Date, User_Data);
+      Write_Trace_File
+        (Buffers_Groups, Filename, Program_Name, Exec_Date, User_Data);
    exception
       when IO_Error =>
          declare
