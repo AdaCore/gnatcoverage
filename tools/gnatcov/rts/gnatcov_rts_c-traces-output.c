@@ -33,7 +33,7 @@ typedef struct info_entry_d
 /* Write `count` padding bytes.  */
 static void
 write_padding (gnatcov_rts_write_bytes_callback write_bytes, void *output,
-               unsigned count)
+	       unsigned count)
 {
   unsigned pad_count = (alignment - count) % alignment;
   if (pad_count != alignment)
@@ -62,7 +62,7 @@ write_header (gnatcov_rts_write_bytes_callback write_bytes, void *output)
 /* Write an information entry (e.g. the program_name, the exec date etc.).  */
 static void
 write_info (gnatcov_rts_write_bytes_callback write_bytes, void *output,
-            uint32_t kind, info_entry *data)
+	    uint32_t kind, info_entry *data)
 {
   struct trace_info_header header;
   header.kind = kind;
@@ -91,7 +91,7 @@ flush (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 /* Write a coverage bit buffer.  */
 static void
 write_buffer (gnatcov_rts_write_bytes_callback write_bytes, void *output,
-              uint8_t *buffer, unsigned buffer_length)
+	      uint8_t *buffer, unsigned buffer_length)
 {
   uint8_t current_byte = 0;
   uint8_t bit_mask = 1;
@@ -101,11 +101,11 @@ write_buffer (gnatcov_rts_write_bytes_callback write_bytes, void *output,
   for (i = 0; i < buffer_length; i++)
     {
       if (buffer[i])
-        current_byte = current_byte | bit_mask;
+	current_byte = current_byte | bit_mask;
       if (bit_mask == 1 << 7)
-        flush (write_bytes, output, &bit_mask, &current_byte, &bytes_count);
+	flush (write_bytes, output, &bit_mask, &current_byte, &bytes_count);
       else
-        bit_mask <<= 1;
+	bit_mask <<= 1;
     }
   flush (write_bytes, output, &bit_mask, &current_byte, &bytes_count);
 
@@ -115,7 +115,7 @@ write_buffer (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 /* Write a coverage buffer (unit information + coverage bit buffers).  */
 static void
 write_entry (gnatcov_rts_write_bytes_callback write_bytes, void *output,
-             const gnatcov_rts_unit_coverage_buffers *buffers)
+	     const gnatcov_rts_unit_coverage_buffers *buffers)
 {
   struct trace_entry_header header;
   header.unit_name_length = (uint32_t) buffers->unit_name.length;
@@ -132,21 +132,21 @@ write_entry (gnatcov_rts_write_bytes_callback write_bytes, void *output,
   write_bytes (output, (char *) &header, sizeof (header));
   write_bytes (output, buffers->unit_name.str, buffers->unit_name.length);
   write_padding (write_bytes, output, buffers->unit_name.length);
-  write_bytes
-    (output, buffers->project_name.str, buffers->project_name.length);
+  write_bytes (output, buffers->project_name.str,
+	       buffers->project_name.length);
   write_padding (write_bytes, output, buffers->project_name.length);
   write_buffer (write_bytes, output, buffers->statement,
-                buffers->statement_last_bit + 1);
+		buffers->statement_last_bit + 1);
   write_buffer (write_bytes, output, buffers->decision,
-                buffers->decision_last_bit + 1);
+		buffers->decision_last_bit + 1);
   write_buffer (write_bytes, output, buffers->mcdc,
-                buffers->mcdc_last_bit + 1);
+		buffers->mcdc_last_bit + 1);
 }
 
 /* Write a uint64_t timestamp (by splitting it in uint8_t chunks).  */
 void
 write_date (gnatcov_rts_write_bytes_callback write_bytes, void *output,
-            uint64_t timestamp)
+	    uint64_t timestamp)
 {
   uint8_t formatted_date[8];
   info_entry entry;
@@ -185,10 +185,10 @@ gnatcov_rts_generic_write_trace_file (
 
   write_header (write_bytes, output);
   write_info (write_bytes, output, GNATCOV_RTS_INFO_PROGRAM_NAME,
-              &program_name_entry);
+	      &program_name_entry);
   write_date (write_bytes, output, exec_date);
   write_info (write_bytes, output, GNATCOV_RTS_INFO_USER_DATA,
-              &user_data_entry);
+	      &user_data_entry);
   write_info (write_bytes, output, GNATCOV_RTS_INFO_END, &end_entry);
 
   for (i = 0; i < buffers->length; i++)

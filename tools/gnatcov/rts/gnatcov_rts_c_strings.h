@@ -23,18 +23,20 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef struct gnatcov_rts_string
-{
-  const char *str;
-  size_t length;
-} gnatcov_rts_string;
+  typedef struct gnatcov_rts_string
+  {
+    const char *str;
+    size_t length;
+  } gnatcov_rts_string;
 
 /* Converts a string litteral to the corresponding gnatcov_rts_string struct
    value.  */
-#define STR(x) (struct gnatcov_rts_string) { x, sizeof (x) - 1 }
+#define STR(x)                                                                \
+  (struct gnatcov_rts_string) { x, sizeof (x) - 1 }
 
 #ifdef __cplusplus
 }

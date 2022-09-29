@@ -23,7 +23,8 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /* Expected value of the `trace_file_header.format_version` field.
@@ -44,104 +45,104 @@ extern "C" {
      significant bit maps to bit 8 * Y + 7.  */
 #define GNATCOV_RTS_LSB_FIRST_BYTES 0
 
-enum
-{
-  GNATCOV_RTS_LITTLE_ENDIAN,
-  GNATCOV_RTS_BIG_ENDIAN
-};
+  enum
+  {
+    GNATCOV_RTS_LITTLE_ENDIAN,
+    GNATCOV_RTS_BIG_ENDIAN
+  };
 
-/* Return the native endianity, 0 for little-endian, 1 for big-endian.  */
-extern unsigned gnatcov_rts_native_endianity (void);
+  /* Return the native endianity, 0 for little-endian, 1 for big-endian.  */
+  extern unsigned gnatcov_rts_native_endianity (void);
 
-struct trace_file_header
-{
-  char magic[32];
+  struct trace_file_header
+  {
+    char magic[32];
 
-  uint32_t format_version;
-  uint8_t alignment;
-  uint8_t endianity;
+    uint32_t format_version;
+    uint8_t alignment;
+    uint8_t endianity;
 
-  /* Padding used only to make the size of the trace file header a
-     multiple of 8 bytes.  Must be zero.  */
-  uint16_t padding;
-};
+    /* Padding used only to make the size of the trace file header a
+       multiple of 8 bytes.  Must be zero.  */
+    uint16_t padding;
+  };
 
-/*********************/
-/* Trace information */
-/*********************/
+  /*********************/
+  /* Trace information */
+  /*********************/
 
-enum
-{
+  enum
+  {
 
-  /* Special trace info entry: indicates the end of a sequence of entries. No
-     data is associated to this trace info entry.  */
-  GNATCOV_RTS_INFO_END = 0,
+    /* Special trace info entry: indicates the end of a sequence of entries. No
+       data is associated to this trace info entry.  */
+    GNATCOV_RTS_INFO_END = 0,
 
-  /* Name of the program that produced this trace.  */
-  GNATCOV_RTS_INFO_PROGRAM_NAME = 1,
+    /* Name of the program that produced this trace.  */
+    GNATCOV_RTS_INFO_PROGRAM_NAME = 1,
 
-  /* Date for the program execution that produced this trace.  */
-  GNATCOV_RTS_INFO_EXEC_DATE = 2,
+    /* Date for the program execution that produced this trace.  */
+    GNATCOV_RTS_INFO_EXEC_DATE = 2,
 
-  /* Arbitrary storage for user data. This is exposed to users as the trace
-     "tag".  */
-  GNATCOV_RTS_INFO_USER_DATA = 3
-};
+    /* Arbitrary storage for user data. This is exposed to users as the trace
+       "tag".  */
+    GNATCOV_RTS_INFO_USER_DATA = 3
+  };
 
-struct trace_info_header
-{
-  uint32_t kind;
-  uint32_t length;
-};
+  struct trace_info_header
+  {
+    uint32_t kind;
+    uint32_t length;
+  };
 
-/* Trace entry header
+  /* Trace entry header
 
-Each trace entry starts with the following header. Then goes:
+  Each trace entry starts with the following header. Then goes:
 
- * The name of the unit describes. It is NUL-padded according to the
-   trace file alignment.
+   * The name of the unit describes. It is NUL-padded according to the
+     trace file alignment.
 
- * The statement coverage buffer. It is also NUL-padded.
+   * The statement coverage buffer. It is also NUL-padded.
 
- * The decision coverage buffer. It is also NUL-padded.
+   * The decision coverage buffer. It is also NUL-padded.
 
- * The MC/DC coverage buffer. It is also NUL-padded.  */
+   * The MC/DC coverage buffer. It is also NUL-padded.  */
 
-struct trace_entry_header
-{
-  /* Length of the unit name / filename for the unit this trace entry
-     describes.  */
-  uint32_t unit_name_length;
+  struct trace_entry_header
+  {
+    /* Length of the unit name / filename for the unit this trace entry
+       describes.  */
+    uint32_t unit_name_length;
 
-  /* For file-based languages, length of the project name this file belongs to.
-     For unit-based languages, the unit name is unique so this piece of
-     information is not needed (and thus will be 0).  */
-  uint32_t project_name_length;
+    /* For file-based languages, length of the project name this file belongs
+       to. For unit-based languages, the unit name is unique so this piece of
+       information is not needed (and thus will be 0).  */
+    uint32_t project_name_length;
 
-  /* Number of bits in the statement, decision and MC/DC coverage buffers.  */
-  uint32_t statement_bit_count;
-  uint32_t decision_bit_count;
-  uint32_t mcdc_bit_count;
+    /* Number of bits in the statement, decision and MC/DC coverage buffers. */
+    uint32_t statement_bit_count;
+    uint32_t decision_bit_count;
+    uint32_t mcdc_bit_count;
 
-  /* Language kind for this unit */
-  uint8_t language_kind;
+    /* Language kind for this unit */
+    uint8_t language_kind;
 
-  /* Part of the unit this trace entry describes. `not_applicable_part` for
-     file-based languages.  */
-  uint8_t unit_part;
+    /* Part of the unit this trace entry describes. `not_applicable_part` for
+       file-based languages.  */
+    uint8_t unit_part;
 
-  /* Encoding used to represent statement and decision coverage buffers.  */
-  uint8_t bit_buffer_encoding;
+    /* Encoding used to represent statement and decision coverage buffers.  */
+    uint8_t bit_buffer_encoding;
 
-  /* Hash of SCO info for this unit. Used as a fast way to check that coverage
-     obligations and coverage data are consistent. Specific hash values are
-     computed during instrumentation.  */
-  uint8_t fingerprint[20];
+    /* Hash of SCO info for this unit. Used as a fast way to check that
+       coverage obligations and coverage data are consistent. Specific hash
+       values are computed during instrumentation.  */
+    uint8_t fingerprint[20];
 
-  /* Padding used only to make the size of this trace entry header a multiple
-     of 8 bytes. Must be zero.  */
-  uint8_t padding[5];
-};
+    /* Padding used only to make the size of this trace entry header a multiple
+       of 8 bytes. Must be zero.  */
+    uint8_t padding[5];
+  };
 
 #ifdef __cplusplus
 }

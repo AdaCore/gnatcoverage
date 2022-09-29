@@ -63,8 +63,8 @@ stream_printf (disassembler_stream *ds, const char *format, ...)
    desired.  */
 int
 stream_styled_printf (disassembler_stream *ds,
-                      enum disassembler_style style ATTRIBUTE_UNUSED,
-                      const char *format, ...)
+		      enum disassembler_style style ATTRIBUTE_UNUSED,
+		      const char *format, ...)
 {
   va_list ap;
   int res;
