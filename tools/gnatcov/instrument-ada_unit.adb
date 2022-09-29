@@ -6886,7 +6886,6 @@ package body Instrument.Ada_Unit is
          File.New_Line;
          File.Put_Line ("   pragma Preelaborate;");
          File.New_Line;
-         File.Put_Line ("use type Interfaces.C.int;");
          File.Put_Line ("   Statement_Buffer : Coverage_Buffer_Type"
                         & " (0 .. " & Statement_Last_Bit & ") :="
                         & " (others => False);");
