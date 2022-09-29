@@ -31,16 +31,16 @@ with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 package GNATcov_RTS.Traces.Output.Base64 is
 
    procedure Write_Trace_File
-     (Buffers      : Coverage_Buffers_Array;
-      Program_Name : String;
-      Exec_Date    : Unsigned_64;
-      User_Data    : String := "");
+     (Buffers_Groups : Coverage_Buffers_Group_Array;
+      Program_Name   : String;
+      Exec_Date      : Unsigned_64;
+      User_Data      : String := "");
 
    procedure Write_Trace_File_Wrapper
-     (Buffers      : Coverage_Buffers_Array;
-      Program_Name : String;
-      Exec_Date    : Unsigned_64;
-      User_Data    : String := "") renames Write_Trace_File;
+     (Buffers_Groups : Coverage_Buffers_Group_Array;
+      Program_Name   : String;
+      Exec_Date      : Unsigned_64;
+      User_Data      : String := "") renames Write_Trace_File;
    --  Renaming to mirror the API in GNATcov_RTS.Traces.Output.Files. This
    --  avoids special cases in the generation of automatic buffer dumps: except
    --  for the package that is WITHed, generated code is the same for

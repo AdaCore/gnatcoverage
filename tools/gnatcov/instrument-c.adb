@@ -3006,6 +3006,13 @@ package body Instrument.C is
         "__" & Decision_Buffer_Symbol (UIC.Instrumented_Unit);
       MCDC_Buffer_Repr      : constant String :=
         "__" & MCDC_Buffer_Symbol (UIC.Instrumented_Unit);
+
+      Buffers_Record : constant String := "__xcov_buffers";
+      --  Name of the gnatcov_rts_coverage_buffers struct for this unit
+
+      Buffers_Group_Array : constant String := "__xcov_buffers_group";
+      --  Name of the array of gnatcov_rts_coverage_buffers struct for this
+      --  unit.
    begin
       Create_File (Info, File, +CU_Name.Filename);
 
@@ -3084,52 +3091,62 @@ package body Instrument.C is
 
          --  Create the gnatcov_rts_coverage_buffers struct
 
+         File.Put_Line
+           ("static const struct gnatcov_rts_coverage_buffers "
+            & Buffers_Record & " = {"
+            & ASCII.LF
+            & "  .fingerprint = " & To_String (Fingerprint) & ","
+            & ASCII.LF
+            & "  .language_kind = FILE_BASED_LANGUAGE,"
+            & ASCII.LF
+            & "  .unit_part = NOT_APPLICABLE_PART,"
+            & ASCII.LF
+
+            --  Old toolchains (for instance GNAT Pro 7.1.2) consider that
+            --  "STR(<string literal>)" is not a static expression, and thus
+            --  refuse using STR to initialize a global data structure. To
+            --  workaround this, emit a gnatcov_rtr_string literal ourselves.
+
+            & "  .unit_name = " & Format_Str_Constant (Unit_Name) & ","
+            & ASCII.LF
+            & "  .project_name = " & Format_Str_Constant (Project_Name) & ","
+            & ASCII.LF
+
+            --  We do not use the created pointer (Statement_Buffer) to
+            --  initialize the buffer fields, as this is rejected by old
+            --  versions of the compiler (up to the 20 version): the
+            --  initializer element is considered not constant. To work around
+            --  it, we simply use the original expression instead of using a
+            --  wrapper pointer.
+
+            & "  .statement = &" & Statement_Buffer_Repr & "[0],"
+            & ASCII.LF
+            & "  .decision = &" & Decision_Buffer_Repr & "[0],"
+            & ASCII.LF
+            & "  .mcdc = &" & MCDC_Buffer_Repr & "[0],"
+            & ASCII.LF
+
+            & "  .statement_last_bit = " & Statement_Last_Bit & ","
+            & ASCII.LF
+            & "  .decision_last_bit = " & Decision_Last_Bit & ","
+            & ASCII.LF
+            & "  .mcdc_last_bit = " & MCDC_Last_Bit
+            & ASCII.LF
+            & "};");
+
+         --  Create the buffers group: first the array of buffers (static),
+         --  then the gnatcov_rts_coverage_buffers_group struct (extern).
+
+         File.Put_Line ("static const struct gnatcov_rts_coverage_buffers *"
+                        & Buffers_Group_Array & "[] = {");
+         File.Put_Line ("  &" & Buffers_Record);
+         File.Put_Line ("};");
          Put_Format_Def
            (File,
             Instrumenter,
-            "const struct gnatcov_rts_coverage_buffers",
+            "const struct gnatcov_rts_coverage_buffers_group",
             Unit_Buffers_Name (UIC.Instrumented_Unit),
-            Init_Expr =>
-              "{"
-              & ASCII.LF
-              & "  .fingerprint = " & To_String (Fingerprint) & ","
-              & ASCII.LF
-              & "  .language_kind = FILE_BASED_LANGUAGE,"
-              & ASCII.LF
-              & "  .unit_part = NOT_APPLICABLE_PART,"
-              & ASCII.LF
-
-              --  Old toolchains (for instance GNAT Pro 7.1.2) consider that
-              --  "STR(<string literal>)" is not a static expression, and thus
-              --  refuse using STR to initialize a global data structure. To
-              --  workaround this, emit a gnatcov_rtr_string literal ourselves.
-
-              & "  .unit_name = " & Format_Str_Constant (Unit_Name) & ","
-              & ASCII.LF
-              & "  .project_name = " & Format_Str_Constant (Project_Name) & ","
-              & ASCII.LF
-
-              --  We do not use the created pointer (Statement_Buffer) to
-              --  initialize the buffer fields, as this is rejected by old
-              --  versions of the compiler (up to the 20 version): the
-              --  initializer element is considered not constant. To work
-              --  around it, we simply use the original expression instead of
-              --  using a wrapper pointer.
-
-              & "  .statement = &" & Statement_Buffer_Repr & "[0],"
-              & ASCII.LF
-              & "  .decision = &" & Decision_Buffer_Repr & "[0],"
-              & ASCII.LF
-              & "  .mcdc = &" & MCDC_Buffer_Repr & "[0],"
-              & ASCII.LF
-
-              & "  .statement_last_bit = " & Statement_Last_Bit & ","
-              & ASCII.LF
-              & "  .decision_last_bit = " & Decision_Last_Bit & ","
-              & ASCII.LF
-              & "  .mcdc_last_bit = " & MCDC_Last_Bit
-              & ASCII.LF
-              & "}");
+            Init_Expr => "{1, " & Buffers_Group_Array & "}");
       end;
    end Emit_Buffer_Unit;
 
@@ -3624,7 +3641,7 @@ package body Instrument.C is
 
       declare
          Buffer_Array_Decl  : constant String :=
-           "const struct gnatcov_rts_coverage_buffers_array "
+           "const struct gnatcov_rts_coverage_buffers_group_array "
            & Unit_Buffers_Array_Name (IC);
          Buffer_Unit_Length : constant String :=
            Count_Type'Image (Instr_Units.Length);
@@ -3635,13 +3652,14 @@ package body Instrument.C is
 
          File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
-         --  First create extern declarations for each individual unit buffer
+         --  First create extern declarations for the buffers group of each
+         --  unit.
 
          for Instr_Unit of Instr_Units loop
             Put_Extern_Decl
               (File_Body,
                Self,
-               "const struct gnatcov_rts_coverage_buffers",
+               "const struct gnatcov_rts_coverage_buffers_group",
                Unit_Buffers_Name (Instr_Unit));
          end loop;
 
@@ -3653,7 +3671,7 @@ package body Instrument.C is
          File_Body.Put_Line (Buffer_Array_Decl & " = {");
          File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
          File_Body.Put_Line
-           ("  (const struct gnatcov_rts_coverage_buffers *[]) {");
+           ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
          for Cur in Instr_Units.Iterate loop
             declare
                use CU_Name_Vectors;
@@ -3675,7 +3693,7 @@ package body Instrument.C is
       Put_Extern_Decl
         (File_Header,
          Self,
-         "const struct gnatcov_rts_coverage_buffers_array",
+         "const struct gnatcov_rts_coverage_buffers_group_array",
          Unit_Buffers_Array_Name (IC));
    end Emit_Buffers_List_Unit;
 

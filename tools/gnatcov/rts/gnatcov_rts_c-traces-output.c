@@ -166,12 +166,14 @@ write_date (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 /* See gnatcov_rts_c-traces-output.h.  */
 int
 gnatcov_rts_generic_write_trace_file (
-  void *output, const struct gnatcov_rts_coverage_buffers_array *buffers,
+  void *output,
+  const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
   struct gnatcov_rts_string program_name, uint64_t exec_date,
   struct gnatcov_rts_string user_data,
   gnatcov_rts_write_bytes_callback write_bytes)
 {
-  unsigned i;
+  const struct gnatcov_rts_coverage_buffers_group *group;
+  unsigned i_group, i_buffer;
 
   struct info_entry program_name_entry;
   program_name_entry.length = program_name.length;
@@ -192,8 +194,12 @@ gnatcov_rts_generic_write_trace_file (
 	      &user_data_entry);
   write_info (write_bytes, output, GNATCOV_RTS_INFO_END, &end_entry);
 
-  for (i = 0; i < buffers->length; i++)
-    write_entry (write_bytes, output, buffers->buffers[i]);
+  for (i_group = 0; i_group < buffers_groups->length; ++i_group)
+    {
+      group = buffers_groups->groups[i_group];
+      for (i_buffer = 0; i_buffer < group->length; ++i_buffer)
+	write_entry (write_bytes, output, group->buffers[i_buffer]);
+    }
 
   return 0;
 }

@@ -6837,6 +6837,8 @@ package body Instrument.Ada_Unit is
                    To_Filename (Info.Project, CU_Name, Switches.Ada_Language));
       Put_Warnings_And_Style_Checks_Pragmas (File);
       File.Put_Line ("with Interfaces.C; use Interfaces.C;");
+      File.Put_Line
+        ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
 
       declare
          Pkg_Name : constant String := To_Ada (CU_Name.Unit);
@@ -6886,6 +6888,10 @@ package body Instrument.Ada_Unit is
          File.New_Line;
          File.Put_Line ("   pragma Preelaborate;");
          File.New_Line;
+
+         --  Create declarations for individual buffers (statement, decision
+         --  and MC/DC) as well as their exported addresses.
+
          File.Put_Line ("   Statement_Buffer : Coverage_Buffer_Type"
                         & " (0 .. " & Statement_Last_Bit & ") :="
                         & " (others => False);");
@@ -6916,6 +6922,8 @@ package body Instrument.Ada_Unit is
                         & """);");
          File.New_Line;
 
+         --  Create the GNATcov_RTS_Coverage_Buffers record
+
          File.Put_Line ("   Unit_Name : constant String := """ & Unit_Name
                         & """;");
          File.Put_Line ("   Project_Name : constant String := """";");
@@ -6943,9 +6951,21 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("      Decision_Last_Bit => " & Decision_Last_Bit
                         & ",");
          File.Put_Line ("      MCDC_Last_Bit => " & MCDC_Last_Bit & ");");
-         File.Put_Line ("      pragma Export (C, Buffers, """
+         File.New_Line;
+
+         --  Create the buffers group
+
+         File.Put_Line
+           ("   Buffers_Group : aliased constant Coverage_Buffers_Group :="
+            & " (1 => Buffers'Access);");
+         File.Put_Line
+           ("   C_Buffers_Group : aliased constant"
+            & " GNATcov_RTS_Coverage_Buffers_Group :="
+            & " (1, Buffers_Group'Address);");
+         File.Put_Line ("      pragma Export (C, C_Buffers_Group, """
                         & Unit_Buffers_Name (UIC.Instrumented_Unit) & """);");
          File.New_Line;
+
          File.Put_Line ("end " & Pkg_Name & ";");
       end;
    end Emit_Buffer_Unit;
@@ -7373,7 +7393,7 @@ package body Instrument.Ada_Unit is
             begin
                File.Put_Line
                  ("   " & Buffer_Name
-                  & " : aliased constant GNATcov_RTS_Coverage_Buffers;");
+                  & " : aliased constant GNATcov_RTS_Coverage_Buffers_Group;");
                File.Put_Line ("   pragma Import (C, " & Buffer_Name & ","""
                               & Buffer_Name & """);");
             end;
@@ -7382,7 +7402,7 @@ package body Instrument.Ada_Unit is
          --  Create the list of coverage buffers
 
          File.Put_Line ("   List : constant GNATcov_RTS.Buffers.Lists"
-                        & ".Coverage_Buffers_Array := (");
+                        & ".Coverage_Buffers_Group_Array := (");
          for Cur in Instr_Units.Iterate loop
             declare
                use CU_Name_Vectors;
