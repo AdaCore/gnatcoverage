@@ -27,11 +27,11 @@ extern "C"
 {
 #endif
 
-  typedef struct gnatcov_rts_string
+  struct gnatcov_rts_string
   {
     const char *str;
     size_t length;
-  } gnatcov_rts_string;
+  };
 
 /* Converts a string litteral to the corresponding gnatcov_rts_string struct
    value.  */

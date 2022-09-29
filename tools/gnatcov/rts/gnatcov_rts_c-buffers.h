@@ -66,7 +66,7 @@ extern "C"
     FILE_BASED_LANGUAGE = 1
   };
 
-  typedef struct gnatcov_rts_unit_coverage_buffers
+  struct gnatcov_rts_unit_coverage_buffers
   {
     /* Hash of SCO info for this unit, as gnatcov computes it (see
        SC_Obligations).  Used as a fast way to check that coverage obligations
@@ -91,11 +91,11 @@ extern "C"
        For file-based languages, unit_name is the simple filename, e.g.
        "foo.c".  */
     enum gnatcov_rts_unit_part unit_part;
-    gnatcov_rts_string unit_name;
+    struct gnatcov_rts_string unit_name;
 
     /* Project name for this compilation unit.  This is only initialized for
        file-based languages (otherwise, it is an empty string).  */
-    gnatcov_rts_string project_name;
+    struct gnatcov_rts_string project_name;
 
     /* Addresses of coverage buffers for statement obligations, decision
        obligations and MC/DC obligations.  The address refer to
@@ -106,14 +106,14 @@ extern "C"
     /* Index for the last bits in coverage buffers for statements, decisions
        and MC/DC.  */
     gnatcov_rts_bit_id statement_last_bit, decision_last_bit, mcdc_last_bit;
-  } gnatcov_rts_unit_coverage_buffers;
+  };
 
   /* Array of unit coverage buffers.  */
-  typedef struct gnatcov_rts_unit_coverage_buffers_array
+  struct gnatcov_rts_unit_coverage_buffers_array
   {
     unsigned length;
-    gnatcov_rts_unit_coverage_buffers **buffers;
-  } gnatcov_rts_unit_coverage_buffers_array;
+    struct gnatcov_rts_unit_coverage_buffers **buffers;
+  };
 
   /***********************/
   /* Witness subprograms */
