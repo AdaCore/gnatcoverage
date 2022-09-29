@@ -25,7 +25,7 @@
    functions to print to the standard output.  */
 
 int
-gnatcov_rts_puts (gnatcov_rts_string str)
+gnatcov_rts_puts (struct gnatcov_rts_string str)
 {
   fwrite (str.str, 1, str.length, stdout);
   fwrite ("\n", 1, 1, stdout);

@@ -65,16 +65,16 @@ extern "C"
      Return 0 if the trace creation was successful, 1 otherwise.  In case of
      error, ERRNO is left to the number for the cause of error.  */
   extern int gnatcov_rts_write_trace_file (
-    const gnatcov_rts_unit_coverage_buffers_array *buffers,
-    const char *filename, gnatcov_rts_string program_name, uint64_t exec_date,
-    gnatcov_rts_string user_data);
+    const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+    const char *filename, struct gnatcov_rts_string program_name,
+    uint64_t exec_date, struct gnatcov_rts_string user_data);
 
   /* Call gnatcov_rts_write_trace_file and print an error message on the
      standard error if the trace could not be created.  */
   extern void gnatcov_rts_write_trace_file_wrapper (
-    const gnatcov_rts_unit_coverage_buffers_array *buffers,
-    const char *filename, gnatcov_rts_string program_name, uint64_t exec_date,
-    gnatcov_rts_string user_data);
+    const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+    const char *filename, struct gnatcov_rts_string program_name,
+    uint64_t exec_date, struct gnatcov_rts_string user_data);
 
 #ifdef __cplusplus
 }

@@ -24,11 +24,11 @@
 
 const unsigned alignment = sizeof (void *);
 
-typedef struct info_entry_d
+struct info_entry
 {
   const void *data;
   uint32_t length;
-} info_entry;
+};
 
 /* Write `count` padding bytes.  */
 static void
@@ -62,7 +62,7 @@ write_header (gnatcov_rts_write_bytes_callback write_bytes, void *output)
 /* Write an information entry (e.g. the program_name, the exec date etc.).  */
 static void
 write_info (gnatcov_rts_write_bytes_callback write_bytes, void *output,
-	    uint32_t kind, info_entry *data)
+	    uint32_t kind, struct info_entry *data)
 {
   struct trace_info_header header;
   header.kind = kind;
@@ -115,7 +115,7 @@ write_buffer (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 /* Write a coverage buffer (unit information + coverage bit buffers).  */
 static void
 write_entry (gnatcov_rts_write_bytes_callback write_bytes, void *output,
-	     const gnatcov_rts_unit_coverage_buffers *buffers)
+	     const struct gnatcov_rts_unit_coverage_buffers *buffers)
 {
   struct trace_entry_header header;
   header.unit_name_length = (uint32_t) buffers->unit_name.length;
@@ -149,7 +149,7 @@ write_date (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 	    uint64_t timestamp)
 {
   uint8_t formatted_date[8];
-  info_entry entry;
+  struct info_entry entry;
   int i;
 
   for (i = 0; i < 8; i++)
@@ -166,21 +166,22 @@ write_date (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 /* See gnatcov_rts_c-traces-output.h.  */
 int
 gnatcov_rts_generic_write_trace_file (
-  void *output, const gnatcov_rts_unit_coverage_buffers_array *buffers,
-  gnatcov_rts_string program_name, uint64_t exec_date,
-  gnatcov_rts_string user_data, gnatcov_rts_write_bytes_callback write_bytes)
+  void *output, const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+  struct gnatcov_rts_string program_name, uint64_t exec_date,
+  struct gnatcov_rts_string user_data,
+  gnatcov_rts_write_bytes_callback write_bytes)
 {
   unsigned i;
 
-  info_entry program_name_entry;
+  struct info_entry program_name_entry;
   program_name_entry.length = program_name.length;
   program_name_entry.data = program_name.str;
 
-  info_entry user_data_entry;
+  struct info_entry user_data_entry;
   user_data_entry.length = user_data.length;
   user_data_entry.data = user_data.str;
 
-  info_entry end_entry;
+  struct info_entry end_entry;
   end_entry.length = 0;
 
   write_header (write_bytes, output);

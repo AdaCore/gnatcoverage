@@ -126,16 +126,16 @@ write_bytes (void *output, const void *bytes, unsigned count)
 
 void
 gnatcov_rts_write_trace_file_base64 (
-  const gnatcov_rts_unit_coverage_buffers_array *buffers,
-  gnatcov_rts_string program_name, uint64_t exec_date,
-  gnatcov_rts_string user_data)
+  const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+  struct gnatcov_rts_string program_name, uint64_t exec_date,
+  struct gnatcov_rts_string user_data)
 {
   gnatcov_rts_base64_buffer buffer;
   buffer.next = 0;
   buffer.columns = 0;
-  gnatcov_rts_string begin_string
+  struct gnatcov_rts_string begin_string
     = STR ("== GNATcoverage source trace file ==");
-  gnatcov_rts_string end_string = STR ("== End ==");
+  struct gnatcov_rts_string end_string = STR ("== End ==");
   gnatcov_rts_putchar ('\n');
   gnatcov_rts_puts (begin_string);
   gnatcov_rts_generic_write_trace_file (&buffer, buffers, program_name,
