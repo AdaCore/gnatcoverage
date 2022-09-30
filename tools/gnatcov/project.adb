@@ -315,8 +315,7 @@ package body Project is
    procedure Iterate_Projects
      (Root_Project : Project_Type;
       Process      : access procedure (Prj : Project_Type);
-      Recursive    : Boolean;
-      Extended     : Boolean := False)
+      Recursive    : Boolean)
    is
       Iter             : Project_Iterator := Start
         (Root_Project     => Root_Project,
@@ -324,19 +323,16 @@ package body Project is
          Include_Extended => False);
       Visited_Projects : Project_Sets.Set;
       Project          : Project_Type;
-
    begin
       loop
          Project := Current (Iter);
          exit when Project = No_Project;
 
-         --  Unless specifically asked to go through extended projects, go to
-         --  the ultimate extending project, which might override the Coverage
-         --  package.
+         --  Go to the ultimate extending project: this is the "reference"
+         --  project for chains of project extension (we care about the
+         --  Coverage package of extending projects, their object dirs, etc.).
 
-         if not Extended then
-            Project := Extending_Project (Project, Recurse => True);
-         end if;
+         Project := Extending_Project (Project, Recurse => True);
 
          declare
             Name : constant String := Project.Name;
