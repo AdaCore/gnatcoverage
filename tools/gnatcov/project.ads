@@ -228,14 +228,9 @@ package Project is
    procedure Iterate_Projects
      (Root_Project : GNATCOLL.Projects.Project_Type;
       Process      : access procedure (Prj : GNATCOLL.Projects.Project_Type);
-      Recursive    : Boolean;
-      Extended     : Boolean := False)
+      Recursive    : Boolean)
       with Pre => Is_Project_Loaded;
    --  Call Process on Root_Project if Recursive is False, or on the whole
    --  project tree otherwise.
-   --
-   --  Visit extended projects only if Extended is True. This is useful only in
-   --  very specific cases, such as when needing to process all object
-   --  direcotries in the project tree.
 
 end Project;
