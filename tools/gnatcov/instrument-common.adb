@@ -210,7 +210,7 @@ package body Instrument.Common is
       Self.Unit := Unit;
       Self.Handle := Start_Rewriting (IC.Context);
 
-      Info.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
+      Info.Instr_Files.Insert (To_Unbounded_String (Output_Filename));
    end Start_Rewriting;
 
    --------------------
@@ -530,10 +530,19 @@ package body Instrument.Common is
          --  register it and return it.
 
          declare
+            Storage_Project : constant Project_Type :=
+              Project.Extending_Project (Recurse => True);
+            --  Actual project that will host instrumented sources: even when
+            --  we instrument an extended project, the resulting instrumented
+            --  sources must go to the ultimate extending project's object
+            --  directory. This is similar to the object directory that hosts
+            --  object files when GPRbuild processes a project that is
+            --  extended.
+
             Result : constant Project_Info_Access := new Project_Info'
               (Project          => Project,
                Externally_Built => Project.Externally_Built,
-               Output_Dir       => +Project_Output_Dir (Project),
+               Output_Dir       => +Project_Output_Dir (Storage_Project),
                Instr_Files      => <>);
          begin
             Context.Project_Info_Map.Insert (Project_Name, Result);
@@ -650,7 +659,7 @@ package body Instrument.Common is
       Output_Filename : constant String :=
          To_String (Info.Output_Dir) / Base_Filename;
    begin
-      Info.Instr_Files.Insert (To_Unbounded_String (Base_Filename));
+      Info.Instr_Files.Insert (To_Unbounded_String (Output_Filename));
       return Output_Filename;
    end Register_New_File;
 

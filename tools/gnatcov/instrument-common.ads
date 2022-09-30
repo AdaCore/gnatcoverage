@@ -175,7 +175,9 @@ package Instrument.Common is
       --  for this project must land in it.
 
       Instr_Files : aliased File_Sets.Set;
-      --  Set of files that were written to Output_Dir
+      --  Set of full names for files that were written to Output_Dir for this
+      --  project. Note that in the case of project extension, more than one
+      --  project may use the same output directory.
    end record;
 
    type Project_Info_Access is access all Project_Info;

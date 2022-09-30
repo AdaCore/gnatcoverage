@@ -235,11 +235,16 @@ package Project is
       with Pre => Is_Project_Loaded;
 
    procedure Iterate_Projects
-     (Root_Project : GNATCOLL.Projects.Project_Type;
-      Process      : access procedure (Prj : GNATCOLL.Projects.Project_Type);
-      Recursive    : Boolean)
+     (Root_Project     : GNATCOLL.Projects.Project_Type;
+      Process          : access procedure
+                           (Prj : GNATCOLL.Projects.Project_Type);
+      Recursive        : Boolean;
+      Include_Extended : Boolean := False)
       with Pre => Is_Project_Loaded;
    --  Call Process on Root_Project if Recursive is False, or on the whole
    --  project tree otherwise.
+   --
+   --  Unless Include_Extended is True, only process ultimate extending
+   --  projects.
 
 end Project;
