@@ -3004,7 +3004,7 @@ package body Instrument.C is
          Put_Format_Def
            (File,
             Instrumenter,
-            "struct gnatcov_rts_unit_coverage_buffers",
+            "const struct gnatcov_rts_unit_coverage_buffers",
             Unit_Buffers_Name (UIC.Instrumented_Unit),
             Init_Expr =>
               "{"
@@ -3543,7 +3543,7 @@ package body Instrument.C is
 
       declare
          Buffer_Array_Decl  : constant String :=
-           "struct gnatcov_rts_unit_coverage_buffers_array "
+           "const struct gnatcov_rts_unit_coverage_buffers_array "
            & Unit_Buffers_Array_Name (IC);
          Buffer_Unit_Length : constant String :=
            Count_Type'Image (Instr_Units.Length);
@@ -3560,7 +3560,7 @@ package body Instrument.C is
             Put_Extern_Decl
               (File_Body,
                Self,
-               "struct gnatcov_rts_unit_coverage_buffers",
+               "const struct gnatcov_rts_unit_coverage_buffers",
                Unit_Buffers_Name (Instr_Unit));
          end loop;
 
@@ -3571,8 +3571,8 @@ package body Instrument.C is
          File_Body.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
          File_Body.Put_Line (Buffer_Array_Decl & " = {");
          File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
-         File_Body.Put_Line ("  (struct gnatcov_rts_unit_coverage_buffers *[])"
-                             & " {");
+         File_Body.Put_Line
+           ("  (const struct gnatcov_rts_unit_coverage_buffers *[]) {");
          for Cur in Instr_Units.Iterate loop
             declare
                use CU_Name_Vectors;
@@ -3594,7 +3594,7 @@ package body Instrument.C is
       Put_Extern_Decl
         (File_Header,
          Self,
-         "struct gnatcov_rts_unit_coverage_buffers_array",
+         "const struct gnatcov_rts_unit_coverage_buffers_array",
          Unit_Buffers_Array_Name (IC));
    end Emit_Buffers_List_Unit;
 

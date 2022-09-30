@@ -112,7 +112,7 @@ extern "C"
   struct gnatcov_rts_unit_coverage_buffers_array
   {
     unsigned length;
-    struct gnatcov_rts_unit_coverage_buffers **buffers;
+    const struct gnatcov_rts_unit_coverage_buffers **buffers;
   };
 
   /***********************/

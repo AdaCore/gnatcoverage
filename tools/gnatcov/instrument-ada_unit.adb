@@ -7041,7 +7041,7 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("   Project_Name : constant String := """";");
          File.New_Line;
 
-         File.Put_Line ("   Buffers : aliased"
+         File.Put_Line ("   Buffers : aliased constant"
                         & " GNATcov_RTS_Unit_Coverage_Buffers :=");
          File.Put_Line ("     (Fingerprint => "
                         & To_String (Fingerprint) & ",");
@@ -7518,7 +7518,7 @@ package body Instrument.Ada_Unit is
             begin
                File.Put_Line
                  ("   " & Buffer_Name
-                  & " : aliased GNATcov_RTS_Unit_Coverage_Buffers;");
+                  & " : aliased constant GNATcov_RTS_Unit_Coverage_Buffers;");
                File.Put_Line ("   pragma Import (C, " & Buffer_Name & ","""
                               & Buffer_Name & """);");
             end;
@@ -7526,20 +7526,19 @@ package body Instrument.Ada_Unit is
 
          --  Create the list of coverage buffers
 
-         File.Put_Line ("   List : GNATcov_RTS.Buffers.Lists"
+         File.Put_Line ("   List : constant GNATcov_RTS.Buffers.Lists"
                         & ".Unit_Coverage_Buffers_Array := (");
          for Cur in Instr_Units.Iterate loop
             declare
                use CU_Name_Vectors;
 
                Index       : constant Positive := To_Index (Cur);
+               Index_Img   : constant String := Img (To_Index (Cur));
                Buffer_Name : constant String :=
                  Unit_Buffers_Name (Element (Cur));
-
             begin
-               File.Put ((1 .. 6 => ' '));
-               File.Put (Strings.Img (To_Index (Cur))
-                         & " => " & Buffer_Name & "'Unrestricted_Access");
+               File.Put
+                 ("      " & Index_Img & " => " & Buffer_Name & "'Access");
                if Index = Instr_Units.Last_Index then
                   File.Put_Line (");");
                else
