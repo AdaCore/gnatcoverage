@@ -154,7 +154,7 @@ gnatcov_rts_default_trace_filename (const char *env_var, const char *prefix,
 /* See gnatcov_rts_c-traces-output-files.h.  */
 int
 gnatcov_rts_write_trace_file (
-  const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+  const struct gnatcov_rts_coverage_buffers_array *buffers,
   const char *filename, struct gnatcov_rts_string program_name,
   uint64_t exec_date, struct gnatcov_rts_string user_data)
 {
@@ -171,7 +171,7 @@ gnatcov_rts_write_trace_file (
 /* See gnatcov_rts_c-traces-output-files.h.  */
 void
 gnatcov_rts_write_trace_file_wrapper (
-  const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+  const struct gnatcov_rts_coverage_buffers_array *buffers,
   const char *filename, struct gnatcov_rts_string program_name,
   uint64_t exec_date, struct gnatcov_rts_string user_data)
 {

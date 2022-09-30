@@ -115,7 +115,7 @@ write_buffer (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 /* Write a coverage buffer (unit information + coverage bit buffers).  */
 static void
 write_entry (gnatcov_rts_write_bytes_callback write_bytes, void *output,
-	     const struct gnatcov_rts_unit_coverage_buffers *buffers)
+	     const struct gnatcov_rts_coverage_buffers *buffers)
 {
   struct trace_entry_header header;
   header.unit_name_length = (uint32_t) buffers->unit_name.length;
@@ -166,7 +166,7 @@ write_date (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 /* See gnatcov_rts_c-traces-output.h.  */
 int
 gnatcov_rts_generic_write_trace_file (
-  void *output, const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+  void *output, const struct gnatcov_rts_coverage_buffers_array *buffers,
   struct gnatcov_rts_string program_name, uint64_t exec_date,
   struct gnatcov_rts_string user_data,
   gnatcov_rts_write_bytes_callback write_bytes)

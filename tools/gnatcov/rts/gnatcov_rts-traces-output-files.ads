@@ -57,7 +57,7 @@ package GNATcov_RTS.Traces.Output.Files is
    --  Exception we raise in case of errors during the trace file creation
 
    procedure Write_Trace_File
-     (Buffers      : Unit_Coverage_Buffers_Array;
+     (Buffers      : Coverage_Buffers_Array;
       Filename     : String := Default_Trace_Filename;
       Program_Name : String := Ada.Command_Line.Command_Name;
       Exec_Date    : Time   := Clock;
@@ -66,7 +66,7 @@ package GNATcov_RTS.Traces.Output.Files is
    --  If unsuccessful, raise IO_Error and leave the error code in errno.
 
    procedure Write_Trace_File_Wrapper
-     (Buffers      : Unit_Coverage_Buffers_Array;
+     (Buffers      : Coverage_Buffers_Array;
       Filename     : String := Default_Trace_Filename;
       Program_Name : String := Ada.Command_Line.Command_Name;
       Exec_Date    : Time   := Clock;

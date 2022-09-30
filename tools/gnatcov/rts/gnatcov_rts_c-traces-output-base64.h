@@ -30,7 +30,7 @@ extern "C"
      documentation of the gnatcov_rts_generic_write_trace_file function in
      gnatcov_rts_c-output.h for more information.  */
   extern void gnatcov_rts_write_trace_file_base64 (
-    const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+    const struct gnatcov_rts_coverage_buffers_array *buffers,
     struct gnatcov_rts_string program_name, uint64_t exec_date,
     struct gnatcov_rts_string user_data);
 

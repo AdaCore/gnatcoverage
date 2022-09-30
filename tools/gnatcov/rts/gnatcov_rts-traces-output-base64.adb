@@ -30,7 +30,7 @@ with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 package body GNATcov_RTS.Traces.Output.Base64 is
 
    procedure Write_Trace_File_C
-     (Buffers      : GNATcov_RTS_Unit_Coverage_Buffers_Array;
+     (Buffers      : GNATcov_RTS_Coverage_Buffers_Array;
       Program_Name : GNATcov_RTS_String;
       Exec_Date    : Unsigned_64;
       User_Data    : GNATcov_RTS_String);
@@ -42,15 +42,14 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    ----------------------
 
    procedure Write_Trace_File
-     (Buffers      : Unit_Coverage_Buffers_Array;
+     (Buffers      : Coverage_Buffers_Array;
       Program_Name : String;
       Exec_Date    : Unsigned_64;
       User_Data    : String := "")
    is
    begin
       Write_Trace_File_C
-        (GNATcov_RTS_Unit_Coverage_Buffers_Array'
-           (Length => Buffers'Length, Buffers => Buffers'Address),
+        ((Buffers'Length, Buffers'Address),
          (Program_Name'Address, Program_Name'Length),
          Exec_Date,
          (User_Data'Address, User_Data'Length));
