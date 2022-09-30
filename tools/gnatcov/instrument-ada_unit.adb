@@ -7042,7 +7042,7 @@ package body Instrument.Ada_Unit is
          File.New_Line;
 
          File.Put_Line ("   Buffers : aliased constant"
-                        & " GNATcov_RTS_Unit_Coverage_Buffers :=");
+                        & " GNATcov_RTS_Coverage_Buffers :=");
          File.Put_Line ("     (Fingerprint => "
                         & To_String (Fingerprint) & ",");
 
@@ -7518,7 +7518,7 @@ package body Instrument.Ada_Unit is
             begin
                File.Put_Line
                  ("   " & Buffer_Name
-                  & " : aliased constant GNATcov_RTS_Unit_Coverage_Buffers;");
+                  & " : aliased constant GNATcov_RTS_Coverage_Buffers;");
                File.Put_Line ("   pragma Import (C, " & Buffer_Name & ","""
                               & Buffer_Name & """);");
             end;
@@ -7527,7 +7527,7 @@ package body Instrument.Ada_Unit is
          --  Create the list of coverage buffers
 
          File.Put_Line ("   List : constant GNATcov_RTS.Buffers.Lists"
-                        & ".Unit_Coverage_Buffers_Array := (");
+                        & ".Coverage_Buffers_Array := (");
          for Cur in Instr_Units.Iterate loop
             declare
                use CU_Name_Vectors;

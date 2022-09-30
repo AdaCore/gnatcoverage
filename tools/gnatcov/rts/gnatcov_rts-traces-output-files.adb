@@ -36,7 +36,7 @@ with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 package body GNATcov_RTS.Traces.Output.Files is
 
    function Write_Trace_File_C
-     (Buffers      : GNATcov_RTS_Unit_Coverage_Buffers_Array;
+     (Buffers      : GNATcov_RTS_Coverage_Buffers_Array;
       Filename     : chars_ptr;
       Program_Name : GNATcov_RTS_String;
       Exec_Date    : Unsigned_64;
@@ -95,7 +95,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    ----------------------
 
    procedure Write_Trace_File
-     (Buffers      : Unit_Coverage_Buffers_Array;
+     (Buffers      : Coverage_Buffers_Array;
       Filename     : String := Default_Trace_Filename;
       Program_Name : String := Ada.Command_Line.Command_Name;
       Exec_Date    : Time   := Clock;
@@ -104,8 +104,7 @@ package body GNATcov_RTS.Traces.Output.Files is
       Filename_C : chars_ptr := New_String (Filename);
    begin
       if Write_Trace_File_C
-           (GNATcov_RTS_Unit_Coverage_Buffers_Array'
-              (Length => Buffers'Length, Buffers => Buffers'Address),
+           ((Buffers'Length, Buffers'Address),
             Filename_C,
             (Program_Name'Address, Program_Name'Length),
             Interfaces.Unsigned_64 (Exec_Date),
@@ -122,7 +121,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    ------------------------------
 
    procedure Write_Trace_File_Wrapper
-     (Buffers      : Unit_Coverage_Buffers_Array;
+     (Buffers      : Coverage_Buffers_Array;
       Filename     : String := Default_Trace_Filename;
       Program_Name : String := Ada.Command_Line.Command_Name;
       Exec_Date    : Time   := Clock;
