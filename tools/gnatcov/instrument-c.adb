@@ -2959,13 +2959,14 @@ package body Instrument.C is
 
          File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
          File.New_Line;
-         Put_Format_Def
-           (File,
-            Instrumenter,
-            "unsigned char",
-            Statement_Buffer_Repr,
-            Array_Size =>
-              Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Statement_Bit + 1)));
+
+         --  Define the individual buffers (statement, decision and MC/DC,
+         --  which are static) as well as pointers to them (exported).
+
+         File.Put_Line
+           ("static unsigned char " & Statement_Buffer_Repr & "["
+            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Statement_Bit + 1))
+            & "];");
          Put_Format_Def
            (File,
             Instrumenter,
@@ -2973,13 +2974,10 @@ package body Instrument.C is
             Statement_Buffer,
             Init_Expr => "&" & Statement_Buffer_Repr & "[0]");
 
-         Put_Format_Def
-           (File,
-            Instrumenter,
-            "unsigned char",
-            Decision_Buffer_Repr,
-            Array_Size =>
-              Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Outcome_Bit + 1)));
+         File.Put_Line
+           ("static unsigned char " & Decision_Buffer_Repr & "["
+            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Outcome_Bit + 1))
+            & "];");
          Put_Format_Def
            (File,
             Instrumenter,
@@ -2987,19 +2985,18 @@ package body Instrument.C is
             Decision_Buffer,
             Init_Expr => "&" & Decision_Buffer_Repr & "[0]");
 
-         Put_Format_Def
-           (File,
-            Instrumenter,
-            "unsigned char",
-            MCDC_Buffer_Repr,
-            Array_Size =>
-              Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Path_Bit + 1)));
+         File.Put_Line
+           ("static unsigned char " & MCDC_Buffer_Repr & "["
+            & Img (Any_Bit_Id'Max (1, UIC.Unit_Bits.Last_Path_Bit + 1))
+            & "];");
          Put_Format_Def
            (File,
             Instrumenter,
             "unsigned char *const",
             MCDC_Buffer,
             Init_Expr => "&" & MCDC_Buffer_Repr & "[0]");
+
+         --  Create the gnatcov_rts_coverage_buffers struct
 
          Put_Format_Def
            (File,
