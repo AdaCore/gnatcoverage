@@ -193,6 +193,20 @@ package body Switches is
    -----------------
 
    function To_Language (Name : String) return Some_Language is
+      Result : constant Any_Language := To_Language_Or_All (Name);
+   begin
+      if Result = All_Languages then
+         Fatal_Error ("Unsupported language: " & Name);
+      else
+         return Result;
+      end if;
+   end To_Language;
+
+   ------------------------
+   -- To_Language_Or_All --
+   ------------------------
+
+   function To_Language_Or_All (Name : String) return Any_Language is
       Lower_Name : constant String := To_Lower (Name);
    begin
       if Lower_Name = "ada" then
@@ -202,9 +216,9 @@ package body Switches is
       elsif Lower_Name = "c++" then
          return CPP_Language;
       else
-         Fatal_Error ("Unsupported language: " & Name);
+         return All_Languages;
       end if;
-   end To_Language;
+   end To_Language_Or_All;
 
    -----------
    -- Image --

@@ -51,7 +51,6 @@ with Outputs;
 with Paths;                 use Paths;
 with Project;
 with SC_Obligations;
-with Strings;               use Strings;
 with Switches;              use Switches;
 
 package body Instrument is
@@ -304,7 +303,8 @@ package body Instrument is
    procedure Instrument_Units_Of_Interest
      (Dump_Config          : Any_Dump_Config;
       Language_Version     : Any_Language_Version;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp)
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Mains                : String_Vectors.Vector)
    is
       use Libadalang.Analysis;
 
@@ -472,12 +472,50 @@ package body Instrument is
       --  for coverage analysis.
 
       if Dump_Config.Trigger /= Manual then
-         for Lang in Src_Supported_Language loop
-            for Main of Project.Enumerate_Mains (Lang) loop
-               Register_Main_To_Instrument
-                 (IC, Mains_To_Instrument (Lang), Main.File, Main.Project);
+
+         --  If no source file was specified on the command line to be a main,
+         --  use the list of mains specified in project files.
+
+         if Mains.Is_Empty then
+            for Lang in Src_Supported_Language loop
+               for Main of Project.Enumerate_Mains (Lang) loop
+                  Register_Main_To_Instrument
+                    (IC, Mains_To_Instrument (Lang), Main.File, Main.Project);
+               end loop;
             end loop;
-         end loop;
+
+         --  Otherwise, make sure we can find the source file of each main in
+         --  the project tree and that we can instrument them (supported
+         --  language).
+
+         else
+            for Filename of Mains loop
+               declare
+                  use GNATCOLL.VFS;
+
+                  F       : constant String := +Filename;
+                  Info    : constant File_Info :=
+                    Project.Project.Root_Project.Create_From_Project (+F);
+                  File    : constant Virtual_File := Info.File;
+                  Project : constant Project_Type := Info.Project;
+                  Lang    : Any_Language;
+               begin
+                  if File = No_File or else Project = No_Project then
+                     Outputs.Fatal_Error ("No such source file: " & F);
+                  end if;
+
+                  Lang := To_Language_Or_All (Info.Language);
+                  if Lang not in Src_Supported_Language then
+                     Outputs.Fatal_Error
+                       ("Cannot instrument main source file (unsupported"
+                        & " language): " & F);
+                  end if;
+
+                  Register_Main_To_Instrument
+                    (IC, Mains_To_Instrument (Lang), File, Project);
+               end;
+            end loop;
+         end if;
       end if;
 
       --  Know that we know all the sources we need to instrument, prepare

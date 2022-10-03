@@ -141,6 +141,9 @@ package Switches is
    --  Convert a human-readable language name to the corresponding enumeration
    --  value. Abort with a fatal error if Name is invalid.
 
+   function To_Language_Or_All (Name : String) return Any_Language;
+   --  Like To_Language, but return All_Languages if Name is invalid
+
    function Image (Language : Some_Language) return String;
    --  Return a human-readable name for the given language
 

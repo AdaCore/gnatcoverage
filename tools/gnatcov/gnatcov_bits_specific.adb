@@ -997,12 +997,6 @@ procedure GNATcov_Bits_Specific is
                   & "  (--level=" & Source_Level_Options ("|") & ")");
             end if;
 
-            if Args.Remaining_Args.Length > 0 then
-               Fatal_Error
-                 ("Invalid extra argument: "
-                  & (+Args.Remaining_Args.First_Element));
-            end if;
-
             if Args.String_Args (Opt_Path_Count_Limit).Present then
                declare
                   Limit : Positive;
@@ -1278,6 +1272,10 @@ begin
             --  Matcher for the source files to ignore
 
             Language_Version : Any_Language_Version;
+
+            Mains : String_Vectors.Vector renames Args.Remaining_Args;
+            --  Treat remaining command line arguments as a list of source
+            --  files to be processed as mains.
          begin
             Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
 
@@ -1329,7 +1327,8 @@ begin
               (Dump_Config          => Dump_Config,
                Language_Version     => Language_Version,
                Ignored_Source_Files =>
-                 (if Has_Matcher then Matcher'Access else null));
+                 (if Has_Matcher then Matcher'Access else null),
+               Mains                => Mains);
          end;
 
       when Cmd_Scan_Objects =>

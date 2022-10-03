@@ -34,7 +34,6 @@ with GNATCOLL.Projects;  use GNATCOLL.Projects;
 
 with Traces_Source; use Traces_Source;
 with Hex_Images;
-with Strings;       use Strings;
 with Outputs;
 
 package body Instrument.Input_Traces is
