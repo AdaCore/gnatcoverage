@@ -859,7 +859,7 @@ package body Instrument.Input_Traces is
                Put ("Unit " & To_Ada (CU_Name.Unit) & " (" & CU_Name.Part'Image
                     & ", hash=");
             when GNATcov_RTS.Buffers.File_Based_Language =>
-               Put ("Unit" & (+CU_Name.Filename) & " (hash=");
+               Put ("Unit " & (+CU_Name.Filename) & " (hash=");
          end case;
 
          for B of Fingerprint loop
