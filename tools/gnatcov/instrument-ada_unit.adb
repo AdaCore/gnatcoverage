@@ -7509,6 +7509,8 @@ package body Instrument.Ada_Unit is
          File.New_Line;
          File.Put_Line ("package " & Unit_Name & " is");
          File.New_Line;
+         File.Put_Line ("   pragma Preelaborate;");
+         File.New_Line;
 
          --  Import all the coverage buffers
 
