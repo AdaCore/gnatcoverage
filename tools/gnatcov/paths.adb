@@ -63,12 +63,12 @@ package body Paths is
    -- Canonicalize_Filename --
    ---------------------------
 
-   function Canonicalize_Filename (Filename : String) return String
-   is
+   function Canonicalize_Filename (Filename : String) return String is
+
       --  Start with a very basic normalization step as for globbing
       --  patterns. If we have a Windows path but are not on a Windows
       --  host, stop there as there's not much more we can reasonably
-      --  do. Otherwise, leave it to the GNAT runtime:
+      --  do. Otherwise, leave it to the GNAT runtime.
 
       Likely_Windows : constant Boolean := Likely_Windows_Path (Filename);
 
@@ -76,7 +76,6 @@ package body Paths is
         (if Likely_Windows
          then Normalize_Windows_Pattern (Filename)
          else Filename);
-
    begin
       if Likely_Windows and then not On_Windows then
          return Name;
@@ -185,22 +184,34 @@ package body Paths is
 
       function Is_Absolute_Unix_Path (Path : String) return Boolean;
       function Is_Absolute_Windows_Path (Path : String) return Boolean;
+      --  Predicates to determine if Path looks like a Unix/Windows  absolute
+      --  filename.
+
+      ---------------------------
+      -- Is_Absolute_Unix_Path --
+      ---------------------------
 
       function Is_Absolute_Unix_Path (Path : String) return Boolean is
       begin
          return Path'Length >= 1 and then Path (Path'First) = '/';
       end Is_Absolute_Unix_Path;
 
+      ------------------------------
+      -- Is_Absolute_Windows_Path --
+      ------------------------------
+
       function Is_Absolute_Windows_Path (Path : String) return Boolean is
       begin
-         return (Path'Length >= 3
-                   and then Starts_With_Drive_Pattern (Path)
-                   and then Path (Path'First + 2) in '\' | '/');
+         return Path'Length >= 3
+                and then Starts_With_Drive_Pattern (Path)
+                and then Path (Path'First + 2) in '\' | '/';
       end Is_Absolute_Windows_Path;
 
+   --  Start of processing for Is_Absolute_Path
+
    begin
-      return (Is_Absolute_Unix_Path (Path)
-                or else Is_Absolute_Windows_Path (Path));
+      return Is_Absolute_Unix_Path (Path)
+             or else Is_Absolute_Windows_Path (Path);
    end Is_Absolute_Path;
 
    -------------------------
@@ -234,7 +245,7 @@ package body Paths is
          use Ada.Characters.Handling;
          Res : Unbounded_String;
 
-         Newchar : Character;
+         Newchar    : Character;
          New_Is_Sep : Boolean;
          --  The new character we take from Pattern, and whether it
          --  is a dir separator.
@@ -242,11 +253,8 @@ package body Paths is
          Last_Was_Sep : Boolean := False;
          --  Whether the last character we added to our result was a dir
          --  separator.
-
       begin
-
          for I in Pattern'Range loop
-
             Newchar := (if Pattern (I) = '/' then '\' else Pattern (I));
             New_Is_Sep := Newchar = '\';
 
@@ -254,12 +262,10 @@ package body Paths is
                Append (Res, To_Lower (Newchar));
                Last_Was_Sep := New_Is_Sep;
             end if;
-
          end loop;
 
          return To_String (Res);
       end;
-
    end Normalize_Windows_Pattern;
 
    -------------------------------
@@ -268,9 +274,9 @@ package body Paths is
 
    function Starts_With_Drive_Pattern (Path : String) return Boolean is
    begin
-      return (Path'Length >= 2
-                and then Path (Path'First) in 'A' .. 'Z' | 'a' ..  'z'
-                and then Path (Path'First + 1) = ':');
+      return Path'Length >= 2
+             and then Path (Path'First) in 'A' .. 'Z' | 'a' ..  'z'
+             and then Path (Path'First + 1) = ':';
    end Starts_With_Drive_Pattern;
 
 end Paths;
