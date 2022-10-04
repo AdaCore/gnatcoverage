@@ -33,6 +33,8 @@ with Libadalang.Common;
 with Libadalang.Config_Pragmas;
 with Libadalang.Sources;
 
+with Coverage;
+with Diagnostics;
 with Hex_Images;
 with Outputs; use Outputs;
 with Paths;   use Paths;
@@ -82,6 +84,10 @@ package body Instrument.Common is
    --  handler that we need for all such contexts, and resets
    --  IC.Get_From_File_Count to 0, as the new context has not been used to
    --  instrument any source file yet.
+
+   function Next_Bit (Last_Bit : in out Any_Bit_Id) return Any_Bit_Id;
+   --  Convenience function to allocate a new coverage buffer bit: increment
+   --  Last_Bit and return the new Last_Bit.
 
    -------------------
    -- Buffer_Symbol --
@@ -719,6 +725,81 @@ package body Instrument.Common is
       return Create_Event_Handler_Reference
         (Missing_Src_Reporter'(others => <>));
    end Create_Missing_File_Reporter;
+
+   --------------
+   -- Next_Bit --
+   --------------
+
+   function Next_Bit (Last_Bit : in out Any_Bit_Id) return Any_Bit_Id is
+   begin
+      Last_Bit := Last_Bit + 1;
+      return Last_Bit;
+   end Next_Bit;
+
+   ----------------------------
+   -- Allocate_Statement_Bit --
+   ----------------------------
+
+   function Allocate_Statement_Bit
+     (Unit_Bits : in out Allocated_Bits; LL_S_SCO : Nat) return Any_Bit_Id
+   is
+      Bit : constant Any_Bit_Id := Next_Bit (Unit_Bits.Last_Statement_Bit);
+   begin
+      Unit_Bits.Statement_Bits.Append (Statement_Bit_Ids'(LL_S_SCO, Bit));
+      return Bit;
+   end Allocate_Statement_Bit;
+
+   ----------------------------
+   -- Allocate_Decision_Bits --
+   ----------------------------
+
+   function Allocate_Decision_Bits
+     (Unit_Bits      : in out Allocated_Bits;
+      Decision_Sloc  : Source_Location;
+      LL_D_SCO       : Nat;
+      State_Variable : Unbounded_String;
+      Path_Count     : Natural) return Decision_Bit_Ids is
+   begin
+      return Result : Decision_Bit_Ids do
+         Result.LL_D_SCO := LL_D_SCO;
+
+         --  Allocate one bit per outcome
+
+         for Outcome in Boolean loop
+            Result.Outcome_Bits (Outcome) :=
+              Next_Bit (Unit_Bits.Last_Outcome_Bit);
+         end loop;
+
+         --  If appropriate, allocate path bits for MC/DC: one bit per path in
+         --  the decision.
+
+         if Coverage.MCDC_Coverage_Enabled
+            and then Length (State_Variable) > 0
+            and then Path_Count > 0
+         then
+            Result.Path_Bits_Base := Unit_Bits.Last_Path_Bit + 1;
+            Unit_Bits.Last_Path_Bit :=
+              Unit_Bits.Last_Path_Bit + Bit_Id (Path_Count);
+         else
+            Result.Path_Bits_Base := No_Bit_Id;
+         end if;
+
+         --  Warn if the number of paths exceeded the limit
+
+         if Path_Count = 0 then
+            Diagnostics.Report
+              (Decision_Sloc,
+               "Number of distinct paths in the decision exceeds the limit"
+               & " (" & Img (SC_Obligations.Get_Path_Count_Limit) & ")."
+               & " MC/DC coverage for this decision will be left undetermined"
+               & " in coverage reports. Use option --path-count-limit to"
+               & " adjust the limit if the default value is too low.",
+               Diagnostics.Warning);
+         end if;
+
+         Unit_Bits.Decision_Bits.Append (Result);
+      end return;
+   end Allocate_Decision_Bits;
 
    ------------------------
    -- Import_Annotations --
