@@ -890,7 +890,7 @@ package body Instrument.Input_Traces is
          Put ("]");
          for Bit_Id in Buffer'Range loop
             if Buffer (Bit_Id) then
-               Is_Empty := True;
+               Is_Empty := False;
                Put (Bit_Id'Image);
             end if;
          end loop;
