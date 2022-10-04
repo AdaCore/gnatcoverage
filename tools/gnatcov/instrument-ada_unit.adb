@@ -1276,58 +1276,24 @@ package body Instrument.Ada_Unit is
       SD         : Source_Decision;
       Path_Count : Natural)
    is
-      LL_SCO_Id : Nat renames SD.LL_SCO;
-      N         : Expr renames SD.Decision;
+      N : Expr renames SD.Decision;
 
-      Bits : Decision_Bit_Ids;
       RH_P : constant Node_Rewriting_Handle :=
         Create_Node
           (IC.Rewriting_Context, Libadalang.Common.Ada_Identifier);
 
       RH_N : constant Node_Rewriting_Handle := Handle (N);
+
+      --  Allocate bits for this decision in coverage buffers
+
+      Bits : constant Decision_Bit_Ids :=
+        Allocate_Decision_Bits
+          (IC.Unit_Bits,
+           (IC.SFI, +Sloc (SD.Decision)),
+           SD.LL_SCO,
+           SD.State,
+           Path_Count);
    begin
-      Bits.LL_D_SCO := LL_SCO_Id;
-
-      --  Allocate outcome bits
-
-      Bits.Outcome_Bits :=
-        (False => IC.Unit_Bits.Last_Outcome_Bit + 1,
-         True  => IC.Unit_Bits.Last_Outcome_Bit + 2);
-      IC.Unit_Bits.Last_Outcome_Bit :=
-        IC.Unit_Bits.Last_Outcome_Bit + 2;
-
-      --  Allocate path bits for MC/DC if MC/DC is required and we were
-      --  able to generate a local state variable. If Path_Count is 0, this
-      --  means the BDD has more paths than the allowed limit, so do not
-      --  allocate any bit in the MC/DC buffers. The SCOs for the conditions
-      --  have already been emitted so this will generate MC/DC violations for
-      --  all of them.
-
-      if MCDC_Coverage_Enabled
-        and then Length (SD.State) > 0
-        and then Path_Count > 0
-      then
-         Bits.Path_Bits_Base := IC.Unit_Bits.Last_Path_Bit + 1;
-         IC.Unit_Bits.Last_Path_Bit :=
-           IC.Unit_Bits.Last_Path_Bit + Bit_Id (Path_Count);
-      else
-         Bits.Path_Bits_Base := No_Bit_Id;
-      end if;
-
-      if Path_Count = 0 then
-         Report (Node => N,
-                 Msg  => "Number of distinct paths in the decision exceeds"
-                         & " the limit ("
-                         & Img (SC_Obligations.Get_Path_Count_Limit)
-                         & "). MC/DC coverage for this decision will not be"
-                         & " assessed and will result in MC/DC violations."
-                         & " Use option --path-count-limit to adjust the"
-                         & " limit if the default value is too low.",
-                 Kind => Warning);
-      end if;
-
-      IC.Unit_Bits.Decision_Bits.Append (Bits);
-
       --  Detach original decision from tree so that it can be reattached
       --  inside the witness call.
 
@@ -2943,6 +2909,7 @@ package body Instrument.Ada_Unit is
             Insert_Pos  : Natural;
             Insert_Info : Insertion_Info_Access := UIC.Current_Insertion_Info;
 
+            Bit : Any_Bit_Id;
          begin
             --  Create an artificial internal error, if requested
 
@@ -2958,14 +2925,9 @@ package body Instrument.Ada_Unit is
                return;
             end if;
 
-            --  Allocate a bit in the statement coverage buffer, and record
-            --  its id in the bitmap.
+            --  Allocate a bit in the statement coverage buffer
 
-            UIC.Unit_Bits.Last_Statement_Bit :=
-              UIC.Unit_Bits.Last_Statement_Bit + 1;
-            UIC.Unit_Bits.Statement_Bits.Append
-              (Statement_Bit_Ids'
-                 (LL_SCO_Id, Executed => UIC.Unit_Bits.Last_Statement_Bit));
+            Bit := Allocate_Statement_Bit (UIC.Unit_Bits, LL_SCO_Id);
 
             case Insert_Info.Method is
 
@@ -2981,7 +2943,7 @@ package body Instrument.Ada_Unit is
                           Children =>
                             (1 => Make_Statement_Witness
                                (UIC,
-                                Bit        => UIC.Unit_Bits.Last_Statement_Bit,
+                                Bit        => Bit,
                                 Flavor     => Function_Call,
                                 In_Generic => SCE.In_Generic),
 
@@ -3119,7 +3081,7 @@ package body Instrument.Ada_Unit is
                      Child  =>
                        Make_Statement_Witness
                          (UIC,
-                          Bit        => UIC.Unit_Bits.Last_Statement_Bit,
+                          Bit        => Bit,
                           Flavor     =>
                             (case Insert_Info.Method is
                              when Statement => Procedure_Call,
@@ -3160,7 +3122,7 @@ package body Instrument.Ada_Unit is
                begin
                   Insert_Info.Witness_Actual := Make_Statement_Witness
                     (UIC,
-                     Bit        => UIC.Unit_Bits.Last_Statement_Bit,
+                     Bit        => Bit,
                      Flavor     => Function_Call,
                      In_Generic => SCE.In_Generic);
 
@@ -6713,18 +6675,26 @@ package body Instrument.Ada_Unit is
                --  static decision, as this would make the instrumented
                --  expression non-static. Mark the enclosing decision as not
                --  instrumented for MCDC instead.
+               --
+               --  As we go through each condition, mark their enclosing
+               --  decision as not instrumented if their number of paths
+               --  exceeds our limit.
 
                for SC of UIC.Source_Conditions loop
-                  if Path_Count
-                       (Enclosing_Decision (SCO_Map (SC.LL_SCO))) /= 0
-                    and then not SC.Decision_Static
-                  then
-                     Insert_Condition_Witness
-                       (UIC, SC, Offset_For_True (SCO_Map (SC.LL_SCO)));
-                  else
-                     Set_Decision_SCO_Non_Instr_For_MCDC
-                       (Enclosing_Decision (SCO_Map (SC.LL_SCO)));
-                  end if;
+                  declare
+                     Condition : constant SCO_Id := SCO_Map (SC.LL_SCO);
+                     Decision  : constant SCO_Id :=
+                       Enclosing_Decision (Condition);
+                  begin
+                     if Path_Count (Decision) /= 0
+                        and then not SC.Decision_Static
+                     then
+                        Insert_Condition_Witness
+                          (UIC, SC, Offset_For_True (Condition));
+                     else
+                        Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
+                     end if;
+                  end;
                end loop;
             end if;
          end if;

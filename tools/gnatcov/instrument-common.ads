@@ -405,7 +405,10 @@ package Instrument.Common is
 
    type Statement_Bit_Ids is record
       LL_S_SCO : Nat;
+      --  Low-level SCO for this statement
+
       Executed : Bit_Id;
+      --  Corresponding bit in the "statement" coverage buffer
    end record;
 
    package LL_Statement_SCO_Bit_Allocs is
@@ -418,16 +421,23 @@ package Instrument.Common is
    No_Outcome_Bit_Ids : constant Outcome_Bit_Ids := (others => No_Bit_Id);
 
    type Decision_Bit_Ids is record
-      LL_D_SCO       : Nat;
+      LL_D_SCO : Nat;
+      --  Low-level SCO for this decision
 
-      Outcome_Bits   : Outcome_Bit_Ids := No_Outcome_Bit_Ids;
+      Outcome_Bits : Outcome_Bit_Ids := No_Outcome_Bit_Ids;
+      --  Bits in the "decision" coverage buffer, corresponding to the False
+      --  and True outcomes.
+
       Path_Bits_Base : Any_Bit_Id := No_Bit_Id;
+      --  First bit in the "mcdc" coverage buffer, corresponding to the first
+      --  path in the BDD. The other paths for the BDD are associated to the
+      --  bits that follow it.
    end record;
 
    package LL_Decision_SCO_Bit_Allocs is
      new Ada.Containers.Vectors (Nat, Decision_Bit_Ids);
 
-   type LL_Unit_Bit_Allocs is record
+   type Allocated_Bits is record
       Statement_Bits     : LL_Statement_SCO_Bit_Allocs.Vector;
       Last_Statement_Bit : Any_Bit_Id := No_Bit_Id;
 
@@ -435,6 +445,35 @@ package Instrument.Common is
       Last_Outcome_Bit : Any_Bit_Id := No_Bit_Id;
       Last_Path_Bit    : Any_Bit_Id := No_Bit_Id;
    end record;
+   --  Vectors of coverage buffer allocated bits for the low-level SCOs of a
+   --  given source file.
+
+   function Allocate_Statement_Bit
+     (Unit_Bits : in out Allocated_Bits; LL_S_SCO : Nat) return Any_Bit_Id;
+   --  Allocate a bit for a statement in the coverage buffers referenced by
+   --  Unit_Bits and return its index.
+   --
+   --  LL_S_SCO must be the low-level SCO for that statement.
+
+   function Allocate_Decision_Bits
+     (Unit_Bits      : in out Allocated_Bits;
+      Decision_Sloc  : Source_Location;
+      LL_D_SCO       : Nat;
+      State_Variable : Unbounded_String;
+      Path_Count     : Natural) return Decision_Bit_Ids;
+   --  Allocate bits for a decision ("decision" bits, and optionally "path"
+   --  bits) in the coverage buffers referenced by Unit_Bits.
+   --
+   --  LL_D_SCO must be the low-level SCO for that decision and Decision_Sloc
+   --  must be its location (used for diagnostics).
+   --
+   --  State_Variable is the local state variable: if it is empty, it means
+   --  that we were not able to generate one, and thus that we are unable to
+   --  compute MC/DC on this decision: no path bits are allocated in this case.
+   --
+   --  Path_Count is the number of paths in this decision. If the number of
+   --  paths exceeds the limit, must be 0: this function emits a warning in
+   --  this case.
 
    -----------------------------
    -- Instrumentation context --
@@ -480,7 +519,7 @@ package Instrument.Common is
       --  Name of the compilation unit that holds coverage buffers for the
       --  unit currently being instrumented (see Common.Buffer_Unit).
 
-      Unit_Bits : LL_Unit_Bit_Allocs;
+      Unit_Bits : Allocated_Bits;
       --  Record of allocation of coverage buffer bits for low-level SCOs
 
       Annotations : Annotation_Vectors.Vector;
