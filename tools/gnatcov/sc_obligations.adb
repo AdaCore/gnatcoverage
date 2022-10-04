@@ -1156,6 +1156,25 @@ package body SC_Obligations is
          end;
       end loop;
 
+      --  If we have information about non instrumented units, import them as
+      --  is. Only import SCOs that belong to this CU, as others SCOs might
+      --  belong to a CU already present in the current execution, and which
+      --  would not be simply imported as is.
+
+      if not Version_Less (S, Than => 9) then
+         for SCO of CP_Vectors.Non_Instr_SCOs loop
+            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
+               Non_Instr_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
+            end if;
+         end loop;
+
+         for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
+            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
+               Non_Instr_MCDC_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
+            end if;
+         end loop;
+      end if;
+
       --  Perform final fixups and insert CU
 
       CP_CU.Last_Instance :=
@@ -1181,28 +1200,6 @@ package body SC_Obligations is
       if CLS.Purpose = Instrumentation then
          Coverage.Source.Initialize_SCI_For_Instrumented_CU (New_CU_Id);
       end if;
-
-      if Version_Less (S, Than => 9) then
-         return;
-      end if;
-
-      --  If we have information about non instrumented units, import them as
-      --  is. Only import SCOs that belong to this CU, as others SCOs might
-      --  belong to a CU already present in the current execution, and which
-      --  would not be simply imported as is.
-
-      for SCO of CP_Vectors.Non_Instr_SCOs loop
-         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
-            Non_Instr_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
-         end if;
-      end loop;
-
-      for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
-         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
-            Non_Instr_MCDC_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
-         end if;
-      end loop;
-
    end Checkpoint_Load_New_Unit;
 
    --------------------------
