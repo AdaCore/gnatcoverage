@@ -573,10 +573,20 @@ package body Instrument.Common is
    begin
       --  If this main is already a unit of interest, no need to register it:
       --  we will instrument it as part of our regular instrumentation process.
+      --  However, mains can be passed via the command line or in the GPR file
+      --  and we don't know which main to use when first registering units of
+      --  interest. Since every unit of interest is marked as not begin a main,
+      --  this information must be updated here by setting Is_Main accordingly.
 
-      if Context.Instrumented_Units.Contains (CU_Name) then
-         return;
-      end if;
+      declare
+         C : constant Instrumented_Unit_Maps.Cursor :=
+           Context.Instrumented_Units.Find (CU_Name);
+      begin
+         if Instrumented_Unit_Maps.Has_Element (C) then
+            Instrumented_Unit_Maps.Element (C).Is_Main := True;
+            return;
+         end if;
+      end;
 
       declare
          Prj_Info  : constant Project_Info_Access :=
@@ -615,14 +625,17 @@ package body Instrument.Common is
             return;
          end if;
 
+         --  Because different main files than those given in the GPR file can
+         --  be passed via command line, set Is_Main to false for every
+         --  file and decide which to use as mains accordingly later.
+
          declare
             Unit_Info : constant Instrumented_Unit_Info_Access :=
                new Instrumented_Unit_Info'
                  (Filename => To_Unbounded_String
                                 (+Source_File.File.Full_Name),
                   Prj_Info => Get_Or_Create_Project_Info (Context, Project),
-                  Is_Main  => GNATCOLL.Projects.Is_Main_File
-                                (Project, Source_File.File.Base_Name),
+                  Is_Main  => False,
                   Language => To_Language (Source_File.Language));
          begin
             Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
