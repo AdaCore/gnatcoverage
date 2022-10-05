@@ -3,6 +3,12 @@
 \let\oldpart\part
 \renewcommand{\part}[1]{\oldpart{#1}\gdef\parttitle{#1}}
 
+% Arrange to reset chapter numbering at the start of each "part"
+\makeatletter
+\@addtoreset{chapter}{part}
+\makeatother
+
+% Setup page headers and footers
 \makeatletter 
   \fancypagestyle{normal}{ 
     \fancyhf{} 
