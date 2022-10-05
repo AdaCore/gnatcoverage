@@ -2060,7 +2060,7 @@ package body Files_Table is
                   FE := (Kind => Source_File, others => <>);
                   if not Checkpoints.Version_Less (CLS, Than => 5) then
 
-                  --  Dumping ingored source files is only supported from
+                  --  Dumping ignored source files is only supported from
                   --  Checkpoint version 5.
 
                      FE.Ignore_Status := Any_Ignore_Status'Input (S);
