@@ -18,10 +18,12 @@
 
 --  Instrumentation of a C source file
 
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 
 with GNATCOLL.Projects;
 
@@ -31,6 +33,7 @@ with Types; use Types;
 with Clang.Index;   use Clang.Index;
 with Clang.Rewrite; use Clang.Rewrite;
 
+with Files_Table;           use Files_Table;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
 with SC_Obligations;        use SC_Obligations;
@@ -279,6 +282,26 @@ package Instrument.C is
    --  Shortcut to call Import_From_Project, and Import_From_Agrs on the
    --  --c-opts/--c++-opts option.
 
+   type Source_Of_Interest (Of_Interest : Boolean := False) is record
+      case Of_Interest is
+         when False =>
+            null;
+         when True =>
+            SFI     : Valid_Source_File_Index;
+            CU_Name : Compilation_Unit_Name;
+      end case;
+   end record;
+   --  Descriptor for a source file: Of_Interest determines if we should
+   --  compute its code coverage. If we are, SFI is the corresponding index in
+   --  gnatcov's file table and Project_Name is the name of the project that
+   --  owns this source file.
+
+   package Source_Of_Interest_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Unbounded_String,
+      Element_Type    => Source_Of_Interest,
+      Hash            => Hash,
+      Equivalent_Keys => "=");
+
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
          TU       : Translation_Unit_T;
@@ -308,10 +331,24 @@ package Instrument.C is
          LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
          --  Preprocessing information for low level SCOs
 
+         Sources_Of_Interest : Source_Of_Interest_Maps.Map;
+         --  Records for each source file processed during the instrumentation
+         --  whether it is a source of interest, and some properties if it is.
       end record;
 
    type C_Source_Rewriter is tagged limited private;
    --  Helper object to instrument a source file
+
+   function Is_Source_Of_Interest
+     (UIC : in out C_Unit_Inst_Context; N : Cursor_T) return Boolean;
+   --  Track the source file from which N originates in
+   --  UIC.Sources_Of_Interest. Return whether this source file is a source of
+   --  interest.
+   --
+   --  TODO??? For now, only the source file from which instrumentation started
+   --  (the "body" C/C++ file, i.e. UIC.File) is considered as a source of
+   --  interest, i.e. code inserted by #include is not instrumented and
+   --  excluded from coverage analysis.
 
 private
 
