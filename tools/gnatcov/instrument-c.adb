@@ -18,12 +18,10 @@
 
 with Ada.Characters.Handling;
 with Ada.Containers;  use Ada.Containers;
-with Ada.Containers.Hashed_Maps;
 with Ada.Directories; use Ada.Directories;
-with Ada.Strings;
-with Ada.Strings.Unbounded.Hash;
 with Ada.Text_IO;     use Ada.Text_IO;
 
+with Clang.CX_String;  use Clang.CX_String;
 with Clang.Extensions; use Clang.Extensions;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
@@ -40,7 +38,6 @@ with Command_Line;
 with ALI_Files;           use ALI_Files;
 with Coverage;            use Coverage;
 with Coverage_Options;
-with Files_Table;         use Files_Table;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Hex_Images;          use Hex_Images;
 with Instrument.C_Utils;  use Instrument.C_Utils;
@@ -1955,7 +1952,7 @@ package body Instrument.C is
          --  For now, instrument only cursors that come from the file being
          --  instrumented, and do not instrument included code.
 
-         if Is_Null (N) or else not Is_Unit_Of_Interest (N, +UIC.File) then
+         if Is_Null (N) or else not Is_Source_Of_Interest (UIC, N) then
             return;
          end if;
 
@@ -2075,7 +2072,7 @@ package body Instrument.C is
          --  interest.
 
          begin
-            if Is_Unit_Of_Interest (N, +UIC.File) then
+            if Is_Source_Of_Interest (UIC, N) then
 
                case Kind (N) is
 
@@ -3954,5 +3951,57 @@ package body Instrument.C is
            +Self.Std,
            +Info.Output_Dir).all;
    end Import_Options;
+
+   ---------------------------
+   -- Is_Source_Of_Interest --
+   ---------------------------
+
+   function Is_Source_Of_Interest
+     (UIC : in out C_Unit_Inst_Context; N : Cursor_T) return Boolean
+   is
+      --  Determine the file from which N originates
+
+      C_File : aliased String_T;
+      Line   : aliased unsigned;
+      Column : aliased unsigned;
+      Loc    : constant Source_Location_T := Get_Cursor_Location (N);
+      File   : Unbounded_String;
+   begin
+      Get_Presumed_Location (Location => Loc,
+                             Filename => C_File'Access,
+                             Line     => Line'Access,
+                             Column   => Column'Access);
+      File := +Get_C_String (C_File);
+
+      --  Look for a corresponding entry in UIC.Sources_Of_Interest, create one
+      --  if it is missing.
+
+      declare
+         use Source_Of_Interest_Maps;
+
+         Cur : constant Cursor := UIC.Sources_Of_Interest.Find (File);
+         SOI : Source_Of_Interest;
+      begin
+         if Has_Element (Cur) then
+            return UIC.Sources_Of_Interest.Reference (Cur).Of_Interest;
+         end if;
+
+         if File = UIC.File then
+            SOI :=
+              (Of_Interest  => True,
+               SFI          => Get_Index_From_Generic_Name
+                                 (+File, Source_File),
+               CU_Name      =>
+                 CU_Name_For_File
+                   (Filename     => +Simple_Name (+File),
+                    Project_Name => UIC.Instrumented_Unit.Project_Name));
+         else
+            SOI := (Of_Interest => False);
+         end if;
+         UIC.Sources_Of_Interest.Insert (File, SOI);
+
+         return SOI.Of_Interest;
+      end;
+   end Is_Source_Of_Interest;
 
 end Instrument.C;
