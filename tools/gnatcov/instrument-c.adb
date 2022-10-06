@@ -246,7 +246,7 @@ package body Instrument.C is
    procedure Insert_Decision_Witness
      (UIC        : in out C_Unit_Inst_Context;
       SD         : C_Source_Decision;
-      Path_Count : Positive);
+      Path_Count : Natural);
    --  For use when decision coverage or MC/DC is requested. Insert witness
    --  function call for the identified decision.
 
@@ -935,15 +935,11 @@ package body Instrument.C is
    procedure Insert_Statement_Witness
      (UIC : in out C_Unit_Inst_Context; SS : C_Source_Statement)
    is
-      --  Allocate a bit in the statement coverage buffer, and record
-      --  its id in the bitmap.
+      --  Allocate a bit in the statement coverage buffer
 
-      Bit : constant Bit_Id := UIC.Unit_Bits.Last_Statement_Bit + 1;
+      Bit : constant Bit_Id :=
+        Allocate_Statement_Bit (UIC.Unit_Bits, SS.LL_SCO);
    begin
-      UIC.Unit_Bits.Last_Statement_Bit := Bit;
-      UIC.Unit_Bits.Statement_Bits.Append
-        (Statement_Bit_Ids'(SS.LL_SCO, Executed => Bit));
-
       --  Insert the call to the witness function: as a foregoing statement if
       --  SS.Statement is a statement, or as a previous expression (using the
       --  comma operator) if SS.Statement is an expression.
@@ -1012,37 +1008,20 @@ package body Instrument.C is
    procedure Insert_Decision_Witness
      (UIC        : in out C_Unit_Inst_Context;
       SD         : C_Source_Decision;
-      Path_Count : Positive)
+      Path_Count : Natural)
    is
-      LL_SCO_Id : Nat renames SD.LL_SCO;
-      N         : Cursor_T renames SD.Decision;
+      N : Cursor_T renames SD.Decision;
 
-      Bits : Decision_Bit_Ids;
+      --  Allocate bits for this decision in coverage buffers
 
+      Bits : constant Decision_Bit_Ids :=
+        Allocate_Decision_Bits
+          (UIC.Unit_Bits,
+           (UIC.SFI, Start_Sloc (N)),
+           SD.LL_SCO,
+           SD.State,
+           Path_Count);
    begin
-      Bits.LL_D_SCO := LL_SCO_Id;
-
-      --  Allocate outcome bits
-
-      Bits.Outcome_Bits :=
-        (False => UIC.Unit_Bits.Last_Outcome_Bit + 1,
-         True  => UIC.Unit_Bits.Last_Outcome_Bit + 2);
-      UIC.Unit_Bits.Last_Outcome_Bit :=
-        UIC.Unit_Bits.Last_Outcome_Bit + 2;
-
-      --  Allocate path bits for MC/DC if MC/DC is required and we were
-      --  able to generate a local state variable.
-
-      if MCDC_Coverage_Enabled and then US.Length (SD.State) > 0 then
-         Bits.Path_Bits_Base := UIC.Unit_Bits.Last_Path_Bit + 1;
-         UIC.Unit_Bits.Last_Path_Bit :=
-           UIC.Unit_Bits.Last_Path_Bit + Bit_Id (Path_Count);
-      else
-         Bits.Path_Bits_Base := No_Bit_Id;
-      end if;
-
-      UIC.Unit_Bits.Decision_Bits.Append (Bits);
-
       --  Now attach witness call at the place of the original decision
 
       declare
@@ -2875,10 +2854,24 @@ package body Instrument.C is
                --  As high-level SCO tables have been populated, we have built
                --  BDDs for each decisions, and we can now set the correct
                --  MC/DC path offset for each condition.
+               --
+               --  As we go through each condition, mark their enclosing
+               --  decision as not instrumented if their number of paths
+               --  exceeds our limit.
 
                for SC of UIC.Source_Conditions loop
-                  Insert_Condition_Witness
-                    (UIC, SC, Offset_For_True (SCO_Map (SC.LL_SCO)));
+                  declare
+                     Condition : constant SCO_Id := SCO_Map (SC.LL_SCO);
+                     Decision  : constant SCO_Id :=
+                       Enclosing_Decision (Condition);
+                  begin
+                     if Path_Count (Decision) = 0 then
+                        Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
+                     else
+                        Insert_Condition_Witness
+                          (UIC, SC, Offset_For_True (Condition));
+                     end if;
+                  end;
                end loop;
             end if;
          end if;
