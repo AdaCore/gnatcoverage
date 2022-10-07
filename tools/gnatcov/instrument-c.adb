@@ -157,7 +157,7 @@ package body Instrument.C is
 
    type Record_PP_Info_Pass_Kind is new Pass_Kind with null record;
 
-   procedure Append_SCO
+   overriding procedure Append_SCO
      (Pass               : Record_PP_Info_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
@@ -171,7 +171,7 @@ package body Instrument.C is
 
    type Instrument_Pass_Kind is new Pass_Kind with null record;
 
-   procedure Append_SCO
+   overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
@@ -182,7 +182,7 @@ package body Instrument.C is
    --  Append a SCO to SCOs.SCO_Table, and complete the preprocessing info with
    --  the preprocessed source range.
 
-   procedure Instrument_Statement
+   overriding procedure Instrument_Statement
      (Pass         : Instrument_Pass_Kind;
       UIC          : in out C_Unit_Inst_Context'Class;
       LL_SCO       : Nat;
@@ -190,7 +190,7 @@ package body Instrument.C is
       Instr_Scheme : Instr_Scheme_Type);
    --  Add an entry to UIC.Source_Statements
 
-   procedure Instrument_Decision
+   overriding procedure Instrument_Decision
      (Pass     : Instrument_Pass_Kind;
       UIC      : in out C_Unit_Inst_Context'Class;
       LL_SCO   : Nat;
@@ -198,7 +198,7 @@ package body Instrument.C is
       State    : US.Unbounded_String);
    --  Add an entry to UIC.Source_Decisions
 
-   procedure Instrument_Condition
+   overriding procedure Instrument_Condition
      (Pass      : Instrument_Pass_Kind;
       UIC       : in out C_Unit_Inst_Context'Class;
       LL_SCO    : Nat;
@@ -207,13 +207,13 @@ package body Instrument.C is
       First     : Boolean);
    --  Add an entry to UIC.Source_Conditions
 
-   procedure Curlify
+   overriding procedure Curlify
      (Pass : Instrument_Pass_Kind;
       N    : Cursor_T;
       Rew  : Rewriter_T);
    --  Wrapper around Instrument.C.Utils.Curlify
 
-   procedure Insert_MCDC_State
+   overriding procedure Insert_MCDC_State
      (Pass       : Instrument_Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
@@ -550,7 +550,7 @@ package body Instrument.C is
    -- Append_SCO --
    ----------------
 
-   procedure Append_SCO
+   overriding procedure Append_SCO
      (Pass               : Record_PP_Info_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
@@ -761,7 +761,7 @@ package body Instrument.C is
    -- Append_SCO --
    ----------------
 
-   procedure Append_SCO
+   overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
@@ -823,7 +823,7 @@ package body Instrument.C is
    -- Curlify --
    -------------
 
-   procedure Curlify
+   overriding procedure Curlify
      (Pass : Instrument_Pass_Kind; N : Cursor_T; Rew : Rewriter_T) is
    begin
       Curlify (N, Rew);
@@ -833,7 +833,7 @@ package body Instrument.C is
    -- Insert_MCDC_State --
    -----------------------
 
-   procedure Insert_MCDC_State
+   overriding procedure Insert_MCDC_State
      (Pass       : Instrument_Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
@@ -846,7 +846,7 @@ package body Instrument.C is
    -- Instrument_Statement --
    --------------------------
 
-   procedure Instrument_Statement
+   overriding procedure Instrument_Statement
      (Pass         : Instrument_Pass_Kind;
       UIC          : in out C_Unit_Inst_Context'Class;
       LL_SCO       : Nat;
@@ -864,7 +864,7 @@ package body Instrument.C is
    -- Instrument_Decision --
    -------------------------
 
-   procedure Instrument_Decision
+   overriding procedure Instrument_Decision
      (Pass     : Instrument_Pass_Kind;
       UIC      : in out C_Unit_Inst_Context'Class;
       LL_SCO   : Nat;
@@ -882,7 +882,7 @@ package body Instrument.C is
    -- Instrument_Condition --
    --------------------------
 
-   procedure Instrument_Condition
+   overriding procedure Instrument_Condition
      (Pass      : Instrument_Pass_Kind;
       UIC       : in out C_Unit_Inst_Context'Class;
       LL_SCO    : Nat;
