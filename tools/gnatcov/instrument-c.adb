@@ -2712,14 +2712,16 @@ package body Instrument.C is
                        new String'
                          (Comment (Match_Res (1).First .. Match_Res (1).Last));
                      UIC.Annotations.Append
-                       ((Sloc (Get_Token_Location (UIC.TU, Token)), Ann));
+                       (((UIC.SFI, Sloc (Get_Token_Location (UIC.TU, Token))),
+                         Ann));
                   end if;
                   Match (End_Matcher, Comment, Match_Res);
                   if Match_Res (0) /= No_Match then
                      Ann.Kind := Exempt_Off;
                      UIC.Annotations.Append
-                       ((Sloc
-                           (Get_Range_End (Get_Token_Extent (UIC.TU, Token))),
+                       (((UIC.SFI,
+                          Sloc
+                           (Get_Range_End (Get_Token_Extent (UIC.TU, Token)))),
                          Ann));
                   end if;
                end;
@@ -2831,7 +2833,7 @@ package body Instrument.C is
 
          --  Import annotations in our internal tables
 
-         UIC.Import_Annotations;
+         UIC.Import_Annotations (UIC.CUs);
          Filter_Annotations;
 
          for Cur in UIC.Instrumented_Entities.Iterate loop

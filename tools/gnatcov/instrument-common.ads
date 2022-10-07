@@ -510,7 +510,7 @@ package Instrument.Common is
    --  MC/DC instrumentation depends on BDD information.
 
    type Annotation_Couple is record
-      Sloc       : Local_Source_Location;
+      Sloc       : Source_Location;
       Annotation : ALI_Annotation;
    end record;
    --  When instrumenting sources, annotations are registred in two steps:
@@ -555,10 +555,11 @@ package Instrument.Common is
 
    end record;
 
-   procedure Import_Annotations (UIC : in out Unit_Inst_Context) with
-     Pre => UIC.CU /= No_CU_Id;
+   procedure Import_Annotations
+     (UIC : in out Unit_Inst_Context; Created_Units : Created_Unit_Maps.Map);
    --  Import ALI annotations for this unit in the global annotations table.
-   --  This should be called once the unit was insturmented and given a CU id.
+   --  This should be called once the unit was instrumented and its low level
+   --  SCOS have been transformed into high-level ones.
 
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));
