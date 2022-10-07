@@ -809,18 +809,14 @@ package body Instrument.Common is
    -- Import_Annotations --
    ------------------------
 
-   procedure Import_Annotations (UIC : in out Unit_Inst_Context) is
+   procedure Import_Annotations
+     (UIC : in out Unit_Inst_Context; Created_Units : Created_Unit_Maps.Map) is
    begin
       for Couple of UIC.Annotations loop
-         declare
-            Sloc : constant Source_Location :=
-               (Source_File => UIC.SFI,
-                L           => Couple.Sloc);
-         begin
-            Couple.Annotation.CU := UIC.CU;
-            ALI_Annotations.Insert
-              (Key => Sloc, New_Item => Couple.Annotation);
-         end;
+         Couple.Annotation.CU :=
+           Created_Units.Element (Couple.Sloc.Source_File);
+         ALI_Annotations.Insert
+           (Key => Couple.Sloc, New_Item => Couple.Annotation);
       end loop;
    end Import_Annotations;
 

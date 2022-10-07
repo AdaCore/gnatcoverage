@@ -4551,7 +4551,8 @@ package body Instrument.Ada_Unit is
                               end if;
 
                               UIC.Annotations.Append
-                                (Annotation_Couple'(+Sloc (N), Ann));
+                                (Annotation_Couple'
+                                   ((UIC.SFI, +Sloc (N)), Ann));
 
                            exception
                               when Constraint_Error =>
@@ -6630,7 +6631,7 @@ package body Instrument.Ada_Unit is
 
          --  Import annotations in our internal tables
 
-         UIC.Import_Annotations;
+         UIC.Import_Annotations (Created_Units);
 
          --  Import non-instrumented SCOs in the internal tables
 
