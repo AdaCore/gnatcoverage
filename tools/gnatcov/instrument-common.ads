@@ -529,9 +529,6 @@ package Instrument.Common is
       SFI : Source_File_Index := No_Source_File;
       --  Source file index of the compilation unit being instrumented
 
-      CU : CU_Id := No_CU_Id;
-      --  SCO identifier of the compilation unit being instrumented
-
       Buffer_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit that holds coverage buffers for the
       --  unit currently being instrumented (see Common.Buffer_Unit).

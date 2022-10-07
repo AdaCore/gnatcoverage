@@ -2926,11 +2926,6 @@ package body Instrument.C is
             end;
          end loop;
 
-         --  In the instrumentation case, the origin of SCO information is
-         --  the original source file.
-
-         UIC.CU := UIC.CUs.Element (UIC.SFI);
-
          --  Import annotations in our internal tables
 
          UIC.Import_Annotations (UIC.CUs);
