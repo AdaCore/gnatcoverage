@@ -229,6 +229,9 @@ private
 
    type Ada_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
+         CU : CU_Id := No_CU_Id;
+         --  SCO identifier of the compilation unit being instrumented
+
          Root_Unit : Compilation_Unit;
          --  Node of compilation unit
 
