@@ -760,10 +760,6 @@ package body Instrument.C is
       UIC.LL_PP_Info_Map.Insert (SCOs.SCO_Table.Last, Info);
    end Append_SCO;
 
-   ----------------
-   -- Append_SCO --
-   ----------------
-
    overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
