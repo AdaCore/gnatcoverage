@@ -5,4 +5,13 @@ repos:
       - id: clang-format
         types: [file]
         files: \.(cc|c|h)$
-        args: ["--style={BasedOnStyle: gnu, SpaceAfterCStyleCast: true}"]
+        args: ["--style={
+            BasedOnStyle: gnu,
+            ContinuationIndentWidth: 2,
+
+            # Unfortunately, a bug in clang-format makes this ineffective
+            IndentExternBlock: NoIndent,
+
+            SpaceAfterCStyleCast: true,
+            UseTab: ForContinuationAndIndentation
+        }"]

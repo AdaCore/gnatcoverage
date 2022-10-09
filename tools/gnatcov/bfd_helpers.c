@@ -27,17 +27,17 @@
   do                                                                          \
     {                                                                         \
       if (!(expr))                                                            \
-        {                                                                     \
-          (*warn_cb) (call " failed", bfd_errmsg (bfd_get_error ()));         \
-          return;                                                             \
-        }                                                                     \
+	{                                                                     \
+	  (*warn_cb) (call " failed", bfd_errmsg (bfd_get_error ()));         \
+	  return;                                                             \
+	}                                                                     \
     }                                                                         \
   while (0)
 
 void
 _gnatcov_for_each_synthetic_symbol (
-    char *fn, void (*cb) (const char *, long unsigned int),
-    void (*warn_cb) (const char *, const char *))
+  char *fn, void (*cb) (const char *, long unsigned int),
+  void (*warn_cb) (const char *, const char *))
 {
   bfd *abfd;
   asymbol **dyn_syms = NULL, *synthsyms = NULL;
@@ -68,8 +68,8 @@ _gnatcov_for_each_synthetic_symbol (
     return;
 
   synth_count = bfd_get_synthetic_symtab (abfd, /*static_count*/ 0,
-                                          /*static_syms*/ NULL, dyn_count,
-                                          dyn_syms, &synthsyms);
+					  /*static_syms*/ NULL, dyn_count,
+					  dyn_syms, &synthsyms);
 
   /* Note: synth_count is either -1 or >0, never 0.  There is no way
      distinguish an error condition from the mere absence of synthetic

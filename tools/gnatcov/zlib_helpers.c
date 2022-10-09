@@ -27,7 +27,7 @@
    decompression was successful.  */
 int
 gnatcov_zlib_uncompress (char *in_buffer, uint64_t in_size, char *out_buffer,
-                         uint64_t out_size)
+			 uint64_t out_size)
 {
   z_stream strm;
 
@@ -40,5 +40,5 @@ gnatcov_zlib_uncompress (char *in_buffer, uint64_t in_size, char *out_buffer,
   /* Uncompress and then check that uncompressed data consumed exactly OUT_SIZE
      bytes.  */
   return (inflateInit (&strm) == Z_OK && inflate (&strm, Z_FINISH) == Z_OK
-          && inflateEnd (&strm) == Z_OK && strm.avail_out == 0);
+	  && inflateEnd (&strm) == Z_OK && strm.avail_out == 0);
 }
