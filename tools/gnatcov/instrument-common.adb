@@ -793,22 +793,30 @@ package body Instrument.Common is
       end return;
    end Allocate_Decision_Bits;
 
+   ----------------------
+   -- Create_Unit_Bits --
+   ----------------------
+
+   function Create_Unit_Bits
+     (Allocated_Bits : in out Allocated_Bits_Vectors.Vector;
+      SFI            : Valid_Source_File_Index) return Positive is
+   begin
+      Allocated_Bits.Append (Common.Allocated_Bits'(SFI => SFI, others => <>));
+      return Allocated_Bits.Last_Index;
+   end Create_Unit_Bits;
+
    ------------------------
    -- Import_Annotations --
    ------------------------
 
-   procedure Import_Annotations (UIC : in out Unit_Inst_Context) is
+   procedure Import_Annotations
+     (UIC : in out Unit_Inst_Context; Created_Units : Created_Unit_Maps.Map) is
    begin
       for Couple of UIC.Annotations loop
-         declare
-            Sloc : constant Source_Location :=
-               (Source_File => UIC.SFI,
-                L           => Couple.Sloc);
-         begin
-            Couple.Annotation.CU := UIC.CU;
-            ALI_Annotations.Insert
-              (Key => Sloc, New_Item => Couple.Annotation);
-         end;
+         Couple.Annotation.CU :=
+           Created_Units.Element (Couple.Sloc.Source_File);
+         ALI_Annotations.Insert
+           (Key => Couple.Sloc, New_Item => Couple.Annotation);
       end loop;
    end Import_Annotations;
 

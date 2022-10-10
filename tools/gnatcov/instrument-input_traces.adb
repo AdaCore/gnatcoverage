@@ -857,7 +857,7 @@ package body Instrument.Input_Traces is
                Put ("Unit " & To_Ada (CU_Name.Unit) & " (" & CU_Name.Part'Image
                     & ", hash=");
             when GNATcov_RTS.Buffers.File_Based_Language =>
-               Put ("Unit" & (+CU_Name.Filename) & " (hash=");
+               Put ("Unit " & (+CU_Name.Filename) & " (hash=");
          end case;
 
          for B of Fingerprint loop
@@ -890,7 +890,7 @@ package body Instrument.Input_Traces is
          Put ("]");
          for Bit_Id in Buffer'Range loop
             if Buffer (Bit_Id) then
-               Is_Empty := True;
+               Is_Empty := False;
                Put (Bit_Id'Image);
             end if;
          end loop;

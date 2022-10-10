@@ -54,7 +54,7 @@ extern "C"
 						   const char *tag,
 						   unsigned simple);
 
-  /* Write a trace file in FILENAME to contain the data in BUFFERS.
+  /* Write a trace file in FILENAME to contain the data in BUFFERS_GROUPS.
 
      PROGRAM_NAME, EXEC_DATE, and USER_DATA are used to fill the
      corresponding metadata in the written trace file.
@@ -65,14 +65,14 @@ extern "C"
      Return 0 if the trace creation was successful, 1 otherwise.  In case of
      error, ERRNO is left to the number for the cause of error.  */
   extern int gnatcov_rts_write_trace_file (
-    const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+    const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
     const char *filename, struct gnatcov_rts_string program_name,
     uint64_t exec_date, struct gnatcov_rts_string user_data);
 
   /* Call gnatcov_rts_write_trace_file and print an error message on the
      standard error if the trace could not be created.  */
   extern void gnatcov_rts_write_trace_file_wrapper (
-    const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+    const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
     const char *filename, struct gnatcov_rts_string program_name,
     uint64_t exec_date, struct gnatcov_rts_string user_data);
 

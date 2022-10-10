@@ -66,7 +66,7 @@ package GNATcov_RTS.Buffers is
    --  Hash type to perform consistency checks over Source Coverage
    --  Obligations. 20-byte to hold a SHA-1.
 
-   type GNATcov_RTS_Unit_Coverage_Buffers is record
+   type GNATcov_RTS_Coverage_Buffers is record
       Fingerprint               : SCOs_Hash;
       Language                  : Any_Language_Kind;
       Unit_Part                 : Any_Unit_Part;
@@ -76,7 +76,7 @@ package GNATcov_RTS.Buffers is
       Statement_Last_Bit, Decision_Last_Bit,
       MCDC_Last_Bit             : Any_Bit_Id;
    end record;
-   pragma Convention (C, GNATcov_RTS_Unit_Coverage_Buffers);
+   pragma Convention (C, GNATcov_RTS_Coverage_Buffers);
 
    -------------------------
    -- Witness subprograms --

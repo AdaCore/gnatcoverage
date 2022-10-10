@@ -66,7 +66,7 @@ extern "C"
     FILE_BASED_LANGUAGE = 1
   };
 
-  struct gnatcov_rts_unit_coverage_buffers
+  struct gnatcov_rts_coverage_buffers
   {
     /* Hash of SCO info for this unit, as gnatcov computes it (see
        SC_Obligations).  Used as a fast way to check that coverage obligations
@@ -97,10 +97,9 @@ extern "C"
        file-based languages (otherwise, it is an empty string).  */
     struct gnatcov_rts_string project_name;
 
-    /* Addresses of coverage buffers for statement obligations, decision
-       obligations and MC/DC obligations.  The address refer to
-       Coverage_Buffer_Type arrays whose bounds go from 0 to
-       unit_coverage_buffers.*_last_bit.  */
+    /* Pointers to coverage buffers for statement obligations, decision
+       obligations and MC/DC obligations.  The size of each array is in the
+       corresponding *_last_bit field.  */
     uint8_t *statement, *decision, *mcdc;
 
     /* Index for the last bits in coverage buffers for statements, decisions
@@ -108,11 +107,20 @@ extern "C"
     gnatcov_rts_bit_id statement_last_bit, decision_last_bit, mcdc_last_bit;
   };
 
-  /* Array of unit coverage buffers.  */
-  struct gnatcov_rts_unit_coverage_buffers_array
+  /* Group of coverage buffers.  For a given source file, instrumentation may
+     create more than one set of coverage buffers: these are grouped in a
+     coverage buffers group.  */
+  struct gnatcov_rts_coverage_buffers_group
   {
     unsigned length;
-    struct gnatcov_rts_unit_coverage_buffers **buffers;
+    const struct gnatcov_rts_coverage_buffers **buffers;
+  };
+
+  /* Array of coverage buffers groups.  */
+  struct gnatcov_rts_coverage_buffers_group_array
+  {
+    unsigned length;
+    const struct gnatcov_rts_coverage_buffers_group **groups;
   };
 
   /***********************/

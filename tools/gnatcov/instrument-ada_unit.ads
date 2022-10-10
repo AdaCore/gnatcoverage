@@ -229,12 +229,18 @@ private
 
    type Ada_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
+         CU : CU_Id := No_CU_Id;
+         --  SCO identifier of the compilation unit being instrumented
+
          Root_Unit : Compilation_Unit;
          --  Node of compilation unit
 
          Source_Decisions  : Source_Decision_Vectors.Vector;
          Source_Conditions : Source_Condition_Vectors.Vector;
          --  Decisions and (for MC/DC) conditions to be instrumented
+
+         Unit_Bits : Instrument.Common.Allocated_Bits;
+         --  Allocated bits in coverage buffers for low-level SCOs
 
          Entities : Instrumentation_Entities;
          --  Bank of nodes to use during instrumentation

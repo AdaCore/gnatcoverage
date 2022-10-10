@@ -28,16 +28,34 @@ package GNATcov_RTS.Buffers.Lists is
 
    pragma Preelaborate;
 
-   type GNATcov_RTS_Unit_Coverage_Buffers_Array is record
+   type Coverage_Buffers_Access is
+     access constant GNATcov_RTS_Coverage_Buffers;
+   pragma Convention (C, Coverage_Buffers_Access);
+
+   type Coverage_Buffers_Group is
+     array (Positive range <>) of Coverage_Buffers_Access;
+   pragma Convention (C, Coverage_Buffers_Group);
+
+   type GNATcov_RTS_Coverage_Buffers_Group is record
       Length  : aliased unsigned;
       Buffers : System.Address;
+      --  Address of a Coverage_Buffers_Group array of Length items
    end record;
-   pragma Convention (C, GNATcov_RTS_Unit_Coverage_Buffers_Array);
+   pragma Convention (C, GNATcov_RTS_Coverage_Buffers_Group);
 
-   type Unit_Coverage_Buffers_Access is
-     access all GNATcov_RTS_Unit_Coverage_Buffers;
+   type Coverage_Buffers_Group_Access is
+     access constant GNATcov_RTS_Coverage_Buffers_Group;
+   pragma Convention (C, Coverage_Buffers_Group_Access);
 
-   type Unit_Coverage_Buffers_Array is
-     array (Positive range <>) of Unit_Coverage_Buffers_Access;
+   type Coverage_Buffers_Group_Array is
+     array (Positive range <>) of Coverage_Buffers_Group_Access;
+   pragma Convention (C, Coverage_Buffers_Group_Array);
+
+   type GNATcov_RTS_Coverage_Buffers_Group_Array is record
+      Length : aliased unsigned;
+      Groups : System.Address;
+      --  Address of a Coverage_Buffers_Group_Array array of Length items
+   end record;
+   pragma Convention (C, GNATcov_RTS_Coverage_Buffers_Group_Array);
 
 end GNATcov_RTS.Buffers.Lists;

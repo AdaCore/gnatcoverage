@@ -33,13 +33,13 @@ extern "C"
 						   const void *source,
 						   unsigned n);
 
-  /* Write a trace file to contain the given coverage BUFFERS to the OUTPUT
-     stream using the WRITE_BYTES callback.  PROGRAM_NAME, EXEC_DATE and
+  /* Write a trace file to contain the given coverage BUFFERS_GROUPS to the
+     OUTPUT stream using the WRITE_BYTES callback.  PROGRAM_NAME, EXEC_DATE and
      USER_DATA are included as metadata in the trace file.  Return 0 if the
      write was successful, and return any non-zero value in case of error.  */
   extern int gnatcov_rts_generic_write_trace_file (
     void *output,
-    const struct gnatcov_rts_unit_coverage_buffers_array *buffers,
+    const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
     struct gnatcov_rts_string program_name, uint64_t exec_date,
     struct gnatcov_rts_string user_data,
     gnatcov_rts_write_bytes_callback write_bytes);

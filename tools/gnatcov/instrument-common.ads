@@ -65,6 +65,7 @@ with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with ALI_Files;             use ALI_Files;
+with Files_Table;           use Files_Table;
 with GNATcov_RTS;
 with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Base_Types; use Instrument.Base_Types;
@@ -137,12 +138,12 @@ package Instrument.Common is
    function Buffer_Unit
      (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
    --  Given a unit to instrument, return the name of the unit that holds
-   --  its coverage buffers (Coverage_Buffer_Type and Unit_Coverage_Buffers
-   --  records).
+   --  its coverage buffers (Coverage_Buffer_Type and
+   --  GNATcov_RTS_Coverage_Buffers records).
 
    function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String;
-   --  Name of the symbol that references the gnatcov_rts_unit_coverage_buffers
-   --  struct for this unit.
+   --  Name of the symbol that references the
+   --  gnatcov_rts_coverage_buffers_group struct for this unit.
 
    function Project_Output_Dir (Project : Project_Type) return String;
    --  Return the directory in which we must create instrumented sources for
@@ -438,6 +439,9 @@ package Instrument.Common is
      new Ada.Containers.Vectors (Nat, Decision_Bit_Ids);
 
    type Allocated_Bits is record
+      SFI : Valid_Source_File_Index;
+      --  Source file index for the SCOs associated to these coverage buffers
+
       Statement_Bits     : LL_Statement_SCO_Bit_Allocs.Vector;
       Last_Statement_Bit : Any_Bit_Id := No_Bit_Id;
 
@@ -475,6 +479,19 @@ package Instrument.Common is
    --  paths exceeds the limit, must be 0: this function emits a warning in
    --  this case.
 
+   package Allocated_Bits_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Allocated_Bits);
+   --  Allocated bits in coverage buffers for low-level SCOs (one per source
+   --  file). Because of #include directives in C/C++, a single compilation
+   --  unit may yield multiple sets of coverage buffers: one for the compiled
+   --  source file, one for each included source.
+
+   function Create_Unit_Bits
+     (Allocated_Bits : in out Allocated_Bits_Vectors.Vector;
+      SFI            : Valid_Source_File_Index) return Positive;
+   --  Allocate a new set of coverage buffers for the given source file. Return
+   --  the index for the newly created set of buffers.
+
    -----------------------------
    -- Instrumentation context --
    -----------------------------
@@ -487,7 +504,7 @@ package Instrument.Common is
    --  MC/DC instrumentation depends on BDD information.
 
    type Annotation_Couple is record
-      Sloc       : Local_Source_Location;
+      Sloc       : Source_Location;
       Annotation : ALI_Annotation;
    end record;
    --  When instrumenting sources, annotations are registred in two steps:
@@ -512,15 +529,9 @@ package Instrument.Common is
       SFI : Source_File_Index := No_Source_File;
       --  Source file index of the compilation unit being instrumented
 
-      CU : CU_Id := No_CU_Id;
-      --  SCO identifier of the compilation unit being instrumented
-
       Buffer_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit that holds coverage buffers for the
       --  unit currently being instrumented (see Common.Buffer_Unit).
-
-      Unit_Bits : Allocated_Bits;
-      --  Record of allocation of coverage buffer bits for low-level SCOs
 
       Annotations : Annotation_Vectors.Vector;
       --  Annotations created during the instrumentation process, to insert in
@@ -535,10 +546,11 @@ package Instrument.Common is
 
    end record;
 
-   procedure Import_Annotations (UIC : in out Unit_Inst_Context) with
-     Pre => UIC.CU /= No_CU_Id;
+   procedure Import_Annotations
+     (UIC : in out Unit_Inst_Context; Created_Units : Created_Unit_Maps.Map);
    --  Import ALI annotations for this unit in the global annotations table.
-   --  This should be called once the unit was insturmented and given a CU id.
+   --  This should be called once the unit was instrumented and its low level
+   --  SCOS have been transformed into high-level ones.
 
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));

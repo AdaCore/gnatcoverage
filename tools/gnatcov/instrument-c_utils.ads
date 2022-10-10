@@ -79,17 +79,6 @@ package Instrument.C_Utils is
    --  Return the lambda expressions in a node and its descendents if any,
    --  except the lambda expressions nested in other lambda expressions.
 
-   function Is_Unit_Of_Interest
-     (N        : Cursor_T;
-      Filename : String) return Boolean;
-   --  True if the node N corresponds to code originating from a unit of
-   --  interest. This is used to avoid instrumenting included code (that comes
-   --  from preprocessing).
-   --
-   --  TODO: For now, we make an even stronger assumption, and only return True
-   --  for code that originates from the file being processed (e.g. included
-   --  code won't be considered).
-
    function To_Vector (N : Cursor_T) return Cursor_Vectors.Vector;
    --  Turn the node N into a single element node vector
 

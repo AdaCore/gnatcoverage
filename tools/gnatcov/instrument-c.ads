@@ -18,10 +18,12 @@
 
 --  Instrumentation of a C source file
 
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 
 with GNATCOLL.Projects;
 
@@ -31,6 +33,7 @@ with Types; use Types;
 with Clang.Index;   use Clang.Index;
 with Clang.Rewrite; use Clang.Rewrite;
 
+with Files_Table;           use Files_Table;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
 with SC_Obligations;        use SC_Obligations;
@@ -163,6 +166,26 @@ package Instrument.C is
    package Source_Condition_Vectors is
      new Ada.Containers.Vectors (Natural, C_Source_Condition);
 
+   type C_Instrumented_Entities is record
+      Buffers_Index : Natural := 0;
+      --  1-based index of the set of coverage buffers for this source file. We
+      --  allow 0 while it is uninitialized. Once all instrumented entities are
+      --  known, we allocate coverage buffers (UIC.Allocated_Bits) and
+      --  initialize Buffers_Index at the same time.
+
+      Statements : Source_Statement_Vectors.Vector;
+      Decisions  : Source_Decision_Vectors.Vector;
+      Conditions : Source_Condition_Vectors.Vector;
+      --  Statements, decisions and conditions (for MC/DC) to be instrumented
+   end record;
+   --  Coverage buffer information for a given source file
+
+   package C_Instrumented_Entities_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Valid_Source_File_Index,
+      Element_Type => C_Instrumented_Entities);
+   --  Mapping from source files to all the entities to be instrumented in that
+   --  source file.
+
    type Pass_Kind is abstract tagged private;
    type Pass_Kind_Acc is access all Pass_Kind'Class;
    --  As we want to keep some information about coverage obligations inside
@@ -279,6 +302,26 @@ package Instrument.C is
    --  Shortcut to call Import_From_Project, and Import_From_Agrs on the
    --  --c-opts/--c++-opts option.
 
+   type Source_Of_Interest (Of_Interest : Boolean := False) is record
+      case Of_Interest is
+         when False =>
+            null;
+         when True =>
+            SFI     : Valid_Source_File_Index;
+            CU_Name : Compilation_Unit_Name;
+      end case;
+   end record;
+   --  Descriptor for a source file: Of_Interest determines if we should
+   --  compute its code coverage. If we are, SFI is the corresponding index in
+   --  gnatcov's file table and Project_Name is the name of the project that
+   --  owns this source file.
+
+   package Source_Of_Interest_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Unbounded_String,
+      Element_Type    => Source_Of_Interest,
+      Hash            => Hash,
+      Equivalent_Keys => "=");
+
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
          TU       : Translation_Unit_T;
@@ -288,9 +331,7 @@ package Instrument.C is
          File : Ada.Strings.Unbounded.Unbounded_String;
          --  Original filename
 
-         Source_Statements : Source_Statement_Vectors.Vector;
-         Source_Decisions  : Source_Decision_Vectors.Vector;
-         Source_Conditions : Source_Condition_Vectors.Vector;
+         Instrumented_Entities : C_Instrumented_Entities_Maps.Map;
          --  Statements, decisions and (for MC/DC) conditions to be
          --  instrumented.
 
@@ -308,12 +349,44 @@ package Instrument.C is
          LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
          --  Preprocessing information for low level SCOs
 
+         Sources_Of_Interest : Source_Of_Interest_Maps.Map;
+         --  Records for each source file processed during the instrumentation
+         --  whether it is a source of interest, and some properties if it is.
+
+         Allocated_Bits : Allocated_Bits_Vectors.Vector;
+         --  Allocated bits in coverage buffers for low-level SCOs. We allocate
+         --  one set of coverage buffers per source file, i.e. one per entry in
+         --  Instrumented_Entities.
+
+         CUs : Created_Unit_Maps.Map;
+         --  Compilation units created while instrumenting this source file.
+         --  Initialized when calling Process_Low_Level_SCOs in
+         --  Instrument_Source_File.
       end record;
 
    type C_Source_Rewriter is tagged limited private;
    --  Helper object to instrument a source file
 
+   function Is_Source_Of_Interest
+     (UIC : in out C_Unit_Inst_Context; N : Cursor_T) return Boolean;
+   --  Track the source file from which N originates in
+   --  UIC.Sources_Of_Interest. Return whether this source file is a source of
+   --  interest.
+   --
+   --  TODO??? For now, only the source file from which instrumentation started
+   --  (the "body" C/C++ file, i.e. UIC.File) is considered as a source of
+   --  interest, i.e. code inserted by #include is not instrumented and
+   --  excluded from coverage analysis.
+
 private
+
+   function Find_Instrumented_Entities
+     (UIC : in out C_Unit_Inst_Context'Class;
+      SFI : Valid_Source_File_Index)
+      return C_Instrumented_Entities_Maps.Reference_Type;
+   --  Return a reference to the UIC.Instrumented_Entities entry
+   --  corresponding to the source file that SFI designates. If there is no
+   --  such entry yet, create it.
 
    type Pass_Kind is abstract tagged null record;
 

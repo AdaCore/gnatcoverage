@@ -22,7 +22,6 @@ with System;       use System;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
-with Clang.CX_String;  use Clang.CX_String;
 with Clang.Extensions; use Clang.Extensions;
 
 package body Instrument.C_Utils is
@@ -196,34 +195,6 @@ package body Instrument.C_Utils is
       Visit_Children (N, Process'Access);
       return Res;
    end Get_Lambda_Exprs;
-
-   -------------------------
-   -- Is_Unit_Of_Interest --
-   -------------------------
-
-   function Is_Unit_Of_Interest
-     (N        : Cursor_T;
-      Filename : String) return Boolean
-   is
-      File   : aliased String_T;
-      Line   : aliased unsigned;
-      Column : aliased unsigned;
-      Loc    : constant Source_Location_T := Get_Cursor_Location (N);
-   begin
-      Get_Presumed_Location (Location => Loc,
-                             Filename => File'Access,
-                             Line     => Line'Access,
-                             Column   => Column'Access);
-      declare
-         Cursor_Filename : constant String := Get_C_String (File);
-      begin
-         --  For now, just retrieve SCO for the file being instrumented.
-         --  TODO: determine what should be done for included code (inlines
-         --  function, expanded macro coming from another file etc.)
-
-         return Cursor_Filename = Filename;
-      end;
-   end Is_Unit_Of_Interest;
 
    ---------------
    -- To_Vector --
