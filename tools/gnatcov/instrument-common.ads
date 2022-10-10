@@ -103,15 +103,20 @@ package Instrument.Common is
    --  Qualified name (relative to the unit buffer package) of the buffer to
    --  contain coverage data corresponding to decision BDD paths.
 
+   Witness_Dummy_Type_Name : Ada_Qualified_Name;
+   --  Qualified name for the type returned by the Witness function used for
+   --  declaration instrumentation.
+
    Dump_Procedure_Name : constant Ada_Identifier :=
       To_Unbounded_String ("Dump_Buffers");
    --  Name of the procedure (in main dump helper packages) that dumps all
    --  coverage buffers to the source trace file.
 
-   Register_Dump_Procedure_Name : constant Ada_Identifier :=
+   Register_Dump_Function_Name : constant Ada_Identifier :=
       To_Unbounded_String ("Register_Dump_Buffers");
-   --  Name of the procedure (in main dump helper packages) that registers the
-   --  coverage buffers dump through atexit(3).
+   --  Name of the function (in main dump helper packages) that registers the
+   --  coverage buffers dump through atexit(3) or through a task termination
+   --  handler.
 
    function Dump_Procedure_Symbol
      (Main : Compilation_Unit_Name) return String

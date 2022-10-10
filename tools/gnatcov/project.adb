@@ -226,6 +226,10 @@ package body Project is
    --  Note that this also returns source files for mains that are not units of
    --  interest.
 
+   function Runtime_Has_File (Filename : Filesystem_String) return Boolean;
+   --  Return whether Filename can be found among the sources of the
+   --  configured Ada runtime.
+
    ---------
    -- "+" --
    ---------
@@ -654,6 +658,50 @@ package body Project is
          end if;
       end;
    end Find_Source_File;
+
+   ----------------------
+   -- Runtime_Has_File --
+   ----------------------
+   function Runtime_Has_File (Filename : Filesystem_String) return Boolean is
+      Result_File : Virtual_File;
+      --  Virtual_File for Ada.Finalization. Only search predefined sources.
+      Ambiguous   : Boolean;
+      --  Required in the call for GNATCOLL.Projects.Create
+   begin
+      GNATCOLL.Projects.Create
+        (Self            => Prj_Tree.all,
+         Name            => Filename,
+         Use_Object_Path => False,
+         Ambiguous       => Ambiguous,
+         File            => Result_File,
+         Predefined_Only => True);
+
+      --  We don't expect there to be multiple homonyms for the runtime files
+
+      pragma Assert (not Ambiguous);
+      return Result_File /= No_File;
+   end Runtime_Has_File;
+
+   ------------------------------
+   -- Runtime_Has_Finalization --
+   ------------------------------
+
+   function Runtime_Supports_Finalization return Boolean is
+     (Runtime_Has_File ("a-finali.ads"));
+
+   ---------------------------------------
+   -- Runtime_Supports_Task_Termination --
+   ---------------------------------------
+
+   function Runtime_Supports_Task_Termination return Boolean is
+   begin
+      --  We need both Ada.Task_Identification (a-taside.ads) and
+      --  Ada.Task_Termination (a-taster.ads) to be able to use task
+      --  termination.
+
+      return Runtime_Has_File ("a-taster.ads")
+            and then Runtime_Has_File ("a-taside.ads");
+   end Runtime_Supports_Task_Termination;
 
    ----------------
    -- Initialize --
