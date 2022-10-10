@@ -1006,4 +1006,7 @@ begin
    Decision_Buffer_Name.Append  (To_Unbounded_String ("Decision_Buffer"));
    MCDC_Buffer_Name.Append      (To_Unbounded_String ("MCDC_Buffer"));
 
+   Witness_Dummy_Type_Name := Sys_Buffers;
+   Witness_Dummy_Type_Name.Append (To_Unbounded_String ("Witness_Dummy_Type"));
+
 end Instrument.Common;
