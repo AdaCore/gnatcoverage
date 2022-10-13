@@ -225,7 +225,8 @@ package body Instrument.C_Utils is
 
       function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T is
       begin
-         if Kind (Cursor) = Cursor_Translation_Unit then
+         if Kind (Cursor) in Cursor_Translation_Unit | Cursor_Linkage_Spec
+         then
             return Child_Visit_Recurse;
          end if;
          if Cursor_Get_Mangling (Cursor) = "main" then
@@ -244,63 +245,6 @@ package body Instrument.C_Utils is
    end Get_Main;
 
    --  Rewriting utilities
-
-   ---------------------------
-   -- Add_Statement_In_Main --
-   ---------------------------
-
-   procedure Add_Statement_In_Main
-     (TU        : Translation_Unit_T;
-      Rew       : Rewriter_T;
-      Statement : String)
-   is
-      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T;
-      --  Traverse the tree until the main function is found, and insert a
-      --  statement.
-
-      ----------------
-      -- Visit_Decl --
-      ----------------
-
-      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T is
-      begin
-         if Kind (Cursor) = Cursor_Translation_Unit then
-            return Child_Visit_Recurse;
-
-         elsif Cursor_Get_Mangling (Cursor) = "main" then
-            declare
-               Fun_Children : constant Vector := Get_Children (Cursor);
-               Body_Cursor  : constant Cursor_T :=
-                 Fun_Children (Last_Index (Fun_Children));
-
-               --  Body of a function is a compound statement, so rewrite
-               --  before its first children node will do.
-
-               Body_Stmts : constant Vector := Get_Children (Body_Cursor);
-               First_Stmt : constant Cursor_T :=
-                 Body_Stmts (First_Index (Body_Stmts));
-
-               Location : constant Source_Location_T :=
-                 Get_Cursor_Location (First_Stmt);
-            begin
-               CX_Rewriter_Insert_Text_Before
-                 (Rew    => Rew,
-                  Loc    => Location,
-                  Insert => Statement);
-            end;
-            return Child_Visit_Break;
-
-         else
-            return Child_Visit_Continue;
-         end if;
-      end Visit_Decl;
-
-   --  Start of processing for Add_Statement_In_Main
-
-   begin
-      Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
-                      Visitor => Visit_Decl'Access);
-   end Add_Statement_In_Main;
 
    --------------------------------
    -- Insert_Text_After_Start_Of --
