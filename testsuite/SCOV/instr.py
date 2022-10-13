@@ -110,7 +110,7 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         auto_languages=auto_languages,
     )
 
-    if warnings_as_errors:
+    if register_failure and warnings_as_errors:
         output = contents_of(out)
 
         thistest.fail_if(
