@@ -2883,8 +2883,10 @@ package body Instrument.C is
       if Record_PP_Info_Last_SCO /= SCOs.SCO_Table.Last then
          Outputs.Warn
            (Orig_Filename & ": preprocessed file coverage obligations"
-              &  " inconsistent with obligations from the original file."
-              & " Discarding preprocessing information.");
+            &  " inconsistent with original file obligations (expecting"
+            & Nat'Image (Record_PP_Info_Last_SCO) & " coverage obligations,"
+            & " but got" & Nat'Image (SCOs.SCO_Table.Last)
+            & ". Discarding preprocessing information.");
          UIC.LL_PP_Info_Map.Clear;
       end if;
 
