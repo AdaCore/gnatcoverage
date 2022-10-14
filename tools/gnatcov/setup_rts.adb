@@ -28,7 +28,7 @@ with GNAT.Regexp;
 with GNATCOLL.JSON;     use GNATCOLL.JSON;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 with GPR2.Context;
-with GPR2.KB;
+with GPR2.Containers;
 with GPR2.Log;
 with GPR2.Path_Name;
 with GPR2.Project.Attribute;
@@ -64,20 +64,18 @@ package body Setup_RTS is
    Ravenscar_RTS_Regexp : constant GNAT.Regexp.Regexp :=
      GNAT.Regexp.Compile (".*(ravenscar|light-tasking|embedded).*");
 
-   function Create_Config
-     (Target       : String;
+   procedure Load_Project
+     (Project      : in out GPR2.Project.Tree.Object;
+      Project_File : String;
+      Target       : String;
       RTS          : String;
       Config_File  : String;
-      Project_File : String) return GPR2.Project.Configuration.Object;
-   --  Create a GPR2 configuration for C, and for Ada if it is enabled, both
-   --  for the given target/RTS. If Target is empty, use the knowledge base's
-   --  default target.
+      Context      : GPR2.Context.Object := GPR2.Context.Empty);
+   --  Load Project_File for the given Target/RTS/Config_File/Context.
    --
-   --  If Config_File is not an empty string, disregard Target/RTS and load the
-   --  configuration from that file instead.
-   --
-   --  In case of error, GPR2 uses Project_File as context for the error
-   --  messages.
+   --  This does not raise an exception in case of project loading failure:
+   --  callers are supposed to check Project.Log_Messages to handle possible
+   --  errors.
 
    function Setup_Project
      (Temp_Dir     : Temporary_Directory;
@@ -172,61 +170,74 @@ package body Setup_RTS is
    --  project to install. Use a filename that will match the Install'Artifacts
    --  attribute in the runtime project file.
 
-   -------------------
-   -- Create_Config --
-   -------------------
+   ------------------
+   -- Load_Project --
+   ------------------
 
-   function Create_Config
-     (Target       : String;
+   procedure Load_Project
+     (Project      : in out GPR2.Project.Tree.Object;
+      Project_File : String;
+      Target       : String;
       RTS          : String;
       Config_File  : String;
-      Project_File : String) return GPR2.Project.Configuration.Object is
+      Context      : GPR2.Context.Object := GPR2.Context.Empty)
+   is
+      PF : constant GPR2.Path_Name.Object :=
+        GPR2.Path_Name.Create_File
+           (GPR2.Filename_Type (Project_File), GPR2.Path_Name.No_Resolution);
    begin
+      --  According to the documentation, an error message is recorded in
+      --  Project when Load and Load_Autoconf raise GPR2.Project_Error
+      --  exceptions, so we can just ignore this exception and let callers deal
+      --  with errors recorded in Project.Log_Messages.
+
       --  If a configuration project file is provided, just load it to create
       --  the configuration.
 
       if Config_File /= "" then
          declare
-            F : constant GPR2.Path_Name.Object :=
+            F      : constant GPR2.Path_Name.Object :=
               GPR2.Path_Name.Create_File (GPR2.Filename_Type (Config_File));
+            Config : constant GPR2.Project.Configuration.Object :=
+              GPR2.Project.Configuration.Load (F);
          begin
-            return GPR2.Project.Configuration.Load (F);
+            Project.Load
+              (Filename => PF,
+               Context  => Context,
+               Config   => Config);
+         exception
+            when GPR2.Project_Error =>
+               null;
+         end;
+
+      --  Otherwise, use the "auto configuration" mode that will use the
+      --  optional target and RTS information. Always require C (needed for the
+      --  core coverage runtime) and require the Ada language only if enabled.
+
+      else
+         declare
+            RTS_Map       : GPR2.Containers.Lang_Value_Map;
+            Actual_Target : constant GPR2.Optional_Name_Type :=
+              GPR2.Optional_Name_Type (Target);
+         begin
+            RTS_Map.Include (GPR2.C_Language, RTS);
+            if Src_Enabled_Languages (Ada_Language) then
+               RTS_Map.Include (GPR2.Ada_Language, RTS);
+            end if;
+
+            begin
+               Project.Load_Autoconf
+                 (Filename          => PF,
+                  Context           => Context,
+                  Target            => Actual_Target,
+                  Language_Runtimes => RTS_Map);
+            exception
+               when GPR2.Project_Error =>
+                  null;
+            end;
          end;
       end if;
-
-      --  Otherwise, use the GPR knowledge base to create a configuration for C
-      --  (needed for the core coverage runtime) and for the Ada language, if
-      --  enabled.
-
-      declare
-         Actual_Target : constant GPR2.Name_Type :=
-           (if Target = ""
-            then GPR2.KB.Default_Target
-            else GPR2.Name_Type (Target));
-
-         KB : GPR2.KB.Object := GPR2.KB.Create_Default (GPR2.KB.Default_Flags);
-
-         Descs : GPR2.Project.Configuration.Description_Set (1 .. 2);
-         Last  : Positive := 1;
-      begin
-         Descs (1) := GPR2.Project.Configuration.Create
-           (Language => GPR2.C_Language,
-            Runtime  => GPR2.Optional_Name_Type (RTS));
-         if Src_Enabled_Languages (Ada_Language) then
-            Descs (2) := GPR2.Project.Configuration.Create
-              (Language => GPR2.Ada_Language,
-               Runtime  => GPR2.Optional_Name_Type (RTS));
-            Last := Last + 1;
-         end if;
-
-         return GPR2.Project.Configuration.Create
-           (Settings => Descs (1 .. Last),
-            Target   => Actual_Target,
-            Project  => GPR2.Path_Name.Create_File
-                          (GPR2.Filename_Type (Project_File)),
-            Base     => KB);
-      end;
-   end Create_Config;
+   end Load_Project;
 
    -----------
    -- Image --
@@ -411,24 +422,7 @@ package body Setup_RTS is
 
       --  Now load the project
 
-      begin
-         Prj.Load
-           (Filename => GPR2.Project.Create
-                          (GPR2.Filename_Type (Project_File),
-                           GPR2.Project.Default_Search_Paths (True)),
-            Context  => Ctx,
-            Config   => Create_Config
-                          (Target, RTS, Config_File, Project_File));
-      exception
-         when GPR2.Project_Error =>
-
-            --  According to the documentation for this exception, an error
-            --  message is recorded in Prj when it is raised, so we can just
-            --  ignore the exception and let the processing below take care of
-            --  the error.
-
-            null;
-      end;
+      Load_Project (Prj, Project_File, Target, RTS, Config_File, Ctx);
 
       --  Print all messages in verbose mode, and all but the Information ones
       --  otherwise. Abort on error, or if we failed to get a runtime project
@@ -840,25 +834,7 @@ package body Setup_RTS is
       --  been installed: do not print any error message, and if the project
       --  fails to load, just return the default setup config.
 
-      begin
-         Prj.Load
-           (Filename => GPR2.Path_Name.Create_File
-                          (GPR2.Filename_Type (Prj_Filename),
-                           GPR2.Path_Name.No_Resolution),
-            Context  => GPR2.Context.Empty,
-            Config   => Create_Config
-                          (Target, RTS, Config_File, Runtime_Project));
-      exception
-         when GPR2.Project_Error =>
-
-            --  According to the documentation for this exception, an error
-            --  message is recorded in Prj when it is raised, so we can just
-            --  ignore the exception and let the processing below take care of
-            --  the error.
-
-            null;
-      end;
-
+      Load_Project (Prj, Prj_Filename, Target, RTS, Config_File);
       if Prj.Log_Messages.Has_Error then
          if Verbose then
             Put_Line
