@@ -92,19 +92,31 @@ package body Instrument.C is
    --  Preprocessing utilities --
    ------------------------------
 
+   Macro_Cmdline_Regexp : constant Pattern_Matcher := Compile (
+     "([a-zA-Z_]\w*)"
+     --  The name of the macro
+
+     & "(\(.*\))?"
+     --  The optional list of macro arguments
+
+     & "([^ =]+)?"
+     --  Then, there can be any character before the assignment: they will be
+     --  part of the macro value (e.g. A(b)b will yield #define A b 1)
+
+     & "(?:=(.*))?"
+     --  The macro value itself
+   );
+
    Macro_Def_Regexp : constant Pattern_Matcher := Compile (
      "#define"
      & "(?: |\t)+"
      --  "#define", then a non-empty blank
 
-     & "([a-zA-Z0-9_][^ \t]*"
-     --  The name of the macro, followed by....
+     & "([a-zA-Z_]\w*)"
+     --  The name of the macro
 
-     & "(?:\(.*\))?"
+     & "(\(.*\))?"
      --  The optional list of macro arguments
-
-     & ")"
-     --  End of "extended" macro name (actual name + arguments)
 
      & "(.*)"
      --  The macro value itself
@@ -112,11 +124,11 @@ package body Instrument.C is
    --  Regular expression to analyze definitions for builtin macros (see
    --  Builtin_Macros)
 
-   type Macro_Vector_Access is access Macro_Vectors.Vector;
-   type Macro_Vector_Cst_Access is access constant Macro_Vectors.Vector;
+   type Macro_Set_Access is access Macro_Set;
+   type Macro_Set_Cst_Access is access constant Macro_Set;
    package Compiler_Macros_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => Unbounded_String,
-      Element_Type    => Macro_Vector_Access,
+      Element_Type    => Macro_Set_Access,
       Equivalent_Keys => "=",
       Hash            => Ada.Strings.Unbounded.Hash);
    Compiler_Macros : Compiler_Macros_Maps.Map;
@@ -127,8 +139,22 @@ package body Instrument.C is
    --  The three following functions are not used, but could be in the future,
    --  when we will refine what is done with macros.
 
+   procedure Parse_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean);
+     --  Parse a macro definition. If the parsing failed, set Success to False.
+     --  Otherwise, set Parsed_Def to the parsed definition and set Success to
+     --  True.
+
+   procedure Parse_Cmdline_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean);
+   --  Same as above, but with a command-line macro definition
+
    function Builtin_Macros
-     (Lang, Compiler, Std, Output_Dir : String) return Macro_Vector_Cst_Access;
+     (Lang, Compiler, Std, Output_Dir : String) return Macro_Set_Cst_Access;
    --  Return the list of built-in macros for the given compiler, standard and
    --  language. Output_Dir is used to store a temporary file.
    --
@@ -2517,12 +2543,77 @@ package body Instrument.C is
       UIC.MCDC_State_Declaration_Node := Saved_MCDC_State_Declaration_Node;
    end Traverse_Declarations;
 
+   ----------------------------
+   -- Parse_Macro_Definition --
+   ----------------------------
+
+   procedure Parse_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean)
+   is
+      Matches : Match_Array (0 .. 3);
+   begin
+      Match (Macro_Def_Regexp, Str, Matches);
+      if Matches (0) = No_Match then
+         Success := False;
+      else
+         Success := True;
+         Parsed_Def.Name := +Str (Matches (1).First .. Matches (1).Last);
+         if Matches (2) /= No_Match then
+            Parsed_Def.Args := +Str (Matches (2).First .. Matches (2).Last);
+         end if;
+         Parsed_Def.Value := +Str (Matches (3).First .. Matches (3).Last);
+      end if;
+   end Parse_Macro_Definition;
+
+   ------------------------------------
+   -- Parse_Cmdline_Macro_Definition --
+   ------------------------------------
+
+   procedure Parse_Cmdline_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean)
+   is
+      Matches : Match_Array (0 .. 4);
+   begin
+      Match (Macro_Cmdline_Regexp, Str, Matches);
+      if Matches (0) = No_Match then
+         Success := False;
+      else
+         Success := True;
+         Parsed_Def.Name := +Str (Matches (1).First .. Matches (1).Last);
+         if Matches (2) /= No_Match then
+            Parsed_Def.Args := +Str (Matches (2).First .. Matches (2).Last);
+         end if;
+
+         --  Command line macros can have part of their value before the
+         --  assignment, e.g. "-DA(b)b" is equivalent to "#define A(b) b 1".
+
+         if Matches (3) /= No_Match then
+            Append
+              (Parsed_Def.Value,
+               Str (Matches (3).First .. Matches (3).Last) & " ");
+         end if;
+
+         --  If no value is given, then it is implicitly 1
+
+         if Matches (4) /= No_Match then
+            Append
+              (Parsed_Def.Value, Str (Matches (4).First .. Matches (4).Last));
+         else
+            Append (Parsed_Def.Value, " 1");
+         end if;
+      end if;
+   end Parse_Cmdline_Macro_Definition;
+
    --------------------
    -- Builtin_Macros --
    --------------------
 
    function Builtin_Macros
-     (Lang, Compiler, Std, Output_Dir : String) return Macro_Vector_Cst_Access
+     (Lang, Compiler, Std, Output_Dir : String) return Macro_Set_Cst_Access
    is
       use Ada.Characters.Handling;
       use Compiler_Macros_Maps;
@@ -2531,7 +2622,7 @@ package body Instrument.C is
       Key    : constant Unbounded_String :=
         +Compiler & " -x " & L & " " & Std;
       Cur    : constant Cursor := Compiler_Macros.Find (Key);
-      Result : Macro_Vector_Access;
+      Result : Macro_Set_Access;
    begin
       --  If we already computed builtin macros for Compiler, return the cached
       --  result. Compute it now otherwise.
@@ -2540,7 +2631,7 @@ package body Instrument.C is
          Result := Element (Cur);
 
       else
-         Result := new Macro_Vectors.Vector;
+         Result := new Macro_Set;
          declare
             Args     : String_Vectors.Vector;
             Basename : constant String :=
@@ -2574,24 +2665,21 @@ package body Instrument.C is
             Open (File, In_File, Filename);
             while not End_Of_File (File) loop
                declare
-                  Line    : constant String := Get_Line (File);
-                  Matches : Match_Array (0 .. 2);
-                  M       : Macro_Definition;
+                  Line      : constant String := Get_Line (File);
+                  Macro_Def : Macro_Definition (Define => True);
+                  Success   : Boolean;
                begin
-                  Match (Macro_Def_Regexp, Line, Matches);
-                  if Matches (0) = No_Match then
+                  Parse_Macro_Definition
+                    (Line,
+                     Macro_Def,
+                     Success);
+                  if Success then
+                     Result.Include (Macro_Def);
+                  else
                      Warn
                        ("Cannot parse a built-in macro definition for "
-                        & Compiler & ", ignoring it:"
-                        & ASCII.LF & "  " & Line);
-                  else
-                     M.Define := True;
-                     Append
-                       (M.Value, Line (Matches (1).First .. Matches (1).Last));
-                     Append (M.Value, "=");
-                     Append
-                       (M.Value, Line (Matches (2).First .. Matches (2).Last));
-                     Result.Append (M);
+                        & Compiler & ", ignoring it:" & ASCII.LF & "  "
+                        & Line);
                   end if;
                end;
             end loop;
@@ -2604,7 +2692,7 @@ package body Instrument.C is
          end;
       end if;
 
-      return Macro_Vector_Cst_Access (Result);
+      return Macro_Set_Cst_Access (Result);
    end Builtin_Macros;
 
    ------------------------
@@ -4359,24 +4447,21 @@ package body Instrument.C is
       Options       : Analysis_Options;
       Pass_Builtins : Boolean := True) is
 
-      procedure Add_Macro_Switches (Macros : Macro_Vectors.Vector);
+      procedure Add_Macro_Switches (Macros : Macro_Set);
       --  Add the given macro switches to Args
 
       ------------------------
       -- Add_Macro_Switches --
       ------------------------
 
-      procedure Add_Macro_Switches (Macros : Macro_Vectors.Vector) is
+      procedure Add_Macro_Switches (Macros : Macro_Set) is
       begin
          for M of Macros loop
-            declare
-               Prefix : constant Unbounded_String :=
-                 +(if M.Define
-                   then "-D"
-                   else "-U");
-            begin
-               Args.Append (Prefix & M.Value);
-            end;
+            if M.Define then
+               Args.Append ("-D" & M.Name & M.Args & "=" & M.Value);
+            else
+               Args.Append ("-U" & M.Name);
+            end if;
          end loop;
       end Add_Macro_Switches;
 
@@ -4551,10 +4636,24 @@ package body Instrument.C is
                Self.PP_Search_Path.Append (Value);
 
             elsif Read_With_Argument (A, 'D', Value) then
-               Self.PP_Macros.Append ((Define => True, Value => Value));
+               declare
+                  Macro_Def : Macro_Definition (Define => True);
+                  Success   : Boolean;
+               begin
+                  Parse_Cmdline_Macro_Definition
+                    (Str        => +Value,
+                     Parsed_Def => Macro_Def,
+                     Success    => Success);
+                  if Success then
+                     Self.PP_Macros.Include (Macro_Def);
+                  else
+                     Warn ("Failed to parse command-line macro definition: "
+                           & (+Value));
+                  end if;
+               end;
 
             elsif Read_With_Argument (A, 'U', Value) then
-               Self.PP_Macros.Append ((Define => False, Value => Value));
+               Self.PP_Macros.Include ((Define => False, Name => Value));
 
             elsif Has_Prefix (A, "-std=") then
                Self.Std := +A;

@@ -20,6 +20,7 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -239,31 +240,43 @@ package Instrument.C is
      (Key_Type     => Nat,
       Element_Type => PP_Info);
 
-   type Macro_Definition is record
-      Define : Boolean;
-      --  Whether this defines a macro or undefines it
+   type Macro_Definition (Define : Boolean := True) is record
+      Name : Unbounded_String;
+      --  Name of the macro
 
-      Value : Unbounded_String;
-      --  If this undefines a macro, this just contains the name of that macro.
-      --
-      --  If this defines a macro, "-D" option value for the definition of this
-      --  macro. For instance "A(x, y)=B" for "#define A(x, y) B".
+      case Define is
+         when True =>
+            Args : Unbounded_String;
+            --  String representation of the macro arguments, e.g. (x, y)
+
+            Value : Unbounded_String;
+            --  Value for the macro definition
+
+         when False =>
+            null;
+      end case;
    end record;
    --  Whether a macro should be defined, its name, and when it must be
-   --  defined, its value.
+   --  defined, its optional arguments and value.
 
-   package Macro_Vectors is
-     new Ada.Containers.Vectors (Positive, Macro_Definition);
+   function "<" (L, R : Macro_Definition) return Boolean is (L.Name < R.Name);
+   --  As we store Macro_Definition in sets, we do not want two conflicting
+   --  definitions of the same macro to coexist. Thus, we compare only the
+   --  name, meaning that when we insert a new definition, it will replace
+   --  the previous one.
+
+   package Macro_Sets is new Ada.Containers.Ordered_Sets (Macro_Definition);
+   subtype Macro_Set is Macro_Sets.Set;
 
    type Analysis_Options is record
       PP_Search_Path : String_Vectors.Vector;
       --  List of directories to search when looking for an included file
 
-      Builtin_Macros : Macro_Vectors.Vector;
-      --  List of predefined macros for the project compiler driver
+      Builtin_Macros : Macro_Set;
+      --  Set of predefined macros for the project compiler driver
 
-      PP_Macros : Macro_Vectors.Vector;
-      --  List of macros for the preprocessor
+      PP_Macros : Macro_Set;
+      --  Set of macros for the preprocessor
 
       Std : Unbounded_String;
       --  -std=X argument to pass to the preprocessor and the parser, or the
