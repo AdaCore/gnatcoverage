@@ -348,7 +348,7 @@ providing the variable name to use.
 |gcvins| limitations
 --------------------
 
-There are situations and code patterns not handeled correctly by |gcvins|.
+There are situations and code patterns not handled correctly by |gcvins|.
 Below are listed the limitations associated with general Ada sources.
 Coverage of SPARK sources require additional considerations, detailed in
 section :ref:`spark_instr`.
@@ -356,10 +356,12 @@ section :ref:`spark_instr`.
 Unsupported source constructs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-There are a few language constructs that |gcvins| doesn't handle properly.
+There are a few language constructs that |gcvins| doesn't support.
 The tool emits a warning when it encounters such cases and the corresponding
-code is not instrumented. Source coverage obligations are still emitted, so
-the unsupported constructs will appear as ``not covered`` in the report.
+code is not instrumented. Source coverage obligations are still emitted, and
+the unsupported constructs will be reported in a separate 
+``Undetermined_Coverage`` category, to differentiate them from actual coverage
+violations.
 
 The list of unsupported constructs is as follows:
 
@@ -370,10 +372,18 @@ The list of unsupported constructs is as follows:
   tagged type.
 
 The simplest way to work around the limitation concerning expression functions
-is to turn them into regular funtions, by giving them a proper body,
-containing a single return statment with the original expression.
+is to turn them into regular functions, by giving them a proper body,
+containing a single return statement with the original expression.
 Otherwise it is possible to exempt those constructs (see :ref:`exemptions`)
 and/or perform a manual coverage analysis for these special cases.
+
+Additionally, the MC/DC instrumentation of decisions with many conditions
+may require more memory than available (during instrumentation and/or at
+run-time) to enumerate the possible paths through the decision. To avoid this,
+|gcv| will not instrument such decisions for MC/DC, emitting a warning in the
+process, and the MC/DC coverage for each decision will be reported as
+``Undetermined_Coverage`` state. Should the default limit not be satisfactory,
+it can be tuned with the option :cmd-option:`--path-count-limit`.
 
 Global source traces limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -389,7 +399,7 @@ Toolchain-specific limitations
 
 With GNAT versions from 7.1 to 7.3, compiling with optimization will result in
 coverage violations on all statement obligations associated with expression
-functions. Explicitely disabling optimization (with ``-O0`` for instance) will
+functions. Explicitly disabling optimization (with ``-O0`` for instance) will
 resolve this issue.
 
 .. _instr-build:
