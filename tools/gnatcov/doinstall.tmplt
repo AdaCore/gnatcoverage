@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# GNATcoverage binary distribution installation script
+# GNAT DAS binary distribution installation script
 # Copyright (c) 2011-2020, Free Software Foundation
 #
 
@@ -55,7 +55,7 @@ check_env () {
 ###################################
 
 set_qualifier () {
-    qualifier="GNATcoverage"
+    qualifier="GNAT DAS"
     long_qualifier="$qualifier"
 }
 
@@ -76,9 +76,9 @@ EOF
     fi
 }
 
-#####################################
-# Install GNATcoverage into $prefix #
-#####################################
+#################################
+# Install GNAT DAS into $prefix #
+#################################
 
 standard_installation () {
 
@@ -159,11 +159,11 @@ if [ $# -eq 1 ]; then
     cat << EOF
    Usage: $0 [install_dir]
 
-   When no argument is specified, runs the GNATcoverage installer
+   When no argument is specified, runs the $qualifier installer
    interactively, otherwise installs automatically under install_dir.
 EOF
   else
-    echo "   installing GNATcoverage under $1"
+    echo "   installing $qualifier under $1"
     prefix="$1"
     standard_installation
   fi
