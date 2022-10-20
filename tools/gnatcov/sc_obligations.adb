@@ -1643,7 +1643,7 @@ package body SC_Obligations is
       if CU = No_CU_Id then
          return No_SCO_Id;
       else
-         return CU_Vector.Element (CU).First_SCO;
+         return CU_Vector.Constant_Reference (CU).First_SCO;
       end if;
    end First_SCO;
 
@@ -1656,7 +1656,7 @@ package body SC_Obligations is
       if CU = No_CU_Id then
          return No_SCO_Id;
       else
-         return CU_Vector.Element (CU).Last_SCO;
+         return CU_Vector.Constant_Reference (CU).Last_SCO;
       end if;
    end Last_SCO;
 
@@ -1678,7 +1678,7 @@ package body SC_Obligations is
 
       for J in First .. Last loop
          declare
-            BDDN : BDD_Node renames BDD_Vector.Element (J);
+            BDDN : BDD_Node renames BDD_Vector.Constant_Reference (J);
          begin
             if BDDN.Kind = Condition then
                Current_Condition_Index := Current_Condition_Index + 1;
@@ -1969,7 +1969,7 @@ package body SC_Obligations is
       if BDDN.Parent = No_BDD_Node_Id then
          Prev_SCO := No_SCO_Id;
       else
-         Prev_SCO   := BDD_Vector.Element (BDDN.Parent).C_SCO;
+         Prev_SCO   := BDD_Vector.Constant_Reference (BDDN.Parent).C_SCO;
          Prev_Value := BDDN.Parent_Value;
       end if;
    end Get_Origin;
@@ -2003,7 +2003,7 @@ package body SC_Obligations is
             .. TP.Current_Routine.Insns.Last  + TP.Current_Routine.Offset);
 
       if CU /= No_CU_Id then
-         CUI := CU_Vector.Element (CU);
+         CUI := CU_Vector.Constant_Reference (CU);
          Has_Instances := CUI.First_Instance <= CUI.Last_Instance;
       else
          Has_Instances := False;
@@ -2030,7 +2030,8 @@ package body SC_Obligations is
                  (Global_Instance_Index <= CUI.Last_Instance);
 
                pragma Assert
-                 (Inst_Vector.Element (Global_Instance_Index).Comp_Unit
+                 (Inst_Vector.Constant_Reference
+                    (Global_Instance_Index).Comp_Unit
                     = TP.Current_Subp.Subprogram_CU);
 
                Tslocs (Last).Tag := Valid_SC_Tag (Global_Instance_Index);
@@ -2279,7 +2280,6 @@ package body SC_Obligations is
 
    function Comp_Unit (SCO : SCO_Id) return CU_Id is
       LB, UB, Middle : Valid_CU_Id;
-      CU             : CU_Info;
    begin
       --  Assume that compilation units in CU_Vector are ordered by SCO range
       --  to look up efficiently (by dichotomy) the compilation unit for the
@@ -2289,14 +2289,17 @@ package body SC_Obligations is
       UB := CU_Vector.Last_Index;
       while LB <= UB loop
          Middle := LB + (UB - LB) / 2;
-         CU := CU_Vector.Element (Middle);
-         if SCO in CU.First_SCO .. CU.Last_SCO then
-            return Middle;
-         elsif SCO < CU.First_SCO then
-            UB := Middle - 1;
-         else
-            LB := Middle + 1;
-         end if;
+         declare
+            CU : CU_Info renames CU_Vector.Constant_Reference (Middle);
+         begin
+            if SCO in CU.First_SCO .. CU.Last_SCO then
+               return Middle;
+            elsif SCO < CU.First_SCO then
+               UB := Middle - 1;
+            else
+               LB := Middle + 1;
+            end if;
+         end;
       end loop;
       return No_CU_Id;
    end Comp_Unit;
@@ -2336,7 +2339,7 @@ package body SC_Obligations is
 
    function Instance_Loc (Inst_Index : Inst_Id) return String
    is
-      II : Inst_Info renames Inst_Vector.Element (Inst_Index);
+      II : Inst_Info renames Inst_Vector.Constant_Reference (Inst_Index);
    begin
       return
         Image (II.Sloc)
@@ -3880,7 +3883,8 @@ package body SC_Obligations is
       loop
          declare
             BDDN : constant BDD_Node :=
-              BDD_Vector.Element (Next_BDD_Node (Cond_SCO, Cond_Value));
+              BDD_Vector.Constant_Reference
+                (Next_BDD_Node (Cond_SCO, Cond_Value));
          begin
             case BDDN.Kind is
                when Outcome =>
