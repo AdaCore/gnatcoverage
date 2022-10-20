@@ -30,6 +30,7 @@ with GNAT.OS_Lib;
 with Langkit_Support.Symbols;
 with Langkit_Support.Text;
 with Libadalang.Common;
+with Libadalang.Config_Pragmas;
 with Libadalang.Sources;
 
 with Hex_Images;
@@ -375,6 +376,13 @@ package body Instrument.Common is
         (Unit_Provider => IC.Provider,
          Event_Handler => IC.Event_Handler);
       IC.Get_From_File_Count := 0;
+
+      --  Load configuration pragmas
+      --  TODO??? Remove the type convertion when the LAL API change for
+      --  VA07-037 makes it into stable-libadalang.
+
+      Libadalang.Config_Pragmas.Import_From_Project
+        (IC.Context, GNATCOLL.Projects.Project_Tree (Project.Project.all));
    end Create_LAL_Context;
 
    --------------------
