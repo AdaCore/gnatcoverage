@@ -2356,42 +2356,17 @@ package body Instrument.Ada_Unit is
    -- Traverse_Declarations_Or_Statements --
    -----------------------------------------
 
-   type Dominant_Info is record
-      K : Character;
-      --  F/T/S/E for a valid dominance marker, or ' ' for no dominant
-
-      N : Ada_Node;
-      --  Node providing the Sloc(s) for the dominance marker
-   end record;
-   No_Dominant : constant Dominant_Info := (' ', No_Ada_Node);
-
    procedure Traverse_Declarations_Or_Statements
      (IC                         : in out Inst_Context;
       UIC                        : in out Ada_Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
-      D                          : Dominant_Info := No_Dominant;
-      P                          : Ada_Node      := No_Ada_Node;
-      Is_Select_Stmt_Alternative : Boolean       := False);
-   --  Process L, a list of statements or declarations dominated by D. If P is
-   --  present, it is processed as though it had been prepended to L. Preelab
-   --  is True if L is a list of preelaborable declarations (which do not
-   --  allow elaboration code, so do not require any SCOs, and wouldn't allow
-   --  insertion of witnesses).
-
-   function Traverse_Declarations_Or_Statements
-     (IC                         : in out Inst_Context;
-      UIC                        : in out Ada_Unit_Inst_Context;
-      L                          : Ada_List'Class;
-      Preelab                    : Boolean       := False;
-      D                          : Dominant_Info := No_Dominant;
       P                          : Ada_Node      := No_Ada_Node;
       Is_Select_Stmt_Alternative : Boolean       := False;
       Priv_Part                  : Private_Part  := No_Private_Part)
-      return Dominant_Info
      with Post => UIC.Current_Insertion_Info = UIC'Old.Current_Insertion_Info;
-   --  Process L, a list of statements or declarations dominated by D. If P is
-   --  present, it is processed as though it had been prepended to L.
+   --  Process L, a list of statements or declarations. If P is present, it is
+   --  processed as though it had been prepended to L.
    --
    --  Preelab is True if L is a list of preelaborable declarations (which do
    --  not allow elaboration code, so do not require any SCOs, and wouldn't
@@ -2404,16 +2379,11 @@ package body Instrument.Ada_Unit is
    --  If L is the list of declarations for a public part, Priv_Part is the
    --  corresponding private part (if any).
    --
-   --  Returns dominant information corresponding to the last node with SCO in
-   --  L.
-   --
    --  The postcondition ensures that the Current_Insertion_Info has been
    --  correctly reset to its value upon entry.
 
    --  The following Traverse_* routines perform appropriate calls to
    --  Traverse_Declarations_Or_Statements to traverse specific node kinds.
-   --  Parameter D, when present, indicates the dominant of the first
-   --  declaration or statement within N.
 
    procedure Traverse_Context_Clause
      (UIC             : in out Ada_Unit_Inst_Context;
@@ -2433,8 +2403,7 @@ package body Instrument.Ada_Unit is
    procedure Traverse_Handled_Statement_Sequence
      (IC  : in out Inst_Context;
       UIC : in out Ada_Unit_Inst_Context;
-      N   : Handled_Stmts;
-      D   : Dominant_Info := No_Dominant);
+      N   : Handled_Stmts);
 
    procedure Traverse_Package_Body
      (IC      : in out Inst_Context;
@@ -2446,14 +2415,12 @@ package body Instrument.Ada_Unit is
      (IC      : in out Inst_Context;
       UIC     : in out Ada_Unit_Inst_Context;
       N       : Base_Package_Decl;
-      Preelab : Boolean;
-      D       : Dominant_Info := No_Dominant);
+      Preelab : Boolean);
 
    procedure Traverse_Subprogram_Or_Task_Body
      (IC  : in out Inst_Context;
       UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node;
-      D   : Dominant_Info := No_Dominant);
+      N   : Ada_Node);
 
    procedure Traverse_Sync_Definition
      (IC  : in out Inst_Context;
@@ -2621,33 +2588,10 @@ package body Instrument.Ada_Unit is
       UIC                        : in out Ada_Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
-      D                          : Dominant_Info := No_Dominant;
-      P                          : Ada_Node      := No_Ada_Node;
-      Is_Select_Stmt_Alternative : Boolean       := False)
-   is
-      Discard_Dom : Dominant_Info;
-      pragma Warnings (Off, Discard_Dom);
-   begin
-      Discard_Dom := Traverse_Declarations_Or_Statements
-        (IC, UIC, L, Preelab, D, P, Is_Select_Stmt_Alternative);
-   end Traverse_Declarations_Or_Statements;
-
-   function Traverse_Declarations_Or_Statements
-     (IC                         : in out Inst_Context;
-      UIC                        : in out Ada_Unit_Inst_Context;
-      L                          : Ada_List'Class;
-      Preelab                    : Boolean       := False;
-      D                          : Dominant_Info := No_Dominant;
       P                          : Ada_Node      := No_Ada_Node;
       Is_Select_Stmt_Alternative : Boolean       := False;
       Priv_Part                  : Private_Part  := No_Private_Part)
-     return Dominant_Info
    is
-      Current_Dominant : Dominant_Info := D;
-      --  Dominance information for the current basic block
-
-      Current_Test : Ada_Node;
-      --  Conditional node (IF statement or ELSIF part) being processed
 
       SC_First : constant Nat := SC.Last + 1;
       SD_First : constant Nat := SD.Last + 1;
@@ -3147,30 +3091,6 @@ package body Instrument.Ada_Unit is
          --  Output statement entries from saved entries in SC table
 
          for J in SC_First .. SC_Last loop
-            --  If there is a pending dominant for this statement sequence,
-            --  emit a SCO for it.
-
-            if J = SC_First and then Current_Dominant /= No_Dominant then
-               declare
-                  SR   : constant Source_Location_Range :=
-                     Current_Dominant.N.Sloc_Range;
-                  From : constant Source_Location := Start_Sloc (SR);
-                  To   : Source_Location := Inclusive_End_Sloc (SR);
-
-               begin
-                  if Current_Dominant.K /= 'E' then
-                     To := No_Source_Location;
-                  end if;
-
-                  Append_SCO
-                    (C1   => '>',
-                     C2   => Current_Dominant.K,
-                     From => +From,
-                     To   => +To,
-                     Last => False);
-               end;
-            end if;
-
             declare
                SCE       : SC_Entry renames SC.Table (J);
                Dummy_Ctx : constant Context_Handle :=
@@ -3227,13 +3147,6 @@ package body Instrument.Ada_Unit is
                end if;
             end;
          end loop;
-
-         --  Last statement of basic block, if present, becomes new current
-         --  dominant.
-
-         if SC_Last >= SC_First then
-            Current_Dominant := ('S', SC.Table (SC_Last).N);
-         end if;
 
          --  Clear out used section of SC table
 
@@ -3389,11 +3302,7 @@ package body Instrument.Ada_Unit is
                        F_Stmts      => Stmts_RH,
                        F_End_Name   => Proc_Name));
 
-            --  We are exiting the newly created regular function, so reset
-            --  dominant information.
-
             Set_Statement_Entry;
-            Current_Dominant := No_Dominant;
 
             UIC.Current_Insertion_Info := Saved_Insertion_Info;
             UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
@@ -3439,9 +3348,6 @@ package body Instrument.Ada_Unit is
          ------------------------------------------------------------
          -- Local contexts for statement and MC/DC instrumentation --
          ------------------------------------------------------------
-
-         Saved_Dominant : constant Dominant_Info := Current_Dominant;
-         --  Save last statement in current sequence as dominant
 
          New_Insertion_Info : aliased Insertion_Info;
          --  Witness insertion info for statements (for both null procedures
@@ -3643,10 +3549,8 @@ package body Instrument.Ada_Unit is
          UIC.MCDC_State_Inserter := EF_Inserter'Unchecked_Access;
 
          --  Output statement SCO for degenerate subprogram body (null
-         --  statement or freestanding expression) outside of the dominance
-         --  chain.
+         --  statement or freestanding expression).
 
-         Current_Dominant := No_Dominant;
          if Is_Expr_Function then
             declare
                N_Expr : constant Expr := N.As_Expr_Function.F_Expr;
@@ -3676,12 +3580,6 @@ package body Instrument.Ada_Unit is
                Insertion_N => NP_Nodes.Null_Stmt);
          end if;
          Set_Statement_Entry;
-
-         --  Restore current dominant information designating last statement
-         --  in previous sequence (i.e. make the dominance chain skip over
-         --  the degenerate body).
-
-         Current_Dominant := Saved_Dominant;
 
          --  Restore saved insertion context
 
@@ -4017,7 +3915,7 @@ package body Instrument.Ada_Unit is
             when Ada_Package_Decl =>
                Set_Statement_Entry;
                Traverse_Package_Declaration
-                 (IC, UIC, N.As_Base_Package_Decl, Preelab, Current_Dominant);
+                 (IC, UIC, N.As_Base_Package_Decl, Preelab);
 
             --  Generic package declaration
 
@@ -4083,23 +3981,15 @@ package body Instrument.Ada_Unit is
                declare
                   Cond : constant Expr := As_Entry_Body (N).F_Barrier;
 
-                  Inner_Dominant : Dominant_Info := No_Dominant;
-
                begin
                   Set_Statement_Entry;
 
                   if Switches.Analyze_Entry_Barriers and then not Cond.Is_Null
                   then
                      Process_Decisions_Defer (Cond, 'G');
-
-                     --  For an entry body with a barrier, the entry body
-                     --  is dominanted by a True evaluation of the barrier.
-
-                     Inner_Dominant := ('T', N);
                   end if;
 
-                  Traverse_Subprogram_Or_Task_Body
-                    (IC, UIC, N, Inner_Dominant);
+                  Traverse_Subprogram_Or_Task_Body (IC, UIC, N);
                end;
 
             --  Protected body
@@ -4121,15 +4011,6 @@ package body Instrument.Ada_Unit is
                begin
                   Process_Decisions_Defer (Cond, 'E');
                   Set_Statement_Entry;
-
-                  --  If condition is present, then following statement is
-                  --  only executed if the condition evaluates to False.
-
-                  if not Cond.Is_Null then
-                     Current_Dominant := ('F', N);
-                  else
-                     Current_Dominant := No_Dominant;
-                  end if;
                end;
 
             --  Label, which breaks the current statement sequence, but the
@@ -4138,7 +4019,6 @@ package body Instrument.Ada_Unit is
 
             when Ada_Label =>
                Set_Statement_Entry;
-               Current_Dominant := No_Dominant;
 
             --  Block statement, which breaks the current statement sequence
 
@@ -4146,13 +4026,8 @@ package body Instrument.Ada_Unit is
                Set_Statement_Entry;
 
                if N.Kind = Ada_Decl_Block then
-                  --  The first statement in the handled sequence of statements
-                  --  is dominated by the elaboration of the last declaration.
-
-                  Current_Dominant := Traverse_Declarations_Or_Statements
-                    (IC, UIC,
-                     L => As_Decl_Block (N).F_Decls.F_Decls,
-                     D => Current_Dominant);
+                  Traverse_Declarations_Or_Statements
+                    (IC, UIC, L => As_Decl_Block (N).F_Decls.F_Decls);
                end if;
 
                Traverse_Handled_Statement_Sequence
@@ -4160,14 +4035,12 @@ package body Instrument.Ada_Unit is
                   N => (case N.Kind is
                            when Ada_Decl_Block  => As_Decl_Block (N).F_Stmts,
                            when Ada_Begin_Block => As_Begin_Block (N).F_Stmts,
-                           when others          => raise Program_Error),
-                  D => Current_Dominant);
+                           when others          => raise Program_Error));
 
             --  If statement, which breaks the current statement sequence,
             --  but we include the condition in the current sequence.
 
             when Ada_If_Stmt =>
-               Current_Test := N;
                Extend_Statement_Sequence (UIC, N, 'I');
 
                declare
@@ -4181,65 +4054,40 @@ package body Instrument.Ada_Unit is
 
                   Traverse_Declarations_Or_Statements
                     (IC, UIC,
-                     L => If_N.F_Then_Stmts.As_Ada_Node_List,
-                     D => ('T', N));
+                     L => If_N.F_Then_Stmts.As_Ada_Node_List);
 
                   --  Loop through ELSIF parts if present
 
-                  declare
-                     Saved_Dominant : constant Dominant_Info :=
-                       Current_Dominant;
+                  for J in 1 .. If_N.F_Alternatives.Children_Count loop
+                     declare
+                        Elif : constant Elsif_Stmt_Part :=
+                          Alt.Child (J).As_Elsif_Stmt_Part;
+                     begin
+                        --  We generate a statement sequence for the construct
+                        --  "ELSIF condition", so that we have a statement for
+                        --  the resulting decisions.
 
-                  begin
-                     for J in 1 .. If_N.F_Alternatives.Children_Count loop
-                        declare
-                           Elif : constant Elsif_Stmt_Part :=
-                             Alt.Child (J).As_Elsif_Stmt_Part;
-                        begin
+                        Extend_Statement_Sequence
+                          (UIC,
+                           Ada_Node (Elif), 'I',
+                           Insertion_N         => Handle (Elif.F_Cond_Expr),
+                           Instrument_Location => Inside_Expr);
+                        Process_Decisions_Defer (Elif.F_Cond_Expr, 'I');
+                        Set_Statement_Entry;
 
-                           --  An Elsif is executed only if the previous test
-                           --  got a FALSE outcome.
+                        --  Traverse the statements in the ELSIF
 
-                           Current_Dominant := ('F', Current_Test);
-
-                           --  Now update current test information
-
-                           Current_Test := Ada_Node (Elif);
-
-                           --  We generate a statement sequence for the
-                           --  construct "ELSIF condition", so that we have
-                           --  a statement for the resulting decisions.
-
-                           Extend_Statement_Sequence
-                             (UIC,
-                              Ada_Node (Elif), 'I',
-                              Insertion_N         => Handle (Elif.F_Cond_Expr),
-                              Instrument_Location => Inside_Expr);
-                           Process_Decisions_Defer (Elif.F_Cond_Expr, 'I');
-                           Set_Statement_Entry;
-
-                           --  An ELSIF part is never guaranteed to have
-                           --  been executed, following statements are only
-                           --  dominated by the initial IF statement.
-
-                           Current_Dominant := Saved_Dominant;
-
-                           --  Traverse the statements in the ELSIF
-
-                           Traverse_Declarations_Or_Statements
-                             (IC, UIC,
-                              L => Elif.F_Stmts.As_Ada_Node_List,
-                              D => ('T', Ada_Node (Elif)));
-                        end;
-                     end loop;
-                  end;
+                        Traverse_Declarations_Or_Statements
+                          (IC, UIC,
+                           L => Elif.F_Stmts.As_Ada_Node_List);
+                     end;
+                  end loop;
 
                   --  Finally traverse the ELSE statements if present
 
                   Traverse_Declarations_Or_Statements
                     (IC, UIC,
-                     L => If_N.F_Else_Stmts.As_Ada_Node_List,
-                     D => ('F', Current_Test));
+                     L => If_N.F_Else_Stmts.As_Ada_Node_List);
                end;
 
             --  CASE statement, which breaks the current statement sequence,
@@ -4255,8 +4103,7 @@ package body Instrument.Ada_Unit is
                   Process_Decisions_Defer (Case_N.F_Expr, 'X');
                   Set_Statement_Entry;
 
-                  --  Process case branches, all of which are dominated by the
-                  --  CASE statement.
+                  --  Process case branches
 
                   for J in 1 .. Alt_L.Children_Count loop
                      declare
@@ -4265,8 +4112,7 @@ package body Instrument.Ada_Unit is
                      begin
                         Traverse_Declarations_Or_Statements
                           (IC, UIC,
-                           L => Alt.F_Stmts.As_Ada_Node_List,
-                           D => Current_Dominant);
+                           L => Alt.F_Stmts.As_Ada_Node_List);
                      end;
                   end loop;
                end;
@@ -4278,13 +4124,11 @@ package body Instrument.Ada_Unit is
                Set_Statement_Entry;
 
                if N.Kind = Ada_Accept_Stmt_With_Stmts then
-                  --  Process sequence of statements, dominant is the ACCEPT
-                  --  statement.
+                  --  Process sequence of statements
 
                   Traverse_Handled_Statement_Sequence
                     (IC, UIC,
-                     N => N.As_Accept_Stmt_With_Stmts.F_Stmts,
-                     D => Current_Dominant);
+                     N => N.As_Accept_Stmt_With_Stmts.F_Stmts);
                end if;
 
             --  SELECT statement
@@ -4297,7 +4141,6 @@ package body Instrument.Ada_Unit is
 
                declare
                   Sel_N : constant Select_Stmt := As_Select_Stmt (N);
-                  S_Dom : Dominant_Info;
                begin
                   for J in 1 .. Sel_N.F_Guards.Children_Count loop
                      declare
@@ -4305,24 +4148,19 @@ package body Instrument.Ada_Unit is
                           Sel_N.F_Guards.Child (J).As_Select_When_Part;
                         Guard : Expr;
                      begin
-                        S_Dom := Current_Dominant;
                         Guard := Alt.F_Cond_Expr;
 
                         if not Guard.Is_Null then
                            Process_Decisions (UIC, Guard, 'G');
-                           Current_Dominant := ('T', Ada_Node (Guard));
                         end if;
 
-                        --  Travrse the select_alternative,
+                        --  Traverse the select_alternative,
                         --  entry_call_alternative, or triggering_alternative.
 
                         Traverse_Declarations_Or_Statements
                           (IC, UIC,
                            L => Alt.F_Stmts.As_Ada_Node_List,
-                           D => Current_Dominant,
                            Is_Select_Stmt_Alternative => True);
-
-                        Current_Dominant := S_Dom;
                      end;
                   end loop;
 
@@ -4331,12 +4169,10 @@ package body Instrument.Ada_Unit is
 
                   Traverse_Declarations_Or_Statements
                     (IC, UIC,
-                     L => Sel_N.F_Else_Stmts.As_Ada_Node_List,
-                     D => Current_Dominant);
+                     L => Sel_N.F_Else_Stmts.As_Ada_Node_List);
                   Traverse_Declarations_Or_Statements
                     (IC, UIC,
-                     L => Sel_N.F_Abort_Stmts.As_Ada_Node_List,
-                     D => Current_Dominant);
+                     L => Sel_N.F_Abort_Stmts.As_Ada_Node_List);
                end;
 
             --  There is no SCO for a TERMINATE alternative in instrumentation
@@ -4356,7 +4192,6 @@ package body Instrument.Ada_Unit is
             =>
                Extend_Statement_Sequence (UIC, N, ' ');
                Set_Statement_Entry;
-               Current_Dominant := No_Dominant;
 
             --  Simple return statement. which is an exit point, but we
             --  have to process the return expression for decisions.
@@ -4366,7 +4201,6 @@ package body Instrument.Ada_Unit is
                Process_Decisions_Defer
                  (N.As_Return_Stmt.F_Return_Expr, 'X');
                Set_Statement_Entry;
-               Current_Dominant := No_Dominant;
 
             --  Extended return statement
 
@@ -4381,10 +4215,8 @@ package body Instrument.Ada_Unit is
 
                   Traverse_Handled_Statement_Sequence
                     (IC, UIC,
-                     N => ER_N.F_Stmts,
-                     D => Current_Dominant);
+                     N => ER_N.F_Stmts);
                end;
-               Current_Dominant := No_Dominant;
 
             --  Loop ends the current statement sequence, but we include
             --  the iteration scheme if present in the current sequence.
@@ -4393,10 +4225,8 @@ package body Instrument.Ada_Unit is
 
             when Ada_Base_Loop_Stmt =>
                declare
-                  Loop_S         : constant Base_Loop_Stmt :=
-                    N.As_Base_Loop_Stmt;
-                  ISC            : constant Loop_Spec := Loop_S.F_Spec;
-                  Inner_Dominant : Dominant_Info     := No_Dominant;
+                  Loop_S : constant Base_Loop_Stmt := N.As_Base_Loop_Stmt;
+                  ISC    : constant Loop_Spec := Loop_S.F_Spec;
 
                begin
                   if not ISC.Is_Null then
@@ -4411,12 +4241,6 @@ package body Instrument.Ada_Unit is
                         Extend_Statement_Sequence (UIC, N, 'W');
                         Process_Decisions_Defer
                           (ISC.As_While_Loop_Spec.F_Expr, 'W');
-
-                        --  Set more specific dominant for inner statements
-                        --  (the control sloc for the decision is that of
-                        --  the WHILE token).
-
-                        Inner_Dominant := ('T', Ada_Node (ISC));
 
                      --  FOR loop
 
@@ -4438,14 +4262,9 @@ package body Instrument.Ada_Unit is
 
                   Set_Statement_Entry;
 
-                  if Inner_Dominant = No_Dominant then
-                     Inner_Dominant := Current_Dominant;
-                  end if;
-
                   Traverse_Declarations_Or_Statements
                     (IC, UIC,
-                     L => Loop_S.F_Stmts.As_Ada_Node_List,
-                     D => Inner_Dominant);
+                     L => Loop_S.F_Stmts.As_Ada_Node_List);
                end;
 
             --  Pragma
@@ -4783,7 +4602,6 @@ package body Instrument.Ada_Unit is
       --  Pop insertion info
 
       UIC.Current_Insertion_Info := Saved_Insertion_Info;
-      return Current_Dominant;
    end Traverse_Declarations_Or_Statements;
 
    -----------------------------
@@ -4896,8 +4714,7 @@ package body Instrument.Ada_Unit is
    procedure Traverse_Handled_Statement_Sequence
      (IC  : in out Inst_Context;
       UIC : in out Ada_Unit_Inst_Context;
-      N   : Handled_Stmts;
-      D   : Dominant_Info := No_Dominant)
+      N   : Handled_Stmts)
    is
    begin
       if N.Is_Null then
@@ -4905,7 +4722,7 @@ package body Instrument.Ada_Unit is
       end if;
 
       Traverse_Declarations_Or_Statements
-        (IC, UIC, L => N.F_Stmts.As_Ada_Node_List, D => D);
+        (IC, UIC, L => N.F_Stmts.As_Ada_Node_List);
 
       for J in 1 .. N.F_Exceptions.Children_Count loop
          declare
@@ -4916,8 +4733,7 @@ package body Instrument.Ada_Unit is
             if Handler.Kind = Ada_Exception_Handler then
                Traverse_Declarations_Or_Statements
                  (IC, UIC,
-                  L => Handler.As_Exception_Handler.F_Stmts.As_Ada_Node_List,
-                  D => ('E', Handler));
+                  L => Handler.As_Exception_Handler.F_Stmts.As_Ada_Node_List);
             end if;
          end;
       end loop;
@@ -4945,14 +4761,9 @@ package body Instrument.Ada_Unit is
          Sloc       => Sloc (N));
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
-      --  The first statement in the handled sequence of statements is
-      --  dominated by the elaboration of the last declaration.
-
-      Traverse_Handled_Statement_Sequence
-        (IC, UIC,
-         N => N.F_Stmts,
-         D => Traverse_Declarations_Or_Statements
-                (IC, UIC, N.F_Decls.F_Decls, Preelab));
+      Traverse_Declarations_Or_Statements
+        (IC, UIC, N.F_Decls.F_Decls, Preelab);
+      Traverse_Handled_Statement_Sequence (IC, UIC, N => N.F_Stmts);
 
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
@@ -4967,11 +4778,8 @@ package body Instrument.Ada_Unit is
      (IC      : in out Inst_Context;
       UIC     : in out Ada_Unit_Inst_Context;
       N       : Base_Package_Decl;
-      Preelab : Boolean;
-      D       : Dominant_Info := No_Dominant)
+      Preelab : Boolean)
    is
-      Private_Part_Dominant : Dominant_Info;
-
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
       Local_Inserter            : aliased Default_MCDC_State_Inserter :=
@@ -4984,20 +4792,15 @@ package body Instrument.Ada_Unit is
          Sloc       => Sloc (N));
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
-      Private_Part_Dominant :=
-        Traverse_Declarations_Or_Statements
-          (IC, UIC, N.F_Public_Part.F_Decls, Preelab, D,
-           Priv_Part => N.F_Private_Part);
+      Traverse_Declarations_Or_Statements
+        (IC, UIC, N.F_Public_Part.F_Decls, Preelab,
+         Priv_Part => N.F_Private_Part);
 
       if not N.F_Private_Part.Is_Null then
-
-         --  First private declaration is dominated by last visible declaration
-
          Traverse_Declarations_Or_Statements
            (IC, UIC,
             L       => N.F_Private_Part.F_Decls,
-            Preelab => Preelab,
-            D       => Private_Part_Dominant);
+            Preelab => Preelab);
       end if;
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
@@ -5013,10 +4816,6 @@ package body Instrument.Ada_Unit is
       UIC : in out Ada_Unit_Inst_Context;
       N   : Ada_Node)
    is
-      Dom_Info : Dominant_Info := ('S', N);
-      --  The first declaration is dominated by the protected or task [type]
-      --  declaration.
-
       Vis_Decl  : Public_Part := No_Public_Part;
       Priv_Decl : Private_Part := No_Private_Part;
       --  Visible and private declarations of the protected or task definition
@@ -5071,17 +4870,13 @@ package body Instrument.Ada_Unit is
       --  declarations. Querying F_Decls is invalid in this case.
 
       if not Vis_Decl.Is_Null then
-         Dom_Info := Traverse_Declarations_Or_Statements
-           (IC, UIC, L => Vis_Decl.F_Decls, D => Dom_Info,
-            Priv_Part => Priv_Decl);
+         Traverse_Declarations_Or_Statements
+           (IC, UIC, L => Vis_Decl.F_Decls, Priv_Part => Priv_Decl);
       end if;
 
       if not Priv_Decl.Is_Null then
-         --  If visible declarations are present, the first private declaration
-         --  is dominated by the last visible declaration.
-
          Traverse_Declarations_Or_Statements
-           (IC, UIC, L => Priv_Decl.F_Decls, D => Dom_Info);
+           (IC, UIC, L => Priv_Decl.F_Decls);
       end if;
    end Traverse_Sync_Definition;
 
@@ -5092,12 +4887,10 @@ package body Instrument.Ada_Unit is
    procedure Traverse_Subprogram_Or_Task_Body
      (IC  : in out Inst_Context;
       UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node;
-      D   : Dominant_Info := No_Dominant)
+      N   : Ada_Node)
    is
       Decls    : Declarative_Part;
       HSS      : Handled_Stmts;
-      Dom_Info : Dominant_Info    := D;
 
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
@@ -5145,13 +4938,9 @@ package body Instrument.Ada_Unit is
       Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
-      --  If declarations are present, the first statement is dominated by the
-      --  last declaration.
+      Traverse_Declarations_Or_Statements (IC, UIC, L => Decls.F_Decls);
 
-      Dom_Info := Traverse_Declarations_Or_Statements
-        (IC, UIC, L => Decls.F_Decls, D => Dom_Info);
-
-      Traverse_Handled_Statement_Sequence (IC, UIC, N => HSS, D => Dom_Info);
+      Traverse_Handled_Statement_Sequence (IC, UIC, N => HSS);
 
       Exit_Scope (UIC);
 
