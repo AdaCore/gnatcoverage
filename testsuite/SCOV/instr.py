@@ -248,3 +248,15 @@ def add_last_chance_handler(project, obj_dir, subdirs, main_unit, silent):
 
     with open(main_file, 'w') as f:
         f.write('\n'.join(lines))
+
+
+def available_ada_dump_triggers():
+    """
+    Return the list of dump triggers available for the current Ada runtime.
+    """
+    if RUNTIME_INFO.has_full_runtime:
+        return ["main-end", "atexit"]
+    elif RUNTIME_INFO.has_ravenscar_runtime:
+        return ["main-end", "ravenscar-task-termination"]
+    else:
+        return ["main-end"]
