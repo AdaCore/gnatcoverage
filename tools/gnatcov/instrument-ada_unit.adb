@@ -6846,30 +6846,11 @@ package body Instrument.Ada_Unit is
           --  See the comment for Scope_Entity.From/To.
 
          if UIC.Current_Scope_Entity /= null then
-            declare
-               use Scope_Entities_Vectors;
 
-               procedure Remap_SCOs (Scope_Entity : Scope_Entity_Acc);
+            --  Iterate through the package level body entities
 
-               ----------------
-               -- Remap_SCOs --
-               ----------------
-
-               procedure Remap_SCOs (Scope_Entity : Scope_Entity_Acc) is
-               begin
-                  Scope_Entity.From := SCO_Map (Nat (Scope_Entity.From));
-                  Scope_Entity.To := SCO_Map (Nat (Scope_Entity.To));
-                  for Child of Scope_Entity.Children loop
-                     Remap_SCOs (Child);
-                  end loop;
-               end Remap_SCOs;
-
-            begin
-               --  Iterate through the package level body entities
-
-               Remap_SCOs (UIC.Current_Scope_Entity);
-               Set_Scope_Entity (UIC.CU, UIC.Current_Scope_Entity);
-            end;
+            Remap_Scope_Entity (UIC.Current_Scope_Entity, SCO_Map);
+            Set_Scope_Entity (UIC.CU, UIC.Current_Scope_Entity);
          end if;
       end;
 

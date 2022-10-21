@@ -886,6 +886,22 @@ package body Instrument.Common is
         SCOs.SCO_Table.Last;
    end Append_SCO;
 
+   ------------------------
+   -- Remap_Scope_Entity --
+   ------------------------
+
+   procedure Remap_Scope_Entity
+     (Scope_Entity : Scope_Entity_Acc;
+      SCO_Map      : LL_HL_SCO_Map)
+   is
+   begin
+      Scope_Entity.From := SCO_Map (Nat (Scope_Entity.From));
+      Scope_Entity.To := SCO_Map (Nat (Scope_Entity.To));
+      for Child of Scope_Entity.Children loop
+         Remap_Scope_Entity (Child, SCO_Map);
+      end loop;
+   end Remap_Scope_Entity;
+
    ------------------------------
    -- Buffer_Units_For_Closure --
    ------------------------------

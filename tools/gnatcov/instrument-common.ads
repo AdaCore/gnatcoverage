@@ -584,6 +584,12 @@ package Instrument.Common is
    --  source file, also append a new entry to the SCO_Unit_Table, otherwise
    --  complete its last entry.
 
+   procedure Remap_Scope_Entity
+     (Scope_Entity : Scope_Entity_Acc;
+      SCO_Map      : LL_HL_SCO_Map);
+   --  Convert low level SCOs in Scope_Entity to high-level SCOs using the
+   --  mapping in SCO_Map.
+
    package CU_Name_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Compilation_Unit_Name);

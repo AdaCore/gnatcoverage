@@ -176,6 +176,17 @@ package body Instrument.C is
 
    type Instrument_Pass_Kind is new Pass_Kind with null record;
 
+   overriding procedure Enter_Scope
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T);
+   --  Open a scope for N
+
+   overriding procedure Exit_Scope
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class);
+   --  Close the current scope
+
    overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
@@ -583,6 +594,33 @@ package body Instrument.C is
             return (raise Program_Error);
       end case;
    end Source_Suffix;
+
+   -----------------
+   -- Enter_Scope --
+   -----------------
+
+   overriding procedure Enter_Scope
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T) is
+   begin
+      Enter_Scope (UIC        => UIC,
+                   Scope_Name => +Get_Decl_Name_Str (N),
+                   Sloc       => Start_Sloc (N).L);
+   end Enter_Scope;
+
+   ----------------
+   -- Exit_Scope --
+   ----------------
+
+   overriding procedure Exit_Scope
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class) is
+   begin
+      if UIC.Current_Scope_Entity /= null then
+         Exit_Scope (UIC);
+      end if;
+   end Exit_Scope;
 
    ----------------
    -- Append_SCO --
@@ -1965,7 +2003,8 @@ package body Instrument.C is
                end if;
          end case;
 
-         --  Traverse lambda expressions, if any
+         --  Traverse lambda expressions, if any. Do not register them as
+         --  scopes.
 
          Traverse_Declarations
            (IC  => IC,
@@ -2117,47 +2156,59 @@ package body Instrument.C is
 
          --  Only traverse the function declarations that belong to a unit of
          --  interest.
+         if Is_Source_Of_Interest (UIC, N) then
 
-         begin
-            if Is_Source_Of_Interest (UIC, N) then
-               case Kind (N) is
+            case Kind (N) is
 
-                  --  Traverse the statements of function bodies
+               --  Traverse the statements of function bodies
 
-                  when Cursor_Function_Decl
-                     | Cursor_Function_Template
-                     | Cursor_CXX_Method
-                     | Cursor_Constructor
-                     | Cursor_Destructor
-                     | Cursor_Lambda_Expr =>
-                     declare
-                        --  Get_Body returns a Compound_Stmt, convert it to a
-                        --  list of statements using the Get_Children utility.
+               when Cursor_Function_Decl
+                  | Cursor_Function_Template
+                  | Cursor_CXX_Method
+                  | Cursor_Constructor
+                  | Cursor_Destructor
+                  | Cursor_Lambda_Expr =>
 
-                        Fun_Body : constant Cursor_Vectors.Vector :=
-                          Get_Children (Get_Body (N));
-                     begin
-                        if Fun_Body.Length > 0 then
-                           UIC.MCDC_State_Declaration_Node :=
-                             Fun_Body.First_Element;
-                           Traverse_Statements (IC, UIC, Fun_Body);
-                        end if;
-                     end;
+                  UIC.Pass.Enter_Scope (UIC, N);
+
+                  declare
+                     --  Get_Body returns a Compound_Stmt, convert it to
+                     --  a list of statements using the Get_Children
+                     --  utility.
+
+                     Fun_Body : constant Cursor_Vectors.Vector :=
+                       Get_Children (Get_Body (N));
+                  begin
+                     if Fun_Body.Length > 0 then
+                        UIC.MCDC_State_Declaration_Node :=
+                          Fun_Body.First_Element;
+                        Traverse_Statements (IC, UIC, Fun_Body);
+                     end if;
+                  end;
+
+                  UIC.Pass.Exit_Scope (UIC);
 
                   --  Traverse the declarations of a namespace / linkage
-                  --  specifier etc.
+                  --  specification etc.
 
-                  when Cursor_Namespace
-                     | Cursor_Linkage_Spec
-                     | Cursor_Class_Template
-                     | Cursor_Class_Decl =>
-                     Traverse_Declarations (IC, UIC, Get_Children (N));
+               when Cursor_Namespace
+                  | Cursor_Class_Template
+                  | Cursor_Class_Decl =>
 
-                  when others =>
-                     null;
-               end case;
-            end if;
-         end;
+                  UIC.Pass.Enter_Scope (UIC, N);
+
+                  Traverse_Declarations (IC, UIC, Get_Children (N));
+
+                  UIC.Pass.Exit_Scope (UIC);
+
+               when Cursor_Linkage_Spec =>
+                  Traverse_Declarations (IC, UIC, Get_Children (N));
+
+               when others =>
+                  null;
+            end case;
+
+         end if;
       end loop;
 
       --  Restore previous MCDC_State insertion node: we can have lambda
@@ -2637,6 +2688,7 @@ package body Instrument.C is
 
    begin
       SCOs.Initialize;
+
       UIC.SFI := Get_Index_From_Generic_Name
         (Orig_Filename,
          Kind                => Files_Table.Source_File,
@@ -2736,6 +2788,11 @@ package body Instrument.C is
           (Get_Cursor_Extent
              (Get_Translation_Unit_Cursor (UIC.TU)));
 
+      --  Enter the scope corresponding to the file in which all other scopes
+      --  will be declared.
+
+      Enter_Scope (UIC, CU_Name.Filename, (Line => 0, Column => 0));
+
       Traverse_Declarations
         (IC  => IC,
          UIC => UIC,
@@ -2755,6 +2812,10 @@ package body Instrument.C is
               & " Discarding preprocessing information.");
          UIC.LL_PP_Info_Map.Clear;
       end if;
+
+      --  Exit the scope of the file
+
+      Exit_Scope (UIC);
 
       --  Now that the set of coverage obligations and the set of source files
       --  are known, allocate the required set of coverage buffers (one per
@@ -2900,6 +2961,21 @@ package body Instrument.C is
                --  Associate these bit maps to the corresponding CU
 
                Set_Bit_Maps (UIC.CUs.Element (SFI), Bit_Maps);
+
+               if UIC.Current_Scope_Entity /= null then
+
+                  --  Iterate through the package level body entities
+
+                  Remap_Scope_Entity (UIC.Current_Scope_Entity, SCO_Map);
+
+                  declare
+                     CU : constant Created_Unit_Maps.Cursor :=
+                       UIC.CUs.Find (UIC.SFI);
+                  begin
+                     Set_Scope_Entity (Created_Unit_Maps.Element (CU),
+                                       UIC.Current_Scope_Entity);
+                  end;
+               end if;
             end;
          end loop;
       end;

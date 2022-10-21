@@ -373,6 +373,69 @@ clang_getLHS (CXCursor C)
   return clang_getNullCursor ();
 }
 
+/* Return the name of the declared object. */
+
+extern "C" const CXString
+clang_getDeclName (CXCursor C)
+{
+  if (clang_isDeclaration (C.kind))
+    {
+      auto getFunctionDeclName = [] (const FunctionDecl *FD) {
+	const DeclarationName FunctionName = FD->getNameInfo ().getName ();
+	return createDup (FunctionName.getAsString ().c_str ());
+      };
+
+      const Decl *D = getCursorDecl (C);
+
+      switch (D->getKind ())
+	{
+	case Decl::Function:
+	case Decl::CXXMethod:
+	case Decl::CXXConstructor:
+	case Decl::CXXDestructor:
+	  {
+	    const clang::FunctionDecl *FD = cast<clang::FunctionDecl> (D);
+	    return getFunctionDeclName (FD);
+	  }
+	case Decl::FunctionTemplate:
+	  {
+	    const clang::FunctionDecl *FD
+	      = (cast<clang::FunctionTemplateDecl> (D))->getTemplatedDecl ();
+	    return getFunctionDeclName (FD);
+	  }
+
+	case Decl::Namespace:
+	  {
+	    const NamespaceDecl *ND
+	      = (cast<clang::NamespaceDecl> (D))->getCanonicalDecl ();
+
+	    if (ND->isAnonymousNamespace ())
+	      return createDup ("Anonymous namespace");
+
+	    return createDup (ND->getName ());
+	  }
+	case Decl::ClassTemplate:
+
+	  {
+	    const clang::ClassTemplateDecl *CD
+	      = (cast<clang::ClassTemplateDecl> (D))->getCanonicalDecl ();
+	    return createDup (CD->getName ());
+	  }
+	case Decl::CXXRecord:
+	  {
+	    const clang::CXXRecordDecl *RD
+	      = (cast<clang::CXXRecordDecl> (D))->getCanonicalDecl ();
+	    return createDup (RD->getName ());
+	  }
+
+	default:
+	  return createEmpty ();
+	}
+    }
+
+  return createEmpty ();
+}
+
 /* Return the string representative of the operator for a binary or unary
    operator node.  */
 
