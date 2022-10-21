@@ -391,6 +391,13 @@ private
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name) is null;
 
+   procedure Enter_Scope (Pass : Pass_Kind;
+                          UIC  : in out C_Unit_Inst_Context'Class;
+                          N    : Cursor_T) is null;
+
+   procedure Exit_Scope (Pass : Pass_Kind;
+                         UIC  : in out C_Unit_Inst_Context'Class) is null;
+
    procedure Instrument_Statement
      (Pass         : Pass_Kind;
       UIC          : in out C_Unit_Inst_Context'Class;
