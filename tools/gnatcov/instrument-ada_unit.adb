@@ -6630,6 +6630,10 @@ package body Instrument.Ada_Unit is
       --  any witness calls for elaboration of declarations: they would be
       --  pointless (there is no elaboration code anyway) and, in any case,
       --  illegal.
+
+      Has_Pragma_SCAO : Boolean;
+      --  Whether there is a pragma Short_Circuit_And_Or that applies to this
+      --  unit.
    begin
       Rewriter.Start_Rewriting (IC, Prj_Info, Filename);
 
@@ -6660,10 +6664,22 @@ package body Instrument.Ada_Unit is
 
       Initialize_Rewriting (UIC, CU_Name, IC.Context);
 
-      --  ??? Modify this when libadalang can provide the information about
-      --  global/local configuration pragmas for Short_Circuit_And_Or.
+      begin
+         Has_Pragma_SCAO := UIC.Root_Unit.P_Config_Pragmas
+           (To_Unbounded_Text ("Short_Circuit_And_Or"))'Length /= 0;
+      exception
+         when Exc : Property_Error =>
+            Report
+              (UIC,
+               UIC.Root_Unit,
+               "Could not determine pragmas of the compilation unit: "
+               & Ada.Exceptions.Exception_Information (Exc),
+               Kind => Low_Warning);
+            Has_Pragma_SCAO := False;
+      end;
 
-      UIC.Short_Circuit_And_Or := Switches.Short_Circuit_And_Or;
+      UIC.Short_Circuit_And_Or :=
+        Switches.Short_Circuit_And_Or or else Has_Pragma_SCAO;
 
       --  Create an artificial internal error, if requested
 
