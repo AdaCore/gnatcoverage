@@ -309,14 +309,16 @@ package body Project is
    ----------------------
 
    procedure Iterate_Projects
-     (Root_Project : Project_Type;
-      Process      : access procedure (Prj : Project_Type);
-      Recursive    : Boolean)
+     (Root_Project     : GNATCOLL.Projects.Project_Type;
+      Process          : access procedure
+                           (Prj : GNATCOLL.Projects.Project_Type);
+      Recursive        : Boolean;
+      Include_Extended : Boolean := False)
    is
       Iter             : Project_Iterator := Start
         (Root_Project     => Root_Project,
          Recursive        => Recursive,
-         Include_Extended => False);
+         Include_Extended => Include_Extended);
       Visited_Projects : Project_Sets.Set;
       Project          : Project_Type;
    begin
@@ -324,11 +326,14 @@ package body Project is
          Project := Current (Iter);
          exit when Project = No_Project;
 
-         --  Go to the ultimate extending project: this is the "reference"
-         --  project for chains of project extension (we care about the
-         --  Coverage package of extending projects, their object dirs, etc.).
+         --  If requested, go to the ultimate extending project: this is the
+         --  "reference" project for chains of project extension (we care about
+         --  the Coverage package of extending projects, their object dirs,
+         --  etc.).
 
-         Project := Extending_Project (Project, Recurse => True);
+         if not Include_Extended then
+            Project := Extending_Project (Project, Recurse => True);
+         end if;
 
          declare
             Name : constant String := Project.Name;
