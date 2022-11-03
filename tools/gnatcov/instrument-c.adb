@@ -605,9 +605,9 @@ package body Instrument.C is
       Append_SCO (C1, C2, From, To, Last, Pragma_Aspect_Name);
 
       --  We add preprocessing information only for actual SCOs. Return there
-      --  if this is an operator SCO or a dominance SCO.
+      --  if this is an operator SCO.
 
-      if C1 in '>' | '!' | '&' | '|' then
+      if C1 in '!' | '&' | '|' then
          return;
       end if;
 
@@ -1208,29 +1208,11 @@ package body Instrument.C is
    -- Traverse_Statements --
    -------------------------
 
-   type Dominant_Info is record
-      K : Character;
-      --  F/T/S/E for a valid dominance marker, or ' ' for no dominant
-
-      N : Cursor_T;
-      --  Node providing the Sloc(s) for the dominance marker
-   end record;
-   No_Dominant : constant Dominant_Info := (' ', Get_Null_Cursor);
-
    procedure Traverse_Statements
      (IC  : in out Inst_Context;
       UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector;
-      D   : Dominant_Info := No_Dominant);
-   --  Process L, a list of statements or declarations dominated by D
-
-   function Traverse_Statements
-     (IC  : in out Inst_Context;
-      UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector;
-      D   : Dominant_Info := No_Dominant) return Dominant_Info;
-   --  Process L, a list of statements or declarations dominated by D. Returns
-   --  dominant information corresponding to the last node with SCO in L.
+      L   : Cursor_Vectors.Vector);
+   --  Process L, a list of statements or declarations
 
    procedure Traverse_Declarations
      (IC  : in out Inst_Context;
@@ -1732,23 +1714,8 @@ package body Instrument.C is
    procedure Traverse_Statements
      (IC  : in out Inst_Context;
       UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector;
-      D   : Dominant_Info := No_Dominant)
+      L   : Cursor_Vectors.Vector)
    is
-      Discard_Dom : constant  Dominant_Info :=
-        Traverse_Statements (IC, UIC, L, D);
-   begin
-      null;
-   end Traverse_Statements;
-
-   function Traverse_Statements
-     (IC  : in out Inst_Context;
-      UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector;
-      D   : Dominant_Info := No_Dominant) return Dominant_Info
-   is
-      Current_Dominant : Dominant_Info := D;
-
       SC_First : constant Nat := SC.Last + 1;
       SD_First : constant Nat := SD.Last + 1;
 
@@ -1786,16 +1753,12 @@ package body Instrument.C is
 
             when Cursor_Label_Ref =>
                Set_Statement_Entry;
-               Current_Dominant := No_Dominant;
 
             --  Compound statement, which breaks the current statement sequence
 
             when Cursor_Compound_Stmt =>
                Set_Statement_Entry;
-               Traverse_Statements
-                 (IC, UIC,
-                  L   => Get_Children (N),
-                  D   => Current_Dominant);
+               Traverse_Statements (IC, UIC, L => Get_Children (N));
 
             --  If statement, which breaks the current statement sequence, but
             --  we include the condition in the current sequence.
@@ -1816,8 +1779,7 @@ package body Instrument.C is
                                     Rew => UIC.Rewriter);
                   Traverse_Statements
                     (IC, UIC,
-                     L => To_Vector (Then_Part),
-                     D => ('S', N));
+                     L => To_Vector (Then_Part));
 
                   --  Traverse the ELSE statements if present
 
@@ -1826,8 +1788,7 @@ package body Instrument.C is
                                        Rew => UIC.Rewriter);
                      Traverse_Statements
                        (IC, UIC,
-                        L => To_Vector (Else_Part),
-                        D => ('S', N));
+                        L => To_Vector (Else_Part));
                   end if;
                end;
 
@@ -1843,13 +1804,9 @@ package body Instrument.C is
                   Process_Decisions_Defer (Switch_Cond, 'X');
                   Set_Statement_Entry;
 
-                  --  Process case branches, all of which are dominated by the
-                  --  Switch statement.
+                  --  Process case branches
 
-                  Traverse_Statements
-                    (IC, UIC,
-                     L => To_Vector (Alt),
-                     D => Current_Dominant);
+                  Traverse_Statements (IC, UIC, L => To_Vector (Alt));
                end;
 
             --  Case alternative
@@ -1858,10 +1815,7 @@ package body Instrument.C is
                declare
                   Case_Body : constant Cursor_T := Get_Sub_Stmt (N);
                begin
-                  Traverse_Statements
-                    (IC, UIC,
-                     L => To_Vector (Case_Body),
-                     D => Current_Dominant);
+                  Traverse_Statements (IC, UIC, L => To_Vector (Case_Body));
                end;
 
             --  Loop ends the current statement sequence, but we include
@@ -1871,10 +1825,9 @@ package body Instrument.C is
 
             when Cursor_While_Stmt =>
                declare
-                  While_Body     : constant Cursor_T := Get_Body (N);
-                  Cond_Var       : constant Cursor_T := Get_Cond_Var (N);
-                  Cond           : constant Cursor_T := Get_Cond (N);
-                  Inner_Dominant : constant Dominant_Info := ('S', N);
+                  While_Body : constant Cursor_T := Get_Body (N);
+                  Cond_Var   : constant Cursor_T := Get_Cond_Var (N);
+                  Cond       : constant Cursor_T := Get_Cond (N);
 
                begin
                   UIC.Pass.Curlify (N   => While_Body,
@@ -1892,8 +1845,7 @@ package body Instrument.C is
 
                   Process_Decisions_Defer (Cond, 'W');
                   Set_Statement_Entry;
-                  Traverse_Statements
-                    (IC, UIC, To_Vector (While_Body), Inner_Dominant);
+                  Traverse_Statements (IC, UIC, To_Vector (While_Body));
                end;
 
             --  Do while statement. Ends the current statement sequence.
@@ -1907,14 +1859,12 @@ package body Instrument.C is
                   UIC.Pass.Curlify (N   => Do_Body,
                                     Rew => UIC.Rewriter);
 
-                  Traverse_Statements
-                    (IC, UIC, To_Vector (Do_Body), No_Dominant);
+                  Traverse_Statements (IC, UIC, To_Vector (Do_Body));
                   Extend_Statement_Sequence
                     (Do_While, 'W', Instr_Scheme => Instr_Expr);
 
                   Process_Decisions_Defer (Do_While, 'W');
                   Set_Statement_Entry;
-                  Current_Dominant := ('S', Do_While);
 
                end;
 
@@ -1939,29 +1889,13 @@ package body Instrument.C is
 
                   Set_Statement_Entry;
 
-                  --  The first statement that is nested in the FOR loop runs
-                  --  iff the guard expression evaluates to True. Set the
-                  --  dominant accordingly.
-
-                  Current_Dominant := ('T', For_Cond);
-
                   UIC.Pass.Curlify (N => For_Body, Rew => UIC.Rewriter);
-                  Current_Dominant :=
-                    Traverse_Statements
-                      (IC, UIC,
-                       To_Vector (For_Body),
-                       Current_Dominant);
+                  Traverse_Statements (IC, UIC, To_Vector (For_Body));
 
                   Extend_Statement_Sequence
                     (For_Inc, ' ', Instr_Scheme => Instr_Expr);
 
                   Set_Statement_Entry;
-
-                  --  Evaluation of the guard expression necessarily precedes
-                  --  evaluation of the first statement that follows the
-                  --  FOR loop.
-
-                  Current_Dominant := ('S', For_Cond);
                end;
 
             when Cursor_CXX_For_Range_Stmt =>
@@ -1989,10 +1923,7 @@ package body Instrument.C is
                   --  Generate obligations for body statements
 
                   UIC.Pass.Curlify (N => For_Body, Rew => UIC.Rewriter);
-                  Traverse_Statements
-                    (IC, UIC,
-                     To_Vector (For_Body),
-                     Current_Dominant);
+                  Traverse_Statements (IC, UIC, To_Vector (For_Body));
                end;
 
            --  Unconditional goto, which is included in the current statement
@@ -2001,11 +1932,9 @@ package body Instrument.C is
             when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt =>
                Extend_Statement_Sequence (N, ' ');
                Set_Statement_Entry;
-               Current_Dominant := No_Dominant;
 
             when Cursor_Label_Stmt =>
                Set_Statement_Entry;
-               Current_Dominant := No_Dominant;
                Traverse_Statements (IC, UIC, Get_Children (N));
 
             when Cursor_Stmt_Expr =>
@@ -2112,27 +2041,6 @@ package body Instrument.C is
          SD_Last : constant Types.Int := SD.Last;
       begin
          for J in SC_First .. SC_Last loop
-            --  If there is a pending dominant for this statement sequence,
-            --  emit a SCO for it.
-
-            if J = SC_First and then Current_Dominant /= No_Dominant then
-               declare
-                  From : constant Local_Source_Location :=
-                    Start_Sloc (Current_Dominant.N);
-                  To   : constant Local_Source_Location :=
-                    End_Sloc (Current_Dominant.N);
-
-               begin
-                  UIC.Pass.Append_SCO
-                    (UIC  => UIC,
-                     N    => Current_Dominant.N,
-                     C1   => '>',
-                     C2   => Current_Dominant.K,
-                     From => From,
-                     To   => To,
-                     Last => False);
-               end;
-            end if;
             declare
                SCE : SC_Entry renames SC.Table (J);
             begin
@@ -2152,13 +2060,6 @@ package body Instrument.C is
                   Instr_Scheme => SCE.Instr_Scheme);
             end;
          end loop;
-
-         --  Last statement of basic block, if present, becomes new current
-         --  dominant.
-
-         if SC_Last >= SC_First then
-            Current_Dominant := ('S', SC.Table (SC_Last).N);
-         end if;
 
          --  Clear out used section of SC table
 
@@ -2196,7 +2097,6 @@ package body Instrument.C is
       if Emit_SCOs then
          Set_Statement_Entry;
       end if;
-      return Current_Dominant;
    end Traverse_Statements;
 
    ---------------------------
