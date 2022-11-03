@@ -366,7 +366,7 @@ clang_getLHS (CXCursor C)
 	  return MakeCXCursorWithNull (cast<BinaryOperator> (S)->getLHS (), C);
 	case Stmt::ConditionalOperatorClass:
 	  return MakeCXCursorWithNull (
-	    cast<ConditionalOperator> (S)->getRHS (), C);
+	    cast<ConditionalOperator> (S)->getLHS (), C);
 	default:
 	  return clang_getNullCursor ();
 	}
