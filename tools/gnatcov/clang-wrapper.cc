@@ -303,6 +303,37 @@ clang_getElse (CXCursor C)
   return clang_getNullCursor ();
 }
 
+extern "C" CXSourceLocation
+clang_getElseLoc (CXCursor C)
+{
+  if (clang_isStatement (C.kind))
+    if (const Stmt *S = getCursorStmt (C))
+      switch (S->getStmtClass ())
+	{
+	case Stmt::IfStmtClass:
+	  return translateSLoc (getCursorTU (C), cast<IfStmt> (S)->getElseLoc ());
+	default:
+	  return clang_getNullLocation ();
+	}
+  return clang_getNullLocation ();
+}
+
+extern "C" CXSourceLocation
+clang_getWhileLoc (CXCursor C)
+{
+  if (clang_isStatement (C.kind))
+    if (const Stmt *S = getCursorStmt (C))
+      switch (S->getStmtClass ())
+	{
+	case Stmt::DoStmtClass:
+	  return translateSLoc (getCursorTU (C), cast<DoStmt> (S)->getWhileLoc ());
+	default:
+	  return clang_getNullLocation ();
+	}
+  return clang_getNullLocation ();
+}
+
+
 extern "C" CXCursor
 clang_getSubExpr (CXCursor C)
 {
