@@ -51,6 +51,7 @@ with Subprocesses;        use Subprocesses;
 with System;              use System;
 with Table;
 with Text_Files;          use Text_Files;
+with Project;             use Project;
 
 package body Instrument.C is
 
@@ -3782,14 +3783,37 @@ package body Instrument.C is
       Info     : Project_Info;
       Filename : String)
    is
+      procedure Register_Source_Dirs (P : GNATCOLL.Projects.Project_Type);
+      --  Add the source directories of P's project file to the search paths
+      --  to be passed as -I arguments later. The order in which the paths are
+      --  added to the search paths vector is the same order in which GNATCOLL
+      --  retrieves the files in the project tree. gprbuild also depends on
+      --  GNATCOLL which ensures we have the same behavior here.
+
+      --------------------------
+      -- Register_Source_Dirs --
+      --------------------------
+
+      procedure Register_Source_Dirs (P : GNATCOLL.Projects.Project_Type) is
+      begin
+         for Dir of P.Source_Dirs loop
+            Self.PP_Search_Path.Append
+              (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
+         end loop;
+      end Register_Source_Dirs;
+
       Switches : GNAT.Strings.String_List_Access;
+
    begin
+
       --  Pass the source directories of the project file as -I options
 
-      for Dir of Info.Project.Source_Dirs loop
-         Self.PP_Search_Path.Append
-           (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
-      end loop;
+      Register_Source_Dirs (Info.Project);
+
+      --  Pass the source directories of included projects as -I options
+
+      Project.Iterate_Projects
+        (Info.Project, Register_Source_Dirs'Access, True);
 
       --  Now get actual compiler switches from the project file for Filename.
       --  First try to get the switches specifically for Filename, then if
