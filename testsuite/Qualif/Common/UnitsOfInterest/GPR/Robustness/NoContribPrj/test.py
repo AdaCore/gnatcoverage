@@ -79,7 +79,9 @@ def run_test(label, slug, main, helper, recursive, projects=[], units=[],
         covlevel='stmt',
         mains=['main'],
         gpr_obj_dir='obj-main',
-        extra_coverage_args=['-axcov'])
+        instrument_warnings_as_errors=False,
+        extra_coverage_args=['-axcov'],
+    )
 
     log_file = ('coverage.log'
                 if thistest.options.trace_mode == 'bin' else
