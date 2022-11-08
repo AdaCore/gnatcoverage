@@ -34,12 +34,12 @@ with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
-with Command_Line;
 with ALI_Files;           use ALI_Files;
 with Coverage;            use Coverage;
 with Coverage_Options;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Hex_Images;          use Hex_Images;
+with Inputs;              use Inputs;
 with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
@@ -4522,13 +4522,14 @@ package body Instrument.C is
       Info     : Project_Info;
       Filename : String)
    is
-      Opt : constant Command_Line.String_List_Options :=
-        (case Language is
-         when C_Language   => Command_Line.Opt_C_Opts,
-         when CPP_Language => Command_Line.Opt_CPP_Opts);
+      Cmdline_Opts : constant String_Vectors.Vector :=
+        To_String_Vector
+          (case Language is
+              when C_Language   => C_Opts,
+              when CPP_Language => CPP_Opts);
    begin
       Import_From_Project (Self, Language, Info, Filename);
-      for Args of Switches.Args.String_List_Args (Opt) loop
+      for Args of Cmdline_Opts loop
          Import_From_Args (Self, Split_Args (Args));
       end loop;
 

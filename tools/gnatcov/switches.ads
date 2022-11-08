@@ -129,6 +129,9 @@ package Switches is
    Units_Inputs : Inputs.Inputs_Type;
    --  List of names for requested units of interest
 
+   C_Opts   : Inputs.Inputs_Type;
+   CPP_Opts : Inputs.Inputs_Type;
+
    type Any_Language is
      (All_Languages, Ada_Language, C_Language, CPP_Language);
    --  A language that is supported for source coverage All_Languages is a
