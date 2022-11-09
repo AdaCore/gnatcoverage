@@ -323,12 +323,14 @@ package body SC_Obligations is
       State         : in out CU_Load_State;
       Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
       SCO_Map       : access LL_HL_SCO_Map := null;
-      Count_Paths   : Boolean);
+      Count_Paths   : Boolean;
+      Provider      : SCO_Provider);
    --  Load the low level SCO at SCO_Index into our Internal table, to be part
    --  of the CU compilation unit.
    --
    --  Use and update State according to the semantics of its members. See
-   --  Process_Low_Level_SCOs for the semantics of SCO_Map.
+   --  Process_Low_Level_SCOs for the semantics of SCO_Map, Count_Paths and
+   --  Provider.
 
    -------------------------------
    -- Main SCO descriptor table --
@@ -2995,7 +2997,8 @@ package body SC_Obligations is
       State         : in out CU_Load_State;
       Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
       SCO_Map       : access LL_HL_SCO_Map := null;
-      Count_Paths   : Boolean)
+      Count_Paths   : Boolean;
+      Provider      : SCO_Provider)
    is
       Unit : CU_Info renames CU_Vector.Reference (CU);
       SCOE : SCOs.SCO_Table_Entry renames SCOs.SCO_Table.Table (SCO_Index);
@@ -3217,7 +3220,18 @@ package body SC_Obligations is
                     (Kind                => Decision,
                      Origin              => CU,
                      Control_Location    =>
-                       Slocs.To_Sloc (Unit.Main_Source, From_Sloc),
+
+                     --  Control locations are only useful for dominance
+                     --  markers, which are only used with binary traces. As
+                     --  it is impractical to get the correct location with
+                     --  the C/C++ instrumenter, and as using incorrect slocs
+                     --  can create conflicts, ignore those in the
+                     --  instrumentation case.
+
+                       (if Provider = Compiler
+                        then Slocs.To_Sloc (Unit.Main_Source, From_Sloc)
+                        else No_Location),
+
                      D_Kind              => To_Decision_Kind (SCOE.C1),
                      Last_Cond_Index     => 0,
                      Aspect_Name         =>
@@ -3362,7 +3376,8 @@ package body SC_Obligations is
                      State,
                      Ignored_Slocs_Set,
                      SCO_Map,
-                     Count_Paths);
+                     Count_Paths,
+                     Provider);
                end loop;
             end loop;
 
