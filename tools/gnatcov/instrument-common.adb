@@ -936,25 +936,6 @@ package body Instrument.Common is
       Parent : Scope_Entity_Acc renames UIC.Current_Scope_Entity.Parent;
       Scope  : Scope_Entity_Acc renames UIC.Current_Scope_Entity;
    begin
-      --  Note that scope entities may reference any kind of low-level SCOs,
-      --  including dominance markers. As those markers are removed after
-      --  calling Process_Low_Level_SCOs, they are remapped to No_SCO_Id. Fix
-      --  up the span so that only valid high-level SCOs are referenced there.
-      --  Note that a dominance marker is necessarily emitted with a statement
-      --  SCO, so we have no risk of having only a dominance marker in the
-      --  scope entity. As such dominance markers are emitted before statement
-      --  SCOs, this also means that Scope_Entity.To can't possibly reference a
-      --  dominance marker SCO.
-      --
-      --  TODO???: clarify whether we need dominance SCOs or not in the
-      --  instrumentation scheme, as this is not clear we do.
-
-      while Nat (Scope.From) < SCOs.SCO_Table.Last
-        and then SCOs.SCO_Table.Table (Nat (Scope.From)).C1 = '>'
-      loop
-         Scope.From := Scope.From + 1;
-      end loop;
-
       --  Update the last SCO for this scope entity
 
       Scope.To := SCO_Id (SCOs.SCO_Table.Last);
