@@ -32,6 +32,7 @@ with Coverage.Object;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;
 with Instrument.Base_Types;
+with Instrument.C;
 with Outputs;          use Outputs;
 with Subprocesses;
 with Switches;         use Switches;
@@ -704,9 +705,11 @@ package body Annotations is
          declare
             SFI : constant Source_File_Index := Sloc_Start.Source_File;
 
-            Info                  : constant PP_Info := Get_PP_Info (SCO);
-            Preprocessed_Filename : constant String := Get_PP_Filename (SFI);
-            Preprocessed_SFI      : Source_File_Index :=
+            Info                   : constant PP_Info := Get_PP_Info (SCO);
+            Preprocessed_Filename  : constant String :=
+              Get_PP_Filename (SFI) & ".prepro";
+            Postprocessed_Filename : constant String := Get_PP_Filename (SFI);
+            Preprocessed_SFI       : Source_File_Index :=
               Get_Index_From_Generic_Name
                 (Preprocessed_Filename,
                  Source_File, Insert => False);
@@ -723,13 +726,22 @@ package body Annotations is
                        Run_Command
                          (PP_Cmds.Element (SFI), "Preprocessing",
                           Preprocessed_Filename,
-                          Err_To_Out => False,
+                          Err_To_Out   => False,
                           Ignore_Error => True);
 
                      if Preprocessed then
+                        --  As a reminder, we compute source locations from
+                        --  preprocessed sources with redundant line markers
+                        --  removed. This means that the preprocessed code
+                        --  locations refer to the latter version, which we
+                        --  need to recompute there to have the right version
+                        --  of the source.
+
+                        Instrument.C.Postprocess_Source
+                          (Preprocessed_Filename, Postprocessed_Filename);
                         Preprocessed_SFI :=
                           Get_Index_From_Generic_Name
-                            (Preprocessed_Filename,
+                            (Postprocessed_Filename,
                              Source_File,
                              Insert_After_Freeze => True);
                      else
