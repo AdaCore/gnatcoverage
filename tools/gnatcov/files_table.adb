@@ -170,11 +170,9 @@ package body Files_Table is
    --  Whether we should even try to rebase files using Renaming_Map or not
 
    function Locate_Source (File : Virtual_File) return Virtual_File;
-   --  Try to find the actual location on disk of File. This returns File if it
-   --  exists in the filesystem. Otherwise, it tries to locate it transforming
-   --  File according to the source rebase/search parameters
-   --  (see --source-rebase and --source-search command line arguments).
-   --  Return No_File if we could not locate the file.
+   --  Apply the --source-rebase and --source-search options over the given
+   --  File (see the documentation of these options). If no file was found
+   --  using these options, return the original file.
 
    function Name_For_Rebase (File : Virtual_File) return String;
    --  Helper for Locate_Source. Return the file name to use in source rebasing
@@ -779,16 +777,6 @@ package body Files_Table is
             Full_Path := Element (Rebase_Cur);
          elsif Insert then
             Full_Path := Locate_Source (Original_Full_Path);
-            if Full_Path = No_File then
-
-               --  If the file was not found, reset it to his original full
-               --  path. Still make the association in Renaming_Map to avoid
-               --  subsequent calls to Locate_Source. We don't need to update
-               --  the Has_Source field of the corresponding File_Info, this
-               --  will be done when trying to open the source file.
-
-               Full_Path := Original_Full_Path;
-            end if;
             Renaming_Map.Insert (Original_Full_Path, Full_Path);
          end if;
       end if;
@@ -1576,6 +1564,11 @@ package body Files_Table is
 
       Try_Open (File, Name.all, Success);
 
+      --  TODO???: the FI.Full_Name can only be null in binary traces, when
+      --  loading SCOs from a library file while there is no debug info for the
+      --  corresponding SCOs. Remove the code below and check that FI.Full_Name
+      --  is not null if / when binary traces are deprecated.
+
       if FI.Full_Name = null then
 
          if Success then
@@ -1600,8 +1593,8 @@ package body Files_Table is
             end if;
          end if;
 
-         --  If we could not find the source file in his original path or using
-         --  the project information, try to use the rebase and souce search
+         --  If we could not find the source file at its original path or using
+         --  the project information, try to use the rebase and source search
          --  mechanism on the simple name.
 
          if not Success then
@@ -1609,11 +1602,9 @@ package body Files_Table is
                Candidate_File : Virtual_File := Create (+FI.Simple_Name.all);
             begin
                Candidate_File := Locate_Source (Candidate_File);
-               if Candidate_File /= No_File then
-                  Try_Open (File, +Candidate_File.Full_Name, Success);
-                  if Success then
-                     FI.Full_Name := new String'(+Candidate_File.Full_Name);
-                  end if;
+               Try_Open (File, +Candidate_File.Full_Name, Success);
+               if Success then
+                  FI.Full_Name := new String'(+Candidate_File.Full_Name);
                end if;
             end;
          end if;
@@ -1634,13 +1625,7 @@ package body Files_Table is
    function Locate_Source (File : Virtual_File) return Virtual_File is
       Candidate : Virtual_File;
    begin
-      --  If the file exists at his original full path then great!
-
-      if File.Is_Regular_File then
-         return File;
-      end if;
-
-      --  Try to rebase
+      --  Try to rebase (--source-rebase)
 
       declare
          use GNAT.Regpat;
@@ -1664,7 +1649,7 @@ package body Files_Table is
          end loop;
       end;
 
-      --  Try source path
+      --  Try source search (--source-search)
 
       declare
          E : Source_Search_Entry_Acc := First_Source_Search_Entry;
@@ -1678,7 +1663,7 @@ package body Files_Table is
          end loop;
       end;
 
-      return No_File;
+      return File;
 
    end Locate_Source;
 

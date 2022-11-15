@@ -37,13 +37,13 @@ package Instrument.C_Utils is
    -- Location utilities --
    ------------------------
 
-   function Sloc (Loc : Source_Location_T) return Local_Source_Location;
+   function Sloc (Loc : Source_Location_T) return Source_Location;
    --  Convert a Source_Location_T to a Source_Location
 
-   function Start_Sloc (N : Cursor_T) return Local_Source_Location;
+   function Start_Sloc (N : Cursor_T) return Source_Location;
    --  Return the starting location of a node
 
-   function End_Sloc (N : Cursor_T) return Local_Source_Location;
+   function End_Sloc (N : Cursor_T) return Source_Location;
    --  Return the end location of a node
 
    function Kind (N : Cursor_T) return Cursor_Kind_T;
@@ -85,6 +85,10 @@ package Instrument.C_Utils is
    function Get_Main (TU : Translation_Unit_T) return Cursor_T;
    --  Return the cursor corresponding to the definition of the "main"
    --  function, or the null cursor if there is no main function.
+
+   function Is_Atexit_Declared (TU : Translation_Unit_T) return Boolean;
+   --  Return True if there is a declaration of atexit in the given translation
+   --  unit.
 
    -------------------------
    -- Rewriting utilities --

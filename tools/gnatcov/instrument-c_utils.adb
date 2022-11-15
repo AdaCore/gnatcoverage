@@ -19,10 +19,14 @@
 with Interfaces.C; use Interfaces.C;
 with System;       use System;
 
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Directories; use Ada.Directories;
+with Ada.Text_IO;     use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
+with Clang.CX_String;  use Clang.CX_String;
 with Clang.Extensions; use Clang.Extensions;
+
+with Files_Table; use Files_Table;
 
 package body Instrument.C_Utils is
 
@@ -45,31 +49,46 @@ package body Instrument.C_Utils is
    -- Sloc --
    ----------
 
-   function Sloc (Loc : Source_Location_T) return Local_Source_Location is
+   function Sloc (Loc : Source_Location_T) return Source_Location is
+      Line, Column : aliased Interfaces.C.unsigned;
+      File         : aliased String_T;
    begin
-      return Presumed_Location (Loc);
+      if Loc = Get_Null_Location then
+         return No_Location;
+      end if;
+      Get_Presumed_Location (Location => Loc,
+                             Filename => File'Access,
+                             Line     => Line'Access,
+                             Column   => Column'Access);
+      return
+        (Source_File =>
+           Get_Index_From_Generic_Name
+             (Full_Name (Get_C_String (File)), Kind => Source_File),
+         L           =>
+           (Line   => Natural (Line),
+            Column => Natural (Column)));
    end Sloc;
 
    ----------------
    -- Start_Sloc --
    ----------------
 
-   function Start_Sloc (N : Cursor_T) return Local_Source_Location is
+   function Start_Sloc (N : Cursor_T) return Source_Location is
    begin
-      return Presumed_Location (Get_Range_Start (Get_Cursor_Extent (N)));
+      return Sloc (Get_Range_Start (Get_Cursor_Extent (N)));
    end Start_Sloc;
 
    --------------
    -- End_Sloc --
    --------------
 
-   function End_Sloc (N : Cursor_T) return Local_Source_Location is
+   function End_Sloc (N : Cursor_T) return Source_Location is
       Loc : Source_Location_T := Get_Range_End (Get_Cursor_Extent (N));
    begin
       if Is_Macro_Location (Loc) then
          Loc := Get_Expansion_End (Get_Cursor_TU (N), Loc);
       end if;
-      return Presumed_Location (Loc);
+      return Sloc (Loc);
    end End_Sloc;
 
    ----------
@@ -243,6 +262,44 @@ package body Instrument.C_Utils is
                       Visitor => Visit_Decl'Access);
       return Result;
    end Get_Main;
+
+   ------------------------
+   -- Is_Atexit_Declared --
+   ------------------------
+
+   function Is_Atexit_Declared (TU : Translation_Unit_T) return Boolean is
+      Has_Atexit_Declaration : Boolean := False;
+
+      function Is_Atexit (Cursor : Cursor_T) return Child_Visit_Result_T;
+      --  Set Has_Atexit_Declaration to True if Cursor is the declaration of
+      --  the atexit function. Otherwise, recurse into the node if it is a
+      --  list of C declarations, or continue the traversal of the current
+      --  declaration list.
+
+      ---------------
+      -- Is_Atexit --
+      ---------------
+
+      function Is_Atexit (Cursor : Cursor_T) return Child_Visit_Result_T is
+      begin
+         if Kind (Cursor) in Cursor_Translation_Unit | Cursor_Linkage_Spec
+         then
+            return Child_Visit_Recurse;
+         elsif Cursor_Get_Mangling (Cursor) = "atexit" then
+            Has_Atexit_Declaration := True;
+            return Child_Visit_Break;
+         else
+            return Child_Visit_Continue;
+         end if;
+      end Is_Atexit;
+
+      --  Start of processing for Is_Atexit_Declared
+
+   begin
+      Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
+                      Visitor => Is_Atexit'Access);
+      return Has_Atexit_Declaration;
+   end Is_Atexit_Declared;
 
    --  Rewriting utilities
 
