@@ -51,7 +51,6 @@ with Subprocesses;        use Subprocesses;
 with System;              use System;
 with Table;
 with Text_Files;          use Text_Files;
-with Project;             use Project;
 
 package body Instrument.C is
 
