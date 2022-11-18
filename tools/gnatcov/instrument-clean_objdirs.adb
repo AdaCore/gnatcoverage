@@ -17,17 +17,17 @@
 ------------------------------------------------------------------------------
 
 with Ada.Directories;       use Ada.Directories;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
-with Paths;   use Paths;
+with Outputs; use Outputs;
+with Strings; use Strings;
 with Project;
 
 procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
    use Project_Info_Maps;
 
-   All_Instr_Files : File_Sets.Set;
+   All_Instr_Files : String_Sets.Set;
    --  Set of full names for all files that were written to output directories
    --  for all instrumented projects.
 
@@ -42,14 +42,6 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
 
    procedure Clean_Subdir (Project : Project_Type) is
       Output_Dir : constant String := Project_Output_Dir (Project);
-
-      --  Removing items in a directory and iterate on these items at the same
-      --  time is not supported: first collect all files to remove (iteration)
-      --  and then remove them.
-
-      To_Delete  : File_Sets.Set;
-      Search     : Search_Type;
-      Dir_Entry  : Directory_Entry_Type;
    begin
       if
          --  Leave externally built projects out of the picture
@@ -66,32 +58,11 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
          return;
       end if;
 
-      --  Collect the files to delete
+      Clean_Dir
+        (Dir           => Output_Dir,
+         Pattern       => "",
+         Ignored_Files => All_Instr_Files);
 
-      Start_Search
-        (Search,
-         Directory => Output_Dir,
-         Pattern   => "",
-         Filter    => (Ordinary_File => True, others => False));
-      while More_Entries (Search) loop
-         Get_Next_Entry (Search, Dir_Entry);
-         declare
-            Name      : constant String := Simple_Name (Dir_Entry);
-            Full_Name : constant Unbounded_String :=
-              To_Unbounded_String (Output_Dir / Name);
-         begin
-            if not All_Instr_Files.Contains (Full_Name) then
-               To_Delete.Insert (Full_Name);
-            end if;
-         end;
-      end loop;
-      End_Search (Search);
-
-      --  Do the deletion
-
-      for Name of To_Delete loop
-         Delete_File (To_String (Name));
-      end loop;
    end Clean_Subdir;
 
 --  Start of processing for Instrument.Clean_Objdirs
@@ -100,7 +71,9 @@ begin
    --  First initialize All_Instr_Files
 
    for Cur in IC.Project_Info_Map.Iterate loop
-      All_Instr_Files.Union (Element (Cur).Instr_Files);
+      for Filename of Element (Cur).Instr_Files loop
+         All_Instr_Files.Include (Filename);
+      end loop;
    end loop;
 
    --  Then go through all projects to clear up their object directories,
