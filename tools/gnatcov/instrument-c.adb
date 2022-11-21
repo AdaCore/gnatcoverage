@@ -425,7 +425,8 @@ package body Instrument.C is
    --  Otherwise, put one array item per line.
 
    function Format_Fingerprint
-     (Fingerprint : SC_Obligations.Fingerprint_Type) return String;
+     (Fingerprint : SC_Obligations.Fingerprint_Type) return String
+   is (Instrument.Common.Format_Fingerprint (Fingerprint, "{", "}"));
    --  Helper to format a uint8_t[] literal for a SCOs fingerprint
 
    function Format_Def
@@ -3362,22 +3363,6 @@ package body Instrument.C is
       return To_String (Result);
    end Format_Array_Init_Expr;
 
-   ------------------------
-   -- Format_Fingerprint --
-   ------------------------
-
-   function Format_Fingerprint
-     (Fingerprint : SC_Obligations.Fingerprint_Type) return String
-   is
-      Items : String_Vectors.Vector;
-   begin
-      for Byte of Fingerprint loop
-         Items.Append (+Img (Integer (Byte)));
-      end loop;
-
-      return Format_Array_Init_Expr (Items);
-   end Format_Fingerprint;
-
    ----------------------
    -- Emit_Buffer_Unit --
    ----------------------
@@ -3552,6 +3537,11 @@ package body Instrument.C is
                & ASCII.LF
                & "  .project_name = "
                & Format_Str_Constant (+CU_Name.Project_Name) & ","
+               & ASCII.LF
+
+               & "  .bit_maps_fingerprint = "
+               & Format_Fingerprint (SC_Obligations.Bit_Maps_Fingerprint (CU))
+               & ","
                & ASCII.LF
 
                --  We do not use the created pointer (Statement_Buffer) to

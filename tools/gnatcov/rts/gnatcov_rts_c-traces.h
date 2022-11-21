@@ -30,8 +30,9 @@ extern "C"
 /* Expected value of the `trace_file_header.format_version` field.
 
    0 -- initial version
-   1 -- extend trace entry model to account for C files */
-#define GNATCOV_RTS_CURRENT_VERSION 1
+   1 -- extend trace entry model to account for C files
+   2 -- introduce fingerprints for bit maps  */
+#define GNATCOV_RTS_CURRENT_VERSION 2
 
 /* LSB_First_Bytes: bit buffers are encoded as sequences of bytes.
 
@@ -139,9 +140,15 @@ extern "C"
        values are computed during instrumentation.  */
     uint8_t fingerprint[20];
 
+    /* Hash of buffer bit mappings for this unit, as gnatcov computes it (see
+       SC_Obligations).  Used as a fast way to check that gnatcov will be able
+       to interpret buffer bits from a source traces using buffer bit mappings
+       from SID files.  */
+    uint8_t bit_maps_fingerprint[20];
+
     /* Padding used only to make the size of this trace entry header a multiple
        of 8 bytes. Must be zero.  */
-    uint8_t padding[5];
+    uint8_t padding[1];
   };
 
 #ifdef __cplusplus
