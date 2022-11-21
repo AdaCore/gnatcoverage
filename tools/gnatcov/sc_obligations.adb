@@ -96,7 +96,7 @@ package body SC_Obligations is
       Has_Code : Boolean := False;
       --  Set True when object code for some source file in this unit is seen
 
-      Fingerprint : SCOs_Hash;
+      Fingerprint : Fingerprint_Type;
       --  Hash of SCO info in ALI, for incremental coverage consistency check
 
       PP_Info_Map : SCO_PP_Info_Maps.Map;
@@ -268,7 +268,7 @@ package body SC_Obligations is
    function Allocate_CU
      (Provider            : SCO_Provider;
       Origin, Main_Source : Source_File_Index;
-      Fingerprint         : SCOs_Hash;
+      Fingerprint         : Fingerprint_Type;
       Created_Units       : in out Created_Unit_Maps.Map) return CU_Id;
    --  If there is already a compilation unit for the given Main_Source that is
    --  not in Created_Units, emit a warning to say the we ignore duplicate SCOs
@@ -1370,7 +1370,7 @@ package body SC_Obligations is
       Inst_Id'Read           (S, V.Last_Instance);
       SFI_Vector'Read        (S, V.Deps);
       Boolean'Read           (S, V.Has_Code);
-      SCOs_Hash'Read         (S, V.Fingerprint);
+      Fingerprint_Type'Read  (S, V.Fingerprint);
 
       --  Checkpoint version 8 preprocessing information
 
@@ -1439,7 +1439,7 @@ package body SC_Obligations is
       Inst_Id'Write           (S, V.Last_Instance);
       SFI_Vector'Write        (S, V.Deps);
       Boolean'Write           (S, V.Has_Code);
-      SCOs_Hash'Write         (S, V.Fingerprint);
+      Fingerprint_Type'Write  (S, V.Fingerprint);
 
       SCO_PP_Info_Maps.Map'Write (S, V.PP_Info_Map);
 
@@ -2578,7 +2578,7 @@ package body SC_Obligations is
    -- Fingerprint --
    -----------------
 
-   function Fingerprint (CU : CU_Id) return SCOs_Hash is
+   function Fingerprint (CU : CU_Id) return Fingerprint_Type is
    begin
       return CU_Vector.Reference (CU).Fingerprint;
    end Fingerprint;
@@ -2891,7 +2891,7 @@ package body SC_Obligations is
    function Allocate_CU
      (Provider            : SCO_Provider;
       Origin, Main_Source : Source_File_Index;
-      Fingerprint         : SCOs_Hash;
+      Fingerprint         : Fingerprint_Type;
       Created_Units       : in out Created_Unit_Maps.Map) return CU_Id
    is
       use Created_Unit_Maps;
@@ -3332,7 +3332,7 @@ package body SC_Obligations is
             First_SCO      : constant SCO_Id := SCO_Vector.Last_Index + 1;
             First_Instance : constant Inst_Id := Inst_Vector.Last_Index + 1;
 
-            Fingerprint : constant SCOs_Hash := SCOs_Hash
+            Fingerprint : constant Fingerprint_Type := Fingerprint_Type
               (GNAT.SHA1.Binary_Message_Digest'
                  (GNAT.SHA1.Digest (Info.Fingerprint_Context)));
 

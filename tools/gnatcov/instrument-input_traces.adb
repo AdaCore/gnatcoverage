@@ -696,8 +696,9 @@ package body Instrument.Input_Traces is
                with Import, Address => Trace_Entry.Project_Name;
 
             function Convert is new Ada.Unchecked_Conversion
-              (GNATcov_RTS.Buffers.SCOs_Hash, SC_Obligations.SCOs_Hash);
-            Fingerprint : constant SC_Obligations.SCOs_Hash :=
+              (GNATcov_RTS.Buffers.Fingerprint_Type,
+               SC_Obligations.Fingerprint_Type);
+            Fingerprint : constant SC_Obligations.Fingerprint_Type :=
                Convert (Entry_Header.Fingerprint);
 
             Statement_Buffer_Size : constant Natural :=
@@ -799,7 +800,7 @@ package body Instrument.Input_Traces is
          Data : String);
       procedure On_Trace_Entry
         (Filename        : String;
-         Fingerprint     : SC_Obligations.SCOs_Hash;
+         Fingerprint     : SC_Obligations.Fingerprint_Type;
          CU_Name         : Compilation_Unit_Name;
          Stmt_Buffer     : Coverage_Buffer;
          Decision_Buffer : Coverage_Buffer;
@@ -838,7 +839,7 @@ package body Instrument.Input_Traces is
 
       procedure On_Trace_Entry
         (Filename        : String;
-         Fingerprint     : SC_Obligations.SCOs_Hash;
+         Fingerprint     : SC_Obligations.Fingerprint_Type;
          CU_Name         : Compilation_Unit_Name;
          Stmt_Buffer     : Coverage_Buffer;
          Decision_Buffer : Coverage_Buffer;

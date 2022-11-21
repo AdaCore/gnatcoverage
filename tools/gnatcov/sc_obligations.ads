@@ -97,9 +97,9 @@ package SC_Obligations is
    function Provider (CU : CU_Id) return SCO_Provider;
    --  Return the SCO provider corresponding to the given compilation unit
 
-   type SCOs_Hash is new GNAT.SHA1.Binary_Message_Digest;
+   type Fingerprint_Type is new GNAT.SHA1.Binary_Message_Digest;
 
-   function Fingerprint (CU : CU_Id) return SCOs_Hash;
+   function Fingerprint (CU : CU_Id) return Fingerprint_Type;
    --  Hash of SCO info in ALI, for incremental coverage consistency check
 
    function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
