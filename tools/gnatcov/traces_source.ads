@@ -244,7 +244,7 @@ package Traces_Source is
       Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
       --  Encoding used to represent statement and decision coverage buffers
 
-      Fingerprint : Buffers.SCOs_Hash;
+      Fingerprint : Buffers.Fingerprint_Type;
       --  Hash of SCO info for this unit. Useds a fast way to check that
       --  coverage obligations and coverage data are consistent. Specific hash
       --  values are computed during instrumentation.

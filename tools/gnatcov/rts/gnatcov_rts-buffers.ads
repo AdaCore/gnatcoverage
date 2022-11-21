@@ -62,12 +62,13 @@ package GNATcov_RTS.Buffers is
    type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
    pragma Convention (C, Any_Language_Kind);
 
-   type SCOs_Hash is new System.Storage_Elements.Storage_Array (1 .. 20);
+   type Fingerprint_Type is
+     new System.Storage_Elements.Storage_Array (1 .. 20);
    --  Hash type to perform consistency checks over Source Coverage
    --  Obligations. 20-byte to hold a SHA-1.
 
    type GNATcov_RTS_Coverage_Buffers is record
-      Fingerprint               : SCOs_Hash;
+      Fingerprint               : Fingerprint_Type;
       Language                  : Any_Language_Kind;
       Unit_Part                 : Any_Unit_Part;
       Unit_Name                 : GNATcov_RTS_String;

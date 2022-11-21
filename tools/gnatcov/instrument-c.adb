@@ -433,7 +433,7 @@ package body Instrument.C is
    --  Otherwise, put one array item per line.
 
    function Format_Fingerprint
-     (Fingerprint : SC_Obligations.SCOs_Hash) return String;
+     (Fingerprint : SC_Obligations.Fingerprint_Type) return String;
    --  Helper to format a uint8_t[] literal for a SCOs fingerprint
 
    function Format_Def
@@ -3498,7 +3498,8 @@ package body Instrument.C is
    ------------------------
 
    function Format_Fingerprint
-     (Fingerprint : SC_Obligations.SCOs_Hash) return String is
+     (Fingerprint : SC_Obligations.Fingerprint_Type) return String
+   is
       Items : String_Vectors.Vector;
    begin
       for Byte of Fingerprint loop
