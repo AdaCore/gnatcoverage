@@ -97,16 +97,16 @@ extern "C"
 
   /* Trace entry header
 
-  Each trace entry starts with the following header. Then goes:
+     Each trace entry starts with the following header. Then goes:
 
-   * The name of the unit describes. It is NUL-padded according to the
-     trace file alignment.
+     * The name of the unit describes. It is NUL-padded according to the trace
+       file alignment.
 
-   * The statement coverage buffer. It is also NUL-padded.
+     * The statement coverage buffer. It is also NUL-padded.
 
-   * The decision coverage buffer. It is also NUL-padded.
+     * The decision coverage buffer. It is also NUL-padded.
 
-   * The MC/DC coverage buffer. It is also NUL-padded.  */
+     * The MC/DC coverage buffer. It is also NUL-padded.  */
 
   struct trace_entry_header
   {
