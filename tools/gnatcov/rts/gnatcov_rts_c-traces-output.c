@@ -127,7 +127,7 @@ write_entry (gnatcov_rts_write_bytes_callback write_bytes, void *output,
   header.unit_part = (uint8_t) buffers->unit_part;
   header.bit_buffer_encoding = GNATCOV_RTS_LSB_FIRST_BYTES;
   memset (header.padding, 0, 5);
-  memcpy (&(header.fingerprint), buffers->fingerprint, FINGERPRINT_SIZE);
+  memcpy (&header.fingerprint, buffers->fingerprint, FINGERPRINT_SIZE);
 
   write_bytes (output, (char *) &header, sizeof (header));
   write_bytes (output, buffers->unit_name.str, buffers->unit_name.length);
