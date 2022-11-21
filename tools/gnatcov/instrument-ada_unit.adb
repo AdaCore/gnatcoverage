@@ -98,6 +98,11 @@ package body Instrument.Ada_Unit is
    --  primitive. The additional URH argument is the Ada source rewriter that
    --  is ready to use for the source file to instrument.
 
+   procedure Import_Non_Instrumented_LL_SCOs
+     (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
+   --  Import the low level SCO in UIC marked as non-instrumented in the high
+   --  level non-instrumented SCO_Id sets.
+
    -----------------------
    -- To_Qualified_Name --
    -----------------------
@@ -163,20 +168,12 @@ package body Instrument.Ada_Unit is
       return Result;
    end To_Qualified_Name;
 
-   procedure Import_Non_Instrumented_LL_SCOs
-     (UIC : Ada_Unit_Inst_Context;
-      SCO_Map : LL_HL_SCO_Map);
-   --  Import the low level SCO ids marked as non-instrumetned in the
-   --  high level non-instrumented SCO_id sets.
-
    -------------------------------------
    -- Import_Non_Instrumented_LL_SCOs --
    -------------------------------------
 
    procedure Import_Non_Instrumented_LL_SCOs
-     (UIC     : Ada_Unit_Inst_Context;
-      SCO_Map : LL_HL_SCO_Map)
-   is
+     (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map) is
    begin
       for LL_SCO of UIC.Non_Instr_LL_SCOs loop
          declare
@@ -6459,8 +6456,8 @@ package body Instrument.Ada_Unit is
             if MCDC_Coverage_Enabled then
 
                --  As high-level SCO tables have been populated, we have built
-               --  BDDs for each decisions, and we can now set the correct
-               --  MC/DC path offset for each condition.
+               --  BDDs for each decision, and we can now set the correct MC/DC
+               --  path offset for each condition.
                --
                --  We do not include a witness call for conditions which appear
                --  in a decision with a path count exceeding the limit to avoid
