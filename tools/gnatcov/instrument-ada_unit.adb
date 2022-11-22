@@ -42,6 +42,7 @@ with Files_Table;         use Files_Table;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Namet;               use Namet;
 with Outputs;             use Outputs;
+with Project;
 with SCOs;
 with Slocs;
 with Snames;              use Snames;
@@ -97,6 +98,11 @@ package body Instrument.Ada_Unit is
    --  Arguments have the same semantics as in the Auto_Dump_Buffers_In_Main
    --  primitive. The additional URH argument is the Ada source rewriter that
    --  is ready to use for the source file to instrument.
+
+   procedure Import_Non_Instrumented_LL_SCOs
+     (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
+   --  Import the low level SCO in UIC marked as non-instrumented in the high
+   --  level non-instrumented SCO_Id sets.
 
    -----------------------
    -- To_Qualified_Name --
@@ -163,20 +169,12 @@ package body Instrument.Ada_Unit is
       return Result;
    end To_Qualified_Name;
 
-   procedure Import_Non_Instrumented_LL_SCOs
-     (UIC : Ada_Unit_Inst_Context;
-      SCO_Map : LL_HL_SCO_Map);
-   --  Import the low level SCO ids marked as non-instrumetned in the
-   --  high level non-instrumented SCO_id sets.
-
    -------------------------------------
    -- Import_Non_Instrumented_LL_SCOs --
    -------------------------------------
 
    procedure Import_Non_Instrumented_LL_SCOs
-     (UIC     : Ada_Unit_Inst_Context;
-      SCO_Map : LL_HL_SCO_Map)
-   is
+     (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map) is
    begin
       for LL_SCO of UIC.Non_Instr_LL_SCOs loop
          declare
@@ -242,6 +240,9 @@ package body Instrument.Ada_Unit is
    --  Return a symbol from Symbols corresponding to the name of the given
    --  P pragma.
 
+   function Canonically_Equal (Left, Right : Text_Type) return Boolean;
+   --  Returns whether Left and Right are equal after canonicalization
+
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Identifier;
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type;
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Name_Id;
@@ -283,13 +284,6 @@ package body Instrument.Ada_Unit is
       E   : Expr) return Base_Type_Decl;
    --  Wrapper around E.P_Expression_Type, logging a warning and returning
    --  Standard.Boolean if unable to determine the type.
-
-   function Referenced_Defining_Name
-     (Main_Name : Ada_Qualified_Name;
-      N         : LAL.Name) return Defining_Name;
-   --  Wrapper around Name.P_Referenced_Defining_Name, logging a warning and
-   --  returning No_Defining_Name if unable to determine the referenced
-   --  defining name.
 
    function Is_Static_Expr (E : Expr) return Boolean;
    --  Wrapper around E.P_Is_Static_Expr, logging a warning and returning
@@ -946,6 +940,62 @@ package body Instrument.Ada_Unit is
    --  generated is a primitive of a tagged type, and if that tagged type is
    --  the return type of the expression function.
 
+   function Has_Matching_Pragma_For_Unit
+     (IC     : Inst_Context;
+      Unit   : Compilation_Unit;
+      Filter : access function (Node : Pragma_Node) return Boolean)
+      return Boolean;
+   --  Return whether Filter return True on at least one configuration pragma
+   --  that applies to Unit or system.ads.
+
+   Unusable_System_Reported : Boolean := False;
+   --  Global variable set to True once gnatcov emits a warning about a failure
+   --  to get the analysis unit for System. Used to avoid emitting duplicate
+   --  messages.
+
+   function Pragma_Restricts_Finalization
+     (Prag_Node : Pragma_Node) return Boolean;
+   --  Return True if Prag_Node imposes a restrictions on use of finalization
+
+   function Finalization_Restricted_In_Unit
+     (IC : Inst_Context; Unit : Compilation_Unit) return Boolean;
+   --  Return True if Finalization is not available in this runtime, or if
+   --  some control pragma restricts the usage of finalization in either Unit
+   --  or the whole project.
+
+   function Pragma_Prevents_Task_Termination
+     (Prag_Node : Pragma_Node) return Boolean;
+   --  Return True if Node prevents the use of tasks and/or
+   --  Ada.Task_Termination and/or Ada.Task_Identification.
+
+   function Task_Termination_Restricted
+     (IC : Inst_Context; Unit : Compilation_Unit) return Boolean;
+   --  Return True if tasking is not available in this runtime, or if some
+   --  configuration pragma prevents the use of tasks and/or
+   --  Ada.Task_Termination and/or Ada.Task_Identification in either the whole
+   --  project or in Unit.
+
+   function Return_From_Subp_Body
+     (Ret_Node : Return_Stmt; Subp : Subp_Body) return Boolean;
+   --  Return whether Ret_Node is returning from Subp
+
+   procedure Insert_Simple_Dump_Proc_Calls
+     (RH          : Rewriting_Handle;
+      Helper_Unit : Ada_Qualified_Name;
+      Subp_Body   : LAL.Subp_Body);
+   --  Insert calls, in Subp_Body, to the <Helper_Unit>.Dump_Buffers procedure
+   --  as the last statment of the top level handeled statments of the main, as
+   --  the last statement of each exception handler branch, and right before
+   --  each return statment returning from the main procedure.
+
+   procedure Insert_Controlled_Dump_Object_Decl
+     (RH          : Rewriting_Handle;
+      Helper_Unit : Ada_Qualified_Name;
+      Subp_Body   : LAL.Subp_Body);
+   --  Insert, in Subp_Body, the declaration of a controlled object of type
+   --  <Helper_Unit>.Dump_Controlled_Type to dump the coverage buffers during
+   --  finalization of said object.
+
    --------------------------------
    -- Instrumentation extensions --
    --------------------------------
@@ -1004,14 +1054,22 @@ package body Instrument.Ada_Unit is
    --  Emit the unit to contain addresses for the coverage buffers
 
    procedure Emit_Dump_Helper_Unit
-     (IC          : Inst_Context;
-      Info        : in out Project_Info;
-      Main        : Compilation_Unit_Name;
-      Helper_Unit : out Ada_Qualified_Name);
+     (IC                    : Inst_Context;
+      Info                  : in out Project_Info;
+      Main                  : Compilation_Unit_Name;
+      Helper_Unit           : out Ada_Qualified_Name;
+      Override_Dump_Trigger : Any_Dump_Trigger := Manual;
+      Has_Controlled        : Boolean := False);
    --  Emit the unit to contain helpers to implement the automatic dump of
    --  coverage buffers for the given Main unit. Info must be the project that
    --  owns this main. Upon return, the name of this helper unit is stored in
    --  Helper_Unit.
+   --
+   --  If Override_Dump_Trigger is anything other than Manual, it will be used
+   --  as a dump trigger instead of the one defined in IC.Dump_Config.
+   --
+   --  If Has_Controlled is True, generate a controlled type for which the
+   --  Finalize procedure calls the buffer dump procedure.
 
    ----------------
    -- Convert_To --
@@ -2351,6 +2409,74 @@ package body Instrument.Ada_Unit is
               Low_Warning);
       return False;
    end Return_Type_Is_Controlling;
+
+   ---------------------------
+   -- Return_From_Subp_Body --
+   ---------------------------
+
+   function Return_From_Subp_Body
+     (Ret_Node : Return_Stmt; Subp : Subp_Body) return Boolean
+   is
+      function Subp_Body_Is_Parent_Decl (Node : Ada_Node'Class) return Boolean;
+      --  Return True if Subp is the first body in the chain of parent
+      --  declarations of Node.
+
+      ------------------------------
+      -- Subp_Body_Is_Parent_Decl --
+      ------------------------------
+
+      function Subp_Body_Is_Parent_Decl (Node : Ada_Node'Class) return Boolean
+      is
+         Parent_Basic_Decl : constant Basic_Decl := Node.P_Parent_Basic_Decl;
+         --  Parent Basic_Decl of Ret_Node
+      begin
+         if Parent_Basic_Decl.Is_Null then
+            return False;
+         end if;
+         case Parent_Basic_Decl.Kind is
+            when Ada_Subp_Body_Range =>
+               return Parent_Basic_Decl.As_Subp_Body = Subp;
+
+            when Ada_Accept_Stmt
+               | Ada_Accept_Stmt_With_Stmts
+               | Ada_Entry_Body =>
+
+                  --  A return statment may only appear within a callable
+                  --  construct (RM 6.5 (4/2)), which are either subprogram
+                  --  bodies, entry bodies or accept statements (RM 6.2)). As
+                  --  Subp is a Subp_Body if we encounter an accept statement
+                  --  or an entry body on the way we can't be returning from
+                  --  Subp.
+
+                  return False;
+            when others =>
+               return Subp_Body_Is_Parent_Decl (Parent_Basic_Decl);
+         end case;
+      end Subp_Body_Is_Parent_Decl;
+
+   --  Start of processing for Return_From_Body
+
+   begin
+      return Subp_Body_Is_Parent_Decl (Ret_Node);
+   exception
+      when Exc : Property_Error =>
+         Report
+           (Node => Ret_Node,
+            Msg  => "Unable to determine to which body this return statment"
+                    & "applies: " & Ada.Exceptions.Exception_Information (Exc),
+            Kind => Low_Warning);
+
+         --  Inserting an extranous Dump_Buffer call isn't really a problem
+         --  as, at best the trace dump generated too early will be overwritten
+         --  by the trace dump happening at the main end, and at worst,
+         --  multiple trace files will coexist, and passing both to gnatcov
+         --  will result in the same coverage results as ony passing the trace
+         --  file that was created when dumping the buffers at the actual end
+         --  of the main. We can thus conservatively return True if some
+         --  property call fails.
+
+         return True;
+   end Return_From_Subp_Body;
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -5729,6 +5855,21 @@ package body Instrument.Ada_Unit is
    end Safe_Is_Ghost;
 
    -----------------------
+   -- Canonically_Equal --
+   -----------------------
+
+   function Canonically_Equal (Left, Right : Text_Type) return Boolean is
+      Canonical_Left  : constant Symbolization_Result := Canonicalize (Left);
+      Canonical_Right : constant Symbolization_Result := Canonicalize (Right);
+   begin
+      --  If canonicalization failed for one of the two text types, assume they
+      --  are different.
+
+      return Canonical_Left.Success
+            and then Canonical_Left = Canonical_Right;
+   end Canonically_Equal;
+
+   -----------------------
    -- Aspect_Assoc_Name --
    -----------------------
 
@@ -5840,44 +5981,6 @@ package body Instrument.Ada_Unit is
          return E.P_Bool_Type.As_Base_Type_Decl;
       end if;
    end Expression_Type;
-
-   ------------------------------
-   -- Referenced_Defining_Name --
-   ------------------------------
-
-   function Referenced_Defining_Name
-     (Main_Name : Ada_Qualified_Name;
-      N         : LAL.Name) return Defining_Name
-   is
-      DF  : Defining_Name;
-   begin
-      begin
-         DF := N.P_Referenced_Defining_Name;
-
-         if DF.Is_Null then
-            Report
-              (N,
-               "Failed to determine referenced defining name while "
-               & "processing the main " & To_Ada (Main_Name) & " (got null "
-               & "defining name)",
-               Warning);
-         end if;
-
-      exception
-         when Exc : Property_Error =>
-            Report
-              (N,
-               "Failed to determine referenced defining name while "
-               & "processing the main " & To_Ada (Main_Name) & ": "
-               & Ada.Exceptions.Exception_Information (Exc),
-               Warning);
-      end;
-      if not DF.Is_Null then
-         return DF;
-      else
-         return No_Defining_Name;
-      end if;
-   end Referenced_Defining_Name;
 
    --------------------
    -- Is_Static_Expr --
@@ -6047,6 +6150,280 @@ package body Instrument.Ada_Unit is
       end;
    end Initialize_Rewriting;
 
+   ----------------------------
+   -- Insert_Dump_Proc_Calls --
+   ----------------------------
+
+   procedure Insert_Simple_Dump_Proc_Calls
+     (RH          : Rewriting_Handle;
+      Helper_Unit : Ada_Qualified_Name;
+      Subp_Body   : LAL.Subp_Body)
+   is
+      --  Simply add a call to the buffer dump procedure at the end of
+      --  the top level statement list, as well as at the end of the
+      --  statement list of each top level exception handler, and
+      --  right before each return statment that applies to the main.
+
+      Dump_Procedure : Ada_Qualified_Name;
+      --  Name of the procedure to dump coverage buffers
+
+      Call_Stmt : Node_Rewriting_Handle;
+      --  Call invoking the dump procedure
+
+      function Process_Returns
+         (Node : Ada_Node'Class) return Visit_Status;
+      --  Helper for LAL's Traverse procedure. If node is a return
+      --  statement that returns from the main, insert a call to the
+      --  dump buffer procedure right before.
+
+      ---------------------
+      -- Process_Returns --
+      ---------------------
+
+      function Process_Returns (Node : Ada_Node'Class) return Visit_Status is
+      begin
+         if Node.Kind in Ada_Return_Stmt
+           and then Return_From_Subp_Body
+                      (Node.As_Return_Stmt, Subp_Body)
+         then
+            --  Child_Index is 0 based whereas Insert_Child is 1 based
+
+            Insert_Child
+              (Handle (Node.Parent),
+               Node.Child_Index + 1,
+               Clone (Call_Stmt));
+            return Over;
+         else
+            return Into;
+         end if;
+      end Process_Returns;
+
+      Handled_Stmt_List : constant Node_Rewriting_Handle :=
+        Handle (Subp_Body.F_Stmts.F_Stmts);
+
+   --  Start of processing for Insert_Simple_Dump_Proc_Calls
+
+   begin
+      Dump_Procedure := Helper_Unit;
+      Dump_Procedure.Append (Dump_Procedure_Name);
+      Call_Stmt := Create_Regular_Node
+        (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Dump_Procedure)));
+
+      --  Add a Dump_Buffer call at the end of the main's handeled statements
+
+      Append_Child (Handled_Stmt_List, Call_Stmt);
+
+      --  Add a Dump_Buffer call before any return statement that returns from
+      --  the main.
+
+      Traverse (Subp_Body, Process_Returns'Access);
+
+      if Is_Null (Subp_Body.F_Stmts.F_Exceptions) then
+         return;
+      end if;
+
+      --  Add a Dump_Buffer call as the last statement of each exception
+      --  handler branch.
+
+      for Node of Subp_Body.F_Stmts.F_Exceptions loop
+         if Node.Kind in Ada_Exception_Handler_Range then
+            declare
+               Exn_Handler   : constant Exception_Handler :=
+                 Node.As_Exception_Handler;
+               Exn_Stmt_List : constant Node_Rewriting_Handle :=
+                 Handle (Exn_Handler.F_Stmts);
+            begin
+               Append_Child (Exn_Stmt_List, Clone (Call_Stmt));
+            end;
+         end if;
+      end loop;
+   end Insert_Simple_Dump_Proc_Calls;
+
+   --------------------------------------
+   -- Insert_Controlled_Dump_Proc_Call --
+   --------------------------------------
+
+   procedure Insert_Controlled_Dump_Object_Decl
+     (RH          : Rewriting_Handle;
+      Helper_Unit : Ada_Qualified_Name;
+      Subp_Body   : LAL.Subp_Body)
+   is
+      --  Declare an object of the type <helper unit>.Dump_Controlled_Type
+      --  which will call the procedure Dump_Buffers when finalized.
+
+      Controlled_Type_Name : Ada_Qualified_Name := Helper_Unit;
+      Dump_Object_Decl     : Node_Rewriting_Handle;
+      Decl_List            : constant Node_Rewriting_Handle :=
+        Handle (Subp_Body.F_Decls.F_Decls);
+   begin
+      Controlled_Type_Name.Append
+        (To_Unbounded_String ("Dump_Controlled_Type"));
+      Dump_Object_Decl := Create_From_Template
+        (RH,
+         "GNATcov_Dump_Object : {};",
+         (1 => To_Nodes (RH, Controlled_Type_Name)),
+         Object_Decl_Rule);
+
+      --  Insert the declaration as the first declaration in the
+      --  list to ensure it is finalized last.
+
+      Insert_Child (Decl_List, 1, Dump_Object_Decl);
+   end Insert_Controlled_Dump_Object_Decl;
+
+   ----------------------------------
+   -- Has_Matching_Pragma_For_Unit --
+   ----------------------------------
+
+   function Has_Matching_Pragma_For_Unit
+     (IC     : Inst_Context;
+      Unit   : Compilation_Unit;
+      Filter : access function (Node : Pragma_Node) return Boolean)
+      return Boolean
+   is
+      System_Unit  : constant Analysis_Unit :=
+        IC.Context.Get_From_Provider ("System", Unit_Specification);
+      Unit_Pragmas : constant Pragma_Node_Array :=
+        Unit.P_All_Config_Pragmas
+        & (if System_Unit.Has_Diagnostics
+           then Pragma_Node_Array'(1 .. 0 => No_Pragma_Node)
+           else System_Unit.Root.As_Compilation_Unit.P_All_Config_Pragmas);
+      --  Configuration pragmas that apply to Unit. Also append the list of
+      --  configuration pragmas defined in System as they often define the set
+      --  of restrictions associated with the runtime.
+
+   begin
+      if not Unusable_System_Reported and then System_Unit.Has_Diagnostics
+      then
+         Diagnostics.Report
+           (Msg  => "Could not parse the System unit for the runtime,"
+                    & " instrumentation of mains may be incorrect:",
+            Kind => Low_Warning);
+         for Diag of System_Unit.Diagnostics loop
+            Diagnostics.Report
+              (Msg  => System_Unit.Format_GNU_Diagnostic (Diag),
+               Kind => Low_Warning);
+         end loop;
+         Unusable_System_Reported := True;
+      end if;
+      for Prag_Node of Unit_Pragmas loop
+         if Filter.all (Prag_Node) then
+            return True;
+         end if;
+      end loop;
+      return False;
+
+   end Has_Matching_Pragma_For_Unit;
+
+   -----------------------------------
+   -- Pragma_Restricts_Finalization --
+   -----------------------------------
+
+   function Pragma_Restricts_Finalization
+     (Prag_Node : Pragma_Node) return Boolean
+   is
+   begin
+      --  We are looking for pragmas of the form:
+      --     pragma Restrictions (No_Finalization);
+      --  or
+      --     pragma Restriction (No_Dependence => Ada.Finalization);
+
+      if Canonically_Equal (Prag_Node.F_Id.Text, "Restrictions") then
+         for Assoc of Prag_Node.F_Args loop
+            declare
+               Prag_Assoc : constant Pragma_Argument_Assoc :=
+                 Assoc.As_Pragma_Argument_Assoc;
+            begin
+               if not Prag_Assoc.F_Name.Is_Null
+                 and then
+                   (Canonically_Equal
+                      (Prag_Assoc.F_Name.Text, "No_Finalization")
+                    or else
+                      (Canonically_Equal
+                         (Prag_Assoc.F_Name.Text, "No_Dependence")
+                       and then Canonically_Equal (Prag_Assoc.F_Expr.Text,
+                                                   "Ada.Finalization")))
+               then
+                  return True;
+               end if;
+            end;
+         end loop;
+      end if;
+      return False;
+   end Pragma_Restricts_Finalization;
+
+   -------------------------------------
+   -- Finalization_Restricted_In_Unit --
+   -------------------------------------
+
+   function Finalization_Restricted_In_Unit
+     (IC : Inst_Context; Unit : Compilation_Unit) return Boolean
+   is
+   begin
+      if not Project.Runtime_Supports_Finalization then
+         return True;
+      end if;
+      return Has_Matching_Pragma_For_Unit
+               (IC, Unit, Pragma_Restricts_Finalization'Access);
+   end Finalization_Restricted_In_Unit;
+
+   --------------------------------------
+   -- Pragma_Prevents_Task_Termination --
+   --------------------------------------
+
+   function Pragma_Prevents_Task_Termination
+     (Prag_Node : Pragma_Node) return Boolean
+   is
+   begin
+      --  We are looking for pragmas of the form:
+      --     pragma Restrictions (No_Tasking);
+      --  or
+      --     pragma Restriction (No_Dependence => Ada.Task_Termination);
+      --  or
+      --     pragma Restriction (No_Depenence => Ada.Task_Identification);
+
+      if Canonically_Equal (Prag_Node.F_Id.Text, "Restrictions") then
+         for Assoc of Prag_Node.F_Args loop
+            declare
+               Prag_Assoc : constant Pragma_Argument_Assoc :=
+                 Assoc.As_Pragma_Argument_Assoc;
+            begin
+               if not Prag_Assoc.F_Name.Is_Null
+                 and then
+                   (Canonically_Equal
+                      (Prag_Assoc.F_Name.Text, "No_Finalization")
+                    or else
+                      (Canonically_Equal
+                         (Prag_Assoc.F_Name.Text, "No_Dependence")
+                       and then
+                         (Canonically_Equal (Prag_Assoc.F_Expr.Text,
+                                             "Ada.Task_Termination")
+                          or else
+                            Canonically_Equal (Prag_Assoc.F_Expr.Text,
+                                               "Ada.Task_Identification"))))
+               then
+                  return True;
+               end if;
+            end;
+         end loop;
+      end if;
+      return False;
+   end Pragma_Prevents_Task_Termination;
+
+   ---------------------------------
+   -- Task_Termination_Restricted --
+   ---------------------------------
+
+   function Task_Termination_Restricted
+     (IC : Inst_Context; Unit : Compilation_Unit) return Boolean
+   is
+   begin
+      if not Project.Runtime_Supports_Task_Termination then
+         return False;
+      end if;
+      return Has_Matching_Pragma_For_Unit
+        (IC, Unit, Pragma_Prevents_Task_Termination'Access);
+   end Task_Termination_Restricted;
+
    -------------------------------
    -- Auto_Dump_Buffers_In_Main --
    -------------------------------
@@ -6057,8 +6434,6 @@ package body Instrument.Ada_Unit is
       Main : Compilation_Unit_Name;
       URH  : Unit_Rewriting_Handle)
    is
-      No_Node : Node_Rewriting_Handle renames No_Node_Rewriting_Handle;
-
       U   : constant Analysis_Unit := Unit (URH);
       RH  : constant Rewriting_Handle := Handle (U.Context);
       Tmp : LAL.Ada_Node := U.Root;
@@ -6066,12 +6441,11 @@ package body Instrument.Ada_Unit is
       CU        : LAL.Compilation_Unit;
       Subp_Body : LAL.Subp_Body;
 
-      Old_Stmts, New_Stmts : Node_Rewriting_Handle;
+      Controlled_Types_Available : Boolean;
 
-      New_Stmt_List        : constant Node_Rewriting_Handle :=
-        Create_Node (RH, Ada_Stmt_List);
-      --  List of statements to contain 1) the original handled statements
-      --  (Old_Stmts) and 2) the call to the Write_Trace_File procedure.
+      Actual_Dump_Trigger : Auto_Dump_Trigger;
+      --  Resolved dump trigger after eventual override depending on the
+      --  features available on the runtime.
 
       Instr_Units : constant CU_Name_Vectors.Vector :=
         Instr_Units_For_Closure (IC, Main);
@@ -6107,9 +6481,25 @@ package body Instrument.Ada_Unit is
          Subp_Body := Tmp.As_Subp_Body;
       end if;
 
+      Controlled_Types_Available :=
+        not Finalization_Restricted_In_Unit (IC, CU);
+
+      Actual_Dump_Trigger :=
+        (if IC.Dump_Config.Trigger = Main_End
+           and then not Controlled_Types_Available
+           and then not Task_Termination_Restricted (IC, CU)
+         then Ravenscar_Task_Termination
+         else IC.Dump_Config.Trigger);
+
       --  Emit the helper unit and add a WITH clause for it
 
-      Emit_Dump_Helper_Unit (IC, Info, Main, Helper_Unit);
+      Emit_Dump_Helper_Unit
+        (IC,
+         Info,
+         Main,
+         Helper_Unit,
+         Override_Dump_Trigger => Actual_Dump_Trigger,
+         Has_Controlled        => Controlled_Types_Available);
 
       declare
          Prelude : constant Node_Rewriting_Handle := Handle (CU.F_Prelude);
@@ -6141,152 +6531,61 @@ package body Instrument.Ada_Unit is
          Append_Child (Prelude, Runtime_Version_Check_Node);
       end;
 
-      --  Wrap the previous subprogram body content (declarations, handled
-      --  statements) in a declare block. This is a simple handled statements
-      --  block if there is no declaration.
-
-      declare
-         New_Excs : constant Node_Rewriting_Handle :=
-           Create_Node (RH, Ada_Ada_Node_List);
-
-         Nested_Block : Node_Rewriting_Handle;
-         Nested_Decls : Node_Rewriting_Handle;
-
-         Main_Name  : constant LAL.Defining_Name :=
-           Subp_Body.F_Subp_Spec.F_Subp_Name;
-         Block_Name : constant Node_Rewriting_Handle :=
-           Create_Identifier (RH, "GNATcov_Original_Main");
-
-         function Replace_FQNs
-           (Node : LAL.Ada_Node'Class) return Visit_Status;
-         --  Callback for Libadalang's Traverse. If Node is a dotted name whose
-         --  prefix refers to Main, rewrite the prefix to refer to the named
-         --  block we create here.
-
-         -----------------
-         -- Replace_FQN --
-         -----------------
-
-         function Replace_FQNs
-           (Node : LAL.Ada_Node'Class) return Visit_Status
-         is
-            Name : Dotted_Name;
-         begin
-            if Node.Kind /= Ada_Dotted_Name then
-               return Into;
-            end if;
-            Name := Node.As_Dotted_Name;
-            if Referenced_Defining_Name (Main.Unit, Name.F_Prefix) = Main_Name
-            then
-               declare
-                  Old_Prefix : constant Node_Rewriting_Handle :=
-                    Handle (Name.F_Prefix);
-                  New_Node   : constant Node_Rewriting_Handle :=
-                    Create_Regular_Node
-                      (RH,
-                       Ada_Dotted_Name,
-                       (No_Node_Rewriting_Handle,
-                        Clone (Block_Name)));
-               begin
-                  Replace (Old_Prefix, New_Node);
-                  Set_Child (Handle => New_Node,
-                             Index  => 1,
-                             Child  => Old_Prefix);
-                  return Over;
-               end;
-            end if;
-            return Into;
-         end Replace_FQNs;
-
-      begin
-         --  Extract the original statements (Old_Stmts) and replace it in the
-         --  subprogram body with the new statements.
-
-         Old_Stmts := Handle (Subp_Body.F_Stmts);
-         New_Stmts := Create_Regular_Node
-           (RH, Ada_Handled_Stmts, (New_Stmt_List, New_Excs));
-         Replace (Old_Stmts, New_Stmts);
-
-         --  If the original subprogram has declarations or exception handlers,
-         --  wrap the original statements in a named block to hold them.
-
-         if Subp_Body.F_Decls.F_Decls.Children_Count = 0
-            and then Subp_Body.F_Stmts.F_Exceptions.Children_Count = 0
-         then
-            Nested_Block := Old_Stmts;
-         else
-            Nested_Decls := Handle (Subp_Body.F_Decls);
-            Replace
-              (Nested_Decls,
-               Create_Regular_Node
-                 (RH, Ada_Declarative_Part,
-                  (1 => Create_Node (RH, Ada_Ada_Node_List))));
-
-            Nested_Block := Create_Named_Stmt
-              (RH,
-               F_Decl => Create_Named_Stmt_Decl
-                 (RH, Create_Defining_Name (RH, Clone (Block_Name)), No_Node),
-               F_Stmt => Create_Decl_Block
-                 (RH,
-                  F_Decls    => Nested_Decls,
-                  F_Stmts    => Old_Stmts,
-                  F_End_Name => Clone (Block_Name)));
-
-            --  Change the Qualified names in the Main's declarations and
-            --  statements to be compatible ith the new nested block.
-            Subp_Body.F_Stmts.Traverse (Replace_FQNs'Access);
-            Subp_Body.F_Decls.Traverse (Replace_FQNs'Access);
-
-         end if;
-         Append_Child (New_Stmt_List, Nested_Block);
-      end;
-
       --  Depending on the chosen coverage buffers dump trigger, insert the
       --  appropriate code.
 
-      case Auto_Dump_Trigger (IC.Dump_Config.Trigger) is
+      case Actual_Dump_Trigger is
 
       when At_Exit | Ravenscar_Task_Termination =>
 
-         --  Build the call to the registration procedure and insert it in
-         --  New_Stmt_List, right before the old list of statements.
+         --  Build the call to the registration function and insert it in
+         --  the main's declarative part, right before the first declaration.
 
          declare
-            Register_Procedure : Ada_Qualified_Name;
-            --  Name of the procedure to register the coverage buffers dump
+            Register_Function : Ada_Qualified_Name;
+            --  Name of the function to register the coverage buffers dump
             --  routine.
 
-            Call_Stmt : Node_Rewriting_Handle;
-
+            Call_Expr : Node_Rewriting_Handle;
+            Call_Decl : Node_Rewriting_Handle;
+            Decl_List : constant Node_Rewriting_Handle :=
+              Handle (Subp_Body.F_Decls.F_Decls);
          begin
-            Register_Procedure := Helper_Unit;
-            Register_Procedure.Append (Register_Dump_Procedure_Name);
+            Register_Function := Helper_Unit;
+            Register_Function.Append (Register_Dump_Function_Name);
+            Call_Expr := To_Nodes (RH, Register_Function);
 
-            Call_Stmt := Create_Regular_Node
-              (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Register_Procedure)));
-            Insert_Child (New_Stmt_List, 1, Call_Stmt);
+            Call_Decl := Create_From_Template
+              (RH,
+               "Autodump_Dummy : {} := {};",
+               (1 => To_Nodes (RH, Witness_Dummy_Type_Name), 2 => Call_Expr),
+               Object_Decl_Rule);
+            Insert_Child (Decl_List, 1, Call_Decl);
          end;
 
       when Main_End =>
 
-         --  Build the call to the dump procedure and append it to
-         --  New_Stmt_List, right after the old list of statements.
+         --  For Main_End we have three instrumentation schemes depending on
+         --  the availability of tasks and controlled types:
+         --
+         --  - If controlled types are available use a controlled object to
+         --    dump the buffers as part of its finalization.
+         --
+         --  - If controlled types are unavailable but task types are, then
+         --    use the Ravenscar_Task_Termination dump trigger as we otherwise
+         --    have no instrumentation method that works with all code
+         --    constructs. In that case, Actuall_Dump_Trigger is set to
+         --    Ravenscar_Task_Termination and we should not reach this part of
+         --    the code.
+         --
+         --  - If we do not have finalization or tasks then simply insert calls
+         --    right before all the exit points of the main.
 
-         declare
-            Dump_Procedure : Ada_Qualified_Name;
-            --  Name of the procedure to dump coverage buffers
-
-            Call_Stmt : Node_Rewriting_Handle;
-
-         begin
-            Dump_Procedure := Helper_Unit;
-            Dump_Procedure.Append (Dump_Procedure_Name);
-
-            Call_Stmt := Create_Regular_Node
-              (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Dump_Procedure)));
-            Append_Child (New_Stmt_List, Call_Stmt);
-         end;
-
+         if not Finalization_Restricted_In_Unit (IC, CU) then
+            Insert_Controlled_Dump_Object_Decl (RH, Helper_Unit, Subp_Body);
+         else
+            Insert_Simple_Dump_Proc_Calls (RH, Helper_Unit, Subp_Body);
+         end if;
       end case;
    end Auto_Dump_Buffers_In_Main;
 
@@ -6459,8 +6758,8 @@ package body Instrument.Ada_Unit is
             if MCDC_Coverage_Enabled then
 
                --  As high-level SCO tables have been populated, we have built
-               --  BDDs for each decisions, and we can now set the correct
-               --  MC/DC path offset for each condition.
+               --  BDDs for each decision, and we can now set the correct MC/DC
+               --  path offset for each condition.
                --
                --  We do not include a witness call for conditions which appear
                --  in a decision with a path count exceeding the limit to avoid
@@ -6873,10 +7172,12 @@ package body Instrument.Ada_Unit is
    ---------------------------
 
    procedure Emit_Dump_Helper_Unit
-     (IC          : Inst_Context;
-      Info        : in out Project_Info;
-      Main        : Compilation_Unit_Name;
-      Helper_Unit : out Ada_Qualified_Name)
+     (IC                    : Inst_Context;
+      Info                  : in out Project_Info;
+      Main                  : Compilation_Unit_Name;
+      Helper_Unit           : out Ada_Qualified_Name;
+      Override_Dump_Trigger : Any_Dump_Trigger := Manual;
+      Has_Controlled        : Boolean := False)
    is
       File : Text_Files.File_Type;
 
@@ -6896,9 +7197,11 @@ package body Instrument.Ada_Unit is
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
 
-      Dump_Trigger : constant Auto_Dump_Trigger := IC.Dump_Config.Trigger;
-      --  Shortcut to avoid repeatedly restricting the dump trigger to the
-      --  Auto_Dump_Trigger subtype.
+      Dump_Trigger : constant Auto_Dump_Trigger :=
+        (if Override_Dump_Trigger = Manual
+         then IC.Dump_Config.Trigger
+         else Override_Dump_Trigger);
+      --  Resolved dump trigger
 
    --  Start of processing for Emit_Dump_Helper_Unit
 
@@ -6944,20 +7247,33 @@ package body Instrument.Ada_Unit is
                  Switches.Ada_Language));
 
          Put_Warnings_And_Style_Checks_Pragmas (File);
+         Put_With (Sys_Buffers);
+         if Dump_Trigger = Main_End and then Has_Controlled then
+            File.Put_Line ("with Ada.Finalization;");
+         end if;
          File.Put_Line ("package " & Helper_Unit_Name & " is");
          File.New_Line;
          File.Put_Line ("   procedure " & Dump_Procedure & ";");
          File.Put_Line ("   pragma Convention (C, " & Dump_Procedure & ");");
+         File.New_Line;
 
          case Dump_Trigger is
             when At_Exit | Ravenscar_Task_Termination =>
                File.Put_Line
-                 ("procedure "
-                  & To_String (Register_Dump_Procedure_Name) & ";");
+                 ("function "
+                  & To_String (Register_Dump_Function_Name) & " return "
+                  & To_Ada (Witness_Dummy_Type_Name) & ";");
                File.New_Line;
 
             when Main_End =>
-               null;
+               if Has_Controlled then
+                  File.Put_Line ("   type Dump_Controlled_Type is new"
+                                 & " Ada.Finalization.Controlled with");
+                  File.Put_Line ("     null record;");
+                  File.Put_Line ("   overriding procedure Finalize (Self : in"
+                                 & " out Dump_Controlled_Type);");
+                  File.New_Line;
+               end if;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");
@@ -7056,16 +7372,17 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;
 
-         --  Emit trigger-specific procedures
+         --  Emit trigger-specific subprograms
 
          case Dump_Trigger is
             when At_Exit =>
 
-               --  Emit a procedure to schedule a trace dump with atexit
+               --  Emit a function to schedule a trace dump with atexit
 
                File.Put_Line
-                 ("procedure "
-                  & To_String (Register_Dump_Procedure_Name) & " is");
+                 ("function "
+                  & To_String (Register_Dump_Function_Name) & " return "
+                  & To_Ada (Witness_Dummy_Type_Name) & " is");
                File.Put_Line ("   type Callback is access procedure;");
                File.Put_Line ("   pragma Convention (C, Callback);");
                File.New_Line;
@@ -7075,9 +7392,9 @@ package body Instrument.Ada_Unit is
                File.Put_Line ("   Dummy : constant Interfaces.C.int :=");
                File.Put_Line ("     atexit (" & Dump_Procedure & "'Access);");
                File.Put_Line ("begin");
-               File.Put_Line ("   null;");
+               File.Put_Line ("   return (Data => False);");
                File.Put_Line
-                 ("end " & To_String (Register_Dump_Procedure_Name) & ";");
+                 ("end " & To_String (Register_Dump_Function_Name) & ";");
                File.New_Line;
 
             when Ravenscar_Task_Termination =>
@@ -7099,22 +7416,31 @@ package body Instrument.Ada_Unit is
                File.Put_Line ("  end Wrapper;");
                File.New_Line;
 
-               --  Emit a procedure to schedule a trace dump with
+               --  Emit a function to schedule a trace dump with
                --  Ada.Task_Termination.
 
                File.Put_Line
-                 ("procedure "
-                  & To_String (Register_Dump_Procedure_Name) & " is");
+                 ("function "
+                  & To_String (Register_Dump_Function_Name) & " return "
+                  & To_Ada (Witness_Dummy_Type_Name));
                File.Put_Line ("begin");
                File.Put_Line ("   Ada.Task_Termination"
                               & ".Set_Dependents_Fallback_Handler"
                               & " (Wrapper.Do_Dump'Access);");
+               File.Put_Line ("   return (Data => False);");
                File.Put_Line
-                 ("end " & To_String (Register_Dump_Procedure_Name) & ";");
+                 ("end " & To_String (Register_Dump_Function_Name) & ";");
                File.New_Line;
 
             when Main_End =>
-               null;
+               if Has_Controlled then
+                  File.Put_Line ("   overriding procedure Finalize (Self : in"
+                                  & " out Dump_Controlled_Type) is");
+                  File.Put_Line ("   begin");
+                  File.Put_Line ("      Dump_Buffers;");
+                  File.Put_Line ("   end Finalize;");
+                  File.New_Line;
+               end if;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");

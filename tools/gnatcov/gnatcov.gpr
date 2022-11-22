@@ -94,6 +94,10 @@ project Gnatcov is
 
       for Local_Configuration_Pragmas use "gnat.adc";
 
+      --  As we don't want to compile with clang++ (compilation of
+      --  clang-wrapper.cc errors out), force the use of g++.
+
+      for Driver ("C++") use "g++";
    end Compiler;
 
    package Linker is
