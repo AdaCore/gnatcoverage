@@ -914,11 +914,11 @@ package body Instrument.Common is
 
    procedure Remap_Scope_Entity
      (Scope_Entity : Scope_Entity_Acc;
-      SCO_Map      : LL_HL_SCO_Map)
-   is
+      SCO_Map      : LL_HL_SCO_Map) is
    begin
       Scope_Entity.From := SCO_Map (Nat (Scope_Entity.From));
-      Scope_Entity.To := SCO_Map (Nat (Scope_Entity.To));
+      Scope_Entity.To   := SCO_Map (Nat (Scope_Entity.To));
+
       for Child of Scope_Entity.Children loop
          Remap_Scope_Entity (Child, SCO_Map);
       end loop;
@@ -954,60 +954,6 @@ package body Instrument.Common is
       end loop;
       return Result;
    end Instr_Units_For_Closure;
-
-   -----------------
-   -- Enter_Scope --
-   -----------------
-
-   procedure Enter_Scope
-     (UIC        : in out Unit_Inst_Context;
-      Scope_Name : Unbounded_String;
-      Sloc       : Slocs.Local_Source_Location)
-   is
-      New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
-        (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
-         To       => No_SCO_Id,
-         Name     => Scope_Name,
-         Sloc     => Sloc,
-         Children => Scope_Entities_Vectors.Empty_Vector,
-         Parent   => UIC.Current_Scope_Entity);
-   begin
-      if UIC.Current_Scope_Entity /= null then
-         UIC.Current_Scope_Entity.Children.Append (New_Scope_Ent);
-      end if;
-      UIC.Current_Scope_Entity := New_Scope_Ent;
-   end Enter_Scope;
-
-   ----------------
-   -- Exit_Scope --
-   ----------------
-
-   procedure Exit_Scope (UIC : in out Unit_Inst_Context)
-   is
-      Parent : Scope_Entity_Acc renames UIC.Current_Scope_Entity.Parent;
-      Scope  : Scope_Entity_Acc renames UIC.Current_Scope_Entity;
-   begin
-      --  Update the last SCO for this scope entity
-
-      Scope.To := SCO_Id (SCOs.SCO_Table.Last);
-
-      --  If the scope has no SCO (it could be possible for a package spec with
-      --  only subprogram declarations for instance), discard it.
-
-      if Scope.To < Scope.From then
-         if Parent /= null then
-            Parent.Children.Delete_Last;
-         end if;
-         Free (Scope);
-      end if;
-
-      --  If this is not the top-level scope (we want to keep its reference
-      --  after having traversed the AST), go up the scope tree.
-
-      if Parent /= null then
-         Scope := Parent;
-      end if;
-   end Exit_Scope;
 
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GNATcov_RTS"));

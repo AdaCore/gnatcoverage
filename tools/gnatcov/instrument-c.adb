@@ -179,12 +179,28 @@ package body Instrument.C is
      (Pass : Instrument_Pass_Kind;
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T);
-   --  Open a scope for N
+   --  Open a scope for N under the scope of the file in which the
+   --  corresponding code was written. This must be completed with a call to
+   --  the function Exit_Scope, defined below. Assume that the scope first SCO
+   --  is the next generated SCO (SCOs.SCO_Table.Last + 1). Update
+   --  UIC.Scopes to the created entity and UIC.Current_File_Scope to the
+   --  corresponding file.
 
    overriding procedure Exit_Scope
      (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class);
-   --  Close the current scope
+      UIC  : in out C_Unit_Inst_Context'Class)
+     with Pre => UIC.Scopes.Contains (UIC.Current_File_Scope);
+   --  Close the current scope, removing the current scope of the current file
+   --  from UIC.Scopes if it does not contain SCOs. Assume that the last
+   --  generated SCO (SCOs.SCO_Table.Last) is the last SCO for the current
+   --  scope.
+
+   procedure Remap_Scopes
+     (Scopes  : Scopes_In_Files_Map.Map;
+      SCO_Map : LL_HL_SCO_Map);
+   --  Convert low level SCOs in each scope for each file to high-level SCOs
+   --  using the mapping in SCO_Map. Set the file's SCO range to cover all of
+   --  its scopes' SCO ranges.
 
    overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
@@ -605,11 +621,73 @@ package body Instrument.C is
    overriding procedure Enter_Scope
      (Pass : Instrument_Pass_Kind;
       UIC  : in out C_Unit_Inst_Context'Class;
-      N    : Cursor_T) is
+      N    : Cursor_T)
+   is
+      procedure Enter_File_Scope
+        (UIC : in out C_Unit_Inst_Context'Class;
+         SFI : Source_File_Index)
+      with Post => UIC.Scopes.Contains (SFI);
+      --  Create a global scope for the file index SFI in which all scopes
+      --  opened in the file will be stored.
+
+      ----------------------
+      -- Enter_File_Scope --
+      ----------------------
+
+      procedure Enter_File_Scope
+        (UIC : in out C_Unit_Inst_Context'Class;
+         SFI : Source_File_Index) is
+      begin
+         if not UIC.Scopes.Contains (SFI) then
+            declare
+               New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
+                 (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
+                  To       => No_SCO_Id,
+                  Name     => +Get_Unique_Name (SFI),
+                  Sloc     => (Line => 0, Column => 0),
+                  Children => Scope_Entities_Vectors.Empty_Vector,
+                  Parent   => null);
+            begin
+               UIC.Scopes.Insert (SFI, New_Scope_Ent);
+            end;
+         end if;
+
+         UIC.Current_File_Scope := SFI;
+      end Enter_File_Scope;
+
+      Sloc : constant Source_Location   := Start_Sloc (N);
+      File : constant Source_File_Index := Sloc.Source_File;
    begin
-      Enter_Scope (UIC        => UIC,
-                   Scope_Name => +Get_Decl_Name_Str (N),
-                   Sloc       => Start_Sloc (N).L);
+      --  For C and C++ programs that can include header files we need to be
+      --  able to know which file a scope was opened in. For this we use a map
+      --  from Source_File_Index to Scope_Entity_Acc. The scope associated to a
+      --  file is the last scope that was opened in it but not yet exited.
+      --  This mechanism works in the same way as that for Ada with the
+      --  possibility to have one current scope per file rather than just one
+      --  only for the file being instrumented.
+
+      Enter_File_Scope (UIC, File);
+
+      declare
+         C             : constant Scopes_In_Files_Map.Cursor :=
+           UIC.Scopes.Find (File);
+         Current_Scope : constant Scope_Entity_Acc :=
+           Scopes_In_Files_Map.Element (C);
+         New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
+           (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
+            To       => No_SCO_Id,
+            Name     => +Get_Decl_Name_Str (N),
+            Sloc     => Sloc.L,
+            Children => Scope_Entities_Vectors.Empty_Vector,
+            Parent   => Current_Scope);
+      begin
+         --  Add New_Scope_Ent to the children of the last open scope in the
+         --  file.
+         Current_Scope.Children.Append (New_Scope_Ent);
+
+         --  Set New_Scope_Ent as the current open scope for the file.
+         UIC.Scopes.Replace_Element (C, New_Scope_Ent);
+      end;
    end Enter_Scope;
 
    ----------------
@@ -618,12 +696,67 @@ package body Instrument.C is
 
    overriding procedure Exit_Scope
      (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class) is
+      UIC  : in out C_Unit_Inst_Context'Class)
+   is
+      C     : Scopes_In_Files_Map.Cursor :=
+        UIC.Scopes.Find (UIC.Current_File_Scope);
+      Scope : Scope_Entity_Acc := Scopes_In_Files_Map.Element (C);
    begin
-      if UIC.Current_Scope_Entity /= null then
-         Exit_Scope (UIC);
+      --  If the scope associated to the current file is that of the file (no
+      --  parent), no scope is currently open in it. Then the scope that needs
+      --  closing is the current one of the file being instrumented.
+
+      if Scope.Parent = null then
+         UIC.Current_File_Scope := UIC.SFI;
+         C     := UIC.Scopes.Find (UIC.SFI);
+         Scope := Scopes_In_Files_Map.Element (C);
       end if;
+
+      declare
+         Parent : constant Scope_Entity_Acc := Scope.Parent;
+      begin
+         --  Update the last SCO for this scope entity
+
+         Scope.To := SCO_Id (SCOs.SCO_Table.Last);
+
+         --  If the scope has no SCO, discard it
+
+         if Scope.To < Scope.From then
+            if Parent /= null then
+               Parent.Children.Delete_Last;
+            end if;
+            Free (Scope);
+         end if;
+
+         --  If this is not a top-level file scope (we want to keep its
+         --  reference after having traversed the AST), go up the scope tree
+         --  of the current file.
+
+         if Parent /= null then
+            UIC.Scopes.Replace_Element (C, Parent);
+         end if;
+      end;
    end Exit_Scope;
+
+   ------------------
+   -- Remap_Scopes --
+   ------------------
+
+   procedure Remap_Scopes
+     (Scopes  : Scopes_In_Files_Map.Map;
+      SCO_Map : LL_HL_SCO_Map) is
+   begin
+      for S of Scopes loop
+         if not S.Children.Is_Empty then
+            for Child of S.Children loop
+               Remap_Scope_Entity (Child, SCO_Map);
+            end loop;
+
+            S.From := S.Children.First_Element.From;
+            S.To   := S.Children.Last_Element.To;
+         end if;
+      end loop;
+   end Remap_Scopes;
 
    ----------------
    -- Append_SCO --
@@ -2788,11 +2921,6 @@ package body Instrument.C is
       UIC.Rewriter := Rewriter.Rewriter;
       Insert_Extern_Location := Find_First_Insert_Location (UIC.TU);
 
-      --  Enter the scope corresponding to the file in which all other scopes
-      --  will be declared.
-
-      Enter_Scope (UIC, CU_Name.Filename, (Line => 0, Column => 0));
-
       Traverse_Declarations
         (IC  => IC,
          UIC => UIC,
@@ -2814,10 +2942,6 @@ package body Instrument.C is
             & ". Discarding preprocessing information.");
          UIC.LL_PP_Info_Map.Clear;
       end if;
-
-      --  Exit the scope of the file
-
-      Exit_Scope (UIC);
 
       --  Now that the set of coverage obligations and the set of source files
       --  are known, allocate the required set of coverage buffers (one per
@@ -2964,20 +3088,21 @@ package body Instrument.C is
 
                Set_Bit_Maps (UIC.CUs.Element (SFI), Bit_Maps);
 
-               if UIC.Current_Scope_Entity /= null then
+               --  Iterate through the package level body entities
 
-                  --  Iterate through the package level body entities
+               Remap_Scopes (UIC.Scopes, SCO_Map);
 
-                  Remap_Scope_Entity (UIC.Current_Scope_Entity, SCO_Map);
-
+               for C in UIC.Scopes.Iterate loop
                   declare
                      CU : constant Created_Unit_Maps.Cursor :=
-                       UIC.CUs.Find (UIC.SFI);
+                       UIC.CUs.Find (Scopes_In_Files_Map.Key (C));
                   begin
-                     Set_Scope_Entity (Created_Unit_Maps.Element (CU),
-                                       UIC.Current_Scope_Entity);
+                     if Created_Unit_Maps.Has_Element (CU) then
+                        Set_Scope_Entity (Created_Unit_Maps.Element (CU),
+                                          Scopes_In_Files_Map.Element (C));
+                     end if;
                   end;
-               end if;
+               end loop;
             end;
          end loop;
       end;
