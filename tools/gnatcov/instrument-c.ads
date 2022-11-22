@@ -323,6 +323,13 @@ package Instrument.C is
       Hash            => Hash,
       Equivalent_Keys => "=");
 
+   package Scopes_In_Files_Map is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Source_File_Index,
+      Element_Type => Scope_Entity_Acc);
+   --  Mapping from a source file to the tree of scopes opened within it. The
+   --  root of each tree is the scope corresponding to the file itself in which
+   --  all its scopes are stored.
+
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
          TU       : Translation_Unit_T;
@@ -360,6 +367,16 @@ package Instrument.C is
          --  Compilation units created while instrumenting this source file.
          --  Initialized when calling Process_Low_Level_SCOs in
          --  Instrument_Source_File.
+
+         Scopes : Scopes_In_Files_Map.Map := Scopes_In_Files_Map.Empty_Map;
+         --  Mapping between a file's SFI and the scopes containing SCOs
+         --  defined within that file. The SCOs located in imported files
+         --  are traversed during the instrumentation of the importing file
+         --  after preprocessing. This is needed in order to keep track of
+         --  which scope was originally opened in which file.
+
+         Current_File_Scope : Source_File_Index;
+         --  Source file in wich the last scope encountered was opened.
       end record;
 
    type C_Source_Rewriter is tagged limited private;

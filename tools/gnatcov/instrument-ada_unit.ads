@@ -288,6 +288,12 @@ private
 
          Non_Instr_LL_SCOs : Non_Instrumented_SCO_Sets.Set;
          --  Set of low level SCO ids that were not instrumented
+
+         Current_Scope_Entity : Scope_Entity_Acc := null;
+         --  Information about the name, sloc, SCO range and children scopes of
+         --  the current scope entity. This is modified when entering a scope
+         --  (updated to the current scope), and when leaving it (updated to
+         --  the current scope parent, if any).
       end record;
 
    function Insert_MCDC_State
