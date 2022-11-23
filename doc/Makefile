@@ -74,7 +74,7 @@ install.html: prepare-installdir.html
 gnatcov/fig_%.png: gnatcov/fig_%.dot
 gnatcov/fig_%.pdf: gnatcov/fig_%.dot
 
-FIGURES=fig_consolidation fig_multipath-bdd fig_flow0
+FIGURES=fig_consolidation fig_multipath-bdd fig_flow_compare fig_flow_srctraces
 
 prepare-images:: $(foreach fig, $(FIGURES), gnatcov/$(fig).pdf)
 prepare-images:: $(foreach fig, $(FIGURES), gnatcov/$(fig).png)
