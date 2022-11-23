@@ -1,14 +1,11 @@
 # This bit is used to make sure we don't run too many pipelines:
-# run on a triggered pipeline, on a merge request, or on a push to a branch,
-# but do not run in reaction to a push to a branch if there is also
-# a merge request for it.
+# don't run the branch CI when a merge request is already open for the
+# branch.
 workflow:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
       when: never
-    - if: '$CI_COMMIT_BRANCH'
+    - when: always
 
 variables:
 #  These are not needed at the moment, but will be useful when we migrate
@@ -30,10 +27,8 @@ build_and_test:
      - cpu:8
      - mem:16
   stage: build_and_test
-  rules:
-    # Triggers on a push or pipeline
-    - if: ($CI_PIPELINE_SOURCE == "pipeline" || $CI_PIPELINE_SOURCE == "push")
   script:
+    - env
     - . ~/.aws_container_credentials
     - export PATH=/it/e3/bin:$PATH
 
@@ -61,29 +56,31 @@ build_and_test:
     - anod test gnatcov --qualifier=-O0
     - e3-testsuite-report
         --failure-exit-code 1
-        --xunit-output /tmp/xunit_output.xml
+        --xunit-output /tmp/xunit_output_O0.xml
         --xunit-name O0
          x86_64-linux/gnatcov-O0-test/results/new/
 
     - anod test gnatcov --qualifier=src-traces
     - e3-testsuite-report
         --failure-exit-code 1
-        --xunit-output /tmp/xunit_output.xml
+        --xunit-output /tmp/xunit_output_src-traces.xml
         --xunit-name src-traces
       x86_64-linux/gnatcov-src-traces-test/results/new/
 
     - anod test gnatcov --qualifier=spark-tests,src-traces
     - e3-testsuite-report
         --failure-exit-code 1
-        --xunit-output /tmp/xunit_output.xml
+        --xunit-output /tmp/xunit_output_spark.xml
         --xunit-name spark
       x86_64-linux/gnatcov-spark-tests-src-traces-test/results/new/
 
-    - cp /tmp/xunit_output.xml $CI_PROJECT_DIR
+    - cp /tmp/xunit_output*.xml $CI_PROJECT_DIR
 
   artifacts:
     when: always
     paths:
-      - xunit_output.xml
+      - xunit_output_O0.xml
+      - xunit_output_src-traces.xml
+      - xunit_output_spark.xml
     reports:
-      junit: xunit_output.xml
+      junit: "xunit_output*.xml"
