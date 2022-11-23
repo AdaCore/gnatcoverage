@@ -6396,11 +6396,9 @@ package body Instrument.Ada_Unit is
      (IC : Inst_Context; Unit : Compilation_Unit) return Boolean
    is
    begin
-      if not Project.Runtime_Supports_Finalization then
-         return True;
-      end if;
-      return Has_Matching_Pragma_For_Unit
-               (IC, Unit, Pragma_Restricts_Finalization'Access);
+      return not Project.Runtime_Supports_Finalization
+            or else Has_Matching_Pragma_For_Unit
+                      (IC, Unit, Pragma_Restricts_Finalization'Access);
    end Finalization_Restricted_In_Unit;
 
    --------------------------------------
@@ -6428,6 +6426,8 @@ package body Instrument.Ada_Unit is
                  and then
                    (Canonically_Equal
                       (Prag_Assoc.F_Name.Text, "No_Finalization")
+                    or else Canonically_Equal
+                      (Prag_Assoc.F_Name.Text, "No_Tasking")
                     or else
                       (Canonically_Equal
                          (Prag_Assoc.F_Name.Text, "No_Dependence")
@@ -6454,11 +6454,9 @@ package body Instrument.Ada_Unit is
      (IC : Inst_Context; Unit : Compilation_Unit) return Boolean
    is
    begin
-      if not Project.Runtime_Supports_Task_Termination then
-         return False;
-      end if;
-      return Has_Matching_Pragma_For_Unit
-        (IC, Unit, Pragma_Prevents_Task_Termination'Access);
+      return not Project.Runtime_Supports_Task_Termination
+            or else Has_Matching_Pragma_For_Unit
+                      (IC, Unit, Pragma_Prevents_Task_Termination'Access);
    end Task_Termination_Restricted;
 
    -------------------------------
@@ -7428,7 +7426,7 @@ package body Instrument.Ada_Unit is
                File.Put_Line
                  ("function "
                   & To_String (Register_Dump_Function_Name) & " return "
-                  & To_Ada (Witness_Dummy_Type_Name));
+                  & To_Ada (Witness_Dummy_Type_Name) & " is");
                File.Put_Line ("begin");
                File.Put_Line ("   Ada.Task_Termination"
                               & ".Set_Dependents_Fallback_Handler"
