@@ -2,149 +2,109 @@
 Getting Started
 ***************
 
-Framework concepts and process overview
-=======================================
+General notions
+===============
 
-|gcp| provides a range of coverage analysis facilities with support
-notably for
+|gcp| is a code coverage analysis tool offering support for a range of
+coverage metrics and output formats associated with powerful
+:dfn:`consolidation` features letting users assess the combined
+coverage achievements of multiple program executions.
 
-- A variety of measurement methods, coverage criteria and output
-  formats;
+The set of compilation units for which a user needs to assess coverage
+is commonly designated as the set of :dfn:`units of interest`. This is a
+central notion to many of the tool's operations, conveyed by the user
+through command line switches or GPR project file attributes. Units of
+interest typically include the code under test in a campaign, as
+opposed to the sources of the test harness infrastructure.
 
-- Powerful consolidation features to report about the combined
-  achievements of multiple program executions.
+After one or several program executions, the tool computes
+:dfn:`coverage metrics` for a given set of units out of :dfn:`coverage
+trace` data produced by the executions with the assistance of an
+*instrumentation* mechanism. The primary mode offered by |gcp|
+performs :dfn:`source instrumentation`, where the tool produces a
+modified version of the program sources to keep track of coverage
+relevant facts along with the program control flow, and output
+the coverage data when the program terminates. We call :dfn:`source
+traces` the coverage traces produced by programs instrumented this
+way.
 
-Actual coverage is always first computed out of *trace files* conveying what
-test programs have achieved. |gcp| works with two possible kinds of traces:
+The set of metrics that the tool can assess from source traces
+corresponds to the set defined by the DO-178B certification standard
+for civil avionics, that is:
 
-- :dfn:`Binary traces`, produced by an instrumented execution environment
-  while running an unmodifed version of the program. Such traces contain low
-  level information about executed blocks of machine instructions.
+- :dfn:`Statement Coverage`, where the tools assesses the coverage
+  status (executed or not) of source statements such as a variable
+  assignment or a subprogram call;
 
-- :dfn:`Source traces`, produced by an alternative version of the program,
-  built from sources instrumented to feed coverage dedicated datastructures.
+- :dfn:`Decision Coverage`, which, in addition to statement coverage,
+  evaluates whether Boolean expressions (*decisions* in DO178B
+  parlance) have been exercised both True and False, then
 
-Both kinds of traces can be used to assess so called :dfn:`source coverage`
-criteria, where the entities subject to coverage assessment are defined in
-terms of source level constructs. The specific criteria that |gcp| supports
-are those defined by the DO-178B certification standard for civil avionics:
+- :dfn:`Modified Condition/Decision Coverage`, commonly known as
+  *MCDC*, which requires testing particular variations of individual
+  Boolean operands (*conditions* in DO178B parlance) within decisions.
 
-- :dfn:`Statement Coverage`, where the coverage metrics are respective to source
-  level statements such as a variable assignment or a subprogram calls;
+All these metrics are defined with respect to source level entities
+(statements, decisions, conditions), and we commonly refer to such
+assessments as :dfn:`source coverage analysis`. Individual statements,
+decisions, or conditions within the scope of an analysis are referred
+to as :dfn:`Source Coverage Obligations` or :dfn:`SCOs`.
 
-- :dfn:`Decision Coverage`, which, in addition to statement coverage, requires
-  evaluating Boolean expressions (*decisions* in DO178B parlance) both True
-  and False, then
+Workflow overview
+=================
 
-- :dfn:`Modified Condition/Decision Coverage`, commonly known as *MCDC*, which
-  requires testing particular variations of individual Boolean operands
-  (*conditions* in DO178B parlance) within decisions.
+Figure :numref:`fig-flow_srctraces` depicts the workflow involved in
+computing coverage based on source instrumentation.
 
+A setup step is first needed to install a tiny runtime library used by
+the instrumented sources to register coverage facts and output them
+eventually. This runtime is parameterized for the project at hand,
+depending on the set of languages involved (Ada, C, C++) and on the
+kind of target for which the code will be compiled (native, cross with
+OS, or bareboard). Once the setup is done, users proceed with
+instrument / build / execute / analyze cycles to produce traces and
+compute coverage results.
 
-From binary traces, |gcp| is also able to produce :dfn:`object
-coverage` reports, measuring the coverage of machine level
-instructions produced by the compilation toolchain out of the original
-sources. |gcp| supports two criteria of this kind:
+The setup, instrumentation and analysis steps are all driven by a
+|gcv| command line tool which exposes a subcommand for each kind of
+operation; hence |gcvstp| for the setup step, |gcvins| to instrument
+and |gcvcov| to compute metrics from traces.
 
-- :dfn:`Instruction Coverage`, where we evaluate for each machine instruction
-  whether it has been executed at least once or not; and
+GPR project files and associated command line switches are used to let
+the tool know about the project sources and to convey the units of
+interest. Consolidation can be performed by aggregating multiple traces
+directly, or internal representations of partial coverage results
+stored in files that we call :dfn:`Coverage Checkpoints`.
 
-- :dfn:`Branch Coverage`, where, in addition, we evaluate for each conditional
-  branch instruction whether it was only taken, or went fallthrough or both.
-
-A central notion to all the assessments performed with |gcp| is that of
-:dfn:`units of interest`, which simply designates the set of compilation units
-of which we are aiming to assess the coverage. These typically include the
-code under test in a campaign, as opposed to, for example, the sources of the
-test harness infrastructure when one is used. The individual statements,
-decisions, or conditions of relevance within units of interest are referred to
-as :dfn:`Source Coverage Obligations` or :dfn:`SCOs`.
-
-Consolidation can be performed by aggregating multiple traces
-directly, or so called :dfn:`Coverage Checkpoints`, which are just an
-internal representation of partial coverage results.
-
-The high level processes involved in using binary or source traces are
-sketched on :numref:`fig-flow0`. We don't support mixing the two kinds
-of traces together and have depicted a separate analysis/consolidation
-step to emphasize this.
-
-We have however strived to maximize the commonalities between the two
-schemes, as hinted by the use of the same blue color for the common
-notions and analysis steps. Indeed, the command line interfaces
-involved are the same, they use inputs of similar general nature
-(traces or checkpoints) and share common definitions of available
-output formats for source coverage criteria.  This is intended to
-facilitate transitions from one scheme to the other and ensure that
-the widest possible range of improvements benefit both modes in a
-consistent manner.
-
-.. _fig-flow0:
-.. figure:: fig_flow0.*
+.. _fig-flow_srctraces:
+.. figure:: fig_flow_srctraces.*
   :align: center
 
-  Coverage analysis processes overview
+  Source instrumentation based Coverage analysis overview
 
-.. _selecting_trace_kind:
 
-Selecting a trace mode; supported features and environments
-===========================================================
+A simple example
+================
 
-The source and binary trace modes each have specific strengths, the
-relative importance of which depends on the project context.  The
-matrix below summarizes the main characteristics of each mode, as a
-first key to help select one scheme or the other for a given software
-development project:
+Here we first introduce a very simple example software project
+structure then demonstrate one basic analysis workflow for this
+project with actual commands.
 
-.. list-table::
-   :widths: 20 20 20
-   :header-rows: 1
-   :stub-columns: 1
+The examples provided in most of this manual assume a native
+configuration and the process is similar cross environments. Typical
+variations would touch switches controlling where and when coverage
+trace data is output by the instrumented programs, and default values
+for such switches are selected by the tool based on
+:cmd-option:`--target` and :cmd-option:`--RTS` arguments at setup
+time.
 
-   * -
-     - **With Source Traces**
-     - **With Binary Traces**
-   * - *Tracing mechanism*
-     - Program instrumentation
-     - Execution environment
-   * - ~
-     - ~
-     - ~
-   * - *Native applications*
-     - Yes (including shared-libraries)
-     - No
-   * - *Cross configurations with RTOS*
-     - Yes
-     - No
-   * - *Bareboard configurations*
-     - Yes
-     - Selectively (specific CPUs only, through GNATemulator or
-       hardware probes)
-   * - ~
-     - ~
-     - ~
-   * - *Object coverage analysis (language agnostic)*
-     - No
-     - Yes
-   * - *Source coverage analysis for Ada (up to Ada 2012)*
-     - Yes
-     - Yes
-   * - *Source coverage analysis for C*
-     - Beta in release 22
-     - Yes
 
-The source trace based workflow also has a few other limitations that
-are outlined in section :ref:`instr-limitations`.
+Sample project
+--------------
 
-A brief introduction to the main process steps
-==============================================
-
-This section is intended to illustrate the basics of the process on a
-very simple example, without getting into details.
-
-We start from a very simple Ada package exposing a set of elementary
-operations over ``Integer`` objects, with a spec and body in source files
-named ``ops.ads`` and ``ops.adb``:
+We consider an Ada package providing a set of elementary operations
+over ``Integer`` objects, with a spec and body in source files named
+``ops.ads`` and ``ops.adb``:
 
 .. code-block:: ada
 
@@ -168,7 +128,7 @@ named ``ops.ads`` and ``ops.adb``:
      end;
    end;
 
-We will analyse the statement coverage achieved by the sample unit :term:`test
+We will analyze the coverage achieved by the sample unit :term:`test
 driver <Test Driver>` below, in ``test_inc.adb``, which exercises the
 ``Increment`` operation only:
 
@@ -184,13 +144,9 @@ driver <Test Driver>` below, in ``test_inc.adb``, which exercises the
    end;
 
 
-We will illustrate two basic use cases, one using binary traces produced by
-GNATemulator for a cross target, and one using source traces for a native
-environment.
-Assuming we start from a temporary working directory, with the *ops* sources
-in an ``opslib`` subdirectory and the *test* sources in a ``tests``
-subdirectory, we will rely for both cases on a couple of project files in the
-common working directory:
+Assuming a working directory, with the *ops* sources in an ``opslib``
+subdirectory and the *test* sources in a ``tests`` subdirectory, we
+will use a couple of project files in the common working directory:
 
 .. code-block:: ada
 
@@ -213,122 +169,72 @@ common working directory:
   end Tests;
 
 
-If you wish to experiment with both trace modes, you should start from
-separate working directories (one for each mode) to prevent possible
-intereferences of artifacts from one mode on the other.
+Setup, Instrument, Build, Execute, Analyze
+------------------------------------------
 
+We first set up the instrumentation context, providing a local
+*prefix* location where the runtime and default parameters for future
+commands are going to be installed::
 
-Example production of a binary trace for a bareboard environment
-----------------------------------------------------------------
+   gnatcov setup --prefix=/path/to/gnatcov-rts
 
-For binary traces, |gcv| relies on an instrumented execution environment to
-produce the traces instead of having to instrument the program itself with
-extra code and data structures. For cross configurations, |gem| provides such
-an environment.  Hardware probes may also be used, provided trace data is
-converted to the format |gcv| expects.
+The simplest means to let further commands know about the *prefix*
+location consists in adding ``<prefix>/share/gpr`` to the
+``GPR_PROJECT_PATH`` variable. In a Unix like environment, this would
+be achieved with::
 
-Programs are built from their original sources, only requiring the use of
-:cmd-option:`-g -fpreserve-control-flow -fdump-scos` compilation options to
-generate coverage obligation lists and let us associate execution traces to
-these obligations afterwards.
+   export GPR_PROJECT_PATH=$GPR_PROJECT_PATH:/path/to/gnatcov-rts/share/gpr
 
-For our example use case here, we first use the GNAT Pro toolset for
-``powerpc-elf`` to build, using :command:`gprbuild` as follows::
+The instrumentation step that follows assumes that the original program
+is well formed. A simple way to verify this is to build the non instrumented
+version first. For our example, this would be::
 
-   gprbuild --target=powerpc-elf --RTS=light-mpc8641 -Ptests.gpr \
-     -cargs -g -fpreserve-control-flow -fdump-scos
-
-We pass the project file with ``-P``, the required compilation flags
-with ``-cargs`` and request the use of a ``light`` runtime library tailored
-for the ``mpc8641`` board.
-
-The build command produces a ``test_inc`` executable in the object
-subdirectory. To automate the execution of this program within |gem|
-to produce a trace, we provide the |gcvrun| command. For the use case
-at hand, we would simply do::
-
-  gnatcov run --target=powerpc-elf obj-tests/test_inc
-
-
-... which would produce a ``test_inc.trace`` binary trace file in the current
-directory.  By default, such a trace is amenable to statement and decision
-coverage at most. If MCDC analysis is needed, ``--level=stmt+mcdc`` must be
-passed to |gcvrun| as well and we recommand also providing source coverage
-obligations in this case.
-
-Example production of a source trace for a native environment
--------------------------------------------------------------
-
-The production of source traces is performed by an instrumented version of the
-program running in its regular execution environment. The coverage data is
-collected and output by the program itself. The output step is performed by a
-specific instrumentation of the program main unit, according to a user
-selectable policy.
-
-The whole scheme requires the use of GPR project files. The code inserted by
-the instrumentation process relies on common types and subprograms provided by
-a :dfn:`coverage runtime` library, distributed in source form with |gcp|. The
-first thing to do for a given project is then to setup this coverage runtime
-so it becomes available to the instrumented sources afterwards. This step is
-documented in the :ref:`instr-rts` section of this manual.
-
+   gprbuild -f -p -Ptests.gpr
+   
 Instrumenting a test main program together with its "code" dependency is then
-achieved by a |gcvins| command.  For our example use case, this would be::
+achieved by a |gcvins| command::
 
-    gnatcov instrument -Ptests.gpr --level=stmt \
-      --dump-trigger=atexit --dump-channel=bin-file
+   gnatcov instrument -Ptests.gpr --level=stmt
 
-The ``--dump-channel=bin-file`` switch requests outputing coverage data
-directly to a trace file and ``--dump-trigger=atexit`` instructs to perform
-this operation as part of an execution termination handler, the simplest
-option in native environments. ``--level=stmt`` states that we will want to
-perform statement coverage analysis afterwards and ``-Ptests.gpr`` specifies
-the root project for coverage obligations and the main unit(s) to instrument.
+And building the instrumented program goes like::
 
-After setting ``GPR_PROJECT_PATH`` to designate the directory where the
-coverage runtime has been installed, building the instrumented program then
-goes like::
-
-    gprbuild -f -p -Ptests.gpr \
+   gprbuild -f -p -Ptests.gpr \
       --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts
 
+This is the same command as for the regular build, with a couple
+of additional switches to:
 
-The ``--src-subdirs`` and ``--implicit-with`` options respectively instruct
-the builder to use the alternative sources produced by the instrumenter and to
-automatically provide visiblity over the coverage runtime. This allows
-building the instrumented version of the program without requiring any change
-to the GPR project files.
+  * Instruct the builder to search for the instrumented versions of the
+    sources (``--src-subdirs``),
 
-Then simply executing the test program in its native environment, as in::
+  * Provide visibility to the builder over the coverage runtime
+    referenced by the instrumented sources (``--implicit-with``).
+
+Executing the test program in its native environment, as in::
 
   obj-tests/test_inc
 
-produces a ``test_inc-<stamp>.srctrace`` source trace file in the
+then produces a ``test_inc-<stamp>.srctrace`` source trace file in the
 current directory. The ``-<stamp>`` suffix is intended to prevent
 clashes in case of concurrent executions of the program in the same
 directory. It can be controlled in a variety of ways from the
 instrumentation command line, documented in the :ref:`instr-tracename`
 section of this manual.
 
+Analysis of the coverage achieved by previous executions is done with
+|gcvcov| commands. For our example use case, this could for example
+be::
 
-Example production of a coverage report
----------------------------------------
+  gnatcov coverage --level=stmt --annotate=xcov test_inc*.srctrace -Ptests.gpr
 
-Analysis of the coverage achieved by previous executions is done with |gcvcov|
-commands. For our example use case, this could for example be::
-
-  gnatcov coverage --level=stmt --annotate=xcov <trace> -Ptests.gpr
-
-... where ``<trace>`` would be either the source or the binary trace produced
-by the commands introduced in the previous example sections. Here, we request:
+Here, we request:
 
 - A source *statement coverage* assessment with :cmd-option:`--level=stmt`,
 
 - An annotated source report in text format with :cmd-option:`--annotate=xcov`,
 
-- For the complete set of units involved in the executable, per
-  :cmd-option:`-Ptests.gpr` and no specification otherwise in the project
-  files.
+- For the complete set of units involved in the executable with
+  :cmd-option:`-Ptests.gpr`.
 
 This produces annotated sources in the project's object directory,
 with ``ops.adb.xcov`` quoted below:
@@ -354,20 +260,25 @@ all the statements except the one dealing with a ``Decrement`` operation,
 indeed never exercised by our driver.
 
 The command actually also produces reports for ``ops.ads`` and
-``test_inc.adb``, even though the latter is not really relevant. Focus on
-specific units can be achieved by providing a more precise set of units of
-interest at this stage. For source traces, this could also be incorporated as
-part of the instrumentation step, as there is no point in instrumenting the
-test units for their own coverage achievements.
+``test_inc.adb``, even though the latter is not really relevant. Focus
+on specific units can be achieved by providing a more precise set of
+units of interest at this step, for example passing ``-Pcode.gpr``
+instead of ``-Ptests.gpr``, adding ``--projects=code.gpr`` to the
+latter, or setting dedicated attributes in the project files
+themselves. See the :ref:`sunits` chapter for details on this aspect
+of the procedure.
+
+Also note that units of interest can be stated as part of the
+instrumentation step, which allows limiting the set of sources that
+are instrumented to keep track of coverage, hence minimizes the
+associated performance impact.
 
 Going Further
 =============
 
 Each of the steps involved in the process overview presented previously
-is described in detail in a specific chapter of this manual, the most
-important ones referenced hereafter:
-
-- :ref:`bin_traces`
+is described in detail in a specific chapter of this manual. The most
+important ones are:
 
 - :ref:`src_traces`
 
@@ -375,13 +286,14 @@ important ones referenced hereafter:
 
 - :ref:`scov`
 
-- :ref:`ocov`
-
 - :ref:`consolidation`
 
 :ref:`exemptions` is also worth noting here, a mechanism allowing
 users to define code regions for which coverage violations are
 expected and legitimate (Ada only at this stage).
+
+The known limitations of the tool are outlined in section
+:ref:`instr-limitations`.
 
 
 Conventions used in the rest of this manual

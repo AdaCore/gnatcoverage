@@ -15,12 +15,12 @@ digraph {
   node [shape = box];
 
   node [color = green];
-  instrument [label = "Instrument\nOriginal Sources"];
-  build_instr [label = "Build from\nInstrumented Sources"];
-  regular_execution [label = "Regular Execution\n(Instrumented Executable)"];
+  instrument [label = "Instrument Original Sources\n(gnatcov instrument)"];
+  build_instr [label = "Build from Instrumented Sources\n(gprbuild --src-subdirs ...)"];
+  regular_execution [label = "Regular Execution\n(instrumented executable)"];
 
   node [color = blue];
-  srct_coverage [label = "Analyze/Consolidate"];
+  srct_coverage [label = "Analyze/Consolidate\n(gnatcov coverage)"];
 
   /* products or inputs */
   node [shape = ellipse, color = green];
@@ -40,11 +40,11 @@ digraph {
   /* processes */
   node [shape = box];
   node [color = red];
-  build_orig [label = "Build from\nOriginal Sources"];
-  instr_execution [label = "Instrumented Execution\n(Regular Executable)"];
+  build_orig [label = "Build from Original Sources\n(gprbuild -cargs ...)"];
+  instr_execution [label = "Instrumented Execution\n(gnatcov run)"];
 
   node [color = blue];
-  bint_coverage [label = "Analyze/Consolidate"];
+  bint_coverage [label = "Analyze/Consolidate\n(gnatcov coverage)"];
 
   /* products or inputs */
   node [shape = ellipse, color = red];
@@ -100,6 +100,10 @@ digraph {
 
   build_orig [rank=2];
   build_orig -> instr_execution;
+
+  pad1 [style=invis];
+  build_orig:e -> pad1 [style=invis];
+  pad1 -> instr_execution:e [style=invis];
 
   {rank = same;
    bt1; btdots; bt2;
