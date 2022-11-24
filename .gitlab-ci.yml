@@ -38,12 +38,10 @@ build:
 
     # Build using anod
     - anod build --minimal gnatcov
-    - anod build --minimal gnatcov-internal
 
     # Create the package
     - tar czf $PACKAGE_ABSOLUTE_NAME -C /
         it/wave/x86_64-linux/gnatcov-build/install/
-        it/wave/x86_64-linux/gnatcov-internal/install/
 
     - cd $CI_PROJECT_DIR
     - ls -l $PACKAGE_BASE_NAME
@@ -95,7 +93,6 @@ build_community:
 
     # Setup fingerprints so anod doesn't do unnecessary rebuilds
     - mkdir -p fingerprints
-    - touch fingerprints/x86_64-linux.gnatcov-internal.install.json.assume-unchanged
     - touch fingerprints/x86_64-linux.gnatcov-build.install.json.assume-unchanged
 
 .common_artifacts_bits: &artifacts
@@ -105,7 +102,7 @@ build_community:
     reports:
       junit: xunit_output.xml
 
-test_O0:
+test_bin_traces:
   services:
      - image:sandbox
      - cpu:8
@@ -115,12 +112,12 @@ test_O0:
     - *retrieve_gnatcoverage_extras_and_setup_anod_repo
 
     # Test using anod
-    - anod test gnatcov --qualifier=-O0
+    - anod test gnatcov --target=leon3-elf --qualifier="RTS=embedded-leon3,-O0"
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name O0
-         x86_64-linux/gnatcov-O0-test/results/new/
+        --xunit-name bin-traces
+        leon3-elf-linux64/gnatcov-O0-embedded-leon3-test/results/new/
 
   <<: *artifacts
 
