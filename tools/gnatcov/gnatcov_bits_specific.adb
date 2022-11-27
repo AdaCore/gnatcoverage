@@ -804,16 +804,16 @@ procedure GNATcov_Bits_Specific is
             | Cmd_Dump_Trace_Asm
             | Cmd_Dump_Src_Trace =>
 
-            --  For "coverage", require an annotation format unless we must
-            --  save a checkpoint. In this case, we'll just skip report
-            --  production.
+            --  For "coverage", if the annotation format is not specified on
+            --  the command line, default to report, unless we must save a
+            --  checkpoint.
 
             if Args.Command = Cmd_Coverage
-              and then
-                (Args.String_List_Args (Opt_Annotation_Format).Is_Empty
-                 and Save_Checkpoint = null)
+              and then Args.String_List_Args (Opt_Annotation_Format).Is_Empty
+              and then Save_Checkpoint = null
             then
-               Report_Missing_Argument ("an annotation format");
+               Annotation (Annotate_Report) := True;
+               Annotation (Annotate_Unknown) := False;
             end if;
 
             --  If --no-cov-report is on the command line, check that
@@ -990,11 +990,17 @@ procedure GNATcov_Bits_Specific is
             --  either an object level specified, or possibly no --level at
             --  all.
 
-            if not Source_Coverage_Enabled then
+            if Object_Coverage_Enabled then
                Fatal_Error
                  ("Instrumentation requires a source coverage level"
                   & ASCII.LF
                   & "  (--level=" & Source_Level_Options ("|") & ")");
+            elsif not Source_Coverage_Enabled then
+               Warn
+                 ("Coverage level not specified on the command"
+                  & " line or in the project file (--level="
+                  & Source_Level_Options ("|") & "), defaulting to ""stmt"".");
+               Set_Coverage_Levels ("stmt");
             end if;
 
             if Args.String_Args (Opt_Path_Count_Limit).Present then
@@ -1616,11 +1622,16 @@ begin
 
       when Cmd_Coverage =>
 
-         --  Make sure we have a coverage level
+         --  Warn when the user hasn't explicitly set a coverage level and
+         --  default to stmt.
 
          if not (Source_Coverage_Enabled or else Object_Coverage_Enabled)
          then
-            Report_Missing_Argument ("a coverage level");
+            Warn ("Coverage level not specified on the command line or in the"
+                  & " project file (--level=" & Source_Level_Options ("|")
+                  & "|" & Object_Level_Options ("|") & "), defaulting to"
+                  & " ""stmt"".");
+            Set_Coverage_Levels ("stmt");
          end if;
 
          --  Reject the use of several features that are not supported with
@@ -2347,6 +2358,7 @@ begin
                if Annotation (Annotate_Unknown) then
                   pragma Assert (Save_Checkpoint /= null);
                end if;
+
             else
                pragma Assert (Save_Checkpoint /= null);
             end if;

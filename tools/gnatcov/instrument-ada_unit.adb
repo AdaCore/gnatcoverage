@@ -6359,11 +6359,9 @@ package body Instrument.Ada_Unit is
      (IC : Inst_Context; Unit : Compilation_Unit) return Boolean
    is
    begin
-      if not Project.Runtime_Supports_Finalization then
-         return True;
-      end if;
-      return Has_Matching_Pragma_For_Unit
-               (IC, Unit, Pragma_Restricts_Finalization'Access);
+      return not Project.Runtime_Supports_Finalization
+            or else Has_Matching_Pragma_For_Unit
+                      (IC, Unit, Pragma_Restricts_Finalization'Access);
    end Finalization_Restricted_In_Unit;
 
    --------------------------------------
@@ -6391,6 +6389,8 @@ package body Instrument.Ada_Unit is
                  and then
                    (Canonically_Equal
                       (Prag_Assoc.F_Name.Text, "No_Finalization")
+                    or else Canonically_Equal
+                      (Prag_Assoc.F_Name.Text, "No_Tasking")
                     or else
                       (Canonically_Equal
                          (Prag_Assoc.F_Name.Text, "No_Dependence")
@@ -6417,11 +6417,9 @@ package body Instrument.Ada_Unit is
      (IC : Inst_Context; Unit : Compilation_Unit) return Boolean
    is
    begin
-      if not Project.Runtime_Supports_Task_Termination then
-         return False;
-      end if;
-      return Has_Matching_Pragma_For_Unit
-        (IC, Unit, Pragma_Prevents_Task_Termination'Access);
+      return not Project.Runtime_Supports_Task_Termination
+            or else Has_Matching_Pragma_For_Unit
+                      (IC, Unit, Pragma_Prevents_Task_Termination'Access);
    end Task_Termination_Restricted;
 
    -------------------------------
@@ -6632,6 +6630,10 @@ package body Instrument.Ada_Unit is
       --  any witness calls for elaboration of declarations: they would be
       --  pointless (there is no elaboration code anyway) and, in any case,
       --  illegal.
+
+      Has_Pragma_SCAO : Boolean;
+      --  Whether there is a pragma Short_Circuit_And_Or that applies to this
+      --  unit.
    begin
       Rewriter.Start_Rewriting (IC, Prj_Info, Filename);
 
@@ -6662,10 +6664,22 @@ package body Instrument.Ada_Unit is
 
       Initialize_Rewriting (UIC, CU_Name, IC.Context);
 
-      --  ??? Modify this when libadalang can provide the information about
-      --  global/local configuration pragmas for Short_Circuit_And_Or.
+      begin
+         Has_Pragma_SCAO := UIC.Root_Unit.P_Config_Pragmas
+           (To_Unbounded_Text ("Short_Circuit_And_Or"))'Length /= 0;
+      exception
+         when Exc : Property_Error =>
+            Report
+              (UIC,
+               UIC.Root_Unit,
+               "Could not determine pragmas of the compilation unit: "
+               & Ada.Exceptions.Exception_Information (Exc),
+               Kind => Low_Warning);
+            Has_Pragma_SCAO := False;
+      end;
 
-      UIC.Short_Circuit_And_Or := Switches.Short_Circuit_And_Or;
+      UIC.Short_Circuit_And_Or :=
+        Switches.Short_Circuit_And_Or or else Has_Pragma_SCAO;
 
       --  Create an artificial internal error, if requested
 
@@ -7422,7 +7436,7 @@ package body Instrument.Ada_Unit is
                File.Put_Line
                  ("function "
                   & To_String (Register_Dump_Function_Name) & " return "
-                  & To_Ada (Witness_Dummy_Type_Name));
+                  & To_Ada (Witness_Dummy_Type_Name) & " is");
                File.Put_Line ("begin");
                File.Put_Line ("   Ada.Task_Termination"
                               & ".Set_Dependents_Fallback_Handler"
