@@ -2687,9 +2687,9 @@ package body Instrument.C is
       end if;
    end Finalize;
 
-   ---------------
-   -- Emit_SCOs --
-   ---------------
+   --------------------
+   -- Record_PP_Info --
+   --------------------
 
    procedure Record_PP_Info
      (Unit_Info : Instrumented_Unit_Info;
