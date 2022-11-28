@@ -491,10 +491,6 @@ package body Instrument.C is
       Func_Args    : String := "");
    --  Like Format_Extern_Decl, but write the definition to File
 
-   function Find_First_Insert_Location
-     (TU : Translation_Unit_T) return Source_Location_T;
-   --  Find the first rewritable (raw) location of the file
-
    ------------------------
    -- To_Chars_Ptr_Array --
    ------------------------
@@ -2919,7 +2915,10 @@ package body Instrument.C is
                        Preprocessed => True);
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
-      Insert_Extern_Location := Find_First_Insert_Location (UIC.TU);
+      Insert_Extern_Location :=
+        Get_Range_Start
+          (Get_Cursor_Extent
+             (Get_Translation_Unit_Cursor (UIC.TU)));
 
       Traverse_Declarations
         (IC  => IC,
@@ -3629,7 +3628,9 @@ package body Instrument.C is
       --  Name of file to contain helpers implementing the buffers dump
 
       Insert_Extern_Location : constant Source_Location_T :=
-        Find_First_Insert_Location (Rew.TU);
+        Get_Range_Start
+          (Get_Cursor_Extent
+             (Get_Translation_Unit_Cursor (Rew.TU)));
       --  Where to insert extern declarations
 
       Main_Cursor : constant Cursor_T := Get_Main (Rew.TU);
@@ -3937,48 +3938,6 @@ package body Instrument.C is
       File.Put_Line
         (Format_Extern_Decl (Instrumenter, C_Type, Name, Func_Args));
    end Put_Extern_Decl;
-
-   --------------------------------
-   -- Find_First_Insert_Location --
-   --------------------------------
-
-   function Find_First_Insert_Location
-     (TU : Translation_Unit_T) return Source_Location_T
-   is
-      Location : Source_Location_T := Get_Null_Location;
-
-      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T;
-      --  Callback for Visit_Children
-
-      ----------------
-      -- Visit_Decl --
-      ----------------
-
-      function Visit_Decl
-        (Cursor : Cursor_T) return Child_Visit_Result_T is
-      begin
-         if Kind (Cursor) = Cursor_Translation_Unit then
-            return Child_Visit_Recurse;
-         end if;
-         declare
-            Cursor_Location : constant Source_Location_T :=
-              Get_Range_Start (Get_Cursor_Extent (Cursor));
-         begin
-            if not Is_Macro_Location (Location) then
-               Location := Cursor_Location;
-               return Child_Visit_Break;
-            end if;
-         end;
-         return Child_Visit_Continue;
-      end Visit_Decl;
-
-   --  Start of processing for Find_First_Insert_Location
-
-   begin
-      Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
-                      Visitor => Visit_Decl'Access);
-      return Location;
-   end Find_First_Insert_Location;
 
    ----------------------------
    -- Emit_Buffers_List_Unit --
