@@ -3298,6 +3298,48 @@ package body Instrument.C is
             begin
                Visit_Children (Parent  => Get_Main (Rew.TU),
                                Visitor => Process'Access);
+
+               --  If the last statement of the function is not a return
+               --  statement add a call to dump_buffers at the end of the main
+               --  function.
+
+               declare
+                  use Cursor_Vectors;
+                  Main_Body   : constant Cursor_T := Get_Body (Main_Cursor);
+                  Main_Stmts  : constant Vector := Get_Children (Main_Body);
+                  Last_Stmt   : constant Cursor := Main_Stmts.Last;
+                  Insert_Sloc : Source_Location_T;
+                  Insert : Boolean := False;
+               begin
+                  --  If the main is empty, insert right at the start of the
+                  --  function.
+
+                  if Length (Main_Stmts) = 0 then
+                     Insert_Sloc :=
+                       Get_Range_Start (Get_Cursor_Extent (Main_Body));
+                     Insert := True;
+
+                  --  Otherwise, insert after the last statement
+
+                  elsif Kind (Element (Last_Stmt)) /= Cursor_Return_Stmt then
+                     Insert_Sloc :=
+                       Get_Range_End (Get_Cursor_Extent (Element (Last_Stmt)));
+                     Insert := True;
+                  end if;
+
+                  if Insert then
+
+                     --  Insert a terminating semicolon in case we end up
+                     --  inserting between the last statement expression and
+                     --  its terminating semicolon.
+
+                     CX_Rewriter_Insert_Text_After_Token
+                       (Rew.Rewriter,
+                        Insert_Sloc,
+                        ";" & Dump_Procedure_Symbol (Main) & "();");
+                  end if;
+               end;
+
             end;
 
          when At_Exit =>
