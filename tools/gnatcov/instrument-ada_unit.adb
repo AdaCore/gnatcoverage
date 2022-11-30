@@ -1004,8 +1004,17 @@ package body Instrument.Ada_Unit is
      (UIC        : in out Ada_Unit_Inst_Context;
       Scope_Name : Text_Type;
       Sloc       : Source_Location);
-   --  Wrapper around Instrument.Common.Enter_Scope. See the documentation for
-   --  this function.
+   --  Enter a scope. This must be completed with a call to the function
+   --  Exit_Scope, defined below. Scope_Name is the name of the scope, which
+   --  is defined at location Sloc. Assume that the scope first SCO is the next
+   --  generated SCO (SCOs.SCO_Table.Last + 1). Update UIC.Current_Scope_Entity
+   --  to the created entity.
+
+   procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context)
+     with Pre => UIC.Current_Scope_Entity /= null;
+   --  Exit the current scope, updating UIC.Current_Scope_Entity to
+   --  UIC.Current_Scope_Entity.Parent, if any. Assume that the last generated
+   --  SCO (SCOs.SCO_Table.Last) is the last SCO for the current scope.
 
    ----------------------------
    -- Source level rewriting --
@@ -6105,13 +6114,53 @@ package body Instrument.Ada_Unit is
    procedure Enter_Scope
      (UIC        : in out Ada_Unit_Inst_Context;
       Scope_Name : Text_Type;
-      Sloc       : Source_Location) is
+      Sloc       : Source_Location)
+   is
+      New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
+        (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
+         To       => No_SCO_Id,
+         Name     => +Langkit_Support.Text.To_UTF8 (Scope_Name),
+         Sloc     => (Line => Natural (Sloc.Line),
+                       Column => Natural (Sloc.Column)),
+         Children => Scope_Entities_Vectors.Empty_Vector,
+         Parent   => UIC.Current_Scope_Entity);
    begin
-      Enter_Scope
-        (UIC,
-         +Langkit_Support.Text.To_UTF8 (Scope_Name),
-         (Line => Natural (Sloc.Line), Column => Natural (Sloc.Column)));
+      if UIC.Current_Scope_Entity /= null then
+         UIC.Current_Scope_Entity.Children.Append (New_Scope_Ent);
+      end if;
+      UIC.Current_Scope_Entity := New_Scope_Ent;
    end Enter_Scope;
+
+   ----------------
+   -- Exit_Scope --
+   ----------------
+
+   procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context)
+   is
+      Parent : Scope_Entity_Acc renames UIC.Current_Scope_Entity.Parent;
+      Scope  : Scope_Entity_Acc renames UIC.Current_Scope_Entity;
+   begin
+      --  Update the last SCO for this scope entity
+
+      Scope.To := SCO_Id (SCOs.SCO_Table.Last);
+
+      --  If the scope has no SCO (it could be possible for a package spec with
+      --  only subprogram declarations for instance), discard it.
+
+      if Scope.To < Scope.From then
+         if Parent /= null then
+            Parent.Children.Delete_Last;
+         end if;
+         Free (Scope);
+      end if;
+
+      --  If this is not the top-level scope (we want to keep its reference
+      --  after having traversed the AST), go up the scope tree.
+
+      if Parent /= null then
+         Scope := Parent;
+      end if;
+   end Exit_Scope;
 
    --------------------------
    -- Initialize_Rewriting --
@@ -6858,30 +6907,11 @@ package body Instrument.Ada_Unit is
           --  See the comment for Scope_Entity.From/To.
 
          if UIC.Current_Scope_Entity /= null then
-            declare
-               use Scope_Entities_Vectors;
 
-               procedure Remap_SCOs (Scope_Entity : Scope_Entity_Acc);
+            --  Iterate through the package level body entities
 
-               ----------------
-               -- Remap_SCOs --
-               ----------------
-
-               procedure Remap_SCOs (Scope_Entity : Scope_Entity_Acc) is
-               begin
-                  Scope_Entity.From := SCO_Map (Nat (Scope_Entity.From));
-                  Scope_Entity.To := SCO_Map (Nat (Scope_Entity.To));
-                  for Child of Scope_Entity.Children loop
-                     Remap_SCOs (Child);
-                  end loop;
-               end Remap_SCOs;
-
-            begin
-               --  Iterate through the package level body entities
-
-               Remap_SCOs (UIC.Current_Scope_Entity);
-               Set_Scope_Entity (UIC.CU, UIC.Current_Scope_Entity);
-            end;
+            Remap_Scope_Entity (UIC.Current_Scope_Entity, SCO_Map);
+            Set_Scope_Entity (UIC.CU, UIC.Current_Scope_Entity);
          end if;
       end;
 

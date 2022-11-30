@@ -39,6 +39,24 @@ package body Clang.Extensions is
        L           =>  To_Sloc (Line, Column)));
    --  Convert a Clang source location to gnatcov's own format
 
+   -----------------------
+   -- Get_Decl_Name_Str --
+   -----------------------
+
+   function Get_Decl_Name_Str (C : Cursor_T) return String is
+
+      function Get_Decl_Name_Str_C (C : Cursor_T) return String_T
+        with
+          Import, Convention => C,
+          External_Name => "clang_getDeclName";
+
+      DeclName_Str_C : constant String_T := Get_Decl_Name_Str_C (C);
+      DeclName       : constant String   := Get_C_String (DeclName_Str_C);
+   begin
+      Dispose_String (DeclName_Str_C);
+      return DeclName;
+   end Get_Decl_Name_Str;
+
    --------------------
    -- Get_Opcode_Str --
    --------------------
