@@ -1,0 +1,161 @@
+# This bit is used to make sure we don't run too many pipelines:
+# don't run the branch CI when a merge request is already open for the
+# branch.
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - when: always
+
+variables:
+   PACKAGE_BASE_NAME: gnatcoverage.tar.gz
+   PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
+
+   #  These are not needed at the moment, but will be useful when we migrate
+   #  to a multi-stage pipeline.
+   #  PACKAGE_REPOSITORY_PROJECT: eng/cov/ci-packages
+   #  CI_FRAGMENTS: ci-fragments
+   #  CI_FRAGMENTS_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/it/$CI_FRAGMENTS
+   GNATCOVERAGE_EXTRA_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/cov/gnatcoverage-extra
+
+stages:
+  - build
+  - test
+
+build:
+  services:
+     - image:sandbox
+     - cpu:8
+     - mem:16
+  stage: build
+  script:
+    - . ~/.aws_container_credentials
+    - export PATH=/it/e3/bin:$PATH
+
+    # Setup the repository
+    - cd /it/wave
+    - anod vcs --add-repo gnatcoverage $CI_PROJECT_DIR
+
+    # Build using anod
+    - anod build --minimal gnatcov
+
+    # Create the package
+    - tar czf $PACKAGE_ABSOLUTE_NAME -C /
+        it/wave/x86_64-linux/gnatcov-build/install/
+
+    - cd $CI_PROJECT_DIR
+    - ls -l $PACKAGE_BASE_NAME
+
+  artifacts:
+    paths:
+      - $PACKAGE_BASE_NAME
+
+build_community:
+  services:
+     - image:sandbox
+     - cpu:8
+     - mem:16
+  stage: test
+  script:
+    - . ~/.aws_container_credentials
+    - export PATH=/it/e3/bin:$PATH
+
+    # Setup the repository
+    - cd /it/wave
+    - anod vcs --add-repo gnatcoverage $CI_PROJECT_DIR
+
+    # Build using anod
+    - anod build --minimal gnatcov --qualifier=no-c
+
+.common_test_bits: &retrieve_gnatcoverage_extras_and_setup_anod_repo
+    - . ~/.aws_container_credentials
+    - export PATH=/it/e3/bin:$PATH
+
+    # Unpack the artifact then delete it
+    - tar zxf $PACKAGE_ABSOLUTE_NAME -C /
+    - rm -f $PACKAGE_ABSOLUTE_NAME
+
+    # Get the gnatcoverage-extra repository. If we're testing a 'sync/' branch,
+    # expect the same for that repo.
+    - cd /tmp
+    - EXTRA_BRANCH=master
+    - if [[ $CI_COMMIT_BRANCH =~ ^sync/ ]]; then
+         EXTRA_BRANCH=$CI_COMMIT_BRANCH;
+      elif [[ $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ ^sync/ ]]; then
+         EXTRA_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME;
+      fi
+    - git clone $GNATCOVERAGE_EXTRA_GIT -b $EXTRA_BRANCH
+
+    # Setup the anod sandbox repositories
+    - cd /it/wave
+    - anod vcs --add-repo gnatcoverage $CI_PROJECT_DIR
+    - anod vcs --add-repo gnatcoverage-extra /tmp/gnatcoverage-extra
+
+    # Setup fingerprints so anod doesn't do unnecessary rebuilds
+    - mkdir -p fingerprints
+    - touch fingerprints/x86_64-linux.gnatcov-build.install.json.assume-unchanged
+
+.common_artifacts_bits: &artifacts
+  artifacts:
+    paths:
+      - xunit_output.xml
+    reports:
+      junit: xunit_output.xml
+
+test_bin_traces:
+  services:
+     - image:sandbox
+     - cpu:8
+     - mem:16
+  stage: test
+  script:
+    - *retrieve_gnatcoverage_extras_and_setup_anod_repo
+
+    # Test using anod
+    - anod test gnatcov --target=leon3-elf --qualifier="RTS=embedded-leon3,-O0"
+    - e3-testsuite-report
+        --failure-exit-code 1
+        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
+        --xunit-name bin-traces
+        leon3-elf-linux64/gnatcov-O0-embedded-leon3-test/results/new/
+
+  <<: *artifacts
+
+test_src_traces:
+  services:
+     - image:sandbox
+     - cpu:8
+     - mem:16
+  stage: test
+  script:
+    - *retrieve_gnatcoverage_extras_and_setup_anod_repo
+
+    # Test using anod
+    - anod test gnatcov --qualifier=src-traces
+    - e3-testsuite-report
+        --failure-exit-code 1
+        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
+        --xunit-name src-traces
+      x86_64-linux/gnatcov-src-traces-test/results/new/
+
+  <<: *artifacts
+
+test_spark:
+  services:
+     - image:sandbox
+     - cpu:8
+     - mem:16
+  stage: test
+  script:
+    - *retrieve_gnatcoverage_extras_and_setup_anod_repo
+
+    # Test using anod
+    - anod test gnatcov --qualifier=spark-tests,src-traces
+    - e3-testsuite-report
+        --failure-exit-code 1
+        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
+        --xunit-name spark
+      x86_64-linux/gnatcov-spark-tests-src-traces-test/results/new/
+
+  <<: *artifacts
+
