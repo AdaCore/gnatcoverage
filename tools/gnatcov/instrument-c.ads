@@ -443,8 +443,17 @@ private
       Name       : String;
       MCDC_State : out US.Unbounded_String) is null;
 
-   procedure Curlify
-     (Pass : Pass_Kind; N : Cursor_T; Rew : Rewriter_T) is null;
+   procedure Insert_Text_Before
+     (Pass : Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String) is null;
+
+   procedure Insert_Text_After
+     (Pass : Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String) is null;
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record

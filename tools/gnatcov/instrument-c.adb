@@ -238,18 +238,24 @@ package body Instrument.C is
       First     : Boolean);
    --  Add an entry to UIC.Source_Conditions
 
-   overriding procedure Curlify
-     (Pass : Instrument_Pass_Kind;
-      N    : Cursor_T;
-      Rew  : Rewriter_T);
-   --  Wrapper around Instrument.C.Utils.Curlify
-
    overriding procedure Insert_MCDC_State
      (Pass       : Instrument_Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
       MCDC_State : out US.Unbounded_String);
    --  Wrapper around Insert_MCDC_State overload
+
+   overriding procedure Insert_Text_Before
+     (Pass : Instrument_Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String);
+
+   overriding procedure Insert_Text_After
+     (Pass : Instrument_Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String);
 
    Record_PP_Info_Pass : aliased Record_PP_Info_Pass_Kind;
    Instrument_Pass     : aliased Instrument_Pass_Kind;
@@ -1028,16 +1034,6 @@ package body Instrument.C is
       end if;
    end Append_SCO;
 
-   -------------
-   -- Curlify --
-   -------------
-
-   overriding procedure Curlify
-     (Pass : Instrument_Pass_Kind; N : Cursor_T; Rew : Rewriter_T) is
-   begin
-      Curlify (N, Rew);
-   end Curlify;
-
    --------------------------------
    -- Find_Instrumented_Entities --
    --------------------------------
@@ -1068,6 +1064,32 @@ package body Instrument.C is
    begin
       MCDC_State := +Insert_MCDC_State (UIC, Name);
    end Insert_MCDC_State;
+
+   ------------------------
+   -- Insert_Text_Before --
+   ------------------------
+
+   procedure Insert_Text_Before
+     (Pass : Instrument_Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String) is
+   begin
+      CX_Rewriter_Insert_Text_Before (Rew, Loc, Text);
+   end Insert_Text_Before;
+
+   -----------------------
+   -- Insert_Text_After --
+   -----------------------
+
+   procedure Insert_Text_After
+     (Pass : Instrument_Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String) is
+   begin
+      CX_Rewriter_Insert_Text_After (Rew, Loc, Text);
+   end Insert_Text_After;
 
    --------------------------
    -- Instrument_Statement --
@@ -1382,10 +1404,13 @@ package body Instrument.C is
    -------------------------
 
    procedure Traverse_Statements
-     (IC  : in out Inst_Context;
-      UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector);
-   --  Process L, a list of statements or declarations
+     (IC              : in out Inst_Context;
+      UIC             : in out C_Unit_Inst_Context;
+      L               : Cursor_Vectors.Vector;
+      Trailing_Braces : out Unbounded_String);
+   --  Process L, a list of statements or declarations. Set Trailing_Braces
+   --  to the list of braces that should be inserted after this statements'
+   --  list.
 
    procedure Traverse_Declarations
      (IC  : in out Inst_Context;
@@ -1885,15 +1910,18 @@ package body Instrument.C is
    -------------------------
 
    procedure Traverse_Statements
-     (IC  : in out Inst_Context;
-      UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector)
+     (IC              : in out Inst_Context;
+      UIC             : in out C_Unit_Inst_Context;
+      L               : Cursor_Vectors.Vector;
+      Trailing_Braces : out Unbounded_String)
    is
       SC_First : constant Nat := SC.Last + 1;
       SD_First : constant Nat := SD.Last + 1;
 
-      procedure Traverse_One (N : Cursor_T);
-      --  Traverse a statement
+      procedure Traverse_One
+        (N : Cursor_T; Trailing_Braces : out Unbounded_String);
+      --  Traverse a statement. Set Trailing_Braces to the list of braces that
+      --  should be inserted after this statement.
 
       procedure Extend_Statement_Sequence
         (N            : Cursor_T;
@@ -1907,13 +1935,45 @@ package body Instrument.C is
       --  current CS sequence. Then output entries for all decisions nested in
       --  these statements, which have been deferred so far.
 
+      function Curlify (N : Cursor_T) return Boolean;
+      --  Rewrite control flow statements (if else, for, while etc.) with
+      --  braces when needed (i.e. when they do not already have them). Note
+      --  that the insertion of the last closing brace is deferred to the
+      --  traversal of the following statement, and thus, Curlify returns
+      --  True if the insertion of a closing brace is required.
+      --
+      --  We can't insert this closing brace with N source location information
+      --  only, as the ending location of a statement expression is the end
+      --  location of the expression, and not the location of the semicolon
+      --  terminating the statement. To solve this, we choose to insert the
+      --  closing brace _before_ the next statement (or _before the closing
+      --  brace of the function body, if this is the last statement of the
+      --  function) rather than _after_ the statement semicolon, which can't
+      --  be done easily.
+
       ------------------
       -- Traverse_One --
       ------------------
 
-      procedure Traverse_One (N : Cursor_T) is
+      procedure Traverse_One
+        (N : Cursor_T; Trailing_Braces : out Unbounded_String) is
          use Cursor_Vectors;
+         TB : Unbounded_String;
+         --  Local to pass on to Traverse_Statements invocations. Trailing
+         --  braces that can be inserted while instrumenting the current node
+         --  (e.g. for the then part of an if-else statement, the closing
+         --  brace will be inserted before the else location) will be inserted.
+         --  For the other cases, the insertion of the closing braces will
+         --  be delayed to the instrumentation of the next statement (see
+         --  Traverse_Statements body) or, if this is the last statement, after
+         --  being done with the instrumentation of the function (see the body
+         --  of Traverse_Declarations).
+
       begin
+         if Curlify (N) then
+            Append (Trailing_Braces, '}');
+         end if;
+
          --  Initialize or extend current statement sequence. Note that for
          --  special cases such as IF and SWITCH statements we will modify
          --  the range to exclude internal statements that should not be
@@ -1931,7 +1991,7 @@ package body Instrument.C is
 
             when Cursor_Compound_Stmt =>
                Set_Statement_Entry;
-               Traverse_Statements (IC, UIC, L => Get_Children (N));
+               Traverse_Statements (IC, UIC, Get_Children (N), TB);
 
             --  If statement, which breaks the current statement sequence, but
             --  we include the condition in the current sequence.
@@ -1945,23 +2005,21 @@ package body Instrument.C is
                begin
                   Process_Decisions_Defer (Get_Cond (N), 'I');
                   Set_Statement_Entry;
-
-                  --  Now we traverse the statements in the THEN part
-
-                  UIC.Pass.Curlify (N   => Then_Part,
-                                    Rew => UIC.Rewriter);
                   Traverse_Statements
-                    (IC, UIC,
-                     L => To_Vector (Then_Part));
+                    (IC, UIC, To_Vector (Then_Part), TB);
 
                   --  Traverse the ELSE statements if present
 
                   if not Is_Null (Else_Part) then
-                     UIC.Pass.Curlify (N   => Else_Part,
-                                       Rew => UIC.Rewriter);
+
+                     --  Insert the trailing braces resulting from the
+                     --  traversal of the then part before the else.
+
+                     UIC.Pass.Insert_Text_Before
+                       (UIC.Rewriter, Get_Else_Loc (N), +TB);
+                     TB := +"";
                      Traverse_Statements
-                       (IC, UIC,
-                        L => To_Vector (Else_Part));
+                       (IC, UIC, To_Vector (Else_Part), TB);
                   end if;
                end;
 
@@ -1979,7 +2037,7 @@ package body Instrument.C is
 
                   --  Process case branches
 
-                  Traverse_Statements (IC, UIC, L => To_Vector (Alt));
+                  Traverse_Statements (IC, UIC, To_Vector (Alt), TB);
                end;
 
             --  Case alternative
@@ -1988,7 +2046,8 @@ package body Instrument.C is
                declare
                   Case_Body : constant Cursor_T := Get_Sub_Stmt (N);
                begin
-                  Traverse_Statements (IC, UIC, L => To_Vector (Case_Body));
+                  Traverse_Statements
+                    (IC, UIC, To_Vector (Case_Body), TB);
                end;
 
             --  Loop ends the current statement sequence, but we include
@@ -2003,9 +2062,6 @@ package body Instrument.C is
                   Cond       : constant Cursor_T := Get_Cond (N);
 
                begin
-                  UIC.Pass.Curlify (N   => While_Body,
-                                    Rew => UIC.Rewriter);
-
                   --  If the loop condition is a declaration, instrument its
                   --  initialization expression.
 
@@ -2018,7 +2074,8 @@ package body Instrument.C is
 
                   Process_Decisions_Defer (Cond, 'W');
                   Set_Statement_Entry;
-                  Traverse_Statements (IC, UIC, To_Vector (While_Body));
+                  Traverse_Statements
+                    (IC, UIC, To_Vector (While_Body), TB);
                end;
 
             --  Do while statement. Ends the current statement sequence.
@@ -2029,19 +2086,26 @@ package body Instrument.C is
                   Do_While : constant Cursor_T := Get_Cond (N);
 
                begin
-                  UIC.Pass.Curlify (N   => Do_Body,
-                                    Rew => UIC.Rewriter);
+                  Traverse_Statements
+                    (IC, UIC, To_Vector (Do_Body), TB);
 
-                  Traverse_Statements (IC, UIC, To_Vector (Do_Body));
+                  --  Insert the trailing braces resulting from the body
+                  --  traversal before the while.
+
+                  UIC.Pass.Insert_Text_After
+                    (UIC.Rewriter, Get_While_Loc (N), +TB);
+                  TB := +"";
+
+                  --  Process the while decision
+
                   Extend_Statement_Sequence
                     (Do_While, 'W', Instr_Scheme => Instr_Expr);
-
                   Process_Decisions_Defer (Do_While, 'W');
                   Set_Statement_Entry;
 
                end;
 
-            --  For statement. Ends the current statement sequence.
+            --  For statement. Ends the current statement sequence
 
             when Cursor_For_Stmt =>
                declare
@@ -2062,8 +2126,8 @@ package body Instrument.C is
 
                   Set_Statement_Entry;
 
-                  UIC.Pass.Curlify (N => For_Body, Rew => UIC.Rewriter);
-                  Traverse_Statements (IC, UIC, To_Vector (For_Body));
+                  Traverse_Statements
+                    (IC, UIC, To_Vector (For_Body), TB);
 
                   Extend_Statement_Sequence
                     (For_Inc, ' ', Instr_Scheme => Instr_Expr);
@@ -2095,8 +2159,8 @@ package body Instrument.C is
 
                   --  Generate obligations for body statements
 
-                  UIC.Pass.Curlify (N => For_Body, Rew => UIC.Rewriter);
-                  Traverse_Statements (IC, UIC, To_Vector (For_Body));
+                  Traverse_Statements
+                    (IC, UIC, To_Vector (For_Body), TB);
                end;
 
            --  Unconditional goto, which is included in the current statement
@@ -2108,10 +2172,10 @@ package body Instrument.C is
 
             when Cursor_Label_Stmt =>
                Set_Statement_Entry;
-               Traverse_Statements (IC, UIC, Get_Children (N));
+               Traverse_Statements (IC, UIC, Get_Children (N), TB);
 
             when Cursor_Stmt_Expr =>
-               Traverse_Statements (IC, UIC, Get_Children (N));
+               Traverse_Statements (IC, UIC, Get_Children (N), TB);
 
             --  Null statement, we won't monitor their execution
 
@@ -2134,6 +2198,8 @@ package body Instrument.C is
                   Process_Decisions_Defer (N, 'X');
                end if;
          end case;
+
+         Append (Trailing_Braces, TB);
 
          --  Traverse lambda expressions, if any. Do not register them as
          --  scopes.
@@ -2254,6 +2320,77 @@ package body Instrument.C is
 
       end Set_Statement_Entry;
 
+      -------------
+      -- Curlify --
+      -------------
+
+      function Curlify (N : Cursor_T) return Boolean
+      is
+         Rew : Rewriter_T renames UIC.Rewriter;
+      begin
+         case Kind (N) is
+            when Cursor_If_Stmt =>
+               declare
+                  Then_Part : constant Cursor_T := Get_Then (N);
+                  Else_Part : constant Cursor_T := Get_Else (N);
+               begin
+                  if Kind (Then_Part) /= Cursor_Compound_Stmt then
+                     UIC.Pass.Insert_Text_Before
+                       (Rew, Start_Sloc (Then_Part), "{");
+                     if not Is_Null (Else_Part) then
+                        --  Close the brace introduced to wrap the then part
+                        --  if possible.
+
+                        UIC.Pass.Insert_Text_Before
+                          (Rew, Get_Else_Loc (N), "}");
+                     else
+                        --  Otherwise, we need to insert a trailing brace
+
+                        return True;
+                     end if;
+                  end if;
+
+                  --  Then, deal with the else if it is not a compound stmt
+
+                  if not Is_Null (Else_Part)
+                    and then Kind (Else_Part) /= Cursor_Compound_Stmt
+                  then
+                     UIC.Pass.Insert_Text_Before
+                       (Rew, Start_Sloc (Else_Part), "{");
+                     return True;
+                  end if;
+                  return False;
+               end;
+
+            when Cursor_Do_Stmt =>
+               declare
+                  Do_Body : constant Cursor_T := Get_Body (N);
+               begin
+                  if Kind (Do_Body) /= Cursor_Compound_Stmt then
+                     UIC.Pass.Insert_Text_Before
+                       (Rew, Start_Sloc (Do_Body), "{");
+                     UIC.Pass.Insert_Text_Before
+                       (Rew, Get_While_Loc (N), "}");
+                  end if;
+                  return False;
+               end;
+            when Cursor_While_Stmt
+               | Cursor_For_Stmt
+               | Cursor_CXX_For_Range_Stmt =>
+               declare
+                  B : constant Cursor_T := Get_Body (N);
+               begin
+                  if Kind (B) /= Cursor_Compound_Stmt then
+                     UIC.Pass.Insert_Text_Before (Rew, Start_Sloc (B), "{");
+                     return True;
+                  end if;
+                  return False;
+               end;
+            when others =>
+               return False;
+         end case;
+      end Curlify;
+
       use Cursor_Vectors;
 
       Emit_SCOs : Boolean := False;
@@ -2262,7 +2399,12 @@ package body Instrument.C is
 
    begin
       for N of L loop
-         Traverse_One (N);
+         if Length (Trailing_Braces) /= 0 then
+            UIC.Pass.Insert_Text_Before
+              (UIC.Rewriter, Start_Sloc (N), +Trailing_Braces);
+            Trailing_Braces := +"";
+         end if;
+         Traverse_One (N, Trailing_Braces);
          Emit_SCOs := True;
       end loop;
 
@@ -2308,20 +2450,27 @@ package body Instrument.C is
                      --  a list of statements using the Get_Children
                      --  utility.
 
-                     Fun_Body : constant Cursor_Vectors.Vector :=
-                       Get_Children (Get_Body (N));
+                     Fun_Body : constant Cursor_T := Get_Body (N);
+                     Stmts    : constant Cursor_Vectors.Vector :=
+                       Get_Children (Fun_Body);
+
+                     TB : Unbounded_String;
+                     --  Trailing braces that should be inserted at the end
+                     --  of the function body.
                   begin
-                     if Fun_Body.Length > 0 then
+                     if Stmts.Length > 0 then
                         UIC.MCDC_State_Declaration_Node :=
-                          Fun_Body.First_Element;
-                        Traverse_Statements (IC, UIC, Fun_Body);
+                          Stmts.First_Element;
+                        Traverse_Statements (IC, UIC, Stmts, TB);
+                        UIC.Pass.Insert_Text_Before
+                          (UIC.Rewriter, End_Sloc (Fun_Body), +TB);
                      end if;
                   end;
 
                   UIC.Pass.Exit_Scope (UIC);
 
-                  --  Traverse the declarations of a namespace / linkage
-                  --  specification etc.
+               --  Traverse the declarations of a namespace / linkage
+               --  specification etc.
 
                when Cursor_Namespace
                   | Cursor_Class_Template
@@ -2690,9 +2839,9 @@ package body Instrument.C is
       end if;
    end Finalize;
 
-   ---------------
-   -- Emit_SCOs --
-   ---------------
+   --------------------
+   -- Record_PP_Info --
+   --------------------
 
    procedure Record_PP_Info
      (Unit_Info : Instrumented_Unit_Info;
@@ -3664,6 +3813,8 @@ package body Instrument.C is
       case IC.Dump_Config.Trigger is
          when Main_End | Ravenscar_Task_Termination =>
             declare
+               use Cursor_Vectors;
+
                function Process
                  (Cursor : Cursor_T) return Child_Visit_Result_T;
                --  Callback for Visit_Children. Insert calls to dump buffers
@@ -3683,36 +3834,11 @@ package body Instrument.C is
                         Return_Expr : constant Cursor_T :=
                           Get_Children (Cursor).First_Element;
                      begin
-                        --  Introduce a variable to hold the return result,
-                        --  and replace "return <expr>;" with
-                        --  "{
-                        --     int <tmp>;
-                        --     return <tmp>=<expr>, <dump_buffers>(), <tmp>;
-                        --   }".
+                        --  Replace "return <expr>;" with
+                        --  "return <tmp>=<expr>, <dump_buffers>(), <tmp>;"
                         --
-                        --  Note that we have to be careful to put braces
-                        --  around the return statement, as the control flow
-                        --  structures may not have been curlified yet,
-                        --  e.g. if the main is not a unit of interest. This
-                        --  means that:
-                        --
-                        --  if (<cond>)
-                        --     return <expr>;
-                        --
-                        --  should produce
-                        --
-                        --  if (<cond>)
-                        --  {
-                        --     int <tmp>;
-                        --     return <tmp>=<expr>, <dump_buffers>(), <tmp>;
-                        --  }
-                        --
-                        --  Notice how this would be wrong without the braces.
-
-                        Insert_Text_After_Start_Of
-                          (N    => Cursor,
-                           Text => "{int gnatcov_rts_return;",
-                           Rew  => Rew.Rewriter);
+                        --  Note that a <tmp> variable declaration is
+                        --  introduced at the beginning of the main.
 
                         Insert_Text_Before_Start_Of
                           (N    => Return_Expr,
@@ -3725,11 +3851,6 @@ package body Instrument.C is
                                    & Dump_Procedure_Symbol (Main)
                                    & "(), gnatcov_rts_return",
                            Rew  => Rew.Rewriter);
-
-                        CX_Rewriter_Insert_Text_After_Token
-                          (Rew.Rewriter,
-                           Get_Range_End (Get_Cursor_Extent (Cursor)),
-                           "}");
 
                         return Child_Visit_Continue;
                      end;
@@ -3744,21 +3865,36 @@ package body Instrument.C is
                end Process;
 
             begin
-               Visit_Children (Parent  => Main_Cursor,
-                               Visitor => Process'Access);
-
-               --  If the last statement of the function is not a return
-               --  statement add a call to dump_buffers at the end of the main
-               --  function.
 
                declare
-                  use Cursor_Vectors;
                   Main_Body   : constant Cursor_T := Get_Body (Main_Cursor);
                   Main_Stmts  : constant Vector := Get_Children (Main_Body);
                   Last_Stmt   : constant Cursor := Main_Stmts.Last;
                   Insert_Sloc : Source_Location_T;
-                  Insert : Boolean := False;
+                  Insert      : Boolean := False;
                begin
+                  --  Introduce a variable to hold the return value. Declare
+                  --  it at the start of the main to avoid complications with
+                  --  curly braces and control flow constructs.
+
+                  if Length (Main_Stmts) /= 0 then
+                     declare
+                        Main_First_Stmt : constant Cursor_T :=
+                          Main_Stmts.First_Element;
+                     begin
+                        Insert_Text_Before_Start_Of
+                          (N    => Main_First_Stmt,
+                           Text => "int gnatcov_rts_return;",
+                           Rew  => Rew.Rewriter);
+                     end;
+                  end if;
+
+                  Visit (Main_Body, Process'Access);
+
+                  --  If the last statement of the function is not a return
+                  --  statement add a call to dump_buffers at the end of the
+                  --  main function.
+                  --
                   --  If the main is empty, insert right at the start of the
                   --  function.
 
@@ -3787,7 +3923,6 @@ package body Instrument.C is
                         ";" & Dump_Procedure_Symbol (Main) & "();");
                   end if;
                end;
-
             end;
 
          when At_Exit =>
