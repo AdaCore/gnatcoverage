@@ -1,5 +1,6 @@
 import re
 import subprocess
+import os
 
 
 def render(tree):
@@ -29,5 +30,6 @@ trees = {
 for k in trees:
     gen_tree(tmpl, open(k + ".dot", "w"), trees[k])
     render(k)
+    os.remove (f"{k}.dot")
 
 render('prjtree')
