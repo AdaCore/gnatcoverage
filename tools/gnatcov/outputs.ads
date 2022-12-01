@@ -25,6 +25,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Types; use Types;
 
 with Files_Table; use Files_Table;
+with Strings;     use Strings;
 with Temp_Dirs;   use Temp_Dirs;
 with Paths;       use Paths;
 
@@ -156,6 +157,14 @@ package Outputs is
    function Get_PP_Filename
      (SFI : Source_File_Index) return String
      is (PP_Temp_Dir.Directory_Name / (Get_Unique_Name (SFI) & ".pp"));
+
+   procedure Clean_Dir
+     (Dir           : String;
+      Pattern       : String;
+      Ignored_Files : String_Sets.Set := String_Sets.Empty_Set);
+   --  Remove all the files in Dir for which the base name matches Pattern, but
+   --  whose the full name is not contained in Ignored_Files. An empty string
+   --  for Pattern will match every file.
 
 private
 

@@ -28,7 +28,6 @@ with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Command_Line;
 with Support_Files;
-with Strings; use Strings;
 with Switches;
 with Version;
 
@@ -98,6 +97,59 @@ package body Outputs is
          Error (Exception_Information (E));
          raise;
    end Create_Output_File;
+
+   ---------------
+   -- Clean_Dir --
+   ---------------
+
+   procedure Clean_Dir
+     (Dir           : String;
+      Pattern       : String;
+      Ignored_Files : String_Sets.Set := String_Sets.Empty_Set)
+   is
+      use Ada.Directories;
+
+      --  Removing items in a directory and iterate on these items at the same
+      --  time is not supported: first collect all files to remove (iteration)
+      --  and then remove them.
+
+      To_Delete  : String_Vectors.Vector;
+      Search     : Search_Type;
+      Dir_Entry  : Directory_Entry_Type;
+   begin
+      --  Nothing to do if Dir does not exist or is not a directory
+
+      if not Ada.Directories.Exists (Dir) or else Kind (Dir) /= Directory then
+         return;
+      end if;
+
+      --  Collect the files to delete
+
+      Start_Search
+        (Search,
+         Directory => Dir,
+         Pattern   => Pattern,
+         Filter    => (Ordinary_File => True, others => False));
+      while More_Entries (Search) loop
+         Get_Next_Entry (Search, Dir_Entry);
+         declare
+            Name      : constant String := Simple_Name (Dir_Entry);
+            Full_Name : constant Unbounded_String :=
+              To_Unbounded_String (Dir / Name);
+         begin
+            if not Ignored_Files.Contains (Full_Name) then
+               To_Delete.Append (Full_Name);
+            end if;
+         end;
+      end loop;
+      End_Search (Search);
+
+      --  Do the deletion
+
+      for Name of To_Delete loop
+         Delete_File (To_String (Name));
+      end loop;
+   end Clean_Dir;
 
    -----------
    -- Error --
