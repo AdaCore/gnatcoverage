@@ -175,6 +175,33 @@ package body Instrument.C is
 
    type Instrument_Pass_Kind is new Pass_Kind with null record;
 
+   overriding procedure Enter_Scope
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T);
+   --  Open a scope for N under the scope of the file in which the
+   --  corresponding code was written. This must be completed with a call to
+   --  the function Exit_Scope, defined below. Assume that the scope first SCO
+   --  is the next generated SCO (SCOs.SCO_Table.Last + 1). Update
+   --  UIC.Scopes to the created entity and UIC.Current_File_Scope to the
+   --  corresponding file.
+
+   overriding procedure Exit_Scope
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class)
+     with Pre => UIC.Scopes.Contains (UIC.Current_File_Scope);
+   --  Close the current scope, removing the current scope of the current file
+   --  from UIC.Scopes if it does not contain SCOs. Assume that the last
+   --  generated SCO (SCOs.SCO_Table.Last) is the last SCO for the current
+   --  scope.
+
+   procedure Remap_Scopes
+     (Scopes  : Scopes_In_Files_Map.Map;
+      SCO_Map : LL_HL_SCO_Map);
+   --  Convert low level SCOs in each scope for each file to high-level SCOs
+   --  using the mapping in SCO_Map. Set the file's SCO range to cover all of
+   --  its scopes' SCO ranges.
+
    overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
@@ -464,10 +491,6 @@ package body Instrument.C is
       Func_Args    : String := "");
    --  Like Format_Extern_Decl, but write the definition to File
 
-   function Find_First_Insert_Location
-     (TU : Translation_Unit_T) return Source_Location_T;
-   --  Find the first rewritable (raw) location of the file
-
    ------------------------
    -- To_Chars_Ptr_Array --
    ------------------------
@@ -586,6 +609,150 @@ package body Instrument.C is
             return (raise Program_Error);
       end case;
    end Source_Suffix;
+
+   -----------------
+   -- Enter_Scope --
+   -----------------
+
+   overriding procedure Enter_Scope
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T)
+   is
+      procedure Enter_File_Scope
+        (UIC : in out C_Unit_Inst_Context'Class;
+         SFI : Source_File_Index)
+      with Post => UIC.Scopes.Contains (SFI);
+      --  Create a global scope for the file index SFI in which all scopes
+      --  opened in the file will be stored.
+
+      ----------------------
+      -- Enter_File_Scope --
+      ----------------------
+
+      procedure Enter_File_Scope
+        (UIC : in out C_Unit_Inst_Context'Class;
+         SFI : Source_File_Index) is
+      begin
+         if not UIC.Scopes.Contains (SFI) then
+            declare
+               New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
+                 (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
+                  To       => No_SCO_Id,
+                  Name     => +Get_Unique_Name (SFI),
+                  Sloc     => (Line => 0, Column => 0),
+                  Children => Scope_Entities_Vectors.Empty_Vector,
+                  Parent   => null);
+            begin
+               UIC.Scopes.Insert (SFI, New_Scope_Ent);
+            end;
+         end if;
+
+         UIC.Current_File_Scope := SFI;
+      end Enter_File_Scope;
+
+      Sloc : constant Source_Location   := Start_Sloc (N);
+      File : constant Source_File_Index := Sloc.Source_File;
+   begin
+      --  For C and C++ programs that can include header files we need to be
+      --  able to know which file a scope was opened in. For this we use a map
+      --  from Source_File_Index to Scope_Entity_Acc. The scope associated to a
+      --  file is the last scope that was opened in it but not yet exited.
+      --  This mechanism works in the same way as that for Ada with the
+      --  possibility to have one current scope per file rather than just one
+      --  only for the file being instrumented.
+
+      Enter_File_Scope (UIC, File);
+
+      declare
+         C             : constant Scopes_In_Files_Map.Cursor :=
+           UIC.Scopes.Find (File);
+         Current_Scope : constant Scope_Entity_Acc :=
+           Scopes_In_Files_Map.Element (C);
+         New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
+           (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
+            To       => No_SCO_Id,
+            Name     => +Get_Decl_Name_Str (N),
+            Sloc     => Sloc.L,
+            Children => Scope_Entities_Vectors.Empty_Vector,
+            Parent   => Current_Scope);
+      begin
+         --  Add New_Scope_Ent to the children of the last open scope in the
+         --  file.
+         Current_Scope.Children.Append (New_Scope_Ent);
+
+         --  Set New_Scope_Ent as the current open scope for the file.
+         UIC.Scopes.Replace_Element (C, New_Scope_Ent);
+      end;
+   end Enter_Scope;
+
+   ----------------
+   -- Exit_Scope --
+   ----------------
+
+   overriding procedure Exit_Scope
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class)
+   is
+      C     : Scopes_In_Files_Map.Cursor :=
+        UIC.Scopes.Find (UIC.Current_File_Scope);
+      Scope : Scope_Entity_Acc := Scopes_In_Files_Map.Element (C);
+   begin
+      --  If the scope associated to the current file is that of the file (no
+      --  parent), no scope is currently open in it. Then the scope that needs
+      --  closing is the current one of the file being instrumented.
+
+      if Scope.Parent = null then
+         UIC.Current_File_Scope := UIC.SFI;
+         C     := UIC.Scopes.Find (UIC.SFI);
+         Scope := Scopes_In_Files_Map.Element (C);
+      end if;
+
+      declare
+         Parent : constant Scope_Entity_Acc := Scope.Parent;
+      begin
+         --  Update the last SCO for this scope entity
+
+         Scope.To := SCO_Id (SCOs.SCO_Table.Last);
+
+         --  If the scope has no SCO, discard it
+
+         if Scope.To < Scope.From then
+            if Parent /= null then
+               Parent.Children.Delete_Last;
+            end if;
+            Free (Scope);
+         end if;
+
+         --  If this is not a top-level file scope (we want to keep its
+         --  reference after having traversed the AST), go up the scope tree
+         --  of the current file.
+
+         if Parent /= null then
+            UIC.Scopes.Replace_Element (C, Parent);
+         end if;
+      end;
+   end Exit_Scope;
+
+   ------------------
+   -- Remap_Scopes --
+   ------------------
+
+   procedure Remap_Scopes
+     (Scopes  : Scopes_In_Files_Map.Map;
+      SCO_Map : LL_HL_SCO_Map) is
+   begin
+      for S of Scopes loop
+         if not S.Children.Is_Empty then
+            for Child of S.Children loop
+               Remap_Scope_Entity (Child, SCO_Map);
+            end loop;
+
+            S.From := S.Children.First_Element.From;
+            S.To   := S.Children.Last_Element.To;
+         end if;
+      end loop;
+   end Remap_Scopes;
 
    ----------------
    -- Append_SCO --
@@ -1968,7 +2135,8 @@ package body Instrument.C is
                end if;
          end case;
 
-         --  Traverse lambda expressions, if any
+         --  Traverse lambda expressions, if any. Do not register them as
+         --  scopes.
 
          Traverse_Declarations
            (IC  => IC,
@@ -2120,47 +2288,59 @@ package body Instrument.C is
 
          --  Only traverse the function declarations that belong to a unit of
          --  interest.
+         if Is_Source_Of_Interest (UIC, N) then
 
-         begin
-            if Is_Source_Of_Interest (UIC, N) then
-               case Kind (N) is
+            case Kind (N) is
 
-                  --  Traverse the statements of function bodies
+               --  Traverse the statements of function bodies
 
-                  when Cursor_Function_Decl
-                     | Cursor_Function_Template
-                     | Cursor_CXX_Method
-                     | Cursor_Constructor
-                     | Cursor_Destructor
-                     | Cursor_Lambda_Expr =>
-                     declare
-                        --  Get_Body returns a Compound_Stmt, convert it to a
-                        --  list of statements using the Get_Children utility.
+               when Cursor_Function_Decl
+                  | Cursor_Function_Template
+                  | Cursor_CXX_Method
+                  | Cursor_Constructor
+                  | Cursor_Destructor
+                  | Cursor_Lambda_Expr =>
 
-                        Fun_Body : constant Cursor_Vectors.Vector :=
-                          Get_Children (Get_Body (N));
-                     begin
-                        if Fun_Body.Length > 0 then
-                           UIC.MCDC_State_Declaration_Node :=
-                             Fun_Body.First_Element;
-                           Traverse_Statements (IC, UIC, Fun_Body);
-                        end if;
-                     end;
+                  UIC.Pass.Enter_Scope (UIC, N);
+
+                  declare
+                     --  Get_Body returns a Compound_Stmt, convert it to
+                     --  a list of statements using the Get_Children
+                     --  utility.
+
+                     Fun_Body : constant Cursor_Vectors.Vector :=
+                       Get_Children (Get_Body (N));
+                  begin
+                     if Fun_Body.Length > 0 then
+                        UIC.MCDC_State_Declaration_Node :=
+                          Fun_Body.First_Element;
+                        Traverse_Statements (IC, UIC, Fun_Body);
+                     end if;
+                  end;
+
+                  UIC.Pass.Exit_Scope (UIC);
 
                   --  Traverse the declarations of a namespace / linkage
-                  --  specifier etc.
+                  --  specification etc.
 
-                  when Cursor_Namespace
-                     | Cursor_Linkage_Spec
-                     | Cursor_Class_Template
-                     | Cursor_Class_Decl =>
-                     Traverse_Declarations (IC, UIC, Get_Children (N));
+               when Cursor_Namespace
+                  | Cursor_Class_Template
+                  | Cursor_Class_Decl =>
 
-                  when others =>
-                     null;
-               end case;
-            end if;
-         end;
+                  UIC.Pass.Enter_Scope (UIC, N);
+
+                  Traverse_Declarations (IC, UIC, Get_Children (N));
+
+                  UIC.Pass.Exit_Scope (UIC);
+
+               when Cursor_Linkage_Spec =>
+                  Traverse_Declarations (IC, UIC, Get_Children (N));
+
+               when others =>
+                  null;
+            end case;
+
+         end if;
       end loop;
 
       --  Restore previous MCDC_State insertion node: we can have lambda
@@ -2640,6 +2820,7 @@ package body Instrument.C is
 
    begin
       SCOs.Initialize;
+
       UIC.SFI := Get_Index_From_Generic_Name
         (Orig_Filename,
          Kind                => Files_Table.Source_File,
@@ -2734,7 +2915,10 @@ package body Instrument.C is
                        Preprocessed => True);
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
-      Insert_Extern_Location := Find_First_Insert_Location (UIC.TU);
+      Insert_Extern_Location :=
+        Get_Range_Start
+          (Get_Cursor_Extent
+             (Get_Translation_Unit_Cursor (UIC.TU)));
 
       Traverse_Declarations
         (IC  => IC,
@@ -2902,6 +3086,22 @@ package body Instrument.C is
                --  Associate these bit maps to the corresponding CU
 
                Set_Bit_Maps (UIC.CUs.Element (SFI), Bit_Maps);
+
+               --  Iterate through the package level body entities
+
+               Remap_Scopes (UIC.Scopes, SCO_Map);
+
+               for C in UIC.Scopes.Iterate loop
+                  declare
+                     CU : constant Created_Unit_Maps.Cursor :=
+                       UIC.CUs.Find (Scopes_In_Files_Map.Key (C));
+                  begin
+                     if Created_Unit_Maps.Has_Element (CU) then
+                        Set_Scope_Entity (Created_Unit_Maps.Element (CU),
+                                          Scopes_In_Files_Map.Element (C));
+                     end if;
+                  end;
+               end loop;
             end;
          end loop;
       end;
@@ -3428,7 +3628,9 @@ package body Instrument.C is
       --  Name of file to contain helpers implementing the buffers dump
 
       Insert_Extern_Location : constant Source_Location_T :=
-        Find_First_Insert_Location (Rew.TU);
+        Get_Range_Start
+          (Get_Cursor_Extent
+             (Get_Translation_Unit_Cursor (Rew.TU)));
       --  Where to insert extern declarations
 
       Main_Cursor : constant Cursor_T := Get_Main (Rew.TU);
@@ -3736,48 +3938,6 @@ package body Instrument.C is
       File.Put_Line
         (Format_Extern_Decl (Instrumenter, C_Type, Name, Func_Args));
    end Put_Extern_Decl;
-
-   --------------------------------
-   -- Find_First_Insert_Location --
-   --------------------------------
-
-   function Find_First_Insert_Location
-     (TU : Translation_Unit_T) return Source_Location_T
-   is
-      Location : Source_Location_T := Get_Null_Location;
-
-      function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T;
-      --  Callback for Visit_Children
-
-      ----------------
-      -- Visit_Decl --
-      ----------------
-
-      function Visit_Decl
-        (Cursor : Cursor_T) return Child_Visit_Result_T is
-      begin
-         if Kind (Cursor) = Cursor_Translation_Unit then
-            return Child_Visit_Recurse;
-         end if;
-         declare
-            Cursor_Location : constant Source_Location_T :=
-              Get_Range_Start (Get_Cursor_Extent (Cursor));
-         begin
-            if not Is_Macro_Location (Location) then
-               Location := Cursor_Location;
-               return Child_Visit_Break;
-            end if;
-         end;
-         return Child_Visit_Continue;
-      end Visit_Decl;
-
-   --  Start of processing for Find_First_Insert_Location
-
-   begin
-      Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
-                      Visitor => Visit_Decl'Access);
-      return Location;
-   end Find_First_Insert_Location;
 
    ----------------------------
    -- Emit_Buffers_List_Unit --
