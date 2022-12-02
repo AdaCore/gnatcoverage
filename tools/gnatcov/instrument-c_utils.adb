@@ -73,17 +73,27 @@ package body Instrument.C_Utils is
    -- Start_Sloc --
    ----------------
 
+   function Start_Sloc (N : Cursor_T) return Source_Location_T is
+   begin
+      return Get_Range_Start (Get_Cursor_Extent (N));
+   end Start_Sloc;
+
    function Start_Sloc (N : Cursor_T) return Source_Location is
    begin
-      return Sloc (Get_Range_Start (Get_Cursor_Extent (N)));
+      return Sloc (Start_Sloc (N));
    end Start_Sloc;
 
    --------------
    -- End_Sloc --
    --------------
 
+   function End_Sloc (N : Cursor_T) return Source_Location_T is
+   begin
+      return Get_Range_End (Get_Cursor_Extent (N));
+   end End_Sloc;
+
    function End_Sloc (N : Cursor_T) return Source_Location is
-      Loc : Source_Location_T := Get_Range_End (Get_Cursor_Extent (N));
+      Loc : Source_Location_T := End_Sloc (N);
    begin
       if Is_Macro_Location (Loc) then
          Loc := Get_Expansion_End (Get_Cursor_TU (N), Loc);
@@ -374,26 +384,6 @@ package body Instrument.C_Utils is
          Loc    => Location,
          Insert => Text);
    end Insert_Text_Before_End_Of;
-
-   -------------
-   -- Curlify --
-   -------------
-
-   procedure Curlify (N : Cursor_T; Rew : Rewriter_T) is
-   begin
-      case Kind (N) is
-         when Cursor_Compound_Stmt =>
-            null;
-         when others =>
-            declare
-               Location_After : constant Source_Location_T :=
-                 Get_Range_End (Get_Cursor_Extent (N));
-            begin
-               Insert_Text_After_Start_Of (N, "{", Rew);
-               CX_Rewriter_Insert_Text_After_Token (Rew, Location_After, "}");
-            end;
-      end case;
-   end Curlify;
 
    --------------------
    -- Iterate_Tokens --

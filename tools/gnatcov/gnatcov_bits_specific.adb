@@ -1020,6 +1020,9 @@ procedure GNATcov_Bits_Specific is
                end;
             end if;
 
+            Copy_Arg_List (Opt_C_Opts, C_Opts);
+            Copy_Arg_List (Opt_CPP_Opts, CPP_Opts);
+
          when others =>
             null;
       end case;

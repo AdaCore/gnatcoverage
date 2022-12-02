@@ -40,9 +40,11 @@ package Instrument.C_Utils is
    function Sloc (Loc : Source_Location_T) return Source_Location;
    --  Convert a Source_Location_T to a Source_Location
 
+   function Start_Sloc (N : Cursor_T) return Source_Location_T;
    function Start_Sloc (N : Cursor_T) return Source_Location;
    --  Return the starting location of a node
 
+   function End_Sloc (N : Cursor_T) return Source_Location_T;
    function End_Sloc (N : Cursor_T) return Source_Location;
    --  Return the end location of a node
 
@@ -129,15 +131,6 @@ package Instrument.C_Utils is
    --
    --  If this procedure is called multiple times with the same N as parameter,
    --  the string will be inserted _before_ any previously inserted string.
-
-   procedure Curlify (N : Cursor_T; Rew : Rewriter_T)
-     with Pre => not Is_Null (N);
-   --  If the node N is not a compound statement, rewrite it by surrounding it
-   --  with curly braces. Otherwise, do nothing.
-   --
-   --  If other text was previously inserted at the same location (N start loc,
-   --  and N end loc), then the curly brace will be appended after that text,
-   --  so make sure to call Curlify before further rewriting.
 
    procedure Iterate_Tokens
      (TU      : Translation_Unit_T;

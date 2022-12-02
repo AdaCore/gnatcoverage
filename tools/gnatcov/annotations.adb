@@ -384,9 +384,10 @@ package body Annotations is
    ---------------------
 
    procedure Generate_Report
-     (Pp           : in out Pretty_Printer'Class;
-      Show_Details : Boolean;
-      Subdir       : String := "")
+     (Pp            : in out Pretty_Printer'Class;
+      Show_Details  : Boolean;
+      Subdir        : String := "";
+      Clean_Pattern : String := No_Cleaning)
    is
       use Coverage;
 
@@ -500,12 +501,25 @@ package body Annotations is
 
    begin
 
-      --  Switch the output dir to produce the report content in the requested
-      --  subdir, if needed.
+      if Clean_Pattern /= No_Cleaning then
+         Clean_Dir (Get_Output_Dir, Clean_Pattern);
+      end if;
 
-      if Subdir'Length > 0 and then Multiple_Reports then
-         Set_Output_Dir (Previous_Output_Dir & GNAT.OS_Lib.Directory_Separator
-                         & Subdir);
+      --  Clean the output subdir in all cases, and then switch to that subdir
+      --  to generate the report, if needed.
+
+      if Subdir'Length > 0 then
+         declare
+            Output_Subdir : constant String :=
+              Previous_Output_Dir & GNAT.OS_Lib.Directory_Separator & Subdir;
+         begin
+            if Clean_Pattern /= No_Cleaning then
+               Clean_Dir (Output_Subdir, Clean_Pattern);
+            end if;
+            if Multiple_Reports then
+               Set_Output_Dir (Output_Subdir);
+            end if;
+         end;
       end if;
 
       Pp.Show_Details := Show_Details;

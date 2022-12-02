@@ -56,6 +56,16 @@ package Clang.Extensions is
    function Get_Else (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_getElse";
 
+   function Get_Else_Loc (C : Cursor_T) return Source_Location_T
+     with Import, Convention => C, External_Name => "clang_getElseLoc";
+   --  If this cursor is an if statement with an else part, return the
+   --  else location.Otherwise, return a null location.
+
+   function Get_While_Loc (C : Cursor_T) return Source_Location_T
+     with Import, Convention => C, External_Name => "clang_getWhileLoc";
+   --  If this cursor is a do / while statement, return the while location.
+   --  Otherwise return a null location.
+
    function Get_Sub_Expr (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_getSubExpr";
 
