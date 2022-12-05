@@ -444,6 +444,12 @@ private
       Name       : String;
       MCDC_State : out US.Unbounded_String) is null;
 
+   procedure Insert_Text_Before_Token
+     (Pass : Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String) is null;
+
    procedure Insert_Text_Before
      (Pass : Pass_Kind;
       Rew  : Rewriter_T;

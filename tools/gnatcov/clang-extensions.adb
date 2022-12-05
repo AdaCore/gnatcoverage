@@ -115,6 +115,26 @@ package body Clang.Extensions is
       CX_Rewriter_Insert_Text_After_Token_C (Rew, Loc, Insert & ASCII.NUL);
    end CX_Rewriter_Insert_Text_After_Token;
 
+   ------------------------------------------
+   -- CX_Rewriter_Insert_Text_Before_Token --
+   ------------------------------------------
+
+   procedure CX_Rewriter_Insert_Text_Before_Token
+     (Rew    : Rewriter_T;
+      Loc    : Source_Location_T;
+      Insert : String)
+   is
+      procedure CX_Rewriter_Insert_Text_Before_Token_C
+        (Rew    : Rewriter_T;
+         Loc    : Source_Location_T;
+         Insert : String)
+        with
+          Import, Convention => C,
+          External_Name => "clang_CXRewriter_insertTextBeforeToken";
+   begin
+      CX_Rewriter_Insert_Text_Before_Token_C (Rew, Loc, Insert & ASCII.NUL);
+   end CX_Rewriter_Insert_Text_Before_Token;
+
    -----------------------
    -- Spelling_Location --
    -----------------------
