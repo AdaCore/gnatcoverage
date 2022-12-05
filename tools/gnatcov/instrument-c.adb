@@ -774,7 +774,7 @@ package body Instrument.C is
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
-      Loc  : Source_Location_T := Get_Range_Start (Get_Cursor_Extent (N));
+      Loc  : Source_Location_T := Start_Sloc (N);
       Info : PP_Info;
    begin
       Append_SCO
@@ -997,12 +997,8 @@ package body Instrument.C is
 
       if UIC.LL_PP_Info_Map.Contains (SCOs.SCO_Table.Last) then
          declare
-            Cursor_Source_Range_C : constant Source_Range_T :=
-              Get_Cursor_Extent (N);
-            Start_Loc             : constant Source_Location_T :=
-              Get_Range_Start (Cursor_Source_Range_C);
-            End_Loc               : constant Source_Location_T :=
-              Get_Range_End (Cursor_Source_Range_C);
+            Start_Loc : constant Source_Location_T := Start_Sloc (N);
+            End_Loc   : constant Source_Location_T := End_Sloc (N);
 
             Cursor_Source_Range : Slocs.Local_Source_Location_Range;
 
@@ -3066,9 +3062,7 @@ package body Instrument.C is
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
       Insert_Extern_Location :=
-        Get_Range_Start
-          (Get_Cursor_Extent
-             (Get_Translation_Unit_Cursor (UIC.TU)));
+        Start_Sloc (Get_Translation_Unit_Cursor (UIC.TU));
 
       Traverse_Declarations
         (IC  => IC,
@@ -3767,9 +3761,7 @@ package body Instrument.C is
       --  Name of file to contain helpers implementing the buffers dump
 
       Insert_Extern_Location : constant Source_Location_T :=
-        Get_Range_Start
-          (Get_Cursor_Extent
-             (Get_Translation_Unit_Cursor (Rew.TU)));
+        Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
       --  Where to insert extern declarations
 
       Main_Cursor : constant Cursor_T := Get_Main (Rew.TU);
@@ -3889,15 +3881,13 @@ package body Instrument.C is
                   --  function.
 
                   if Length (Main_Stmts) = 0 then
-                     Insert_Sloc :=
-                       Get_Range_Start (Get_Cursor_Extent (Main_Body));
+                     Insert_Sloc := Start_Sloc (Main_Body);
                      Insert := True;
 
                   --  Otherwise, insert after the last statement
 
                   elsif Kind (Element (Last_Stmt)) /= Cursor_Return_Stmt then
-                     Insert_Sloc :=
-                       Get_Range_End (Get_Cursor_Extent (Element (Last_Stmt)));
+                     Insert_Sloc := End_Sloc (Element (Last_Stmt));
                      Insert := True;
                   end if;
 
