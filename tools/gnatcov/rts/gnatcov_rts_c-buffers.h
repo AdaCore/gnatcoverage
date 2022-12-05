@@ -97,6 +97,12 @@ extern "C"
        file-based languages (otherwise, it is an empty string).  */
     struct gnatcov_rts_string project_name;
 
+    /* Hash of buffer bit mappings for this unit, as gnatcov computes it (see
+       SC_Obligations).  Used as a fast way to check that gnatcov will be able
+       to interpret buffer bits from a source traces using buffer bit mappings
+       from SID files.  */
+    uint8_t bit_maps_fingerprint[FINGERPRINT_SIZE];
+
     /* Pointers to coverage buffers for statement obligations, decision
        obligations and MC/DC obligations.  The size of each array is in the
        corresponding *_last_bit field.  */
