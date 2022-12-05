@@ -108,11 +108,19 @@ package Clang.Extensions is
    --  previously inserted string (at the same location).
 
    procedure CX_Rewriter_Insert_Text_After_Token
-     (Rew : Rewriter_T;
-      Loc : Source_Location_T;
+     (Rew    : Rewriter_T;
+      Loc    : Source_Location_T;
       Insert : String)
      with Inline;
    --  Insert the text Insert after the token at the given location, and after
+   --  any previously inserted string (at the same location).
+
+   procedure CX_Rewriter_Insert_Text_Before_Token
+     (Rew    : Rewriter_T;
+      Loc    : Source_Location_T;
+      Insert : String)
+     with Inline;
+   --  Insert the text Insert before the token at the given location, and after
    --  any previously inserted string (at the same location).
 
    function Get_Cursor_TU (C : Cursor_T) return Translation_Unit_T

@@ -595,6 +595,21 @@ clang_CXRewriter_insertTextAfterToken (CXRewriter Rew, CXSourceLocation Loc,
   R.InsertTextAfterToken (translateSourceLocation (Loc), Insert);
 }
 
+extern "C" void
+clang_CXRewriter_insertTextBeforeToken (CXRewriter Rew, CXSourceLocation Loc,
+                                        const char *Insert)
+{
+  assert (Rew);
+  Rewriter &R = *reinterpret_cast<Rewriter *> (Rew);
+  const SourceManager &SM = R.getSourceMgr ();
+
+  // Get the previous location, and insert after it
+
+  SourceLocation SLoc = translateSourceLocation (Loc);
+  SourceLocation Prv = SLoc.getLocWithOffset (-1);
+  R.InsertTextAfter (Prv, Insert);
+}
+
 /* Wrappers around source location analysis functions.  */
 
 extern "C" unsigned

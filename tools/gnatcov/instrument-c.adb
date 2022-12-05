@@ -245,6 +245,12 @@ package body Instrument.C is
       MCDC_State : out US.Unbounded_String);
    --  Wrapper around Insert_MCDC_State overload
 
+   overriding procedure Insert_Text_Before_Token
+     (Pass : Instrument_Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String);
+
    overriding procedure Insert_Text_Before
      (Pass : Instrument_Pass_Kind;
       Rew  : Rewriter_T;
@@ -774,7 +780,7 @@ package body Instrument.C is
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
-      Loc  : Source_Location_T := Get_Range_Start (Get_Cursor_Extent (N));
+      Loc  : Source_Location_T := Start_Sloc (N);
       Info : PP_Info;
    begin
       Append_SCO
@@ -997,12 +1003,8 @@ package body Instrument.C is
 
       if UIC.LL_PP_Info_Map.Contains (SCOs.SCO_Table.Last) then
          declare
-            Cursor_Source_Range_C : constant Source_Range_T :=
-              Get_Cursor_Extent (N);
-            Start_Loc             : constant Source_Location_T :=
-              Get_Range_Start (Cursor_Source_Range_C);
-            End_Loc               : constant Source_Location_T :=
-              Get_Range_End (Cursor_Source_Range_C);
+            Start_Loc : constant Source_Location_T := Start_Sloc (N);
+            End_Loc   : constant Source_Location_T := End_Sloc (N);
 
             Cursor_Source_Range : Slocs.Local_Source_Location_Range;
 
@@ -1066,11 +1068,24 @@ package body Instrument.C is
       MCDC_State := +Insert_MCDC_State (UIC, Name);
    end Insert_MCDC_State;
 
+   ------------------------------
+   -- Insert_Text_Before_Token --
+   ------------------------------
+
+   overriding procedure Insert_Text_Before_Token
+     (Pass : Instrument_Pass_Kind;
+      Rew  : Rewriter_T;
+      Loc  : Source_Location_T;
+      Text : String) is
+   begin
+      CX_Rewriter_Insert_Text_Before_Token (Rew, Loc, Text);
+   end Insert_Text_Before_Token;
+
    ------------------------
    -- Insert_Text_Before --
    ------------------------
 
-   procedure Insert_Text_Before
+   overriding procedure Insert_Text_Before
      (Pass : Instrument_Pass_Kind;
       Rew  : Rewriter_T;
       Loc  : Source_Location_T;
@@ -1083,7 +1098,7 @@ package body Instrument.C is
    -- Insert_Text_After --
    -----------------------
 
-   procedure Insert_Text_After
+   overriding procedure Insert_Text_After
      (Pass : Instrument_Pass_Kind;
       Rew  : Rewriter_T;
       Loc  : Source_Location_T;
@@ -2463,7 +2478,7 @@ package body Instrument.C is
                         UIC.MCDC_State_Declaration_Node :=
                           Stmts.First_Element;
                         Traverse_Statements (IC, UIC, Stmts, TB);
-                        UIC.Pass.Insert_Text_Before
+                        UIC.Pass.Insert_Text_Before_Token
                           (UIC.Rewriter, End_Sloc (Fun_Body), +TB);
                      end if;
                   end;
@@ -3066,9 +3081,7 @@ package body Instrument.C is
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
       Insert_Extern_Location :=
-        Get_Range_Start
-          (Get_Cursor_Extent
-             (Get_Translation_Unit_Cursor (UIC.TU)));
+        Start_Sloc (Get_Translation_Unit_Cursor (UIC.TU));
 
       Traverse_Declarations
         (IC  => IC,
@@ -3767,9 +3780,7 @@ package body Instrument.C is
       --  Name of file to contain helpers implementing the buffers dump
 
       Insert_Extern_Location : constant Source_Location_T :=
-        Get_Range_Start
-          (Get_Cursor_Extent
-             (Get_Translation_Unit_Cursor (Rew.TU)));
+        Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
       --  Where to insert extern declarations
 
       Main_Cursor : constant Cursor_T := Get_Main (Rew.TU);
@@ -3857,11 +3868,8 @@ package body Instrument.C is
             begin
 
                declare
-                  Main_Body   : constant Cursor_T := Get_Body (Main_Cursor);
-                  Main_Stmts  : constant Vector := Get_Children (Main_Body);
-                  Last_Stmt   : constant Cursor := Main_Stmts.Last;
-                  Insert_Sloc : Source_Location_T;
-                  Insert      : Boolean := False;
+                  Main_Body  : constant Cursor_T := Get_Body (Main_Cursor);
+                  Main_Stmts : constant Vector := Get_Children (Main_Body);
                begin
                   --  Introduce a variable to hold the return value. Declare
                   --  it at the start of the main to avoid complications with
@@ -3881,36 +3889,17 @@ package body Instrument.C is
 
                   Visit (Main_Body, Process'Access);
 
-                  --  If the last statement of the function is not a return
-                  --  statement add a call to dump_buffers at the end of the
-                  --  main function.
-                  --
-                  --  If the main is empty, insert right at the start of the
-                  --  function.
+                  --  If the main function does not end with a return, add
+                  --  a call to dump_buffers at the end of the function.
 
-                  if Length (Main_Stmts) = 0 then
-                     Insert_Sloc :=
-                       Get_Range_Start (Get_Cursor_Extent (Main_Body));
-                     Insert := True;
-
-                  --  Otherwise, insert after the last statement
-
-                  elsif Kind (Element (Last_Stmt)) /= Cursor_Return_Stmt then
-                     Insert_Sloc :=
-                       Get_Range_End (Get_Cursor_Extent (Element (Last_Stmt)));
-                     Insert := True;
-                  end if;
-
-                  if Insert then
-
-                     --  Insert a terminating semicolon in case we end up
-                     --  inserting between the last statement expression and
-                     --  its terminating semicolon.
-
-                     CX_Rewriter_Insert_Text_After_Token
+                  if Length (Main_Stmts) = 0
+                       or else
+                     Kind (Main_Stmts.Last_Element) /= Cursor_Return_Stmt
+                  then
+                     CX_Rewriter_Insert_Text_Before_Token
                        (Rew.Rewriter,
-                        Insert_Sloc,
-                        ";" & Dump_Procedure_Symbol (Main) & "();");
+                        End_Sloc (Main_Body),
+                        Dump_Procedure_Symbol (Main) & "();");
                   end if;
                end;
             end;
