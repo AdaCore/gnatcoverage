@@ -64,6 +64,11 @@ package body Instrument.Ada_Unit is
    --  and thus to check that it works as expected. This is the role of the
    --  following helpers.
 
+   function Format_Fingerprint
+     (Fingerprint : SC_Obligations.Fingerprint_Type) return String
+   is (Instrument.Common.Format_Fingerprint (Fingerprint, "(", ")"));
+   --  Helper to format a String literal for a fingerprint
+
    -------------------------------
    -- Create_Context_Instrument --
    -------------------------------
@@ -7057,8 +7062,9 @@ package body Instrument.Ada_Unit is
 
          File.Put_Line ("   Buffers : aliased constant"
                         & " GNATcov_RTS_Coverage_Buffers :=");
-         File.Put_Line ("     (Fingerprint => "
-                        & To_String (Fingerprint) & ",");
+         File.Put_Line
+           ("     (Fingerprint => "
+            & Format_Fingerprint (SC_Obligations.Fingerprint (UIC.CU)) & ",");
 
          File.Put_Line ("      Language  => Unit_Based_Language,");
          File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
@@ -7067,6 +7073,11 @@ package body Instrument.Ada_Unit is
 
          File.Put_Line ("      Project_Name =>"
                         & " (Project_Name'Address, Project_Name'Length),");
+
+         File.Put_Line
+           ("      Bit_Maps_Fingerprint => "
+            & Format_Fingerprint (SC_Obligations.Bit_Maps_Fingerprint (UIC.CU))
+            & ",");
 
          File.Put_Line ("      Statement => Statement_Buffer'Address,");
          File.Put_Line ("      Decision  => Decision_Buffer'Address,");

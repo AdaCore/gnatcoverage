@@ -178,6 +178,30 @@ package body Instrument.Common is
       end if;
    end Project_Output_Dir;
 
+   ------------------------
+   -- Format_Fingerprint --
+   ------------------------
+
+   function Format_Fingerprint
+     (Fingerprint      : SC_Obligations.Fingerprint_Type;
+      Opening, Closing : String) return String
+   is
+      Result : Unbounded_String;
+      First  : Boolean := True;
+   begin
+      Append (Result, Opening);
+      for Byte of Fingerprint loop
+         if First then
+            First := False;
+         else
+            Append (Result, ", ");
+         end if;
+         Append (Result, Strings.Img (Integer (Byte)));
+      end loop;
+      Append (Result, Closing);
+      return To_String (Result);
+   end Format_Fingerprint;
+
    ---------------------
    -- Start_Rewriting --
    ---------------------

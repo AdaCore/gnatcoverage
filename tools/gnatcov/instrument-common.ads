@@ -156,6 +156,16 @@ package Instrument.Common is
    --  Project. This retuns an empty strings for projects that do not have an
    --  object directory.
 
+   function Format_Fingerprint
+     (Fingerprint      : SC_Obligations.Fingerprint_Type;
+      Opening, Closing : String) return String;
+   --  Somewhat language agnostic formatter for fingerprint values in generated
+   --  code.
+   --
+   --  Opening and Closing are strings used at the beginning and the end of the
+   --  returned literal expression (aggregate in Ada, compound expression in
+   --  C/C++).
+
    package File_Sets is new Ada.Containers.Hashed_Sets
      (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
       "="                 => Ada.Strings.Unbounded."=",

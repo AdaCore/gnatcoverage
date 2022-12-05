@@ -98,9 +98,13 @@ package SC_Obligations is
    --  Return the SCO provider corresponding to the given compilation unit
 
    type Fingerprint_Type is new GNAT.SHA1.Binary_Message_Digest;
+   No_Fingerprint : constant Fingerprint_Type := (others => 0);
 
    function Fingerprint (CU : CU_Id) return Fingerprint_Type;
    --  Hash of SCO info in ALI, for incremental coverage consistency check
+
+   function Bit_Maps_Fingerprint (CU : CU_Id) return Fingerprint_Type;
+   --  Hash of buffer bit mappings in CU
 
    function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
    --  Return the identifier for the compilation unit containing the given

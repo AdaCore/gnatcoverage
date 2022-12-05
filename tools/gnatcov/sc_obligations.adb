@@ -112,6 +112,9 @@ package body SC_Obligations is
          when Instrumenter =>
             Bit_Maps : CU_Bit_Maps;
             --  Mapping of bits in coverage buffers to SCOs
+
+            Bit_Maps_Fingerprint : Fingerprint_Type;
+            --  Hash of Bit_Maps, for consistency checks with source traces
       end case;
 
    end record;
@@ -1287,13 +1290,31 @@ package body SC_Obligations is
                      & Provider_Image (CP_CU.Provider)
                      & " and from " & Provider_Image (CU_Record.Provider));
 
-            --  Ignore also when the fingerprint does not match
+            --  Ignore also when the fingerprints do not match.
+            --
+            --  Note that only recent enough SID files contain buffer bit maps
+            --  and their fingerprints. Bit_Maps_Fingerprint is left to
+            --  No_Fingerprint for checkpoints. Skip the consistency check for
+            --  these cases, and if the loaded CU has these fingerprints,
+            --  record them for later consistency checks.
 
-            elsif CP_CU.Fingerprint /= CU_Record.Fingerprint then
+            elsif CP_CU.Fingerprint /= CU_Record.Fingerprint
+                    or else
+                  (CP_CU.Provider = Instrumenter
+                   and then CP_CU.Bit_Maps_Fingerprint /= No_Fingerprint
+                   and then CU_Record.Bit_Maps_Fingerprint /= No_Fingerprint
+                   and then CP_CU.Bit_Maps_Fingerprint
+                            /= CU_Record.Bit_Maps_Fingerprint)
+            then
                Warn ("unexpected fingerprint, cannot merge coverage"
                      & " information for " & CU_Image);
 
             else
+               if CU_Record.Provider = Instrumenter
+                  and then CU_Record.Bit_Maps_Fingerprint = No_Fingerprint
+               then
+                  CU_Record.Bit_Maps_Fingerprint := CP_CU.Bit_Maps_Fingerprint;
+               end if;
                Checkpoint_Load_Merge_Unit
                  (CLS,
                   CP_CU      => CP_CU,
@@ -1380,23 +1401,37 @@ package body SC_Obligations is
          SCO_PP_Info_Maps.Map'Read (S, V.PP_Info_Map);
       end if;
 
-      --  Checkpoint version 2 data (instrumentation support)
+      case V.Provider is
+         when Compiler =>
+            null;
+         when Instrumenter =>
 
-      if not Version_Less (S, Than => 2) then
-         case V.Provider is
-            when Compiler =>
-               null;
-            when Instrumenter =>
-               if Purpose_Of (S) = Instrumentation then
-                  V.Bit_Maps.Statement_Bits :=
-                    new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
-                  V.Bit_Maps.Decision_Bits :=
-                    new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
-                  V.Bit_Maps.MCDC_Bits :=
-                    new MCDC_Bit_Map'(MCDC_Bit_Map'Input (S));
+            --  Checkpoint version 2 data (instrumentation support)
+
+            --  By default, use "no fingerprint" for buffer bit maps
+            --  fingerprints: either the SID file we load is too old to have
+            --  such fingerprints, either we are loading a checkpoint, and by
+            --  design checkpoints contains neither bit maps nor their
+            --  fingerprints (all source traces are processed before loading
+            --  checkpoints, and bit maps are needed only to interpret source
+            --  traces).
+
+            V.Bit_Maps_Fingerprint := No_Fingerprint;
+
+            if not Version_Less (S, Than => 2)
+               and then Purpose_Of (S) = Instrumentation
+            then
+               V.Bit_Maps.Statement_Bits :=
+                 new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
+               V.Bit_Maps.Decision_Bits :=
+                 new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
+               V.Bit_Maps.MCDC_Bits :=
+                 new MCDC_Bit_Map'(MCDC_Bit_Map'Input (S));
+               if not Version_Less (S, Than => 11) then
+                  Fingerprint_Type'Read (S, V.Bit_Maps_Fingerprint);
                end if;
-         end case;
-      end if;
+            end if;
+      end case;
 
       --  Checkpoint version 8 data (scoped metrics support)
 
@@ -1456,6 +1491,7 @@ package body SC_Obligations is
                  (S, V.Bit_Maps.Decision_Bits.all);
                MCDC_Bit_Map'Output
                  (S, V.Bit_Maps.MCDC_Bits.all);
+               Fingerprint_Type'Write (S, V.Bit_Maps_Fingerprint);
             end if;
       end case;
 
@@ -2581,6 +2617,15 @@ package body SC_Obligations is
    begin
       return CU_Vector.Reference (CU).Fingerprint;
    end Fingerprint;
+
+   --------------------------
+   -- Bit_Maps_Fingerprint --
+   --------------------------
+
+   function Bit_Maps_Fingerprint (CU : CU_Id) return Fingerprint_Type is
+   begin
+      return CU_Vector.Reference (CU).Bit_Maps_Fingerprint;
+   end Bit_Maps_Fingerprint;
 
    ---------------
    -- Load_SCOs --
@@ -4143,8 +4188,36 @@ package body SC_Obligations is
    ------------------
 
    procedure Set_Bit_Maps (CU : CU_Id; Bit_Maps : CU_Bit_Maps) is
+      use GNAT.SHA1;
+
+      Info : CU_Info renames CU_Vector.Reference (CU);
+      Ctx : GNAT.SHA1.Context;
+      LF  : constant String := (1 => ASCII.LF);
    begin
-      CU_Vector.Reference (CU).Bit_Maps := Bit_Maps;
+      Info.Bit_Maps := Bit_Maps;
+
+      --  Compute the fingerprint for these bit maps
+
+      Update (Ctx, "stmt:");
+      for Id of Bit_Maps.Statement_Bits.all loop
+         Update (Ctx, Id'Image);
+      end loop;
+      Update (Ctx, LF);
+
+      Update (Ctx, "dc:");
+      for D of Bit_Maps.Decision_Bits.all loop
+         Update (Ctx, D.D_SCO'Image & ":" & D.Outcome'Image);
+      end loop;
+      Update (Ctx, LF);
+
+      Update (Ctx, "mcdc:");
+      for M of Bit_Maps.MCDC_Bits.all loop
+         Update (Ctx, M.D_SCO'Image & ":" & M.Path_Index'Image);
+      end loop;
+      Update (Ctx, LF);
+
+      Info.Bit_Maps_Fingerprint := Fingerprint_Type
+        (GNAT.SHA1.Binary_Message_Digest'(GNAT.SHA1.Digest (Ctx)));
    end Set_Bit_Maps;
 
    ----------------------

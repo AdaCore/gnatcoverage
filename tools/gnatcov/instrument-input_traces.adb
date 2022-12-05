@@ -528,7 +528,7 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid bit buffer encoding");
             return False;
 
-         elsif Raw_Header.Padding /= (1 .. 5 => ASCII.NUL) then
+         elsif Raw_Header.Padding /= (1 => ASCII.NUL) then
             Create_Error (Result, "invalid entry header padding");
             return False;
          end if;
@@ -699,8 +699,10 @@ package body Instrument.Input_Traces is
             function Convert is new Ada.Unchecked_Conversion
               (GNATcov_RTS.Buffers.Fingerprint_Type,
                SC_Obligations.Fingerprint_Type);
-            Fingerprint : constant SC_Obligations.Fingerprint_Type :=
+            Fingerprint          : constant SC_Obligations.Fingerprint_Type :=
                Convert (Entry_Header.Fingerprint);
+            Bit_Maps_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
+               Convert (Entry_Header.Bit_Maps_Fingerprint);
 
             Statement_Buffer_Size : constant Natural :=
                Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
@@ -772,8 +774,10 @@ package body Instrument.Input_Traces is
             end case;
 
             On_Trace_Entry
-              (Filename, Fingerprint,
+              (Filename,
+               Fingerprint,
                CU_Name,
+               Bit_Maps_Fingerprint,
                Statement_Buffer
                  (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
                Decision_Buffer
@@ -800,12 +804,13 @@ package body Instrument.Input_Traces is
         (Kind : Traces_Source.Supported_Info_Kind;
          Data : String);
       procedure On_Trace_Entry
-        (Filename        : String;
-         Fingerprint     : SC_Obligations.Fingerprint_Type;
-         CU_Name         : Compilation_Unit_Name;
-         Stmt_Buffer     : Coverage_Buffer;
-         Decision_Buffer : Coverage_Buffer;
-         MCDC_Buffer     : Coverage_Buffer);
+        (Filename             : String;
+         Fingerprint          : SC_Obligations.Fingerprint_Type;
+         CU_Name              : Compilation_Unit_Name;
+         Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
+         Stmt_Buffer          : Coverage_Buffer;
+         Decision_Buffer      : Coverage_Buffer;
+         MCDC_Buffer          : Coverage_Buffer);
       --  Callbacks for Read_Source_Trace_File
 
       Last_Is_Info : Boolean := False;
@@ -839,12 +844,13 @@ package body Instrument.Input_Traces is
       --------------------
 
       procedure On_Trace_Entry
-        (Filename        : String;
-         Fingerprint     : SC_Obligations.Fingerprint_Type;
-         CU_Name         : Compilation_Unit_Name;
-         Stmt_Buffer     : Coverage_Buffer;
-         Decision_Buffer : Coverage_Buffer;
-         MCDC_Buffer     : Coverage_Buffer)
+        (Filename             : String;
+         Fingerprint          : SC_Obligations.Fingerprint_Type;
+         CU_Name              : Compilation_Unit_Name;
+         Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
+         Stmt_Buffer          : Coverage_Buffer;
+         Decision_Buffer      : Coverage_Buffer;
+         MCDC_Buffer          : Coverage_Buffer)
       is
          pragma Unreferenced (Filename);
          use Ada.Text_IO;
@@ -857,14 +863,21 @@ package body Instrument.Input_Traces is
          case CU_Name.Language_Kind is
             when GNATcov_RTS.Buffers.Unit_Based_Language =>
                Put ("Unit " & To_Ada (CU_Name.Unit) & " (" & CU_Name.Part'Image
-                    & ", hash=");
+                    & ", ");
             when GNATcov_RTS.Buffers.File_Based_Language =>
-               Put ("Unit " & (+CU_Name.Filename) & " (hash=");
+               Put ("Unit " & (+CU_Name.Filename) & " (");
          end case;
 
+         Put ("SCOs hash=");
          for B of Fingerprint loop
             Put (Hex_Images.Hex_Image (Interfaces.Unsigned_8 (B)));
          end loop;
+
+         Put (", bit maps hash=");
+         for B of Bit_Maps_Fingerprint loop
+            Put (Hex_Images.Hex_Image (Interfaces.Unsigned_8 (B)));
+         end loop;
+
          Put_Line (")");
          Dump_Buffer ("Statement", Stmt_Buffer);
          Dump_Buffer ("Decision", Decision_Buffer);
