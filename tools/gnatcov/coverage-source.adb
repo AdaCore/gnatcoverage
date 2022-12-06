@@ -1701,12 +1701,13 @@ package body Coverage.Source is
    end Compute_Source_Coverage;
 
    procedure Compute_Source_Coverage
-     (Filename        : String;
-      Fingerprint     : SC_Obligations.Fingerprint_Type;
-      CU_Name         : Compilation_Unit_Name;
-      Stmt_Buffer     : Coverage_Buffer;
-      Decision_Buffer : Coverage_Buffer;
-      MCDC_Buffer     : Coverage_Buffer)
+     (Filename             : String;
+      Fingerprint          : SC_Obligations.Fingerprint_Type;
+      CU_Name              : Compilation_Unit_Name;
+      Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
+      Stmt_Buffer          : Coverage_Buffer;
+      Decision_Buffer      : Coverage_Buffer;
+      MCDC_Buffer          : Coverage_Buffer)
    is
       CU : CU_Id;
       BM : CU_Bit_Maps;
@@ -1781,7 +1782,10 @@ package body Coverage.Source is
       --  Sanity check that Fingerprint is consistent with what the
       --  instrumenter recorded in the CU info.
 
-      if Fingerprint /= SC_Obligations.Fingerprint (CU) then
+      if Fingerprint /= SC_Obligations.Fingerprint (CU)
+           or else
+         Bit_Maps_Fingerprint /= SC_Obligations.Bit_Maps_Fingerprint (CU)
+      then
          Warn ("traces for " & Unit_Image  & " (from " & Filename & ") are"
                & " inconsistent with the corresponding Source Instrumentation"
                & " Data");
