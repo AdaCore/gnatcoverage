@@ -23,7 +23,6 @@ with Ada.Strings.Unbounded;
 
 with Outputs;  use Outputs;
 with Project;  use Project;
-with Strings;  use Strings;
 with Switches; use Switches;
 
 package body Switches is
@@ -497,5 +496,57 @@ package body Switches is
       Copy_Arg (Opt_Runtime, Runtime);
       Copy_Arg (Opt_Config, CGPR_File);
    end Parse_Arguments;
+
+   ---------------------
+   -- Common_Switches --
+   ---------------------
+
+   function Common_Switches
+     (Cmd : Command_Line.Command_Type) return String_Vectors.Vector
+   is
+      Has_Config : constant Boolean :=
+        Is_Present (Args, Option_Reference'(String_Opt, Opt_Config));
+      --  Whether the --config flag is on the command line. If this is the
+      --  case, do not pass the --target and --RTS flags (they will be parsed
+      --  from the config).
+
+      Result : String_Vectors.Vector;
+
+      procedure Process (Option : Option_Reference);
+      --  Add the command line value of Option to Result if Cmd supports it
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Option : Option_Reference) is
+      begin
+         if Is_Present (Args, Option)
+            and then Supports (Arg_Parser, Cmd, Option)
+         then
+            Result.Append_Vector (Unparse (Arg_Parser, Args, Option));
+         end if;
+      end Process;
+
+   begin
+      --  Unfortunately, we can't avoid the code duplication. Deal with all
+      --  kind of options: boolean, string and strings list. Do not pass
+      --  the --target and --RTS flags if there is a --config flag.
+
+      for Opt in Bool_Options loop
+         Process (Option_Reference'(Bool_Opt, Opt));
+      end loop;
+
+      for Opt in String_Options loop
+         if not Has_Config or else Opt not in Opt_Target | Opt_Runtime then
+            Process (Option_Reference'(String_Opt, Opt));
+         end if;
+      end loop;
+
+      for Opt in String_List_Options loop
+         Process (Option_Reference'(String_List_Opt, Opt));
+      end loop;
+      return Result;
+   end Common_Switches;
 
 end Switches;

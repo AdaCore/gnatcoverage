@@ -383,6 +383,20 @@ package Argparse is
       Default : String := "") return String;
    --  If Option is present in Args, return its value. Return Default otherwise
 
+   function Supports
+     (Parser : Parser_Type;
+      Cmd    : Command_Type;
+      Option : Option_Reference) return Boolean;
+   --  Return True if Cmd supports Option, False otherwise
+
+   function Unparse
+     (Parser : Parser_Type;
+      Args   : Parsed_Arguments;
+      Option : Option_Reference) return String_Vectors.Vector
+     with Pre => Is_Present (Args, Option);
+   --  If Option is present in Args, return a string representation of this
+   --  option that can be passed to a gnatcov invocation.
+
 private
 
    type Command_Info is record

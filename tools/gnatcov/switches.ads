@@ -25,6 +25,7 @@ with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
 with Inputs;
 with Instrument;           use Instrument;
+with Strings;              use Strings;
 
 package Switches is
 
@@ -214,5 +215,11 @@ package Switches is
 
    Debug_File_Table : Boolean renames
       Debug_Switches (File_Table);
+
+   function Common_Switches
+     (Cmd : Command_Line.Command_Type) return String_Vectors.Vector;
+   --  Return the unparsed command line arguments supported by the given
+   --  Cmd. This is used to propagate a set of switches to a gnatcov
+   --  subprocess.
 
 end Switches;

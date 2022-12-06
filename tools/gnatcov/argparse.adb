@@ -217,6 +217,70 @@ package body Argparse is
               else Default);
    end Value;
 
+   --------------
+   -- Supports --
+   --------------
+
+   function Supports
+     (Parser : Parser_Type;
+      Cmd    : Command_Type;
+      Option : Option_Reference) return Boolean is
+   begin
+      case Option.Kind is
+         when Bool_Opt =>
+            return Parser.Data.Bool_Info (Option.Bool_Option).Commands (Cmd);
+         when String_Opt =>
+            return Parser.Data.String_Info
+              (Option.String_Option).Commands (Cmd);
+         when String_List_Opt =>
+            return Parser.Data.String_List_Info
+              (Option.String_List_Option).Commands (Cmd);
+      end case;
+   end Supports;
+
+   -------------
+   -- Unparse --
+   -------------
+
+   function Unparse
+     (Parser : Parser_Type;
+      Args   : Parsed_Arguments;
+      Option : Option_Reference) return String_Vectors.Vector
+   is
+      Result : String_Vectors.Vector;
+
+      function Name (Opt : Option_Info'Class) return Unbounded_String is
+        (if Length (Opt.Long_Name) = 0
+         then Opt.Short_Name
+         else Opt.Long_Name);
+      --  Some options such as -P do not defined a long name. In this case,
+      --  return the short name.
+
+   begin
+      case Option.Kind is
+         when Bool_Opt =>
+            Result.Append
+              (Name (Parser.Data.Bool_Info (Option.Bool_Option)));
+         when String_Opt =>
+            Result.Append
+              (Name (Parser.Data.String_Info (Option.String_Option)));
+            Result.Append (Args.String_Args (Option.String_Option).Value);
+         when String_List_Opt =>
+            declare
+               Opt_Name : constant Unbounded_String :=
+                 Name
+                   (Parser.Data.String_List_Info (Option.String_List_Option));
+            begin
+               for Arg of Args.String_List_Args (Option.String_List_Option)
+               loop
+                  Result.Append (Opt_Name);
+                  Result.Append (Arg);
+               end loop;
+            end;
+      end case;
+      return Result;
+   end Unparse;
+
    ----------------
    -- Get_Option --
    ----------------
