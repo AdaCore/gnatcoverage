@@ -1541,14 +1541,14 @@ options to help in those situations:
   If the location of a source file, when built on a first machine,
   was ``/work/build_1234/src/main.adb`` but its location on the machine where
   the report is generated is ``/some/path/project/src/main.adb`` then passing
-  :option:`--source-search=/some/path/project/src` will enable |gcv| to find
-  the missing source file. This option also accepts response files.
+  :cmd-option:`--source-search=/some/path/project/src` will enable |gcv| to
+  find the missing source file. This option also accepts response files.
 
   This option can appear multiple times on the command line. Note that |gcv|
-  will first try the :option:`--source-rebase` prefix pairs, if any, and if
-  the source file was not found, it will then look for the file in all the
-  directories passed with :option:`--source-search` in the order in which they
-  appear on the command line.
+  will first try the :cmd-option:`--source-rebase` prefix pairs, if any, and
+  if the source file was not found, it will then look for  the file in all
+  the directories passed with :cmd-option:`--source-search` in the order in
+  which they appear on the command line.
 
 These two options perform very similar functions and can sometimes be used
 interchangeably, however the second option is less selective and can lead to
