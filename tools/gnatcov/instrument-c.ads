@@ -315,7 +315,7 @@ package Instrument.C is
       Language : C_Family_Language;
       Info     : Project_Info;
       Filename : String);
-   --  Shortcut to call Import_From_Project, and Import_From_Agrs on the
+   --  Shortcut to call Import_From_Project, and Import_From_Args on the
    --  --c-opts/--c++-opts option.
 
    type Source_Of_Interest (Of_Interest : Boolean := False) is record
