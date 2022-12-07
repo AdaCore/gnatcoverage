@@ -646,7 +646,7 @@ package SC_Obligations is
       --  Refers to the source location of a SCO in the unpreprocessed view
       --  of the source file.
 
-      PP_Source_Range     : Slocs.Local_Source_Location_Range;
+      PP_Source_Range : Slocs.Local_Source_Location_Range;
       --  Refer to a source location from the preprocessed version of the
       --  source file, without accounting for preprocessor-inserted line
       --  directives.
@@ -659,10 +659,9 @@ package SC_Obligations is
             Definition_Loc : Expansion_Info;
             --  Location in the definition of the ultimate macro expansion
 
-         when others       =>
+         when others =>
             null;
       end case;
-
    end record;
    --  Preprocessing information for SCOs. Hold basic information to enhance
    --  the report output with more precise messages.
