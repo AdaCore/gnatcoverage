@@ -26,8 +26,6 @@ with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis; use Libadalang.Analysis;
 with Libadalang.Common;   use Libadalang.Common;
 
-with Instrument.Base_Types; use Instrument.Base_Types;
-
 --  Custom implementation of a libadalang unit provider, using the mapping
 --  file produced from the project file (that is passed to the compiler through
 --  the -gnatem switch).

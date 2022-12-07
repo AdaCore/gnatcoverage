@@ -37,7 +37,6 @@ with Interfaces.C.Strings; use Interfaces.C.Strings;
 with ALI_Files;           use ALI_Files;
 with Coverage;            use Coverage;
 with Coverage_Options;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Hex_Images;          use Hex_Images;
 with Inputs;              use Inputs;
 with Instrument.C_Utils;  use Instrument.C_Utils;
@@ -45,7 +44,6 @@ with Outputs;             use Outputs;
 with Paths;               use Paths;
 with Project;             use Project;
 with SCOs;
-with Subprocesses;        use Subprocesses;
 with System;              use System;
 with Table;
 with Text_Files;          use Text_Files;
@@ -4289,9 +4287,7 @@ package body Instrument.C is
 
    overriding function Skip_Source_File
      (Self        : C_Family_Instrumenter_Type;
-      Source_File : GNATCOLL.Projects.File_Info) return Boolean
-   is
-      use GNATCOLL.Projects;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean is
    begin
       --  Do not instrument C headers: code in C header is meant to be
       --  instrumented at the time it is included in a ".c" source.
@@ -4660,7 +4656,6 @@ package body Instrument.C is
       --  if it is missing.
 
       declare
-         use GNATCOLL.Projects;
          use GNATCOLL.VFS;
          use Source_Of_Interest_Maps;
 

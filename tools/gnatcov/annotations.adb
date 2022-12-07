@@ -31,7 +31,7 @@ with Coverage_Options; use Coverage_Options;
 with Coverage.Object;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;
-with Instrument.Base_Types;
+with Instrument;
 with Outputs;          use Outputs;
 with Subprocesses;
 with Switches;         use Switches;
@@ -716,7 +716,7 @@ package body Annotations is
          begin
             if Postprocessed_SFI = No_Source_File then
                declare
-                  use Instrument.Base_Types;
+                  use Instrument;
                   use Subprocesses;
                   Preprocessed : Boolean;
                begin

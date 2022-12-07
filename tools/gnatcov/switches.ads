@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Strings.Unbounded;
 
 with GNAT.Strings; use GNAT.Strings;
 
@@ -24,7 +25,6 @@ with Calendar_Utils;       use Calendar_Utils;
 with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
 with Inputs;
-with Instrument;           use Instrument;
 with Strings;              use Strings;
 
 package Switches is
@@ -58,11 +58,6 @@ package Switches is
      (Option : String_List_Options;
       List   : in out Inputs.Inputs_Type);
    --  Copy the list of strings referenced in Option to the List input list
-
-   function Load_Dump_Config
-     (Default_Dump_Config : Any_Dump_Config) return Any_Dump_Config;
-   --  Create the Any_Dump_Config value corresponding to Default_Dump_Config
-   --  and the given --dump-* arguments for source trace dumping.
 
    ----------------------------
    -- Miscellaneous switches --
@@ -214,7 +209,69 @@ package Switches is
       Debug_Switches (Ignore_Exemptions);
 
    Debug_File_Table : Boolean renames
-      Debug_Switches (File_Table);
+     Debug_Switches (File_Table);
+
+   ---------------------------------------
+   --  Instrumentation-related switches --
+   ---------------------------------------
+
+   type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012, Ada_2022);
+
+   type Any_Dump_Trigger is
+     (Manual, At_Exit, Ravenscar_Task_Termination, Main_End);
+   --  Trigger to dump coverage buffers in instrumented programs. See the user
+   --  documentation for the --dump-trigger command-line option.
+
+   subtype Auto_Dump_Trigger is Any_Dump_Trigger range At_Exit .. Main_End;
+
+   type Any_Dump_Channel is (Binary_File, Base64_Standard_Output);
+   --  Channel where to dump coverage buffers. See the user documentation for
+   --  the --dump-channel command-line option.
+
+   --  Serialization/deserialization functions for the enumeration types. The
+   --  deserialization ones raise Constraint_Error exceptions for invalid input
+   --  strings.
+
+   function Image (Dump_Trigger : Any_Dump_Trigger) return String;
+   function Image (Dump_Channel : Any_Dump_Channel) return String;
+   function Value (Dump_Trigger : String) return Any_Dump_Trigger;
+   function Value (Dump_Channel : String) return Any_Dump_Channel;
+
+   type Any_Dump_Config (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
+   is record
+      Trigger : Any_Dump_Trigger := Manual;
+
+      case Channel is
+         when Binary_File =>
+            Filename_Simple : Boolean := False;
+            --  Whether to generate source traces with simple filenames.
+            --
+            --  Controlled by --dump-filename-simple.
+
+            Filename_Env_Var : Ada.Strings.Unbounded.Unbounded_String;
+            --  Name of the environment variable which, if set, contains the
+            --  default filename for created source traces. If empty, use the
+            --  default one (see Default_Trace_Filename_Env_Var in
+            --  GNATcov_RTS.Traces.Output.Files).
+            --
+            --  Controlled by --dump-filename-env-var.
+
+            Filename_Prefix  : Ada.Strings.Unbounded.Unbounded_String;
+            --  Prefix for the source trace filename. If empty, use the
+            --  program's basename (see Default_Trace_Filename_Prefix in
+            --  GNATcov_RTS.Traces.Output.Files).
+            --
+            --  Controlled by --dump-filename-prefix.
+
+         when others =>
+            null;
+      end case;
+   end record;
+
+   function Load_Dump_Config
+     (Default_Dump_Config : Any_Dump_Config) return Any_Dump_Config;
+   --  Create the Any_Dump_Config value corresponding to Default_Dump_Config
+   --  and the given --dump-* arguments for source trace dumping.
 
    function Common_Switches
      (Cmd : Command_Line.Command_Type) return String_Vectors.Vector;

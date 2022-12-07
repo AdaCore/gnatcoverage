@@ -20,7 +20,6 @@
 --  gnatcov is not built with C instrumentation support.
 
 with Instrument.Common; use Instrument.Common;
-with Switches;          use Switches;
 
 package Instrument.C is
 

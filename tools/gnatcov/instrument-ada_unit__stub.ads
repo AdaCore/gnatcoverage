@@ -20,11 +20,7 @@
 --  when gnatcov is not built with Ada instrumentation support (basically the
 --  gnatcov32 executable that have support for binary traces only).
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
-
-with Instrument.Base_Types; use Instrument.Base_Types;
-with Instrument.Common;     use Instrument.Common;
-with Switches;              use Switches;
+with Instrument.Common; use Instrument.Common;
 
 package Instrument.Ada_Unit is
 

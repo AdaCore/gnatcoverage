@@ -104,7 +104,7 @@ package body Instrument.C_Utils is
       File         : aliased String_T;
    begin
       if Loc = Get_Null_Location then
-         return No_Location;
+         return Slocs.No_Location;
       end if;
       Get_Presumed_Location (Location => Loc,
                              Filename => File'Access,

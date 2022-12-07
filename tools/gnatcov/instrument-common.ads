@@ -58,22 +58,14 @@ with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
-with GNAT.Regexp;
-
-with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with ALI_Files;             use ALI_Files;
 with Files_Table;           use Files_Table;
 with GNATcov_RTS;
-with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
-with Instrument.Base_Types; use Instrument.Base_Types;
 with Namet;                 use Namet;
-with SC_Obligations;        use SC_Obligations;
 with Slocs;                 use Slocs;
-with Switches;              use Switches;
 with Text_Files;
-with Types;                 use Types;
 
 package Instrument.Common is
 

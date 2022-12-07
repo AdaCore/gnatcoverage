@@ -18,8 +18,6 @@
 
 --  Source trace files decoding
 
-with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
-with Instrument.Base_Types; use Instrument.Base_Types;
 with SC_Obligations;
 with Traces_Files;
 with Traces_Source;

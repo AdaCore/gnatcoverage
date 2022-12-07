@@ -24,17 +24,12 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
-
 with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
-with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
-with SC_Obligations;        use SC_Obligations;
 with Switches;
-with Types;                 use Types;
 
 package Instrument.Ada_Unit is
 
