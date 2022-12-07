@@ -85,6 +85,11 @@ package Instrument.Ada_Unit is
       Root_Project_Info : in out Project_Info;
       Instr_Units       : CU_Name_Vectors.Vector);
 
+   overriding function Skip_Source_File
+     (Self        : Ada_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean
+   is (False);
+
    procedure Find_Ada_Units
      (Instrumenter : in out Ada_Instrumenter_Type;
       CU_Name      : Compilation_Unit_Name;

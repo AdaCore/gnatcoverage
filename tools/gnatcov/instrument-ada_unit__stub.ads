@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2023, AdaCore                     --
+--                        Copyright (C) 2023, AdaCore                       --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,39 +16,35 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Stub of Instrument.C, to avoid pulling a dependency to libclang when
---  gnatcov is not built with C instrumentation support.
+--  Stub of Instrument.Ada_Unit, to avoid pulling a dependency to libadalang
+--  when gnatcov is not built with Ada instrumentation support (basically the
+--  gnatcov32 executable that have support for binary traces only).
 
-with Instrument.Common; use Instrument.Common;
-with Switches;          use Switches;
+with GNATCOLL.Projects; use GNATCOLL.Projects;
 
-package Instrument.C is
+with Instrument.Base_Types; use Instrument.Base_Types;
+with Instrument.Common;     use Instrument.Common;
+with Switches;              use Switches;
 
-   type C_Family_Instrumenter_Type is
-     abstract new Language_Instrumenter with null record;
-   --  Common instrumentation primitives for C/C++
+package Instrument.Ada_Unit is
 
-   type C_Instrumenter_Type is
-     new C_Family_Instrumenter_Type with null record;
-   --  Instrumentation primitives for C
+   type Ada_Instrumenter_Type is new Language_Instrumenter with null record;
+   --  Common instrumentation primitives for Ada
 
-   overriding function Language
-     (Self : C_Instrumenter_Type) return Src_Supported_Language
-   is (C_Language);
-
-   type CPP_Instrumenter_Type is
-     new C_Family_Instrumenter_Type with null record;
-   --  Instrumentation primitives for C++
+   function Create_Ada_Instrumenter
+     (Language_Version : Any_Language_Version) return Ada_Instrumenter_Type
+   is (Ada_Instrumenter_Type'(null record));
 
    overriding function Language
-     (Self : CPP_Instrumenter_Type) return Src_Supported_Language
-   is (CPP_Language);
+     (Self : Ada_Instrumenter_Type) return Src_Supported_Language
+   is (Ada_Language);
 
-   C_Instrumenter   : aliased C_Instrumenter_Type := (null record);
-   CPP_Instrumenter : aliased CPP_Instrumenter_Type := (null record);
+   procedure Find_Ada_Units
+     (Instrumenter : in out Ada_Instrumenter_Type;
+      CU_Name      : Compilation_Unit_Name;
+      Info         : GNATCOLL.Projects.File_Info;
+      Process_Unit : access procedure
+        (CU_Name : Compilation_Unit_Name;
+         Info    : GNATCOLL.Projects.File_Info)) is null;
 
-   procedure Postprocess_Source
-     (Preprocessed_Filename  : String;
-      Postprocessed_Filename : String) is null;
-
-end Instrument.C;
+end Instrument.Ada_Unit;
