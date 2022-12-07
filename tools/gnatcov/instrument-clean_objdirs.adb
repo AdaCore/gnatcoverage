@@ -20,21 +20,15 @@ with Ada.Directories;       use Ada.Directories;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
-with Outputs; use Outputs;
-with Strings; use Strings;
+with Instrument.Common; use Instrument.Common;
 with Project;
 
-procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
-   use Project_Info_Maps;
-
-   All_Instr_Files : String_Sets.Set;
-   --  Set of full names for all files that were written to output directories
-   --  for all instrumented projects.
+procedure Instrument.Clean_Objdirs is
 
    procedure Clean_Subdir (Project : Project_Type);
    --  Callback for Project.Iterate_Projects. If Project is not externally
    --  built, remove all files from the "$project_name-gnatcov-instr" folder in
-   --  Project's object directory that we did not just instrument.
+   --  Project's object directory.
 
    ------------------
    -- Clean_Subdir --
@@ -58,28 +52,15 @@ procedure Instrument.Clean_Objdirs (IC : Inst_Context) is
          return;
       end if;
 
-      Clean_Dir
-        (Dir           => Output_Dir,
-         Pattern       => "",
-         Ignored_Files => All_Instr_Files);
-
+      Delete_Tree (Directory => Output_Dir);
    end Clean_Subdir;
 
 --  Start of processing for Instrument.Clean_Objdirs
 
 begin
-   --  First initialize All_Instr_Files
-
-   for Cur in IC.Project_Info_Map.Iterate loop
-      for Filename of Element (Cur).Instr_Files loop
-         All_Instr_Files.Include (Filename);
-      end loop;
-   end loop;
-
-   --  Then go through all projects to clear up their object directories,
-   --  ignoring files in All_Instr_Files. Also go through extended projects, as
-   --  their object directories can interfere with the build of the extending
-   --  project.
+   --  Go through all projects to clear up their object directories. Also go
+   --  through extended projects, as their object directories can interfere
+   --  with the build of the extending project.
 
    Project.Iterate_Projects
      (Root_Project     => Project.Project.Root_Project,

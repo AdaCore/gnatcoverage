@@ -2842,8 +2842,9 @@ package body Instrument.C is
       Preprocessor_Output_File     : Ada.Text_IO.File_Type;
       --  File containing the preprocessor output (used to get include search
       --  paths).
-
    begin
+      PP_Filename := +New_File (Info, Filename);
+
       Cmd :=
         (Command => +Compiler_Driver (Info.Project, Instrumenter.Language),
          others  => <>);
@@ -2952,7 +2953,6 @@ package body Instrument.C is
       --  Now, onto the postprocessing. Remove spurious system header line
       --  markers.
 
-      PP_Filename := +Register_New_File (Info, Filename);
       Postprocess_Source (Preprocessed_Filename, +PP_Filename);
       Ada.Directories.Delete_File (Preprocessed_Filename);
    end Preprocess_Source;
