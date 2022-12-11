@@ -1280,16 +1280,11 @@ single case where X1 < V < X2:
       Assert (Between (X1 => 2, X2 => 5, V => 3)); -- X1 < V < X2
    end Test_X1VX2;
 
-Performing MCDC analysis with binary traces requires telling the execution step
-about it, by providing both the :cmd-option:`--level` and a list of units for
-which analysis is to be performed to |gcvrun|::
+After instrumentation for MCDC and execution, we can then request,
+say, an :cmd-option:`=xcov+` report to get a first set of results in
+the ``ranges.adb.xcov`` annotated source::
 
-   gnatcov run --level=stmt+mcdc -Pmytest.gpr test_x1vx2
-
-We can then request, say, an :cmd-option:`=xcov+` report to get a first set of
-results in the ``ranges.adb.xcov`` annotated source::
-
-   gnatcov coverage --level=stmt+mcdc -Pmytest.gpr --annotate=xcov+ test_x1vx2.trace
+   gnatcov coverage --level=stmt+mcdc -Pmytest.gpr --annotate=xcov+ test_x1vx2.srctrace
 
    ...
       8 .:    function Between (X1, X2, V : Integer) return Boolean is
