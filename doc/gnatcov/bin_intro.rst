@@ -127,6 +127,41 @@ coverage at most. If MCDC analysis is needed, ``--level=stmt+mcdc`` must be
 passed to |gcvrun| as well and we recommend also providing source coverage
 obligations in this case.
 
+Producing report is then achieved as for sources traces, using the
+binary trace files as inputs to the |gcvcov| commands.
+
+Units of interest can be conveyed with either the GPR oriented
+facilities as with source traces, or with :cmd-option:`--scos`
+switches to provide lists of files holding coverage obligations in a
+similar fashion as :cmd-option:`--sid` switches for ``.sid`` files out
+of source instrumentation.
+
+The files to list with :cmd-option:`--scos` are the *Library
+Information* files produced by the compiler along with object files,
+which are ``.ali`` files for Ada and ``.gli`` files for C.
+
+The GNAT toolchain provides a helpful device in this process for Ada
+units: the :cmd-option:`-A` command line argument to
+:command:`gnatbind` which produces a list of all the ``.ali`` files
+involved in an executable construction.  By default, the list goes to
+standard output. It may be directed to a file on request with
+:cmd-option:`-A=<list-filename>`, and users may of course filter this
+list as they see fit depending on their analysis purposes.
+
+Below is a complete example sequence of commands to illustrate, using
+the standard Unix ``grep`` tool to filter out test harness units::
+
+    # Build executable and produce the corresponding list of ALI files. Pass
+    # -A to gnatbind through gprbuild -bargs then filter out the test units:
+    gprbuild -p --target=powerpc-elf --RTS=light-mpc8641 -Ptests.gpr
+      -cargs -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
+
+    # Run and analyse all units except the test harness, filtering out
+    # the correspond ALI files from the list:
+    grep -v 'test_[^/]*.ali' all.alis > nontest.alis
+    gnatcov run --level=stmt+mcdc --scos=@nontest.alis
+    gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@nontest.alis
+
 Going Further
 =============
 
@@ -134,8 +169,8 @@ As the source and binary trace based workflows share commonalities,
 a lot of information from the main documentation also applies to the
 use binary traces, such as
 
-- The use of project files, to specify command switches or designate
-  units of interest,
+- The use of project files to specify command switches or designate
+  units of interest at analysis time,
 
 - Using coverage checkpoints or traces for consolidation,
 

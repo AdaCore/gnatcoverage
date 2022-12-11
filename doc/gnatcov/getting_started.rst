@@ -172,34 +172,40 @@ will use a couple of project files in the common working directory:
 Setup, Instrument, Build, Execute, Analyze
 ------------------------------------------
 
-We first set up the instrumentation context, providing a local
-*prefix* location where the runtime and default parameters for future
-commands are going to be installed::
-
-   gnatcov setup --prefix=/path/to/gnatcov-rts
-
-The simplest means to let further commands know about the *prefix*
-location consists in adding ``<prefix>/share/gpr`` to the
-``GPR_PROJECT_PATH`` variable. In a Unix like environment, this would
-be achieved with::
-
-   export GPR_PROJECT_PATH=$GPR_PROJECT_PATH:/path/to/gnatcov-rts/share/gpr
-
 The instrumentation step that follows assumes that the original program
 is well formed. A simple way to verify this is to build the non instrumented
 version first. For our example, this would be::
 
    gprbuild -f -p -Ptests.gpr
-   
-Instrumenting a test main program together with its "code" dependency is then
-achieved by a |gcvins| command::
+
+We then first set up the instrumentation context, providing a local
+*prefix* location where the runtime and default parameters for future
+commands are going to be installed::
+
+   gnatcov setup --prefix=/path/to/gnatcov-rts
+
+Letting further commands know about the *prefix* location is achieved
+by adding ``<prefix>/share/gpr`` to the ``GPR_PROJECT_PATH``
+variable. In a Unix like environment, this would be::
+
+   export GPR_PROJECT_PATH=$GPR_PROJECT_PATH:/path/to/gnatcov-rts/share/gpr
+
+This will both let the ``gprbuild`` command below locate the
+``gnatcov_rts.gpr`` project file, and the |gcvins| command find
+default parameter values.
+
+Instrumentation is performed by a simple |gcvins| command::
 
    gnatcov instrument -Ptests.gpr --level=stmt
 
-And building the instrumented program goes like::
+The use of ``tests.gpr``, not ``code.gpr``, at this step is important
+as it lets the instrumenter know about the main subprogram, which
+needs to be processed specially to dump coverage data.
+
+Building the instrumented program then goes like::
 
    gprbuild -f -p -Ptests.gpr \
-      --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts
+      --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts.gpr
 
 This is the same command as for the regular build, with a couple
 of additional switches to:
@@ -222,8 +228,7 @@ instrumentation command line, documented in the :ref:`instr-tracename`
 section of this manual.
 
 Analysis of the coverage achieved by previous executions is done with
-|gcvcov| commands. For our example use case, this could for example
-be::
+|gcvcov| commands. For our example use case, this could for instance be::
 
   gnatcov coverage --level=stmt --annotate=xcov test_inc*.srctrace -Ptests.gpr
 
@@ -262,16 +267,10 @@ indeed never exercised by our driver.
 The command actually also produces reports for ``ops.ads`` and
 ``test_inc.adb``, even though the latter is not really relevant. Focus
 on specific units can be achieved by providing a more precise set of
-units of interest at this step, for example passing ``-Pcode.gpr``
-instead of ``-Ptests.gpr``, adding ``--projects=code.gpr`` to the
-latter, or setting dedicated attributes in the project files
-themselves. See the :ref:`sunits` chapter for details on this aspect
-of the procedure.
-
-Also note that units of interest can be stated as part of the
-instrumentation step, which allows limiting the set of sources that
-are instrumented to keep track of coverage, hence minimizes the
-associated performance impact.
+units of interest at this step, for example by adding
+``--projects=code.gpr`` to the command line, or setting dedicated attributes
+in the project files themselves. See the :ref:`sunits` chapter for
+details on this aspect of the procedure.
 
 Going Further
 =============
