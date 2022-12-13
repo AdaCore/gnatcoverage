@@ -22,9 +22,13 @@
 --  handle gnatcov's small needs for I/O redirections and can automatically
 --  abort gnatcov in case of subprocess failure.
 
+with Ada.Finalization;
 with Ada.Strings.Unbounded;
 
-with Strings; use Strings;
+with GNATCOLL.OS.Process; use GNATCOLL.OS.Process;
+
+with Strings;   use Strings;
+with Temp_Dirs; use Temp_Dirs;
 
 package Subprocesses is
 
@@ -120,5 +124,80 @@ package Subprocesses is
       In_To_Null          : Boolean := False);
    --  Overloads to stop with a fatal error if the subprocess exits with a
    --  non-zero status code.
+
+   type Process_Pool (Parallelism_Level : Positive) is tagged limited private;
+   --  Holder for a pool of processes to run in parallel.
+   --
+   --  Declare one such object with the desired level of parallelism as the
+   --  discriminant, then use the Run_Command procedure below to start the
+   --  processes to run in parallel.
+   --
+   --  Run_Command will return immediately and run the process in background
+   --  if the desired parallelism level is not reached yet, or will wait for
+   --  a process in the pool to terminate before running the new process.
+   --
+   --  Process_Pool finalization blocks until all processes in the pool have
+   --  terminated.
+
+   procedure Run_Command
+     (Pool                : in out Process_Pool;
+      Command             : String;
+      Arguments           : String_Vectors.Vector;
+      Origin_Command_Name : String;
+      Environment         : String_Maps.Map := Empty_Environment;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
+      In_To_Null          : Boolean := False;
+      Ignore_Error        : Boolean := False);
+   --  Overload to run a command in a pool of processes
+
+private
+
+   type Process_Info is record
+      Command, Origin_Command_Name : Ada.Strings.Unbounded.Unbounded_String;
+      Output_File                  : Ada.Strings.Unbounded.Unbounded_String;
+      Ignore_Error                 : Boolean;
+      --  Information specific to a subprocess, filled when calling the
+      --  Run_Command overload running a subprocess in a process pool. See the
+      --  documentation of Run_Command to have an exhaustive documentation of
+      --  these members.
+
+      Output_To_Stdout : Boolean;
+      --  Instructs Wait_And_Finalize that Output_File is temporary, so its
+      --  content should be read / printed and it should be removed once the
+      --  process has terminated.
+
+   end record;
+   --  Holder for the process information
+
+   type Process_Info_Array is array (Positive range <>) of Process_Info;
+
+   type Process_Pool (Parallelism_Level : Positive) is
+     new Ada.Finalization.Limited_Controlled with
+   record
+      Handles : Process_Array (1 .. Parallelism_Level);
+      --  Processes currently running / waitable
+
+      Process_Infos : Process_Info_Array (1 .. Parallelism_Level);
+      --  Copy of the information passed to Run_Command that is also needed
+      --  when the process terminates.
+
+      Nb_Running_Processes : Natural;
+      --  Number of tasks currently running / waitable
+
+      Output_Dir : Temporary_Directory;
+      --  Directory in which to create the temporary files that store
+      --  subprocess outputs.
+
+   end record
+     with Dynamic_Predicate =>
+       (Nb_Running_Processes in 0 .. Parallelism_Level);
+
+   overriding procedure Initialize (Pool : in out Process_Pool);
+   --  Initialize the process pool
+
+   overriding procedure Finalize (Self : in out Process_Pool);
+   --  Wait for all still running subprocesses in Self and handle their outputs
 
 end Subprocesses;
