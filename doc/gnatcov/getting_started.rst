@@ -290,7 +290,7 @@ important ones are:
 
 :ref:`exemptions` is also worth noting here, a mechanism allowing
 users to define code regions for which coverage violations are
-expected and legitimate (Ada only at this stage).
+expected and legitimate.
 
 The known limitations of the tool are outlined in section
 :ref:`instr-limitations`.
