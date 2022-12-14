@@ -655,6 +655,7 @@ package body Project is
    ----------------------
    -- Runtime_Has_File --
    ----------------------
+
    function Runtime_Has_File (Filename : Filesystem_String) return Boolean is
       Result_File : Virtual_File;
       --  Virtual_File for Ada.Finalization. Only search predefined sources.
