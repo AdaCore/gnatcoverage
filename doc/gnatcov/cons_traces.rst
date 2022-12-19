@@ -119,8 +119,8 @@ the symmetric results::
   12 .:       end if;
   13 .:    end Stat;
 
-Then a report obtained by combining traces, binary or source, will show
-achievement of complete statement coverage like so::
+Then a report obtained by combining traces will show achievement of
+complete statement coverage like so::
 
    6 .:    procedure Stat (Safe : Boolean) is
    7 .:    begin

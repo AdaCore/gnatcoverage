@@ -1,0 +1,61 @@
+digraph {
+  node [fontsize = 9]
+
+  edge [fontsize = 9, arrowsize=0.7]
+
+  setup [shape=box, label="gnatcov setup"]
+
+  /*-------------------
+    Using Source traces
+    -------------------*/
+  subgraph "cluster_src_traces" {
+  label = "Instrument / Build / Execute / Analyze";
+  fontsize = 10;
+  labeljust = l;
+
+  /* processes */
+  node [shape = box];
+
+  node [color = green];
+  instrument [label = "Instrument Original Sources\n(gnatcov instrument -P<gpr>)"];
+  build_instr [label = "Build from Instrumented Sources\n(gprbuild -P... --src-subdirs ...)"];
+  regular_execution [label = "Regular Execution\n(instrumented executable)"];
+
+  node [color = blue];
+  srct_coverage [label = "Analyze/Consolidate\n(gnatcov coverage -P...)"];
+
+  /* products or inputs */
+  node [shape = ellipse, color = green];
+  st1 [label = "strace1"];
+  stdots [label = "..."];
+  st2 [label = "strace2"];
+
+  node [shape = ellipse, color = blue];
+  srct_report [label = "Report"];
+  srct_checkpoint [label = "Checkpoint"];
+
+  src [shape = ellipse, label = "Original Sources"];
+
+  /* Links */
+  src -> instrument;
+  instrument -> build_instr;
+  build_instr -> regular_execution;
+
+  {rank = same;
+   st1; stdots; st2;
+  }
+
+  regular_execution -> st1 [style = dotted];
+  regular_execution -> stdots [style = dotted];
+  regular_execution -> st2 [style = dotted];
+
+  st1 -> srct_coverage;
+  stdots -> srct_coverage;
+  st2 -> srct_coverage;
+
+  srct_coverage -> srct_report [style = dotted];
+  srct_coverage -> srct_checkpoint [style = dotted];
+  srct_checkpoint -> srct_coverage;
+
+  }
+}
