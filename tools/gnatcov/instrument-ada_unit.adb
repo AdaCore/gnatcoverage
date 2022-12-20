@@ -2849,7 +2849,7 @@ package body Instrument.Ada_Unit is
                      To_Node := Stmt.F_Entry_Index_Expr.As_Ada_Node;
 
                   else
-                     To_Node := Stmt.F_Name.As_Ada_Node;
+                     To_Node := Stmt.F_Body_Decl.F_Name.As_Ada_Node;
                   end if;
                end;
 
