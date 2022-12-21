@@ -124,7 +124,7 @@ class TestCase:
         return [drv for drv in self.all_drivers if re.search(drv_expr, drv)]
 
     def __init__(self, extradrivers="", extracargs="", category=CAT.auto,
-                 tolerate_messages=None):
+                 tolerate_messages=None, assert_lvl=None):
         # By default, these test cases expect no error from subprocesses (xrun,
         # xcov, etc.)
         self.expect_failures = False
@@ -171,6 +171,8 @@ class TestCase:
                          if category == CAT.auto else
                          category)
 
+        self.assert_lvl = assert_lvl
+
         # - extra compilation arguments, added to what --cargs was provided to
         #   the testsuite command line:
         self.extracargs = extracargs
@@ -191,19 +193,24 @@ class TestCase:
         if thistest.options.xcov_level:
             return [thistest.options.xcov_level]
 
+        assert not thistest.options.qualif_level
+
         default_xcovlevels_for = {
             # Tests without categories should be ready for anything.
             # Exercise with the strictest possible mode:
-            None: ["stmt+mcdc"],
+            None:         ["stmt+mcdc"],
 
-            CAT.stmt: ["stmt"],
+            CAT.stmt:     ["stmt"],
             CAT.decision: ["stmt+decision"],
-            CAT.mcdc: ["stmt+mcdc", "stmt+uc_mcdc"]}
+            CAT.mcdc:     ["stmt+mcdc", "stmt+uc_mcdc"],
+        }
 
-        defaults = default_xcovlevels_for[self.category]
-        return ([defaults[0]]
-                if thistest.options.qualif_level else
-                defaults)
+        # Add a "+" before the name of the assertion coverage level in order
+        # to append it at the end of the the other specified coverage levels
+        # passed to gnatcov.
+        alvl = ("+" + self.assert_lvl) if self.assert_lvl else ""
+
+        return [d + alvl for d in default_xcovlevels_for[self.category]]
 
     def __register_qde_for(self, drvo):
         """
@@ -214,13 +221,6 @@ class TestCase:
             QDentry(xfile=drvo.xfile,
                     drivers=drvo.drivers, xrnotes=drvo.xrnotes,
                     wdir=os.path.normpath(drvo.awdir())))
-
-    # Base prefix for Working directories, per --level. Shared across
-    # runs for multiples levels.
-    _wdbase_for = {"stmt": "st_",
-                   "stmt+decision": "dc_",
-                   "stmt+mcdc": "mc_",
-                   "stmt+uc_mcdc": "uc_"}
 
     def __run_one_covlevel(self, covlevel, covcontrol, subdirhint):
         """
@@ -236,7 +236,7 @@ class TestCase:
 
         # Compute the Working directory base for this level, then run the test
         # for each indivdual driver.
-        this_wdbase = self._wdbase_for[covlevel]
+        this_wdbase = this_scov_helper.wdbase_for(self, covlevel)
 
         wdctl = WdirControl(wdbase=this_wdbase, bdbase=self._available_bdbase,
                             subdirhint=subdirhint)

@@ -215,18 +215,22 @@ package Files_Table is
    package SCO_Id_Vectors is new Ada.Containers.Vectors
      (Index_Type => Natural, Element_Type => SCO_Id);
 
-   type Line_State_Cell is (Cell_1, Cell_2);
+   type Line_State_Cell is (Cell_1, Cell_2, Cell_3);
    Coverage_Level_To_Cell : constant
       array (Coverage_Level) of Line_State_Cell :=
-     (Insn     => Cell_1,
-      Branch   => Cell_2,
-      Stmt     => Cell_1,
-      Decision => Cell_2,
-      MCDC     => Cell_2,
-      UC_MCDC  => Cell_2);
+     (Insn      => Cell_1,
+      Branch    => Cell_2,
+      Stmt      => Cell_1,
+      Decision  => Cell_2,
+      MCDC      => Cell_2,
+      UC_MCDC   => Cell_2,
+      ATC       => Cell_3,
+      ATCC      => Cell_3);
    --  For one specific execution of GNATcov, we know that each line needs at
-   --  most only two states (insn, branch, stmt, stmt+decision, stmt+mcdc or
-   --  stmt+uc_mcdc). Thus, there is no need to store the state for all
+   --  most only three states (insn, branch, stmt, stmt+decision, stmt+mcdc,
+   --  stmt+uc_mcdc, stmt+atc, stmt+decision+atc, stmt+mcdc+atc,
+   --  stmt+uc_mcdc+atc, stmt+atcc, stmt+decision+atcc, stmt+mcdc+atcc,
+   --  stmt+uc_mcdc_atcc). Thus, there is no need to store the state for all
    --  coverage levels at the same time. This table is thus used to convert the
    --  coverage level to the appropriate state "storage cell".
 

@@ -279,4 +279,10 @@ private
    function Obligation_Metrics (From, To : SCO_Id) return Ob_Stat_Array;
    --  Return obligation metrics for the given SCO range
 
+   function SCO_Kind_Image (SCO : SCO_Id) return String;
+   --  Get the string representation of the SCO_Kind of SCO. A special
+   --  treatment is needed for assertions. There is no assertion SCO_Kind but
+   --  some decision SCOs correspond to assertion decisions. The difference
+   --  needs to be made clear in the reports by not calling them the same.
+
 end Annotations;

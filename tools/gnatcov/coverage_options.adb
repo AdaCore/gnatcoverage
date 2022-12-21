@@ -32,6 +32,9 @@ package body Coverage_Options is
    procedure Add_Object_Level_Option (L : Levels_Type);
    --  Register L as a valid combination of object coverage levels
 
+   procedure Add_Source_Coverage_Level_Combinaisons;
+   --  Register the possible source coverage level combinaisons
+
    ---------------------------
    -- Coverage_Option_Value --
    ---------------------------
@@ -121,6 +124,65 @@ package body Coverage_Options is
       return Level_Options (Source_Levels_Option_Map, Separator);
    end Source_Level_Options;
 
+   -------------------------------------
+   -- Add_Coverage_Level_Combinaisons --
+   -------------------------------------
+
+   procedure Add_Source_Coverage_Level_Combinaisons is
+      procedure Add_Assert_Coverage_Levels (Combinaison : Levels_Type);
+      --  Register the coverage level Combinaison combined plus each level
+      --  of assertion coverage.
+
+      --------------------------------
+      -- Add_Assert_Coverage_Levels --
+      --------------------------------
+
+      procedure Add_Assert_Coverage_Levels (Combinaison : Levels_Type) is
+         Assert_Levels : constant array (1 .. 2) of Coverage_Level :=
+           (ATC, ATCC);
+         Comb : Levels_Type := Combinaison;
+      begin
+         for Lvl of Assert_Levels loop
+
+            --  Activate Lvl to combine it with the levels in Comb
+            Comb (Lvl) := True;
+
+            Add_Source_Level_Option (Comb);
+
+            --  Deactivate Lvl to add the next assertion level to the
+            --  combinaison Comb
+            Comb (Lvl) := False;
+
+         end loop;
+      end Add_Assert_Coverage_Levels;
+
+      Decision_Levels : constant array (1 .. 3) of Coverage_Level :=
+        (Decision, MCDC, UC_MCDC);
+
+      Combinaison : Levels_Type := (Stmt => True, others => False);
+   begin
+
+      --  Add "stmt" only and combine it with all possible assertion levels
+
+      Add_Source_Level_Option (Combinaison);
+      Add_Assert_Coverage_Levels (Combinaison);
+
+      --  Do the same for all other regular source coverage options
+
+      for Lvl of Decision_Levels loop
+
+         --  Activate Lvl to combine it with "stmt"
+         Combinaison (Lvl) := True;
+
+         Add_Source_Level_Option (Combinaison);
+         Add_Assert_Coverage_Levels (Combinaison);
+
+         --  Deactivate Lvl to combine the next level with "stmt"
+         Combinaison (Lvl) := False;
+
+      end loop;
+   end Add_Source_Coverage_Level_Combinaisons;
+
 begin
    --  Register command line options for valid combinations of coverage levels
 
@@ -133,15 +195,5 @@ begin
 
    --  Source coverage levels
 
-   Add_Source_Level_Option ((Stmt     => True,
-                             others   => False));
-   Add_Source_Level_Option ((Stmt     => True,
-                             Decision => True,
-                             others   => False));
-   Add_Source_Level_Option ((Stmt     => True,
-                             MCDC     => True,
-                             others   => False));
-   Add_Source_Level_Option ((Stmt     => True,
-                             UC_MCDC  => True,
-                             others   => False));
+   Add_Source_Coverage_Level_Combinaisons;
 end Coverage_Options;

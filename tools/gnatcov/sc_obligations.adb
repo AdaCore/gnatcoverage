@@ -334,17 +334,6 @@ package body SC_Obligations is
    function To_Statement_Kind (C : Character) return Statement_Kind;
    --  Convert character code for statement kind to corresponding enum value
 
-   --  Decision_Kind denotes the various decision kinds identified in SCOs
-
-   type Decision_Kind is
-     (If_Statement,
-      Exit_Statement,
-      Entry_Guard,
-      Pragma_Decision,
-      While_Loop,
-      Expression,
-      Aspect);
-
    function To_Decision_Kind (C : Character) return Decision_Kind;
    --  Convert character code for decision kind to corresponding enum value
 
@@ -1806,6 +1795,19 @@ package body SC_Obligations is
               else Unknown);
    end Decision_Outcome;
 
+   -------------------
+   -- Decision_Type --
+   -------------------
+
+   function Decision_Type (SCO : SCO_Id) return Decision_Kind
+   is
+      D : constant SCO_Descriptor := SCO_Vector.Reference (SCO);
+   begin
+      pragma Assert (D.Kind = Decision);
+
+      return D.D_Kind;
+   end Decision_Type;
+
    ----------------------
    -- Degraded_Origins --
    ----------------------
@@ -2202,6 +2204,7 @@ package body SC_Obligations is
         --  Disabled pragma?
 
         SCOD.S_Kind = Disabled_Pragma_Statement;
+
    end Ignore_SCO;
 
    ----------------------------
@@ -2390,7 +2393,7 @@ package body SC_Obligations is
    ------------------
 
    function Is_Assertion (SCO : SCO_Id) return Boolean is
-      SCOD  : SCO_Descriptor renames SCO_Vector (SCO);
+      SCOD : SCO_Descriptor renames SCO_Vector (SCO);
    begin
       pragma Assert (SCOD.Kind = Decision);
       case SCOD.D_Kind is
@@ -2400,7 +2403,7 @@ package body SC_Obligations is
             --  in the enclosing statement SCO.
 
             return SCO_Vector (Enclosing_Statement (SCO)).Pragma_Name
-                     /= Pragma_Debug;
+              /= Pragma_Debug;
 
          when Aspect =>
             --  Always True for aspects (Pre/Post/Predicate/Invariant)
@@ -2410,7 +2413,64 @@ package body SC_Obligations is
          when others =>
             return False;
       end case;
+
    end Is_Assertion;
+
+   ---------------------------
+   -- Is_Assertion_To_Cover --
+   ---------------------------
+
+   function Is_Assertion_To_Cover (SCO : SCO_Id) return Boolean
+   is
+      function Is_Pragma_Stmt_To_Cover (SCOD : SCO_Descriptor) return Boolean;
+      --  True if the pragma statement of SCOD belongs to the list of pragmas
+      --  supported by assertion coverage.
+
+      function Is_Pragma_Stmt_To_Cover (SCOD : SCO_Descriptor) return Boolean
+      is
+      begin
+         pragma Assert
+           (SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement);
+
+         return SCOD.Pragma_Name in
+           Pragma_Assert
+            | Pragma_Assert_And_Cut
+            | Pragma_Assume
+            | Pragma_Check
+            | Pragma_Loop_Invariant
+            | Pragma_Type_Invariant
+            | Pragma_Precondition
+            | Pragma_Postcondition;
+      end Is_Pragma_Stmt_To_Cover;
+
+      SCOD : SCO_Descriptor renames SCO_Vector (SCO);
+   begin
+      if SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement then
+         return Is_Pragma_Stmt_To_Cover (SCOD);
+
+      elsif SCOD.Kind = Decision then
+         case SCOD.D_Kind is
+         when Pragma_Decision =>
+            return
+              Is_Pragma_Stmt_To_Cover (SCO_Vector (Enclosing_Statement (SCO)));
+
+         when Aspect =>
+            return SCOD.Aspect_Name in
+              Aspect_Type_Invariant
+            | Aspect_Pre
+            | Aspect_Post;
+
+         when others =>
+            return False;
+         end case;
+
+      elsif SCOD.Kind = Condition then
+         return Is_Assertion_To_Cover (Enclosing_Decision (SCO));
+
+      else
+         return False;
+      end if;
+   end Is_Assertion_To_Cover;
 
    -------------------
    -- Is_Expression --
@@ -2445,18 +2505,14 @@ package body SC_Obligations is
       begin
          --  Return whether S_SCOD is a pragma Assert/Check/Pre/Post
 
-         return     (S_SCOD.S_Kind = Pragma_Statement
-                       or else
-                     S_SCOD.S_Kind = Disabled_Pragma_Statement)
-           and then (S_SCOD.Pragma_Name = Pragma_Assert
-                       or else
-                     S_SCOD.Pragma_Name = Pragma_Check
-                       or else
-                     S_SCOD.Pragma_Name = Pragma_Precondition
-                       or else
-                     S_SCOD.Pragma_Name = Pragma_Postcondition
-                       or else
-                     S_SCOD.Pragma_Name = Pragma_Loop_Invariant);
+         return (S_SCOD.S_Kind = Disabled_Pragma_Statement
+                 or else S_SCOD.S_Kind = Pragma_Statement)
+           and then S_SCOD.Pragma_Name in
+             Pragma_Assert
+               | Pragma_Check
+               | Pragma_Precondition
+               | Pragma_Postcondition
+               | Pragma_Loop_Invariant;
       end;
    end Is_Expression;
 
@@ -2533,12 +2589,9 @@ package body SC_Obligations is
       SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
       pragma Assert (SCOD.Kind = Statement);
    begin
-      return (SCOD.S_Kind = Pragma_Statement
-                 or else
-               SCOD.S_Kind = Disabled_Pragma_Statement)
-              and then (SCOD.Pragma_Name = Pragma_Precondition
-                          or else
-                        SCOD.Pragma_Name = Pragma_Postcondition);
+      return SCOD.S_Kind in Pragma_Statement | Disabled_Pragma_Statement
+        and then
+          SCOD.Pragma_Name in Pragma_Precondition | Pragma_Postcondition;
    end Is_Pragma_Pre_Post_Condition;
 
    -------------

@@ -27,6 +27,7 @@ with Interfaces;
 
 with ALI_Files;        use ALI_Files;
 with Calendar_Utils;
+with Coverage;
 with Coverage_Options; use Coverage_Options;
 with Coverage.Object;
 with Coverage.Source;  use Coverage.Source;
@@ -645,15 +646,19 @@ package body Annotations is
       use Ada.Strings.Unbounded;
    begin
       if M.SCO /= No_SCO_Id then
-         return To_Lower (SCO_Kind'Image (Kind (M.SCO)))
-           & (if Switches.Show_MCDC_Vectors and then Kind (M.SCO) = Condition
+         return SCO_Kind_Image (M.SCO)
+           & (if (Switches.Show_MCDC_Vectors
+              or else Switches.Show_Condition_Vectors)
+              and then Kind (M.SCO) = Condition
               then Index (M.SCO)'Image & " ("
               else " ")
            & SCO_Image (M.SCO)
            & " at "
            & Img (First_Sloc (M.SCO).L.Line) & ":"
            & Img (First_Sloc (M.SCO).L.Column)
-           & (if Switches.Show_MCDC_Vectors and then Kind (M.SCO) = Condition
+           & (if (Switches.Show_MCDC_Vectors
+              or else Switches.Show_Condition_Vectors)
+              and then Kind (M.SCO) = Condition
               then ")"
               else "")
            & (if M.Tag = No_SC_Tag
@@ -1035,42 +1040,49 @@ package body Annotations is
             when Statement =>
                Update_Level_Stats (SCO, Get_Line_State (SCO, Stmt), Stmt);
             when Decision =>
-               Update_Level_Stats
-                 (SCO, Get_Line_State (SCO, Decision), Decision);
+               if Coverage.Assertion_Coverage_Enabled
+                 and then Decision_Type (SCO) in Pragma_Decision | Aspect
+               then
+                  Update_Level_Stats
+                    (SCO, Get_Line_State (SCO, ATC), ATC);
+               else
+                  Update_Level_Stats
+                    (SCO, Get_Line_State (SCO, Decision), Decision);
 
-               --  Conditions in that decision
+                  --  Conditions in that decision
 
-               if Coverage.MCDC_Coverage_Enabled then
-                  for J in
-                    Condition_Index'First .. Last_Cond_Index (SCO)
-                  loop
-                     declare
-                        Condition_SCO : constant SCO_Id :=
-                          Condition (SCO, J);
+                  if Coverage.MCDC_Coverage_Enabled then
+                     for J in
+                       Condition_Index'First .. Last_Cond_Index (SCO)
+                     loop
+                        declare
+                           Condition_SCO : constant SCO_Id :=
+                             Condition (SCO, J);
 
-                        MCDC_State : constant SCO_State :=
-                          Get_Line_State (SCO, MCDC);
-                        --  If the parent decision is partially covered, then
-                        --  the SCO_State for each condition will be No_Code,
-                        --  and the SCO_State for the MCDC Coverage_Level
-                        --  associated to the parent decision SCO will be
-                        --  Not_Covered.
+                           MCDC_State : constant SCO_State :=
+                             Get_Line_State (SCO, MCDC);
+                           --  If the parent decision is partially covered,
+                           --  then the SCO_State for each condition will be
+                           --  No_Code, and the SCO_State for the MCDC
+                           --  Coverage_Level associated to the parent decision
+                           --  SCO will be Not_Covered.
 
-                        Condition_State : SCO_State;
+                           Condition_State : SCO_State;
 
-                     begin
-                        if MCDC_State = Not_Covered then
-                           Condition_State := Not_Covered;
-                        else
-                           Condition_State :=
-                             Get_Line_State
-                               (Condition_SCO, Coverage.MCDC_Level);
-                        end if;
+                        begin
+                           if MCDC_State = Not_Covered then
+                              Condition_State := Not_Covered;
+                           else
+                              Condition_State :=
+                                Get_Line_State
+                                  (Condition_SCO, Coverage.MCDC_Level);
+                           end if;
 
-                        Update_Level_Stats
-                          (SCO, Condition_State, Coverage.MCDC_Level);
-                     end;
-                  end loop;
+                           Update_Level_Stats
+                             (SCO, Condition_State, Coverage.MCDC_Level);
+                        end;
+                     end loop;
+                  end if;
                end if;
             when others =>
                null;
@@ -1078,5 +1090,19 @@ package body Annotations is
       end loop;
       return Result;
    end Obligation_Metrics;
+
+   --------------------
+   -- SCO_Kind_Image --
+   --------------------
+
+   function SCO_Kind_Image (SCO : SCO_Id) return String is
+      K : constant SCO_Kind := Kind (SCO);
+   begin
+      return (if Kind (SCO) in Decision
+              and then Decision_Type (SCO) in Pragma_Decision | Aspect
+              and then Coverage.Assertion_Coverage_Enabled
+              then "contract expression"
+              else To_Lower (SCO_Kind'Image (K)));
+   end SCO_Kind_Image;
 
 end Annotations;

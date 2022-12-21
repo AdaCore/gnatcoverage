@@ -41,6 +41,11 @@ package Coverage.Source is
    --  which have an allocated bit in trace buffers (see
    --  SC_Obligations.Statement_Bit_Map) as having code.
 
+   function Decision_Requires_Assertion_Coverage (SCO : SCO_Id) return Boolean;
+   --  True if SCO is for a decision in a pragma/aspect whose coverage can be
+   --  checked by assertion coverage levels, and if any assertion coverage
+   --  level is enabled.
+
    procedure Compute_Source_Coverage
      (Subp_Key  : Subprogram_Key;
       Subp_Info : Subprogram_Info;
