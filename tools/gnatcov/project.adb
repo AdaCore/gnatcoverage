@@ -181,6 +181,10 @@ package body Project is
    --  Initialize project environment. Formals have the same semantics as in
    --  Load_Root_Project.
 
+   function Lookup_Project (Prj_Name : String) return Project_Type;
+   --  Look for the project in Prj_Tree whose name matches Prj_Name and return
+   --  it. Emit a fatal error if there is no such project.
+
    procedure Build_Prj_Map with Pre => Is_Project_Loaded;
    --  Add entries in Prj_Map for all relevant projects
 
@@ -808,50 +812,46 @@ package body Project is
       end if;
    end Initialize;
 
+   --------------------
+   -- Lookup_Project --
+   --------------------
+
+   function Lookup_Project (Prj_Name : String) return Project_Type is
+      Prj_Name_FS : constant GNATCOLL.VFS.Filesystem_String :=
+        +Simple_Name (Prj_Name);
+      Last        : Integer;
+   begin
+      --  Strip optional Project_File_Extension
+
+      if Prj_Name_FS'Length >= Project_File_Extension'Length
+            and then
+         Prj_Name_FS (Prj_Name_FS'Last - Project_File_Extension'Length + 1
+                        .. Prj_Name_FS'Last) = Project_File_Extension
+      then
+         Last := Prj_Name_FS'Last - Project_File_Extension'Length;
+      else
+         Last := Prj_Name_FS'Last;
+      end if;
+
+      --  Look up project from project tree
+
+      return Result : constant Project_Type := Prj_Tree.Project_From_Name
+         (+Prj_Name_FS (Prj_Name_FS'First .. Last))
+      do
+         if Result = No_Project then
+            Fatal_Error ("project " & Prj_Name & " not found");
+         end if;
+      end return;
+   end Lookup_Project;
+
    -------------------
    -- Build_Prj_Map --
    -------------------
 
    procedure Build_Prj_Map is
 
-      function Lookup_Project (Prj_Name : String) return Project_Type;
-      --  Look for the project in Prj_Tree whose name matches Prj_Name and
-      --  return it. Emit a fatal error if there is no such project.
-
       procedure Process_Project (Project : Project_Type);
       --  Callback for Iterate_Projects: add an entry in Prj_Map for Project
-
-      --------------------
-      -- Lookup_Project --
-      --------------------
-
-      function Lookup_Project (Prj_Name : String) return Project_Type is
-         Prj_Name_FS : constant GNATCOLL.VFS.Filesystem_String :=
-           +Simple_Name (Prj_Name);
-         Last        : Integer;
-      begin
-         --  Strip optional Project_File_Extension
-
-         if Prj_Name_FS'Length >= Project_File_Extension'Length
-              and then
-            Prj_Name_FS (Prj_Name_FS'Last - Project_File_Extension'Length + 1
-                         .. Prj_Name_FS'Last) = Project_File_Extension
-         then
-            Last := Prj_Name_FS'Last - Project_File_Extension'Length;
-         else
-            Last := Prj_Name_FS'Last;
-         end if;
-
-         --  Look up project from project tree
-
-         return Result : constant Project_Type := Prj_Tree.Project_From_Name
-           (+Prj_Name_FS (Prj_Name_FS'First .. Last))
-         do
-            if Result = No_Project then
-               Fatal_Error ("project " & Prj_Name & " not found");
-            end if;
-         end return;
-      end Lookup_Project;
 
       ---------------------
       -- Process_Project --
@@ -1513,9 +1513,15 @@ package body Project is
    --------------
 
    function Switches (Op : String) return String_List_Access is
+      Origin_Prj : constant String :=
+        Prj_Tree.Root_Project.Attribute_Value (Origin_Project_Attribute);
+      Actual_Prj : constant Project_Type :=
+        (if Origin_Prj = ""
+         then Prj_Tree.Root_Project
+         else Lookup_Project (Origin_Prj));
    begin
       return Attribute_Value
-        (Prj_Tree.Root_Project, +Switches, Index => Op);
+        (Actual_Prj, +Switches, Index => Op);
    end Switches;
 
    -----------------
