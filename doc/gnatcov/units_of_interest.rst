@@ -3,71 +3,31 @@
 Specifying *Units Of Interest*
 ==============================
 
-This chapter describes the means available to convey the set of units on which
+This chapter describes the means to convey the set of units on which
 coverage should be assessed, which we commonly refer to as the :dfn:`units of
-interest`, and which are relevant to |gcvins|, |gcvrun| and |gcvcov|.
+interest`.
 
-There are two main families of such means: users would either provide the set
-of files which hold the coverage obligations for the units of interest, or
-rely on project files facilities to designate the set of units. At analysis
-time, the actual list of unit names for which a report or checkpoint is
-produced as well as the list of individually ignored source files for each unit
-can be displayed with the :cmd-option:`--dump-units-to` option of the
-|gcvcov| command.
+The first opportunity to do so is at |gcvins| time, with GPR project file
+oriented command line switches possibly associated with coverage specific
+attributes within project files. This step controls which units are
+instrumented to track coverage to begin with. It also needs visibility
+over the main subprogram(s) as they require special processing to trigger
+the calls dumping coverage data when a program terminates.
 
-.. _passing_scos:
+The use of such GPR based mechanisms is also allowed at |gcvcov| time to
+further refine the focus of reports or coverage checkpoints. Another mechanism
+is available at this point, with lower level command line switches letting
+users provide lists of files holding SCO definitions for the units of
+interest, where one such file is produced per unit by the |gcvins| command.
+When both obligation files and project file options are on the command line,
+the former prevail and the project files are only used for switches or the
+determination of the target and runtime configuration.
 
-Providing coverage obligation files (:cmd-option:`--scos|--sid`)
-----------------------------------------------------------------
-
-With the :cmd-option:`--scos` or :cmd-option:`--sid` command line arguments,
-users convey the set of units of interest by directly providing the set of
-files which contain the coverage obligations for those units.
-
-The :cmd-option:`--scos` switch is for binary trace based analysis and the
-files to provide are the *Library Information* files produced by the compiler
-(``.ali`` files for Ada, ``.gli`` files for C). The :cmd-option:`--sid` switch
-is for source trace based analysis and the files to provide are the ``.sid``
-*Source Instrumentation Data* files produced by ``gnatcov instrument``. In all
-cases, the files are located at the same place as where the object file for a
-unit is produced.
-
-The following paragraphs provide details and examples on the use of
-:cmd-option:`--scos` with ``.gli`` or ``.ali`` files. The same principles apply
-to :cmd-option:`--sid` with ``.sid`` files.
-
-Each occurrence of :cmd-option:`--scos` on the command line expects a single
-argument which specifies a set of units of interest. Multiple occurrences are
-allowed and the sets accumulate. The argument might be either the name of a
-single Library Information file for a unit, or a :term:`@listfile arguments
-<@listfile argument>` expected to contain a list of such file names.
-
-For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
-with either ``--scos=u1.ali --scos=u2.ali --scos=u3.ali``, with ``--scos=u3.ali
---scos=@lst12`` where ``lst12`` is a text file containing the first two ALI
-file names, or with other combinations alike.
-
-The GNAT toolchain provides a useful device for list computations: the
-:cmd-option:`-A` command line argument to :command:`gnatbind` which produces a
-list of all the ``.ali`` files involved in an executable construction.  By
-default, the list goes to standard output. It may be directed to a file on
-request with :cmd-option:`-A=<list-filename>`, and users may of course filter
-this list as they see fit depending on their analysis purposes.
-
-Below is an example sequence of commands to illustrate, using the standard Unix
-``grep`` tool to filter out test harness units, assuming a basic naming
-convention::
-
-    # Build executable and produce the corresponding list of ALI files. Pass
-    # -A to gnatbind through gprbuild -bargs then filter out the test units:
-    gprbuild -p --target=powerpc-elf --RTS=zfp-prep -Pmy.gpr
-     test_divmod0.adb -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
-
-    # Run and analyse all units except the test harness, filtering out
-    # the correspond ALI files from the list:
-    grep -v 'test_[^/]*.ali' all.alis > divmod0.alis
-    gnatcov run --level=stmt+mcdc --scos=@divmod0.alis
-    gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
+Regardless of how units of interest were requested, the actual list of units
+for which a report is produced can be displayed with the
+:cmd-option:`--dump-units-to` option of the |gcvcov| command. This also
+displays the list of individually ignored source files for each unit,
+controlled by the :cmd-option:`--ignore-source-files` switch.
 
 
 .. _passing_gpr:
@@ -75,15 +35,23 @@ convention::
 Using project files (:cmd-option:`-P`, :cmd-option:`--projects`, :cmd-option:`--units`)
 ---------------------------------------------------------------------------------------
 
-As an alternative to providing the complete list of coverage obligation files
-with :cmd-option:`--scos` or :cmd-option:`--sid`, you can use project files to
-specify units of interest. When both obligation files and project file options
-are on the command line, the former prevail and the project files are only used
-for switches or the determination of the target and runtime configuration.
+The simplest possible form of units of interest specification with GPR
+facilities is a lone::
 
-The units of interest designation with project files incurs two levels of
-selection: first, specify the set of :dfn:`projects of interest` where the
-units of interest reside, then specify units of interest therein.
+  -P<myproject>.gpr
+
+provided to both |gcvins| and |gcvcov|. In the absence of coverage related
+attributes within the project file(s), this requests considering *of interest*
+all the units of *<myproject>* and its project dependency closure.
+
+For |gcvins|, the source files containing main subprograms need to be
+encompassed by ``myproject.gpr`` and specified either by a ``Main``
+project file attribute or provided on the command line, as for ``gprbuild``
+commands.
+
+Finer grain control is possible with additional switches and attributes,
+letting users first specify the set of :dfn:`projects of interest` where the
+units of interest reside, then may filter the *units* of interest therein.
 
 Conveying *projects* of interest
 ********************************
@@ -465,10 +433,33 @@ Typically, from a sample ``foo.c`` source like:
    { ... }
 
 
-``gcc -c foo.c -fdump-scos ...`` would produce a ``foo.o`` object file, a
-``foo.c.gli`` companion Library Information file, and excluding it from the
-analysis scope can be achieved with::
+excluding ``foo.c`` from the analysis scope can be achieved with::
 
   package Coverage is
      for Excluded_Units use ("foo.c"); /* source file name here  */
   end Coverage;
+
+.. _passing_scos:
+
+Providing coverage obligation files (:cmd-option:`--sid`)
+---------------------------------------------------------
+
+With the :cmd-option:`--sid` command line option, users can convey the set of
+units of interest by directly providing the set of files which contain the
+coverage obligations for those units.
+
+One such file is produced for each unit instrumented by the |gcvins| command,
+next to the object file for a unit, with a `.sid` extension which stands for
+*Source Instrumentation Data*.
+
+Each occurrence of :cmd-option:`--sid` on the command line expects a
+single argument which specifies a set of units of interest. Multiple
+occurrences are allowed and the sets accumulate. The argument might be
+either the name of a single `.sid` file for a unit, or a
+:term:`@listfile arguments <@listfile argument>` expected to contain a
+list of such file names.
+
+For example, focusing on Ada units ``u1``, ``u2`` and ``u3`` can be achieved
+with either ``--sid=u1.sid --sid=u2.sid --sid=u3.sid``, with ``--sid=u3.sid
+--sid=@lst12`` where ``lst12`` is a text file containing the first two SID
+file names, or with other combinations alike.

@@ -39,8 +39,8 @@ latter case, if the contribution comes from an intermediate checkpoint, the
 command which produced the checkpoint is displayed. For example, a sequence of
 commands such as::
 
-  gnatcov run obj/pgm1 -o trace1
-  gnatcov run obj/pgm2 -o trace2
+  obj/pgm1  # producing trace1
+  obj/pgm2  # producing trace2
 
   gnatcov coverage --level=<> trace1 <units> --save-checkpoint=t1.ckpt
   gnatcov coverage --level=<> trace2 <units> --checkpoint=t1.ckpt --annotate=report
@@ -51,13 +51,13 @@ Would produce a report with this kind of information in the header::
    Trace files:
 
    trace2
-   kind     : binary
+   kind     : source
    program  : obj/pgm2
    date     : 2020-09-22 16:32:52
    tag      :
 
    trace1
-   kind     : binary
+   kind     : source
    program  : obj/pgm1
    date     : 2020-09-22 16:32:47
    tag      :

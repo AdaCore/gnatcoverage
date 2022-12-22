@@ -49,11 +49,10 @@ If all the switches that need to be passed to |gcp| are correctly defined in
 will build and run all the harness projects and then generate a coverage report
 for all the units under test.
 
-By default, the trace kind (binary or source, see :ref:`selecting_trace_kind`)
-used to produce the coverage report will be chosen based on the target of the
-root project. Coverage data for a native project will be obtained using
-:ref:`source traces <src_traces>`, and coverage for projects targeting a cross
-environment will be assessed using :ref:`binary traces <bin_traces>`.
+By default, coverage data for a native project is obtained using
+:ref:`source traces <src_traces>` and coverage for projects targeting
+a cross environment is assessed using :ref:`binary traces
+<bin_traces>`.
 
 For cases where the default behavior isn't appropriate for the project under
 test, the rules for producing a coverage report from both kind of traces are
