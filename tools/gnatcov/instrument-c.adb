@@ -152,7 +152,8 @@ package body Instrument.C is
    --  preprocess the file, assuming that it accepts the -E flag, to preprocess
    --  a file.
 
-   function Common_Parse_TU_Args return String_Vectors.Vector;
+   function Common_Parse_TU_Args
+     (Lang : Some_Language) return String_Vectors.Vector;
    --  Return the list of arguments that should always be passed to
    --  Parse_Translation_Unit.
 
@@ -2742,8 +2743,11 @@ package body Instrument.C is
    -- Common_Parse_TU_Args --
    --------------------------
 
-   function Common_Parse_TU_Args return String_Vectors.Vector is
+   function Common_Parse_TU_Args
+     (Lang : Some_Language) return String_Vectors.Vector
+   is
       Command_Line_Args : String_Vectors.Vector;
+      use Ada.Characters.Handling;
       use String_Vectors;
    begin
       --  We will get errors when parsing a gcc-preprocessed file with clang:
@@ -2752,6 +2756,13 @@ package body Instrument.C is
       --  unset the error limit.
 
       Append (Command_Line_Args, +"-ferror-limit=0");
+
+      --  Pass explicitly the language through the command-line, as we can
+      --  redefine file suffixes with gprbuild, and <file>.c can be a C++
+      --  file.
+
+      Append (Command_Line_Args, +"-x");
+      Append (Command_Line_Args, +To_Lower (Image (Lang)));
 
       return Command_Line_Args;
    end Common_Parse_TU_Args;
@@ -2783,7 +2794,8 @@ package body Instrument.C is
           (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
 
       Add_Options (Args, Options);
-      String_Vectors.Append (Args, Common_Parse_TU_Args);
+      String_Vectors.Append
+        (Args, Common_Parse_TU_Args (Instrumenter.Language));
       declare
          C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
       begin
@@ -2877,7 +2889,7 @@ package body Instrument.C is
       --  the user's preprocessor.
 
       Add_Options (Args, UIC.Options);
-      String_Vectors.Append (Args, Common_Parse_TU_Args);
+      String_Vectors.Append (Args, Common_Parse_TU_Args (Unit_Info.Language));
 
       --  TODO??? We should also inhibit the use of clang predefined macros,
       --  with the -undef option, but doing this yields parsing errors, and a
