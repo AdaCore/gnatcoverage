@@ -2606,6 +2606,100 @@ package body Instrument.C is
       return Macro_Vector_Cst_Access (Result);
    end Builtin_Macros;
 
+   ------------------------
+   -- Postprocess_Source --
+   ------------------------
+
+   procedure Postprocess_Source
+     (Preprocessed_Filename  : String;
+      Postprocessed_Filename : String)
+   is
+      Preprocessed_File  : Ada.Text_IO.File_Type;
+      Postprocessed_File : Ada.Text_IO.File_Type;
+   begin
+      Open (Preprocessed_File, In_File, Preprocessed_Filename);
+      Create (Postprocessed_File, Out_File, Postprocessed_Filename);
+      declare
+         Line_Marker_Pattern : constant GNAT.Regpat.Pattern_Matcher :=
+           Compile
+             ("\s*#\s*"
+              --  Start of the line directive
+
+              & "([0-9]+)"
+              --  Line index
+
+              & "\s+"
+              & "([^ \s]+)"
+              --  Filename
+
+              & "(.*)"
+              --  Trailing flags;
+
+             );
+
+         Add_New_Line : Boolean := True;
+
+         Line_Marker_Line : Integer;
+         Line_Marker_File : Unbounded_String;
+         --  Line and file of the read line if it is a line marker
+
+         Current_File : Unbounded_String;
+         Current_Line : Integer := 0;
+         --  Line and file of the currently-active line marker
+
+         Matches : Match_Array (0 .. 3);
+      begin
+         while not End_Of_File (Preprocessed_File) loop
+            declare
+               Line : constant String := Get_Line (Preprocessed_File);
+            begin
+               Match (Line_Marker_Pattern, Line, Matches);
+               if Matches (0) /= No_Match then
+                  Line_Marker_Line :=
+                    Integer'Value
+                      (Line (Matches (1).First .. Matches (1).Last));
+                  Line_Marker_File :=
+                    +Line (Matches (2).First .. Matches (2).Last);
+                  if Line_Marker_Line = Current_Line - 1
+                    and then Line_Marker_File = Current_File
+                  then
+                     --  We have a spurious line marker. Remove it, and write
+                     --  the next line in continuation of the previous line.
+
+                     Add_New_Line := False;
+                     Current_Line := Current_Line - 1;
+                  else
+                     --  Write this line marker, and set the current line and
+                     --  the current file.
+
+                     Current_Line := Line_Marker_Line;
+                     Current_File := Line_Marker_File;
+
+                     --  Line markers should always be inserted on their own
+                     --  line.
+
+                     Add_New_Line := True;
+                     New_Line (Postprocessed_File);
+                     Put (Postprocessed_File, Line);
+                  end if;
+               else
+                  if Add_New_Line then
+                     New_Line (Postprocessed_File);
+                  end if;
+                  Add_New_Line := True;
+                  Put (Postprocessed_File, Line);
+                  Current_Line := Current_Line + 1;
+               end if;
+            end;
+         end loop;
+         if Add_New_Line then
+            New_Line (Postprocessed_File);
+         end if;
+      end;
+      Close (Preprocessed_File);
+      Close (Postprocessed_File);
+   end Postprocess_Source;
+
    -----------------------
    -- Preprocess_Source --
    -----------------------
@@ -2623,15 +2717,22 @@ package body Instrument.C is
       Success : Boolean;
       --  Whether this command is successful
 
-      PID                : constant Unsigned_64 :=
+      PID : constant Unsigned_64 :=
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
-      PP_Output_Filename : constant String :=
+
+      Preprocessed_Filename : constant String :=
+        (+Info.Output_Dir) / ("pp-" & Strip_Zero_Padding (Hex_Image (PID)));
+      --  Preprocessed file. We then postprocess it to remove redundant line
+      --  markers inserted by the preprocessor.
+
+      Preprocessor_Output_Filename : constant String :=
         (+Info.Output_Dir) /
         ("pp-output-" & Strip_Zero_Padding (Hex_Image (PID)));
-      PP_Output_File     : Ada.Text_IO.File_Type;
-   begin
-      PP_Filename := +Register_New_File (Info, Filename);
+      Preprocessor_Output_File     : Ada.Text_IO.File_Type;
+      --  File containing the preprocessor output (used to get include search
+      --  paths).
 
+   begin
       Cmd :=
         (Command => +Compiler_Driver (Info.Project, Instrumenter.Language),
          others  => <>);
@@ -2660,7 +2761,7 @@ package body Instrument.C is
 
       Append_Arg (Cmd, "-v");
       Append_Arg (Cmd, "-o");
-      Append_Arg (Cmd, +PP_Filename);
+      Append_Arg (Cmd, Preprocessed_Filename);
 
       --  Run the preprocessing command, keep track of whether it was
       --  successful for later
@@ -2668,7 +2769,7 @@ package body Instrument.C is
       Success := Run_Command
         (Command             => Cmd,
          Origin_Command_Name => "Preprocessing",
-         Output_File         => PP_Output_Filename,
+         Output_File         => Preprocessor_Output_Filename,
          Ignore_Error        => True);
 
       --  Clear the search path so that we populate it from the include search
@@ -2682,7 +2783,7 @@ package body Instrument.C is
       --  ...
       --  End of search list
 
-      Open (PP_Output_File, In_File, PP_Output_Filename);
+      Open (Preprocessor_Output_File, In_File, Preprocessor_Output_Filename);
 
       declare
          RE_Begin_Pattern      : constant Pattern_Matcher :=
@@ -2692,9 +2793,9 @@ package body Instrument.C is
            Compile ("End of search list");
          Matches               : Match_Array (0 .. 0);
       begin
-         while not End_Of_File (PP_Output_File) loop
+         while not End_Of_File (Preprocessor_Output_File) loop
             declare
-               Line : constant String := Get_Line (PP_Output_File);
+               Line : constant String := Get_Line (Preprocessor_Output_File);
             begin
                Match (RE_Begin_Pattern, Line, Matches);
                if Matches (0) /= No_Match then
@@ -2725,18 +2826,24 @@ package body Instrument.C is
             --  output.
 
             if not Begin_Pattern_Matched then
-               Reset (PP_Output_File);
+               Reset (Preprocessor_Output_File);
             end if;
 
-            while not End_Of_File (PP_Output_File) loop
-               Put_Line (Get_Line (PP_Output_File));
+            while not End_Of_File (Preprocessor_Output_File) loop
+               Put_Line (Get_Line (Preprocessor_Output_File));
             end loop;
-            Delete (PP_Output_File);
+            Delete (Preprocessor_Output_File);
             Fatal_Error ("Preprocessing failed: aborting");
          end if;
+         Delete (Preprocessor_Output_File);
       end;
 
-      Delete (PP_Output_File);
+      --  Now, onto the postprocessing. Remove spurious system header line
+      --  markers.
+
+      PP_Filename := +Register_New_File (Info, Filename);
+      Postprocess_Source (Preprocessed_Filename, +PP_Filename);
+      Ada.Directories.Delete_File (Preprocessed_Filename);
    end Preprocess_Source;
 
    --------------------------
