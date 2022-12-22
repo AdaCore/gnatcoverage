@@ -1914,7 +1914,8 @@ package body Instrument.C is
          begin
             case Severity is
                when Diagnostic_Error | Diagnostic_Fatal =>
-                  Outputs.Error ("Error when parsing the file " & Str);
+                  Outputs.Warning_Or_Error
+                    ("Error when parsing the file " & Str);
                when others =>
                   null;
             end case;
