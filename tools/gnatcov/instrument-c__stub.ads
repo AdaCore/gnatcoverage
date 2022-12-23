@@ -30,7 +30,7 @@ with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
 with Switches;              use Switches;
 
-private package Instrument.C is
+package Instrument.C is
 
    type C_Family_Instrumenter_Type is
      abstract new Language_Instrumenter with null record;
@@ -76,5 +76,9 @@ private package Instrument.C is
 
    C_Instrumenter   : aliased constant C_Instrumenter_Type := (null record);
    CPP_Instrumenter : aliased constant CPP_Instrumenter_Type := (null record);
+
+   procedure Postprocess_Source
+     (Preprocessed_Filename  : String;
+      Postprocessed_Filename : String) is null;
 
 end Instrument.C;
