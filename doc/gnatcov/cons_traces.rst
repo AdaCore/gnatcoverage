@@ -13,11 +13,6 @@ The set of traces involved in a computation, with some details about each trace
 in the *Assessment Context* section of :cmd-option:`=report` outputs, where the
 command line is quoted.
 
-Trace consolidation works the same for source or binary traces. Mixing
-binary and source traces is not supported, however, so all the traces
-provided for a consolidation must be of the same kind (all source or
-all binary).
-
 The following subsections provide examples of possible use cases of this facility.
 
 Single unit tested by different programs
