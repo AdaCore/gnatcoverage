@@ -22,7 +22,7 @@ tested separately (e.g. the different subprograms of a library unit or
 different scenarios of a given subprogram).
 
 The production of consolidated coverage reports can proceed either directly
-from a set of source or binary traces produced by the executions, or from a
+from a set of traces produced by the executions, or from a
 set of pre-computed partial results latched in what we refer to as
 :term:`coverage checkpoints <Coverage Checkpoint>`, which offer a lot of
 advanced capabilities.  The following sections illustrate various combinations
