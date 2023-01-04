@@ -126,9 +126,8 @@ complete statement coverage like so::
   12 .:       end if;
   13 .:    end Stat;
 
-Assuming you have obtained one trace for the execution of each test, both
-traces either source or binary, the command to produce the combined report
-would be something like::
+Assuming you have obtained one trace for the execution of each test,
+the command to produce the combined report would be something like::
 
     gnatcov coverage --level=stmt <units-of-interest> --annotate=xcov
       test_cmd_safe.trace test_cmd_unsafe.trace
@@ -378,55 +377,3 @@ visible on lines 7, 14, and 15 of ``main.c``, and attempt to compute an
 unsupported operation, visible on lines 21 and 22 of ``process.c``. These two
 scenarios, exercised through ``div.srctrace`` and ``misuse.srctrace`` were
 indeed not included in the consolidation scope.
-
-Special care needed with binary traces
-======================================
-
-Control of inlining in test programs
-------------------------------------
-
-With binary traces, the program is not itself instrumented to collect coverage
-information on its own and the object files used to assess coverage are more
-likely (than with source traces) to be used directly in operational
-conditions. In such cases, we want to make sure that the binary code from
-those object files is indeed exercised during the testing campaign.
-
-While this would automatically be the case for integration testing campaigns,
-campaigns based on the use of explicit testing code, such as unit tests, need
-to make sure that calls into the code-under-test by the testing code are not
-inlined by the compiler.
-
-With GCC based toolchains such as GNAT Pro, this can be achieved by adding
-:cmd-option:`-fno-inline` to the compilation options of the testing code.
-
-
-Object code overlap in executables
-----------------------------------
-
-For object or source level criteria, |gcv| computes the coverage achieved for
-the full set of routines or source units declared to be of interest amongst
-those exposed by the union of the exercised executables, as designated by the
-set of consolidated traces;
-
-For the purpose of computing combined coverage achievements, two symbols are
-considered overlapping when all the following conditions are met:
-
-* Both symbols have identical names at the object level,
-
-* Both symbols have DWARF debug information attached to them,
-
-* According to this debug information, both symbols originate from the same
-  compilation unit, denoted by the full path of the corresponding source file.
-
-By this construction, a symbol missing debug information is never considered
-overlapping with any other symbol. Whatever coverage is achieved on such a
-symbol never gets combined with anything else and the only kind of report where
-the symbol coverage is exposed is the :cmd-option:`=asm` assembly output for
-object level criteria.
-
-Moreover, for object level coverage criteria, |gcvcov| will issue a
-consolidation error when two symbols are found to overlap but have
-structurally different machine code, which happens for example when the same
-unit is compiled with different different optimization levels for
-different executables.
-
