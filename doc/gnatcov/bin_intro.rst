@@ -163,7 +163,7 @@ the standard Unix ``grep`` tool to filter out test harness units::
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@nontest.alis
 
 Going Further
-=============
+-------------
 
 As the source and binary trace based workflows share commonalities,
 a lot of information from the main documentation also applies to the

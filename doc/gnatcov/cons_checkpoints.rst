@@ -91,9 +91,11 @@ discuss compatibility issues regarding consolidation.
 Efficient storage of test results
 =================================
 
-Binary trace files can be large and their processing requires access to the
-executable file that was used to produce the trace. Preserving collections of
-traces and executables to allow consolidation can be problematic, space-wise.
+Trace files can be large and often need to be kept together with the
+executable files that were used to produce the traces, for traceability
+reasons for example, or for specific processing operations in some
+circumstances. Preserving collections of traces and executables to allow
+consolidation can be problematic, space-wise.
 
 In some situations (depending on the overall size of programs, number of units
 of interest, assessed coverage criteria, number and structure of decisions,

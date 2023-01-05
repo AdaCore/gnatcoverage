@@ -1614,7 +1614,7 @@ package body SC_Obligations is
                   Annotation.CU := Remap_CU_Id (Relocs, Annotation.CU);
                   if Annotation.CU > Last_Existing_CU_Id then
                      Remap_SFI (Relocs, Annotation_Sloc.Source_File);
-                     ALI_Annotations.Insert (Annotation_Sloc, Element (Cur));
+                     ALI_Annotations.Insert (Annotation_Sloc, Annotation);
                   end if;
                end if;
             end;

@@ -5,8 +5,8 @@ Using |gcp| from |gps|
 GNATcoverage is integrated in |gps| so that it is possible to analyze code
 coverage without leaving your favorite editor.
 
-Basic usage
-===========
+Basic scenario
+==============
 
 As a first step, indicate which coverage criterion GNATcoverage should use
 through the :ref:`project file<switches_attr>`. If no coverage level is set
@@ -57,31 +57,6 @@ file with annotations that represent the coverage state:
 
 Note that the Locations view reports all non-covered lines. It makes navigation
 easy as you only have to click on a diagnostic to go to the corresponding line.
-
-Binary traces usage
-===================
-
-Starting from GNATcoverage version 22.0, binary traces (using gnatcov run) are
-no longer supported in native profiles. This mode is still supported for cross
-configurations so the same steps performed above for source traces can be done
-for binary traces IF you are in a supported configuration (otherwise, the menu
-items won't show up).
-
-Go to the menu
-:menuselection:`Analyze --> Coverage --> GNATcoverage Binary Traces`.
-to perform each step individually, or use the ``Run All Actions`` item.
-
-You can also replace the toolbar button (dedicated to the instrumentation-based
-scheme) with an alike button, but for binary traces. Go to GNATstudio
-Preferences in :menuselection:`Edit --> Preferences`.
-
-Then, go to the ``Build Targets`` section, and find the ``Run GNATcoverage``
-workflow: add it to the toolbar as shown below.
-
-.. image:: gps_screenshots/7-binary-traces.png
-
-Remove from the toolbar the ``Run GNATcoverage with instrumentation`` in the
-same fashion.
 
 
 GNATtest scenario

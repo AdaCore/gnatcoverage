@@ -11,9 +11,10 @@ language entities such as high level *statements* or *decisions* (DO178
 parlance for boolean expressions), which translate as :term:`Source Coverage
 Obligations <Source Coverage Obligation>`, or SCOs, in |gcp| terms.
 
-Once you have produced source or binary traces, actual analysis is then
-performed with |gcvcov| to generate coverage reports. *Source* coverage is
-queried by passing a specific :cmd-option:`--level` argument to |gcvcov|.
+Once you have produced coverage traces, actual analysis is performed
+with |gcvcov| to generate coverage reports. *Source* coverage is
+queried by passing a specific :cmd-option:`--level` argument to
+|gcvcov|.
 
 The general structure of this command line is always like::
 
@@ -390,9 +391,9 @@ items:
 
 * Coverage level requested to be analyzed
 
-* Details on the input trace files: path to binary program exercised (as
-  recorded in the trace header), production time stamp and tag string
-  (:cmd-option:`--tag` command line argument value).
+* Details on the input trace files, such as the path to the binary
+  program exercised (as recorded in the trace header) or the trace
+  production time stamp.
 
 Here is a example excerpt::
 
@@ -1487,20 +1488,16 @@ Handling source relocation for annotated sources output formats
 ===============================================================
 
 For all annotated sources output formats
-(:cmd-option:`--annotate=xcov[+]|html[+]|dhtml)`, |gcv| needs access to the
-sources of the :term:`units of interest <Units of Interest>` to generate the
-output. By default, the sources will be searched in the location where they
-were compiled, for binary traces, or where they were instrumented for source
-traces. This is generally going to be the case if the whole coverage analysis
-process is done on the same machine, but in some cases it may be preferable to
-generate the coverage report on a different machine than the one where the
-coverage run was done, or the sources may have been moved.
+(:cmd-option:`--annotate=xcov[+]|html[+]|dhtml)`, |gcv| needs access
+to the sources of the :term:`units of interest <Units of Interest>` to
+generate the output. The tool searches for sources in some default
+locations which are usually correct when the whole coverage analysis
+process is done on the same machine.
 
-For instance, a project with a large number of unit tests may be run on
-multiple machines in parallel to speed up the test runs, and then a single
-report will be generated from all the traces/checkpoints. In such case, |gcv|
-will not be able to automatically find the source files. |gcv| offers two
-options to help in those situations:
+When coverage reports are produced on a different machine than the one
+where the coverage run was done, or when sources are moved in the
+interim, |gcv| will likely not be able to automatically find the
+source files. The tool offers two options to help in those situations:
 
 * The option :cmd-option:`--source-rebase=\<old_prefix\>=\<new_prefix\>`
 
