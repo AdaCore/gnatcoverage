@@ -16,12 +16,11 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Conversions;        use Ada.Characters.Conversions;
+with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with Ada.Characters.Handling;
 with Ada.Exceptions;
-with Ada.Strings.Unbounded;             use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Fixed;
-with Ada.Wide_Wide_Characters.Handling; use Ada.Wide_Wide_Characters.Handling;
 
 with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
