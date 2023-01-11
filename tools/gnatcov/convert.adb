@@ -23,6 +23,7 @@ with Ada.Unchecked_Conversion;
 with Qemu_Traces;
 with Interfaces;
 
+with Arch;
 with Traces_Files; use Traces_Files;
 with GNAT.Strings;
 
@@ -166,7 +167,11 @@ package body Convert is
                                      7 => Trigger_Stop_ID
                                     );
          when Trace32_Branchflow =>
-            Prg := Locate_Exec_On_Path ("../libexec/gnatcoverage/trace32_drv");
+            --  Despite being named Trace32, the adapters also support 64 bit
+            --  targets, so invoke the correct trace adapter.
+
+            Prg := Locate_Exec_On_Path ("../libexec/gnatcoverage/trace32_drv_"
+                                        & Arch.Current_Bits);
             Opts := new String_List'(1 => new String'("stm32f7"),
                                      2 => Exe_Name,
                                      3 => Trace_Arg,

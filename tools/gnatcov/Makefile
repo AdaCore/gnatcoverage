@@ -138,9 +138,9 @@ endif
 
 ifeq ($(HOST_OS), linux)
 ifeq ($(BITS_ARCH), 32)
-DEFAULT_ADAPTERS = valgrind trace32
-else
 DEFAULT_ADAPTERS = valgrind
+else
+DEFAULT_ADAPTERS = valgrind trace32
 endif
 endif
 

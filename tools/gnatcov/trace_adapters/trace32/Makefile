@@ -6,12 +6,12 @@ include ../../host.mk
 
 .PHONY: force
 
-ARCH=32
-
 # Files for libexec/gnatcoverage include binary executables
 # (which need to be built first), and a python script.
 
-EXENAMES=trace32_drv
+# Despite being named Trace32, the probes support both 32 and 64 bit targets,
+# so we need to build a trace adapter both for 32 bit and 64 bit targets.
+EXENAMES=trace32_drv_32 trace32_drv_64
 
 # Directory name in the install tree
 DIRNAME=gnatcoverage
@@ -21,15 +21,25 @@ DOCFORMATS=pdf html
 # By default, assume that the binutils dependency was built in the source tree.
 BINUTILS_BUILD_DIR?=$(BINUTILS_SRC_DIR)
 
-all: $(EXENAMES)
+all: bin
 
-$(EXENAMES): force
-	$(GPRBUILD) -Ptrace32 -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@ \
-	-XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
-	-XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
-  -largs $(LD_FLAGS) \
-  -cargs:c++ $(CXXFLAGS) \
+# Here we build trace32_drv_32 and trace32_drv_64 executables. State
+# we don't need source instrumentation support at all in these programs
+# to minimize the executable sizes.
 
+BIN_COMMON_BUILD_ARGS=\
+ -Ptrace32.gpr \
+ -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
+ -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
+ -XINSTRUMENT_SUPPORT=False \
+ -largs $(LD_FLAGS) \
+ -cargs:c++ $(CXXFLAGS) \
+ $(EXTRA_ADAFLAGS) \
+ -gargs
+
+bin: force
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XARCH=64
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XARCH=32
 
 ###################
 # General cleanup #
@@ -38,7 +48,8 @@ $(EXENAMES): force
 .PHONY: clean
 
 clean:
-	$(GPRCLEAN) -Ptrace32
+	$(GPRCLEAN) -Ptrace32.gpr -XARCH=64
+	$(GPRCLEAN) -Ptrace32.gpr -XARCH=32
 
 ################
 # Installation #

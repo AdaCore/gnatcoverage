@@ -2,8 +2,11 @@ with "../../gnatcov";
 
 project Trace32 is
 
+   type Bits_Type is ("32", "64");
+   Bits : Bits_Type := external("ARCH", "32");
+
    for Main use ("trace32_drv.adb");
-   for Object_Dir use "obj";
+   for Object_Dir use "obj" & Bits;
    for Exec_Dir Use ".";
    for Create_Missing_Dirs use "True";
 
@@ -14,5 +17,9 @@ project Trace32 is
    package Linker is
       for Required_Switches use Gnatcov.Linker'Required_Switches;
    end Linker;
+
+   package Builder is
+      for Executable ("trace32_drv.adb") use "trace32_drv_" & Bits;
+   end Builder;
 
 end Trace32;
