@@ -57,4 +57,6 @@ package Arch is
      renames Elf64_R_Type;
    function Elf_R_Info (S, T : Elf_Word) return Elf_Xword
      renames Elf64_R_Info;
+
+   Current_Bits : constant String := "64";
 end Arch;
