@@ -138,9 +138,9 @@ endif
 
 ifeq ($(HOST_OS), linux)
 ifeq ($(BITS_ARCH), 32)
-DEFAULT_ADAPTERS = valgrind trace32
-else
 DEFAULT_ADAPTERS = valgrind
+else
+DEFAULT_ADAPTERS = valgrind trace32
 endif
 endif
 
@@ -186,6 +186,22 @@ nexus_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 default: bin
 all: bin adapters
 
+# Here we build gnatcov32, gnatcov64 and the "gnatcov" driver that spawns
+# one or the other of the first two depending on the operation to perform
+# and the kind of binary item at hand, if any. Source instrumentation is
+# unconditionally directed to gnatcov64, so this is the only program where
+# "instrument" support is needed.
+
+BIN_COMMON_BUILD_ARGS=\
+ -Pgnatcov.gpr -p -j$(PARALLEL_BUILD) \
+ -XBUILD_MODE=$(BUILD_MODE) \
+ -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
+ -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
+ $(EXTRA_ADAFLAGS) \
+ -largs $(LD_FLAGS) \
+ -cargs:c++ $(CXXFLAGS) \
+ -gargs
+
 bin:
 # Unlike BINUTILS_BUILD_DIR for which we have a default fallback,
 # BINUTILS_SRC_DIR must be defined explicitely.
@@ -196,21 +212,16 @@ bin:
 		exit 1; \
 	fi
 
-# Use "set -e" not to start the second build if the first one failed. Also
-# start with the 64-bit one so that errors in the "gnatcov" main closure show
-# up as soon as possible.
-	set -e && for bits in 64 32; \
-	do \
-	  $(GPRBUILD) -Pgnatcov -p -j$(PARALLEL_BUILD) \
-	    -XARCH=$$bits \
-	    -XBUILD_MODE=$(BUILD_MODE) \
-	    -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
-	    -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
-	    -XC_SUPPORT=$(C_SUPPORT) \
-	    $(EXTRA_ADAFLAGS) \
-	    -largs $(LD_FLAGS) \
-	    -cargs:c++ $(CXXFLAGS); \
-	done
+# Start with the 64-bit gnatcov, which has the largest closure
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) \
+		gnatcov_bits_specific.adb \
+		-XARCH=64 -XINSTRUMENT_SUPPORT=True -XC_SUPPORT=$(C_SUPPORT)
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) \
+		gnatcov_bits_specific.adb \
+		-XARCH=32 -XINSTRUMENT_SUPPORT=False
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) \
+		gnatcov.adb \
+		-XINSTRUMENT_SUPPORT=False
 
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
 .PHONY: $(ADAPTERS_TARGETS)

@@ -4,35 +4,64 @@ with "rts/gnatcov_rts";
 
 project Gnatcov is
 
-   type Bits_Type is ("32", "64");
-   Bits : Bits_Type := external("ARCH", "32");
+   --  This project file participates in the build of a variety of programs
+   --  that use all or part-of the sources in the project's subdirectory. Such
+   --  progrms include the "gnatcov" driver, the "gnatcov32/64" tools or the
+   --  trace adapters.
 
-   Mains := ("gnatcov_bits_specific.adb");
-   case Bits is
-      when "32" => null;
-      when "64" => Mains := Mains & ("gnatcov.adb");
-   end case;
+   --  We provide scenario variables to control some aspects of what the
+   --  sources include, such as whether the tool is intended to process 32 or
+   --  64 binaries or whether it needs to include a fully functional source
+   --  instrumenter. The control of what parameter makes sense for each actual
+   --  program is not decided by this project file, and when this project file
+   --  is used as a root project to build gnatcov* executables, build commands
+   --  are expected to state the Mains on the on the command line along
+   --  with the associated parameters.
+
+   --  The size of addresses we expect the tool we build will handle. For
+   --  gnatcov* programs, this also controls the subdir where the executable
+   --  is placed. Default to "64" as we build 64bit binaries only. Only those
+   --  that explicitly request to handle 32bit addresses will end up in the
+   --  32bit specific object dir.
+
+   type Bits_Type is ("32", "64");
+   Bits : Bits_Type := external("ARCH", "64");
 
    Binutils_Src_Dir := external ("BINUTILS_SRC_DIR");
    Binutils_Build_Dir := external ("BINUTILS_BUILD_DIR", Binutils_Src_Dir);
 
    --  Build mode. Default to "dev" to make it shorter for developers.
    --  The other modes are for nightly scripts and are better made explicit
-   --- anyway:
+   --  anyway:
+
    type Build_Mode_Type is ("dev", "prod", "boot");
    Build_Mode : Build_Mode_Type := external("BUILD_MODE", "dev");
 
+   --  Whether the tool we build needs to include source instrumentation
+   --  support at all, then for C more specifically:
+
    type Boolean is ("False", "True");
-   C_Support : Boolean := external("C_SUPPORT", "True");
+   Instrument_Support : Boolean := external("INSTRUMENT_SUPPORT");
+   C_Support          : Boolean := external("C_SUPPORT", Instrument_Support);
 
    package Naming is
       for Specification ("Arch") use "arch__" & Bits & ".ads";
       for Specification ("Qemu_Traces_Entries")
          use"qemu_traces_entries__" & Bits & ".ads";
-      case Bits is
-         when "32" => for Body ("Instrument") use "instrument__stub.adb";
-         when "64" => for Body ("Instrument") use "instrument.adb";
+
+      --  Tools that don't need instrumentation support might nevertheless
+      --  rely on sources that drag dependencies on the "instrument" source
+      --  unit, even though the instrumentation feature is never actually
+      --  used. Provide a stub body for such tools, which significantly
+      --  reduces the size of executables:
+
+      case Instrument_Support is
+         when "False" =>
+            for Body ("Instrument") use "instrument__stub.adb";
+         when "True" =>
+            null;
       end case;
+
       case C_Support is
          when "False" =>
             for Specification ("Instrument.C") use "instrument-c__stub.ads";
@@ -134,6 +163,5 @@ project Gnatcov is
 
    for Object_Dir use "obj" & Bits & "/" & Build_Mode;
    for Languages use ("Ada", "C", "C++");
-   for Main use Mains;
 
 end Gnatcov;
