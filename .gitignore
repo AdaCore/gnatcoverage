@@ -21,7 +21,6 @@ lib
 /testsuite/out
 /testsuite/suite.cgpr
 /testsuite/support
-/testsuite/tests
 /testsuite/tmp
 gnatcov-loc.xml
 gnatinspect.db
