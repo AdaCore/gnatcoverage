@@ -87,8 +87,6 @@ package Instrument.Base_Types is
    function "=" (Left, Right : Compilation_Unit_Name) return Boolean;
 
    function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
-   --  Compare the result of a call to Instrumented_Unit_Slug (which gives
-   --  unique identifiers for each compilation unit name) for both operands.
 
    function Image (CU_Name : Compilation_Unit_Name) return String;
    --  Return a string representation of CU_Name for use in diagnostics
