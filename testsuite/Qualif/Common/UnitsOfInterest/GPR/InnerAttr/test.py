@@ -44,7 +44,7 @@ check(
     subdir="wd_3",
 )
 
-# ops.gpr: for Included_Units use ... for Excluded_Units use ...
+# ops.gpr: for Units use ... for Excluded_Units use ...
 
 check(
     opspkg=gprcov_for(
