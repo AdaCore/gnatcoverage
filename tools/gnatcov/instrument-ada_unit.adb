@@ -16,12 +16,11 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Conversions;        use Ada.Characters.Conversions;
+with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with Ada.Characters.Handling;
 with Ada.Exceptions;
-with Ada.Strings.Unbounded;             use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Fixed;
-with Ada.Wide_Wide_Characters.Handling; use Ada.Wide_Wide_Characters.Handling;
 
 with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
@@ -2849,7 +2848,7 @@ package body Instrument.Ada_Unit is
                      To_Node := Stmt.F_Entry_Index_Expr.As_Ada_Node;
 
                   else
-                     To_Node := Stmt.F_Name.As_Ada_Node;
+                     To_Node := Stmt.F_Body_Decl.F_Name.As_Ada_Node;
                   end if;
                end;
 
