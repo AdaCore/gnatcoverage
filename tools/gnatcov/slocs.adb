@@ -108,9 +108,17 @@ package body Slocs is
 
       Show_File, Show_Line, Show_Column : Boolean;
 
+      File_Name : constant String :=
+        Get_Name (Sloc.Source_File);
    begin
       if Sloc.L = No_Local_Location then
-         return "<no loc>";
+
+         --  If this location points to predefined code (such as the command
+         --  line, for macros defined with the -D switch), let the user know.
+
+         return (if Clang_Predefined_File (File_Name)
+                 then File_Name
+                 else "<no loc>");
       end if;
 
       Show_File   := Sloc.Source_File /= Ref.Source_File;
@@ -120,7 +128,7 @@ package body Slocs is
                        or else Sloc.L.Column /= Ref.L.Column;
 
       return
-        (if Show_File then Get_Name (Sloc.Source_File) & ":" else "")
+        (if Show_File then File_Name & ":" else "")
         &
         (if Show_Line then Img (Sloc.L.Line) & ":" else "")
         &
