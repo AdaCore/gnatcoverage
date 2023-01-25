@@ -150,7 +150,7 @@ package body Instrument.Base_Types is
                --  Add an unambiguous separator between the project name and
                --  the rest of the slug.
 
-               Append (Result, "_z_z_");
+               Append (Result, "_z_z");
 
                --  File names can contain characters that cannot appear in
                --  identifiers. Furthermore, unlike for the identifier to
