@@ -45,6 +45,56 @@ package body Instrument.C_Utils is
    --  Note: this has convention C in order to be a callback for the
    --  Clang.Index.Visit_Children and Clang.Index.Visit functions.
 
+   --------------------------------
+   -- Presumed_Spelling_Location --
+   --------------------------------
+
+   function Presumed_Spelling_Location
+     (TU             : Translation_Unit_T;
+      Loc            : Source_Location_T;
+      Macro_Name     : Unbounded_String;
+      Builtin_Macros : Macro_Set) return Source_Location
+   is
+      C_Filename   : aliased String_T;
+      Line, Column : aliased unsigned;
+      Filename     : Unbounded_String;
+      Sloc         : Local_Source_Location;
+   begin
+      Get_Presumed_Location
+        (Get_Spelling_Loc (TU, Loc),
+         C_Filename'Access,
+         Line'Access,
+         Column'Access);
+      Filename := +Get_C_String (C_Filename);
+
+      --  If this is a command-line or built-in source location, ignore the
+      --  line and column indices.
+
+      if Clang_Predefined_File (+Filename) then
+
+         --  As built-in macros are passed through clang's command line, their
+         --  location refers to the "<command line>" rather than "<built-in>".
+         --  Fix this for macros that are actually built-in.
+
+         if Builtin_Macros.Contains
+           (Macro_Definition'
+              (Define => True, Name => Macro_Name, others => <>))
+         then
+            Filename := +"<built-in>";
+         end if;
+         Sloc := To_Sloc (0, 0);
+      else
+         Sloc := To_Sloc (Line, Column);
+      end if;
+
+      Dispose_String (C_Filename);
+      return
+        (Source_File => Get_Index_From_Generic_Name
+           (Name => +Filename,
+            Kind => Source_File),
+         L           =>  Sloc);
+   end Presumed_Spelling_Location;
+
    ----------
    -- Sloc --
    ----------

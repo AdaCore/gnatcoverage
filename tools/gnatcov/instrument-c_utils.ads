@@ -16,13 +16,15 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers; use Ada.Containers;
+with Ada.Containers;        use Ada.Containers;
 with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Clang.Index;   use Clang.Index;
 with Clang.Rewrite; use Clang.Rewrite;
 
-with Slocs; use Slocs;
+with Instrument.C; use Instrument.C;
+with Slocs;        use Slocs;
 
 package Instrument.C_Utils is
 
@@ -39,6 +41,18 @@ package Instrument.C_Utils is
 
    function Sloc (Loc : Source_Location_T) return Source_Location;
    --  Convert a Source_Location_T to a Source_Location
+
+   function Presumed_Spelling_Location
+     (TU             : Translation_Unit_T;
+      Loc            : Source_Location_T;
+      Macro_Name     : Unbounded_String;
+      Builtin_Macros : Macro_Set) return Source_Location;
+   --  Assuming Loc is a macro expansion location that refers to the expansion
+   --  of Macro_Name, return its presumed spelling location, i.e. the actual
+   --  source location of its expansion with command-line / built-in macros
+   --  accounted for. If Macro_Name refers to a built-in macro (i.e. in
+   --  the Builtin_Macros set), set the filename for the returned sloc
+   --  to "<built-in>".
 
    function Start_Sloc (N : Cursor_T) return Source_Location_T;
    function Start_Sloc (N : Cursor_T) return Source_Location;

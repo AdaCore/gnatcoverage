@@ -684,3 +684,15 @@ clang_printLocation (CXTranslationUnit TU, CXSourceLocation Loc)
   const SourceManager &SM = getSourceManager (TU);
   translateSourceLocation (Loc).dump (SM);
 }
+
+extern "C" CXSourceLocation
+clang_getSpellingLoc (CXTranslationUnit TU, CXSourceLocation location)
+{
+
+  SourceLocation Loc = SourceLocation::getFromRawEncoding (location.int_data);
+  if (!location.ptr_data[0] || Loc.isInvalid ())
+    return clang_getNullLocation ();
+
+  const SourceManager &SM = getSourceManager (TU);
+  return translateSLoc (TU, SM.getSpellingLoc (Loc));
+}
