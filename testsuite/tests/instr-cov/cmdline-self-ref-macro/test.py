@@ -18,7 +18,7 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(srcdirs=['..'], mains=['main.c'])),
     covlevel='stmt',
     mains=['main'],
-    extra_instr_args=['--c-opts=-Dreturn=printf ("Before return"); return'],
+    extra_instr_args=['--c-opts=-Dreturn=int a; return'],
     extra_coverage_args=['-axcov', '--output-dir=xcov'],
     trace_mode='src',
 )
