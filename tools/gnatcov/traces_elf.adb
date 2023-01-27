@@ -3155,7 +3155,7 @@ package body Traces_Elf is
                   else Get_Index_From_Full_Name
                     (Full_Name => Filenames.Element (Inlined_Subp.File).all,
                      Kind      => Stub_File,
-                     Insert    => False));
+                     Insert    => True));
                Info : Address_Info_Acc :=
                   new Address_Info'
                     (Kind      => Inlined_Subprogram_Addresses,
