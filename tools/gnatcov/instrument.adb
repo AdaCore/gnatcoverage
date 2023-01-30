@@ -106,7 +106,8 @@ package body Instrument is
    package Library_Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (String, Library_Unit_Info_Access);
    --  Map to associate a list of compilation units to instrument to a library
-   --  unit (indexed by the library unit name).
+   --  unit (indexed by the library unit name, i.e. the unit name or the
+   --  full name depending on the language kind for the library unit).
    --
    --  For file-based languages, the library unit only has one compilation
    --  unit associated to it (that is the library unit itself, for which the
@@ -263,7 +264,7 @@ package body Instrument is
                    & "sid");
             end;
          when File_Based_Language =>
-            SID_Basename := +(LU_Name & ".sid");
+            SID_Basename := +(Ada.Directories.Simple_Name (LU_Name & ".sid"));
       end case;
 
       return String'(+Output_Directory.Full_Name) / (+SID_Basename);
@@ -405,13 +406,19 @@ package body Instrument is
          end if;
 
          declare
+            use GNATCOLL.VFS;
+
             CU_Name : constant Compilation_Unit_Name :=
                To_Compilation_Unit_Name (Source_File);
 
             Unit_Name : constant String :=
               (case CU_Name.Language_Kind is
                   when Unit_Based_Language => To_Ada (CU_Name.Unit),
-                  when File_Based_Language => +CU_Name.Filename);
+
+                  --  For file-based languages, we need to use the full
+                  --  name to account for homonyms.
+
+                  when File_Based_Language => +Source_File.File.Full_Name);
 
          begin
             --  Get the vector in which we will record the compilation units
