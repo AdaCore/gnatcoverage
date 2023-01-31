@@ -752,7 +752,6 @@ package body SC_Obligations is
          use Non_Instrumented_SCO_Sets;
          CU_CP_Set : Set;
          CU_Set    : Set;
-         Remapped_SCO : SCO_Id;
          Cur       : Cursor;
          Prev      : Cursor;
       begin
@@ -767,11 +766,10 @@ package body SC_Obligations is
          --  current CU to compute the intersection.
 
          for SCO of CP_Vectors.Non_Instr_SCOs loop
-            Remapped_SCO := Remap_SCO_Id (Relocs, SCO);
-            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO
-              and then Remapped_SCO /= No_SCO_Id
+            if SCO /= No_SCO_Id
+              and then SCO in CP_CU.First_SCO .. CP_CU.Last_SCO
             then
-               CU_CP_Set.Insert (Remapped_SCO);
+               CU_CP_Set.Insert (Remap_SCO_Id (Relocs, SCO));
             end if;
          end loop;
 
@@ -779,12 +777,12 @@ package body SC_Obligations is
          while Has_Element (Cur) and then Element (Cur) <= Real_CU.Last_SCO
          loop
             CU_Set.Insert (Element (Cur));
+            Prev := Cur;
             Next (Cur);
 
             --  Remove the element from the main set so we can insert the
             --  intersection of the CU-specific sets later.
 
-            Prev := Previous (Cur);
             Non_Instr_SCOs.Delete (Prev);
          end loop;
          Non_Instr_SCOs.Union (CU_Set.Intersection (CU_CP_Set));
@@ -795,11 +793,10 @@ package body SC_Obligations is
          CU_CP_Set.Clear;
 
          for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
-            Remapped_SCO := Remap_SCO_Id (Relocs, SCO);
-            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO
-              and then Remapped_SCO /= No_SCO_Id
+            if SCO /= No_SCO_Id
+              and then SCO in CP_CU.First_SCO .. CP_CU.Last_SCO
             then
-               CU_CP_Set.Insert (Remapped_SCO);
+               CU_CP_Set.Insert (Remap_SCO_Id (Relocs, SCO));
             end if;
          end loop;
 
@@ -807,8 +804,8 @@ package body SC_Obligations is
          while Has_Element (Cur) and then Element (Cur) <= Real_CU.Last_SCO
          loop
             CU_Set.Insert (Element (Cur));
+            Prev := Cur;
             Next (Cur);
-            Prev := Previous (Cur);
             Non_Instr_MCDC_SCOs.Delete (Prev);
          end loop;
          Non_Instr_MCDC_SCOs.Union (CU_Set.Intersection (CU_CP_Set));
