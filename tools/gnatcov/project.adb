@@ -19,8 +19,8 @@
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
+with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
@@ -31,13 +31,12 @@ with GNAT.OS_Lib;
 with GNAT.Regexp;
 
 with GNATCOLL.Traces;
-with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.Projects.Aux;
-with GNATCOLL.VFS;      use GNATCOLL.VFS;
+with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with Inputs;  use Inputs;
-with Outputs; use Outputs;
-with Strings; use Strings;
+with Instrument.Base_Types; use Instrument.Base_Types;
+with Inputs;                use Inputs;
+with Outputs;               use Outputs;
 
 package body Project is
 
@@ -150,16 +149,18 @@ package body Project is
    end record;
 
    package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => String,
+     (Key_Type     => Unique_Name,
       Element_Type => Unit_Info);
 
    procedure Add_Unit
-     (Units         : in out Unit_Maps.Map;
-      Cur           : out Unit_Maps.Cursor;
-      Original_Name : String;
-      Language      : Some_Language);
-   --  Add an entry to Units. See Unit_Info's members for the semantics of
-   --  arguments.
+     (Units          : in out Unit_Maps.Map;
+      Cur            : out Unit_Maps.Cursor;
+      Original_Name  : String;
+      Info           : File_Info;
+      Language       : Some_Language);
+   --  Add a Unit_Info entry to Units. The key for this new entry (which is a
+   --  Unique_Name) is computed using the Original_Name, and the
+   --  Info.Project_Name if the unit is of a file-based language.
 
    procedure Warn_Missing_Info (What_Info : String; Unit : in out Unit_Info);
    --  If we haven't already, warn that we miss information (ALI or SID) about
@@ -167,12 +168,6 @@ package body Project is
 
    Unit_Map : Unit_Maps.Map;
    --  Map lower-case unit names to Unit_Info records for all units of interest
-
-   Are_LIs_Enumerated : Boolean := False;
-   --  Return whether Enumerate_LIs was called
-
-   Are_SIDs_Enumerated : Boolean := False;
-   --  Return whether Enumerate_SIDs was called
 
    procedure Initialize
      (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
@@ -234,6 +229,24 @@ package body Project is
    --  Return whether Filename can be found among the sources of the
    --  configured Ada runtime.
 
+   --------------------
+   -- To_Unique_Name --
+   --------------------
+
+   function To_Unique_Name
+     (Unit_Name : String;
+      Project   : Project_Type;
+      Language  : Some_Language) return Unique_Name
+   is
+      U : Unique_Name (Language_Kind (Language));
+   begin
+      U.Unit_Name := +Unit_Name;
+      if U.Language = File_Based_Language then
+         U.Project_Name := +Project.Name;
+      end if;
+      return U;
+   end To_Unique_Name;
+
    ---------
    -- "+" --
    ---------
@@ -258,33 +271,32 @@ package body Project is
    --------------
 
    procedure Add_Unit
-     (Units         : in out Unit_Maps.Map;
-      Cur           : out Unit_Maps.Cursor;
-      Original_Name : String;
-      Language      : Some_Language)
+     (Units          : in out Unit_Maps.Map;
+      Cur            : out Unit_Maps.Cursor;
+      Original_Name  : String;
+      Info           : File_Info;
+      Language       : Some_Language)
    is
       Ignored_Inserted : Boolean;
-      On_Windows       : constant Boolean :=
-        GNAT.OS_Lib.Directory_Separator = '\';
-      Is_C_Header      : constant Boolean :=
-        Strings.Has_Suffix (To_Lower (Original_Name), ".h");
+      Is_Header        : constant Boolean :=
+        (To_Language (Info.Language) in C_Family_Language
+         and then Info.Unit_Part = Unit_Spec);
       Orig_Name        : constant Unbounded_String :=
-        To_Unbounded_String ((if On_Windows and then Is_C_Header
-                             then To_Lower (Original_Name)
-                             else Original_Name));
-
+        +Fold_Filename_Casing (Original_Name);
+      Unit_Name        : constant Unique_Name :=
+        To_Unique_Name (Original_Name, Info.Project, Language);
    begin
-      --  Disable warnings for C header units as they do not have a proper
+      --  Disable warnings for C/C++ header units as they do not have a proper
       --  library file.
 
       Units.Insert
-        (Key      => To_Lower (Original_Name),
+        (Key      => Unit_Name,
          New_Item => (Original_Name             => Orig_Name,
                       Present_In_Projects       => False,
                       Is_Subunit                => False,
                       Language                  => Language,
-                      LI_Seen                   => Is_C_Header,
-                      Warned_About_Missing_Info => Is_C_Header),
+                      LI_Seen                   => Is_Header,
+                      Warned_About_Missing_Info => Is_Header),
          Position => Cur,
          Inserted => Ignored_Inserted);
    end Add_Unit;
@@ -296,12 +308,11 @@ package body Project is
    procedure Warn_Missing_Info (What_Info : String; Unit : in out Unit_Info) is
    begin
       --  The only way to perform code coverage on C++ units is to use
-      --  instrumentation. If we have not enumerated SID files, this means that
-      --  we are using binary traces only, and thus C++ units cannot be units
-      --  of interest, so do not warn about them in this specific case.
+      --  instrumentation. With binary traces, C++ units cannot be units of
+      --  interest, so do not warn about them in this specific case.
 
       if Unit.Warned_About_Missing_Info
-         or else (not Are_SIDs_Enumerated
+         or else (Currently_Accepted_Trace_Kind = Binary_Trace_File
                   and then Unit.Language = CPP_Language)
       then
          return;
@@ -444,7 +455,7 @@ package body Project is
    ---------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : String; Is_Subunit : Boolean))
+     (Callback : access procedure (Name : Unique_Name; Is_Subunit : Boolean))
    is
       use Unit_Maps;
    begin
@@ -457,96 +468,60 @@ package body Project is
       end loop;
    end Enumerate_Units_Of_Interest;
 
-   -------------------
-   -- Enumerate_LIs --
-   -------------------
+   -------------------------
+   -- Is_Unit_Of_Interest --
+   -------------------------
 
-   procedure Enumerate_LIs (LI_Cb : access procedure (LI_Name : String)) is
-      Lib_Info : Library_Info_List;
-   begin
-      --  Go through all library files in all projects of interest
-
-      for Prj_Info of Prj_Map loop
-         Prj_Info.Project.Library_Files
-           (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
-         for LI of Lib_Info loop
-
-            --  Enumerate only LI files for Ada and C sources
-
-            if To_Lower (LI.Source.Language) in "ada" | "c" then
-
-               --  If the unit for this library file is in Unit_Map, this is a
-               --  unit of interest, so use it.
-
-               declare
-                  use Unit_Maps;
-
-                  LI_Source_Unit : constant String := LI.Source.Unit_Name;
-                  LI_Source_File : constant String :=
-                    +LI.Source.File.Base_Name;
-
-                  U  : constant String :=
-                         (if LI_Source_Unit'Length > 0
-                          then LI_Source_Unit
-                          else LI_Source_File);
-                  --  For unit-based languages (Ada), retrieve unit name from
-                  --  LI file. For file-based languages (C), fall back to
-                  --  translation unit source file name instead.
-
-                  Cur : constant Cursor := Unit_Map.Find (U);
-               begin
-                  if Has_Element (Cur) then
-                     LI_Cb.all (+LI.Library_File.Full_Name);
-                     Unit_Map.Reference (Cur).LI_Seen := True;
-                  end if;
-               end;
-            end if;
-         end loop;
-         Lib_Info.Clear;
-      end loop;
-
-      Are_LIs_Enumerated := True;
-   end Enumerate_LIs;
-
-   --------------------
-   -- LIs_Enumerated --
-   --------------------
-
-   function LIs_Enumerated return Boolean is
-   begin
-      return Are_LIs_Enumerated;
-   end LIs_Enumerated;
-
-   -----------------------------
-   -- Report_Units_Without_LI --
-   -----------------------------
-
-   procedure Report_Units_Without_LI is
-   begin
-      for UI of Unit_Map loop
-         if not UI.Is_Subunit and then not UI.LI_Seen then
-            Warn_Missing_Info ("ALI", UI);
-         end if;
-      end loop;
-   end Report_Units_Without_LI;
-
-   --------------------
-   -- Enumerate_SIDs --
-   --------------------
-
-   procedure Enumerate_SIDs (Callback : access procedure (SID_Name : String))
+   function Is_Unit_Of_Interest
+     (Project   : Project_Type;
+      Unit_Name : String;
+      Language  : Some_Language) return Boolean
    is
-      Lib_Info : Library_Info_List;
+      U : constant Unique_Name :=
+        To_Unique_Name (Unit_Name, Project, Language);
    begin
-      --  Go through all SID files in all projects of interest
+      return Unit_Map.Contains (U);
+   end Is_Unit_Of_Interest;
+
+   -------------------------
+   -- Is_Unit_Of_Interest --
+   -------------------------
+
+   function Is_Unit_Of_Interest (Full_Name : String) return Boolean is
+      FI        : constant File_Info :=
+        Prj_Tree.Info (Create (+Full_Name));
+      Unit_Name : constant String :=
+        (case Language_Kind (To_Language (FI.Language)) is
+         when Unit_Based_Language => FI.Unit_Name,
+         when File_Based_Language => +FI.File.Base_Name);
+   begin
+      return Is_Unit_Of_Interest
+        (FI.Project, Unit_Name, To_Language (FI.Language));
+   end Is_Unit_Of_Interest;
+
+   -------------------------
+   -- Enumerate_SCO_Files --
+   -------------------------
+
+   procedure Enumerate_SCOs_Files
+     (Callback : access procedure (Lib_Name : String);
+      Kind     : Trace_File_Kind)
+   is
+      Ext_Regexp : constant GNATCOLL.VFS.Filesystem_String :=
+        (case Kind is
+         when Binary_Trace_File => "^.*\.[ag]li$",
+         when Source_Trace_File => "^.*\.sid$");
+      Lib_Info   : Library_Info_List;
+   begin
+      --  Go through all SCOs files in all projects of interest
 
       for Prj_Info of Prj_Map loop
          Prj_Info.Project.Library_Files
-           (List => Lib_Info, ALI_Ext => "^.*\.sid$");
+           (List => Lib_Info, ALI_Ext => Ext_Regexp);
          for LI of Lib_Info loop
 
-            --  If the unit for this SID file is in Unit_Map, this is a unit of
-            --  interest, so use it.
+            --  If the unit for this SCO file is in Unit_Map, this is a
+            --  unit of interest, so use it.
 
             declare
                use Unit_Maps;
@@ -554,15 +529,20 @@ package body Project is
                LI_Source_Unit : constant String := LI.Source.Unit_Name;
                LI_Source_File : constant String := +LI.Source.File.Base_Name;
 
-               U : constant String :=
+               U  : constant String :=
                  (if LI_Source_Unit'Length > 0
                   then LI_Source_Unit
                   else LI_Source_File);
-               --  For unit-based languages (Ada), retrieve unit name from SID
-               --  file. For file-based languages (C), fall back to translation
-               --  unit source file name instead.
+               --  For unit-based languages (Ada), retrieve unit name from
+               --  SCOs file. For file-based languages (C), fall back to
+               --  translation unit source file name instead.
 
-               Cur : constant Cursor := Unit_Map.Find (U);
+               Cur : constant Cursor :=
+                 Unit_Map.Find
+                   (To_Unique_Name
+                      (U,
+                       Project_Type (LI.LI_Project.all),
+                       To_Language (LI.Source.Language)));
             begin
                if Has_Element (Cur) then
                   Callback.all (+LI.Library_File.Full_Name);
@@ -573,25 +553,19 @@ package body Project is
          Lib_Info.Clear;
       end loop;
 
-      --  Now warn about units of interest that have no SID
+      --  Now warn about units of interest that have no SCOs file
 
       for UI of Unit_Map loop
          if not UI.Is_Subunit and then not UI.LI_Seen then
-            Warn_Missing_Info ("SID", UI);
+            case Kind is
+               when Binary_Trace_File =>
+                  Warn_Missing_Info ("ALI", UI);
+               when Source_Trace_File =>
+                  Warn_Missing_Info ("SID", UI);
+            end case;
          end if;
       end loop;
-
-      Are_SIDs_Enumerated := True;
-   end Enumerate_SIDs;
-
-   ---------------------
-   -- SIDs_Enumerated --
-   ---------------------
-
-   function SIDs_Enumerated return Boolean is
-   begin
-      return Are_SIDs_Enumerated;
-   end SIDs_Enumerated;
+   end Enumerate_SCOs_Files;
 
    -----------------------
    -- Enumerate_Sources --
@@ -619,8 +593,8 @@ package body Project is
              Language = To_Language (Info.Language))
            and then
              (Include_Subunits
-                or else
-              Unit_Map.Contains (To_Lower (Unit_Name)))
+              or else Is_Unit_Of_Interest
+                (Info.Project, Unit_Name, To_Language (Info.Language)))
          then
             Callback (Info.Project, Info);
          end if;
@@ -1026,6 +1000,7 @@ package body Project is
                        (Inc_Units,
                         Cur,
                         Unit_Name,
+                        Info,
                         To_Language (Info.Language));
                      Inc_Units.Reference (Cur).Is_Subunit :=
                        Info.Unit_Part = Unit_Separate;
@@ -1033,6 +1008,9 @@ package body Project is
                end Process_Source_File;
 
             begin
+               --  Do not go through imported projects; the Excluded_Units /
+               --  Units attributes only apply to the project itself.
+
                Iterate_Source_Files
                  (Project, Process_Source_File'Access, Recursive => False);
                Inc_Units_Defined := True;
@@ -1045,7 +1023,7 @@ package body Project is
          for Cur in Inc_Units.Iterate loop
             declare
                use Unit_Maps;
-               K : constant String := Key (Cur);
+               K : constant Unique_Name := Key (Cur);
             begin
                if not Exc_Units.Contains (K) then
                   declare
@@ -1107,7 +1085,7 @@ package body Project is
 
             procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor) is
             begin
-               Units_Present.Append (+Unit_Maps.Key (C));
+               Units_Present.Append (Unit_Maps.Key (C).Unit_Name);
             end Add_To_Unit_Presents;
 
          begin
@@ -1218,8 +1196,21 @@ package body Project is
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
+      package FI_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => File_Info);
+
+      use type FI_Vectors.Vector;
+
+      package Unit_Name_FI_Vector_Maps is new Ada.Containers.Ordered_Maps
+        (Key_Type     => Unbounded_String,
+         Element_Type => FI_Vectors.Vector);
+
       Units_Present : String_Vectors.Vector;
       --  List of all units in Prj
+
+      Unit_Present_To_FI : Unit_Name_FI_Vector_Maps.Map;
+      --  Map a unit name to a file information vector. A unit name can be
+      --  be mapped to multiple file info if there are homonym source files.
 
       package Unit_Language_Maps is new Ada.Containers.Hashed_Maps
         (Key_Type        => Unbounded_String,
@@ -1261,10 +1252,19 @@ package body Project is
       -------------------------
 
       procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
+
+         use Unit_Name_FI_Vector_Maps;
+
          Key : constant Unbounded_String := +Unit_Name;
+         Cur : constant Cursor := Unit_Present_To_FI.Find (Key);
       begin
          Units_Present.Append (Key);
          Unit_Languages.Include (Key, To_Language (Info.Language));
+         if Has_Element (Cur) then
+            Unit_Present_To_FI.Reference (Cur).Append (Info);
+         else
+            Unit_Present_To_FI.Insert (Key, FI_Vectors.To_Vector (Info, 1));
+         end if;
       end Process_Source_File;
 
    --  Start of processing for Units_From_Project
@@ -1286,7 +1286,7 @@ package body Project is
       --  source file name.
 
       Iterate_Source_Files
-        (Prj, Process_Source_File'Access, Recursive => True);
+        (Prj, Process_Source_File'Access, Recursive => False);
 
       Match_Pattern_List (Patterns_List        => Unit_Patterns,
                           Strings_List         => Units_Present,
@@ -1298,11 +1298,14 @@ package body Project is
       end loop;
 
       for Unit_Name of Units_Present loop
-         Add_Unit
-           (Units,
-            Ignored_Cur,
-            +Unit_Name,
-            Unit_Languages.Element (Unit_Name));
+         for Info of Unit_Present_To_FI (Unit_Name) loop
+            Add_Unit
+              (Units,
+               Ignored_Cur,
+               +Unit_Name,
+               Info,
+               Unit_Languages.Element (Unit_Name));
+         end loop;
       end loop;
 
    end Units_From_Project;

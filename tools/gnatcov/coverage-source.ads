@@ -21,6 +21,7 @@ with Files_Table;             use Files_Table;
 with Instrument;              use Instrument;
 with Instrument.Input_Traces; use Instrument.Input_Traces;
 with Instrument.Base_Types;   use Instrument.Base_Types;
+with Project;                 use Project;
 with Traces;                  use Traces;
 with Traces_Names;            use Traces_Names;
 with Traces_Lines;            use Traces_Lines;
@@ -103,7 +104,7 @@ package Coverage.Source is
    --  message is used for logging purposes, so that users can find out why we
    --  cannot dump the list of units of interest.
 
-   procedure Add_Unit_Name (Name : String);
+   procedure Add_Unit_Name (Name : Unique_Name);
    --  Add Name to the list of names for units of interest. For convenience, do
    --  nothing if it is invalid.
 
@@ -116,7 +117,7 @@ package Coverage.Source is
    --  unit names, linking them to the list of ignored source files.
 
    procedure Iterate_On_Unit_List
-     (Process_Unit        : not null access procedure (Name : String);
+     (Process_Unit        : not null access procedure (Name : Unique_Name);
       Process_Source_File : not null access procedure (FI : File_Info))
    with Pre => Unit_List_Is_Valid;
    --  Call Unit_Callback for each unit of interest, passing to it the name of
