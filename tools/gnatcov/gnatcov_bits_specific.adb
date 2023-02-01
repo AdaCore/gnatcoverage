@@ -281,13 +281,7 @@ procedure GNATcov_Bits_Specific is
       --  have to be enumerated from a project file.
 
       if Inputs.Length (ALIs_Inputs) = 0 and then Is_Project_Loaded then
-         Enumerate_LIs (Add_LI'Access);
-      end if;
-
-      --  When appropriate, warn about units of interest with no LI
-
-      if Is_Project_Loaded and then LIs_Enumerated then
-         Report_Units_Without_LI;
+         Enumerate_SCOs_Files (Add_LI'Access, Binary_Trace_File);
       end if;
 
       if Source_Coverage_Enabled then
@@ -354,7 +348,7 @@ procedure GNATcov_Bits_Specific is
       --  of interest. This requires a project file.
 
       if Is_Project_Loaded and then Inputs.Length (SID_Inputs) = 0 then
-         Enumerate_SIDs (Add_SID_File'Access);
+         Enumerate_SCOs_Files (Add_SID_File'Access, Source_Trace_File);
       end if;
 
       --  Now load the SID files, applying the Ignore_Source_Files filter,
@@ -1684,14 +1678,14 @@ begin
          --  Build the list of units of interest from project files option
 
          declare
-            procedure Add_Unit (Name : String; Is_Subunit : Boolean);
+            procedure Add_Unit (Name : Unique_Name; Is_Subunit : Boolean);
             --  Add Name to the list of names for units of interest
 
             --------------
             -- Add_Unit --
             --------------
 
-            procedure Add_Unit (Name : String; Is_Subunit : Boolean) is
+            procedure Add_Unit (Name : Unique_Name; Is_Subunit : Boolean) is
                pragma Unreferenced (Is_Subunit);
             begin
                Add_Unit_Name (Name);
@@ -2269,7 +2263,7 @@ begin
                      then Standard_Output
                      else File'Access);
 
-                  procedure Print_Unit_Name (Name : String);
+                  procedure Print_Unit_Name (Name : Unique_Name);
                   --  Print the name of the file and if it was always or
                   --  sometimes ignored on the report, if it was ignored at
                   --  some point during the coverage analysis.
@@ -2290,9 +2284,9 @@ begin
                      end if;
                   end Print_Ignored_File;
 
-                  procedure Print_Unit_Name (Name : String) is
+                  procedure Print_Unit_Name (Name : Unique_Name) is
                   begin
-                     Put_Line (Output.all, Name);
+                     Put_Line (Output.all, +Name.Unit_Name);
                   end Print_Unit_Name;
 
                begin

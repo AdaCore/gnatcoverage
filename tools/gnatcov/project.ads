@@ -18,13 +18,22 @@
 
 --  GNAT projects support
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Containers.Ordered_Sets;
+with Ada.Strings.Unbounded;
+
 with GNAT.Strings; use GNAT.Strings;
 
-with GNATCOLL.Projects;
+with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+
 with Inputs;
-with Switches; use Switches;
+with Paths;        use Paths;
+with Strings;      use Strings;
+with Switches;     use Switches;
+with Traces_Files; use Traces_Files;
 
 package Project is
 
@@ -109,42 +118,73 @@ package Project is
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
 
+   -------------------------
+   -- Unit identification --
+   -------------------------
+
+   type Unique_Name (Language : Any_Language_Kind := Unit_Based_Language) is
+      record
+         Unit_Name : Ada.Strings.Unbounded.Unbounded_String;
+         case Language is
+            when File_Based_Language =>
+               Project_Name : Ada.Strings.Unbounded.Unbounded_String;
+            when others => null;
+         end case;
+      end record;
+   --  To uniquely identify a unit, we need its unit name (or base name for a C
+   --  unit). For file-based languages such as C or C++, we might have homonym
+   --  base file names in different projects so we keep track of the project
+   --  name in addition.
+
+   use type Ada.Strings.Unbounded.Unbounded_String;
+
+   function To_Unique_Name
+     (Unit_Name : String;
+      Project   : Project_Type;
+      Language  : Some_Language) return Unique_Name;
+
+   function Image (U : Unique_Name) return String is
+     (case U.Language is
+         when Unit_Based_Language => To_Lower (+U.Unit_Name),
+         when File_Based_Language =>
+            +U.Project_Name & ":" & Fold_Filename_Casing (+U.Unit_Name));
+
+   function "<" (L, R : Unique_Name) return Boolean is
+     (Image (L) < Image (R));
+
+   function "=" (L, R : Unique_Name) return Boolean is
+     (Image (L) = Image (R));
+
+   package Unit_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Unique_Name);
+
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : String; Is_Subunit : Boolean));
-   --  Call Callback once for every unit of interest. Name is the lower-case
-   --  unit name, and Is_Subunit corresponds to the Unit_Info.Is_Subunit field
-   --  (see project.adb).
+     (Callback : access procedure (Name : Unique_Name; Is_Subunit : Boolean));
+   --  Call Callback once for every unit of interest. Name is the unit name,
+   --  and Is_Subunit corresponds to the Unit_Info.Is_Subunit field (see
+   --  project.adb).
 
-   procedure Enumerate_LIs (LI_Cb : access procedure (LI_Name : String))
-      with Pre  => Is_Project_Loaded and then not LIs_Enumerated,
-           Post => LIs_Enumerated;
-   --  Call LI_Cb once for every library information (ALI/GLI) file from a
-   --  project mentioned in a previous Add_Project call.
-   --
-   --  Note that this skips LI files that are not for Ada/C sources. This is
-   --  expected since gnatcov processes LI files only when dealing with binary
-   --  traces, which support only Ada and C (not C++, for instance).
+   function Is_Unit_Of_Interest
+     (Project   : Project_Type;
+      Unit_Name : String;
+      Language  : Some_Language) return Boolean;
+   --  Return whether the unit Unit_Name that belongs to the project Project
+   --  is a unit of interest.
 
-   function LIs_Enumerated return Boolean with Pre => Is_Project_Loaded;
-   --  Return whether Enumerate_LIs was called
+   function Is_Unit_Of_Interest (Full_Name : String) return Boolean;
+   --  Same as above, but given a full name
 
-   procedure Report_Units_Without_LI with Pre => LIs_Enumerated;
-   --  Output a warning for all units of interest for which we saw no library
-   --  information file.
-
-   procedure Enumerate_SIDs (Callback : access procedure (SID_Name : String))
-      with Pre  => Is_Project_Loaded and then not SIDs_Enumerated,
-           Post => SIDs_Enumerated;
-   --  Invoke Callback once for every SID file corresponding to a unit of
-   --  interest. This emits a warning for all units of interest that have no
-   --  SID file.
-
-   function SIDs_Enumerated return Boolean with Pre => Is_Project_Loaded;
-   --  Return whether Enumerate_SIDs was called
+   procedure Enumerate_SCOs_Files
+     (Callback : access procedure (Lib_Name : String);
+      Kind     : Traces_Files.Trace_File_Kind)
+      with Pre  => Is_Project_Loaded;
+   --  Invoke Callback once for every SCOs file (SID / ALI depending on the
+   --  trace mode) corresponding to a unit of interest. This emits a warning
+   --  for all units of interest that have no SCOs file.
 
    procedure Enumerate_Sources
      (Callback         : access procedure

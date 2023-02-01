@@ -42,7 +42,7 @@ with Files_Table;         use Files_Table;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Namet;               use Namet;
 with Outputs;             use Outputs;
-with Project;
+with Project;             use Project;
 with SCOs;
 with Slocs;
 with Snames;              use Snames;

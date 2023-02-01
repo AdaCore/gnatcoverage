@@ -43,7 +43,7 @@ with Inputs;              use Inputs;
 with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
-with Project;
+with Project;             use Project;
 with SCOs;
 with Subprocesses;        use Subprocesses;
 with System;              use System;

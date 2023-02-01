@@ -39,6 +39,10 @@ package Paths is
    --  Likewise, without the "dir shouldn't be empty" constraint but
    --  checking that the path components are valid when not empty.
 
+   function Fold_Filename_Casing (Filename : String) return String;
+   --  If this is a windows host, return the lower-cased filename, otherwise
+   --  leave it unchanged.
+
    function Canonicalize_Filename (Filename : String) return String;
    function Canonicalize_Filename (Filename : String) return String_Access;
    --  Assuming Filename is a full pathname to a file, return a normalized
