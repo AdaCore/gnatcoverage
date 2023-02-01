@@ -31,7 +31,7 @@ with GNAT.OS_Lib;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.JSON;     use GNATCOLL.JSON;
-with GNATCOLL.VFS;
+with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with Libadalang.Analysis;
 with Libadalang.Project_Provider;
@@ -108,7 +108,7 @@ package body Instrument is
    --  Map to associate a list of compilation units to instrument to a library
    --  unit (indexed by the library unit name).
    --
-   --  For file-based languages, the library unit only have one compilation
+   --  For file-based languages, the library unit only has one compilation
    --  unit associated to it (that is the library unit itself, for which the
    --  name is the actual base filename).
 
@@ -215,7 +215,6 @@ package body Instrument is
      (Cur            : Library_Unit_Maps.Cursor;
       In_Library_Dir : Boolean) return String
    is
-      use GNATCOLL.VFS;
       use Library_Unit_Maps;
 
       LU_Name : constant String := Key (Cur);
@@ -365,8 +364,7 @@ package body Instrument is
         (Project : GPR.Project_Type; Source_File : GPR.File_Info)
       is
          procedure Add_Instrumented_Unit
-           (CU_Name : Compilation_Unit_Name;
-            Info    : GPR.File_Info);
+           (CU_Name : Compilation_Unit_Name; Info : GPR.File_Info);
          --  Wrapper for Instrument.Common.Add_Instrumented_Unit
 
          ---------------------------
@@ -374,10 +372,8 @@ package body Instrument is
          ---------------------------
 
          procedure Add_Instrumented_Unit
-           (CU_Name : Compilation_Unit_Name;
-            Info    : GPR.File_Info)
+           (CU_Name : Compilation_Unit_Name; Info : GPR.File_Info)
          is
-            use GNATCOLL.VFS;
             Should_Ignore : constant Boolean :=
               Is_Ignored_Source_File (IC, +Info.File.Base_Name);
          begin
@@ -491,8 +487,6 @@ package body Instrument is
          else
             for Filename of Mains loop
                declare
-                  use GNATCOLL.VFS;
-
                   F       : constant String := +Filename;
                   Info    : constant File_Info :=
                     Project.Project.Root_Project.Create_From_Project (+F);
@@ -543,7 +537,6 @@ package body Instrument is
                      Filename  : constant String := To_String
                        (Unit_Info.Filename);
                   begin
-
                      --  Simply add the unit to the file table if it is not
                      --  externally built.
 
@@ -614,8 +607,6 @@ package body Instrument is
                      --  creates automatically, the library directory may not
                      --  exist: create it if needed.
 
-                     declare
-                        use GNATCOLL.VFS;
                      begin
                         Create (Create (+Lib_SID).Dir_Name).Make_Dir;
                      exception
@@ -669,12 +660,8 @@ package body Instrument is
          --  mains that are units of interest.
 
          for Main of Mains_To_Instrument (Language) loop
-            declare
-               use type GNATCOLL.VFS.Filesystem_String;
-            begin
-               Instrumenters (Language).Auto_Dump_Buffers_In_Main
-                 (IC, Main.CU_Name, +Main.File.Full_Name, Main.Prj_Info.all);
-            end;
+            Instrumenters (Language).Auto_Dump_Buffers_In_Main
+              (IC, Main.CU_Name, +Main.File.Full_Name, Main.Prj_Info.all);
          end loop;
       end loop;
 
