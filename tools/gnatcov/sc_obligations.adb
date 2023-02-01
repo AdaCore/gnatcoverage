@@ -2620,6 +2620,12 @@ package body SC_Obligations is
          for Dep of Deps loop
             if Get_Simple_Name (Dep) = Main_Source_Simple_Name then
                Main_Source := Dep;
+
+               --  Files designated by D lines are loaded as stub files. Here,
+               --  we decide to treat one as a source file, so make sure we
+               --  have registered it as one.
+
+               Consolidate_File_Kind (Main_Source, Source_File);
                exit;
             end if;
          end loop;
