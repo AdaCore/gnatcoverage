@@ -85,6 +85,12 @@ package Checkpoints is
       First, Last : SCO_Id);
    --  Allocate the various tables in the checkpoint relocations.
 
+   function Get_Simple_Name
+     (Relocs : Checkpoint_Relocations;
+      CP_SFI : Valid_Source_File_Index) return Unbounded_String;
+   --  Return the simple file name for CP_SFI. Using this function is necessary
+   --  when CP_SFI is ignored, as it is not possible to call Remap_SFI on it.
+
    procedure Ignore_SFI
      (Relocs : in out Checkpoint_Relocations;
       CP_SFI : Source_File_Index);
@@ -127,6 +133,12 @@ package Checkpoints is
    --  Associate Source_SFI to Target_SFI in the relocations map.
    --  Source_SFI must not have been previously marked as ignored with
    --  Ignore_SFI.
+
+   procedure Set_SFI_Simple_Name
+     (Relocs      : in out Checkpoint_Relocations;
+      SFI         : Valid_Source_File_Index;
+      Simple_Name : Unbounded_String);
+   --  Assign a simple name to SFI
 
    procedure Set_CU_Id_Map
      (Relocs                     : in out Checkpoint_Relocations;
@@ -308,6 +320,10 @@ private
    type CU_Id_Ignored_Map_Array is array (CU_Id range <>) of Boolean;
    type CU_Id_Ignored_Access is access all CU_Id_Ignored_Map_Array;
 
+   type SFI_Simple_Name_Map_Array is
+     array (Source_File_Index range <>) of Unbounded_String;
+   type SFI_Simple_Name_Map_Access is access all SFI_Simple_Name_Map_Array;
+
    type Checkpoint_Relocations is  record
       SFI_Map  : SFI_Map_Acc;
       CU_Map   : CU_Id_Map_Acc;
@@ -316,6 +332,9 @@ private
       SCO_Map  : SCO_Id_Map_Acc;
       --  Maps to replace checkpoint identifiers with local table identifiers
       --  after merging the checkpoint in local tables.
+
+      SFI_Simple_Filenames : SFI_Simple_Name_Map_Access;
+      --  For each SFI from this checkpoint, corresponding simple name
 
       Ignored_SCOs : SCO_Ignored_Map_Access;
       --  Map of SCOs that were ignored and thus are not remapped when loading

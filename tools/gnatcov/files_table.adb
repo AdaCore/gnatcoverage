@@ -2038,6 +2038,11 @@ package body Files_Table is
             Kind                : constant File_Kind := File_Kind'Input (S);
             Indexed_Simple_Name : constant Boolean := Boolean'Input (S);
          begin
+            Set_SFI_Simple_Name
+              (Relocs,
+               CP_SFI,
+               Ada.Strings.Unbounded.To_Unbounded_String
+                 (Ada.Directories.Simple_Name (Name)));
             case Kind is
                when Stub_File =>
                   FE := (Kind => Stub_File, others => <>);
