@@ -104,9 +104,9 @@ package Coverage.Source is
    --  message is used for logging purposes, so that users can find out why we
    --  cannot dump the list of units of interest.
 
-   procedure Add_Unit_Name (Name : Unique_Name);
-   --  Add Name to the list of names for units of interest. For convenience, do
-   --  nothing if it is invalid.
+   procedure Add_Unit (Unit : Project_Unit);
+   --  Add Unit to the list of units of interest. For convenience, do nothing
+   --  if it is invalid.
 
    procedure Compute_Unit_Name_For_Ignored_Sources;
    --  Compute the name of the owning unit for each known source file that is
@@ -117,7 +117,7 @@ package Coverage.Source is
    --  unit names, linking them to the list of ignored source files.
 
    procedure Iterate_On_Unit_List
-     (Process_Unit        : not null access procedure (Name : Unique_Name);
+     (Process_Unit        : not null access procedure (Name : Project_Unit);
       Process_Source_File : not null access procedure (FI : File_Info))
    with Pre => Unit_List_Is_Valid;
    --  Call Unit_Callback for each unit of interest, passing to it the name of

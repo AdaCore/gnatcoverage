@@ -281,16 +281,16 @@ package body Coverage.Source is
       Unit_List := Unit_Sets.Empty_Set;
    end Invalidate_Unit_List;
 
-   -------------------
-   -- Add_Unit_Name --
-   -------------------
+   --------------
+   -- Add_Unit --
+   --------------
 
-   procedure Add_Unit_Name (Name : Unique_Name) is
+   procedure Add_Unit (Unit : Project_Unit) is
    begin
       if not Unit_List_Invalidated then
-         Unit_List.Include (Name);
+         Unit_List.Include (Unit);
       end if;
-   end Add_Unit_Name;
+   end Add_Unit;
 
    ---------------------------
    -- Unit_Name_For_Subunit --
@@ -309,7 +309,7 @@ package body Coverage.Source is
                        Going   => Ada.Strings.Backward);
 
          if Unit_List.Contains
-           (Unique_Name'
+           (Project_Unit'
               (Language  => Unit_Based_Language,
                Unit_Name =>
                  US.To_Unbounded_String
@@ -432,7 +432,7 @@ package body Coverage.Source is
    --------------------------
 
    procedure Iterate_On_Unit_List
-     (Process_Unit        : not null access procedure (Name : Unique_Name);
+     (Process_Unit        : not null access procedure (Name : Project_Unit);
       Process_Source_File : not null access procedure (FI : File_Info))
    is
    begin
@@ -463,7 +463,7 @@ package body Coverage.Source is
          if not Unit_List_Invalidated then
             Ada.Containers.Count_Type'Output (CSS, Unit_List.Length);
             for N of Unit_List loop
-               Unique_Name'Output (CSS, N);
+               Project_Unit'Output (CSS, N);
             end loop;
          end if;
       end if;
@@ -617,7 +617,7 @@ package body Coverage.Source is
                         end if;
                         US.Unbounded_String'Read (CLS, Dummy);
                      else
-                        Unit_List.Include (Unique_Name'Input (CLS));
+                        Unit_List.Include (Project_Unit'Input (CLS));
                      end if;
                   end loop;
                end if;
