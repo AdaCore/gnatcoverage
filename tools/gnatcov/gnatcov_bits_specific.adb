@@ -2253,55 +2253,17 @@ begin
             --  file or on the standard output, do it now.
 
             if Dump_Units and then not Dump_Units_In_Report then
-               declare
-                  File : aliased File_Type;
-                  --  Output file for the list of names for units of interest
-
-                  Output : constant access File_Type :=
-                    (if Dump_Units_Filename = null
-                     then Standard_Output
-                     else File'Access);
-
-                  procedure Print_Ignored_File (FI : Files_Table.File_Info);
-                  --  Assuming that FI designates an ignored file, print its
-                  --  filename and its ignored status.
-
-                  procedure Print_Unit_Name (Unit : Project_Unit);
-                  --  Print the name of the file
-
-                  ------------------------
-                  -- Print_Ignored_File --
-                  ------------------------
-
-                  procedure Print_Ignored_File
-                    (FI : Files_Table.File_Info) is
+               if Dump_Units_Filename = null then
+                  Report_Units (Standard_Output);
+               else
+                  declare
+                     File : File_Type;
                   begin
-                     if FI.Ignore_Status = Files_Table.Sometimes then
-                        Put_Line (Output.all, "   " & FI.Unique_Name.all
-                                  & " sometimes ignored");
-                     elsif FI.Ignore_Status = Files_Table.Always then
-                        Put_Line (Output.all, "   " & FI.Unique_Name.all
-                                  & " always ignored");
-
-                     end if;
-                  end Print_Ignored_File;
-
-                  ---------------------
-                  -- Print_Unit_Name --
-                  ---------------------
-
-                  procedure Print_Unit_Name (Unit : Project_Unit) is
-                  begin
-                     Put_Line (Output.all, +Unit.Unit_Name);
-                  end Print_Unit_Name;
-
-               begin
-                  if Dump_Units_Filename /= null then
                      Create (File, Name => Dump_Units_Filename.all);
-                  end if;
-                  Iterate_On_Unit_List
-                    (Print_Unit_Name'Access, Print_Ignored_File'Access);
-               end;
+                     Report_Units (File);
+                     Close (File);
+                  end;
+               end if;
             end if;
 
             --  Generate annotated reports

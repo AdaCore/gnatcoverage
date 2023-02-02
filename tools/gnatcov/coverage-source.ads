@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Text_IO; use Ada.Text_IO;
+
 with Checkpoints;             use Checkpoints;
 with Files_Table;             use Files_Table;
 with Instrument;              use Instrument;
@@ -126,6 +128,10 @@ package Coverage.Source is
    --
    --  Process_Unit is called before iterating on the ignored files for that
    --  unit.
+
+   procedure Report_Units (File : File_Type);
+   --  Print a report about units of interest as well as ignored source files
+   --  to File.
 
    -----------------
    -- Checkpoints --

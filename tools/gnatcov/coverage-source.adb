@@ -24,7 +24,6 @@ with Ada.Streams; use Ada.Streams;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Tags;
-with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
@@ -446,6 +445,46 @@ package body Coverage.Source is
          end if;
       end loop;
    end Iterate_On_Unit_List;
+
+   ------------------
+   -- Report_Units --
+   ------------------
+
+   procedure Report_Units (File : File_Type) is
+      procedure Print_Ignored_File (FI : Files_Table.File_Info);
+      --  Print the name of the file and its ignore status
+
+      procedure Print_Unit_Name (Unit : Project_Unit);
+      --  Print the unit name
+
+      ------------------------
+      -- Print_Ignored_File --
+      ------------------------
+
+      procedure Print_Ignored_File (FI : Files_Table.File_Info) is
+      begin
+         if FI.Ignore_Status = Files_Table.Sometimes then
+            Put_Line (File, "   " & FI.Unique_Name.all & " sometimes ignored");
+         elsif FI.Ignore_Status = Files_Table.Always then
+            Put_Line (File, "   " & FI.Unique_Name.all & " always ignored");
+         end if;
+      end Print_Ignored_File;
+
+      ---------------------
+      -- Print_Unit_Name --
+      ---------------------
+
+      procedure Print_Unit_Name (Unit : Project_Unit) is
+      begin
+         Put_Line (File, +Unit.Unit_Name);
+      end Print_Unit_Name;
+
+   --  Start of processing for Report_Units
+
+   begin
+      Iterate_On_Unit_List
+        (Print_Unit_Name'Access, Print_Ignored_File'Access);
+   end Report_Units;
 
    ---------------------
    -- Checkpoint_Save --
