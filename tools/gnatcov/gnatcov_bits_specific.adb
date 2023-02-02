@@ -2263,13 +2263,16 @@ begin
                      then Standard_Output
                      else File'Access);
 
-                  procedure Print_Unit_Name (Name : Unique_Name);
-                  --  Print the name of the file and if it was always or
-                  --  sometimes ignored on the report, if it was ignored at
-                  --  some point during the coverage analysis.
+                  procedure Print_Ignored_File (FI : Files_Table.File_Info);
+                  --  Assuming that FI designates an ignored file, print its
+                  --  filename and its ignored status.
 
-                  procedure Print_Ignored_File
-                    (FI : Files_Table.File_Info);
+                  procedure Print_Unit_Name (Name : Unique_Name);
+                  --  Print the name of the file
+
+                  ------------------------
+                  -- Print_Ignored_File --
+                  ------------------------
 
                   procedure Print_Ignored_File
                     (FI : Files_Table.File_Info) is
@@ -2283,6 +2286,10 @@ begin
 
                      end if;
                   end Print_Ignored_File;
+
+                  ---------------------
+                  -- Print_Unit_Name --
+                  ---------------------
 
                   procedure Print_Unit_Name (Name : Unique_Name) is
                   begin
