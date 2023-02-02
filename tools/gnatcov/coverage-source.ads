@@ -120,10 +120,11 @@ package Coverage.Source is
      (Process_Unit        : not null access procedure (Name : Project_Unit);
       Process_Source_File : not null access procedure (FI : File_Info))
    with Pre => Unit_List_Is_Valid;
-   --  Call Unit_Callback for each unit of interest, passing to it the name of
-   --  the unit, and call File_Callback for each (sometimes or always) ignored
-   --  source file in the unit.
-   --  Unit_Callback is called before iterating on the ignored files for that
+   --  Call Process_Unit for each unit of interest, passing to it the name of
+   --  the unit, and call Process_Source_File for each (sometimes or always)
+   --  ignored source file in the unit.
+   --
+   --  Process_Unit is called before iterating on the ignored files for that
    --  unit.
 
    -----------------
