@@ -1104,10 +1104,10 @@ class TestSuite(e3.testsuite.Testsuite):
             else:
                 setattr(args, attr_cargs_ada, cargs_ada + " -gnat05")
 
-        # Most SPARK testcases require Ada 2012
+        # Most SPARK testcases require Ada 2022
 
         if getattr(args, "spark_tests"):
-            setattr(args, attr_cargs_ada, cargs_ada + " -gnat12")
+            setattr(args, attr_cargs_ada, cargs_ada + " -gnat2022")
 
         # Expect an explicit -gnatec if we're running for qualification
 
