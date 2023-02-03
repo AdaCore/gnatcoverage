@@ -2193,10 +2193,9 @@ begin
             end if;
          end;
 
-         --  Reconstruct unit names for ignored source files.
-         --  This is done before loading checkpoints, because this will already
-         --  have been done for the files in the checkpoints when creating
-         --  them.
+         --  Reconstruct unit names for ignored source files. This is done
+         --  before loading checkpoints, because this will already have been
+         --  done for the files in the checkpoints when creating them.
 
          if Project.Is_Project_Loaded
            and then Coverage.Source.Unit_List_Is_Valid
