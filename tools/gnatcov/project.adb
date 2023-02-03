@@ -133,10 +133,13 @@ package body Project is
       --  Whether we found at least one source file in the projects of interest
       --  that matches this unit.
 
-      Is_Subunit : Boolean;
-      --  Whether this unit is actually a subunit. We consider that subunits
-      --  are not units of their own (in particular they don't have their own
-      --  LI file), but we still allow them to appear in unit lists.
+      Is_Stub : Boolean;
+      --  Whether this record describes a source file that is not a bona fide
+      --  unit of interest: a subunit (Ada) or a header file (C/C++).
+      --
+      --  Such source files are not units of their own (in particular they
+      --  don't have their own LI file), but we still need them to appear in
+      --  unit lists, for reporting purposes.
 
       Language : Some_Language;
       --  Language for this unit
@@ -277,26 +280,30 @@ package body Project is
       Info           : File_Info;
       Language       : Some_Language)
    is
-      Ignored_Inserted : Boolean;
-      Is_Header        : constant Boolean :=
-        (To_Language (Info.Language) in C_Family_Language
-         and then Info.Unit_Part = Unit_Spec);
-      Orig_Name        : constant Unbounded_String :=
+      Unit_Part : constant Unit_Parts := Info.Unit_Part;
+      Is_Stub   : constant Boolean :=
+        (case Language is
+         when C_Family_Language => Unit_Part = Unit_Spec,
+         when Ada_Language      => Unit_Part = Unit_Separate);
+
+      Orig_Name : constant Unbounded_String :=
         +Fold_Filename_Casing (Original_Name);
-      Unit_Name        : constant Project_Unit :=
+      Unit_Name : constant Project_Unit :=
         To_Project_Unit (Original_Name, Info.Project, Language);
+
+      Ignored_Inserted : Boolean;
    begin
-      --  Disable warnings for C/C++ header units as they do not have a proper
+      --  Disable warnings for stub units as they do not have a corresponding
       --  library file.
 
       Units.Insert
         (Key      => Unit_Name,
          New_Item => (Original_Name             => Orig_Name,
                       Present_In_Projects       => False,
-                      Is_Subunit                => False,
+                      Is_Stub                   => Is_Stub,
                       Language                  => Language,
-                      LI_Seen                   => Is_Header,
-                      Warned_About_Missing_Info => Is_Header),
+                      LI_Seen                   => Is_Stub,
+                      Warned_About_Missing_Info => Is_Stub),
          Position => Cur,
          Inserted => Ignored_Inserted);
    end Add_Unit;
@@ -455,7 +462,7 @@ package body Project is
    ---------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Project_Unit; Is_Subunit : Boolean))
+     (Callback : access procedure (Name : Project_Unit; Is_Stub : Boolean))
    is
       use Unit_Maps;
    begin
@@ -463,7 +470,7 @@ package body Project is
          declare
             Info : Unit_Info renames Reference (Unit_Map, Cur);
          begin
-            Callback (Key (Cur), Info.Is_Subunit);
+            Callback (Key (Cur), Info.Is_Stub);
          end;
       end loop;
    end Enumerate_Units_Of_Interest;
@@ -556,7 +563,7 @@ package body Project is
       --  Now warn about units of interest that have no SCOs file
 
       for UI of Unit_Map loop
-         if not UI.Is_Subunit and then not UI.LI_Seen then
+         if not UI.LI_Seen then
             case Kind is
                when Binary_Trace_File =>
                   Warn_Missing_Info ("ALI", UI);
@@ -1002,8 +1009,6 @@ package body Project is
                         Unit_Name,
                         Info,
                         To_Language (Info.Language));
-                     Inc_Units.Reference (Cur).Is_Subunit :=
-                       Info.Unit_Part = Unit_Separate;
                   end if;
                end Process_Source_File;
 

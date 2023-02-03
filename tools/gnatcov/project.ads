@@ -163,9 +163,9 @@ package Project is
    --------------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Project_Unit; Is_Subunit : Boolean));
+     (Callback : access procedure (Name : Project_Unit; Is_Stub : Boolean));
    --  Call Callback once for every unit of interest. Name is the unit name,
-   --  and Is_Subunit corresponds to the Unit_Info.Is_Subunit field (see
+   --  and Is_Stub corresponds to the Unit_Info.Is_Stub field (see
    --  project.adb).
 
    function Is_Unit_Of_Interest

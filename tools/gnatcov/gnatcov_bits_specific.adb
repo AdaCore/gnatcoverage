@@ -1677,15 +1677,15 @@ begin
          --  Build the list of units of interest from project files option
 
          declare
-            procedure Add_Unit (Unit : Project_Unit; Is_Subunit : Boolean);
+            procedure Add_Unit (Unit : Project_Unit; Is_Stub : Boolean);
             --  Add Name to the list of names for units of interest
 
             --------------
             -- Add_Unit --
             --------------
 
-            procedure Add_Unit (Unit : Project_Unit; Is_Subunit : Boolean) is
-               pragma Unreferenced (Is_Subunit);
+            procedure Add_Unit (Unit : Project_Unit; Is_Stub : Boolean) is
+               pragma Unreferenced (Is_Stub);
             begin
                Add_Unit (Unit);
             end Add_Unit;
