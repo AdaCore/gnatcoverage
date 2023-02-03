@@ -32,7 +32,7 @@ with SC_Obligations; use SC_Obligations;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 12;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 13;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -49,6 +49,7 @@ package Checkpoints is
    --  10 -- Add non instrumented SCOs sets
    --  11 -- fingerprints for buffer bit maps
    --  12 -- Extend Unit_List to distinguish homonym source files
+   --  13 -- Extend Files_Table.File_Info to distinguish homonym source files
    --
    --  Note that we always use the last version when creating a checkpoint.
 

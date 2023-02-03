@@ -28,7 +28,6 @@ with Coverage;         use Coverage;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;    use Coverage.Tags;
 with SC_Obligations;
-with Project;          use Project;
 with Switches;
 with Traces_Files;     use Traces_Files;
 

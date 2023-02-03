@@ -39,6 +39,7 @@ with Elf_Disassemblers;   use Elf_Disassemblers;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with MC_DC;               use MC_DC;
 with Outputs;             use Outputs;
+with Project;             use Project;
 with Slocs;               use Slocs;
 with Strings;             use Strings;
 with Switches;            use Switches;
@@ -220,9 +221,7 @@ package body Coverage.Source is
    --  the order of dump depends on its content, not on the way it was created.
 
    package Unit_To_Ignored_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type        => US.Unbounded_String,
-      Element_Type    => Ignored_Sources_Vector_Access,
-      "<"             => US."<");
+     (Key_Type => Project_Unit, Element_Type => Ignored_Sources_Vector_Access);
    --  Map units of interest to the list of associated ignored source files
 
    Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
@@ -355,7 +354,6 @@ package body Coverage.Source is
          File    : GNATCOLL.Projects.File_Info)
       is
          use GNATCOLL.VFS;
-         pragma Unreferenced (Project);
          SFI : constant Source_File_Index := Get_Index_From_Generic_Name
            (+File.File.Full_Name, Source_File, Insert => False);
          FI  : constant File_Info_Access := (if SFI /= No_Source_File
@@ -364,13 +362,28 @@ package body Coverage.Source is
       begin
          if FI /= null and then not FI.Unit.Known then
             declare
-               use GNATCOLL.Projects;
+               use type GNATCOLL.Projects.Unit_Parts;
+
+               Language  : constant Some_Language :=
+                 To_Language (File.Language);
+
+               --  For Ada, get the unit name for the compilation unit (no
+               --  subunit names). For file-based languages,
+               --  GNATCOLL.Projects.Unit_Name returns an empty string: we need
+               --  to get the file base name instead.
+
                Unit_Name : constant String :=
-                 (if File.Unit_Part = Unit_Separate
-                  then Unit_Name_For_Subunit (File.Unit_Name)
-                  else File.Unit_Name);
+                 (case Language is
+                  when Ada_Language =>
+                    (if File.Unit_Part = GNATCOLL.Projects.Unit_Separate
+                     then Unit_Name_For_Subunit (File.Unit_Name)
+                     else File.Unit_Name),
+                  when others       => Get_Simple_Name (SFI));
+
+               Unit : constant Project_Unit :=
+                 To_Project_Unit (Unit_Name, Project, Language);
             begin
-               Consolidate_Source_File_Unit (SFI, Unit_Name);
+               Consolidate_Source_File_Unit (SFI, Unit);
             end;
          end if;
       end Callback;
@@ -381,7 +394,7 @@ package body Coverage.Source is
       Enumerate_Sources
         (Callback'Access,
          Include_Subunits => True,
-         Language         => Ada_Language);
+         Language         => All_Languages);
    end Compute_Unit_Name_For_Ignored_Sources;
 
    -------------------------
@@ -408,8 +421,13 @@ package body Coverage.Source is
          if FI.Kind = Source_File
            and then FI.Ignore_Status in Always .. Sometimes
          then
-            pragma Assert
-              (FI.Unit.Known and then Is_Unit_Of_Interest (FI.Full_Name.all));
+            --  If FI is a separate (Ada) or a header file (C/C++), it is not a
+            --  unit of interest itself: only the compilation unit is, so
+            --  Is_Unit_Of_Interest (FI.Full_Name.all) return False. Still, the
+            --  unit that owns this file is supposed to be known by now, so it
+            --  should be valid to access FI.Unit.Name (i.e. FI.Unit.Known
+            --  should be True).
+
             if not Ignored_SF_Map.Contains (FI.Unit.Name) then
                Vec := new Ignored_Sources_Vector.Vector;
                Ignored_SF_Map.Insert (FI.Unit.Name, Vec);
@@ -438,8 +456,8 @@ package body Coverage.Source is
       for S of Unit_List loop
          Process_Unit.all (S);
 
-         if Ignored_SF_Map.Contains (S.Unit_Name) then
-            for FI of Ignored_SF_Map.Element (S.Unit_Name).all loop
+         if Ignored_SF_Map.Contains (S) then
+            for FI of Ignored_SF_Map.Element (S).all loop
                Process_Source_File (FI.all);
             end loop;
          end if;

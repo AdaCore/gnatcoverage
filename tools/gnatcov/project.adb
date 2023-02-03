@@ -34,11 +34,17 @@ with GNATCOLL.Traces;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
+with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Inputs;                use Inputs;
 with Outputs;               use Outputs;
+with Paths;                 use Paths;
+with Strings;               use Strings;
 
 package body Project is
+
+   subtype Project_Unit is Files_Table.Project_Unit;
+   use type Project_Unit;
 
    Coverage_Package      : aliased String := "coverage";
    Coverage_Package_List : aliased String_List :=
@@ -239,7 +245,7 @@ package body Project is
    function To_Project_Unit
      (Unit_Name : String;
       Project   : Project_Type;
-      Language  : Some_Language) return Project_Unit
+      Language  : Some_Language) return Files_Table.Project_Unit
    is
       U : Project_Unit (Language_Kind (Language));
    begin
@@ -462,7 +468,8 @@ package body Project is
    ---------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Project_Unit; Is_Stub : Boolean))
+     (Callback : access procedure (Name    : Files_Table.Project_Unit;
+                                   Is_Stub : Boolean))
    is
       use Unit_Maps;
    begin
