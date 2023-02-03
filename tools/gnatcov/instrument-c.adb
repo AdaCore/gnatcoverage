@@ -679,7 +679,7 @@ package body Instrument.C is
                New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
                  (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
                   To       => No_SCO_Id,
-                  Name     => +Get_Unique_Name (SFI),
+                  Name     => +Get_Simple_Name (SFI),
                   Sloc     => (Line => 0, Column => 0),
                   Children => Scope_Entities_Vectors.Empty_Vector,
                   Parent   => null);
