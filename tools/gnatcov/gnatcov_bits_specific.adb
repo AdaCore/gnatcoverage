@@ -1875,8 +1875,7 @@ begin
 
             procedure Process_Source_Trace (Trace_File_Name : String) is
                procedure On_Trace_Info
-                 (Kind : Traces_Source.Supported_Info_Kind;
-                  Data : String);
+                 (Kind : Traces_Source.Supported_Info_Kind; Data : String);
                --  Callback for Read_Source_Trace_File
 
                procedure Read_Source_Trace_File is new
@@ -1887,10 +1886,12 @@ begin
                Trace_File : Trace_File_Element_Acc;
                Result     : Read_Result;
 
+               -------------------
+               -- On_Trace_Info --
+               -------------------
+
                procedure On_Trace_Info
-                 (Kind : Traces_Source.Supported_Info_Kind;
-                  Data : String)
-               is
+                 (Kind : Traces_Source.Supported_Info_Kind; Data : String) is
                begin
                   Update_From_Source_Trace (Trace_File.all, Kind, Data);
                end On_Trace_Info;
