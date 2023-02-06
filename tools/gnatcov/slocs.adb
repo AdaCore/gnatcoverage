@@ -101,15 +101,12 @@ package body Slocs is
       Ref         : Source_Location;
       Unique_Name : Boolean := False) return String
    is
-      function Get_Name (File : Source_File_Index) return String is
+      function File_Name return String is
         (if Unique_Name
-         then Get_Unique_Name (File)
-         else Get_Simple_Name (File));
+         then Get_Unique_Name (Sloc.Source_File)
+         else Get_Simple_Name (Sloc.Source_File));
 
       Show_File, Show_Line, Show_Column : Boolean;
-
-      File_Name : constant String :=
-        Get_Name (Sloc.Source_File);
    begin
       if Sloc.L = No_Local_Location then
 
