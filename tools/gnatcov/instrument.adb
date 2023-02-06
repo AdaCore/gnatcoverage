@@ -410,8 +410,6 @@ package body Instrument is
          end if;
 
          declare
-            use GNATCOLL.VFS;
-
             CU_Name : constant Compilation_Unit_Name :=
                To_Compilation_Unit_Name (Source_File);
 

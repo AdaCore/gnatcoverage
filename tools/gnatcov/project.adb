@@ -149,7 +149,7 @@ package body Project is
    end record;
 
    package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => Unique_Name,
+     (Key_Type     => Project_Unit,
       Element_Type => Unit_Info);
 
    procedure Add_Unit
@@ -159,7 +159,7 @@ package body Project is
       Info           : File_Info;
       Language       : Some_Language);
    --  Add a Unit_Info entry to Units. The key for this new entry (which is a
-   --  Unique_Name) is computed using the Original_Name, and the
+   --  Project_Unit) is computed using the Original_Name, and the
    --  Info.Project_Name if the unit is of a file-based language.
 
    procedure Warn_Missing_Info (What_Info : String; Unit : in out Unit_Info);
@@ -229,23 +229,23 @@ package body Project is
    --  Return whether Filename can be found among the sources of the
    --  configured Ada runtime.
 
-   --------------------
-   -- To_Unique_Name --
-   --------------------
+   ---------------------
+   -- To_Project_Unit --
+   ---------------------
 
-   function To_Unique_Name
+   function To_Project_Unit
      (Unit_Name : String;
       Project   : Project_Type;
-      Language  : Some_Language) return Unique_Name
+      Language  : Some_Language) return Project_Unit
    is
-      U : Unique_Name (Language_Kind (Language));
+      U : Project_Unit (Language_Kind (Language));
    begin
       U.Unit_Name := +Unit_Name;
       if U.Language = File_Based_Language then
          U.Project_Name := +Project.Name;
       end if;
       return U;
-   end To_Unique_Name;
+   end To_Project_Unit;
 
    ---------
    -- "+" --
@@ -283,8 +283,8 @@ package body Project is
          and then Info.Unit_Part = Unit_Spec);
       Orig_Name        : constant Unbounded_String :=
         +Fold_Filename_Casing (Original_Name);
-      Unit_Name        : constant Unique_Name :=
-        To_Unique_Name (Original_Name, Info.Project, Language);
+      Unit_Name        : constant Project_Unit :=
+        To_Project_Unit (Original_Name, Info.Project, Language);
    begin
       --  Disable warnings for C/C++ header units as they do not have a proper
       --  library file.
@@ -455,7 +455,7 @@ package body Project is
    ---------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Unique_Name; Is_Subunit : Boolean))
+     (Callback : access procedure (Name : Project_Unit; Is_Subunit : Boolean))
    is
       use Unit_Maps;
    begin
@@ -477,8 +477,8 @@ package body Project is
       Unit_Name : String;
       Language  : Some_Language) return Boolean
    is
-      U : constant Unique_Name :=
-        To_Unique_Name (Unit_Name, Project, Language);
+      U : constant Project_Unit :=
+        To_Project_Unit (Unit_Name, Project, Language);
    begin
       return Unit_Map.Contains (U);
    end Is_Unit_Of_Interest;
@@ -539,7 +539,7 @@ package body Project is
 
                Cur : constant Cursor :=
                  Unit_Map.Find
-                   (To_Unique_Name
+                   (To_Project_Unit
                       (U,
                        Project_Type (LI.LI_Project.all),
                        To_Language (LI.Source.Language)));
@@ -1023,7 +1023,7 @@ package body Project is
          for Cur in Inc_Units.Iterate loop
             declare
                use Unit_Maps;
-               K : constant Unique_Name := Key (Cur);
+               K : constant Project_Unit := Key (Cur);
             begin
                if not Exc_Units.Contains (K) then
                   declare
