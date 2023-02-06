@@ -1677,17 +1677,17 @@ begin
          --  Build the list of units of interest from project files option
 
          declare
-            procedure Add_Unit (Name : Unique_Name; Is_Subunit : Boolean);
+            procedure Add_Unit (Unit : Project_Unit; Is_Subunit : Boolean);
             --  Add Name to the list of names for units of interest
 
             --------------
             -- Add_Unit --
             --------------
 
-            procedure Add_Unit (Name : Unique_Name; Is_Subunit : Boolean) is
+            procedure Add_Unit (Unit : Project_Unit; Is_Subunit : Boolean) is
                pragma Unreferenced (Is_Subunit);
             begin
-               Add_Unit_Name (Name);
+               Add_Unit (Unit);
             end Add_Unit;
          begin
             Enumerate_Units_Of_Interest (Add_Unit'Access);
@@ -2263,13 +2263,16 @@ begin
                      then Standard_Output
                      else File'Access);
 
-                  procedure Print_Unit_Name (Name : Unique_Name);
-                  --  Print the name of the file and if it was always or
-                  --  sometimes ignored on the report, if it was ignored at
-                  --  some point during the coverage analysis.
+                  procedure Print_Ignored_File (FI : Files_Table.File_Info);
+                  --  Assuming that FI designates an ignored file, print its
+                  --  filename and its ignored status.
 
-                  procedure Print_Ignored_File
-                    (FI : Files_Table.File_Info);
+                  procedure Print_Unit_Name (Unit : Project_Unit);
+                  --  Print the name of the file
+
+                  ------------------------
+                  -- Print_Ignored_File --
+                  ------------------------
 
                   procedure Print_Ignored_File
                     (FI : Files_Table.File_Info) is
@@ -2284,9 +2287,13 @@ begin
                      end if;
                   end Print_Ignored_File;
 
-                  procedure Print_Unit_Name (Name : Unique_Name) is
+                  ---------------------
+                  -- Print_Unit_Name --
+                  ---------------------
+
+                  procedure Print_Unit_Name (Unit : Project_Unit) is
                   begin
-                     Put_Line (Output.all, +Name.Unit_Name);
+                     Put_Line (Output.all, +Unit.Unit_Name);
                   end Print_Unit_Name;
 
                begin
