@@ -19,7 +19,7 @@
 --  This unit controls the generation and processing of coverage state
 --  checkpoint files for incremental coverage.
 
-with Ada.Streams; use Ada.Streams;
+with Ada.Streams;           use Ada.Streams;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Interfaces;
 
@@ -27,7 +27,7 @@ with GNAT.Regexp;
 with Types; use Types;
 
 with Coverage;
-with Files_Table; use Files_Table;
+with Files_Table;    use Files_Table;
 with SC_Obligations; use SC_Obligations;
 
 package Checkpoints is
