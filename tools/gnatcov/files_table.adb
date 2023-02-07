@@ -1239,7 +1239,7 @@ package body Files_Table is
       end loop;
 
       --  Then, for each set of aliased files, find the shortest unique suffix.
-      --  Note that the loops below will not get executed ofter (aliases are
+      --  Note that the loops below will not get executed often (aliases are
       --  rare), so efficiency should not be an issue.
 
       for Alias_Set of Alias_Map loop
