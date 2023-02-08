@@ -30,32 +30,33 @@ with GNAT.Strings; use GNAT.Strings;
 with Snames;
 
 with ALI_Files;
-with Annotations;           use Annotations;
 with Annotations.Dynamic_Html;
 with Annotations.Html;
+with Annotations.Report;
 with Annotations.Xcov;
 with Annotations.Xml;
-with Annotations.Report;
-with Calendar_Utils;
+with Annotations;           use Annotations;
+with Binary_Files;
 with CFG_Dump;
+with Calendar_Utils;
 with Check_SCOs;
 with Checkpoints;
 with Command_Line;          use Command_Line;
 use Command_Line.Parser;
 with Command_Line_Support;
 with Convert;
-with Coverage;              use Coverage;
 with Coverage.Source;       use Coverage.Source;
 with Coverage.Tags;         use Coverage.Tags;
+with Coverage;              use Coverage;
 with Coverage_Options;      use Coverage_Options;
 with Decision_Map;          use Decision_Map;
 with Disassemble_Insn_Properties;
-with Binary_Files;
 with Execs_Dbase;           use Execs_Dbase;
 with Files_Table;           use Files_Table;
+with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Inputs;                use Inputs;
-with Instrument;            use Instrument;
 with Instrument.Input_Traces;
+with Instrument;            use Instrument;
 with Object_Locations;
 with Outputs;               use Outputs;
 with Perf_Counters;
@@ -68,13 +69,13 @@ with Strings;               use Strings;
 with Switches;              use Switches;
 with Temp_Dirs;             use Temp_Dirs;
 with Traces;                use Traces;
-with Traces_Elf;            use Traces_Elf;
-with Traces_Files_Registry; use Traces_Files_Registry;
-with Traces_Names;          use Traces_Names;
-with Traces_Dump;
-with Traces_Files;          use Traces_Files;
 with Traces_Dbase;          use Traces_Dbase;
 with Traces_Disa;
+with Traces_Dump;
+with Traces_Elf;            use Traces_Elf;
+with Traces_Files;          use Traces_Files;
+with Traces_Files_Registry; use Traces_Files_Registry;
+with Traces_Names;          use Traces_Names;
 with Traces_Source;
 with Version;
 
@@ -1677,17 +1678,20 @@ begin
          --  Build the list of units of interest from project files option
 
          declare
-            procedure Add_Unit (Unit : Project_Unit; Is_Subunit : Boolean);
-            --  Add Name to the list of names for units of interest
+            procedure Add_Unit (Unit : Project_Unit; Is_Stub : Boolean);
+            --  Add Name to the list of names for units of interest. Do nothing
+            --  if this is a stub for a unit-based language, since such stubs
+            --  are implicitly part of another unit of interest.
 
             --------------
             -- Add_Unit --
             --------------
 
-            procedure Add_Unit (Unit : Project_Unit; Is_Subunit : Boolean) is
-               pragma Unreferenced (Is_Subunit);
+            procedure Add_Unit (Unit : Project_Unit; Is_Stub : Boolean) is
             begin
-               Add_Unit (Unit);
+               if not Is_Stub or else Unit.Language = File_Based_Language then
+                  Add_Unit (Unit);
+               end if;
             end Add_Unit;
          begin
             Enumerate_Units_Of_Interest (Add_Unit'Access);
@@ -2253,55 +2257,17 @@ begin
             --  file or on the standard output, do it now.
 
             if Dump_Units and then not Dump_Units_In_Report then
-               declare
-                  File : aliased File_Type;
-                  --  Output file for the list of names for units of interest
-
-                  Output : constant access File_Type :=
-                    (if Dump_Units_Filename = null
-                     then Standard_Output
-                     else File'Access);
-
-                  procedure Print_Ignored_File (FI : Files_Table.File_Info);
-                  --  Assuming that FI designates an ignored file, print its
-                  --  filename and its ignored status.
-
-                  procedure Print_Unit_Name (Unit : Project_Unit);
-                  --  Print the name of the file
-
-                  ------------------------
-                  -- Print_Ignored_File --
-                  ------------------------
-
-                  procedure Print_Ignored_File
-                    (FI : Files_Table.File_Info) is
+               if Dump_Units_Filename = null then
+                  Report_Units (Standard_Output);
+               else
+                  declare
+                     File : File_Type;
                   begin
-                     if FI.Ignore_Status = Files_Table.Sometimes then
-                        Put_Line (Output.all, "   " & FI.Unique_Name.all
-                                  & " sometimes ignored");
-                     elsif FI.Ignore_Status = Files_Table.Always then
-                        Put_Line (Output.all, "   " & FI.Unique_Name.all
-                                  & " always ignored");
-
-                     end if;
-                  end Print_Ignored_File;
-
-                  ---------------------
-                  -- Print_Unit_Name --
-                  ---------------------
-
-                  procedure Print_Unit_Name (Unit : Project_Unit) is
-                  begin
-                     Put_Line (Output.all, +Unit.Unit_Name);
-                  end Print_Unit_Name;
-
-               begin
-                  if Dump_Units_Filename /= null then
                      Create (File, Name => Dump_Units_Filename.all);
-                  end if;
-                  Iterate_On_Unit_List
-                    (Print_Unit_Name'Access, Print_Ignored_File'Access);
-               end;
+                     Report_Units (File);
+                     Close (File);
+                  end;
+               end if;
             end if;
 
             --  Generate annotated reports

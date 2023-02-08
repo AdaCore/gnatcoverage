@@ -16,23 +16,27 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
-with Ada.Text_IO;  use Ada.Text_IO;
+with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
 with GNAT.Regexp;
 
 limited with Checkpoints;
-with Coverage_Options; use Coverage_Options;
-with Diagnostics;      use Diagnostics;
-with SC_Obligations;   use SC_Obligations;
-with Slocs;            use Slocs;
-with Traces_Elf;       use Traces_Elf;
-with Traces_Dbase;     use Traces_Dbase;
-with Traces_Stats;     use Traces_Stats;
-with Traces_Lines;     use Traces_Lines;
-with Types;            use Types;
+with Coverage_Options;    use Coverage_Options;
+with Diagnostics;         use Diagnostics;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Paths;               use Paths;
+with SC_Obligations;      use SC_Obligations;
+with Slocs;               use Slocs;
+with Traces_Elf;          use Traces_Elf;
+with Traces_Dbase;        use Traces_Dbase;
+with Traces_Stats;        use Traces_Stats;
+with Traces_Lines;        use Traces_Lines;
+with Types;               use Types;
 
 package Files_Table is
 
@@ -297,12 +301,47 @@ package Files_Table is
    --  option --ignore-source-files. Consolidation rules are described in
    --  procedure Consolidate_Ignore_Status.
 
+   type Project_Unit (Language : Any_Language_Kind := Unit_Based_Language)
+   is record
+      Unit_Name : Ada.Strings.Unbounded.Unbounded_String;
+
+      case Language is
+         when File_Based_Language =>
+            Project_Name : Ada.Strings.Unbounded.Unbounded_String;
+         when others =>
+            null;
+      end case;
+   end record;
+   --  To uniquely identify a unit in a project tree, we need its unit name (or
+   --  base name for a C unit). For file-based languages such as C or C++, we
+   --  might have homonym base file names in different projects so we keep
+   --  track of the project name in addition.
+
+   use type Ada.Strings.Unbounded.Unbounded_String;
+
+   function Image (U : Project_Unit) return String is
+     (case U.Language is
+      when Unit_Based_Language =>
+         To_Lower (Ada.Strings.Unbounded.To_String (U.Unit_Name)),
+      when File_Based_Language =>
+         Ada.Strings.Unbounded.To_String (U.Project_Name)
+         & ":"
+         & Fold_Filename_Casing
+             (Ada.Strings.Unbounded.To_String (U.Unit_Name)));
+
+   function "<" (L, R : Project_Unit) return Boolean is
+     (Image (L) < Image (R));
+
+   function "=" (L, R : Project_Unit) return Boolean is
+     (Image (L) = Image (R));
+
+   package Unit_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Project_Unit);
+
    type Owning_Unit (Known : Boolean := False) is record
       case Known is
-         when True =>
-            Name : Ada.Strings.Unbounded.Unbounded_String;
-         when False =>
-            null;
+         when True  => Name : Project_Unit;
+         when False => null;
       end case;
    end record;
    --  Whether the unit of a file is known or not. If it is, stores the name of
@@ -423,9 +462,8 @@ package Files_Table is
      (Index : Source_File_Index) return File_Info_Access;
 
    procedure Consolidate_Source_File_Unit
-     (Index     : Valid_Source_File_Index;
-      New_Unit  : String) with
-     Pre => Get_File (Index).Kind = Source_File;
+     (Index : Valid_Source_File_Index; New_Unit : Project_Unit)
+   with Pre => Get_File (Index).Kind = Source_File;
    --  Update the unit name info for the source file represented by Index.
    --  Does nothing if the new unit name is the empty string.
    --

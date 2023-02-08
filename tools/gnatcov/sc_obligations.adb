@@ -1567,8 +1567,40 @@ package body SC_Obligations is
                CP_CU_Id  : constant CU_Id := To_Index (Cur);
                CP_CU     : CU_Info := Element (Cur);
                New_CU_Id : CU_Id := No_CU_Id;
+
+               --  If the CU Origin or its Main_Source files are ignored, we
+               --  cannot load this CU.
+
+               Origin_Ignored      : constant Boolean :=
+                 SFI_Ignored (Relocs, CP_CU.Origin);
+               Main_Source_Ignored : constant Boolean :=
+                 SFI_Ignored (Relocs, CP_CU.Main_Source);
             begin
-               if not SFI_Ignored (Relocs, CP_CU.Origin) then
+               if Origin_Ignored or else Main_Source_Ignored then
+                  if Switches.Verbose then
+                     Put_Line ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
+                  end if;
+
+                  --  If we cannot load this CU *not* because its main source
+                  --  is ignored, but rather because the origin is ignored,
+                  --  warn the user: they probably did not want to ignore this
+                  --  CU, but we have to in order not to break our data
+                  --  structure invariants: Origin cannot be null.
+
+                  if not Main_Source_Ignored then
+                     Warn
+                       ("gnatcov limitation: ignoring unit "
+                        & Get_Simple_Name
+                            (Remap_SFI (Relocs, CP_CU.Main_Source))
+                        & " from " & To_String (CLS.Filename)
+                        & " because "
+                        & To_String (Get_Simple_Name (Relocs, CP_CU.Origin))
+                        & " is ignored");
+                  end if;
+
+                  Ignore_CU_Id (Relocs, CP_CU_Id);
+
+               else
                   Checkpoint_Load_Unit
                     (CLS,
                      CP_Vectors,
@@ -1576,19 +1608,6 @@ package body SC_Obligations is
                      CP_CU_Id  => CP_CU_Id,
                      New_CU_Id => New_CU_Id);
                   Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
-               else
-                  if Switches.Verbose then
-                     Put_Line ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
-                  end if;
-
-                  --  Ignoring compilation units from a checkpoint file should
-                  --  only be possible when loading a SID file. In this case,
-                  --  CP_CU.Main_Source and CP_CU.Origin should be the same.
-                  --  Otherwise there is some weird things going on that we'd
-                  --  like to be aware of.
-
-                  pragma Assert (SFI_Ignored (Relocs, CP_CU.Main_Source));
-                  Ignore_CU_Id (Relocs, CP_CU_Id);
                end if;
             end;
          end loop;

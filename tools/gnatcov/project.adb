@@ -34,11 +34,17 @@ with GNATCOLL.Traces;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
+with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Inputs;                use Inputs;
 with Outputs;               use Outputs;
+with Paths;                 use Paths;
+with Strings;               use Strings;
 
 package body Project is
+
+   subtype Project_Unit is Files_Table.Project_Unit;
+   use type Project_Unit;
 
    Coverage_Package      : aliased String := "coverage";
    Coverage_Package_List : aliased String_List :=
@@ -69,18 +75,19 @@ package body Project is
    --  Build identifiers for attributes in package Coverage
 
    procedure Iterate_Source_Files
-     (Root_Project     : Project_Type;
-      Process          : access procedure
+     (Root_Project  : Project_Type;
+      Process       : access procedure
         (Info : File_Info; Unit_Name : String);
-      Recursive        : Boolean;
-      Include_Subunits : Boolean := False);
+      Recursive     : Boolean;
+      Include_Stubs : Boolean := False);
    --  Call Process on all source files in Root_Project (recursively
    --  considering source files of sub-projects if Recursive is true).
    --
    --  This passes the name of the unit as Unit_Name for languages featuring
    --  this notion (Ada) and the base file name otherwise (i.e. for C sources).
-   --  If Include_Subunits is false (default), then skip all files that
-   --  implement subunits.
+   --
+   --  If Include_Stubs is false (the default) then Callback will skip
+   --  sources files that are subunits (Ada) or headers (C/C++).
 
    Env : Project_Environment_Access;
    --  Environment in which we load the project tree
@@ -133,10 +140,13 @@ package body Project is
       --  Whether we found at least one source file in the projects of interest
       --  that matches this unit.
 
-      Is_Subunit : Boolean;
-      --  Whether this unit is actually a subunit. We consider that subunits
-      --  are not units of their own (in particular they don't have their own
-      --  LI file), but we still allow them to appear in unit lists.
+      Is_Stub : Boolean;
+      --  Whether this record describes a source file that is not a bona fide
+      --  unit of interest: a subunit (Ada) or a header file (C/C++).
+      --
+      --  Such source files are not units of their own (in particular they
+      --  don't have their own LI file), but we still need them to appear in
+      --  unit lists, for reporting purposes.
 
       Language : Some_Language;
       --  Language for this unit
@@ -236,7 +246,7 @@ package body Project is
    function To_Project_Unit
      (Unit_Name : String;
       Project   : Project_Type;
-      Language  : Some_Language) return Project_Unit
+      Language  : Some_Language) return Files_Table.Project_Unit
    is
       U : Project_Unit (Language_Kind (Language));
    begin
@@ -277,26 +287,30 @@ package body Project is
       Info           : File_Info;
       Language       : Some_Language)
    is
-      Ignored_Inserted : Boolean;
-      Is_Header        : constant Boolean :=
-        (To_Language (Info.Language) in C_Family_Language
-         and then Info.Unit_Part = Unit_Spec);
-      Orig_Name        : constant Unbounded_String :=
+      Unit_Part : constant Unit_Parts := Info.Unit_Part;
+      Is_Stub   : constant Boolean :=
+        (case Language is
+         when C_Family_Language => Unit_Part = Unit_Spec,
+         when Ada_Language      => Unit_Part = Unit_Separate);
+
+      Orig_Name : constant Unbounded_String :=
         +Fold_Filename_Casing (Original_Name);
-      Unit_Name        : constant Project_Unit :=
+      Unit_Name : constant Project_Unit :=
         To_Project_Unit (Original_Name, Info.Project, Language);
+
+      Ignored_Inserted : Boolean;
    begin
-      --  Disable warnings for C/C++ header units as they do not have a proper
+      --  Disable warnings for stub units as they do not have a corresponding
       --  library file.
 
       Units.Insert
         (Key      => Unit_Name,
          New_Item => (Original_Name             => Orig_Name,
                       Present_In_Projects       => False,
-                      Is_Subunit                => False,
+                      Is_Stub                   => Is_Stub,
                       Language                  => Language,
-                      LI_Seen                   => Is_Header,
-                      Warned_About_Missing_Info => Is_Header),
+                      LI_Seen                   => Is_Stub,
+                      Warned_About_Missing_Info => Is_Stub),
          Position => Cur,
          Inserted => Ignored_Inserted);
    end Add_Unit;
@@ -378,11 +392,11 @@ package body Project is
    --------------------------
 
    procedure Iterate_Source_Files
-     (Root_Project     : Project_Type;
-      Process          : access procedure
+     (Root_Project  : Project_Type;
+      Process       : access procedure
         (Info : File_Info; Unit_Name : String);
-      Recursive        : Boolean;
-      Include_Subunits : Boolean := False)
+      Recursive     : Boolean;
+      Include_Stubs : Boolean := False)
    is
       --  If Root_Project is extending some project P, consider for coverage
       --  purposes that source files in P also belong to Root_Project. For
@@ -419,12 +433,11 @@ package body Project is
                   declare
                      Info : constant File_Info := File_Info (Abstract_Info);
                   begin
-                     --  Register only units in supported languages (Ada, C and
-                     --  C++), and don't consider subunits as independent
-                     --  units.
+                     --  Process only source files in supported languages (Ada,
+                     --  C and C++), and include subunits only if requested.
 
                      if To_Lower (Info.Language) in "ada" | "c" | "c++"
-                       and then (Include_Subunits
+                       and then (Include_Stubs
                                  or else Info.Unit_Part /= Unit_Separate)
                      then
                         Process.all
@@ -455,7 +468,8 @@ package body Project is
    ---------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Project_Unit; Is_Subunit : Boolean))
+     (Callback : access procedure (Name    : Files_Table.Project_Unit;
+                                   Is_Stub : Boolean))
    is
       use Unit_Maps;
    begin
@@ -463,7 +477,7 @@ package body Project is
          declare
             Info : Unit_Info renames Reference (Unit_Map, Cur);
          begin
-            Callback (Key (Cur), Info.Is_Subunit);
+            Callback (Key (Cur), Info.Is_Stub);
          end;
       end loop;
    end Enumerate_Units_Of_Interest;
@@ -556,7 +570,7 @@ package body Project is
       --  Now warn about units of interest that have no SCOs file
 
       for UI of Unit_Map loop
-         if not UI.Is_Subunit and then not UI.LI_Seen then
+         if not UI.LI_Seen then
             case Kind is
                when Binary_Trace_File =>
                   Warn_Missing_Info ("ALI", UI);
@@ -572,11 +586,11 @@ package body Project is
    -----------------------
 
    procedure Enumerate_Sources
-     (Callback         : access procedure
+     (Callback      : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
-      Language         : Any_Language;
-      Include_Subunits : Boolean := False)
+      Language      : Any_Language;
+      Include_Stubs : Boolean := False)
    is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
       --  Callback for Iterate_Source_File. If Unit_Name is a unit of interest,
@@ -592,7 +606,7 @@ package body Project is
                or else
              Language = To_Language (Info.Language))
            and then
-             (Include_Subunits
+             (Include_Stubs
               or else Is_Unit_Of_Interest
                 (Info.Project, Unit_Name, To_Language (Info.Language)))
          then
@@ -607,8 +621,8 @@ package body Project is
          Iterate_Source_Files
            (Prj_Info.Project,
             Process_Source_File'Access,
-            Recursive        => False,
-            Include_Subunits => Include_Subunits);
+            Recursive     => False,
+            Include_Stubs => Include_Stubs);
       end loop;
    end Enumerate_Sources;
 
@@ -1002,8 +1016,6 @@ package body Project is
                         Unit_Name,
                         Info,
                         To_Language (Info.Language));
-                     Inc_Units.Reference (Cur).Is_Subunit :=
-                       Info.Unit_Part = Unit_Separate;
                   end if;
                end Process_Source_File;
 

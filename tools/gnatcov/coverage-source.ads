@@ -16,12 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Text_IO; use Ada.Text_IO;
+
 with Checkpoints;             use Checkpoints;
 with Files_Table;             use Files_Table;
 with Instrument;              use Instrument;
 with Instrument.Input_Traces; use Instrument.Input_Traces;
 with Instrument.Base_Types;   use Instrument.Base_Types;
-with Project;                 use Project;
 with Traces;                  use Traces;
 with Traces_Names;            use Traces_Names;
 with Traces_Lines;            use Traces_Lines;
@@ -120,11 +121,16 @@ package Coverage.Source is
      (Process_Unit        : not null access procedure (Name : Project_Unit);
       Process_Source_File : not null access procedure (FI : File_Info))
    with Pre => Unit_List_Is_Valid;
-   --  Call Unit_Callback for each unit of interest, passing to it the name of
-   --  the unit, and call File_Callback for each (sometimes or always) ignored
-   --  source file in the unit.
-   --  Unit_Callback is called before iterating on the ignored files for that
+   --  Call Process_Unit for each unit of interest, passing to it the name of
+   --  the unit, and call Process_Source_File for each (sometimes or always)
+   --  ignored source file in the unit.
+   --
+   --  Process_Unit is called before iterating on the ignored files for that
    --  unit.
+
+   procedure Report_Units (File : File_Type);
+   --  Print a report about units of interest as well as ignored source files
+   --  to File.
 
    -----------------
    -- Checkpoints --

@@ -96,42 +96,45 @@ package body Instrument.Checkpoints is
          end loop;
       end;
 
+      --  Load the mappings for preprocessing commands
+
       if not Version_Less (CLS, Than => 8) then
          declare
             use SFI_To_PP_Cmd_Maps;
-            CP_PP_Map : Map;
+            CP_PP_Cmds : Map;
+            CP_SFI     : Source_File_Index;
          begin
-            Map'Read (CLS.Stream, CP_PP_Map);
+            Map'Read (CLS.Stream, CP_PP_Cmds);
 
-            for Cur in CP_PP_Map.Iterate loop
-               declare
-                  SFI          : constant Source_File_Index :=
-                    Remap_SFI (Relocs, Key (Cur));
-                  Existing_Cur : constant Cursor :=
-                    PP_Cmds.Find (SFI);
-                  Ignored      : constant Boolean :=
-                    SFI_Ignored (Relocs, Key (Cur));
+            for CP_Cur in CP_PP_Cmds.Iterate loop
 
-                  Existing_PP_Cmd : constant Command_Type :=
-                    (if Existing_Cur = No_Element
-                     then Null_Command
-                     else Element (Existing_Cur));
-                  New_PP_Cmd      : constant Command_Type :=
-                    (if Ignored
-                     then Null_Command
-                     else Element (Cur));
+               --  If this source file is now ignored, just discard its
+               --  preprocessing commands.
 
-               begin
-                  if not Ignored then
-                     if Existing_PP_Cmd = Null_Command then
-                        PP_Cmds.Insert (SFI, New_PP_Cmd);
+               CP_SFI := Key (CP_Cur);
+               if not SFI_Ignored (Relocs, CP_SFI) then
+                  declare
+                     SFI : constant Source_File_Index :=
+                       Remap_SFI (Relocs, CP_SFI);
+                     Cur : constant Cursor := PP_Cmds.Find (SFI);
+                  begin
+                     --  If there was no known preprocessing command for SFI so
+                     --  far, just register the loaded one.
 
-                     elsif Existing_PP_Cmd /= New_PP_Cmd then
+                     if not Has_Element (Cur) then
+                        PP_Cmds.Insert (SFI, CP_PP_Cmds.Reference (CP_Cur));
+
+                     --  Otherwise, warn if the already known command and the
+                     --  loaded one are different.
+
+                     elsif CP_PP_Cmds.Reference (CP_Cur)
+                           /= PP_Cmds.Reference (Cur)
+                     then
                         Warn ("inconsistent information for instrumented file "
                               & Get_Unique_Name (SFI));
                      end if;
-                  end if;
-               end;
+                  end;
+               end if;
             end loop;
          end;
       end if;

@@ -109,15 +109,28 @@ package body ALI_Files is
 
       for J in SCO_Unit_Table.First + 1 .. SCO_Unit_Table.Last loop
          declare
-            U    : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (J);
-            Name : constant String :=
+            U : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (J);
+
+            SFI : constant Source_File_Index :=
               (if Deps_Present
-               then Get_Simple_Name (Deps.Element (U.Dep_Num))
-               else U.File_Name.all);
-            SFI  : constant Source_File_Index :=
-              Get_Index_From_Generic_Name (Name, Source_File);
+               then Deps.Element (U.Dep_Num)
+               else Get_Index_From_Generic_Name
+                      (U.File_Name.all, Source_File));
+            --  Source file corresponding to this unit. Use the name from the
+            --  SCO "C" line if there are no list of dependencies ("D" lines,
+            --  missing for old GLI files for C).
+
+            Match_Name : constant String := Get_Simple_Name (SFI);
+            --  Name to use for matching against the pattern of ignored files
          begin
-            if GNAT.Regexp.Match (Name, Ignored_Source_Files.all) then
+            --  In case we got SFI from the Deps vector, make sure it is
+            --  considered as a source file.
+
+            Consolidate_File_Kind (SFI, Source_File);
+
+            --  Do the ignored file matching itself
+
+            if GNAT.Regexp.Match (Match_Name, Ignored_Source_Files.all) then
                Consolidate_Ignore_Status (SFI, Always);
                U.Dep_Num := Missing_Dep_Num;
             else
