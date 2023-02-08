@@ -75,18 +75,19 @@ package body Project is
    --  Build identifiers for attributes in package Coverage
 
    procedure Iterate_Source_Files
-     (Root_Project     : Project_Type;
-      Process          : access procedure
+     (Root_Project  : Project_Type;
+      Process       : access procedure
         (Info : File_Info; Unit_Name : String);
-      Recursive        : Boolean;
-      Include_Subunits : Boolean := False);
+      Recursive     : Boolean;
+      Include_Stubs : Boolean := False);
    --  Call Process on all source files in Root_Project (recursively
    --  considering source files of sub-projects if Recursive is true).
    --
    --  This passes the name of the unit as Unit_Name for languages featuring
    --  this notion (Ada) and the base file name otherwise (i.e. for C sources).
-   --  If Include_Subunits is false (default), then skip all files that
-   --  implement subunits.
+   --
+   --  If Include_Stubs is false (the default) then Callback will skip
+   --  sources files that are subunits (Ada) or headers (C/C++).
 
    Env : Project_Environment_Access;
    --  Environment in which we load the project tree
@@ -391,11 +392,11 @@ package body Project is
    --------------------------
 
    procedure Iterate_Source_Files
-     (Root_Project     : Project_Type;
-      Process          : access procedure
+     (Root_Project  : Project_Type;
+      Process       : access procedure
         (Info : File_Info; Unit_Name : String);
-      Recursive        : Boolean;
-      Include_Subunits : Boolean := False)
+      Recursive     : Boolean;
+      Include_Stubs : Boolean := False)
    is
       --  If Root_Project is extending some project P, consider for coverage
       --  purposes that source files in P also belong to Root_Project. For
@@ -432,12 +433,11 @@ package body Project is
                   declare
                      Info : constant File_Info := File_Info (Abstract_Info);
                   begin
-                     --  Register only units in supported languages (Ada, C and
-                     --  C++), and don't consider subunits as independent
-                     --  units.
+                     --  Process only source files in supported languages (Ada,
+                     --  C and C++), and include subunits only if requested.
 
                      if To_Lower (Info.Language) in "ada" | "c" | "c++"
-                       and then (Include_Subunits
+                       and then (Include_Stubs
                                  or else Info.Unit_Part /= Unit_Separate)
                      then
                         Process.all
@@ -586,11 +586,11 @@ package body Project is
    -----------------------
 
    procedure Enumerate_Sources
-     (Callback         : access procedure
+     (Callback      : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
-      Language         : Any_Language;
-      Include_Subunits : Boolean := False)
+      Language      : Any_Language;
+      Include_Stubs : Boolean := False)
    is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
       --  Callback for Iterate_Source_File. If Unit_Name is a unit of interest,
@@ -606,7 +606,7 @@ package body Project is
                or else
              Language = To_Language (Info.Language))
            and then
-             (Include_Subunits
+             (Include_Stubs
               or else Is_Unit_Of_Interest
                 (Info.Project, Unit_Name, To_Language (Info.Language)))
          then
@@ -621,8 +621,8 @@ package body Project is
          Iterate_Source_Files
            (Prj_Info.Project,
             Process_Source_File'Access,
-            Recursive        => False,
-            Include_Subunits => Include_Subunits);
+            Recursive     => False,
+            Include_Stubs => Include_Stubs);
       end loop;
    end Enumerate_Sources;
 

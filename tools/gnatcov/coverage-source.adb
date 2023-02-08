@@ -393,8 +393,8 @@ package body Coverage.Source is
    begin
       Enumerate_Sources
         (Callback'Access,
-         Include_Subunits => True,
-         Language         => All_Languages);
+         Include_Stubs => True,
+         Language      => All_Languages);
    end Compute_Unit_Name_For_Ignored_Sources;
 
    -------------------------

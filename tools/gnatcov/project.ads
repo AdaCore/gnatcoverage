@@ -150,18 +150,18 @@ package Project is
    --  for all units of interest that have no SCOs file.
 
    procedure Enumerate_Sources
-     (Callback         : access procedure
+     (Callback      : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
-      Language         : Any_Language;
-      Include_Subunits : Boolean := False)
+      Language      : Any_Language;
+      Include_Stubs : Boolean := False)
      with Pre => Is_Project_Loaded;
    --  Call Callback once for every source file of the given language
    --  mentionned in a previous Add_Project call. Override_Units has the same
    --  semantics as in Enumerate_LIs.
    --
-   --  If Include_Subunits is false (the default) then Callback will skip
-   --  sources that are subunits.
+   --  If Include_Stubs is false (the default) then Callback will skip
+   --  sources files that are subunits (Ada) or headers (C/C++).
 
    type Main_Source_File is record
       File    : GNATCOLL.VFS.Virtual_File;
