@@ -17,8 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Hashed_Maps;
-with Ada.Characters.Handling;
-with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Streams;
 with Ada.Unchecked_Deallocation;
@@ -36,7 +34,6 @@ with ALI_Files;     use ALI_Files;
 with Checkpoints;   use Checkpoints;
 with Coverage;      use Coverage;
 with Outputs;
-with Paths;         use Paths;
 with Perf_Counters; use Perf_Counters;
 with Project;
 with Switches;
@@ -218,16 +215,6 @@ package body Files_Table is
 
    function Create_Line_Info return Line_Info_Access;
    --  Return a new Line_Info record
-
-   procedure Consolidate_Source_File_Unit
-     (Index    : Valid_Source_File_Index;
-      New_Unit : Ada.Strings.Unbounded.Unbounded_String) with
-     Pre => Get_File (Index).Kind = Source_File;
-   --  Update the unit name info for the source file represented by Index.
-   --  Does nothing if the new unit name is the empty string.
-   --
-   --  Calling this procedure is valid iff the source file at Index has no
-   --  owning unit already, or that it is the same as New_Unit.
 
    ---------------------
    -- Append_To_Array --
@@ -446,8 +433,6 @@ package body Files_Table is
 
    function End_Lex_Element (Sloc : Source_Location) return Source_Location
    is
-      use Ada.Characters.Handling;
-
       type Lex_Type is (String_Literal, Numeric_Literal, Other);
 
       Lex    : Lex_Type;
@@ -636,30 +621,19 @@ package body Files_Table is
    ----------------------------------
 
    procedure Consolidate_Source_File_Unit
-     (Index    : Valid_Source_File_Index;
-      New_Unit : Ada.Strings.Unbounded.Unbounded_String)
+     (Index : Valid_Source_File_Index; New_Unit : Project_Unit)
    is
       use Ada.Strings.Unbounded;
       FI : File_Info renames Files_Table.Element (Index).all;
    begin
-      if FI.Kind /= Source_File or else New_Unit = Null_Unbounded_String then
-         return;
-      end if;
-      if not FI.Unit.Known then
-         FI.Unit := (Known => True,
-                     Name  => New_Unit);
+      pragma Assert (New_Unit.Unit_Name /= Null_Unbounded_String);
+      if FI.Kind /= Source_File then
+         null;
+      elsif not FI.Unit.Known then
+         FI.Unit := (Known => True, Name => New_Unit);
       elsif FI.Unit.Known then
          pragma Assert (FI.Unit.Name = New_Unit);
       end if;
-   end Consolidate_Source_File_Unit;
-
-   procedure Consolidate_Source_File_Unit
-     (Index    : Valid_Source_File_Index;
-      New_Unit : String)
-   is
-   begin
-      Consolidate_Source_File_Unit
-        (Index, Ada.Strings.Unbounded.To_Unbounded_String (New_Unit));
    end Consolidate_Source_File_Unit;
 
    ---------------------
@@ -1917,8 +1891,7 @@ package body Files_Table is
                Any_Ignore_Status'Write (S, FI.Ignore_Status);
                Boolean'Write (S, FI.Unit.Known);
                if FI.Unit.Known then
-                  String'Output
-                    (S, Ada.Strings.Unbounded.To_String (FI.Unit.Name));
+                  Project_Unit'Output (S, FI.Unit.Name);
                end if;
             end if;
          end;
@@ -2038,32 +2011,47 @@ package body Files_Table is
             Kind                : constant File_Kind := File_Kind'Input (S);
             Indexed_Simple_Name : constant Boolean := Boolean'Input (S);
          begin
+            Set_SFI_Simple_Name
+              (Relocs,
+               CP_SFI,
+               Ada.Strings.Unbounded.To_Unbounded_String
+                 (Ada.Directories.Simple_Name (Name)));
             case Kind is
                when Stub_File =>
                   FE := (Kind => Stub_File, others => <>);
                when Source_File =>
                   FE := (Kind => Source_File, others => <>);
+
+                  --  Dumping ignored source files requires information that is
+                  --  not available before checkpoint version 13.
+
+                  FE.Ignore_Status := Unknown;
+                  FE.Unit := (Known => False);
                   if not Checkpoints.Version_Less (CLS, Than => 5) then
-
-                  --  Dumping ignored source files is only supported from
-                  --  Checkpoint version 5.
-
                      FE.Ignore_Status := Any_Ignore_Status'Input (S);
                      declare
-                        use Ada.Strings.Unbounded;
                         Unit_Known : constant Boolean := Boolean'Input (S);
                      begin
                         if Unit_Known then
-                           FE.Unit :=
-                             (Known => True,
-                              Name  => To_Unbounded_String (String'Input (S)));
-                        else
-                           FE.Unit := (Known => False);
+
+                           --  Starting with the version 13 of checkpoints,
+                           --  owning units are represented as Project_Unit
+                           --  values (they were mere strings before). Consider
+                           --  the owning unit unknown if we do not have recent
+                           --  formats.
+
+                           if Checkpoints.Version_Less (CLS, Than => 13) then
+                              declare
+                                 Dummy : constant String := String'Input (S);
+                              begin
+                                 null;
+                              end;
+                           else
+                              FE.Unit := (Known => True,
+                                          Name  => Project_Unit'Input (S));
+                           end if;
                         end if;
                      end;
-                  else
-                     FE.Ignore_Status := Unknown;
-                     FE.Unit := (Known => False);
                   end if;
                when Library_File =>
                   FE := (Kind => Library_File, others => <>);

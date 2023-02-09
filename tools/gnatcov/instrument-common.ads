@@ -70,7 +70,6 @@ with GNATcov_RTS;
 with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Namet;                 use Namet;
-with Project;               use Project;
 with SC_Obligations;        use SC_Obligations;
 with Slocs;                 use Slocs;
 with Switches;              use Switches;

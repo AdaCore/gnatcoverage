@@ -28,7 +28,6 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 with Types; use Types;
 
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with Project;             use Project;
 with SC_Obligations;      use SC_Obligations;
 with Subprocesses;        use Subprocesses;
 with Switches;            use Switches;

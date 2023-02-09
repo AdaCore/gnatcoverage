@@ -103,6 +103,8 @@ package body Checkpoints is
         new SFI_Map_Array'(First .. Last => No_Source_File);
       Relocs.Ignored_SFIs :=
         new SFI_Ignored_Map_Array'(First .. Last => False);
+      Relocs.SFI_Simple_Filenames :=
+        new SFI_Simple_Name_Map_Array'(First .. Last => <>);
    end Allocate_SFI_Maps;
 
    -------------------------
@@ -166,6 +168,18 @@ package body Checkpoints is
       Relocs.Ignored_SCOs :=
         new SCO_Ignored_Map_Array'(First .. Last => False);
    end Allocate_SCO_Id_Map;
+
+   ---------------------
+   -- Get_Simple_Name --
+   ---------------------
+
+   function Get_Simple_Name
+     (Relocs : Checkpoint_Relocations;
+      CP_SFI : Valid_Source_File_Index) return Unbounded_String
+   is
+   begin
+      return Relocs.SFI_Simple_Filenames.all (CP_SFI);
+   end Get_Simple_Name;
 
    ----------------
    -- Ignore_SFI --
@@ -253,6 +267,19 @@ package body Checkpoints is
    begin
       Relocs.SFI_Map (Source_SFI) := Target_SFI;
    end Set_SFI_Map;
+
+   -------------------------
+   -- Set_SFI_Simple_Name --
+   -------------------------
+
+   procedure Set_SFI_Simple_Name
+     (Relocs      : in out Checkpoint_Relocations;
+      SFI         : Valid_Source_File_Index;
+      Simple_Name : Unbounded_String)
+   is
+   begin
+      Relocs.SFI_Simple_Filenames.all (SFI) := Simple_Name;
+   end Set_SFI_Simple_Name;
 
    -------------------
    -- Set_CU_Id_Map --

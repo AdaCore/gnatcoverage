@@ -19,19 +19,14 @@
 --  GNAT projects support
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Unbounded;
 
 with GNAT.Strings; use GNAT.Strings;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-
 with Inputs;
-with Paths;        use Paths;
-with Strings;      use Strings;
+with Files_Table;
 with Switches;     use Switches;
 with Traces_Files; use Traces_Files;
 
@@ -118,54 +113,22 @@ package Project is
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
 
-   -------------------------
-   -- Unit identification --
-   -------------------------
-
-   type Project_Unit (Language : Any_Language_Kind := Unit_Based_Language) is
-      record
-         Unit_Name : Ada.Strings.Unbounded.Unbounded_String;
-         case Language is
-            when File_Based_Language =>
-               Project_Name : Ada.Strings.Unbounded.Unbounded_String;
-            when others => null;
-         end case;
-      end record;
-   --  To uniquely identify a unit, we need its unit name (or base name for a C
-   --  unit). For file-based languages such as C or C++, we might have homonym
-   --  base file names in different projects so we keep track of the project
-   --  name in addition.
-
-   use type Ada.Strings.Unbounded.Unbounded_String;
-
    function To_Project_Unit
      (Unit_Name : String;
       Project   : Project_Type;
-      Language  : Some_Language) return Project_Unit;
-
-   function Image (U : Project_Unit) return String is
-     (case U.Language is
-         when Unit_Based_Language => To_Lower (+U.Unit_Name),
-         when File_Based_Language =>
-            +U.Project_Name & ":" & Fold_Filename_Casing (+U.Unit_Name));
-
-   function "<" (L, R : Project_Unit) return Boolean is
-     (Image (L) < Image (R));
-
-   function "=" (L, R : Project_Unit) return Boolean is
-     (Image (L) = Image (R));
-
-   package Unit_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Project_Unit);
+      Language  : Some_Language) return Files_Table.Project_Unit;
+   --  Return the Project_Unit value that designates the same unit as
+   --  Unit_Name/Project/Language.
 
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Project_Unit; Is_Subunit : Boolean));
+     (Callback : access procedure (Name : Files_Table.Project_Unit;
+                                   Is_Stub : Boolean));
    --  Call Callback once for every unit of interest. Name is the unit name,
-   --  and Is_Subunit corresponds to the Unit_Info.Is_Subunit field (see
+   --  and Is_Stub corresponds to the Unit_Info.Is_Stub field (see
    --  project.adb).
 
    function Is_Unit_Of_Interest
@@ -187,18 +150,18 @@ package Project is
    --  for all units of interest that have no SCOs file.
 
    procedure Enumerate_Sources
-     (Callback         : access procedure
+     (Callback      : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
-      Language         : Any_Language;
-      Include_Subunits : Boolean := False)
+      Language      : Any_Language;
+      Include_Stubs : Boolean := False)
      with Pre => Is_Project_Loaded;
    --  Call Callback once for every source file of the given language
    --  mentionned in a previous Add_Project call. Override_Units has the same
    --  semantics as in Enumerate_LIs.
    --
-   --  If Include_Subunits is false (the default) then Callback will skip
-   --  sources that are subunits.
+   --  If Include_Stubs is false (the default) then Callback will skip
+   --  sources files that are subunits (Ada) or headers (C/C++).
 
    type Main_Source_File is record
       File    : GNATCOLL.VFS.Virtual_File;
