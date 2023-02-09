@@ -2010,12 +2010,20 @@ package body Files_Table is
             Name                : constant String := String'Input (S);
             Kind                : constant File_Kind := File_Kind'Input (S);
             Indexed_Simple_Name : constant Boolean := Boolean'Input (S);
+
+            --  Do not call Ada.Directories.Simple_Name on artificial file
+            --  names: such names are known to make Simple_Name raise a
+            --  Name_Error on Windows.
+
+            Simple_Name : constant String :=
+              (if Clang_Predefined_File (Name)
+               then Name
+               else Ada.Directories.Simple_Name (Name));
          begin
             Set_SFI_Simple_Name
               (Relocs,
                CP_SFI,
-               Ada.Strings.Unbounded.To_Unbounded_String
-                 (Ada.Directories.Simple_Name (Name)));
+               Ada.Strings.Unbounded.To_Unbounded_String (Simple_Name));
             case Kind is
                when Stub_File =>
                   FE := (Kind => Stub_File, others => <>);
