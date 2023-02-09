@@ -58,6 +58,8 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         option.
     :param bool warnings_as_errors: Whether to make the test fail if there are
         warnings in gnatcov's output.
+    :param bool register_failure: See SUITE.tutils.xcov.
+    :param bool auto_languages: See SUITE.tutils.xcov.
 
     See SUITE.tutils.xcov for the other supported options.
     """
