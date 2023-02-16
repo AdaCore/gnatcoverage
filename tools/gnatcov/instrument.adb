@@ -457,6 +457,10 @@ package body Instrument is
    --  Start of processing for Instrument_Units_Of_Interest
 
    begin
+      --  Delete output directories from previous instrumentations
+
+      Clean_Objdirs;
+
       --  First get the list of all units of interest
 
       for Lang in Src_Supported_Language loop
@@ -669,13 +673,6 @@ package body Instrument is
               (IC, Main.CU_Name, +Main.File.Full_Name, Main.Prj_Info.all);
          end loop;
       end loop;
-
-      --  Remove sources in IC.Output_Dir that we did not generate this time.
-      --  They are probably left overs from previous instrumentations for units
-      --  that are no longer of interest. It is crucial not to make them part
-      --  of next builds.
-
-      Clean_Objdirs (IC);
 
       --  Deallocate Ignored_Unit_Infos
 

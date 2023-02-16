@@ -182,11 +182,6 @@ package Instrument.Common is
       Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
       --  Subdirectory in the project file's object directory. All we generate
       --  for this project must land in it.
-
-      Instr_Files : aliased File_Sets.Set;
-      --  Set of full names for files that were written to Output_Dir for this
-      --  project. Note that in the case of project extension, more than one
-      --  project may use the same output directory.
    end record;
 
    type Project_Info_Access is access all Project_Info;
@@ -348,17 +343,16 @@ package Instrument.Common is
       Source_File : GNATCOLL.Projects.File_Info);
    --  Add the given source file to the list of units to instrument
 
-   function Register_New_File
-     (Info : in out Project_Info; Name : String) return String;
-   --  Helper for Create_File and Start_Rewriting: compute the path to the file
-   --  to create and register it to Info.Instr_Files.
+   function New_File
+     (Info : Project_Info; Name : String) return String;
+   --  Compute the path to the file to create in Info.Output_Dir
 
    procedure Create_File
      (Info : in out Project_Info;
       File : in out Text_Files.File_Type;
       Name : String);
    --  Shortcut to Text_Files.Create: create a text file with the given name in
-   --  Info.Output_Dir and register it in Info.Instr_Files.
+   --  Info.Output_Dir.
    --
    --  Name can be a basename, a relative name or an absolute one: in all
    --  cases, the basename is taken and the file is created in Info.Output_Dir.
