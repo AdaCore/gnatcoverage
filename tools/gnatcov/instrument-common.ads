@@ -152,7 +152,7 @@ package Instrument.Common is
 
    function Project_Output_Dir (Project : Project_Type) return String;
    --  Return the directory in which we must create instrumented sources for
-   --  Project. This retuns an empty strings for projects that do not have an
+   --  Project. This returns an empty string for projects that do not have an
    --  object directory.
 
    function Format_Fingerprint
@@ -176,7 +176,7 @@ package Instrument.Common is
       --  Project that this record describes
 
       Externally_Built : Boolean;
-      --  Whether this project is externaly built. In that case, we assume its
+      --  Whether this project is externally built. In that case, we assume its
       --  units of interest have already been instrumented.
 
       Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
