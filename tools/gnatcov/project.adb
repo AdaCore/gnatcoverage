@@ -1054,11 +1054,14 @@ package body Project is
 
       Iterate (Override_Units, Add_Pattern'Access);
 
-      --  Then, create a regexp matching all the patterns specified
+      --  Then, create a regexp matching all the patterns specified.
+      --  Regardless of the current platform, the casing of unit names is not
+      --  significant: the Foo unit is the same as the foo unit.
 
-      Create_Matcher (Pattern_List => Unit_Patterns,
-                      Matcher      => Units_Specified_Matcher,
-                      Has_Matcher  => Has_Matcher);
+      Create_Matcher (Pattern_List     => Unit_Patterns,
+                      Matcher          => Units_Specified_Matcher,
+                      Has_Matcher      => Has_Matcher,
+                      Case_Insensitive => True);
 
       --  Now go through all selected projects to find units of interest
 
