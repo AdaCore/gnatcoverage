@@ -520,12 +520,13 @@ package body Instrument.Common is
    ----------------------------
 
    function Is_Ignored_Source_File
-     (Context : Inst_Context; Filename : String) return Boolean
-   is
+     (Context : Inst_Context; Filename : String) return Boolean is
    begin
       return
-         Context.Ignored_Source_Files_Present
-         and then GNAT.Regexp.Match (Filename, Context.Ignored_Source_Files);
+        Context.Ignored_Source_Files_Present
+        and then GNAT.Regexp.Match
+                   (S => Fold_Filename_Casing (Filename),
+                    R => Context.Ignored_Source_Files);
    end Is_Ignored_Source_File;
 
    --------------------------------
