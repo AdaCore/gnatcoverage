@@ -267,9 +267,10 @@ package body Inputs is
    --------------------
 
    procedure Create_Matcher
-     (Pattern_List : String_Vectors.Vector;
-      Matcher      : out GNAT.Regexp.Regexp;
-      Has_Matcher  : out Boolean)
+     (Pattern_List     : String_Vectors.Vector;
+      Matcher          : out GNAT.Regexp.Regexp;
+      Has_Matcher      : out Boolean;
+      Case_Insensitive : Boolean := False)
    is
       use Ada.Strings.Unbounded;
       use String_Vectors;
@@ -293,7 +294,11 @@ package body Inputs is
       -------------
 
       procedure Process (C : Cursor) is
-         Glob_Pattern : constant String := To_Lower (+Element (C));
+         Raw_Pattern  : constant String := +String_Vectors.Element (C);
+         Glob_Pattern : constant String :=
+           (if Case_Insensitive
+            then To_Lower (Raw_Pattern)
+            else Raw_Pattern);
       begin
          --  Ignore blank lines
 
@@ -320,12 +325,16 @@ package body Inputs is
    end Create_Matcher;
 
    procedure Create_Matcher
-     (Pattern_List : Inputs.Inputs_Type;
-      Matcher      : out GNAT.Regexp.Regexp;
-      Has_Matcher  : out Boolean)
-   is
+     (Pattern_List     : Inputs.Inputs_Type;
+      Matcher          : out GNAT.Regexp.Regexp;
+      Has_Matcher      : out Boolean;
+      Case_Insensitive : Boolean := False) is
    begin
-      Create_Matcher (To_String_Vector (Pattern_List), Matcher, Has_Matcher);
+      Create_Matcher
+        (To_String_Vector (Pattern_List),
+         Matcher,
+         Has_Matcher,
+         Case_Insensitive);
    end Create_Matcher;
 
 end Inputs;
