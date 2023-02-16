@@ -30,14 +30,14 @@ package Paths is
    function Build_Filename
      (Dir      : String;
       Filename : String) return String_Access;
-   --  Create a filename from a directory name and a filename.
-   --  The directory name is expected to be not empty and the result
-   --  is _not_ canonicalized (left to the callers to decide).
+   --  Create a filename from a directory name and a filename. The directory
+   --  name is expected to be not empty and the result is _not_ canonicalized
+   --  (left to the callers to decide).
 
    function "/" (Dir, Name : String) return String is
      (Ada.Directories.Compose (Dir, Name));
-   --  Likewise, without the "dir shouldn't be empty" constraint but
-   --  checking that the path components are valid when not empty.
+   --  Likewise, without the "dir shouldn't be empty" constraint but checking
+   --  that the path components are valid when not empty.
 
    function Fold_Filename_Casing (Filename : String) return String;
    --  If this is a windows host, return the lower-cased filename, otherwise
@@ -46,17 +46,17 @@ package Paths is
    function Canonicalize_Filename (Filename : String) return String;
    function Canonicalize_Filename (Filename : String) return String_Access;
    --  Assuming Filename is a full pathname to a file, return a normalized
-   --  version of it such that different references to the same file map to
-   --  the same canonical string as much as possible.
+   --  version of it such that different references to the same file map to the
+   --  same canonical string as much as possible.
 
    function Glob_To_Regexp (Pattern : String) return String;
-   --  Convert the provided globbing Pattern to a regular expression.
-   --  This might be used for file name or unit name patterns.
+   --  Convert the provided globbing Pattern to a regular expression.  This
+   --  might be used for file name or unit name patterns.
 
    function Is_Absolute_Path (Path : String) return Boolean;
-   --  Return whether Path is an absolute path. Unlike the GNAT runtime
-   --  version of the service, this one always matches both Windows or Unix
-   --  file path flavors.
+   --  Return whether Path is an absolute path. Unlike the GNAT runtime version
+   --  of the service, this one always matches both Windows or Unix file path
+   --  flavors.
 
    --  TODO??? Handle Unicode file names
 
