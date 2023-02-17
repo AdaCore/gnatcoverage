@@ -80,17 +80,24 @@ package Inputs is
    --  Convert an inputs list into a String_Vectors.Vector
 
    procedure Create_Matcher
-     (Pattern_List : String_Vectors.Vector;
-      Matcher      : out GNAT.Regexp.Regexp;
-      Has_Matcher  : out Boolean);
+     (Pattern_List     : String_Vectors.Vector;
+      Matcher          : out GNAT.Regexp.Regexp;
+      Has_Matcher      : out Boolean;
+      Case_Insensitive : Boolean := False);
    --  If Pattern_List is empty, leave Matcher uninitialized and set
    --  Has_Matcher to False. Otherwise, set it to True and put in Matcher a
    --  pattern matching each of the globbing patterns in Pattern_List.
+   --
+   --  If Case_Insensitive is True, the returned matcher is made case
+   --  insensitive. Note that it may be case insensitive even if
+   --  Case_Insensitive is False (for instance on Windows, where all glob
+   --  patterns are interpreted as case insensitive).
 
    procedure Create_Matcher
-     (Pattern_List : Inputs.Inputs_Type;
-      Matcher      : out GNAT.Regexp.Regexp;
-      Has_Matcher  : out Boolean);
+     (Pattern_List     : Inputs.Inputs_Type;
+      Matcher          : out GNAT.Regexp.Regexp;
+      Has_Matcher      : out Boolean;
+      Case_Insensitive : Boolean := False);
    --  Overload to work on Inputs.Inputs_Type values
 
 private

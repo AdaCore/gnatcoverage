@@ -294,7 +294,7 @@ package Argparse is
    end record;
    --  For single string options, we distinguish the case when the options did
    --  not appear on the command-line and the case when the option specified an
-   --  empty value. This is specified thanks to the Present distriminant.
+   --  empty value. This is specified thanks to the Present discriminant.
 
    function Value_Or_Null (Opt : String_Option) return Unbounded_String;
    --  If Opt is present, return its value. Return the empty string otherwise.

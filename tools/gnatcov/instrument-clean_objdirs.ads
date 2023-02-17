@@ -16,8 +16,5 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Instrument.Common; use Instrument.Common;
-
-procedure Instrument.Clean_Objdirs (IC : Inst_Context);
---  Remove sources in output directories that were not generated during this
---  instrumentation process.
+procedure Instrument.Clean_Objdirs;
+--  Delete instrumentation output directories

@@ -81,8 +81,8 @@ package body Subprocesses is
       return Run_Command
         (+Command.Command,
          Command.Arguments,
-         Command.Environment,
          Origin_Command_Name,
+         Command.Environment,
          Output_File,
          Err_To_Out,
          Out_To_Null,
@@ -113,8 +113,8 @@ package body Subprocesses is
    procedure Run_Command
      (Command             : String;
       Arguments           : String_Vectors.Vector;
-      Environment         : String_Maps.Map := Empty_Environment;
       Origin_Command_Name : String;
+      Environment         : String_Maps.Map := Empty_Environment;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
       Out_To_Null         : Boolean := False;
@@ -123,8 +123,8 @@ package body Subprocesses is
       Dummy : constant Boolean := Run_Command
         (Command,
          Arguments,
-         Environment,
          Origin_Command_Name,
+         Environment,
          Output_File,
          Err_To_Out,
          Out_To_Null,
@@ -137,8 +137,8 @@ package body Subprocesses is
    function Run_Command
      (Command             : String;
       Arguments           : String_Vectors.Vector;
-      Environment         : String_Maps.Map := Empty_Environment;
       Origin_Command_Name : String;
+      Environment         : String_Maps.Map := Empty_Environment;
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
       Out_To_Null         : Boolean := False;

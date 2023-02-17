@@ -233,8 +233,6 @@ package body Instrument.Common is
       Self.Output_Filename := To_Unbounded_String (Output_Filename);
       Self.Unit := Unit;
       Self.Handle := Start_Rewriting (IC.Context);
-
-      Info.Instr_Files.Insert (To_Unbounded_String (Output_Filename));
    end Start_Rewriting;
 
    --------------------
@@ -522,12 +520,13 @@ package body Instrument.Common is
    ----------------------------
 
    function Is_Ignored_Source_File
-     (Context : Inst_Context; Filename : String) return Boolean
-   is
+     (Context : Inst_Context; Filename : String) return Boolean is
    begin
       return
-         Context.Ignored_Source_Files_Present
-         and then GNAT.Regexp.Match (Filename, Context.Ignored_Source_Files);
+        Context.Ignored_Source_Files_Present
+        and then GNAT.Regexp.Match
+                   (S => Fold_Filename_Casing (Filename),
+                    R => Context.Ignored_Source_Files);
    end Is_Ignored_Source_File;
 
    --------------------------------
@@ -566,8 +565,7 @@ package body Instrument.Common is
             Result : constant Project_Info_Access := new Project_Info'
               (Project          => Project,
                Externally_Built => Project.Externally_Built,
-               Output_Dir       => +Project_Output_Dir (Storage_Project),
-               Instr_Files      => <>);
+               Output_Dir       => +Project_Output_Dir (Storage_Project));
          begin
             Context.Project_Info_Map.Insert (Project_Name, Result);
             return Result;
@@ -684,21 +682,20 @@ package body Instrument.Common is
       end;
    end Add_Instrumented_Unit;
 
-   -----------------------
-   -- Register_New_File --
-   -----------------------
+   --------------
+   -- New_File --
+   --------------
 
-   function Register_New_File
-     (Info : in out Project_Info; Name : String) return String
+   function New_File
+     (Info : Project_Info; Name : String) return String
    is
       Base_Filename   : constant String :=
          Ada.Directories.Simple_Name (Name);
       Output_Filename : constant String :=
          To_String (Info.Output_Dir) / Base_Filename;
    begin
-      Info.Instr_Files.Insert (To_Unbounded_String (Output_Filename));
       return Output_Filename;
-   end Register_New_File;
+   end New_File;
 
    -----------------
    -- Create_File --
@@ -709,7 +706,7 @@ package body Instrument.Common is
       File : in out Text_Files.File_Type;
       Name : String)
    is
-      Filename : constant String := Register_New_File (Info, Name);
+      Filename : constant String := New_File (Info, Name);
    begin
       File.Create (Filename);
    end Create_File;
