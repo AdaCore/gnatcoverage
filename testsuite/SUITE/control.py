@@ -282,7 +282,15 @@ class RuntimeInfo(object):
     @property
     def gnatcov_rts_project(self):
         """Name of the gnatcov_rts project to use in instrumented projects."""
-        return 'gnatcov_rts'
+
+        # gnatcov_rts_full and gnatcov_rts were merged with the introduction
+        # of gnatcov setup.
+
+        return (
+            'gnatcov_rts_full' if (
+                self.has_full_runtime and not gnatcov_info().has_setup)
+            else 'gnatcov_rts'
+        )
 
 
 def runtime_info(runtime=None):
