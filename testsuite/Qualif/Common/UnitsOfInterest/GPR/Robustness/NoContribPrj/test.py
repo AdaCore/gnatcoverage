@@ -79,7 +79,7 @@ def run_test(label, slug, main, helper, recursive, projects=[], units=[],
         covlevel='stmt',
         mains=['main'],
         gpr_obj_dir='obj-main',
-        instrument_warnings_as_errors=False,
+        tolerate_instrument_messages="project.*provides no unit",
         extra_coverage_args=['-axcov'],
     )
 

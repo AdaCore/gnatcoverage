@@ -18,7 +18,7 @@ build_run_and_coverage(
         extra=gprcov_for(units_in=['no_such_unit', 'main']))),
     covlevel='stmt',
     mains=['main'],
-    instrument_warnings_as_errors=False,
+    tolerate_instrument_messages="no unit.*in project",
     extra_coverage_args=['-axcov'],
 )
 
