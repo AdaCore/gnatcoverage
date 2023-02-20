@@ -988,6 +988,10 @@ package body Instrument.Ada_Unit is
      (Ret_Node : Return_Stmt; Subp : Subp_Body) return Boolean;
    --  Return whether Ret_Node is returning from Subp
 
+   function Parent_Decl (Decl : Basic_Decl'Class) return Basic_Decl;
+   --  Return the parent declaration for Decl, or No_Basic_Decl if Decl has no
+   --  parent, or if we cannot find it.
+
    procedure Insert_Simple_Dump_Proc_Calls
      (RH          : Rewriting_Handle;
       Helper_Unit : Ada_Qualified_Name;
@@ -2496,6 +2500,23 @@ package body Instrument.Ada_Unit is
          return True;
    end Return_From_Subp_Body;
 
+   -----------------
+   -- Parent_Decl --
+   -----------------
+
+   function Parent_Decl (Decl : Basic_Decl'Class) return Basic_Decl is
+   begin
+      return Decl.P_Parent_Basic_Decl;
+   exception
+      when Exc : Property_Error =>
+         Report
+           (Node => Decl,
+            Msg  => "Could not find the parent package: "
+                    & Ada.Exceptions.Exception_Information (Exc),
+            Kind => Warning);
+         return No_Basic_Decl;
+   end Parent_Decl;
+
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
    -----------------------------------------
@@ -3998,13 +4019,17 @@ package body Instrument.Ada_Unit is
                      begin
                         while AUN /= Std loop
                            declare
-                              Root_Decl : constant Basic_Decl :=
+                              Root_Decl   : constant Basic_Decl :=
                                 AUN.Root.As_Compilation_Unit
                                   .F_Body.As_Library_Item.F_Item;
+                              Parent      : constant Basic_Decl :=
+                                Parent_Decl (Root_Decl);
                            begin
                               UIC.Withed_Units.Include
                                 (Root_Decl.P_Canonical_Fully_Qualified_Name);
-                              AUN := Root_Decl.P_Parent_Basic_Decl.Unit;
+
+                              exit when Parent.Is_Null;
+                              AUN := Parent.Unit;
                            end;
                         end loop;
                      end;
