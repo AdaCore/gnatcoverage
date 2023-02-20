@@ -305,6 +305,7 @@ install-gnatcov_rts:
 install-lib:
 	$(MKDIR) $(PREFIX)/lib/gnatcoverage
 	$(CP) gnatcov-xml-report.xsd $(PREFIX)/lib/gnatcoverage
+	$(CP) cobertura.dtd $(PREFIX)/lib/gnatcoverage
 
 install-common: install-bin install-examples install-gnatcov_rts install-lib
 install-without-doc: install-common

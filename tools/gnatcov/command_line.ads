@@ -144,7 +144,8 @@ package Command_Line is
       Opt_Restricted_To_Languages,
       Opt_Annotation_Format,
       Opt_C_Opts,
-      Opt_CPP_Opts);
+      Opt_CPP_Opts,
+      Opt_Source_Roots);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -1098,7 +1099,16 @@ package Command_Line is
              "List of additional compiler switches to analayze C++ source"
              & " files.",
            Commands     => (Cmd_Instrument => True, others => False),
-           Internal     => False)
+           Internal     => False),
+
+      Opt_Source_Roots => Create
+        (Long_Name => "--source-roots",
+         Pattern   => "[PATH|LIST]",
+         Help      =>
+           "Option specific to the Cobertura coverage report: remove the"
+           & " specified prefixes from the filenames in the report",
+         Commands  => (Cmd_Coverage => True, others => False),
+         Internal  => True)
      );
 
    procedure Bool_Callback

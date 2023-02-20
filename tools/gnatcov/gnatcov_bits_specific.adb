@@ -30,6 +30,7 @@ with GNAT.Strings; use GNAT.Strings;
 with Snames;
 
 with ALI_Files;
+with Annotations.Cobertura;
 with Annotations.Dynamic_Html;
 with Annotations.Html;
 with Annotations.Report;
@@ -1667,6 +1668,12 @@ begin
               ("Dynamic HTML report format support is not installed.");
          end if;
 
+         if Annotation (Annotate_Cobertura)
+            and then not Annotations.Cobertura.Installed
+         then
+            Fatal_Error ("Cobertura report format support is not installed.");
+         end if;
+
          --  Check that the user specified units of interest. We'll load SCOs
          --  from ALIs/SIDs only when necessary, i.e. only the first time we
          --  process a binary trace file. This will avoid conflicts between
@@ -2293,8 +2300,7 @@ begin
                                            Auto_Delete => not Save_Temps);
 
                if Annotation (Annotate_Xml) then
-                  Annotations.Xml.Generate_Report
-                    (Context'Unchecked_Access);
+                  Annotations.Xml.Generate_Report (Context'Unchecked_Access);
                end if;
 
                if Annotation (Annotate_Xcov)
@@ -2318,6 +2324,11 @@ begin
                   Annotations.Dynamic_Html.Generate_Report
                     (Context'Unchecked_Access,
                      Report_Title => Args.String_Args (Opt_Report_Title));
+               end if;
+
+               if Annotation (Annotate_Cobertura) then
+                  Annotations.Cobertura.Generate_Report
+                    (Context'Unchecked_Access);
                end if;
 
                if Annotation (Annotate_Report) then

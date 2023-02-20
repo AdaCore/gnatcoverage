@@ -878,6 +878,9 @@ package body Annotations is
       elsif Option = "report" then
          return Annotate_Report;
 
+      elsif Option = "cobertura" then
+         return Annotate_Cobertura;
+
       else
          return Annotate_Unknown;
       end if;

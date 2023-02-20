@@ -45,6 +45,7 @@ package Annotations is
       Annotate_Xcov_Plus,
       Annotate_Html_Plus,
       Annotate_Dynamic_Html,
+      Annotate_Cobertura,
       Annotate_Xml,
       Annotate_Report,
       Annotate_Unknown);
@@ -98,7 +99,7 @@ private
    function Message_Annotation (M : Message) return String;
    --  Return a representation of M to be associated with an annotated line
 
-   Global_Stats : Li_Stat_Array := (others => 0);
+   Global_Stats    : Li_Stat_Array := (others => 0);
    Global_Ob_Stats : Ob_Stat_Array;
    --  Stats associated with the whole set of source files that this package
    --  considers (i.e. total numbers of lines / obligations, of partially
