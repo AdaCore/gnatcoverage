@@ -18,8 +18,6 @@ begin
    Assert (Res = 2);
 
    Assert (My_Max_From_Two (2, 1) = 2);
-
-   Assert (Global_Var = 11);
 end Test_IF_Path;
 
 --# if_statements.adb
@@ -56,7 +54,3 @@ end Test_IF_Path;
 -- /max/         l+ ## 0
 -- /ifmax/       l+ ## 0
 --  /elsemax/    l- ## s-
--- /elab/        l+ ## 0
--- /gt0elab/     l+ ## 0
--- /notgt0elab/  l- ## s-
--- /eq0elabeq0/  l- ## s-

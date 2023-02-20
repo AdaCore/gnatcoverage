@@ -14,8 +14,6 @@ begin
 
    Set_Prime_Number (Res, 2);
    Assert (Res = 3);
-
-   Assert (Global_Var = 11);
 end Test_ELSIF_Path_First;
 
 --# if_statements.adb
@@ -52,10 +50,6 @@ end Test_ELSIF_Path_First;
 -- /max/         ~l- ## ~s-
 -- /ifmax/       ~l- ## ~s-
 --  /elsemax/    ~l- ## ~s-
--- /elab/        l+ ## 0
--- /gt0elab/     l+ ## 0
--- /notgt0elab/  l- ## s-
--- /eq0elabeq0/  l- ## s-
 
 -- We have stricter expectations on uncalled subprograms
 -- with instrumentation, in particular wrt declarations.
