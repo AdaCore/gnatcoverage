@@ -35,9 +35,8 @@ package body Instrument.C is
    ---------------------
 
    procedure Instrument_Unit
-     (Self      : C_Family_Instrumenter_Type;
+     (Self      : in out C_Family_Instrumenter_Type;
       CU_Name   : Compilation_Unit_Name;
-      IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info) is
    begin
       raise Program_Error with Error_Msg;
@@ -48,11 +47,11 @@ package body Instrument.C is
    -------------------------------
 
    procedure Auto_Dump_Buffers_In_Main
-     (Self     : C_Family_Instrumenter_Type;
-      IC       : in out Inst_Context;
-      Main     : Compilation_Unit_Name;
-      Filename : String;
-      Info     : in out Project_Info) is
+     (Self        : in out C_Family_Instrumenter_Type;
+      Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
+      Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info) is
    begin
       raise Program_Error with Error_Msg;
    end Auto_Dump_Buffers_In_Main;
@@ -61,10 +60,10 @@ package body Instrument.C is
    -- Emit_Buffers_List_Unit --
    ----------------------------
 
-   procedure Emit_Buffers_List_Unit
+   overriding procedure Emit_Buffers_List_Unit
      (Self              : C_Family_Instrumenter_Type;
-      IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info) is
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector) is
    begin
       raise Program_Error with Error_Msg;
    end Emit_Buffers_List_Unit;

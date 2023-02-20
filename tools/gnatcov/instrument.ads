@@ -73,6 +73,7 @@ package Instrument is
             --  GNATcov_RTS.Traces.Output.Files).
             --
             --  Controlled by --dump-filename-prefix.
+
          when others =>
             null;
       end case;
