@@ -1,0 +1,91 @@
+------------------------------------------------------------------------------
+--                                                                          --
+--                               GNATcoverage                               --
+--                                                                          --
+--                        Copyright (C) 2023, AdaCore                       --
+--                                                                          --
+-- GNATcoverage is free software; you can redistribute it and/or modify it  --
+-- under terms of the GNU General Public License as published by the  Free  --
+-- Software  Foundation;  either version 3,  or (at your option) any later  --
+-- version. This software is distributed in the hope that it will be useful --
+-- but WITHOUT ANY WARRANTY;  without even the implied warranty of MERCHAN- --
+-- TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public --
+-- License for  more details.  You should have  received  a copy of the GNU --
+-- General  Public  License  distributed  with  this  software;   see  file --
+-- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
+-- of the license.                                                          --
+------------------------------------------------------------------------------
+
+with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Strings.Hash;
+
+with GNATCOLL.VFS;
+
+with Langkit_Support.Text; use Langkit_Support.Text;
+
+with Libadalang.Analysis; use Libadalang.Analysis;
+with Libadalang.Common;   use Libadalang.Common;
+
+with Instrument.Base_Types; use Instrument.Base_Types;
+
+--  Custom implementation of a libadalang unit provider, using the mapping
+--  file produced from the project file (that is passed to the compiler through
+--  the -gnatem switch).
+
+package Instrument.Ada_Unit_Provider is
+
+   type Provider_Type is new Libadalang.Analysis.Unit_Provider_Interface
+     with private;
+
+   function Create_Provider
+     (Runtime_Directories   : String_Vectors.Vector;
+      Dependencies_Filename : String) return Provider_Type;
+   --  Create a unit provider, from a list of predefined directories passed
+   --  through Runtime_Directories, and from a mapping file in the same format
+   --  as the file passed through -gnatem in the compiler invocation.
+
+   function Create_Provider_From_Project return Unit_Provider_Reference;
+   --  Uses the loaded project (Project.Project) to generate a mapping
+   --  file and create a unit provider from it.
+
+   overriding function Get_Unit_Filename
+     (Provider : Provider_Type;
+      Name     : Text_Type;
+      Kind     : Analysis_Unit_Kind) return String;
+   --  Return the filename corresponding to the given unit name/unit kind.
+   --  Raise a ``Property_Error`` if the given unit name is not valid.
+
+   overriding function Get_Unit
+     (Provider    : Provider_Type;
+      Context     : Analysis_Context'Class;
+      Name        : Text_Type;
+      Kind        : Analysis_Unit_Kind;
+      Charset     : String := "";
+      Reparse     : Boolean := False) return Analysis_Unit'Class;
+   --  Fetch and return the analysis unit referenced by the given unit name.
+   --  Raise a ``Property_Error`` if the given unit name is not valid.
+
+   overriding procedure Release (Provider : in out Provider_Type) is null;
+
+private
+
+   use US;
+   use type GNATCOLL.VFS.Virtual_File;
+
+   package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => String,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   type Provider_Type is new Libadalang.Analysis.Unit_Provider_Interface
+   with record
+      Unit_Map : String_Maps.Map;
+      --  Mapping from unit name to file fullnames
+
+      Runtime_Files : String_Maps.Map;
+      --  Mapping from a runtime file basename to its fullname
+
+   end record;
+
+end Instrument.Ada_Unit_Provider;
