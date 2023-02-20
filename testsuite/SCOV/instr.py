@@ -36,6 +36,7 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
                     dump_channel="auto", gpr_obj_dir=None,
                     runtime_project=None, out=None, err=None,
                     warnings_as_errors=True, register_failure=True,
+                    auto_config_args=True, auto_target_args=True,
                     auto_languages=True):
     """
     Run "gnatcov instrument" on a project.
@@ -58,6 +59,10 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         option.
     :param bool warnings_as_errors: Whether to make the test fail if there are
         warnings in gnatcov's output.
+    :param bool register_failure: See SUITE.tutils.xcov.
+    :param bool auto_config_args: See SUITE.tutils.xcov.
+    :param bool auto_target_args: See SUITE.tutils.xcov.
+    :param bool auto_languages: See SUITE.tutils.xcov.
 
     See SUITE.tutils.xcov for the other supported options.
     """
@@ -107,6 +112,8 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         out=out,
         err=err,
         register_failure=register_failure,
+        auto_config_args=auto_config_args,
+        auto_target_args=auto_target_args,
         auto_languages=auto_languages,
     )
 
