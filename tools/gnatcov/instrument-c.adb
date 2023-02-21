@@ -564,8 +564,14 @@ package body Instrument.C is
      (Project  : GNATCOLL.Projects.Project_Type;
       Language : C_Family_Language) return String is
    begin
-      return GNATCOLL.Projects.Attribute_Value
-               (Project, GPR.Compiler_Driver_Attribute, Image (Language));
+      return Result : constant String :=
+        GNATCOLL.Projects.Attribute_Value
+          (Project, GPR.Compiler_Driver_Attribute, Image (Language))
+      do
+         if Result = "" then
+            Fatal_Error ("could not find a compiler for " & Image (Language));
+         end if;
+      end return;
    end Compiler_Driver;
 
    ------------------------
