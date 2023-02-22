@@ -56,16 +56,33 @@ flow transfer, involving:
 Rules #1, 2 and 5 are checked by variations in most testcases and verified
 more specifically by the *Raise* testcase, dedicated to this purpose.
 
-Rule #4 is verified by the dedicated *CutEvals* set of testcases.
-
 Rule #3 is verified by the *Within* family of testcases, which exercise
 conditional constructs within exception handlers in a variety of contexts
 where such handlers may appear.
+
+Rule #4 is verified by the dedicated *CutEvals* set of testcases.
 
 When conditional guards are involved, the coverage outcome is always checked
 at least for situations where a guard is tested True only and False only. Very
 often, testcases also verify the outcome when a guard is tested both True and
 False or not at all.
+
+For exceptions that propagate across subprograms, we first verify all
+the requirement rules in a single *Basics* testcase, then check more
+elaborate situations with a family of tests involving:
+
+* Various exception kinds (implicit standard exception raised from a
+  language check, explicit raise of standard or user defined exception,
+  raise from a Ada runtime facility);
+
+* That propagate either directly or via an intermediate handler and
+  a "raise;" statement propagating the original exception further, from
+  either a specific handler for the particular exception or from a
+  "when others" handler;
+
+* That are eventually either unhandled or handled in a variety of contexts,
+  for example within a library level subprogram or within a handler for
+  another exception occurrence.
 
 .. qmlink:: TCIndexImporter
 
