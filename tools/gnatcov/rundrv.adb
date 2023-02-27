@@ -18,6 +18,7 @@
 
 with Ada.Directories;  use Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Strings.Unbounded;
 with Ada.Unchecked_Conversion;
 
 with Interfaces;
@@ -36,6 +37,7 @@ with Traces_Files;  use Traces_Files;
 package body Rundrv is
 
    package Env renames Ada.Environment_Variables;
+   package US renames Ada.Strings.Unbounded;
 
    Native_Warning : constant String :=
       "Support for coverage of non-instrumented native programs is deprecated"
@@ -165,8 +167,14 @@ package body Rundrv is
       --  Note that as far as "gnatcov run" is concerned, a non-zero status
       --  code from this subprocess is not an error for trace production, as it
       --  may reflect a non-zero status code from the user program.
+      --
+      --  Also note that for the special "prepare*" targets, we do not have any
+      --  command to run, as we just need to create the trace file header: do
+      --  not call Run_Command in this case.
 
-      Dummy := Run_Command (Run_Cmd, "gnatcov run", Ignore_Error => True);
+      if US.Length (Run_Cmd.Command) > 0 then
+         Dummy := Run_Command (Run_Cmd, "gnatcov run", Ignore_Error => True);
+      end if;
    end Driver;
 
 end Rundrv;
