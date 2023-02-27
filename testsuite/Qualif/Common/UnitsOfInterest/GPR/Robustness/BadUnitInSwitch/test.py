@@ -16,7 +16,7 @@ build_run_and_coverage(
                       units=['no_such_unit', 'main', 'helper.say_hello']),
     covlevel='stmt',
     mains=['main'],
-    instrument_warnings_as_errors=False,
+    tolerate_instrument_messages="no unit.*in the projects of interest",
     extra_coverage_args=['-axcov'],
 )
 

@@ -36,7 +36,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   check_gprbuild_output=False, trace_mode=None,
                   runtime_project=None, gprsw_for_coverage=None,
                   scos_for_run=True, register_failure=True, program_env=None,
-                  instrument_warnings_as_errors=True, exec_args=None,
+                  tolerate_instrument_messages=None, exec_args=None,
                   auto_languages=True):
     """
     Prepare a project to run a coverage analysis on it.
@@ -100,8 +100,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         exits with a non-zero status code, stop with a FatalError.
     :param None|dict[str, str] program_env: If not none, environment variables
         for the program to run.
-    :param bool instrument_warnings_as_errors: Whether to make the test fail if
-        there are warnings in the output of "gnatcov instrument".
+    :param None|str tolerate_instrument_messages: If not None, a re pattern
+        of error or warning messages tolerated in the "gnatcov instrument"
+        output.
     :param None|list[str] exec_args: List of arguments to pass to the
         executable. This will only work for native configurations.
     :param bool auto_languages: See SUITE.tutils.xcov.
@@ -207,7 +208,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                         runtime_project=runtime_project,
                         out='instrument.log',
                         register_failure=register_failure,
-                        warnings_as_errors=instrument_warnings_as_errors,
+                        tolerate_messages=tolerate_instrument_messages,
                         auto_languages=auto_languages)
         gprbuild_wrapper(gprsw.root_project)
 

@@ -19,7 +19,7 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(mains=["main.adb"], srcdirs=[".."])),
     covlevel="stmt",
     mains=["main"],
-    instrument_warnings_as_errors=False,
+    tolerate_instrument_messages="Cannot find required source file",
     extra_coverage_args=["--annotate=xcov"],
 )
 

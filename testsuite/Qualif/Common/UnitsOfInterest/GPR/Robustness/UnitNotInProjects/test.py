@@ -29,7 +29,7 @@ build_run_and_coverage(
     covlevel='stmt',
     mains=['main'],
     gpr_obj_dir='obj-main',
-    instrument_warnings_as_errors=False,
+    tolerate_instrument_messages="no unit.*in the projects",
     extra_coverage_args=['-axcov'],
 )
 
