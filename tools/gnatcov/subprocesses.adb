@@ -156,13 +156,6 @@ package body Subprocesses is
          raise Program_Error;
       end if;
 
-      --  Honor a possible empty command text, meaning no actual
-      --  command to run.
-
-      if Command'Length = 0 then
-         return True;
-      end if;
-
       --  Find the actual executable to execute
 
       Program := GNAT.OS_Lib.Locate_Exec_On_Path (Command);

@@ -30,7 +30,7 @@ package Subprocesses is
 
    type Command_Type is record
       Command : Ada.Strings.Unbounded.Unbounded_String;
-      --  Command to run or empty string if there is no command to run
+      --  Command (executable file) to run
 
       Arguments : String_Vectors.Vector;
       --  Arguments to pass to this command
