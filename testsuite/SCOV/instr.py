@@ -7,7 +7,7 @@ from e3.fs import mkdir
 
 from SUITE.context import thistest
 from SUITE.cutils import contents_of, ext, indent
-from SUITE.tutils import RUNTIME_INFO, xcov
+from SUITE.tutils import RUNTIME_INFO, GNATCOV_INFO, xcov
 
 
 def default_dump_trigger(mains):
@@ -118,6 +118,21 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         auto_languages=auto_languages,
     )
 
+    # When no message is to be tolerated, fallback to an actual regexp
+    # that will never match:
+    re_tolerate_messages = tolerate_messages or "__NEVER_IN_A_WARNING___"
+
+    # For qualification purposes, tolerate possible warnings about
+    # inexistant object dirs from older gnatcov versions, typically
+    # issued when instrumenting before building. Tests do a best
+    # effort attempt at creating objects dirs beforehand but doing
+    # that is cumbersome for some of the more convoluted tests.
+    if GNATCOV_INFO.major < 23:
+        re_tolerate_messages = '|'.join(
+            "(?:{})".format(mre) for mre in [
+                "object directory.*not found", re_tolerate_messages]
+        )
+
     if register_failure:
         output = contents_of(out)
 
@@ -131,7 +146,6 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
             pattern="(?:!!!|\*\*\*|warning:).*$", string=output,
             flags=re.MULTILINE)
 
-        re_tolerate_messages = tolerate_messages or "__NEVER_IN_A_WARNING___"
         unexpected_messages = [
             w for w in messages
             if not re.search(pattern=re_tolerate_messages, string=w)
