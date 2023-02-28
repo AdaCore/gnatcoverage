@@ -41,7 +41,7 @@ project Gnatcov is
    --  support at all, then for C more specifically:
 
    type Boolean is ("False", "True");
-   Instrument_Support : Boolean := external("INSTRUMENT_SUPPORT");
+   Instrument_Support : Boolean := external("INSTRUMENT_SUPPORT", "True");
    C_Support          : Boolean := external("C_SUPPORT", Instrument_Support);
 
    package Naming is

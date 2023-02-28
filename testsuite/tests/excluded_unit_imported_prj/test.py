@@ -26,7 +26,7 @@ build_run_and_coverage(
     covlevel='stmt+mcdc',
     mains=['test'],
     extra_coverage_args=['--annotate=xcov'],
-    instrument_warnings_as_errors=False,
+    tolerate_instrument_messages="no unit .* in project",
 )
 warning_file = ('coverage.log' if thistest.options.trace_mode == 'bin'
                 else 'instrument.log')

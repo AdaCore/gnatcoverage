@@ -35,7 +35,7 @@ def default_dump_channel():
 def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
                     dump_channel="auto", gpr_obj_dir=None,
                     runtime_project=None, out=None, err=None,
-                    warnings_as_errors=True, register_failure=True,
+                    tolerate_messages=None, register_failure=True,
                     auto_config_args=True, auto_target_args=True,
                     auto_languages=True):
     """
@@ -57,8 +57,9 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
     :param None|str runtime_project: If None, use the default name for the
         instrumentation runtime project. Otherwise, use the name given for this
         option.
-    :param bool warnings_as_errors: Whether to make the test fail if there are
-        warnings in gnatcov's output.
+    :param None|str tolerate_messages: If not None, a re pattern of warning
+        or error messsages tolerated in the tool output. Messages not matching
+        this pattern will cause a test failure when register_failure is True.
     :param bool register_failure: See SUITE.tutils.xcov.
     :param bool auto_config_args: See SUITE.tutils.xcov.
     :param bool auto_target_args: See SUITE.tutils.xcov.
@@ -117,13 +118,29 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         auto_languages=auto_languages,
     )
 
-    if register_failure and warnings_as_errors:
+    if register_failure:
         output = contents_of(out)
 
+        # Check for unexpected messages. Beware that the "warning:"
+        # indication at least is not necessarily at the beginning of
+        # a line, as in
+        #
+        #    app.gpr:4:23: warning: object directory "obj" not found
+
+        messages = re.findall(
+            pattern="(?:!!!|\*\*\*|warning:).*$", string=output,
+            flags=re.MULTILINE)
+
+        re_tolerate_messages = tolerate_messages or "__NEVER_IN_A_WARNING___"
+        unexpected_messages = [
+            w for w in messages
+            if not re.search(pattern=re_tolerate_messages, string=w)
+        ]
         thistest.fail_if(
-            "***" in output or "!!!" in output or "warning:" in output,
-            f"Warnings/errors detected in the output of 'gnatcov instrument':"
-            f"\n{indent(output)}"
+            unexpected_messages,
+            f"Unexpected messages in the output of 'gnatcov instrument':"
+            f"\n{indent(output)}" + \
+            (f"\n(allowed: {tolerate_messages})" if tolerate_messages else "")
         )
 
     return result
