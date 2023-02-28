@@ -16,8 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers;          use Ada.Containers;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Interfaces;              use Interfaces;
+with Ada.Strings.Unbounded.Equal_Case_Insensitive;
+with Ada.Strings.Unbounded.Less_Case_Insensitive;
+
+with Interfaces; use Interfaces;
 
 with GNATCOLL.VFS;
 
@@ -61,16 +65,85 @@ package body Instrument.Base_Types is
 
    function "<" (Left, Right : Compilation_Unit_Name) return Boolean is
    begin
-      return Instrumented_Unit_Slug (Left) < Instrumented_Unit_Slug (Right);
+      if Left.Language_Kind = Right.Language_Kind then
+         case Left.Language_Kind is
+            when Unit_Based_Language =>
+               if Left.Part = Right.Part then
+                  if Left.Unit.Length = Right.Unit.Length then
+                     for I in 1 .. Integer (Left.Unit.Length) loop
+                        declare
+                           Left_Id  : constant Unbounded_String :=
+                             Unbounded_String (Left.Unit.Element (I));
+                           Right_Id : constant Unbounded_String :=
+                             Unbounded_String (Right.Unit.Element (I));
+                        begin
+                           if not Equal_Case_Insensitive (Left_Id, Right_Id)
+                           then
+                              return Less_Case_Insensitive (Left_Id, Right_Id);
+                           end if;
+                        end;
+                     end loop;
+
+                     --  If we get there, they are equal
+
+                     return False;
+                  else
+                     return Left.Unit.Length < Right.Unit.Length;
+                  end if;
+               else
+                  return Left.Part < Right.Part;
+               end if;
+            when File_Based_Language =>
+               if Equal_Case_Insensitive
+                 (Left.Project_Name, Right.Project_Name)
+               then
+                  return Left.Filename < Right.Filename;
+               else
+                  return Less_Case_Insensitive
+                    (Left.Project_Name, Right.Project_Name);
+               end if;
+         end case;
+      else
+         return Left.Language_Kind < Right.Language_Kind;
+      end if;
    end "<";
 
    ---------
    -- "=" --
    ---------
 
-   function "=" (Left, Right : Compilation_Unit_Name) return Boolean is
+   function "=" (Left, Right : Compilation_Unit_Name) return Boolean
+   is
+      use Ada_Identifier_Vectors;
    begin
-      return Instrumented_Unit_Slug (Left) = Instrumented_Unit_Slug (Right);
+      if Left.Language_Kind = Right.Language_Kind then
+         case Left.Language_Kind is
+            when Unit_Based_Language =>
+               if Left.Part = Right.Part
+                  and then Left.Unit.Length = Right.Unit.Length
+               then
+                  for I in 1 .. Integer (Left.Unit.Length) loop
+                     if not Equal_Case_Insensitive
+                       (Unbounded_String (Left.Unit.Element (I)),
+                        Unbounded_String (Right.Unit.Element (I)))
+                     then
+                        return False;
+                     end if;
+                  end loop;
+
+                  --  If we get there, they are equal
+
+                  return True;
+               end if;
+               return False;
+            when File_Based_Language =>
+               return Left.Filename = Right.Filename
+                 and then Equal_Case_Insensitive
+                   (Left.Project_Name, Right.Project_Name);
+         end case;
+      else
+         return False;
+      end if;
    end "=";
 
    -------------------------
