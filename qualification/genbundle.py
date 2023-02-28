@@ -363,6 +363,42 @@ class QMAT:
 
         self.passno = 0
 
+
+    def process_imports(self, dir):
+        """
+        Process the template file in dir, replacing the occurrences of
+        <%name%> in the text by the contents of name_<trace_mode>.rst,
+        according to the qualification parameters
+        """
+        def replace_one(p):
+            return contents_of(
+                os.path.join(dir,p.group(1) + f"_{self.o.trace_mode}.rst")
+        )
+
+
+        template_content = contents_of(os.path.join (dir,"content.tmpl"))
+        with open(os.path.join(dir, "content.rst"), "w") as f:
+            f.write(re.sub(
+                pattern=r"<%([^%]+)%>",
+                repl=replace_one,
+                string=template_content
+            ))
+
+    # ---------------------
+    # -- prepare_content --
+    # ---------------------
+
+    def prepare_content(self, dirs):
+        """
+        Prepare the content files by choosing the correct content_*.rst file
+        according to the qualification parameters.
+        """
+        for dir in dirs:
+            cp(
+                os.path.join(dir, f"content_{self.o.trace_mode}.rst"),
+                os.path.join(dir, f"content.rst"),
+            )
+
     # --------------------
     # -- setup_workdir --
     # --------------------
@@ -610,6 +646,8 @@ class QMAT:
                     print ("ERRRR !! inexistant target dir for %s" % tr)
 
             [sync(tr) for tr in find (root=".", pattern="tc.dump")]
+        env_chapter_dir = os.path.join(self.repodir, "testsuite", "Qualif", "Environment")
+        self.process_imports(env_chapter_dir)
 
         self.__qm_build (part="tor")
 
@@ -849,6 +887,15 @@ class QMAT:
     # -----------------
 
     def build_plans (self):
+        plans_root = os.path.join(self.repodir, "qualification", "qm", "plans")
+        trace_specific_content = [
+            os.path.join(
+                plans_root,
+                "Tool_Qualification_Plan",
+                "Qualified_Interface"
+            )
+        ]
+        self.prepare_content(trace_specific_content)
         self.__qm_build (part="plans")
 
     # ---------------
@@ -981,11 +1028,12 @@ class QMAT:
 # ==                          MAIN SCRIPT BODY                         ==
 # =======================================================================
 
-valid_docformats = ('html', 'pdf')
-valid_parts      = ('tor', 'plans', 'str')
-valid_dolevels   = ('doA', 'doB', 'doC')
-valid_xada       = ('95', '2005', '2012')
-valid_languages  = ["Ada%s" % version for version in valid_xada]
+valid_docformats  = ('html', 'pdf')
+valid_parts       = ('tor', 'plans', 'str')
+valid_dolevels    = ('doA', 'doB', 'doC')
+valid_xada        = ('95', '2005', '2012')
+valid_languages   = ["Ada%s" % version for version in valid_xada]
+valid_trace_modes = ("src", "bin")
 
 def commandline():
     """Build and return an OptionParser instance for this script."""
@@ -1100,6 +1148,14 @@ def commandline():
             )
         )
 
+    op.add_option (
+        "--trace-mode",
+        dest="trace_mode",
+        default=None,
+        choices=valid_trace_modes,
+        help="Trace kind we are qualifying gnatcov for. One of 'src' or 'bin'"
+    )
+
     return op
 
 def check_valid(options, args):
@@ -1110,6 +1166,11 @@ def check_valid(options, args):
     exit_if (
         not options.dolevel,
         "Please specify an explicit dolevel (--dolevel)."
+        )
+
+    exit_if (
+        not options.trace_mode,
+        "Please specify an explicit trace-mode (--trace-mode)."
         )
 
     # Generating docs can be pretty long. Better make sure the output format
