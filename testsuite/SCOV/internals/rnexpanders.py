@@ -128,7 +128,7 @@ class Rblock:
             self.end_hits.append(rline)
         return p
 
-    def check(self):
+    def check(self, all_messages=False):
         """
         Once we're done reading the entire report, sanity check what we found
         for this block. Raise a test failure.
@@ -205,8 +205,6 @@ class Nblock(Rblock):
 
         self.enotes = []
 
-    # def nkind_for(self, rline)
-
     def try_parse_enote(self, rline):
 
         dline = Rdiagline_from(rline)
@@ -241,9 +239,16 @@ class Nblock(Rblock):
 
         enote.kind = self.nkind_for(this_diag)
 
+        return self.check_enote(this_diag, enote)
+
+    def report_unexpected_enote(self, rline):
+        thistest.failed("(%s report section) '%s' does not"
+                        " correspond to any expected violation note"
+                        % (self.name, rline.rstrip('\n')))
+
+    def check_enote(self, rline, enote):
         if enote.kind is None:
-            thistest.failed("(%s =report section) '%s' ?"
-                            % (self.name, rline.rstrip('\n')))
+            self.report_unexpected_enote(rline)
             return None
         else:
             return enote
@@ -254,7 +259,7 @@ class Nblock(Rblock):
             self.enotes.append(enote)
         return enote
 
-    def __validate_ecount(self, count):
+    def validate_ecount(self, count):
         self.ecount = len(self.enotes)
         thistest.fail_if(
             count != self.ecount,
@@ -265,7 +270,7 @@ class Nblock(Rblock):
     def ends_on(self, rline):
         p = Rblock.ends_on(self, rline)
         if p:
-            self.__validate_ecount(count=self.value(p.group(1)))
+            self.validate_ecount(count=self.value(p.group(1)))
         return p
 
     def re_summary(self):
@@ -332,10 +337,93 @@ class OERsection(Nsection):
 
 class XREchapter(Nchapter):
     """Exemptions Regions chapter."""
-    def __init__(self, re_start, re_notes):
+
+    def __init__(self, re_start, re_notes, exempted_notes,
+                 all_messages=False):
+
+        self.all_messages = all_messages
+
+        # The list of notes acceptable for an exempted violation
+        self.exempted_notes = exempted_notes
+
+        self.ecount_violations = 0
+
+        re_end = (r"(No|\d+) exempted region[s]*, "
+                  r"(No|\d+) exempted violation[s]*\.$")
+
         Nchapter.__init__(self, re_start=re_start,
-                          re_end=r"(No|\d+) exempted region[s]*\.$",
+                          re_end=re_end,
                           re_notes=re_notes)
+
+    def __check_summary_count(self, sec, sum_count, sec_count):
+        thistest.fail_if(
+            sum_count != sec_count,
+            "summary count %d != section count %d for %s" % (
+                sum_count, sec_count, sec.name))
+        thistest.fail_if(
+            len(sec.start_hits) != 1,
+            "summary found for section starts != 1 (%s)" % sec.name)
+
+    def check_exempted_summary(self, sec, p):
+        self.__check_summary_count(sec,
+                                   self.value(p.group(1)),
+                                   len(self.enotes))
+
+        if self.all_messages:
+            self.__check_summary_count(sec,
+                                       self.value(p.group(2)),
+                                       self.ecount_violations)
+
+    def __validate(self, actual_count, count, element_counted):
+        thistest.fail_if(
+            actual_count != count,
+            "(%s report section) recognized %d notes != summary (%d)"
+            "for (%s)\n"
+            % (self.name, actual_count, count, element_counted)
+        )
+
+    def ends_on(self, rline):
+        if not self.all_messages:
+            return Rblock.ends_on(self, rline)
+        else:
+            p = Rblock.ends_on(self, rline)
+            if p:
+                # Validate the number of exempted regions
+                self.__validate(len(self.enotes),
+                                self.value(p.group(1)),
+                                "exempted regions")
+
+                # Validate the total number of exempted violations
+                self.__validate(self.ecount_violations,
+                                self.value(p.group(2)),
+                                "exempted violations")
+            return p
+
+    def check_enote(self, rline, enote):
+
+        # Within an exempted region, if the "--all-messages" switch is ised
+        # we expect the exempted violations to still be displayed.
+        # Enote.kind being None means that rline could be one of those.
+
+        if enote.kind is None and self.all_messages:
+            exempted = False
+
+            # Check that rline does indeed correspond to an exempted
+            # violation. The report does not provide any information regarding
+            # their type. We can only check their number.
+
+            for key in self.exempted_notes:
+                if re.match(key, rline):
+                    self.ecount_violations += 1
+                    exempted = True
+                    break
+
+            if not exempted:
+                self.report_unexpected_enote(rline)
+
+            return None
+        else:
+            return enote
 
 
 class NCIchapter(Nchapter):
@@ -371,15 +459,22 @@ class SMRchapter(Rchapter):
     def try_match(self, sec, rline):
         p = re.match(self.skeys[sec], rline)
         if p:
-            sum_count = self.value(p.group(1))
-            sec_count = sec.ecount
-            thistest.fail_if(
-                sum_count != sec_count,
-                "summary count %d != section count %d for %s" % (
-                    sum_count, sec_count, sec.name))
-            thistest.fail_if(
-                len(sec.start_hits) != 1,
-                "summary found for section starts != 1 (%s)" % sec.name)
+            # If the check is done on the exempted regions chapter and the
+            # the "--all-messages" switch is used then the verification has
+            # to be done on the number of regions and the number of violations
+
+            if sec.name == 'EXEMPTED REGIONS':
+                sec.check_exempted_summary(sec, p)
+            else:
+                sum_count = self.value(p.group(1))
+                sec_count = sec.ecount
+                thistest.fail_if(
+                    sum_count != sec_count,
+                    "summary count %d != section count %d for %s" % (
+                        sum_count, sec_count, sec.name))
+                thistest.fail_if(
+                    len(sec.start_hits) != 1,
+                    "summary found for section starts != 1 (%s)" % sec.name)
             self.checked[sec] = True
 
     def try_parse(self, rline):
@@ -388,11 +483,20 @@ class SMRchapter(Rchapter):
                 self.try_match(sec, rline)
         return None
 
-    def check(self):
+    def check(self, all_messages=False):
         Rchapter.check(self)
 
         for sec in self.skeys:
+            # If "--all-messages" is used, the report will show the
+            # "OTHER ERRORS" section. This is expected and nothing is to be
+            # checked in it.
+
+            other_errors = (all_messages and
+                            len(sec.start_hits) == 1 and
+                            "OTHER ERRORS" in sec.start_hits[0])
+
             thistest.fail_if(
+                not other_errors and
                 len(sec.start_hits) > 0 and not self.checked[sec],
                 "summary count check missing for section %s" % sec.name)
 
@@ -418,7 +522,7 @@ class SMRchapter(Rchapter):
 # unexpected blocks:
 
 class Ublock(Rblock):
-    def check(self):
+    def check(self, all_messages=False):
         thistest.fail_if(
             len(self.start_hits) > 0,
             "Unexpected headers caught by %s:\n%s"
@@ -449,7 +553,7 @@ class Tchapter(Rchapter):
 # process a report:
 
 class RblockSet:
-    def __init__(self):
+    def __init__(self, all_messages=False):
 
         # We need a list of all the blocks to drive the report parsing
         # process, and a list of all the note blocks to setup the analysis
@@ -457,6 +561,10 @@ class RblockSet:
 
         self.noteblocks = []
         self.allblocks = []
+
+        # Is "--all-messages" used
+
+        self.all_messages = all_messages
 
         # Violation sections
 
@@ -500,24 +608,31 @@ class RblockSet:
         ni_notes = {
             "statement was not instrumented": sUndetCov,
             "decision was not instrumented"
-            " for decision coverage"       : dUndetCov,
+            " for decision coverage": dUndetCov,
             "decision was not instrumented"
-            " for MC/DC coverage"          : eUndetCov
+            " for MC/DC coverage": eUndetCov
         }
 
         self.noteblocks.append(
-            UCIchapter(re_start="UNDETERMINED COVERAGE ITEMS", re_notes=ni_notes))
+            UCIchapter(re_start="UNDETERMINED COVERAGE ITEMS",
+                       re_notes=ni_notes))
 
         # Exemptions regions
 
         xr_notes = {
             "0 exempted violation": xBlock0,
             r"[1-9]\d* exempted violation": xBlock1,
-            r"\d+ exempted violations?; [1-9]\d+ exempted undetermined"
+            r"\d+ exempted violations?; [1-9]\d+ exempted undetermined "
             r"coverage items?": xBlock2
         }
+
+        lvl_notes = stmt_notes | dc_notes | mcdc_notes
+        all_notes = nc_notes | ni_notes | lvl_notes
         self.noteblocks.append(
-            XREchapter(re_start="EXEMPTED REGIONS", re_notes=xr_notes))
+            XREchapter(re_start="EXEMPTED REGIONS",
+                       re_notes=xr_notes,
+                       exempted_notes=all_notes,
+                       all_messages=self.all_messages))
 
         # Other note blocks
 
@@ -551,9 +666,9 @@ class RblockSet:
                 return rs
         return None
 
-    def check(self):
+    def check(self, all_messages=False):
         for rs in self.allblocks:
-            rs.check()
+            rs.check(all_messages)
 
 
 class RnotesExpander:
@@ -564,13 +679,13 @@ class RnotesExpander:
         # We need to ignore everything not in the report sections
         # of interest, so until we know we're in ...
 
-        self.rset = RblockSet()
+        self.rset = RblockSet(self.all_messages)
         self.rs = None
 
         self.report = report
         Tfile(filename=self.report, process=self.process_tline)
 
-        self.rset.check()
+        self.rset.check(self.all_messages)
 
     def register(self, enote):
         source = enote.source
@@ -611,10 +726,15 @@ class RnotesExpander:
 
         return enote
 
-    def __init__(self, report):
+    def __init__(self, report, all_messages=False):
 
         # xcov --annotate=report produces a single report featuring a list of
         # indications for slocs in all the units.
 
         self.ernotes = {}
+
+        # True if the "--all-messages" switch is used. Its use changes what
+        # must be checked in case of exempted violations.
+
+        self.all_messages = all_messages
         self.to_enotes(report)

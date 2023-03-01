@@ -882,7 +882,16 @@ class SCOV_helper:
         # Checking that we do have the expected reports will be performed by
         # the regular coverage expectation assessments triggered below.
 
-        self.ernotes = RnotesExpander("test.rep").ernotes
+        # Check if the "--all-messages" switch is activated. In the case of
+        # exempted violations, its use causes the report to show different
+        # informations than would otherwise be expected and that needs to be
+        # checked.
+
+        all_messages = "--all-messages" in self.covoptions
+
+        self.ernotes = RnotesExpander(
+                        "test.rep",
+                        all_messages=all_messages).ernotes
 
         if self.covctl and self.covctl.xreports is not None:
             self.check_unexpected_reports()

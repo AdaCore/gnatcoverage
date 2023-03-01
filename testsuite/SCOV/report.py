@@ -251,7 +251,8 @@ class ReportChecker:
 
         if xregions:
             xmrHeader = Piece(pattern="EXEMPTED REGIONS", pre=pre)
-            xmrCount = Piece(pattern="([0-9]+|No) exempted region",
+            xmrCount = Piece(pattern="([0-9]+|No) exempted region[s]*, "
+                             "([0-9]+|No) exempted violation[s]*",
                              nexpected=-1,
                              pre=xmrHeader)
             self.__register(rpieces=[xmrHeader, xmrCount])
