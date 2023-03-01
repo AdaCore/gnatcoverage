@@ -628,9 +628,6 @@ package body Annotations.Dynamic_Html is
    is
       Statement : constant JSON_Value := Create_Object;
    begin
-      Clear (Pp.Current_Decisions);
-      Clear (Pp.Current_Conditions);
-
       Set_SCO_Fields (Statement, SCO, State);
 
       Append (Pp.Current_Statements, Statement);
