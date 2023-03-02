@@ -35,4 +35,5 @@ package GNATcov_RTS.Base_IO is
 
    procedure Put_Line (S : GNATcov_RTS_String);
    pragma Export (C, Entity => Put_Line, External_Name => "gnatcov_rts_puts");
+
 end GNATcov_RTS.Base_IO;

@@ -26,7 +26,7 @@
 
 with GNAT.IO;
 
-package body GNATcov_RTS.Base_Io is
+package body GNATcov_RTS.Base_IO is
 
    ---------
    -- Put --
@@ -47,4 +47,5 @@ package body GNATcov_RTS.Base_Io is
    begin
       GNAT.IO.Put_Line (Str);
    end Put_Line;
-end GNATcov_RTS.Base_Io;
+
+end GNATcov_RTS.Base_IO;
