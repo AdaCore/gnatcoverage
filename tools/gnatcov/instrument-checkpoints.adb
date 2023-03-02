@@ -16,12 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Diagnostics;    use Diagnostics;
-with Files_Table;    use Files_Table;
-with Outputs;        use Outputs;
-with SC_Obligations; use SC_Obligations;
-with Subprocesses;   use Subprocesses;
-with Types;          use Types;
+with Diagnostics;           use Diagnostics;
+with Files_Table;           use Files_Table;
+with Instrument.Base_Types; use Instrument.Base_Types;
+with Outputs;               use Outputs;
+with SC_Obligations;        use SC_Obligations;
+with Subprocesses;          use Subprocesses;
+with Types;                 use Types;
 
 package body Instrument.Checkpoints is
 
@@ -100,28 +101,28 @@ package body Instrument.Checkpoints is
 
       if not Version_Less (CLS, Than => 8) then
          declare
-            use SFI_To_PP_Cmd_Maps;
-            CP_PP_Cmds : Map;
+            CP_PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
             CP_SFI     : Source_File_Index;
          begin
-            Map'Read (CLS.Stream, CP_PP_Cmds);
+            SFI_To_PP_Cmd_Maps.Map'Read (CLS.Stream, CP_PP_Cmds);
 
             for CP_Cur in CP_PP_Cmds.Iterate loop
 
                --  If this source file is now ignored, just discard its
                --  preprocessing commands.
 
-               CP_SFI := Key (CP_Cur);
+               CP_SFI := SFI_To_PP_Cmd_Maps.Key (CP_Cur);
                if not SFI_Ignored (Relocs, CP_SFI) then
                   declare
                      SFI : constant Source_File_Index :=
                        Remap_SFI (Relocs, CP_SFI);
-                     Cur : constant Cursor := PP_Cmds.Find (SFI);
+                     Cur : constant SFI_To_PP_Cmd_Maps.Cursor :=
+                       PP_Cmds.Find (SFI);
                   begin
                      --  If there was no known preprocessing command for SFI so
                      --  far, just register the loaded one.
 
-                     if not Has_Element (Cur) then
+                     if not SFI_To_PP_Cmd_Maps.Has_Element (Cur) then
                         PP_Cmds.Insert (SFI, CP_PP_Cmds.Reference (CP_Cur));
 
                      --  Otherwise, warn if the already known command and the
