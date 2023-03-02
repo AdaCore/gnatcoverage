@@ -18,6 +18,7 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Vectors;
+with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -96,6 +97,12 @@ package body Annotations.Report is
 
    type Messages_Array is array (Report_Section) of Message_Vectors.Vector;
 
+   package Messages_Of_Exempted_Region is new
+     Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => Source_Location,
+        Element_Type => Message_Vectors.Vector,
+        "="          => Message_Vectors."=");
+
    package String_Vectors is
      new Ada.Containers.Vectors
        (Natural,
@@ -113,7 +120,8 @@ package body Annotations.Report is
       Current_Section : Natural := 0;
       --  Current section in final report
 
-      Exempted_Messages : Message_Vectors.Vector;
+      Exempted_Messages : Messages_Of_Exempted_Region.Map :=
+        Messages_Of_Exempted_Region.Empty_Map;
       --  Messages that have been covered by an exemption
 
       Exemption : Slocs.Source_Location := Slocs.No_Location;
@@ -299,6 +307,7 @@ package body Annotations.Report is
       Output : constant File_Access := Get_Output;
 
       Total_Exempted_Regions : Natural;
+      Total_Exempted_Violations : Natural := 0;
 
       function Has_Exempted_Region return Boolean;
       --  True iff there's at least one exempted region
@@ -310,6 +319,11 @@ package body Annotations.Report is
       --  Output all buffered messages of the given class in a section with the
       --  given title (section omitted if Title is empty). Item is the noun for
       --  the summary line counting messages in the section.
+
+      procedure Output_Message (C : Message_Vectors.Cursor);
+      --  Print M in the final report and update item count. The difference
+      --  with Pretty_Print_Message is that Put_Message does not tries to
+      --  know if the message should be exempted or not.
 
       procedure Output_Exemption (C : Cursor);
       --  Show summary information for exemption denoted by C
@@ -377,6 +391,55 @@ package body Annotations.Report is
       --  else Non_Exempted = "". Used to omit the mention "non-exempted" when
       --  there's no exemption in sight anyway.
 
+      --------------------
+      -- Output_Message --
+      --------------------
+
+      procedure Output_Message (C : Message_Vectors.Cursor) is
+         M     : Message renames Message_Vectors.Element (C);
+         Msg   : constant String := To_String (M.Msg);
+         First : Natural := Msg'First;
+      begin
+
+         --  For info messages (such as the messages displayed with
+         --  --show-mcdc-vectors), do not display the SCO, as it is only
+         --  used to attach the message to the right report location.
+
+         if M.Kind /= Info and then M.SCO /= No_SCO_Id then
+            Put
+              (Output.all, Image (First_Sloc (M.SCO), Unique_Name => True));
+            Put (Output.all, ": ");
+            if Msg (First) = '^' then
+               First := First + 1;
+            else
+               Put
+                 (Output.all,
+                  To_Lower (SCO_Kind'Image (Kind (M.SCO)))
+                  & (if Switches.Show_MCDC_Vectors
+                    and then Kind (M.SCO) = Condition
+                    then Index (M.SCO)'Image
+                    & " (" & SCO_Image (M.SCO) & ") "
+                    else " "));
+            end if;
+
+         else
+            Put (Output.all, Image (M.Sloc, Unique_Name => True));
+            Put (Output.all, ": ");
+         end if;
+
+         Output_Multiline_Msg
+           (Output => Output.all,
+            Text   => Msg (First .. Msg'Last));
+
+         if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
+            Put (Output.all,
+                 " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
+         end if;
+
+         New_Line (Output.all);
+         Output_Annotations (Output.all, SCO_Annotations (M.SCO));
+      end Output_Message;
+
       ----------------------
       -- Output_Exemption --
       ----------------------
@@ -431,6 +494,26 @@ package body Annotations.Report is
          Put_Line (Output.all, ", justification:");
          Put_Line (Output.all, E.Message.all);
 
+         if Switches.All_Messages then
+
+            New_Line (Output.all);
+
+            if Pp.Exempted_Messages.Is_Empty then
+               Put_Line (Output.all, "No exempted violations.");
+            else
+               Put_Line (Output.all, "Exempted violations:");
+
+               for C in Pp.Exempted_Messages (Sloc).Iterate loop
+                  Output_Message (C);
+
+                  if Message_Vectors.Element (C).Kind /= Info then
+                     Total_Exempted_Violations :=
+                       Total_Exempted_Violations + 1;
+                  end if;
+               end loop;
+            end if;
+         end if;
+
          Total_Exempted_Regions := Total_Exempted_Regions + 1;
       end Output_Exemption;
 
@@ -443,11 +526,6 @@ package body Annotations.Report is
          Title : String;
          Item  : String)
       is
-         procedure Output_Message (C : Message_Vectors.Cursor);
-         --  Print M in the final report and update item count. The difference
-         --  with Pretty_Print_Message is that Put_Message does not tries to
-         --  know if the message should be exempted or not.
-
          Item_Count : Natural := 0;
          --  Count of the number of violation / error messages for the current
          --  section.
@@ -456,62 +534,6 @@ package body Annotations.Report is
          --  Count of the number of messages (including info messages) for the
          --  current section.
 
-         --------------------
-         -- Output_Message --
-         --------------------
-
-         procedure Output_Message (C : Message_Vectors.Cursor) is
-            M     : Message renames Message_Vectors.Element (C);
-            Msg   : constant String := To_String (M.Msg);
-            First : Natural := Msg'First;
-
-         begin
-
-            --  For info messages (such as the messages displayed with
-            --  --show-mcdc-vectors), do not display the SCO, as it is only
-            --  used to attach the message to the right report location.
-
-            if M.Kind /= Info and then M.SCO /= No_SCO_Id then
-               Put
-                 (Output.all, Image (First_Sloc (M.SCO), Unique_Name => True));
-               Put (Output.all, ": ");
-               if Msg (First) = '^' then
-                  First := First + 1;
-               else
-                  Put
-                    (Output.all,
-                     To_Lower (SCO_Kind'Image (Kind (M.SCO)))
-                     & (if Switches.Show_MCDC_Vectors
-                       and then Kind (M.SCO) = Condition
-                       then Index (M.SCO)'Image
-                       & " (" & SCO_Image (M.SCO) & ") "
-                       else " "));
-               end if;
-
-            else
-               Put (Output.all, Image (M.Sloc, Unique_Name => True));
-               Put (Output.all, ": ");
-            end if;
-
-            Output_Multiline_Msg
-              (Output => Output.all,
-               Text   => Msg (First .. Msg'Last));
-
-            if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
-               Put (Output.all,
-                    " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
-            end if;
-
-            Msg_Count := Msg_Count + 1;
-
-            if M.Kind /= Info then
-               Item_Count := Item_Count + 1;
-            end if;
-
-            New_Line (Output.all);
-            Output_Annotations (Output.all, SCO_Annotations (M.SCO));
-         end Output_Message;
-
       --  Start of processing for Messages_For_Section
 
       begin
@@ -519,7 +541,15 @@ package body Annotations.Report is
             Pp.Section (Title);
          end if;
 
-         Pp.Nonexempted_Messages (MC).Iterate (Output_Message'Access);
+         for C in Pp.Nonexempted_Messages (MC).Iterate loop
+            Output_Message (C);
+
+            Msg_Count := Msg_Count + 1;
+
+            if Message_Vectors.Element (C).Kind /= Info then
+               Item_Count := Item_Count + 1;
+            end if;
+         end loop;
 
          if Msg_Count > 0 then
             New_Line (Output.all);
@@ -621,7 +651,10 @@ package body Annotations.Report is
          New_Line (Output.all);
          Put_Line
            (Output.all,
-            Pluralize (Total_Exempted_Regions, "exempted region") & ".");
+            Pluralize (Total_Exempted_Regions, "exempted region")
+            & ", "
+            & Pluralize (Total_Exempted_Violations, "exempted violation")
+            & ".");
       end if;
 
       Pp.Chapter ("ANALYSIS SUMMARY");
@@ -635,7 +668,10 @@ package body Annotations.Report is
       if Has_Exempted_Region then
          Put_Line
            (Output.all,
-            Pluralize (Total_Exempted_Regions, "exempted region") & ".");
+            Pluralize (Total_Exempted_Regions, "exempted region")
+            & ", "
+            & Pluralize (Total_Exempted_Violations, "exempted violation")
+            & ".");
       end if;
 
       if Pp.Dump_Units then
@@ -691,7 +727,35 @@ package body Annotations.Report is
          if M.Kind in Violation | Undetermined_Cov
            and then Pp.Exemption /= Slocs.No_Location
          then
-            Pp.Exempted_Messages.Append (M);
+
+            declare
+               use Messages_Of_Exempted_Region;
+
+               procedure Add_Message
+                 (Key     : Source_Location;
+                  Element : in out Message_Vectors.Vector);
+               --  Append a message to the message vector of Key
+
+               procedure Add_Message
+                 (Key     : Source_Location;
+                  Element : in out Message_Vectors.Vector)
+               is
+                  pragma Unreferenced (Key);
+               begin
+                  Element.Append (M);
+               end Add_Message;
+
+               C        : Cursor := Pp.Exempted_Messages.Find (Pp.Exemption);
+               Inserted : Boolean;
+            begin
+               if not Has_Element (C) then
+                  Pp.Exempted_Messages.Insert
+                    (Pp.Exemption, Message_Vectors.Empty_Vector, C, Inserted);
+               end if;
+
+               Pp.Exempted_Messages.Update_Element (C, Add_Message'Access);
+            end;
+
             if M.Kind = Violation then
                Inc_Violation_Exemption_Count (Pp.Exemption);
             else
