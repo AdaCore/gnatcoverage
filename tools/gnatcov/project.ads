@@ -27,6 +27,7 @@ with GNATCOLL.VFS;
 
 with Inputs;
 with Files_Table;
+with Strings;      use Strings;
 with Switches;     use Switches;
 with Traces_Files; use Traces_Files;
 
@@ -229,6 +230,9 @@ package Project is
      (Process : access procedure (Source_File : String))
       with Pre => Is_Project_Loaded;
    --  Call Process on each name in the Coverage'Ignored_Source_File attribute
+
+   function Runtime_Dirs return String_Vectors.Vector;
+   --  Return the list of runtime directories for the currently loaded project
 
    ----------------------------------------
    -- Raw accessors for the project tree --

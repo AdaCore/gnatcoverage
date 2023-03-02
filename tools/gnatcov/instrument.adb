@@ -34,13 +34,13 @@ with GNATCOLL.JSON;     use GNATCOLL.JSON;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with Libadalang.Analysis;
-with Libadalang.Project_Provider;
 
 with Checkpoints;
 with Coverage;
 with Files_Table;
 with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Ada_Unit;
+with Instrument.Ada_Unit_Provider;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Clean_Objdirs;
 with Instrument.C;
@@ -307,15 +307,12 @@ package body Instrument is
       Mains                : String_Vectors.Vector)
    is
       use Libadalang.Analysis;
+      use String_Vectors;
 
       --  First create the context for Libadalang
 
       Provider : constant Unit_Provider_Reference :=
-         Libadalang.Project_Provider.Create_Project_Unit_Provider
-           (Tree             => Project.Project,
-            Project          => Project.Project.Root_Project,
-            Env              => null,
-            Is_Project_Owner => False);
+        Instrument.Ada_Unit_Provider.Create_Provider_From_Project;
 
       --  Create the event handler, to report when Libadalang cannot read a
       --  required source file.

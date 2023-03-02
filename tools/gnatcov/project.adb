@@ -39,7 +39,6 @@ with Instrument.Base_Types; use Instrument.Base_Types;
 with Inputs;                use Inputs;
 with Outputs;               use Outputs;
 with Paths;                 use Paths;
-with Strings;               use Strings;
 
 package body Project is
 
@@ -1648,6 +1647,21 @@ package body Project is
             Recursive    => Standard.Switches.Recursive_Projects);
       end loop;
    end Enumerate_Ignored_Source_Files;
+
+   ------------------
+   -- Runtime_Dirs --
+   ------------------
+
+   function Runtime_Dirs return String_Vectors.Vector
+   is
+      Result : String_Vectors.Vector;
+   begin
+      for Dir of Project.Root_Project.Get_Environment.Predefined_Source_Path
+      loop
+         Result.Append (+(+Dir.Full_Name));
+      end loop;
+      return Result;
+   end Runtime_Dirs;
 
    --------------
    -- Finalize --
