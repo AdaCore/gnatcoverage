@@ -2333,6 +2333,10 @@ package body Instrument.Ada_Unit is
       return True;
    end Augmented_Expr_Function_Needs_Decl;
 
+   ----------------------------------------
+   -- Augmented_EF_Needs_Wrapper_Package --
+   ----------------------------------------
+
    function Augmented_EF_Needs_Wrapper_Package
      (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean is
    begin
