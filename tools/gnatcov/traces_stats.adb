@@ -111,11 +111,11 @@ package body Traces_Stats is
       --  1 line not covered out of 201+ lines will still result in 1% of non
       --  covered lines.
 
-      if Percentage = 100 and then (Part /= Total) then
+      if Percentage = 100 and then Part /= Total then
          Percentage := 99;
       end if;
 
-      if Percentage = 0 and then (Part /= 0) then
+      if Percentage = 0 and then Part /= 0 then
          Percentage := 1;
       end if;
 

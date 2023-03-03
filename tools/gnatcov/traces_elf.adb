@@ -3249,7 +3249,7 @@ package body Traces_Elf is
 
          if (Shdr.Sh_Flags and (SHF_ALLOC or SHF_EXECINSTR))
            = (SHF_ALLOC or SHF_EXECINSTR)
-           and then (Shdr.Sh_Type = SHT_PROGBITS)
+           and then Shdr.Sh_Type = SHT_PROGBITS
            and then Shdr.Sh_Size > 0
          then
             if Do_Reloc then
@@ -4097,8 +4097,8 @@ package body Traces_Elf is
 
                      if not Inserted
                           and then
-                        (Mapping_Symbol_Sets.Element (Position).Insn_Set
-                         /= Symbol.Insn_Set)
+                        Mapping_Symbol_Sets.Element (Position).Insn_Set
+                          /= Symbol.Insn_Set
                      then
                         raise Program_Error with
                           ("Inconsistent mapping symbols at "
@@ -4673,8 +4673,8 @@ package body Traces_Elf is
             and then Item.Last = Existing_Item.Last
             and then Item.Subprogram_Name /= null
             and then Existing_Item.Subprogram_Name /= null
-            and then (Item.Subprogram_Name.all
-                      = Existing_Item.Subprogram_Name.all)
+            and then Item.Subprogram_Name.all
+                     = Existing_Item.Subprogram_Name.all
          then
             Free (Item);
             Item := Existing_Item;
@@ -5053,9 +5053,9 @@ package body Traces_Elf is
 
             if Symbol /= null then
                if Addr = Symbol.First
-                    and then
-                  (Subprg = null or else (Subprg.Subprogram_Name.all
-                                            /= Symbol.Symbol_Name.all))
+                  and then (Subprg = null
+                            or else Subprg.Subprogram_Name.all
+                                    /= Symbol.Symbol_Name.all)
                then
                   Put ('<');
                   Put (Symbol.Symbol_Name.all);
@@ -5217,7 +5217,7 @@ package body Traces_Elf is
 
          if (Shdr.Sh_Flags and (SHF_ALLOC or SHF_EXECINSTR))
            = (SHF_ALLOC or SHF_EXECINSTR)
-           and then (Shdr.Sh_Type = SHT_PROGBITS)
+           and then Shdr.Sh_Type = SHT_PROGBITS
            and then Shdr.Sh_Size > 0
          then
             Shdr_Sets (Idx) := new Address_Info_Sets.Set;

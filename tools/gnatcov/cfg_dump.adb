@@ -1250,7 +1250,7 @@ package body CFG_Dump is
          Result : Unbounded_String;
       begin
          while Sloc /= No_Element
-           and then (PC in Element (Sloc).First .. Element (Sloc).Last)
+           and then PC in Element (Sloc).First .. Element (Sloc).Last
          loop
             Append
               (Result,
@@ -1455,8 +1455,8 @@ package body CFG_Dump is
                   exit;
 
                elsif Successors (BB.all).Length = 1
-                 and then (Successors (BB.all).First_Element.Kind in
-                               Fallthrough | Branch)
+                 and then Successors (BB.all).First_Element.Kind
+                          in Fallthrough | Branch
                then
                   declare
                      Successor : Successor_Record renames
