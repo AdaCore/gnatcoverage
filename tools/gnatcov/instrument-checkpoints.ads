@@ -16,8 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Checkpoints;           use Checkpoints;
-with Instrument.Base_Types; use Instrument.Base_Types;
+with Checkpoints; use Checkpoints;
 
 package Instrument.Checkpoints is
 
