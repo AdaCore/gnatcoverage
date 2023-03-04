@@ -32,7 +32,7 @@ To illustrate, let us consider a common assertion control procedure in Ada:
 
    procedure Eassert (T : Boolean) is
    begin
-      pragma Annotate (Xcov, Exempt_On, "assert condition is never False");
+      pragma Annotate (Xcov, Exempt_On, "assert condition never to be False");
       if not T then
          raise Program_Error;
       end if;
@@ -61,7 +61,7 @@ block:
 
   void
   assert (bool x){
-   // GNATCOV_EXEMPT_ON "assert condition is never false"
+   // GNATCOV_EXEMPT_ON "assert condition never to be False"
     if (!x)
       abort();
    // GNATCOV_EXEMPT_OFF
@@ -113,7 +113,7 @@ region as a whole, and the indications for all the regions are grouped in a
 separate *Exempted Regions* report section, only present if there are
 exemption regions in the analysis scope. This section lists the exempted
 regions, displaying for each the source location span, the number of actually
-exempted violations in the region, and the exemption justification text. It
+exempted violations in the region and the exemption justification text. It
 also includes a total count of the number of exempted regions at the end.
 
 The corresponding :cmd-option:`=report` excerpt below illustrates this for the
@@ -125,7 +125,7 @@ The corresponding :cmd-option:`=report` excerpt below illustrates this for the
    =========================
 
    eassert.adb:8:4-12:4: 2 exempted violations, justification:
-   assert condition never to be False
+   "assert condition never to be False"
 
    1 exempted region.
 
@@ -136,6 +136,32 @@ The corresponding :cmd-option:`=report` excerpt below illustrates this for the
    No non-exempted STMT violation.
    No non-exempted DECISION violation.
    1 exempted region.
+
+It is possible to display the exempted violations to let the user check that
+they match the expected ones. This can be done by using the
+:cmd-option:`--all-messages` switch. That way, the report will show the
+previously mentionned information along with the observed violations under
+their corresponding exempted block, and the total number of exempted violations
+found across all exempted regions.
+
+The :cmd-option:`=report` excerpt below produced while
+:cmd-option:`--all-messages` is used illustrates this for the ``Eassert``
+example::
+
+   ...
+   =========================
+   == 3. EXEMPTED REGIONS ==
+   =========================
+
+   eassert.adb:8:4-12:4: 2 exempted violations, justification:
+   "assert condition never to be False"
+
+   Exempted violations:
+   eassert.adb:8:4: decision outcome TRUE never exercised
+   eassert.adb:9:8: statement not executed
+
+   1 exempted region, 2 exempted violations.
+   ...
 
 The *Coverage Violations* section is renamed to convey that it contains
 "NON-EXEMPTED" violations only, and the *Analysis Summary* counters are
