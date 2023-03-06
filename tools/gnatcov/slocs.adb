@@ -80,7 +80,7 @@ package body Slocs is
    function "<" (L, R : Source_Location_Range) return Boolean is
      (L.Source_File < R.Source_File
        or else
-     (L.Source_File = R.Source_File and then (L.L < R.L)));
+      (L.Source_File = R.Source_File and then L.L < R.L));
 
    ----------
    -- "<=" --
