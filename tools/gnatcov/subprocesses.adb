@@ -16,19 +16,44 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Strings;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 with GNAT.Strings; use GNAT.Strings;
 
-with GNATCOLL.OS.FS;      use GNATCOLL.OS.FS;
-with GNATCOLL.OS.Process; use GNATCOLL.OS.Process;
+with GNATCOLL.Mmap;  use GNATCOLL.Mmap;
+with GNATCOLL.OS.FS; use GNATCOLL.OS.FS;
 with GNATCOLL.OS.Process_Types;
 
 with Outputs;  use Outputs;
+with Paths;    use Paths;
 with Switches; use Switches;
 
 package body Subprocesses is
+
+   function Run_Command
+     (Command             : String;
+      Arguments           : String_Vectors.Vector;
+      Origin_Command_Name : String;
+      Environment         : String_Maps.Map := Empty_Environment;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
+      In_To_Null          : Boolean := False;
+      Ignore_Error        : Boolean := False) return Process_Handle;
+   --  Overload to run asynchronously a command
+
+   function Wait_And_Finalize (Self : in out Process_Pool) return Positive;
+   --  Wait for a process to terminate and handle its output. Return the id in
+   --  Self for the process that terminated.
+
+   procedure Check_Status
+     (Success             : Boolean;
+      Ignore_Error        : Boolean;
+      Command             : String;
+      Origin_Command_Name : String);
+   --  If Ignore_Error is False and Success is False, raise a Fatal_Error
 
    ---------
    -- "=" --
@@ -63,6 +88,28 @@ package body Subprocesses is
    begin
       Cmd.Arguments.Append_Vector (Args);
    end Append_Args;
+
+   ------------------
+   -- Check_Status --
+   ------------------
+
+   procedure Check_Status
+     (Success             : Boolean;
+      Ignore_Error        : Boolean;
+      Command             : String;
+      Origin_Command_Name : String) is
+   begin
+      if not Ignore_Error and then not Success then
+         Fatal_Error (Origin_Command_Name & " failed: aborting");
+
+      elsif Verbose then
+         if Success then
+            Put_Line (Command & " finished");
+         else
+            Error (Origin_Command_Name & " failed");
+         end if;
+      end if;
+   end Check_Status;
 
    -----------------
    -- Run_Command --
@@ -145,12 +192,38 @@ package body Subprocesses is
       In_To_Null          : Boolean := False;
       Ignore_Error        : Boolean := False) return Boolean
    is
+      Handle  : constant Process_Handle := Run_Command
+        (Command,
+         Arguments,
+         Origin_Command_Name,
+         Environment,
+         Output_File,
+         Err_To_Out,
+         Out_To_Null,
+         In_To_Null,
+         Ignore_Error);
+      Success : constant Boolean := Wait (Handle) = 0;
+   begin
+      Check_Status (Success, Ignore_Error, Command, Origin_Command_Name);
+      return Success;
+   end Run_Command;
+
+   function Run_Command
+     (Command             : String;
+      Arguments           : String_Vectors.Vector;
+      Origin_Command_Name : String;
+      Environment         : String_Maps.Map := Empty_Environment;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
+      In_To_Null          : Boolean := False;
+      Ignore_Error        : Boolean := False) return Process_Handle
+   is
       package Process_Types renames GNATCOLL.OS.Process_Types;
 
       Program : String_Access;
       Env     : Process_Types.Environ;
       Args    : Process_Types.Arguments;
-      Success : Boolean;
    begin
       if Out_To_Null and then Output_File /= "" then
          raise Program_Error;
@@ -162,7 +235,7 @@ package body Subprocesses is
       if Program = null then
          Error (Origin_Command_Name & ": cannot find "
                 & Command & " on your path");
-         return False;
+         return Invalid_Handle;
       end if;
 
       --  Instantiate environment variables
@@ -209,7 +282,7 @@ package body Subprocesses is
          Stdin          : constant File_Descriptor :=
            (if In_To_Null then Null_FD else Standin);
          Stdout, Stderr : File_Descriptor;
-         Status         : Integer;
+         Handle         : Process_Handle;
 
          Redirect_Stdout : constant Boolean := Output_File /= "";
       begin
@@ -227,32 +300,180 @@ package body Subprocesses is
          end if;
          Stderr := (if Err_To_Out then Stdout else Standerr);
 
-         Status := Run
+         Handle := Start
            (Args   => Args,
             Env    => Env,
             Stdin  => Stdin,
             Stdout => Stdout,
             Stderr => Stderr);
-         Success := Status = 0;
 
          Process_Types.Deallocate (Args);
          Process_Types.Deallocate (Env);
          if Redirect_Stdout then
             Close (Stdout);
          end if;
+         return Handle;
       end;
-
-      if not Ignore_Error and then not Success then
-         Fatal_Error (Origin_Command_Name & " failed: aborting");
-
-      elsif Verbose then
-         if Success then
-            Put_Line (Command & " finished");
-         else
-            Error (Origin_Command_Name & " failed");
-         end if;
-      end if;
-      return Success;
    end Run_Command;
+
+   -----------------------
+   -- Wait_And_Finalize --
+   -----------------------
+
+   function Wait_And_Finalize (Self : in out Process_Pool) return Positive
+   is
+      Terminated_Process : Process_Handle := Invalid_Handle;
+      Id                 : Positive;
+      --  Terminated process
+
+      Success : Boolean;
+      --  Status of the process that terminated
+
+   begin
+      while Terminated_Process = Invalid_Handle loop
+
+         --  Wait until one process terminates. TODO??? W222-016: replace the
+         --  magic constant with Duration'Last once GNATCOLL.OS.Processes is
+         --  fixed.
+
+         Terminated_Process := Wait_For_Processes (Self.Handles, 1000.0);
+      end loop;
+
+      Self.Nb_Running_Processes := Self.Nb_Running_Processes - 1;
+
+      --  Find the id of the process that terminated
+
+      for I in Self.Handles'Range loop
+         if Self.Handles (I) = Terminated_Process then
+            Id := I;
+         end if;
+      end loop;
+
+      --  Get its termination status
+
+      Success := Wait (Self.Handles (Id)) = 0;
+
+      --  Dump the output of the process that terminated to stdout if it was
+      --  not redirected to a file.
+
+      if Self.Process_Infos (Id).Output_To_Stdout then
+         declare
+            Output_File : Mapped_File;
+            Region      : Mapped_Region;
+            Str         : Str_Access;
+            Str_Last    : Natural := Last (Region);
+         begin
+            Output_File := Open_Read (+Self.Process_Infos (Id).Output_File);
+            Region := Read (Output_File);
+            Str := Data (Region);
+
+            --  The finalization of Ada.Text_IO always emits a newline after a
+            --  call to Put. To avoid redundant line breaks in this situation,
+            --  do not pass that newline to Put and call New_Line instead.
+
+            if Str_Last > 0 and then Str (Str_Last) = ASCII.LF then
+               Str_Last := Str_Last - 1;
+            end if;
+            Put (Str (1 .. Str_Last));
+            New_Line;
+
+            Free (Region);
+            Close (Output_File);
+         end;
+      end if;
+
+      --  If the subprocess terminated with an error, deal with it here
+
+      Check_Status
+        (Success,
+         Self.Process_Infos (Id).Ignore_Error,
+         +Self.Process_Infos (Id).Command,
+         +Self.Process_Infos (Id).Origin_Command_Name);
+      return Id;
+   end Wait_And_Finalize;
+
+   -----------------
+   -- Run_Command --
+   -----------------
+
+   procedure Run_Command
+     (Pool                : in out Process_Pool;
+      Command             : String;
+      Arguments           : String_Vectors.Vector;
+      Origin_Command_Name : String;
+      Environment         : String_Maps.Map := Empty_Environment;
+      Output_File         : String := "";
+      Err_To_Out          : Boolean := True;
+      Out_To_Null         : Boolean := False;
+      In_To_Null          : Boolean := False;
+      Ignore_Error        : Boolean := False)
+   is
+      Id : Positive;
+      --  Identifier of the process in the process pool (i.e. its index in
+      --  the Pool.Handles process array).
+
+   begin
+      --  If the process pool is full, wait for the first completion to occur
+      --  and create the new process to replace it. Otherwise we just started
+      --  to fill it: use the next available slot.
+
+      if Pool.Nb_Running_Processes = Pool.Parallelism_Level then
+         Id := Pool.Wait_And_Finalize;
+      else
+         Id := Pool.Nb_Running_Processes + 1;
+      end if;
+
+      --  Fill the information relative to this command that we will need
+      --  when it terminates.
+
+      Pool.Process_Infos (Id).Ignore_Error := Ignore_Error;
+      Pool.Process_Infos (Id).Output_File := +Output_File;
+      Pool.Process_Infos (Id).Origin_Command_Name := +Origin_Command_Name;
+      Pool.Process_Infos (Id).Command := +Command;
+
+      Pool.Handles (Id) := Run_Command
+        (Command,
+         Arguments,
+         Origin_Command_Name,
+         Environment,
+
+         --  Redirect the output to a temporary file to avoid mangling on the
+         --  standard output. The dump of the output is done in
+         --  Wait_And_Finalize, through a later call to Run_Command, or
+         --  through the finalization of the process pool.
+
+         (if Output_File = ""
+          then Pool.Output_Dir.Directory_Name / "job-"
+               & Strings.Img (Id) & ".txt"
+          else Output_File),
+         Err_To_Out   => Output_File = "",
+         Out_To_Null  => Out_To_Null,
+         In_To_Null   => In_To_Null,
+         Ignore_Error => Ignore_Error);
+      Pool.Nb_Running_Processes := Pool.Nb_Running_Processes + 1;
+   end Run_Command;
+
+   ----------------
+   -- Initialize --
+   ----------------
+
+   procedure Initialize (Pool : in out Process_Pool) is
+   begin
+      Create_Temporary_Directory (Pool.Output_Dir, "gnatcov_outputs");
+      Pool.Nb_Running_Processes := 0;
+   end Initialize;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   overriding procedure Finalize (Self : in out Process_Pool)
+   is
+      Dummy : Positive;
+   begin
+      while Self.Nb_Running_Processes /= 0 loop
+         Dummy := Wait_And_Finalize (Self);
+      end loop;
+   end Finalize;
 
 end Subprocesses;

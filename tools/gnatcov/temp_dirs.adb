@@ -49,7 +49,7 @@ package body Temp_Dirs is
    begin
       if Verbose then
          Put_Line
-           ("Creating temporary build directory: " & Name);
+           ("Creating temporary directory: " & Name);
       end if;
 
       --  In directory creation fails and we raise an exception, make sure to

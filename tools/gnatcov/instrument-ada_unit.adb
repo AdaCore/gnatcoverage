@@ -2333,11 +2333,15 @@ package body Instrument.Ada_Unit is
       return True;
    end Augmented_Expr_Function_Needs_Decl;
 
+   ----------------------------------------
+   -- Augmented_EF_Needs_Wrapper_Package --
+   ----------------------------------------
+
    function Augmented_EF_Needs_Wrapper_Package
      (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean is
    begin
       return Common_Nodes.Ctrl_Type /= No_Base_Type_Decl
-        and then (not Common_Nodes.N_Spec.P_Return_Type.Is_Null)
+        and then not Common_Nodes.N_Spec.P_Return_Type.Is_Null
         and then Common_Nodes.N_Spec.P_Return_Type = Common_Nodes.Ctrl_Type;
 
    exception
