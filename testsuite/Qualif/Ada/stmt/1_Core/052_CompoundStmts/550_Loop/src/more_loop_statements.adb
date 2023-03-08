@@ -36,13 +36,6 @@ package body More_LOOP_Statements is
    end Change_Char;
 
 begin
-   Idx := Identity (1);                              --# elab
-
-   while Idx <= Identity (10) loop                   --# elab
-      Global_Sample (Idx) := Level (Identity (Idx)); --# elab
-      Idx := Idx + 1;                                --# elab
-   end loop;
-
    for J in Global_String'Range loop                 --# elab
       Global_String (J) := Character'Val (J);        --# elab
    end loop;

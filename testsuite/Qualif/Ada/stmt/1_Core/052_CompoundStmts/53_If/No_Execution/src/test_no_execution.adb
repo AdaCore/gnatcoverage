@@ -45,7 +45,3 @@ end Test_No_Execution;
 -- /max/         l- ## s-
 -- /ifmax/       l- ## s-
 --  /elsemax/    l- ## s-
--- /elab/        l+ ## 0
--- /gt0elab/     l+ ## 0
--- /notgt0elab/  l- ## s-
--- /eq0elabeq0/  l- ## s-

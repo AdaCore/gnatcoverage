@@ -1262,7 +1262,8 @@ class TestSuite(e3.testsuite.Testsuite):
             self._qualif_level_discriminants() +
             self._cargs_discriminants() +
             self._rts_discriminants() +
-            self._toolchain_discriminants())
+            self._toolchain_discriminants() +
+            self._gnatcov_discriminants())
 
     def _base_discriminants(self):
 
@@ -1389,6 +1390,15 @@ class TestSuite(e3.testsuite.Testsuite):
              re.search(r"GNAT Pro (5.04a1)", gcc_version))
 
         return [m.group(1)] if m else []
+
+    def _gnatcov_discriminants(self):
+        """
+        Compute the discriminant that reflects the version of the
+        particular gnatcov in use.
+        """
+
+        return ["gnatcov-{}".format(control.gnatcov_info().major)]
+
 
     # --------------------------
     # -- Command-line options --

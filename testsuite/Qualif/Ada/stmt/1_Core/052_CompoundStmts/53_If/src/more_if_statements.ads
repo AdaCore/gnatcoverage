@@ -1,11 +1,8 @@
 --  Contains routines with different forms of IF statements in different kinds
---  of program units. The body contains IF statement is an elaboration
---  statement sequence
+--  of program units.
 
 package More_IF_Statements is
    pragma Elaborate_Body;
-
-   Global_Var : Integer;
 
    procedure Set_Prime_Number
      (Res : out Natural;

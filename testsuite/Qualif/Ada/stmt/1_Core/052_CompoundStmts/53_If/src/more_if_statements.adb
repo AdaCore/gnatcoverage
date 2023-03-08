@@ -44,15 +44,5 @@ package body More_IF_Statements is
       return Result;                 -- # max
    end Max_From_Two;
 
-begin
-
-   Global_Var := Identity (1);       -- # elab
-
-   if Global_Var > 0 then            -- # elab
-      Global_Var := Global_Var + 10; -- # gt0elab
-   elsif Global_Var = 0 then         -- # notgt0elab
-      Global_Var := Identity (100);  -- # eq0elabeq0
-   end if;
-
 end More_IF_Statements;
 
