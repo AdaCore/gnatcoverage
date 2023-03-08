@@ -8,7 +8,7 @@ statements.
 
 For each variant, check a variety of situations where
 
-* No exception gets raised at all
+* No exception gets raised at all,
 
 * An exception gets raised as part of all the evaluation attempts,
   on the first or the last operand evaluation,
@@ -16,7 +16,7 @@ For each variant, check a variety of situations where
 * An exception would be raised by one operand but is not because of
   the shortcircuit semantics,
 
-* An exception is raised by some evaluation but not others
+* An exception is raised by some evaluation but not others.
 
 
 .. qmlink:: TCIndexImporter
