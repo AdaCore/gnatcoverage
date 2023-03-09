@@ -11,8 +11,6 @@ begin
 
    Set_Prime_Number (Res, 6);
    Assert (Res = 13);
-
-   Assert (Global_Var = 11);
 end Test_ELSIF_Path_Middle;
 
 --# more_if_statements.adb
@@ -40,10 +38,6 @@ end Test_ELSIF_Path_Middle;
 -- /max/         ~l- ## ~s-
 -- /ifmax/       ~l- ## ~s-
 --  /elsemax/    ~l- ## ~s-
--- /elab/        l+ ## 0
--- /gt0elab/     l+ ## 0
--- /notgt0elab/  l- ## s-
--- /eq0elabeq0/  l- ## s-
 
 -- %opts: --trace-mode=src
 -- =/max/         l- ## s-

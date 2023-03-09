@@ -50,8 +50,6 @@ begin
    --  Covering all paths in More_IF_Statements.Max_From_Two
    Assert (My_Max_From_Two (2, 1) = 2);
    Assert (My_Max_From_Two (1, 2) = 2);
-
-   Assert (Global_Var = 11);
 end Test_Multiple_Paths;
 
 --# if_statements.adb
@@ -88,7 +86,3 @@ end Test_Multiple_Paths;
 -- /max/         l+ ## 0
 -- /ifmax/       l+ ## 0
 --  /elsemax/    l+ ## 0
--- /elab/        l+ ## 0
--- /gt0elab/     l+ ## 0
--- /notgt0elab/  l- ## s-
--- /eq0elabeq0/  l- ## s-

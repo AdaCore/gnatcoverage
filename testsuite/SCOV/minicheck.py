@@ -20,12 +20,11 @@ from SCOV.instr import (default_dump_channel, xcov_convert_base64,
 from SUITE.cutils import contents_of, indent
 from SUITE.tutils import (
     exepath_to, gprbuild, run_cov_program, srctrace_pattern_for,
-    srctracename_for, thistest, tracename_for, xcov, xrun
+    srctracename_for, thistest, tracename_for, xcov, xrun, GNATCOV_INFO
 )
 
 
 COV_RE = re.compile(r'^ *(\d+) (.):.*$')
-
 
 def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
@@ -212,14 +211,17 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                         auto_languages=auto_languages)
         gprbuild_wrapper(gprsw.root_project)
 
-        # If an explicit dump channel was requested, check that "gnatcov
-        # instrument" used it. In case it was implicit, get the one that was
-        # used.
+        # Retrieve the dump_channel that "gnatcov instrument" actually used,
+        # when available. It could be unavailable when either
         #
-        # The mode in which we do not register failures is tricky: in this case
-        # we may not have an actual dump channel because instrumentation did
-        # not complete. In that case we cannot use source traces, but we must
-        # build and run programs nonetheless.
+        # - the version of gnatcov we run doesn't dump the parameters it
+        #   used (older than the introduction of gnatcov setup, typically
+        #   in qualification contexts),
+        #
+        # - or we are called in a context causing a failure on purpose
+        #   (register_failure False), at a point before gnatcov has dumped
+        #   the parameters.
+
         params_file_dir = gpr_obj_dir
         if gprsw.subdirs:
             params_file_dir = os.path.join(params_file_dir, gprsw.subdirs)
@@ -227,23 +229,47 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         try:
             f = open(params_file)
         except FileNotFoundError:
-            if register_failure:
-                raise
-            else:
-                actual_dump_channel = None
+            actual_dump_channel = None
         else:
             with f:
                 params = json.load(f)
             actual_dump_channel = params["dump-channel"]
 
-        if dump_channel in (None, "auto"):
-            dump_channel = actual_dump_channel
-        elif dump_channel and actual_dump_channel:
-            thistest.fail_if_not_equal(
-                "actual dump channel", dump_channel, actual_dump_channel
-            )
+        # Fail if we expected to be able to retrieve the dump channel
+        # actually used, but don't have it:
+        thistest.fail_if(
+            register_failure and GNATCOV_INFO.has_setup
+            and actual_dump_channel is None,
+            "Unable to retrieve actual dump_channel from {}".format(
+                params_file)
+        )
 
-        # Then execute each main and collect trace files
+        # At this point, dump_channel is either None (request not to pass an
+        # argument at all), or a meaningful value that was passed to gnatcov
+        # instrument, possibly inferred from an "auto" selection at our level.
+
+        # If an explicit dump channel was provided to gnatcov instrument and
+        # we have the actual dump channel used, the two should be consistent:
+        thistest.fail_if(
+            dump_channel and actual_dump_channel
+            and dump_channel != actual_dump_channel,
+            "requested dump_channel ({}) != actual ({})".format(
+                dump_channel, actual_dump_channel
+            )
+        )
+
+        # Now execute each main and collect the trace files we can. Tests
+        # triggering instrumentation failures on purpose are not guaranteed to
+        # produce a trace.
+
+        # See if we know the dump-channel that was used. Sometimes we don't,
+        # e.g. from a test failing to instrument or from a test requesting not
+        # to pass a dump-channel switch (dump_channel None) with a pre-setup
+        # version of gnatcov that would fallback to a default but not dump the
+        # parameters it used.
+
+        known_channel = dump_channel or actual_dump_channel
+
         trace_files = []
         for m in mains:
             # Remove potential existing source trace files: the name is
@@ -256,30 +282,39 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                             register_failure=register_failure,
                             exec_args=exec_args)
 
-            # Depending on the dump channel, we also may have to create the
-            # trace file. If we could not determine the actually used dump
-            # channel (see above), do not collect the trace file.
-            if dump_channel is None:
-                continue
+            # See if we have a trace file at hand or if could create one from
+            # a base64 trace in the output. Operate best effort here, simply
+            # gathering what we can.
 
-            elif dump_channel == 'bin-file':
-                trace_file = srctracename_for(m,
-                                              register_failure=register_failure)
-                if trace_file is None:
-                    continue
+            # The possible combinations of gnatcov versions and project file
+            # contents associated with dump_channel None on entry together
+            # with tests checking for some kinds of failures on purpose make
+            # it very tricky to determine what we actually expect at this
+            # particular spot.
+            #
+            # Encoding that logic here is not worth the effort/complexity;
+            # simply assume that if we fail to get a trace when our context
+            # expects one, there will be some kind of test failure afterwards.
 
-            elif dump_channel == 'base64-stdout':
-                # Create a trace name that is compatible with srctracename_for
+            trace_file = None
+
+            if known_channel in [None, "bin-file"]:
+                trace_file = srctracename_for(m, register_failure=False)
+
+            if (not trace_file
+                and (known_channel == "base64-stdout"
+                     or "source trace file ==" in contents_of(out_file))
+            ):
+                # Pick a trace name that is compatible with srctracename_for
                 trace_file = srctrace_pattern_for(m).replace("*", "unique")
 
+                # Here we're really supposed to have a trace in the output
+                # so we can be a tad stricter on the conversion outcome.
                 xcov_convert_base64(out_file, trace_file,
                                     register_failure=register_failure)
 
-            else:
-                raise ValueError('Invalid dump channel: {}'
-                                 .format(dump_channel))
-
-            trace_files.append(abspath(trace_file))
+            if trace_file:
+                trace_files.append(abspath(trace_file))
 
         xcov_args.extend(cov_or_instr_args)
 

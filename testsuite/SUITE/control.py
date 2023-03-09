@@ -9,7 +9,7 @@ from e3.env import Env
 from e3.fs import rm
 from e3.os.process import Run
 
-from SUITE.cutils import no_ext
+from SUITE.cutils import no_ext, version
 
 
 env = Env()
@@ -282,7 +282,15 @@ class RuntimeInfo(object):
     @property
     def gnatcov_rts_project(self):
         """Name of the gnatcov_rts project to use in instrumented projects."""
-        return 'gnatcov_rts'
+
+        # gnatcov_rts_full and gnatcov_rts were merged with the introduction
+        # of gnatcov setup.
+
+        return (
+            'gnatcov_rts_full' if (
+                self.has_full_runtime and not gnatcov_info().has_setup)
+            else 'gnatcov_rts'
+        )
 
 
 def runtime_info(runtime=None):
@@ -346,6 +354,18 @@ def target_info(target=None):
         if re.match(pattern=re_target, string=target):
             return TARGETINFO[re_target]
 
+
+class GnatcovInfo:
+    def __init__(self):
+        self.major = int(
+            re.search(
+                pattern="GNATcoverage (\d+)",
+                string=version("gnatcov")
+            ).group(1))
+        self.has_setup = self.major >= 23
+
+def gnatcov_info():
+    return GnatcovInfo()
 
 # Allowed pairs for the --gnatcov-<cmd> family of command line options:
 ALTRUN_GNATCOV_PAIRS = (('gnatcov', 'run'), )

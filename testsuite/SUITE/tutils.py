@@ -34,6 +34,7 @@ from SUITE.cutils import FatalError, contents_of, text_to_file, to_list
 
 TARGET_INFO = control.target_info()
 RUNTIME_INFO = control.runtime_info()
+GNATCOV_INFO = control.gnatcov_info()
 
 XCOV = xcov_pgm(thistest.options.auto_arch)
 VALGRIND = 'valgrind' + env.host.os.exeext

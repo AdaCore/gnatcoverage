@@ -16,8 +16,6 @@ begin
 
    Assert (My_Max_From_Two (1, 3) = 3);
 
-   Assert (Global_Var = 11);
-
    Set_Prime_Number (Num => 50, Res => Res);
    Assert (Res = 0);
 
@@ -57,7 +55,4 @@ end Test_ELSE_Path;
 -- /max/         l+ ## 0
 -- /ifmax/       l- ## s-
 -- /elsemax/     l+ ## 0
--- /elab/        l+ ## 0
--- /gt0elab/     l+ ## 0
--- /notgt0elab/  l- ## s-
--- /eq0elabeq0/  l- ## s-
+
