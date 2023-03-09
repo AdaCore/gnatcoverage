@@ -567,6 +567,16 @@ class TestPyRunner:
         if mopt.all_warnings:
             testcase_cmd.append('--all-warnings')
 
+        if mopt.default_dump_trigger:
+            testcase_cmd.append(
+                f'--default-dump-trigger={mopt.default_dump_trigger}'
+            )
+
+        if mopt.default_dump_channel:
+            testcase_cmd.append(
+                f'--default-dump-channel={mopt.default_dump_channel}'
+            )
+
         # --gnatcov_<cmd> family
 
         for pgm, cmd in control.ALTRUN_GNATCOV_PAIRS:

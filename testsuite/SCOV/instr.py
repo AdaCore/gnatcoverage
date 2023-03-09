@@ -12,7 +12,9 @@ from SUITE.tutils import RUNTIME_INFO, GNATCOV_INFO, xcov
 
 def default_dump_trigger(mains):
     """Return the default dump trigger to use in testcases."""
-    if RUNTIME_INFO.has_full_runtime:
+    if thistest.options.default_dump_trigger:
+        return thistest.options.default_dump_trigger
+    elif RUNTIME_INFO.has_full_runtime:
         return 'atexit'
 
     # It does not make sense to have a dump-trigger=ravenscar-task-termination
@@ -26,7 +28,9 @@ def default_dump_trigger(mains):
 
 def default_dump_channel():
     """Return the default dump channel to use in testcases."""
-    if RUNTIME_INFO.has_full_runtime:
+    if thistest.options.default_dump_channel:
+        return thistest.options.default_dump_channel
+    elif RUNTIME_INFO.has_full_runtime:
         return 'bin-file'
     else:
         return 'base64-stdout'
