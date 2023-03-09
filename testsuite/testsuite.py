@@ -1396,8 +1396,13 @@ class TestSuite(e3.testsuite.Testsuite):
         Compute the discriminant that reflects the version of the
         particular gnatcov in use.
         """
+        gnatcov_info = control.gnatcov_info()
 
-        return ["gnatcov-{}".format(control.gnatcov_info().major)]
+        return (
+            ["gnatcov-{}".format(gnatcov_info.major())]
+            if gnatcov_info.major()
+            else []
+        )
 
 
     # --------------------------

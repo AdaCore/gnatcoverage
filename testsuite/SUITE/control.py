@@ -357,12 +357,36 @@ def target_info(target=None):
 
 class GnatcovInfo:
     def __init__(self):
-        self.major = int(
-            re.search(
+        p = re.search(
                 pattern="GNATcoverage (\d+)",
                 string=version("gnatcov")
-            ).group(1))
-        self.has_setup = self.major >= 23
+            )
+        self._major = int(p.group(1)) if p else None
+        self.has_setup = self.major_at_least(23)
+
+
+    def major_at_most(self, val):
+        """
+        Returns whether the major version of gnatcov is less or equal than
+        val. Consider that development versions of gnatcov have a greater
+        major version than anything.
+        """
+        return self._major is not None and self._major <= val
+
+    def major_at_least(self, val):
+        """
+        Returns whether the major version of gnatcov is greater or equal than
+        val. Consider that development versions of gnatcov have a greater
+        major version than anything.
+        """
+        return self._major is None or self._major >= val
+
+    def major(self):
+        """
+        Major of gnatcov, if defined, or None if gnatcov is a development
+        version.
+        """
+        return self._major
 
 def gnatcov_info():
     return GnatcovInfo()
