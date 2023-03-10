@@ -33,7 +33,7 @@ from SCOV.instr import (add_last_chance_handler, default_dump_channel,
                         xcov_instrument)
 
 from SUITE.context import thistest
-from SUITE.control import language_info
+from SUITE.control import language_info, runtime_info
 from SUITE.cutils import ext, to_list, list_to_file, match, no_ext
 from SUITE.cutils import contents_of, lines_of
 from SUITE.gprutils import GPRswitches
@@ -1301,6 +1301,7 @@ class SCOV_helper_src_traces(SCOV_helper):
             covlevel=self.xcovlevel,
             extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
             dump_channel=self.dump_channel,
+            dump_trigger=self.dump_trigger,
             gprsw=instrument_gprsw,
             gpr_obj_dir=self.gpr_obj_dir,
             out=out)
@@ -1309,7 +1310,8 @@ class SCOV_helper_src_traces(SCOV_helper):
         # trigger will not work when the test driver ends with an unhandled
         # exception. To workaround that, force the dump in the last chance
         # handler.
-        if default_dump_trigger(self.drivers) == 'main-end':
+        if (self.dump_trigger == 'main-end'
+            and not runtime_info().has_exception_propagation):
             # The only tests with multiple drivers are consolidation ones,
             # which compute consolidated coverage reports from data obtained
             # in previously executed tests (trace files or checkpoints). These
@@ -1373,3 +1375,8 @@ class SCOV_helper_src_traces(SCOV_helper):
     def dump_channel(self):
         """Return the dump channel to use when instrumenting programs."""
         return default_dump_channel()
+
+    @property
+    def dump_trigger(self):
+        """Return the dump trigger to use when instrumenting programs."""
+        return default_dump_trigger(self.drivers)
