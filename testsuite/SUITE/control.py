@@ -240,6 +240,7 @@ class RuntimeInfo(object):
         self.has_ravenscar_runtime = False
         self.has_kernel_runtime = False
         self.has_light_runtime = False
+        self.has_exception_propagation = True
 
         if not self.runtime_name:
             self.has_full_runtime = True
@@ -247,10 +248,13 @@ class RuntimeInfo(object):
             self.has_ravenscar_runtime = True
         elif 'light-tasking' in self.runtime_name:
             self.has_ravenscar_runtime = True
+            self.has_exception_propagation = False
         elif self.runtime_name.startswith('zfp'):
             self.has_light_runtime = True
+            self.has_exception_propagation = False
         elif self.runtime_name.startswith('light-'):
             self.has_light_runtime = True
+            self.has_exception_propagation = False
         elif self.runtime_name == 'kernel':
             self.has_kernel_runtime = True
         else:
@@ -291,7 +295,6 @@ class RuntimeInfo(object):
                 self.has_full_runtime and not gnatcov_info().has_setup)
             else 'gnatcov_rts'
         )
-
 
 def runtime_info(runtime=None):
     if runtime is None:
@@ -357,12 +360,36 @@ def target_info(target=None):
 
 class GnatcovInfo:
     def __init__(self):
-        self.major = int(
-            re.search(
+        p = re.search(
                 pattern="GNATcoverage (\d+)",
                 string=version("gnatcov")
-            ).group(1))
-        self.has_setup = self.major >= 23
+            )
+        self._major = int(p.group(1)) if p else None
+        self.has_setup = self.major_at_least(23)
+
+
+    def major_at_most(self, val):
+        """
+        Returns whether the major version of gnatcov is less or equal than
+        val. Consider that development versions of gnatcov have a greater
+        major version than anything.
+        """
+        return self._major is not None and self._major <= val
+
+    def major_at_least(self, val):
+        """
+        Returns whether the major version of gnatcov is greater or equal than
+        val. Consider that development versions of gnatcov have a greater
+        major version than anything.
+        """
+        return self._major is None or self._major >= val
+
+    def major(self):
+        """
+        Major of gnatcov, if defined, or None if gnatcov is a development
+        version.
+        """
+        return self._major
 
 def gnatcov_info():
     return GnatcovInfo()
@@ -507,3 +534,17 @@ def add_shared_options_to(parser, toplevel):
     parser.add_argument(
         '--rewrite', action='store_true',
         help='Rewrite test baselines according to current outputs.')
+
+    # --default-dump-trigger
+    parser.add_argument(
+        '--default-dump-trigger', dest='default_dump_trigger',
+        help='Default dump trigger to be passed to "gnatcov instrument,"'
+             ' unless the test specifically overrides it.'
+    )
+
+    # --default-dump-channel
+    parser.add_argument(
+        '--default-dump-channel', dest='default_dump_channel',
+        help='Default dump channel to be passed to "gnatcov instrument,"'
+             ' unless the test specifically overrides it.'
+    )

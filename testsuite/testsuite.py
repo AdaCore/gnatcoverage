@@ -567,6 +567,16 @@ class TestPyRunner:
         if mopt.all_warnings:
             testcase_cmd.append('--all-warnings')
 
+        if mopt.default_dump_trigger:
+            testcase_cmd.append(
+                f'--default-dump-trigger={mopt.default_dump_trigger}'
+            )
+
+        if mopt.default_dump_channel:
+            testcase_cmd.append(
+                f'--default-dump-channel={mopt.default_dump_channel}'
+            )
+
         # --gnatcov_<cmd> family
 
         for pgm, cmd in control.ALTRUN_GNATCOV_PAIRS:
@@ -1396,8 +1406,13 @@ class TestSuite(e3.testsuite.Testsuite):
         Compute the discriminant that reflects the version of the
         particular gnatcov in use.
         """
+        gnatcov_info = control.gnatcov_info()
 
-        return ["gnatcov-{}".format(control.gnatcov_info().major)]
+        return (
+            ["gnatcov-{}".format(gnatcov_info.major())]
+            if gnatcov_info.major()
+            else []
+        )
 
 
     # --------------------------
