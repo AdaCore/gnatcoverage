@@ -73,12 +73,25 @@ package body Instrument.Ada_Unit_Provider is
       end;
       Close (Dependencies_File);
 
-      --  Read the runtime files and fill Provider.Runtime_Files
+      --  Read the runtime files and fill Provider.Runtime_Files.
+      --
+      --  Note that the GPR system does not ensure that all runtime directories
+      --  actually exist, so do not crash in this case.
 
       for Dirname of Runtime_Directories loop
-         for File of Read_Dir (Create (+(+Dirname))).all loop
-            Provider.Runtime_Files.Insert (+File.Base_Name, +File.Full_Name);
-         end loop;
+         declare
+            Runtime_Dir : constant Virtual_File := Create (+(+Dirname));
+            Files       : File_Array_Access;
+         begin
+            if Runtime_Dir.Is_Directory then
+               Files := Runtime_Dir.Read_Dir;
+               for File of Files.all loop
+                  Provider.Runtime_Files.Insert
+                    (+File.Base_Name, +File.Full_Name);
+               end loop;
+               Unchecked_Free (Files);
+            end if;
+         end;
       end loop;
 
       return Provider;
